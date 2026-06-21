@@ -13,7 +13,22 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppWinesRouteImport } from './routes/_app/wines'
+import { Route as AppTasksRouteImport } from './routes/_app/tasks'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppPantryRouteImport } from './routes/_app/pantry'
+import { Route as AppNotesRouteImport } from './routes/_app/notes'
+import { Route as AppMealPlannerRouteImport } from './routes/_app/meal-planner'
+import { Route as AppGroupsRouteImport } from './routes/_app/groups'
+import { Route as AppGroceriesRouteImport } from './routes/_app/groceries'
+import { Route as AppFinancesRouteImport } from './routes/_app/finances'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppCheesesRouteImport } from './routes/_app/cheeses'
+import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AppBillsRouteImport } from './routes/_app/bills'
+import { Route as AppAccountRouteImport } from './routes/_app/account'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -35,10 +50,84 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppWinesRoute = AppWinesRouteImport.update({
+  id: '/wines',
+  path: '/wines',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTasksRoute = AppTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPantryRoute = AppPantryRouteImport.update({
+  id: '/pantry',
+  path: '/pantry',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotesRoute = AppNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMealPlannerRoute = AppMealPlannerRouteImport.update({
+  id: '/meal-planner',
+  path: '/meal-planner',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGroupsRoute = AppGroupsRouteImport.update({
+  id: '/groups',
+  path: '/groups',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGroceriesRoute = AppGroceriesRouteImport.update({
+  id: '/groceries',
+  path: '/groceries',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFinancesRoute = AppFinancesRouteImport.update({
+  id: '/finances',
+  path: '/finances',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCheesesRoute = AppCheesesRouteImport.update({
+  id: '/cheeses',
+  path: '/cheeses',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBillsRoute = AppBillsRouteImport.update({
+  id: '/bills',
+  path: '/bills',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAccountRoute = AppAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -47,6 +136,20 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/account': typeof AppAccountRoute
+  '/bills': typeof AppBillsRoute
+  '/calendar': typeof AppCalendarRoute
+  '/cheeses': typeof AppCheesesRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/finances': typeof AppFinancesRoute
+  '/groceries': typeof AppGroceriesRoute
+  '/groups': typeof AppGroupsRoute
+  '/meal-planner': typeof AppMealPlannerRoute
+  '/notes': typeof AppNotesRoute
+  '/pantry': typeof AppPantryRoute
+  '/settings': typeof AppSettingsRoute
+  '/tasks': typeof AppTasksRoute
+  '/wines': typeof AppWinesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,25 +157,114 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/account': typeof AppAccountRoute
+  '/bills': typeof AppBillsRoute
+  '/calendar': typeof AppCalendarRoute
+  '/cheeses': typeof AppCheesesRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/finances': typeof AppFinancesRoute
+  '/groceries': typeof AppGroceriesRoute
+  '/groups': typeof AppGroupsRoute
+  '/meal-planner': typeof AppMealPlannerRoute
+  '/notes': typeof AppNotesRoute
+  '/pantry': typeof AppPantryRoute
+  '/settings': typeof AppSettingsRoute
+  '/tasks': typeof AppTasksRoute
+  '/wines': typeof AppWinesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
   '/about': typeof AboutRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/_app/account': typeof AppAccountRoute
+  '/_app/bills': typeof AppBillsRoute
+  '/_app/calendar': typeof AppCalendarRoute
+  '/_app/cheeses': typeof AppCheesesRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/finances': typeof AppFinancesRoute
+  '/_app/groceries': typeof AppGroceriesRoute
+  '/_app/groups': typeof AppGroupsRoute
+  '/_app/meal-planner': typeof AppMealPlannerRoute
+  '/_app/notes': typeof AppNotesRoute
+  '/_app/pantry': typeof AppPantryRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/tasks': typeof AppTasksRoute
+  '/_app/wines': typeof AppWinesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/forgot-password' | '/sign-in' | '/sign-up'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/forgot-password'
+    | '/sign-in'
+    | '/sign-up'
+    | '/account'
+    | '/bills'
+    | '/calendar'
+    | '/cheeses'
+    | '/dashboard'
+    | '/finances'
+    | '/groceries'
+    | '/groups'
+    | '/meal-planner'
+    | '/notes'
+    | '/pantry'
+    | '/settings'
+    | '/tasks'
+    | '/wines'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/forgot-password' | '/sign-in' | '/sign-up'
-  id: '__root__' | '/' | '/about' | '/forgot-password' | '/sign-in' | '/sign-up'
+  to:
+    | '/'
+    | '/about'
+    | '/forgot-password'
+    | '/sign-in'
+    | '/sign-up'
+    | '/account'
+    | '/bills'
+    | '/calendar'
+    | '/cheeses'
+    | '/dashboard'
+    | '/finances'
+    | '/groceries'
+    | '/groups'
+    | '/meal-planner'
+    | '/notes'
+    | '/pantry'
+    | '/settings'
+    | '/tasks'
+    | '/wines'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/about'
+    | '/forgot-password'
+    | '/sign-in'
+    | '/sign-up'
+    | '/_app/account'
+    | '/_app/bills'
+    | '/_app/calendar'
+    | '/_app/cheeses'
+    | '/_app/dashboard'
+    | '/_app/finances'
+    | '/_app/groceries'
+    | '/_app/groups'
+    | '/_app/meal-planner'
+    | '/_app/notes'
+    | '/_app/pantry'
+    | '/_app/settings'
+    | '/_app/tasks'
+    | '/_app/wines'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   AboutRoute: typeof AboutRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   SignInRoute: typeof SignInRoute
@@ -109,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -116,11 +315,146 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/wines': {
+      id: '/_app/wines'
+      path: '/wines'
+      fullPath: '/wines'
+      preLoaderRoute: typeof AppWinesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/tasks': {
+      id: '/_app/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AppTasksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pantry': {
+      id: '/_app/pantry'
+      path: '/pantry'
+      fullPath: '/pantry'
+      preLoaderRoute: typeof AppPantryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/notes': {
+      id: '/_app/notes'
+      path: '/notes'
+      fullPath: '/notes'
+      preLoaderRoute: typeof AppNotesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meal-planner': {
+      id: '/_app/meal-planner'
+      path: '/meal-planner'
+      fullPath: '/meal-planner'
+      preLoaderRoute: typeof AppMealPlannerRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/groups': {
+      id: '/_app/groups'
+      path: '/groups'
+      fullPath: '/groups'
+      preLoaderRoute: typeof AppGroupsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/groceries': {
+      id: '/_app/groceries'
+      path: '/groceries'
+      fullPath: '/groceries'
+      preLoaderRoute: typeof AppGroceriesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/finances': {
+      id: '/_app/finances'
+      path: '/finances'
+      fullPath: '/finances'
+      preLoaderRoute: typeof AppFinancesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cheeses': {
+      id: '/_app/cheeses'
+      path: '/cheeses'
+      fullPath: '/cheeses'
+      preLoaderRoute: typeof AppCheesesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bills': {
+      id: '/_app/bills'
+      path: '/bills'
+      fullPath: '/bills'
+      preLoaderRoute: typeof AppBillsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/account': {
+      id: '/_app/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AppAccountRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppAccountRoute: typeof AppAccountRoute
+  AppBillsRoute: typeof AppBillsRoute
+  AppCalendarRoute: typeof AppCalendarRoute
+  AppCheesesRoute: typeof AppCheesesRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppFinancesRoute: typeof AppFinancesRoute
+  AppGroceriesRoute: typeof AppGroceriesRoute
+  AppGroupsRoute: typeof AppGroupsRoute
+  AppMealPlannerRoute: typeof AppMealPlannerRoute
+  AppNotesRoute: typeof AppNotesRoute
+  AppPantryRoute: typeof AppPantryRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppTasksRoute: typeof AppTasksRoute
+  AppWinesRoute: typeof AppWinesRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAccountRoute: AppAccountRoute,
+  AppBillsRoute: AppBillsRoute,
+  AppCalendarRoute: AppCalendarRoute,
+  AppCheesesRoute: AppCheesesRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppFinancesRoute: AppFinancesRoute,
+  AppGroceriesRoute: AppGroceriesRoute,
+  AppGroupsRoute: AppGroupsRoute,
+  AppMealPlannerRoute: AppMealPlannerRoute,
+  AppNotesRoute: AppNotesRoute,
+  AppPantryRoute: AppPantryRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppTasksRoute: AppTasksRoute,
+  AppWinesRoute: AppWinesRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   AboutRoute: AboutRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   SignInRoute: SignInRoute,
@@ -129,3 +463,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
