@@ -1,5 +1,6 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
+import { useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
 
@@ -12,6 +13,7 @@ function RecipeDetail() {
   const recipe = useQuery(api.recipes.get, { id: recipeId as Id<'recipes'> })
   const remove = useMutation(api.recipes.remove)
   const navigate = useNavigate()
+  const [error, setError] = useState<string | null>(null)
 
   if (recipe === undefined) return <p className="text-sm opacity-60">Loading…</p>
   if (recipe === null) return <p className="text-sm opacity-60">Recipe not found.</p>
@@ -26,14 +28,25 @@ function RecipeDetail() {
             type="button"
             className="rounded border px-3 py-1.5 text-sm"
             onClick={async () => {
-              await remove({ id: recipe._id })
-              navigate({ to: '/recipes' })
+              setError(null)
+              try {
+                await remove({ id: recipe._id })
+                navigate({ to: '/recipes' })
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'Could not delete recipe')
+              }
             }}
           >
             Delete
           </button>
         </div>
       </div>
+
+      {error && (
+        <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {error}
+        </p>
+      )}
 
       {recipe.imageUrl && (
         <img src={recipe.imageUrl} alt={recipe.title} className="mb-4 w-full rounded-xl object-cover" />

@@ -7,7 +7,6 @@ export interface RecipeFormValues {
   steps: string[]
   tags: string[]
   rating?: number
-  prepMinutes?: number
 }
 
 interface Props {
