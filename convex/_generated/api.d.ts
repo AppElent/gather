@@ -10,6 +10,7 @@
 
 import type * as groups from "../groups.js";
 import type * as lib_sharing from "../lib/sharing.js";
+import type * as recipes from "../recipes.js";
 import type * as users from "../users.js";
 
 import type {
@@ -21,6 +22,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   groups: typeof groups;
   "lib/sharing": typeof lib_sharing;
+  recipes: typeof recipes;
   users: typeof users;
 }>;
 
