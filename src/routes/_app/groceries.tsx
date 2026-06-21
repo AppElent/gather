@@ -6,6 +6,10 @@ const def = MODULES.find((m) => m.id === 'groceries')!
 
 export const Route = createFileRoute('/_app/groceries')({
   component: () => (
-    <ModulePlaceholder label={def.label} description={def.description} icon={def.icon} />
+    <ModulePlaceholder
+      label={def.label}
+      description={def.description}
+      icon={def.icon}
+    />
   ),
 })

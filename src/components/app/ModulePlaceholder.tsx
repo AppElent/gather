@@ -1,5 +1,5 @@
-import * as Icons from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import * as Icons from 'lucide-react'
 
 export function ModulePlaceholder({
   label,
@@ -10,7 +10,8 @@ export function ModulePlaceholder({
   description: string
   icon: string
 }) {
-  const Icon = (Icons as unknown as Record<string, LucideIcon>)[icon] ?? Icons.Square
+  const Icon =
+    (Icons as unknown as Record<string, LucideIcon>)[icon] ?? Icons.Square
 
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-20 text-center">

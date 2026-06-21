@@ -16,9 +16,15 @@ interface Props {
 }
 
 const lines = (s: string) =>
-  s.split('\n').map((l) => l.trim()).filter(Boolean)
+  s
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
 const csv = (s: string) =>
-  s.split(',').map((l) => l.trim()).filter(Boolean)
+  s
+    .split(',')
+    .map((l) => l.trim())
+    .filter(Boolean)
 
 export function RecipeForm({ initial, submitting, onSubmit }: Props) {
   const [title, setTitle] = useState(initial?.title ?? '')
@@ -47,29 +53,64 @@ export function RecipeForm({ initial, submitting, onSubmit }: Props) {
     >
       <label className="block text-sm">
         <span className="mb-1 block font-medium">Title</span>
-        <input className="w-full rounded border px-2 py-1" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <input
+          className="w-full rounded border px-2 py-1"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+        />
       </label>
       <label className="block text-sm">
         <span className="mb-1 block font-medium">Description</span>
-        <textarea className="w-full rounded border px-2 py-1" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <textarea
+          className="w-full rounded border px-2 py-1"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
       </label>
       <label className="block text-sm">
         <span className="mb-1 block font-medium">Ingredients</span>
-        <textarea className="h-28 w-full rounded border px-2 py-1" value={ingredients} onChange={(e) => setIngredients(e.target.value)} placeholder="One per line" />
+        <textarea
+          className="h-28 w-full rounded border px-2 py-1"
+          value={ingredients}
+          onChange={(e) => setIngredients(e.target.value)}
+          placeholder="One per line"
+        />
       </label>
       <label className="block text-sm">
         <span className="mb-1 block font-medium">Steps</span>
-        <textarea className="h-28 w-full rounded border px-2 py-1" value={steps} onChange={(e) => setSteps(e.target.value)} placeholder="One per line" />
+        <textarea
+          className="h-28 w-full rounded border px-2 py-1"
+          value={steps}
+          onChange={(e) => setSteps(e.target.value)}
+          placeholder="One per line"
+        />
       </label>
       <label className="block text-sm">
         <span className="mb-1 block font-medium">Tags</span>
-        <input className="w-full rounded border px-2 py-1" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="comma, separated" />
+        <input
+          className="w-full rounded border px-2 py-1"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="comma, separated"
+        />
       </label>
       <label className="block text-sm">
         <span className="mb-1 block font-medium">Rating (1–5)</span>
-        <input type="number" min="1" max="5" className="w-24 rounded border px-2 py-1" value={rating} onChange={(e) => setRating(e.target.value)} />
+        <input
+          type="number"
+          min="1"
+          max="5"
+          className="w-24 rounded border px-2 py-1"
+          value={rating}
+          onChange={(e) => setRating(e.target.value)}
+        />
       </label>
-      <button type="submit" disabled={submitting} className="rounded-md border px-4 py-2 text-sm">
+      <button
+        type="submit"
+        disabled={submitting}
+        className="rounded-md border px-4 py-2 text-sm"
+      >
         {submitting ? 'Saving…' : 'Save recipe'}
       </button>
     </form>

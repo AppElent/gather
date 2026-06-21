@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
 import { RecipeForm } from '../../../components/recipes/RecipeForm'
 
-export const Route = createFileRoute('/_app/recipes/new')({ component: NewRecipe })
+export const Route = createFileRoute('/_app/recipes/new')({
+  component: NewRecipe,
+})
 
 function NewRecipe() {
   const create = useMutation(api.recipes.create)
@@ -29,7 +31,9 @@ function NewRecipe() {
             const id = await create(values)
             navigate({ to: '/recipes/$recipeId', params: { recipeId: id } })
           } catch (err) {
-            setError(err instanceof Error ? err.message : 'Could not save recipe')
+            setError(
+              err instanceof Error ? err.message : 'Could not save recipe',
+            )
             setSubmitting(false)
           }
         }}

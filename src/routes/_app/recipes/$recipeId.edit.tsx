@@ -17,8 +17,10 @@ function EditRecipe() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (recipe === undefined) return <p className="text-sm opacity-60">Loading…</p>
-  if (recipe === null) return <p className="text-sm opacity-60">Recipe not found.</p>
+  if (recipe === undefined)
+    return <p className="text-sm opacity-60">Loading…</p>
+  if (recipe === null)
+    return <p className="text-sm opacity-60">Recipe not found.</p>
 
   return (
     <div>
@@ -45,7 +47,9 @@ function EditRecipe() {
             await update({ id: recipe._id, ...values })
             navigate({ to: '/recipes/$recipeId', params: { recipeId } })
           } catch (err) {
-            setError(err instanceof Error ? err.message : 'Could not save recipe')
+            setError(
+              err instanceof Error ? err.message : 'Could not save recipe',
+            )
             setSubmitting(false)
           }
         }}

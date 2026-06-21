@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
 import { AppearanceSettings } from '@appelent/auth'
+import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_app/settings')({
   component: () => (

@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useConvexAuth, useMutation } from 'convex/react'
 import { useEffect } from 'react'
 import { api } from '../../convex/_generated/api'
@@ -25,7 +25,11 @@ function AppLayout() {
   }, [isAuthenticated, ensureUser])
 
   if (isLoading) {
-    return <div className="grid min-h-svh place-items-center text-sm opacity-60">Loading…</div>
+    return (
+      <div className="grid min-h-svh place-items-center text-sm opacity-60">
+        Loading…
+      </div>
+    )
   }
   if (!isAuthenticated) return null
 

@@ -1,5 +1,5 @@
-import { useNavigate } from '@tanstack/react-router'
 import type { NavigateOptions } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { MODULES } from '../../lib/modules'
 

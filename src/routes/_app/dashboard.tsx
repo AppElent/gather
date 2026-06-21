@@ -1,10 +1,12 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
 import type { LinkProps } from '@tanstack/react-router'
-import * as Icons from 'lucide-react'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
+import * as Icons from 'lucide-react'
 import { MODULES } from '../../lib/modules'
 
-export const Route = createFileRoute('/_app/dashboard')({ component: Dashboard })
+export const Route = createFileRoute('/_app/dashboard')({
+  component: Dashboard,
+})
 
 function Dashboard() {
   return (
@@ -13,7 +15,8 @@ function Dashboard() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {MODULES.map((m) => {
           const Icon =
-            (Icons as unknown as Record<string, LucideIcon>)[m.icon] ?? Icons.Square
+            (Icons as unknown as Record<string, LucideIcon>)[m.icon] ??
+            Icons.Square
           return (
             <Link
               key={m.id}
@@ -24,7 +27,9 @@ function Dashboard() {
               <span className="font-medium">{m.label}</span>
               <span className="text-xs opacity-60">{m.description}</span>
               {m.status === 'placeholder' && (
-                <span className="mt-1 w-fit rounded-full border px-2 text-[10px] uppercase opacity-50">Soon</span>
+                <span className="mt-1 w-fit rounded-full border px-2 text-[10px] uppercase opacity-50">
+                  Soon
+                </span>
               )}
             </Link>
           )

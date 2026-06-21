@@ -1,4 +1,4 @@
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
@@ -15,15 +15,23 @@ function RecipeDetail() {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
 
-  if (recipe === undefined) return <p className="text-sm opacity-60">Loading…</p>
-  if (recipe === null) return <p className="text-sm opacity-60">Recipe not found.</p>
+  if (recipe === undefined)
+    return <p className="text-sm opacity-60">Loading…</p>
+  if (recipe === null)
+    return <p className="text-sm opacity-60">Recipe not found.</p>
 
   return (
     <article className="mx-auto max-w-2xl">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{recipe.title}</h1>
         <div className="flex gap-2">
-          <Link to="/recipes/$recipeId/edit" params={{ recipeId }} className="rounded border px-3 py-1.5 text-sm no-underline">Edit</Link>
+          <Link
+            to="/recipes/$recipeId/edit"
+            params={{ recipeId }}
+            className="rounded border px-3 py-1.5 text-sm no-underline"
+          >
+            Edit
+          </Link>
           <button
             type="button"
             className="rounded border px-3 py-1.5 text-sm"
@@ -33,7 +41,11 @@ function RecipeDetail() {
                 await remove({ id: recipe._id })
                 navigate({ to: '/recipes' })
               } catch (err) {
-                setError(err instanceof Error ? err.message : 'Could not delete recipe')
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : 'Could not delete recipe',
+                )
               }
             }}
           >
@@ -49,9 +61,15 @@ function RecipeDetail() {
       )}
 
       {recipe.imageUrl && (
-        <img src={recipe.imageUrl} alt={recipe.title} className="mb-4 w-full rounded-xl object-cover" />
+        <img
+          src={recipe.imageUrl}
+          alt={recipe.title}
+          className="mb-4 w-full rounded-xl object-cover"
+        />
       )}
-      {recipe.description && <p className="mb-4 opacity-80">{recipe.description}</p>}
+      {recipe.description && (
+        <p className="mb-4 opacity-80">{recipe.description}</p>
+      )}
 
       <h2 className="mb-2 font-medium">Ingredients</h2>
       <ul className="mb-4 list-disc pl-5 text-sm">

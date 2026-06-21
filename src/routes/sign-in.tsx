@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { SignInForm, TestLoginButton, useAuthConfig } from '@appelent/auth'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/sign-in')({ component: SignInPage })
 
