@@ -29,6 +29,10 @@ import { Route as AppCheesesRouteImport } from './routes/_app/cheeses'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppBillsRouteImport } from './routes/_app/bills'
 import { Route as AppAccountRouteImport } from './routes/_app/account'
+import { Route as AppRecipesIndexRouteImport } from './routes/_app/recipes/index'
+import { Route as AppRecipesNewRouteImport } from './routes/_app/recipes/new'
+import { Route as AppRecipesRecipeIdRouteImport } from './routes/_app/recipes/$recipeId'
+import { Route as AppRecipesRecipeIdEditRouteImport } from './routes/_app/recipes/$recipeId.edit'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -129,6 +133,26 @@ const AppAccountRoute = AppAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRecipesIndexRoute = AppRecipesIndexRouteImport.update({
+  id: '/recipes/',
+  path: '/recipes/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRecipesNewRoute = AppRecipesNewRouteImport.update({
+  id: '/recipes/new',
+  path: '/recipes/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRecipesRecipeIdRoute = AppRecipesRecipeIdRouteImport.update({
+  id: '/recipes/$recipeId',
+  path: '/recipes/$recipeId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRecipesRecipeIdEditRoute = AppRecipesRecipeIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => AppRecipesRecipeIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -150,6 +174,10 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/tasks': typeof AppTasksRoute
   '/wines': typeof AppWinesRoute
+  '/recipes/$recipeId': typeof AppRecipesRecipeIdRouteWithChildren
+  '/recipes/new': typeof AppRecipesNewRoute
+  '/recipes/': typeof AppRecipesIndexRoute
+  '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -171,6 +199,10 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/tasks': typeof AppTasksRoute
   '/wines': typeof AppWinesRoute
+  '/recipes/$recipeId': typeof AppRecipesRecipeIdRouteWithChildren
+  '/recipes/new': typeof AppRecipesNewRoute
+  '/recipes': typeof AppRecipesIndexRoute
+  '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -194,6 +226,10 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/tasks': typeof AppTasksRoute
   '/_app/wines': typeof AppWinesRoute
+  '/_app/recipes/$recipeId': typeof AppRecipesRecipeIdRouteWithChildren
+  '/_app/recipes/new': typeof AppRecipesNewRoute
+  '/_app/recipes/': typeof AppRecipesIndexRoute
+  '/_app/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -217,6 +253,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/wines'
+    | '/recipes/$recipeId'
+    | '/recipes/new'
+    | '/recipes/'
+    | '/recipes/$recipeId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -238,6 +278,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/wines'
+    | '/recipes/$recipeId'
+    | '/recipes/new'
+    | '/recipes'
+    | '/recipes/$recipeId/edit'
   id:
     | '__root__'
     | '/'
@@ -260,6 +304,10 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/tasks'
     | '/_app/wines'
+    | '/_app/recipes/$recipeId'
+    | '/_app/recipes/new'
+    | '/_app/recipes/'
+    | '/_app/recipes/$recipeId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -413,8 +461,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/recipes/': {
+      id: '/_app/recipes/'
+      path: '/recipes'
+      fullPath: '/recipes/'
+      preLoaderRoute: typeof AppRecipesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/recipes/new': {
+      id: '/_app/recipes/new'
+      path: '/recipes/new'
+      fullPath: '/recipes/new'
+      preLoaderRoute: typeof AppRecipesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/recipes/$recipeId': {
+      id: '/_app/recipes/$recipeId'
+      path: '/recipes/$recipeId'
+      fullPath: '/recipes/$recipeId'
+      preLoaderRoute: typeof AppRecipesRecipeIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/recipes/$recipeId/edit': {
+      id: '/_app/recipes/$recipeId/edit'
+      path: '/edit'
+      fullPath: '/recipes/$recipeId/edit'
+      preLoaderRoute: typeof AppRecipesRecipeIdEditRouteImport
+      parentRoute: typeof AppRecipesRecipeIdRoute
+    }
   }
 }
+
+interface AppRecipesRecipeIdRouteChildren {
+  AppRecipesRecipeIdEditRoute: typeof AppRecipesRecipeIdEditRoute
+}
+
+const AppRecipesRecipeIdRouteChildren: AppRecipesRecipeIdRouteChildren = {
+  AppRecipesRecipeIdEditRoute: AppRecipesRecipeIdEditRoute,
+}
+
+const AppRecipesRecipeIdRouteWithChildren =
+  AppRecipesRecipeIdRoute._addFileChildren(AppRecipesRecipeIdRouteChildren)
 
 interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
@@ -431,6 +518,9 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppTasksRoute: typeof AppTasksRoute
   AppWinesRoute: typeof AppWinesRoute
+  AppRecipesRecipeIdRoute: typeof AppRecipesRecipeIdRouteWithChildren
+  AppRecipesNewRoute: typeof AppRecipesNewRoute
+  AppRecipesIndexRoute: typeof AppRecipesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -448,6 +538,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppTasksRoute: AppTasksRoute,
   AppWinesRoute: AppWinesRoute,
+  AppRecipesRecipeIdRoute: AppRecipesRecipeIdRouteWithChildren,
+  AppRecipesNewRoute: AppRecipesNewRoute,
+  AppRecipesIndexRoute: AppRecipesIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
