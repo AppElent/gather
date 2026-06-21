@@ -12,10 +12,20 @@ function GroupsPage() {
   const setDefault = useMutation(api.groups.setDefaultGroup)
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const errorMessage = (err: unknown) =>
+    err instanceof Error ? err.message : 'Something went wrong'
 
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-4 text-xl font-semibold">Groups</h1>
+
+      {error && (
+        <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {error}
+        </p>
+      )}
 
       {groups === undefined ? (
         <p className="text-sm opacity-60">Loading…</p>
@@ -29,7 +39,7 @@ function GroupsPage() {
                 {g.isDefault && <span className="ml-2 rounded bg-emerald-100 px-1.5 text-xs text-emerald-800">default</span>}
               </span>
               {!g.isDefault && (
-                <button type="button" className="rounded border px-2 py-1 text-xs" onClick={() => void setDefault({ groupId: g._id })}>
+                <button type="button" className="rounded border px-2 py-1 text-xs" onClick={() => { setError(null); void setDefault({ groupId: g._id }).catch((err) => setError(errorMessage(err))) }}>
                   Make default
                 </button>
               )}
@@ -43,7 +53,11 @@ function GroupsPage() {
           className="rounded-md border p-3"
           onSubmit={(e) => {
             e.preventDefault()
-            if (name.trim()) void createGroup({ name: name.trim() }).then(() => setName(''))
+            setError(null)
+            if (name.trim())
+              void createGroup({ name: name.trim() })
+                .then(() => setName(''))
+                .catch((err) => setError(errorMessage(err)))
           }}
         >
           <p className="mb-2 text-sm font-medium">New group</p>
@@ -55,7 +69,11 @@ function GroupsPage() {
           className="rounded-md border p-3"
           onSubmit={(e) => {
             e.preventDefault()
-            if (code.trim()) void joinByInvite({ inviteCode: code.trim() }).then(() => setCode(''))
+            setError(null)
+            if (code.trim())
+              void joinByInvite({ inviteCode: code.trim() })
+                .then(() => setCode(''))
+                .catch((err) => setError(errorMessage(err)))
           }}
         >
           <p className="mb-2 text-sm font-medium">Join with invite code</p>
