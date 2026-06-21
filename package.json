@@ -8,16 +8,17 @@
   "scripts": {
     "dev": "dotenv -e .env.local -- sh -c \"NODE_OPTIONS='--import ./instrument.server.mjs' vite dev --port 3000\"",
     "generate-routes": "tsr generate",
-    "build": "vite build && cp instrument.server.mjs .output/server",
+    "build": "vite build && cp instrument.server.mjs dist/server",
     "preview": "vite preview",
     "test": "vitest run",
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",
     "deploy": "npm run build && wrangler deploy",
-    "start": "node --import ./.output/server/instrument.server.mjs .output/server/index.mjs"
+    "start": "node --import ./dist/server/instrument.server.mjs dist/server/index.mjs"
   },
   "dependencies": {
+    "@appelent/auth": "^0.1.0",
     "@clerk/clerk-react": "^5.61.3",
     "@cloudflare/vite-plugin": "^1.26.0",
     "@convex-dev/react-query": "0.1.0",
