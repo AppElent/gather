@@ -1,0 +1,24 @@
+# pnpm 11 default-denies install/build lifecycle scripts (neutralizes the
+# postinstall-RCE vector supply-chain worms rely on). Only packages that
+# genuinely compile/download a native binary are allowed to run scripts;
+# everything else (e.g. @clerk/shared's telemetry notice, @google/genai's
+# and protobufjs's postinstall) stays denied.
+allowBuilds:
+  esbuild: true # native binary compile (bundler)
+  lightningcss: true # native binary compile (Tailwind v4 oxide/CSS transform)
+  sharp: true # native binary compile (libvips image processing)
+  workerd: true # downloads the Cloudflare Workers runtime binary
+  "@sentry/cli": true # downloads the sentry-cli binary, needed for sourcemap upload
+  "@clerk/shared": false # postinstall is just a telemetry notice
+  "@google/genai": false # no native binary needed at install time
+  protobufjs: false # no native binary needed at install time
+
+minimumReleaseAge: 4320 # 3 days — blocks the worm/account-takeover window
+minimumReleaseAgeExclude:
+  - "@appelent/*" # our own registry, always trusted
+
+overrides:
+  # @tanstack/ai-gemini pulls in @google/genai@^2.8.0, which latest-resolved to
+  # 2.11.0 (published within the minimumReleaseAge cooldown). Pin to 2.10.0
+  # (published 2026-06-24, outside the cooldown) instead of weakening the policy.
+  "@google/genai": "2.10.0"
