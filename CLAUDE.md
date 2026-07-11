@@ -21,10 +21,23 @@ cheeses, wines) built on the standard AppElent stack:
 
 ## Dependency status
 
-`@appelent/auth` is installed but **not yet integrated** — `src/integrations/clerk/provider.tsx`
-still hand-rolls a plain `ClerkProvider`. A background task is tracked to migrate
-sign-in/sign-up/theme onto the shared package; until then, treat the local Clerk
-wiring as the source of truth for auth behavior.
+`@appelent/auth` is integrated: sign-in/sign-up/forgot-password forms, the account
+profile panel, appearance settings, header user menu, and theme sync all come from
+the shared package (see `src/routes/__root.tsx`, `src/routes/sign-in.tsx`,
+`src/routes/sign-up.tsx`, `src/routes/forgot-password.tsx`,
+`src/routes/_app/account.tsx`, `src/routes/_app/settings.tsx`,
+`src/components/app/Topbar.tsx`). Per the package's own design, this app still owns
+`src/integrations/clerk/provider.tsx` (plain `ClerkProvider`, with `signInUrl`/
+`signUpUrl` pointed at gather's routes) and the Clerk↔Convex JWT bridge in
+`src/integrations/convex/provider.tsx` — `@appelent/auth` does not export either of
+those. `src/styles.css` overrides the package's `--auth-*` tokens to match gather's
+sea/lagoon palette, and defines `.rm-panel`/`.rm-label` (used by `ProfilePanel`/
+`AppearanceSettings` but not shipped in `tokens.css`) to match the app's
+`.demo-panel`/`.demo-section-title` card styling.
+
+Known limitation (not fixable from gather): `AppearanceSettings`'s copy hardcodes
+"Choose how ArchStudio looks." regardless of `useAuthConfig().appName` — a bug in
+the shared package itself, out of scope here.
 
 ## Scripts
 
@@ -37,7 +50,9 @@ No `seed` script — `convex/seed.ts` doesn't exist.
 ## Env vars
 
 Client (`.env.local`, see `.env.example` for the full documented list):
-`VITE_CLERK_PUBLISHABLE_KEY`, `CONVEX_DEPLOYMENT`, `VITE_CONVEX_URL`,
+`VITE_CLERK_PUBLISHABLE_KEY`, `VITE_TEST_USER_EMAIL`, `VITE_TEST_USER_PASSWORD`
+(the latter two enable `@appelent/auth`'s dev-only test-login button when the
+Clerk key is `pk_test_...`), `CONVEX_DEPLOYMENT`, `VITE_CONVEX_URL`,
 `VITE_SENTRY_DSN`, `VITE_SENTRY_ORG`, `VITE_SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.
 
 Convex deployment (server-side, set via `convex env set` / `convex env default set`,

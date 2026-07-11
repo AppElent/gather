@@ -76,6 +76,23 @@
   }
 }
 
+/* @appelent/auth brand overrides — bridge the shared auth UI onto gather's
+   sea/lagoon palette. These reference gather's own theme vars (already
+   correctly re-themed via :root[data-theme="dark"] / prefers-color-scheme),
+   so no separate .dark {} copy is needed here. */
+:root {
+  --auth-bg: var(--bg-base);
+  --auth-fg: var(--sea-ink);
+  --auth-muted: var(--sea-ink-soft);
+  --auth-card-bg: var(--surface-strong);
+  --auth-border: var(--line);
+  --auth-radius: 1rem;
+  --auth-field-bg: var(--surface);
+  --auth-accent: var(--lagoon-deep);
+  --auth-accent-fg: var(--foam);
+  --auth-error: #c14747;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -238,6 +255,24 @@ pre code {
 
 .demo-section-title {
   margin: 0;
+  color: var(--sea-ink);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.rm-panel {
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: linear-gradient(165deg, var(--surface-strong), var(--surface));
+  box-shadow:
+    0 1px 0 var(--inset-glint) inset,
+    0 18px 34px rgba(30, 90, 72, 0.1),
+    0 4px 14px rgba(23, 58, 64, 0.06);
+  backdrop-filter: blur(4px);
+}
+
+.rm-label {
+  margin: 0 0 0.75rem;
   color: var(--sea-ink);
   font-size: 1rem;
   font-weight: 700;
