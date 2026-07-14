@@ -50,10 +50,9 @@ The sign-in screen's "▶ Dev: log in as test user" button comes from `@appelent
 key **and** both `VITE_TEST_USER_EMAIL`/`VITE_TEST_USER_PASSWORD` are set. If it's
 missing, check `.env.local` before concluding the app can't be tested logged-in.
 
-Note: as of this writing gather's own sign-in flow (`src/routes/sign-in.tsx`) hand-rolls
-Clerk's `<SignIn>` rather than consuming `@appelent/auth` yet — see the pending
-`@appelent/auth` migration. If that migration has landed since, prefer whatever
-sign-in surface it introduces.
+gather's sign-in flow (`src/routes/sign-in.tsx`) consumes `@appelent/auth`'s
+`SignInForm`/`TestLoginButton` directly — the migration off the hand-rolled
+Clerk `<SignIn>` has landed.
 
 ## What to drive
 
