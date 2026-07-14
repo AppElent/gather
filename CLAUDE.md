@@ -72,36 +72,28 @@ that doesn't inherit dev/prod env vars).
 
 ## Claude Code workflow layer
 
-`.claude/skills/review-app`, `.claude/skills/review-session`, and
-`.claude/commands/upgrade-deps.md`/`review-session.md` are project-local copies of
-the global `~/.claude/skills/custom-review-app` / `custom-review-session` /
+`.claude/skills/review-app` and `.claude/skills/review-session` are project-local
+copies of the `appelent` plugin's bundled `skills/review-app`/`skills/review-session`
+(catalog repo `D:\Dev\appelent-packages`, https://github.com/AppElent/appelent-packages)
+— **the plugin's copies are the source of truth**; refresh either with
+`/appelent:project sync-skills <name>`. `.claude/commands/upgrade-deps.md` and
+`.claude/commands/review-session.md` are still project-local copies of the global
 `~/.claude/commands/custom-upgrade-deps.md` / `custom-review-session.md` templates
-(renamed to avoid the duplicate-skill collision). **The global copies are the source
-of truth** — a non-project-specific fix made locally should be ported back to the
-global file, not left to drift. `.claude/skills/verify/SKILL.md` is the one
-exception: it's project-specific by design (gather's actual route→module map) and
-has no global counterpart.
+(no catalog equivalent for these two yet) — the global copies remain the source of
+truth for them. In all cases, a non-project-specific fix made locally should be
+ported back to whichever source copy it traces to, not left to drift.
+`.claude/skills/verify/SKILL.md` is the one exception: it's project-specific by
+design (gather's actual route→module map) and has no source-of-truth counterpart
+at all.
 
 <!-- appelent-managed:start -->
 ## Appelent Managed Project
 
-This repo follows the shared Appelent project baseline.
+This is an Appelent-managed app. Opted-in features and their options are
+recorded in `appelent.json`. Feature definitions live in the `appelent`
+plugin (locally installed) or https://github.com/AppElent/appelent-packages
+(`skills/<feature>/FEATURE.md`).
 
-Source of truth:
-- `C:\Users\ericj\.claude\appelent\projects.json`
-- `C:\Users\ericj\.claude\appelent\capabilities.json`
-- `C:\Users\ericj\.claude\skills`
-
-Web/browser fallback:
-- `.claude\appelent`
-- `.claude\skills`
-
-Before adding functionality that could apply to multiple apps, check whether it belongs in:
-- an existing or new `@appelent/*` package
-- `custom-bootstrap`
-- a capability skill such as `add-cli` or `add-i18n`
-
-When functionality lives in an `@appelent/*` package, that package's own README is the tool-agnostic source of truth for using it — Codex and humans read it, and skills are Claude-only pointers to it, never the source.
-
-If you add, remove, or generalize cross-app functionality, update the Appelent registry files or explain why no registry change is needed.
+Before adding functionality that could apply to multiple apps, check the
+feature catalog first. To add or update a feature, use `/appelent`.
 <!-- appelent-managed:end -->
