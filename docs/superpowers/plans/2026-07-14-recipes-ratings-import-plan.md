@@ -230,6 +230,137 @@ describe('extractJsonLdRecipe', () => {
   })
 })
 
+describe('extractJsonLdRecipe — real-world site quirks', () => {
+  test('flattens HowToSection-grouped instructions (WP Recipe Maker style — leukerecepten.nl, lekkerensimpel.com)', () => {
+    const html = htmlWithJsonLd({
+      '@type': 'Recipe',
+      name: 'Sectioned Recipe',
+      recipeIngredient: ['flour', 'sugar'],
+      recipeInstructions: [
+        {
+          '@type': 'HowToSection',
+          name: 'Make the batter',
+          itemListElement: [
+            { '@type': 'HowToStep', text: 'Mix flour and sugar.' },
+            { '@type': 'HowToStep', text: 'Add water.' },
+          ],
+        },
+        {
+          '@type': 'HowToSection',
+          name: 'Bake it',
+          itemListElement: [
+            { '@type': 'HowToStep', text: 'Bake for 30 minutes.' },
+          ],
+        },
+      ],
+    })
+
+    expect(extractJsonLdRecipe(html)?.steps).toEqual([
+      'Mix flour and sugar.',
+      'Add water.',
+      'Bake for 30 minutes.',
+    ])
+  })
+
+  test('accepts recipeCategory/recipeCuisine as arrays, not just strings (lekkerensimpel.com, miljuschka.nl)', () => {
+    const html = htmlWithJsonLd({
+      '@type': 'Recipe',
+      name: 'Array Tags Recipe',
+      recipeIngredient: ['pasta'],
+      recipeInstructions: ['Cook it.'],
+      recipeCategory: ['Hoofdgerecht'],
+      recipeCuisine: ['Italiaanse keuken'],
+    })
+
+    expect(extractJsonLdRecipe(html)?.tags).toEqual(
+      expect.arrayContaining(['Hoofdgerecht', 'Italiaanse keuken']),
+    )
+  })
+
+  test('skips a leading empty string in an image array and finds the real URL (ah.nl)', () => {
+    const html = htmlWithJsonLd({
+      '@type': 'Recipe',
+      name: 'Empty Image Slot Recipe',
+      recipeIngredient: ['egg'],
+      recipeInstructions: ['Fry it.'],
+      image: ['', 'https://example.com/real-photo.jpg'],
+    })
+
+    expect(extractJsonLdRecipe(html)?.imageUrl).toBe(
+      'https://example.com/real-photo.jpg',
+    )
+  })
+
+  test('falls back to ImageObject.contentUrl when .url is absent', () => {
+    const html = htmlWithJsonLd({
+      '@type': 'Recipe',
+      name: 'ContentUrl Recipe',
+      recipeIngredient: ['egg'],
+      recipeInstructions: ['Fry it.'],
+      image: {
+        '@type': 'ImageObject',
+        contentUrl: 'https://example.com/content.jpg',
+      },
+    })
+
+    expect(extractJsonLdRecipe(html)?.imageUrl).toBe(
+      'https://example.com/content.jpg',
+    )
+  })
+
+  test('decodes HTML entities embedded in JSON-LD string values (miljuschka.nl)', () => {
+    const html = htmlWithJsonLd({
+      '@type': 'Recipe',
+      name: 'Salt &amp; Pepper Chicken',
+      recipeIngredient: ['chicken'],
+      recipeInstructions: ['Season with salt &amp; pepper.'],
+      recipeCategory: 'Koek &amp; Gebak',
+    })
+
+    const result = extractJsonLdRecipe(html)
+    expect(result?.title).toBe('Salt & Pepper Chicken')
+    expect(result?.steps).toEqual(['Season with salt & pepper.'])
+    expect(result?.tags).toEqual(['Koek & Gebak'])
+  })
+
+  test('finds a Recipe nested under a WebPage mainEntity', () => {
+    const html = htmlWithJsonLd({
+      '@type': 'WebPage',
+      name: 'Some Page',
+      mainEntity: {
+        '@type': 'Recipe',
+        name: 'Nested Under mainEntity',
+        recipeIngredient: ['flour'],
+        recipeInstructions: ['Bake it.'],
+      },
+    })
+
+    expect(extractJsonLdRecipe(html)?.title).toBe('Nested Under mainEntity')
+  })
+
+  test('ignores an @id-only mainEntity reference without crashing', () => {
+    const html = htmlWithJsonLd({
+      '@type': 'WebPage',
+      name: 'Some Page',
+      mainEntity: [{ '@id': 'https://example.com/#faq-1' }],
+    })
+
+    expect(extractJsonLdRecipe(html)).toBeNull()
+  })
+
+  test('falls back to cookTime for prepMinutes when prepTime/totalTime are absent (lekkerensimpel.com)', () => {
+    const html = htmlWithJsonLd({
+      '@type': 'Recipe',
+      name: 'Cook Time Only Recipe',
+      recipeIngredient: ['pasta'],
+      recipeInstructions: ['Boil it.'],
+      cookTime: 'PT20M',
+    })
+
+    expect(extractJsonLdRecipe(html)?.prepMinutes).toBe(20)
+  })
+})
+
 describe('parseIsoDurationMinutes', () => {
   test('parses hours and minutes', () => {
     expect(parseIsoDurationMinutes('PT1H30M')).toBe(90)
@@ -295,7 +426,19 @@ function findRecipeNode(data: unknown): JsonLdNode | null {
   if (typeof data !== 'object' || data === null) return null
   if (isRecipeNode(data)) return data as JsonLdNode
   const graph = (data as { '@graph'?: unknown })['@graph']
-  if (Array.isArray(graph)) return findRecipeNode(graph)
+  if (Array.isArray(graph)) {
+    const found = findRecipeNode(graph)
+    if (found) return found
+  }
+  // Some sites wrap the Recipe as the mainEntity of a WebPage instead of
+  // (or in addition to) using @graph. mainEntity may also just be an
+  // @id-reference to another node (no @type) — findRecipeNode safely
+  // returns null for those rather than throwing.
+  const mainEntity = (data as { mainEntity?: unknown }).mainEntity
+  if (mainEntity !== undefined) {
+    const found = findRecipeNode(mainEntity)
+    if (found) return found
+  }
   return null
 }
 
@@ -309,11 +452,24 @@ export function parseIsoDurationMinutes(iso: string): number | undefined {
   return total > 0 ? total : undefined
 }
 
+// Some sites' JSON-LD (notably WordPress/WP Recipe Maker output, e.g.
+// miljuschka.nl) leaves HTML entities un-decoded inside string values
+// (e.g. "Koek &amp; Gebak"). Decode the common ones for clean display.
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+}
+
 function textOf(value: unknown): string {
-  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'string') return decodeHtmlEntities(value.trim())
   if (typeof value === 'object' && value !== null && 'text' in value) {
     const text = (value as { text?: unknown }).text
-    return typeof text === 'string' ? text.trim() : ''
+    return typeof text === 'string' ? decodeHtmlEntities(text.trim()) : ''
   }
   return ''
 }
@@ -325,38 +481,87 @@ function toStringArray(value: unknown): string[] {
   if (typeof value === 'string') {
     return value
       .split('\n')
-      .map((s) => s.trim())
+      .map((s) => decodeHtmlEntities(s.trim()))
       .filter(Boolean)
   }
   return []
 }
 
+// recipeInstructions varies a lot in practice: a plain string, a flat array
+// of strings or HowToStep objects, or (very common with the WP Recipe Maker
+// plugin — leukerecepten.nl, lekkerensimpel.com) an array of HowToSection
+// objects that each group their own HowToStep itemListElement. Flatten all
+// of these into a single ordered list of step strings.
+function extractSteps(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractSteps(item))
+  }
+  if (typeof value === 'string') {
+    return toStringArray(value)
+  }
+  if (typeof value === 'object' && value !== null) {
+    const node = value as { '@type'?: unknown; itemListElement?: unknown }
+    if (node['@type'] === 'HowToSection' && Array.isArray(node.itemListElement)) {
+      return extractSteps(node.itemListElement)
+    }
+    const text = textOf(value)
+    return text ? [text] : []
+  }
+  return []
+}
+
+// image is one of: a URL string, an array of URL strings (sometimes with
+// empty-string placeholder entries — ah.nl does this), a single ImageObject,
+// or an array of ImageObjects. ImageObject may use .url or .contentUrl.
 function firstImageUrl(value: unknown): string | undefined {
-  if (typeof value === 'string') return value
-  if (Array.isArray(value)) return firstImageUrl(value[0])
-  if (typeof value === 'object' && value !== null && 'url' in value) {
-    const url = (value as { url?: unknown }).url
-    return typeof url === 'string' ? url : undefined
+  if (typeof value === 'string') return value.trim() || undefined
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const url = firstImageUrl(item)
+      if (url) return url
+    }
+    return undefined
+  }
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as { url?: unknown; contentUrl?: unknown }
+    if (typeof obj.url === 'string' && obj.url.trim()) return obj.url.trim()
+    if (typeof obj.contentUrl === 'string' && obj.contentUrl.trim()) {
+      return obj.contentUrl.trim()
+    }
   }
   return undefined
+}
+
+// recipeCategory/recipeCuisine are documented as a single string but many
+// sites (lekkerensimpel.com, miljuschka.nl) emit an array instead.
+function stringOrArrayToTags(value: unknown): string[] {
+  if (typeof value === 'string') {
+    const trimmed = decodeHtmlEntities(value.trim())
+    return trimmed ? [trimmed] : []
+  }
+  if (Array.isArray(value)) {
+    return value
+      .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+      .map((v) => decodeHtmlEntities(v.trim()))
+  }
+  return []
 }
 
 function tagsOf(node: JsonLdNode): string[] {
   const tags = new Set<string>()
   const keywords = node.keywords
   if (typeof keywords === 'string') {
-    for (const k of keywords.split(',').map((s) => s.trim()).filter(Boolean)) {
+    for (const k of keywords
+      .split(',')
+      .map((s) => decodeHtmlEntities(s.trim()))
+      .filter(Boolean)) {
       tags.add(k)
     }
-  } else if (Array.isArray(keywords)) {
-    for (const k of keywords) {
-      if (typeof k === 'string') tags.add(k)
-    }
+  } else {
+    for (const k of stringOrArrayToTags(keywords)) tags.add(k)
   }
-  const category = node.recipeCategory
-  if (typeof category === 'string' && category.trim()) tags.add(category.trim())
-  const cuisine = node.recipeCuisine
-  if (typeof cuisine === 'string' && cuisine.trim()) tags.add(cuisine.trim())
+  for (const k of stringOrArrayToTags(node.recipeCategory)) tags.add(k)
+  for (const k of stringOrArrayToTags(node.recipeCuisine)) tags.add(k)
   return Array.from(tags)
 }
 
@@ -375,11 +580,11 @@ export function extractJsonLdRecipe(html: string): ParsedRecipe | null {
 
     const title = textOf(node.name)
     const ingredients = toStringArray(node.recipeIngredient)
-    const steps = toStringArray(node.recipeInstructions)
+    const steps = extractSteps(node.recipeInstructions)
     if (!title || ingredients.length === 0 || steps.length === 0) continue
 
     const description = textOf(node.description) || undefined
-    const prepTimeRaw = node.prepTime ?? node.totalTime
+    const prepTimeRaw = node.prepTime ?? node.totalTime ?? node.cookTime
     const prepMinutes =
       typeof prepTimeRaw === 'string'
         ? parseIsoDurationMinutes(prepTimeRaw)
@@ -419,10 +624,12 @@ export function htmlToText(html: string): string {
 
 Note: `description: textOf(node.description) || undefined` — the test fixture in Step 1 doesn't set `description` in every case; when absent, `textOf(undefined)` returns `''`, so `|| undefined` normalizes it away. The "HowToStep" and "@graph" tests only assert `.steps`/`.title`, so this doesn't need to match exactly there.
 
+This implementation was hardened against four real Dutch recipe sites' actual JSON-LD (inspected directly via browser `document.querySelectorAll('script[type="application/ld+json"]')`, not guessed): leukerecepten.nl and lekkerensimpel.com both group `recipeInstructions` under `HowToSection` (WP Recipe Maker plugin); lekkerensimpel.com and miljuschka.nl both emit `recipeCategory`/`recipeCuisine` as arrays; ah.nl's `image` array has a leading empty-string entry; miljuschka.nl leaves `&amp;` un-decoded inside JSON string values. `mainEntity`-nested Recipe and `ImageObject.contentUrl` are handled defensively even though none of the four sites happened to use them — they're documented, known-real patterns elsewhere.
+
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm exec vitest run convex/lib/recipeParsing.test.ts`
-Expected: PASS (11 tests)
+Expected: PASS (18 tests)
 
 - [ ] **Step 5: Commit**
 
