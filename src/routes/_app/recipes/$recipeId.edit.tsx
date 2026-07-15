@@ -2,25 +2,37 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
+import type { Doc, Id } from '../../../../convex/_generated/dataModel'
+import { ImageUploadField } from '../../../components/recipes/ImageUploadField'
 import { RecipeForm } from '../../../components/recipes/RecipeForm'
 
 export const Route = createFileRoute('/_app/recipes/$recipeId/edit')({
   component: EditRecipe,
 })
 
+type RecipeDetail = Doc<'recipes'> & { imageUrl: string | null }
+
 function EditRecipe() {
   const { recipeId } = Route.useParams()
   const recipe = useQuery(api.recipes.get, { id: recipeId as Id<'recipes'> })
-  const update = useMutation(api.recipes.update)
-  const navigate = useNavigate()
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   if (recipe === undefined)
     return <p className="text-sm opacity-60">Loading…</p>
   if (recipe === null)
     return <p className="text-sm opacity-60">Recipe not found.</p>
+
+  return <EditRecipeForm recipe={recipe} />
+}
+
+function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
+  const update = useMutation(api.recipes.update)
+  const navigate = useNavigate()
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [imageId, setImageId] = useState<Id<'_storage'> | undefined>(
+    recipe.imageId,
+  )
+  const [imageUrl, setImageUrl] = useState<string | null>(recipe.imageUrl)
 
   return (
     <div>
@@ -30,6 +42,15 @@ function EditRecipe() {
           {error}
         </p>
       )}
+
+      <ImageUploadField
+        imageUrl={imageUrl}
+        onChange={(id) => {
+          setImageId(id)
+          if (id === undefined) setImageUrl(null)
+        }}
+      />
+
       <RecipeForm
         submitting={submitting}
         initial={{
@@ -44,8 +65,11 @@ function EditRecipe() {
           setSubmitting(true)
           setError(null)
           try {
-            await update({ id: recipe._id, ...values })
-            navigate({ to: '/recipes/$recipeId', params: { recipeId } })
+            await update({ id: recipe._id, ...values, imageId })
+            navigate({
+              to: '/recipes/$recipeId',
+              params: { recipeId: recipe._id },
+            })
           } catch (err) {
             setError(
               err instanceof Error ? err.message : 'Could not save recipe',
