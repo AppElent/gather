@@ -48,3 +48,26 @@ test('calls onClose from close button and Escape', () => {
 
   expect(onClose).toHaveBeenCalledTimes(2)
 })
+
+test('moves focus into the panel and traps Tab navigation', () => {
+  render(
+    <GatherPanel
+      open={true}
+      activeGroupName="Oak House"
+      routeTitle="Recipes"
+      onClose={() => {}}
+    />,
+  )
+
+  const closeButton = screen.getByRole('button', { name: 'Close Ask Gather' })
+  const textarea = screen.getByPlaceholderText(/ask gather/i)
+
+  expect(document.activeElement).toBe(closeButton)
+
+  textarea.focus()
+  fireEvent.keyDown(textarea, { key: 'Tab' })
+  expect(document.activeElement).toBe(closeButton)
+
+  fireEvent.keyDown(closeButton, { key: 'Tab', shiftKey: true })
+  expect(document.activeElement).toBe(textarea)
+})

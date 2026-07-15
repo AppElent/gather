@@ -1,5 +1,9 @@
 import { Sparkles, X } from 'lucide-react'
-import { useEffect } from 'react'
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  useEffect,
+  useRef,
+} from 'react'
 import { IconButton, Pill, SectionHeader, SurfaceCard } from './ShellPrimitives'
 
 export interface GatherPanelProps {
@@ -15,14 +19,26 @@ const PROMPTS = [
   'Summarize this page',
 ]
 
+const FOCUSABLE_SELECTOR =
+  'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+
+function getFocusableElements(panel: HTMLElement) {
+  return Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+}
+
 export function GatherPanel({
   open,
   activeGroupName,
   routeTitle,
   onClose,
 }: GatherPanelProps) {
+  const panelRef = useRef<HTMLElement>(null)
+
   useEffect(() => {
     if (!open) return
+
+    const panel = panelRef.current
+    if (panel) getFocusableElements(panel)[0]?.focus()
 
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
@@ -32,14 +48,34 @@ export function GatherPanel({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (event.key !== 'Tab') return
+
+    const focusableElements = getFocusableElements(event.currentTarget)
+    const firstFocusable = focusableElements[0]
+    const lastFocusable = focusableElements.at(-1)
+
+    if (!firstFocusable || !lastFocusable) return
+
+    if (event.shiftKey && document.activeElement === firstFocusable) {
+      event.preventDefault()
+      lastFocusable.focus()
+    } else if (!event.shiftKey && document.activeElement === lastFocusable) {
+      event.preventDefault()
+      firstFocusable.focus()
+    }
+  }
+
   if (!open) return null
 
   return (
     <div className="fixed inset-0 z-50 bg-black/20 md:bg-transparent">
       <aside
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Ask Gather"
+        onKeyDown={handleKeyDown}
         className="fixed inset-x-0 bottom-0 max-h-[88svh] overflow-auto rounded-t-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-4 shadow-2xl md:inset-y-3 md:right-3 md:left-auto md:w-[360px] md:rounded-[var(--app-radius)]"
       >
         <header className="mb-4 flex items-start justify-between gap-3">
