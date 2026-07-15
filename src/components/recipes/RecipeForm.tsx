@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { StarRating } from './StarRating'
 
 export interface RecipeFormValues {
   title: string
@@ -34,7 +35,7 @@ export function RecipeForm({ initial, submitting, onSubmit }: Props) {
   )
   const [steps, setSteps] = useState((initial?.steps ?? []).join('\n'))
   const [tags, setTags] = useState((initial?.tags ?? []).join(', '))
-  const [rating, setRating] = useState(initial?.rating?.toString() ?? '')
+  const [rating, setRating] = useState<number | undefined>(initial?.rating)
 
   return (
     <form
@@ -47,7 +48,7 @@ export function RecipeForm({ initial, submitting, onSubmit }: Props) {
           ingredients: lines(ingredients),
           steps: lines(steps),
           tags: csv(tags),
-          rating: rating ? Number(rating) : undefined,
+          rating,
         })
       }}
     >
@@ -95,17 +96,10 @@ export function RecipeForm({ initial, submitting, onSubmit }: Props) {
           placeholder="comma, separated"
         />
       </label>
-      <label className="block text-sm">
-        <span className="mb-1 block font-medium">Rating (1–5)</span>
-        <input
-          type="number"
-          min="1"
-          max="5"
-          className="w-24 rounded border px-2 py-1"
-          value={rating}
-          onChange={(e) => setRating(e.target.value)}
-        />
-      </label>
+      <div className="block text-sm">
+        <span className="mb-1 block font-medium">Rating</span>
+        <StarRating value={rating} onChange={setRating} />
+      </div>
       <button
         type="submit"
         disabled={submitting}
