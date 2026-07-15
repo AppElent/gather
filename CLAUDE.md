@@ -58,7 +58,9 @@ Clerk key is `pk_test_...`), `CONVEX_DEPLOYMENT`, `VITE_CONVEX_URL`,
 Convex deployment (server-side, set via `convex env set` / `convex env default set`,
 never in a committed file): `CLERK_JWT_ISSUER_DOMAIN` — set on dev, prod, and as the
 default for preview deployments (PR previews create a fresh Convex backend per PR
-that doesn't inherit dev/prod env vars).
+that doesn't inherit dev/prod env vars). `ANTHROPIC_API_KEY` — powers the recipe
+URL-import action's AI fallback; optional (JSON-LD-only imports work without it, and
+recipes without matching JSON-LD simply fail to import if it's unset).
 
 ## CI / PR previews
 
