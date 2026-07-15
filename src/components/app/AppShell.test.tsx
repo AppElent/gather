@@ -24,12 +24,21 @@ vi.mock('@tanstack/react-router', async () => {
       children,
       to,
       className,
+      onClick,
     }: {
       children: React.ReactNode
       to: string
       className?: string
+      onClick?: React.MouseEventHandler<HTMLAnchorElement>
     }) => (
-      <a href={to} className={className}>
+      <a
+        href={to}
+        className={className}
+        onClick={(event) => {
+          event.preventDefault()
+          onClick?.(event)
+        }}
+      >
         {children}
       </a>
     ),
@@ -67,6 +76,17 @@ test('renders mobile dock targets', () => {
   expect(within(dock).getByRole('link', { name: /Modules/i })).toBeDefined()
 })
 
+test('shows the group inspector by the desktop breakpoint', () => {
+  render(
+    <AppShell>
+      <main>Content</main>
+    </AppShell>,
+  )
+
+  const inspector = document.getElementById('group-inspector-slot')
+  expect(inspector?.parentElement?.className).toContain('lg:block')
+})
+
 test('opens navigation drawer and Gather panel from topbar actions', () => {
   render(
     <AppShell>
@@ -79,4 +99,49 @@ test('opens navigation drawer and Gather panel from topbar actions', () => {
 
   fireEvent.click(screen.getByRole('button', { name: 'Ask Gather' }))
   expect(screen.getByRole('dialog', { name: 'Ask Gather' })).toBeDefined()
+})
+
+test('manages drawer focus and closes from controls, Escape, and navigation', () => {
+  render(
+    <AppShell>
+      <main>Content</main>
+    </AppShell>,
+  )
+
+  const opener = screen.getByRole('button', { name: 'Open navigation' })
+  opener.focus()
+  fireEvent.click(opener)
+
+  const drawer = screen.getByRole('dialog', { name: 'Navigation' })
+  const closeButton = within(drawer).getByRole('button', {
+    name: 'Close navigation',
+  })
+  const lastLink = within(drawer).getByRole('link', { name: 'Settings' })
+
+  expect(document.activeElement).toBe(closeButton)
+
+  fireEvent.keyDown(closeButton, { key: 'Tab', shiftKey: true })
+  expect(document.activeElement).toBe(lastLink)
+
+  fireEvent.keyDown(lastLink, { key: 'Tab' })
+  expect(document.activeElement).toBe(closeButton)
+
+  fireEvent.click(closeButton)
+  expect(screen.queryByRole('dialog', { name: 'Navigation' })).toBeNull()
+  expect(document.activeElement).toBe(opener)
+
+  fireEvent.click(opener)
+  fireEvent.click(
+    within(screen.getByRole('dialog', { name: 'Navigation' })).getByRole(
+      'link',
+      { name: 'Command Center' },
+    ),
+  )
+  expect(screen.queryByRole('dialog', { name: 'Navigation' })).toBeNull()
+
+  fireEvent.click(opener)
+  fireEvent.keyDown(screen.getByRole('dialog', { name: 'Navigation' }), {
+    key: 'Escape',
+  })
+  expect(screen.queryByRole('dialog', { name: 'Navigation' })).toBeNull()
 })
