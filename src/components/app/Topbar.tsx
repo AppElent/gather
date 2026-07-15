@@ -1,5 +1,7 @@
 import { HeaderUser } from '@appelent/auth'
+import { Bug } from 'lucide-react'
 import { CommandPalette } from './CommandPalette'
+import { IssueReporterModal } from './IssueReporterModal'
 
 export function Topbar() {
   return (
@@ -16,10 +18,28 @@ export function Topbar() {
         <span>Jump to…</span>
         <kbd className="rounded border px-1 text-xs">⌘K</kbd>
       </button>
+      <button
+        type="button"
+        aria-label="Report an issue"
+        title="Report an issue (Ctrl+Shift+I)"
+        className="rounded-md border p-1.5 opacity-70"
+        onClick={() => {
+          window.dispatchEvent(
+            new KeyboardEvent('keydown', {
+              key: 'i',
+              ctrlKey: true,
+              shiftKey: true,
+            }),
+          )
+        }}
+      >
+        <Bug className="h-4 w-4" />
+      </button>
       <div className="ml-auto">
         <HeaderUser />
       </div>
       <CommandPalette />
+      <IssueReporterModal />
     </header>
   )
 }
