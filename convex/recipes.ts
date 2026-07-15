@@ -9,11 +9,17 @@ export const list = query({
     if (!user) return []
     const groupIds = await getMyGroupIds(ctx, user._id)
     const all = await ctx.db.query('recipes').collect()
-    return all.filter((r) =>
+    const visible = all.filter((r) =>
       isVisibleTo(
         { ownerId: r.ownerId, sharedGroupIds: r.sharedGroupIds },
         { userId: user._id, groupIds },
       ),
+    )
+    return await Promise.all(
+      visible.map(async (r) => ({
+        ...r,
+        imageUrl: r.imageId ? await ctx.storage.getUrl(r.imageId) : null,
+      })),
     )
   },
 })
@@ -56,6 +62,7 @@ const recipeFields = {
   tags: v.array(v.string()),
   rating: v.optional(v.number()),
   prepMinutes: v.optional(v.number()),
+  sourceUrl: v.optional(v.string()),
   sharedGroupIds: v.optional(v.array(v.id('groups'))),
 }
 
