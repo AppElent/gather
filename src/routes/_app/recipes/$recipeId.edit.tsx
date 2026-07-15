@@ -21,7 +21,7 @@ function EditRecipe() {
   if (recipe === null)
     return <p className="text-sm opacity-60">Recipe not found.</p>
 
-  return <EditRecipeForm recipe={recipe} />
+  return <EditRecipeForm key={recipe._id} recipe={recipe} />
 }
 
 function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
@@ -65,7 +65,11 @@ function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
           setSubmitting(true)
           setError(null)
           try {
-            await update({ id: recipe._id, ...values, imageId })
+            await update({
+              id: recipe._id,
+              ...values,
+              imageId: imageId ?? null,
+            })
             navigate({
               to: '/recipes/$recipeId',
               params: { recipeId: recipe._id },

@@ -82,17 +82,22 @@ export const create = mutation({
 })
 
 export const update = mutation({
-  args: { id: v.id('recipes'), ...recipeFields },
+  args: {
+    id: v.id('recipes'),
+    ...recipeFields,
+    imageId: v.optional(v.union(v.id('_storage'), v.null())),
+  },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) throw new Error('Not authenticated')
     const recipe = await ctx.db.get(args.id)
     if (!recipe) throw new Error('Recipe not found')
     if (recipe.ownerId !== user._id) throw new Error('Not the owner')
-    const { id, sharedGroupIds, ...rest } = args
+    const { id, sharedGroupIds, imageId, ...rest } = args
     await ctx.db.patch(id, {
       ...rest,
       ...(sharedGroupIds ? { sharedGroupIds } : {}),
+      ...(imageId !== undefined ? { imageId: imageId ?? undefined } : {}),
     })
   },
 })
