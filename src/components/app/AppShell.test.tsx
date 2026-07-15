@@ -83,8 +83,10 @@ test('shows the group inspector by the desktop breakpoint', () => {
     </AppShell>,
   )
 
-  const inspector = document.getElementById('group-inspector-slot')
-  expect(inspector?.parentElement?.className).toContain('lg:block')
+  const inspector = screen.getByRole('complementary', {
+    name: 'Group overview',
+  })
+  expect(inspector.parentElement?.className).toContain('xl:block')
 })
 
 test('opens navigation drawer and Gather panel from topbar actions', () => {

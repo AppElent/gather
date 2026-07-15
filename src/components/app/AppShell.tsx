@@ -10,6 +10,7 @@ import {
 import { getRouteContext } from '../../lib/appNavigation'
 import { CommandPalette } from './CommandPalette'
 import { GatherPanel } from './GatherPanel'
+import { GroupInspector } from './GroupInspector'
 import { IssueReporterModal } from './IssueReporterModal'
 import { MobileDock } from './MobileDock'
 import { IconButton } from './ShellPrimitives'
@@ -98,8 +99,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             {children}
           </div>
         </div>
-        <div className="hidden border-l border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-surface)_86%,transparent)] p-4 lg:block">
-          <div id="group-inspector-slot" />
+        <div className="hidden border-l border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-surface)_86%,transparent)] p-4 xl:block">
+          <GroupInspector />
         </div>
       </div>
 
