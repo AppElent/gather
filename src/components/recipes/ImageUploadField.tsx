@@ -30,7 +30,10 @@ export function ImageUploadField({
       })
       if (!res.ok) throw new Error('Upload failed')
       const { storageId } = (await res.json()) as { storageId: Id<'_storage'> }
-      setPreviewUrl(URL.createObjectURL(file))
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return URL.createObjectURL(file)
+      })
       onChange(storageId)
     } catch {
       setError('Could not upload that image')
@@ -43,7 +46,12 @@ export function ImageUploadField({
 
   return (
     <div className="mx-auto mb-6 max-w-2xl rounded-xl border p-4">
-      <span className="mb-2 block text-sm font-medium">Photo</span>
+      <label
+        htmlFor="recipe-image-upload"
+        className="mb-2 block text-sm font-medium"
+      >
+        Photo
+      </label>
       <div className="flex items-center gap-3">
         {displayUrl ? (
           <img
@@ -57,9 +65,11 @@ export function ImageUploadField({
         <div>
           <input
             ref={inputRef}
+            id="recipe-image-upload"
             type="file"
             accept="image/*"
             className="text-sm"
+            disabled={uploading}
             onChange={(e) => {
               const file = e.target.files?.[0]
               if (file) handleFile(file)
@@ -72,7 +82,10 @@ export function ImageUploadField({
               type="button"
               className="mt-1 block text-xs underline"
               onClick={() => {
-                setPreviewUrl(null)
+                setPreviewUrl((prev) => {
+                  if (prev) URL.revokeObjectURL(prev)
+                  return null
+                })
                 onChange(undefined)
                 if (inputRef.current) inputRef.current.value = ''
               }}
