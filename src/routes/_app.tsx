@@ -25,8 +25,8 @@ function AppLayout() {
 
   if (isLoading) {
     return (
-      <div className="grid min-h-svh place-items-center text-sm opacity-60">
-        Loading…
+      <div className="app-shell grid min-h-svh place-items-center text-sm text-[var(--app-muted)]">
+        Loading...
       </div>
     )
   }
