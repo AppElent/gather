@@ -71,3 +71,25 @@ test('moves focus into the panel and traps Tab navigation', () => {
   fireEvent.keyDown(closeButton, { key: 'Tab', shiftKey: true })
   expect(document.activeElement).toBe(textarea)
 })
+
+test('restores focus to the opener when it closes', () => {
+  const renderPanel = (open: boolean) => (
+    <>
+      <button type="button">Open Gather</button>
+      <GatherPanel
+        open={open}
+        activeGroupName="Oak House"
+        routeTitle="Recipes"
+        onClose={() => {}}
+      />
+    </>
+  )
+  const { rerender } = render(renderPanel(false))
+  const opener = screen.getByRole('button', { name: 'Open Gather' })
+
+  opener.focus()
+  rerender(renderPanel(true))
+  rerender(renderPanel(false))
+
+  expect(document.activeElement).toBe(opener)
+})

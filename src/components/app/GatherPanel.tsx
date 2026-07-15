@@ -33,12 +33,27 @@ export function GatherPanel({
   onClose,
 }: GatherPanelProps) {
   const panelRef = useRef<HTMLElement>(null)
+  const openerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      const opener = openerRef.current
+      if (opener?.isConnected) opener.focus()
+      openerRef.current = null
+      return
+    }
+
+    openerRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null
 
     const panel = panelRef.current
     if (panel) getFocusableElements(panel)[0]?.focus()
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
 
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
@@ -47,6 +62,13 @@ export function GatherPanel({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
+
+  useEffect(() => {
+    return () => {
+      const opener = openerRef.current
+      if (opener?.isConnected) opener.focus()
+    }
+  }, [])
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.key !== 'Tab') return
