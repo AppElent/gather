@@ -20,7 +20,7 @@ const NOT_FOUND_MESSAGE =
 // and non-http(s) schemes). Not a general-purpose SSRF-proof resolver — e.g.
 // it doesn't follow redirects or catch decimal/hex-obfuscated IP literals —
 // just enough to reject the obvious internal-network cases.
-function isUrlSafeToFetch(url: string): boolean {
+export function isUrlSafeToFetch(url: string): boolean {
   let parsed: URL
   try {
     parsed = new URL(url)
@@ -32,10 +32,19 @@ function isUrlSafeToFetch(url: string): boolean {
   const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '')
   if (host === 'localhost' || host.endsWith('.localhost')) return false
 
-  // IPv6 loopback, unique-local (fc00::/7), and link-local (fe80::/10)
-  if (host === '::1' || host === '::') return false
-  if (host.startsWith('fe80:') || host.startsWith('fc') || host.startsWith('fd')) {
-    return false
+  // Only apply IPv6-literal checks to things that actually look like IPv6
+  // (otherwise this wrongly rejects real hostnames like fcbarcelona.com).
+  if (host.includes(':')) {
+    // IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1, or Node's normalized
+    // ::ffff:7f00:1 hex form) can wrap a loopback/private IPv4 address —
+    // reject the whole family outright rather than trying to unwrap it.
+    if (host.includes('::ffff:')) return false
+    // IPv6 loopback, unique-local (fc00::/7), and link-local (fe80::/10)
+    if (host === '::1' || host === '::') return false
+    if (host.startsWith('fe80:') || host.startsWith('fc') || host.startsWith('fd')) {
+      return false
+    }
+    return true
   }
 
   const ipv4Match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host)
