@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation } from 'convex/react'
-import { useEffect, useState } from 'react'
+import { ConvexError } from 'convex/values'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
 import { ImageUploadField } from '../../../components/recipes/ImageUploadField'
@@ -58,17 +59,27 @@ function NewRecipe() {
       setImageUrl(result.imageUrl)
     } catch (err) {
       setImportError(
-        err instanceof Error ? err.message : 'Could not import that recipe',
+        err instanceof ConvexError
+          ? typeof err.data === 'string'
+            ? err.data
+            : 'Could not import that recipe'
+          : err instanceof Error
+            ? err.message
+            : 'Could not import that recipe',
       )
     } finally {
       setImporting(false)
     }
   }
 
+  const hasAutoImported = useRef(false)
   // Only ever run once, for the URL present when the page first loaded.
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally mount-only
   useEffect(() => {
-    if (initialUrl) runImport(initialUrl)
+    if (initialUrl && !hasAutoImported.current) {
+      hasAutoImported.current = true
+      runImport(initialUrl)
+    }
   }, [])
 
   return (
@@ -106,6 +117,7 @@ function NewRecipe() {
       </div>
 
       <ImageUploadField
+        key={imported?.version ?? 'blank'}
         imageUrl={imageUrl}
         onChange={(id) => {
           setImageId(id)
@@ -135,7 +147,13 @@ function NewRecipe() {
             navigate({ to: '/recipes/$recipeId', params: { recipeId: id } })
           } catch (err) {
             setError(
-              err instanceof Error ? err.message : 'Could not save recipe',
+              err instanceof ConvexError
+                ? typeof err.data === 'string'
+                  ? err.data
+                  : 'Could not save recipe'
+                : err instanceof Error
+                  ? err.message
+                  : 'Could not save recipe',
             )
             setSubmitting(false)
           }
