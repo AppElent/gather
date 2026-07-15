@@ -70,6 +70,19 @@ function RecipeDetail() {
       {recipe.description && (
         <p className="mb-4 opacity-80">{recipe.description}</p>
       )}
+      {recipe.sourceUrl && (
+        <p className="mb-4 text-xs opacity-60">
+          Imported from{' '}
+          <a
+            href={recipe.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+          >
+            {new URL(recipe.sourceUrl).hostname.replace(/^www\./, '')}
+          </a>
+        </p>
+      )}
 
       <h2 className="mb-2 font-medium">Ingredients</h2>
       <ul className="mb-4 list-disc pl-5 text-sm">
