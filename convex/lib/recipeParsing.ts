@@ -216,13 +216,7 @@ export function htmlToText(html: string): string {
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
   const withoutTags = withoutScripts.replace(/<[^>]+>/g, ' ')
-  const decoded = withoutTags
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+  const decoded = decodeHtmlEntities(withoutTags)
   const collapsed = decoded.replace(/\s+/g, ' ').trim()
   return collapsed.slice(0, HTML_TEXT_MAX_LENGTH)
 }
