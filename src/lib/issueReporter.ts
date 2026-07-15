@@ -71,3 +71,16 @@ export function buildIssueBody(
     `User: ${formatIssueReporterUser(user)}`,
   ].join('\n')
 }
+
+export function formatGitHubIssueError(
+  status: number,
+  message: string | undefined,
+): string {
+  if (status === 404) {
+    return 'GitHub issue creation failed: repository not found or token cannot access it.'
+  }
+
+  const detail = message?.trim()
+  if (detail) return `GitHub issue creation failed (${status}): ${detail}.`
+  return `GitHub issue creation failed (${status}).`
+}

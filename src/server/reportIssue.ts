@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import {
   buildIssueBody,
   buildIssueTitle,
+  formatGitHubIssueError,
   type IssueReporterRequest,
   type IssueReporterResponse,
   validateIssueReporterRequest,
@@ -42,9 +43,24 @@ export const reportIssue = createServerFn({ method: 'POST' })
     )
 
     if (!response.ok) {
-      return { ok: false, error: 'GitHub issue creation failed.' }
+      const message = await readGitHubErrorMessage(response)
+      return {
+        ok: false,
+        error: formatGitHubIssueError(response.status, message),
+      }
     }
 
     const issue = (await response.json()) as { html_url?: string }
     return { ok: true, issueUrl: issue.html_url ?? '' }
   })
+
+async function readGitHubErrorMessage(
+  response: Response,
+): Promise<string | undefined> {
+  try {
+    const body = (await response.json()) as { message?: unknown }
+    return typeof body.message === 'string' ? body.message : undefined
+  } catch {
+    return undefined
+  }
+}

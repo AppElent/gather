@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import {
   buildIssueBody,
   buildIssueTitle,
+  formatGitHubIssueError,
   formatIssueReporterUser,
   validateIssueReporterRequest,
 } from './issueReporter'
@@ -64,4 +65,11 @@ test('buildIssueBody includes the url and formatted user', () => {
   expect(body).toContain('Something broke')
   expect(body).toContain('URL: https://gather.example')
   expect(body).toContain('User: Eric')
+})
+
+test('formatGitHubIssueError explains repository access failures', () => {
+  const error = formatGitHubIssueError(404, 'Not Found')
+  expect(error).toBe(
+    'GitHub issue creation failed: repository not found or token cannot access it.',
+  )
 })
