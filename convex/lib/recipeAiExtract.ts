@@ -69,14 +69,25 @@ export async function extractRecipeWithAi(
   }
   if (!response.ok) return null
 
-  const data = (await response.json()) as AnthropicMessagesResponse
-  const toolUseBlock = data.content.find(
-    (block) => block.type === 'tool_use' && block.name === 'extract_recipe',
-  )
-  if (!toolUseBlock) return null
-  const toolUse = toolUseBlock as unknown as AnthropicToolUseBlock
+  let data: AnthropicMessagesResponse
+  try {
+    data = (await response.json()) as AnthropicMessagesResponse
+  } catch {
+    return null
+  }
+  if (!Array.isArray(data.content)) return null
 
-  const input = toolUse.input
+  const rawToolUseBlock = data.content.find(
+    (block) =>
+      block.type === 'tool_use' &&
+      block.name === 'extract_recipe' &&
+      typeof block.input === 'object' &&
+      block.input !== null,
+  )
+  if (!rawToolUseBlock) return null
+  const toolUseBlock = rawToolUseBlock as unknown as AnthropicToolUseBlock
+
+  const input = toolUseBlock.input
   if (input.found !== true) return null
   const title = typeof input.title === 'string' ? input.title.trim() : ''
   if (!title) return null

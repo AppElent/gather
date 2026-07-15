@@ -63,6 +63,19 @@ describe('extractRecipeWithAi', () => {
     ).toBeNull()
   })
 
+  test('returns null (not throws) for a malformed-but-ok response', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      mockResponse({
+        content: [
+          { type: 'tool_use', name: 'extract_recipe' /* no `input` field */ },
+        ],
+      }),
+    )
+    await expect(
+      extractRecipeWithAi('some page text', 'test-key', fetchImpl),
+    ).resolves.toBeNull()
+  })
+
   test('returns null when the request fails', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(mockResponse({}, false))
     expect(
