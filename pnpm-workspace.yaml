@@ -1,3 +1,6 @@
+packages:
+  - "apps/*"
+
 # pnpm 11 default-denies install/build lifecycle scripts (neutralizes the
 # postinstall-RCE vector supply-chain worms rely on). Only packages that
 # genuinely compile/download a native binary are allowed to run scripts;
@@ -12,6 +15,7 @@ allowBuilds:
   "@clerk/shared": false # postinstall is just a telemetry notice
   "@google/genai": false # no native binary needed at install time
   protobufjs: false # no native binary needed at install time
+  unrs-resolver: true # native binary resolver (napi-postinstall picks the platform build)
 
 minimumReleaseAge: 4320 # 3 days — blocks the worm/account-takeover window
 minimumReleaseAgeExclude:

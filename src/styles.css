@@ -9,6 +9,17 @@
 }
 
 :root {
+  --app-bg: oklch(99% 0.002 240);
+  --app-surface: oklch(100% 0 0);
+  --app-surface-muted: oklch(97% 0.004 250);
+  --app-fg: oklch(18% 0.012 250);
+  --app-muted: oklch(54% 0.012 250);
+  --app-border: oklch(92% 0.005 250);
+  --app-accent: oklch(58% 0.18 255);
+  --app-success: oklch(58% 0.14 150);
+  --app-warning: oklch(70% 0.14 75);
+  --app-danger: oklch(62% 0.16 25);
+  --app-radius: 8px;
   --sea-ink: #173a40;
   --sea-ink-soft: #416166;
   --lagoon: #4fb8b2;
@@ -31,6 +42,16 @@
 }
 
 :root[data-theme="dark"] {
+  --app-bg: oklch(16% 0.012 250);
+  --app-surface: oklch(20% 0.012 250);
+  --app-surface-muted: oklch(24% 0.012 250);
+  --app-fg: oklch(94% 0.006 250);
+  --app-muted: oklch(70% 0.012 250);
+  --app-border: oklch(31% 0.012 250);
+  --app-accent: oklch(70% 0.16 255);
+  --app-success: oklch(72% 0.13 150);
+  --app-warning: oklch(78% 0.12 75);
+  --app-danger: oklch(72% 0.13 25);
   --sea-ink: #d7ece8;
   --sea-ink-soft: #afcdc8;
   --lagoon: #60d7cf;
@@ -76,6 +97,7 @@
   }
 }
 
+
 /* @appelent/auth brand overrides — bridge the shared auth UI onto gather's
    sea/lagoon palette. These reference gather's own theme vars (already
    correctly re-themed via :root[data-theme="dark"] / prefers-color-scheme),
@@ -91,6 +113,146 @@
   --auth-accent: var(--lagoon-deep);
   --auth-accent-fg: var(--foam);
   --auth-error: #c14747;
+}
+
+.app-shell {
+  min-height: 100svh;
+  background: var(--app-bg);
+  color: var(--app-fg);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+}
+
+.shell-card {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+  padding: 0.875rem;
+}
+
+.shell-icon-button {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+  color: var(--app-fg);
+}
+
+.shell-icon-button:hover {
+  border-color: var(--app-fg);
+}
+
+.shell-pill {
+  display: inline-flex;
+  min-height: 1.5rem;
+  align-items: center;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  padding: 0.25rem 0.5rem;
+  color: var(--app-muted);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.shell-pill-dark {
+  border-color: var(--app-fg);
+  background: var(--app-fg);
+  color: var(--app-surface);
+}
+
+.shell-pill-success {
+  border-color: color-mix(in oklch, var(--app-success) 45%, var(--app-border));
+  color: var(--app-success);
+}
+
+.shell-pill-warning {
+  border-color: color-mix(in oklch, var(--app-warning) 45%, var(--app-border));
+  color: var(--app-warning);
+}
+
+.shell-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.shell-section-header h2 {
+  margin: 0;
+  color: var(--app-fg);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.shell-eyebrow {
+  margin: 0 0 0.25rem;
+  color: var(--app-muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.shell-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--app-muted);
+  font-size: 0.8125rem;
+}
+
+.shell-status-dot {
+  inline-size: 0.4375rem;
+  block-size: 0.4375rem;
+  border-radius: 999px;
+}
+
+.shell-status-dot-success {
+  background: var(--app-success);
+}
+
+.shell-status-dot-warning {
+  background: var(--app-warning);
+}
+
+.shell-status-dot-muted {
+  background: var(--app-muted);
+}
+
+.shell-avatar-stack {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.shell-avatar {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 1.875rem;
+  block-size: 1.875rem;
+  margin-inline-start: -0.4375rem;
+  border: 2px solid var(--app-surface);
+  border-radius: 999px;
+  background: var(--app-surface-muted);
+  color: var(--app-fg);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.shell-avatar:first-child {
+  margin-inline-start: 0;
+}
+
+.shell-avatar-more {
+  color: var(--app-muted);
 }
 
 * {
@@ -498,3 +660,11 @@ a {
   }
 }
 
+/* Prevent iOS Safari from auto-zooming on input focus (triggers when font-size < 16px) */
+@supports (-webkit-touch-callout: none) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

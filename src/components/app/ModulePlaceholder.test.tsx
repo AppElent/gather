@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { expect, test } from 'vitest'
 import { ModulePlaceholder } from './ModulePlaceholder'
 
-test('renders the module label and description with a coming-soon note', () => {
+test('renders an operational placeholder page for a module', () => {
   render(
     <ModulePlaceholder
       label="Groceries"
@@ -14,5 +14,6 @@ test('renders the module label and description with a coming-soon note', () => {
   expect(
     screen.getByText('A shared shopping list you both check off.'),
   ).toBeDefined()
-  expect(screen.getByText(/coming soon/i)).toBeDefined()
+  expect(screen.getByText('Module planned')).toBeDefined()
+  expect(screen.getByText(/this group module is staged/i)).toBeDefined()
 })
