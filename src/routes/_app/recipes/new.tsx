@@ -31,9 +31,12 @@ function NewRecipe() {
   const [importError, setImportError] = useState<string | null>(null)
   const [imported, setImported] = useState<{
     values: RecipeFormValues
-    sourceUrl: string
     version: number
   } | null>(null)
+  // Tracked separately from `imported` so a failed re-import can invalidate
+  // it immediately without remounting RecipeForm/ImageUploadField (which
+  // would wipe out anything the user typed since the last successful import).
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null)
 
   const [imageId, setImageId] = useState<Id<'_storage'> | undefined>()
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -42,6 +45,10 @@ function NewRecipe() {
     if (!url.trim()) return
     setImporting(true)
     setImportError(null)
+    // Invalidate the previous import's sourceUrl the moment a new attempt
+    // starts — if this one fails, saving must not silently reattach the URL
+    // from an earlier, unrelated successful import.
+    setSourceUrl(null)
     try {
       const result = await importFromUrl({ url: url.trim() })
       setImported({
@@ -52,9 +59,9 @@ function NewRecipe() {
           steps: result.steps,
           tags: result.tags,
         },
-        sourceUrl: result.sourceUrl,
         version: Date.now(),
       })
+      setSourceUrl(result.sourceUrl)
       setImageId(result.imageId)
       setImageUrl(result.imageUrl)
     } catch (err) {
@@ -141,7 +148,7 @@ function NewRecipe() {
           try {
             const id = await create({
               ...values,
-              sourceUrl: imported?.sourceUrl,
+              sourceUrl: sourceUrl ?? undefined,
               imageId,
             })
             navigate({ to: '/recipes/$recipeId', params: { recipeId: id } })

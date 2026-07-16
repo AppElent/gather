@@ -10,6 +10,7 @@ import { extractJsonLdRecipe, htmlToText } from './lib/recipeParsing'
 const IMPORT_USER_AGENT =
   'Mozilla/5.0 (compatible; GatherRecipeImport/1.0; +https://github.com/AppElent/gather)'
 const FETCH_TIMEOUT_MS = 10_000
+const MAX_REDIRECTS = 5
 const BLOCKED_MESSAGE =
   'That site blocks automated access — try pasting the recipe manually.'
 const NOT_FOUND_MESSAGE =
@@ -17,9 +18,10 @@ const NOT_FOUND_MESSAGE =
 
 // Blocks the obvious SSRF targets (loopback, RFC1918 private ranges,
 // link-local incl. cloud metadata IPs, IPv6 loopback/unique-local/link-local,
-// and non-http(s) schemes). Not a general-purpose SSRF-proof resolver — e.g.
-// it doesn't follow redirects or catch decimal/hex-obfuscated IP literals —
-// just enough to reject the obvious internal-network cases.
+// and non-http(s) schemes). Checks only the URL given — redirect hops are
+// re-validated separately by safeFetch below. Not a general-purpose
+// SSRF-proof resolver — e.g. it doesn't catch decimal/hex-obfuscated IP
+// literals — just enough to reject the obvious internal-network cases.
 export function isUrlSafeToFetch(url: string): boolean {
   let parsed: URL
   try {
@@ -62,6 +64,33 @@ export function isUrlSafeToFetch(url: string): boolean {
   return true
 }
 
+// Fetches a URL that has already passed isUrlSafeToFetch, re-validating the
+// destination of every redirect hop before following it — otherwise a site
+// could pass the initial check and then 30x to a private/loopback target,
+// reopening the SSRF hole the guard exists to close.
+export async function safeFetch(
+  url: string,
+  init?: RequestInit,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Response | undefined> {
+  let currentUrl = url
+  for (let i = 0; i <= MAX_REDIRECTS; i++) {
+    if (!isUrlSafeToFetch(currentUrl)) return undefined
+    const response = await fetchImpl(currentUrl, {
+      ...init,
+      redirect: 'manual',
+    })
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location')
+      if (!location) return undefined
+      currentUrl = new URL(location, currentUrl).toString()
+      continue
+    }
+    return response
+  }
+  return undefined
+}
+
 export const importFromUrl = action({
   args: { url: v.string() },
   handler: async (ctx, args) => {
@@ -72,11 +101,11 @@ export const importFromUrl = action({
 
     let html: string
     try {
-      const response = await fetch(args.url, {
+      const response = await safeFetch(args.url, {
         headers: { 'User-Agent': IMPORT_USER_AGENT },
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       })
-      if (!response.ok) throw new Error('fetch not ok')
+      if (!response || !response.ok) throw new Error('fetch not ok')
       html = await response.text()
     } catch {
       throw new ConvexError(BLOCKED_MESSAGE)
@@ -112,12 +141,11 @@ async function storeRemoteImage(
   ctx: ActionCtx,
   url: string,
 ): Promise<Id<'_storage'> | undefined> {
-  if (!isUrlSafeToFetch(url)) return undefined
   try {
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
-    if (!res.ok) return undefined
+    if (!res || !res.ok) return undefined
     const blob = await res.blob()
     return await ctx.storage.store(blob)
   } catch {
