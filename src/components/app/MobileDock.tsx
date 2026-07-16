@@ -10,7 +10,11 @@ function Icon({ name }: { name: string }) {
   return <Component className="h-4 w-4" aria-hidden="true" />
 }
 
-export function MobileDock({ pathname }: { pathname: string }) {
+export function MobileDock({
+  location,
+}: {
+  location: { pathname: string; hash?: string }
+}) {
   return (
     <nav
       aria-label="Mobile navigation"
@@ -20,7 +24,7 @@ export function MobileDock({ pathname }: { pathname: string }) {
         <Link
           key={item.id}
           to={item.path as LinkProps['to']}
-          aria-current={isDockItemActive(pathname, item) ? 'page' : undefined}
+          aria-current={isDockItemActive(location, item) ? 'page' : undefined}
           className="grid min-h-11 place-items-center rounded-[7px] text-xs text-[var(--app-muted)] no-underline aria-[current=page]:bg-[var(--app-surface-muted)] aria-[current=page]:text-[var(--app-fg)]"
         >
           <Icon name={item.icon} />

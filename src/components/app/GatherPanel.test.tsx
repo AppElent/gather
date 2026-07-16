@@ -6,7 +6,7 @@ test('does not render when closed', () => {
   render(
     <GatherPanel
       open={false}
-      activeGroupName="Oak House"
+      activeGroupName="Preview group"
       routeTitle="Recipes"
       onClose={() => {}}
     />,
@@ -19,14 +19,14 @@ test('renders non-automated placeholder prompts when open', () => {
   render(
     <GatherPanel
       open={true}
-      activeGroupName="Oak House"
+      activeGroupName="Preview group"
       routeTitle="Recipes"
       onClose={() => {}}
     />,
   )
 
   expect(screen.getByRole('dialog', { name: 'Ask Gather' })).toBeDefined()
-  expect(screen.getByText('Oak House')).toBeDefined()
+  expect(screen.getByText('Preview group')).toBeDefined()
   expect(screen.getByText('Context: Recipes')).toBeDefined()
   expect(screen.getByText(/automation is not connected yet/i)).toBeDefined()
   expect(screen.getByPlaceholderText(/ask gather/i)).toBeDefined()
@@ -37,7 +37,7 @@ test('calls onClose from close button and Escape', () => {
   render(
     <GatherPanel
       open={true}
-      activeGroupName="Oak House"
+      activeGroupName="Preview group"
       routeTitle="Recipes"
       onClose={onClose}
     />,
@@ -78,7 +78,7 @@ test('restores focus to the opener when it closes', () => {
       <button type="button">Open Gather</button>
       <GatherPanel
         open={open}
-        activeGroupName="Oak House"
+        activeGroupName="Preview group"
         routeTitle="Recipes"
         onClose={() => {}}
       />

@@ -7,6 +7,27 @@ import { MODULES } from '../../lib/modules'
 import { GroupInspector } from './GroupInspector'
 import { Pill, SectionHeader, SurfaceCard } from './ShellPrimitives'
 
+const PREVIEW_ACTIVITY = [
+  {
+    label: 'Recipe changes',
+    detail: 'Connected recipe edits and notes will appear here.',
+  },
+  {
+    label: 'Shared updates',
+    detail: 'Group-wide changes will stack into a readable timeline.',
+  },
+] as const
+
+const PREVIEW_UPCOMING = [
+  'Meals and grocery checkpoints',
+  'Calendar holds and reminders',
+] as const
+
+const PREVIEW_ACTIONS = [
+  'Suggested follow-ups from module activity',
+  'Prompted check-ins for shared planning',
+] as const
+
 function Icon({ name }: { name: string }) {
   const Component =
     (Icons as unknown as Record<string, LucideIcon>)[name] ?? Icons.Square
@@ -49,7 +70,66 @@ export function CommandFeed() {
         </SurfaceCard>
       </section>
 
-      <section id="modules" className="grid gap-3">
+      <section className="grid gap-3">
+        <SectionHeader
+          title="Activity"
+          action={<Pill tone="warning">Preview</Pill>}
+        />
+        <SurfaceCard>
+          <div className="grid gap-3">
+            {PREVIEW_ACTIVITY.map((item) => (
+              <div
+                key={item.label}
+                className="flex items-start justify-between gap-3 border-t border-[var(--app-border)] pt-3 first:border-t-0 first:pt-0"
+              >
+                <div className="min-w-0">
+                  <h3 className="m-0 text-sm font-semibold">{item.label}</h3>
+                  <p className="mt-1 text-sm leading-6 text-[var(--app-muted)]">
+                    {item.detail}
+                  </p>
+                </div>
+                <Pill>Slot</Pill>
+              </div>
+            ))}
+          </div>
+        </SurfaceCard>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2">
+        <SurfaceCard>
+          <SectionHeader title="Upcoming" action={<Pill>Preview</Pill>} />
+          <div className="grid gap-2 text-sm">
+            {PREVIEW_UPCOMING.map((item) => (
+              <div
+                key={item}
+                className="flex items-center justify-between gap-3 border-t border-[var(--app-border)] pt-2 first:border-t-0 first:pt-0"
+              >
+                <span>{item}</span>
+                <Pill>Slot</Pill>
+              </div>
+            ))}
+          </div>
+        </SurfaceCard>
+        <SurfaceCard>
+          <SectionHeader
+            title="Suggested actions"
+            action={<Pill>Preview</Pill>}
+          />
+          <div className="grid gap-2 text-sm">
+            {PREVIEW_ACTIONS.map((item) => (
+              <div
+                key={item}
+                className="flex items-center justify-between gap-3 border-t border-[var(--app-border)] pt-2 first:border-t-0 first:pt-0"
+              >
+                <span>{item}</span>
+                <Pill>Soon</Pill>
+              </div>
+            ))}
+          </div>
+        </SurfaceCard>
+      </section>
+
+      <section id="modules" className="grid scroll-mt-20 gap-3">
         <SectionHeader title="Modules" />
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {MODULES.map((module) => (

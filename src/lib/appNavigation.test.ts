@@ -3,6 +3,7 @@ import {
   getModulesByStatus,
   getRouteContext,
   isDockItemActive,
+  isPrimaryAreaActive,
   MOBILE_DOCK_ITEMS,
   PRIMARY_AREAS,
 } from './appNavigation'
@@ -46,15 +47,47 @@ describe('app navigation metadata', () => {
     })
   })
 
-  test('computes mobile dock active states by route family', () => {
+  test('computes mobile dock active states by full location signal', () => {
     const home = MOBILE_DOCK_ITEMS[0]
     const tasks = MOBILE_DOCK_ITEMS[1]
     const modules = MOBILE_DOCK_ITEMS[3]
 
     expect(isDockItemActive('/dashboard', home)).toBe(true)
+    expect(isDockItemActive('/dashboard#modules', home)).toBe(false)
+    expect(isDockItemActive('/dashboard#modules', modules)).toBe(true)
+    const routerDashboardModules = { pathname: '/dashboard', hash: 'modules' }
+    expect(isDockItemActive(routerDashboardModules, home)).toBe(false)
+    expect(isDockItemActive(routerDashboardModules, modules)).toBe(true)
+    expect(
+      MOBILE_DOCK_ITEMS.filter((item) =>
+        isDockItemActive(routerDashboardModules, item),
+      ),
+    ).toEqual([modules])
     expect(isDockItemActive('/tasks', tasks)).toBe(true)
+    expect(isDockItemActive('/tasks', modules)).toBe(false)
     expect(isDockItemActive('/recipes', modules)).toBe(true)
     expect(isDockItemActive('/recipes/new', modules)).toBe(true)
+  })
+
+  test('keeps Command Center and Modules primary activation exclusive', () => {
+    const commandCenter = PRIMARY_AREAS[0]
+    const modules = PRIMARY_AREAS[3]
+
+    expect(
+      isPrimaryAreaActive({ pathname: '/dashboard', hash: '' }, commandCenter),
+    ).toBe(true)
+    expect(
+      isPrimaryAreaActive({ pathname: '/dashboard', hash: '' }, modules),
+    ).toBe(false)
+    expect(
+      isPrimaryAreaActive(
+        { pathname: '/dashboard', hash: 'modules' },
+        commandCenter,
+      ),
+    ).toBe(false)
+    expect(
+      isPrimaryAreaActive({ pathname: '/dashboard', hash: 'modules' }, modules),
+    ).toBe(true)
   })
 
   test('splits modules by live and placeholder status', () => {

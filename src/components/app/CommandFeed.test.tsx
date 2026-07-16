@@ -33,6 +33,11 @@ test('CommandFeed renders command center activity without promising real automat
   ).toBeDefined()
   expect(screen.getByText(/designed preview/i)).toBeDefined()
   expect(screen.queryByText(/automatically completed/i)).toBeNull()
+  expect(screen.getByRole('heading', { name: 'Activity' })).toBeDefined()
+  expect(screen.getByRole('heading', { name: 'Upcoming' })).toBeDefined()
+  expect(
+    screen.getByRole('heading', { name: 'Suggested actions' }),
+  ).toBeDefined()
 })
 
 test('CommandFeed renders module-derived cards', () => {
@@ -41,6 +46,10 @@ test('CommandFeed renders module-derived cards', () => {
   expect(screen.getByRole('heading', { name: 'Modules' })).toBeDefined()
   expect(screen.getByText('Recipes')).toBeDefined()
   expect(screen.getByText('Meal planner')).toBeDefined()
+  expect(
+    screen.getByRole('heading', { name: 'Modules' }).closest('section')
+      ?.className,
+  ).toContain('scroll-mt-20')
 })
 
 test('GroupInspector renders group overview cards', () => {
@@ -49,4 +58,7 @@ test('GroupInspector renders group overview cards', () => {
   expect(screen.getByText('Active modules')).toBeDefined()
   expect(screen.getByText('Today')).toBeDefined()
   expect(screen.getByText('Members')).toBeDefined()
+  expect(screen.getByText('Preview data')).toBeDefined()
+  expect(screen.queryByText('Alex')).toBeNull()
+  expect(screen.queryByText('Maya')).toBeNull()
 })

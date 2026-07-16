@@ -28,15 +28,18 @@ export function Topbar({
           <h1 className="m-0 truncate text-xl font-semibold leading-tight md:text-2xl">
             {context.title}
           </h1>
-          <p className="mt-1 hidden truncate text-sm text-[var(--app-muted)] sm:block">
+          <p className="mt-1 hidden truncate text-sm text-[var(--app-muted)] md:block">
             {context.subtitle}
+          </p>
+          <p className="mt-1 truncate text-sm text-[var(--app-muted)] md:hidden">
+            Preview group
           </p>
         </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
         <span className="hidden md:inline-flex">
-          <StatusDot label="Group synced" />
+          <StatusDot label="Preview mode" tone="muted" />
         </span>
         <IconButton
           label="Jump to"

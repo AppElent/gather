@@ -1,10 +1,10 @@
 import type { LinkProps } from '@tanstack/react-router'
-import { Link } from '@tanstack/react-router'
+import { Link, useLocation } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
 import * as Icons from 'lucide-react'
-import { PRIMARY_AREAS } from '../../lib/appNavigation'
+import { isPrimaryAreaActive, PRIMARY_AREAS } from '../../lib/appNavigation'
 import { MODULE_GROUPS, modulesByGroup } from '../../lib/modules'
-import { AvatarStack, Pill } from './ShellPrimitives'
+import { Pill } from './ShellPrimitives'
 
 function Icon({ name, className }: { name: string; className?: string }) {
   const Component =
@@ -20,13 +20,14 @@ export interface SidebarProps {
 export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
   const byGroup = modulesByGroup()
   const isDrawer = variant === 'drawer'
+  const location = useLocation()
 
   return (
     <aside
       className={
         isDrawer
-          ? 'flex h-full flex-col gap-6 p-4'
-          : 'hidden h-svh w-66 shrink-0 flex-col gap-6 border-r border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-surface)_86%,transparent)] p-4 md:flex'
+          ? 'flex min-h-full flex-col gap-6 overflow-y-auto p-4'
+          : 'hidden h-svh w-66 shrink-0 flex-col gap-6 overflow-y-auto border-r border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-surface)_86%,transparent)] p-4 md:flex'
       }
       aria-label="Gather navigation"
     >
@@ -44,17 +45,19 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
               Gather
             </strong>
             <span className="block truncate text-xs text-[var(--app-muted)]">
-              Oak House
+              Preview group
             </span>
           </span>
         </Link>
-        <button
-          type="button"
+        <Link
+          to="/groups"
+          onClick={onNavigate}
           className="shell-icon-button"
-          aria-label="Create group item"
+          aria-label="Manage groups"
+          title="Manage groups"
         >
           <Icon name="Plus" className="h-4 w-4" />
-        </button>
+        </Link>
       </div>
 
       <nav className="grid gap-1" aria-label="Primary">
@@ -66,11 +69,11 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
             key={item.id}
             to={item.path as LinkProps['to']}
             onClick={onNavigate}
-            className="grid min-h-10 grid-cols-[28px_minmax(0,1fr)] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline"
-            activeProps={{
-              className:
-                'border-[var(--app-fg)] bg-[var(--app-surface)] text-[var(--app-fg)]',
-            }}
+            className={`grid min-h-10 grid-cols-[28px_minmax(0,1fr)] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline ${
+              isPrimaryAreaActive(location, item)
+                ? 'border-[var(--app-fg)] bg-[var(--app-surface)] text-[var(--app-fg)]'
+                : ''
+            }`}
           >
             <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
               <Icon name={item.icon} className="h-4 w-4" />
@@ -109,10 +112,12 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
 
       <section className="mt-auto rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="m-0 text-sm font-semibold">Active group</h2>
-          <Pill tone="success">synced</Pill>
+          <h2 className="m-0 text-sm font-semibold">Preview group</h2>
+          <Pill tone="warning">Preview data</Pill>
         </div>
-        <AvatarStack members={['Alex', 'Maya']} />
+        <p className="m-0 text-sm text-[var(--app-muted)]">
+          Group and member details appear here once connected.
+        </p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Link
             to="/groups"

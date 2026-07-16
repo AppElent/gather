@@ -2,6 +2,10 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { AppShell } from './AppShell'
 
+const routerState = vi.hoisted(() => ({
+  location: { pathname: '/recipes', hash: '' },
+}))
+
 vi.mock('@appelent/auth', () => ({
   HeaderUser: () => <div>Account menu</div>,
 }))
@@ -42,23 +46,24 @@ vi.mock('@tanstack/react-router', async () => {
         {children}
       </a>
     ),
-    useLocation: () => ({ pathname: '/recipes' }),
+    useLocation: () => routerState.location,
   }
 })
 
 test('renders redesigned shell navigation and route content', () => {
   render(
     <AppShell>
-      <main>Recipe route content</main>
+      <div>Recipe route content</div>
     </AppShell>,
   )
 
   expect(screen.getByText('Gather')).toBeDefined()
-  expect(screen.getByText('Oak House')).toBeDefined()
+  expect(screen.getAllByText('Preview group').length).toBeGreaterThan(0)
   expect(screen.getByRole('link', { name: /Command Center/i })).toBeDefined()
   expect(screen.getByRole('link', { name: /Recipes/i })).toBeDefined()
   expect(screen.getByRole('heading', { name: 'Recipes' })).toBeDefined()
   expect(screen.getByText('Recipe route content')).toBeDefined()
+  expect(screen.getByRole('main').textContent).toContain('Recipe route content')
 })
 
 test('renders mobile dock targets', () => {
@@ -87,6 +92,33 @@ test('shows the group inspector by the desktop breakpoint', () => {
     name: 'Group overview',
   })
   expect(inspector.parentElement?.className).toContain('xl:block')
+  expect(inspector.parentElement?.parentElement?.className).toContain(
+    'xl:grid-cols-[264px_minmax(0,1fr)_336px]',
+  )
+})
+
+test('keeps dashboard primary navigation active state exclusive by hash', () => {
+  routerState.location = { pathname: '/dashboard', hash: 'modules' }
+  render(
+    <AppShell>
+      <div>Content</div>
+    </AppShell>,
+  )
+
+  const primary = screen.getByRole('navigation', { name: 'Primary' })
+  expect(
+    within(primary).getByRole('link', { name: 'Command Center' }).className,
+  ).not.toContain('border-[var(--app-fg)]')
+  expect(
+    within(primary).getByRole('link', { name: 'Modules' }).className,
+  ).toContain('border-[var(--app-fg)]')
+
+  const mobileGroupLabel = screen
+    .getAllByText('Preview group')
+    .find((element) => element.className.includes('md:hidden'))
+  expect(mobileGroupLabel?.className).toContain('md:hidden')
+
+  routerState.location = { pathname: '/recipes', hash: '' }
 })
 
 test('opens navigation drawer and Gather panel from topbar actions', () => {
@@ -139,6 +171,12 @@ test('manages drawer focus and closes from controls, Escape, and navigation', ()
       { name: 'Command Center' },
     ),
   )
+  expect(screen.queryByRole('dialog', { name: 'Navigation' })).toBeNull()
+
+  fireEvent.click(opener)
+  const backdrop = screen.getByTestId('navigation-backdrop')
+  expect(backdrop.className).toContain('overflow-y-auto')
+  fireEvent.click(backdrop)
   expect(screen.queryByRole('dialog', { name: 'Navigation' })).toBeNull()
 
   fireEvent.click(opener)

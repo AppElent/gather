@@ -15,6 +15,8 @@ export interface MobileDockItem {
   icon: string
   path: string
   activePaths: string[]
+  activeHash?: string
+  inactiveHash?: string
 }
 
 export interface RouteContext {
@@ -60,6 +62,7 @@ export const MOBILE_DOCK_ITEMS: MobileDockItem[] = [
     icon: 'Home',
     path: '/dashboard',
     activePaths: ['/dashboard'],
+    inactiveHash: '#modules',
   },
   {
     id: 'tasks',
@@ -80,7 +83,10 @@ export const MOBILE_DOCK_ITEMS: MobileDockItem[] = [
     label: 'Modules',
     icon: 'Grid2X2',
     path: '/dashboard#modules',
-    activePaths: MODULES.map((module) => module.path),
+    activePaths: MODULES.filter(
+      (module) => !['/tasks', '/calendar'].includes(module.path),
+    ).map((module) => module.path),
+    activeHash: '#modules',
   },
 ]
 
@@ -127,13 +133,47 @@ export function getRouteContext(pathname: string): RouteContext {
 }
 
 export function isDockItemActive(
-  pathname: string,
+  location: string | { pathname: string; hash?: string },
   item: MobileDockItem,
 ): boolean {
-  const normalized = normalizePath(pathname)
+  const { pathname, hash } = normalizeLocation(location)
+
+  if (
+    item.activeHash &&
+    pathname === '/dashboard' &&
+    hash === item.activeHash
+  ) {
+    return true
+  }
+
+  if (
+    item.inactiveHash &&
+    pathname === '/dashboard' &&
+    hash === item.inactiveHash
+  ) {
+    return false
+  }
+
   return item.activePaths.some(
-    (path) => normalized === path || normalized.startsWith(`${path}/`),
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
   )
+}
+
+export function isPrimaryAreaActive(
+  location: string | { pathname: string; hash?: string },
+  item: PrimaryArea,
+): boolean {
+  const { pathname, hash } = normalizeLocation(location)
+
+  if (item.id === 'modules') {
+    return pathname === '/dashboard' && hash === '#modules'
+  }
+
+  if (item.id === 'command-center') {
+    return pathname === '/dashboard' && hash !== '#modules'
+  }
+
+  return pathname === item.path || pathname.startsWith(`${item.path}/`)
 }
 
 export function getModulesByStatus(): {
@@ -152,4 +192,22 @@ function normalizePath(pathname: string) {
     return withoutHash.slice(0, -1)
   }
   return withoutHash || '/dashboard'
+}
+
+function normalizeLocation(
+  location: string | { pathname: string; hash?: string },
+) {
+  if (typeof location === 'string') {
+    const [pathname, hash = ''] = location.split('#')
+    return { pathname: normalizePath(pathname), hash: hash ? `#${hash}` : '' }
+  }
+
+  return {
+    pathname: normalizePath(location.pathname),
+    hash: normalizeHash(location.hash ?? ''),
+  }
+}
+
+function normalizeHash(hash: string) {
+  return hash ? (hash.startsWith('#') ? hash : `#${hash}`) : ''
 }

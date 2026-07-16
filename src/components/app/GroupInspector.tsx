@@ -1,11 +1,5 @@
 import { MODULES } from '../../lib/modules'
-import {
-  AvatarStack,
-  Pill,
-  SectionHeader,
-  StatusDot,
-  SurfaceCard,
-} from './ShellPrimitives'
+import { Pill, SectionHeader, StatusDot, SurfaceCard } from './ShellPrimitives'
 
 export function GroupInspector({ compact = false }: { compact?: boolean }) {
   const liveCount = MODULES.filter((module) => module.status === 'live').length
@@ -36,12 +30,12 @@ export function GroupInspector({ compact = false }: { compact?: boolean }) {
         />
         <div className="grid gap-2 text-sm">
           <div className="flex items-center justify-between gap-3 border-t border-[var(--app-border)] pt-2 first:border-t-0 first:pt-0">
-            <span>Review this week's meals</span>
-            <Pill>Kitchen</Pill>
+            <span>Meal planning snapshot</span>
+            <Pill>Slot</Pill>
           </div>
           <div className="flex items-center justify-between gap-3 border-t border-[var(--app-border)] pt-2">
-            <span>Check shared list updates</span>
-            <Pill>Group</Pill>
+            <span>Shared updates snapshot</span>
+            <Pill>Slot</Pill>
           </div>
         </div>
       </SurfaceCard>
@@ -49,9 +43,11 @@ export function GroupInspector({ compact = false }: { compact?: boolean }) {
       <SurfaceCard>
         <SectionHeader
           title="Members"
-          action={<Pill tone="success">synced</Pill>}
+          action={<Pill tone="warning">Preview data</Pill>}
         />
-        <AvatarStack members={['Alex', 'Maya']} />
+        <p className="m-0 text-sm leading-6 text-[var(--app-muted)]">
+          Member details will appear here when group data is connected.
+        </p>
       </SurfaceCard>
     </aside>
   )
