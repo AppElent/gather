@@ -35,5 +35,6 @@ export default defineSchema({
     tags: v.array(v.string()),
     rating: v.optional(v.number()),
     prepMinutes: v.optional(v.number()),
+    sourceUrl: v.optional(v.string()),
   }).index('by_owner', ['ownerId']),
 })

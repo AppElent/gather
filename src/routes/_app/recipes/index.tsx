@@ -2,7 +2,10 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { Plus } from 'lucide-react'
 import { api } from '../../../../convex/_generated/api'
-import { Pill, SurfaceCard } from '../../../components/app/ShellPrimitives'
+import { SurfaceCard } from '../../../components/app/ShellPrimitives'
+import { RecipeCard } from '../../../components/recipes/RecipeCard'
+import { useRecipeViewMode } from '../../../components/recipes/useRecipeViewMode'
+import { ViewModeToggle } from '../../../components/recipes/ViewModeToggle'
 
 export const Route = createFileRoute('/_app/recipes/')({
   component: RecipeList,
@@ -10,6 +13,7 @@ export const Route = createFileRoute('/_app/recipes/')({
 
 function RecipeList() {
   const recipes = useQuery(api.recipes.list)
+  const [viewMode, setViewMode] = useRecipeViewMode()
 
   return (
     <div className="mx-auto grid max-w-5xl gap-4">
@@ -20,13 +24,16 @@ function RecipeList() {
             Keep and rate the dishes this group cooks.
           </p>
         </div>
-        <Link
-          to="/recipes/new"
-          className="inline-flex min-h-9 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold text-[var(--app-fg)] no-underline"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          Add recipe
-        </Link>
+        <div className="flex items-center gap-3">
+          <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+          <Link
+            to="/recipes/new"
+            className="inline-flex min-h-9 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold text-[var(--app-fg)] no-underline"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Add recipe
+          </Link>
+        </div>
       </div>
 
       {recipes === undefined ? (
@@ -54,30 +61,21 @@ function RecipeList() {
           </div>
         </SurfaceCard>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {recipes.map((recipe) => (
+        <div
+          className={
+            viewMode === 'compact'
+              ? 'flex flex-col gap-2'
+              : 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3'
+          }
+        >
+          {recipes.map((r) => (
             <Link
-              key={recipe._id}
+              key={r._id}
               to="/recipes/$recipeId"
-              params={{ recipeId: recipe._id }}
-              className="grid min-h-32 gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-3 text-[var(--app-fg)] no-underline hover:border-[var(--app-fg)]"
+              params={{ recipeId: r._id }}
+              className="block no-underline transition hover:opacity-90"
             >
-              <div>
-                <h3 className="m-0 text-sm font-semibold">{recipe.title}</h3>
-                {recipe.description ? (
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--app-muted)]">
-                    {recipe.description}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex flex-wrap items-center gap-2 self-end">
-                {recipe.rating != null ? (
-                  <Pill>{'★'.repeat(recipe.rating)}</Pill>
-                ) : null}
-                {recipe.tags.slice(0, 3).map((tag) => (
-                  <Pill key={tag}>{tag}</Pill>
-                ))}
-              </div>
+              <RecipeCard recipe={r} mode={viewMode} />
             </Link>
           ))}
         </div>

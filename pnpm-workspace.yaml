@@ -15,6 +15,7 @@ allowBuilds:
   "@clerk/shared": false # postinstall is just a telemetry notice
   "@google/genai": false # no native binary needed at install time
   protobufjs: false # no native binary needed at install time
+  unrs-resolver: true # native binary resolver (napi-postinstall picks the platform build)
 
 minimumReleaseAge: 4320 # 3 days — blocks the worm/account-takeover window
 minimumReleaseAgeExclude:

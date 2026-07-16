@@ -24,7 +24,7 @@ the authenticated shell; `src/routes/_app/*` are its child routes. Module metada
 | `/dashboard` | `src/routes/_app/dashboard.tsx` | live |
 | `/recipes` | `src/routes/_app/recipes/index.tsx` | live |
 | `/recipes/new` | `src/routes/_app/recipes/new.tsx` | live |
-| `/recipes/$recipeId` | `src/routes/_app/recipes/$recipeId.tsx` | live |
+| `/recipes/$recipeId` | `src/routes/_app/recipes/$recipeId.index.tsx` | live |
 | `/recipes/$recipeId/edit` | `src/routes/_app/recipes/$recipeId.edit.tsx` | live |
 | `/meal-planner` | `src/routes/_app/meal-planner.tsx` | placeholder |
 | `/groceries` | `src/routes/_app/groceries.tsx` | placeholder |

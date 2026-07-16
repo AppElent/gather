@@ -9,7 +9,10 @@
  */
 
 import type * as groups from "../groups.js";
+import type * as lib_recipeAiExtract from "../lib/recipeAiExtract.js";
+import type * as lib_recipeParsing from "../lib/recipeParsing.js";
 import type * as lib_sharing from "../lib/sharing.js";
+import type * as recipeImport from "../recipeImport.js";
 import type * as recipes from "../recipes.js";
 import type * as users from "../users.js";
 
@@ -21,7 +24,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   groups: typeof groups;
+  "lib/recipeAiExtract": typeof lib_recipeAiExtract;
+  "lib/recipeParsing": typeof lib_recipeParsing;
   "lib/sharing": typeof lib_sharing;
+  recipeImport: typeof recipeImport;
   recipes: typeof recipes;
   users: typeof users;
 }>;

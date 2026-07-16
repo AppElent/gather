@@ -30,4 +30,3 @@ docs/.generated
 .env.dev
 .env.preview
 .env.prod
-

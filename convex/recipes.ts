@@ -9,11 +9,17 @@ export const list = query({
     if (!user) return []
     const groupIds = await getMyGroupIds(ctx, user._id)
     const all = await ctx.db.query('recipes').collect()
-    return all.filter((r) =>
+    const visible = all.filter((r) =>
       isVisibleTo(
         { ownerId: r.ownerId, sharedGroupIds: r.sharedGroupIds },
         { userId: user._id, groupIds },
       ),
+    )
+    return await Promise.all(
+      visible.map(async (r) => ({
+        ...r,
+        imageUrl: r.imageId ? await ctx.storage.getUrl(r.imageId) : null,
+      })),
     )
   },
 })
@@ -56,6 +62,7 @@ const recipeFields = {
   tags: v.array(v.string()),
   rating: v.optional(v.number()),
   prepMinutes: v.optional(v.number()),
+  sourceUrl: v.optional(v.string()),
   sharedGroupIds: v.optional(v.array(v.id('groups'))),
 }
 
@@ -75,17 +82,24 @@ export const create = mutation({
 })
 
 export const update = mutation({
-  args: { id: v.id('recipes'), ...recipeFields },
+  args: {
+    id: v.id('recipes'),
+    ...recipeFields,
+    imageId: v.optional(v.union(v.id('_storage'), v.null())),
+    rating: v.optional(v.union(v.number(), v.null())),
+  },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) throw new Error('Not authenticated')
     const recipe = await ctx.db.get(args.id)
     if (!recipe) throw new Error('Recipe not found')
     if (recipe.ownerId !== user._id) throw new Error('Not the owner')
-    const { id, sharedGroupIds, ...rest } = args
+    const { id, sharedGroupIds, imageId, rating, ...rest } = args
     await ctx.db.patch(id, {
       ...rest,
       ...(sharedGroupIds ? { sharedGroupIds } : {}),
+      ...(imageId !== undefined ? { imageId: imageId ?? undefined } : {}),
+      ...(rating !== undefined ? { rating: rating ?? undefined } : {}),
     })
   },
 })
