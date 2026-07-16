@@ -1,23 +1,29 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { PublicPageFrame } from '../components/app/PublicPageFrame'
 
 export const Route = createFileRoute('/about')({
-  component: About,
+  component: AboutPage,
 })
 
-function About() {
+export function AboutPage() {
   return (
-    <main className="page-wrap px-4 py-12">
-      <section className="island-shell rounded-2xl p-6 sm:p-8">
-        <p className="island-kicker mb-2">About</p>
-        <h1 className="display-title mb-3 text-4xl font-bold text-[var(--sea-ink)] sm:text-5xl">
-          A small starter with room to grow.
-        </h1>
-        <p className="m-0 max-w-3xl text-base leading-8 text-[var(--sea-ink-soft)]">
-          TanStack Start gives you type-safe routing, server functions, and
-          modern SSR defaults. Use this as a clean foundation, then layer in
-          your own routes, styling, and add-ons.
+    <PublicPageFrame
+      eyebrow="About Gather"
+      title="A group command center for everyday coordination"
+      subtitle="Gather keeps shared recipes, plans, lists, tasks, notes, and tasting logs in one compact workspace for the people who coordinate together."
+    >
+      <div className="grid gap-3 text-sm leading-6 text-[var(--app-muted)]">
+        <p className="m-0">
+          Recipes are live today, and the surrounding modules are staged so a
+          group can grow into meal planning, groceries, pantry tracking,
+          finances, bills, tasks, calendar, notes, cheeses, and wines without
+          changing products.
         </p>
-      </section>
-    </main>
+        <p className="m-0">
+          The command center brings those modules together as a shared view of
+          what is active, what is planned, and what needs attention next.
+        </p>
+      </div>
+    </PublicPageFrame>
   )
 }
