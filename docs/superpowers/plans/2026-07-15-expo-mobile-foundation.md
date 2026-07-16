@@ -4,7 +4,7 @@
 
 **Goal:** Create an Expo Router app at `apps/mobile` that displays "Hello world" and runs in Expo Go without a custom native build.
 
-**Architecture:** The mobile app is a pnpm workspace package nested inside the existing repository and runnable from its own directory. Expo Router owns navigation through a root native stack, while one route owns the complete initial screen and its light/dark styling.
+**Architecture:** The mobile app is a pnpm workspace package nested inside the existing repository and runnable from its own directory. The scaffolded Expo Router app is reset with Expo's generated reset script, then the default route is reduced to the "Hello world" first screen.
 
 **Tech Stack:** Expo SDK 54 compatibility path, Expo Router, React Native, TypeScript, pnpm
 
@@ -28,8 +28,8 @@
 
 **Files:**
 
-- Create: `apps/mobile/app/_layout.tsx`
-- Create: `apps/mobile/app/index.tsx`
+- Create from reset scaffold: `apps/mobile/app/_layout.tsx`
+- Modify from reset scaffold: `apps/mobile/app/index.tsx`
 - Create from scaffold: `apps/mobile/.gitignore`
 - Create from scaffold: `apps/mobile/assets/`
 - Create from scaffold: `apps/mobile/eslint.config.js`
@@ -39,11 +39,11 @@
 - Modify from scaffold: `apps/mobile/tsconfig.json`
 - Modify: `pnpm-workspace.yaml`
 - Modify from dependency installation: `pnpm-lock.yaml`
-- Delete generated examples: `apps/mobile/app/`, `apps/mobile/components/`, `apps/mobile/constants/`, `apps/mobile/hooks/`, and `apps/mobile/scripts/` before recreating the two route files
+- Delete after reset: `apps/mobile/app-example/` and `apps/mobile/scripts/`
 
 **Interfaces:**
 
-- Consumes: Expo Router's `Stack`, Expo's `StatusBar`, and React Native's `ScrollView`, `Text`, `StyleSheet`, and `useColorScheme`.
+- Consumes: Expo Router's scaffolded root layout and the reset route's React Native screen primitives.
 - Produces: `RootLayout(): React.JSX.Element` as the root router layout and `HomeScreen(): React.JSX.Element` as the `/` route.
 
 - [ ] **Step 1: Confirm the destination is available**
@@ -89,23 +89,24 @@ npx expo install react-native-web react-dom
 
 Expected: Expo selects SDK-compatible versions and pnpm completes without peer-dependency errors.
 
-- [ ] **Step 5: Remove the generated example UI**
+- [ ] **Step 5: Reset the generated starter UI**
 
-First run from `apps/mobile`:
+Run from `apps/mobile`:
+
+```powershell
+pnpm reset-project
+```
+
+Expected: Expo's generated reset script moves the rich starter UI into `app-example/` and leaves a simple `app/` directory with a default route.
+
+Then remove the archived example and reset script, because this repository keeps only the starter slice it actually uses:
 
 ```powershell
 Resolve-Path .
+Remove-Item -Recurse -Force -LiteralPath app-example, scripts
 ```
 
-Expected: the resolved path ends with `gather\apps\mobile`.
-
-After confirming that path, remove only the newly generated example source directories:
-
-```powershell
-Remove-Item -Recurse -Force -LiteralPath app, components, constants, hooks, scripts
-```
-
-Expected: the example routes, components, constants, hooks, and reset script are gone while configuration, dependencies, and assets remain.
+Expected: the resolved path ends with `gather\apps\mobile`, the simple reset `app/` remains, and the archived example source is gone.
 
 - [ ] **Step 6: Configure the mobile package entry point and scripts**
 
@@ -137,9 +138,9 @@ Expected package fields:
 
 The scaffolded `dependencies` and `devDependencies` remain in the same file with the versions selected by Expo.
 
-- [ ] **Step 7: Replace the Expo app configuration**
+- [ ] **Step 7: Update the Expo app configuration**
 
-Set `apps/mobile/app.json` to:
+Set `apps/mobile/app.json` to this small deterministic configuration:
 
 ```json
 {
@@ -182,9 +183,9 @@ Set `apps/mobile/tsconfig.json` to:
 }
 ```
 
-- [ ] **Step 9: Create the native stack layout**
+- [ ] **Step 9: Keep the reset native stack layout**
 
-Create `apps/mobile/app/_layout.tsx`:
+Confirm the reset layout at `apps/mobile/app/_layout.tsx` is equivalent to:
 
 ```tsx
 import { Stack } from "expo-router";
@@ -202,9 +203,9 @@ export default function RootLayout() {
 }
 ```
 
-- [ ] **Step 10: Create the Hello World route**
+- [ ] **Step 10: Change the reset route text to Hello World**
 
-Create `apps/mobile/app/index.tsx`:
+Replace the reset route at `apps/mobile/app/index.tsx` with:
 
 ```tsx
 import { ScrollView, StyleSheet, Text, useColorScheme } from "react-native";
