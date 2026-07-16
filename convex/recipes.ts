@@ -86,6 +86,7 @@ export const update = mutation({
     id: v.id('recipes'),
     ...recipeFields,
     imageId: v.optional(v.union(v.id('_storage'), v.null())),
+    rating: v.optional(v.union(v.number(), v.null())),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
@@ -93,11 +94,12 @@ export const update = mutation({
     const recipe = await ctx.db.get(args.id)
     if (!recipe) throw new Error('Recipe not found')
     if (recipe.ownerId !== user._id) throw new Error('Not the owner')
-    const { id, sharedGroupIds, imageId, ...rest } = args
+    const { id, sharedGroupIds, imageId, rating, ...rest } = args
     await ctx.db.patch(id, {
       ...rest,
       ...(sharedGroupIds ? { sharedGroupIds } : {}),
       ...(imageId !== undefined ? { imageId: imageId ?? undefined } : {}),
+      ...(rating !== undefined ? { rating: rating ?? undefined } : {}),
     })
   },
 })

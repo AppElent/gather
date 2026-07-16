@@ -68,6 +68,7 @@ function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
             await update({
               id: recipe._id,
               ...values,
+              rating: values.rating ?? null,
               imageId: imageId ?? null,
             })
             navigate({

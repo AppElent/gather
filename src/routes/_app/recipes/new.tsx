@@ -117,7 +117,7 @@ function NewRecipe() {
       </div>
 
       <ImageUploadField
-        key={imported?.version ?? 'blank'}
+        key={`image-${imported?.version ?? 'blank'}`}
         imageUrl={imageUrl}
         onChange={(id) => {
           setImageId(id)
@@ -132,7 +132,7 @@ function NewRecipe() {
       )}
 
       <RecipeForm
-        key={imported?.version ?? 'blank'}
+        key={`form-${imported?.version ?? 'blank'}`}
         submitting={submitting}
         initial={imported?.values}
         onSubmit={async (values) => {

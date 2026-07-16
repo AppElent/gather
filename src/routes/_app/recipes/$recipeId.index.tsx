@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
 
-export const Route = createFileRoute('/_app/recipes/$recipeId')({
+export const Route = createFileRoute('/_app/recipes/$recipeId/')({
   component: RecipeDetail,
 })
 
@@ -23,7 +23,12 @@ function RecipeDetail() {
   return (
     <article className="mx-auto max-w-2xl">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{recipe.title}</h1>
+        <div>
+          <h1 className="text-2xl font-semibold">{recipe.title}</h1>
+          {recipe.rating != null && (
+            <p className="text-sm opacity-60">{'★'.repeat(recipe.rating)}</p>
+          )}
+        </div>
         <div className="flex gap-2">
           <Link
             to="/recipes/$recipeId/edit"
