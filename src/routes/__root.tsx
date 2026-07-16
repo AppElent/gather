@@ -9,10 +9,12 @@ import type { QueryClient } from '@tanstack/react-query'
 import {
   createRootRouteWithContext,
   HeadContent,
+  Link,
   Scripts,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { useEffect } from 'react'
+import { PublicPageFrame } from '../components/app/PublicPageFrame'
 import ClerkProvider from '../integrations/clerk/provider'
 import ConvexProvider from '../integrations/convex/provider'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
@@ -52,7 +54,36 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     ],
   }),
   shellComponent: RootDocument,
+  notFoundComponent: NotFoundPage,
 })
+
+export function NotFoundPage() {
+  return (
+    <PublicPageFrame
+      eyebrow="Not found"
+      title="Page not found"
+      subtitle="This route is not part of the current Gather workspace."
+      actions={
+        <Link to="/sign-in" className="text-[var(--app-muted)] no-underline">
+          Sign in
+        </Link>
+      }
+    >
+      <div className="grid gap-4">
+        <p className="m-0 text-sm leading-6 text-[var(--app-muted)]">
+          The page may have moved, or the link may point to a module that has
+          not been added yet.
+        </p>
+        <Link
+          to="/dashboard"
+          className="inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)] no-underline"
+        >
+          Go to dashboard
+        </Link>
+      </div>
+    </PublicPageFrame>
+  )
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   useEffect(() => {
