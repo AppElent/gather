@@ -145,11 +145,13 @@ reconnected (the rows stay; they surface the reconnect prompt from §7).
 
 - Connecting Notion or Todoist for a group is a one-time OAuth flow per provider, initiated from
   the Connections settings section (or the inline shortcut in the Add-list flow below). The
-  callback is a TanStack Start server route (e.g.
-  `src/routes/api/integrations/notion/callback.ts`, `.../todoist/callback.ts`) that exchanges the
-  auth code for a token and calls an internal Convex mutation to upsert the
-  `integrationConnections` row — this app's Clerk sign-in already lives alongside Convex the same
-  way, so this isn't a new pattern for the codebase.
+  provider redirects back to a **client route** (`/integrations/callback`, inside the
+  auth-guarded app shell) which validates the OAuth `state` and calls an authenticated **Convex
+  action** that performs the code-for-token exchange server-side (client id/secret live in Convex
+  env vars, the same mechanism as `ANTHROPIC_API_KEY`) and upserts the `integrationConnections`
+  row via an internal mutation. This deliberately avoids a TanStack Start server route: the app
+  has no server-side Clerk SDK and no second secret store on the Workers side, and authenticated
+  Convex actions doing external HTTP is the established pattern here (`convex/recipeImport.ts`).
 
 ### 5.3 Linking a list
 
