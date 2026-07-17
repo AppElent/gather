@@ -1,12 +1,13 @@
 # gather
 
-A household-management app (Recipes, groups, and a growing set of placeholder
-modules — meal planner, groceries, pantry, finances, bills, tasks, calendar, notes,
+A household-management app (Recipes, Tasks, groups, and a growing set of placeholder
+modules — meal planner, groceries, pantry, finances, bills, calendar, notes,
 cheeses, wines) built on the standard AppElent stack:
 
 - **TanStack React Start + Router** (file-based routing, `tsr generate`), SSR, Vite.
 - **Convex** backend (`convex/`) — functions: `recipes.ts`, `groups.ts`, `users.ts`,
-  `lib/sharing.ts`. Schema in `convex/schema.ts`.
+  `taskLists.ts`, `tasks.ts`, `integrations.ts`, `lib/sharing.ts`, `lib/taskAccess.ts`,
+  `lib/taskProviders/` (adapter pattern for Notion/Todoist). Schema in `convex/schema.ts`.
 - **Clerk** auth (`@clerk/clerk-react`), JWT-bridged to Convex via `CLERK_JWT_ISSUER_DOMAIN`
   (Convex deployment env var, set with `convex env set` — not committed anywhere).
 - **Cloudflare Workers** deploy via `wrangler.jsonc` — worker name `gather`
