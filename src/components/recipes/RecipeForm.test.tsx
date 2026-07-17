@@ -142,6 +142,38 @@ test('estimate button fills nutrition and submits ai source', async () => {
   )
 })
 
+test('disables nutrition inputs while an estimate is in flight', async () => {
+  const onSubmit = vi.fn()
+  let resolveEstimate: (facts: { calories: number }) => void
+  const onEstimate = vi.fn(
+    () =>
+      new Promise<{ calories: number }>((resolve) => {
+        resolveEstimate = resolve
+      }),
+  )
+  render(
+    <RecipeForm
+      onSubmit={onSubmit}
+      submitting={false}
+      onEstimate={onEstimate}
+    />,
+  )
+
+  fireEvent.change(screen.getByLabelText('Ingredients'), {
+    target: { value: 'water\nwortel' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: /estimate with ai/i }))
+
+  expect(screen.getByLabelText('Servings')).toBeDisabled()
+  expect(screen.getByLabelText('Calories (kcal)')).toBeDisabled()
+
+  resolveEstimate!({ calories: 300 })
+  await screen.findByDisplayValue('300')
+
+  expect(screen.getByLabelText('Servings')).not.toBeDisabled()
+  expect(screen.getByLabelText('Calories (kcal)')).not.toBeDisabled()
+})
+
 test('hides the estimate button when onEstimate is not provided', () => {
   render(<RecipeForm onSubmit={vi.fn()} submitting={false} />)
   expect(screen.queryByRole('button', { name: /estimate/i })).toBeNull()

@@ -31,7 +31,7 @@ interface Props {
 }
 
 const inputClass =
-  'w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)]'
+  'w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)] disabled:cursor-not-allowed disabled:opacity-60'
 
 const lines = (s: string) =>
   s
@@ -171,6 +171,7 @@ export function RecipeForm({
             value={servings}
             onChange={(e) => setServings(e.target.value)}
             placeholder="4"
+            disabled={estimating}
           />
         </label>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -190,6 +191,7 @@ export function RecipeForm({
                   }))
                   setNutritionSource('manual')
                 }}
+                disabled={estimating}
               />
             </label>
           ))}
