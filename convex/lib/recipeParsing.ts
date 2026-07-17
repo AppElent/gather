@@ -1,3 +1,9 @@
+import {
+  type NutritionFacts,
+  parseNutritionValue,
+  parseServings,
+} from './nutrition'
+
 export interface ParsedRecipe {
   title: string
   description?: string
@@ -6,6 +12,8 @@ export interface ParsedRecipe {
   tags: string[]
   prepMinutes?: number
   imageUrl?: string
+  servings?: number
+  nutrition?: NutritionFacts
 }
 
 interface JsonLdNode {
@@ -171,6 +179,33 @@ function tagsOf(node: JsonLdNode): string[] {
   return Array.from(tags)
 }
 
+// schema.org NutritionInformation → NutritionFacts. Values are free text
+// ("250 kcal", "12,5 g", "1046 kJ", "800 mg") and conventionally per
+// serving. sodiumContent is sodium, not salt — EU labels use salt, so
+// convert with the standard ×2.5 factor.
+function extractNutrition(value: unknown): NutritionFacts | undefined {
+  if (typeof value !== 'object' || value === null) return undefined
+  const node = value as Record<string, unknown>
+  const facts: NutritionFacts = {}
+  const calories = parseNutritionValue(node.calories)
+  if (calories !== undefined) facts.calories = calories
+  const directMappings: Array<[keyof NutritionFacts, string]> = [
+    ['protein', 'proteinContent'],
+    ['carbs', 'carbohydrateContent'],
+    ['sugars', 'sugarContent'],
+    ['fat', 'fatContent'],
+    ['saturatedFat', 'saturatedFatContent'],
+    ['fiber', 'fiberContent'],
+  ]
+  for (const [key, prop] of directMappings) {
+    const parsed = parseNutritionValue(node[prop])
+    if (parsed !== undefined) facts[key] = parsed
+  }
+  const sodium = parseNutritionValue(node.sodiumContent)
+  if (sodium !== undefined) facts.salt = Math.round(sodium * 2.5 * 100) / 100
+  return Object.keys(facts).length > 0 ? facts : undefined
+}
+
 export function extractJsonLdRecipe(html: string): ParsedRecipe | null {
   const scriptRe =
     /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
@@ -204,6 +239,8 @@ export function extractJsonLdRecipe(html: string): ParsedRecipe | null {
       tags: tagsOf(node),
       prepMinutes,
       imageUrl: firstImageUrl(node.image),
+      servings: parseServings(node.recipeYield),
+      nutrition: extractNutrition(node.nutrition),
     }
   }
   return null
