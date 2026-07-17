@@ -30,6 +30,7 @@ build on — this is the first feature that talks to a third-party API.
 | Sync trigger | On-demand: fetched live via a Convex action when a list is opened, plus a manual "Refresh" button. No cron/background jobs, no cached copy of external tasks |
 | List model | A group has 0+ task lists; each list has exactly one provider (`local`, `notion`, or `todoist`) — not a merged view |
 | Connection ownership | Per-group, not per-user. One Notion connection and one Todoist connection per group; any list in that group can link to any source visible to that connection |
+| Connection management | A global "Connections" section on `/settings`, not inside the Tasks module — connections are module-agnostic (the same Notion connection will later serve Notes and Calendar). Tasks only *consumes* connections; connect/disconnect lives in settings, with an inline "connect now" shortcut from the Add-list flow for convenience |
 | Notion property mapping | User-driven at link time — gather fetches the database's property schema and the user maps title/done/due-date (optionally priority/labels) to it, since Notion databases have arbitrary schemas |
 | Todoist mapping | None needed — Todoist's task shape is fixed (title, done, due date, priority, labels are native fields) |
 | Unified task shape | `{ externalId, title, done, dueDate?, priority?, labels? }` — extended beyond the bare minimum specifically so Todoist's native priority/labels aren't dropped |
@@ -121,17 +122,35 @@ query result — same boundary discipline as any other server secret in this app
 
 ---
 
-## 5. OAuth & linking flow
+## 5. Connections settings, OAuth & linking flow
+
+### 5.1 Global Connections settings
+
+`/settings` (currently just `AppearanceSettings` from `@appelent/auth`) gains a **Connections**
+section listing the group's external connections. Per provider it shows: connected state,
+`accountLabel` (workspace name / account email), who connected it, and Connect / Disconnect
+actions. This is deliberately module-agnostic — `integrationConnections` rows carry no module
+reference, so the same Notion connection will later serve the Notes and Calendar modules without
+schema or settings-UI changes (only the `provider` union grows as new providers are added).
+Disconnecting warns that any lists linked through that connection will stop loading until
+reconnected (the rows stay; they surface the reconnect prompt from §7).
+
+### 5.2 OAuth
 
 - Connecting Notion or Todoist for a group is a one-time OAuth flow per provider, initiated from
-  the Tasks page. The callback is a TanStack Start server route (e.g.
+  the Connections settings section (or the inline shortcut in the Add-list flow below). The
+  callback is a TanStack Start server route (e.g.
   `src/routes/api/integrations/notion/callback.ts`, `.../todoist/callback.ts`) that exchanges the
   auth code for a token and calls an internal Convex mutation to upsert the
   `integrationConnections` row — this app's Clerk sign-in already lives alongside Convex the same
   way, so this isn't a new pattern for the codebase.
+
+### 5.3 Linking a list
+
 - Linking a list:
   1. User picks "Add list" → chooses provider. If external and the group has no connection yet,
-     shows "Connect Notion" / "Connect Todoist" first.
+     shows an inline "Connect Notion" / "Connect Todoist" button (same OAuth flow as settings;
+     returns the user to the Add-list flow afterwards).
   2. Convex action calls `listAvailableSources` (Notion databases / Todoist projects); user picks
      one.
   3. **Notion only:** action calls `getSourceSchema`; user maps title/done/due-date (and optionally
@@ -149,6 +168,8 @@ query result — same boundary discipline as any other server secret in this app
   `taskLists.getTasks`; a manual "Refresh" button re-fetches; each row links out to open the item
   in its source app. No inline editing controls are rendered for these lists.
 - "Add list" flow covers both local (name only) and external (provider connect/select/map, per §5).
+- Connection management itself (connect/disconnect, connection status) lives on `/settings` per
+  §5.1, not on the Tasks page.
 
 ---
 
