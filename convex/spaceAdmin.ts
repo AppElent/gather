@@ -2,13 +2,29 @@ import { ConvexError, v } from 'convex/values'
 import { action } from './_generated/server'
 import { internal } from './_generated/api'
 import { createClerkClient } from '@clerk/backend'
-import { GATHER_ORGANIZATION_MARKER } from '../shared/gatherOrganizations'
+import {
+  GATHER_INVITATION_MARKER,
+  GATHER_ORGANIZATION_MARKER,
+  isGatherOrganizationMetadata,
+} from '../shared/gatherOrganizations'
 import type {
   ClerkOrganizationGateway,
   ClerkOrganizationRecord,
 } from './lib/clerkOrganizationGateway'
 import { findOrCreateGatherOrganization } from './lib/gatherOrganizationCreation'
 
+
+export function requireGatherOrganization(organization: {
+  publicMetadata: unknown
+}): void {
+  if (!isGatherOrganizationMetadata(organization.publicMetadata)) {
+    throw new ConvexError('Gather Space marker mismatch')
+  }
+}
+
+export function gatherInvitationOptions() {
+  return { publicMetadata: GATHER_INVITATION_MARKER }
+}
 export function normalizeSpaceName(name: string) {
   const normalized = name.trim().replace(/\s+/g, ' ')
   if (!normalized) throw new ConvexError('Space name is required')

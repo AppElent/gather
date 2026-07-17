@@ -1,8 +1,8 @@
 import { ConvexError } from 'convex/values'
 import { describe, expect, test } from 'vitest'
-import { GATHER_ORGANIZATION_MARKER } from '../shared/gatherOrganizations'
+import { GATHER_INVITATION_MARKER, GATHER_ORGANIZATION_MARKER } from '../shared/gatherOrganizations'
 import type { ClerkOrganizationGateway } from './lib/clerkOrganizationGateway'
-import { createGatherSpace, normalizeSpaceName, requireEnv } from './spaceAdmin'
+import { createGatherSpace, gatherInvitationOptions, normalizeSpaceName, requireEnv, requireGatherOrganization } from './spaceAdmin'
 
 describe('spaceAdmin helpers', () => {
   test('normalizes a Space name for backend creation', () => {
@@ -15,6 +15,14 @@ describe('spaceAdmin helpers', () => {
 
   test('requires configured server environment variables', () => {
     expect(() => requireEnv('__GATHER_MISSING_TEST_ENV__')).toThrow(ConvexError)
+  })
+
+  test('rejects administrative work for an unmarked Organization', () => {
+    expect(() => requireGatherOrganization({ publicMetadata: {} })).toThrow('Gather Space marker mismatch')
+  })
+
+  test('prepares Gather-marked invitation metadata', () => {
+    expect(gatherInvitationOptions()).toEqual({ publicMetadata: GATHER_INVITATION_MARKER })
   })
 
   test('creates a marked Organization and provisions its Space projection', async () => {

@@ -16,3 +16,7 @@ Required development configuration:
 10. Save `CLERK_SECRET_KEY` in the Convex deployment for backend Organization administration actions.
 
 Never commit Clerk secret keys, webhook secrets, JWT bodies, or real token values.
+
+## Webhook isolation
+
+Configure Clerk to send only POST requests to /clerk-webhook. Gather verifies each delivery with CLERK_WEBHOOK_SIGNING_SECRET before inspecting its contents. In a shared Clerk application, only Gather-marked Organizations and invitations are projected; unrelated events are acknowledged without writes.
