@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
+import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
 
 export default defineSchema({
   users: defineTable({
@@ -36,6 +37,10 @@ export default defineSchema({
     rating: v.optional(v.number()),
     prepMinutes: v.optional(v.number()),
     sourceUrl: v.optional(v.string()),
+    servings: v.optional(v.number()),
+    nutrition: v.optional(nutritionValidator),
+    nutritionSource: v.optional(nutritionSourceValidator),
+    nutritionStale: v.optional(v.boolean()),
   }).index('by_owner', ['ownerId']),
 
   taskLists: defineTable({
