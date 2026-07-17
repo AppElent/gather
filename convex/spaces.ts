@@ -171,11 +171,88 @@ export const provisionTagged = internalMutation({
 })
 
 export const resolveActionContext = internalQuery({
-  args: { spaceSlug: v.string() },
+  args: {
+    spaceSlug: v.string(),
+    expectedClerkOrganizationId: v.string(),
+    requireAdmin: v.boolean(),
+  },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new ConvexError('Authentication required')
+    readSpaceClaims(identity, args.requireAdmin)
     const space = await findSpaceBySlug(ctx, args.spaceSlug)
     if (!space) throw new ConvexError('Space not found')
+    if (space.clerkOrganizationId !== args.expectedClerkOrganizationId) {
+      throw new ConvexError('Active organization does not match Space')
+    }
     return { space }
+  },
+})
+
+const projectedMembership = v.object({
+  clerkMembershipId: v.string(),
+  clerkUserId: v.string(),
+  role: v.union(v.literal('admin'), v.literal('member')),
+})
+
+export const reconcileMemberships = internalMutation({
+  args: { clerkOrganizationId: v.string(), memberships: v.array(projectedMembership) },
+  handler: async (ctx, args) => {
+    const space = await ctx.db
+      .query('spaces')
+      .withIndex('by_clerk_organization', (q) =>
+        q.eq('clerkOrganizationId', args.clerkOrganizationId),
+      )
+      .unique()
+    if (!space) throw new ConvexError('Space not found')
+
+    const now = Date.now()
+    const current = await ctx.db
+      .query('spaceMemberships')
+      .withIndex('by_space', (q) => q.eq('spaceId', space._id))
+      .collect()
+    for (const membership of current) await ctx.db.delete(membership._id)
+
+    for (const membership of args.memberships) {
+      const user = await ensureUserProjection(ctx, {
+        clerkUserId: membership.clerkUserId,
+        name: 'Member',
+        email: '',
+      })
+      await ctx.db.insert('spaceMemberships', {
+        spaceId: space._id,
+        userId: user._id,
+        clerkMembershipId: membership.clerkMembershipId,
+        clerkUserId: membership.clerkUserId,
+        role: membership.role,
+        createdAt: now,
+        updatedAt: now,
+      })
+    }
+  },
+})
+
+export const cleanupForDeletion = internalMutation({
+  args: { spaceId: v.id('spaces') },
+  handler: async (ctx, args) => {
+    for (const membership of await ctx.db
+      .query('spaceMemberships')
+      .withIndex('by_space', (q) => q.eq('spaceId', args.spaceId))
+      .collect()) {
+      await ctx.db.delete(membership._id)
+    }
+    for (const module of await ctx.db
+      .query('spaceModules')
+      .withIndex('by_space', (q) => q.eq('spaceId', args.spaceId))
+      .collect()) {
+      await ctx.db.delete(module._id)
+    }
+    for (const preference of await ctx.db
+      .query('spacePreferences')
+      .withIndex('by_space_user', (q) => q.eq('spaceId', args.spaceId))
+      .collect()) {
+      await ctx.db.delete(preference._id)
+    }
   },
 })
 
