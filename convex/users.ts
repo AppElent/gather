@@ -8,9 +8,8 @@ export const me = query({
 })
 
 /**
- * Idempotently provision the signed-in Clerk user as a gather user.
- * On first call, also creates a personal default group + membership so that
- * "shared by default" has a target.
+ * Idempotently provision the signed-in Clerk user as a Gather user projection.
+ * Space membership is owned by Clerk Organizations and projected separately.
  */
 export const ensureUser = mutation({
   args: {},
@@ -42,19 +41,6 @@ export const ensureUser = mutation({
       email: identity.email ?? '',
       imageUrl: identity.pictureUrl ?? undefined,
     })
-
-    const inviteCode = crypto.randomUUID().slice(0, 8)
-    const groupId = await ctx.db.insert('groups', {
-      name: 'Home',
-      inviteCode,
-      type: 'home',
-    })
-    await ctx.db.insert('memberships', {
-      groupId,
-      userId,
-      role: 'owner',
-    })
-    await ctx.db.patch(userId, { defaultGroupId: groupId })
     return userId
   },
 })
