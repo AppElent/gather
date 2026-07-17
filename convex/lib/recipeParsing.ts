@@ -56,13 +56,19 @@ function findRecipeNode(data: unknown): JsonLdNode | null {
   return null
 }
 
+// Some sites (24kitchen.nl) emit the full ISO 8601 duration form with an
+// explicit (often zero) day designator — "P0DT0H4M" instead of "PT4M". Both
+// are valid ISO 8601; accept an optional leading `(\d+)D` before the `T`.
 export function parseIsoDurationMinutes(iso: string): number | undefined {
-  const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(iso.trim())
+  const match = /^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(
+    iso.trim(),
+  )
   if (!match) return undefined
-  const hours = Number(match[1] ?? 0)
-  const minutes = Number(match[2] ?? 0)
-  const seconds = Number(match[3] ?? 0)
-  const total = hours * 60 + minutes + Math.round(seconds / 60)
+  const days = Number(match[1] ?? 0)
+  const hours = Number(match[2] ?? 0)
+  const minutes = Number(match[3] ?? 0)
+  const seconds = Number(match[4] ?? 0)
+  const total = days * 24 * 60 + hours * 60 + minutes + Math.round(seconds / 60)
   return total > 0 ? total : undefined
 }
 

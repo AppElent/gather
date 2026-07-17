@@ -31,6 +31,10 @@ describe('parseNutritionValue', () => {
   test('converts mg to g', () => {
     expect(parseNutritionValue('740 mg')).toBe(0.74)
   })
+  test('converts spelled-out "milligram" to g (bbcgoodfood.com: "1.04 milligram of sodium")', () => {
+    expect(parseNutritionValue('1.04 milligram of sodium')).toBe(0)
+    expect(parseNutritionValue('740 milligram of sodium')).toBe(0.74)
+  })
   test('rejects garbage, empty, and negative strings', () => {
     expect(parseNutritionValue('trace')).toBeUndefined()
     expect(parseNutritionValue('')).toBeUndefined()

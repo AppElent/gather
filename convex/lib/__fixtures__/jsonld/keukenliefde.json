@@ -1,0 +1,208 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/",
+      "url": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/",
+      "name": "Pasta carbonara met groene asperges - KeukenLiefde",
+      "isPartOf": {
+        "@id": "https://www.keukenliefde.nl/#website"
+      },
+      "primaryImageOfPage": {
+        "@id": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#primaryimage"
+      },
+      "image": {
+        "@id": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#primaryimage"
+      },
+      "thumbnailUrl": "https://www.keukenliefde.nl/app/uploads/2019/05/Pasta-carbonara-met-groene-asperges-2338.jpg",
+      "datePublished": "2019-05-02T05:00:40+00:00",
+      "dateModified": "2026-03-05T12:32:51+00:00",
+      "description": "Pasta carbonara met groene asperges, bacon en romige ei-parmezaansaus. Makkelijk om te maken en snel op tafel.",
+      "breadcrumb": {
+        "@id": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#breadcrumb"
+      },
+      "inLanguage": "nl-NL",
+      "potentialAction": [
+        {
+          "@type": "ReadAction",
+          "target": [
+            "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "ImageObject",
+      "inLanguage": "nl-NL",
+      "@id": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#primaryimage",
+      "url": "https://www.keukenliefde.nl/app/uploads/2019/05/Pasta-carbonara-met-groene-asperges-2338.jpg",
+      "contentUrl": "https://www.keukenliefde.nl/app/uploads/2019/05/Pasta-carbonara-met-groene-asperges-2338.jpg",
+      "width": 1200,
+      "height": 743,
+      "caption": "Pasta carbonara met groene asperges"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://www.keukenliefde.nl/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Recepten",
+          "item": "https://www.keukenliefde.nl/recepten/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Pasta carbonara met groene asperges"
+        }
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.keukenliefde.nl/#website",
+      "url": "https://www.keukenliefde.nl/",
+      "name": "KeukenLiefde",
+      "description": "Makkelijke recepten, verslavend lekker!",
+      "publisher": {
+        "@id": "https://www.keukenliefde.nl/#/schema/person/fc3c395603ed9b19eafdfa58d70cdbad"
+      },
+      "potentialAction": [
+        {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://www.keukenliefde.nl/?s={search_term_string}"
+          },
+          "query-input": {
+            "@type": "PropertyValueSpecification",
+            "valueRequired": true,
+            "valueName": "search_term_string"
+          }
+        }
+      ],
+      "inLanguage": "nl-NL"
+    },
+    {
+      "@type": [
+        "Person",
+        "Organization"
+      ],
+      "@id": "https://www.keukenliefde.nl/#/schema/person/fc3c395603ed9b19eafdfa58d70cdbad",
+      "name": "Annemiek Verweij",
+      "image": {
+        "@type": "ImageObject",
+        "inLanguage": "nl-NL",
+        "@id": "https://www.keukenliefde.nl/#/schema/person/image/",
+        "url": "https://www.keukenliefde.nl/app/uploads/2025/03/Annemiek-4.jpg",
+        "contentUrl": "https://www.keukenliefde.nl/app/uploads/2025/03/Annemiek-4.jpg",
+        "width": 1024,
+        "height": 792,
+        "caption": "Annemiek Verweij"
+      },
+      "logo": {
+        "@id": "https://www.keukenliefde.nl/#/schema/person/image/"
+      },
+      "description": "Hoi! dit ben ik - Annemiek. Al vanaf 2012 ben ik dagelijks druk bezig met mijn grootste hobby Keukenliefde. Doordeweeks ben ik dol op makkelijke maaltijden die snel op tafel staan maar in het weekend pak ik graag uit!",
+      "sameAs": [
+        "http://www.keukenliefde.nl",
+        "https://x.com/Keukenliefde"
+      ]
+    },
+    {
+      "@type": "Recipe",
+      "@id": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#/recipe/108486",
+      "name": "Pasta carbonara met groene asperges",
+      "image": "https://www.keukenliefde.nl/app/uploads/2019/05/Pasta-carbonara-met-groene-asperges-2338.jpg",
+      "inLanguage": "nl-NL",
+      "author": {
+        "@type": "Person",
+        "name": "Annemiek Verweij",
+        "url": "https://www.keukenliefde.nl/author/annemiek/"
+      },
+      "description": "Nog zo&#8217;n heerlijke variant op de klassieker: pasta carbonara met groene asperges, bacon en natuurlijk die romige ei-parmezaansaus. Makkelijk om te maken en snel op tafel. Pasta carbonara varianten Pasta carbonara (de klassieker) Pasta carbonara met witlof Pasta carbonara met tuinbonen",
+      "mainEntityOfPage": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/",
+      "datePublished": "2019-05-02T07:00:40+02:00",
+      "dateModified": "2026-03-05T13:32:51+01:00",
+      "totalTime": "PT15M",
+      "recipeYield": "2",
+      "recipeCategory": [
+        "Hoofdgerecht",
+        "Appetizer"
+      ],
+      "recipeCuisine": "Italiaans",
+      "recipeIngredient": [
+        "200 g pasta",
+        "Olijfolie om in te bakken",
+        "100 g baconreepjes of -blokjes",
+        "100 g groene aspergetips",
+        "3 eieren (2 hele eieren + 1 eidooier)",
+        "50 g geraspte parmezaan",
+        "Paar takjes platte peterselie, fijngehakt"
+      ],
+      "recipeInstructions": [
+        {
+          "@type": "HowToStep",
+          "text": "Kook de pasta beetgaar in ruim kokend water volgens de aanwijzingen op de verpakking.",
+          "url": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#recipe-step-1",
+          "name": "Kook de pasta beetgaar",
+          "image": "https://www.keukenliefde.nl/app/uploads/2019/05/Pasta-carbonara-met-groene-asperges-2.jpg"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Verhit ondertussen een koekenpan met een scheutje olijfolie. Voeg de bacon toe en bak op middelhoog vuur rustig goudbruin.",
+          "url": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#recipe-step-2",
+          "name": "Bak de bacon goudbruin",
+          "image": "https://www.keukenliefde.nl/app/uploads/2019/05/Pasta-carbonara-met-groene-asperges.jpg"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Snijd de kopjes van de aspergetips af en snijd de rest van de stengels klein. Voeg de aspergekopjes en -stukjes toe aan de bacon als deze bijna klaar is en bak 1 minuut mee.",
+          "url": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#recipe-step-3",
+          "name": "Bak de groene aspergetips mee",
+          "image": "https://www.keukenliefde.nl/app/uploads/2019/05/Pasta-carbonara-met-groene-asperges-4.jpg"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Giet de pasta af, vang een kopje kookvocht op en laat uitlekken in een zeef. Voeg de pasta toe aan de bacon en asperges in de pan en hussel om. Zet het vuur uit.",
+          "url": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#recipe-step-4",
+          "name": "Giet de pasta af en meng met de asperges"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Roer in een kom de eieren en Parmezaan door elkaar en breng licht op smaak met zout en peper.",
+          "url": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#recipe-step-5",
+          "name": "Roer de eieren en parmezaan door elkaar",
+          "image": "https://www.keukenliefde.nl/app/uploads/2019/05/Pasta-carbonara-met-groene-asperges-3.jpg"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Voeg het eimengsel toe aan de pasta en roer goed door tot er een fluweelzachte, romige carbonarasaus ontstaat. Maak de saus eventueel iets vloeibaarder met wat van het opgevangen kookvocht.",
+          "url": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#recipe-step-6",
+          "name": "Roer het eimengsel door de pasta",
+          "image": "https://www.keukenliefde.nl/app/uploads/2019/05/Pasta-carbonara-met-groene-asperges-5.jpg"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Roer de peterselie erdoor, verdeel de pasta over twee borden en serveer direct.",
+          "url": "https://www.keukenliefde.nl/recepten/pasta-carbonara-met-bacon-en-groene-asperges/#recipe-step-7",
+          "name": "Garneer met peterselie en serveer"
+        }
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": 2,
+        "ratingCount": 6,
+        "bestRating": 5,
+        "worstRating": 1
+      }
+    }
+  ]
+}

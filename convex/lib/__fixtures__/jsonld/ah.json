@@ -1,0 +1,118 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  "isPartOf": {
+    "@id": "https://www.ah.nl/allerhande#website"
+  },
+  "author": {
+    "@type": "Organization",
+    "@id": "https://www.ah.nl/allerhande#organization",
+    "name": "Albert Heijn"
+  },
+  "name": "Spicy komkommersalade met kip en witte bonen",
+  "alternateName": "",
+  "url": "https://www.ah.nl/allerhande/recept/R-R1202561/spicy-komkommersalade-met-kip-en-witte-bonen",
+  "totalTime": "PT25M",
+  "image": [
+    "",
+    "https://static.ah.nl/static/recepten/img_RAM_PRD221277_1224x900_JPG.jpg"
+  ],
+  "description": "Van side naar main: deze spicy, smashed komkommersalade komt met pulled chicken en witte bonen. De dressing? Crispy chili olie, gember en honing. Afgetopt met verse koriander voor de liefhebber.",
+  "keywords": "lactosevrij, salade, hoofdgerecht, wat eten we vandaag, zomer, bakken",
+  "recipeYield": "4",
+  "recipeCategory": "hoofdgerecht",
+  "recipeCuisine": "",
+  "suitableForDiet": [
+    "LowLactoseDiet"
+  ],
+  "nutrition": {
+    "@type": "NutritionInformation",
+    "calories": "565 kcal energie",
+    "fatContent": "35 g vet",
+    "saturatedFatContent": "7 g waarvan verzadigd",
+    "carbohydrateContent": "33 g koolhydraten",
+    "proteinContent": "25 g eiwit"
+  },
+  "recipeIngredient": [
+    "300 g scharrelkipdijfilet",
+    "5 el sojasaus",
+    "2 el rijstazijn",
+    "2 el zonnebloemolie",
+    "2 komkommers",
+    "720 g witte bonen in blik",
+    "25 g verse gember",
+    "1 teen knoflook",
+    "3 el honing",
+    "4 el sesamolie",
+    "2 el crispy chili in oil",
+    "15 g verse koriander"
+  ],
+  "recipeInstructions": [
+    {
+      "@type": "HowToStep",
+      "position": 1,
+      "name": "stap 1",
+      "text": "Meng de kipdijfilet met de sojasaus en de rijstazijn. "
+    },
+    {
+      "@type": "HowToStep",
+      "position": 2,
+      "name": "stap 2",
+      "text": "Verhit de zonnebloemolie in een koekenpan op middelhoog vuur en bak de kip in 15 min. gaar. Keer regelmatig. "
+    },
+    {
+      "@type": "HowToStep",
+      "position": 3,
+      "name": "stap 3",
+      "text": "Haal uit de pan en trek met twee vorken uit elkaar. "
+    },
+    {
+      "@type": "HowToStep",
+      "position": 4,
+      "name": "stap 4",
+      "text": "Halveer ondertussen de komkommers in de lengte. "
+    },
+    {
+      "@type": "HowToStep",
+      "position": 5,
+      "name": "stap 5",
+      "text": "Leg de helften met de snijkant naar beneden en plet ze door er een groot mes op te leggen en daar hard op te drukken. "
+    },
+    {
+      "@type": "HowToStep",
+      "position": 6,
+      "name": "stap 6",
+      "text": "Snijd de geplette komkommer in stukken van 2 cm.  "
+    },
+    {
+      "@type": "HowToStep",
+      "position": 7,
+      "name": "stap 7",
+      "text": "Spoel de bonen af en laat uitlekken. \n"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 8,
+      "name": "stap 8",
+      "text": "Rasp de gember en de knoflook en meng met de honing, sesamolie, crispy chiliolie, de rest van de sojasaus en de rijstazijn in een grote kom. "
+    },
+    {
+      "@type": "HowToStep",
+      "position": 9,
+      "name": "stap 9",
+      "text": "Snijd de koriander grof.  "
+    },
+    {
+      "@type": "HowToStep",
+      "position": 10,
+      "name": "stap 10",
+      "text": "Schep de komkommer en witte bonen door de saus en verdeel over een schaal. Verdeel de kip erover en bestrooi met de koriander. "
+    }
+  ],
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": 4.2,
+    "ratingCount": 95
+  },
+  "datePublished": "2026-05-29"
+}

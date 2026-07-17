@@ -1,0 +1,59 @@
+{
+  "@context": "https://schema.org/",
+  "@type": "Recipe",
+  "name": "Pompoen traybake met aardappel en worst",
+  "recipeYield": "4 porties",
+  "image": [
+    "https://recipe-service.prod.cloud.jumbo.com/recipes/999625/Pompoen-traybake-met-aardappel-en-worst_999625-0_560x560"
+  ],
+  "author": {
+    "@type": "Person",
+    "name": "Magazine"
+  },
+  "description": "Geniet van de herfst met onze pompoen traybake met aardappel en worst. De zachte pompoen, knapperige aardappelen en hartige worst komen samen in één bakplaatgerecht voor een smaakvolle en gemakkelijke maaltijd. Een heerlijke manier om het seizoen te vieren!.",
+  "cookTime": "PT35M",
+  "totalTime": "PT35M",
+  "recipeCategory": "hoofdgerecht",
+  "nutrition": {
+    "@type": "NutritionInformation",
+    "calories": "534 calories"
+  },
+  "recipeIngredient": [
+    "1 kg Krieltjes",
+    "1 el Euroma traybake groente kruiden ",
+    "800 g pompoenstukjes",
+    "2 el Olijfolie",
+    "400 g Braadworst",
+    "200 g tros cherrytomaten",
+    "3 Bosui",
+    "1 stuk Toppits bakpapier "
+  ],
+  "recipeInstructions": [
+    {
+      "@type": "HowToStep",
+      "text": "Verwarm de oven voor tot 200 °C. Bekleed een bakplaat met bakpapier. Halveer de krieltjes en meng met de pompoenstukjes, traybakekruiden en olie. Verdeel over de bakplaat. "
+    },
+    {
+      "@type": "HowToStep",
+      "text": "Snijd de worst in stukken en leg tussen de aardappel en pompoen. Rooster 30 min. in het midden van de oven. Schep halverwege om en leg er de tomaten tussen. "
+    },
+    {
+      "@type": "HowToStep",
+      "text": "Snijd de bosuitjes in ringetjes. Garneer de traybake vlak voor het serveren met de bosuitjes."
+    }
+  ],
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": 3.5,
+    "ratingCount": 17
+  },
+  "video": {
+    "@type": "VideoObject",
+    "name": "Pompoen traybake met aardappel en worst",
+    "description": "Geniet van de herfst met onze pompoen traybake met aardappel en worst. De zachte pompoen, knapperige aardappelen en hartige worst komen samen in één bakplaatgerecht voor een smaakvolle en gemakkelijke maaltijd. Een heerlijke manier om het seizoen te vieren!.",
+    "thumbnailUrl": [
+      "https://recipe-service.prod.cloud.jumbo.com/recipes/999625/Pompoen-traybake-met-aardappel-en-worst_999625-0_560x560"
+    ],
+    "contentUrl": null
+  }
+}

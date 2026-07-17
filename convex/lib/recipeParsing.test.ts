@@ -306,6 +306,14 @@ describe('parseIsoDurationMinutes', () => {
   test('returns undefined for an invalid duration', () => {
     expect(parseIsoDurationMinutes('not a duration')).toBeUndefined()
   })
+
+  test('parses the full ISO 8601 form with a (zero) day designator (24kitchen.nl: "P0DT0H4M")', () => {
+    expect(parseIsoDurationMinutes('P0DT0H4M')).toBe(4)
+  })
+
+  test('adds a non-zero day designator as whole days', () => {
+    expect(parseIsoDurationMinutes('P1DT2H')).toBe(1 * 24 * 60 + 2 * 60)
+  })
 })
 
 describe('htmlToText', () => {

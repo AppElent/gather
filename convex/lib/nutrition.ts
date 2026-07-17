@@ -66,7 +66,11 @@ export function parseNutritionValue(raw: unknown): number | undefined {
     : match[1].replace(',', '.')
   const value = Number(numText)
   if (!Number.isFinite(value) || value < 0) return undefined
-  if (/mg/i.test(raw)) return Math.round((value / 1000) * 100) / 100
+  // Some sites (bbcgoodfood.com) spell the unit out ("milligram of sodium")
+  // instead of abbreviating it, which "mg" alone wouldn't catch.
+  if (/mg/i.test(raw) || /milligram/i.test(raw)) {
+    return Math.round((value / 1000) * 100) / 100
+  }
   if (/kj/i.test(raw)) return Math.round((value / 4.184) * 10) / 10
   return value
 }

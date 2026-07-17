@@ -1,0 +1,152 @@
+{
+  "@context": "http://schema.org",
+  "@type": "Recipe",
+  "author": {
+    "@type": "Person",
+    "name": "Sanne van Lierop"
+  },
+  "datePublished": "2026-03-16T20:00:03+01:00",
+  "description": "Dit foe yong hai recept lijkt op de klassieker van de Chinees, maar dan net wat lichter en helemaal vers gemaakt. Makkelijk om thuis te maken met een paar simpele ingrediënten. Deze omelet met groenten, rijst en een warme, licht pittige tomatensaus is perfect in balans wat smaak betreft. Ik vind het vooral fijn dat ik er zelf extra groenten aan toe kan voegen, dan is hij ook een stuk gezonder dan de afhaal foe yong hai. ",
+  "keywords": "",
+  "image": [
+    "https://www.leukerecepten.nl/app/uploads/2026/03/fuo-yong-hai-recept.jpg",
+    "https://www.leukerecepten.nl/app/uploads/2026/03/fuo-yong-hai-recept-v.jpg"
+  ],
+  "nutrition": {
+    "@type": "NutritionInformation",
+    "calories": "520 kcal energie",
+    "fatContent": "18 g vet",
+    "saturatedFatContent": "3 g waarvan verzadigd",
+    "carbohydrateContent": "63 koolhydraten",
+    "sugarContent": "12 g suiker",
+    "fiberContent": "6 g vezels",
+    "proteinContent": "23 g eiwit",
+    "sodiumContent": "1800 mg zout"
+  },
+  "recipeIngredient": [
+    "150 gr basmati rijst",
+    "2 bosuien",
+    "1 wortel (80 gr ) ",
+    "1 teentje knoflook",
+    "150 gr champignons",
+    "0.5 rode paprika",
+    "4 eieren",
+    "2 handjes taugé",
+    "1 snuf peper en zout",
+    "1 blik tomatenblokjes",
+    "1 eetlepel sweet chili saus",
+    "3 cm gember (vers, geraspt) ",
+    "2 theelepels witte suiker (fijne) ",
+    "2 eetlepels (wok) olie"
+  ],
+  "name": "Foe yong hai",
+  "prepTime": "PT0H15M",
+  "cookTime": "PT0H10M",
+  "totalTime": "PT0H25M",
+  "recipeYield": [
+    "2",
+    "2 personen "
+  ],
+  "recipeCategory": "Hoofdgerechten",
+  "recipeCuisine": "",
+  "recipeInstructions": [
+    {
+      "@type": "HowToSection",
+      "name": "Bereiding",
+      "itemListElement": [
+        {
+          "@type": "HowToStep",
+          "name": "Kook de rijst volgens de aanwijzingen op de verpakking. Zet de rijst daarna even apart zodat hij kan uitstomen.\n",
+          "text": "Kook de rijst volgens de aanwijzingen op de verpakking. Zet de rijst daarna even apart zodat hij kan uitstomen.\n",
+          "url": "https://www.leukerecepten.nl/recepten/foe-yong-hai-recept/#step_1"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Vervolgens snijd je de champignons in plakjes en de wortel en paprika in kleine blokjes. De knoflook rasp je fijn, het witte deel van de bosui snijd je in stukjes en het groene deel in dunne ringen.\n",
+          "text": "Vervolgens snijd je de champignons in plakjes en de wortel en paprika in kleine blokjes. De knoflook rasp je fijn, het witte deel van de bosui snijd je in stukjes en het groene deel in dunne ringen.\n",
+          "url": "https://www.leukerecepten.nl/recepten/foe-yong-hai-recept/#step_2",
+          "image": "https://www.leukerecepten.nl/app/uploads/2026/03/foe-yong-hai-stap-01.jpg"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Doe de tomatenblokjes in een kleine pan samen met de sweet chili saus, geraspte gember en suiker. Verwarm de saus en laat hem zacht pruttelen zodat de smaken mengen. Proef en voeg eventueel een klein snufje zout toe.\n",
+          "text": "Doe de tomatenblokjes in een kleine pan samen met de sweet chili saus, geraspte gember en suiker. Verwarm de saus en laat hem zacht pruttelen zodat de smaken mengen. Proef en voeg eventueel een klein snufje zout toe.\n",
+          "url": "https://www.leukerecepten.nl/recepten/foe-yong-hai-recept/#step_3"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Verhit de olie in een pan en bak hierin de wortel, champignons, paprika, knoflook en witte deel van de bosui. Bak dit voor een paar minuten op hoog vuur.\n",
+          "text": "Verhit de olie in een pan en bak hierin de wortel, champignons, paprika, knoflook en witte deel van de bosui. Bak dit voor een paar minuten op hoog vuur.\n",
+          "url": "https://www.leukerecepten.nl/recepten/foe-yong-hai-recept/#step_4"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Ondertussen klop je de eieren los in een grote kom, samen met peper en zout. Verdeel vervolgens het geklopte ei over de groenten. Zet het vuur laag en laat het ei stollen. Als de bovenkant gaar is keer je de omelet om. Als hij breekt is het niet erg want je breekt hem vervolgens toch met de spatel in grove stukken.\n",
+          "text": "Ondertussen klop je de eieren los in een grote kom, samen met peper en zout. Verdeel vervolgens het geklopte ei over de groenten. Zet het vuur laag en laat het ei stollen. Als de bovenkant gaar is keer je de omelet om. Als hij breekt is het niet erg want je breekt hem vervolgens toch met de spatel in grove stukken.\n",
+          "url": "https://www.leukerecepten.nl/recepten/foe-yong-hai-recept/#step_5",
+          "image": "https://www.leukerecepten.nl/app/uploads/2026/03/foe-yong-hai-stap-04.jpg"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Voeg in de laatste minuut de helft van de taugé toe zodat deze ook verwarmd wordt maar nog een bite behoud. Schep vervolgens de tomatensaus erdoor. Zo ontstaat de typische foe yong hai.\n",
+          "text": "Voeg in de laatste minuut de helft van de taugé toe zodat deze ook verwarmd wordt maar nog een bite behoud. Schep vervolgens de tomatensaus erdoor. Zo ontstaat de typische foe yong hai.\n",
+          "url": "https://www.leukerecepten.nl/recepten/foe-yong-hai-recept/#step_6"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Verdeel de rijst over twee borden, daarover de foe yong hai en top af met het groene van de bosui en de rest van de taugé. Ook lekker met wat kroepoek of cassave chips erbij.\n&nbsp;\n",
+          "text": "Verdeel de rijst over twee borden, daarover de foe yong hai en top af met het groene van de bosui en de rest van de taugé. Ook lekker met wat kroepoek of cassave chips erbij.\n&nbsp;\n",
+          "url": "https://www.leukerecepten.nl/recepten/foe-yong-hai-recept/#step_7"
+        }
+      ]
+    }
+  ],
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4",
+    "ratingCount": "18"
+  },
+  "@id": "https://www.leukerecepten.nl/recepten/foe-yong-hai-recept/#recipe",
+  "isPartOf": {
+    "@id": "https://www.leukerecepten.nl/recepten/foe-yong-hai-recept/"
+  },
+  "mainEntityOfPage": "https://www.leukerecepten.nl/recepten/foe-yong-hai-recept/",
+  "inLanguage": "nl",
+  "mainEntity": {
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Wat is foe yong hai en hoe smaakt het?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Foe yong hai is een Chinees gerecht dat bestaat uit een omelet met groenten, meestal geserveerd met een zoetzure tomatensaus. De smaak is hartig door het ei en de gebakken groenten, met een licht zoete en frisse saus door de tomaat, gember en sweet chili. In Nederland wordt het vaak met rijst gegeten, zoals in dit foe yong hai recept."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Kun je foe yong hai zonder champignons maken?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Ja. Soms laat ik de champignons weg als ik ze niet in huis heb. Dan voeg ik bijvoorbeeld extra paprika of wat kleine blokjes courgette toe zodat de omelet nog steeds goed gevuld is."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Kan ik de saus van foe yong hai van tevoren maken?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Ja dat kan. Ik maak de saus soms een dag eerder als ik weinig tijd heb. In een afgesloten bakje blijft hij ongeveer twee dagen goed in de koelkast."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Welke groenten zijn lekker in Foe yong hai?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Zelf voeg ik vaak groenten toe zoals taugé, bosui, champignons, paprika en prei. Maar je kunt met dit gerecht erg goed variëren en toevoegen wat je zelf lekker vindt!"
+        }
+      }
+    ]
+  }
+}
