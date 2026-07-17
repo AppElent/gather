@@ -90,4 +90,19 @@ export default defineSchema({
     accountLabel: v.string(), // Notion workspace name / 'Todoist'
     connectedBy: v.id('users'),
   }).index('by_group_provider', ['groupId', 'provider']),
+
+  foods: defineTable({
+    name: v.string(),
+    brand: v.optional(v.string()),
+    barcode: v.optional(v.string()),
+    baseUnit: v.union(v.literal('g'), v.literal('ml')),
+    nutritionPer100: nutritionValidator,
+    servingSize: v.optional(v.number()),
+    servingLabel: v.optional(v.string()),
+    source: v.union(v.literal('openfoodfacts'), v.literal('manual')),
+    localEdited: v.optional(v.boolean()),
+    createdBy: v.id('users'),
+  })
+    .index('by_barcode', ['barcode'])
+    .searchIndex('search_by_name', { searchField: 'name' }),
 })
