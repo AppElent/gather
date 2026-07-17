@@ -31,6 +31,7 @@ import { Route as AppBillsRouteImport } from './routes/_app/bills'
 import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AppRecipesIndexRouteImport } from './routes/_app/recipes/index'
 import { Route as AppRecipesNewRouteImport } from './routes/_app/recipes/new'
+import { Route as AppIntegrationsCallbackRouteImport } from './routes/_app/integrations.callback'
 import { Route as AppRecipesRecipeIdIndexRouteImport } from './routes/_app/recipes/$recipeId.index'
 import { Route as AppRecipesRecipeIdEditRouteImport } from './routes/_app/recipes/$recipeId.edit'
 
@@ -143,6 +144,11 @@ const AppRecipesNewRoute = AppRecipesNewRouteImport.update({
   path: '/recipes/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppIntegrationsCallbackRoute = AppIntegrationsCallbackRouteImport.update({
+  id: '/integrations/callback',
+  path: '/integrations/callback',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRecipesRecipeIdIndexRoute = AppRecipesRecipeIdIndexRouteImport.update({
   id: '/recipes/$recipeId/',
   path: '/recipes/$recipeId/',
@@ -174,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/tasks': typeof AppTasksRoute
   '/wines': typeof AppWinesRoute
+  '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/recipes/': typeof AppRecipesIndexRoute
   '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
@@ -199,6 +206,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/tasks': typeof AppTasksRoute
   '/wines': typeof AppWinesRoute
+  '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/recipes': typeof AppRecipesIndexRoute
   '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
@@ -226,6 +234,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/tasks': typeof AppTasksRoute
   '/_app/wines': typeof AppWinesRoute
+  '/_app/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/_app/recipes/new': typeof AppRecipesNewRoute
   '/_app/recipes/': typeof AppRecipesIndexRoute
   '/_app/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
@@ -253,6 +262,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/wines'
+    | '/integrations/callback'
     | '/recipes/new'
     | '/recipes/'
     | '/recipes/$recipeId/edit'
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/wines'
+    | '/integrations/callback'
     | '/recipes/new'
     | '/recipes'
     | '/recipes/$recipeId/edit'
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/tasks'
     | '/_app/wines'
+    | '/_app/integrations/callback'
     | '/_app/recipes/new'
     | '/_app/recipes/'
     | '/_app/recipes/$recipeId/edit'
@@ -475,6 +487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRecipesNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/integrations/callback': {
+      id: '/_app/integrations/callback'
+      path: '/integrations/callback'
+      fullPath: '/integrations/callback'
+      preLoaderRoute: typeof AppIntegrationsCallbackRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/recipes/$recipeId/': {
       id: '/_app/recipes/$recipeId/'
       path: '/recipes/$recipeId'
@@ -507,6 +526,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppTasksRoute: typeof AppTasksRoute
   AppWinesRoute: typeof AppWinesRoute
+  AppIntegrationsCallbackRoute: typeof AppIntegrationsCallbackRoute
   AppRecipesNewRoute: typeof AppRecipesNewRoute
   AppRecipesIndexRoute: typeof AppRecipesIndexRoute
   AppRecipesRecipeIdEditRoute: typeof AppRecipesRecipeIdEditRoute
@@ -528,6 +548,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppTasksRoute: AppTasksRoute,
   AppWinesRoute: AppWinesRoute,
+  AppIntegrationsCallbackRoute: AppIntegrationsCallbackRoute,
   AppRecipesNewRoute: AppRecipesNewRoute,
   AppRecipesIndexRoute: AppRecipesIndexRoute,
   AppRecipesRecipeIdEditRoute: AppRecipesRecipeIdEditRoute,
@@ -547,12 +568,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
