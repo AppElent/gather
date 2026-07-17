@@ -13,11 +13,11 @@ const SOURCE_LABELS: Record<NutritionSource, string> = {
 
 interface Props {
   nutrition: NutritionFacts
-  servings?: number
+  unitLabel?: string
   source?: NutritionSource
 }
 
-export function NutritionPanel({ nutrition, servings, source }: Props) {
+export function NutritionPanel({ nutrition, unitLabel, source }: Props) {
   const present = NUTRIENT_KEYS.filter((key) => nutrition[key] !== undefined)
   if (present.length === 0) return null
   return (
@@ -25,9 +25,9 @@ export function NutritionPanel({ nutrition, servings, source }: Props) {
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-medium">
           Nutrition{' '}
-          <span className="text-xs font-normal opacity-60">
-            per serving{servings ? ` · ${servings} servings` : ''}
-          </span>
+          {unitLabel && (
+            <span className="text-xs font-normal opacity-60">{unitLabel}</span>
+          )}
         </h2>
         {source && (
           <span className="rounded-full border border-[var(--app-border)] px-2 py-0.5 text-xs opacity-70">

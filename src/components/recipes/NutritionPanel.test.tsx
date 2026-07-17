@@ -2,11 +2,11 @@ import { render, screen } from '@testing-library/react'
 import { expect, test } from 'vitest'
 import { NutritionPanel } from './NutritionPanel'
 
-test('renders present nutrients with labels and the source badge', () => {
+test('renders present nutrients with labels, unit label, and the source badge', () => {
   render(
     <NutritionPanel
       nutrition={{ calories: 520, protein: 18.5 }}
-      servings={4}
+      unitLabel="per serving · 4 servings"
       source="imported"
     />,
   )
@@ -15,10 +15,10 @@ test('renders present nutrients with labels and the source badge', () => {
   expect(screen.getByText('Protein (g)')).toBeDefined()
   expect(screen.getByText('18.5')).toBeDefined()
   expect(screen.getByText('Imported')).toBeDefined()
-  expect(screen.getByText(/4 servings/)).toBeDefined()
+  expect(screen.getByText('per serving · 4 servings')).toBeDefined()
 })
 
-test('hides absent nutrients and badge when source is missing', () => {
+test('hides absent nutrients and badge when source/unitLabel are missing', () => {
   render(<NutritionPanel nutrition={{ fat: 10 }} />)
   expect(screen.queryByText('Calories (kcal)')).toBeNull()
   expect(screen.queryByText('Imported')).toBeNull()

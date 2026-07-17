@@ -151,7 +151,11 @@ function RecipeDetail() {
       {recipe.nutrition && (
         <NutritionPanel
           nutrition={recipe.nutrition}
-          servings={recipe.servings}
+          unitLabel={
+            recipe.servings
+              ? `per serving · ${recipe.servings} servings`
+              : 'per serving'
+          }
           source={recipe.nutritionSource}
         />
       )}
