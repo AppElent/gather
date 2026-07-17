@@ -22,9 +22,9 @@ new payload here and fix the parser against it.
 | jumbo.json | https://www.jumbo.com/recepten/pompoen-traybake-met-aardappel-en-worst-999625 | 2026-07-17 |
 | bbcgoodfood.json | https://www.bbcgoodfood.com/recipes/chicken-tikka-masala | 2026-07-17 |
 
-7 of 9 target sites plus 1 substitute succeeded (5 Dutch sites captured
+7 of 9 target sites plus 1 substitute succeeded (6 Dutch sites captured
 directly from the plan's target list, keukenliefde.nl substituted in for a
-sixth). Two sites were skipped:
+seventh). Two sites were skipped:
 
 - **miljuschka.nl** — blocked every request with `403 Forbidden` (tried two
   different recipe URLs, and both the capture script's `fetch` and the
