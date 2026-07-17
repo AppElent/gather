@@ -1,12 +1,20 @@
 #!/usr/bin/env node
 // Capture the schema.org Recipe JSON-LD block from a recipe page into a
 // fixture file next to this script.
-// Usage: node convex/lib/__fixtures__/jsonld/capture.mjs <url> <fixture-name>
+// Usage: node convex/lib/__fixtures__/jsonld/capture.script.mjs <url> <fixture-name>
+//
+// Named with a second dot (capture.script.mjs, not capture.mjs) so Convex's
+// bundler skips it as a function entry point — it treats any file whose
+// basename contains more than one dot as non-function source, the same rule
+// that already exempts every *.test.ts file in this directory tree. Without
+// this, `convex dev` tries to bundle this script's `node:fs` import for the
+// isolate runtime and fails outright, since this file has no 'use node'
+// directive (it isn't a Convex function at all, just a standalone CLI tool).
 import { writeFileSync } from 'node:fs'
 
 const [url, name] = process.argv.slice(2)
 if (!url || !name) {
-  console.error('Usage: node capture.mjs <url> <fixture-name>')
+  console.error('Usage: node capture.script.mjs <url> <fixture-name>')
   process.exit(1)
 }
 const res = await fetch(url, {

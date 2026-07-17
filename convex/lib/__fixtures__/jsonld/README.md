@@ -6,7 +6,7 @@ real-world variety (spec: docs/superpowers/specs/2026-07-17-nutrition-tracking-d
 
 Refresh or add a fixture with:
 
-    node convex/lib/__fixtures__/jsonld/capture.mjs "<recipe-url>" <name>
+    node convex/lib/__fixtures__/jsonld/capture.script.mjs "<recipe-url>" <name>
 
 When a site changes structure and breaks imports in production, capture the
 new payload here and fix the parser against it.
