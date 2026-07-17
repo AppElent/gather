@@ -163,7 +163,10 @@ Client flow (in the add-food UI):
 3. Miss → Convex action `lookupBarcode` queries Open Food Facts
    (`GET /api/v2/product/{barcode}` with a proper identifying `User-Agent`, 10 s timeout).
 4. Found → mapped to the foods shape, shown to the user for confirmation, saved on confirm
-   (lazy cache). Partial nutriment data is saved as-is.
+   (lazy cache). Partial nutriment data is saved as-is. Names are language-dependent per
+   product: mapping prefers the Dutch name (`product_name_nl`) and falls back to the
+   product's default `product_name`. Stored names are plain strings — the library itself is
+   language-agnostic, and the user can rename on the confirmation screen or later via edit.
 5. Not found / OFF down → manual food form prefilled with the barcode. OFF being unavailable
    never blocks manual entry or logging.
 
