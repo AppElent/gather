@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useMutation, useQuery } from 'convex/react'
+import { useAction, useMutation, useQuery } from 'convex/react'
+import { ConvexError } from 'convex/values'
 import { useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
+import { NutritionPanel } from '../../../components/recipes/NutritionPanel'
 
 export const Route = createFileRoute('/_app/recipes/$recipeId/')({
   component: RecipeDetail,
@@ -14,6 +16,11 @@ function RecipeDetail() {
   const remove = useMutation(api.recipes.remove)
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
+  const me = useQuery(api.users.me)
+  const aiConfigured = useQuery(api.recipes.aiConfigured)
+  const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
+  const setNutrition = useMutation(api.recipes.setNutrition)
+  const [estimating, setEstimating] = useState(false)
 
   if (recipe === undefined)
     return <p className="text-sm opacity-60">Loading…</p>
@@ -87,6 +94,66 @@ function RecipeDetail() {
             {new URL(recipe.sourceUrl).hostname.replace(/^www\./, '')}
           </a>
         </p>
+      )}
+
+      {recipe.nutritionStale && me && recipe.ownerId === me._id && (
+        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <p className="mb-2">
+            Ingredients changed since nutrition was calculated — re-estimate?
+          </p>
+          <div className="flex gap-2">
+            {aiConfigured && (
+              <button
+                type="button"
+                disabled={estimating}
+                className="rounded border border-amber-400 px-2 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={async () => {
+                  setEstimating(true)
+                  setError(null)
+                  try {
+                    const nutrition = await estimateNutrition({
+                      ingredients: recipe.ingredients,
+                      servings: recipe.servings,
+                    })
+                    await setNutrition({
+                      id: recipe._id,
+                      nutrition,
+                      source: 'ai',
+                    })
+                  } catch (err) {
+                    setError(
+                      err instanceof ConvexError
+                        ? typeof err.data === 'string'
+                          ? err.data
+                          : 'Could not estimate nutrition'
+                        : err instanceof Error
+                          ? err.message
+                          : 'Could not estimate nutrition',
+                    )
+                  } finally {
+                    setEstimating(false)
+                  }
+                }}
+              >
+                {estimating ? 'Estimating…' : 'Re-estimate with AI'}
+              </button>
+            )}
+            <Link
+              to="/recipes/$recipeId/edit"
+              params={{ recipeId }}
+              className="rounded border border-amber-400 px-2 py-1 text-xs font-medium no-underline"
+            >
+              Edit manually
+            </Link>
+          </div>
+        </div>
+      )}
+      {recipe.nutrition && (
+        <NutritionPanel
+          nutrition={recipe.nutrition}
+          servings={recipe.servings}
+          source={recipe.nutritionSource}
+        />
       )}
 
       <h2 className="mb-2 font-medium">Ingredients</h2>
