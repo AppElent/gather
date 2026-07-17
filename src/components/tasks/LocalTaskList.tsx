@@ -135,7 +135,7 @@ export function LocalTaskList({
                   type="button"
                   aria-label={`Move ${t.title} up`}
                   className={iconButtonClass}
-                  disabled={i === 0}
+                  disabled={i === 0 || tasks[i - 1].done !== t.done}
                   onClick={() => void move({ taskId: t._id, direction: 'up' })}
                 >
                   <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
@@ -144,7 +144,9 @@ export function LocalTaskList({
                   type="button"
                   aria-label={`Move ${t.title} down`}
                   className={iconButtonClass}
-                  disabled={i === tasks.length - 1}
+                  disabled={
+                    i === tasks.length - 1 || tasks[i + 1].done !== t.done
+                  }
                   onClick={() =>
                     void move({ taskId: t._id, direction: 'down' })
                   }
