@@ -31,6 +31,7 @@ build on — this is the first feature that talks to a third-party API.
 | List model | A group has 0+ task lists; each list has exactly one provider (`local`, `notion`, or `todoist`) — not a merged view |
 | Connection ownership | Per-group, not per-user. One Notion connection and one Todoist connection per group; any list in that group can link to any source visible to that connection |
 | Connection management | A global "Connections" section on `/settings`, not inside the Tasks module — connections are module-agnostic (the same Notion connection will later serve Notes and Calendar). Tasks only *consumes* connections; connect/disconnect lives in settings, with an inline "connect now" shortcut from the Add-list flow for convenience |
+| Multiple connections per provider | Not offered in the UI this pass (one Notion + one Todoist connection per group), but not blocked by the data model: linked lists reference their connection by `connectionId`, never by a `(groupId, provider)` lookup, so allowing e.g. separate Notion connections for Tasks vs Notes later is a UI-only change with no migration |
 | Notion property mapping | User-driven at link time — gather fetches the database's property schema and the user maps title/done/due-date (optionally priority/labels) to it, since Notion databases have arbitrary schemas |
 | Todoist mapping | None needed — Todoist's task shape is fixed (title, done, due date, priority, labels are native fields) |
 | Unified task shape | `{ externalId, title, done, dueDate?, priority?, labels? }` — extended beyond the bare minimum specifically so Todoist's native priority/labels aren't dropped |
@@ -85,6 +86,7 @@ taskLists: defineTable({
   name: v.string(),
   provider: v.union(v.literal('local'), v.literal('notion'), v.literal('todoist')),
   providerConfig: v.optional(v.object({
+    connectionId: v.id('integrationConnections'),
     sourceId: v.string(), // Notion database id / Todoist project id
     propertyMapping: v.optional(v.object({
       title: v.string(),
@@ -119,6 +121,10 @@ integrationConnections: defineTable({
 
 `accessToken` is only read inside Convex actions/adapters, never selected into a client-facing
 query result — same boundary discipline as any other server secret in this app.
+
+Linked lists resolve their connection via `providerConfig.connectionId`, never by looking up "the
+group's connection for this provider". The UI enforces one connection per provider per group this
+pass, but the data model deliberately doesn't — see the decisions table (§2).
 
 ---
 
