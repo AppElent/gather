@@ -61,6 +61,12 @@ default for preview deployments (PR previews create a fresh Convex backend per P
 that doesn't inherit dev/prod env vars). `ANTHROPIC_API_KEY` — powers the recipe
 URL-import action's AI fallback; optional (JSON-LD-only imports work without it, and
 recipes without matching JSON-LD simply fail to import if it's unset).
+`NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` and `TODOIST_CLIENT_ID` /
+`TODOIST_CLIENT_SECRET` — OAuth credentials for the Tasks module's external
+list providers; optional (without them, connecting that provider fails with a
+clear "not configured" error and local lists work normally). Each provider's
+OAuth app must register the redirect URI `<app-origin>/integrations/callback`
+(e.g. `http://localhost:3000/integrations/callback` for dev).
 
 ## CI / PR previews
 
