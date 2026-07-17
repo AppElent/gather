@@ -1,12 +1,16 @@
 import { ConvexError } from 'convex/values'
 import { useState } from 'react'
-import {
-  NUTRIENT_KEYS,
-  NUTRIENT_LABELS,
-  type NutrientKey,
-  type NutritionFacts,
-  type NutritionSource,
+import type {
+  NutritionFacts,
+  NutritionSource,
 } from '../../../convex/lib/nutrition'
+import { NutrientInputGrid } from '../nutrition/NutrientInputGrid'
+import {
+  inputClass,
+  nutrientInputsToFacts,
+  parseDecimal,
+  toNutrientInputs,
+} from '../nutrition/nutrientInputs'
 import { StarRating } from './StarRating'
 
 export interface RecipeFormValues {
@@ -31,9 +35,6 @@ interface Props {
   }) => Promise<NutritionFacts>
 }
 
-const inputClass =
-  'w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)] disabled:cursor-not-allowed disabled:opacity-60'
-
 const lines = (s: string) =>
   s
     .split('\n')
@@ -45,23 +46,10 @@ const csv = (s: string) =>
     .map((l) => l.trim())
     .filter(Boolean)
 
-// Accepts Dutch decimal commas ("12,5"); empty/invalid/negative → undefined.
-const parseDecimal = (s: string): number | undefined => {
-  if (!s.trim()) return undefined
-  const n = Number(s.trim().replace(',', '.'))
-  return Number.isFinite(n) && n >= 0 ? n : undefined
-}
 const parsePositiveInt = (s: string): number | undefined => {
   const n = parseDecimal(s)
   return n && n >= 1 ? Math.round(n) : undefined
 }
-const toInputs = (facts?: NutritionFacts): Record<NutrientKey, string> =>
-  Object.fromEntries(
-    NUTRIENT_KEYS.map((k) => [
-      k,
-      facts?.[k] !== undefined ? String(facts[k]) : '',
-    ]),
-  ) as Record<NutrientKey, string>
 
 export function RecipeForm({
   initial,
@@ -81,7 +69,7 @@ export function RecipeForm({
     initial?.servings !== undefined ? String(initial.servings) : '',
   )
   const [nutritionInputs, setNutritionInputs] = useState(() =>
-    toInputs(initial?.nutrition),
+    toNutrientInputs(initial?.nutrition),
   )
   const [nutritionSource, setNutritionSource] = useState<
     NutritionSource | undefined
@@ -94,11 +82,7 @@ export function RecipeForm({
       className="mx-auto grid max-w-2xl gap-4"
       onSubmit={(e) => {
         e.preventDefault()
-        const facts: NutritionFacts = {}
-        for (const key of NUTRIENT_KEYS) {
-          const value = parseDecimal(nutritionInputs[key])
-          if (value !== undefined) facts[key] = value
-        }
+        const facts = nutrientInputsToFacts(nutritionInputs)
         const hasNutrition = Object.keys(facts).length > 0
         onSubmit({
           title: title.trim(),
@@ -175,28 +159,14 @@ export function RecipeForm({
             disabled={estimating}
           />
         </label>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {NUTRIENT_KEYS.map((key) => (
-            <label key={key} className="block text-sm">
-              <span className="mb-1 block font-medium">
-                {NUTRIENT_LABELS[key]}
-              </span>
-              <input
-                inputMode="decimal"
-                className={inputClass}
-                value={nutritionInputs[key]}
-                onChange={(e) => {
-                  setNutritionInputs((prev) => ({
-                    ...prev,
-                    [key]: e.target.value,
-                  }))
-                  setNutritionSource('manual')
-                }}
-                disabled={estimating}
-              />
-            </label>
-          ))}
-        </div>
+        <NutrientInputGrid
+          values={nutritionInputs}
+          disabled={estimating}
+          onChange={(key, value) => {
+            setNutritionInputs((prev) => ({ ...prev, [key]: value }))
+            setNutritionSource('manual')
+          }}
+        />
         {onEstimate && (
           <div className="mt-3">
             <button
@@ -211,7 +181,7 @@ export function RecipeForm({
                     ingredients: lines(ingredients),
                     servings: parsePositiveInt(servings),
                   })
-                  setNutritionInputs(toInputs(facts))
+                  setNutritionInputs(toNutrientInputs(facts))
                   setNutritionSource('ai')
                 } catch (err) {
                   setEstimateError(
