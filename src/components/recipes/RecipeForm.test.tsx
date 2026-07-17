@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { ConvexError } from 'convex/values'
 import { expect, test, vi } from 'vitest'
 import { RecipeForm } from './RecipeForm'
 
@@ -140,6 +141,37 @@ test('estimate button fills nutrition and submits ai source', async () => {
       nutritionSource: 'ai',
     }),
   )
+})
+
+test('surfaces the ConvexError friendly data string on estimate failure', async () => {
+  const onSubmit = vi.fn()
+  const err = new ConvexError(
+    "Couldn't estimate nutrition — try entering it manually.",
+  )
+  // Simulate the Convex client's wrapping: `.message` becomes a technical
+  // string while the original friendly text stays on `.data`.
+  err.message =
+    '[CONVEX A(recipeNutrition:estimateNutrition)] Uncaught ConvexError: ' +
+    "Couldn't estimate nutrition — try entering it manually.\n  Called by client"
+  const onEstimate = vi.fn().mockRejectedValue(err)
+  render(
+    <RecipeForm
+      onSubmit={onSubmit}
+      submitting={false}
+      onEstimate={onEstimate}
+    />,
+  )
+
+  fireEvent.change(screen.getByLabelText('Ingredients'), {
+    target: { value: 'water\nwortel' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: /estimate with ai/i }))
+
+  const errorMessage = await screen.findByText(
+    "Couldn't estimate nutrition — try entering it manually.",
+  )
+  expect(errorMessage.tagName).toBe('P')
+  expect(screen.queryByText(/Uncaught ConvexError/i)).not.toBeInTheDocument()
 })
 
 test('disables nutrition inputs while an estimate is in flight', async () => {

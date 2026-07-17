@@ -1,3 +1,4 @@
+import { ConvexError } from 'convex/values'
 import { useState } from 'react'
 import {
   NUTRIENT_KEYS,
@@ -214,9 +215,13 @@ export function RecipeForm({
                   setNutritionSource('ai')
                 } catch (err) {
                   setEstimateError(
-                    err instanceof Error
-                      ? err.message
-                      : 'Could not estimate nutrition',
+                    err instanceof ConvexError
+                      ? typeof err.data === 'string'
+                        ? err.data
+                        : 'Could not estimate nutrition'
+                      : err instanceof Error
+                        ? err.message
+                        : 'Could not estimate nutrition',
                   )
                 } finally {
                   setEstimating(false)
