@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useMutation, useQuery } from 'convex/react'
+import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
 import type { Doc, Id } from '../../../../convex/_generated/dataModel'
@@ -26,6 +26,8 @@ function EditRecipe() {
 
 function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
   const update = useMutation(api.recipes.update)
+  const aiConfigured = useQuery(api.recipes.aiConfigured)
+  const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,7 +62,13 @@ function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
           steps: recipe.steps,
           tags: recipe.tags,
           rating: recipe.rating,
+          servings: recipe.servings,
+          nutrition: recipe.nutrition,
+          nutritionSource: recipe.nutritionSource,
         }}
+        onEstimate={
+          aiConfigured ? (args) => estimateNutrition(args) : undefined
+        }
         onSubmit={async (values) => {
           setSubmitting(true)
           setError(null)
@@ -70,6 +78,9 @@ function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
               ...values,
               rating: values.rating ?? null,
               imageId: imageId ?? null,
+              servings: values.servings ?? null,
+              nutrition: values.nutrition ?? null,
+              nutritionSource: values.nutritionSource ?? null,
             })
             navigate({
               to: '/recipes/$recipeId',
