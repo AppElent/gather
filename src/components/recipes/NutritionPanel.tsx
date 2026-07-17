@@ -13,6 +13,7 @@ const SOURCE_LABELS: Record<NutritionSource, string> = {
 
 interface Props {
   nutrition: NutritionFacts
+  /** Pre-formatted label shown next to "Nutrition", e.g. "per serving · 4 servings" or "per 100 g". */
   unitLabel?: string
   source?: NutritionSource
 }
