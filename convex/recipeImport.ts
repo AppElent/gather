@@ -112,9 +112,12 @@ export const importFromUrl = action({
     }
 
     let parsed = extractJsonLdRecipe(html)
+    let nutritionSource: 'imported' | 'ai' | undefined =
+      parsed?.nutrition ? 'imported' : undefined
     if (!parsed) {
       const apiKey = process.env.ANTHROPIC_API_KEY
       parsed = apiKey ? await extractRecipeWithAi(htmlToText(html), apiKey) : null
+      if (parsed?.nutrition) nutritionSource = 'ai'
     }
     if (!parsed) throw new ConvexError(NOT_FOUND_MESSAGE)
 
@@ -133,6 +136,9 @@ export const importFromUrl = action({
       imageId,
       imageUrl,
       sourceUrl: args.url,
+      servings: parsed.servings,
+      nutrition: parsed.nutrition,
+      nutritionSource,
     }
   },
 })
