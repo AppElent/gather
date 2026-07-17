@@ -59,8 +59,8 @@ export function ConnectionsSettings() {
     <SurfaceCard>
       <h2 className="m-0 mb-1 text-base font-semibold">Connections</h2>
       <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
-        Connect external apps for your whole group. Modules like Tasks can
-        link lists to a connected app.
+        Connect external apps for your whole group. Modules like Tasks can link
+        lists to a connected app.
       </p>
       {error && <p className="m-0 mb-2 text-sm text-red-600">{error}</p>}
       <ul className="m-0 grid list-none gap-2 p-0">

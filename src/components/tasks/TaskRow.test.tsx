@@ -18,9 +18,10 @@ test('renders title, priority, labels, due date and link-out', () => {
   expect(screen.getByText('P1')).toBeInTheDocument()
   expect(screen.getByText('home')).toBeInTheDocument()
   expect(screen.getByText('2026-07-20')).toBeInTheDocument()
-  expect(
-    screen.getByRole('link', { name: /open buy milk/i }),
-  ).toHaveAttribute('href', 'https://todoist.com/showTask?id=1')
+  expect(screen.getByRole('link', { name: /open buy milk/i })).toHaveAttribute(
+    'href',
+    'https://todoist.com/showTask?id=1',
+  )
   expect(screen.getByRole('checkbox')).toBeDisabled()
 })
 

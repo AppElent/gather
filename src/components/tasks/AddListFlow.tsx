@@ -7,11 +7,11 @@ import type {
   SourceProperty,
 } from '../../../convex/lib/taskProviders/types'
 import type { ExternalProvider } from '../../lib/oauth'
+import { SurfaceCard } from '../app/ShellPrimitives'
 import {
   errorMessage,
   useConnectProvider,
 } from '../settings/ConnectionsSettings'
-import { SurfaceCard } from '../app/ShellPrimitives'
 
 type Step =
   | { kind: 'provider' }
@@ -63,7 +63,10 @@ export function AddListFlow({ onDone }: { onDone: () => void }) {
     })
   }
 
-  async function pickSource(provider: ExternalProvider, source: ProviderSource) {
+  async function pickSource(
+    provider: ExternalProvider,
+    source: ProviderSource,
+  ) {
     setName(source.name)
     if (provider === 'todoist') {
       await run(async () => {
@@ -296,9 +299,8 @@ function NotionMappingForm({
   return (
     <form onSubmit={submit} className="grid gap-3">
       <p className="m-0 text-sm text-[var(--app-muted)]">
-        Map this database's properties so gather knows how to read it. A
-        status property counts as done when it is named Done, Complete, or
-        Completed.
+        Map this database's properties so gather knows how to read it. A status
+        property counts as done when it is named Done, Complete, or Completed.
       </p>
       <label className="grid gap-1 text-sm">
         List name
