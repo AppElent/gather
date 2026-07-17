@@ -1,32 +1,57 @@
 import { describe, expect, test } from 'vitest'
-import { MODULE_GROUPS, MODULES, modulesByGroup } from './modules'
+import { getModuleDefinition, MODULES } from './modules'
+import { createNewSpaceModuleStates, getVisibleModuleIds } from './spaceModules'
 
 describe('module registry', () => {
-  test('every module has a unique id and path', () => {
+  test('every module has a unique id and path segment', () => {
     const ids = new Set(MODULES.map((m) => m.id))
-    const paths = new Set(MODULES.map((m) => m.path))
+    const pathSegments = new Set(MODULES.map((m) => m.pathSegment))
     expect(ids.size).toBe(MODULES.length)
-    expect(paths.size).toBe(MODULES.length)
+    expect(pathSegments.size).toBe(MODULES.length)
   })
 
-  test('every module path starts with a slash', () => {
-    for (const m of MODULES) expect(m.path.startsWith('/')).toBe(true)
+  test('returns module definitions by id', () => {
+    expect(getModuleDefinition('recipes')?.label).toBe('Recipes')
+    expect(getModuleDefinition('missing')).toBeUndefined()
   })
 
-  test('every module group is a declared group', () => {
-    for (const m of MODULES) expect(MODULE_GROUPS).toContain(m.group)
+  test('tasks notes and calendar are defaults for new Spaces', () => {
+    expect(
+      MODULES.filter((module) => module.defaultForNewSpaces).map(
+        (module) => module.id,
+      ),
+    ).toEqual(['tasks', 'notes', 'calendar'])
   })
 
-  test('recipes is the only live module initially', () => {
-    const live = MODULES.filter((m) => m.status === 'live').map((m) => m.id)
-    expect(live).toEqual(['recipes'])
+  test('recipes is live and non-default initially', () => {
+    expect(getModuleDefinition('recipes')).toMatchObject({
+      availability: 'live',
+      defaultForNewSpaces: false,
+    })
   })
 
-  test('modulesByGroup buckets every module', () => {
-    const total = Object.values(modulesByGroup()).reduce(
-      (n, arr) => n + arr.length,
-      0,
+  test('pre-enables coming-soon defaults without exposing them', () => {
+    expect(createNewSpaceModuleStates(MODULES)).toContainEqual({
+      moduleId: 'calendar',
+      state: 'preEnabled',
+    })
+    expect(
+      getVisibleModuleIds(MODULES, [
+        { moduleId: 'calendar', state: 'preEnabled' },
+      ]),
+    ).not.toContain('calendar')
+  })
+
+  test('promotes a pre-enabled module when its catalog entry becomes live', () => {
+    const catalog = MODULES.map((item) =>
+      item.id === 'calendar'
+        ? { ...item, availability: 'live' as const }
+        : item,
     )
-    expect(total).toBe(MODULES.length)
+    expect(
+      getVisibleModuleIds(catalog, [
+        { moduleId: 'calendar', state: 'preEnabled' },
+      ]),
+    ).toContain('calendar')
   })
 })
