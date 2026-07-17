@@ -91,6 +91,13 @@ Readable by any authenticated user (global library — scan once, everyone benef
 cache: rows are written only when a user confirms saving a scanned/looked-up product or
 creates one manually. Never bulk-imported.
 
+**Identity:** the Convex `_id` is the key for all foods (it's what `consumptionEntries.foodId`
+references). `barcode` is a secondary lookup index, unique when present — the save mutation
+upserts by barcode so a rescan can never create a duplicate row. Foods without an EAN are
+found via the name search index only; the manual-create form runs that search as you type and
+surfaces existing matches to nudge reuse. Duplicate generic foods are tolerated (harmless
+under the snapshot model), no merge tooling in v1.
+
 ### 3.4 `consumptionEntries` (new, strictly per-user)
 
 | Field | Type | Notes |
