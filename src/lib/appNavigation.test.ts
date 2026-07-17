@@ -92,7 +92,10 @@ describe('app navigation metadata', () => {
 
   test('splits modules by live and placeholder status', () => {
     const byStatus = getModulesByStatus()
-    expect(byStatus.live.map((module) => module.id)).toEqual(['recipes'])
+    expect(byStatus.live.map((module) => module.id)).toEqual([
+      'recipes',
+      'tasks',
+    ])
     expect(byStatus.placeholder.length).toBeGreaterThan(0)
   })
 })
