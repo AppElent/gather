@@ -9,6 +9,7 @@ export default defineSchema({
     email: v.string(),
     imageUrl: v.optional(v.string()),
     defaultGroupId: v.optional(v.id('groups')),
+    nutritionTargets: v.optional(nutritionValidator),
   }).index('by_clerkId', ['clerkId']),
 
   groups: defineTable({
@@ -105,4 +106,26 @@ export default defineSchema({
   })
     .index('by_barcode', ['barcode'])
     .searchIndex('search_by_name', { searchField: 'name' }),
+
+  consumptionEntries: defineTable({
+    userId: v.id('users'),
+    date: v.string(),
+    meal: v.union(
+      v.literal('breakfast'),
+      v.literal('lunch'),
+      v.literal('dinner'),
+      v.literal('snack'),
+    ),
+    recipeId: v.optional(v.id('recipes')),
+    foodId: v.optional(v.id('foods')),
+    label: v.string(),
+    quantity: v.number(),
+    quantityUnit: v.union(
+      v.literal('serving'),
+      v.literal('g'),
+      v.literal('ml'),
+      v.literal('piece'),
+    ),
+    nutrition: nutritionValidator,
+  }).index('by_user_date', ['userId', 'date']),
 })
