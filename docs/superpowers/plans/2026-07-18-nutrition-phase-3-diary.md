@@ -611,6 +611,14 @@ test('prefills from targets and calls onSave with parsed values', () => {
   fireEvent.click(screen.getByRole('button', { name: /save targets/i }))
   expect(onSave).toHaveBeenCalledWith({ calories: 2000, protein: 120 })
 })
+
+test('syncs the form when targets arrives after mount (e.g. the parent query was still loading)', () => {
+  const { rerender } = render(<TargetsPanel saving={false} onSave={vi.fn()} />)
+  fireEvent.click(screen.getByText('Daily targets'))
+  expect(screen.getByLabelText('Calories (kcal)')).toHaveValue('')
+  rerender(<TargetsPanel targets={{ calories: 1800 }} saving={false} onSave={vi.fn()} />)
+  expect(screen.getByLabelText('Calories (kcal)')).toHaveValue('1800')
+})
 ```
 
 - [ ] **Step 2: Run to verify it fails**
@@ -621,7 +629,7 @@ Expected: FAIL — cannot resolve `./TargetsPanel`.
 - [ ] **Step 3: Implement `src/components/nutrition/TargetsPanel.tsx`**
 
 ```tsx
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
 import { NutrientInputGrid } from './NutrientInputGrid'
 import { nutrientInputsToFacts, toNutrientInputs } from './nutrientInputs'
@@ -635,6 +643,17 @@ interface Props {
 export function TargetsPanel({ targets, saving, onSave }: Props) {
   const [open, setOpen] = useState(false)
   const [inputs, setInputs] = useState(() => toNutrientInputs(targets))
+
+  // `targets` starts undefined while the caller's `users.me` query is still
+  // loading and resolves moments later — a lazy useState initializer alone
+  // only seeds the form once at mount, so it would keep showing blank
+  // fields even after real targets arrive. Convex's useQuery returns
+  // referentially stable results when the value hasn't changed, so this
+  // effect only re-fires on a genuine value change (initial load, or after
+  // this panel's own save round-trips through the reactive subscription).
+  useEffect(() => {
+    setInputs(toNutrientInputs(targets))
+  }, [targets])
 
   return (
     <section className="mb-4 rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
@@ -672,7 +691,7 @@ export function TargetsPanel({ targets, saving, onSave }: Props) {
 - [ ] **Step 4: Run to verify it passes**
 
 Run: `pnpm vitest run src/components/nutrition/TargetsPanel.test.tsx`
-Expected: PASS (2 tests).
+Expected: PASS (3 tests).
 
 - [ ] **Step 5: Typecheck + full suite**
 
