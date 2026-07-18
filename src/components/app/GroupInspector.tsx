@@ -2,8 +2,8 @@ import { MODULES } from '../../lib/modules'
 import { Pill, SectionHeader, StatusDot, SurfaceCard } from './ShellPrimitives'
 
 export function GroupInspector({ compact = false }: { compact?: boolean }) {
-  const liveCount = MODULES.filter((module) => module.status === 'live').length
-  const plannedCount = MODULES.length - liveCount
+  const liveModules = MODULES.filter((module) => module.status === 'live')
+  const plannedCount = MODULES.length - liveModules.length
 
   return (
     <aside
@@ -13,10 +13,12 @@ export function GroupInspector({ compact = false }: { compact?: boolean }) {
       <SurfaceCard>
         <SectionHeader
           title="Active modules"
-          action={<Pill>{liveCount} live</Pill>}
+          action={<Pill>{liveModules.length} live</Pill>}
         />
         <div className="grid gap-2 text-sm">
-          <StatusDot label="Recipes connected" />
+          {liveModules.map((module) => (
+            <StatusDot key={module.id} label={`${module.label} connected`} />
+          ))}
           <p className="m-0 text-[var(--app-muted)]">
             {plannedCount} planned modules are ready as placeholders.
           </p>
