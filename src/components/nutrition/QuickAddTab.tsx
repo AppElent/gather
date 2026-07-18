@@ -19,6 +19,7 @@ export function QuickAddTab({ date, meal, onAdded }: Props) {
   const [label, setLabel] = useState('')
   const [inputs, setInputs] = useState(() => toNutrientInputs())
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const create = useMutation(api.consumption.create)
 
   return (
@@ -28,18 +29,29 @@ export function QuickAddTab({ date, meal, onAdded }: Props) {
         e.preventDefault()
         if (!label.trim()) return
         setSubmitting(true)
-        await create({
-          date,
-          meal,
-          label: label.trim(),
-          quantity: 1,
-          quantityUnit: 'piece',
-          nutrition: nutrientInputsToFacts(inputs),
-        })
-        setSubmitting(false)
-        onAdded()
+        setError(null)
+        try {
+          await create({
+            date,
+            meal,
+            label: label.trim(),
+            quantity: 1,
+            quantityUnit: 'piece',
+            nutrition: nutrientInputsToFacts(inputs),
+          })
+          onAdded()
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Could not log this')
+        } finally {
+          setSubmitting(false)
+        }
       }}
     >
+      {error && (
+        <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {error}
+        </p>
+      )}
       <label className="block text-sm">
         <span className="mb-1 block font-medium">Label</span>
         <input

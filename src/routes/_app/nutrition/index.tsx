@@ -56,6 +56,7 @@ function NutritionDay() {
 
   const [addingMeal, setAddingMeal] = useState<MealName | null>(null)
   const [savingTargets, setSavingTargets] = useState(false)
+  const [targetsError, setTargetsError] = useState<string | null>(null)
 
   const totals = sumFacts((entries ?? []).map((e) => e.nutrition))
 
@@ -86,13 +87,26 @@ function NutritionDay() {
         </button>
       </div>
 
+      {targetsError && (
+        <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {targetsError}
+        </p>
+      )}
       <TargetsPanel
         targets={me?.nutritionTargets}
         saving={savingTargets}
         onSave={async (targets) => {
           setSavingTargets(true)
-          await setTargets({ targets })
-          setSavingTargets(false)
+          setTargetsError(null)
+          try {
+            await setTargets({ targets })
+          } catch (err) {
+            setTargetsError(
+              err instanceof Error ? err.message : 'Could not save targets',
+            )
+          } finally {
+            setSavingTargets(false)
+          }
         }}
       />
 
@@ -108,9 +122,12 @@ function NutritionDay() {
           label={MEAL_LABELS[meal]}
           entries={(entries ?? []).filter((e) => e.meal === meal)}
           onAdd={() => setAddingMeal(meal)}
-          onUpdateEntry={(entryId, changes) =>
-            updateEntry({ id: entryId as Id<'consumptionEntries'>, ...changes })
-          }
+          onUpdateEntry={async (entryId, changes) => {
+            await updateEntry({
+              id: entryId as Id<'consumptionEntries'>,
+              ...changes,
+            })
+          }}
           onDeleteEntry={(entryId) =>
             deleteEntry({ id: entryId as Id<'consumptionEntries'> })
           }

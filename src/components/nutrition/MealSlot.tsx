@@ -9,7 +9,7 @@ interface Props {
   onUpdateEntry: (
     id: string,
     changes: { quantity: number; meal: MealName; date: string },
-  ) => void
+  ) => Promise<void>
   onDeleteEntry: (id: string) => void
 }
 

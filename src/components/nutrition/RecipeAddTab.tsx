@@ -18,6 +18,7 @@ export function RecipeAddTab({ date, meal, onAdded }: Props) {
   const create = useMutation(api.consumption.create)
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [submittingId, setSubmittingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   if (recipes === undefined)
     return <p className="text-sm opacity-60">Loading…</p>
@@ -27,6 +28,11 @@ export function RecipeAddTab({ date, meal, onAdded }: Props) {
 
   return (
     <div className="grid gap-2">
+      {error && (
+        <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {error}
+        </p>
+      )}
       {withNutrition.length === 0 && (
         <p className="text-sm opacity-60">
           No recipes with nutrition data yet.
@@ -65,20 +71,30 @@ export function RecipeAddTab({ date, meal, onAdded }: Props) {
                   )
                     return
                   setSubmittingId(recipe._id)
-                  await create({
-                    date,
-                    meal,
-                    recipeId: recipe._id,
-                    label: recipe.title,
-                    quantity,
-                    quantityUnit: 'serving',
-                    nutrition: computeRecipeEntryNutrition(
-                      recipe.nutrition,
+                  setError(null)
+                  try {
+                    await create({
+                      date,
+                      meal,
+                      recipeId: recipe._id,
+                      label: recipe.title,
                       quantity,
-                    ),
-                  })
-                  setSubmittingId(null)
-                  onAdded()
+                      quantityUnit: 'serving',
+                      nutrition: computeRecipeEntryNutrition(
+                        recipe.nutrition,
+                        quantity,
+                      ),
+                    })
+                    onAdded()
+                  } catch (err) {
+                    setError(
+                      err instanceof Error
+                        ? err.message
+                        : 'Could not log this recipe',
+                    )
+                  } finally {
+                    setSubmittingId(null)
+                  }
                 }}
                 className="rounded border border-[var(--app-fg)] bg-[var(--app-fg)] px-2 py-0.5 text-xs font-semibold text-[var(--app-surface)] disabled:opacity-60"
               >

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
 
@@ -96,8 +96,8 @@ test('shows a View food link when foodId is set', () => {
   expect(link.closest('a')).toHaveAttribute('href', '/foods/food1')
 })
 
-test('editing quantity and saving calls onUpdate with the new quantity, current meal and date', () => {
-  const onUpdate = vi.fn()
+test('editing quantity and saving calls onUpdate with the new quantity, current meal and date', async () => {
+  const onUpdate = vi.fn().mockResolvedValue(undefined)
   render(
     <ConsumptionEntryRow
       entry={entry}
@@ -113,6 +113,23 @@ test('editing quantity and saving calls onUpdate with the new quantity, current 
     meal: 'breakfast',
     date: '2026-07-18',
   })
+  // Editing closes only after the mutation resolves.
+  await waitFor(() => expect(screen.queryByText('Save')).toBeNull())
+})
+
+test('a failed save keeps the row in edit mode and shows an error', async () => {
+  const onUpdate = vi.fn().mockRejectedValue(new Error('Network error'))
+  render(
+    <ConsumptionEntryRow
+      entry={entry}
+      onUpdate={onUpdate}
+      onDelete={vi.fn()}
+    />,
+  )
+  fireEvent.click(screen.getByText('Edit'))
+  fireEvent.click(screen.getByText('Save'))
+  await waitFor(() => expect(screen.getByText('Network error')).toBeDefined())
+  expect(screen.getByText('Save')).toBeDefined()
 })
 
 test('an invalid quantity does not call onUpdate', () => {

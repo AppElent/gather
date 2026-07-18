@@ -22,7 +22,7 @@ interface Props {
     quantity: number
     meal: MealName
     date: string
-  }) => void
+  }) => Promise<void>
   onDelete: () => void
 }
 
@@ -31,6 +31,8 @@ export function ConsumptionEntryRow({ entry, onUpdate, onDelete }: Props) {
   const [quantityInput, setQuantityInput] = useState(String(entry.quantity))
   const [meal, setMeal] = useState<MealName>(entry.meal)
   const [date, setDate] = useState(entry.date)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   return (
     <li className="py-2 text-sm">
@@ -86,6 +88,7 @@ export function ConsumptionEntryRow({ entry, onUpdate, onDelete }: Props) {
               inputMode="decimal"
               value={quantityInput}
               onChange={(e) => setQuantityInput(e.target.value)}
+              disabled={saving}
               className="ml-1 w-16 rounded border border-[var(--app-border)] px-1 py-0.5"
             />
           </label>
@@ -94,6 +97,7 @@ export function ConsumptionEntryRow({ entry, onUpdate, onDelete }: Props) {
             <select
               value={meal}
               onChange={(e) => setMeal(e.target.value as MealName)}
+              disabled={saving}
               className="ml-1 rounded border border-[var(--app-border)] px-1 py-0.5"
             >
               {MEAL_NAMES.map((m) => (
@@ -109,21 +113,34 @@ export function ConsumptionEntryRow({ entry, onUpdate, onDelete }: Props) {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              disabled={saving}
               className="ml-1 rounded border border-[var(--app-border)] px-1 py-0.5"
             />
           </label>
           <button
             type="button"
-            onClick={() => {
+            disabled={saving}
+            onClick={async () => {
               const quantity = Number(quantityInput.replace(',', '.'))
               if (!Number.isFinite(quantity) || quantity <= 0) return
-              onUpdate({ quantity, meal, date })
-              setEditing(false)
+              setSaving(true)
+              setError(null)
+              try {
+                await onUpdate({ quantity, meal, date })
+                setEditing(false)
+              } catch (err) {
+                setError(
+                  err instanceof Error ? err.message : 'Could not save changes',
+                )
+              } finally {
+                setSaving(false)
+              }
             }}
-            className="rounded border border-[var(--app-fg)] bg-[var(--app-fg)] px-2 py-0.5 text-xs font-semibold text-[var(--app-surface)]"
+            className="rounded border border-[var(--app-fg)] bg-[var(--app-fg)] px-2 py-0.5 text-xs font-semibold text-[var(--app-surface)] disabled:opacity-60"
           >
-            Save
+            {saving ? 'Saving…' : 'Save'}
           </button>
+          {error && <p className="w-full text-xs text-red-700">{error}</p>}
         </div>
       )}
     </li>

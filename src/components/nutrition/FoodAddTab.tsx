@@ -44,6 +44,7 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
   const [quantityInput, setQuantityInput] = useState('')
   const [unit, setUnit] = useState<'g' | 'ml' | 'piece'>('g')
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const convex = useConvex()
   const lookupBarcode = useAction(api.foodsLookup.lookupBarcode)
@@ -114,6 +115,11 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
             )}
           </select>
         </div>
+        {submitError && (
+          <p className="rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-800">
+            {submitError}
+          </p>
+        )}
         <div className="flex gap-2">
           <button
             type="button"
@@ -129,17 +135,31 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
               const quantity = Number(quantityInput.replace(',', '.'))
               if (!Number.isFinite(quantity) || quantity <= 0) return
               setSubmitting(true)
-              await createEntry({
-                date,
-                meal,
-                foodId: selected._id,
-                label: selected.name,
-                quantity,
-                quantityUnit: unit,
-                nutrition: computeFoodEntryNutrition(selected, quantity, unit),
-              })
-              setSubmitting(false)
-              onAdded()
+              setSubmitError(null)
+              try {
+                await createEntry({
+                  date,
+                  meal,
+                  foodId: selected._id,
+                  label: selected.name,
+                  quantity,
+                  quantityUnit: unit,
+                  nutrition: computeFoodEntryNutrition(
+                    selected,
+                    quantity,
+                    unit,
+                  ),
+                })
+                onAdded()
+              } catch (err) {
+                setSubmitError(
+                  err instanceof Error
+                    ? err.message
+                    : 'Could not log this food',
+                )
+              } finally {
+                setSubmitting(false)
+              }
             }}
             className="rounded border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 py-1 text-xs font-semibold text-[var(--app-surface)] disabled:opacity-60"
           >
