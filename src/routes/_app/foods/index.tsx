@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
 import { BarcodeScanner } from '../../../components/foods/BarcodeScanner'
 
@@ -10,7 +10,12 @@ export const Route = createFileRoute('/_app/foods/')({
 
 function FoodsIndex() {
   const [term, setTerm] = useState('')
-  const results = useQuery(api.foods.search, { term })
+  const [debouncedTerm, setDebouncedTerm] = useState('')
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedTerm(term), 250)
+    return () => clearTimeout(id)
+  }, [term])
+  const results = useQuery(api.foods.search, { term: debouncedTerm })
   const navigate = useNavigate()
 
   return (
@@ -43,6 +48,9 @@ function FoodsIndex() {
         Add manually
       </Link>
 
+      {results === undefined && debouncedTerm.trim() && (
+        <p className="text-sm opacity-60">Searching…</p>
+      )}
       <ul className="divide-y divide-[var(--app-border)]">
         {results?.map((food) => (
           <li key={food._id}>
@@ -59,8 +67,10 @@ function FoodsIndex() {
           </li>
         ))}
       </ul>
-      {results?.length === 0 && term.trim() && (
-        <p className="text-sm opacity-60">No foods found for "{term}".</p>
+      {results?.length === 0 && debouncedTerm.trim() && (
+        <p className="text-sm opacity-60">
+          No foods found for "{debouncedTerm}".
+        </p>
       )}
     </div>
   )
