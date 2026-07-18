@@ -15,6 +15,7 @@ const foodFields = {
 export const search = query({
   args: { term: v.string() },
   handler: async (ctx, args) => {
+    if (!(await getCurrentUser(ctx))) return []
     if (!args.term.trim()) return []
     return await ctx.db
       .query('foods')
@@ -25,16 +26,21 @@ export const search = query({
 
 export const get = query({
   args: { id: v.id('foods') },
-  handler: async (ctx, args) => await ctx.db.get(args.id),
+  handler: async (ctx, args) => {
+    if (!(await getCurrentUser(ctx))) return null
+    return await ctx.db.get(args.id)
+  },
 })
 
 export const getByBarcode = query({
   args: { barcode: v.string() },
-  handler: async (ctx, args) =>
-    await ctx.db
+  handler: async (ctx, args) => {
+    if (!(await getCurrentUser(ctx))) return null
+    return await ctx.db
       .query('foods')
       .withIndex('by_barcode', (q) => q.eq('barcode', args.barcode))
-      .unique(),
+      .unique()
+  },
 })
 
 // Manual creation. If a barcode is supplied and a row already has it (e.g.
