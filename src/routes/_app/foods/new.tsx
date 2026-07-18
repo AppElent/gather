@@ -111,8 +111,11 @@ function NewFood() {
           setSubmitting(true)
           setError(null)
           try {
-            const id = values.barcode
-              ? await upsertFromOff({ ...values, barcode: values.barcode })
+            const id = sourceNote
+              ? await upsertFromOff({
+                  ...values,
+                  barcode: values.barcode as string,
+                })
               : await create(values)
             navigate({ to: '/foods/$foodId', params: { foodId: id } })
           } catch (err) {
