@@ -29,13 +29,22 @@ export const MODULES: ModuleDef[] = [
     description: 'Keep and rate the dishes you cook.',
   },
   {
+    id: 'nutrition',
+    label: 'Nutrition',
+    icon: 'Apple',
+    group: 'Kitchen',
+    path: '/nutrition',
+    status: 'live',
+    description: 'Log what you eat and track daily targets.',
+  },
+  {
     id: 'meal-planner',
     label: 'Meal planner',
     icon: 'CalendarHeart',
     group: 'Kitchen',
     path: '/meal-planner',
     status: 'placeholder',
-    description: 'Plan the week’s meals.',
+    description: "Plan the week's meals.",
   },
   {
     id: 'groceries',
@@ -53,7 +62,7 @@ export const MODULES: ModuleDef[] = [
     group: 'Kitchen',
     path: '/pantry',
     status: 'placeholder',
-    description: 'Track what’s in stock at home.',
+    description: "Track what's in stock at home.",
   },
   {
     id: 'finances',
