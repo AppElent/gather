@@ -8,10 +8,12 @@
  * @module
  */
 
+import type * as consumption from "../consumption.js";
 import type * as foods from "../foods.js";
 import type * as foodsLookup from "../foodsLookup.js";
 import type * as groups from "../groups.js";
 import type * as integrations from "../integrations.js";
+import type * as lib_consumption from "../lib/consumption.js";
 import type * as lib_nutrition from "../lib/nutrition.js";
 import type * as lib_nutritionAiEstimate from "../lib/nutritionAiEstimate.js";
 import type * as lib_offFetch from "../lib/offFetch.js";
@@ -39,10 +41,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  consumption: typeof consumption;
   foods: typeof foods;
   foodsLookup: typeof foodsLookup;
   groups: typeof groups;
   integrations: typeof integrations;
+  "lib/consumption": typeof lib_consumption;
   "lib/nutrition": typeof lib_nutrition;
   "lib/nutritionAiEstimate": typeof lib_nutritionAiEstimate;
   "lib/offFetch": typeof lib_offFetch;
