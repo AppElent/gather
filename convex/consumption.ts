@@ -8,8 +8,8 @@ import {
   scaleFacts,
 } from './lib/consumption'
 import { NUTRIENT_KEYS, type NutritionFacts, nutritionValidator } from './lib/nutrition'
-import { getCurrentUser } from './lib/sharing'
-import type { Doc } from './_generated/dataModel'
+import { getCurrentUser, getMyGroupIds, isVisibleTo } from './lib/sharing'
+import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 
 function assertValidNutrition(nutrition: NutritionFacts) {
@@ -64,15 +64,27 @@ export const create = mutation({
 // On a quantity change, nutrition is recomputed from the current recipe/food
 // values when the source still exists (spec §4.5); if the source was
 // deleted, the existing snapshot is scaled proportionally instead so the
-// entry still reflects the new quantity without needing source data.
+// entry still reflects the new quantity without needing source data. A
+// recipe that still exists but is no longer visible to the entry's owner
+// (e.g. unshared since the entry was logged) is treated the same as
+// deleted — recomputing from it would leak nutrition data the owner is no
+// longer authorized to see. Foods have no sharing/visibility model (spec
+// §3.3: "readable by any authenticated user"), so no check is needed there.
 async function recomputeFromSource(
   ctx: MutationCtx,
   entry: Doc<'consumptionEntries'>,
   quantity: number,
+  viewerGroupIds: Id<'groups'>[],
 ): Promise<NutritionFacts | null> {
   if (entry.recipeId) {
     const recipe = await ctx.db.get(entry.recipeId)
-    return recipe?.nutrition
+    const visible =
+      recipe &&
+      isVisibleTo(
+        { ownerId: recipe.ownerId, sharedGroupIds: recipe.sharedGroupIds },
+        { userId: entry.userId, groupIds: viewerGroupIds },
+      )
+    return visible && recipe.nutrition
       ? computeRecipeEntryNutrition(recipe.nutrition, quantity)
       : null
   }
@@ -111,7 +123,13 @@ export const update = mutation({
     if (args.quantity !== undefined && args.quantity !== entry.quantity) {
       if (args.quantity <= 0) throw new Error('Quantity must be positive')
       quantity = args.quantity
-      const recomputed = await recomputeFromSource(ctx, entry, quantity)
+      const viewerGroupIds = await getMyGroupIds(ctx, user._id)
+      const recomputed = await recomputeFromSource(
+        ctx,
+        entry,
+        quantity,
+        viewerGroupIds,
+      )
       nutrition = recomputed ?? scaleFacts(entry.nutrition, quantity / entry.quantity)
     }
 
