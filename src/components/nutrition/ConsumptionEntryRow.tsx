@@ -89,23 +89,29 @@ export function ConsumptionEntryRow({ entry, onUpdate, onDelete }: Props) {
               className="ml-1 w-16 rounded border border-[var(--app-border)] px-1 py-0.5"
             />
           </label>
-          <select
-            value={meal}
-            onChange={(e) => setMeal(e.target.value as MealName)}
-            className="rounded border border-[var(--app-border)] px-1 py-0.5 text-xs"
-          >
-            {MEAL_NAMES.map((m) => (
-              <option key={m} value={m}>
-                {MEAL_LABELS[m]}
-              </option>
-            ))}
-          </select>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="rounded border border-[var(--app-border)] px-1 py-0.5 text-xs"
-          />
+          <label className="text-xs">
+            Meal
+            <select
+              value={meal}
+              onChange={(e) => setMeal(e.target.value as MealName)}
+              className="ml-1 rounded border border-[var(--app-border)] px-1 py-0.5"
+            >
+              {MEAL_NAMES.map((m) => (
+                <option key={m} value={m}>
+                  {MEAL_LABELS[m]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs">
+            Date
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="ml-1 rounded border border-[var(--app-border)] px-1 py-0.5"
+            />
+          </label>
           <button
             type="button"
             onClick={() => {
