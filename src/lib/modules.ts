@@ -44,7 +44,7 @@ export const MODULES: ModuleDef[] = [
     group: 'Kitchen',
     path: '/meal-planner',
     status: 'placeholder',
-    description: "Plan the week's meals.",
+    description: 'Plan the week’s meals.',
   },
   {
     id: 'groceries',
@@ -62,7 +62,7 @@ export const MODULES: ModuleDef[] = [
     group: 'Kitchen',
     path: '/pantry',
     status: 'placeholder',
-    description: "Track what's in stock at home.",
+    description: 'Track what’s in stock at home.',
   },
   {
     id: 'finances',
