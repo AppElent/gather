@@ -8,10 +8,14 @@
  * @module
  */
 
+import type * as foods from "../foods.js";
+import type * as foodsLookup from "../foodsLookup.js";
 import type * as groups from "../groups.js";
 import type * as integrations from "../integrations.js";
 import type * as lib_nutrition from "../lib/nutrition.js";
 import type * as lib_nutritionAiEstimate from "../lib/nutritionAiEstimate.js";
+import type * as lib_offFetch from "../lib/offFetch.js";
+import type * as lib_offMapping from "../lib/offMapping.js";
 import type * as lib_recipeAiExtract from "../lib/recipeAiExtract.js";
 import type * as lib_recipeParsing from "../lib/recipeParsing.js";
 import type * as lib_sharing from "../lib/sharing.js";
@@ -35,10 +39,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  foods: typeof foods;
+  foodsLookup: typeof foodsLookup;
   groups: typeof groups;
   integrations: typeof integrations;
   "lib/nutrition": typeof lib_nutrition;
   "lib/nutritionAiEstimate": typeof lib_nutritionAiEstimate;
+  "lib/offFetch": typeof lib_offFetch;
+  "lib/offMapping": typeof lib_offMapping;
   "lib/recipeAiExtract": typeof lib_recipeAiExtract;
   "lib/recipeParsing": typeof lib_recipeParsing;
   "lib/sharing": typeof lib_sharing;
