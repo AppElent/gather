@@ -10,8 +10,18 @@ import {
 
 export const Route = createFileRoute('/_app/foods/new')({
   component: NewFood,
+  // The router's default search codec JSON.parses raw query values, so a
+  // hand-typed/bookmarked/QR-code URL's bare-digit barcode (e.g.
+  // `?barcode=3017620422003`, valid JSON as a *number*) parses as a number,
+  // not a string — accept both so external deep links work the same as the
+  // in-app scan flow's own JSON-quoted `navigate({ search: { barcode } })`.
   validateSearch: (search: Record<string, unknown>): { barcode?: string } => ({
-    barcode: typeof search.barcode === 'string' ? search.barcode : undefined,
+    barcode:
+      typeof search.barcode === 'string'
+        ? search.barcode
+        : typeof search.barcode === 'number'
+          ? String(search.barcode)
+          : undefined,
   }),
 })
 
