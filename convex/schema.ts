@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
+import { mealValidator, quantityUnitValidator } from './lib/consumption'
 import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
 
 export default defineSchema({
@@ -110,22 +111,12 @@ export default defineSchema({
   consumptionEntries: defineTable({
     userId: v.id('users'),
     date: v.string(),
-    meal: v.union(
-      v.literal('breakfast'),
-      v.literal('lunch'),
-      v.literal('dinner'),
-      v.literal('snack'),
-    ),
+    meal: mealValidator,
     recipeId: v.optional(v.id('recipes')),
     foodId: v.optional(v.id('foods')),
     label: v.string(),
     quantity: v.number(),
-    quantityUnit: v.union(
-      v.literal('serving'),
-      v.literal('g'),
-      v.literal('ml'),
-      v.literal('piece'),
-    ),
+    quantityUnit: quantityUnitValidator,
     nutrition: nutritionValidator,
   }).index('by_user_date', ['userId', 'date']),
 })
