@@ -33,6 +33,7 @@ import { Route as AppRecipesIndexRouteImport } from './routes/_app/recipes/index
 import { Route as AppFoodsIndexRouteImport } from './routes/_app/foods/index'
 import { Route as AppRecipesNewRouteImport } from './routes/_app/recipes/new'
 import { Route as AppIntegrationsCallbackRouteImport } from './routes/_app/integrations.callback'
+import { Route as AppFoodsNewRouteImport } from './routes/_app/foods/new'
 import { Route as AppRecipesRecipeIdIndexRouteImport } from './routes/_app/recipes/$recipeId.index'
 import { Route as AppRecipesRecipeIdEditRouteImport } from './routes/_app/recipes/$recipeId.edit'
 
@@ -155,6 +156,11 @@ const AppIntegrationsCallbackRoute = AppIntegrationsCallbackRouteImport.update({
   path: '/integrations/callback',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFoodsNewRoute = AppFoodsNewRouteImport.update({
+  id: '/foods/new',
+  path: '/foods/new',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRecipesRecipeIdIndexRoute = AppRecipesRecipeIdIndexRouteImport.update({
   id: '/recipes/$recipeId/',
   path: '/recipes/$recipeId/',
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/tasks': typeof AppTasksRoute
   '/wines': typeof AppWinesRoute
+  '/foods/new': typeof AppFoodsNewRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/foods/': typeof AppFoodsIndexRoute
@@ -213,6 +220,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/tasks': typeof AppTasksRoute
   '/wines': typeof AppWinesRoute
+  '/foods/new': typeof AppFoodsNewRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/foods': typeof AppFoodsIndexRoute
@@ -242,6 +250,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/tasks': typeof AppTasksRoute
   '/_app/wines': typeof AppWinesRoute
+  '/_app/foods/new': typeof AppFoodsNewRoute
   '/_app/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/_app/recipes/new': typeof AppRecipesNewRoute
   '/_app/foods/': typeof AppFoodsIndexRoute
@@ -271,6 +280,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/wines'
+    | '/foods/new'
     | '/integrations/callback'
     | '/recipes/new'
     | '/foods/'
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/wines'
+    | '/foods/new'
     | '/integrations/callback'
     | '/recipes/new'
     | '/foods'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/tasks'
     | '/_app/wines'
+    | '/_app/foods/new'
     | '/_app/integrations/callback'
     | '/_app/recipes/new'
     | '/_app/foods/'
@@ -513,6 +525,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIntegrationsCallbackRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/foods/new': {
+      id: '/_app/foods/new'
+      path: '/foods/new'
+      fullPath: '/foods/new'
+      preLoaderRoute: typeof AppFoodsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/recipes/$recipeId/': {
       id: '/_app/recipes/$recipeId/'
       path: '/recipes/$recipeId'
@@ -545,6 +564,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppTasksRoute: typeof AppTasksRoute
   AppWinesRoute: typeof AppWinesRoute
+  AppFoodsNewRoute: typeof AppFoodsNewRoute
   AppIntegrationsCallbackRoute: typeof AppIntegrationsCallbackRoute
   AppRecipesNewRoute: typeof AppRecipesNewRoute
   AppFoodsIndexRoute: typeof AppFoodsIndexRoute
@@ -568,6 +588,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppTasksRoute: AppTasksRoute,
   AppWinesRoute: AppWinesRoute,
+  AppFoodsNewRoute: AppFoodsNewRoute,
   AppIntegrationsCallbackRoute: AppIntegrationsCallbackRoute,
   AppRecipesNewRoute: AppRecipesNewRoute,
   AppFoodsIndexRoute: AppFoodsIndexRoute,
