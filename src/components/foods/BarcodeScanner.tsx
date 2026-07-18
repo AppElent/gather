@@ -23,6 +23,16 @@ export function BarcodeScanner({ onDetected }: Props) {
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [scanning, setScanning] = useState(false)
 
+  // Read via a ref inside the scan loop below instead of depending on
+  // `onDetected` directly — an inline arrow function passed by the caller
+  // gets a new identity every render, which would otherwise tear down and
+  // restart the camera stream on every unrelated re-render (e.g. typing in
+  // a sibling search box) while scanning is active.
+  const onDetectedRef = useRef(onDetected)
+  useEffect(() => {
+    onDetectedRef.current = onDetected
+  }, [onDetected])
+
   useEffect(() => {
     if (!scanning) return
     let stream: MediaStream | undefined
@@ -81,7 +91,7 @@ export function BarcodeScanner({ onDetected }: Props) {
           try {
             const results = await nativeDetector.detect(canvas)
             if (stopped) return
-            if (results[0]?.rawValue) onDetected(results[0].rawValue)
+            if (results[0]?.rawValue) onDetectedRef.current(results[0].rawValue)
           } catch {
             // Ignore per-frame detection failures; the interval tries again.
           }
@@ -94,7 +104,7 @@ export function BarcodeScanner({ onDetected }: Props) {
             tryHarder: true,
           })
           if (stopped) return
-          if (results[0]?.text) onDetected(results[0].text)
+          if (results[0]?.text) onDetectedRef.current(results[0].text)
         } catch {
           // Ignore per-frame detection failures; the interval tries again.
         }
@@ -109,7 +119,7 @@ export function BarcodeScanner({ onDetected }: Props) {
         t.stop()
       })
     }
-  }, [scanning, onDetected])
+  }, [scanning])
 
   return (
     <div className="grid gap-3">
