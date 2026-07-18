@@ -41,7 +41,12 @@ export function BarcodeScanner({ onDetected }: Props) {
         setScanning(false)
         return
       }
-      if (stopped || !videoRef.current) return
+      if (stopped || !videoRef.current) {
+        stream?.getTracks().forEach((t) => {
+          t.stop()
+        })
+        return
+      }
       videoRef.current.srcObject = stream
       try {
         await videoRef.current.play()
@@ -75,6 +80,7 @@ export function BarcodeScanner({ onDetected }: Props) {
         if (nativeDetector) {
           try {
             const results = await nativeDetector.detect(canvas)
+            if (stopped) return
             if (results[0]?.rawValue) onDetected(results[0].rawValue)
           } catch {
             // Ignore per-frame detection failures; the interval tries again.
@@ -82,11 +88,16 @@ export function BarcodeScanner({ onDetected }: Props) {
           return
         }
         const imageData = ctx2d.getImageData(0, 0, canvas.width, canvas.height)
-        const results = await readBarcodes(imageData, {
-          formats: [...ZXING_FORMATS],
-          tryHarder: true,
-        })
-        if (results[0]?.text) onDetected(results[0].text)
+        try {
+          const results = await readBarcodes(imageData, {
+            formats: [...ZXING_FORMATS],
+            tryHarder: true,
+          })
+          if (stopped) return
+          if (results[0]?.text) onDetected(results[0].text)
+        } catch {
+          // Ignore per-frame detection failures; the interval tries again.
+        }
       }, 500)
     }
     start()
