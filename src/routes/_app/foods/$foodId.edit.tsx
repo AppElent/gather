@@ -31,6 +31,7 @@ function EditFood() {
         </p>
       )}
       <FoodForm
+        key={food._id}
         submitting={submitting}
         initial={{
           name: food.name,
