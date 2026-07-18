@@ -140,7 +140,11 @@ export function ConsumptionEntryRow({ entry, onUpdate, onDelete }: Props) {
           >
             {saving ? 'Saving…' : 'Save'}
           </button>
-          {error && <p className="w-full text-xs text-red-700">{error}</p>}
+          {error && (
+            <p className="w-full rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-800">
+              {error}
+            </p>
+          )}
         </div>
       )}
     </li>
