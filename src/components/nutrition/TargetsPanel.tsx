@@ -41,6 +41,7 @@ export function TargetsPanel({ targets, saving, onSave }: Props) {
             onChange={(key, value) =>
               setInputs((prev) => ({ ...prev, [key]: value }))
             }
+            disabled={saving}
           />
           <button
             type="button"
