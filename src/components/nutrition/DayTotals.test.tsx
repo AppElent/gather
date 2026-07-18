@@ -18,3 +18,9 @@ test('renders nothing when totals and targets are both empty', () => {
   const { container } = render(<DayTotals totals={{}} />)
   expect(container.innerHTML).toBe('')
 })
+
+test('renders a custom heading when provided', () => {
+  render(<DayTotals totals={{ calories: 100 }} heading="Totals — 2026-07-17" />)
+  expect(screen.getByText('Totals — 2026-07-17')).toBeDefined()
+  expect(screen.queryByText("Today's totals")).toBeNull()
+})

@@ -7,16 +7,21 @@ import {
 interface Props {
   totals: NutritionFacts
   targets?: NutritionFacts
+  heading?: string
 }
 
-export function DayTotals({ totals, targets }: Props) {
+export function DayTotals({
+  totals,
+  targets,
+  heading = "Today's totals",
+}: Props) {
   const present = NUTRIENT_KEYS.filter(
     (key) => totals[key] !== undefined || targets?.[key] !== undefined,
   )
   if (present.length === 0) return null
   return (
     <section className="mb-6 rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
-      <h2 className="mb-2 font-medium">Today's totals</h2>
+      <h2 className="mb-2 font-medium">{heading}</h2>
       <dl className="grid gap-2">
         {present.map((key) => {
           const value = totals[key] ?? 0

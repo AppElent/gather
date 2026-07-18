@@ -46,7 +46,7 @@ export const Route = createFileRoute('/_app/nutrition/')({
 function NutritionDay() {
   const { date: dateParam } = Route.useSearch()
   const navigate = Route.useNavigate()
-  const date = dateParam ?? todayLocal()
+  const date = dateParam || todayLocal()
 
   const me = useQuery(api.users.me)
   const entries = useQuery(api.consumption.listForDay, { date })
@@ -96,7 +96,11 @@ function NutritionDay() {
         }}
       />
 
-      <DayTotals totals={totals} targets={me?.nutritionTargets} />
+      <DayTotals
+        totals={totals}
+        targets={me?.nutritionTargets}
+        heading={date === todayLocal() ? "Today's totals" : `Totals — ${date}`}
+      />
 
       {MEAL_NAMES.map((meal) => (
         <MealSlot
