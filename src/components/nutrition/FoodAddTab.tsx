@@ -40,6 +40,7 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
   const [selected, setSelected] = useState<FoodSummary | null>(null)
   const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null)
   const [resolving, setResolving] = useState(false)
+  const [lookupError, setLookupError] = useState<string | null>(null)
   const [quantityInput, setQuantityInput] = useState('')
   const [unit, setUnit] = useState<'g' | 'ml' | 'piece'>('g')
   const [submitting, setSubmitting] = useState(false)
@@ -50,36 +51,41 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
   const createEntry = useMutation(api.consumption.create)
 
   async function handleDetected(barcode: string) {
+    if (resolving) return
     setResolving(true)
     setNotFoundBarcode(null)
-    const existing = await convex.query(api.foods.getByBarcode, { barcode })
-    if (existing) {
-      setSelected(existing)
-      setUnit(existing.baseUnit)
+    setLookupError(null)
+    try {
+      const existing = await convex.query(api.foods.getByBarcode, { barcode })
+      if (existing) {
+        setSelected(existing)
+        setUnit(existing.baseUnit)
+        return
+      }
+      const mapped = await lookupBarcode({ barcode })
+      if (!mapped) {
+        setNotFoundBarcode(barcode)
+        return
+      }
+      const id = await upsertFromOff({
+        barcode,
+        name: mapped.name,
+        brand: mapped.brand,
+        baseUnit: 'g',
+        nutritionPer100: mapped.nutritionPer100,
+        servingSize: mapped.servingSize,
+        servingLabel: mapped.servingLabel,
+      })
+      const saved = await convex.query(api.foods.get, { id })
+      if (saved) {
+        setSelected(saved)
+        setUnit(saved.baseUnit)
+      }
+    } catch {
+      setLookupError("Couldn't look up that barcode — try again.")
+    } finally {
       setResolving(false)
-      return
     }
-    const mapped = await lookupBarcode({ barcode })
-    if (!mapped) {
-      setNotFoundBarcode(barcode)
-      setResolving(false)
-      return
-    }
-    const id = await upsertFromOff({
-      barcode,
-      name: mapped.name,
-      brand: mapped.brand,
-      baseUnit: 'g',
-      nutritionPer100: mapped.nutritionPer100,
-      servingSize: mapped.servingSize,
-      servingLabel: mapped.servingLabel,
-    })
-    const saved = await convex.query(api.foods.get, { id })
-    if (saved) {
-      setSelected(saved)
-      setUnit(saved.baseUnit)
-    }
-    setResolving(false)
   }
 
   if (selected) {
@@ -148,6 +154,7 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
     <div className="grid gap-3">
       <BarcodeScanner onDetected={handleDetected} />
       {resolving && <p className="text-xs opacity-60">Looking up…</p>}
+      {lookupError && <p className="text-xs text-red-700">{lookupError}</p>}
       {notFoundBarcode && (
         <p className="text-xs opacity-60">
           Not found.{' '}
