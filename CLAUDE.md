@@ -1,12 +1,13 @@
 # gather
 
-A household-management app (Recipes, groups, and a growing set of placeholder
-modules — meal planner, groceries, pantry, finances, bills, tasks, calendar, notes,
+A household-management app (Recipes, Tasks, groups, and a growing set of placeholder
+modules — meal planner, groceries, pantry, finances, bills, calendar, notes,
 cheeses, wines) built on the standard AppElent stack:
 
 - **TanStack React Start + Router** (file-based routing, `tsr generate`), SSR, Vite.
 - **Convex** backend (`convex/`) — functions: `recipes.ts`, `groups.ts`, `users.ts`,
-  `lib/sharing.ts`. Schema in `convex/schema.ts`.
+  `taskLists.ts`, `tasks.ts`, `integrations.ts`, `lib/sharing.ts`, `lib/taskAccess.ts`,
+  `lib/taskProviders/` (adapter pattern for Notion/Todoist). Schema in `convex/schema.ts`.
 - **Clerk** auth (`@clerk/clerk-react`), JWT-bridged to Convex via `CLERK_JWT_ISSUER_DOMAIN`
   (Convex deployment env var, set with `convex env set` — not committed anywhere).
 - **Cloudflare Workers** deploy via `wrangler.jsonc` — worker name `gather`
@@ -61,6 +62,12 @@ default for preview deployments (PR previews create a fresh Convex backend per P
 that doesn't inherit dev/prod env vars). `ANTHROPIC_API_KEY` — powers the recipe
 URL-import action's AI fallback; optional (JSON-LD-only imports work without it, and
 recipes without matching JSON-LD simply fail to import if it's unset).
+`NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` and `TODOIST_CLIENT_ID` /
+`TODOIST_CLIENT_SECRET` — OAuth credentials for the Tasks module's external
+list providers; optional (without them, connecting that provider fails with a
+clear "not configured" error and local lists work normally). Each provider's
+OAuth app must register the redirect URI `<app-origin>/integrations/callback`
+(e.g. `http://localhost:3000/integrations/callback` for dev).
 
 ## CI / PR previews
 

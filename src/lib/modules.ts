@@ -79,7 +79,7 @@ export const MODULES: ModuleDef[] = [
     icon: 'ListChecks',
     group: 'Home & life',
     path: '/tasks',
-    status: 'placeholder',
+    status: 'live',
     description: 'Shared to-do lists.',
   },
   {
