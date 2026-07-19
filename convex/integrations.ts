@@ -101,15 +101,39 @@ export const storeConnection = internalMutation({
         q.eq('groupId', args.groupId).eq('provider', args.provider),
       )
       .unique()
+    const connectionId = existing
+      ? existing._id
+      : await ctx.db.insert('integrationConnections', args)
     if (existing) {
       await ctx.db.patch(existing._id, {
         accessToken: args.accessToken,
         accountLabel: args.accountLabel,
         connectedBy: args.connectedBy,
       })
-      return existing._id
     }
-    return await ctx.db.insert('integrationConnections', args)
+
+    // Reconnecting after a disconnect creates a *new* connection document
+    // (the old one was deleted), so any lists still pointing at the old,
+    // now-dangling connectionId need repointing to the new one — otherwise
+    // they'd stay stuck showing "reconnect" forever even though the
+    // provider is connected again.
+    const lists = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', args.groupId))
+      .collect()
+    for (const list of lists) {
+      if (
+        list.provider === args.provider &&
+        list.providerConfig &&
+        list.providerConfig.connectionId !== connectionId
+      ) {
+        await ctx.db.patch(list._id, {
+          providerConfig: { ...list.providerConfig, connectionId },
+        })
+      }
+    }
+
+    return connectionId
   },
 })
 

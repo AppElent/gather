@@ -63,6 +63,11 @@ export const add = mutation({
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
       .collect()
+    // existing.length collides with a sibling's order once any task has
+    // been deleted (e.g. orders 0,1,2 -> delete 1 -> next add gets 2 again),
+    // which makes sort/move ambiguous between same-order rows.
+    const nextOrder =
+      existing.reduce((max, t) => Math.max(max, t.order), -1) + 1
     return await ctx.db.insert('tasks', {
       listId: args.listId,
       title: args.title,
@@ -71,7 +76,7 @@ export const add = mutation({
       priority: args.priority,
       labels: args.labels,
       createdBy: user._id,
-      order: existing.length,
+      order: nextOrder,
     })
   },
 })

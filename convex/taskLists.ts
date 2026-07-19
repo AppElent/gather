@@ -79,12 +79,16 @@ export const create = mutation({
       .query('taskLists')
       .withIndex('by_group', (q) => q.eq('groupId', groupId))
       .collect()
+    // existing.length collides with a sibling's order once any list has
+    // been deleted, so derive the next order from the current max instead.
+    const nextOrder =
+      existing.reduce((max, l) => Math.max(max, l.order), -1) + 1
     return await ctx.db.insert('taskLists', {
       groupId,
       name: args.name,
       provider: args.provider,
       providerConfig: args.providerConfig,
-      order: existing.length,
+      order: nextOrder,
     })
   },
 })
