@@ -1,0 +1,226 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel",
+      "url": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel",
+      "name": "Courgette ovenschotel - Uit Paulines Keuken",
+      "isPartOf": {
+        "@id": "https://uitpaulineskeuken.nl/#website"
+      },
+      "primaryImageOfPage": {
+        "@id": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#primaryimage"
+      },
+      "image": {
+        "@id": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#primaryimage"
+      },
+      "thumbnailUrl": "https://uitpaulineskeuken.nl/wp-content/smush-webp/2026/06/Ovenschotel-courgette.jpg.webp",
+      "datePublished": "2026-06-01T06:30:00+00:00",
+      "dateModified": "2026-06-25T13:42:48+00:00",
+      "description": "Zelf een gezonde courgette ovenschotel maken? Dit makkelijke recept met ricotta, mozzarella en tomaat is heerlijk romig en snel klaar.",
+      "breadcrumb": {
+        "@id": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#breadcrumb"
+      },
+      "inLanguage": "nl-NL",
+      "potentialAction": [
+        {
+          "@type": "ReadAction",
+          "target": [
+            "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "ImageObject",
+      "inLanguage": "nl-NL",
+      "@id": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#primaryimage",
+      "url": "https://uitpaulineskeuken.nl/wp-content/smush-webp/2026/06/Ovenschotel-courgette.jpg.webp",
+      "contentUrl": "https://uitpaulineskeuken.nl/wp-content/smush-webp/2026/06/Ovenschotel-courgette.jpg.webp",
+      "width": 800,
+      "height": 1120,
+      "caption": "Courgette ovenschotel"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://uitpaulineskeuken.nl/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Recepten",
+          "item": "https://uitpaulineskeuken.nl/recept/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Courgette ovenschotel"
+        }
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://uitpaulineskeuken.nl/#website",
+      "url": "https://uitpaulineskeuken.nl/",
+      "name": "Uit Pauline's Keuken",
+      "description": "Lekkere &amp; makkelijke recepten voor elke dag",
+      "potentialAction": [
+        {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://uitpaulineskeuken.nl/zoeken?_search_search={search_term_string}"
+          },
+          "query-input": {
+            "@type": "PropertyValueSpecification",
+            "valueRequired": true,
+            "valueName": "search_term_string"
+          }
+        }
+      ],
+      "inLanguage": "nl-NL"
+    },
+    {
+      "@type": "Recipe",
+      "name": "Courgette ovenschotel",
+      "author": {
+        "@type": "Person",
+        "name": "Pauline"
+      },
+      "description": "Zelf een gezonde courgette ovenschotel maken? Dit makkelijke recept met ricotta, mozzarella en tomaat is heerlijk romig en snel klaar.",
+      "datePublished": "2026-06-01T06:30:00+00:00",
+      "image": [
+        "https://uitpaulineskeuken.nl/wp-content/smush-webp/2026/06/Ovenschotel-courgette.jpg.webp",
+        "https://uitpaulineskeuken.nl/wp-content/smush-webp/2026/06/Ovenschotel-courgette-500x500.jpg.webp",
+        "https://uitpaulineskeuken.nl/wp-content/smush-webp/2026/06/Ovenschotel-courgette-500x375.jpg.webp",
+        "https://uitpaulineskeuken.nl/wp-content/smush-webp/2026/06/Ovenschotel-courgette-480x270.jpg.webp"
+      ],
+      "recipeYield": [
+        "4"
+      ],
+      "prepTime": "PT30M",
+      "cookTime": "PT25M",
+      "totalTime": "PT55M",
+      "recipeIngredient": [
+        "3  courgettes",
+        "3 tl gedroogde oregano",
+        "1  ui",
+        "15 gr basilicum",
+        "800  gr tomaatjes uit blik",
+        "100 gr ricotta",
+        "200 gr mozzarella",
+        "2 el pistachenootjes",
+        "olijfolie",
+        "peper en zout"
+      ],
+      "recipeInstructions": [
+        {
+          "@type": "HowToSection",
+          "name": "Zo maak je de courgette ovenschotel",
+          "itemListElement": [
+            {
+              "@type": "HowToStep",
+              "text": "Verwarm de oven alvast voor op 200 graden (boven- en onderwarmte) of 180 graden (hetelucht).",
+              "name": "Verwarm de oven alvast voor op 200 graden (boven- en onderwarmte) of 180 graden (hetelucht).",
+              "url": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#wprm-recipe-1983-step-0-0"
+            },
+            {
+              "@type": "HowToStep",
+              "text": "Snijd de courgettes in plakken van ongeveer 0,5 centimeter dik. Zout de courgetteplakken vooraf licht en laat ze 10–15 minuten uitlekken, dep ze daarna goed droog.\nDeze stap met het zouten is optioneel, maar zorgt wel voor een minder natte ovenschotel!",
+              "name": "Snijd de courgettes in plakken van ongeveer 0,5 centimeter dik. Zout de courgetteplakken vooraf licht en laat ze 10–15 minuten uitlekken, dep ze daarna goed droog.\nDeze stap met het zouten is optioneel, maar zorgt wel voor een minder natte ovenschotel!",
+              "url": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#wprm-recipe-1983-step-0-1"
+            },
+            {
+              "@type": "HowToStep",
+              "text": "Meng in een kommetje 3 eetlepels olijfolie met de 2 theelepels gedroogde oregano, peper en zout en bestrijk de plakken courgette er licht mee. Grill de courgette in een pan of op een grillplaat, in delen, tot ze een mooi grillstreepje krijgen. Zet ze tot gebruik apart.",
+              "name": "Meng in een kommetje 3 eetlepels olijfolie met de 2 theelepels gedroogde oregano, peper en zout en bestrijk de plakken courgette er licht mee. Grill de courgette in een pan of op een grillplaat, in delen, tot ze een mooi grillstreepje krijgen. Zet ze tot gebruik apart.",
+              "url": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#wprm-recipe-1983-step-0-2"
+            },
+            {
+              "@type": "HowToStep",
+              "text": "Haal de schil van de ui en hak fijn. Haal de blaadjes van de basilicum en houd ze apart, hak de steeltjes fijn. Verhit een scheutje olijfolie in een ruime diepe koekenpan. Bak de ui samen met de fijngehakte basilicumsteeltjes en 1 theelepel gedroogde oregano tot goudbruin. Breng op smaak met peper en zout.",
+              "name": "Haal de schil van de ui en hak fijn. Haal de blaadjes van de basilicum en houd ze apart, hak de steeltjes fijn. Verhit een scheutje olijfolie in een ruime diepe koekenpan. Bak de ui samen met de fijngehakte basilicumsteeltjes en 1 theelepel gedroogde oregano tot goudbruin. Breng op smaak met peper en zout.",
+              "url": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#wprm-recipe-1983-step-0-3"
+            },
+            {
+              "@type": "HowToStep",
+              "text": "Voeg de tomaat uit blik toe en laat in circa 10 minuten op middelhoog vuur inkoken tot dikke saus. Roer de ricotta en de helft van de basilicumblaadjes (de rest van de blaadjes gebruik je voor garnering) erdoor en breng verder op smaak met peper en zout.",
+              "name": "Voeg de tomaat uit blik toe en laat in circa 10 minuten op middelhoog vuur inkoken tot dikke saus. Roer de ricotta en de helft van de basilicumblaadjes (de rest van de blaadjes gebruik je voor garnering) erdoor en breng verder op smaak met peper en zout.",
+              "url": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#wprm-recipe-1983-step-0-4"
+            },
+            {
+              "@type": "HowToStep",
+              "text": "Schep een dunne laag tomatensaus in een ovenschaal en verdeel daar een laag courgette over. Herhaal dit met saus en courgette tot er 4 lagen courgette zijn opgebouwd. Eindig met een laag courgette.",
+              "name": "Schep een dunne laag tomatensaus in een ovenschaal en verdeel daar een laag courgette over. Herhaal dit met saus en courgette tot er 4 lagen courgette zijn opgebouwd. Eindig met een laag courgette.",
+              "url": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#wprm-recipe-1983-step-0-5"
+            },
+            {
+              "@type": "HowToStep",
+              "text": "Snijd de mozzarella in plakken en dep goed droog. Verdeel de mozzarella over de bovenkant, bak de ovenschotel in de oven in ongeveer 25 minuten tot de kaas gesmolten en goudbruin is.\nTip: zet eventueel de laatste 5 minuten de grill aan voor een extra mooie bruine bovenkant.",
+              "name": "Snijd de mozzarella in plakken en dep goed droog. Verdeel de mozzarella over de bovenkant, bak de ovenschotel in de oven in ongeveer 25 minuten tot de kaas gesmolten en goudbruin is.\nTip: zet eventueel de laatste 5 minuten de grill aan voor een extra mooie bruine bovenkant.",
+              "url": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#wprm-recipe-1983-step-0-6"
+            },
+            {
+              "@type": "HowToStep",
+              "text": "Hak de pistachenootjes grof. Bestrooi de courgette ovenschotel na het bakken met de pistachenootjes en verdeel de achtergehouden basilicumblaadjes erover.",
+              "name": "Hak de pistachenootjes grof. Bestrooi de courgette ovenschotel na het bakken met de pistachenootjes en verdeel de achtergehouden basilicumblaadjes erover.",
+              "url": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#wprm-recipe-1983-step-0-7"
+            }
+          ]
+        }
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.34",
+        "ratingCount": "9",
+        "reviewCount": "1"
+      },
+      "review": [
+        {
+          "@type": "Review",
+          "reviewRating": {
+            "@type": "Rating",
+            "ratingValue": "5"
+          },
+          "reviewBody": "​",
+          "author": {
+            "@type": "Person",
+            "name": "Annika"
+          },
+          "datePublished": "2026-06-10"
+        }
+      ],
+      "recipeCategory": [
+        "Hoofdgerecht"
+      ],
+      "recipeCuisine": [
+        "Italiaanse recepten"
+      ],
+      "keywords": "courgette ovenschotel",
+      "nutrition": {
+        "@type": "NutritionInformation",
+        "calories": "305 kcal",
+        "carbohydrateContent": "24 g",
+        "sugarContent": "11 g",
+        "sodiumContent": "604 mg",
+        "proteinContent": "22 g",
+        "fatContent": "16 g",
+        "saturatedFatContent": "9 g",
+        "fiberContent": "6 g",
+        "servingSize": "1 portie"
+      },
+      "@id": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel#recipe",
+      "isPartOf": {
+        "@id": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel"
+      },
+      "mainEntityOfPage": "https://uitpaulineskeuken.nl/recept/courgette-ovenschotel"
+    }
+  ]
+}

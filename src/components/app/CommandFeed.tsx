@@ -58,12 +58,18 @@ export function CommandFeed() {
             action={<Pill tone="warning">Preview</Pill>}
           />
           <p className="m-0 text-sm leading-6 text-[var(--app-muted)]">
-            Recipes is live. {byStatus.placeholder.length} other modules are
-            staged as placeholders, so the group can see what is planned without
-            losing the current working flows.
+            {byStatus.live.map((m) => m.label).join(' and ')}{' '}
+            {byStatus.live.length === 1 ? 'is' : 'are'} live.{' '}
+            {byStatus.placeholder.length} other modules are staged as
+            placeholders, so the group can see what is planned without losing
+            the current working flows.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Pill tone="dark">Recipes live</Pill>
+            {byStatus.live.map((m) => (
+              <Pill key={m.id} tone="dark">
+                {m.label} live
+              </Pill>
+            ))}
             <Pill>{MODULES.length} modules</Pill>
             <Pill>Group scoped</Pill>
           </div>

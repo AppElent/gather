@@ -94,6 +94,7 @@ describe('app navigation metadata', () => {
     const byStatus = getModulesByStatus()
     expect(byStatus.live.map((module) => module.id)).toEqual([
       'recipes',
+      'nutrition',
       'tasks',
     ])
     expect(byStatus.placeholder.length).toBeGreaterThan(0)

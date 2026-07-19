@@ -89,4 +89,45 @@ describe('extractRecipeWithAi', () => {
       await extractRecipeWithAi('some page text', 'test-key', fetchImpl),
     ).toBeNull()
   })
+
+  test('maps servings and sanitized nutrition from the tool response', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      mockResponse({
+        content: [
+          {
+            type: 'tool_use',
+            name: 'extract_recipe',
+            input: {
+              found: true,
+              title: 'Erwtensoep',
+              ingredients: ['spliterwten'],
+              steps: ['Kook.'],
+              servings: 6,
+              nutrition: { calories: 400, protein: 22, bogus: 1, fat: -3 },
+            },
+          },
+        ],
+      }),
+    )
+    const result = await extractRecipeWithAi('page', 'test-key', fetchImpl)
+    expect(result?.servings).toBe(6)
+    expect(result?.nutrition).toEqual({ calories: 400, protein: 22 })
+  })
+
+  test('omits servings and nutrition when absent from the tool response', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      mockResponse({
+        content: [
+          {
+            type: 'tool_use',
+            name: 'extract_recipe',
+            input: { found: true, title: 'Toast', ingredients: ['bread'], steps: ['Toast.'] },
+          },
+        ],
+      }),
+    )
+    const result = await extractRecipeWithAi('page', 'test-key', fetchImpl)
+    expect(result?.servings).toBeUndefined()
+    expect(result?.nutrition).toBeUndefined()
+  })
 })
