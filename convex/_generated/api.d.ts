@@ -18,6 +18,7 @@ import type * as lib_taskProviders_index from "../lib/taskProviders/index.js";
 import type * as lib_taskProviders_notion from "../lib/taskProviders/notion.js";
 import type * as lib_taskProviders_todoist from "../lib/taskProviders/todoist.js";
 import type * as lib_taskProviders_types from "../lib/taskProviders/types.js";
+import type * as maintenance from "../maintenance.js";
 import type * as recipeImport from "../recipeImport.js";
 import type * as recipes from "../recipes.js";
 import type * as taskLists from "../taskLists.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   "lib/taskProviders/notion": typeof lib_taskProviders_notion;
   "lib/taskProviders/todoist": typeof lib_taskProviders_todoist;
   "lib/taskProviders/types": typeof lib_taskProviders_types;
+  maintenance: typeof maintenance;
   recipeImport: typeof recipeImport;
   recipes: typeof recipes;
   taskLists: typeof taskLists;
