@@ -3,6 +3,8 @@
 import { ConvexError, v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import { action } from './_generated/server'
+import { internal } from './_generated/api'
+import { requireActionSpaceClaims } from './lib/spaceAuth'
 import type { ActionCtx } from './_generated/server'
 import { extractRecipeWithAi } from './lib/recipeAiExtract'
 import { extractJsonLdRecipe, htmlToText } from './lib/recipeParsing'
@@ -92,10 +94,17 @@ export async function safeFetch(
 }
 
 export const importFromUrl = action({
-  args: { url: v.string() },
+  args: { spaceSlug: v.string(), url: v.string() },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new ConvexError('Not authenticated')
+    const claims = await requireActionSpaceClaims(ctx)
+    const { space } = await ctx.runQuery((internal as any).spaces.resolveActionContext, {
+      spaceSlug: args.spaceSlug,
+      expectedClerkOrganizationId: claims.clerkOrganizationId,
+      requireAdmin: false,
+    })
+    await ctx.runQuery((internal as any).recipes.requireRecipesModuleForAction, {
+      spaceId: space._id,
+    })
 
     if (!isUrlSafeToFetch(args.url)) throw new ConvexError(BLOCKED_MESSAGE)
 

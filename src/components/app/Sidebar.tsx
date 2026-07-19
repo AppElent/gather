@@ -21,6 +21,8 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
   const byGroup = modulesByGroup()
   const isDrawer = variant === 'drawer'
   const location = useLocation()
+  const pathSegments = location.pathname.split('/')
+  const spaceSlug = pathSegments[1] === 's' ? pathSegments[2] : undefined
 
   return (
     <aside
@@ -50,11 +52,11 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
           </span>
         </Link>
         <Link
-          to="/groups"
+          to="/onboarding"
           onClick={onNavigate}
           className="shell-icon-button"
-          aria-label="Manage groups"
-          title="Manage groups"
+          aria-label="Create or join a Space"
+          title="Create or join a Space"
         >
           <Icon name="Plus" className="h-4 w-4" />
         </Link>
@@ -89,23 +91,28 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
             <p className="m-0 px-2 pb-1 text-[11px] font-semibold uppercase text-[var(--app-muted)]">
               {group}
             </p>
-            {byGroup[group].map((module) => (
-              <Link
-                key={module.id}
-                to={module.path as LinkProps['to']}
-                onClick={onNavigate}
-                className="grid min-h-9 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline"
-                activeProps={{
-                  className: 'border-[var(--app-fg)] bg-[var(--app-surface)]',
-                }}
-              >
-                <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
-                  <Icon name={module.icon} className="h-4 w-4" />
-                </span>
-                <span className="truncate">{module.label}</span>
-                {module.status === 'placeholder' ? <Pill>Soon</Pill> : null}
-              </Link>
-            ))}
+            {spaceSlug &&
+              byGroup[group]
+                .filter((module) => module.id === 'recipes')
+                .map((module) => (
+                  <Link
+                    key={module.id}
+                    to="/s/$spaceSlug/recipes"
+                    params={{ spaceSlug }}
+                    onClick={onNavigate}
+                    className="grid min-h-9 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline"
+                    activeProps={{
+                      className:
+                        'border-[var(--app-fg)] bg-[var(--app-surface)]',
+                    }}
+                  >
+                    <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
+                      <Icon name={module.icon} className="h-4 w-4" />
+                    </span>
+                    <span className="truncate">{module.label}</span>
+                    {module.status === 'placeholder' ? <Pill>Soon</Pill> : null}
+                  </Link>
+                ))}
           </div>
         ))}
       </nav>
@@ -116,15 +123,15 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
           <Pill tone="warning">Preview data</Pill>
         </div>
         <p className="m-0 text-sm text-[var(--app-muted)]">
-          Group and member details appear here once connected.
+          Space details appear here once connected.
         </p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Link
-            to="/groups"
+            to="/onboarding"
             onClick={onNavigate}
             className="text-xs no-underline"
           >
-            Groups
+            Spaces
           </Link>
           <Link
             to="/settings"

@@ -4,11 +4,13 @@ import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 
 interface ImageUploadFieldProps {
+  spaceSlug: string
   imageUrl: string | null
   onChange: (imageId: Id<'_storage'> | undefined) => void
 }
 
 export function ImageUploadField({
+  spaceSlug,
   imageUrl,
   onChange,
 }: ImageUploadFieldProps) {
@@ -22,7 +24,7 @@ export function ImageUploadField({
     setUploading(true)
     setError(null)
     try {
-      const uploadUrl = await generateUploadUrl()
+      const uploadUrl = await generateUploadUrl({ spaceSlug })
       const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: { 'Content-Type': file.type },

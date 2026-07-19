@@ -1,30 +1,36 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
-import { api } from '../../../../convex/_generated/api'
-import type { Doc, Id } from '../../../../convex/_generated/dataModel'
-import { ImageUploadField } from '../../../components/recipes/ImageUploadField'
-import { RecipeForm } from '../../../components/recipes/RecipeForm'
+import { api } from '../../../../../../convex/_generated/api'
+import type { Doc, Id } from '../../../../../../convex/_generated/dataModel'
+import { ImageUploadField } from '../../../../../components/recipes/ImageUploadField'
+import { RecipeForm } from '../../../../../components/recipes/RecipeForm'
 
-export const Route = createFileRoute('/_app/recipes/$recipeId/edit')({
-  component: EditRecipe,
-})
-
+export const Route = createFileRoute(
+  '/_app/s/$spaceSlug/recipes/$recipeId/edit',
+)({ component: EditRecipe })
 type RecipeDetail = Doc<'recipes'> & { imageUrl: string | null }
-
 function EditRecipe() {
-  const { recipeId } = Route.useParams()
-  const recipe = useQuery(api.recipes.get, { id: recipeId as Id<'recipes'> })
-
+  const { recipeId, spaceSlug } = Route.useParams()
+  const recipe = useQuery(api.recipes.get, {
+    spaceSlug,
+    id: recipeId as Id<'recipes'>,
+  })
   if (recipe === undefined)
     return <p className="text-sm opacity-60">Loading…</p>
   if (recipe === null)
     return <p className="text-sm opacity-60">Recipe not found.</p>
-
-  return <EditRecipeForm key={recipe._id} recipe={recipe} />
+  return (
+    <EditRecipeForm key={recipe._id} recipe={recipe} spaceSlug={spaceSlug} />
+  )
 }
-
-function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
+function EditRecipeForm({
+  recipe,
+  spaceSlug,
+}: {
+  recipe: RecipeDetail
+  spaceSlug: string
+}) {
   const update = useMutation(api.recipes.update)
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
@@ -33,7 +39,6 @@ function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
     recipe.imageId,
   )
   const [imageUrl, setImageUrl] = useState<string | null>(recipe.imageUrl)
-
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold">Edit recipe</h1>
@@ -42,15 +47,14 @@ function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
           {error}
         </p>
       )}
-
       <ImageUploadField
+        spaceSlug={spaceSlug}
         imageUrl={imageUrl}
         onChange={(id) => {
           setImageId(id)
           if (id === undefined) setImageUrl(null)
         }}
       />
-
       <RecipeForm
         submitting={submitting}
         initial={{
@@ -66,14 +70,15 @@ function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
           setError(null)
           try {
             await update({
+              spaceSlug,
               id: recipe._id,
               ...values,
               rating: values.rating ?? null,
               imageId: imageId ?? null,
             })
             navigate({
-              to: '/recipes/$recipeId',
-              params: { recipeId: recipe._id },
+              to: '/s/$spaceSlug/recipes/$recipeId',
+              params: { spaceSlug, recipeId: recipe._id },
             })
           } catch (err) {
             setError(

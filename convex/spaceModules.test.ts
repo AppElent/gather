@@ -2,6 +2,7 @@ import { convexTest } from 'convex-test'
 import { afterEach, describe, expect, test } from 'vitest'
 import { api, internal } from './_generated/api'
 import { moduleCleanupRegistry } from './lib/moduleLifecycle'
+import { cleanupRecipesForSpace } from './lib/recipesLifecycle'
 import schema from './schema'
 import { modules } from './test.setup'
 
@@ -40,7 +41,7 @@ async function moduleRow(t: ReturnType<typeof convexTest>, spaceId: unknown, mod
 }
 
 afterEach(() => {
-  delete moduleCleanupRegistry.recipes
+  moduleCleanupRegistry.recipes = cleanupRecipesForSpace
 })
 
 describe('Space module state', () => {
@@ -152,16 +153,66 @@ describe('Space module state', () => {
     expect(snapshot).toMatchObject({ pinnedModuleIds: [], dashboard: [] })
   })
 
+  test('permanent Recipes deletion removes only this Space recipes and their stored images', async () => {
+    const { admin, spaceSlug, t } = await createSpace()
+    await admin.mutation((api as any).spaceModules.setState, {
+      spaceSlug,
+      moduleId: 'recipes',
+      state: 'enabled',
+    })
+    const context = await admin.query((api as any).spaces.context, { spaceSlug })
+    const imageId = await t.run((ctx) => ctx.storage.store(new Blob(['recipe image'])))
+    const recipeId = await t.run((ctx) => ctx.db.insert('recipes', {
+      spaceId: context.space._id,
+      createdByUserId: context.user._id,
+      title: 'Space recipe',
+      imageId,
+      ingredients: [],
+      steps: [],
+      tags: [],
+      createdAt: 1,
+      updatedAt: 1,
+    }))
+    const otherRecipeId = await t.run(async (ctx) => ctx.db.insert('recipes', {
+      spaceId: await ctx.db.insert('spaces', {
+        clerkOrganizationId: 'org_other',
+        slug: 'other',
+        name: 'Other',
+        status: 'active',
+        defaultPinnedModuleIds: [],
+        defaultDashboard: [],
+        createdAt: 1,
+        updatedAt: 1,
+      }),
+      createdByUserId: context.user._id,
+      title: 'Other Space recipe',
+      ingredients: [],
+      steps: [],
+      tags: [],
+      createdAt: 1,
+      updatedAt: 1,
+    }))
+
+    await admin.action((api as any).spaceModules.deleteData, {
+      spaceSlug,
+      moduleId: 'recipes',
+      confirmation: 'DELETE Recipes',
+    })
+
+    expect(await t.run((ctx) => ctx.db.get(recipeId))).toBeNull()
+    expect(await t.run((ctx) => ctx.storage.get(imageId))).toBeNull()
+    expect(await t.run((ctx) => ctx.db.get(otherRecipeId))).not.toBeNull()
+  })
   test('permanent deletion fails without a registered cleanup handler', async () => {
     const { admin, spaceSlug } = await createSpace()
 
     await expect(
       admin.action((api as any).spaceModules.deleteData, {
         spaceSlug,
-        moduleId: 'recipes',
-        confirmation: 'DELETE Recipes',
+        moduleId: 'groceries',
+        confirmation: 'DELETE Groceries',
       }),
-    ).rejects.toThrow('No cleanup handler registered for recipes')
+    ).rejects.toThrow('No cleanup handler registered for groceries')
   })
   test('permanent deletion requires exact confirmation and leaves the module archived', async () => {
     const { admin, spaceSlug, t } = await createSpace()

@@ -1,37 +1,42 @@
 import type { NavigateOptions } from '@tanstack/react-router'
-import { useNavigate } from '@tanstack/react-router'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { MODULES } from '../../lib/modules'
 
-const ITEMS = [
+const STATIC_ITEMS = [
   { label: 'Dashboard', path: '/dashboard' },
-  ...MODULES.map((m) => ({ label: m.label, path: m.path })),
   { label: 'Settings', path: '/settings' },
-  { label: 'Groups', path: '/groups' },
+  { label: 'Create or join a Space', path: '/onboarding' },
 ]
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const navigate = useNavigate()
+  const location = useLocation()
+  const spaceSlug = /^\/s\/([^/]+)/.exec(location.pathname)?.[1]
+  const items = [
+    ...STATIC_ITEMS,
+    ...(spaceSlug
+      ? [{ label: 'Recipes', path: `/s/${spaceSlug}/recipes` }]
+      : []),
+  ]
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        setOpen((v) => !v)
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setOpen((value) => !value)
       }
-      if (e.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') setOpen(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
   if (!open) return null
-  const results = ITEMS.filter((i) =>
-    i.label.toLowerCase().includes(q.toLowerCase()),
+  const results = items.filter((item) =>
+    item.label.toLowerCase().includes(q.toLowerCase()),
   )
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 pt-32"
@@ -39,28 +44,28 @@ export function CommandPalette() {
     >
       <div
         className="w-full max-w-md rounded-xl border bg-white p-2 shadow-lg dark:bg-neutral-900"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <input
           autoFocus
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(event) => setQ(event.target.value)}
           placeholder="Jump to…"
           className="w-full rounded-md border px-3 py-2 text-sm outline-none"
         />
         <ul className="mt-2 max-h-72 overflow-auto">
-          {results.map((i) => (
-            <li key={i.path}>
+          {results.map((item) => (
+            <li key={item.path}>
               <button
                 type="button"
                 className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10"
                 onClick={() => {
                   setOpen(false)
                   setQ('')
-                  navigate({ to: i.path } as NavigateOptions)
+                  navigate({ to: item.path } as NavigateOptions)
                 }}
               >
-                {i.label}
+                {item.label}
               </button>
             </li>
           ))}

@@ -2,15 +2,15 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { useEffect, useRef, useState } from 'react'
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
-import { ImageUploadField } from '../../../components/recipes/ImageUploadField'
+import { api } from '../../../../../../convex/_generated/api'
+import type { Id } from '../../../../../../convex/_generated/dataModel'
+import { ImageUploadField } from '../../../../../components/recipes/ImageUploadField'
 import {
   RecipeForm,
   type RecipeFormValues,
-} from '../../../components/recipes/RecipeForm'
+} from '../../../../../components/recipes/RecipeForm'
 
-export const Route = createFileRoute('/_app/recipes/new')({
+export const Route = createFileRoute('/_app/s/$spaceSlug/recipes/new')({
   component: NewRecipe,
   validateSearch: (search: Record<string, unknown>): { url?: string } => ({
     url: typeof search.url === 'string' ? search.url : undefined,
@@ -18,14 +18,13 @@ export const Route = createFileRoute('/_app/recipes/new')({
 })
 
 function NewRecipe() {
+  const { spaceSlug } = Route.useParams()
   const create = useMutation(api.recipes.create)
   const importFromUrl = useAction(api.recipeImport.importFromUrl)
   const navigate = useNavigate()
   const { url: initialUrl } = Route.useSearch()
-
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
   const [importUrl, setImportUrl] = useState(initialUrl ?? '')
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
@@ -33,11 +32,7 @@ function NewRecipe() {
     values: RecipeFormValues
     version: number
   } | null>(null)
-  // Tracked separately from `imported` so a failed re-import can invalidate
-  // it immediately without remounting RecipeForm/ImageUploadField (which
-  // would wipe out anything the user typed since the last successful import).
   const [sourceUrl, setSourceUrl] = useState<string | null>(null)
-
   const [imageId, setImageId] = useState<Id<'_storage'> | undefined>()
   const [imageUrl, setImageUrl] = useState<string | null>(null)
 
@@ -45,12 +40,9 @@ function NewRecipe() {
     if (!url.trim()) return
     setImporting(true)
     setImportError(null)
-    // Invalidate the previous import's sourceUrl the moment a new attempt
-    // starts — if this one fails, saving must not silently reattach the URL
-    // from an earlier, unrelated successful import.
     setSourceUrl(null)
     try {
-      const result = await importFromUrl({ url: url.trim() })
+      const result = await importFromUrl({ spaceSlug, url: url.trim() })
       setImported({
         values: {
           title: result.title,
@@ -66,10 +58,8 @@ function NewRecipe() {
       setImageUrl(result.imageUrl)
     } catch (err) {
       setImportError(
-        err instanceof ConvexError
-          ? typeof err.data === 'string'
-            ? err.data
-            : 'Could not import that recipe'
+        err instanceof ConvexError && typeof err.data === 'string'
+          ? err.data
           : err instanceof Error
             ? err.message
             : 'Could not import that recipe',
@@ -80,7 +70,6 @@ function NewRecipe() {
   }
 
   const hasAutoImported = useRef(false)
-  // Only ever run once, for the URL present when the page first loaded.
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally mount-only
   useEffect(() => {
     if (initialUrl && !hasAutoImported.current) {
@@ -92,7 +81,6 @@ function NewRecipe() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold">New recipe</h1>
-
       <div className="mx-auto mb-6 max-w-2xl rounded-xl border p-4">
         <label className="block text-sm">
           <span className="mb-1 block font-medium">Import from URL</span>
@@ -100,7 +88,7 @@ function NewRecipe() {
             <input
               className="w-full rounded border px-2 py-1"
               value={importUrl}
-              onChange={(e) => setImportUrl(e.target.value)}
+              onChange={(event) => setImportUrl(event.target.value)}
               placeholder="https://example.com/some-recipe"
             />
             <button
@@ -122,8 +110,8 @@ function NewRecipe() {
           </p>
         )}
       </div>
-
       <ImageUploadField
+        spaceSlug={spaceSlug}
         key={`image-${imported?.version ?? 'blank'}`}
         imageUrl={imageUrl}
         onChange={(id) => {
@@ -131,13 +119,11 @@ function NewRecipe() {
           if (id === undefined) setImageUrl(null)
         }}
       />
-
       {error && (
         <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
           {error}
         </p>
       )}
-
       <RecipeForm
         key={`form-${imported?.version ?? 'blank'}`}
         submitting={submitting}
@@ -147,17 +133,19 @@ function NewRecipe() {
           setError(null)
           try {
             const id = await create({
+              spaceSlug,
               ...values,
               sourceUrl: sourceUrl ?? undefined,
               imageId,
             })
-            navigate({ to: '/recipes/$recipeId', params: { recipeId: id } })
+            navigate({
+              to: '/s/$spaceSlug/recipes/$recipeId',
+              params: { spaceSlug, recipeId: id },
+            })
           } catch (err) {
             setError(
-              err instanceof ConvexError
-                ? typeof err.data === 'string'
-                  ? err.data
-                  : 'Could not save recipe'
+              err instanceof ConvexError && typeof err.data === 'string'
+                ? err.data
                 : err instanceof Error
                   ? err.message
                   : 'Could not save recipe',

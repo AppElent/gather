@@ -95,10 +95,6 @@ const STATIC_ROUTE_CONTEXT: Record<string, RouteContext> = {
     title: 'Command Center',
     subtitle: 'A shared view of group plans, modules, and next actions.',
   },
-  '/groups': {
-    title: 'Groups',
-    subtitle: 'Manage sharing, membership, and active group setup.',
-  },
   '/settings': {
     title: 'Settings',
     subtitle: 'Tune appearance and app preferences.',

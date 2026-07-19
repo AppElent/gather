@@ -14,22 +14,7 @@ export default defineSchema({
     name: v.string(),
     email: v.string(),
     imageUrl: v.optional(v.string()),
-    defaultGroupId: v.optional(v.id('groups')),
   }).index('by_clerkId', ['clerkId']),
-
-  groups: defineTable({
-    name: v.string(),
-    inviteCode: v.string(),
-    type: v.optional(v.string()),
-  }).index('by_inviteCode', ['inviteCode']),
-
-  memberships: defineTable({
-    groupId: v.id('groups'),
-    userId: v.id('users'),
-    role: v.union(v.literal('owner'), v.literal('member')),
-  })
-    .index('by_user', ['userId'])
-    .index('by_group', ['groupId']),
 
   spaces: defineTable({
     clerkOrganizationId: v.string(),
@@ -85,8 +70,8 @@ export default defineSchema({
     .index('by_space_user', ['spaceId', 'userId']),
 
   recipes: defineTable({
-    ownerId: v.id('users'),
-    sharedGroupIds: v.array(v.id('groups')),
+    spaceId: v.id('spaces'),
+    createdByUserId: v.id('users'),
     title: v.string(),
     description: v.optional(v.string()),
     imageId: v.optional(v.id('_storage')),
@@ -96,5 +81,7 @@ export default defineSchema({
     rating: v.optional(v.number()),
     prepMinutes: v.optional(v.number()),
     sourceUrl: v.optional(v.string()),
-  }).index('by_owner', ['ownerId']),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index('by_space', ['spaceId']),
 })

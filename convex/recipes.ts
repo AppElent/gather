@@ -1,57 +1,7 @@
-import { v } from 'convex/values'
-import { mutation, query } from './_generated/server'
-import { getCurrentUser, getMyGroupIds, isVisibleTo } from './lib/sharing'
-
-export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) return []
-    const groupIds = await getMyGroupIds(ctx, user._id)
-    const all = await ctx.db.query('recipes').collect()
-    const visible = all.filter((r) =>
-      isVisibleTo(
-        { ownerId: r.ownerId, sharedGroupIds: r.sharedGroupIds },
-        { userId: user._id, groupIds },
-      ),
-    )
-    return await Promise.all(
-      visible.map(async (r) => ({
-        ...r,
-        imageUrl: r.imageId ? await ctx.storage.getUrl(r.imageId) : null,
-      })),
-    )
-  },
-})
-
-export const get = query({
-  args: { id: v.id('recipes') },
-  handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) return null
-    const recipe = await ctx.db.get(args.id)
-    if (!recipe) return null
-    const groupIds = await getMyGroupIds(ctx, user._id)
-    const visible = isVisibleTo(
-      { ownerId: recipe.ownerId, sharedGroupIds: recipe.sharedGroupIds },
-      { userId: user._id, groupIds },
-    )
-    if (!visible) return null
-    const imageUrl = recipe.imageId
-      ? await ctx.storage.getUrl(recipe.imageId)
-      : null
-    return { ...recipe, imageUrl }
-  },
-})
-
-export const generateUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
-    return await ctx.storage.generateUploadUrl()
-  },
-})
+import { ConvexError, v } from 'convex/values'
+import { internalQuery, mutation, query } from './_generated/server'
+import type { Id } from './_generated/dataModel'
+import { requireActiveSpace } from './lib/spaceAuth'
 
 const recipeFields = {
   title: v.string(),
@@ -63,55 +13,123 @@ const recipeFields = {
   rating: v.optional(v.number()),
   prepMinutes: v.optional(v.number()),
   sourceUrl: v.optional(v.string()),
-  sharedGroupIds: v.optional(v.array(v.id('groups'))),
 }
 
-export const create = mutation({
-  args: recipeFields,
+const recipePatchFields = {
+  title: v.optional(v.string()),
+  description: v.optional(v.string()),
+  imageId: v.optional(v.union(v.id('_storage'), v.null())),
+  ingredients: v.optional(v.array(v.string())),
+  steps: v.optional(v.array(v.string())),
+  tags: v.optional(v.array(v.string())),
+  rating: v.optional(v.union(v.number(), v.null())),
+  prepMinutes: v.optional(v.number()),
+  sourceUrl: v.optional(v.string()),
+}
+
+async function requireRecipeInSpace(
+  ctx: Parameters<typeof requireActiveSpace>[0],
+  spaceSlug: string,
+  id: Id<'recipes'>,
+) {
+  const { space, user } = await requireActiveSpace(ctx, { spaceSlug })
+  const recipe = await ctx.db.get(id)
+  if (!recipe) return { recipe: null, space, user }
+  if (recipe.spaceId !== space._id) {
+    throw new ConvexError('Recipe does not belong to this Space')
+  }
+  return { recipe, space, user }
+}
+
+export const list = query({
+  args: { spaceSlug: v.string() },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
-    const { sharedGroupIds, ...rest } = args
-    const defaultShare = user.defaultGroupId ? [user.defaultGroupId] : []
+    const { space } = await requireActiveSpace(ctx, { spaceSlug: args.spaceSlug })
+    const recipes = await ctx.db
+      .query('recipes')
+      .withIndex('by_space', (q) => q.eq('spaceId', space._id))
+      .collect()
+    return await Promise.all(recipes.map(async (recipe) => ({
+      ...recipe,
+      imageUrl: recipe.imageId ? await ctx.storage.getUrl(recipe.imageId) : null,
+    })))
+  },
+})
+
+export const get = query({
+  args: { spaceSlug: v.string(), id: v.id('recipes') },
+  handler: async (ctx, args) => {
+    const { recipe } = await requireRecipeInSpace(ctx, args.spaceSlug, args.id)
+    if (!recipe) return null
+    return {
+      ...recipe,
+      imageUrl: recipe.imageId ? await ctx.storage.getUrl(recipe.imageId) : null,
+    }
+  },
+})
+
+export const generateUploadUrl = mutation({
+  args: { spaceSlug: v.string() },
+  handler: async (ctx, args) => {
+    await requireActiveSpace(ctx, { spaceSlug: args.spaceSlug })
+    return await ctx.storage.generateUploadUrl()
+  },
+})
+
+export const create = mutation({
+  args: { spaceSlug: v.string(), ...recipeFields },
+  handler: async (ctx, args) => {
+    const { space, user } = await requireActiveSpace(ctx, { spaceSlug: args.spaceSlug })
+    const { spaceSlug: _spaceSlug, ...fields } = args
+    const now = Date.now()
     return await ctx.db.insert('recipes', {
-      ownerId: user._id,
-      sharedGroupIds: sharedGroupIds ?? defaultShare,
-      ...rest,
+      spaceId: space._id,
+      createdByUserId: user._id,
+      ...fields,
+      createdAt: now,
+      updatedAt: now,
     })
   },
 })
 
 export const update = mutation({
   args: {
+    spaceSlug: v.string(),
     id: v.id('recipes'),
-    ...recipeFields,
-    imageId: v.optional(v.union(v.id('_storage'), v.null())),
-    rating: v.optional(v.union(v.number(), v.null())),
+    ...recipePatchFields,
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
-    const recipe = await ctx.db.get(args.id)
-    if (!recipe) throw new Error('Recipe not found')
-    if (recipe.ownerId !== user._id) throw new Error('Not the owner')
-    const { id, sharedGroupIds, imageId, rating, ...rest } = args
+    const { recipe } = await requireRecipeInSpace(ctx, args.spaceSlug, args.id)
+    if (!recipe) throw new ConvexError('Recipe not found')
+    const { id, spaceSlug: _spaceSlug, imageId, rating, ...fields } = args
     await ctx.db.patch(id, {
-      ...rest,
-      ...(sharedGroupIds ? { sharedGroupIds } : {}),
+      ...fields,
       ...(imageId !== undefined ? { imageId: imageId ?? undefined } : {}),
       ...(rating !== undefined ? { rating: rating ?? undefined } : {}),
+      updatedAt: Date.now(),
     })
   },
 })
 
 export const remove = mutation({
-  args: { id: v.id('recipes') },
+  args: { spaceSlug: v.string(), id: v.id('recipes') },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
-    const recipe = await ctx.db.get(args.id)
+    const { recipe } = await requireRecipeInSpace(ctx, args.spaceSlug, args.id)
     if (!recipe) return
-    if (recipe.ownerId !== user._id) throw new Error('Not the owner')
+    if (recipe.imageId) await ctx.storage.delete(recipe.imageId)
     await ctx.db.delete(args.id)
+  },
+})
+
+export const requireRecipesModuleForAction = internalQuery({
+  args: { spaceId: v.id('spaces') },
+  handler: async (ctx, args) => {
+    const module = await ctx.db
+      .query('spaceModules')
+      .withIndex('by_space_module', (q) =>
+        q.eq('spaceId', args.spaceId).eq('moduleId', 'recipes'),
+      )
+      .unique()
+    if (module?.state !== 'enabled') throw new ConvexError('Recipes is not enabled')
   },
 })
