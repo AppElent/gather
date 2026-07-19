@@ -29,6 +29,15 @@ export const MODULES: ModuleDef[] = [
     description: 'Keep and rate the dishes you cook.',
   },
   {
+    id: 'nutrition',
+    label: 'Nutrition',
+    icon: 'Apple',
+    group: 'Kitchen',
+    path: '/nutrition',
+    status: 'live',
+    description: 'Log what you eat and track daily targets.',
+  },
+  {
     id: 'meal-planner',
     label: 'Meal planner',
     icon: 'CalendarHeart',
@@ -79,7 +88,7 @@ export const MODULES: ModuleDef[] = [
     icon: 'ListChecks',
     group: 'Home & life',
     path: '/tasks',
-    status: 'placeholder',
+    status: 'live',
     description: 'Shared to-do lists.',
   },
   {

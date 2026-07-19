@@ -1,0 +1,275 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Article",
+      "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/#article",
+      "isPartOf": {
+        "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/"
+      },
+      "author": {
+        "name": "Lekker en Simpel",
+        "@id": "https://www.lekkerensimpel.com/#/schema/person/e47d035d8c308aeae2e21bfb3fccb604"
+      },
+      "headline": "Nasi recept: nasi goreng",
+      "datePublished": "2023-01-22T05:00:00+00:00",
+      "dateModified": "2025-10-13T08:34:57+00:00",
+      "wordCount": 527,
+      "commentCount": 1,
+      "publisher": {
+        "@id": "https://www.lekkerensimpel.com/#organization"
+      },
+      "image": {
+        "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/#primaryimage"
+      },
+      "thumbnailUrl": "https://www.lekkerensimpel.com/wp-content/uploads/2021/01/IMG_9161.jpg",
+      "keywords": [
+        "ei",
+        "Rijst",
+        "Prei",
+        "ui"
+      ],
+      "articleSection": [
+        "Aziatische recepten",
+        "Recepten met ei",
+        "Vegetarische recepten",
+        "Rijst recepten",
+        "Snelle recepten (&lt;30 min.)",
+        "Hoofdgerechten"
+      ],
+      "inLanguage": "nl-NL",
+      "potentialAction": [
+        {
+          "@type": "CommentAction",
+          "name": "Comment",
+          "target": [
+            "https://www.lekkerensimpel.com/nasi-goreng-recept/#respond"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/",
+      "url": "https://www.lekkerensimpel.com/nasi-goreng-recept/",
+      "name": "Nasi recept: nasi goreng | Makkelijk, snel en super lekker | Lekker en Simpel",
+      "isPartOf": {
+        "@id": "https://www.lekkerensimpel.com/#website"
+      },
+      "primaryImageOfPage": {
+        "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/#primaryimage"
+      },
+      "image": {
+        "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/#primaryimage"
+      },
+      "thumbnailUrl": "https://www.lekkerensimpel.com/wp-content/uploads/2021/01/IMG_9161.jpg",
+      "datePublished": "2023-01-22T05:00:00+00:00",
+      "dateModified": "2025-10-13T08:34:57+00:00",
+      "description": "Maak een heerlijke nasi goreng in slechts 25 minuten! Dit makkelijke recept staat snel op tafel en zit boordevol smaak. Bekijk het recept.",
+      "breadcrumb": {
+        "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/#breadcrumb"
+      },
+      "inLanguage": "nl-NL",
+      "potentialAction": [
+        {
+          "@type": "ReadAction",
+          "target": [
+            "https://www.lekkerensimpel.com/nasi-goreng-recept/"
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "ImageObject",
+      "inLanguage": "nl-NL",
+      "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/#primaryimage",
+      "url": "https://www.lekkerensimpel.com/wp-content/uploads/2021/01/IMG_9161.jpg",
+      "contentUrl": "https://www.lekkerensimpel.com/wp-content/uploads/2021/01/IMG_9161.jpg",
+      "width": 1360,
+      "height": 907
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://www.lekkerensimpel.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Nasi recept: nasi goreng"
+        }
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.lekkerensimpel.com/#website",
+      "url": "https://www.lekkerensimpel.com/",
+      "name": "Lekker en Simpel",
+      "description": "Elke dag weer nieuwe lekkere, snelle en simpele recepten op Lekker en Simpel.",
+      "publisher": {
+        "@id": "https://www.lekkerensimpel.com/#organization"
+      },
+      "potentialAction": [
+        {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://www.lekkerensimpel.com/?s={search_term_string}"
+          },
+          "query-input": {
+            "@type": "PropertyValueSpecification",
+            "valueRequired": true,
+            "valueName": "search_term_string"
+          }
+        }
+      ],
+      "inLanguage": "nl-NL"
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://www.lekkerensimpel.com/#organization",
+      "name": "Lekker en Simpel",
+      "url": "https://www.lekkerensimpel.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "inLanguage": "nl-NL",
+        "@id": "https://www.lekkerensimpel.com/#/schema/logo/image/",
+        "url": "https://www.lekkerensimpel.com/wp-content/uploads/2021/11/1041c.png",
+        "contentUrl": "https://www.lekkerensimpel.com/wp-content/uploads/2021/11/1041c.png",
+        "width": 1111,
+        "height": 1082,
+        "caption": "Lekker en Simpel"
+      },
+      "image": {
+        "@id": "https://www.lekkerensimpel.com/#/schema/logo/image/"
+      },
+      "sameAs": [
+        "https://www.facebook.com/lekkerensimpelnl",
+        "https://www.instagram.com/lekkerensimpel/"
+      ]
+    },
+    {
+      "@type": "Person",
+      "@id": "https://www.lekkerensimpel.com/#/schema/person/e47d035d8c308aeae2e21bfb3fccb604",
+      "name": "Lekker en Simpel",
+      "image": {
+        "@type": "ImageObject",
+        "inLanguage": "nl-NL",
+        "@id": "https://secure.gravatar.com/avatar/90e81bfd62ede841e35cdb80d349df3fdad16018ddef62b6122291625ecc36a2?s=96&d=blank&r=g",
+        "url": "https://secure.gravatar.com/avatar/90e81bfd62ede841e35cdb80d349df3fdad16018ddef62b6122291625ecc36a2?s=96&d=blank&r=g",
+        "contentUrl": "https://secure.gravatar.com/avatar/90e81bfd62ede841e35cdb80d349df3fdad16018ddef62b6122291625ecc36a2?s=96&d=blank&r=g",
+        "caption": "Lekker en Simpel"
+      },
+      "description": "Sofie en Jorrit - 33 &amp; 34 jaar - houden van lekkere en simpele gerechten en zijn hier dagelijks mee bezig - Eigenaar van de website Lekker en Simpel en de gelijknamige kookboeken.",
+      "url": "https://www.lekkerensimpel.com/author/lekkerensimpel/"
+    },
+    {
+      "@type": "Recipe",
+      "name": "Nasi goreng",
+      "author": {
+        "@id": "https://www.lekkerensimpel.com/#/schema/person/e47d035d8c308aeae2e21bfb3fccb604"
+      },
+      "description": "Een heerlijk recept om zelf nasi goreng met ei te maken. Lekker met zelfgemaakte satesaus.",
+      "datePublished": "2023-01-22T06:00:00+00:00",
+      "image": [
+        "https://www.lekkerensimpel.com/wp-content/uploads/2021/01/IMG_9161.jpg-1.webp",
+        "https://www.lekkerensimpel.com/wp-content/uploads/2021/01/IMG_9161.jpg-1-500x500.webp",
+        "https://www.lekkerensimpel.com/wp-content/uploads/2021/01/IMG_9161.jpg-1-500x375.webp",
+        "https://www.lekkerensimpel.com/wp-content/uploads/2021/01/IMG_9161.jpg-1-480x270.webp"
+      ],
+      "recipeYield": [
+        "2",
+        "2 personen"
+      ],
+      "cookTime": "PT25M",
+      "recipeIngredient": [
+        "200 gr rijst (basmati- of witte rijst)",
+        "1  kleine rode ui",
+        "1  paprika",
+        "1  prei",
+        "1 teen knoflook",
+        "3 el ketjap manis",
+        "1 tl sambal",
+        "0.5 tl trassi",
+        "1 tl komijn",
+        "0.5 tl laos",
+        "1 tl gedroogde koriander",
+        "1 tl kurkuma",
+        "1  bosui",
+        "2  eieren"
+      ],
+      "recipeInstructions": [
+        {
+          "@type": "HowToStep",
+          "text": "Begin met het koken van de rijst, volg hiervoor de aanwijzingen op zoals beschreven op de verpakking.",
+          "name": "Begin met het koken van de rijst, volg hiervoor de aanwijzingen op zoals beschreven op de verpakking.",
+          "url": "https://www.lekkerensimpel.com/nasi-goreng-recept/#wprm-recipe-76036-step-0-0"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Ondertussen snipper je de ui, pel en snijd je de knoflook fijn en snijd ook de paprika in blokjes.",
+          "name": "Ondertussen snipper je de ui, pel en snijd je de knoflook fijn en snijd ook de paprika in blokjes.",
+          "url": "https://www.lekkerensimpel.com/nasi-goreng-recept/#wprm-recipe-76036-step-0-1"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Was de prei en snijd in kleine halve ringen.",
+          "name": "Was de prei en snijd in kleine halve ringen.",
+          "url": "https://www.lekkerensimpel.com/nasi-goreng-recept/#wprm-recipe-76036-step-0-2"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Giet het water van de rijst af en laat het liefst de rijst nog even afkoelen.",
+          "name": "Giet het water van de rijst af en laat het liefst de rijst nog even afkoelen.",
+          "url": "https://www.lekkerensimpel.com/nasi-goreng-recept/#wprm-recipe-76036-step-0-3"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Giet een scheutje olie in een hapjespan (of wok) en bak de ui, knoflook, paprika en prei aan voor ongeveer 5 minuten. Voeg dan de kruiden toe, even roeren en dan kan de rijst erbij samen met de sambal en ketjap.",
+          "name": "Giet een scheutje olie in een hapjespan (of wok) en bak de ui, knoflook, paprika en prei aan voor ongeveer 5 minuten. Voeg dan de kruiden toe, even roeren en dan kan de rijst erbij samen met de sambal en ketjap.",
+          "url": "https://www.lekkerensimpel.com/nasi-goreng-recept/#wprm-recipe-76036-step-0-4"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Bak nog eens 5 minuten.",
+          "name": "Bak nog eens 5 minuten.",
+          "url": "https://www.lekkerensimpel.com/nasi-goreng-recept/#wprm-recipe-76036-step-0-5"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Snijd ondertussen een bosuitje in ringetjes en bak een twee spiegeleitjes in een koekenpan.",
+          "name": "Snijd ondertussen een bosuitje in ringetjes en bak een twee spiegeleitjes in een koekenpan.",
+          "url": "https://www.lekkerensimpel.com/nasi-goreng-recept/#wprm-recipe-76036-step-0-6"
+        },
+        {
+          "@type": "HowToStep",
+          "text": "Schep de nasi goreng op twee borden, eitjes erbij, pindasaus en eventueel wat kroepoek. Eet smakelijk!",
+          "name": "Schep de nasi goreng op twee borden, eitjes erbij, pindasaus en eventueel wat kroepoek. Eet smakelijk!",
+          "url": "https://www.lekkerensimpel.com/nasi-goreng-recept/#wprm-recipe-76036-step-0-7"
+        }
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.57",
+        "ratingCount": "32"
+      },
+      "recipeCategory": [
+        "Hoofdgerecht"
+      ],
+      "recipeCuisine": [
+        "Aziatische keuken"
+      ],
+      "keywords": "rijst, paprika, prei",
+      "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/#recipe",
+      "isPartOf": {
+        "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/#article"
+      },
+      "mainEntityOfPage": "https://www.lekkerensimpel.com/nasi-goreng-recept/"
+    }
+  ]
+}

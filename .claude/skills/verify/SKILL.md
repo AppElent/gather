@@ -26,6 +26,11 @@ the authenticated shell; `src/routes/_app/*` are its child routes. Module metada
 | `/recipes/new` | `src/routes/_app/recipes/new.tsx` | live |
 | `/recipes/$recipeId` | `src/routes/_app/recipes/$recipeId.index.tsx` | live |
 | `/recipes/$recipeId/edit` | `src/routes/_app/recipes/$recipeId.edit.tsx` | live |
+| `/foods` | `src/routes/_app/foods/index.tsx` | live (no dashboard tile) |
+| `/foods/new` | `src/routes/_app/foods/new.tsx` | live (no dashboard tile) |
+| `/foods/$foodId` | `src/routes/_app/foods/$foodId.index.tsx` | live (no dashboard tile) |
+| `/foods/$foodId/edit` | `src/routes/_app/foods/$foodId.edit.tsx` | live (no dashboard tile) |
+| `/nutrition` | `src/routes/_app/nutrition/index.tsx` | live |
 | `/meal-planner` | `src/routes/_app/meal-planner.tsx` | placeholder |
 | `/groceries` | `src/routes/_app/groceries.tsx` | placeholder |
 | `/pantry` | `src/routes/_app/pantry.tsx` | placeholder |
@@ -41,7 +46,8 @@ the authenticated shell; `src/routes/_app/*` are its child routes. Module metada
 | `/settings` | `src/routes/_app/settings.tsx` | live |
 
 Convex backend functions: `convex/recipes.ts`, `convex/groups.ts`, `convex/users.ts`,
-`convex/lib/sharing.ts`.
+`convex/foods.ts`, `convex/foodsLookup.ts`, `convex/consumption.ts`, `convex/lib/sharing.ts`,
+`convex/lib/offMapping.ts`, `convex/lib/offFetch.ts`, `convex/lib/consumption.ts`.
 
 ## Auth note
 

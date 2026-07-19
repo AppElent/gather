@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useAction, useMutation } from 'convex/react'
+import { useAction, useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
@@ -20,6 +20,8 @@ export const Route = createFileRoute('/_app/recipes/new')({
 function NewRecipe() {
   const create = useMutation(api.recipes.create)
   const importFromUrl = useAction(api.recipeImport.importFromUrl)
+  const aiConfigured = useQuery(api.recipes.aiConfigured)
+  const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
   const navigate = useNavigate()
   const { url: initialUrl } = Route.useSearch()
 
@@ -58,6 +60,9 @@ function NewRecipe() {
           ingredients: result.ingredients,
           steps: result.steps,
           tags: result.tags,
+          servings: result.servings,
+          nutrition: result.nutrition,
+          nutritionSource: result.nutritionSource,
         },
         version: Date.now(),
       })
@@ -142,6 +147,9 @@ function NewRecipe() {
         key={`form-${imported?.version ?? 'blank'}`}
         submitting={submitting}
         initial={imported?.values}
+        onEstimate={
+          aiConfigured ? (args) => estimateNutrition(args) : undefined
+        }
         onSubmit={async (values) => {
           setSubmitting(true)
           setError(null)

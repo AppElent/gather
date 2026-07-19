@@ -1,5 +1,6 @@
 import { mutation, query } from './_generated/server'
 import { getCurrentUser } from './lib/sharing'
+import { nutritionValidator } from './lib/nutrition'
 
 /** Returns the current gather user row, or null if not signed in / not yet provisioned. */
 export const me = query({
@@ -56,5 +57,14 @@ export const ensureUser = mutation({
     })
     await ctx.db.patch(userId, { defaultGroupId: groupId })
     return userId
+  },
+})
+
+export const setNutritionTargets = mutation({
+  args: { targets: nutritionValidator },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+    if (!user) throw new Error('Not authenticated')
+    await ctx.db.patch(user._id, { nutritionTargets: args.targets })
   },
 })
