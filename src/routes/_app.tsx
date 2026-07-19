@@ -2,7 +2,6 @@ import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useConvexAuth, useMutation } from 'convex/react'
 import { useEffect } from 'react'
 import { api } from '../../convex/_generated/api'
-import { AppShell } from '../components/app/AppShell'
 
 export const Route = createFileRoute('/_app')({
   component: AppLayout,
@@ -32,9 +31,5 @@ function AppLayout() {
   }
   if (!isAuthenticated) return null
 
-  return (
-    <AppShell>
-      <Outlet />
-    </AppShell>
-  )
+  return <Outlet />
 }

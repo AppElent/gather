@@ -33,6 +33,17 @@ export const mine = query({
   },
 })
 
+export const activeSpace = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new ConvexError('Authentication required')
+    const claims = readSpaceClaims(identity)
+    const space = await ctx.db.query('spaces').withIndex('by_clerk_organization', (q) => q.eq('clerkOrganizationId', claims.clerkOrganizationId)).unique()
+    if (!space || space.status !== 'active') throw new ConvexError('Gather Space not found')
+    return { spaceSlug: space.slug, clerkOrganizationId: space.clerkOrganizationId }
+  },
+})
 export const context = query({
   args: { spaceSlug: v.string() },
   handler: async (ctx, args) => {
@@ -363,4 +374,5 @@ async function upsertMembershipProjection(
     updatedAt: input.now,
   })
 }
+
 

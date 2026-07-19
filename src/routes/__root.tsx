@@ -30,7 +30,7 @@ const authConfig: AuthConfig = {
     signIn: '/sign-in',
     signUp: '/sign-up',
     forgotPassword: '/forgot-password',
-    afterAuth: '/dashboard',
+    afterAuth: '/onboarding',
     account: '/account',
   },
   features: { forgotPassword: true },
