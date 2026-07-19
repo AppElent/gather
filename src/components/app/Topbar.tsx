@@ -1,19 +1,10 @@
-import { HeaderUser } from '@appelent/auth'
-import { Bug, Menu, MessageSquare, Search } from 'lucide-react'
-import type { RouteContext } from '../../lib/appNavigation'
-import { IconButton, StatusDot } from './ShellPrimitives'
+﻿import { HeaderUser } from '@appelent/auth'
+import { Bug, Menu, Search } from 'lucide-react'
+import { useSpace } from '../spaces/SpaceContext'
+import { IconButton } from './ShellPrimitives'
 
-export interface TopbarProps {
-  context: RouteContext
-  onOpenNavigation: () => void
-  onOpenGather: () => void
-}
-
-export function Topbar({
-  context,
-  onOpenNavigation,
-  onOpenGather,
-}: TopbarProps) {
+export function Topbar({ onOpenNavigation }: { onOpenNavigation: () => void }) {
+  const { space } = useSpace()
   return (
     <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-bg)_86%,transparent)] px-3 backdrop-blur md:min-h-[72px] md:px-5">
       <div className="flex min-w-0 items-center gap-3">
@@ -25,22 +16,15 @@ export function Topbar({
           <Menu className="h-4 w-4" aria-hidden="true" />
         </IconButton>
         <div className="min-w-0">
+          <p className="m-0 truncate text-sm text-[var(--app-muted)]">
+            {space.name ?? 'Space'}
+          </p>
           <h1 className="m-0 truncate text-xl font-semibold leading-tight md:text-2xl">
-            {context.title}
+            Home
           </h1>
-          <p className="mt-1 hidden truncate text-sm text-[var(--app-muted)] md:block">
-            {context.subtitle}
-          </p>
-          <p className="mt-1 truncate text-sm text-[var(--app-muted)] md:hidden">
-            Preview group
-          </p>
         </div>
       </div>
-
       <div className="flex shrink-0 items-center gap-2">
-        <span className="hidden md:inline-flex">
-          <StatusDot label="Preview mode" tone="muted" />
-        </span>
         <IconButton
           label="Jump to"
           onClick={() => {
@@ -50,9 +34,6 @@ export function Topbar({
           }}
         >
           <Search className="h-4 w-4" aria-hidden="true" />
-        </IconButton>
-        <IconButton label="Ask Gather" onClick={onOpenGather}>
-          <MessageSquare className="h-4 w-4" aria-hidden="true" />
         </IconButton>
         <IconButton
           label="Report an issue"

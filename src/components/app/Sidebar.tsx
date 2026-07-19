@@ -1,15 +1,14 @@
-import type { LinkProps } from '@tanstack/react-router'
-import { Link, useLocation } from '@tanstack/react-router'
+﻿import { Link, useLocation } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
 import * as Icons from 'lucide-react'
-import { isPrimaryAreaActive, PRIMARY_AREAS } from '../../lib/appNavigation'
-import { MODULE_GROUPS, modulesByGroup } from '../../lib/modules'
-import { Pill } from './ShellPrimitives'
+import { spacePath } from '../../lib/spaceRoutes'
+import { useSpaceModules } from '../spaces/SpaceContext'
+import { SpaceSwitcher } from '../spaces/SpaceSwitcher'
 
-function Icon({ name, className }: { name: string; className?: string }) {
+function Icon({ name }: { name: string }) {
   const Component =
     (Icons as unknown as Record<string, LucideIcon>)[name] ?? Icons.Square
-  return <Component className={className} aria-hidden="true" />
+  return <Component className="h-4 w-4" aria-hidden="true" />
 }
 
 export interface SidebarProps {
@@ -18,11 +17,21 @@ export interface SidebarProps {
 }
 
 export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
-  const byGroup = modulesByGroup()
-  const isDrawer = variant === 'drawer'
+  const { space, role, visibleModules, pinnedModules } = useSpaceModules()
   const location = useLocation()
-  const pathSegments = location.pathname.split('/')
-  const spaceSlug = pathSegments[1] === 's' ? pathSegments[2] : undefined
+  const isDrawer = variant === 'drawer'
+  const itemClass = (active: boolean) =>
+    `grid min-h-10 grid-cols-[28px_minmax(0,1fr)] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline ${
+      active ? 'border-[var(--app-fg)] bg-[var(--app-surface)]' : ''
+    }`
+  const isModuleRoute = (moduleId: string) =>
+    location.pathname === spacePath.module(space.slug, moduleId)
+  const unpinnedModules = visibleModules.filter(
+    (module) => !pinnedModules.some((pinned) => pinned.id === module.id),
+  )
+  const allIsActive =
+    location.pathname === spacePath.modules(space.slug) ||
+    unpinnedModules.some((module) => isModuleRoute(module.pathSegment))
 
   return (
     <aside
@@ -31,117 +40,78 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
           ? 'flex min-h-full flex-col gap-6 overflow-y-auto p-4'
           : 'hidden h-svh w-66 shrink-0 flex-col gap-6 overflow-y-auto border-r border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-surface)_86%,transparent)] p-4 md:flex'
       }
-      aria-label="Gather navigation"
+      aria-label="Space navigation"
     >
-      <div className="flex min-h-11 items-center justify-between gap-3">
-        <Link
-          to="/dashboard"
-          onClick={onNavigate}
-          className="flex min-w-0 items-center gap-2 no-underline"
-        >
-          <span className="grid h-8 w-8 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-sm font-bold text-[var(--app-fg)]">
-            G
-          </span>
-          <span className="min-w-0">
-            <strong className="block truncate text-sm text-[var(--app-fg)]">
-              Gather
-            </strong>
-            <span className="block truncate text-xs text-[var(--app-muted)]">
-              Preview group
-            </span>
-          </span>
-        </Link>
-        <Link
-          to="/onboarding"
-          onClick={onNavigate}
-          className="shell-icon-button"
-          aria-label="Create or join a Space"
-          title="Create or join a Space"
-        >
-          <Icon name="Plus" className="h-4 w-4" />
-        </Link>
-      </div>
-
+      <SpaceSwitcher />
       <nav className="grid gap-1" aria-label="Primary">
-        <p className="m-0 px-2 pb-1 text-[11px] font-semibold uppercase text-[var(--app-muted)]">
-          Today
-        </p>
-        {PRIMARY_AREAS.map((item) => (
+        <Link
+          to="/s/$spaceSlug/home"
+          params={{ spaceSlug: space.slug }}
+          onClick={onNavigate}
+          className={itemClass(
+            location.pathname === spacePath.home(space.slug),
+          )}
+        >
+          <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
+            <Icon name="House" />
+          </span>
+          <span>Home</span>
+        </Link>
+        {pinnedModules.map((module) => (
           <Link
-            key={item.id}
-            to={item.path as LinkProps['to']}
+            key={module.id}
+            to={spacePath.module(space.slug, module.pathSegment) as never}
             onClick={onNavigate}
-            className={`grid min-h-10 grid-cols-[28px_minmax(0,1fr)] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline ${
-              isPrimaryAreaActive(location, item)
-                ? 'border-[var(--app-fg)] bg-[var(--app-surface)] text-[var(--app-fg)]'
-                : ''
-            }`}
+            className={itemClass(isModuleRoute(module.pathSegment))}
           >
             <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
-              <Icon name={item.icon} className="h-4 w-4" />
+              <Icon name={module.icon} />
             </span>
-            <span className="truncate">{item.label}</span>
+            <span className="truncate">{module.label}</span>
           </Link>
         ))}
+        <Link
+          to="/s/$spaceSlug/modules"
+          params={{ spaceSlug: space.slug }}
+          onClick={onNavigate}
+          className={itemClass(allIsActive)}
+        >
+          <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
+            <Icon name="Grid2X2" />
+          </span>
+          <span>All</span>
+        </Link>
       </nav>
-
-      <nav className="grid gap-3" aria-label="Modules">
-        {MODULE_GROUPS.map((group) => (
-          <div key={group} className="grid gap-1">
-            <p className="m-0 px-2 pb-1 text-[11px] font-semibold uppercase text-[var(--app-muted)]">
-              {group}
-            </p>
-            {spaceSlug &&
-              byGroup[group]
-                .filter((module) => module.id === 'recipes')
-                .map((module) => (
-                  <Link
-                    key={module.id}
-                    to="/s/$spaceSlug/recipes"
-                    params={{ spaceSlug }}
-                    onClick={onNavigate}
-                    className="grid min-h-9 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline"
-                    activeProps={{
-                      className:
-                        'border-[var(--app-fg)] bg-[var(--app-surface)]',
-                    }}
-                  >
-                    <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
-                      <Icon name={module.icon} className="h-4 w-4" />
-                    </span>
-                    <span className="truncate">{module.label}</span>
-                    {module.status === 'placeholder' ? <Pill>Soon</Pill> : null}
-                  </Link>
-                ))}
-          </div>
-        ))}
-      </nav>
-
-      <section className="mt-auto rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="m-0 text-sm font-semibold">Preview group</h2>
-          <Pill tone="warning">Preview data</Pill>
-        </div>
-        <p className="m-0 text-sm text-[var(--app-muted)]">
-          Space details appear here once connected.
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+      {role === 'admin' ? (
+        <nav className="mt-auto grid gap-1" aria-label="Space administration">
           <Link
-            to="/onboarding"
+            to="/s/$spaceSlug/members"
+            params={{ spaceSlug: space.slug }}
             onClick={onNavigate}
-            className="text-xs no-underline"
+            className={itemClass(
+              location.pathname === spacePath.members(space.slug),
+            )}
           >
-            Spaces
+            <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
+              <Icon name="Users" />
+            </span>
+            <span>Members</span>
           </Link>
           <Link
-            to="/settings"
+            to="/s/$spaceSlug/settings"
+            params={{ spaceSlug: space.slug }}
             onClick={onNavigate}
-            className="text-xs no-underline"
+            className={itemClass(
+              location.pathname.startsWith(spacePath.settings(space.slug)),
+            )}
           >
-            Settings
+            <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
+              <Icon name="Settings" />
+            </span>
+            <span>Settings</span>
           </Link>
-        </div>
-      </section>
+        </nav>
+      ) : null}
     </aside>
   )
 }

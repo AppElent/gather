@@ -1,4 +1,4 @@
-import { useLocation } from '@tanstack/react-router'
+﻿import { useLocation } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -7,10 +7,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { getRouteContext } from '../../lib/appNavigation'
 import { CommandPalette } from './CommandPalette'
-import { GatherPanel } from './GatherPanel'
-import { GroupInspector } from './GroupInspector'
 import { IssueReporterModal } from './IssueReporterModal'
 import { MobileDock } from './MobileDock'
 import { IconButton } from './ShellPrimitives'
@@ -26,9 +23,7 @@ function getFocusableElements(container: HTMLElement) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation()
-  const context = getRouteContext(location.pathname)
   const [navigationOpen, setNavigationOpen] = useState(false)
-  const [gatherOpen, setGatherOpen] = useState(false)
   const navigationDrawerRef = useRef<HTMLElement>(null)
   const navigationOpenerRef = useRef<HTMLElement | null>(null)
 
@@ -39,43 +34,29 @@ export function AppShell({ children }: { children: ReactNode }) {
       navigationOpenerRef.current = null
       return
     }
-
     navigationOpenerRef.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null
-
     const drawer = navigationDrawerRef.current
     if (drawer) getFocusableElements(drawer)[0]?.focus()
   }, [navigationOpen])
 
   useEffect(() => {
     if (!navigationOpen) return
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setNavigationOpen(false)
     }
-
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [navigationOpen])
 
-  useEffect(() => {
-    return () => {
-      const opener = navigationOpenerRef.current
-      if (opener?.isConnected) opener.focus()
-    }
-  }, [])
-
   const handleDrawerKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.key !== 'Tab') return
-
     const focusableElements = getFocusableElements(event.currentTarget)
     const firstFocusable = focusableElements[0]
     const lastFocusable = focusableElements.at(-1)
-
     if (!firstFocusable || !lastFocusable) return
-
     if (event.shiftKey && document.activeElement === firstFocusable) {
       event.preventDefault()
       lastFocusable.focus()
@@ -87,23 +68,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="app-shell">
-      <div className="grid min-h-svh md:grid-cols-[264px_minmax(0,1fr)] xl:grid-cols-[264px_minmax(0,1fr)_336px]">
+      <div className="grid min-h-svh md:grid-cols-[264px_minmax(0,1fr)]">
         <Sidebar />
         <div className="flex min-w-0 flex-col pb-20 md:pb-0">
-          <Topbar
-            context={context}
-            onOpenNavigation={() => setNavigationOpen(true)}
-            onOpenGather={() => setGatherOpen(true)}
-          />
+          <Topbar onOpenNavigation={() => setNavigationOpen(true)} />
           <main className="min-w-0 flex-1 px-3 py-4 md:px-5 md:py-5">
             {children}
           </main>
         </div>
-        <div className="hidden border-l border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-surface)_86%,transparent)] p-4 xl:block">
-          <GroupInspector />
-        </div>
       </div>
-
       {navigationOpen ? (
         <div
           data-testid="navigation-backdrop"
@@ -134,14 +107,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </aside>
         </div>
       ) : null}
-
       <MobileDock location={location} />
-      <GatherPanel
-        open={gatherOpen}
-        activeGroupName="Preview group"
-        routeTitle={context.title}
-        onClose={() => setGatherOpen(false)}
-      />
       <CommandPalette />
       <IssueReporterModal />
     </div>

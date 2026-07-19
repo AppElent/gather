@@ -1,23 +1,25 @@
-import type { NavigateOptions } from '@tanstack/react-router'
-import { useLocation, useNavigate } from '@tanstack/react-router'
+﻿import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-
-const STATIC_ITEMS = [
-  { label: 'Dashboard', path: '/dashboard' },
-  { label: 'Settings', path: '/settings' },
-  { label: 'Create or join a Space', path: '/onboarding' },
-]
+import { spacePath } from '../../lib/spaceRoutes'
+import { useSpaceModules } from '../spaces/SpaceContext'
 
 export function CommandPalette() {
+  const { space, role, visibleModules } = useSpaceModules()
   const [open, setOpen] = useState(false)
-  const [q, setQ] = useState('')
+  const [query, setQuery] = useState('')
   const navigate = useNavigate()
-  const location = useLocation()
-  const spaceSlug = /^\/s\/([^/]+)/.exec(location.pathname)?.[1]
   const items = [
-    ...STATIC_ITEMS,
-    ...(spaceSlug
-      ? [{ label: 'Recipes', path: `/s/${spaceSlug}/recipes` }]
+    { label: 'Home', path: spacePath.home(space.slug) },
+    ...visibleModules.map((module) => ({
+      label: module.label,
+      path: spacePath.module(space.slug, module.pathSegment),
+    })),
+    { label: 'All modules', path: spacePath.modules(space.slug) },
+    ...(role === 'admin'
+      ? [
+          { label: 'Members', path: spacePath.members(space.slug) },
+          { label: 'Settings', path: spacePath.settings(space.slug) },
+        ]
       : []),
   ]
 
@@ -35,7 +37,7 @@ export function CommandPalette() {
 
   if (!open) return null
   const results = items.filter((item) =>
-    item.label.toLowerCase().includes(q.toLowerCase()),
+    item.label.toLowerCase().includes(query.toLowerCase()),
   )
   return (
     <div
@@ -48,8 +50,8 @@ export function CommandPalette() {
       >
         <input
           autoFocus
-          value={q}
-          onChange={(event) => setQ(event.target.value)}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
           placeholder="Jump to…"
           className="w-full rounded-md border px-3 py-2 text-sm outline-none"
         />
@@ -61,8 +63,8 @@ export function CommandPalette() {
                 className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10"
                 onClick={() => {
                   setOpen(false)
-                  setQ('')
-                  navigate({ to: item.path } as NavigateOptions)
+                  setQuery('')
+                  void navigate({ to: item.path as never })
                 }}
               >
                 {item.label}
