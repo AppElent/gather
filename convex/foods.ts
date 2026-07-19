@@ -122,6 +122,10 @@ export const applyOffRefresh = mutation({
     const { id, ...rest } = args
     const food = await ctx.db.get(id)
     if (!food) throw new Error('Food not found')
-    await ctx.db.patch(id, { ...rest, localEdited: false })
+    await ctx.db.patch(id, {
+      ...rest,
+      source: 'openfoodfacts',
+      localEdited: false,
+    })
   },
 })

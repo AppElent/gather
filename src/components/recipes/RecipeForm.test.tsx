@@ -198,12 +198,14 @@ test('disables nutrition inputs while an estimate is in flight', async () => {
 
   expect(screen.getByLabelText('Servings')).toBeDisabled()
   expect(screen.getByLabelText('Calories (kcal)')).toBeDisabled()
+  expect(screen.getByRole('button', { name: /save/i })).toBeDisabled()
 
   resolveEstimate!({ calories: 300 })
   await screen.findByDisplayValue('300')
 
   expect(screen.getByLabelText('Servings')).not.toBeDisabled()
   expect(screen.getByLabelText('Calories (kcal)')).not.toBeDisabled()
+  expect(screen.getByRole('button', { name: /save/i })).not.toBeDisabled()
 })
 
 test('hides the estimate button when onEstimate is not provided', () => {

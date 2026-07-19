@@ -213,7 +213,7 @@ export function RecipeForm({
       </div>
       <button
         type="submit"
-        disabled={submitting}
+        disabled={submitting || estimating}
         className="w-fit rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-4 py-2 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting ? 'Saving…' : 'Save recipe'}
