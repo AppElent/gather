@@ -14,10 +14,10 @@ export function AboutPage() {
     >
       <div className="grid gap-3 text-sm leading-6 text-[var(--app-muted)]">
         <p className="m-0">
-          Recipes are live today, and the surrounding modules are staged so a
-          group can grow into meal planning, groceries, pantry tracking,
-          finances, bills, tasks, calendar, notes, cheeses, and wines without
-          changing products.
+          Recipes and Nutrition are live today, and the surrounding modules are
+          staged so a group can grow into meal planning, groceries, pantry
+          tracking, finances, bills, tasks, calendar, notes, cheeses, and wines
+          without changing products.
         </p>
         <p className="m-0">
           The command center brings those modules together as a shared view of

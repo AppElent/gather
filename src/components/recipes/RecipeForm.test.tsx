@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { ConvexError } from 'convex/values'
 import { expect, test, vi } from 'vitest'
 import { RecipeForm } from './RecipeForm'
 
@@ -38,4 +39,176 @@ test('star rating can be set and submitted', () => {
   fireEvent.click(screen.getByRole('button', { name: /save/i }))
 
   expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ rating: 4 }))
+})
+
+test('submits typed nutrition as manual source', () => {
+  const onSubmit = vi.fn()
+  render(<RecipeForm onSubmit={onSubmit} submitting={false} />)
+
+  fireEvent.change(screen.getByLabelText('Title'), {
+    target: { value: 'Pasta' },
+  })
+  fireEvent.change(screen.getByLabelText('Servings'), {
+    target: { value: '4' },
+  })
+  fireEvent.change(screen.getByLabelText('Calories (kcal)'), {
+    target: { value: '520' },
+  })
+  fireEvent.change(screen.getByLabelText('Protein (g)'), {
+    target: { value: '12,5' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({
+      servings: 4,
+      nutrition: { calories: 520, protein: 12.5 },
+      nutritionSource: 'manual',
+    }),
+  )
+})
+
+test('omits nutrition when all nutrient fields are empty', () => {
+  const onSubmit = vi.fn()
+  render(<RecipeForm onSubmit={onSubmit} submitting={false} />)
+
+  fireEvent.change(screen.getByLabelText('Title'), {
+    target: { value: 'Pasta' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({
+      nutrition: undefined,
+      nutritionSource: undefined,
+    }),
+  )
+})
+
+test('keeps the imported source when prefilled nutrition is untouched', () => {
+  const onSubmit = vi.fn()
+  render(
+    <RecipeForm
+      onSubmit={onSubmit}
+      submitting={false}
+      initial={{
+        title: 'Soep',
+        ingredients: ['water'],
+        steps: ['kook'],
+        tags: [],
+        nutrition: { calories: 300 },
+        nutritionSource: 'imported',
+      }}
+    />,
+  )
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({
+      nutrition: { calories: 300 },
+      nutritionSource: 'imported',
+    }),
+  )
+})
+
+test('estimate button fills nutrition and submits ai source', async () => {
+  const onSubmit = vi.fn()
+  const onEstimate = vi.fn().mockResolvedValue({ calories: 300, fat: 10 })
+  render(
+    <RecipeForm
+      onSubmit={onSubmit}
+      submitting={false}
+      onEstimate={onEstimate}
+    />,
+  )
+
+  fireEvent.change(screen.getByLabelText('Title'), {
+    target: { value: 'Soep' },
+  })
+  fireEvent.change(screen.getByLabelText('Ingredients'), {
+    target: { value: 'water\nwortel' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: /estimate with ai/i }))
+  await screen.findByDisplayValue('300')
+
+  expect(onEstimate).toHaveBeenCalledWith({
+    ingredients: ['water', 'wortel'],
+    servings: undefined,
+  })
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({
+      nutrition: { calories: 300, fat: 10 },
+      nutritionSource: 'ai',
+    }),
+  )
+})
+
+test('surfaces the ConvexError friendly data string on estimate failure', async () => {
+  const onSubmit = vi.fn()
+  const err = new ConvexError(
+    "Couldn't estimate nutrition — try entering it manually.",
+  )
+  // Simulate the Convex client's wrapping: `.message` becomes a technical
+  // string while the original friendly text stays on `.data`.
+  err.message =
+    '[CONVEX A(recipeNutrition:estimateNutrition)] Uncaught ConvexError: ' +
+    "Couldn't estimate nutrition — try entering it manually.\n  Called by client"
+  const onEstimate = vi.fn().mockRejectedValue(err)
+  render(
+    <RecipeForm
+      onSubmit={onSubmit}
+      submitting={false}
+      onEstimate={onEstimate}
+    />,
+  )
+
+  fireEvent.change(screen.getByLabelText('Ingredients'), {
+    target: { value: 'water\nwortel' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: /estimate with ai/i }))
+
+  const errorMessage = await screen.findByText(
+    "Couldn't estimate nutrition — try entering it manually.",
+  )
+  expect(errorMessage.tagName).toBe('P')
+  expect(screen.queryByText(/Uncaught ConvexError/i)).not.toBeInTheDocument()
+})
+
+test('disables nutrition inputs while an estimate is in flight', async () => {
+  const onSubmit = vi.fn()
+  let resolveEstimate: (facts: { calories: number }) => void
+  const onEstimate = vi.fn(
+    () =>
+      new Promise<{ calories: number }>((resolve) => {
+        resolveEstimate = resolve
+      }),
+  )
+  render(
+    <RecipeForm
+      onSubmit={onSubmit}
+      submitting={false}
+      onEstimate={onEstimate}
+    />,
+  )
+
+  fireEvent.change(screen.getByLabelText('Ingredients'), {
+    target: { value: 'water\nwortel' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: /estimate with ai/i }))
+
+  expect(screen.getByLabelText('Servings')).toBeDisabled()
+  expect(screen.getByLabelText('Calories (kcal)')).toBeDisabled()
+  expect(screen.getByRole('button', { name: /save/i })).toBeDisabled()
+
+  resolveEstimate!({ calories: 300 })
+  await screen.findByDisplayValue('300')
+
+  expect(screen.getByLabelText('Servings')).not.toBeDisabled()
+  expect(screen.getByLabelText('Calories (kcal)')).not.toBeDisabled()
+  expect(screen.getByRole('button', { name: /save/i })).not.toBeDisabled()
+})
+
+test('hides the estimate button when onEstimate is not provided', () => {
+  render(<RecipeForm onSubmit={vi.fn()} submitting={false} />)
+  expect(screen.queryByRole('button', { name: /estimate/i })).toBeNull()
 })

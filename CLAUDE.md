@@ -1,4 +1,4 @@
-﻿# gather
+# gather
 
 Gather is a Space-centered household-management app. A Space is a Gather-owned
 Clerk Organization plus a Convex `spaces` record. The current live module is

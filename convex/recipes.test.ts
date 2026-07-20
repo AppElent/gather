@@ -92,7 +92,9 @@ describe('Space Recipes', () => {
     await expect(homeMember.query((api as any).recipes.get, { spaceSlug: wine.spaceSlug, id })).rejects.toThrow(
       'Active organization does not match Space',
     )
-    expect(await homeMember.query((api as any).recipes.list, { spaceSlug: home.spaceSlug })).toEqual([])
+    await expect(homeMember.query((api as any).recipes.list, { spaceSlug: home.spaceSlug })).rejects.toThrow(
+      'Recipes is not enabled',
+    )
   })
   test('a member can update and remove a recipe created by another Space member', async () => {
     const { admin, member, t, wine } = await createFixture()

@@ -1,4 +1,4 @@
-﻿export type SpaceRole = 'admin' | 'member'
+export type SpaceRole = 'admin' | 'member'
 export type ModuleAvailability = 'live' | 'comingSoon'
 export type SpaceModuleState = 'preEnabled' | 'enabled' | 'archived'
 export type WidgetSize = 'compact' | 'standard' | 'wide'
@@ -154,6 +154,18 @@ export const MODULES = [
     defaultForNewSpaces: false,
     description: 'Keep and rate the dishes you cook.',
     widgets: [recipeBookmarks],
+    defaultWidgetIds: [],
+  }),
+  defineModule({
+    id: 'nutrition',
+    label: 'Nutrition',
+    icon: 'Apple',
+    group: 'Kitchen',
+    pathSegment: 'nutrition',
+    availability: 'live',
+    defaultForNewSpaces: false,
+    description: 'Log what you eat and track daily targets.',
+    widgets: [],
     defaultWidgetIds: [],
   }),
   defineModule({

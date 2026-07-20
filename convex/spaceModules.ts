@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import { action, internalMutation, mutation } from './_generated/server'
 import { internal } from './_generated/api'
 import { getModuleDefinition } from '../src/lib/modules'
-import { runModuleCleanup } from './lib/moduleLifecycle'
+import { moduleCleanupRegistry, runModuleCleanup } from './lib/moduleLifecycle'
 import { readSpaceClaims, requireActiveSpace } from './lib/spaceAuth'
 
 const moduleState = v.union(
@@ -143,6 +143,15 @@ export const runDeletionCleanup = internalMutation({
   handler: async (ctx, args) => {
     await requireModuleRow(ctx, args.spaceId, args.moduleId)
     await runModuleCleanup(ctx, args.moduleId, args.spaceId)
+  },
+})
+
+export const runAllDeletionCleanup = internalMutation({
+  args: { spaceId: v.id('spaces') },
+  handler: async (ctx, args) => {
+    for (const moduleId of Object.keys(moduleCleanupRegistry)) {
+      await runModuleCleanup(ctx, moduleId, args.spaceId)
+    }
   },
 })
 

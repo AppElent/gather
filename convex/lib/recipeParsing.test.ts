@@ -83,6 +83,84 @@ describe('extractJsonLdRecipe', () => {
     const html = '<script type="application/ld+json">{not valid json</script>'
     expect(extractJsonLdRecipe(html)).toBeNull()
   })
+
+  test('extracts servings and nutrition from NutritionInformation', () => {
+    const html = htmlWithJsonLd({
+      '@type': 'Recipe',
+      name: 'Stamppot',
+      recipeIngredient: ['1 kg aardappelen', '500 g boerenkool'],
+      recipeInstructions: 'Kook en stamp.',
+      recipeYield: '4 personen',
+      nutrition: {
+        '@type': 'NutritionInformation',
+        calories: '520 kcal',
+        proteinContent: '18,5 g',
+        carbohydrateContent: '65 g',
+        sugarContent: '4 g',
+        fatContent: '20 g',
+        saturatedFatContent: '8 g',
+        fiberContent: '9 g',
+        sodiumContent: '800 mg',
+      },
+    })
+    const recipe = extractJsonLdRecipe(html)
+    expect(recipe?.servings).toBe(4)
+    expect(recipe?.nutrition).toEqual({
+      calories: 520,
+      protein: 18.5,
+      carbs: 65,
+      sugars: 4,
+      fat: 20,
+      saturatedFat: 8,
+      fiber: 9,
+      salt: 2, // 800 mg sodium → 0.8 g × 2.5
+    })
+  })
+
+  test('converts kJ calories and numeric recipeYield', () => {
+    const html = htmlWithJsonLd({
+      '@type': 'Recipe',
+      name: 'Soep',
+      recipeIngredient: ['water'],
+      recipeInstructions: 'Kook.',
+      recipeYield: 6,
+      nutrition: { '@type': 'NutritionInformation', calories: '1046 kJ' },
+    })
+    const recipe = extractJsonLdRecipe(html)
+    expect(recipe?.servings).toBe(6)
+    expect(recipe?.nutrition).toEqual({ calories: 250 })
+  })
+
+  test('skips unparseable nutrition values without failing the import', () => {
+    const html = htmlWithJsonLd({
+      '@type': 'Recipe',
+      name: 'Cake',
+      recipeIngredient: ['flour'],
+      recipeInstructions: 'Bake.',
+      recipeYield: 'een grote taart',
+      nutrition: {
+        '@type': 'NutritionInformation',
+        calories: 'n/a',
+        fatContent: '12 g',
+      },
+    })
+    const recipe = extractJsonLdRecipe(html)
+    expect(recipe?.title).toBe('Cake')
+    expect(recipe?.servings).toBeUndefined()
+    expect(recipe?.nutrition).toEqual({ fat: 12 })
+  })
+
+  test('omits nutrition entirely when absent or empty', () => {
+    const html = htmlWithJsonLd({
+      '@type': 'Recipe',
+      name: 'Toast',
+      recipeIngredient: ['bread'],
+      recipeInstructions: 'Toast it.',
+    })
+    const recipe = extractJsonLdRecipe(html)
+    expect(recipe?.nutrition).toBeUndefined()
+    expect(recipe?.servings).toBeUndefined()
+  })
 })
 
 describe('extractJsonLdRecipe — real-world site quirks', () => {
@@ -227,6 +305,14 @@ describe('parseIsoDurationMinutes', () => {
 
   test('returns undefined for an invalid duration', () => {
     expect(parseIsoDurationMinutes('not a duration')).toBeUndefined()
+  })
+
+  test('parses the full ISO 8601 form with a (zero) day designator (24kitchen.nl: "P0DT0H4M")', () => {
+    expect(parseIsoDurationMinutes('P0DT0H4M')).toBe(4)
+  })
+
+  test('adds a non-zero day designator as whole days', () => {
+    expect(parseIsoDurationMinutes('P1DT2H')).toBe(1 * 24 * 60 + 2 * 60)
   })
 })
 

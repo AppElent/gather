@@ -12,6 +12,7 @@ describe('module registry', () => {
 
   test('returns module definitions by id', () => {
     expect(getModuleDefinition('recipes')?.label).toBe('Recipes')
+    expect(getModuleDefinition('nutrition')?.label).toBe('Nutrition')
     expect(getModuleDefinition('missing')).toBeUndefined()
   })
 
@@ -21,6 +22,13 @@ describe('module registry', () => {
         (module) => module.id,
       ),
     ).toEqual(['tasks', 'notes', 'calendar'])
+  })
+
+  test('recipes and nutrition are the live modules', () => {
+    const live = MODULES.filter((module) => module.availability === 'live').map(
+      (module) => module.id,
+    )
+    expect(live).toEqual(['recipes', 'nutrition'])
   })
 
   test('recipes is live and non-default initially', () => {

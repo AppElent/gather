@@ -1,3 +1,4 @@
+import { sanitizeNutrition } from './nutrition'
 import type { ParsedRecipe } from './recipeParsing'
 
 const ANTHROPIC_MODEL = 'claude-sonnet-5'
@@ -22,6 +23,25 @@ const EXTRACT_TOOL = {
       tags: { type: 'array', items: { type: 'string' } },
       prepMinutes: { type: 'number' },
       imageUrl: { type: 'string' },
+      servings: {
+        type: 'number',
+        description: 'Number of servings the recipe yields',
+      },
+      nutrition: {
+        type: 'object',
+        description:
+          'Nutrition per serving. calories in kcal; all other values in grams (salt as salt, not sodium). Use values stated on the page when present, otherwise estimate from the ingredients and servings.',
+        properties: {
+          calories: { type: 'number' },
+          protein: { type: 'number' },
+          carbs: { type: 'number' },
+          sugars: { type: 'number' },
+          fat: { type: 'number' },
+          saturatedFat: { type: 'number' },
+          fiber: { type: 'number' },
+          salt: { type: 'number' },
+        },
+      },
     },
     required: ['found'],
   },
@@ -59,7 +79,7 @@ export async function extractRecipeWithAi(
         messages: [
           {
             role: 'user',
-            content: `Extract the recipe from this web page text. If there's no recipe on the page, set found to false.\n\n${pageText}`,
+            content: `Extract the recipe from this web page text. If there's no recipe on the page, set found to false. Report servings and per-serving nutrition: use values stated on the page when present, otherwise estimate them from the ingredients.\n\n${pageText}`,
           },
         ],
       }),
@@ -108,5 +128,12 @@ export async function extractRecipeWithAi(
     prepMinutes:
       typeof input.prepMinutes === 'number' ? input.prepMinutes : undefined,
     imageUrl: typeof input.imageUrl === 'string' ? input.imageUrl : undefined,
+    servings:
+      typeof input.servings === 'number' &&
+      Number.isFinite(input.servings) &&
+      input.servings > 0
+        ? Math.round(input.servings)
+        : undefined,
+    nutrition: sanitizeNutrition(input.nutrition),
   }
 }

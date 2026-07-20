@@ -62,7 +62,8 @@
     "react-dom": "^19.2.0",
     "streamdown": "^2.3.0",
     "tailwindcss": "^4.1.18",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "zxing-wasm": "^3.1.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.5",

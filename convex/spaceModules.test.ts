@@ -214,6 +214,30 @@ describe('Space module state', () => {
     expect(await t.run((ctx) => ctx.storage.get(imageId))).toBeNull()
     expect(await t.run((ctx) => ctx.db.get(otherRecipeId))).not.toBeNull()
   })
+
+  test('full Space cleanup removes registered module data without a module row', async () => {
+    const { admin, spaceSlug, t } = await createSpace()
+    const context = await admin.query((api as any).spaces.context, { spaceSlug })
+    const recipeId = await t.run((ctx) =>
+      ctx.db.insert('recipes', {
+        spaceId: context.space._id,
+        createdByUserId: context.user._id,
+        title: 'Orphaned recipe',
+        ingredients: [],
+        steps: [],
+        tags: [],
+        createdAt: 1,
+        updatedAt: 1,
+      }),
+    )
+
+    await t.mutation((internal as any).spaceModules.runAllDeletionCleanup, {
+      spaceId: context.space._id,
+    })
+
+    expect(await t.run((ctx) => ctx.db.get(recipeId))).toBeNull()
+  })
+
   test('permanent deletion fails without a registered cleanup handler', async () => {
     const { admin, spaceSlug } = await createSpace()
 

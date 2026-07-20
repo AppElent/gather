@@ -405,8 +405,10 @@ export function deleteConfirmation(name: string) {
   return `DELETE ${name}`
 }
 
-async function runModuleDeletionCleanup(_ctx: any, _spaceId: any) {
-  // Task 7 has not registered module lifecycle hooks yet.
+async function runModuleDeletionCleanup(ctx: any, spaceId: any) {
+  await ctx.runMutation((internal as any).spaceModules.runAllDeletionCleanup, {
+    spaceId,
+  })
 }
 
 
