@@ -5,6 +5,7 @@ import { resolvePinnedModuleIds } from '../src/lib/spaceNavigation'
 import { resolveDashboard } from '../src/lib/widgets'
 import { createNewSpaceDefaults } from './lib/spaceDefaults'
 import { readSpaceClaims, requireActiveSpace } from './lib/spaceAuth'
+import { validatePinnedModules } from './spacePreferences'
 
 type DbCtx = { db: any }
 
@@ -181,6 +182,20 @@ export const provisionTagged = internalMutation({
   },
 })
 
+export const saveDefaultNavigation = mutation({
+  args: { spaceSlug: v.string(), pinnedModuleIds: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const { space } = await requireActiveSpace(ctx, {
+      spaceSlug: args.spaceSlug,
+      requireAdmin: true,
+    })
+    await validatePinnedModules(ctx, space._id, args.pinnedModuleIds)
+    await ctx.db.patch(space._id, {
+      defaultPinnedModuleIds: [...args.pinnedModuleIds],
+      updatedAt: Date.now(),
+    })
+  },
+})
 export const resolveActionContext = internalQuery({
   args: {
     spaceSlug: v.string(),

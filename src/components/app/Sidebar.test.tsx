@@ -1,5 +1,13 @@
-﻿import { render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import type { AnchorHTMLAttributes, ReactNode } from 'react'
 import { expect, test, vi } from 'vitest'
+
+type LinkMockProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+  children: ReactNode
+  to?: unknown
+  params?: { spaceSlug?: string }
+}
+
 import { SpaceContextProvider } from '../spaces/SpaceContext'
 import { Sidebar } from './Sidebar'
 
@@ -11,7 +19,7 @@ vi.mock('@tanstack/react-router', async () => {
   )
   return {
     ...actual,
-    Link: ({ children, to, params, ...props }: any) => (
+    Link: ({ children, to, params, ...props }: LinkMockProps) => (
       <a
         href={String(to).replace('$spaceSlug', params?.spaceSlug ?? '')}
         {...props}

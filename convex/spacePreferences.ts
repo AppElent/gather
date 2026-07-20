@@ -30,7 +30,7 @@ async function visibleModules(ctx: any, spaceId: any): Promise<ModuleDefinition[
   })
 }
 
-async function validatePinnedModules(ctx: any, spaceId: any, pinnedModuleIds: string[]) {
+export async function validatePinnedModules(ctx: any, spaceId: any, pinnedModuleIds: string[]) {
   const visible = new Map((await visibleModules(ctx, spaceId)).map((module) => [module.id, module]))
   const seen = new Set<string>()
   for (const moduleId of pinnedModuleIds) {

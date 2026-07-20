@@ -1,5 +1,11 @@
-﻿import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { AnchorHTMLAttributes, ReactNode } from 'react'
 import { expect, test, vi } from 'vitest'
+
+type LinkMockProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+  children: ReactNode
+}
+
 import { SpaceContextProvider } from './SpaceContext'
 import { SpaceSwitcher } from './SpaceSwitcher'
 
@@ -29,7 +35,11 @@ vi.mock('@tanstack/react-router', async () => {
   )
   return {
     ...actual,
-    Link: ({ children, ...props }: any) => <a {...props}>{children}</a>,
+    Link: ({ children, ...props }: LinkMockProps) => (
+      <a href="/" {...props}>
+        {children}
+      </a>
+    ),
     useLocation: () => ({ pathname: '/s/wine/home' }),
     useNavigate: () => vi.fn(),
   }

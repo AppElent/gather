@@ -1,4 +1,4 @@
-﻿import { createContext, useContext } from 'react'
+import { createContext, useContext } from 'react'
 import {
   MODULES,
   type ModuleDef,
@@ -11,7 +11,12 @@ export type SpaceContextValue = {
   user: { name: string }
   role: 'admin' | 'member'
   modules: readonly { moduleId: string; state: SpaceModuleState }[]
-  navigation: { pinnedModuleIds: readonly string[] }
+  navigation: {
+    pinnedModuleIds: readonly string[]
+    source?: 'space' | 'personal'
+    spaceDefaultPinnedModuleIds?: readonly string[]
+    personalPinnedModuleIds?: readonly string[]
+  }
   dashboard: { widgets: readonly unknown[] }
 }
 

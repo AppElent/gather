@@ -22,8 +22,8 @@ function validateModuleState(moduleId: string, state: 'preEnabled' | 'enabled' |
   if (state === 'enabled' && definition.availability !== 'live') {
     throw new ConvexError(`${definition.label} is coming soon`)
   }
-  if (state === 'preEnabled' && !definition.defaultForNewSpaces) {
-    throw new ConvexError('Only default modules can be pre-enabled')
+  if (state === 'preEnabled' && definition.availability !== 'comingSoon') {
+    throw new ConvexError('Only coming-soon modules can be pre-enabled')
   }
 }
 

@@ -80,9 +80,20 @@ describe('Space module state', () => {
         moduleId: 'recipes',
         state: 'preEnabled',
       }),
-    ).rejects.toThrow('Only default modules can be pre-enabled')
+    ).rejects.toThrow('Only coming-soon modules can be pre-enabled')
   })
 
+  test('allows an admin to explicitly pre-enable a non-default coming-soon module', async () => {
+    const { admin, spaceSlug } = await createSpace()
+
+    await expect(
+      admin.mutation((api as any).spaceModules.setState, {
+        spaceSlug,
+        moduleId: 'groceries',
+        state: 'preEnabled',
+      }),
+    ).resolves.toBeNull()
+  })
   test('archiving retains module data by not invoking cleanup', async () => {
     const { admin, spaceSlug } = await createSpace()
     let cleanupCalls = 0
