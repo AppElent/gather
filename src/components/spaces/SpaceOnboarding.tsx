@@ -4,7 +4,8 @@ import {
   useOrganizationList,
 } from '@clerk/clerk-react'
 import { useNavigate } from '@tanstack/react-router'
-import { useMutation, useQuery } from 'convex/react'
+import { useAction, useMutation, useQuery } from 'convex/react'
+import type { FunctionReference } from 'convex/server'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import {
@@ -22,7 +23,7 @@ type Pending = {
 }
 type CreateResult = { clerkOrganizationId: string; spaceSlug: string }
 const unsafeApi = api as unknown as {
-  spaceAdmin: { create: typeof api.users.ensureUser }
+  spaceAdmin: { create: FunctionReference<'action'> }
   spaces: {
     activeSpace: unknown
     ensureMembershipProjection: typeof api.users.ensureUser
@@ -41,7 +42,7 @@ export function SpaceOnboarding() {
     userMemberships: { infinite: true },
     userInvitations: { infinite: true },
   })
-  const createSpace = useMutation(
+  const createSpace = useAction(
     unsafeApi.spaceAdmin.create,
   ) as unknown as (args: {
     name: string

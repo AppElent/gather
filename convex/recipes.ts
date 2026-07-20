@@ -27,12 +27,28 @@ const recipePatchFields = {
   sourceUrl: v.optional(v.string()),
 }
 
+async function requireRecipesModuleEnabled(
+  ctx: { db: Parameters<typeof requireActiveSpace>[0]['db'] },
+  spaceId: Id<'spaces'>,
+) {
+  const module = await ctx.db
+    .query('spaceModules')
+    .withIndex('by_space_module', (q) =>
+      q.eq('spaceId', spaceId).eq('moduleId', 'recipes'),
+    )
+    .unique()
+  if (module && module.state !== 'enabled') {
+    throw new ConvexError('Recipes is not enabled')
+  }
+}
+
 async function requireRecipeInSpace(
   ctx: Parameters<typeof requireActiveSpace>[0],
   spaceSlug: string,
   id: Id<'recipes'>,
 ) {
   const { space, user } = await requireActiveSpace(ctx, { spaceSlug })
+  await requireRecipesModuleEnabled(ctx, space._id)
   const recipe = await ctx.db.get(id)
   if (!recipe) return { recipe: null, space, user }
   if (recipe.spaceId !== space._id) {
@@ -45,6 +61,7 @@ export const list = query({
   args: { spaceSlug: v.string() },
   handler: async (ctx, args) => {
     const { space } = await requireActiveSpace(ctx, { spaceSlug: args.spaceSlug })
+    await requireRecipesModuleEnabled(ctx, space._id)
     const recipes = await ctx.db
       .query('recipes')
       .withIndex('by_space', (q) => q.eq('spaceId', space._id))
@@ -71,7 +88,8 @@ export const get = query({
 export const generateUploadUrl = mutation({
   args: { spaceSlug: v.string() },
   handler: async (ctx, args) => {
-    await requireActiveSpace(ctx, { spaceSlug: args.spaceSlug })
+    const { space } = await requireActiveSpace(ctx, { spaceSlug: args.spaceSlug })
+    await requireRecipesModuleEnabled(ctx, space._id)
     return await ctx.storage.generateUploadUrl()
   },
 })
@@ -80,6 +98,7 @@ export const create = mutation({
   args: { spaceSlug: v.string(), ...recipeFields },
   handler: async (ctx, args) => {
     const { space, user } = await requireActiveSpace(ctx, { spaceSlug: args.spaceSlug })
+    await requireRecipesModuleEnabled(ctx, space._id)
     const { spaceSlug: _spaceSlug, ...fields } = args
     const now = Date.now()
     return await ctx.db.insert('recipes', {
@@ -123,13 +142,6 @@ export const remove = mutation({
 
 export const requireRecipesModuleForAction = internalQuery({
   args: { spaceId: v.id('spaces') },
-  handler: async (ctx, args) => {
-    const module = await ctx.db
-      .query('spaceModules')
-      .withIndex('by_space_module', (q) =>
-        q.eq('spaceId', args.spaceId).eq('moduleId', 'recipes'),
-      )
-      .unique()
-    if (module?.state !== 'enabled') throw new ConvexError('Recipes is not enabled')
-  },
+  handler: async (ctx, args) =>
+    await requireRecipesModuleEnabled(ctx, args.spaceId),
 })

@@ -19,6 +19,10 @@ const clerkState = vi.hoisted(() => ({
 const createSpace = vi.hoisted(() => vi.fn())
 const ensureMembershipProjection = vi.hoisted(() => vi.fn())
 const navigate = vi.hoisted(() => vi.fn())
+const hookState = vi.hoisted(() => ({
+  actionReferences: [] as symbol[],
+  mutationReferences: [] as symbol[],
+}))
 const apiState = vi.hoisted(() => ({
   api: {
     spaceAdmin: { create: Symbol('create') },
@@ -45,10 +49,14 @@ vi.mock('convex/react', () => ({
     reference === apiState.api.spaces.activeSpace && args !== 'skip'
       ? clerkState.activeSpace
       : undefined,
-  useMutation: (reference: symbol) =>
-    reference === apiState.api.spaceAdmin.create
-      ? createSpace
-      : ensureMembershipProjection,
+  useAction: (reference: symbol) => {
+    hookState.actionReferences.push(reference)
+    return createSpace
+  },
+  useMutation: (reference: symbol) => {
+    hookState.mutationReferences.push(reference)
+    return ensureMembershipProjection
+  },
 }))
 vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigate }))
 vi.mock('../../../convex/_generated/api', () => apiState)
@@ -63,6 +71,8 @@ test('creates through the Gather backend, activates, and navigates to a Space', 
   createSpace.mockReset()
   ensureMembershipProjection.mockReset()
   navigate.mockReset()
+  hookState.actionReferences = []
+  hookState.mutationReferences = []
   clerkState.createOrganization.mockResolvedValue({
     id: 'org_wine',
     name: 'Wine Club',
@@ -93,6 +103,10 @@ test('creates through the Gather backend, activates, and navigates to a Space', 
       params: { spaceSlug: 'wine-club' },
     })
   })
+  expect(hookState.actionReferences).toContain(apiState.api.spaceAdmin.create)
+  expect(hookState.mutationReferences).not.toContain(
+    apiState.api.spaceAdmin.create,
+  )
 })
 
 test('shows a create form when the user has no memberships or invitations', () => {

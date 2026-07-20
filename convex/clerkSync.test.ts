@@ -111,6 +111,44 @@ describe('Clerk projection sync', () => {
     ).toBeNull()
   })
 
+  test('organization deletion cleans registered Recipes data before removing its Space', async () => {
+    const t = convexTest(schema, modules)
+    const { spaceId } = await t.mutation(
+      (internal as any).spaces.provisionTagged,
+      {
+        clerkOrganizationId: 'org_cleanup',
+        clerkOrganizationName: 'Wine Club',
+        creatorClerkUserId: 'user_admin',
+      },
+    )
+    const imageId = await t.run((ctx) =>
+      ctx.storage.store(new Blob(['recipe image'])),
+    )
+    const recipeId = await t.run(async (ctx) => {
+      const user = await ctx.db
+        .query('users')
+        .withIndex('by_clerkId', (q) => q.eq('clerkId', 'user_admin'))
+        .unique()
+      return await ctx.db.insert('recipes', {
+        spaceId,
+        createdByUserId: user!._id,
+        title: 'Space recipe',
+        imageId,
+        ingredients: [],
+        steps: [],
+        tags: [],
+        createdAt: 1,
+        updatedAt: 1,
+      })
+    })
+
+    await t.mutation((internal as any).clerkSync.apply, {
+      event: { kind: 'space.delete', clerkOrganizationId: 'org_cleanup' },
+    })
+
+    expect(await t.run((ctx) => ctx.db.get(recipeId))).toBeNull()
+    expect(await t.run((ctx) => ctx.storage.get(imageId))).toBeNull()
+  })
   test('only updates a shared user after it has a Gather membership', async () => {
     const t = convexTest(schema, modules)
     await t.mutation((internal as any).clerkSync.apply, {

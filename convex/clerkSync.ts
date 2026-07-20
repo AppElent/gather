@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
 import { internalMutation, internalQuery } from './_generated/server'
 import { createNewSpaceDefaults } from './lib/spaceDefaults'
+import { moduleCleanupRegistry } from './lib/moduleLifecycle'
 
 const projectionEvent = v.union(
   v.object({
@@ -233,16 +234,21 @@ async function removeSpace(ctx: any, clerkOrganizationId: string) {
   const space = await findSpace(ctx, clerkOrganizationId)
   if (!space) return
 
+  const modules = await ctx.db
+    .query('spaceModules')
+    .withIndex('by_space', (q: any) => q.eq('spaceId', space._id))
+    .collect()
+  for (const cleanup of Object.values(moduleCleanupRegistry)) {
+    if (cleanup) await cleanup(ctx, space._id)
+  }
+
   for (const membership of await ctx.db
     .query('spaceMemberships')
     .withIndex('by_space', (q: any) => q.eq('spaceId', space._id))
     .collect()) {
     await ctx.db.delete(membership._id)
   }
-  for (const module of await ctx.db
-    .query('spaceModules')
-    .withIndex('by_space', (q: any) => q.eq('spaceId', space._id))
-    .collect()) {
+  for (const module of modules) {
     await ctx.db.delete(module._id)
   }
   for (const preference of await ctx.db

@@ -118,4 +118,49 @@ describe('Space Recipes', () => {
     })
     expect(await t.run((ctx) => ctx.db.get(id))).toBeNull()
   })
-})
+
+  test('rejects every Recipes operation after the module is archived', async () => {
+    const { admin, member, t, wine } = await createFixture()
+    const id = await member.mutation((api as any).recipes.create, {
+      spaceSlug: wine.spaceSlug,
+      ...recipeInput,
+    })
+    await admin.mutation((api as any).spaceModules.setState, {
+      spaceSlug: wine.spaceSlug,
+      moduleId: 'recipes',
+      state: 'archived',
+    })
+
+    const disabled = 'Recipes is not enabled'
+    await expect(
+      member.query((api as any).recipes.list, { spaceSlug: wine.spaceSlug }),
+    ).rejects.toThrow(disabled)
+    await expect(
+      member.query((api as any).recipes.get, { spaceSlug: wine.spaceSlug, id }),
+    ).rejects.toThrow(disabled)
+    await expect(
+      member.mutation((api as any).recipes.generateUploadUrl, {
+        spaceSlug: wine.spaceSlug,
+      }),
+    ).rejects.toThrow(disabled)
+    await expect(
+      member.mutation((api as any).recipes.create, {
+        spaceSlug: wine.spaceSlug,
+        ...recipeInput,
+      }),
+    ).rejects.toThrow(disabled)
+    await expect(
+      member.mutation((api as any).recipes.update, {
+        spaceSlug: wine.spaceSlug,
+        id,
+        title: 'Blocked edit',
+      }),
+    ).rejects.toThrow(disabled)
+    await expect(
+      member.mutation((api as any).recipes.remove, {
+        spaceSlug: wine.spaceSlug,
+        id,
+      }),
+    ).rejects.toThrow(disabled)
+    expect(await t.run((ctx) => ctx.db.get(id))).not.toBeNull()
+  })})
