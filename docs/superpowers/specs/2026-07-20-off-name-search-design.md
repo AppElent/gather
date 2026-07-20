@@ -69,9 +69,11 @@ shapes:
 
 - Extract the body of the current `mapOffProduct` (name/brand/nutrition/
   serving mapping for one `OffProduct`) into
-  `mapOffRawProduct(product: OffProduct): OffMappedFood | null`. Returns
-  `null` when `preferredName` yields an empty string — the one quality
-  filter described above.
+  `mapOffRawProduct(product: OffProduct): OffMappedFood`, unchanged from
+  today — including the existing behavior of returning `name: ''` when
+  neither name field is present (this must stay a plain mapping function
+  with no null-return case, so `mapOffProduct`'s existing empty-name test
+  keeps passing unmodified).
 - `mapOffProduct(raw: unknown)` becomes a thin wrapper: validates the
   `{status, product}` single-product response shape as it does today, then
   delegates to `mapOffRawProduct`. Existing behavior/tests unchanged.
@@ -79,9 +81,12 @@ shapes:
   `mapOffSearchResults(raw: unknown): OffSearchResult[]`: validates the
   `{products: OffProduct[]}` search-response shape, maps each entry via
   `mapOffRawProduct`, attaches `barcode` from the product's `code` field,
-  drops entries where mapping returned `null` or `code` is missing/empty,
-  and caps the result at 20 entries. Malformed/non-object input returns
-  `[]` (search is a soft fallback — no throwing).
+  and **only for this search path** drops entries with an empty `name`
+  (the one quality filter described above — applied here, not inside
+  `mapOffRawProduct`, so it doesn't affect the barcode single-product
+  path) or a missing/empty `code`, and caps the result at 20 entries.
+  Malformed/non-object input returns `[]` (search is a soft fallback — no
+  throwing).
 
 ### `foodsLookup.ts`
 
