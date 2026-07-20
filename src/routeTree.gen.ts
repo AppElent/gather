@@ -19,9 +19,9 @@ import { Route as AppWinesRouteImport } from './routes/_app/wines'
 import { Route as AppTasksRouteImport } from './routes/_app/tasks'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppPantryRouteImport } from './routes/_app/pantry'
+import { Route as AppOnboardingRouteImport } from './routes/_app/onboarding'
 import { Route as AppNotesRouteImport } from './routes/_app/notes'
 import { Route as AppMealPlannerRouteImport } from './routes/_app/meal-planner'
-import { Route as AppGroupsRouteImport } from './routes/_app/groups'
 import { Route as AppGroceriesRouteImport } from './routes/_app/groceries'
 import { Route as AppFinancesRouteImport } from './routes/_app/finances'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
@@ -29,16 +29,27 @@ import { Route as AppCheesesRouteImport } from './routes/_app/cheeses'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppBillsRouteImport } from './routes/_app/bills'
 import { Route as AppAccountRouteImport } from './routes/_app/account'
-import { Route as AppRecipesIndexRouteImport } from './routes/_app/recipes/index'
 import { Route as AppNutritionIndexRouteImport } from './routes/_app/nutrition/index'
 import { Route as AppFoodsIndexRouteImport } from './routes/_app/foods/index'
-import { Route as AppRecipesNewRouteImport } from './routes/_app/recipes/new'
+import { Route as AppSSpaceSlugRouteImport } from './routes/_app/s/$spaceSlug'
 import { Route as AppIntegrationsCallbackRouteImport } from './routes/_app/integrations.callback'
 import { Route as AppFoodsNewRouteImport } from './routes/_app/foods/new'
-import { Route as AppRecipesRecipeIdIndexRouteImport } from './routes/_app/recipes/$recipeId.index'
+import { Route as AppSSpaceSlugIndexRouteImport } from './routes/_app/s/$spaceSlug/index'
 import { Route as AppFoodsFoodIdIndexRouteImport } from './routes/_app/foods/$foodId.index'
-import { Route as AppRecipesRecipeIdEditRouteImport } from './routes/_app/recipes/$recipeId.edit'
+import { Route as AppSSpaceSlugSettingsRouteImport } from './routes/_app/s/$spaceSlug/settings'
+import { Route as AppSSpaceSlugModulesRouteImport } from './routes/_app/s/$spaceSlug/modules'
+import { Route as AppSSpaceSlugMembersRouteImport } from './routes/_app/s/$spaceSlug/members'
+import { Route as AppSSpaceSlugHomeRouteImport } from './routes/_app/s/$spaceSlug/home'
 import { Route as AppFoodsFoodIdEditRouteImport } from './routes/_app/foods/$foodId.edit'
+import { Route as AppSSpaceSlugSettingsIndexRouteImport } from './routes/_app/s/$spaceSlug/settings/index'
+import { Route as AppSSpaceSlugRecipesIndexRouteImport } from './routes/_app/s/$spaceSlug/recipes/index'
+import { Route as AppSSpaceSlugNutritionIndexRouteImport } from './routes/_app/s/$spaceSlug/nutrition/index'
+import { Route as AppSSpaceSlugSettingsNavigationRouteImport } from './routes/_app/s/$spaceSlug/settings/navigation'
+import { Route as AppSSpaceSlugSettingsModulesRouteImport } from './routes/_app/s/$spaceSlug/settings/modules'
+import { Route as AppSSpaceSlugSettingsDashboardRouteImport } from './routes/_app/s/$spaceSlug/settings/dashboard'
+import { Route as AppSSpaceSlugRecipesNewRouteImport } from './routes/_app/s/$spaceSlug/recipes/new'
+import { Route as AppSSpaceSlugRecipesRecipeIdIndexRouteImport } from './routes/_app/s/$spaceSlug/recipes/$recipeId.index'
+import { Route as AppSSpaceSlugRecipesRecipeIdEditRouteImport } from './routes/_app/s/$spaceSlug/recipes/$recipeId.edit'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -89,6 +100,11 @@ const AppPantryRoute = AppPantryRouteImport.update({
   path: '/pantry',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOnboardingRoute = AppOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppNotesRoute = AppNotesRouteImport.update({
   id: '/notes',
   path: '/notes',
@@ -97,11 +113,6 @@ const AppNotesRoute = AppNotesRouteImport.update({
 const AppMealPlannerRoute = AppMealPlannerRouteImport.update({
   id: '/meal-planner',
   path: '/meal-planner',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppGroupsRoute = AppGroupsRouteImport.update({
-  id: '/groups',
-  path: '/groups',
   getParentRoute: () => AppRoute,
 } as any)
 const AppGroceriesRoute = AppGroceriesRouteImport.update({
@@ -139,11 +150,6 @@ const AppAccountRoute = AppAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => AppRoute,
 } as any)
-const AppRecipesIndexRoute = AppRecipesIndexRouteImport.update({
-  id: '/recipes/',
-  path: '/recipes/',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppNutritionIndexRoute = AppNutritionIndexRouteImport.update({
   id: '/nutrition/',
   path: '/nutrition/',
@@ -154,9 +160,9 @@ const AppFoodsIndexRoute = AppFoodsIndexRouteImport.update({
   path: '/foods/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppRecipesNewRoute = AppRecipesNewRouteImport.update({
-  id: '/recipes/new',
-  path: '/recipes/new',
+const AppSSpaceSlugRoute = AppSSpaceSlugRouteImport.update({
+  id: '/s/$spaceSlug',
+  path: '/s/$spaceSlug',
   getParentRoute: () => AppRoute,
 } as any)
 const AppIntegrationsCallbackRoute = AppIntegrationsCallbackRouteImport.update({
@@ -169,26 +175,94 @@ const AppFoodsNewRoute = AppFoodsNewRouteImport.update({
   path: '/foods/new',
   getParentRoute: () => AppRoute,
 } as any)
-const AppRecipesRecipeIdIndexRoute = AppRecipesRecipeIdIndexRouteImport.update({
-  id: '/recipes/$recipeId/',
-  path: '/recipes/$recipeId/',
-  getParentRoute: () => AppRoute,
+const AppSSpaceSlugIndexRoute = AppSSpaceSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSSpaceSlugRoute,
 } as any)
 const AppFoodsFoodIdIndexRoute = AppFoodsFoodIdIndexRouteImport.update({
   id: '/foods/$foodId/',
   path: '/foods/$foodId/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppRecipesRecipeIdEditRoute = AppRecipesRecipeIdEditRouteImport.update({
-  id: '/recipes/$recipeId/edit',
-  path: '/recipes/$recipeId/edit',
-  getParentRoute: () => AppRoute,
+const AppSSpaceSlugSettingsRoute = AppSSpaceSlugSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppSSpaceSlugRoute,
+} as any)
+const AppSSpaceSlugModulesRoute = AppSSpaceSlugModulesRouteImport.update({
+  id: '/modules',
+  path: '/modules',
+  getParentRoute: () => AppSSpaceSlugRoute,
+} as any)
+const AppSSpaceSlugMembersRoute = AppSSpaceSlugMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AppSSpaceSlugRoute,
+} as any)
+const AppSSpaceSlugHomeRoute = AppSSpaceSlugHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AppSSpaceSlugRoute,
 } as any)
 const AppFoodsFoodIdEditRoute = AppFoodsFoodIdEditRouteImport.update({
   id: '/foods/$foodId/edit',
   path: '/foods/$foodId/edit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSSpaceSlugSettingsIndexRoute =
+  AppSSpaceSlugSettingsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppSSpaceSlugSettingsRoute,
+  } as any)
+const AppSSpaceSlugRecipesIndexRoute =
+  AppSSpaceSlugRecipesIndexRouteImport.update({
+    id: '/recipes/',
+    path: '/recipes/',
+    getParentRoute: () => AppSSpaceSlugRoute,
+  } as any)
+const AppSSpaceSlugNutritionIndexRoute =
+  AppSSpaceSlugNutritionIndexRouteImport.update({
+    id: '/nutrition/',
+    path: '/nutrition/',
+    getParentRoute: () => AppSSpaceSlugRoute,
+  } as any)
+const AppSSpaceSlugSettingsNavigationRoute =
+  AppSSpaceSlugSettingsNavigationRouteImport.update({
+    id: '/navigation',
+    path: '/navigation',
+    getParentRoute: () => AppSSpaceSlugSettingsRoute,
+  } as any)
+const AppSSpaceSlugSettingsModulesRoute =
+  AppSSpaceSlugSettingsModulesRouteImport.update({
+    id: '/modules',
+    path: '/modules',
+    getParentRoute: () => AppSSpaceSlugSettingsRoute,
+  } as any)
+const AppSSpaceSlugSettingsDashboardRoute =
+  AppSSpaceSlugSettingsDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AppSSpaceSlugSettingsRoute,
+  } as any)
+const AppSSpaceSlugRecipesNewRoute = AppSSpaceSlugRecipesNewRouteImport.update({
+  id: '/recipes/new',
+  path: '/recipes/new',
+  getParentRoute: () => AppSSpaceSlugRoute,
+} as any)
+const AppSSpaceSlugRecipesRecipeIdIndexRoute =
+  AppSSpaceSlugRecipesRecipeIdIndexRouteImport.update({
+    id: '/recipes/$recipeId/',
+    path: '/recipes/$recipeId/',
+    getParentRoute: () => AppSSpaceSlugRoute,
+  } as any)
+const AppSSpaceSlugRecipesRecipeIdEditRoute =
+  AppSSpaceSlugRecipesRecipeIdEditRouteImport.update({
+    id: '/recipes/$recipeId/edit',
+    path: '/recipes/$recipeId/edit',
+    getParentRoute: () => AppSSpaceSlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -203,23 +277,34 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/finances': typeof AppFinancesRoute
   '/groceries': typeof AppGroceriesRoute
-  '/groups': typeof AppGroupsRoute
   '/meal-planner': typeof AppMealPlannerRoute
   '/notes': typeof AppNotesRoute
+  '/onboarding': typeof AppOnboardingRoute
   '/pantry': typeof AppPantryRoute
   '/settings': typeof AppSettingsRoute
   '/tasks': typeof AppTasksRoute
   '/wines': typeof AppWinesRoute
   '/foods/new': typeof AppFoodsNewRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
-  '/recipes/new': typeof AppRecipesNewRoute
+  '/s/$spaceSlug': typeof AppSSpaceSlugRouteWithChildren
   '/foods/': typeof AppFoodsIndexRoute
   '/nutrition/': typeof AppNutritionIndexRoute
-  '/recipes/': typeof AppRecipesIndexRoute
   '/foods/$foodId/edit': typeof AppFoodsFoodIdEditRoute
-  '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
+  '/s/$spaceSlug/home': typeof AppSSpaceSlugHomeRoute
+  '/s/$spaceSlug/members': typeof AppSSpaceSlugMembersRoute
+  '/s/$spaceSlug/modules': typeof AppSSpaceSlugModulesRoute
+  '/s/$spaceSlug/settings': typeof AppSSpaceSlugSettingsRouteWithChildren
   '/foods/$foodId/': typeof AppFoodsFoodIdIndexRoute
-  '/recipes/$recipeId/': typeof AppRecipesRecipeIdIndexRoute
+  '/s/$spaceSlug/': typeof AppSSpaceSlugIndexRoute
+  '/s/$spaceSlug/recipes/new': typeof AppSSpaceSlugRecipesNewRoute
+  '/s/$spaceSlug/settings/dashboard': typeof AppSSpaceSlugSettingsDashboardRoute
+  '/s/$spaceSlug/settings/modules': typeof AppSSpaceSlugSettingsModulesRoute
+  '/s/$spaceSlug/settings/navigation': typeof AppSSpaceSlugSettingsNavigationRoute
+  '/s/$spaceSlug/nutrition/': typeof AppSSpaceSlugNutritionIndexRoute
+  '/s/$spaceSlug/recipes/': typeof AppSSpaceSlugRecipesIndexRoute
+  '/s/$spaceSlug/settings/': typeof AppSSpaceSlugSettingsIndexRoute
+  '/s/$spaceSlug/recipes/$recipeId/edit': typeof AppSSpaceSlugRecipesRecipeIdEditRoute
+  '/s/$spaceSlug/recipes/$recipeId/': typeof AppSSpaceSlugRecipesRecipeIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -234,23 +319,32 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/finances': typeof AppFinancesRoute
   '/groceries': typeof AppGroceriesRoute
-  '/groups': typeof AppGroupsRoute
   '/meal-planner': typeof AppMealPlannerRoute
   '/notes': typeof AppNotesRoute
+  '/onboarding': typeof AppOnboardingRoute
   '/pantry': typeof AppPantryRoute
   '/settings': typeof AppSettingsRoute
   '/tasks': typeof AppTasksRoute
   '/wines': typeof AppWinesRoute
   '/foods/new': typeof AppFoodsNewRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
-  '/recipes/new': typeof AppRecipesNewRoute
   '/foods': typeof AppFoodsIndexRoute
   '/nutrition': typeof AppNutritionIndexRoute
-  '/recipes': typeof AppRecipesIndexRoute
   '/foods/$foodId/edit': typeof AppFoodsFoodIdEditRoute
-  '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
+  '/s/$spaceSlug/home': typeof AppSSpaceSlugHomeRoute
+  '/s/$spaceSlug/members': typeof AppSSpaceSlugMembersRoute
+  '/s/$spaceSlug/modules': typeof AppSSpaceSlugModulesRoute
   '/foods/$foodId': typeof AppFoodsFoodIdIndexRoute
-  '/recipes/$recipeId': typeof AppRecipesRecipeIdIndexRoute
+  '/s/$spaceSlug': typeof AppSSpaceSlugIndexRoute
+  '/s/$spaceSlug/recipes/new': typeof AppSSpaceSlugRecipesNewRoute
+  '/s/$spaceSlug/settings/dashboard': typeof AppSSpaceSlugSettingsDashboardRoute
+  '/s/$spaceSlug/settings/modules': typeof AppSSpaceSlugSettingsModulesRoute
+  '/s/$spaceSlug/settings/navigation': typeof AppSSpaceSlugSettingsNavigationRoute
+  '/s/$spaceSlug/nutrition': typeof AppSSpaceSlugNutritionIndexRoute
+  '/s/$spaceSlug/recipes': typeof AppSSpaceSlugRecipesIndexRoute
+  '/s/$spaceSlug/settings': typeof AppSSpaceSlugSettingsIndexRoute
+  '/s/$spaceSlug/recipes/$recipeId/edit': typeof AppSSpaceSlugRecipesRecipeIdEditRoute
+  '/s/$spaceSlug/recipes/$recipeId': typeof AppSSpaceSlugRecipesRecipeIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -267,23 +361,34 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/finances': typeof AppFinancesRoute
   '/_app/groceries': typeof AppGroceriesRoute
-  '/_app/groups': typeof AppGroupsRoute
   '/_app/meal-planner': typeof AppMealPlannerRoute
   '/_app/notes': typeof AppNotesRoute
+  '/_app/onboarding': typeof AppOnboardingRoute
   '/_app/pantry': typeof AppPantryRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/tasks': typeof AppTasksRoute
   '/_app/wines': typeof AppWinesRoute
   '/_app/foods/new': typeof AppFoodsNewRoute
   '/_app/integrations/callback': typeof AppIntegrationsCallbackRoute
-  '/_app/recipes/new': typeof AppRecipesNewRoute
+  '/_app/s/$spaceSlug': typeof AppSSpaceSlugRouteWithChildren
   '/_app/foods/': typeof AppFoodsIndexRoute
   '/_app/nutrition/': typeof AppNutritionIndexRoute
-  '/_app/recipes/': typeof AppRecipesIndexRoute
   '/_app/foods/$foodId/edit': typeof AppFoodsFoodIdEditRoute
-  '/_app/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
+  '/_app/s/$spaceSlug/home': typeof AppSSpaceSlugHomeRoute
+  '/_app/s/$spaceSlug/members': typeof AppSSpaceSlugMembersRoute
+  '/_app/s/$spaceSlug/modules': typeof AppSSpaceSlugModulesRoute
+  '/_app/s/$spaceSlug/settings': typeof AppSSpaceSlugSettingsRouteWithChildren
   '/_app/foods/$foodId/': typeof AppFoodsFoodIdIndexRoute
-  '/_app/recipes/$recipeId/': typeof AppRecipesRecipeIdIndexRoute
+  '/_app/s/$spaceSlug/': typeof AppSSpaceSlugIndexRoute
+  '/_app/s/$spaceSlug/recipes/new': typeof AppSSpaceSlugRecipesNewRoute
+  '/_app/s/$spaceSlug/settings/dashboard': typeof AppSSpaceSlugSettingsDashboardRoute
+  '/_app/s/$spaceSlug/settings/modules': typeof AppSSpaceSlugSettingsModulesRoute
+  '/_app/s/$spaceSlug/settings/navigation': typeof AppSSpaceSlugSettingsNavigationRoute
+  '/_app/s/$spaceSlug/nutrition/': typeof AppSSpaceSlugNutritionIndexRoute
+  '/_app/s/$spaceSlug/recipes/': typeof AppSSpaceSlugRecipesIndexRoute
+  '/_app/s/$spaceSlug/settings/': typeof AppSSpaceSlugSettingsIndexRoute
+  '/_app/s/$spaceSlug/recipes/$recipeId/edit': typeof AppSSpaceSlugRecipesRecipeIdEditRoute
+  '/_app/s/$spaceSlug/recipes/$recipeId/': typeof AppSSpaceSlugRecipesRecipeIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -300,23 +405,34 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/finances'
     | '/groceries'
-    | '/groups'
     | '/meal-planner'
     | '/notes'
+    | '/onboarding'
     | '/pantry'
     | '/settings'
     | '/tasks'
     | '/wines'
     | '/foods/new'
     | '/integrations/callback'
-    | '/recipes/new'
+    | '/s/$spaceSlug'
     | '/foods/'
     | '/nutrition/'
-    | '/recipes/'
     | '/foods/$foodId/edit'
-    | '/recipes/$recipeId/edit'
+    | '/s/$spaceSlug/home'
+    | '/s/$spaceSlug/members'
+    | '/s/$spaceSlug/modules'
+    | '/s/$spaceSlug/settings'
     | '/foods/$foodId/'
-    | '/recipes/$recipeId/'
+    | '/s/$spaceSlug/'
+    | '/s/$spaceSlug/recipes/new'
+    | '/s/$spaceSlug/settings/dashboard'
+    | '/s/$spaceSlug/settings/modules'
+    | '/s/$spaceSlug/settings/navigation'
+    | '/s/$spaceSlug/nutrition/'
+    | '/s/$spaceSlug/recipes/'
+    | '/s/$spaceSlug/settings/'
+    | '/s/$spaceSlug/recipes/$recipeId/edit'
+    | '/s/$spaceSlug/recipes/$recipeId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -331,23 +447,32 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/finances'
     | '/groceries'
-    | '/groups'
     | '/meal-planner'
     | '/notes'
+    | '/onboarding'
     | '/pantry'
     | '/settings'
     | '/tasks'
     | '/wines'
     | '/foods/new'
     | '/integrations/callback'
-    | '/recipes/new'
     | '/foods'
     | '/nutrition'
-    | '/recipes'
     | '/foods/$foodId/edit'
-    | '/recipes/$recipeId/edit'
+    | '/s/$spaceSlug/home'
+    | '/s/$spaceSlug/members'
+    | '/s/$spaceSlug/modules'
     | '/foods/$foodId'
-    | '/recipes/$recipeId'
+    | '/s/$spaceSlug'
+    | '/s/$spaceSlug/recipes/new'
+    | '/s/$spaceSlug/settings/dashboard'
+    | '/s/$spaceSlug/settings/modules'
+    | '/s/$spaceSlug/settings/navigation'
+    | '/s/$spaceSlug/nutrition'
+    | '/s/$spaceSlug/recipes'
+    | '/s/$spaceSlug/settings'
+    | '/s/$spaceSlug/recipes/$recipeId/edit'
+    | '/s/$spaceSlug/recipes/$recipeId'
   id:
     | '__root__'
     | '/'
@@ -363,23 +488,34 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/finances'
     | '/_app/groceries'
-    | '/_app/groups'
     | '/_app/meal-planner'
     | '/_app/notes'
+    | '/_app/onboarding'
     | '/_app/pantry'
     | '/_app/settings'
     | '/_app/tasks'
     | '/_app/wines'
     | '/_app/foods/new'
     | '/_app/integrations/callback'
-    | '/_app/recipes/new'
+    | '/_app/s/$spaceSlug'
     | '/_app/foods/'
     | '/_app/nutrition/'
-    | '/_app/recipes/'
     | '/_app/foods/$foodId/edit'
-    | '/_app/recipes/$recipeId/edit'
+    | '/_app/s/$spaceSlug/home'
+    | '/_app/s/$spaceSlug/members'
+    | '/_app/s/$spaceSlug/modules'
+    | '/_app/s/$spaceSlug/settings'
     | '/_app/foods/$foodId/'
-    | '/_app/recipes/$recipeId/'
+    | '/_app/s/$spaceSlug/'
+    | '/_app/s/$spaceSlug/recipes/new'
+    | '/_app/s/$spaceSlug/settings/dashboard'
+    | '/_app/s/$spaceSlug/settings/modules'
+    | '/_app/s/$spaceSlug/settings/navigation'
+    | '/_app/s/$spaceSlug/nutrition/'
+    | '/_app/s/$spaceSlug/recipes/'
+    | '/_app/s/$spaceSlug/settings/'
+    | '/_app/s/$spaceSlug/recipes/$recipeId/edit'
+    | '/_app/s/$spaceSlug/recipes/$recipeId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -463,6 +599,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPantryRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/onboarding': {
+      id: '/_app/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AppOnboardingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/notes': {
       id: '/_app/notes'
       path: '/notes'
@@ -475,13 +618,6 @@ declare module '@tanstack/react-router' {
       path: '/meal-planner'
       fullPath: '/meal-planner'
       preLoaderRoute: typeof AppMealPlannerRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/groups': {
-      id: '/_app/groups'
-      path: '/groups'
-      fullPath: '/groups'
-      preLoaderRoute: typeof AppGroupsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/groceries': {
@@ -533,13 +669,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/recipes/': {
-      id: '/_app/recipes/'
-      path: '/recipes'
-      fullPath: '/recipes/'
-      preLoaderRoute: typeof AppRecipesIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/nutrition/': {
       id: '/_app/nutrition/'
       path: '/nutrition'
@@ -554,11 +683,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFoodsIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/recipes/new': {
-      id: '/_app/recipes/new'
-      path: '/recipes/new'
-      fullPath: '/recipes/new'
-      preLoaderRoute: typeof AppRecipesNewRouteImport
+    '/_app/s/$spaceSlug': {
+      id: '/_app/s/$spaceSlug'
+      path: '/s/$spaceSlug'
+      fullPath: '/s/$spaceSlug'
+      preLoaderRoute: typeof AppSSpaceSlugRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/integrations/callback': {
@@ -575,12 +704,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFoodsNewRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/recipes/$recipeId/': {
-      id: '/_app/recipes/$recipeId/'
-      path: '/recipes/$recipeId'
-      fullPath: '/recipes/$recipeId/'
-      preLoaderRoute: typeof AppRecipesRecipeIdIndexRouteImport
-      parentRoute: typeof AppRoute
+    '/_app/s/$spaceSlug/': {
+      id: '/_app/s/$spaceSlug/'
+      path: '/'
+      fullPath: '/s/$spaceSlug/'
+      preLoaderRoute: typeof AppSSpaceSlugIndexRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
     }
     '/_app/foods/$foodId/': {
       id: '/_app/foods/$foodId/'
@@ -589,12 +718,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFoodsFoodIdIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/recipes/$recipeId/edit': {
-      id: '/_app/recipes/$recipeId/edit'
-      path: '/recipes/$recipeId/edit'
-      fullPath: '/recipes/$recipeId/edit'
-      preLoaderRoute: typeof AppRecipesRecipeIdEditRouteImport
-      parentRoute: typeof AppRoute
+    '/_app/s/$spaceSlug/settings': {
+      id: '/_app/s/$spaceSlug/settings'
+      path: '/settings'
+      fullPath: '/s/$spaceSlug/settings'
+      preLoaderRoute: typeof AppSSpaceSlugSettingsRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
+    }
+    '/_app/s/$spaceSlug/modules': {
+      id: '/_app/s/$spaceSlug/modules'
+      path: '/modules'
+      fullPath: '/s/$spaceSlug/modules'
+      preLoaderRoute: typeof AppSSpaceSlugModulesRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
+    }
+    '/_app/s/$spaceSlug/members': {
+      id: '/_app/s/$spaceSlug/members'
+      path: '/members'
+      fullPath: '/s/$spaceSlug/members'
+      preLoaderRoute: typeof AppSSpaceSlugMembersRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
+    }
+    '/_app/s/$spaceSlug/home': {
+      id: '/_app/s/$spaceSlug/home'
+      path: '/home'
+      fullPath: '/s/$spaceSlug/home'
+      preLoaderRoute: typeof AppSSpaceSlugHomeRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
     }
     '/_app/foods/$foodId/edit': {
       id: '/_app/foods/$foodId/edit'
@@ -603,8 +753,121 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFoodsFoodIdEditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/s/$spaceSlug/settings/': {
+      id: '/_app/s/$spaceSlug/settings/'
+      path: '/'
+      fullPath: '/s/$spaceSlug/settings/'
+      preLoaderRoute: typeof AppSSpaceSlugSettingsIndexRouteImport
+      parentRoute: typeof AppSSpaceSlugSettingsRoute
+    }
+    '/_app/s/$spaceSlug/recipes/': {
+      id: '/_app/s/$spaceSlug/recipes/'
+      path: '/recipes'
+      fullPath: '/s/$spaceSlug/recipes/'
+      preLoaderRoute: typeof AppSSpaceSlugRecipesIndexRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
+    }
+    '/_app/s/$spaceSlug/nutrition/': {
+      id: '/_app/s/$spaceSlug/nutrition/'
+      path: '/nutrition'
+      fullPath: '/s/$spaceSlug/nutrition/'
+      preLoaderRoute: typeof AppSSpaceSlugNutritionIndexRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
+    }
+    '/_app/s/$spaceSlug/settings/navigation': {
+      id: '/_app/s/$spaceSlug/settings/navigation'
+      path: '/navigation'
+      fullPath: '/s/$spaceSlug/settings/navigation'
+      preLoaderRoute: typeof AppSSpaceSlugSettingsNavigationRouteImport
+      parentRoute: typeof AppSSpaceSlugSettingsRoute
+    }
+    '/_app/s/$spaceSlug/settings/modules': {
+      id: '/_app/s/$spaceSlug/settings/modules'
+      path: '/modules'
+      fullPath: '/s/$spaceSlug/settings/modules'
+      preLoaderRoute: typeof AppSSpaceSlugSettingsModulesRouteImport
+      parentRoute: typeof AppSSpaceSlugSettingsRoute
+    }
+    '/_app/s/$spaceSlug/settings/dashboard': {
+      id: '/_app/s/$spaceSlug/settings/dashboard'
+      path: '/dashboard'
+      fullPath: '/s/$spaceSlug/settings/dashboard'
+      preLoaderRoute: typeof AppSSpaceSlugSettingsDashboardRouteImport
+      parentRoute: typeof AppSSpaceSlugSettingsRoute
+    }
+    '/_app/s/$spaceSlug/recipes/new': {
+      id: '/_app/s/$spaceSlug/recipes/new'
+      path: '/recipes/new'
+      fullPath: '/s/$spaceSlug/recipes/new'
+      preLoaderRoute: typeof AppSSpaceSlugRecipesNewRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
+    }
+    '/_app/s/$spaceSlug/recipes/$recipeId/': {
+      id: '/_app/s/$spaceSlug/recipes/$recipeId/'
+      path: '/recipes/$recipeId'
+      fullPath: '/s/$spaceSlug/recipes/$recipeId/'
+      preLoaderRoute: typeof AppSSpaceSlugRecipesRecipeIdIndexRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
+    }
+    '/_app/s/$spaceSlug/recipes/$recipeId/edit': {
+      id: '/_app/s/$spaceSlug/recipes/$recipeId/edit'
+      path: '/recipes/$recipeId/edit'
+      fullPath: '/s/$spaceSlug/recipes/$recipeId/edit'
+      preLoaderRoute: typeof AppSSpaceSlugRecipesRecipeIdEditRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
+    }
   }
 }
+
+interface AppSSpaceSlugSettingsRouteChildren {
+  AppSSpaceSlugSettingsDashboardRoute: typeof AppSSpaceSlugSettingsDashboardRoute
+  AppSSpaceSlugSettingsModulesRoute: typeof AppSSpaceSlugSettingsModulesRoute
+  AppSSpaceSlugSettingsNavigationRoute: typeof AppSSpaceSlugSettingsNavigationRoute
+  AppSSpaceSlugSettingsIndexRoute: typeof AppSSpaceSlugSettingsIndexRoute
+}
+
+const AppSSpaceSlugSettingsRouteChildren: AppSSpaceSlugSettingsRouteChildren = {
+  AppSSpaceSlugSettingsDashboardRoute: AppSSpaceSlugSettingsDashboardRoute,
+  AppSSpaceSlugSettingsModulesRoute: AppSSpaceSlugSettingsModulesRoute,
+  AppSSpaceSlugSettingsNavigationRoute: AppSSpaceSlugSettingsNavigationRoute,
+  AppSSpaceSlugSettingsIndexRoute: AppSSpaceSlugSettingsIndexRoute,
+}
+
+const AppSSpaceSlugSettingsRouteWithChildren =
+  AppSSpaceSlugSettingsRoute._addFileChildren(
+    AppSSpaceSlugSettingsRouteChildren,
+  )
+
+interface AppSSpaceSlugRouteChildren {
+  AppSSpaceSlugHomeRoute: typeof AppSSpaceSlugHomeRoute
+  AppSSpaceSlugMembersRoute: typeof AppSSpaceSlugMembersRoute
+  AppSSpaceSlugModulesRoute: typeof AppSSpaceSlugModulesRoute
+  AppSSpaceSlugSettingsRoute: typeof AppSSpaceSlugSettingsRouteWithChildren
+  AppSSpaceSlugIndexRoute: typeof AppSSpaceSlugIndexRoute
+  AppSSpaceSlugRecipesNewRoute: typeof AppSSpaceSlugRecipesNewRoute
+  AppSSpaceSlugNutritionIndexRoute: typeof AppSSpaceSlugNutritionIndexRoute
+  AppSSpaceSlugRecipesIndexRoute: typeof AppSSpaceSlugRecipesIndexRoute
+  AppSSpaceSlugRecipesRecipeIdEditRoute: typeof AppSSpaceSlugRecipesRecipeIdEditRoute
+  AppSSpaceSlugRecipesRecipeIdIndexRoute: typeof AppSSpaceSlugRecipesRecipeIdIndexRoute
+}
+
+const AppSSpaceSlugRouteChildren: AppSSpaceSlugRouteChildren = {
+  AppSSpaceSlugHomeRoute: AppSSpaceSlugHomeRoute,
+  AppSSpaceSlugMembersRoute: AppSSpaceSlugMembersRoute,
+  AppSSpaceSlugModulesRoute: AppSSpaceSlugModulesRoute,
+  AppSSpaceSlugSettingsRoute: AppSSpaceSlugSettingsRouteWithChildren,
+  AppSSpaceSlugIndexRoute: AppSSpaceSlugIndexRoute,
+  AppSSpaceSlugRecipesNewRoute: AppSSpaceSlugRecipesNewRoute,
+  AppSSpaceSlugNutritionIndexRoute: AppSSpaceSlugNutritionIndexRoute,
+  AppSSpaceSlugRecipesIndexRoute: AppSSpaceSlugRecipesIndexRoute,
+  AppSSpaceSlugRecipesRecipeIdEditRoute: AppSSpaceSlugRecipesRecipeIdEditRoute,
+  AppSSpaceSlugRecipesRecipeIdIndexRoute:
+    AppSSpaceSlugRecipesRecipeIdIndexRoute,
+}
+
+const AppSSpaceSlugRouteWithChildren = AppSSpaceSlugRoute._addFileChildren(
+  AppSSpaceSlugRouteChildren,
+)
 
 interface AppRouteChildren {
   AppAccountRoute: typeof AppAccountRoute
@@ -614,23 +877,20 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppFinancesRoute: typeof AppFinancesRoute
   AppGroceriesRoute: typeof AppGroceriesRoute
-  AppGroupsRoute: typeof AppGroupsRoute
   AppMealPlannerRoute: typeof AppMealPlannerRoute
   AppNotesRoute: typeof AppNotesRoute
+  AppOnboardingRoute: typeof AppOnboardingRoute
   AppPantryRoute: typeof AppPantryRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppTasksRoute: typeof AppTasksRoute
   AppWinesRoute: typeof AppWinesRoute
   AppFoodsNewRoute: typeof AppFoodsNewRoute
   AppIntegrationsCallbackRoute: typeof AppIntegrationsCallbackRoute
-  AppRecipesNewRoute: typeof AppRecipesNewRoute
+  AppSSpaceSlugRoute: typeof AppSSpaceSlugRouteWithChildren
   AppFoodsIndexRoute: typeof AppFoodsIndexRoute
   AppNutritionIndexRoute: typeof AppNutritionIndexRoute
-  AppRecipesIndexRoute: typeof AppRecipesIndexRoute
   AppFoodsFoodIdEditRoute: typeof AppFoodsFoodIdEditRoute
-  AppRecipesRecipeIdEditRoute: typeof AppRecipesRecipeIdEditRoute
   AppFoodsFoodIdIndexRoute: typeof AppFoodsFoodIdIndexRoute
-  AppRecipesRecipeIdIndexRoute: typeof AppRecipesRecipeIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -641,23 +901,20 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppFinancesRoute: AppFinancesRoute,
   AppGroceriesRoute: AppGroceriesRoute,
-  AppGroupsRoute: AppGroupsRoute,
   AppMealPlannerRoute: AppMealPlannerRoute,
   AppNotesRoute: AppNotesRoute,
+  AppOnboardingRoute: AppOnboardingRoute,
   AppPantryRoute: AppPantryRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppTasksRoute: AppTasksRoute,
   AppWinesRoute: AppWinesRoute,
   AppFoodsNewRoute: AppFoodsNewRoute,
   AppIntegrationsCallbackRoute: AppIntegrationsCallbackRoute,
-  AppRecipesNewRoute: AppRecipesNewRoute,
+  AppSSpaceSlugRoute: AppSSpaceSlugRouteWithChildren,
   AppFoodsIndexRoute: AppFoodsIndexRoute,
   AppNutritionIndexRoute: AppNutritionIndexRoute,
-  AppRecipesIndexRoute: AppRecipesIndexRoute,
   AppFoodsFoodIdEditRoute: AppFoodsFoodIdEditRoute,
-  AppRecipesRecipeIdEditRoute: AppRecipesRecipeIdEditRoute,
   AppFoodsFoodIdIndexRoute: AppFoodsFoodIdIndexRoute,
-  AppRecipesRecipeIdIndexRoute: AppRecipesRecipeIdIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

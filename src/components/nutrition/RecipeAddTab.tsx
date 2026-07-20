@@ -1,4 +1,3 @@
-import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -14,7 +13,7 @@ interface Props {
 }
 
 export function RecipeAddTab({ date, meal, onAdded }: Props) {
-  const recipes = useQuery(api.recipes.list)
+  const recipes = useQuery(api.recipes.list, {})
   const create = useMutation(api.consumption.create)
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [submittingId, setSubmittingId] = useState<string | null>(null)
@@ -110,14 +109,9 @@ export function RecipeAddTab({ date, meal, onAdded }: Props) {
             These recipes have no nutrition data yet:
           </p>
           {withoutNutrition.map((recipe) => (
-            <Link
-              key={recipe._id}
-              to="/recipes/$recipeId"
-              params={{ recipeId: recipe._id }}
-              className="block text-xs underline"
-            >
+            <span key={recipe._id} className="block text-xs opacity-60">
               {recipe.title}
-            </Link>
+            </span>
           ))}
         </div>
       )}

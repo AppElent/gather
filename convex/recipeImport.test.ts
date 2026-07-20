@@ -1,5 +1,9 @@
+import { convexTest } from 'convex-test'
 import { describe, expect, test, vi } from 'vitest'
+import { api, internal } from './_generated/api'
 import { isUrlSafeToFetch, safeFetch } from './recipeImport'
+import schema from './schema'
+import { modules } from './test.setup'
 
 describe('isUrlSafeToFetch', () => {
   test('allows a normal public https URL', () => {
@@ -134,5 +138,31 @@ describe('safeFetch', () => {
     const fetchImpl = vi.fn(async () => new Response(null, { status: 302 }))
     const res = await safeFetch('https://example.com/page', undefined, fetchImpl)
     expect(res).toBeUndefined()
+  })
+})
+
+describe('Space import authorization', () => {
+  test('import requires Recipes to be enabled in the signed active Space', async () => {
+    const t = convexTest(schema, modules)
+    const projection = await t.mutation((internal as any).spaces.provisionTagged, {
+      clerkOrganizationId: 'org_wine',
+      clerkOrganizationName: 'Wine Club',
+      creatorClerkUserId: 'user_admin',
+    })
+    const admin = t.withIdentity({
+      subject: 'user_admin',
+      org_id: 'org_wine',
+      org_role: 'org:admin',
+    })
+    await admin.mutation((api as any).spaceModules.setState, {
+      spaceSlug: projection.spaceSlug,
+      moduleId: 'recipes',
+      state: 'archived',
+    })
+
+    await expect(admin.action((api as any).recipeImport.importFromUrl, {
+      spaceSlug: projection.spaceSlug,
+      url: 'https://example.com/recipe',
+    })).rejects.toThrow('Recipes is not enabled')
   })
 })

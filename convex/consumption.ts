@@ -81,7 +81,7 @@ async function recomputeFromSource(
     const visible =
       recipe &&
       isVisibleTo(
-        { ownerId: recipe.ownerId, sharedGroupIds: recipe.sharedGroupIds },
+        { ownerId: recipe.ownerId ?? entry.userId, sharedGroupIds: recipe.sharedGroupIds ?? [] },
         { userId: entry.userId, groupIds: viewerGroupIds },
       )
     return visible && recipe.nutrition

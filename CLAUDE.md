@@ -1,111 +1,70 @@
 # gather
 
-A household-management app (Recipes, Tasks, groups, and a growing set of placeholder
-modules — meal planner, groceries, pantry, finances, bills, calendar, notes,
-cheeses, wines) built on the standard AppElent stack:
+Gather is a Space-centered household-management app. A Space is a Gather-owned
+Clerk Organization plus a Convex `spaces` record. The current live module is
+Recipes; additional catalog entries are available only when their availability
+becomes `live` and a Space has enabled them.
 
 - **TanStack React Start + Router** (file-based routing, `tsr generate`), SSR, Vite.
-- **Convex** backend (`convex/`) — functions: `recipes.ts`, `groups.ts`, `users.ts`,
-  `recipeImport.ts`, `recipeNutrition.ts`, `foods.ts`, `foodsLookup.ts`, `consumption.ts`,
-  `taskLists.ts`, `tasks.ts`, `integrations.ts`, `lib/sharing.ts`, `lib/nutrition.ts`,
-  `lib/offMapping.ts`, `lib/offFetch.ts`, `lib/consumption.ts`, `lib/taskAccess.ts`,
-  `lib/taskProviders/` (adapter pattern for Notion/Todoist). Schema in
-  `convex/schema.ts`.
-- **Clerk** auth (`@clerk/clerk-react`), JWT-bridged to Convex via `CLERK_JWT_ISSUER_DOMAIN`
-  (Convex deployment env var, set with `convex env set` — not committed anywhere).
-- **Cloudflare Workers** deploy via `wrangler.jsonc` — worker name `gather`
-  (prod) / `gather-dev` (dev env block).
-- **Biome** for lint/format (tab-free, 2-space, single quotes, semicolons as needed).
-- **Vitest** + jsdom + Testing Library.
-- **Tailwind v4**.
-- **`@t3-oss/env-core`** for typed env validation (`src/env.ts`, currently minimal —
-  not yet wired to the Clerk/Convex/Sentry vars actually in use).
-- **Sentry** (`@sentry/tanstackstart-react`, wired via `instrument.server.mjs`).
-- **Package manager: pnpm, always.**
+- **Convex** backend (`convex/`) with Space authorization and lifecycle functions.
+- **Clerk** auth (`@clerk/clerk-react`), JWT-bridged to Convex.
+- **Cloudflare Workers**, Biome, Vitest, Tailwind v4, Sentry, and pnpm.
 
-## Dependency status
+## Space model and routing
 
-`@appelent/auth` is integrated: sign-in/sign-up/forgot-password forms, the account
-profile panel, appearance settings, header user menu, and theme sync all come from
-the shared package (see `src/routes/__root.tsx`, `src/routes/sign-in.tsx`,
-`src/routes/sign-up.tsx`, `src/routes/forgot-password.tsx`,
-`src/routes/_app/account.tsx`, `src/routes/_app/settings.tsx`,
-`src/components/app/Topbar.tsx`). Per the package's own design, this app still owns
-`src/integrations/clerk/provider.tsx` (plain `ClerkProvider`, with `signInUrl`/
-`signUpUrl` pointed at gather's routes) and the Clerk↔Convex JWT bridge in
-`src/integrations/convex/provider.tsx` — `@appelent/auth` does not export either of
-those. `src/styles.css` overrides the package's `--auth-*` tokens to match gather's
-sea/lagoon palette, and defines `.rm-panel`/`.rm-label` (used by `ProfilePanel`/
-`AppearanceSettings` but not shipped in `tokens.css`) to match the app's
-`.demo-panel`/`.demo-section-title` card styling.
+- Space URLs use `/s/:spaceSlug/home`, `/s/:spaceSlug/modules`,
+  `/s/:spaceSlug/:module`, and `/s/:spaceSlug/settings/*`.
+- `/account` remains user-global for the Clerk account profile. Legacy global
+  bookmarks redirect through `LegacySpaceRedirect`; they are not navigation
+  destinations.
+- `SpaceRouteGate` activates the matching marked Clerk Organization and refreshes
+  the Convex token before Space data renders.
+- Clerk owns Organization membership and role authority. Gather authorizes only
+  `org:admin` and `org:member` for marked Gather Organizations.
 
-Known limitation (not fixable from gather): `AppearanceSettings`'s copy hardcodes
-"Choose how ArchStudio looks." regardless of `useAuthConfig().appName` — a bug in
-the shared package itself, out of scope here.
+## Shared Clerk application safety
+
+This Clerk application may serve other webapps. Gather never treats all Clerk
+Organizations or invitations as its own: Gather resources use the public metadata
+markers documented in `docs/setup/clerk-shared-application.md`. Only backend
+administration actions create or mutate Gather Organizations; do not use Clerk's
+frontend `createOrganization()` helper.
+
+Organizations must remain membership-optional, Personal Accounts remain enabled,
+and automatic first-Organization creation remains disabled. Do not rename,
+remove, remap, or restrict shared Clerk roles. Additive `org_id` and `org_role`
+claims may be added to the shared `convex` JWT template only after every known
+consumer has passed before-and-after authenticated smoke tests. A failed or
+incomplete compatibility inventory blocks the shared Clerk change and rollout.
+
+## Modules and widgets
+
+A new module must register catalog metadata, Space authorization, lifecycle
+cleanup, Space-scoped routes, and optional widget definitions/renderers. Module
+visibility is controlled by the Space module state; coming-soon modules belong
+only in the admin module settings. Register deletion cleanup in the Space module
+lifecycle so permanent Space deletion remains retryable.
+
+## Development configuration
+
+Use pnpm for every package command. Generate routes with `pnpm run
+generate-routes`; the committed route tree is generated output. Before a
+production-style reset, explicitly confirm the target deployment: destructive
+Convex resets are not part of ordinary development or automated verification.
+
+Client environment values live in `.env.local` (see `.env.example`). Convex
+deployment values are set with `convex env set` and are never committed:
+`CLERK_JWT_ISSUER_DOMAIN`, `CLERK_SECRET_KEY`,
+`CLERK_WEBHOOK_SIGNING_SECRET`, and optional `ANTHROPIC_API_KEY`. Never commit
+keys, webhook secrets, JWT bodies, or token values.
 
 ## Scripts
 
-Standard baseline set (`pnpm run <script>`): `dev`, `dev:all` (Convex once + Vite),
-`dev:watch` (Convex watch + Vite via `concurrently`), `generate-routes`, `build`,
-`build:development`, `preview`, `typecheck`, `test`, `format`, `lint`, `lint:fix`,
-`check`, `cf-typegen`, `deploy` (= `deploy:prod`), `deploy:dev`, `deploy:prod`.
-No `seed` script — `convex/seed.ts` doesn't exist.
+Use `pnpm run <script>`: `dev`, `dev:all`, `dev:watch`, `generate-routes`,
+`build`, `typecheck`, `test`, `format`, `lint`, `check`, `cf-typegen`,
+`deploy:dev`, and `deploy:prod`.
 
-## Env vars
+## Appelent-managed project
 
-Client (`.env.local`, see `.env.example` for the full documented list):
-`VITE_CLERK_PUBLISHABLE_KEY`, `VITE_TEST_USER_EMAIL`, `VITE_TEST_USER_PASSWORD`
-(the latter two enable `@appelent/auth`'s dev-only test-login button when the
-Clerk key is `pk_test_...`), `CONVEX_DEPLOYMENT`, `VITE_CONVEX_URL`,
-`VITE_SENTRY_DSN`, `VITE_SENTRY_ORG`, `VITE_SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.
-
-Convex deployment (server-side, set via `convex env set` / `convex env default set`,
-never in a committed file): `CLERK_JWT_ISSUER_DOMAIN` — set on dev, prod, and as the
-default for preview deployments (PR previews create a fresh Convex backend per PR
-that doesn't inherit dev/prod env vars). `ANTHROPIC_API_KEY` — powers the recipe
-URL-import action's AI fallback; optional (JSON-LD-only imports work without it, and
-recipes without matching JSON-LD simply fail to import if it's unset).
-`NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` and `TODOIST_CLIENT_ID` /
-`TODOIST_CLIENT_SECRET` — OAuth credentials for the Tasks module's external
-list providers; optional (without them, connecting that provider fails with a
-clear "not configured" error and local lists work normally). Each provider's
-OAuth app must register the redirect URI `<app-origin>/integrations/callback`
-(e.g. `http://localhost:3000/integrations/callback` for dev).
-
-## CI / PR previews
-
-- `.github/workflows/ci.yml` — check/typecheck/test/build gate on push to `master`
-  and on PRs.
-- `.github/workflows/preview.yml` — per-PR Convex preview deployment + per-PR
-  Cloudflare Worker (`gather-pr-<N>`) + PR comment + teardown on close. **This repo
-  has no GitHub remote yet** — once pushed, set repo secrets: `CONVEX_DEPLOY_KEY`
-  (Preview-kind deploy key), `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
-  `PREVIEW_CLERK_PUBLISHABLE_KEY`, optionally `NODE_AUTH_TOKEN`.
-
-## Claude Code workflow layer
-
-`.claude/skills/review-app` and `.claude/skills/review-session` are project-local
-copies of the `appelent` plugin's bundled `skills/review-app`/`skills/review-session`
-(catalog repo `D:\Dev\appelent-packages`, https://github.com/AppElent/appelent-packages)
-— **the plugin's copies are the source of truth**; refresh either with
-`/appelent:project sync-skills <name>`. `.claude/commands/upgrade-deps.md` and
-`.claude/commands/review-session.md` are still project-local copies of the global
-`~/.claude/commands/custom-upgrade-deps.md` / `custom-review-session.md` templates
-(no catalog equivalent for these two yet) — the global copies remain the source of
-truth for them. In all cases, a non-project-specific fix made locally should be
-ported back to whichever source copy it traces to, not left to drift.
-`.claude/skills/verify/SKILL.md` is the one exception: it's project-specific by
-design (gather's actual route→module map) and has no source-of-truth counterpart
-at all.
-
-<!-- appelent-managed:start -->
-## Appelent Managed Project
-
-This is an Appelent-managed app. Opted-in features and their options are
-recorded in `appelent.json`. Feature definitions live in the `appelent`
-plugin (locally installed) or https://github.com/AppElent/appelent-packages
-(`skills/<feature>/FEATURE.md`).
-
-Before adding functionality that could apply to multiple apps, check the
-feature catalog first. To add or update a feature, use `/appelent`.
-<!-- appelent-managed:end -->
+Opted-in features are recorded in `appelent.json`. Before adding functionality
+that could apply to multiple apps, check the Appelent feature catalog first.

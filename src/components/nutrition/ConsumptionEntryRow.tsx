@@ -45,13 +45,12 @@ export function ConsumptionEntryRow({ entry, onUpdate, onDelete }: Props) {
               ` · ${entry.nutrition.calories} kcal`}
           </span>
           {entry.recipeId && (
-            <Link
-              to="/recipes/$recipeId"
-              params={{ recipeId: entry.recipeId }}
+            <a
+              href={`/recipes/${entry.recipeId}`}
               className="ml-2 text-xs underline"
             >
               View recipe
-            </Link>
+            </a>
           )}
           {entry.foodId && (
             <Link
