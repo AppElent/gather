@@ -16,6 +16,9 @@ function SettingsIndex() {
         <Link to="/s/$spaceSlug/settings/navigation" params={{ spaceSlug }}>
           Navigation
         </Link>
+        <Link to="/s/$spaceSlug/settings/dashboard" params={{ spaceSlug }}>
+          Dashboard
+        </Link>
       </nav>
       <SpaceSettings />
     </div>

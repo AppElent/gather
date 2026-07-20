@@ -5,7 +5,7 @@ import { resolvePinnedModuleIds } from '../src/lib/spaceNavigation'
 import { resolveDashboard } from '../src/lib/widgets'
 import { createNewSpaceDefaults } from './lib/spaceDefaults'
 import { readSpaceClaims, requireActiveSpace } from './lib/spaceAuth'
-import { validatePinnedModules } from './spacePreferences'
+import { validateDashboard, validatePinnedModules } from './spacePreferences'
 
 type DbCtx = { db: any }
 
@@ -192,6 +192,27 @@ export const saveDefaultNavigation = mutation({
     await validatePinnedModules(ctx, space._id, args.pinnedModuleIds)
     await ctx.db.patch(space._id, {
       defaultPinnedModuleIds: [...args.pinnedModuleIds],
+      updatedAt: Date.now(),
+    })
+  },
+})
+const widgetInstance = v.object({
+  instanceId: v.string(),
+  widgetDefinitionId: v.string(),
+  size: v.union(v.literal('compact'), v.literal('standard'), v.literal('wide')),
+  config: v.optional(v.any()),
+})
+
+export const saveDefaultDashboard = mutation({
+  args: { spaceSlug: v.string(), dashboard: v.array(widgetInstance) },
+  handler: async (ctx, args) => {
+    const { space } = await requireActiveSpace(ctx, {
+      spaceSlug: args.spaceSlug,
+      requireAdmin: true,
+    })
+    const dashboard = await validateDashboard(ctx, space._id, args.dashboard)
+    await ctx.db.patch(space._id, {
+      defaultDashboard: [...dashboard],
       updatedAt: Date.now(),
     })
   },
@@ -389,5 +410,3 @@ async function upsertMembershipProjection(
     updatedAt: input.now,
   })
 }
-
-

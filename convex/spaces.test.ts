@@ -43,23 +43,7 @@ describe('Space provisioning', () => {
     const space = await t.run((ctx) => ctx.db.get(first.spaceId))
     expect(space).toMatchObject({
       defaultPinnedModuleIds: ['tasks', 'notes', 'calendar'],
-      defaultDashboard: [
-        {
-          instanceId: 'default:tasks.today',
-          widgetDefinitionId: 'tasks.today',
-          size: 'standard',
-        },
-        {
-          instanceId: 'default:notes.recent',
-          widgetDefinitionId: 'notes.recent',
-          size: 'standard',
-        },
-        {
-          instanceId: 'default:calendar.upcoming',
-          widgetDefinitionId: 'calendar.upcoming',
-          size: 'standard',
-        },
-      ],
+      defaultDashboard: [],
     })
   })
 
@@ -155,5 +139,51 @@ describe('Space provisioning', () => {
       dashboard: { source: 'personal', widgets: [] },
     })
   })
-})
+  test('lets admins save a validated shared dashboard without changing a personal snapshot', async () => {
+    const t = convexTest(schema, modules)
+    const projection = await t.mutation((internal as any).spaces.provisionTagged, {
+      clerkOrganizationId: 'org_wine',
+      clerkOrganizationName: 'Wine Club',
+      creatorClerkUserId: 'user_admin',
+    })
+    const admin = t.withIdentity({ subject: 'user_admin', org_id: 'org_wine', org_role: 'org:admin' })
+    const member = t.withIdentity({ subject: 'user_member', org_id: 'org_wine', org_role: 'org:member' })
+    await t.run(async (ctx) => {
+      const userId = await ctx.db.insert('users', {
+        clerkId: 'user_member',
+        name: 'Member',
+        email: 'member@example.com',
+      })
+      await ctx.db.insert('spaceMemberships', {
+        spaceId: projection.spaceId,
+        userId,
+        clerkUserId: 'user_member',
+        role: 'member',
+        createdAt: 1,
+        updatedAt: 1,
+      })
+    })
 
+    await admin.mutation((api as any).spaceModules.setState, {
+      spaceSlug: projection.spaceSlug,
+      moduleId: 'recipes',
+      state: 'enabled',
+    })
+    await member.mutation((api as any).spacePreferences.saveDashboard, {
+      spaceSlug: projection.spaceSlug,
+      dashboard: [],
+    })
+    await admin.mutation((api as any).spaces.saveDefaultDashboard, {
+      spaceSlug: projection.spaceSlug,
+      dashboard: [{ instanceId: 'shared-recipes', widgetDefinitionId: 'recipes.bookmarks', size: 'wide' }],
+    })
+
+    await expect(member.query((api as any).spaces.context, {
+      spaceSlug: projection.spaceSlug,
+    })).resolves.toMatchObject({ dashboard: { source: 'personal', widgets: [] } })
+    await expect(member.mutation((api as any).spaces.saveDefaultDashboard, {
+      spaceSlug: projection.spaceSlug,
+      dashboard: [],
+    })).rejects.toThrow('Space admin required')
+  })
+})

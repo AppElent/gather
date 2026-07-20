@@ -9,10 +9,11 @@ export function createNewSpaceDefaults(): {
 } {
   const moduleStates = createNewSpaceModuleStates(MODULES)
   const defaultModules = MODULES.filter((module) => module.defaultForNewSpaces)
+  const dashboardModules = defaultModules.filter((module) => module.availability === 'live')
   return {
     moduleStates,
     pinnedModuleIds: defaultModules.map((module) => module.id),
-    dashboard: defaultModules.flatMap((module) =>
+    dashboard: dashboardModules.flatMap((module) =>
       module.defaultWidgetIds.map((widgetDefinitionId) => {
         const definition = module.widgets.find(
           (widget) => widget.id === widgetDefinitionId,

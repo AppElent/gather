@@ -3,6 +3,7 @@ import {
   MODULES,
   type ModuleDef,
   type SpaceModuleState,
+  type WidgetInstance,
 } from '../../lib/modules'
 import { getVisibleModuleIds } from '../../lib/spaceModules'
 
@@ -17,7 +18,12 @@ export type SpaceContextValue = {
     spaceDefaultPinnedModuleIds?: readonly string[]
     personalPinnedModuleIds?: readonly string[]
   }
-  dashboard: { widgets: readonly unknown[] }
+  dashboard: {
+    widgets: readonly WidgetInstance[]
+    source?: 'space' | 'personal'
+    spaceDefaultDashboard?: readonly WidgetInstance[]
+    personalDashboard?: readonly WidgetInstance[]
+  }
 }
 
 const SpaceContext = createContext<SpaceContextValue | null>(null)

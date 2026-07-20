@@ -45,7 +45,7 @@ export async function validatePinnedModules(ctx: any, spaceId: any, pinnedModule
   }
 }
 
-async function validateDashboard(ctx: any, spaceId: any, dashboard: WidgetInstance[]) {
+export async function validateDashboard(ctx: any, spaceId: any, dashboard: WidgetInstance[]) {
   const visible = await visibleModules(ctx, spaceId)
   const definitions = visible.flatMap((module) => module.widgets)
   const instanceIds = new Set<string>()
