@@ -1,3 +1,4 @@
+import { useAuth } from '@clerk/clerk-react'
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useConvexAuth, useMutation } from 'convex/react'
 import { useEffect } from 'react'
@@ -9,28 +10,35 @@ export const Route = createFileRoute('/_app')({
 })
 
 function AppLayout() {
-  const { isAuthenticated, isLoading } = useConvexAuth()
+  // Clerk is the source of truth for "should we be on this route at all" -
+  // sign-in.tsx navigates here on the same signal, so the two routes never
+  // disagree. Convex's own isAuthenticated can lag behind (or, rarely, hang)
+  // right after a fresh sign-in; treat that as still-loading rather than
+  // bouncing back to /sign-in, which previously caused an infinite redirect
+  // loop between the two routes.
+  const { isLoaded: isClerkLoaded, isSignedIn } = useAuth()
+  const { isAuthenticated } = useConvexAuth()
   const ensureUser = useMutation(api.users.ensureUser)
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (isClerkLoaded && !isSignedIn) {
       void navigate({ to: '/sign-in' })
     }
-  }, [isLoading, isAuthenticated, navigate])
+  }, [isClerkLoaded, isSignedIn, navigate])
 
   useEffect(() => {
     if (isAuthenticated) void ensureUser({})
   }, [isAuthenticated, ensureUser])
 
-  if (isLoading) {
+  if (!isClerkLoaded || (isSignedIn && !isAuthenticated)) {
     return (
       <div className="app-shell grid min-h-svh place-items-center text-sm text-[var(--app-muted)]">
         Loading...
       </div>
     )
   }
-  if (!isAuthenticated) return null
+  if (!isSignedIn) return null
 
   return (
     <AppShell>
