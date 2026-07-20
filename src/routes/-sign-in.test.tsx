@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+﻿import { fireEvent, render, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { SignInPage } from './sign-in'
 
@@ -19,15 +19,15 @@ vi.mock('@appelent/auth', () => ({
       <button type="button" onClick={onSuccess}>
         Sign in
       </button>
-      <button type="button">▶ Dev: log in as test user</button>
+      <button type="button">â–¶ Dev: log in as test user</button>
     </section>
   ),
   TestLoginButton: ({ onSuccess }: { onSuccess: () => void }) => (
     <button type="button" onClick={onSuccess}>
-      ▶ Dev: log in as test user
+      â–¶ Dev: log in as test user
     </button>
   ),
-  useAuthConfig: () => ({ paths: { afterAuth: '/dashboard' } }),
+  useAuthConfig: () => ({ paths: { afterAuth: '/onboarding' } }),
 }))
 
 vi.mock('@tanstack/react-router', () => ({
@@ -55,7 +55,7 @@ test('renders one dev login button from the sign-in form', () => {
   render(<SignInPage />)
 
   expect(
-    screen.getAllByRole('button', { name: '▶ Dev: log in as test user' }),
+    screen.getAllByRole('button', { name: 'â–¶ Dev: log in as test user' }),
   ).toHaveLength(1)
 })
 
@@ -66,7 +66,7 @@ test('redirects signed-in users away from the sign-in page', () => {
 
   render(<SignInPage />)
 
-  expect(navigateMock).toHaveBeenCalledWith({ to: '/dashboard' })
+  expect(navigateMock).toHaveBeenCalledWith({ to: '/onboarding' })
 })
 
 test('keeps form success navigation to the post-auth route', () => {
@@ -77,5 +77,5 @@ test('keeps form success navigation to the post-auth route', () => {
   render(<SignInPage />)
   fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
-  expect(navigateMock).toHaveBeenCalledWith({ to: '/dashboard' })
+  expect(navigateMock).toHaveBeenCalledWith({ to: '/onboarding' })
 })

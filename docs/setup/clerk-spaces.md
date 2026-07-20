@@ -1,22 +1,33 @@
-# Clerk Spaces Setup
+﻿# Clerk Spaces Setup
 
-Gather Spaces are backed by Clerk Organizations and Convex `spaces` records.
+Gather Spaces are backed by marked Clerk Organizations and Convex `spaces`
+records. This setup is safe only after the compatibility gate in
+`clerk-shared-application.md` has passed.
 
-Required development configuration:
+## Required development configuration
 
-1. Enable Clerk Organizations.
-2. Keep Personal Accounts enabled.
-3. Keep Organization membership optional in the shared Clerk application.
-4. Do not enable Clerk's membership-required session task.
-5. Gather authorizes only Organization Admin (`org:admin`) and Member (`org:member`) roles. Do not delete, rename, or restrict other shared roles that may belong to another app.
-6. Add `org_id: {{org.id}}` and `org_role: {{org.role}}` to the shared `convex` JWT template only after the compatibility checks in `clerk-shared-application.md` pass.
-7. Preserve all existing JWT template claims and settings.
-8. Before continuing with Gather rollout, sign in to the shared Clerk development instance, activate a test Organization, request the `convex` token, decode its payload locally without recording the token body, and verify `org_id` and `org_role` match the active Organization and role.
-9. Configure the Clerk webhook URL once Task 5 adds the webhook action, and save its signing secret as `CLERK_WEBHOOK_SIGNING_SECRET` in Convex.
-10. Save `CLERK_SECRET_KEY` in the Convex deployment for backend Organization administration actions.
+1. Enable Organizations while keeping membership optional and Personal Accounts
+   enabled.
+2. Disable automatic first-Organization creation and Clerk’s membership-required
+   session task.
+3. Gather authorizes only `org:admin` and `org:member`; leave all other shared
+   roles and Role Sets unchanged.
+4. Preserve every existing `convex` JWT template claim and add only `org_id` and
+   `org_role` after the shared-app compatibility evidence is complete.
+5. Store `CLERK_JWT_ISSUER_DOMAIN`, `CLERK_SECRET_KEY`, and
+   `CLERK_WEBHOOK_SIGNING_SECRET` as Convex deployment environment values. Never
+   commit their values.
+6. Configure Clerk webhooks to POST to `/clerk-webhook`. Gather acknowledges
+   unrelated events without writes and projects only marked resources.
 
-Never commit Clerk secret keys, webhook secrets, JWT bodies, or real token values.
+## Rollout verification status
 
-## Webhook isolation
+As of 2026-07-20, live Clerk dashboard configuration and the two-user acceptance
+matrix are **pending**. They require the authoritative shared-consumer inventory,
+test users, and permission to change the shared Clerk development instance. No
+external Clerk resource was created, renamed, remapped, restricted, or deleted by
+this implementation task.
 
-Configure Clerk to send only POST requests to /clerk-webhook. Gather verifies each delivery with CLERK_WEBHOOK_SIGNING_SECRET before inspecting its contents. In a shared Clerk application, only Gather-marked Organizations and invitations are projected; unrelated events are acknowledged without writes.
+When authorized, verify active Organization claims locally without recording
+claims values or tokens, then run the Space acceptance matrix from the implementation
+plan. Record only timestamps, check names, and PASS/FAIL outcomes.

@@ -1,4 +1,4 @@
-export type SpaceRole = 'admin' | 'member'
+﻿export type SpaceRole = 'admin' | 'member'
 export type ModuleAvailability = 'live' | 'comingSoon'
 export type SpaceModuleState = 'preEnabled' | 'enabled' | 'archived'
 export type WidgetSize = 'compact' | 'standard' | 'wide'
@@ -37,16 +37,16 @@ export interface SpaceClaims {
 }
 
 export type ModuleStatus = 'live' | 'placeholder'
-export const MODULE_GROUPS = [
+export const MODULE_CATEGORIES = [
   'Kitchen',
   'Money',
   'Home & life',
   'Tasting',
 ] as const
-export type ModuleGroup = (typeof MODULE_GROUPS)[number]
+export type ModuleCategory = (typeof MODULE_CATEGORIES)[number]
 
 export type ModuleDef = ModuleDefinition & {
-  group: ModuleGroup
+  group: ModuleCategory
   path: string
   status: ModuleStatus
 }
@@ -98,7 +98,7 @@ function statusFromAvailability(
 }
 
 function defineModule(
-  definition: ModuleDefinition & { group: ModuleGroup },
+  definition: ModuleDefinition & { group: ModuleCategory },
 ): ModuleDef {
   return {
     ...definition,
@@ -250,10 +250,10 @@ export function getModuleDefinition(
   return MODULES.find((module) => module.id === moduleId)
 }
 
-export function modulesByGroup(): Record<ModuleGroup, ModuleDef[]> {
+export function modulesByCategory(): Record<ModuleCategory, ModuleDef[]> {
   const out = Object.fromEntries(
-    MODULE_GROUPS.map((g) => [g, [] as ModuleDef[]]),
-  ) as Record<ModuleGroup, ModuleDef[]>
+    MODULE_CATEGORIES.map((g) => [g, [] as ModuleDef[]]),
+  ) as Record<ModuleCategory, ModuleDef[]>
   for (const module of MODULES) out[module.group].push(module)
   return out
 }

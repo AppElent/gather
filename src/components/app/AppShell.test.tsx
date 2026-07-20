@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+﻿import { fireEvent, render, screen } from '@testing-library/react'
 import type { AnchorHTMLAttributes, ReactNode } from 'react'
 import { expect, test, vi } from 'vitest'
 
@@ -71,7 +71,7 @@ test('renders a calm two-column Space shell without the inspector or feed', () =
   expect(screen.getAllByRole('link', { name: 'Home' })).not.toHaveLength(0)
   expect(screen.getAllByRole('link', { name: 'Recipes' })).not.toHaveLength(0)
   expect(screen.getAllByRole('link', { name: 'All' })).not.toHaveLength(0)
-  expect(screen.queryByLabelText('Group overview')).toBeNull()
+  expect(screen.queryByLabelText('legacy overview')).toBeNull()
   expect(screen.getByRole('main').textContent).toContain('Space route content')
 })
 

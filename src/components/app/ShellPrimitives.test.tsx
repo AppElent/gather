@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+﻿import { render, screen } from '@testing-library/react'
 import { Bell } from 'lucide-react'
 import { expect, test } from 'vitest'
 import {
@@ -22,14 +22,14 @@ test('IconButton renders an accessible icon-only button', () => {
 
 test('SurfaceCard, SectionHeader, Pill, StatusDot, and AvatarStack render shell UI content', () => {
   render(
-    <SurfaceCard ariaLabel="Group status">
+    <SurfaceCard ariaLabel="Space status">
       <SectionHeader title="Today" action={<Pill>synced</Pill>} />
       <StatusDot label="Connected" />
       <AvatarStack members={['Alex', 'Maya', 'Sam']} />
     </SurfaceCard>,
   )
 
-  expect(screen.getByLabelText('Group status')).toBeDefined()
+  expect(screen.getByLabelText('Space status')).toBeDefined()
   expect(screen.getByRole('heading', { name: 'Today' })).toBeDefined()
   expect(screen.getByText('synced')).toBeDefined()
   expect(screen.getByText('Connected')).toBeDefined()

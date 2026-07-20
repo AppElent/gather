@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router'
+﻿import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 
 interface PublicPageFrameProps {
@@ -21,7 +21,7 @@ export function PublicPageFrame({
       <header className="border-b border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-surface)_88%,transparent)]">
         <div className="mx-auto flex min-h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 md:px-6">
           <Link
-            to="/dashboard"
+            to="/onboarding"
             className="flex min-w-0 items-center gap-2 text-[var(--app-fg)] no-underline"
           >
             <span className="grid h-8 w-8 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-sm font-bold">
@@ -30,7 +30,7 @@ export function PublicPageFrame({
             <span className="min-w-0">
               <strong className="block truncate text-sm">Gather</strong>
               <span className="block truncate text-xs text-[var(--app-muted)]">
-                Command center
+                Spaces
               </span>
             </span>
           </Link>

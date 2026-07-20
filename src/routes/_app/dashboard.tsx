@@ -1,10 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { CommandFeed } from '../../components/app/CommandFeed'
+﻿import { createFileRoute } from '@tanstack/react-router'
+import { LegacySpaceRedirect } from '../../components/spaces/LegacySpaceRedirect'
 
 export const Route = createFileRoute('/_app/dashboard')({
   component: Dashboard,
 })
 
 function Dashboard() {
-  return <CommandFeed />
+  return <LegacySpaceRedirect from="/dashboard" />
 }

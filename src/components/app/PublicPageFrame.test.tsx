@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+﻿import { render, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { PublicPageFrame } from './PublicPageFrame'
 
@@ -18,7 +18,7 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-test('renders public pages in the command-center visual system', () => {
+test('renders public pages in the Space visual system', () => {
   render(
     <PublicPageFrame eyebrow="Public" title="Welcome back" subtitle="Sign in.">
       <form aria-label="Auth form" />
@@ -26,7 +26,7 @@ test('renders public pages in the command-center visual system', () => {
   )
 
   expect(screen.getByText('Gather')).toBeDefined()
-  expect(screen.getByText('Command center')).toBeDefined()
+  expect(screen.getByText('Spaces')).toBeDefined()
   expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeDefined()
   expect(screen.getByLabelText('Auth form')).toBeDefined()
   expect(screen.getByRole('main').className).toContain('app-shell')
