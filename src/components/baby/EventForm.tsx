@@ -15,6 +15,7 @@ import {
   FEEDING_SIDE_LABELS,
   TEMPERATURE_METHOD_LABELS,
 } from '../../lib/babyEventFields'
+import { readLastUsed, writeLastUsed } from '../../lib/lastUsed'
 
 const inputClass =
   'w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)] disabled:cursor-not-allowed disabled:opacity-60'
@@ -61,21 +62,29 @@ export function EventForm({
     typeof data.celsius === 'number' ? String(data.celsius) : '',
   )
   const [tempMethod, setTempMethod] = useState(
-    typeof data.method === 'string' ? data.method : '',
+    typeof data.method === 'string'
+      ? data.method
+      : (readLastUsed('temperatureMethod') ?? ''),
   )
 
   const [feedingMethod, setFeedingMethod] = useState(
-    typeof data.method === 'string' ? data.method : 'bottle',
+    typeof data.method === 'string'
+      ? data.method
+      : (readLastUsed('feedingMethod') ?? 'bottle'),
   )
   const [feedingSide, setFeedingSide] = useState(
-    typeof data.side === 'string' ? data.side : '',
+    typeof data.side === 'string'
+      ? data.side
+      : (readLastUsed('feedingSide') ?? ''),
   )
   const [amountMl, setAmountMl] = useState(
     typeof data.amountMl === 'number' ? String(data.amountMl) : '',
   )
 
   const [diaperKind, setDiaperKind] = useState(
-    typeof data.kind === 'string' ? data.kind : 'wet',
+    typeof data.kind === 'string'
+      ? data.kind
+      : (readLastUsed('diaperKind') ?? 'wet'),
   )
 
   const [weightKg, setWeightKg] = useState(
@@ -170,6 +179,17 @@ export function EventForm({
     }
   }
 
+  function rememberChoices() {
+    if (type === 'temperature' && tempMethod) {
+      writeLastUsed('temperatureMethod', tempMethod)
+    } else if (type === 'feeding') {
+      writeLastUsed('feedingMethod', feedingMethod)
+      if (feedingSide) writeLastUsed('feedingSide', feedingSide)
+    } else if (type === 'diaper') {
+      writeLastUsed('diaperKind', diaperKind)
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     const built = buildData()
@@ -177,6 +197,7 @@ export function EventForm({
       setError(built.error)
       return
     }
+    rememberChoices()
     setSubmitting(true)
     setError(null)
     try {

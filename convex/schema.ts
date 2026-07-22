@@ -129,6 +129,10 @@ export default defineSchema({
       v.union(v.literal('female'), v.literal('male'), v.literal('unspecified')),
     ),
     photoId: v.optional(v.id('_storage')),
+    // Lazily created by babies.ensureTodoList — the to-do card pinned atop
+    // the baby detail page is just a local taskList, reusing the Tasks
+    // module instead of a parallel todo concept.
+    taskListId: v.optional(v.id('taskLists')),
     order: v.number(),
   }).index('by_group', ['groupId']),
 

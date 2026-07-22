@@ -82,7 +82,7 @@ export function ExportPdfButton({
   }
 
   return (
-    <SurfaceCard>
+    <SurfaceCard className="w-full">
       <h2 className="m-0 mb-3 text-sm font-semibold">Export PDF</h2>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">

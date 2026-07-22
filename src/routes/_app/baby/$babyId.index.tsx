@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useQuery } from 'convex/react'
-import { useMemo } from 'react'
+import { useMutation, useQuery } from 'convex/react'
+import { useEffect, useMemo } from 'react'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
 import { SurfaceCard } from '../../../components/app/ShellPrimitives'
 import { BabySwitcher } from '../../../components/baby/BabySwitcher'
+import { BabyTodoCard } from '../../../components/baby/BabyTodoCard'
 import { ExportPdfButton } from '../../../components/baby/ExportPdfButton'
 import { QuickLogButtons } from '../../../components/baby/QuickLogButtons'
 import { Timeline } from '../../../components/baby/Timeline'
@@ -20,7 +21,18 @@ function BabyDetail() {
   const id = babyId as Id<'babies'>
   const baby = useQuery(api.babies.get, { id })
   const babies = useQuery(api.babies.list)
-  const events = useQuery(api.babyEvents.listByBaby, { babyId: id })
+  // Skip until the baby has actually loaded — firing this unconditionally
+  // means a deleted/inaccessible id makes requireBabyAccess throw instead
+  // of falling through to the "Child not found" state below.
+  const events = useQuery(
+    api.babyEvents.listByBaby,
+    baby ? { babyId: id } : 'skip',
+  )
+  const ensureTodoList = useMutation(api.babies.ensureTodoList)
+
+  useEffect(() => {
+    if (baby && !baby.taskListId) void ensureTodoList({ id: baby._id })
+  }, [baby, ensureTodoList])
 
   const temperaturePoints = useMemo(
     () =>
@@ -51,6 +63,8 @@ function BabyDetail() {
 
   return (
     <div className="mx-auto grid max-w-5xl gap-4">
+      {baby.taskListId && <BabyTodoCard taskListId={baby.taskListId} />}
+
       {babies && <BabySwitcher babies={babies} activeId={id} />}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -71,7 +85,7 @@ function BabyDetail() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <ExportPdfButton
             babyId={id}
             babyName={baby.name}

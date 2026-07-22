@@ -1,6 +1,7 @@
 import { useMutation } from 'convex/react'
 import type { LucideIcon } from 'lucide-react'
 import * as Icons from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
@@ -97,21 +98,23 @@ export function Timeline({ babyId, events }: TimelineProps) {
                     <div className="flex shrink-0 gap-1">
                       <button
                         type="button"
-                        className="text-xs underline"
+                        aria-label={`Edit ${BABY_EVENT_LABELS[event.type]} entry`}
+                        className="grid min-h-9 min-w-9 place-items-center rounded-[var(--app-radius)] text-[var(--app-muted)]"
                         onClick={() => setEditingId(event._id)}
                       >
-                        Edit
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
                       </button>
                       <button
                         type="button"
-                        className="text-xs text-red-800 underline"
+                        aria-label={`Delete ${BABY_EVENT_LABELS[event.type]} entry`}
+                        className="grid min-h-9 min-w-9 place-items-center rounded-[var(--app-radius)] text-red-800"
                         onClick={() => {
                           if (window.confirm('Delete this entry?')) {
                             void remove({ eventId: event._id })
                           }
                         }}
                       >
-                        Delete
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                       </button>
                     </div>
                   </li>

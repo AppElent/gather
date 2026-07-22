@@ -85,6 +85,31 @@ export const create = mutation({
   },
 })
 
+/** Lazily creates the local taskList backing the baby's pinned to-do card
+ * (reuses the Tasks module instead of a parallel todo concept) and returns
+ * its id, creating it on first use. */
+export const ensureTodoList = mutation({
+  args: { id: v.id('babies') },
+  handler: async (ctx, args) => {
+    const { baby } = await requireBabyAccess(ctx, args.id)
+    if (baby.taskListId) return baby.taskListId
+    const existing = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', baby.groupId))
+      .collect()
+    const nextOrder =
+      existing.reduce((max, l) => Math.max(max, l.order), -1) + 1
+    const taskListId = await ctx.db.insert('taskLists', {
+      groupId: baby.groupId,
+      name: `${baby.name} to-dos`,
+      provider: 'local',
+      order: nextOrder,
+    })
+    await ctx.db.patch(args.id, { taskListId })
+    return taskListId
+  },
+})
+
 export const update = mutation({
   args: {
     id: v.id('babies'),
@@ -107,12 +132,21 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id('babies') },
   handler: async (ctx, args) => {
-    await requireBabyAccess(ctx, args.id)
+    const { baby } = await requireBabyAccess(ctx, args.id)
     const events = await ctx.db
       .query('babyEvents')
       .withIndex('by_baby', (q) => q.eq('babyId', args.id))
       .collect()
     await Promise.all(events.map((e) => ctx.db.delete(e._id)))
+    if (baby.taskListId) {
+      const taskListId = baby.taskListId
+      const tasks = await ctx.db
+        .query('tasks')
+        .withIndex('by_list', (q) => q.eq('listId', taskListId))
+        .collect()
+      await Promise.all(tasks.map((t) => ctx.db.delete(t._id)))
+      await ctx.db.delete(taskListId)
+    }
     await ctx.db.delete(args.id)
   },
 })
