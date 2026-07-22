@@ -1,3 +1,12 @@
+export const DEFAULT_TEMPERATURE_CELSIUS = '37.5'
+
+// 34.0–42.0°C in 0.1° steps — a select instead of free text: fewer taps,
+// no keyboard popup, and it can't produce an out-of-range typo.
+export const TEMPERATURE_OPTIONS: string[] = Array.from(
+  { length: 81 },
+  (_, i) => (34 + i * 0.1).toFixed(1),
+)
+
 export const TEMPERATURE_METHOD_LABELS: Record<string, string> = {
   oral: 'Oral',
   rectal: 'Rectal',

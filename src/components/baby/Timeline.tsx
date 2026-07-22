@@ -1,7 +1,7 @@
 import { useMutation } from 'convex/react'
 import type { LucideIcon } from 'lucide-react'
 import * as Icons from 'lucide-react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { ChevronRight, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
@@ -72,51 +72,48 @@ export function Timeline({ babyId, events }: TimelineProps) {
                     />
                   </li>
                 ) : (
-                  <li
-                    key={event._id}
-                    className="flex items-start gap-3 p-3 text-sm"
-                  >
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)] text-[var(--app-muted)]">
-                      <EventIcon type={event.type} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-2">
-                        <span className="font-semibold">
-                          {BABY_EVENT_LABELS[event.type]}
-                        </span>
-                        <span className="text-xs text-[var(--app-muted)]">
-                          {formatEventTimestamp(event.timestamp)}
-                        </span>
+                  <li key={event._id} className="flex items-stretch gap-1">
+                    <button
+                      type="button"
+                      className="flex flex-1 items-start gap-3 p-3 text-left text-sm"
+                      onClick={() => setEditingId(event._id)}
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)] text-[var(--app-muted)]">
+                        <EventIcon type={event.type} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <span className="font-semibold">
+                            {BABY_EVENT_LABELS[event.type]}
+                          </span>
+                          <span className="text-xs text-[var(--app-muted)]">
+                            {formatEventTimestamp(event.timestamp)}
+                          </span>
+                        </div>
+                        <p className="m-0 mt-0.5">{summarizeEvent(event)}</p>
+                        {event.notes && (
+                          <p className="m-0 mt-0.5 text-[var(--app-muted)]">
+                            {event.notes}
+                          </p>
+                        )}
                       </div>
-                      <p className="m-0 mt-0.5">{summarizeEvent(event)}</p>
-                      {event.notes && (
-                        <p className="m-0 mt-0.5 text-[var(--app-muted)]">
-                          {event.notes}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 gap-1">
-                      <button
-                        type="button"
-                        aria-label={`Edit ${BABY_EVENT_LABELS[event.type]} entry`}
-                        className="grid min-h-9 min-w-9 place-items-center rounded-[var(--app-radius)] text-[var(--app-muted)]"
-                        onClick={() => setEditingId(event._id)}
-                      >
-                        <Pencil className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Delete ${BABY_EVENT_LABELS[event.type]} entry`}
-                        className="grid min-h-9 min-w-9 place-items-center rounded-[var(--app-radius)] text-red-800"
-                        onClick={() => {
-                          if (window.confirm('Delete this entry?')) {
-                            void remove({ eventId: event._id })
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                    </div>
+                      <ChevronRight
+                        className="mt-1 h-4 w-4 shrink-0 text-[var(--app-muted)]"
+                        aria-hidden="true"
+                      />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Delete ${BABY_EVENT_LABELS[event.type]} entry`}
+                      className="grid min-h-9 min-w-9 shrink-0 place-items-center self-center rounded-[var(--app-radius)] text-red-800"
+                      onClick={() => {
+                        if (window.confirm('Delete this entry?')) {
+                          void remove({ eventId: event._id })
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
                   </li>
                 ),
               )}

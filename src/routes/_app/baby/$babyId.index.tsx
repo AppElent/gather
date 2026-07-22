@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
 import { SurfaceCard } from '../../../components/app/ShellPrimitives'
 import { BabySwitcher } from '../../../components/baby/BabySwitcher'
 import { BabyTodoCard } from '../../../components/baby/BabyTodoCard'
 import { ExportPdfButton } from '../../../components/baby/ExportPdfButton'
+import { ExportPdfPanel } from '../../../components/baby/ExportPdfPanel'
 import { QuickLogButtons } from '../../../components/baby/QuickLogButtons'
 import { Timeline } from '../../../components/baby/Timeline'
 import { TrendChart } from '../../../components/baby/TrendChart'
@@ -21,6 +22,7 @@ function BabyDetail() {
   const id = babyId as Id<'babies'>
   const baby = useQuery(api.babies.get, { id })
   const babies = useQuery(api.babies.list)
+  const [exportOpen, setExportOpen] = useState(false)
   // Skip until the baby has actually loaded — firing this unconditionally
   // means a deleted/inaccessible id makes requireBabyAccess throw instead
   // of falling through to the "Child not found" state below.
@@ -86,11 +88,7 @@ function BabyDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <ExportPdfButton
-            babyId={id}
-            babyName={baby.name}
-            babyBirthDate={baby.birthDate}
-          />
+          <ExportPdfButton onClick={() => setExportOpen(true)} />
           <Link
             to="/baby/$babyId/edit"
             params={{ babyId: id }}
@@ -100,6 +98,15 @@ function BabyDetail() {
           </Link>
         </div>
       </div>
+
+      {exportOpen && (
+        <ExportPdfPanel
+          babyId={id}
+          babyName={baby.name}
+          babyBirthDate={baby.birthDate}
+          onClose={() => setExportOpen(false)}
+        />
+      )}
 
       <QuickLogButtons babyId={id} />
 

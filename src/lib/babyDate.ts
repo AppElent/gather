@@ -31,16 +31,28 @@ export function formatAge(
     : `${years}y ${remMonths}m old`
 }
 
-/** `<input type="datetime-local">` value (local time, no timezone) from epoch ms. */
-export function toDatetimeLocalValue(ms: number): string {
+// `<input type="datetime-local">` renders unpredictably wide on mobile
+// Safari (the combined widget doesn't respect its container's width),
+// overflowing its card — so date and time are separate `type="date"` /
+// `type="time"` inputs instead, combined via these helpers.
+
+/** `<input type="date">` value (local time) from epoch ms. */
+export function toDateInputValue(ms: number): string {
   const d = new Date(ms)
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-/** Inverse of toDatetimeLocalValue: local datetime-local string to epoch ms. */
-export function fromDatetimeLocalValue(value: string): number {
-  return new Date(value).getTime()
+/** `<input type="time">` value (local time) from epoch ms. */
+export function toTimeInputValue(ms: number): string {
+  const d = new Date(ms)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** Combine a `type="date"` value and a `type="time"` value (local time) into epoch ms. */
+export function combineDateTime(dateStr: string, timeStr: string): number {
+  return new Date(`${dateStr}T${timeStr || '00:00'}`).getTime()
 }
 
 export function formatEventTimestamp(ms: number): string {

@@ -6,14 +6,17 @@ import type { Doc, Id } from '../../../convex/_generated/dataModel'
 import type { BabyEventType } from '../../../convex/lib/babyEvents'
 import { BABY_EVENT_LABELS } from '../../../convex/lib/babyEvents'
 import {
-  fromDatetimeLocalValue,
-  toDatetimeLocalValue,
+  combineDateTime,
+  toDateInputValue,
+  toTimeInputValue,
 } from '../../lib/babyDate'
 import {
+  DEFAULT_TEMPERATURE_CELSIUS,
   DIAPER_KIND_LABELS,
   FEEDING_METHOD_LABELS,
   FEEDING_SIDE_LABELS,
   TEMPERATURE_METHOD_LABELS,
+  TEMPERATURE_OPTIONS,
 } from '../../lib/babyEventFields'
 import { readLastUsed, writeLastUsed } from '../../lib/lastUsed'
 
@@ -48,19 +51,40 @@ export function EventForm({
   const update = useMutation(api.babyEvents.update)
   const data = (event?.data ?? {}) as Record<string, unknown>
 
-  const [timestamp, setTimestamp] = useState(
-    toDatetimeLocalValue(event?.timestamp ?? Date.now()),
-  )
-  const [endTimestamp, setEndTimestamp] = useState(
-    event?.endTimestamp ? toDatetimeLocalValue(event.endTimestamp) : '',
+  const [timestampMs, setTimestampMs] = useState(event?.timestamp ?? Date.now())
+  const [endTimestampMs, setEndTimestampMs] = useState<number | undefined>(
+    event?.endTimestamp,
   )
   const [notes, setNotes] = useState(event?.notes ?? '')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  function setEndDate(dateStr: string) {
+    if (!dateStr) {
+      setEndTimestampMs(undefined)
+      return
+    }
+    const time = endTimestampMs
+      ? toTimeInputValue(endTimestampMs)
+      : toTimeInputValue(timestampMs)
+    setEndTimestampMs(combineDateTime(dateStr, time))
+  }
+
+  function setEndTime(timeStr: string) {
+    const date = endTimestampMs
+      ? toDateInputValue(endTimestampMs)
+      : toDateInputValue(timestampMs)
+    setEndTimestampMs(combineDateTime(date, timeStr))
+  }
+
   const [celsius, setCelsius] = useState(
-    typeof data.celsius === 'number' ? String(data.celsius) : '',
+    typeof data.celsius === 'number'
+      ? data.celsius.toFixed(1)
+      : (readLastUsed('temperatureCelsius') ?? DEFAULT_TEMPERATURE_CELSIUS),
   )
+  const temperatureOptions = TEMPERATURE_OPTIONS.includes(celsius)
+    ? TEMPERATURE_OPTIONS
+    : [celsius, ...TEMPERATURE_OPTIONS]
   const [tempMethod, setTempMethod] = useState(
     typeof data.method === 'string'
       ? data.method
@@ -117,15 +141,10 @@ export function EventForm({
 
   function buildData(): { data: Record<string, unknown>; error?: string } {
     switch (type) {
-      case 'temperature': {
-        const value = Number(celsius.replace(',', '.'))
-        if (!celsius.trim() || !Number.isFinite(value)) {
-          return { data: {}, error: 'Enter a temperature in °C' }
-        }
+      case 'temperature':
         return {
-          data: { celsius: value, method: tempMethod || undefined },
+          data: { celsius: Number(celsius), method: tempMethod || undefined },
         }
-      }
       case 'feeding':
         return {
           data: {
@@ -180,8 +199,9 @@ export function EventForm({
   }
 
   function rememberChoices() {
-    if (type === 'temperature' && tempMethod) {
-      writeLastUsed('temperatureMethod', tempMethod)
+    if (type === 'temperature') {
+      writeLastUsed('temperatureCelsius', celsius)
+      if (tempMethod) writeLastUsed('temperatureMethod', tempMethod)
     } else if (type === 'feeding') {
       writeLastUsed('feedingMethod', feedingMethod)
       if (feedingSide) writeLastUsed('feedingSide', feedingSide)
@@ -201,15 +221,11 @@ export function EventForm({
     setSubmitting(true)
     setError(null)
     try {
-      const ts = fromDatetimeLocalValue(timestamp)
-      const endTs = endTimestamp
-        ? fromDatetimeLocalValue(endTimestamp)
-        : undefined
       if (event) {
         await update({
           eventId: event._id,
-          timestamp: ts,
-          endTimestamp: endTs ?? null,
+          timestamp: timestampMs,
+          endTimestamp: endTimestampMs ?? null,
           notes: notes.trim() || null,
           data: built.data,
         })
@@ -217,8 +233,8 @@ export function EventForm({
         await add({
           babyId,
           type,
-          timestamp: ts,
-          endTimestamp: endTs,
+          timestamp: timestampMs,
+          endTimestamp: endTimestampMs,
           notes: notes.trim() || undefined,
           data: built.data,
         })
@@ -237,28 +253,62 @@ export function EventForm({
       </h3>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">
+        <div>
+          <span className="mb-1 block text-sm font-medium">
             {type === 'sleep' ? 'Start' : 'When'}
           </span>
-          <input
-            type="datetime-local"
-            className={inputClass}
-            value={timestamp}
-            onChange={(e) => setTimestamp(e.target.value)}
-            required
-          />
-        </label>
-        {(type === 'sleep' || type === 'feeding') && (
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium">End (optional)</span>
+          <div className="flex gap-2">
             <input
-              type="datetime-local"
+              type="date"
               className={inputClass}
-              value={endTimestamp}
-              onChange={(e) => setEndTimestamp(e.target.value)}
+              value={toDateInputValue(timestampMs)}
+              onChange={(e) =>
+                setTimestampMs(
+                  combineDateTime(
+                    e.target.value,
+                    toTimeInputValue(timestampMs),
+                  ),
+                )
+              }
+              required
             />
-          </label>
+            <input
+              type="time"
+              className={inputClass}
+              value={toTimeInputValue(timestampMs)}
+              onChange={(e) =>
+                setTimestampMs(
+                  combineDateTime(
+                    toDateInputValue(timestampMs),
+                    e.target.value,
+                  ),
+                )
+              }
+              required
+            />
+          </div>
+        </div>
+        {(type === 'sleep' || type === 'feeding') && (
+          <div>
+            <span className="mb-1 block text-sm font-medium">
+              End (optional)
+            </span>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                className={inputClass}
+                value={endTimestampMs ? toDateInputValue(endTimestampMs) : ''}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+              <input
+                type="time"
+                className={inputClass}
+                value={endTimestampMs ? toTimeInputValue(endTimestampMs) : ''}
+                onChange={(e) => setEndTime(e.target.value)}
+                disabled={!endTimestampMs}
+              />
+            </div>
+          </div>
         )}
       </div>
 
@@ -266,15 +316,17 @@ export function EventForm({
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Temperature (°C)</span>
-            <input
-              type="number"
-              step="0.1"
-              inputMode="decimal"
+            <select
               className={inputClass}
               value={celsius}
               onChange={(e) => setCelsius(e.target.value)}
-              required
-            />
+            >
+              {temperatureOptions.map((v) => (
+                <option key={v} value={v}>
+                  {v}°C
+                </option>
+              ))}
+            </select>
           </label>
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Method</span>
