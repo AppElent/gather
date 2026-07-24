@@ -79,13 +79,3 @@ export function dayKey(ms: number): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
-
-/** Start-of-day epoch ms for a local `YYYY-MM-DD` date string. */
-export function startOfDayMs(dateStr: string): number {
-  return new Date(`${dateStr}T00:00:00`).getTime()
-}
-
-/** End-of-day (23:59:59.999) epoch ms for a local `YYYY-MM-DD` date string. */
-export function endOfDayMs(dateStr: string): number {
-  return new Date(`${dateStr}T23:59:59.999`).getTime()
-}

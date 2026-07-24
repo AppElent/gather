@@ -21,7 +21,7 @@ import {
 import { readLastUsed, writeLastUsed } from '../../lib/lastUsed'
 
 const inputClass =
-  'w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)] disabled:cursor-not-allowed disabled:opacity-60'
+  'w-full min-w-0 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)] disabled:cursor-not-allowed disabled:opacity-60'
 
 type BabyEventDoc = Doc<'babyEvents'>
 
@@ -253,7 +253,7 @@ export function EventForm({
       </h3>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div>
+        <div className="min-w-0">
           <span className="mb-1 block text-sm font-medium">
             {type === 'sleep' ? 'Start' : 'When'}
           </span>
@@ -289,7 +289,7 @@ export function EventForm({
           </div>
         </div>
         {(type === 'sleep' || type === 'feeding') && (
-          <div>
+          <div className="min-w-0">
             <span className="mb-1 block text-sm font-medium">
               End (optional)
             </span>

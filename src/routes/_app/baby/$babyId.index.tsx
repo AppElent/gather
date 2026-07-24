@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
 import { SurfaceCard } from '../../../components/app/ShellPrimitives'
+import { BabyChecklistCard } from '../../../components/baby/BabyChecklistCard'
 import { BabySwitcher } from '../../../components/baby/BabySwitcher'
-import { BabyTodoCard } from '../../../components/baby/BabyTodoCard'
 import { ExportPdfButton } from '../../../components/baby/ExportPdfButton'
 import { ExportPdfPanel } from '../../../components/baby/ExportPdfPanel'
 import { QuickLogButtons } from '../../../components/baby/QuickLogButtons'
@@ -31,10 +31,17 @@ function BabyDetail() {
     baby ? { babyId: id } : 'skip',
   )
   const ensureTodoList = useMutation(api.babies.ensureTodoList)
+  const ensureQuestionsList = useMutation(api.babies.ensureQuestionsList)
 
   useEffect(() => {
     if (baby && !baby.taskListId) void ensureTodoList({ id: baby._id })
   }, [baby, ensureTodoList])
+
+  useEffect(() => {
+    if (baby && !baby.questionsListId) {
+      void ensureQuestionsList({ id: baby._id })
+    }
+  }, [baby, ensureQuestionsList])
 
   const temperaturePoints = useMemo(
     () =>
@@ -65,7 +72,21 @@ function BabyDetail() {
 
   return (
     <div className="mx-auto grid max-w-5xl gap-4">
-      {baby.taskListId && <BabyTodoCard taskListId={baby.taskListId} />}
+      {baby.taskListId && (
+        <BabyChecklistCard
+          taskListId={baby.taskListId}
+          title="To-do"
+          placeholder="Buy diapers, call pediatrician…"
+        />
+      )}
+      {baby.questionsListId && (
+        <BabyChecklistCard
+          taskListId={baby.questionsListId}
+          title="Questions"
+          placeholder="Ask about sleep regression…"
+          collapsible
+        />
+      )}
 
       {babies && <BabySwitcher babies={babies} activeId={id} />}
 

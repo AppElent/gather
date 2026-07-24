@@ -7,13 +7,15 @@ import {
   BABY_EVENT_LABELS,
   BABY_EVENT_TYPES,
 } from '../../../convex/lib/babyEvents'
-import { endOfDayMs, startOfDayMs } from '../../lib/babyDate'
+import {
+  combineDateTime,
+  toDateInputValue,
+  toTimeInputValue,
+} from '../../lib/babyDate'
 import { SurfaceCard } from '../app/ShellPrimitives'
 
 const inputClass =
-  'w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)]'
-
-const todayStr = () => new Date().toISOString().slice(0, 10)
+  'w-full min-w-0 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)]'
 
 interface ExportPdfPanelProps {
   babyId: Id<'babies'>
@@ -29,8 +31,13 @@ export function ExportPdfPanel({
   onClose,
 }: ExportPdfPanelProps) {
   const convex = useConvex()
-  const [from, setFrom] = useState(babyBirthDate)
-  const [to, setTo] = useState(todayStr)
+  // From defaults to birth date at the very start of that day; To defaults
+  // to right now (not midnight) so the default range never silently
+  // excludes everything logged today.
+  const [fromMs, setFromMs] = useState(() =>
+    combineDateTime(babyBirthDate, '00:00'),
+  )
+  const [toMs, setToMs] = useState(() => Date.now())
   const [types, setTypes] = useState<BabyEventType[]>([...BABY_EVENT_TYPES])
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,8 +52,6 @@ export function ExportPdfPanel({
     setExporting(true)
     setError(null)
     try {
-      const fromMs = startOfDayMs(from)
-      const toMs = endOfDayMs(to)
       // jsPDF + jspdf-autotable are ~140KB gzipped — load them only when the
       // user actually exports, instead of on every visit to this page.
       const { exportBabyLogPdf } = await import('../../lib/babyPdfExport')
@@ -74,24 +79,52 @@ export function ExportPdfPanel({
     <SurfaceCard>
       <h2 className="m-0 mb-3 text-sm font-semibold">Export PDF</h2>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">From</span>
-          <input
-            type="date"
-            className={inputClass}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">To</span>
-          <input
-            type="date"
-            className={inputClass}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-          />
-        </label>
+        <div className="min-w-0">
+          <span className="mb-1 block text-sm font-medium">From</span>
+          <div className="flex gap-2">
+            <input
+              type="date"
+              className={inputClass}
+              value={toDateInputValue(fromMs)}
+              onChange={(e) =>
+                setFromMs(
+                  combineDateTime(e.target.value, toTimeInputValue(fromMs)),
+                )
+              }
+            />
+            <input
+              type="time"
+              className={inputClass}
+              value={toTimeInputValue(fromMs)}
+              onChange={(e) =>
+                setFromMs(
+                  combineDateTime(toDateInputValue(fromMs), e.target.value),
+                )
+              }
+            />
+          </div>
+        </div>
+        <div className="min-w-0">
+          <span className="mb-1 block text-sm font-medium">To</span>
+          <div className="flex gap-2">
+            <input
+              type="date"
+              className={inputClass}
+              value={toDateInputValue(toMs)}
+              onChange={(e) =>
+                setToMs(combineDateTime(e.target.value, toTimeInputValue(toMs)))
+              }
+            />
+            <input
+              type="time"
+              className={inputClass}
+              value={toTimeInputValue(toMs)}
+              onChange={(e) =>
+                setToMs(combineDateTime(toDateInputValue(toMs), e.target.value))
+              }
+            />
+          </div>
+        </div>
       </div>
 
       <fieldset className="mt-3">

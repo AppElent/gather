@@ -1,6 +1,8 @@
 import { ConvexError, v } from 'convex/values'
+import type { Doc, Id } from './_generated/dataModel'
 import { requireBabyAccess } from './lib/babyAccess'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
+import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 
 /** Babies for the viewer's default group; null = no default group set. */
@@ -85,28 +87,56 @@ export const create = mutation({
   },
 })
 
-/** Lazily creates the local taskList backing the baby's pinned to-do card
- * (reuses the Tasks module instead of a parallel todo concept) and returns
- * its id, creating it on first use. */
+/** Lazily creates a local taskList backing one of the baby's pinned
+ * checklist cards (to-dos, questions) — reuses the Tasks module instead of
+ * a parallel concept per card. `field` is which column on `babies` stores
+ * the resulting list id. */
+async function ensureAuxTaskList(
+  ctx: MutationCtx,
+  baby: Doc<'babies'>,
+  field: 'taskListId' | 'questionsListId',
+  listName: string,
+) {
+  const existingListId = baby[field]
+  if (existingListId) return existingListId
+  const existing = await ctx.db
+    .query('taskLists')
+    .withIndex('by_group', (q) => q.eq('groupId', baby.groupId))
+    .collect()
+  const nextOrder = existing.reduce((max, l) => Math.max(max, l.order), -1) + 1
+  const listId = await ctx.db.insert('taskLists', {
+    groupId: baby.groupId,
+    name: listName,
+    provider: 'local',
+    order: nextOrder,
+  })
+  await ctx.db.patch(baby._id, { [field]: listId })
+  return listId
+}
+
 export const ensureTodoList = mutation({
   args: { id: v.id('babies') },
   handler: async (ctx, args) => {
     const { baby } = await requireBabyAccess(ctx, args.id)
-    if (baby.taskListId) return baby.taskListId
-    const existing = await ctx.db
-      .query('taskLists')
-      .withIndex('by_group', (q) => q.eq('groupId', baby.groupId))
-      .collect()
-    const nextOrder =
-      existing.reduce((max, l) => Math.max(max, l.order), -1) + 1
-    const taskListId = await ctx.db.insert('taskLists', {
-      groupId: baby.groupId,
-      name: `${baby.name} to-dos`,
-      provider: 'local',
-      order: nextOrder,
-    })
-    await ctx.db.patch(args.id, { taskListId })
-    return taskListId
+    return await ensureAuxTaskList(
+      ctx,
+      baby,
+      'taskListId',
+      `${baby.name} to-dos`,
+    )
+  },
+})
+
+export const ensureQuestionsList = mutation({
+  args: { id: v.id('babies') },
+  handler: async (ctx, args) => {
+    const { baby } = await requireBabyAccess(ctx, args.id)
+    return await ensureAuxTaskList(
+      ctx,
+      baby,
+      'questionsListId',
+      `${baby.name} questions`,
+    )
   },
 })
 
@@ -129,6 +159,19 @@ export const update = mutation({
   },
 })
 
+async function deleteAuxTaskList(
+  ctx: MutationCtx,
+  taskListId: Id<'taskLists'> | undefined,
+) {
+  if (!taskListId) return
+  const tasks = await ctx.db
+    .query('tasks')
+    .withIndex('by_list', (q) => q.eq('listId', taskListId))
+    .collect()
+  await Promise.all(tasks.map((t) => ctx.db.delete(t._id)))
+  await ctx.db.delete(taskListId)
+}
+
 export const remove = mutation({
   args: { id: v.id('babies') },
   handler: async (ctx, args) => {
@@ -138,15 +181,8 @@ export const remove = mutation({
       .withIndex('by_baby', (q) => q.eq('babyId', args.id))
       .collect()
     await Promise.all(events.map((e) => ctx.db.delete(e._id)))
-    if (baby.taskListId) {
-      const taskListId = baby.taskListId
-      const tasks = await ctx.db
-        .query('tasks')
-        .withIndex('by_list', (q) => q.eq('listId', taskListId))
-        .collect()
-      await Promise.all(tasks.map((t) => ctx.db.delete(t._id)))
-      await ctx.db.delete(taskListId)
-    }
+    await deleteAuxTaskList(ctx, baby.taskListId)
+    await deleteAuxTaskList(ctx, baby.questionsListId)
     await ctx.db.delete(args.id)
   },
 })

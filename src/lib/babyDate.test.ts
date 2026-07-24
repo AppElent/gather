@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import {
   combineDateTime,
-  endOfDayMs,
   formatAge,
-  startOfDayMs,
   toDateInputValue,
   toTimeInputValue,
 } from './babyDate'
@@ -62,17 +60,5 @@ describe('date/time input round trip', () => {
     expect(combineDateTime('2026-03-15', '')).toBe(
       new Date('2026-03-15T00:00:00').getTime(),
     )
-  })
-})
-
-describe('startOfDayMs / endOfDayMs', () => {
-  test('bracket a full local day', () => {
-    const start = startOfDayMs('2026-03-15')
-    const end = endOfDayMs('2026-03-15')
-    expect(new Date(start).getHours()).toBe(0)
-    expect(new Date(start).getMinutes()).toBe(0)
-    expect(new Date(end).getHours()).toBe(23)
-    expect(end).toBeGreaterThan(start)
-    expect(end - start).toBeLessThan(DAY)
   })
 })

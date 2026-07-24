@@ -129,10 +129,11 @@ export default defineSchema({
       v.union(v.literal('female'), v.literal('male'), v.literal('unspecified')),
     ),
     photoId: v.optional(v.id('_storage')),
-    // Lazily created by babies.ensureTodoList — the to-do card pinned atop
-    // the baby detail page is just a local taskList, reusing the Tasks
-    // module instead of a parallel todo concept.
+    // Lazily created by babies.ensureTodoList / ensureQuestionsList — the
+    // to-do and questions cards on the baby detail page are just local
+    // taskLists, reusing the Tasks module instead of parallel concepts.
     taskListId: v.optional(v.id('taskLists')),
+    questionsListId: v.optional(v.id('taskLists')),
     order: v.number(),
   }).index('by_group', ['groupId']),
 
