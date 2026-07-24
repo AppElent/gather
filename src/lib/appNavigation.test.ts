@@ -96,6 +96,7 @@ describe('app navigation metadata', () => {
       'recipes',
       'nutrition',
       'tasks',
+      'baby-log',
     ])
     expect(byStatus.placeholder.length).toBeGreaterThan(0)
   })

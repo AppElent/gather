@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
+import { babyEventDataValidator, babyEventTypeValidator } from './lib/babyEvents'
 import { mealValidator, quantityUnitValidator } from './lib/consumption'
 import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
 
@@ -119,4 +120,32 @@ export default defineSchema({
     quantityUnit: quantityUnitValidator,
     nutrition: nutritionValidator,
   }).index('by_user_date', ['userId', 'date']),
+
+  babies: defineTable({
+    groupId: v.id('groups'),
+    name: v.string(),
+    birthDate: v.string(), // ISO YYYY-MM-DD
+    sex: v.optional(
+      v.union(v.literal('female'), v.literal('male'), v.literal('unspecified')),
+    ),
+    photoId: v.optional(v.id('_storage')),
+    // Lazily created by babies.ensureTodoList / ensureQuestionsList — the
+    // to-do and questions cards on the baby detail page are just local
+    // taskLists, reusing the Tasks module instead of parallel concepts.
+    taskListId: v.optional(v.id('taskLists')),
+    questionsListId: v.optional(v.id('taskLists')),
+    order: v.number(),
+  }).index('by_group', ['groupId']),
+
+  babyEvents: defineTable({
+    babyId: v.id('babies'),
+    type: babyEventTypeValidator,
+    timestamp: v.number(), // epoch ms, when the event occurred
+    endTimestamp: v.optional(v.number()), // sleep/feeding session duration
+    notes: v.optional(v.string()),
+    loggedBy: v.id('users'),
+    data: babyEventDataValidator,
+  })
+    .index('by_baby', ['babyId'])
+    .index('by_baby_type', ['babyId', 'type']),
 })

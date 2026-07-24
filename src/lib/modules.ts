@@ -92,6 +92,15 @@ export const MODULES: ModuleDef[] = [
     description: 'Shared to-do lists.',
   },
   {
+    id: 'baby-log',
+    label: 'Baby log',
+    icon: 'Baby',
+    group: 'Home & life',
+    path: '/baby',
+    status: 'live',
+    description: 'Temperature, feeding, sleep, growth and more.',
+  },
+  {
     id: 'calendar',
     label: 'Calendar',
     icon: 'Calendar',
