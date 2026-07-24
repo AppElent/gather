@@ -3,7 +3,7 @@ import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../../convex/_generated/api'
 import type { Doc, Id } from '../../../../convex/_generated/dataModel'
-import { ImageUploadField } from '../../../components/recipes/ImageUploadField'
+import { ImageUploadField } from '../../../components/app/ImageUploadField'
 import { RecipeForm } from '../../../components/recipes/RecipeForm'
 
 export const Route = createFileRoute('/_app/recipes/$recipeId/edit')({
@@ -26,6 +26,7 @@ function EditRecipe() {
 
 function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
   const update = useMutation(api.recipes.update)
+  const generateUploadUrl = useMutation(api.recipes.generateUploadUrl)
   const aiConfigured = useQuery(api.recipes.aiConfigured)
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
   const navigate = useNavigate()
@@ -47,6 +48,7 @@ function EditRecipeForm({ recipe }: { recipe: RecipeDetail }) {
 
       <ImageUploadField
         imageUrl={imageUrl}
+        generateUploadUrl={generateUploadUrl}
         onChange={(id) => {
           setImageId(id)
           if (id === undefined) setImageUrl(null)

@@ -1,18 +1,21 @@
-import { useMutation } from 'convex/react'
 import { useRef, useState } from 'react'
-import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 
 interface ImageUploadFieldProps {
   imageUrl: string | null
   onChange: (imageId: Id<'_storage'> | undefined) => void
+  generateUploadUrl: () => Promise<string>
+  label?: string
+  fieldId?: string
 }
 
 export function ImageUploadField({
   imageUrl,
   onChange,
+  generateUploadUrl,
+  label = 'Photo',
+  fieldId = 'image-upload',
 }: ImageUploadFieldProps) {
-  const generateUploadUrl = useMutation(api.recipes.generateUploadUrl)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -46,11 +49,8 @@ export function ImageUploadField({
 
   return (
     <div className="mx-auto mb-6 max-w-2xl rounded-xl border p-4">
-      <label
-        htmlFor="recipe-image-upload"
-        className="mb-2 block text-sm font-medium"
-      >
-        Photo
+      <label htmlFor={fieldId} className="mb-2 block text-sm font-medium">
+        {label}
       </label>
       <div className="flex items-center gap-3">
         {displayUrl ? (
@@ -65,7 +65,7 @@ export function ImageUploadField({
         <div>
           <input
             ref={inputRef}
-            id="recipe-image-upload"
+            id={fieldId}
             type="file"
             accept="image/*"
             className="text-sm"

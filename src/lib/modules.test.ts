@@ -17,9 +17,9 @@ describe('module registry', () => {
     for (const m of MODULES) expect(MODULE_GROUPS).toContain(m.group)
   })
 
-  test('recipes, nutrition, and tasks are the live modules', () => {
+  test('recipes, nutrition, tasks, and baby-log are the live modules', () => {
     const live = MODULES.filter((m) => m.status === 'live').map((m) => m.id)
-    expect(live).toEqual(['recipes', 'nutrition', 'tasks'])
+    expect(live).toEqual(['recipes', 'nutrition', 'tasks', 'baby-log'])
   })
 
   test('modulesByGroup buckets every module', () => {

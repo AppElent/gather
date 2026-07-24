@@ -37,6 +37,10 @@ the authenticated shell; `src/routes/_app/*` are its child routes. Module metada
 | `/finances` | `src/routes/_app/finances.tsx` | placeholder |
 | `/bills` | `src/routes/_app/bills.tsx` | placeholder |
 | `/tasks` | `src/routes/_app/tasks.tsx` | placeholder |
+| `/baby` | `src/routes/_app/baby/index.tsx` | live |
+| `/baby/new` | `src/routes/_app/baby/new.tsx` | live |
+| `/baby/$babyId` | `src/routes/_app/baby/$babyId.index.tsx` | live |
+| `/baby/$babyId/edit` | `src/routes/_app/baby/$babyId.edit.tsx` | live |
 | `/calendar` | `src/routes/_app/calendar.tsx` | placeholder |
 | `/notes` | `src/routes/_app/notes.tsx` | placeholder |
 | `/cheeses` | `src/routes/_app/cheeses.tsx` | placeholder |
@@ -46,8 +50,10 @@ the authenticated shell; `src/routes/_app/*` are its child routes. Module metada
 | `/settings` | `src/routes/_app/settings.tsx` | live |
 
 Convex backend functions: `convex/recipes.ts`, `convex/groups.ts`, `convex/users.ts`,
-`convex/foods.ts`, `convex/foodsLookup.ts`, `convex/consumption.ts`, `convex/lib/sharing.ts`,
-`convex/lib/offMapping.ts`, `convex/lib/offFetch.ts`, `convex/lib/consumption.ts`.
+`convex/foods.ts`, `convex/foodsLookup.ts`, `convex/consumption.ts`, `convex/babies.ts`,
+`convex/babyEvents.ts`, `convex/lib/sharing.ts`, `convex/lib/offMapping.ts`,
+`convex/lib/offFetch.ts`, `convex/lib/consumption.ts`, `convex/lib/babyAccess.ts`,
+`convex/lib/babyEvents.ts`.
 
 ## Auth note
 
