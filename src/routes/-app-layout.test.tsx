@@ -10,7 +10,8 @@ const convexAuth = vi.hoisted(() => ({
   isLoading: false,
   isAuthenticated: true,
 }))
-const recovery = vi.hoisted(() => ({ failed: false, retry: vi.fn() }))
+const stalled = vi.hoisted(() => ({ value: false }))
+const reloadMock = vi.hoisted(() => vi.fn())
 const navigateMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@clerk/clerk-react', () => ({ useAuth: () => clerk }))
@@ -24,8 +25,8 @@ vi.mock('../../convex/_generated/api', () => ({
   api: { users: { ensureUser: 'users:ensureUser' } },
 }))
 
-vi.mock('../integrations/convex/authRecovery', () => ({
-  useConvexAuthRecovery: () => recovery,
+vi.mock('../integrations/convex/useConvexAuthStalled', () => ({
+  useConvexAuthStalled: () => stalled.value,
 }))
 
 vi.mock('../components/app/AppShell', () => ({
@@ -45,8 +46,8 @@ beforeEach(() => {
   clerk.isSignedIn = true
   convexAuth.isLoading = false
   convexAuth.isAuthenticated = true
-  recovery.failed = false
-  recovery.retry.mockClear()
+  stalled.value = false
+  reloadMock.mockClear()
   navigateMock.mockClear()
 })
 
@@ -67,9 +68,9 @@ test('waits while the Convex handshake is still in flight', () => {
   expect(screen.queryByTestId('app-shell')).toBeNull()
 })
 
-test('waits while Convex auth is being recovered', () => {
-  // Convex reports a failed handshake as "settled, not authenticated"; while
-  // recovery is still running that is legitimately a loading state.
+test('waits out a handshake that has not stalled yet', () => {
+  // Convex reports a dead handshake as "settled, not authenticated"; until the
+  // stall timer fires that is indistinguishable from a slow but healthy one.
   convexAuth.isLoading = false
   convexAuth.isAuthenticated = false
 
@@ -78,26 +79,31 @@ test('waits while Convex auth is being recovered', () => {
   expect(screen.getByText('Loading...')).toBeInTheDocument()
 })
 
-test('offers a retry instead of an endless spinner when auth cannot recover', () => {
+test('offers a way out instead of an endless spinner once auth stalls', () => {
   convexAuth.isLoading = false
   convexAuth.isAuthenticated = false
-  recovery.failed = true
+  stalled.value = true
 
   render(<AppLayout />)
 
   expect(screen.queryByText('Loading...')).toBeNull()
-  expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /reload/i })).toBeInTheDocument()
 })
 
-test('re-runs the handshake when the user retries', () => {
+test('reloads the page when the user asks', () => {
   convexAuth.isLoading = false
   convexAuth.isAuthenticated = false
-  recovery.failed = true
+  stalled.value = true
+  // jsdom's location.reload is not configurable, so swap the whole object.
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: { ...window.location, reload: reloadMock },
+  })
 
   render(<AppLayout />)
-  fireEvent.click(screen.getByRole('button', { name: /try again/i }))
+  fireEvent.click(screen.getByRole('button', { name: /reload/i }))
 
-  expect(recovery.retry).toHaveBeenCalledTimes(1)
+  expect(reloadMock).toHaveBeenCalledTimes(1)
 })
 
 test('sends signed-out visitors to the sign-in page', () => {

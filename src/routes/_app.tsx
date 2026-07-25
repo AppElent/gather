@@ -4,7 +4,7 @@ import { useConvexAuth, useMutation } from 'convex/react'
 import { useEffect } from 'react'
 import { api } from '../../convex/_generated/api'
 import { AppShell } from '../components/app/AppShell'
-import { useConvexAuthRecovery } from '../integrations/convex/authRecovery'
+import { useConvexAuthStalled } from '../integrations/convex/useConvexAuthStalled'
 
 export const Route = createFileRoute('/_app')({
   component: AppLayout,
@@ -19,12 +19,10 @@ export function AppLayout() {
   // loop between the two routes.
   const { isLoaded: isClerkLoaded, isSignedIn } = useAuth()
   const { isAuthenticated } = useConvexAuth()
-  // Convex reports a dead handshake as plain "not authenticated" and never
-  // retries it, so waiting on isAuthenticated alone used to hang here until the
-  // user reloaded. The watchdog restarts the handshake; `failed` marks the point
-  // where it has stopped trying and the wait has become pointless.
-  const { failed: authRecoveryFailed, retry: retryAuth } =
-    useConvexAuthRecovery()
+  // ...but only up to a point: Convex never retries a handshake it has given up
+  // on, so waiting on isAuthenticated alone used to leave the dashboard on
+  // "Loading..." until the user reloaded by hand. Offer that reload instead.
+  const authStalled = useConvexAuthStalled()
   const ensureUser = useMutation(api.users.ensureUser)
   const navigate = useNavigate()
 
@@ -41,7 +39,7 @@ export function AppLayout() {
   if (isClerkLoaded && !isSignedIn) return null
 
   if (!isClerkLoaded || !isAuthenticated) {
-    if (!authRecoveryFailed) {
+    if (!authStalled) {
       return (
         <div className="app-shell grid min-h-svh place-items-center text-sm text-[var(--app-muted)]">
           Loading...
@@ -56,15 +54,15 @@ export function AppLayout() {
             Could not finish signing in
           </p>
           <p className="m-0 leading-6">
-            Gather could not connect your session to the backend. This is
-            usually temporary.
+            Gather could not connect your session to the backend. Reloading
+            usually fixes it.
           </p>
           <button
             type="button"
-            onClick={retryAuth}
+            onClick={() => window.location.reload()}
             className="inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)]"
           >
-            Try again
+            Reload
           </button>
         </div>
       </div>
