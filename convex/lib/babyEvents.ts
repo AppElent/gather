@@ -75,10 +75,15 @@ export const temperatureDataValidator = v.object({
   method: v.optional(temperatureMethodValidator),
 })
 
+// leftMin/rightMin: per-side breastfeed duration in minutes. `side` stays as
+// the coarse record (and is what pre-duration entries have); it is derived
+// from whichever sides have minutes when they're given.
 export const feedingDataValidator = v.object({
   method: feedingMethodValidator,
   side: v.optional(feedingSideValidator),
   amountMl: v.optional(v.number()),
+  leftMin: v.optional(v.number()),
+  rightMin: v.optional(v.number()),
 })
 
 export const diaperDataValidator = v.object({
@@ -120,6 +125,12 @@ export const babyEventDataValidator = v.union(
 
 export type BabyEventData = Record<string, unknown>
 
+/** Absent, or a finite non-negative number of minutes. */
+function isValidMinutes(value: unknown): boolean {
+  if (value === undefined) return true
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+}
+
 // Confirms `data` actually satisfies the shape the given `type` implies —
 // the schema validator only checks `data` against *some* member of the
 // union, not the one matching `type`.
@@ -132,9 +143,11 @@ export function isValidEventData(
       return typeof data.celsius === 'number'
     case 'feeding':
       return (
-        data.method === 'breast' ||
-        data.method === 'bottle' ||
-        data.method === 'solid'
+        (data.method === 'breast' ||
+          data.method === 'bottle' ||
+          data.method === 'solid') &&
+        isValidMinutes(data.leftMin) &&
+        isValidMinutes(data.rightMin)
       )
     case 'diaper':
       return data.kind === 'wet' || data.kind === 'dirty' || data.kind === 'both'

@@ -20,6 +20,21 @@ describe('isValidEventData', () => {
     expect(isValidEventData('feeding', {})).toBe(false)
   })
 
+  test('feeding accepts per-side minutes but rejects impossible ones', () => {
+    expect(
+      isValidEventData('feeding', { method: 'breast', leftMin: 10, rightMin: 8 }),
+    ).toBe(true)
+    expect(isValidEventData('feeding', { method: 'breast', leftMin: 0 })).toBe(
+      true,
+    )
+    expect(isValidEventData('feeding', { method: 'breast', leftMin: -1 })).toBe(
+      false,
+    )
+    expect(
+      isValidEventData('feeding', { method: 'breast', rightMin: Number.NaN }),
+    ).toBe(false)
+  })
+
   test('diaper requires a known kind', () => {
     expect(isValidEventData('diaper', { kind: 'wet' })).toBe(true)
     expect(isValidEventData('diaper', { kind: 'both' })).toBe(true)

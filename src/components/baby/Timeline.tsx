@@ -1,6 +1,4 @@
 import { useMutation } from 'convex/react'
-import type { LucideIcon } from 'lucide-react'
-import * as Icons from 'lucide-react'
 import { ChevronRight, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -11,22 +9,14 @@ import {
   formatEventDateHeading,
   formatEventTimestamp,
 } from '../../lib/babyDate'
-import { EVENT_TYPE_ICONS } from '../../lib/babyEventFields'
 import { summarizeEvent } from '../../lib/babyEventSummary'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { EventForm } from './EventForm'
+import { EventIcon } from './EventIcon'
 
 interface TimelineProps {
   babyId: Id<'babies'>
   events: Doc<'babyEvents'>[]
-}
-
-function EventIcon({ type }: { type: string }) {
-  const Icon =
-    (Icons as unknown as Record<string, LucideIcon>)[
-      EVENT_TYPE_ICONS[type] ?? 'Circle'
-    ] ?? Icons.Circle
-  return <Icon className="h-4 w-4" aria-hidden="true" />
 }
 
 export function Timeline({ babyId, events }: TimelineProps) {
