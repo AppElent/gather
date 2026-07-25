@@ -24,11 +24,11 @@ describe('module registry', () => {
     ).toEqual(['tasks', 'notes', 'calendar'])
   })
 
-  test('recipes and nutrition are the live modules', () => {
+  test('baby-log, recipes and nutrition are the live modules', () => {
     const live = MODULES.filter((module) => module.availability === 'live').map(
       (module) => module.id,
     )
-    expect(live).toEqual(['recipes', 'nutrition'])
+    expect(live).toEqual(['baby-log', 'recipes', 'nutrition'])
   })
 
   test('recipes is live and non-default initially', () => {

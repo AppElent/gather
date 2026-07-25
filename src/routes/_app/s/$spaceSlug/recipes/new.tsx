@@ -4,7 +4,7 @@ import { ConvexError } from 'convex/values'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../../../../convex/_generated/api'
 import type { Id } from '../../../../../../convex/_generated/dataModel'
-import { ImageUploadField } from '../../../../../components/recipes/ImageUploadField'
+import { ImageUploadField } from '../../../../../components/app/ImageUploadField'
 import {
   RecipeForm,
   type RecipeFormValues,
@@ -20,6 +20,7 @@ export const Route = createFileRoute('/_app/s/$spaceSlug/recipes/new')({
 function NewRecipe() {
   const { spaceSlug } = Route.useParams()
   const create = useMutation(api.recipes.create)
+  const generateUploadUrl = useMutation(api.recipes.generateUploadUrl)
   const importFromUrl = useAction(api.recipeImport.importFromUrl)
   const aiConfigured = useQuery(api.recipes.aiConfigured)
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
@@ -116,9 +117,9 @@ function NewRecipe() {
         )}
       </div>
       <ImageUploadField
-        spaceSlug={spaceSlug}
         key={`image-${imported?.version ?? 'blank'}`}
         imageUrl={imageUrl}
+        generateUploadUrl={() => generateUploadUrl({ spaceSlug })}
         onChange={(id) => {
           setImageId(id)
           if (id === undefined) setImageUrl(null)

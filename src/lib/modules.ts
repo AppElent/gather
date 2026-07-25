@@ -121,6 +121,18 @@ export const MODULES = [
     defaultWidgetIds: ['tasks.today'],
   }),
   defineModule({
+    id: 'baby-log',
+    label: 'Baby log',
+    icon: 'Baby',
+    group: 'Home & life',
+    pathSegment: 'baby-log',
+    availability: 'live',
+    defaultForNewSpaces: false,
+    description: 'Temperature, feeding, sleep, growth and more.',
+    widgets: [],
+    defaultWidgetIds: [],
+  }),
+  defineModule({
     id: 'notes',
     label: 'Notes',
     icon: 'NotebookPen',

@@ -1,6 +1,7 @@
 import { ConvexError } from 'convex/values'
 import type { Id } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
+import { cleanupBabyLogForSpace } from './babyLogLifecycle'
 import { cleanupRecipesForSpace } from './recipesLifecycle'
 
 export type ModuleCleanup = (
@@ -10,6 +11,7 @@ export type ModuleCleanup = (
 
 export const moduleCleanupRegistry: Partial<Record<string, ModuleCleanup>> = {
   recipes: cleanupRecipesForSpace,
+  'baby-log': cleanupBabyLogForSpace,
 }
 
 export async function runModuleCleanup(

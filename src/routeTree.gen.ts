@@ -44,12 +44,16 @@ import { Route as AppFoodsFoodIdEditRouteImport } from './routes/_app/foods/$foo
 import { Route as AppSSpaceSlugSettingsIndexRouteImport } from './routes/_app/s/$spaceSlug/settings/index'
 import { Route as AppSSpaceSlugRecipesIndexRouteImport } from './routes/_app/s/$spaceSlug/recipes/index'
 import { Route as AppSSpaceSlugNutritionIndexRouteImport } from './routes/_app/s/$spaceSlug/nutrition/index'
+import { Route as AppSSpaceSlugBabyLogIndexRouteImport } from './routes/_app/s/$spaceSlug/baby-log/index'
 import { Route as AppSSpaceSlugSettingsNavigationRouteImport } from './routes/_app/s/$spaceSlug/settings/navigation'
 import { Route as AppSSpaceSlugSettingsModulesRouteImport } from './routes/_app/s/$spaceSlug/settings/modules'
 import { Route as AppSSpaceSlugSettingsDashboardRouteImport } from './routes/_app/s/$spaceSlug/settings/dashboard'
 import { Route as AppSSpaceSlugRecipesNewRouteImport } from './routes/_app/s/$spaceSlug/recipes/new'
+import { Route as AppSSpaceSlugBabyLogNewRouteImport } from './routes/_app/s/$spaceSlug/baby-log/new'
 import { Route as AppSSpaceSlugRecipesRecipeIdIndexRouteImport } from './routes/_app/s/$spaceSlug/recipes/$recipeId.index'
+import { Route as AppSSpaceSlugBabyLogBabyIdIndexRouteImport } from './routes/_app/s/$spaceSlug/baby-log/$babyId.index'
 import { Route as AppSSpaceSlugRecipesRecipeIdEditRouteImport } from './routes/_app/s/$spaceSlug/recipes/$recipeId.edit'
+import { Route as AppSSpaceSlugBabyLogBabyIdEditRouteImport } from './routes/_app/s/$spaceSlug/baby-log/$babyId.edit'
 
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
@@ -228,6 +232,12 @@ const AppSSpaceSlugNutritionIndexRoute =
     path: '/nutrition/',
     getParentRoute: () => AppSSpaceSlugRoute,
   } as any)
+const AppSSpaceSlugBabyLogIndexRoute =
+  AppSSpaceSlugBabyLogIndexRouteImport.update({
+    id: '/baby-log/',
+    path: '/baby-log/',
+    getParentRoute: () => AppSSpaceSlugRoute,
+  } as any)
 const AppSSpaceSlugSettingsNavigationRoute =
   AppSSpaceSlugSettingsNavigationRouteImport.update({
     id: '/navigation',
@@ -251,16 +261,33 @@ const AppSSpaceSlugRecipesNewRoute = AppSSpaceSlugRecipesNewRouteImport.update({
   path: '/recipes/new',
   getParentRoute: () => AppSSpaceSlugRoute,
 } as any)
+const AppSSpaceSlugBabyLogNewRoute = AppSSpaceSlugBabyLogNewRouteImport.update({
+  id: '/baby-log/new',
+  path: '/baby-log/new',
+  getParentRoute: () => AppSSpaceSlugRoute,
+} as any)
 const AppSSpaceSlugRecipesRecipeIdIndexRoute =
   AppSSpaceSlugRecipesRecipeIdIndexRouteImport.update({
     id: '/recipes/$recipeId/',
     path: '/recipes/$recipeId/',
     getParentRoute: () => AppSSpaceSlugRoute,
   } as any)
+const AppSSpaceSlugBabyLogBabyIdIndexRoute =
+  AppSSpaceSlugBabyLogBabyIdIndexRouteImport.update({
+    id: '/baby-log/$babyId/',
+    path: '/baby-log/$babyId/',
+    getParentRoute: () => AppSSpaceSlugRoute,
+  } as any)
 const AppSSpaceSlugRecipesRecipeIdEditRoute =
   AppSSpaceSlugRecipesRecipeIdEditRouteImport.update({
     id: '/recipes/$recipeId/edit',
     path: '/recipes/$recipeId/edit',
+    getParentRoute: () => AppSSpaceSlugRoute,
+  } as any)
+const AppSSpaceSlugBabyLogBabyIdEditRoute =
+  AppSSpaceSlugBabyLogBabyIdEditRouteImport.update({
+    id: '/baby-log/$babyId/edit',
+    path: '/baby-log/$babyId/edit',
     getParentRoute: () => AppSSpaceSlugRoute,
   } as any)
 
@@ -296,14 +323,18 @@ export interface FileRoutesByFullPath {
   '/s/$spaceSlug/settings': typeof AppSSpaceSlugSettingsRouteWithChildren
   '/foods/$foodId/': typeof AppFoodsFoodIdIndexRoute
   '/s/$spaceSlug/': typeof AppSSpaceSlugIndexRoute
+  '/s/$spaceSlug/baby-log/new': typeof AppSSpaceSlugBabyLogNewRoute
   '/s/$spaceSlug/recipes/new': typeof AppSSpaceSlugRecipesNewRoute
   '/s/$spaceSlug/settings/dashboard': typeof AppSSpaceSlugSettingsDashboardRoute
   '/s/$spaceSlug/settings/modules': typeof AppSSpaceSlugSettingsModulesRoute
   '/s/$spaceSlug/settings/navigation': typeof AppSSpaceSlugSettingsNavigationRoute
+  '/s/$spaceSlug/baby-log/': typeof AppSSpaceSlugBabyLogIndexRoute
   '/s/$spaceSlug/nutrition/': typeof AppSSpaceSlugNutritionIndexRoute
   '/s/$spaceSlug/recipes/': typeof AppSSpaceSlugRecipesIndexRoute
   '/s/$spaceSlug/settings/': typeof AppSSpaceSlugSettingsIndexRoute
+  '/s/$spaceSlug/baby-log/$babyId/edit': typeof AppSSpaceSlugBabyLogBabyIdEditRoute
   '/s/$spaceSlug/recipes/$recipeId/edit': typeof AppSSpaceSlugRecipesRecipeIdEditRoute
+  '/s/$spaceSlug/baby-log/$babyId/': typeof AppSSpaceSlugBabyLogBabyIdIndexRoute
   '/s/$spaceSlug/recipes/$recipeId/': typeof AppSSpaceSlugRecipesRecipeIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -336,14 +367,18 @@ export interface FileRoutesByTo {
   '/s/$spaceSlug/modules': typeof AppSSpaceSlugModulesRoute
   '/foods/$foodId': typeof AppFoodsFoodIdIndexRoute
   '/s/$spaceSlug': typeof AppSSpaceSlugIndexRoute
+  '/s/$spaceSlug/baby-log/new': typeof AppSSpaceSlugBabyLogNewRoute
   '/s/$spaceSlug/recipes/new': typeof AppSSpaceSlugRecipesNewRoute
   '/s/$spaceSlug/settings/dashboard': typeof AppSSpaceSlugSettingsDashboardRoute
   '/s/$spaceSlug/settings/modules': typeof AppSSpaceSlugSettingsModulesRoute
   '/s/$spaceSlug/settings/navigation': typeof AppSSpaceSlugSettingsNavigationRoute
+  '/s/$spaceSlug/baby-log': typeof AppSSpaceSlugBabyLogIndexRoute
   '/s/$spaceSlug/nutrition': typeof AppSSpaceSlugNutritionIndexRoute
   '/s/$spaceSlug/recipes': typeof AppSSpaceSlugRecipesIndexRoute
   '/s/$spaceSlug/settings': typeof AppSSpaceSlugSettingsIndexRoute
+  '/s/$spaceSlug/baby-log/$babyId/edit': typeof AppSSpaceSlugBabyLogBabyIdEditRoute
   '/s/$spaceSlug/recipes/$recipeId/edit': typeof AppSSpaceSlugRecipesRecipeIdEditRoute
+  '/s/$spaceSlug/baby-log/$babyId': typeof AppSSpaceSlugBabyLogBabyIdIndexRoute
   '/s/$spaceSlug/recipes/$recipeId': typeof AppSSpaceSlugRecipesRecipeIdIndexRoute
 }
 export interface FileRoutesById {
@@ -380,14 +415,18 @@ export interface FileRoutesById {
   '/_app/s/$spaceSlug/settings': typeof AppSSpaceSlugSettingsRouteWithChildren
   '/_app/foods/$foodId/': typeof AppFoodsFoodIdIndexRoute
   '/_app/s/$spaceSlug/': typeof AppSSpaceSlugIndexRoute
+  '/_app/s/$spaceSlug/baby-log/new': typeof AppSSpaceSlugBabyLogNewRoute
   '/_app/s/$spaceSlug/recipes/new': typeof AppSSpaceSlugRecipesNewRoute
   '/_app/s/$spaceSlug/settings/dashboard': typeof AppSSpaceSlugSettingsDashboardRoute
   '/_app/s/$spaceSlug/settings/modules': typeof AppSSpaceSlugSettingsModulesRoute
   '/_app/s/$spaceSlug/settings/navigation': typeof AppSSpaceSlugSettingsNavigationRoute
+  '/_app/s/$spaceSlug/baby-log/': typeof AppSSpaceSlugBabyLogIndexRoute
   '/_app/s/$spaceSlug/nutrition/': typeof AppSSpaceSlugNutritionIndexRoute
   '/_app/s/$spaceSlug/recipes/': typeof AppSSpaceSlugRecipesIndexRoute
   '/_app/s/$spaceSlug/settings/': typeof AppSSpaceSlugSettingsIndexRoute
+  '/_app/s/$spaceSlug/baby-log/$babyId/edit': typeof AppSSpaceSlugBabyLogBabyIdEditRoute
   '/_app/s/$spaceSlug/recipes/$recipeId/edit': typeof AppSSpaceSlugRecipesRecipeIdEditRoute
+  '/_app/s/$spaceSlug/baby-log/$babyId/': typeof AppSSpaceSlugBabyLogBabyIdIndexRoute
   '/_app/s/$spaceSlug/recipes/$recipeId/': typeof AppSSpaceSlugRecipesRecipeIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -424,14 +463,18 @@ export interface FileRouteTypes {
     | '/s/$spaceSlug/settings'
     | '/foods/$foodId/'
     | '/s/$spaceSlug/'
+    | '/s/$spaceSlug/baby-log/new'
     | '/s/$spaceSlug/recipes/new'
     | '/s/$spaceSlug/settings/dashboard'
     | '/s/$spaceSlug/settings/modules'
     | '/s/$spaceSlug/settings/navigation'
+    | '/s/$spaceSlug/baby-log/'
     | '/s/$spaceSlug/nutrition/'
     | '/s/$spaceSlug/recipes/'
     | '/s/$spaceSlug/settings/'
+    | '/s/$spaceSlug/baby-log/$babyId/edit'
     | '/s/$spaceSlug/recipes/$recipeId/edit'
+    | '/s/$spaceSlug/baby-log/$babyId/'
     | '/s/$spaceSlug/recipes/$recipeId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -464,14 +507,18 @@ export interface FileRouteTypes {
     | '/s/$spaceSlug/modules'
     | '/foods/$foodId'
     | '/s/$spaceSlug'
+    | '/s/$spaceSlug/baby-log/new'
     | '/s/$spaceSlug/recipes/new'
     | '/s/$spaceSlug/settings/dashboard'
     | '/s/$spaceSlug/settings/modules'
     | '/s/$spaceSlug/settings/navigation'
+    | '/s/$spaceSlug/baby-log'
     | '/s/$spaceSlug/nutrition'
     | '/s/$spaceSlug/recipes'
     | '/s/$spaceSlug/settings'
+    | '/s/$spaceSlug/baby-log/$babyId/edit'
     | '/s/$spaceSlug/recipes/$recipeId/edit'
+    | '/s/$spaceSlug/baby-log/$babyId'
     | '/s/$spaceSlug/recipes/$recipeId'
   id:
     | '__root__'
@@ -507,14 +554,18 @@ export interface FileRouteTypes {
     | '/_app/s/$spaceSlug/settings'
     | '/_app/foods/$foodId/'
     | '/_app/s/$spaceSlug/'
+    | '/_app/s/$spaceSlug/baby-log/new'
     | '/_app/s/$spaceSlug/recipes/new'
     | '/_app/s/$spaceSlug/settings/dashboard'
     | '/_app/s/$spaceSlug/settings/modules'
     | '/_app/s/$spaceSlug/settings/navigation'
+    | '/_app/s/$spaceSlug/baby-log/'
     | '/_app/s/$spaceSlug/nutrition/'
     | '/_app/s/$spaceSlug/recipes/'
     | '/_app/s/$spaceSlug/settings/'
+    | '/_app/s/$spaceSlug/baby-log/$babyId/edit'
     | '/_app/s/$spaceSlug/recipes/$recipeId/edit'
+    | '/_app/s/$spaceSlug/baby-log/$babyId/'
     | '/_app/s/$spaceSlug/recipes/$recipeId/'
   fileRoutesById: FileRoutesById
 }
@@ -774,6 +825,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSSpaceSlugNutritionIndexRouteImport
       parentRoute: typeof AppSSpaceSlugRoute
     }
+    '/_app/s/$spaceSlug/baby-log/': {
+      id: '/_app/s/$spaceSlug/baby-log/'
+      path: '/baby-log'
+      fullPath: '/s/$spaceSlug/baby-log/'
+      preLoaderRoute: typeof AppSSpaceSlugBabyLogIndexRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
+    }
     '/_app/s/$spaceSlug/settings/navigation': {
       id: '/_app/s/$spaceSlug/settings/navigation'
       path: '/navigation'
@@ -802,6 +860,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSSpaceSlugRecipesNewRouteImport
       parentRoute: typeof AppSSpaceSlugRoute
     }
+    '/_app/s/$spaceSlug/baby-log/new': {
+      id: '/_app/s/$spaceSlug/baby-log/new'
+      path: '/baby-log/new'
+      fullPath: '/s/$spaceSlug/baby-log/new'
+      preLoaderRoute: typeof AppSSpaceSlugBabyLogNewRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
+    }
     '/_app/s/$spaceSlug/recipes/$recipeId/': {
       id: '/_app/s/$spaceSlug/recipes/$recipeId/'
       path: '/recipes/$recipeId'
@@ -809,11 +874,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSSpaceSlugRecipesRecipeIdIndexRouteImport
       parentRoute: typeof AppSSpaceSlugRoute
     }
+    '/_app/s/$spaceSlug/baby-log/$babyId/': {
+      id: '/_app/s/$spaceSlug/baby-log/$babyId/'
+      path: '/baby-log/$babyId'
+      fullPath: '/s/$spaceSlug/baby-log/$babyId/'
+      preLoaderRoute: typeof AppSSpaceSlugBabyLogBabyIdIndexRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
+    }
     '/_app/s/$spaceSlug/recipes/$recipeId/edit': {
       id: '/_app/s/$spaceSlug/recipes/$recipeId/edit'
       path: '/recipes/$recipeId/edit'
       fullPath: '/s/$spaceSlug/recipes/$recipeId/edit'
       preLoaderRoute: typeof AppSSpaceSlugRecipesRecipeIdEditRouteImport
+      parentRoute: typeof AppSSpaceSlugRoute
+    }
+    '/_app/s/$spaceSlug/baby-log/$babyId/edit': {
+      id: '/_app/s/$spaceSlug/baby-log/$babyId/edit'
+      path: '/baby-log/$babyId/edit'
+      fullPath: '/s/$spaceSlug/baby-log/$babyId/edit'
+      preLoaderRoute: typeof AppSSpaceSlugBabyLogBabyIdEditRouteImport
       parentRoute: typeof AppSSpaceSlugRoute
     }
   }
@@ -844,10 +923,14 @@ interface AppSSpaceSlugRouteChildren {
   AppSSpaceSlugModulesRoute: typeof AppSSpaceSlugModulesRoute
   AppSSpaceSlugSettingsRoute: typeof AppSSpaceSlugSettingsRouteWithChildren
   AppSSpaceSlugIndexRoute: typeof AppSSpaceSlugIndexRoute
+  AppSSpaceSlugBabyLogNewRoute: typeof AppSSpaceSlugBabyLogNewRoute
   AppSSpaceSlugRecipesNewRoute: typeof AppSSpaceSlugRecipesNewRoute
+  AppSSpaceSlugBabyLogIndexRoute: typeof AppSSpaceSlugBabyLogIndexRoute
   AppSSpaceSlugNutritionIndexRoute: typeof AppSSpaceSlugNutritionIndexRoute
   AppSSpaceSlugRecipesIndexRoute: typeof AppSSpaceSlugRecipesIndexRoute
+  AppSSpaceSlugBabyLogBabyIdEditRoute: typeof AppSSpaceSlugBabyLogBabyIdEditRoute
   AppSSpaceSlugRecipesRecipeIdEditRoute: typeof AppSSpaceSlugRecipesRecipeIdEditRoute
+  AppSSpaceSlugBabyLogBabyIdIndexRoute: typeof AppSSpaceSlugBabyLogBabyIdIndexRoute
   AppSSpaceSlugRecipesRecipeIdIndexRoute: typeof AppSSpaceSlugRecipesRecipeIdIndexRoute
 }
 
@@ -857,10 +940,14 @@ const AppSSpaceSlugRouteChildren: AppSSpaceSlugRouteChildren = {
   AppSSpaceSlugModulesRoute: AppSSpaceSlugModulesRoute,
   AppSSpaceSlugSettingsRoute: AppSSpaceSlugSettingsRouteWithChildren,
   AppSSpaceSlugIndexRoute: AppSSpaceSlugIndexRoute,
+  AppSSpaceSlugBabyLogNewRoute: AppSSpaceSlugBabyLogNewRoute,
   AppSSpaceSlugRecipesNewRoute: AppSSpaceSlugRecipesNewRoute,
+  AppSSpaceSlugBabyLogIndexRoute: AppSSpaceSlugBabyLogIndexRoute,
   AppSSpaceSlugNutritionIndexRoute: AppSSpaceSlugNutritionIndexRoute,
   AppSSpaceSlugRecipesIndexRoute: AppSSpaceSlugRecipesIndexRoute,
+  AppSSpaceSlugBabyLogBabyIdEditRoute: AppSSpaceSlugBabyLogBabyIdEditRoute,
   AppSSpaceSlugRecipesRecipeIdEditRoute: AppSSpaceSlugRecipesRecipeIdEditRoute,
+  AppSSpaceSlugBabyLogBabyIdIndexRoute: AppSSpaceSlugBabyLogBabyIdIndexRoute,
   AppSSpaceSlugRecipesRecipeIdIndexRoute:
     AppSSpaceSlugRecipesRecipeIdIndexRoute,
 }

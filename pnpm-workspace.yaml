@@ -16,6 +16,7 @@ allowBuilds:
   "@google/genai": false # no native binary needed at install time
   protobufjs: false # no native binary needed at install time
   unrs-resolver: true # native binary resolver (napi-postinstall picks the platform build)
+  core-js: false # postinstall is just a sponsorship notice, no native binary (pulled in by jspdf's html2canvas dep)
 
 minimumReleaseAge: 4320 # 3 days — blocks the worm/account-takeover window
 minimumReleaseAgeExclude:

@@ -1,7 +1,4 @@
-'use node'
-
 import { createClerkClient } from '@clerk/backend'
-import { verifyWebhook } from '@clerk/backend/webhooks'
 import { internal } from './_generated/api'
 import { httpAction } from './_generated/server'
 import {
@@ -93,12 +90,14 @@ export async function handleClerkWebhook(
 }
 
 export const clerkWebhook = httpAction(async (ctx, request) => {
-  const secret = process.env.CLERK_WEBHOOK_SIGNING_SECRET
   return await handleClerkWebhook(request, {
-    verify: async (incoming) => {
-      if (!secret) throw new Error('CLERK_WEBHOOK_SIGNING_SECRET is required')
-      return await verifyWebhook(incoming, { signingSecret: secret })
-    },
+    verify: async (incoming) =>
+      await ctx.runAction((internal as any).clerkWebhookNode.verifyClerkWebhook, {
+        body: await incoming.text(),
+        svixId: incoming.headers.get('svix-id') ?? '',
+        svixTimestamp: incoming.headers.get('svix-timestamp') ?? '',
+        svixSignature: incoming.headers.get('svix-signature') ?? '',
+      }),
     classify: async (event) =>
       await classifyClerkEvent(
         {
