@@ -12,6 +12,7 @@ import {
   toDateInputValue,
   toTimeInputValue,
 } from '../../lib/babyDate'
+import type { BabyPdfLayout } from '../../lib/babyPdfExport'
 import { SurfaceCard } from '../app/ShellPrimitives'
 
 const inputClass =
@@ -39,6 +40,7 @@ export function ExportPdfPanel({
   )
   const [toMs, setToMs] = useState(() => Date.now())
   const [types, setTypes] = useState<BabyEventType[]>([...BABY_EVENT_TYPES])
+  const [layout, setLayout] = useState<BabyPdfLayout>('category')
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -66,6 +68,7 @@ export function ExportPdfPanel({
         from: fromMs,
         to: toMs,
         types,
+        layout,
       })
       onClose()
     } catch {
@@ -126,6 +129,30 @@ export function ExportPdfPanel({
           </div>
         </div>
       </div>
+
+      <fieldset className="mt-3">
+        <legend className="mb-1 text-sm font-medium">Layout</legend>
+        <div className="grid gap-1 sm:grid-cols-2">
+          <label className="flex items-center gap-1.5 text-sm">
+            <input
+              type="radio"
+              name="pdf-layout"
+              checked={layout === 'category'}
+              onChange={() => setLayout('category')}
+            />
+            By category
+          </label>
+          <label className="flex items-center gap-1.5 text-sm">
+            <input
+              type="radio"
+              name="pdf-layout"
+              checked={layout === 'chronological'}
+              onChange={() => setLayout('chronological')}
+            />
+            Chronological
+          </label>
+        </div>
+      </fieldset>
 
       <fieldset className="mt-3">
         <legend className="mb-1 text-sm font-medium">Include</legend>

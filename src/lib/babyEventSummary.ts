@@ -23,12 +23,24 @@ export function summarizeEvent(event: Doc<'babyEvents'>): string {
         typeof data.method === 'string'
           ? (FEEDING_METHOD_LABELS[data.method] ?? data.method)
           : ''
+      const amount =
+        typeof data.amountMl === 'number' ? ` · ${data.amountMl} ml` : ''
+      // Per-side minutes supersede the coarse side label when present —
+      // "Left 10m · Right 8m" already says which side(s).
+      const sides: string[] = []
+      if (typeof data.leftMin === 'number') {
+        sides.push(`${FEEDING_SIDE_LABELS.left} ${data.leftMin}m`)
+      }
+      if (typeof data.rightMin === 'number') {
+        sides.push(`${FEEDING_SIDE_LABELS.right} ${data.rightMin}m`)
+      }
+      if (sides.length > 0) {
+        return `${method} · ${sides.join(' · ')}${amount}`
+      }
       const side =
         typeof data.side === 'string'
           ? ` · ${FEEDING_SIDE_LABELS[data.side] ?? data.side}`
           : ''
-      const amount =
-        typeof data.amountMl === 'number' ? ` · ${data.amountMl} ml` : ''
       return `${method}${side}${amount}`
     }
     case 'diaper': {

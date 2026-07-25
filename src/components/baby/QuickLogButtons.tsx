@@ -1,5 +1,4 @@
-import type { LucideIcon } from 'lucide-react'
-import * as Icons from 'lucide-react'
+import { Layers } from 'lucide-react'
 import { useState } from 'react'
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { BabyEventType } from '../../../convex/lib/babyEvents'
@@ -7,17 +6,36 @@ import {
   BABY_EVENT_LABELS,
   BABY_EVENT_TYPES,
 } from '../../../convex/lib/babyEvents'
-import { EVENT_TYPE_ICONS } from '../../lib/babyEventFields'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { EventForm } from './EventForm'
+import { EventIcon } from './EventIcon'
+import { MultiEventForm } from './MultiEventForm'
 
 export function QuickLogButtons({ babyId }: { babyId: Id<'babies'> }) {
-  const [active, setActive] = useState<BabyEventType | null>(null)
+  const [active, setActive] = useState<BabyEventType | 'multi' | null>(null)
 
   return (
     <SurfaceCard>
-      <h2 className="m-0 mb-3 text-sm font-semibold">Log an entry</h2>
-      {active ? (
+      {active === null && (
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="m-0 text-sm font-semibold">Log an entry</h2>
+          <button
+            type="button"
+            onClick={() => setActive('multi')}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-[var(--app-radius)] border border-[var(--app-border)] px-2.5 text-sm font-semibold"
+          >
+            <Layers className="h-4 w-4" aria-hidden="true" />
+            Log several
+          </button>
+        </div>
+      )}
+      {active === 'multi' ? (
+        <MultiEventForm
+          babyId={babyId}
+          onDone={() => setActive(null)}
+          onCancel={() => setActive(null)}
+        />
+      ) : active ? (
         <EventForm
           babyId={babyId}
           type={active}
@@ -26,23 +44,17 @@ export function QuickLogButtons({ babyId }: { babyId: Id<'babies'> }) {
         />
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {BABY_EVENT_TYPES.map((type) => {
-            const Icon =
-              (Icons as unknown as Record<string, LucideIcon>)[
-                EVENT_TYPE_ICONS[type] ?? 'Circle'
-              ] ?? Icons.Circle
-            return (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setActive(type)}
-                className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-xs font-semibold"
-              >
-                <Icon className="h-5 w-5" aria-hidden="true" />
-                {BABY_EVENT_LABELS[type]}
-              </button>
-            )
-          })}
+          {BABY_EVENT_TYPES.map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setActive(type)}
+              className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-xs font-semibold"
+            >
+              <EventIcon type={type} className="h-5 w-5" />
+              {BABY_EVENT_LABELS[type]}
+            </button>
+          ))}
         </div>
       )}
     </SurfaceCard>
