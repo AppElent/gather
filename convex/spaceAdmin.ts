@@ -126,7 +126,12 @@ export async function createGatherSpace(input: {
 }
 export const create = action({
   args: { name: v.string(), requestId: v.string() },
-  handler: async (ctx, args) => {
+  // Annotated because the handler reaches back through `internal`, which is
+  // generated from this file — without it the return type is self-referential.
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ clerkOrganizationId: string; spaceSlug: string }> => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new ConvexError('Authentication required')
 
@@ -135,12 +140,15 @@ export const create = action({
       name: args.name,
       requestId: args.requestId,
       creatorClerkUserId: identity.subject,
-      provision: async (organization) => {
-        const projection = await ctx.runMutation((internal as any).spaces.provisionTagged, {
-          clerkOrganizationId: organization.id,
-          clerkOrganizationName: organization.name,
-          creatorClerkUserId: identity.subject,
-        })
+      provision: async (organization): Promise<{ spaceSlug: string }> => {
+        const projection: { spaceSlug: string } = await ctx.runMutation(
+          (internal as any).spaces.provisionTagged,
+          {
+            clerkOrganizationId: organization.id,
+            clerkOrganizationName: organization.name,
+            creatorClerkUserId: identity.subject,
+          },
+        )
         return { spaceSlug: projection.spaceSlug }
       },
     })

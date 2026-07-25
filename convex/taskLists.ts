@@ -1,5 +1,6 @@
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
+import type { Doc } from './_generated/dataModel'
 import { action, internalQuery, mutation, query } from './_generated/server'
 import { getAdapter } from './lib/taskProviders'
 import {
@@ -138,9 +139,10 @@ export const getTasks = action({
     })
 
     if (list.provider === 'local') {
-      const rows = await ctx.runQuery(internal.tasks.listByListInternal, {
-        listId: args.listId,
-      })
+      const rows: Doc<'tasks'>[] = await ctx.runQuery(
+        internal.tasks.listByListInternal,
+        { listId: args.listId },
+      )
       return {
         status: 'ok',
         tasks: rows.map((t) => ({
