@@ -76,6 +76,11 @@ export function initialEventValues(
         amountMl: seedNumber(event, 'amountMl'),
         leftMin: seedNumber(event, 'leftMin'),
         rightMin: seedNumber(event, 'rightMin'),
+        // Distinguishes "duration cleared" from "entry predates per-side
+        // minutes" once both minute fields are empty — see buildFeeding.
+        hadSideMinutes:
+          typeof fromData(event, 'leftMin') === 'number' ||
+          typeof fromData(event, 'rightMin') === 'number',
         endTimestamp,
       }
     case 'diaper':
@@ -127,10 +132,16 @@ function buildFeeding(values: EventValues, timestampMs: number): EventInput {
   else if (rightMin !== undefined) side = 'right'
   else side = str(values.side) || undefined
 
+  // With no minutes, only a legacy entry — one whose duration was recorded
+  // through the old End inputs — keeps its stored end. If the entry *had*
+  // per-side minutes, emptying both fields is how you clear the duration, and
+  // breast feeds have no End inputs to clear it any other way.
   const totalMin = (leftMin ?? 0) + (rightMin ?? 0)
   const endTimestamp =
     leftMin === undefined && rightMin === undefined
-      ? storedEnd
+      ? values.hadSideMinutes === true
+        ? undefined
+        : storedEnd
       : timestampMs + totalMin * 60000
 
   return {

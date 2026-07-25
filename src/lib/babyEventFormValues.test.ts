@@ -106,6 +106,25 @@ describe('buildEventInput — breast feeds', () => {
     )
   })
 
+  test('clearing the minutes clears the duration they produced', () => {
+    const values = initialEventValues(
+      'feeding',
+      eventDoc(
+        'feeding',
+        { method: 'breast', side: 'both', leftMin: 10, rightMin: 8 },
+        START + 18 * 60000,
+      ),
+    )
+    const built = buildEventInput(
+      'feeding',
+      { ...values, leftMin: '', rightMin: '' },
+      START,
+    )
+    expect(built.endTimestamp).toBeUndefined()
+    expect(built.data.leftMin).toBeUndefined()
+    expect(built.data.rightMin).toBeUndefined()
+  })
+
   test('rejects negative minutes', () => {
     expect(
       buildEventInput('feeding', { method: 'breast', leftMin: '-5' }, START)
