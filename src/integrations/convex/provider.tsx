@@ -14,6 +14,10 @@ export default function AppConvexProvider({
 }: {
   children: React.ReactNode
 }) {
+  // Requires convex >= 1.42.2: earlier versions rebuilt the token fetcher for
+  // orgId/orgRole but not for a replaced Clerk session, so signing out and back
+  // in without a reload left Convex holding the dead session and permanently
+  // unauthenticated (get-convex/convex-js#156, fixed upstream).
   return (
     <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
       {children}
