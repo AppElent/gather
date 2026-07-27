@@ -53,7 +53,7 @@
     "@tanstack/react-table": "latest",
     "@tanstack/router-plugin": "^1.132.0",
     "@tanstack/store": "latest",
-    "convex": "^1.32.0",
+    "convex": "^1.42.3",
     "dotenv-cli": "^11.0.0",
     "highlight.js": "^11.11.1",
     "jspdf": "^4.2.1",
