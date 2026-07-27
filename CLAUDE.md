@@ -77,9 +77,7 @@ OAuth app must register the redirect URI `<app-origin>/integrations/callback`
 - `.github/workflows/ci.yml` — check/typecheck/test/build gate on push to `master`
   and on PRs.
 - `.github/workflows/preview.yml` — per-PR Convex preview deployment + per-PR
-  Cloudflare Worker (`gather-pr-<N>`) + PR comment + teardown on close. **This repo
-  has no GitHub remote yet** — once pushed, set repo secrets: `CONVEX_DEPLOY_KEY`
-  (Preview-kind deploy key), `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
+  Cloudflare Worker (`gather-pr-<N>`) + PR comment + teardown on close.
   `PREVIEW_CLERK_PUBLISHABLE_KEY`, optionally `NODE_AUTH_TOKEN`.
 
 ## Claude Code workflow layer
@@ -98,7 +96,25 @@ ported back to whichever source copy it traces to, not left to drift.
 design (gather's actual route→module map) and has no source-of-truth counterpart
 at all.
 
+## Agent skills
+
+### Issue tracker
+
+Issues live in this repo's GitHub Issues (`AppElent/gather`), driven via the `gh` CLI.
+See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles, each label string equal to its name.
+See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root.
+See `docs/agents/domain.md`.
+
 <!-- appelent-managed:start -->
+
 ## Appelent Managed Project
 
 This is an Appelent-managed app. Opted-in features and their options are
@@ -108,4 +124,5 @@ plugin (locally installed) or https://github.com/AppElent/appelent-packages
 
 Before adding functionality that could apply to multiple apps, check the
 feature catalog first. To add or update a feature, use `/appelent`.
+
 <!-- appelent-managed:end -->
