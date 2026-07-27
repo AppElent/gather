@@ -1,5 +1,5 @@
 import { mutation, query } from './_generated/server'
-import { getCurrentUser } from './lib/sharing'
+import { getCurrentUser, getUserByClerkId } from './lib/sharing'
 import { nutritionValidator } from './lib/nutrition'
 
 /** Returns the current gather user row, or null if not signed in / not yet provisioned. */
@@ -19,10 +19,11 @@ export const ensureUser = mutation({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Not authenticated')
 
-    const existing = await ctx.db
-      .query('users')
-      .withIndex('by_clerkId', (q) => q.eq('clerkId', identity.subject))
-      .unique()
+    // Runs on every app mount, and is the only thing that inserts into
+    // `users` — so it must never insert a second row for a subject that
+    // already has one. Resolving through getUserByClerkId keeps that true
+    // even when the table is already dirty.
+    const existing = await getUserByClerkId(ctx, identity.subject)
 
     if (existing) {
       const patch: Record<string, string> = {}
