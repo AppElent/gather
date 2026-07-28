@@ -1,0 +1,90 @@
+# Gather
+
+Gather is a household-management app. Everything a household keeps track of —
+recipes, tasks, a baby's log, what's in the pantry — lives inside a Group that
+its members share.
+
+## Language
+
+### Boundaries
+
+**Group**:
+The sharing boundary. Shared content belongs to exactly one Group, and every
+Member of that Group can see it.
+_Avoid_: Space, Organization, Team, Household, Workspace
+
+**Personal group**:
+A Group with a single Member, created for every person when they sign up. Where
+private content lives. An ordinary Group in every respect — it simply has one
+Member.
+_Avoid_: Private space, Personal workspace, Inbox
+
+**Member**:
+A person within a Group. Members are either **admins**, who can change the Group
+and its membership, or plain members.
+_Avoid_: Owner, Participant. (A *user* is a person; a Member is a person
+*within* a Group.)
+
+**Slug**:
+The short, readable, globally unique name identifying a Group in a URL. Readable
+by design: it is how someone notices which Group they are acting in.
+
+### Scope
+
+**Group-scoped**:
+Content owned by a Group and visible to its Members — recipes, tasks, a baby's
+log, integration connections.
+
+**Personal**:
+Records *about a person* rather than content they authored — their food diary,
+their nutrition targets, their pins. These follow the person across every Group
+and belong to no Group.
+
+**Catalog**:
+Reference data owned by nobody and readable by everybody — the food database.
+Neither Group-scoped nor Personal.
+_Avoid_: Global data, Public data
+
+### Content
+
+**Module**:
+A feature area — Recipes, Tasks, Baby log, Nutrition. Every live Module is
+available in every Group; a Group never enables or disables one.
+_Avoid_: Feature, App, Section, Widget
+
+**Pin**:
+One person's choice to keep a Module in their own sidebar. A Pin is always
+personal — it is never set for a Group.
+_Avoid_: Favourite, Shortcut, Bookmark, Enabled module
+
+**Home**:
+A Group's shared surface — what a Member sees on opening it. It carries the
+Group's activity, and is where conversation will live.
+_Avoid_: Dashboard, Command center
+
+**Attribution**:
+The person who created a piece of Group-scoped content. Attribution records
+*who*; it never confers ownership or access.
+_Avoid_: Owner, Author
+
+**Share**:
+Making Group-scoped content visible to an additional Group without changing
+where it lives.
+_Avoid_: Publish, Copy, Cross-post
+
+**Move**:
+Changing which Group a piece of content lives in.
+
+**Provenance**:
+A reference from a Personal record back to the Group-scoped content it was
+created from — a diary entry recording which recipe it came from. Provenance
+never grants access: it is checked on read, and it may point at something the
+reader can no longer see.
+_Avoid_: Link, Source
+
+## Standing rules
+
+- A Personal record **snapshots** what it references. Provenance is
+  permission-checked on read and safe to dangle.
+- Content in a Group is visible to that Group. Privacy comes from *which Group*
+  something lives in, never from a flag on the content.
