@@ -1,4 +1,5 @@
 import type { AppLink } from '../../lib/appLink'
+import { flatFoodNav, groupFoodNav } from '../foods/foodNav'
 import { flatRecipeNav, groupRecipeNav } from '../recipes/recipeNav'
 
 /**
@@ -12,12 +13,23 @@ import { flatRecipeNav, groupRecipeNav } from '../recipes/recipeNav'
  */
 export interface NutritionNav {
   recipe: (recipeId: string) => AppLink
+  food: (foodId: string) => AppLink
+  /** Adding a scanned barcode the Catalog does not have yet. */
+  createFood: (barcode?: string) => AppLink
 }
 
 export const flatNutritionNav: NutritionNav = {
   recipe: flatRecipeNav.detail,
+  food: flatFoodNav.detail,
+  createFood: flatFoodNav.create,
 }
 
 export function groupNutritionNav(groupSlug: string): NutritionNav {
-  return { recipe: groupRecipeNav(groupSlug).detail }
+  const recipes = groupRecipeNav(groupSlug)
+  const foods = groupFoodNav(groupSlug)
+  return {
+    recipe: recipes.detail,
+    food: foods.detail,
+    createFood: foods.create,
+  }
 }

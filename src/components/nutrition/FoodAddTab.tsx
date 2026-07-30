@@ -9,6 +9,7 @@ import {
 } from '../../../convex/lib/consumption'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
+import type { NutritionNav } from './nutritionNav'
 
 // _id is typed as the branded Id<'foods'>, not a plain string, because this
 // state is always populated directly from real Convex query results
@@ -25,10 +26,11 @@ interface FoodSummary {
 interface Props {
   date: string
   meal: MealName
+  nav: NutritionNav
   onAdded: () => void
 }
 
-export function FoodAddTab({ date, meal, onAdded }: Props) {
+export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
   const [term, setTerm] = useState('')
   const [debouncedTerm, setDebouncedTerm] = useState('')
   useEffect(() => {
@@ -178,11 +180,7 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
       {notFoundBarcode && (
         <p className="text-xs opacity-60">
           Not found.{' '}
-          <Link
-            to="/foods/new"
-            search={{ barcode: notFoundBarcode }}
-            className="underline"
-          >
+          <Link {...nav.createFood(notFoundBarcode)} className="underline">
             Add it to the foods library
           </Link>{' '}
           first.

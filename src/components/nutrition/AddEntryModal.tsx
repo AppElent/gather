@@ -71,7 +71,7 @@ export function AddEntryModal({ date, meal, nav, onClose }: Props) {
           <RecipeAddTab date={date} meal={meal} nav={nav} onAdded={onClose} />
         )}
         {tab === 'foods' && (
-          <FoodAddTab date={date} meal={meal} onAdded={onClose} />
+          <FoodAddTab date={date} meal={meal} nav={nav} onAdded={onClose} />
         )}
         {tab === 'quick' && (
           <QuickAddTab date={date} meal={meal} onAdded={onClose} />

@@ -28,6 +28,10 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'sign-up',
   'forgot-password',
   'integrations',
+  // The food Catalog. It has routes at both levels but is not a Module — no
+  // registry entry, no sidebar row — so nothing else claims the segment on its
+  // behalf, and `groupPaths.segments.test.ts` holds it here instead.
+  'foods',
   'new',
   'all',
   'home',

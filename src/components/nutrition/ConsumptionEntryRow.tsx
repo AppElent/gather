@@ -56,8 +56,7 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
           )}
           {entry.foodId && (
             <Link
-              to="/foods/$foodId"
-              params={{ foodId: entry.foodId }}
+              {...nav.food(entry.foodId)}
               className="ml-2 text-xs underline"
             >
               View food
