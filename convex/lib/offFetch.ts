@@ -32,3 +32,36 @@ export async function fetchOffProduct(
     return null
   }
 }
+
+// Searches Open Food Facts by free-text term (product name/brand) for the
+// "no local match" fallback in FoodAddTab. Same never-throw contract as
+// fetchOffProduct: returns the raw parsed JSON ({products: [...]} shape) on
+// success, or null on any failure (network error, timeout, non-OK status,
+// invalid JSON) — the caller treats null the same as "no matches".
+export async function searchOffProducts(
+  term: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<unknown | null> {
+  const url = new URL('https://world.openfoodfacts.org/api/v2/search')
+  url.searchParams.set('search_terms', term)
+  url.searchParams.set('page_size', '20')
+  url.searchParams.set(
+    'fields',
+    'code,product_name,product_name_nl,brands,nutriments,serving_size,serving_quantity',
+  )
+  let response: Response
+  try {
+    response = await fetchImpl(url.toString(), {
+      headers: { 'User-Agent': OFF_USER_AGENT },
+      signal: AbortSignal.timeout(OFF_TIMEOUT_MS),
+    })
+  } catch {
+    return null
+  }
+  if (!response.ok) return null
+  try {
+    return await response.json()
+  } catch {
+    return null
+  }
+}
