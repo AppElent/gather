@@ -28,12 +28,23 @@ const buttonClass =
 const inputClass =
   'min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm'
 
-export function AddListFlow({ onDone }: { onDone: () => void }) {
-  const connections = useQuery(api.integrations.listConnections)
+export interface AddListFlowProps {
+  /** The Group the list is being added to, when the URL names one. */
+  groupSlug?: string
+  /** Where the provider OAuth round-trip should come back to. */
+  returnTo: string
+  onDone: () => void
+}
+
+export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
+  const connections = useQuery(
+    api.integrations.listConnections,
+    groupSlug ? { groupSlug } : {},
+  )
   const listSources = useAction(api.integrations.listSources)
   const getSourceSchema = useAction(api.integrations.getSourceSchema)
   const createList = useMutation(api.taskLists.create)
-  const connect = useConnectProvider('/tasks')
+  const connect = useConnectProvider(returnTo)
 
   const [step, setStep] = useState<Step>({ kind: 'provider' })
   const [name, setName] = useState('')
@@ -76,6 +87,7 @@ export function AddListFlow({ onDone }: { onDone: () => void }) {
           name: source.name,
           provider: 'todoist',
           providerConfig: { connectionId: conn._id, sourceId: source.id },
+          groupSlug,
         })
         onDone()
       })
@@ -92,7 +104,7 @@ export function AddListFlow({ onDone }: { onDone: () => void }) {
     const trimmed = name.trim()
     if (!trimmed) return
     await run(async () => {
-      await createList({ name: trimmed, provider: 'local' })
+      await createList({ name: trimmed, provider: 'local', groupSlug })
       onDone()
     })
   }
@@ -112,6 +124,7 @@ export function AddListFlow({ onDone }: { onDone: () => void }) {
           sourceId: source.id,
           propertyMapping: mapping,
         },
+        groupSlug,
       })
       onDone()
     })

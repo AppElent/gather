@@ -1,41 +1,19 @@
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import { requireBabyAccess } from './lib/babyAccess'
-import { requireGroupBySlug } from './lib/groupAccess'
+import {
+  groupIdFromSlugOrDefault,
+  requireGroupBySlug,
+} from './lib/groupAccess'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
-import type { MutationCtx, QueryCtx } from './_generated/server'
+import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
-
-/**
- * Which Group a baby-log call is about.
- *
- * Given a slug, that Group and no other, authorised through the one Group-scoped
- * check (`requireGroupBySlug`) and refused outright if the caller is not a
- * Member of it. Given none, the caller's `defaultGroupId` — how every flat route
- * has always worked, and the reason the Group was invisible.
- *
- * The point of ADR-0002 is that a Group-scoped route stops asking the account
- * which Group it means and reads it off the URL instead. This is where the baby
- * log stops asking. `null` means only "there is no default group", which the
- * slug path can never produce: it has already thrown by then.
- */
-async function babyGroupId(
-  ctx: QueryCtx,
-  groupSlug: string | undefined,
-): Promise<Id<'groups'> | null> {
-  if (groupSlug !== undefined) {
-    const { group } = await requireGroupBySlug(ctx, groupSlug)
-    return group._id
-  }
-  const user = await getCurrentUser(ctx)
-  return user?.defaultGroupId ?? null
-}
 
 /** Babies in the given Group, or the viewer's default one; null = no default. */
 export const list = query({
   args: { groupSlug: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const groupId = await babyGroupId(ctx, args.groupSlug)
+    const groupId = await groupIdFromSlugOrDefault(ctx, args.groupSlug)
     if (!groupId) return null
     const babies = await ctx.db
       .query('babies')
@@ -111,7 +89,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     // Added from a Group page, the child belongs to that Group and not to
     // whichever one the account happens to default to.
-    const groupId = await babyGroupId(ctx, args.groupSlug)
+    const groupId = await groupIdFromSlugOrDefault(ctx, args.groupSlug)
     if (!groupId) {
       throw new ConvexError('Set a default group on the Groups page first')
     }

@@ -15,18 +15,25 @@ import {
   type ProviderSource,
   type SourceProperty,
 } from './lib/taskProviders/types'
+import { groupIdFromSlugOrDefault } from './lib/groupAccess'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
 
 const externalProvider = v.union(v.literal('notion'), v.literal('todoist'))
 
 // ---------- public queries/mutations (no tokens ever leave here) ----------
 
+/**
+ * Connections belonging to the given Group, or to the viewer's default one.
+ *
+ * A connection is Group-scoped content: the token belongs to the household that
+ * authorised it. Reading them for the Group in the URL is what stops the Tasks
+ * page inside one Group from offering another Group's Notion workspace.
+ */
 export const listConnections = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx)
-    if (!user?.defaultGroupId) return []
-    const groupId = user.defaultGroupId
+  args: { groupSlug: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const groupId = await groupIdFromSlugOrDefault(ctx, args.groupSlug)
+    if (!groupId) return []
     const rows = await ctx.db
       .query('integrationConnections')
       .withIndex('by_group_provider', (q) => q.eq('groupId', groupId))

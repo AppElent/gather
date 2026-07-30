@@ -14,6 +14,11 @@ import {
   groupRecipeNav,
   type RecipeNav,
 } from '../components/recipes/recipeNav'
+import {
+  flatTaskNav,
+  groupTaskNav,
+  type TaskNav,
+} from '../components/tasks/taskNav'
 import type { AppLink } from './appLink'
 
 /**
@@ -46,6 +51,10 @@ function babyDestinations(nav: BabyNav): AppLink[] {
   return [nav.list, nav.create, nav.detail('b1'), nav.edit('b1')]
 }
 
+function taskDestinations(nav: TaskNav): AppLink[] {
+  return [nav.list]
+}
+
 /** One row per Module, holding every destination its two navs can produce. */
 const MODULES: Array<{
   module: string
@@ -71,6 +80,12 @@ const MODULES: Array<{
     flat: babyDestinations(flatBabyNav),
     group: babyDestinations(groupBabyNav(SLUG)),
   },
+  {
+    module: 'Tasks',
+    flatPrefix: '/tasks',
+    flat: taskDestinations(flatTaskNav),
+    group: taskDestinations(groupTaskNav(SLUG)),
+  },
 ]
 
 function paramsOf(link: AppLink): Record<string, unknown> {
@@ -95,6 +110,14 @@ describe('links built for a Group', () => {
     expect(paramsOf(groupFoodNav(SLUG).edit('f1')).foodId).toBe('f1')
     expect(paramsOf(groupBabyNav(SLUG).detail('b1')).babyId).toBe('b1')
     expect(paramsOf(groupBabyNav(SLUG).edit('b1')).babyId).toBe('b1')
+  })
+
+  // The OAuth round-trip cannot carry link options through sessionStorage and
+  // a full page load, so Tasks hands out a plain path. It still has to name the
+  // Group, or connecting Notion drops you back on the flat route.
+  test('the OAuth return path names the Group too', () => {
+    expect(groupTaskNav(SLUG).returnTo).toBe(`/g/${SLUG}/tasks`)
+    expect(flatTaskNav.returnTo).toBe('/tasks')
   })
 
   test('a search param survives being given the Group treatment', () => {

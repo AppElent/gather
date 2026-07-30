@@ -107,3 +107,31 @@ export async function requireGroupBySlug(
   const { user, group, membership, role } = resolution
   return { user, group, membership, role }
 }
+
+/**
+ * Which Group a Group-scoped function is being asked about, during the window
+ * where both route trees exist.
+ *
+ * Given a slug — which only a `/g/<slug>/…` route supplies — that Group and no
+ * other, authorised here and refused if the caller is not a Member of it.
+ * Given none, the caller's `defaultGroupId`: the pre-ADR-0002 answer, kept
+ * exactly as it was so that every flat route goes on behaving as before.
+ *
+ * The fallback is the thing this rebuild is removing, not a design. It survives
+ * only as long as the flat routes do; #24 deletes both together, and this
+ * function collapses into `requireGroupBySlug` when it goes.
+ *
+ * `null` means "no default group", which the slug branch can never return —
+ * it has already thrown by then.
+ */
+export async function groupIdFromSlugOrDefault(
+  ctx: QueryCtx,
+  groupSlug: string | undefined,
+): Promise<Id<'groups'> | null> {
+  if (groupSlug !== undefined) {
+    const { group } = await requireGroupBySlug(ctx, groupSlug)
+    return group._id
+  }
+  const user = await getCurrentUser(ctx)
+  return user?.defaultGroupId ?? null
+}

@@ -6,8 +6,8 @@ import {
   ProviderAuthError,
   type UnifiedTask,
 } from './lib/taskProviders/types'
+import { groupIdFromSlugOrDefault } from './lib/groupAccess'
 import { requireListAccess } from './lib/taskAccess'
-import { getCurrentUser } from './lib/sharing'
 
 const providerConfigValidator = v.object({
   connectionId: v.id('integrationConnections'),
@@ -23,13 +23,12 @@ const providerConfigValidator = v.object({
   ),
 })
 
-/** Lists for the viewer's default group; null = no default group set. */
+/** Lists in the given Group, or the viewer's default one; null = no default. */
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx)
-    if (!user?.defaultGroupId) return null
-    const groupId = user.defaultGroupId
+  args: { groupSlug: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const groupId = await groupIdFromSlugOrDefault(ctx, args.groupSlug)
+    if (!groupId) return null
     const lists = await ctx.db
       .query('taskLists')
       .withIndex('by_group', (q) => q.eq('groupId', groupId))
@@ -49,14 +48,17 @@ export const create = mutation({
       v.literal('todoist'),
     ),
     providerConfig: v.optional(providerConfigValidator),
+    groupSlug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
-    if (!user.defaultGroupId) {
+    // A list added from a Group page belongs to that Group, and the connection
+    // it links to has to belong there too - the check below reads the same
+    // groupId either way, so a slug cannot be used to borrow another Group's
+    // Notion token.
+    const groupId = await groupIdFromSlugOrDefault(ctx, args.groupSlug)
+    if (!groupId) {
       throw new ConvexError('Set a default group on the Groups page first')
     }
-    const groupId = user.defaultGroupId
 
     if (args.provider === 'local') {
       if (args.providerConfig) {

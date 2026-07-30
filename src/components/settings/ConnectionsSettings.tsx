@@ -38,7 +38,7 @@ export function useConnectProvider(returnTo: string) {
 }
 
 export function ConnectionsSettings() {
-  const connections = useQuery(api.integrations.listConnections)
+  const connections = useQuery(api.integrations.listConnections, {})
   const disconnect = useMutation(api.integrations.disconnect)
   const connect = useConnectProvider('/settings')
   const [error, setError] = useState<string | null>(null)
