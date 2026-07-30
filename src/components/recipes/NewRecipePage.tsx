@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { ImageUploadField } from '../app/ImageUploadField'
+import { RecipeDestinationNotice } from './RecipeDestinationNotice'
 import { RecipeForm, type RecipeFormValues } from './RecipeForm'
 import type { RecipeDestination } from './recipeDestination'
 import type { RecipeNav } from './recipeNav'
@@ -145,6 +146,9 @@ export function NewRecipePage({
             </button>
           </div>
         </label>
+        <div className="mt-2">
+          <RecipeDestinationNotice destination={destination} />
+        </div>
         {importError && (
           <p className="mt-2 text-sm text-red-800">{importError}</p>
         )}
@@ -175,6 +179,7 @@ export function NewRecipePage({
         key={`form-${imported?.version ?? 'blank'}`}
         submitting={submitting}
         initial={imported?.values}
+        destination={destination}
         onEstimate={
           aiConfigured ? (args) => estimateNutrition(args) : undefined
         }

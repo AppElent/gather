@@ -11,6 +11,8 @@ import {
   parseDecimal,
   toNutrientInputs,
 } from '../nutrition/nutrientInputs'
+import { RecipeDestinationNotice } from './RecipeDestinationNotice'
+import type { RecipeDestination } from './recipeDestination'
 import { StarRating } from './StarRating'
 
 export interface RecipeFormValues {
@@ -28,6 +30,11 @@ export interface RecipeFormValues {
 interface Props {
   initial?: RecipeFormValues
   submitting: boolean
+  /**
+   * The Group a save will put this recipe in, shown next to the button that
+   * does it. Absent when editing, which moves nothing.
+   */
+  destination?: RecipeDestination
   onSubmit: (values: RecipeFormValues) => void
   onEstimate?: (args: {
     ingredients: string[]
@@ -54,6 +61,7 @@ const parsePositiveInt = (s: string): number | undefined => {
 export function RecipeForm({
   initial,
   submitting,
+  destination,
   onSubmit,
   onEstimate,
 }: Props) {
@@ -211,13 +219,16 @@ export function RecipeForm({
         <span className="mb-1 block font-medium">Rating</span>
         <StarRating value={rating} onChange={setRating} />
       </div>
-      <button
-        type="submit"
-        disabled={submitting || estimating}
-        className="w-fit rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-4 py-2 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {submitting ? 'Saving…' : 'Save recipe'}
-      </button>
+      <div className="grid gap-2">
+        {destination && <RecipeDestinationNotice destination={destination} />}
+        <button
+          type="submit"
+          disabled={submitting || estimating}
+          className="w-fit rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-4 py-2 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {submitting ? 'Saving…' : 'Save recipe'}
+        </button>
+      </div>
     </form>
   )
 }

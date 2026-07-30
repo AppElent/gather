@@ -89,6 +89,15 @@ export function RecipeDetailPage({ recipeId, nav }: RecipeDetailPageProps) {
       {recipe.description && (
         <p className="mb-4 opacity-80">{recipe.description}</p>
       )}
+      {/*
+        Attribution: who to ask about this recipe, and nothing more. The name is
+        resolved by `recipes.get`, so reading a recipe never turns into reading
+        the `users` table; if that person's row has gone the line is simply not
+        there, which is a better answer than an empty "Added by".
+      */}
+      {recipe.addedByName && (
+        <p className="mb-4 text-xs opacity-60">Added by {recipe.addedByName}</p>
+      )}
       {recipe.sourceUrl && (
         <p className="mb-4 text-xs opacity-60">
           Imported from{' '}

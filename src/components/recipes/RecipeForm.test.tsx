@@ -212,3 +212,46 @@ test('hides the estimate button when onEstimate is not provided', () => {
   render(<RecipeForm onSubmit={vi.fn()} submitting={false} />)
   expect(screen.queryByRole('button', { name: /estimate/i })).toBeNull()
 })
+
+// The destination is a claim about where a save lands, so it is asserted as
+// text a person would read rather than as a prop that was passed.
+test('names the group a save will land in', () => {
+  render(
+    <RecipeForm
+      onSubmit={vi.fn()}
+      submitting={false}
+      destination={{
+        groupSlug: 'household',
+        groupName: 'Jansen Household',
+        fallback: false,
+      }}
+    />,
+  )
+
+  expect(screen.getByText(/adding to/i)).toHaveTextContent(
+    'Adding to Jansen Household.',
+  )
+})
+
+test('says so when the group was chosen rather than asked for', () => {
+  render(
+    <RecipeForm
+      onSubmit={vi.fn()}
+      submitting={false}
+      destination={{
+        groupSlug: 'me-alice',
+        groupName: "Alice's things",
+        fallback: true,
+      }}
+    />,
+  )
+
+  expect(screen.getByText(/adding to/i)).toHaveTextContent(
+    "Adding to Alice's things — your personal group, because this page is not inside one.",
+  )
+})
+
+test('says nothing about a destination when there is none to move', () => {
+  render(<RecipeForm onSubmit={vi.fn()} submitting={false} />)
+  expect(screen.queryByText(/adding to/i)).toBeNull()
+})
