@@ -6,14 +6,16 @@ import {
   computeRecipeEntryNutrition,
   type MealName,
 } from '../../../convex/lib/consumption'
+import type { NutritionNav } from './nutritionNav'
 
 interface Props {
   date: string
   meal: MealName
+  nav: NutritionNav
   onAdded: () => void
 }
 
-export function RecipeAddTab({ date, meal, onAdded }: Props) {
+export function RecipeAddTab({ date, meal, nav, onAdded }: Props) {
   const recipes = useQuery(api.recipes.list)
   const create = useMutation(api.consumption.create)
   const [quantities, setQuantities] = useState<Record<string, string>>({})
@@ -112,8 +114,7 @@ export function RecipeAddTab({ date, meal, onAdded }: Props) {
           {withoutNutrition.map((recipe) => (
             <Link
               key={recipe._id}
-              to="/recipes/$recipeId"
-              params={{ recipeId: recipe._id }}
+              {...nav.recipe(recipe._id)}
               className="block text-xs underline"
             >
               {recipe.title}

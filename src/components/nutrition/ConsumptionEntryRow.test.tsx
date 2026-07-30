@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
+import { flatNutritionNav } from './nutritionNav'
 
 // TanStack Router's <Link> requires a RouterProvider context to render (it
 // reads router state via useLinkProps); this component test renders in
@@ -44,7 +45,12 @@ const entry = {
 
 test('renders label, quantity, unit, and calories', () => {
   render(
-    <ConsumptionEntryRow entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />,
+    <ConsumptionEntryRow
+      nav={flatNutritionNav}
+      entry={entry}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
   )
   expect(screen.getByText('Oatmeal')).toBeDefined()
   expect(screen.getByText(/1 serving/)).toBeDefined()
@@ -55,6 +61,7 @@ test('clicking Delete calls onDelete', () => {
   const onDelete = vi.fn()
   render(
     <ConsumptionEntryRow
+      nav={flatNutritionNav}
       entry={entry}
       onUpdate={vi.fn()}
       onDelete={onDelete}
@@ -66,7 +73,12 @@ test('clicking Delete calls onDelete', () => {
 
 test('shows no source link for a quick-add entry (no recipeId or foodId)', () => {
   render(
-    <ConsumptionEntryRow entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />,
+    <ConsumptionEntryRow
+      nav={flatNutritionNav}
+      entry={entry}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
   )
   expect(screen.queryByText('View recipe')).toBeNull()
   expect(screen.queryByText('View food')).toBeNull()
@@ -75,6 +87,7 @@ test('shows no source link for a quick-add entry (no recipeId or foodId)', () =>
 test('shows a View recipe link when recipeId is set', () => {
   render(
     <ConsumptionEntryRow
+      nav={flatNutritionNav}
       entry={{ ...entry, recipeId: 'recipe1' }}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
@@ -87,6 +100,7 @@ test('shows a View recipe link when recipeId is set', () => {
 test('shows a View food link when foodId is set', () => {
   render(
     <ConsumptionEntryRow
+      nav={flatNutritionNav}
       entry={{ ...entry, foodId: 'food1' }}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
@@ -100,6 +114,7 @@ test('editing quantity and saving calls onUpdate with the new quantity, current 
   const onUpdate = vi.fn().mockResolvedValue(undefined)
   render(
     <ConsumptionEntryRow
+      nav={flatNutritionNav}
       entry={entry}
       onUpdate={onUpdate}
       onDelete={vi.fn()}
@@ -121,6 +136,7 @@ test('a failed save keeps the row in edit mode and shows an error', async () => 
   const onUpdate = vi.fn().mockRejectedValue(new Error('Network error'))
   render(
     <ConsumptionEntryRow
+      nav={flatNutritionNav}
       entry={entry}
       onUpdate={onUpdate}
       onDelete={vi.fn()}
@@ -136,6 +152,7 @@ test('an invalid quantity does not call onUpdate', () => {
   const onUpdate = vi.fn()
   render(
     <ConsumptionEntryRow
+      nav={flatNutritionNav}
       entry={entry}
       onUpdate={onUpdate}
       onDelete={vi.fn()}

@@ -1,7 +1,11 @@
 import { Link, useLocation } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { groupLink, groupSlugOf, groupSurfaceOf } from '../../lib/groupPaths'
+import {
+  groupIndexSurfaceOf,
+  groupLink,
+  groupSlugOf,
+} from '../../lib/groupPaths'
 import { Pill } from './ShellPrimitives'
 
 export interface GroupSwitcherProps {
@@ -19,12 +23,16 @@ export interface GroupSwitcherProps {
  * Where a switch lands: the same Module in the chosen Group when that Module has
  * a Group-scoped route, and the Group's landing page otherwise — including from
  * any flat route, which has no Group in it to preserve.
+ *
+ * The Module's *index*, never the page you were on: a recipe id, a food id or a
+ * child names something that lives in one Group, so carrying it into another
+ * would ask for content that Group does not have.
  */
 export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
   const groups = useQuery(api.groups.myGroups)
   const location = useLocation()
   const currentSlug = groupSlugOf(location.pathname)
-  const surface = groupSurfaceOf(location.pathname) ?? 'home'
+  const surface = groupIndexSurfaceOf(location.pathname) ?? 'home'
 
   return (
     <nav className="grid gap-1" aria-label="Groups">

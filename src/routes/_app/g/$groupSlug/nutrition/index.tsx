@@ -3,6 +3,7 @@ import {
   NutritionPage,
   validateNutritionSearch,
 } from '../../../../../components/nutrition/NutritionPage'
+import { groupNutritionNav } from '../../../../../components/nutrition/nutritionNav'
 
 /**
  * Nutrition inside a Group. It renders the very same component as the flat
@@ -16,6 +17,7 @@ export const Route = createFileRoute('/_app/g/$groupSlug/nutrition/')({
 })
 
 function GroupNutritionDay() {
+  const { groupSlug } = Route.useParams()
   const { date } = Route.useSearch()
   const navigate = Route.useNavigate()
 
@@ -23,6 +25,7 @@ function GroupNutritionDay() {
     <NutritionPage
       date={date}
       onDateChange={(next) => navigate({ search: { date: next } })}
+      nav={groupNutritionNav(groupSlug)}
     />
   )
 }

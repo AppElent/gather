@@ -1,10 +1,12 @@
 import type { MealName } from '../../../convex/lib/consumption'
 import type { ConsumptionEntryData } from './ConsumptionEntryRow'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
+import type { NutritionNav } from './nutritionNav'
 
 interface Props {
   label: string
   entries: ConsumptionEntryData[]
+  nav: NutritionNav
   onAdd: () => void
   onUpdateEntry: (
     id: string,
@@ -16,6 +18,7 @@ interface Props {
 export function MealSlot({
   label,
   entries,
+  nav,
   onAdd,
   onUpdateEntry,
   onDeleteEntry,
@@ -36,6 +39,7 @@ export function MealSlot({
             <ConsumptionEntryRow
               key={entry._id}
               entry={entry}
+              nav={nav}
               onUpdate={(changes) => onUpdateEntry(entry._id, changes)}
               onDelete={() => onDeleteEntry(entry._id)}
             />

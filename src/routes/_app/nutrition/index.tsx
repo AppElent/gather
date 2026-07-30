@@ -3,6 +3,7 @@ import {
   NutritionPage,
   validateNutritionSearch,
 } from '../../../components/nutrition/NutritionPage'
+import { flatNutritionNav } from '../../../components/nutrition/nutritionNav'
 
 export const Route = createFileRoute('/_app/nutrition/')({
   component: NutritionDay,
@@ -17,6 +18,7 @@ function NutritionDay() {
     <NutritionPage
       date={date}
       onDateChange={(next) => navigate({ search: { date: next } })}
+      nav={flatNutritionNav}
     />
   )
 }

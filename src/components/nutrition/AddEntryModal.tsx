@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { MealName } from '../../../convex/lib/consumption'
 import { MEAL_LABELS } from '../../../convex/lib/consumption'
 import { FoodAddTab } from './FoodAddTab'
+import type { NutritionNav } from './nutritionNav'
 import { QuickAddTab } from './QuickAddTab'
 import { RecipeAddTab } from './RecipeAddTab'
 
@@ -16,10 +17,11 @@ const TABS: Array<[Tab, string]> = [
 interface Props {
   date: string
   meal: MealName
+  nav: NutritionNav
   onClose: () => void
 }
 
-export function AddEntryModal({ date, meal, onClose }: Props) {
+export function AddEntryModal({ date, meal, nav, onClose }: Props) {
   const [tab, setTab] = useState<Tab>('recipes')
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export function AddEntryModal({ date, meal, onClose }: Props) {
           ))}
         </div>
         {tab === 'recipes' && (
-          <RecipeAddTab date={date} meal={meal} onAdded={onClose} />
+          <RecipeAddTab date={date} meal={meal} nav={nav} onAdded={onClose} />
         )}
         {tab === 'foods' && (
           <FoodAddTab date={date} meal={meal} onAdded={onClose} />

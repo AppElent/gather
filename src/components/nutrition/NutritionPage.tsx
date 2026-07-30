@@ -12,6 +12,7 @@ import { moduleById } from '../../lib/modules'
 import { AddEntryModal } from './AddEntryModal'
 import { DayTotals } from './DayTotals'
 import { MealSlot } from './MealSlot'
+import type { NutritionNav } from './nutritionNav'
 import { TargetsPanel } from './TargetsPanel'
 
 // Client-local YYYY-MM-DD — matches spec §3.4 ("no server timezone math").
@@ -54,6 +55,8 @@ export interface NutritionPageProps {
   /** The day on show, as YYYY-MM-DD. Undefined means today. */
   date?: string
   onDateChange: (date: string) => void
+  /** Where the diary's provenance links go - see `nutritionNav.ts`. */
+  nav: NutritionNav
 }
 
 /**
@@ -63,11 +66,13 @@ export interface NutritionPageProps {
  * diary is Personal (ADR-0003): it belongs to the person, not to the Group in
  * the URL, so the two routes must show the same thing. Sharing the component is
  * what makes that true rather than merely intended — the routes differ only in
- * where the date lives, which is why that is the only thing they pass in.
+ * where the date lives and where its links point, which is why those are the
+ * only things they pass in.
  */
 export function NutritionPage({
   date: dateParam,
   onDateChange,
+  nav,
 }: NutritionPageProps) {
   const date = dateParam || todayLocal()
 
@@ -150,6 +155,7 @@ export function NutritionPage({
           key={meal}
           label={MEAL_LABELS[meal]}
           entries={(entries ?? []).filter((e) => e.meal === meal)}
+          nav={nav}
           onAdd={() => setAddingMeal(meal)}
           onUpdateEntry={async (entryId, changes) => {
             await updateEntry({
@@ -167,6 +173,7 @@ export function NutritionPage({
         <AddEntryModal
           date={date}
           meal={addingMeal}
+          nav={nav}
           onClose={() => setAddingMeal(null)}
         />
       )}
