@@ -14,16 +14,14 @@ export default defineSchema({
     nutritionTargets: v.optional(nutritionValidator),
   }).index('by_clerkId', ['clerkId']),
 
-  // `slug` and `isPersonal` are optional only until the backfill has run —
-  // Convex validates the schema against existing rows at push time, so a
-  // required field cannot land before every row has one. See
-  // docs/migrations/0001-group-slugs-and-personal-groups.md.
   groups: defineTable({
     name: v.string(),
     inviteCode: v.string(),
-    slug: v.optional(v.string()),
-    isPersonal: v.optional(v.boolean()),
-    type: v.optional(v.string()),
+    // Globally unique, and readable so that the Group you are acting in is
+    // visible in the URL (ADR-0002).
+    slug: v.string(),
+    // A Personal group has one Member and cannot be left, renamed or deleted.
+    isPersonal: v.boolean(),
   })
     .index('by_inviteCode', ['inviteCode'])
     .index('by_slug', ['slug']),
@@ -31,13 +29,7 @@ export default defineSchema({
   memberships: defineTable({
     groupId: v.id('groups'),
     userId: v.id('users'),
-    // 'owner' is the old name for 'admin' and exists only until the backfill
-    // has migrated every row. CONTEXT.md lists Owner as a term to avoid.
-    role: v.union(
-      v.literal('admin'),
-      v.literal('member'),
-      v.literal('owner'),
-    ),
+    role: v.union(v.literal('admin'), v.literal('member')),
   })
     .index('by_user', ['userId'])
     .index('by_group', ['groupId']),

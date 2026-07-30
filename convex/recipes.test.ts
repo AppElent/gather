@@ -35,17 +35,21 @@ async function seed() {
     const household = await ctx.db.insert('groups', {
       name: 'Household',
       inviteCode: 'household-code',
+      slug: 'household',
+      isPersonal: false,
     })
     const cookingClub = await ctx.db.insert('groups', {
       name: 'Cooking club',
       inviteCode: 'club-code',
+      slug: 'cooking-club',
+      isPersonal: false,
     })
 
     // Alice and Bob share the household; Carol is only in the cooking club.
     await ctx.db.insert('memberships', {
       groupId: household,
       userId: alice,
-      role: 'owner',
+      role: 'admin',
     })
     await ctx.db.insert('memberships', {
       groupId: household,
@@ -55,7 +59,7 @@ async function seed() {
     await ctx.db.insert('memberships', {
       groupId: cookingClub,
       userId: carol,
-      role: 'owner',
+      role: 'admin',
     })
 
     const secret = await ctx.db.insert('recipes', {
