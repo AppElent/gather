@@ -14,6 +14,12 @@ import type {
 } from '../../../convex/lib/offMapping'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
 
+// Open Food Facts caps clients at 10 search requests/minute. Never fire two
+// OFF searches closer together than this from a single browser tab —
+// comfortably under the ~6s/request average the limit implies, leaving
+// headroom for the barcode-scan path's OFF calls too.
+const OFF_SEARCH_MIN_INTERVAL_MS = 4000
+
 // _id is typed as the branded Id<'foods'>, not a plain string, because this
 // state is always populated directly from real Convex query results
 // (getByBarcode / get / search) — never round-tripped through a URL param —
@@ -49,6 +55,13 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
   const [offSearching, setOffSearching] = useState(false)
   const [offSearchError, setOffSearchError] = useState<string | null>(null)
   const offSearchedTermRef = useRef<string | null>(null)
+  // Cache each term's OFF results for the component's lifetime (retyping the
+  // same term costs nothing) and never fire two OFF calls closer together
+  // than OFF_SEARCH_MIN_INTERVAL_MS, deferring rather than dropping a call
+  // that arrives too soon — see the constant's comment below.
+  const offSearchCacheRef = useRef<Map<string, OffSearchResult[]>>(new Map())
+  const offLastCallAtRef = useRef(0)
+  const offSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [quantityInput, setQuantityInput] = useState('')
   const [unit, setUnit] = useState<'g' | 'ml' | 'piece'>('g')
   const [submitting, setSubmitting] = useState(false)
@@ -60,7 +73,18 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
   const upsertFromOff = useMutation(api.foods.upsertFromOff)
   const createEntry = useMutation(api.consumption.create)
 
+  // A name-search hit's barcode may already have a local row that the name
+  // search itself didn't surface (searched by brand, an alternate-language
+  // name, etc.). Check first and reuse that row rather than upserting over
+  // it — upsertFromOff would otherwise silently replace its name/nutrition/
+  // baseUnit with the search result's mapped data.
   async function saveOffMatch(mapped: OffMappedFood, barcode: string) {
+    const existing = await convex.query(api.foods.getByBarcode, { barcode })
+    if (existing) {
+      setSelected(existing)
+      setUnit(existing.baseUnit)
+      return
+    }
     const id = await upsertFromOff({
       barcode,
       name: mapped.name,
@@ -114,8 +138,10 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
   // Fires once local search has definitively resolved to zero results for a
   // term worth querying OFF over (3+ chars — avoids a network round-trip on
   // every 1-2 character keystroke). Guards against re-firing for a term
-  // already searched, and discards a stale response if the term changed
-  // while the request was in flight.
+  // already searched, discards a stale response if the term changed while
+  // the request was in flight, serves repeat terms from offSearchCacheRef
+  // instead of re-hitting OFF, and defers (rather than drops) a call that
+  // would land inside OFF_SEARCH_MIN_INTERVAL_MS of the last one.
   useEffect(() => {
     const term = debouncedTerm.trim()
     if (term.length < 3 || results === undefined || results.length > 0) {
@@ -126,21 +152,46 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
     }
     if (offSearchedTermRef.current === term) return
     offSearchedTermRef.current = term
-    setOffSearching(true)
-    setOffSearchError(null)
-    searchByName({ term })
-      .then((found) => {
-        if (offSearchedTermRef.current !== term) return
-        setOffResults(found)
-      })
-      .catch(() => {
-        if (offSearchedTermRef.current !== term) return
-        setOffSearchError("Couldn't search Open Food Facts.")
-      })
-      .finally(() => {
-        if (offSearchedTermRef.current !== term) return
-        setOffSearching(false)
-      })
+
+    const cached = offSearchCacheRef.current.get(term)
+    if (cached) {
+      setOffSearching(false)
+      setOffSearchError(null)
+      setOffResults(cached)
+      return
+    }
+
+    const runSearch = () => {
+      offLastCallAtRef.current = Date.now()
+      setOffSearching(true)
+      setOffSearchError(null)
+      searchByName({ term })
+        .then((found) => {
+          if (offSearchedTermRef.current !== term) return
+          offSearchCacheRef.current.set(term, found)
+          setOffResults(found)
+        })
+        .catch(() => {
+          if (offSearchedTermRef.current !== term) return
+          setOffSearchError("Couldn't search Open Food Facts.")
+        })
+        .finally(() => {
+          if (offSearchedTermRef.current !== term) return
+          setOffSearching(false)
+        })
+    }
+
+    const wait =
+      OFF_SEARCH_MIN_INTERVAL_MS - (Date.now() - offLastCallAtRef.current)
+    if (wait <= 0) {
+      runSearch()
+    } else {
+      setOffSearching(true)
+      offSearchTimeoutRef.current = setTimeout(runSearch, wait)
+    }
+    return () => {
+      if (offSearchTimeoutRef.current) clearTimeout(offSearchTimeoutRef.current)
+    }
   }, [debouncedTerm, results, searchByName])
 
   if (selected) {
@@ -292,6 +343,18 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
               </li>
             ))}
           </ul>
+          <p className="text-xs opacity-60">
+            Data from{' '}
+            <a
+              href="https://world.openfoodfacts.org"
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              Open Food Facts
+            </a>{' '}
+            (ODbL).
+          </p>
         </div>
       )}
     </div>
