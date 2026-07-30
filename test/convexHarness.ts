@@ -9,10 +9,14 @@ import schema from '../convex/schema'
 // This file lives outside `convex/` on purpose: everything inside that
 // directory is loaded by the Convex bundler at push time, and `import.meta.glob`
 // is Vite-only syntax that would throw there.
-const modules = import.meta.glob('../convex/**/*.*s')
+export const modules = import.meta.glob('../convex/**/*.*s')
 
 /**
- * A running Convex backend for one test.
+ * A running Convex backend for one test, on the schema the app really has.
+ *
+ * A migration test needs the schema as it was *before* the migration, which the
+ * app's own schema can no longer express — build that one with
+ * `convexTest(legacySchema, modules)`, reusing the exported module map.
  *
  * Seed with `t.run(...)` for direct database access, then call real queries and
  * mutations — `t.withIdentity({ subject })` to act as a given person, or the

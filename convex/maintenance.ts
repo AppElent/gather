@@ -1,8 +1,10 @@
 import { v } from 'convex/values'
-import type { Doc } from './_generated/dataModel'
+import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation } from './_generated/server'
+import { allocateGroupSlug } from './lib/groupSlugs'
 import { pickCanonicalUser } from './lib/sharing'
+import { createPersonalGroup } from './users'
 
 /**
  * One-off cleanup for `users` documents carrying stray fields left over from
@@ -69,6 +71,158 @@ export const mergeDuplicateUsers = internalMutation({
     }
 
     return { apply, duplicateSubjects: plans.length, plans }
+  },
+})
+
+/**
+ * Rows written before this migration are shaped differently from the ones the
+ * schema now describes, and once the schema is tightened TypeScript knows the
+ * fields cannot be missing. These read a document as it may actually exist on
+ * disk, which is the only honest way for a migration to ask.
+ */
+function currentSlug(group: { slug?: string }): string {
+  return group.slug ?? ''
+}
+function missingIsPersonal(group: { isPersonal?: boolean }): boolean {
+  return group.isPersonal === undefined
+}
+function hasLegacyOwnerRole(membership: { role: string }): boolean {
+  return membership.role === 'owner'
+}
+/**
+ * `groups.type` is dropped by the tightening commit, and Convex rejects a
+ * document carrying a field the schema does not describe — so a row still
+ * holding it would fail that deploy's schema validation, exactly as the stray
+ * fields `cleanUserDocuments` was written for did.
+ */
+function hasDroppedTypeField(group: object): boolean {
+  return 'type' in group
+}
+
+/**
+ * Give every Group a slug and an `isPersonal` marker, give every person the
+ * Personal group they are now guaranteed to have, rename the old `owner` role
+ * to `admin`, and drop the `type` field `isPersonal` replaces.
+ *
+ * The expand half of expand–contract: `groups.slug`, `groups.isPersonal` and
+ * the `admin` role land optional/widened, this fills them in, and only then can
+ * the schema require them. See
+ * docs/migrations/0001-group-slugs-and-personal-groups.md.
+ *
+ * Dry run by default — pass `{ apply: true }` to write. Idempotent: a second
+ * run finds nothing to do and reports zeroes, because every decision it makes
+ * is conditioned on the field still being absent.
+ */
+export const backfillGroupSlugsAndPersonalGroups = internalMutation({
+  args: { apply: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const groups = await ctx.db.query('groups').collect()
+    const users = await ctx.db.query('users').collect()
+    const memberships = await ctx.db.query('memberships').collect()
+
+    // Slugs already spoken for. A dry run writes nothing, so without this every
+    // Group would be offered the same free candidate and the summary would
+    // promise slugs that collide the moment they were applied.
+    const taken = new Set<string>()
+    for (const group of groups) {
+      if (group.slug) taken.add(group.slug)
+    }
+
+    const membersOf = new Map<Id<'groups'>, Id<'users'>[]>()
+    const groupsOf = new Map<Id<'users'>, Id<'groups'>[]>()
+    for (const m of memberships) {
+      membersOf.set(m.groupId, [...(membersOf.get(m.groupId) ?? []), m.userId])
+      groupsOf.set(m.userId, [...(groupsOf.get(m.userId) ?? []), m.groupId])
+    }
+    const userById = new Map(users.map((u) => [u._id, u]))
+
+    let rolesMigrated = 0
+    for (const m of memberships) {
+      if (!hasLegacyOwnerRole(m)) continue
+      rolesMigrated++
+      if (apply) await ctx.db.patch(m._id, { role: 'admin' })
+    }
+
+    const personalGroupIds = new Set<Id<'groups'>>()
+    let groupsMarkedPersonal = 0
+    let groupsMarkedShared = 0
+    let slugsAssigned = 0
+    let droppedTypeFields = 0
+    for (const group of groups) {
+      const members = membersOf.get(group._id) ?? []
+      const soleMemberId = members.length === 1 ? members[0] : undefined
+      const soleMember = soleMemberId ? userById.get(soleMemberId) : undefined
+
+      // A Group is the Personal one exactly when it has a single Member and
+      // that Member's `defaultGroupId` points at it — which describes the
+      // `Home` group signup used to create, and nothing else.
+      const undecided = missingIsPersonal(group)
+      const isPersonal = undecided
+        ? soleMember?.defaultGroupId === group._id
+        : group.isPersonal === true
+      if (undecided) {
+        if (isPersonal) groupsMarkedPersonal++
+        else groupsMarkedShared++
+      }
+      if (isPersonal) personalGroupIds.add(group._id)
+
+      let slug = currentSlug(group)
+      if (!slug) {
+        // A Personal group's slug reads better from the person than from the
+        // group's name, which for every backfilled one is the literal "Home".
+        const from = (isPersonal ? soleMember?.name : undefined) ?? group.name
+        slug = await allocateGroupSlug(ctx, { name: from, isPersonal, taken })
+        slugsAssigned++
+      }
+
+      const stray = hasDroppedTypeField(group)
+      if (stray) droppedTypeFields++
+      if (!undecided && !stray && slug === currentSlug(group)) continue
+      // `replace` rather than `patch`, because dropping a field is the point.
+      if (apply) {
+        await ctx.db.replace(group._id, {
+          name: group.name,
+          inviteCode: group.inviteCode,
+          slug,
+          isPersonal,
+        })
+      }
+    }
+
+    let personalGroupsCreated = 0
+    let defaultGroupsRepointed = 0
+    for (const user of users) {
+      const existing = (groupsOf.get(user._id) ?? []).find((id) =>
+        personalGroupIds.has(id),
+      )
+      if (existing) {
+        // `defaultGroupId` means "my Personal group" now, not "the last Group I
+        // picked", so anyone who had pointed it elsewhere is moved back.
+        if (user.defaultGroupId === existing) continue
+        defaultGroupsRepointed++
+        if (apply) await ctx.db.patch(user._id, { defaultGroupId: existing })
+        continue
+      }
+      personalGroupsCreated++
+      const slug = await allocateGroupSlug(ctx, {
+        name: user.name,
+        isPersonal: true,
+        taken,
+      })
+      if (apply) await createPersonalGroup(ctx, user, slug)
+    }
+
+    return {
+      apply,
+      rolesMigrated,
+      groupsMarkedPersonal,
+      groupsMarkedShared,
+      slugsAssigned,
+      droppedTypeFields,
+      personalGroupsCreated,
+      defaultGroupsRepointed,
+    }
   },
 })
 

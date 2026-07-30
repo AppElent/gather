@@ -1,6 +1,9 @@
+import type { Id } from './_generated/dataModel'
+import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
-import { getCurrentUser, getUserByClerkId } from './lib/sharing'
+import { allocateGroupSlug } from './lib/groupSlugs'
 import { nutritionValidator } from './lib/nutrition'
+import { getCurrentUser, getUserByClerkId } from './lib/sharing'
 
 /** Returns the current gather user row, or null if not signed in / not yet provisioned. */
 export const me = query({
@@ -9,9 +12,39 @@ export const me = query({
 })
 
 /**
- * Idempotently provision the signed-in Clerk user as a gather user.
- * On first call, also creates a personal default group + membership so that
- * "shared by default" has a target.
+ * Create a person's Personal group: an ordinary Group with a single Member,
+ * where their private content lives (ADR-0003). Because it always exists,
+ * signing in always has somewhere to land and there is no "create your first
+ * Group" wall.
+ *
+ * Its slug takes the reserved `me-` namespace, so a household naming itself
+ * after someone can never take it.
+ */
+export async function createPersonalGroup(
+  ctx: MutationCtx,
+  user: { _id: Id<'users'>; name: string },
+  // Allocated by the caller so the backfill can walk the same ladder without
+  // writing anything on a dry run.
+  slug: string,
+): Promise<Id<'groups'>> {
+  const groupId = await ctx.db.insert('groups', {
+    name: `${user.name}'s things`,
+    slug,
+    isPersonal: true,
+    inviteCode: crypto.randomUUID().slice(0, 8),
+  })
+  await ctx.db.insert('memberships', {
+    groupId,
+    userId: user._id,
+    role: 'admin',
+  })
+  await ctx.db.patch(user._id, { defaultGroupId: groupId })
+  return groupId
+}
+
+/**
+ * Idempotently provision the signed-in Clerk user as a gather user, with the
+ * Personal group every person has exactly one of.
  */
 export const ensureUser = mutation({
   args: {},
@@ -38,25 +71,16 @@ export const ensureUser = mutation({
       return existing._id
     }
 
+    const name = identity.name ?? 'Member'
     const userId = await ctx.db.insert('users', {
       clerkId: identity.subject,
-      name: identity.name ?? 'Member',
+      name,
       email: identity.email ?? '',
       imageUrl: identity.pictureUrl ?? undefined,
     })
 
-    const inviteCode = crypto.randomUUID().slice(0, 8)
-    const groupId = await ctx.db.insert('groups', {
-      name: 'Home',
-      inviteCode,
-      type: 'home',
-    })
-    await ctx.db.insert('memberships', {
-      groupId,
-      userId,
-      role: 'owner',
-    })
-    await ctx.db.patch(userId, { defaultGroupId: groupId })
+    const slug = await allocateGroupSlug(ctx, { name, isPersonal: true })
+    await createPersonalGroup(ctx, { _id: userId, name }, slug)
     return userId
   },
 })

@@ -9,7 +9,6 @@ function GroupsPage() {
   const groups = useQuery(api.groups.myGroups)
   const createGroup = useMutation(api.groups.createGroup)
   const joinByInvite = useMutation(api.groups.joinByInvite)
-  const setDefault = useMutation(api.groups.setDefaultGroup)
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -39,26 +38,12 @@ function GroupsPage() {
               <span>
                 {g.name}{' '}
                 <span className="opacity-50">· invite {g.inviteCode}</span>
-                {g.isDefault && (
+                {g.isPersonal && (
                   <span className="ml-2 rounded bg-emerald-100 px-1.5 text-xs text-emerald-800">
-                    default
+                    personal
                   </span>
                 )}
               </span>
-              {!g.isDefault && (
-                <button
-                  type="button"
-                  className="rounded border px-2 py-1 text-xs"
-                  onClick={() => {
-                    setError(null)
-                    void setDefault({ groupId: g._id }).catch((err) =>
-                      setError(errorMessage(err)),
-                    )
-                  }}
-                >
-                  Make default
-                </button>
-              )}
             </li>
           ))}
         </ul>
