@@ -35,8 +35,15 @@ export default defineSchema({
     .index('by_group', ['groupId']),
 
   recipes: defineTable({
-    ownerId: v.id('users'),
+    // A recipe belongs to a Group, not to whoever typed it in. `groupId` is the
+    // home Group; `sharedGroupIds` are the further Groups it is visible in and
+    // never contains `groupId`. `createdByUserId` is attribution — it records
+    // who added the recipe and confers no ownership and no access (CONTEXT.md).
+    // All three are required: an optional ownership field is a schema that has
+    // stopped saying who owns the row.
+    groupId: v.id('groups'),
     sharedGroupIds: v.array(v.id('groups')),
+    createdByUserId: v.id('users'),
     title: v.string(),
     description: v.optional(v.string()),
     imageId: v.optional(v.id('_storage')),
@@ -50,7 +57,7 @@ export default defineSchema({
     nutrition: v.optional(nutritionValidator),
     nutritionSource: v.optional(nutritionSourceValidator),
     nutritionStale: v.optional(v.boolean()),
-  }).index('by_owner', ['ownerId']),
+  }).index('by_group', ['groupId']),
 
   taskLists: defineTable({
     groupId: v.id('groups'),

@@ -6,6 +6,7 @@ import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { ImageUploadField } from '../app/ImageUploadField'
 import { RecipeForm, type RecipeFormValues } from './RecipeForm'
+import type { RecipeDestination } from './recipeDestination'
 import type { RecipeNav } from './recipeNav'
 
 export interface NewRecipeSearch {
@@ -22,6 +23,8 @@ export function validateNewRecipeSearch(
 export interface NewRecipePageProps {
   /** A recipe URL to import on arrival, from `?url=`. */
   initialUrl?: string
+  /** The Group the recipe lands in — resolved by the route, never guessed here. */
+  destination: RecipeDestination
   nav: RecipeNav
 }
 
@@ -29,8 +32,16 @@ export interface NewRecipePageProps {
  * Adding a recipe, whole. Rendered by both `/recipes/new` and
  * `/g/<slug>/recipes/new`; the saved recipe is opened through `nav`, so the
  * Group-scoped route stays in its Group afterwards.
+ *
+ * Where the recipe *goes* arrives the same way, as `destination`. One page, one
+ * mechanism, a different Group on each route — and the server is told which,
+ * rather than deciding for itself.
  */
-export function NewRecipePage({ initialUrl, nav }: NewRecipePageProps) {
+export function NewRecipePage({
+  initialUrl,
+  destination,
+  nav,
+}: NewRecipePageProps) {
   const create = useMutation(api.recipes.create)
   const generateUploadUrl = useMutation(api.recipes.generateUploadUrl)
   const importFromUrl = useAction(api.recipeImport.importFromUrl)
@@ -65,7 +76,10 @@ export function NewRecipePage({ initialUrl, nav }: NewRecipePageProps) {
     // from an earlier, unrelated successful import.
     setSourceUrl(null)
     try {
-      const result = await importFromUrl({ url: url.trim() })
+      const result = await importFromUrl({
+        url: url.trim(),
+        groupSlug: destination.groupSlug,
+      })
       setImported({
         values: {
           title: result.title,
@@ -170,6 +184,7 @@ export function NewRecipePage({ initialUrl, nav }: NewRecipePageProps) {
           try {
             const id = await create({
               ...values,
+              groupSlug: destination.groupSlug,
               sourceUrl: sourceUrl ?? undefined,
               imageId,
             })

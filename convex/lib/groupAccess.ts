@@ -24,6 +24,37 @@ import { getCurrentUser } from './sharing'
 export type GroupRole = Doc<'memberships'>['role']
 
 /**
+ * Group-scoped content as the visibility rule sees it: it lives in one Group
+ * and may additionally be shared into others (ADR-0003).
+ *
+ * Generic over the id type so the rule can be exercised as a rule, without a
+ * database behind it. Every caller in the app passes `Id<'groups'>`.
+ */
+export interface GroupScopedContent<G = Id<'groups'>> {
+  /** The home Group. Where the content lives; changed only by a *move*. */
+  groupId: G
+  /** The further Groups it is visible in. Never contains `groupId`. */
+  sharedGroupIds: readonly G[]
+}
+
+/**
+ * The one visibility rule for Group-scoped content: the caller is a Member of
+ * its home Group, or of any Group in its shared list.
+ *
+ * Who created the content does not appear here, and that is the point.
+ * Attribution records *who*; it never confers ownership or access, so the
+ * person who added a recipe stops seeing it the moment they leave its Group,
+ * exactly like anybody else who was never in it.
+ */
+export function isVisibleToGroups<G>(
+  content: GroupScopedContent<G>,
+  viewerGroupIds: readonly G[],
+): boolean {
+  if (viewerGroupIds.includes(content.groupId)) return true
+  return content.sharedGroupIds.some((id) => viewerGroupIds.includes(id))
+}
+
+/**
  * Why a Group could not be resolved.
  *
  * These stay distinct all the way to the UI. Collapsing "no such group" into

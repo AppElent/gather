@@ -226,6 +226,52 @@ export const backfillGroupSlugsAndPersonalGroups = internalMutation({
   },
 })
 
+/**
+ * Delete every recipe, and clear the references that leaves dangling.
+ *
+ * #19 gives a recipe to a Group rather than to a person, and says so in fields
+ * that are required from the first commit — so there is no shape a pre-#19 row
+ * can be migrated into. Recipe data is disposable, so it is destroyed rather
+ * than migrated; see docs/migrations/0002-recipes-become-group-owned.md, which
+ * says that plainly and is the reason this is acceptable.
+ *
+ * A diary entry is *not* disposable and nothing about it is touched beyond its
+ * `recipeId`. What it recorded — the label, the quantity, the nutrition — is a
+ * snapshot, and a snapshot does not change because the thing it was taken from
+ * is gone (ADR-0003). Only the provenance reference is cleared, and provenance
+ * was already allowed to dangle.
+ *
+ * Dry run by default — pass `{ apply: true }` to write. Idempotent: a second
+ * run finds no recipes and no references left to clear, and reports zeroes.
+ */
+export const wipeRecipes = internalMutation({
+  args: { apply: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+
+    const recipes = await ctx.db.query('recipes').collect()
+    if (apply) {
+      for (const recipe of recipes) await ctx.db.delete(recipe._id)
+    }
+
+    const entries = await ctx.db.query('consumptionEntries').collect()
+    const linked = entries.filter((e) => e.recipeId !== undefined)
+    if (apply) {
+      // The reference and only the reference — `patch` rather than `replace`,
+      // so there is no way for this to reach the snapshot by accident.
+      for (const entry of linked) {
+        await ctx.db.patch(entry._id, { recipeId: undefined })
+      }
+    }
+
+    return {
+      apply,
+      recipesDeleted: recipes.length,
+      entriesUnlinked: linked.length,
+    }
+  },
+})
+
 /** Repoint every `v.id('users')` reference from `drop` onto `keep`. */
 async function mergeUserInto(
   ctx: MutationCtx,
@@ -251,10 +297,11 @@ async function mergeUserInto(
     ).map((m) => m.groupId),
   )
 
-  // `tasks`, `foods`, `integrationConnections` and `babyEvents` carry a user
-  // reference but no index on it. This is a one-off repair over a
-  // household-sized dataset, so scanning beats carrying four indexes that
+  // `recipes`, `tasks`, `foods`, `integrationConnections` and `babyEvents`
+  // carry a user reference but no index on it. This is a one-off repair over a
+  // household-sized dataset, so scanning beats carrying five indexes that
   // nothing in the app itself would ever query.
+  const recipes = await ctx.db.query('recipes').collect()
   const tasks = await ctx.db.query('tasks').collect()
   const foods = await ctx.db.query('foods').collect()
   const connections = await ctx.db.query('integrationConnections').collect()
@@ -278,13 +325,12 @@ async function mergeUserInto(
       if (apply) await ctx.db.patch(m._id, { userId: keep._id })
     }
 
-    const recipes = await ctx.db
-      .query('recipes')
-      .withIndex('by_owner', (q) => q.eq('ownerId', dupe._id))
-      .collect()
+    // Attribution follows the merge: "who added this" must go on pointing at
+    // the row the app resolves the person to, not at one it is about to delete.
     for (const r of recipes) {
+      if (r.createdByUserId !== dupe._id) continue
       bump('recipes')
-      if (apply) await ctx.db.patch(r._id, { ownerId: keep._id })
+      if (apply) await ctx.db.patch(r._id, { createdByUserId: keep._id })
     }
 
     const entries = await ctx.db

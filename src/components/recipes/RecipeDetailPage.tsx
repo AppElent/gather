@@ -25,7 +25,6 @@ export function RecipeDetailPage({ recipeId, nav }: RecipeDetailPageProps) {
   const remove = useMutation(api.recipes.remove)
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
-  const me = useQuery(api.users.me)
   const aiConfigured = useQuery(api.recipes.aiConfigured)
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
   const setNutrition = useMutation(api.recipes.setNutrition)
@@ -104,7 +103,13 @@ export function RecipeDetailPage({ recipeId, nav }: RecipeDetailPageProps) {
         </p>
       )}
 
-      {recipe.nutritionStale && me && recipe.ownerId === me._id && (
+      {/*
+        Offered to anyone who can change this recipe — which is every Member of
+        the Group it lives in, and not only whoever added it. A Group it was
+        shared into can read it and no more, so `canEdit` comes back false there
+        and the prompt to re-estimate stays out of the way.
+      */}
+      {recipe.nutritionStale && recipe.canEdit && (
         <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           <p className="mb-2">
             Ingredients changed since nutrition was calculated — re-estimate?

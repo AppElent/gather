@@ -7,10 +7,11 @@ import {
   quantityUnitValidator,
   scaleFacts,
 } from './lib/consumption'
+import { isVisibleToGroups } from './lib/groupAccess'
 import { NUTRIENT_KEYS, type NutritionFacts, nutritionValidator } from './lib/nutrition'
-import { getCurrentUser, getMyGroupIds, isVisibleTo } from './lib/sharing'
+import { getCurrentUser, getMyGroupIds } from './lib/sharing'
 import type { Doc, Id } from './_generated/dataModel'
-import type { MutationCtx } from './_generated/server'
+import type { MutationCtx, QueryCtx } from './_generated/server'
 
 function assertValidNutrition(nutrition: NutritionFacts) {
   for (const key of NUTRIENT_KEYS) {
@@ -21,17 +22,48 @@ function assertValidNutrition(nutrition: NutritionFacts) {
   }
 }
 
+/**
+ * Provenance, permission-checked on read (ADR-0003).
+ *
+ * The reference survives on the entry only while the caller can still see the
+ * recipe. A recipe that was deleted and a recipe that is no longer visible to
+ * this caller drop it in precisely the same way — there is one branch and it
+ * cannot tell them apart — so nothing about how a diary entry reads can be used
+ * to find out that a recipe exists somewhere.
+ *
+ * What the entry recorded is untouched either way: the label, the quantity and
+ * the nutrition are a snapshot, and a snapshot does not change because the
+ * thing it was taken from did.
+ */
+async function visibleRecipeId(
+  ctx: QueryCtx,
+  recipeId: Id<'recipes'> | undefined,
+  viewerGroupIds: Id<'groups'>[],
+): Promise<Id<'recipes'> | undefined> {
+  if (!recipeId) return undefined
+  const recipe = await ctx.db.get(recipeId)
+  if (!recipe || !isVisibleToGroups(recipe, viewerGroupIds)) return undefined
+  return recipeId
+}
+
 export const listForDay = query({
   args: { date: v.string() },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) return []
-    return await ctx.db
+    const entries = await ctx.db
       .query('consumptionEntries')
       .withIndex('by_user_date', (q) =>
         q.eq('userId', user._id).eq('date', args.date),
       )
       .collect()
+    const viewerGroupIds = await getMyGroupIds(ctx, user._id)
+    return await Promise.all(
+      entries.map(async (entry) => ({
+        ...entry,
+        recipeId: await visibleRecipeId(ctx, entry.recipeId, viewerGroupIds),
+      })),
+    )
   },
 })
 
@@ -66,10 +98,11 @@ export const create = mutation({
 // deleted, the existing snapshot is scaled proportionally instead so the
 // entry still reflects the new quantity without needing source data. A
 // recipe that still exists but is no longer visible to the entry's owner
-// (e.g. unshared since the entry was logged) is treated the same as
+// (they have left its Group since logging it) is treated the same as
 // deleted — recomputing from it would leak nutrition data the owner is no
-// longer authorized to see. Foods have no sharing/visibility model (spec
-// §3.3: "readable by any authenticated user"), so no check is needed there.
+// longer authorized to see, and the two must be indistinguishable anyway.
+// Foods have no sharing/visibility model (spec §3.3: "readable by any
+// authenticated user"), so no check is needed there.
 async function recomputeFromSource(
   ctx: MutationCtx,
   entry: Doc<'consumptionEntries'>,
@@ -78,12 +111,7 @@ async function recomputeFromSource(
 ): Promise<NutritionFacts | null> {
   if (entry.recipeId) {
     const recipe = await ctx.db.get(entry.recipeId)
-    const visible =
-      recipe &&
-      isVisibleTo(
-        { ownerId: recipe.ownerId, sharedGroupIds: recipe.sharedGroupIds },
-        { userId: entry.userId, groupIds: viewerGroupIds },
-      )
+    const visible = recipe && isVisibleToGroups(recipe, viewerGroupIds)
     return visible && recipe.nutrition
       ? computeRecipeEntryNutrition(recipe.nutrition, quantity)
       : null

@@ -1,24 +1,6 @@
 import type { Doc, Id } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 
-export interface Viewer<U = string, G = string> {
-  userId: U
-  groupIds: G[]
-}
-
-export interface ShareableRecord<U = string, G = string> {
-  ownerId: U
-  sharedGroupIds: G[]
-}
-
-export function isVisibleTo<U, G>(
-  record: ShareableRecord<U, G>,
-  viewer: Viewer<U, G>,
-): boolean {
-  if (record.ownerId === viewer.userId) return true
-  return record.sharedGroupIds.some((g) => viewer.groupIds.includes(g))
-}
-
 /**
  * Pick the row standing for a Clerk subject when the table holds more than one.
  *

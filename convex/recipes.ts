@@ -1,11 +1,18 @@
 import { v } from 'convex/values'
+import type { Doc, Id } from './_generated/dataModel'
+import type { QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
+import {
+  getMembership,
+  isVisibleToGroups,
+  requireGroupBySlug,
+} from './lib/groupAccess'
 import {
   nextNutritionStale,
   nutritionSourceValidator,
   nutritionValidator,
 } from './lib/nutrition'
-import { getCurrentUser, getMyGroupIds, isVisibleTo } from './lib/sharing'
+import { getCurrentUser, getMyGroupIds } from './lib/sharing'
 
 export const list = query({
   args: {},
@@ -14,12 +21,7 @@ export const list = query({
     if (!user) return []
     const groupIds = await getMyGroupIds(ctx, user._id)
     const all = await ctx.db.query('recipes').collect()
-    const visible = all.filter((r) =>
-      isVisibleTo(
-        { ownerId: r.ownerId, sharedGroupIds: r.sharedGroupIds },
-        { userId: user._id, groupIds },
-      ),
-    )
+    const visible = all.filter((r) => isVisibleToGroups(r, groupIds))
     return await Promise.all(
       visible.map(async (r) => ({
         ...r,
@@ -37,15 +39,20 @@ export const get = query({
     const recipe = await ctx.db.get(args.id)
     if (!recipe) return null
     const groupIds = await getMyGroupIds(ctx, user._id)
-    const visible = isVisibleTo(
-      { ownerId: recipe.ownerId, sharedGroupIds: recipe.sharedGroupIds },
-      { userId: user._id, groupIds },
-    )
-    if (!visible) return null
+    if (!isVisibleToGroups(recipe, groupIds)) return null
     const imageUrl = recipe.imageId
       ? await ctx.storage.getUrl(recipe.imageId)
       : null
-    return { ...recipe, imageUrl }
+    // Attribution is resolved here rather than shipped to the client as an id:
+    // reading a recipe is not a licence to read the `users` table. A row that
+    // has since gone comes back as null and the page simply says nothing.
+    const addedBy = await ctx.db.get(recipe.createdByUserId)
+    return {
+      ...recipe,
+      imageUrl,
+      addedByName: addedBy?.name ?? null,
+      canEdit: groupIds.includes(recipe.groupId),
+    }
   },
 })
 
@@ -68,23 +75,48 @@ const recipeFields = {
   rating: v.optional(v.number()),
   prepMinutes: v.optional(v.number()),
   sourceUrl: v.optional(v.string()),
-  sharedGroupIds: v.optional(v.array(v.id('groups'))),
   servings: v.optional(v.number()),
   nutrition: v.optional(nutritionValidator),
   nutritionSource: v.optional(nutritionSourceValidator),
 }
 
+/**
+ * The recipe behind an id, when the caller may change it — or null when there
+ * is no such recipe, which each caller reads differently.
+ *
+ * Writing follows the home Group and not the shared list: a Share makes content
+ * visible in a further Group without moving it, so that Group reads it and no
+ * more. Attribution is not consulted at all — inside its Group, the person who
+ * added a recipe has exactly the standing of every other Member.
+ */
+async function writableRecipe(
+  ctx: QueryCtx,
+  id: Id<'recipes'>,
+): Promise<Doc<'recipes'> | null> {
+  const user = await getCurrentUser(ctx)
+  if (!user) throw new Error('Not authenticated')
+  const recipe = await ctx.db.get(id)
+  if (!recipe) return null
+  const membership = await getMembership(ctx, recipe.groupId, user._id)
+  if (!membership) throw new Error('Not a member of that group')
+  return recipe
+}
+
 export const create = mutation({
-  args: recipeFields,
+  args: { groupSlug: v.string(), ...recipeFields },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
-    const { sharedGroupIds, ...rest } = args
-    const defaultShare = user.defaultGroupId ? [user.defaultGroupId] : []
+    const { groupSlug, ...fields } = args
+    // The destination is the Group the caller asked for and nothing else. There
+    // is deliberately no fallback to `defaultGroupId`: a recipe landing
+    // somewhere the caller did not name is the thing #19 exists to stop.
+    const { user, group } = await requireGroupBySlug(ctx, groupSlug)
     return await ctx.db.insert('recipes', {
-      ownerId: user._id,
-      sharedGroupIds: sharedGroupIds ?? defaultShare,
-      ...rest,
+      groupId: group._id,
+      // Sharing a recipe into further Groups is a verb of its own (#25); a new
+      // recipe is visible in the one Group it was added to.
+      sharedGroupIds: [],
+      createdByUserId: user._id,
+      ...fields,
     })
   },
 })
@@ -100,14 +132,10 @@ export const update = mutation({
     nutritionSource: v.optional(v.union(nutritionSourceValidator, v.null())),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
-    const recipe = await ctx.db.get(args.id)
+    const recipe = await writableRecipe(ctx, args.id)
     if (!recipe) throw new Error('Recipe not found')
-    if (recipe.ownerId !== user._id) throw new Error('Not the owner')
     const {
       id,
-      sharedGroupIds,
       imageId,
       rating,
       servings,
@@ -125,7 +153,6 @@ export const update = mutation({
     })
     await ctx.db.patch(id, {
       ...rest,
-      ...(sharedGroupIds ? { sharedGroupIds } : {}),
       ...(imageId !== undefined ? { imageId: imageId ?? undefined } : {}),
       ...(rating !== undefined ? { rating: rating ?? undefined } : {}),
       servings: nextServings,
@@ -147,11 +174,8 @@ export const setNutrition = mutation({
     source: v.union(v.literal('ai'), v.literal('manual')),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
-    const recipe = await ctx.db.get(args.id)
+    const recipe = await writableRecipe(ctx, args.id)
     if (!recipe) throw new Error('Recipe not found')
-    if (recipe.ownerId !== user._id) throw new Error('Not the owner')
     await ctx.db.patch(args.id, {
       nutrition: args.nutrition,
       nutritionSource: args.source,
@@ -169,11 +193,9 @@ export const aiConfigured = query({
 export const remove = mutation({
   args: { id: v.id('recipes') },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
-    const recipe = await ctx.db.get(args.id)
+    // Already gone is not an error: deleting twice lands in the same place.
+    const recipe = await writableRecipe(ctx, args.id)
     if (!recipe) return
-    if (recipe.ownerId !== user._id) throw new Error('Not the owner')
     await ctx.db.delete(args.id)
   },
 })

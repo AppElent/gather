@@ -2,7 +2,7 @@ import { convexTest } from 'convex-test'
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 import { describe, expect, test } from 'vitest'
-import { modules } from '../test/convexHarness'
+import { modules, testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import schema from './schema'
 
@@ -258,5 +258,151 @@ describe('backfillGroupSlugsAndPersonalGroups', () => {
       (await personalGroupOf(t, asBob)).slug,
     ]
     expect(slugs.sort()).toEqual(['me-alice', 'me-alice-2'])
+  })
+})
+
+/**
+ * The recipe wipe behind #19.
+ *
+ * Recipe data is disposable and is destroyed rather than migrated, so that the
+ * new ownership fields can be required from the first commit. Diary entries are
+ * the opposite: what they recorded is a snapshot and must come through
+ * untouched, with only the provenance reference cleared (ADR-0003). That
+ * asymmetry is the whole of what these tests check.
+ */
+const wipe = internal.maintenance.wipeRecipes
+
+async function seedRecipesAndDiary() {
+  const t = testConvex()
+
+  const ids = await t.run(async (ctx) => {
+    const alice = await ctx.db.insert('users', {
+      clerkId: asAlice.subject,
+      name: 'Alice',
+      email: asAlice.email,
+    })
+    const household = await ctx.db.insert('groups', {
+      name: 'Household',
+      inviteCode: 'household-code',
+      slug: 'household',
+      isPersonal: false,
+    })
+    await ctx.db.insert('memberships', {
+      groupId: household,
+      userId: alice,
+      role: 'admin',
+    })
+
+    const recipe = async (title: string) =>
+      await ctx.db.insert('recipes', {
+        groupId: household,
+        sharedGroupIds: [],
+        createdByUserId: alice,
+        title,
+        ingredients: [],
+        steps: [],
+        tags: [],
+      })
+    const roast = await recipe('Sunday roast')
+    await recipe('Pasta for a crowd')
+
+    const fromRecipe = await ctx.db.insert('consumptionEntries', {
+      userId: alice,
+      date: '2026-07-30',
+      meal: 'dinner',
+      recipeId: roast,
+      label: 'Sunday roast',
+      quantity: 2,
+      quantityUnit: 'serving',
+      nutrition: { calories: 640, protein: 41 },
+    })
+    const typedIn = await ctx.db.insert('consumptionEntries', {
+      userId: alice,
+      date: '2026-07-30',
+      meal: 'lunch',
+      label: 'Sandwich',
+      quantity: 1,
+      quantityUnit: 'piece',
+      nutrition: { calories: 300 },
+    })
+
+    return { fromRecipe, typedIn }
+  })
+
+  return { t, ids }
+}
+
+/** Everything the wipe is allowed — and not allowed — to change. */
+async function diaryAndRecipes(t: ReturnType<typeof testConvex>) {
+  return await t.run(async (ctx) => ({
+    recipeTitles: (await ctx.db.query('recipes').collect()).map((r) => r.title),
+    entries: (await ctx.db.query('consumptionEntries').collect()).map((e) => ({
+      label: e.label,
+      quantity: e.quantity,
+      quantityUnit: e.quantityUnit,
+      nutrition: e.nutrition,
+      // `t.run` returns through Convex's serialiser, which has no `undefined`.
+      recipeId: e.recipeId ?? null,
+    })),
+  }))
+}
+
+describe('wipeRecipes', () => {
+  test('changes nothing until asked to apply', async () => {
+    const { t } = await seedRecipesAndDiary()
+    const before = await diaryAndRecipes(t)
+
+    const summary = await t.mutation(wipe, {})
+
+    expect(summary).toEqual({
+      apply: false,
+      recipesDeleted: 2,
+      entriesUnlinked: 1,
+    })
+    expect(await diaryAndRecipes(t)).toEqual(before)
+  })
+
+  test('deletes every recipe and clears the references left dangling', async () => {
+    const { t } = await seedRecipesAndDiary()
+
+    const summary = await t.mutation(wipe, { apply: true })
+
+    expect(summary).toEqual({
+      apply: true,
+      recipesDeleted: 2,
+      entriesUnlinked: 1,
+    })
+    const after = await diaryAndRecipes(t)
+    expect(after.recipeTitles).toEqual([])
+    expect(after.entries.every((e) => e.recipeId === null)).toBe(true)
+  })
+
+  test('leaves what a diary entry recorded exactly as it was', async () => {
+    const { t } = await seedRecipesAndDiary()
+    const before = await diaryAndRecipes(t)
+
+    await t.mutation(wipe, { apply: true })
+
+    const after = await diaryAndRecipes(t)
+    // The snapshot — label, quantity, unit, nutrition — is untouched for both
+    // entries; only the one that pointed at a recipe lost its reference.
+    expect(after.entries.map(({ recipeId: _, ...rest }) => rest)).toEqual(
+      before.entries.map(({ recipeId: _, ...rest }) => rest),
+    )
+  })
+
+  test('leaves everything alone the second time it is applied', async () => {
+    const { t } = await seedRecipesAndDiary()
+    await t.mutation(wipe, { apply: true })
+    const afterFirst = await diaryAndRecipes(t)
+
+    const summary = await t.mutation(wipe, { apply: true })
+
+    expect(summary).toEqual({
+      apply: true,
+      recipesDeleted: 0,
+      entriesUnlinked: 0,
+    })
+    expect(await diaryAndRecipes(t)).toEqual(afterFirst)
   })
 })
