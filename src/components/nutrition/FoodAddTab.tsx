@@ -45,9 +45,7 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
   const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null)
   const [resolving, setResolving] = useState(false)
   const [lookupError, setLookupError] = useState<string | null>(null)
-  const [offResults, setOffResults] = useState<OffSearchResult[] | null>(
-    null,
-  )
+  const [offResults, setOffResults] = useState<OffSearchResult[] | null>(null)
   const [offSearching, setOffSearching] = useState(false)
   const [offSearchError, setOffSearchError] = useState<string | null>(null)
   const offSearchedTermRef = useRef<string | null>(null)
@@ -277,9 +275,7 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
       )}
       {offResults && offResults.length > 0 && (
         <div className="grid gap-1">
-          <p className="text-xs font-medium opacity-60">
-            From Open Food Facts
-          </p>
+          <p className="text-xs font-medium opacity-60">From Open Food Facts</p>
           <ul className="max-h-48 divide-y divide-[var(--app-border)] overflow-y-auto">
             {offResults.map((result) => (
               <li key={result.barcode}>
