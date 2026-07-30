@@ -39,6 +39,11 @@ const GROUP_ROUTES = {
   newFood: `${GROUP_PREFIX}/foods/new`,
   food: `${GROUP_PREFIX}/foods/$foodId`,
   editFood: `${GROUP_PREFIX}/foods/$foodId/edit`,
+
+  baby: `${GROUP_PREFIX}/baby`,
+  newChild: `${GROUP_PREFIX}/baby/new`,
+  child: `${GROUP_PREFIX}/baby/$babyId`,
+  editChild: `${GROUP_PREFIX}/baby/$babyId/edit`,
 } as const satisfies Record<string, LinkProps['to']>
 
 /** A page that exists inside a Group. */
@@ -95,6 +100,7 @@ const GROUP_MODULE_INDEXES = [
   'nutrition',
   'recipes',
   'foods',
+  'baby',
 ] as const satisfies readonly GroupSurface[]
 
 export type GroupModuleIndex = (typeof GROUP_MODULE_INDEXES)[number]

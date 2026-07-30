@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import {
+  type BabyNav,
+  flatBabyNav,
+  groupBabyNav,
+} from '../components/baby/babyNav'
+import {
   type FoodNav,
   flatFoodNav,
   groupFoodNav,
@@ -37,6 +42,10 @@ function foodDestinations(nav: FoodNav): AppLink[] {
   ]
 }
 
+function babyDestinations(nav: BabyNav): AppLink[] {
+  return [nav.list, nav.create, nav.detail('b1'), nav.edit('b1')]
+}
+
 /** One row per Module, holding every destination its two navs can produce. */
 const MODULES: Array<{
   module: string
@@ -55,6 +64,12 @@ const MODULES: Array<{
     flatPrefix: '/foods',
     flat: foodDestinations(flatFoodNav),
     group: foodDestinations(groupFoodNav(SLUG)),
+  },
+  {
+    module: 'Baby log',
+    flatPrefix: '/baby',
+    flat: babyDestinations(flatBabyNav),
+    group: babyDestinations(groupBabyNav(SLUG)),
   },
 ]
 
@@ -78,6 +93,8 @@ describe('links built for a Group', () => {
     expect(paramsOf(groupRecipeNav(SLUG).edit('r1')).recipeId).toBe('r1')
     expect(paramsOf(groupFoodNav(SLUG).detail('f1')).foodId).toBe('f1')
     expect(paramsOf(groupFoodNav(SLUG).edit('f1')).foodId).toBe('f1')
+    expect(paramsOf(groupBabyNav(SLUG).detail('b1')).babyId).toBe('b1')
+    expect(paramsOf(groupBabyNav(SLUG).edit('b1')).babyId).toBe('b1')
   })
 
   test('a search param survives being given the Group treatment', () => {

@@ -45,11 +45,15 @@ import { Route as AppFoodsFoodIdEditRouteImport } from './routes/_app/foods/$foo
 import { Route as AppGGroupSlugIndexRouteImport } from './routes/_app/g/$groupSlug/index'
 import { Route as AppRecipesRecipeIdIndexRouteImport } from './routes/_app/recipes/$recipeId.index'
 import { Route as AppRecipesRecipeIdEditRouteImport } from './routes/_app/recipes/$recipeId.edit'
+import { Route as AppGGroupSlugBabyIndexRouteImport } from './routes/_app/g/$groupSlug/baby/index'
+import { Route as AppGGroupSlugBabyNewRouteImport } from './routes/_app/g/$groupSlug/baby/new'
 import { Route as AppGGroupSlugFoodsIndexRouteImport } from './routes/_app/g/$groupSlug/foods/index'
 import { Route as AppGGroupSlugFoodsNewRouteImport } from './routes/_app/g/$groupSlug/foods/new'
 import { Route as AppGGroupSlugNutritionIndexRouteImport } from './routes/_app/g/$groupSlug/nutrition/index'
 import { Route as AppGGroupSlugRecipesIndexRouteImport } from './routes/_app/g/$groupSlug/recipes/index'
 import { Route as AppGGroupSlugRecipesNewRouteImport } from './routes/_app/g/$groupSlug/recipes/new'
+import { Route as AppGGroupSlugBabyBabyIdIndexRouteImport } from './routes/_app/g/$groupSlug/baby/$babyId.index'
+import { Route as AppGGroupSlugBabyBabyIdEditRouteImport } from './routes/_app/g/$groupSlug/baby/$babyId.edit'
 import { Route as AppGGroupSlugFoodsFoodIdIndexRouteImport } from './routes/_app/g/$groupSlug/foods/$foodId.index'
 import { Route as AppGGroupSlugFoodsFoodIdEditRouteImport } from './routes/_app/g/$groupSlug/foods/$foodId.edit'
 import { Route as AppGGroupSlugRecipesRecipeIdIndexRouteImport } from './routes/_app/g/$groupSlug/recipes/$recipeId.index'
@@ -234,6 +238,16 @@ const AppRecipesRecipeIdEditRoute = AppRecipesRecipeIdEditRouteImport.update({
   path: '/recipes/$recipeId/edit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGGroupSlugBabyIndexRoute = AppGGroupSlugBabyIndexRouteImport.update({
+  id: '/baby/',
+  path: '/baby/',
+  getParentRoute: () => AppGGroupSlugRoute,
+} as any)
+const AppGGroupSlugBabyNewRoute = AppGGroupSlugBabyNewRouteImport.update({
+  id: '/baby/new',
+  path: '/baby/new',
+  getParentRoute: () => AppGGroupSlugRoute,
+} as any)
 const AppGGroupSlugFoodsIndexRoute = AppGGroupSlugFoodsIndexRouteImport.update({
   id: '/foods/',
   path: '/foods/',
@@ -261,6 +275,18 @@ const AppGGroupSlugRecipesNewRoute = AppGGroupSlugRecipesNewRouteImport.update({
   path: '/recipes/new',
   getParentRoute: () => AppGGroupSlugRoute,
 } as any)
+const AppGGroupSlugBabyBabyIdIndexRoute =
+  AppGGroupSlugBabyBabyIdIndexRouteImport.update({
+    id: '/baby/$babyId/',
+    path: '/baby/$babyId/',
+    getParentRoute: () => AppGGroupSlugRoute,
+  } as any)
+const AppGGroupSlugBabyBabyIdEditRoute =
+  AppGGroupSlugBabyBabyIdEditRouteImport.update({
+    id: '/baby/$babyId/edit',
+    path: '/baby/$babyId/edit',
+    getParentRoute: () => AppGGroupSlugRoute,
+  } as any)
 const AppGGroupSlugFoodsFoodIdIndexRoute =
   AppGGroupSlugFoodsFoodIdIndexRouteImport.update({
     id: '/foods/$foodId/',
@@ -322,13 +348,17 @@ export interface FileRoutesByFullPath {
   '/foods/$foodId/': typeof AppFoodsFoodIdIndexRoute
   '/g/$groupSlug/': typeof AppGGroupSlugIndexRoute
   '/recipes/$recipeId/': typeof AppRecipesRecipeIdIndexRoute
+  '/g/$groupSlug/baby/new': typeof AppGGroupSlugBabyNewRoute
   '/g/$groupSlug/foods/new': typeof AppGGroupSlugFoodsNewRoute
   '/g/$groupSlug/recipes/new': typeof AppGGroupSlugRecipesNewRoute
+  '/g/$groupSlug/baby/': typeof AppGGroupSlugBabyIndexRoute
   '/g/$groupSlug/foods/': typeof AppGGroupSlugFoodsIndexRoute
   '/g/$groupSlug/nutrition/': typeof AppGGroupSlugNutritionIndexRoute
   '/g/$groupSlug/recipes/': typeof AppGGroupSlugRecipesIndexRoute
+  '/g/$groupSlug/baby/$babyId/edit': typeof AppGGroupSlugBabyBabyIdEditRoute
   '/g/$groupSlug/foods/$foodId/edit': typeof AppGGroupSlugFoodsFoodIdEditRoute
   '/g/$groupSlug/recipes/$recipeId/edit': typeof AppGGroupSlugRecipesRecipeIdEditRoute
+  '/g/$groupSlug/baby/$babyId/': typeof AppGGroupSlugBabyBabyIdIndexRoute
   '/g/$groupSlug/foods/$foodId/': typeof AppGGroupSlugFoodsFoodIdIndexRoute
   '/g/$groupSlug/recipes/$recipeId/': typeof AppGGroupSlugRecipesRecipeIdIndexRoute
 }
@@ -367,13 +397,17 @@ export interface FileRoutesByTo {
   '/foods/$foodId': typeof AppFoodsFoodIdIndexRoute
   '/g/$groupSlug': typeof AppGGroupSlugIndexRoute
   '/recipes/$recipeId': typeof AppRecipesRecipeIdIndexRoute
+  '/g/$groupSlug/baby/new': typeof AppGGroupSlugBabyNewRoute
   '/g/$groupSlug/foods/new': typeof AppGGroupSlugFoodsNewRoute
   '/g/$groupSlug/recipes/new': typeof AppGGroupSlugRecipesNewRoute
+  '/g/$groupSlug/baby': typeof AppGGroupSlugBabyIndexRoute
   '/g/$groupSlug/foods': typeof AppGGroupSlugFoodsIndexRoute
   '/g/$groupSlug/nutrition': typeof AppGGroupSlugNutritionIndexRoute
   '/g/$groupSlug/recipes': typeof AppGGroupSlugRecipesIndexRoute
+  '/g/$groupSlug/baby/$babyId/edit': typeof AppGGroupSlugBabyBabyIdEditRoute
   '/g/$groupSlug/foods/$foodId/edit': typeof AppGGroupSlugFoodsFoodIdEditRoute
   '/g/$groupSlug/recipes/$recipeId/edit': typeof AppGGroupSlugRecipesRecipeIdEditRoute
+  '/g/$groupSlug/baby/$babyId': typeof AppGGroupSlugBabyBabyIdIndexRoute
   '/g/$groupSlug/foods/$foodId': typeof AppGGroupSlugFoodsFoodIdIndexRoute
   '/g/$groupSlug/recipes/$recipeId': typeof AppGGroupSlugRecipesRecipeIdIndexRoute
 }
@@ -415,13 +449,17 @@ export interface FileRoutesById {
   '/_app/foods/$foodId/': typeof AppFoodsFoodIdIndexRoute
   '/_app/g/$groupSlug/': typeof AppGGroupSlugIndexRoute
   '/_app/recipes/$recipeId/': typeof AppRecipesRecipeIdIndexRoute
+  '/_app/g/$groupSlug/baby/new': typeof AppGGroupSlugBabyNewRoute
   '/_app/g/$groupSlug/foods/new': typeof AppGGroupSlugFoodsNewRoute
   '/_app/g/$groupSlug/recipes/new': typeof AppGGroupSlugRecipesNewRoute
+  '/_app/g/$groupSlug/baby/': typeof AppGGroupSlugBabyIndexRoute
   '/_app/g/$groupSlug/foods/': typeof AppGGroupSlugFoodsIndexRoute
   '/_app/g/$groupSlug/nutrition/': typeof AppGGroupSlugNutritionIndexRoute
   '/_app/g/$groupSlug/recipes/': typeof AppGGroupSlugRecipesIndexRoute
+  '/_app/g/$groupSlug/baby/$babyId/edit': typeof AppGGroupSlugBabyBabyIdEditRoute
   '/_app/g/$groupSlug/foods/$foodId/edit': typeof AppGGroupSlugFoodsFoodIdEditRoute
   '/_app/g/$groupSlug/recipes/$recipeId/edit': typeof AppGGroupSlugRecipesRecipeIdEditRoute
+  '/_app/g/$groupSlug/baby/$babyId/': typeof AppGGroupSlugBabyBabyIdIndexRoute
   '/_app/g/$groupSlug/foods/$foodId/': typeof AppGGroupSlugFoodsFoodIdIndexRoute
   '/_app/g/$groupSlug/recipes/$recipeId/': typeof AppGGroupSlugRecipesRecipeIdIndexRoute
 }
@@ -463,13 +501,17 @@ export interface FileRouteTypes {
     | '/foods/$foodId/'
     | '/g/$groupSlug/'
     | '/recipes/$recipeId/'
+    | '/g/$groupSlug/baby/new'
     | '/g/$groupSlug/foods/new'
     | '/g/$groupSlug/recipes/new'
+    | '/g/$groupSlug/baby/'
     | '/g/$groupSlug/foods/'
     | '/g/$groupSlug/nutrition/'
     | '/g/$groupSlug/recipes/'
+    | '/g/$groupSlug/baby/$babyId/edit'
     | '/g/$groupSlug/foods/$foodId/edit'
     | '/g/$groupSlug/recipes/$recipeId/edit'
+    | '/g/$groupSlug/baby/$babyId/'
     | '/g/$groupSlug/foods/$foodId/'
     | '/g/$groupSlug/recipes/$recipeId/'
   fileRoutesByTo: FileRoutesByTo
@@ -508,13 +550,17 @@ export interface FileRouteTypes {
     | '/foods/$foodId'
     | '/g/$groupSlug'
     | '/recipes/$recipeId'
+    | '/g/$groupSlug/baby/new'
     | '/g/$groupSlug/foods/new'
     | '/g/$groupSlug/recipes/new'
+    | '/g/$groupSlug/baby'
     | '/g/$groupSlug/foods'
     | '/g/$groupSlug/nutrition'
     | '/g/$groupSlug/recipes'
+    | '/g/$groupSlug/baby/$babyId/edit'
     | '/g/$groupSlug/foods/$foodId/edit'
     | '/g/$groupSlug/recipes/$recipeId/edit'
+    | '/g/$groupSlug/baby/$babyId'
     | '/g/$groupSlug/foods/$foodId'
     | '/g/$groupSlug/recipes/$recipeId'
   id:
@@ -555,13 +601,17 @@ export interface FileRouteTypes {
     | '/_app/foods/$foodId/'
     | '/_app/g/$groupSlug/'
     | '/_app/recipes/$recipeId/'
+    | '/_app/g/$groupSlug/baby/new'
     | '/_app/g/$groupSlug/foods/new'
     | '/_app/g/$groupSlug/recipes/new'
+    | '/_app/g/$groupSlug/baby/'
     | '/_app/g/$groupSlug/foods/'
     | '/_app/g/$groupSlug/nutrition/'
     | '/_app/g/$groupSlug/recipes/'
+    | '/_app/g/$groupSlug/baby/$babyId/edit'
     | '/_app/g/$groupSlug/foods/$foodId/edit'
     | '/_app/g/$groupSlug/recipes/$recipeId/edit'
+    | '/_app/g/$groupSlug/baby/$babyId/'
     | '/_app/g/$groupSlug/foods/$foodId/'
     | '/_app/g/$groupSlug/recipes/$recipeId/'
   fileRoutesById: FileRoutesById
@@ -829,6 +879,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRecipesRecipeIdEditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/g/$groupSlug/baby/': {
+      id: '/_app/g/$groupSlug/baby/'
+      path: '/baby'
+      fullPath: '/g/$groupSlug/baby/'
+      preLoaderRoute: typeof AppGGroupSlugBabyIndexRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
+    '/_app/g/$groupSlug/baby/new': {
+      id: '/_app/g/$groupSlug/baby/new'
+      path: '/baby/new'
+      fullPath: '/g/$groupSlug/baby/new'
+      preLoaderRoute: typeof AppGGroupSlugBabyNewRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
     '/_app/g/$groupSlug/foods/': {
       id: '/_app/g/$groupSlug/foods/'
       path: '/foods'
@@ -864,6 +928,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGGroupSlugRecipesNewRouteImport
       parentRoute: typeof AppGGroupSlugRoute
     }
+    '/_app/g/$groupSlug/baby/$babyId/': {
+      id: '/_app/g/$groupSlug/baby/$babyId/'
+      path: '/baby/$babyId'
+      fullPath: '/g/$groupSlug/baby/$babyId/'
+      preLoaderRoute: typeof AppGGroupSlugBabyBabyIdIndexRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
+    '/_app/g/$groupSlug/baby/$babyId/edit': {
+      id: '/_app/g/$groupSlug/baby/$babyId/edit'
+      path: '/baby/$babyId/edit'
+      fullPath: '/g/$groupSlug/baby/$babyId/edit'
+      preLoaderRoute: typeof AppGGroupSlugBabyBabyIdEditRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
     '/_app/g/$groupSlug/foods/$foodId/': {
       id: '/_app/g/$groupSlug/foods/$foodId/'
       path: '/foods/$foodId'
@@ -897,26 +975,34 @@ declare module '@tanstack/react-router' {
 
 interface AppGGroupSlugRouteChildren {
   AppGGroupSlugIndexRoute: typeof AppGGroupSlugIndexRoute
+  AppGGroupSlugBabyNewRoute: typeof AppGGroupSlugBabyNewRoute
   AppGGroupSlugFoodsNewRoute: typeof AppGGroupSlugFoodsNewRoute
   AppGGroupSlugRecipesNewRoute: typeof AppGGroupSlugRecipesNewRoute
+  AppGGroupSlugBabyIndexRoute: typeof AppGGroupSlugBabyIndexRoute
   AppGGroupSlugFoodsIndexRoute: typeof AppGGroupSlugFoodsIndexRoute
   AppGGroupSlugNutritionIndexRoute: typeof AppGGroupSlugNutritionIndexRoute
   AppGGroupSlugRecipesIndexRoute: typeof AppGGroupSlugRecipesIndexRoute
+  AppGGroupSlugBabyBabyIdEditRoute: typeof AppGGroupSlugBabyBabyIdEditRoute
   AppGGroupSlugFoodsFoodIdEditRoute: typeof AppGGroupSlugFoodsFoodIdEditRoute
   AppGGroupSlugRecipesRecipeIdEditRoute: typeof AppGGroupSlugRecipesRecipeIdEditRoute
+  AppGGroupSlugBabyBabyIdIndexRoute: typeof AppGGroupSlugBabyBabyIdIndexRoute
   AppGGroupSlugFoodsFoodIdIndexRoute: typeof AppGGroupSlugFoodsFoodIdIndexRoute
   AppGGroupSlugRecipesRecipeIdIndexRoute: typeof AppGGroupSlugRecipesRecipeIdIndexRoute
 }
 
 const AppGGroupSlugRouteChildren: AppGGroupSlugRouteChildren = {
   AppGGroupSlugIndexRoute: AppGGroupSlugIndexRoute,
+  AppGGroupSlugBabyNewRoute: AppGGroupSlugBabyNewRoute,
   AppGGroupSlugFoodsNewRoute: AppGGroupSlugFoodsNewRoute,
   AppGGroupSlugRecipesNewRoute: AppGGroupSlugRecipesNewRoute,
+  AppGGroupSlugBabyIndexRoute: AppGGroupSlugBabyIndexRoute,
   AppGGroupSlugFoodsIndexRoute: AppGGroupSlugFoodsIndexRoute,
   AppGGroupSlugNutritionIndexRoute: AppGGroupSlugNutritionIndexRoute,
   AppGGroupSlugRecipesIndexRoute: AppGGroupSlugRecipesIndexRoute,
+  AppGGroupSlugBabyBabyIdEditRoute: AppGGroupSlugBabyBabyIdEditRoute,
   AppGGroupSlugFoodsFoodIdEditRoute: AppGGroupSlugFoodsFoodIdEditRoute,
   AppGGroupSlugRecipesRecipeIdEditRoute: AppGGroupSlugRecipesRecipeIdEditRoute,
+  AppGGroupSlugBabyBabyIdIndexRoute: AppGGroupSlugBabyBabyIdIndexRoute,
   AppGGroupSlugFoodsFoodIdIndexRoute: AppGGroupSlugFoodsFoodIdIndexRoute,
   AppGGroupSlugRecipesRecipeIdIndexRoute:
     AppGGroupSlugRecipesRecipeIdIndexRoute,
