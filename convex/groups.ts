@@ -1,22 +1,10 @@
 import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import { mutation, query } from './_generated/server'
-import type { MutationCtx, QueryCtx } from './_generated/server'
+import type { MutationCtx } from './_generated/server'
+import { getMembership, resolveGroupBySlug } from './lib/groupAccess'
 import { allocateGroupSlug } from './lib/groupSlugs'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
-
-/** The caller's membership of a Group, or null when they are not in it. */
-async function getMembership(
-  ctx: QueryCtx,
-  groupId: Id<'groups'>,
-  userId: Id<'users'>,
-) {
-  return await ctx.db
-    .query('memberships')
-    .withIndex('by_user', (q) => q.eq('userId', userId))
-    .filter((q) => q.eq(q.field('groupId'), groupId))
-    .unique()
-}
 
 /**
  * Resolve the caller and their standing in a Group, or refuse.
@@ -60,6 +48,36 @@ export const myGroups = query({
     return groups
       .filter((g): g is NonNullable<typeof g> => g !== null)
       .map((g) => ({ ...g, isPersonal: g.isPersonal === true }))
+  },
+})
+
+/**
+ * The Group a `/g/<slug>/…` route is addressing, together with the caller's
+ * standing in it — or why they cannot have it.
+ *
+ * The route gate renders one of the refusals rather than erroring, so the three
+ * come back as data. There is deliberately no fallback: a caller who asks for a
+ * Group they are not in is refused, never quietly handed one they are in.
+ */
+export const bySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const resolution = await resolveGroupBySlug(ctx, args.slug)
+    if (!resolution.ok) return { ok: false as const, reason: resolution.reason }
+
+    const { group, role } = resolution
+    return {
+      ok: true as const,
+      // Deliberately not the whole row: inviteCode is a capability, and the
+      // gate has no use for it.
+      group: {
+        _id: group._id,
+        name: group.name,
+        slug: group.slug,
+        isPersonal: group.isPersonal,
+      },
+      role,
+    }
   },
 })
 

@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { isPrimaryAreaActive, PRIMARY_AREAS } from '../../lib/appNavigation'
 import { MODULE_GROUPS, modulesByGroup } from '../../lib/modules'
+import { GroupSwitcher } from './GroupSwitcher'
 import { Pill } from './ShellPrimitives'
 
 function Icon({ name, className }: { name: string; className?: string }) {
@@ -59,6 +60,8 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
           <Icon name="Plus" className="h-4 w-4" />
         </Link>
       </div>
+
+      <GroupSwitcher onNavigate={onNavigate} />
 
       <nav className="grid gap-1" aria-label="Primary">
         <p className="m-0 px-2 pb-1 text-[11px] font-semibold uppercase text-[var(--app-muted)]">

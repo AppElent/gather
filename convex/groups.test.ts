@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
+import { requireGroupBySlug } from './lib/groupAccess'
 import { RESERVED_SLUGS } from './lib/slugs'
 
 /**
@@ -194,21 +195,22 @@ describe('slugs', () => {
   })
 })
 
+/** Alice admins a household Bob has joined by invite. */
+async function household(t: Harness) {
+  await signUp(t, asAlice)
+  await signUp(t, asBob)
+  const groupId: Id<'groups'> = await t
+    .withIdentity(asAlice)
+    .mutation(api.groups.createGroup, { name: 'Jansen Household' })
+  const group = await t.run(async (ctx) => await ctx.db.get(groupId))
+  if (!group) throw new Error('group was not created')
+  await t
+    .withIdentity(asBob)
+    .mutation(api.groups.joinByInvite, { inviteCode: group.inviteCode })
+  return groupId
+}
+
 describe('an ordinary Group', () => {
-  /** Alice admins a household Bob has joined by invite. */
-  async function household(t: Harness) {
-    await signUp(t, asAlice)
-    await signUp(t, asBob)
-    const groupId: Id<'groups'> = await t
-      .withIdentity(asAlice)
-      .mutation(api.groups.createGroup, { name: 'Jansen Household' })
-    const group = await t.run(async (ctx) => await ctx.db.get(groupId))
-    if (!group) throw new Error('group was not created')
-    await t
-      .withIdentity(asBob)
-      .mutation(api.groups.joinByInvite, { inviteCode: group.inviteCode })
-    return groupId
-  }
 
   test('can be renamed by an admin, and the slug follows', async () => {
     const t = testConvex()
@@ -300,5 +302,138 @@ describe('an ordinary Group', () => {
     await expect(
       t.withIdentity(asBob).mutation(api.groups.deleteGroup, { groupId }),
     ).rejects.toThrow(/admin/i)
+  })
+})
+
+/**
+ * Resolving a Group from the slug in the URL (ADR-0002). This is the check every
+ * Group-scoped route and function goes through, so what matters is not only that
+ * the right people get in, but that the three ways of being kept out stay told
+ * apart: a Group that does not exist, one that is not yours, and no session.
+ */
+describe('resolving a Group by slug', () => {
+  /** Alice's household, which Bob is deliberately not in. */
+  async function aliceOnlyHousehold(t: Harness) {
+    await signUp(t, asAlice)
+    await signUp(t, asBob)
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.createGroup, { name: 'Jansen Household' })
+    return 'jansen-household'
+  }
+
+  test('gives a member their Group and their role in it', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+
+    const asAdmin = await t
+      .withIdentity(asAlice)
+      .query(api.groups.bySlug, { slug: 'jansen-household' })
+    const asPlainMember = await t
+      .withIdentity(asBob)
+      .query(api.groups.bySlug, { slug: 'jansen-household' })
+
+    expect(asAdmin).toMatchObject({
+      ok: true,
+      group: { _id: groupId, name: 'Jansen Household', isPersonal: false },
+      role: 'admin',
+    })
+    expect(asPlainMember).toMatchObject({ ok: true, role: 'member' })
+  })
+
+  test('resolves a Personal group like any other', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+
+    const result = await t
+      .withIdentity(asAlice)
+      .query(api.groups.bySlug, { slug: 'me-alice' })
+
+    expect(result).toMatchObject({
+      ok: true,
+      group: { slug: 'me-alice', isPersonal: true },
+      role: 'admin',
+    })
+  })
+
+  test('refuses a Group you are not in', async () => {
+    const t = testConvex()
+    const slug = await aliceOnlyHousehold(t)
+
+    expect(
+      await t.withIdentity(asBob).query(api.groups.bySlug, { slug }),
+    ).toEqual({ ok: false, reason: 'not-a-member' })
+  })
+
+  test('says an unknown slug is unknown, to member and stranger alike', async () => {
+    const t = testConvex()
+    await aliceOnlyHousehold(t)
+
+    for (const identity of [asAlice, asBob]) {
+      expect(
+        await t
+          .withIdentity(identity)
+          .query(api.groups.bySlug, { slug: 'no-such-household' }),
+      ).toEqual({ ok: false, reason: 'unknown-slug' })
+    }
+  })
+
+  test('tells a refusal apart from a slug that does not exist', async () => {
+    const t = testConvex()
+    const slug = await aliceOnlyHousehold(t)
+    const bob = t.withIdentity(asBob)
+
+    const refused = await bob.query(api.groups.bySlug, { slug })
+    const unknown = await bob.query(api.groups.bySlug, { slug: 'nonsense' })
+
+    expect(refused).not.toEqual(unknown)
+    expect(refused.ok).toBe(false)
+    expect(unknown.ok).toBe(false)
+  })
+
+  test('refuses a signed-out caller', async () => {
+    const t = testConvex()
+    const slug = await aliceOnlyHousehold(t)
+
+    expect(await t.query(api.groups.bySlug, { slug })).toEqual({
+      ok: false,
+      reason: 'not-signed-in',
+    })
+  })
+
+  test('never hands back a Group you do belong to instead', async () => {
+    const t = testConvex()
+    const slug = await aliceOnlyHousehold(t)
+
+    // Bob has a Personal group of his own; asking for Alice's must not quietly
+    // fall back to it, or the URL stops meaning what it says.
+    const result = await t.withIdentity(asBob).query(api.groups.bySlug, { slug })
+
+    expect(result.ok).toBe(false)
+    expect(JSON.stringify(result)).not.toContain('me-bob')
+  })
+
+  test('the throwing form refuses each case with its own message', async () => {
+    const t = testConvex()
+    const slug = await aliceOnlyHousehold(t)
+    const bob = t.withIdentity(asBob)
+
+    const resolved = await bob.query(async (ctx) =>
+      requireGroupBySlug(ctx, 'me-bob'),
+    )
+    expect(resolved.group.slug).toBe('me-bob')
+    expect(resolved.role).toBe('admin')
+
+    const refusal = await bob
+      .query(async (ctx) => requireGroupBySlug(ctx, slug))
+      .catch((err: Error) => err.message)
+    const unknown = await bob
+      .query(async (ctx) => requireGroupBySlug(ctx, 'nonsense'))
+      .catch((err: Error) => err.message)
+    const signedOut = await t
+      .query(async (ctx) => requireGroupBySlug(ctx, slug))
+      .catch((err: Error) => err.message)
+
+    expect(new Set([refusal, unknown, signedOut]).size).toBe(3)
   })
 })

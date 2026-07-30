@@ -18,6 +18,23 @@ vi.mock('./CommandPalette', () => ({
   CommandPalette: () => null,
 }))
 
+// The sidebar's Group switcher reads the caller's Groups from Convex.
+vi.mock('convex/react', () => ({
+  useQuery: () => [
+    { _id: 'g1', name: "Alice's things", slug: 'me-alice', isPersonal: true },
+    {
+      _id: 'g2',
+      name: 'Jansen Household',
+      slug: 'jansen-household',
+      isPersonal: false,
+    },
+  ],
+}))
+
+vi.mock('../../../convex/_generated/api', () => ({
+  api: { groups: { myGroups: 'groups:myGroups' } },
+}))
+
 vi.mock('@tanstack/react-router', async () => {
   const actual = await vi.importActual<typeof import('@tanstack/react-router')>(
     '@tanstack/react-router',
