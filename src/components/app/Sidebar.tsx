@@ -3,6 +3,7 @@ import { Link, useLocation } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { isPrimaryAreaActive, PRIMARY_AREAS } from '../../lib/appNavigation'
+import { groupSlugOf, moduleLink } from '../../lib/groupPaths'
 import { MODULE_GROUPS, modulesByGroup } from '../../lib/modules'
 import { GroupSwitcher } from './GroupSwitcher'
 import { Pill } from './ShellPrimitives'
@@ -22,6 +23,10 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
   const byGroup = modulesByGroup()
   const isDrawer = variant === 'drawer'
   const location = useLocation()
+  // Clicking a Module from inside a Group has to stay inside it. The sidebar is
+  // rendered above both route trees, so the only thing that can tell it which
+  // Group you are in is the address bar.
+  const groupSlug = groupSlugOf(location.pathname)
 
   return (
     <aside
@@ -95,7 +100,7 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
             {byGroup[group].map((module) => (
               <Link
                 key={module.id}
-                to={module.path as LinkProps['to']}
+                {...moduleLink(module, groupSlug)}
                 onClick={onNavigate}
                 className="grid min-h-9 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline"
                 activeProps={{

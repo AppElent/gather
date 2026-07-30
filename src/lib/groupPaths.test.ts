@@ -5,7 +5,10 @@ import {
   groupIndexSurfaceOf,
   groupLink,
   groupSlugOf,
+  groupSurfaceForModule,
+  moduleLink,
 } from './groupPaths'
+import { MODULES } from './modules'
 
 describe('building a Group URL', () => {
   test('gives link options the router can check the route of', () => {
@@ -116,5 +119,49 @@ describe('reading a Group URL', () => {
       const there = groupHref(groupIndexSurfaceOf(here) ?? 'home', 'wine-club')
       expect(there).toBe(groupHref(surface, 'wine-club'))
     }
+  })
+})
+
+/**
+ * The shell's Module links are the ones a route cannot build, because the
+ * sidebar and the command palette are on screen under both route trees at once.
+ * They are therefore the likeliest place for a Group to be dropped, and the
+ * cheapest place to catch it.
+ */
+describe('a Module link from the shell', () => {
+  const recipes = { id: 'recipes', path: '/recipes' }
+  const wines = { id: 'wines', path: '/wines' }
+
+  test('stays in the Group you are already in', () => {
+    expect(moduleLink(recipes, 'jansen-household')).toEqual({
+      to: '/g/$groupSlug/recipes',
+      params: { groupSlug: 'jansen-household' },
+    })
+  })
+
+  test('is flat when there is no Group to be in', () => {
+    expect(moduleLink(recipes, null)).toEqual({ to: '/recipes' })
+  })
+
+  test('falls back to the flat path for a Module with no Group route yet', () => {
+    expect(moduleLink(wines, 'jansen-household')).toEqual({ to: '/wines' })
+    expect(moduleLink(wines, null)).toEqual({ to: '/wines' })
+  })
+
+  // The shell's own entries are not Modules and carry no id, so they never
+  // acquire a Group segment no matter where you are standing.
+  test('leaves a destination that is not a Module alone', () => {
+    expect(moduleLink({ path: '/settings' }, 'jansen-household')).toEqual({
+      to: '/settings',
+    })
+  })
+
+  // What #23 is for. A live Module without a Group-scoped home is one the
+  // sidebar silently drops you out of the Group to reach.
+  test('every live Module has somewhere to go inside a Group', () => {
+    const homeless = MODULES.filter(
+      (m) => m.status === 'live' && groupSurfaceForModule(m.id) === null,
+    )
+    expect(homeless.map((m) => m.id)).toEqual([])
   })
 })

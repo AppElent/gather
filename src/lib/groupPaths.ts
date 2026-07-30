@@ -14,6 +14,7 @@
  */
 
 import type { LinkProps } from '@tanstack/react-router'
+import type { AppLink } from './appLink'
 
 /** The `/g/<slug>` prefix every Group-scoped route shares. */
 const GROUP_PREFIX = '/g/$groupSlug'
@@ -209,4 +210,49 @@ export function groupIndexSurfaceOf(pathname: string): GroupModuleIndex | null {
   const segment = split.rest.split('/').filter(Boolean)[0] ?? ''
   const wanted = segment === '' ? '' : `/${segment}`
   return GROUP_MODULE_INDEXES.find((s) => suffixOf(s) === wanted) ?? null
+}
+
+/**
+ * Where a Module lives inside a Group, or null when it has no Group-scoped
+ * route yet. Keyed by `ModuleDef.id`.
+ */
+const MODULE_INDEX_SURFACES: Record<string, GroupModuleIndex> = {
+  recipes: 'recipes',
+  nutrition: 'nutrition',
+  tasks: 'tasks',
+  'baby-log': 'baby',
+}
+
+export function groupSurfaceForModule(
+  moduleId: string,
+): GroupModuleIndex | null {
+  return MODULE_INDEX_SURFACES[moduleId] ?? null
+}
+
+/**
+ * Where a Module link should go from wherever you are standing.
+ *
+ * The shell renders above both route trees, so its Module links are the one
+ * kind that cannot be built by a route: the sidebar and the command palette are
+ * on screen at `/recipes` and at `/g/<slug>/recipes` alike. They read the Group
+ * off the URL — the shell is allowed to, because the URL is the only thing that
+ * says which Group you are in, and it is the shell's job to reflect it — and
+ * pass it here.
+ *
+ * Inside a Group, a Module that has a Group-scoped route keeps you in the Group
+ * you are already in; anything else falls back to the flat path, so a
+ * placeholder Module or a Module with no Group route yet still goes somewhere
+ * that exists. That fallback disappears with the flat routes in #24.
+ */
+export function moduleLink(
+  module: { id?: string; path: string },
+  groupSlug: string | null,
+): AppLink {
+  const surface =
+    module.id && groupSlug ? groupSurfaceForModule(module.id) : null
+  if (surface && groupSlug) return groupLink(surface, groupSlug)
+  // The Module registry stores its path as a plain string; the router cannot
+  // check a value it never sees declared, which is the reason Group
+  // destinations are declared here rather than kept alongside the Modules.
+  return { to: module.path as LinkProps['to'] }
 }

@@ -1,11 +1,13 @@
-import type { NavigateOptions } from '@tanstack/react-router'
-import { useNavigate } from '@tanstack/react-router'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
+import { groupSlugOf, moduleLink } from '../../lib/groupPaths'
 import { MODULES } from '../../lib/modules'
 
-const ITEMS = [
+// Only a Module can have a Group-scoped destination, so only a Module carries
+// an id here; the shell's own entries have none and stay flat wherever you are.
+const ITEMS: Array<{ moduleId?: string; label: string; path: string }> = [
   { label: 'Dashboard', path: '/dashboard' },
-  ...MODULES.map((m) => ({ label: m.label, path: m.path })),
+  ...MODULES.map((m) => ({ moduleId: m.id, label: m.label, path: m.path })),
   { label: 'Settings', path: '/settings' },
   { label: 'Groups', path: '/groups' },
 ]
@@ -14,6 +16,9 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const navigate = useNavigate()
+  // Jumping to a Module from inside a Group keeps you in it, exactly as the
+  // sidebar does - the palette is on screen under both route trees too.
+  const groupSlug = groupSlugOf(useLocation().pathname)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -57,7 +62,9 @@ export function CommandPalette() {
                 onClick={() => {
                   setOpen(false)
                   setQ('')
-                  navigate({ to: i.path } as NavigateOptions)
+                  navigate(
+                    moduleLink({ id: i.moduleId, path: i.path }, groupSlug),
+                  )
                 }}
               >
                 {i.label}
