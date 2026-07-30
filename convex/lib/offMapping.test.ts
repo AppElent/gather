@@ -7,7 +7,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
-import { mapOffProduct } from './offMapping'
+import { mapOffProduct, mapOffSearchResults } from './offMapping'
 
 function fixture(name: string): unknown {
   return JSON.parse(
@@ -125,5 +125,78 @@ describe('mapOffProduct — synthetic edge cases', () => {
       },
     })
     expect(mapped?.servingSize).toBe(45)
+  })
+})
+
+describe('mapOffSearchResults', () => {
+  test('maps each product in the products array and attaches its barcode', () => {
+    const results = mapOffSearchResults({
+      products: [
+        {
+          code: '3017620422003',
+          product_name: 'Nutella',
+          brands: 'Ferrero,Nutella',
+          nutriments: { 'energy-kcal_100g': 539 },
+        },
+      ],
+    })
+    expect(results).toEqual([
+      {
+        barcode: '3017620422003',
+        name: 'Nutella',
+        brand: 'Ferrero',
+        nutritionPer100: { calories: 539 },
+        servingSize: undefined,
+        servingLabel: undefined,
+      },
+    ])
+  })
+
+  test('drops entries with no usable name', () => {
+    const results = mapOffSearchResults({
+      products: [{ code: '111', nutriments: {} }],
+    })
+    expect(results).toEqual([])
+  })
+
+  test('drops entries with a missing or empty barcode', () => {
+    const results = mapOffSearchResults({
+      products: [
+        { product_name: 'No Code', nutriments: {} },
+        { code: '', product_name: 'Empty Code', nutriments: {} },
+      ],
+    })
+    expect(results).toEqual([])
+  })
+
+  test('prefers the Dutch product name, same as mapOffProduct', () => {
+    const results = mapOffSearchResults({
+      products: [
+        {
+          code: '222',
+          product_name: 'Generic Name',
+          product_name_nl: 'Nederlandse Naam',
+          nutriments: {},
+        },
+      ],
+    })
+    expect(results[0]?.name).toBe('Nederlandse Naam')
+  })
+
+  test('caps the result at 20 entries', () => {
+    const products = Array.from({ length: 30 }, (_, i) => ({
+      code: `${1000 + i}`,
+      product_name: `Item ${i}`,
+      nutriments: {},
+    }))
+    const results = mapOffSearchResults({ products })
+    expect(results).toHaveLength(20)
+  })
+
+  test('returns an empty list for malformed or non-object input', () => {
+    expect(mapOffSearchResults(null)).toEqual([])
+    expect(mapOffSearchResults('nope')).toEqual([])
+    expect(mapOffSearchResults({})).toEqual([])
+    expect(mapOffSearchResults({ products: 'not-an-array' })).toEqual([])
   })
 })

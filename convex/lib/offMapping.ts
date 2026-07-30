@@ -8,7 +8,12 @@ export interface OffMappedFood {
   servingLabel?: string
 }
 
+export interface OffSearchResult extends OffMappedFood {
+  barcode: string
+}
+
 interface OffProduct {
+  code?: unknown
   product_name?: unknown
   product_name_nl?: unknown
   brands?: unknown
@@ -20,6 +25,10 @@ interface OffProduct {
 interface OffResponse {
   status?: unknown
   product?: OffProduct
+}
+
+interface OffSearchResponse {
+  products?: unknown
 }
 
 // Open Food Facts product names are per-product, not per-request-locale — a
@@ -65,17 +74,13 @@ const NUTRIMENT_MAPPINGS: Array<[keyof NutritionFacts, string]> = [
   ['salt', 'salt_100g'],
 ]
 
-// Maps a raw Open Food Facts /api/v2/product/{barcode} response to our foods
-// shape. Returns null when the product wasn't found (status !== 1) or the
-// response is malformed — barcode lookups must never throw; the caller falls
-// back to manual entry either way (spec §6).
-export function mapOffProduct(raw: unknown): OffMappedFood | null {
-  if (typeof raw !== 'object' || raw === null) return null
-  const response = raw as OffResponse
-  if (response.status !== 1) return null
-  const product = response.product
-  if (typeof product !== 'object' || product === null) return null
-
+// Maps one OFF product object (from either the single-product or search
+// response shapes) to our foods shape. Always returns a mapped object, even
+// when the name is empty — the barcode single-product path (mapOffProduct)
+// leaves that decision to the user on the confirmation screen (spec §4.3);
+// the search path (mapOffSearchResults) applies its own empty-name filter
+// on top of this, since a nameless row is just noise in a results list.
+function mapOffRawProduct(product: OffProduct): OffMappedFood {
   const nutriments = product.nutriments
   const nutritionPer100: NutritionFacts = {}
   if (typeof nutriments === 'object' && nutriments !== null) {
@@ -105,4 +110,44 @@ export function mapOffProduct(raw: unknown): OffMappedFood | null {
         ? product.serving_size.trim() || undefined
         : undefined,
   }
+}
+
+// Maps a raw Open Food Facts /api/v2/product/{barcode} response to our foods
+// shape. Returns null when the product wasn't found (status !== 1) or the
+// response is malformed — barcode lookups must never throw; the caller falls
+// back to manual entry either way (spec §6).
+export function mapOffProduct(raw: unknown): OffMappedFood | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const response = raw as OffResponse
+  if (response.status !== 1) return null
+  const product = response.product
+  if (typeof product !== 'object' || product === null) return null
+  return mapOffRawProduct(product)
+}
+
+// Maps a raw Open Food Facts /api/v2/search response ({products: [...]}) to
+// a capped list of importable results. Unlike mapOffProduct, this drops
+// entries with no usable name (noise in a results list, spec §4.3 of the
+// 2026-07-20 OFF name-search design) or no barcode (unusable — the result
+// can't be upserted without one). Malformed/non-object input, or a missing
+// `products` array, returns an empty list — search is a soft fallback, never
+// throws.
+export function mapOffSearchResults(raw: unknown): OffSearchResult[] {
+  if (typeof raw !== 'object' || raw === null) return []
+  const response = raw as OffSearchResponse
+  if (!Array.isArray(response.products)) return []
+
+  const results: OffSearchResult[] = []
+  for (const entry of response.products) {
+    if (typeof entry !== 'object' || entry === null) continue
+    const product = entry as OffProduct
+    const barcode =
+      typeof product.code === 'string' ? product.code.trim() : ''
+    if (!barcode) continue
+    const mapped = mapOffRawProduct(product)
+    if (!mapped.name) continue
+    results.push({ ...mapped, barcode })
+    if (results.length >= 20) break
+  }
+  return results
 }
