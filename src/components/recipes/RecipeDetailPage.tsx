@@ -44,33 +44,38 @@ export function RecipeDetailPage({ recipeId, nav }: RecipeDetailPageProps) {
             <p className="text-sm opacity-60">{'★'.repeat(recipe.rating)}</p>
           )}
         </div>
-        <div className="flex gap-2">
-          <Link
-            {...nav.edit(recipeId)}
-            className="rounded border px-3 py-1.5 text-sm no-underline"
-          >
-            Edit
-          </Link>
-          <button
-            type="button"
-            className="rounded border px-3 py-1.5 text-sm"
-            onClick={async () => {
-              setError(null)
-              try {
-                await remove({ id: recipe._id })
-                navigate(nav.list)
-              } catch (err) {
-                setError(
-                  err instanceof Error
-                    ? err.message
-                    : 'Could not delete recipe',
-                )
-              }
-            }}
-          >
-            Delete
-          </button>
-        </div>
+        {/* A recipe reaches a Group it was only shared into as something to
+            read: writing follows the home Group. Showing the buttons anyway
+            would offer an action that can only fail on click. */}
+        {recipe.canEdit && (
+          <div className="flex gap-2">
+            <Link
+              {...nav.edit(recipeId)}
+              className="rounded border px-3 py-1.5 text-sm no-underline"
+            >
+              Edit
+            </Link>
+            <button
+              type="button"
+              className="rounded border px-3 py-1.5 text-sm"
+              onClick={async () => {
+                setError(null)
+                try {
+                  await remove({ id: recipe._id })
+                  navigate(nav.list)
+                } catch (err) {
+                  setError(
+                    err instanceof Error
+                      ? err.message
+                      : 'Could not delete recipe',
+                  )
+                }
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (

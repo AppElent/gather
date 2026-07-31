@@ -15,13 +15,20 @@ import { ViewModeToggle } from './ViewModeToggle'
  * Group-scoped tree cannot drift away from the flat one. Where it links to is
  * the only thing the two routes disagree about, and that arrives as `nav`.
  *
- * Which recipes it shows is not decided here: `recipes.list` answers with every
- * recipe the caller can see, which is now every recipe in every Group they are
- * a Member of. Narrowing that to the Group in the URL is #24's job, when the
- * flat route it would otherwise break goes away.
+ * Which recipes it shows follows the same split: given a `groupSlug` it shows
+ * that Group's collection, and without one every recipe the caller can reach.
+ * Only the flat route omits it — a Group page that unioned in the caller's
+ * other Groups would show two Members of one Group different collections at the
+ * same URL, which is exactly what ADR-0002 exists to stop.
  */
-export function RecipesPage({ nav }: { nav: RecipeNav }) {
-  const recipes = useQuery(api.recipes.list)
+export function RecipesPage({
+  nav,
+  groupSlug,
+}: {
+  nav: RecipeNav
+  groupSlug?: string
+}) {
+  const recipes = useQuery(api.recipes.list, { groupSlug })
   const [viewMode, setViewMode] = useRecipeViewMode()
 
   return (

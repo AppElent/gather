@@ -14,5 +14,5 @@ export const Route = createFileRoute('/_app/g/$groupSlug/recipes/')({
 function GroupRecipeList() {
   const { groupSlug } = Route.useParams()
 
-  return <RecipesPage nav={groupRecipeNav(groupSlug)} />
+  return <RecipesPage nav={groupRecipeNav(groupSlug)} groupSlug={groupSlug} />
 }

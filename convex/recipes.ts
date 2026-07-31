@@ -14,14 +14,33 @@ import {
 } from './lib/nutrition'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
 
+/**
+ * A Group's recipe collection, or — without a slug — everything the caller can
+ * reach across all of theirs.
+ *
+ * The slug is what makes the collection the *Group's* rather than the caller's.
+ * Without it, two Members standing on the same page see different lists,
+ * because each unions in the recipes of whatever other Groups they happen to
+ * belong to; the URL stops deciding what you see, which is the whole point of
+ * ADR-0002. The slugless form exists only for the flat `/recipes` route and
+ * goes when #24 deletes it.
+ *
+ * One Group's collection is exactly "what a viewer whose only Group is this one
+ * can see", so both forms run the same visibility rule over a different viewer.
+ */
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { groupSlug: v.optional(v.string()) },
+  handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) return []
-    const groupIds = await getMyGroupIds(ctx, user._id)
+
+    const viewerGroupIds =
+      args.groupSlug === undefined
+        ? await getMyGroupIds(ctx, user._id)
+        : [(await requireGroupBySlug(ctx, args.groupSlug)).group._id]
+
     const all = await ctx.db.query('recipes').collect()
-    const visible = all.filter((r) => isVisibleToGroups(r, groupIds))
+    const visible = all.filter((r) => isVisibleToGroups(r, viewerGroupIds))
     return await Promise.all(
       visible.map(async (r) => ({
         ...r,

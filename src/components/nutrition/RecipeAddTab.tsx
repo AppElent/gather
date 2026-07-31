@@ -16,7 +16,11 @@ interface Props {
 }
 
 export function RecipeAddTab({ date, meal, nav, onAdded }: Props) {
-  const recipes = useQuery(api.recipes.list)
+  // Deliberately every recipe the caller can reach, not the current Group's.
+  // The diary is Personal and reads the same in every Group (ADR-0002), so
+  // narrowing this to the Group in the URL would make the same page offer
+  // different recipes depending on which Group you happened to open it from.
+  const recipes = useQuery(api.recipes.list, {})
   const create = useMutation(api.consumption.create)
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [submittingId, setSubmittingId] = useState<string | null>(null)

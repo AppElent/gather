@@ -130,6 +130,69 @@ async function endMembership(t: Harness, membershipId: Id<'memberships'>) {
   })
 }
 
+describe("a Group's collection is the Group's, not the caller's", () => {
+  /**
+   * Alice is in the household *and* the cooking club; Bob is only in the
+   * household. Asking for the household by slug must give them the same answer
+   * — if the caller's other memberships leak in, the URL has stopped deciding
+   * what is on the page and ADR-0002 is not being honoured.
+   */
+  async function seedWithAliceInBothGroups() {
+    const { t, ids } = await seed()
+    await t.run(async (ctx) => {
+      await ctx.db.insert('memberships', {
+        groupId: ids.cookingClub,
+        userId: ids.alice,
+        role: 'member',
+      })
+    })
+    return { t, ids }
+  }
+
+  test('two Members of one Group see the identical list', async () => {
+    const { t } = await seedWithAliceInBothGroups()
+
+    const alices = await t
+      .withIdentity(asAlice)
+      .query(api.recipes.list, { groupSlug: 'household' })
+    const bobs = await t
+      .withIdentity(asBob)
+      .query(api.recipes.list, { groupSlug: 'household' })
+
+    expect(titles(alices)).toEqual(titles(bobs))
+  })
+
+  test("another Group's recipes stay out of it", async () => {
+    const { t } = await seedWithAliceInBothGroups()
+
+    const rows = await t
+      .withIdentity(asAlice)
+      .query(api.recipes.list, { groupSlug: 'household' })
+
+    // Alice can see the sourdough — just not from in here.
+    expect(titles(rows)).toEqual(['Pasta for a crowd', 'Sunday roast'])
+    expect(titles(rows)).not.toContain('Club sourdough')
+  })
+
+  test('a recipe shared into a Group appears in that Group', async () => {
+    const { t } = await seed()
+
+    const rows = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+
+    expect(titles(rows)).toEqual(['Club sourdough', 'Pasta for a crowd'])
+  })
+
+  test('a Group the caller is not a Member of is refused', async () => {
+    const { t } = await seed()
+
+    await expect(
+      t.withIdentity(asCarol).query(api.recipes.list, { groupSlug: 'household' }),
+    ).rejects.toThrow()
+  })
+})
+
 describe('recipes.list', () => {
   test('every Member of a Group sees the same recipes', async () => {
     const { t } = await seed()
