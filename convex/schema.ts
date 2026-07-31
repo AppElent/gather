@@ -12,6 +12,15 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     defaultGroupId: v.optional(v.id('groups')),
     nutritionTargets: v.optional(nutritionValidator),
+    // The Modules this person keeps in their own navigation, in their own
+    // order. A Pin is always personal — it is never set for a Group
+    // (CONTEXT.md), which is why it lives on the user row and nowhere else.
+    //
+    // Opaque strings, deliberately: the Module catalog is a client concept and
+    // this schema must not know it. Absent means "has never chosen", which is
+    // what lets a new person start from the default defined in code without a
+    // backfill; an empty array means "chose to keep none".
+    pinnedModuleIds: v.optional(v.array(v.string())),
   }).index('by_clerkId', ['clerkId']),
 
   groups: defineTable({

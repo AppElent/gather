@@ -1,3 +1,4 @@
+import { v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
@@ -82,6 +83,45 @@ export const ensureUser = mutation({
     const slug = await allocateGroupSlug(ctx, { name, isPersonal: true })
     await createPersonalGroup(ctx, { _id: userId, name }, slug)
     return userId
+  },
+})
+
+/**
+ * How many Pins one person may keep. An abuse guard rather than a product
+ * limit — it sits well above the number of Modules that exist, so nobody
+ * pinning every Module can reach it.
+ */
+export const MAX_PINNED_MODULES = 32
+
+/**
+ * Replace the caller's Pins with the whole ordered list.
+ *
+ * One ordered array covers adding, removing and reordering in a single shape,
+ * so there is no way for three mutations to disagree about what the order is.
+ *
+ * The ids are opaque here on purpose. The Module catalog lives in the client
+ * and this backend must not import it, so validating against it is not
+ * something the server can honestly do; an id nothing declares is dropped
+ * where the catalog is known, when the list is read. All this does is refuse
+ * duplicates and refuse an unbounded list.
+ *
+ * Pins are personal (CONTEXT.md): this writes to the caller's own row and can
+ * reach no other person's, so one member's choices are invisible to the rest
+ * of their Group by construction.
+ */
+export const setPins = mutation({
+  args: { moduleIds: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+    if (!user) throw new Error('Not authenticated')
+
+    const pinnedModuleIds: string[] = []
+    for (const id of args.moduleIds) {
+      if (pinnedModuleIds.length >= MAX_PINNED_MODULES) break
+      if (!pinnedModuleIds.includes(id)) pinnedModuleIds.push(id)
+    }
+
+    await ctx.db.patch(user._id, { pinnedModuleIds })
   },
 })
 
