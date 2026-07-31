@@ -135,7 +135,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       ) : null}
 
-      <MobileDock location={location} />
+      <MobileDock />
       <GatherPanel
         open={gatherOpen}
         activeGroupName="Preview group"

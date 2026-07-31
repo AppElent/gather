@@ -1,32 +1,29 @@
-import type { LinkProps } from '@tanstack/react-router'
 import { Link, useLocation } from '@tanstack/react-router'
-import type { LucideIcon } from 'lucide-react'
-import * as Icons from 'lucide-react'
-import { isPrimaryAreaActive, PRIMARY_AREAS } from '../../lib/appNavigation'
-import { groupSlugOf, moduleLink } from '../../lib/groupPaths'
-import { MODULE_GROUPS, modulesByGroup } from '../../lib/modules'
+import { homeDestination } from '../../lib/appNavigation'
+import { groupSlugOf } from '../../lib/groupPaths'
 import { GroupSwitcher } from './GroupSwitcher'
+import { Icon } from './Icon'
 import { Pill } from './ShellPrimitives'
-
-function Icon({ name, className }: { name: string; className?: string }) {
-  const Component =
-    (Icons as unknown as Record<string, LucideIcon>)[name] ?? Icons.Square
-  return <Component className={className} aria-hidden="true" />
-}
+import { useNavigation } from './useNavigation'
 
 export interface SidebarProps {
   variant?: 'desktop' | 'drawer'
   onNavigate?: () => void
 }
 
+/**
+ * Home, your pins, All — and nothing else.
+ *
+ * The full Module catalog used to live here, grouped into four headed blocks,
+ * which is why a household with fourteen Modules had to scroll past ten it
+ * never opens. That was never a reason to let a Group switch Modules off:
+ * everything stays available, and All is one click away at the bottom of this
+ * same list.
+ */
 export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
-  const byGroup = modulesByGroup()
   const isDrawer = variant === 'drawer'
+  const { items, activeId } = useNavigation()
   const location = useLocation()
-  // Clicking a Module from inside a Group has to stay inside it. The sidebar is
-  // rendered above both route trees, so the only thing that can tell it which
-  // Group you are in is the address bar.
-  const groupSlug = groupSlugOf(location.pathname)
 
   return (
     <aside
@@ -39,7 +36,7 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
     >
       <div className="flex min-h-11 items-center justify-between gap-3">
         <Link
-          to="/dashboard"
+          {...homeDestination(groupSlugOf(location.pathname))}
           onClick={onNavigate}
           className="flex min-w-0 items-center gap-2 no-underline"
         >
@@ -69,17 +66,15 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
       <GroupSwitcher onNavigate={onNavigate} />
 
       <nav className="grid gap-1" aria-label="Primary">
-        <p className="m-0 px-2 pb-1 text-[11px] font-semibold uppercase text-[var(--app-muted)]">
-          Today
-        </p>
-        {PRIMARY_AREAS.map((item) => (
+        {items.map((item) => (
           <Link
             key={item.id}
-            to={item.path as LinkProps['to']}
+            {...item.link}
             onClick={onNavigate}
-            className={`grid min-h-10 grid-cols-[28px_minmax(0,1fr)] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline ${
-              isPrimaryAreaActive(location, item)
-                ? 'border-[var(--app-fg)] bg-[var(--app-surface)] text-[var(--app-fg)]'
+            aria-current={item.id === activeId ? 'page' : undefined}
+            className={`grid min-h-10 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline ${
+              item.id === activeId
+                ? 'border-[var(--app-fg)] bg-[var(--app-surface)]'
                 : ''
             }`}
           >
@@ -87,34 +82,13 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
               <Icon name={item.icon} className="h-4 w-4" />
             </span>
             <span className="truncate">{item.label}</span>
+            {item.placeholder ? <Pill>Soon</Pill> : null}
+            {item.personal ? (
+              <span title="Only you can see this. It is the same in every group.">
+                <Pill>Only you</Pill>
+              </span>
+            ) : null}
           </Link>
-        ))}
-      </nav>
-
-      <nav className="grid gap-3" aria-label="Modules">
-        {MODULE_GROUPS.map((group) => (
-          <div key={group} className="grid gap-1">
-            <p className="m-0 px-2 pb-1 text-[11px] font-semibold uppercase text-[var(--app-muted)]">
-              {group}
-            </p>
-            {byGroup[group].map((module) => (
-              <Link
-                key={module.id}
-                {...moduleLink(module, groupSlug)}
-                onClick={onNavigate}
-                className="grid min-h-9 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline"
-                activeProps={{
-                  className: 'border-[var(--app-fg)] bg-[var(--app-surface)]',
-                }}
-              >
-                <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
-                  <Icon name={module.icon} className="h-4 w-4" />
-                </span>
-                <span className="truncate">{module.label}</span>
-                {module.status === 'placeholder' ? <Pill>Soon</Pill> : null}
-              </Link>
-            ))}
-          </div>
         ))}
       </nav>
 
