@@ -29,6 +29,10 @@ const GROUP_PREFIX = '/g/$groupSlug'
  */
 const GROUP_ROUTES = {
   home: GROUP_PREFIX,
+  // Every Module in the Group, pinned or not. A real page rather than a
+  // collapsed sidebar section, so the mobile dock's last slot has somewhere to
+  // go and both surfaces can be the same shape.
+  all: `${GROUP_PREFIX}/all`,
   nutrition: `${GROUP_PREFIX}/nutrition`,
 
   recipes: `${GROUP_PREFIX}/recipes`,
@@ -85,10 +89,11 @@ type ExtraArgs<S extends GroupSurface> = keyof ExtraParams<S> extends never
   : [ExtraParams<S>]
 
 /**
- * A Module's own front page inside a Group, plus the Group's landing page.
+ * A Module's own front page inside a Group, plus the two pages the Group itself
+ * owns: its landing page, and the list of every Module in it.
  *
  * These are the destinations something generic — the Group switcher, the
- * sidebar — can send you to knowing only which Module you were in and which
+ * sidebar — can send you to knowing only which page you were on and which
  * Group you want. They take no parameter beyond the slug, which is exactly what
  * makes them safe to reach for when the id you were looking at belongs to a
  * different Group.
@@ -100,6 +105,7 @@ type ExtraArgs<S extends GroupSurface> = keyof ExtraParams<S> extends never
  */
 const GROUP_MODULE_INDEXES = [
   'home',
+  'all',
   'nutrition',
   'recipes',
   'foods',
