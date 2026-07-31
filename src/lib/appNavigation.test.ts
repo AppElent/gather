@@ -4,6 +4,7 @@ import {
   DOCK_SLOTS,
   dockNavItems,
   getRouteContext,
+  jumpTargets,
   navItems,
 } from './appNavigation'
 import { MODULES } from './modules'
@@ -208,6 +209,56 @@ describe('which item is active', () => {
       'baby-log',
       'all',
     ])
+  })
+})
+
+describe('where the jump-to palette can send you', () => {
+  function labels(slug: string | null) {
+    return jumpTargets(slug).map((t) => t.label)
+  }
+
+  test('starts at Home and offers All, whatever you have pinned', () => {
+    expect(labels(SLUG)[0]).toBe('Home')
+    expect(labels(SLUG)).toContain('All')
+  })
+
+  test('offers every Module, not only the pinned ones', () => {
+    const offered = jumpTargets(SLUG).map((t) => t.id)
+    for (const module of MODULES) expect(offered).toContain(module.id)
+  })
+
+  test('keeps Home, All and every Module in the Group I am standing in', () => {
+    const staysFlat = new Set(['settings', 'groups'])
+    for (const target of jumpTargets(SLUG)) {
+      if (staysFlat.has(target.id)) continue
+      // A Module with no Group-scoped route yet still falls back to its flat
+      // path; what must never happen is a Group-scoped page addressed flatly.
+      const to = String(target.link.to)
+      expect(to === '/dashboard').toBe(false)
+      if (to.startsWith('/g/')) {
+        expect(target.link.params).toMatchObject({ groupSlug: SLUG })
+      }
+    }
+  })
+
+  test('sends Home and All to the same places the sidebar does', () => {
+    const nav = navItems([], SLUG)
+    const jump = jumpTargets(SLUG)
+    for (const id of ['home', 'all']) {
+      expect(jump.find((t) => t.id === id)?.link).toEqual(
+        nav.find((i) => i.id === id)?.link,
+      )
+    }
+  })
+
+  test('falls back to flat destinations outside any Group', () => {
+    for (const target of jumpTargets(null)) {
+      expect(String(target.link.to).startsWith('/g/')).toBe(false)
+    }
+  })
+
+  test('names each destination once', () => {
+    expect(new Set(labels(SLUG)).size).toBe(labels(SLUG).length)
   })
 })
 

@@ -189,6 +189,40 @@ export function activeNavItemId(
   return items.some((item) => item.id === ALL) ? ALL : null
 }
 
+/** Somewhere the jump-to palette can send you. */
+export interface JumpTarget {
+  id: string
+  label: string
+  link: NavDestination
+}
+
+/**
+ * Everywhere the palette can jump to, from wherever you are standing.
+ *
+ * Every Module, not only the pinned ones — the palette is how you reach the
+ * Module you did not pin without going through All first. Home and All come
+ * from the same two functions the sidebar and dock use, so there is one
+ * definition of where each points and the palette cannot drift from the
+ * navigation beside it.
+ *
+ * The shell's own pages carry no Module id and so stay flat wherever you are;
+ * `/g/<slug>/settings` is not a thing, and Settings means the same page in
+ * every Group.
+ */
+export function jumpTargets(groupSlug: string | null): JumpTarget[] {
+  return [
+    { id: HOME, label: 'Home', link: homeDestination(groupSlug) },
+    ...MODULES.map((module) => ({
+      id: module.id,
+      label: module.label,
+      link: moduleLink(module, groupSlug),
+    })),
+    { id: ALL, label: 'All', link: allDestination(groupSlug) },
+    { id: 'settings', label: 'Settings', link: { to: '/settings' } },
+    { id: 'groups', label: 'Groups', link: { to: '/groups' } },
+  ]
+}
+
 const STATIC_ROUTE_CONTEXT: Record<string, RouteContext> = {
   '/groups': {
     title: 'Groups',

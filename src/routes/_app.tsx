@@ -20,7 +20,7 @@ export function AppLayout() {
   const { isLoaded: isClerkLoaded, isSignedIn } = useAuth()
   const { isAuthenticated } = useConvexAuth()
   // ...but only up to a point: Convex never retries a handshake it has given up
-  // on, so waiting on isAuthenticated alone used to leave the dashboard on
+  // on, so waiting on isAuthenticated alone used to leave the whole app on
   // "Loading..." until the user reloaded by hand. Offer that reload instead.
   const authStalled = useConvexAuthStalled()
   const ensureUser = useMutation(api.users.ensureUser)

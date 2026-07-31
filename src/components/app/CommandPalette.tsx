@@ -1,23 +1,14 @@
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { groupSlugOf, moduleLink } from '../../lib/groupPaths'
-import { MODULES } from '../../lib/modules'
-
-// Only a Module can have a Group-scoped destination, so only a Module carries
-// an id here; the shell's own entries have none and stay flat wherever you are.
-const ITEMS: Array<{ moduleId?: string; label: string; path: string }> = [
-  { label: 'Dashboard', path: '/dashboard' },
-  ...MODULES.map((m) => ({ moduleId: m.id, label: m.label, path: m.path })),
-  { label: 'Settings', path: '/settings' },
-  { label: 'Groups', path: '/groups' },
-]
+import { jumpTargets } from '../../lib/appNavigation'
+import { groupSlugOf } from '../../lib/groupPaths'
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const navigate = useNavigate()
-  // Jumping to a Module from inside a Group keeps you in it, exactly as the
-  // sidebar does - the palette is on screen under both route trees too.
+  // Jumping from inside a Group keeps you in it, exactly as the sidebar and the
+  // dock do — the palette is on screen under both route trees too.
   const groupSlug = groupSlugOf(useLocation().pathname)
 
   useEffect(() => {
@@ -33,8 +24,8 @@ export function CommandPalette() {
   }, [])
 
   if (!open) return null
-  const results = ITEMS.filter((i) =>
-    i.label.toLowerCase().includes(q.toLowerCase()),
+  const results = jumpTargets(groupSlug).filter((target) =>
+    target.label.toLowerCase().includes(q.toLowerCase()),
   )
 
   return (
@@ -54,20 +45,18 @@ export function CommandPalette() {
           className="w-full rounded-md border px-3 py-2 text-sm outline-none"
         />
         <ul className="mt-2 max-h-72 overflow-auto">
-          {results.map((i) => (
-            <li key={i.path}>
+          {results.map((target) => (
+            <li key={target.id}>
               <button
                 type="button"
                 className="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10"
                 onClick={() => {
                   setOpen(false)
                   setQ('')
-                  navigate(
-                    moduleLink({ id: i.moduleId, path: i.path }, groupSlug),
-                  )
+                  navigate(target.link)
                 }}
               >
-                {i.label}
+                {target.label}
               </button>
             </li>
           ))}
