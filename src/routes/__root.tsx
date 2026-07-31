@@ -62,7 +62,7 @@ export function NotFoundPage() {
     <PublicPageFrame
       eyebrow="Not found"
       title="Page not found"
-      subtitle="This route is not part of the current Gather workspace."
+      subtitle="Gather has no page at this address."
       actions={
         <Link to="/sign-in" className="text-[var(--app-muted)] no-underline">
           Sign in
@@ -78,7 +78,7 @@ export function NotFoundPage() {
           to="/dashboard"
           className="inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)] no-underline"
         >
-          Go to dashboard
+          Go to Gather
         </Link>
       </div>
     </PublicPageFrame>

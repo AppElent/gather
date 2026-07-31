@@ -15,7 +15,7 @@ export function ForgotPasswordPage() {
     <PublicPageFrame
       eyebrow="Account recovery"
       title="Reset your password"
-      subtitle="Send a recovery code and get back to your group workspace."
+      subtitle="Send a recovery code and get back to your groups."
     >
       <ForgotPasswordForm onSuccess={onSuccess} />
     </PublicPageFrame>

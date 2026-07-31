@@ -30,7 +30,7 @@ export function PublicPageFrame({
             <span className="min-w-0">
               <strong className="block truncate text-sm">Gather</strong>
               <span className="block truncate text-xs text-[var(--app-muted)]">
-                Command center
+                Household plans, shared
               </span>
             </span>
           </Link>
