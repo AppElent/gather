@@ -82,12 +82,14 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
               <Icon name={item.icon} className="h-4 w-4" />
             </span>
             <span className="truncate">{item.label}</span>
-            {item.placeholder ? <Pill>Soon</Pill> : null}
-            {item.personal ? (
-              <span title="Only you can see this. It is the same in every group.">
-                <Pill>Only you</Pill>
-              </span>
-            ) : null}
+            <span className="flex shrink-0 items-center gap-1">
+              {item.placeholder ? <Pill>Soon</Pill> : null}
+              {item.personal ? (
+                <span title="Only you can see this. It is the same in every group.">
+                  <Pill>Only you</Pill>
+                </span>
+              ) : null}
+            </span>
           </Link>
         ))}
       </nav>
