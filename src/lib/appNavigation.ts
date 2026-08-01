@@ -73,9 +73,9 @@ function moduleItem(module: ModuleDef, groupSlug: string): NavItem {
     id: module.id,
     label: module.label,
     icon: module.icon,
-    // The shell renders above both route trees, so this is the one kind of
-    // link a route cannot build. `moduleLink` already knows how to keep you in
-    // the Group you are in, and where to fall back when there is none.
+    // The shell renders above the route it is showing, so this is the one kind
+    // of link a route cannot build. `moduleLink` knows where each Module lives
+    // inside the Group it is given.
     link: moduleLink(module, groupSlug),
     personal: module.scope === 'personal',
     placeholder: module.status === 'placeholder',
