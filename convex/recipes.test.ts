@@ -197,18 +197,39 @@ describe('recipes.list', () => {
   test('every Member of a Group sees the same recipes', async () => {
     const { t } = await seed()
 
-    const alices = await t.withIdentity(asAlice).query(api.recipes.list, {})
-    const bobs = await t.withIdentity(asBob).query(api.recipes.list, {})
+    const alices = await t
+      .withIdentity(asAlice)
+      .query(api.recipes.list, { groupSlug: 'household' })
+    const bobs = await t
+      .withIdentity(asBob)
+      .query(api.recipes.list, { groupSlug: 'household' })
 
     expect(titles(alices)).toEqual(['Pasta for a crowd', 'Sunday roast'])
     expect(titles(bobs)).toEqual(titles(alices))
   })
 
+  test('shows a signed-out caller nothing', async () => {
+    const { t } = await seed()
+    await expect(
+      t.query(api.recipes.list, { groupSlug: 'household' }),
+    ).rejects.toThrow()
+  })
+})
+
+/**
+ * The diary's recipe picker, which is Personal and so reads across every Group
+ * (ADR-0003). This is the one caller-wide list left, and it is not a Group's.
+ */
+describe('recipes.listAcrossMyGroups', () => {
   test('someone outside a Group sees none of its recipes', async () => {
     const { t } = await seed()
 
-    const carols = await t.withIdentity(asCarol).query(api.recipes.list, {})
-    const bobs = await t.withIdentity(asBob).query(api.recipes.list, {})
+    const carols = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.listAcrossMyGroups, {})
+    const bobs = await t
+      .withIdentity(asBob)
+      .query(api.recipes.listAcrossMyGroups, {})
 
     // Carol is not in the household, so its collection is not hers to see —
     // except the one recipe that was shared into her club.
@@ -219,7 +240,7 @@ describe('recipes.list', () => {
 
   test('shows a signed-out caller nothing', async () => {
     const { t } = await seed()
-    const rows = await t.query(api.recipes.list, {})
+    const rows = await t.query(api.recipes.listAcrossMyGroups, {})
     expect(rows).toEqual([])
   })
 })
@@ -229,7 +250,7 @@ describe('recipes.get', () => {
     const { t, ids } = await seed()
     const recipe = await t
       .withIdentity(asBob)
-      .query(api.recipes.get, { id: ids.roast })
+      .query(api.recipes.get, { id: ids.roast, groupSlug: 'household' })
     expect(recipe?.title).toBe('Sunday roast')
   })
 
@@ -237,7 +258,10 @@ describe('recipes.get', () => {
     const { t, ids } = await seed()
     const recipe = await t
       .withIdentity(asCarol)
-      .query(api.recipes.get, { id: ids.sharedWithClub })
+      .query(api.recipes.get, {
+        id: ids.sharedWithClub,
+        groupSlug: 'cooking-club',
+      })
     expect(recipe?.title).toBe('Pasta for a crowd')
   })
 
@@ -245,15 +269,41 @@ describe('recipes.get', () => {
     const { t, ids } = await seed()
     const recipe = await t
       .withIdentity(asCarol)
-      .query(api.recipes.get, { id: ids.roast })
+      .query(api.recipes.get, { id: ids.roast, groupSlug: 'cooking-club' })
     expect(recipe).toBeNull()
+  })
+
+  /**
+   * Alice is in both Groups, and the roast lives in the household and was never
+   * shared. Reading it at the club's address must fail even for her: the URL is
+   * claiming the club can see this recipe, and the club cannot.
+   */
+  test('a recipe you can see, read from the wrong Group, is not found', async () => {
+    const { t, ids } = await seed()
+    await t.run(async (ctx) => {
+      await ctx.db.insert('memberships', {
+        groupId: ids.cookingClub,
+        userId: ids.alice,
+        role: 'member',
+      })
+    })
+
+    const fromClub = await t
+      .withIdentity(asAlice)
+      .query(api.recipes.get, { id: ids.roast, groupSlug: 'cooking-club' })
+    expect(fromClub).toBeNull()
+
+    const fromHome = await t
+      .withIdentity(asAlice)
+      .query(api.recipes.get, { id: ids.roast, groupSlug: 'household' })
+    expect(fromHome?.title).toBe('Sunday roast')
   })
 
   test('shows who added it', async () => {
     const { t, ids } = await seed()
     const recipe = await t
       .withIdentity(asBob)
-      .query(api.recipes.get, { id: ids.roast })
+      .query(api.recipes.get, { id: ids.roast, groupSlug: 'household' })
     expect(recipe?.addedByName).toBe('Alice')
   })
 
@@ -261,8 +311,43 @@ describe('recipes.get', () => {
     const { t, ids } = await seed()
     const recipe = await t
       .withIdentity(asCarol)
-      .query(api.recipes.get, { id: ids.sharedWithClub })
+      .query(api.recipes.get, {
+        id: ids.sharedWithClub,
+        groupSlug: 'cooking-club',
+      })
     expect(recipe?.canEdit).toBe(false)
+  })
+
+  test('says which Group it lives in', async () => {
+    const { t, ids } = await seed()
+    const recipe = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.get, {
+        id: ids.sharedWithClub,
+        groupSlug: 'cooking-club',
+      })
+    expect(recipe?.homeGroupName).toBe('Household')
+    expect(recipe?.homeGroupSlug).toBe('household')
+  })
+
+  test('tells the home Group which Groups it is shared with, and tells a guest Group nothing', async () => {
+    const { t, ids } = await seed()
+
+    const atHome = await t
+      .withIdentity(asBob)
+      .query(api.recipes.get, {
+        id: ids.sharedWithClub,
+        groupSlug: 'household',
+      })
+    expect(atHome?.sharedGroups.map((g) => g.slug)).toEqual(['cooking-club'])
+
+    const asGuest = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.get, {
+        id: ids.sharedWithClub,
+        groupSlug: 'cooking-club',
+      })
+    expect(asGuest?.sharedGroups).toEqual([])
   })
 })
 
@@ -275,15 +360,19 @@ describe('attribution grants nothing', () => {
     // She is still recorded as the person who added it — Bob can see that.
     const asSeenByBob = await t
       .withIdentity(asBob)
-      .query(api.recipes.get, { id: ids.roast })
+      .query(api.recipes.get, { id: ids.roast, groupSlug: 'household' })
     expect(asSeenByBob?.addedByName).toBe('Alice')
 
-    // And it buys her nothing at all.
-    const asSeenByAlice = await t
+    // And it buys her nothing at all: she is refused the Group outright, and
+    // the diary's cross-Group list no longer holds anything of theirs.
+    await expect(
+      t
+        .withIdentity(asAlice)
+        .query(api.recipes.get, { id: ids.roast, groupSlug: 'household' }),
+    ).rejects.toThrow(/not a member/i)
+    const alicesList = await t
       .withIdentity(asAlice)
-      .query(api.recipes.get, { id: ids.roast })
-    expect(asSeenByAlice).toBeNull()
-    const alicesList = await t.withIdentity(asAlice).query(api.recipes.list, {})
+      .query(api.recipes.listAcrossMyGroups, {})
     expect(alicesList).toEqual([])
   })
 
@@ -300,23 +389,41 @@ describe('attribution grants nothing', () => {
 
     const recipe = await t
       .withIdentity(asAlice)
-      .query(api.recipes.get, { id: ids.roast })
+      .query(api.recipes.get, { id: ids.roast, groupSlug: 'household' })
     expect(recipe?.title).toBe('Sunday roast, improved')
     // Attribution does not move to whoever touched it last.
     expect(recipe?.addedByName).toBe('Alice')
   })
 
+  /**
+   * Carol gets exactly what she would get for an id that was never a recipe:
+   * `remove` is idempotent, so a recipe that is not there is not an error, and
+   * a recipe she may not touch has to take the same branch — otherwise the
+   * difference between "gone" and "refused" tells her the id was real.
+   */
   test('a recipe outside your Groups cannot be deleted', async () => {
     const { t, ids } = await seed()
 
-    await expect(
-      t.withIdentity(asCarol).mutation(api.recipes.remove, { id: ids.roast }),
-    ).rejects.toThrow()
+    await t.withIdentity(asCarol).mutation(api.recipes.remove, { id: ids.roast })
 
     const survives = await t
       .withIdentity(asBob)
-      .query(api.recipes.get, { id: ids.roast })
+      .query(api.recipes.get, { id: ids.roast, groupSlug: 'household' })
     expect(survives?.title).toBe('Sunday roast')
+  })
+
+  test('a recipe outside your Groups cannot be edited, and says only "not found"', async () => {
+    const { t, ids } = await seed()
+
+    await expect(
+      t.withIdentity(asCarol).mutation(api.recipes.update, {
+        id: ids.roast,
+        title: 'Not yours',
+        ingredients: [],
+        steps: [],
+        tags: [],
+      }),
+    ).rejects.toThrow(/recipe not found/i)
   })
 })
 
@@ -336,14 +443,14 @@ describe('recipes.create', () => {
 
     const seenByAlice = await t
       .withIdentity(asAlice)
-      .query(api.recipes.get, { id })
+      .query(api.recipes.get, { id, groupSlug: 'household' })
     expect(seenByAlice?.title).toBe('Bob loaf')
     expect(seenByAlice?.groupId).toBe(ids.household)
     expect(seenByAlice?.addedByName).toBe('Bob')
 
     const seenByCarol = await t
       .withIdentity(asCarol)
-      .query(api.recipes.get, { id })
+      .query(api.recipes.get, { id, groupSlug: 'cooking-club' })
     expect(seenByCarol).toBeNull()
   })
 

@@ -9,19 +9,27 @@ import type { RecipeNav } from './recipeNav'
 
 export interface RecipeDetailPageProps {
   recipeId: string
+  groupSlug: string
   nav: RecipeNav
 }
 
 /**
- * One recipe, whole. Rendered by both `/recipes/<id>` and
- * `/g/<slug>/recipes/<id>`.
+ * One recipe, whole, as read from the Group in the URL.
  *
- * A recipe the caller cannot see comes back as null from `recipes.get` and
- * renders as "not found" — the same answer for a deleted recipe and for one
- * that was never theirs, so the page never says whether it exists.
+ * A recipe that is not visible from this Group comes back as null from
+ * `recipes.get` and renders as "not found" — the same answer for a deleted
+ * recipe, for one that was never theirs, and for one they can see but only from
+ * somewhere else. The page never says whether it exists.
  */
-export function RecipeDetailPage({ recipeId, nav }: RecipeDetailPageProps) {
-  const recipe = useQuery(api.recipes.get, { id: recipeId as Id<'recipes'> })
+export function RecipeDetailPage({
+  recipeId,
+  groupSlug,
+  nav,
+}: RecipeDetailPageProps) {
+  const recipe = useQuery(api.recipes.get, {
+    id: recipeId as Id<'recipes'>,
+    groupSlug,
+  })
   const remove = useMutation(api.recipes.remove)
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)

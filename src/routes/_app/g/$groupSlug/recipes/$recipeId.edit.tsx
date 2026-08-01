@@ -11,5 +11,11 @@ export const Route = createFileRoute(
 function GroupEditRecipe() {
   const { groupSlug, recipeId } = Route.useParams()
 
-  return <EditRecipePage recipeId={recipeId} nav={groupRecipeNav(groupSlug)} />
+  return (
+    <EditRecipePage
+      recipeId={recipeId}
+      groupSlug={groupSlug}
+      nav={groupRecipeNav(groupSlug)}
+    />
+  )
 }

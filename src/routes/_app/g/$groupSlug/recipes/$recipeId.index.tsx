@@ -10,6 +10,10 @@ function GroupRecipeDetail() {
   const { groupSlug, recipeId } = Route.useParams()
 
   return (
-    <RecipeDetailPage recipeId={recipeId} nav={groupRecipeNav(groupSlug)} />
+    <RecipeDetailPage
+      recipeId={recipeId}
+      groupSlug={groupSlug}
+      nav={groupRecipeNav(groupSlug)}
+    />
   )
 }

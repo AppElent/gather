@@ -20,7 +20,9 @@ export function RecipeAddTab({ date, meal, nav, onAdded }: Props) {
   // The diary is Personal and reads the same in every Group (ADR-0002), so
   // narrowing this to the Group in the URL would make the same page offer
   // different recipes depending on which Group you happened to open it from.
-  const recipes = useQuery(api.recipes.list, {})
+  // That is why this is `listAcrossMyGroups` and not `list`: `list` is a
+  // Group's collection and takes the slug, and the diary has no slug to give.
+  const recipes = useQuery(api.recipes.listAcrossMyGroups, {})
   const create = useMutation(api.consumption.create)
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [submittingId, setSubmittingId] = useState<string | null>(null)

@@ -11,12 +11,26 @@ type RecipeDetail = Doc<'recipes'> & { imageUrl: string | null }
 
 export interface EditRecipePageProps {
   recipeId: string
+  groupSlug: string
   nav: RecipeNav
 }
 
-/** Editing a recipe, whole. Shared by the flat and Group-scoped edit routes. */
-export function EditRecipePage({ recipeId, nav }: EditRecipePageProps) {
-  const recipe = useQuery(api.recipes.get, { id: recipeId as Id<'recipes'> })
+/**
+ * Editing a recipe, whole.
+ *
+ * The slug goes to `recipes.get` with the id: a recipe is read through the
+ * Group the URL claims can see it, so an edit page under a Group the recipe is
+ * not visible from renders "not found" rather than the form (ADR-0002).
+ */
+export function EditRecipePage({
+  recipeId,
+  groupSlug,
+  nav,
+}: EditRecipePageProps) {
+  const recipe = useQuery(api.recipes.get, {
+    id: recipeId as Id<'recipes'>,
+    groupSlug,
+  })
 
   if (recipe === undefined)
     return <p className="text-sm opacity-60">Loading…</p>

@@ -9,24 +9,19 @@ import { useRecipeViewMode } from './useRecipeViewMode'
 import { ViewModeToggle } from './ViewModeToggle'
 
 /**
- * The recipe list, whole.
+ * The recipe list, whole: one Group's collection.
  *
- * Both `/recipes` and `/g/<slug>/recipes` render this one component, so the
- * Group-scoped tree cannot drift away from the flat one. Where it links to is
- * the only thing the two routes disagree about, and that arrives as `nav`.
- *
- * Which recipes it shows follows the same split: given a `groupSlug` it shows
- * that Group's collection, and without one every recipe the caller can reach.
- * Only the flat route omits it — a Group page that unioned in the caller's
- * other Groups would show two Members of one Group different collections at the
- * same URL, which is exactly what ADR-0002 exists to stop.
+ * The slug is required, and the page shows exactly what that Group can see —
+ * its own recipes and the ones shared into it. A page that unioned in the
+ * caller's other Groups would show two Members of one Group different
+ * collections at the same URL, which is what ADR-0002 exists to stop.
  */
 export function RecipesPage({
   nav,
   groupSlug,
 }: {
   nav: RecipeNav
-  groupSlug?: string
+  groupSlug: string
 }) {
   const recipes = useQuery(api.recipes.list, { groupSlug })
   const [viewMode, setViewMode] = useRecipeViewMode()

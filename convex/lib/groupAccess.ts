@@ -85,6 +85,26 @@ export const GROUP_REFUSAL_MESSAGES: Record<GroupRefusal, string> = {
   'not-a-member': 'Not a member of that group',
 }
 
+/**
+ * The Group a slug names, or null — asking nothing at all about the caller.
+ *
+ * Almost nothing should want this: authorising a request is what
+ * `resolveGroupBySlug` is for, and reaching for the unauthorised form is how a
+ * Group-scoped query quietly stops checking membership. It exists for the one
+ * shape that legitimately has no membership to check — undoing a Share into a
+ * Group the caller has since left — where authorisation has already been done
+ * against the *content*, not against the Group being named.
+ */
+export async function getGroupBySlug(
+  ctx: QueryCtx,
+  slug: string,
+): Promise<Doc<'groups'> | null> {
+  return await ctx.db
+    .query('groups')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .unique()
+}
+
 /** The given user's membership of a Group, or null when they are not in it. */
 export async function getMembership(
   ctx: QueryCtx,
@@ -113,10 +133,7 @@ export async function resolveGroupBySlug(
   const user = await getCurrentUser(ctx)
   if (!user) return { ok: false, reason: 'not-signed-in' }
 
-  const group = await ctx.db
-    .query('groups')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .unique()
+  const group = await getGroupBySlug(ctx, slug)
   if (!group) return { ok: false, reason: 'unknown-slug' }
 
   const membership = await getMembership(ctx, group._id, user._id)
