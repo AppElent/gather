@@ -17,6 +17,7 @@ import { IconButton } from './ShellPrimitives'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { useCurrentGroup } from './useCurrentGroup'
+import { useNavigation } from './useNavigation'
 
 const FOCUSABLE_SELECTOR =
   'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
@@ -29,6 +30,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation()
   const context = getRouteContext(location.pathname)
   const { current: currentGroup } = useCurrentGroup()
+  // The dock is only on screen when there is a navigation to put in it, and the
+  // room reserved for it has to go when it does — asked of the same list the
+  // dock renders, so the space and the bar cannot disagree.
+  const { items: navigation } = useNavigation()
   const [navigationOpen, setNavigationOpen] = useState(false)
   const [gatherOpen, setGatherOpen] = useState(false)
   const navigationDrawerRef = useRef<HTMLElement>(null)
@@ -91,7 +96,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="app-shell">
       <div className="grid min-h-svh md:grid-cols-[264px_minmax(0,1fr)] xl:grid-cols-[264px_minmax(0,1fr)_336px]">
         <Sidebar />
-        <div className="flex min-w-0 flex-col pb-20 md:pb-0">
+        <div
+          className={`flex min-w-0 flex-col md:pb-0 ${
+            navigation.length > 0 ? 'pb-20' : ''
+          }`}
+        >
           <Topbar
             context={context}
             groupName={currentGroup?.name}
