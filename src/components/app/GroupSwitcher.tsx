@@ -1,14 +1,9 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { useQuery } from 'convex/react'
 import { useEffect, useRef, useState } from 'react'
-import { api } from '../../../convex/_generated/api'
-import {
-  groupIndexSurfaceOf,
-  groupLink,
-  groupSlugOf,
-} from '../../lib/groupPaths'
+import { groupIndexSurfaceOf, groupLink } from '../../lib/groupPaths'
 import { Icon } from './Icon'
 import { Pill } from './ShellPrimitives'
+import { useCurrentGroup } from './useCurrentGroup'
 
 export interface GroupSwitcherProps {
   onNavigate?: () => void
@@ -37,11 +32,9 @@ export interface GroupSwitcherProps {
  * would ask for content that Group does not have.
  */
 export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
-  const groups = useQuery(api.groups.myGroups)
   const location = useLocation()
-  const currentSlug = groupSlugOf(location.pathname)
+  const { current, groups, slug: currentSlug } = useCurrentGroup()
   const surface = groupIndexSurfaceOf(location.pathname) ?? 'home'
-  const current = groups?.find((group) => group.slug === currentSlug)
 
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)

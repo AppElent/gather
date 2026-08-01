@@ -16,6 +16,7 @@ import { MobileDock } from './MobileDock'
 import { IconButton } from './ShellPrimitives'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
+import { useCurrentGroup } from './useCurrentGroup'
 
 const FOCUSABLE_SELECTOR =
   'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
@@ -27,6 +28,7 @@ function getFocusableElements(container: HTMLElement) {
 export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation()
   const context = getRouteContext(location.pathname)
+  const { current: currentGroup } = useCurrentGroup()
   const [navigationOpen, setNavigationOpen] = useState(false)
   const [gatherOpen, setGatherOpen] = useState(false)
   const navigationDrawerRef = useRef<HTMLElement>(null)
@@ -92,6 +94,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex min-w-0 flex-col pb-20 md:pb-0">
           <Topbar
             context={context}
+            groupName={currentGroup?.name}
             onOpenNavigation={() => setNavigationOpen(true)}
             onOpenGather={() => setGatherOpen(true)}
           />
