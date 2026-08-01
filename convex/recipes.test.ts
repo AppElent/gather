@@ -130,25 +130,25 @@ async function endMembership(t: Harness, membershipId: Id<'memberships'>) {
   })
 }
 
-describe("a Group's collection is the Group's, not the caller's", () => {
-  /**
-   * Alice is in the household *and* the cooking club; Bob is only in the
-   * household. Asking for the household by slug must give them the same answer
-   * — if the caller's other memberships leak in, the URL has stopped deciding
-   * what is on the page and ADR-0002 is not being honoured.
-   */
-  async function seedWithAliceInBothGroups() {
-    const { t, ids } = await seed()
-    await t.run(async (ctx) => {
-      await ctx.db.insert('memberships', {
-        groupId: ids.cookingClub,
-        userId: ids.alice,
-        role: 'member',
-      })
+/**
+ * Alice is in the household *and* the cooking club; Bob is only in the
+ * household and Carol only in the club. Two uses: asking for the household by
+ * slug must give Alice and Bob the same answer, and moving or sharing between
+ * the two Groups needs somebody who is a Member of both.
+ */
+async function seedWithAliceInBothGroups() {
+  const { t, ids } = await seed()
+  await t.run(async (ctx) => {
+    await ctx.db.insert('memberships', {
+      groupId: ids.cookingClub,
+      userId: ids.alice,
+      role: 'member',
     })
-    return { t, ids }
-  }
+  })
+  return { t, ids }
+}
 
+describe("a Group's collection is the Group's, not the caller's", () => {
   test('two Members of one Group see the identical list', async () => {
     const { t } = await seedWithAliceInBothGroups()
 
@@ -494,5 +494,404 @@ describe('recipes.create', () => {
         tags: [],
       }),
     ).rejects.toThrow()
+  })
+})
+
+/**
+ * Move and Share, the two verbs that decide which Groups a recipe is visible in
+ * (CONTEXT.md), asserted through both Groups' real lists rather than the row.
+ *
+ * A move puts a recipe imported into the wrong Group right; a Share lets a
+ * cooking club see a recipe that still belongs to the household. The difference
+ * between them is the whole point, so each test checks both halves: what the
+ * destination gained, and whether the home Group changed.
+ */
+describe('moving a recipe between Groups', () => {
+  test("changes which Group's list it appears in, for the Members of both", async () => {
+    const { t, ids } = await seedWithAliceInBothGroups()
+
+    await t.withIdentity(asAlice).mutation(api.recipes.move, {
+      id: ids.roast,
+      toGroupSlug: 'cooking-club',
+    })
+
+    // Bob is in the household only, and the roast has left it.
+    const household = await t
+      .withIdentity(asBob)
+      .query(api.recipes.list, { groupSlug: 'household' })
+    expect(titles(household)).toEqual(['Pasta for a crowd'])
+
+    // Carol is in the club only, and it has arrived.
+    const club = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+    expect(titles(club)).toEqual([
+      'Club sourdough',
+      'Pasta for a crowd',
+      'Sunday roast',
+    ])
+  })
+
+  test('the recipe now lives in the destination Group', async () => {
+    const { t, ids } = await seedWithAliceInBothGroups()
+
+    await t.withIdentity(asAlice).mutation(api.recipes.move, {
+      id: ids.roast,
+      toGroupSlug: 'cooking-club',
+    })
+
+    const moved = await t.run(async (ctx) => await ctx.db.get(ids.roast))
+    expect(moved?.groupId).toBe(ids.cookingClub)
+  })
+
+  /**
+   * The recipe was shared into the club and is now moved there. It is home, not
+   * a guest: `sharedGroupIds` never contains `groupId` (schema).
+   */
+  test('moving into a Group it was shared with takes it off the shared list', async () => {
+    const { t, ids } = await seedWithAliceInBothGroups()
+
+    await t.withIdentity(asAlice).mutation(api.recipes.move, {
+      id: ids.sharedWithClub,
+      toGroupSlug: 'cooking-club',
+    })
+
+    const moved = await t.run(
+      async (ctx) => await ctx.db.get(ids.sharedWithClub),
+    )
+    expect(moved?.groupId).toBe(ids.cookingClub)
+    expect(moved?.sharedGroupIds).toEqual([])
+
+    // And it is in the club's list exactly once.
+    const club = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+    expect(titles(club)).toEqual(['Club sourdough', 'Pasta for a crowd'])
+  })
+
+  /** A move changes where a recipe lives. Who else was shown it is unrelated. */
+  test('shares into other Groups survive the move', async () => {
+    const { t, ids } = await seedWithAliceInBothGroups()
+
+    const secondHousehold = await t.run(async (ctx) => {
+      const group = await ctx.db.insert('groups', {
+        name: 'Second household',
+        inviteCode: 'second-code',
+        slug: 'second-household',
+        isPersonal: false,
+      })
+      await ctx.db.insert('memberships', {
+        groupId: group,
+        userId: ids.alice,
+        role: 'admin',
+      })
+      return group
+    })
+
+    await t.withIdentity(asAlice).mutation(api.recipes.move, {
+      id: ids.sharedWithClub,
+      toGroupSlug: 'second-household',
+    })
+
+    const moved = await t.run(
+      async (ctx) => await ctx.db.get(ids.sharedWithClub),
+    )
+    expect(moved?.groupId).toBe(secondHousehold)
+    expect(moved?.sharedGroupIds).toEqual([ids.cookingClub])
+
+    const club = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+    expect(titles(club)).toContain('Pasta for a crowd')
+  })
+
+  test('moving it where it already lives changes nothing', async () => {
+    const { t, ids } = await seed()
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.recipes.move, { id: ids.roast, toGroupSlug: 'household' })
+
+    const after = await t.run(async (ctx) => await ctx.db.get(ids.roast))
+    expect(after?.groupId).toBe(ids.household)
+    expect(after?.sharedGroupIds).toEqual([])
+  })
+
+  test('a Group the caller is not a Member of is not a destination', async () => {
+    const { t, ids } = await seed()
+
+    // Alice may write the roast; she is not in the club.
+    await expect(
+      t.withIdentity(asAlice).mutation(api.recipes.move, {
+        id: ids.roast,
+        toGroupSlug: 'cooking-club',
+      }),
+    ).rejects.toThrow(/not a member/i)
+
+    const after = await t.run(async (ctx) => await ctx.db.get(ids.roast))
+    expect(after?.groupId).toBe(ids.household)
+  })
+})
+
+describe('sharing a recipe with another Group', () => {
+  test('adds visibility without changing where it lives', async () => {
+    const { t, ids } = await seedWithAliceInBothGroups()
+
+    await t.withIdentity(asAlice).mutation(api.recipes.share, {
+      id: ids.roast,
+      withGroupSlug: 'cooking-club',
+    })
+
+    const club = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+    expect(titles(club)).toContain('Sunday roast')
+
+    // The household has not lost it, and it still lives there.
+    const household = await t
+      .withIdentity(asBob)
+      .query(api.recipes.list, { groupSlug: 'household' })
+    expect(titles(household)).toEqual(['Pasta for a crowd', 'Sunday roast'])
+    const after = await t.run(async (ctx) => await ctx.db.get(ids.roast))
+    expect(after?.groupId).toBe(ids.household)
+  })
+
+  test('sharing twice does not duplicate it', async () => {
+    const { t, ids } = await seedWithAliceInBothGroups()
+
+    for (const _ of [0, 1]) {
+      await t.withIdentity(asAlice).mutation(api.recipes.share, {
+        id: ids.roast,
+        withGroupSlug: 'cooking-club',
+      })
+    }
+
+    const after = await t.run(async (ctx) => await ctx.db.get(ids.roast))
+    expect(after?.sharedGroupIds).toEqual([ids.cookingClub])
+    // The club's own sourdough, the pasta the seed already shared in, and the
+    // roast — once.
+    const club = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+    expect(titles(club)).toEqual([
+      'Club sourdough',
+      'Pasta for a crowd',
+      'Sunday roast',
+    ])
+  })
+
+  test('sharing with the Group it lives in asks for what is already true', async () => {
+    const { t, ids } = await seed()
+
+    await t.withIdentity(asAlice).mutation(api.recipes.share, {
+      id: ids.roast,
+      withGroupSlug: 'household',
+    })
+
+    const after = await t.run(async (ctx) => await ctx.db.get(ids.roast))
+    expect(after?.sharedGroupIds).toEqual([])
+  })
+
+  test('a Group the caller is not a Member of cannot be shared into', async () => {
+    const { t, ids } = await seed()
+
+    await expect(
+      t.withIdentity(asAlice).mutation(api.recipes.share, {
+        id: ids.roast,
+        withGroupSlug: 'cooking-club',
+      }),
+    ).rejects.toThrow(/not a member/i)
+  })
+})
+
+describe('unsharing a recipe', () => {
+  test('removes that visibility and leaves the home Group untouched', async () => {
+    const { t, ids } = await seed()
+
+    await t.withIdentity(asAlice).mutation(api.recipes.unshare, {
+      id: ids.sharedWithClub,
+      withGroupSlug: 'cooking-club',
+    })
+
+    const club = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+    expect(titles(club)).toEqual(['Club sourdough'])
+
+    const household = await t
+      .withIdentity(asBob)
+      .query(api.recipes.list, { groupSlug: 'household' })
+    expect(titles(household)).toEqual(['Pasta for a crowd', 'Sunday roast'])
+    const after = await t.run(
+      async (ctx) => await ctx.db.get(ids.sharedWithClub),
+    )
+    expect(after?.groupId).toBe(ids.household)
+    expect(after?.sharedGroupIds).toEqual([])
+  })
+
+  /**
+   * Alice is not in the club and does not need to be. Taking back a Share puts
+   * nothing into anybody's Group, and requiring membership would leave a Share
+   * into a Group the sharer has since left impossible to withdraw.
+   */
+  test('does not require the caller to be in the Group being cut off', async () => {
+    const { t, ids } = await seed()
+
+    const aliceIsInTheClub = await t.run(async (ctx) =>
+      (await ctx.db.query('memberships').collect()).some(
+        (m) => m.userId === ids.alice && m.groupId === ids.cookingClub,
+      ),
+    )
+    expect(aliceIsInTheClub).toBe(false)
+
+    await t.withIdentity(asAlice).mutation(api.recipes.unshare, {
+      id: ids.sharedWithClub,
+      withGroupSlug: 'cooking-club',
+    })
+
+    const after = await t.run(
+      async (ctx) => await ctx.db.get(ids.sharedWithClub),
+    )
+    expect(after?.sharedGroupIds).toEqual([])
+  })
+
+  test('unsharing something that was never shared is not an error', async () => {
+    const { t, ids } = await seed()
+
+    await t.withIdentity(asAlice).mutation(api.recipes.unshare, {
+      id: ids.roast,
+      withGroupSlug: 'cooking-club',
+    })
+    await t.withIdentity(asAlice).mutation(api.recipes.unshare, {
+      id: ids.sharedWithClub,
+      withGroupSlug: 'cooking-club',
+    })
+    await t.withIdentity(asAlice).mutation(api.recipes.unshare, {
+      id: ids.sharedWithClub,
+      withGroupSlug: 'cooking-club',
+    })
+
+    const roast = await t.run(async (ctx) => await ctx.db.get(ids.roast))
+    expect(roast?.sharedGroupIds).toEqual([])
+    const pasta = await t.run(
+      async (ctx) => await ctx.db.get(ids.sharedWithClub),
+    )
+    expect(pasta?.sharedGroupIds).toEqual([])
+  })
+
+  test('the Group it lives in is refused, not quietly ignored', async () => {
+    const { t, ids } = await seed()
+
+    await expect(
+      t.withIdentity(asAlice).mutation(api.recipes.unshare, {
+        id: ids.roast,
+        withGroupSlug: 'household',
+      }),
+    ).rejects.toThrow(/cannot be unshared/i)
+
+    const household = await t
+      .withIdentity(asBob)
+      .query(api.recipes.list, { groupSlug: 'household' })
+    expect(titles(household)).toContain('Sunday roast')
+  })
+})
+
+/**
+ * Who may move or share: a Member of the recipe's *home* Group.
+ *
+ * "Only someone who can already see it" is a necessary condition and not a
+ * sufficient one — seeing includes seeing through a Share, and a cooking club
+ * that was shown a household's recipe must not be able to take it away. It is
+ * the same rule that already governs editing.
+ */
+describe('a Share is standing to read and nothing else', () => {
+  test('a Group it was shared into cannot move, share or unshare it', async () => {
+    const { t, ids } = await seed()
+
+    // Carol can see it; that is the whole point of the setup.
+    const visible = await t.withIdentity(asCarol).query(api.recipes.get, {
+      id: ids.sharedWithClub,
+      groupSlug: 'cooking-club',
+    })
+    expect(visible?.title).toBe('Pasta for a crowd')
+
+    await expect(
+      t.withIdentity(asCarol).mutation(api.recipes.move, {
+        id: ids.sharedWithClub,
+        toGroupSlug: 'cooking-club',
+      }),
+    ).rejects.toThrow(/recipe not found/i)
+    await expect(
+      t.withIdentity(asCarol).mutation(api.recipes.share, {
+        id: ids.sharedWithClub,
+        withGroupSlug: 'cooking-club',
+      }),
+    ).rejects.toThrow(/recipe not found/i)
+    await expect(
+      t.withIdentity(asCarol).mutation(api.recipes.unshare, {
+        id: ids.sharedWithClub,
+        withGroupSlug: 'cooking-club',
+      }),
+    ).rejects.toThrow(/recipe not found/i)
+
+    const after = await t.run(
+      async (ctx) => await ctx.db.get(ids.sharedWithClub),
+    )
+    expect(after?.groupId).toBe(ids.household)
+    expect(after?.sharedGroupIds).toEqual([ids.cookingClub])
+  })
+
+  /**
+   * Bob is in neither the recipe's Group nor any Group it is shared into. The
+   * three verbs must tell him exactly what they tell him about an id that is no
+   * longer a recipe at all — otherwise the refusal is a way to find out that a
+   * recipe exists somewhere.
+   */
+  test('someone outside every one of its Groups gets the answer for a recipe that is not there', async () => {
+    const { t, ids } = await seed()
+
+    // A real id whose row has gone.
+    const deleted = await t.run(async (ctx) => {
+      const id = await ctx.db.insert('recipes', {
+        groupId: ids.cookingClub,
+        sharedGroupIds: [],
+        createdByUserId: ids.carol,
+        title: 'Briefly existed',
+        ingredients: [],
+        steps: [],
+        tags: [],
+      })
+      await ctx.db.delete(id)
+      return id
+    })
+
+    for (const id of [ids.clubOnly, deleted]) {
+      await expect(
+        t
+          .withIdentity(asBob)
+          .mutation(api.recipes.move, { id, toGroupSlug: 'household' }),
+      ).rejects.toThrow(/recipe not found/i)
+      await expect(
+        t
+          .withIdentity(asBob)
+          .mutation(api.recipes.share, { id, withGroupSlug: 'household' }),
+      ).rejects.toThrow(/recipe not found/i)
+      await expect(
+        t
+          .withIdentity(asBob)
+          .mutation(api.recipes.unshare, { id, withGroupSlug: 'household' }),
+      ).rejects.toThrow(/recipe not found/i)
+    }
+
+    const survives = await t.run(async (ctx) => await ctx.db.get(ids.clubOnly))
+    expect(survives?.groupId).toBe(ids.cookingClub)
+  })
+
+  test('a signed-out caller cannot use any of them', async () => {
+    const { t, ids } = await seed()
+
+    await expect(
+      t.mutation(api.recipes.move, { id: ids.roast, toGroupSlug: 'household' }),
+    ).rejects.toThrow(/not authenticated/i)
   })
 })
