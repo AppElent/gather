@@ -78,7 +78,10 @@ OAuth app must register the redirect URI `<app-origin>/integrations/callback`
   and on PRs.
 - `.github/workflows/preview.yml` — per-PR Convex preview deployment + per-PR
   Cloudflare Worker (`gather-pr-<N>`) + PR comment + teardown on close.
-  `PREVIEW_CLERK_PUBLISHABLE_KEY`, optionally `NODE_AUTH_TOKEN`.
+  `PREVIEW_CLERK_PUBLISHABLE_KEY`, `VITE_TEST_USER_EMAIL` / `VITE_TEST_USER_PASSWORD`
+  (build-time only — they light up `@appelent/auth`'s test-login button on the
+  preview, and are inlined into the client bundle, so the test user must live on
+  the Clerk *test* instance), optionally `NODE_AUTH_TOKEN`.
 
 ## Claude Code workflow layer
 
