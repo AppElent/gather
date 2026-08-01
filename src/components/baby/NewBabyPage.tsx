@@ -9,17 +9,17 @@ import { BabyForm, type BabyFormValues } from './BabyForm'
 import type { BabyNav } from './babyNav'
 
 export interface NewBabyPageProps {
-  /** The Group the child is being added to, when the URL names one. */
-  groupSlug?: string
+  /** The Group the child is being added to. */
+  groupSlug: string
   nav: BabyNav
 }
 
 /**
- * Adding a child, whole. Shared by both `new` routes.
+ * Adding a child, whole.
  *
  * The Group goes to the mutation as well as into the links: a child added from
- * `/g/<slug>/baby/new` belongs to that household, not to whichever Group the
- * account happens to default to.
+ * `/g/<slug>/baby/new` belongs to that household, and there is no default for
+ * them to land in instead.
  */
 export function NewBabyPage({ groupSlug, nav }: NewBabyPageProps) {
   const create = useMutation(api.babies.create)

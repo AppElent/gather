@@ -11,24 +11,34 @@ type BabyDetail = Doc<'babies'> & { photoUrl: string | null }
 
 export interface EditBabyPageProps {
   babyId: string
-  /** The Group the URL claims this child is in, when it names one. */
-  groupSlug?: string
+  /** The Group the URL claims this child is in. */
+  groupSlug: string
   nav: BabyNav
 }
 
-/** Editing a child, whole. Shared by both edit routes. */
+/** Editing a child, whole. */
 export function EditBabyPage({ babyId, groupSlug, nav }: EditBabyPageProps) {
   const id = babyId as Id<'babies'>
-  const baby = useQuery(api.babies.get, groupSlug ? { id, groupSlug } : { id })
+  const baby = useQuery(api.babies.get, { id, groupSlug })
 
   if (baby === undefined) return <p className="text-sm opacity-60">Loading…</p>
   if (baby === null)
     return <p className="text-sm opacity-60">Child not found.</p>
 
-  return <EditBabyForm key={baby._id} baby={baby} nav={nav} />
+  return (
+    <EditBabyForm key={baby._id} baby={baby} groupSlug={groupSlug} nav={nav} />
+  )
 }
 
-function EditBabyForm({ baby, nav }: { baby: BabyDetail; nav: BabyNav }) {
+function EditBabyForm({
+  baby,
+  groupSlug,
+  nav,
+}: {
+  baby: BabyDetail
+  groupSlug: string
+  nav: BabyNav
+}) {
   const update = useMutation(api.babies.update)
   const remove = useMutation(api.babies.remove)
   const generateUploadUrl = useMutation(api.babies.generateUploadUrl)
@@ -50,7 +60,7 @@ function EditBabyForm({ baby, nav }: { baby: BabyDetail; nav: BabyNav }) {
           onClick={async () => {
             if (!window.confirm(`Delete ${baby.name} and all logged entries?`))
               return
-            await remove({ id: baby._id })
+            await remove({ id: baby._id, groupSlug })
             navigate(nav.list)
           }}
         >
@@ -87,6 +97,7 @@ function EditBabyForm({ baby, nav }: { baby: BabyDetail; nav: BabyNav }) {
           try {
             await update({
               id: baby._id,
+              groupSlug,
               ...values,
               sex: values.sex ?? null,
               photoId: photoId ?? null,

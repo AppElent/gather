@@ -1,23 +1,25 @@
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
-import { requireBabyAccess } from './lib/babyAccess'
-import {
-  groupIdFromSlugOrDefault,
-  requireGroupBySlug,
-} from './lib/groupAccess'
-import { getCurrentUser, getMyGroupIds } from './lib/sharing'
+import { findBabyInGroup, requireBabyAccess } from './lib/babyAccess'
+import { requireGroupBySlug } from './lib/groupAccess'
+import { getCurrentUser } from './lib/sharing'
 import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 
-/** Babies in the given Group, or the viewer's default one; null = no default. */
+/**
+ * The children in one household's log.
+ *
+ * The Group comes from the URL and nowhere else (ADR-0002): there is no
+ * fallback to a stored default, so this answers for the Group the caller named
+ * or refuses outright.
+ */
 export const list = query({
-  args: { groupSlug: v.optional(v.string()) },
+  args: { groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const groupId = await groupIdFromSlugOrDefault(ctx, args.groupSlug)
-    if (!groupId) return null
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     const babies = await ctx.db
       .query('babies')
-      .withIndex('by_group', (q) => q.eq('groupId', groupId))
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
       .collect()
     return await Promise.all(
       babies
@@ -31,33 +33,22 @@ export const list = query({
 })
 
 /**
- * One child, read either through a Group or through the caller's memberships.
+ * One child, read through the Group the URL claims they are in.
  *
- * With a slug, the child must live in *that* Group: a deep link to
+ * The child must live in *that* Group: a deep link to
  * /g/other-household/baby/<id> answers "not found" even when the caller can see
  * that child from a Group of their own, because the URL claims something about
- * this child and that Group which is not true. Without one, the flat route's
- * older rule stands — any Group the caller belongs to.
+ * this child and that Group which is not true.
  *
  * Not-a-member and no-such-child are the same answer on purpose, so the page
  * cannot be used to find out that a child exists somewhere.
  */
 export const get = query({
-  args: { id: v.id('babies'), groupSlug: v.optional(v.string()) },
+  args: { id: v.id('babies'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const baby = await ctx.db.get(args.id)
-    if (!baby) return null
-
-    if (args.groupSlug !== undefined) {
-      const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-      if (baby.groupId !== group._id) return null
-    } else {
-      const user = await getCurrentUser(ctx)
-      if (!user) return null
-      const groupIds = await getMyGroupIds(ctx, user._id)
-      if (!groupIds.includes(baby.groupId)) return null
-    }
-
+    const found = await findBabyInGroup(ctx, args.groupSlug, args.id)
+    if (!found) return null
+    const { baby } = found
     const photoUrl = baby.photoId ? await ctx.storage.getUrl(baby.photoId) : null
     return { ...baby, photoUrl }
   },
@@ -84,23 +75,20 @@ export const create = mutation({
     birthDate: v.string(),
     sex: v.optional(sexValidator),
     photoId: v.optional(v.id('_storage')),
-    groupSlug: v.optional(v.string()),
+    groupSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    // Added from a Group page, the child belongs to that Group and not to
+    // The child belongs to the Group the page was opened in, and not to
     // whichever one the account happens to default to.
-    const groupId = await groupIdFromSlugOrDefault(ctx, args.groupSlug)
-    if (!groupId) {
-      throw new ConvexError('Set a default group on the Groups page first')
-    }
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     const existing = await ctx.db
       .query('babies')
-      .withIndex('by_group', (q) => q.eq('groupId', groupId))
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
       .collect()
     const nextOrder =
       existing.reduce((max, b) => Math.max(max, b.order), -1) + 1
     return await ctx.db.insert('babies', {
-      groupId,
+      groupId: group._id,
       name: args.name,
       birthDate: args.birthDate,
       sex: args.sex,
@@ -138,9 +126,9 @@ async function ensureAuxTaskList(
 }
 
 export const ensureTodoList = mutation({
-  args: { id: v.id('babies') },
+  args: { id: v.id('babies'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const { baby } = await requireBabyAccess(ctx, args.id)
+    const { baby } = await requireBabyAccess(ctx, args.groupSlug, args.id)
     return await ensureAuxTaskList(
       ctx,
       baby,
@@ -151,9 +139,9 @@ export const ensureTodoList = mutation({
 })
 
 export const ensureQuestionsList = mutation({
-  args: { id: v.id('babies') },
+  args: { id: v.id('babies'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const { baby } = await requireBabyAccess(ctx, args.id)
+    const { baby } = await requireBabyAccess(ctx, args.groupSlug, args.id)
     return await ensureAuxTaskList(
       ctx,
       baby,
@@ -166,16 +154,18 @@ export const ensureQuestionsList = mutation({
 export const update = mutation({
   args: {
     id: v.id('babies'),
+    groupSlug: v.string(),
     name: v.string(),
     birthDate: v.string(),
     sex: v.optional(v.union(sexValidator, v.null())),
     photoId: v.optional(v.union(v.id('_storage'), v.null())),
   },
   handler: async (ctx, args) => {
-    await requireBabyAccess(ctx, args.id)
-    const { id, sex, photoId, ...rest } = args
-    await ctx.db.patch(id, {
-      ...rest,
+    await requireBabyAccess(ctx, args.groupSlug, args.id)
+    const { sex, photoId } = args
+    await ctx.db.patch(args.id, {
+      name: args.name,
+      birthDate: args.birthDate,
       ...(sex !== undefined ? { sex: sex ?? undefined } : {}),
       ...(photoId !== undefined ? { photoId: photoId ?? undefined } : {}),
     })
@@ -196,9 +186,9 @@ async function deleteAuxTaskList(
 }
 
 export const remove = mutation({
-  args: { id: v.id('babies') },
+  args: { id: v.id('babies'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const { baby } = await requireBabyAccess(ctx, args.id)
+    const { baby } = await requireBabyAccess(ctx, args.groupSlug, args.id)
     const events = await ctx.db
       .query('babyEvents')
       .withIndex('by_baby', (q) => q.eq('babyId', args.id))

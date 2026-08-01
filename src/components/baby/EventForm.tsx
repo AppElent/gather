@@ -23,6 +23,8 @@ type BabyEventDoc = Doc<'babyEvents'>
 
 interface EventFormProps {
   babyId: Id<'babies'>
+  /** The Group the entry belongs to — every write is authorised by it. */
+  groupSlug: string
   type: BabyEventType
   event?: BabyEventDoc
   onDone: () => void
@@ -38,6 +40,7 @@ export function errorMessage(err: unknown, fallback: string): string {
 
 export function EventForm({
   babyId,
+  groupSlug,
   type,
   event,
   onDone,
@@ -68,6 +71,7 @@ export function EventForm({
       if (event) {
         await update({
           eventId: event._id,
+          groupSlug,
           timestamp: timestampMs,
           endTimestamp: built.endTimestamp ?? null,
           notes: notes.trim() || null,
@@ -76,6 +80,7 @@ export function EventForm({
       } else {
         await add({
           babyId,
+          groupSlug,
           type,
           timestamp: timestampMs,
           endTimestamp: built.endTimestamp,

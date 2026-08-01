@@ -7,47 +7,20 @@ import { SurfaceCard } from '../app/ShellPrimitives'
 import type { BabyNav } from './babyNav'
 
 export interface BabyListPageProps {
-  /**
-   * The Group whose log this is, when there is one in the URL. Undefined on the
-   * flat route, where the answer still comes from the account's default group.
-   */
-  groupSlug?: string
+  /** The Group whose log this is. Always in the URL (ADR-0002). */
+  groupSlug: string
   nav: BabyNav
 }
 
 /**
- * The children in one household's log, whole. Rendered by both `/baby` and
- * `/g/<slug>/baby`.
+ * The children in one household's log, whole.
  *
  * The Group arrives as a prop and goes straight to Convex, which resolves it
- * through the one Group-scoped check. Under `/g/<slug>/baby` the answer is that
- * Group's children and nobody else's; on the flat route it is still whatever
- * `defaultGroupId` says, which is exactly the dependency #24 removes when the
- * flat routes go.
+ * through the one Group-scoped check: the answer is that Group's children and
+ * nobody else's, with no fallback to a stored default to fall back on.
  */
 export function BabyListPage({ groupSlug, nav }: BabyListPageProps) {
-  const babies = useQuery(api.babies.list, groupSlug ? { groupSlug } : {})
-
-  if (babies === null) {
-    return (
-      <div className="mx-auto max-w-md">
-        <SurfaceCard>
-          <div className="grid gap-2 text-center">
-            <h2 className="m-0 text-base font-semibold">
-              Pick a default group first
-            </h2>
-            <p className="m-0 text-sm text-[var(--app-muted)]">
-              The baby log belongs to a group. Choose or create one, then come
-              back.
-            </p>
-            <Link to="/groups" className="text-sm font-semibold">
-              Go to groups
-            </Link>
-          </div>
-        </SurfaceCard>
-      </div>
-    )
-  }
+  const babies = useQuery(api.babies.list, { groupSlug })
 
   return (
     <div className="mx-auto grid max-w-5xl gap-4">

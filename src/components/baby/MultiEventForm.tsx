@@ -26,6 +26,8 @@ import { EventTypeFields } from './EventTypeFields'
 
 interface MultiEventFormProps {
   babyId: Id<'babies'>
+  /** The Group the entries belong to — every write is authorised by it. */
+  groupSlug: string
   onDone: () => void
   onCancel: () => void
 }
@@ -50,6 +52,7 @@ function initialSelection(): BabyEventType[] {
  * export) keeps working unchanged. */
 export function MultiEventForm({
   babyId,
+  groupSlug,
   onDone,
   onCancel,
 }: MultiEventFormProps) {
@@ -110,6 +113,7 @@ export function MultiEventForm({
         const built = buildEventInput(type, values, timestampMs)
         await add({
           babyId,
+          groupSlug,
           type,
           timestamp: timestampMs,
           endTimestamp: built.endTimestamp,

@@ -20,6 +20,8 @@ const inputClass =
 
 interface ExportPdfPanelProps {
   babyId: Id<'babies'>
+  /** The Group the log is being read in — the export reads through it. */
+  groupSlug: string
   babyName: string
   babyBirthDate: string
   onClose: () => void
@@ -27,6 +29,7 @@ interface ExportPdfPanelProps {
 
 export function ExportPdfPanel({
   babyId,
+  groupSlug,
   babyName,
   babyBirthDate,
   onClose,
@@ -59,6 +62,7 @@ export function ExportPdfPanel({
       const { exportBabyLogPdf } = await import('../../lib/babyPdfExport')
       const events = await convex.query(api.babyEvents.listByBaby, {
         babyId,
+        groupSlug,
         from: fromMs,
         to: toMs,
       })

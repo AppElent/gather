@@ -16,10 +16,12 @@ import { EventIcon } from './EventIcon'
 
 interface TimelineProps {
   babyId: Id<'babies'>
+  /** The Group the log is being read in — editing and deleting go through it. */
+  groupSlug: string
   events: Doc<'babyEvents'>[]
 }
 
-export function Timeline({ babyId, events }: TimelineProps) {
+export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
   const remove = useMutation(api.babyEvents.remove)
   const [editingId, setEditingId] = useState<Id<'babyEvents'> | null>(null)
 
@@ -55,6 +57,7 @@ export function Timeline({ babyId, events }: TimelineProps) {
                   <li key={event._id} className="p-3">
                     <EventForm
                       babyId={babyId}
+                      groupSlug={groupSlug}
                       type={event.type}
                       event={event}
                       onDone={() => setEditingId(null)}
@@ -98,7 +101,7 @@ export function Timeline({ babyId, events }: TimelineProps) {
                       className="grid min-h-9 min-w-9 shrink-0 place-items-center self-center rounded-[var(--app-radius)] text-red-800"
                       onClick={() => {
                         if (window.confirm('Delete this entry?')) {
-                          void remove({ eventId: event._id })
+                          void remove({ eventId: event._id, groupSlug })
                         }
                       }}
                     >

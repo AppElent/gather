@@ -94,8 +94,8 @@ describe('reading a household log through its Group', () => {
       .withIdentity(alice)
       .query(api.babies.list, { groupSlug: 'de-vries-household' })
 
-    expect(jansen?.map((b) => b.name)).toEqual(['Noor'])
-    expect(devries?.map((b) => b.name)).toEqual(['Sam'])
+    expect(jansen.map((b) => b.name)).toEqual(['Noor'])
+    expect(devries.map((b) => b.name)).toEqual(['Sam'])
   })
 
   test('someone outside the Group is refused, not given an empty log', async () => {
@@ -177,8 +177,8 @@ describe('adding a child from inside a Group', () => {
       .withIdentity(alice)
       .query(api.babies.list, { groupSlug: 'jansen-household' })
 
-    expect(devries?.map((b) => b.name)).toEqual(['Sam', 'Pim'])
-    expect(jansen?.map((b) => b.name)).toEqual(['Noor'])
+    expect(devries.map((b) => b.name)).toEqual(['Sam', 'Pim'])
+    expect(jansen.map((b) => b.name)).toEqual(['Noor'])
   })
 
   test('is refused for a Group you are not a Member of', async () => {
@@ -191,5 +191,56 @@ describe('adding a child from inside a Group', () => {
         groupSlug: 'jansen-household',
       }),
     ).rejects.toThrow(/Not a member/)
+  })
+})
+
+/**
+ * Editing a child is authorised the same way reading one is: from the Group in
+ * the address. Alice is in both households, so "she can see this child from
+ * somewhere" and "this child is in the Group she named" come apart here.
+ */
+describe('editing a child under the wrong Group', () => {
+  test('is refused even when the caller can see that child elsewhere', async () => {
+    const { t, sam } = await seed()
+
+    await expect(
+      t.withIdentity(alice).mutation(api.babies.update, {
+        id: sam,
+        groupSlug: 'jansen-household',
+        name: 'Renamed',
+        birthDate: '2025-11-20',
+      }),
+    ).rejects.toThrow(/Baby not found/)
+
+    const unchanged = await t
+      .withIdentity(alice)
+      .query(api.babies.get, { id: sam, groupSlug: 'de-vries-household' })
+    expect(unchanged?.name).toBe('Sam')
+  })
+
+  test('deleting is refused the same way', async () => {
+    const { t, sam } = await seed()
+
+    await expect(
+      t
+        .withIdentity(alice)
+        .mutation(api.babies.remove, { id: sam, groupSlug: 'jansen-household' }),
+    ).rejects.toThrow(/Baby not found/)
+
+    const still = await t
+      .withIdentity(alice)
+      .query(api.babies.get, { id: sam, groupSlug: 'de-vries-household' })
+    expect(still?.name).toBe('Sam')
+  })
+
+  test("a child's checklist cannot be created from another Group's address", async () => {
+    const { t, sam } = await seed()
+
+    await expect(
+      t.withIdentity(alice).mutation(api.babies.ensureTodoList, {
+        id: sam,
+        groupSlug: 'jansen-household',
+      }),
+    ).rejects.toThrow(/Baby not found/)
   })
 })

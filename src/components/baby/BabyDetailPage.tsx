@@ -16,19 +16,18 @@ import { TrendChart } from './TrendChart'
 
 export interface BabyDetailPageProps {
   babyId: string
-  /** The Group the URL claims this child is in, when it names one. */
-  groupSlug?: string
+  /** The Group the URL claims this child is in. */
+  groupSlug: string
   nav: BabyNav
 }
 
 /**
- * One child's log, whole. Rendered by both `/baby/<id>` and
- * `/g/<slug>/baby/<id>`.
+ * One child's log, whole.
  *
- * Under a Group, the id and the slug are checked against each other rather than
- * separately: a child from another household reads as "not found" here even
- * when the caller could see it from a Group of their own, because the URL is
- * claiming something about this child and this Group that is not true.
+ * The id and the slug are checked against each other rather than separately: a
+ * child from another household reads as "not found" here even when the caller
+ * could see it from a Group of their own, because the URL is claiming something
+ * about this child and this Group that is not true.
  */
 export function BabyDetailPage({
   babyId,
@@ -36,28 +35,29 @@ export function BabyDetailPage({
   nav,
 }: BabyDetailPageProps) {
   const id = babyId as Id<'babies'>
-  const baby = useQuery(api.babies.get, groupSlug ? { id, groupSlug } : { id })
-  const babies = useQuery(api.babies.list, groupSlug ? { groupSlug } : {})
+  const baby = useQuery(api.babies.get, { id, groupSlug })
+  const babies = useQuery(api.babies.list, { groupSlug })
   const [exportOpen, setExportOpen] = useState(false)
   // Skip until the baby has actually loaded — firing this unconditionally
   // means a deleted/inaccessible id makes requireBabyAccess throw instead
   // of falling through to the "Child not found" state below.
   const events = useQuery(
     api.babyEvents.listByBaby,
-    baby ? { babyId: id } : 'skip',
+    baby ? { babyId: id, groupSlug } : 'skip',
   )
   const ensureTodoList = useMutation(api.babies.ensureTodoList)
   const ensureQuestionsList = useMutation(api.babies.ensureQuestionsList)
 
   useEffect(() => {
-    if (baby && !baby.taskListId) void ensureTodoList({ id: baby._id })
-  }, [baby, ensureTodoList])
+    if (baby && !baby.taskListId)
+      void ensureTodoList({ id: baby._id, groupSlug })
+  }, [baby, groupSlug, ensureTodoList])
 
   useEffect(() => {
     if (baby && !baby.questionsListId) {
-      void ensureQuestionsList({ id: baby._id })
+      void ensureQuestionsList({ id: baby._id, groupSlug })
     }
-  }, [baby, ensureQuestionsList])
+  }, [baby, groupSlug, ensureQuestionsList])
 
   const temperaturePoints = useMemo(
     () =>
@@ -138,13 +138,14 @@ export function BabyDetailPage({
       {exportOpen && (
         <ExportPdfPanel
           babyId={id}
+          groupSlug={groupSlug}
           babyName={baby.name}
           babyBirthDate={baby.birthDate}
           onClose={() => setExportOpen(false)}
         />
       )}
 
-      <QuickLogButtons babyId={id} />
+      <QuickLogButtons babyId={id} groupSlug={groupSlug} />
 
       {(temperaturePoints.length > 0 || weightPoints.length > 0) && (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -168,7 +169,7 @@ export function BabyDetailPage({
       {events === undefined ? (
         <div className="h-40 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]" />
       ) : (
-        <Timeline babyId={id} events={events} />
+        <Timeline babyId={id} groupSlug={groupSlug} events={events} />
       )}
     </div>
   )
