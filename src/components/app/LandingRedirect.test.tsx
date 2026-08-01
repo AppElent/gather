@@ -117,6 +117,32 @@ test('sends someone in no Group somewhere they can join one', () => {
   expect(navigateMock).toHaveBeenCalledWith({ to: '/groups', replace: true })
 })
 
+/**
+ * The one the mocks above nearly hid, and the preview caught.
+ *
+ * `useLocation` subscribes to the router rather than to this route, so once the
+ * redirect starts, the pathname read here is already the destination while the
+ * component is still mounted. The destination is not a legacy path, so a second
+ * pass resolves nothing and falls back to Home — overwriting the page the
+ * reader actually asked for. Live, every legacy path landed on Home; only the
+ * ones whose equivalent is Home looked right.
+ */
+test('does not talk itself out of the destination it just chose', () => {
+  const view = render(<LandingRedirect />)
+
+  expect(navigateMock).toHaveBeenCalledTimes(1)
+
+  // What the router does next: the address becomes the destination, and this
+  // component renders once more before it is replaced.
+  location.pathname = '/g/me-alice/tasks'
+  view.rerender(<LandingRedirect />)
+
+  expect(navigateMock).toHaveBeenCalledTimes(1)
+  expect(navigateMock).toHaveBeenCalledWith(
+    expect.objectContaining({ to: '/g/$groupSlug/tasks' }),
+  )
+})
+
 // Going back from where you land should leave the app, not bounce off this
 // page and be sent forward again.
 test('replaces the address instead of stacking on it', () => {

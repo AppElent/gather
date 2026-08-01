@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { groupLink } from '../../lib/groupPaths'
 import { landingGroupSlug } from '../../lib/landingGroup'
@@ -28,11 +28,26 @@ export function LandingRedirect() {
   // Rebuilt only when the address changes, so the effect below is not chasing a
   // new object every render.
   const target = useMemo(() => legacyTarget(pathname), [pathname])
+  const sent = useRef(false)
 
   useEffect(() => {
+    // One redirect, decided from the address that was actually typed.
+    //
+    // `useLocation` is a subscription to the router, not to this route: the
+    // moment the redirect below starts, `pathname` here becomes the *new*
+    // address while this component is still mounted waiting to be replaced.
+    // Reading a legacy path out of that gives null — `/g/<slug>/recipes` is
+    // nobody's old bookmark — and the second pass would quietly overwrite the
+    // right destination with Home. Which is exactly what it did: every legacy
+    // path landed on Home, and only the paths whose equivalent *is* Home
+    // looked correct.
+    if (sent.current) return
+
     // Still asking. Guessing a Group here would mean redirecting twice and
     // showing the wrong Group's Home in between.
     if (groups === undefined) return
+
+    sent.current = true
 
     const groupSlug = landingGroupSlug(groups)
     if (groupSlug === null) {
