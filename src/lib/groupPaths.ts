@@ -271,29 +271,36 @@ export function groupSurfaceForModule(
 }
 
 /**
- * Where a Module link should go from wherever you are standing.
+ * The first segment a Module occupies under `/g/<slug>/` — `recipes` for
+ * Recipes, `baby` for the Baby log.
  *
- * The shell renders above both route trees, so its Module links are the one
- * kind that cannot be built by a route: the sidebar and the command palette are
- * on screen at `/recipes` and at `/g/<slug>/recipes` alike. They read the Group
- * off the URL — the shell is allowed to, because the URL is the only thing that
- * says which Group you are in, and it is the shell's job to reflect it — and
- * pass it here.
- *
- * Inside a Group, a Module that has a Group-scoped route keeps you in the Group
- * you are already in; anything else falls back to the flat path, so a
- * placeholder Module or a Module with no Group route yet still goes somewhere
- * that exists. That fallback disappears with the flat routes in #24.
+ * Read off the surface rather than stored on the Module, so there is one place
+ * a Module's address is written and nothing for a second copy to drift from.
+ * The empty string for an id no Module declares.
  */
-export function moduleLink(
-  module: { id?: string; path: string },
-  groupSlug: string | null,
-): AppLink {
-  const surface =
-    module.id && groupSlug ? groupSurfaceForModule(module.id) : null
-  if (surface && groupSlug) return groupLink(surface, groupSlug)
-  // The Module registry stores its path as a plain string; the router cannot
-  // check a value it never sees declared, which is the reason Group
-  // destinations are declared here rather than kept alongside the Modules.
-  return { to: module.path as LinkProps['to'] }
+export function moduleSegment(moduleId: string): string {
+  const surface = groupSurfaceForModule(moduleId)
+  return surface ? groupSurfaceSegment(surface) : ''
+}
+
+/**
+ * Where a Module link goes from a Group.
+ *
+ * The shell renders above the route it is showing, so its Module links are the
+ * one kind a route cannot build: the sidebar and the command palette are on
+ * screen whichever page you are on. They read the Group off the URL — the shell
+ * is allowed to, because the URL is the only thing that says which Group you
+ * are in, and it is the shell's job to reflect it — and pass it here.
+ *
+ * The Group is required. There used to be a flat path to fall back to for a
+ * Module that had no Group surface yet; there is neither now, so a Module link
+ * can only be built by somebody who knows which Group they are asking about.
+ * The one caller that could not — the shell, off a Group route — renders no
+ * Module links at all rather than inventing a Group to point at.
+ */
+export function moduleLink(module: { id: string }, groupSlug: string): AppLink {
+  // Every Module resolves to a surface — `MODULE_INDEX_SURFACES` is total over
+  // `MODULES` and a test holds it that way — so this only stands in for an id
+  // no Module declares, and All is the page that lists every Module there is.
+  return groupLink(groupSurfaceForModule(module.id) ?? 'all', groupSlug)
 }

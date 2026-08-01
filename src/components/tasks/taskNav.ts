@@ -17,11 +17,6 @@ export interface TaskNav {
   returnTo: string
 }
 
-export const flatTaskNav: TaskNav = {
-  list: { to: '/tasks' },
-  returnTo: '/tasks',
-}
-
 export function groupTaskNav(groupSlug: string): TaskNav {
   return {
     list: groupLink('tasks', groupSlug),

@@ -13,7 +13,7 @@ import { LandingRedirect } from './LandingRedirect'
  */
 
 const location = vi.hoisted(() => ({
-  pathname: '/dashboard',
+  pathname: '/tasks',
   hash: '',
   search: {} as Record<string, unknown>,
 }))
@@ -35,7 +35,7 @@ const PERSONAL = { slug: 'me-alice', isPersonal: true }
 const SHARED = { slug: 'jansen-household', isPersonal: false }
 
 beforeEach(() => {
-  location.pathname = '/dashboard'
+  location.pathname = '/tasks'
   location.hash = ''
   location.search = {}
   groups.value = [SHARED, PERSONAL]
@@ -55,7 +55,7 @@ test('lands an old address in a Group the reader is really in', () => {
   render(<LandingRedirect />)
 
   expect(navigateMock).toHaveBeenCalledWith({
-    to: '/g/$groupSlug',
+    to: '/g/$groupSlug/tasks',
     params: { groupSlug: 'me-alice' },
     search: {},
     hash: undefined,
@@ -77,7 +77,6 @@ test('carries the record an old address named', () => {
 })
 
 test('keeps the fragment the reader was pointed at', () => {
-  location.pathname = '/tasks'
   location.hash = 'today'
 
   render(<LandingRedirect />)

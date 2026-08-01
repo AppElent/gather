@@ -14,7 +14,7 @@
  */
 
 import type { LinkProps } from '@tanstack/react-router'
-import { groupLink, moduleLink } from './groupPaths'
+import { groupLink, moduleLink, moduleSegment } from './groupPaths'
 import type { ModuleDef } from './modules'
 import { MODULES, moduleById } from './modules'
 import { pinnedModules } from './pins'
@@ -160,20 +160,15 @@ export function dockNavItems(
 function navTargetOf(pathname: string): string | null {
   const path = normalizePath(pathname)
   const group = /^\/g\/[^/]+(\/.*)?$/.exec(path)
+  // Every page the navigation describes is inside a Group. Settings, Account
+  // and the Groups list are outside one on purpose, and the navigation says so
+  // by lighting nothing.
+  if (!group) return null
 
-  if (group) {
-    const segment = (group[1] ?? '').split('/').filter(Boolean)[0] ?? ''
-    if (segment === '') return HOME
-    if (segment === ALL) return ALL
-    return MODULES.find((m) => moduleSegment(m) === segment)?.id ?? null
-  }
-
-  // The legacy flat surface, until #24 removes it.
-  if (path === '/dashboard') return HOME
-  return (
-    MODULES.find((m) => path === m.path || path.startsWith(`${m.path}/`))?.id ??
-    null
-  )
+  const segment = (group[1] ?? '').split('/').filter(Boolean)[0] ?? ''
+  if (segment === '') return HOME
+  if (segment === ALL) return ALL
+  return MODULES.find((m) => moduleSegment(m.id) === segment)?.id ?? null
 }
 
 /**
@@ -276,21 +271,6 @@ export function getRouteContext(pathname: string): RouteContext {
     title: 'Gather',
     subtitle: 'Shared plans, modules, and context.',
   }
-}
-
-export function getModulesByStatus(): {
-  live: ModuleDef[]
-  placeholder: ModuleDef[]
-} {
-  return {
-    live: MODULES.filter((module) => module.status === 'live'),
-    placeholder: MODULES.filter((module) => module.status === 'placeholder'),
-  }
-}
-
-/** The first path segment a Module occupies, flat or inside a Group. */
-function moduleSegment(module: ModuleDef): string {
-  return module.path.replace(/^\//, '').split('/')[0]
 }
 
 function normalizePath(pathname: string) {

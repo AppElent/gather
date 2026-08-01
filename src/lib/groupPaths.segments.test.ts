@@ -2,7 +2,12 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
 import { RESERVED_SLUGS } from '../../convex/lib/slugs'
-import { GROUP_SURFACES, groupHref, groupSurfaceSegment } from './groupPaths'
+import {
+  GROUP_SURFACES,
+  groupHref,
+  groupSurfaceSegment,
+  moduleSegment,
+} from './groupPaths'
 import { MODULES } from './modules'
 
 /**
@@ -16,12 +21,7 @@ import { MODULES } from './modules'
  * here instead of at runtime.
  */
 
-/** The first path segment a Module occupies, e.g. `recipes` for `/recipes/new`. */
-function moduleSegment(path: string): string {
-  return path.replace(/^\//, '').split('/')[0]
-}
-
-const MODULE_SEGMENTS = new Set(MODULES.map((m) => moduleSegment(m.path)))
+const MODULE_SEGMENTS = new Set(MODULES.map((m) => moduleSegment(m.id)))
 
 describe('Group-level route segments', () => {
   test('no Module can take a segment the shell has reserved', () => {

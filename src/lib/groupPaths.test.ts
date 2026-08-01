@@ -84,7 +84,7 @@ describe('reading a Group URL', () => {
   })
 
   test('says nothing for a path with no Group in it', () => {
-    for (const path of ['/', '/nutrition', '/dashboard', '/g', '/g/']) {
+    for (const path of ['/', '/nutrition', '/settings', '/g', '/g/']) {
       expect(groupSlugOf(path)).toBeNull()
       expect(groupIndexSurfaceOf(path)).toBeNull()
     }
@@ -131,23 +131,19 @@ describe('reading a Group URL', () => {
 
 /**
  * The shell's Module links are the ones a route cannot build, because the
- * sidebar and the command palette are on screen under both route trees at once.
+ * sidebar and the command palette are on screen whichever page is showing.
  * They are therefore the likeliest place for a Group to be dropped, and the
  * cheapest place to catch it.
  */
 describe('a Module link from the shell', () => {
-  const recipes = { id: 'recipes', path: '/recipes' }
-  const wines = { id: 'wines', path: '/wines' }
+  const recipes = { id: 'recipes' }
+  const wines = { id: 'wines' }
 
   test('stays in the Group you are already in', () => {
     expect(moduleLink(recipes, 'jansen-household')).toEqual({
       to: '/g/$groupSlug/recipes',
       params: { groupSlug: 'jansen-household' },
     })
-  })
-
-  test('is flat when there is no Group to be in', () => {
-    expect(moduleLink(recipes, null)).toEqual({ to: '/recipes' })
   })
 
   test('keeps a placeholder Module in the Group too', () => {
@@ -157,11 +153,12 @@ describe('a Module link from the shell', () => {
     })
   })
 
-  // The shell's own entries are not Modules and carry no id, so they never
-  // acquire a Group segment no matter where you are standing.
-  test('leaves a destination that is not a Module alone', () => {
-    expect(moduleLink({ path: '/settings' }, 'jansen-household')).toEqual({
-      to: '/settings',
+  // An id no Module declares cannot be a page, so it goes to the one page that
+  // lists every Module there is rather than to a route that does not exist.
+  test('sends an id nothing declares to All', () => {
+    expect(moduleLink({ id: 'seances' }, 'jansen-household')).toEqual({
+      to: '/g/$groupSlug/all',
+      params: { groupSlug: 'jansen-household' },
     })
   })
 

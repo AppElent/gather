@@ -1,30 +1,14 @@
 import { describe, expect, test } from 'vitest'
-import {
-  type BabyNav,
-  flatBabyNav,
-  groupBabyNav,
-} from '../components/baby/babyNav'
-import {
-  type FoodNav,
-  flatFoodNav,
-  groupFoodNav,
-} from '../components/foods/foodNav'
-import {
-  flatRecipeNav,
-  groupRecipeNav,
-  type RecipeNav,
-} from '../components/recipes/recipeNav'
-import {
-  flatTaskNav,
-  groupTaskNav,
-  type TaskNav,
-} from '../components/tasks/taskNav'
+import { type BabyNav, groupBabyNav } from '../components/baby/babyNav'
+import { type FoodNav, groupFoodNav } from '../components/foods/foodNav'
+import { groupRecipeNav, type RecipeNav } from '../components/recipes/recipeNav'
+import { groupTaskNav, type TaskNav } from '../components/tasks/taskNav'
 import type { AppLink } from './appLink'
 
 /**
- * The regression this ticket most plausibly causes: a link inside a page that
- * both route trees render, written against the flat path, so following it drops
- * you out of the Group you were in.
+ * The regression these guard against: a link inside a page written without the
+ * Group, so following it leaves the Group the reader opened — which, now that
+ * the flat routes are gone, means leaving for an address that no longer exists.
  *
  * The pages take every destination as props, so the mistake can only be made in
  * a nav builder — which means it can be caught here, off the built link options,
@@ -55,37 +39,12 @@ function taskDestinations(nav: TaskNav): AppLink[] {
   return [nav.list]
 }
 
-/** One row per Module, holding every destination its two navs can produce. */
-const MODULES: Array<{
-  module: string
-  flatPrefix: string
-  flat: AppLink[]
-  group: AppLink[]
-}> = [
-  {
-    module: 'Recipes',
-    flatPrefix: '/recipes',
-    flat: recipeDestinations(flatRecipeNav),
-    group: recipeDestinations(groupRecipeNav(SLUG)),
-  },
-  {
-    module: 'Foods',
-    flatPrefix: '/foods',
-    flat: foodDestinations(flatFoodNav),
-    group: foodDestinations(groupFoodNav(SLUG)),
-  },
-  {
-    module: 'Baby log',
-    flatPrefix: '/baby',
-    flat: babyDestinations(flatBabyNav),
-    group: babyDestinations(groupBabyNav(SLUG)),
-  },
-  {
-    module: 'Tasks',
-    flatPrefix: '/tasks',
-    flat: taskDestinations(flatTaskNav),
-    group: taskDestinations(groupTaskNav(SLUG)),
-  },
+/** One row per Module, holding every destination its nav can produce. */
+const MODULES: Array<{ module: string; group: AppLink[] }> = [
+  { module: 'Recipes', group: recipeDestinations(groupRecipeNav(SLUG)) },
+  { module: 'Foods', group: foodDestinations(groupFoodNav(SLUG)) },
+  { module: 'Baby log', group: babyDestinations(groupBabyNav(SLUG)) },
+  { module: 'Tasks', group: taskDestinations(groupTaskNav(SLUG)) },
 ]
 
 function paramsOf(link: AppLink): Record<string, unknown> {
@@ -114,27 +73,14 @@ describe('links built for a Group', () => {
 
   // The OAuth round-trip cannot carry link options through sessionStorage and
   // a full page load, so Tasks hands out a plain path. It still has to name the
-  // Group, or connecting Notion drops you back on the flat route.
+  // Group, or connecting Notion lands the reader outside the Group they left.
   test('the OAuth return path names the Group too', () => {
     expect(groupTaskNav(SLUG).returnTo).toBe(`/g/${SLUG}/tasks`)
-    expect(flatTaskNav.returnTo).toBe('/tasks')
   })
 
   test('a search param survives being given the Group treatment', () => {
     expect(groupFoodNav(SLUG).create('3017620422003').search).toEqual({
       barcode: '3017620422003',
     })
-  })
-})
-
-describe('links built outside any Group', () => {
-  test.each(MODULES)('every $module destination stays flat', ({
-    flat,
-    flatPrefix,
-  }) => {
-    for (const link of flat) {
-      expect(String(link.to).startsWith(flatPrefix)).toBe(true)
-      expect(paramsOf(link).groupSlug).toBeUndefined()
-    }
   })
 })

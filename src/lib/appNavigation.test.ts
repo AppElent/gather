@@ -151,7 +151,6 @@ describe('which item is active', () => {
       `/g/${SLUG}/recipes`,
       `/g/${SLUG}/baby`,
       '/settings',
-      '/recipes',
     ]
     for (const path of paths) {
       const active = activeNavItemId(path, items)
@@ -189,8 +188,6 @@ describe('which item is active', () => {
       `/g/${SLUG}/baby`,
       `/g/${SLUG}/foods`,
       '/settings',
-      '/dashboard',
-      '/recipes',
     ]
     for (const path of paths) {
       const active = activeNavItemId(path, many)
@@ -234,13 +231,10 @@ describe('where the jump-to palette can send you', () => {
     const staysFlat = new Set(['settings', 'groups'])
     for (const target of jumpTargets(SLUG)) {
       if (staysFlat.has(target.id)) continue
-      // A Module with no Group-scoped route yet still falls back to its flat
-      // path; what must never happen is a Group-scoped page addressed flatly.
-      const to = String(target.link.to)
-      expect(to === '/dashboard').toBe(false)
-      if (to.startsWith('/g/')) {
-        expect(target.link.params).toMatchObject({ groupSlug: SLUG })
-      }
+      // Every other target names a page inside a Group, and it has to be the
+      // Group the reader is standing in.
+      expect(String(target.link.to).startsWith('/g/$groupSlug')).toBe(true)
+      expect(target.link.params).toMatchObject({ groupSlug: SLUG })
     }
   })
 
@@ -272,12 +266,13 @@ describe('the route context the topbar shows', () => {
     expect(getRouteContext(`/g/${SLUG}/all`).title).toBe('All modules')
   })
 
-  test('names the Module you are in, in either route tree', () => {
+  test('names the Module you are in, from anywhere inside it', () => {
     expect(getRouteContext(`/g/${SLUG}/recipes`)).toMatchObject({
       title: 'Recipes',
       subtitle: 'Keep and rate the dishes you cook.',
     })
-    expect(getRouteContext('/recipes/new').title).toBe('Recipes')
+    expect(getRouteContext(`/g/${SLUG}/recipes/new`).title).toBe('Recipes')
+    expect(getRouteContext(`/g/${SLUG}/recipes/r1/edit`).title).toBe('Recipes')
   })
 
   test('names the shell pages', () => {

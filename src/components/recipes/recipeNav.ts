@@ -4,27 +4,16 @@ import { groupLink } from '../../lib/groupPaths'
 /**
  * Everywhere the Recipes pages can send you.
  *
- * There are two of these and they are the only difference between the flat
- * `/recipes/…` routes and the Group-scoped `/g/<slug>/recipes/…` ones: the
- * pages themselves are shared, so a link that forgets the Group can only be
- * written here, once, where a test can see it.
+ * The pages take every destination as a prop rather than building one, because
+ * a page cannot know which Group it is being read in without asking the URL —
+ * the thing ADR-0002 exists to stop it doing. So a link that forgets the Group
+ * can only be written here, once, where a test can see it.
  */
 export interface RecipeNav {
   list: AppLink
   create: AppLink
   detail: (recipeId: string) => AppLink
   edit: (recipeId: string) => AppLink
-}
-
-/** Recipes outside any Group — the pre-ADR-0002 URLs, kept working. */
-export const flatRecipeNav: RecipeNav = {
-  list: { to: '/recipes' },
-  create: { to: '/recipes/new' },
-  detail: (recipeId) => ({ to: '/recipes/$recipeId', params: { recipeId } }),
-  edit: (recipeId) => ({
-    to: '/recipes/$recipeId/edit',
-    params: { recipeId },
-  }),
 }
 
 /** Recipes inside a Group. Every destination carries the slug. */

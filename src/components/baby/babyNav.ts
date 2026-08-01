@@ -16,13 +16,6 @@ export interface BabyNav {
   edit: (babyId: string) => AppLink
 }
 
-export const flatBabyNav: BabyNav = {
-  list: { to: '/baby' },
-  create: { to: '/baby/new' },
-  detail: (babyId) => ({ to: '/baby/$babyId', params: { babyId } }),
-  edit: (babyId) => ({ to: '/baby/$babyId/edit', params: { babyId } }),
-}
-
 export function groupBabyNav(groupSlug: string): BabyNav {
   return {
     list: groupLink('baby', groupSlug),

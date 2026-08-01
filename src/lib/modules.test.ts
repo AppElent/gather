@@ -2,15 +2,9 @@ import { describe, expect, test } from 'vitest'
 import { MODULE_GROUPS, MODULES, modulesByGroup } from './modules'
 
 describe('module registry', () => {
-  test('every module has a unique id and path', () => {
+  test('every module has a unique id', () => {
     const ids = new Set(MODULES.map((m) => m.id))
-    const paths = new Set(MODULES.map((m) => m.path))
     expect(ids.size).toBe(MODULES.length)
-    expect(paths.size).toBe(MODULES.length)
-  })
-
-  test('every module path starts with a slash', () => {
-    for (const m of MODULES) expect(m.path.startsWith('/')).toBe(true)
   })
 
   test('every module group is a declared group', () => {

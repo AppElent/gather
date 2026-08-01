@@ -17,13 +17,6 @@ export interface FoodNav {
   edit: (foodId: string) => AppLink
 }
 
-export const flatFoodNav: FoodNav = {
-  list: { to: '/foods' },
-  create: (barcode) => ({ to: '/foods/new', search: { barcode } }),
-  detail: (foodId) => ({ to: '/foods/$foodId', params: { foodId } }),
-  edit: (foodId) => ({ to: '/foods/$foodId/edit', params: { foodId } }),
-}
-
 export function groupFoodNav(groupSlug: string): FoodNav {
   return {
     list: groupLink('foods', groupSlug),

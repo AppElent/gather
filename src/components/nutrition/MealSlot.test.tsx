@@ -1,7 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { MealSlot } from './MealSlot'
-import { flatNutritionNav } from './nutritionNav'
+import { groupNutritionNav } from './nutritionNav'
+
+const nav = groupNutritionNav('jansen-household')
 
 const entries = [
   {
@@ -18,7 +20,7 @@ const entries = [
 test('shows a placeholder when there are no entries', () => {
   render(
     <MealSlot
-      nav={flatNutritionNav}
+      nav={nav}
       label="Breakfast"
       entries={[]}
       onAdd={vi.fn()}
@@ -33,7 +35,7 @@ test('renders entries and clicking + Add calls onAdd', () => {
   const onAdd = vi.fn()
   render(
     <MealSlot
-      nav={flatNutritionNav}
+      nav={nav}
       label="Breakfast"
       entries={entries}
       onAdd={onAdd}
@@ -50,7 +52,7 @@ test('deleting an entry calls onDeleteEntry with its id', () => {
   const onDeleteEntry = vi.fn()
   render(
     <MealSlot
-      nav={flatNutritionNav}
+      nav={nav}
       label="Breakfast"
       entries={entries}
       onAdd={vi.fn()}
