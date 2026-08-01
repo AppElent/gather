@@ -1,6 +1,4 @@
-import { Link, useLocation } from '@tanstack/react-router'
-import { homeDestination } from '../../lib/appNavigation'
-import { groupSlugOf } from '../../lib/groupPaths'
+import { Link } from '@tanstack/react-router'
 import { GroupSwitcher } from './GroupSwitcher'
 import { Icon } from './Icon'
 import { Pill } from './ShellPrimitives'
@@ -23,7 +21,6 @@ export interface SidebarProps {
 export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
   const isDrawer = variant === 'drawer'
   const { items, activeId } = useNavigation()
-  const location = useLocation()
 
   return (
     <aside
@@ -34,35 +31,6 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
       }
       aria-label="Gather navigation"
     >
-      <div className="flex min-h-11 items-center justify-between gap-3">
-        <Link
-          {...homeDestination(groupSlugOf(location.pathname))}
-          onClick={onNavigate}
-          className="flex min-w-0 items-center gap-2 no-underline"
-        >
-          <span className="grid h-8 w-8 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-sm font-bold text-[var(--app-fg)]">
-            G
-          </span>
-          <span className="min-w-0">
-            <strong className="block truncate text-sm text-[var(--app-fg)]">
-              Gather
-            </strong>
-            <span className="block truncate text-xs text-[var(--app-muted)]">
-              Preview group
-            </span>
-          </span>
-        </Link>
-        <Link
-          to="/groups"
-          onClick={onNavigate}
-          className="shell-icon-button"
-          aria-label="Manage groups"
-          title="Manage groups"
-        >
-          <Icon name="Plus" className="h-4 w-4" />
-        </Link>
-      </div>
-
       <GroupSwitcher onNavigate={onNavigate} />
 
       <nav className="grid gap-1" aria-label="Primary">
