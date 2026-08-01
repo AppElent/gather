@@ -107,8 +107,15 @@ describe('reading a Group URL', () => {
     expect(groupIndexSurfaceOf('/g/me-alice/recipes/new')).toBe('recipes')
   })
 
-  test('says nothing for a Group page that has no Group-scoped route yet', () => {
-    expect(groupIndexSurfaceOf('/g/jansen-household/wines')).toBeNull()
+  test('finds a placeholder Module the same way as a built one', () => {
+    expect(groupIndexSurfaceOf('/g/jansen-household/wines')).toBe('wines')
+    expect(groupIndexSurfaceOf('/g/jansen-household/meal-planner')).toBe(
+      'mealPlanner',
+    )
+  })
+
+  test('says nothing for a Group page that is nobody’s Module', () => {
+    expect(groupIndexSurfaceOf('/g/jansen-household/seances')).toBeNull()
   })
 
   // What the switcher relies on: read the Module off one Group's URL, write it
@@ -143,9 +150,11 @@ describe('a Module link from the shell', () => {
     expect(moduleLink(recipes, null)).toEqual({ to: '/recipes' })
   })
 
-  test('falls back to the flat path for a Module with no Group route yet', () => {
-    expect(moduleLink(wines, 'jansen-household')).toEqual({ to: '/wines' })
-    expect(moduleLink(wines, null)).toEqual({ to: '/wines' })
+  test('keeps a placeholder Module in the Group too', () => {
+    expect(moduleLink(wines, 'jansen-household')).toEqual({
+      to: '/g/$groupSlug/wines',
+      params: { groupSlug: 'jansen-household' },
+    })
   })
 
   // The shell's own entries are not Modules and carry no id, so they never
@@ -156,12 +165,11 @@ describe('a Module link from the shell', () => {
     })
   })
 
-  // What #23 is for. A live Module without a Group-scoped home is one the
-  // sidebar silently drops you out of the Group to reach.
-  test('every live Module has somewhere to go inside a Group', () => {
-    const homeless = MODULES.filter(
-      (m) => m.status === 'live' && groupSurfaceForModule(m.id) === null,
-    )
+  // The totality `moduleLink` now depends on: there is no flat surface left to
+  // fall back to, so a Module with no Group destination would be a Module the
+  // sidebar and the palette cannot link to at all.
+  test('every Module has somewhere to go inside a Group', () => {
+    const homeless = MODULES.filter((m) => groupSurfaceForModule(m.id) === null)
     expect(homeless.map((m) => m.id)).toEqual([])
   })
 })

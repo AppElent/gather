@@ -44,7 +44,16 @@ import { Route as AppFoodsFoodIdIndexRouteImport } from './routes/_app/foods/$fo
 import { Route as AppFoodsFoodIdEditRouteImport } from './routes/_app/foods/$foodId.edit'
 import { Route as AppGGroupSlugIndexRouteImport } from './routes/_app/g/$groupSlug/index'
 import { Route as AppGGroupSlugAllRouteImport } from './routes/_app/g/$groupSlug/all'
+import { Route as AppGGroupSlugBillsRouteImport } from './routes/_app/g/$groupSlug/bills'
+import { Route as AppGGroupSlugCalendarRouteImport } from './routes/_app/g/$groupSlug/calendar'
+import { Route as AppGGroupSlugCheesesRouteImport } from './routes/_app/g/$groupSlug/cheeses'
+import { Route as AppGGroupSlugFinancesRouteImport } from './routes/_app/g/$groupSlug/finances'
+import { Route as AppGGroupSlugGroceriesRouteImport } from './routes/_app/g/$groupSlug/groceries'
+import { Route as AppGGroupSlugMealPlannerRouteImport } from './routes/_app/g/$groupSlug/meal-planner'
+import { Route as AppGGroupSlugNotesRouteImport } from './routes/_app/g/$groupSlug/notes'
+import { Route as AppGGroupSlugPantryRouteImport } from './routes/_app/g/$groupSlug/pantry'
 import { Route as AppGGroupSlugTasksRouteImport } from './routes/_app/g/$groupSlug/tasks'
+import { Route as AppGGroupSlugWinesRouteImport } from './routes/_app/g/$groupSlug/wines'
 import { Route as AppRecipesRecipeIdIndexRouteImport } from './routes/_app/recipes/$recipeId.index'
 import { Route as AppRecipesRecipeIdEditRouteImport } from './routes/_app/recipes/$recipeId.edit'
 import { Route as AppGGroupSlugBabyIndexRouteImport } from './routes/_app/g/$groupSlug/baby/index'
@@ -235,9 +244,55 @@ const AppGGroupSlugAllRoute = AppGGroupSlugAllRouteImport.update({
   path: '/all',
   getParentRoute: () => AppGGroupSlugRoute,
 } as any)
+const AppGGroupSlugBillsRoute = AppGGroupSlugBillsRouteImport.update({
+  id: '/bills',
+  path: '/bills',
+  getParentRoute: () => AppGGroupSlugRoute,
+} as any)
+const AppGGroupSlugCalendarRoute = AppGGroupSlugCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AppGGroupSlugRoute,
+} as any)
+const AppGGroupSlugCheesesRoute = AppGGroupSlugCheesesRouteImport.update({
+  id: '/cheeses',
+  path: '/cheeses',
+  getParentRoute: () => AppGGroupSlugRoute,
+} as any)
+const AppGGroupSlugFinancesRoute = AppGGroupSlugFinancesRouteImport.update({
+  id: '/finances',
+  path: '/finances',
+  getParentRoute: () => AppGGroupSlugRoute,
+} as any)
+const AppGGroupSlugGroceriesRoute = AppGGroupSlugGroceriesRouteImport.update({
+  id: '/groceries',
+  path: '/groceries',
+  getParentRoute: () => AppGGroupSlugRoute,
+} as any)
+const AppGGroupSlugMealPlannerRoute =
+  AppGGroupSlugMealPlannerRouteImport.update({
+    id: '/meal-planner',
+    path: '/meal-planner',
+    getParentRoute: () => AppGGroupSlugRoute,
+  } as any)
+const AppGGroupSlugNotesRoute = AppGGroupSlugNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => AppGGroupSlugRoute,
+} as any)
+const AppGGroupSlugPantryRoute = AppGGroupSlugPantryRouteImport.update({
+  id: '/pantry',
+  path: '/pantry',
+  getParentRoute: () => AppGGroupSlugRoute,
+} as any)
 const AppGGroupSlugTasksRoute = AppGGroupSlugTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => AppGGroupSlugRoute,
+} as any)
+const AppGGroupSlugWinesRoute = AppGGroupSlugWinesRouteImport.update({
+  id: '/wines',
+  path: '/wines',
   getParentRoute: () => AppGGroupSlugRoute,
 } as any)
 const AppRecipesRecipeIdIndexRoute = AppRecipesRecipeIdIndexRouteImport.update({
@@ -356,7 +411,16 @@ export interface FileRoutesByFullPath {
   '/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
   '/foods/$foodId/edit': typeof AppFoodsFoodIdEditRoute
   '/g/$groupSlug/all': typeof AppGGroupSlugAllRoute
+  '/g/$groupSlug/bills': typeof AppGGroupSlugBillsRoute
+  '/g/$groupSlug/calendar': typeof AppGGroupSlugCalendarRoute
+  '/g/$groupSlug/cheeses': typeof AppGGroupSlugCheesesRoute
+  '/g/$groupSlug/finances': typeof AppGGroupSlugFinancesRoute
+  '/g/$groupSlug/groceries': typeof AppGGroupSlugGroceriesRoute
+  '/g/$groupSlug/meal-planner': typeof AppGGroupSlugMealPlannerRoute
+  '/g/$groupSlug/notes': typeof AppGGroupSlugNotesRoute
+  '/g/$groupSlug/pantry': typeof AppGGroupSlugPantryRoute
   '/g/$groupSlug/tasks': typeof AppGGroupSlugTasksRoute
+  '/g/$groupSlug/wines': typeof AppGGroupSlugWinesRoute
   '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
   '/baby/$babyId/': typeof AppBabyBabyIdIndexRoute
   '/foods/$foodId/': typeof AppFoodsFoodIdIndexRoute
@@ -407,7 +471,16 @@ export interface FileRoutesByTo {
   '/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
   '/foods/$foodId/edit': typeof AppFoodsFoodIdEditRoute
   '/g/$groupSlug/all': typeof AppGGroupSlugAllRoute
+  '/g/$groupSlug/bills': typeof AppGGroupSlugBillsRoute
+  '/g/$groupSlug/calendar': typeof AppGGroupSlugCalendarRoute
+  '/g/$groupSlug/cheeses': typeof AppGGroupSlugCheesesRoute
+  '/g/$groupSlug/finances': typeof AppGGroupSlugFinancesRoute
+  '/g/$groupSlug/groceries': typeof AppGGroupSlugGroceriesRoute
+  '/g/$groupSlug/meal-planner': typeof AppGGroupSlugMealPlannerRoute
+  '/g/$groupSlug/notes': typeof AppGGroupSlugNotesRoute
+  '/g/$groupSlug/pantry': typeof AppGGroupSlugPantryRoute
   '/g/$groupSlug/tasks': typeof AppGGroupSlugTasksRoute
+  '/g/$groupSlug/wines': typeof AppGGroupSlugWinesRoute
   '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
   '/baby/$babyId': typeof AppBabyBabyIdIndexRoute
   '/foods/$foodId': typeof AppFoodsFoodIdIndexRoute
@@ -461,7 +534,16 @@ export interface FileRoutesById {
   '/_app/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
   '/_app/foods/$foodId/edit': typeof AppFoodsFoodIdEditRoute
   '/_app/g/$groupSlug/all': typeof AppGGroupSlugAllRoute
+  '/_app/g/$groupSlug/bills': typeof AppGGroupSlugBillsRoute
+  '/_app/g/$groupSlug/calendar': typeof AppGGroupSlugCalendarRoute
+  '/_app/g/$groupSlug/cheeses': typeof AppGGroupSlugCheesesRoute
+  '/_app/g/$groupSlug/finances': typeof AppGGroupSlugFinancesRoute
+  '/_app/g/$groupSlug/groceries': typeof AppGGroupSlugGroceriesRoute
+  '/_app/g/$groupSlug/meal-planner': typeof AppGGroupSlugMealPlannerRoute
+  '/_app/g/$groupSlug/notes': typeof AppGGroupSlugNotesRoute
+  '/_app/g/$groupSlug/pantry': typeof AppGGroupSlugPantryRoute
   '/_app/g/$groupSlug/tasks': typeof AppGGroupSlugTasksRoute
+  '/_app/g/$groupSlug/wines': typeof AppGGroupSlugWinesRoute
   '/_app/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
   '/_app/baby/$babyId/': typeof AppBabyBabyIdIndexRoute
   '/_app/foods/$foodId/': typeof AppFoodsFoodIdIndexRoute
@@ -515,7 +597,16 @@ export interface FileRouteTypes {
     | '/baby/$babyId/edit'
     | '/foods/$foodId/edit'
     | '/g/$groupSlug/all'
+    | '/g/$groupSlug/bills'
+    | '/g/$groupSlug/calendar'
+    | '/g/$groupSlug/cheeses'
+    | '/g/$groupSlug/finances'
+    | '/g/$groupSlug/groceries'
+    | '/g/$groupSlug/meal-planner'
+    | '/g/$groupSlug/notes'
+    | '/g/$groupSlug/pantry'
     | '/g/$groupSlug/tasks'
+    | '/g/$groupSlug/wines'
     | '/recipes/$recipeId/edit'
     | '/baby/$babyId/'
     | '/foods/$foodId/'
@@ -566,7 +657,16 @@ export interface FileRouteTypes {
     | '/baby/$babyId/edit'
     | '/foods/$foodId/edit'
     | '/g/$groupSlug/all'
+    | '/g/$groupSlug/bills'
+    | '/g/$groupSlug/calendar'
+    | '/g/$groupSlug/cheeses'
+    | '/g/$groupSlug/finances'
+    | '/g/$groupSlug/groceries'
+    | '/g/$groupSlug/meal-planner'
+    | '/g/$groupSlug/notes'
+    | '/g/$groupSlug/pantry'
     | '/g/$groupSlug/tasks'
+    | '/g/$groupSlug/wines'
     | '/recipes/$recipeId/edit'
     | '/baby/$babyId'
     | '/foods/$foodId'
@@ -619,7 +719,16 @@ export interface FileRouteTypes {
     | '/_app/baby/$babyId/edit'
     | '/_app/foods/$foodId/edit'
     | '/_app/g/$groupSlug/all'
+    | '/_app/g/$groupSlug/bills'
+    | '/_app/g/$groupSlug/calendar'
+    | '/_app/g/$groupSlug/cheeses'
+    | '/_app/g/$groupSlug/finances'
+    | '/_app/g/$groupSlug/groceries'
+    | '/_app/g/$groupSlug/meal-planner'
+    | '/_app/g/$groupSlug/notes'
+    | '/_app/g/$groupSlug/pantry'
     | '/_app/g/$groupSlug/tasks'
+    | '/_app/g/$groupSlug/wines'
     | '/_app/recipes/$recipeId/edit'
     | '/_app/baby/$babyId/'
     | '/_app/foods/$foodId/'
@@ -896,11 +1005,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGGroupSlugAllRouteImport
       parentRoute: typeof AppGGroupSlugRoute
     }
+    '/_app/g/$groupSlug/bills': {
+      id: '/_app/g/$groupSlug/bills'
+      path: '/bills'
+      fullPath: '/g/$groupSlug/bills'
+      preLoaderRoute: typeof AppGGroupSlugBillsRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
+    '/_app/g/$groupSlug/calendar': {
+      id: '/_app/g/$groupSlug/calendar'
+      path: '/calendar'
+      fullPath: '/g/$groupSlug/calendar'
+      preLoaderRoute: typeof AppGGroupSlugCalendarRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
+    '/_app/g/$groupSlug/cheeses': {
+      id: '/_app/g/$groupSlug/cheeses'
+      path: '/cheeses'
+      fullPath: '/g/$groupSlug/cheeses'
+      preLoaderRoute: typeof AppGGroupSlugCheesesRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
+    '/_app/g/$groupSlug/finances': {
+      id: '/_app/g/$groupSlug/finances'
+      path: '/finances'
+      fullPath: '/g/$groupSlug/finances'
+      preLoaderRoute: typeof AppGGroupSlugFinancesRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
+    '/_app/g/$groupSlug/groceries': {
+      id: '/_app/g/$groupSlug/groceries'
+      path: '/groceries'
+      fullPath: '/g/$groupSlug/groceries'
+      preLoaderRoute: typeof AppGGroupSlugGroceriesRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
+    '/_app/g/$groupSlug/meal-planner': {
+      id: '/_app/g/$groupSlug/meal-planner'
+      path: '/meal-planner'
+      fullPath: '/g/$groupSlug/meal-planner'
+      preLoaderRoute: typeof AppGGroupSlugMealPlannerRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
+    '/_app/g/$groupSlug/notes': {
+      id: '/_app/g/$groupSlug/notes'
+      path: '/notes'
+      fullPath: '/g/$groupSlug/notes'
+      preLoaderRoute: typeof AppGGroupSlugNotesRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
+    '/_app/g/$groupSlug/pantry': {
+      id: '/_app/g/$groupSlug/pantry'
+      path: '/pantry'
+      fullPath: '/g/$groupSlug/pantry'
+      preLoaderRoute: typeof AppGGroupSlugPantryRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
     '/_app/g/$groupSlug/tasks': {
       id: '/_app/g/$groupSlug/tasks'
       path: '/tasks'
       fullPath: '/g/$groupSlug/tasks'
       preLoaderRoute: typeof AppGGroupSlugTasksRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
+    '/_app/g/$groupSlug/wines': {
+      id: '/_app/g/$groupSlug/wines'
+      path: '/wines'
+      fullPath: '/g/$groupSlug/wines'
+      preLoaderRoute: typeof AppGGroupSlugWinesRouteImport
       parentRoute: typeof AppGGroupSlugRoute
     }
     '/_app/recipes/$recipeId/': {
@@ -1013,7 +1185,16 @@ declare module '@tanstack/react-router' {
 
 interface AppGGroupSlugRouteChildren {
   AppGGroupSlugAllRoute: typeof AppGGroupSlugAllRoute
+  AppGGroupSlugBillsRoute: typeof AppGGroupSlugBillsRoute
+  AppGGroupSlugCalendarRoute: typeof AppGGroupSlugCalendarRoute
+  AppGGroupSlugCheesesRoute: typeof AppGGroupSlugCheesesRoute
+  AppGGroupSlugFinancesRoute: typeof AppGGroupSlugFinancesRoute
+  AppGGroupSlugGroceriesRoute: typeof AppGGroupSlugGroceriesRoute
+  AppGGroupSlugMealPlannerRoute: typeof AppGGroupSlugMealPlannerRoute
+  AppGGroupSlugNotesRoute: typeof AppGGroupSlugNotesRoute
+  AppGGroupSlugPantryRoute: typeof AppGGroupSlugPantryRoute
   AppGGroupSlugTasksRoute: typeof AppGGroupSlugTasksRoute
+  AppGGroupSlugWinesRoute: typeof AppGGroupSlugWinesRoute
   AppGGroupSlugIndexRoute: typeof AppGGroupSlugIndexRoute
   AppGGroupSlugBabyNewRoute: typeof AppGGroupSlugBabyNewRoute
   AppGGroupSlugFoodsNewRoute: typeof AppGGroupSlugFoodsNewRoute
@@ -1032,7 +1213,16 @@ interface AppGGroupSlugRouteChildren {
 
 const AppGGroupSlugRouteChildren: AppGGroupSlugRouteChildren = {
   AppGGroupSlugAllRoute: AppGGroupSlugAllRoute,
+  AppGGroupSlugBillsRoute: AppGGroupSlugBillsRoute,
+  AppGGroupSlugCalendarRoute: AppGGroupSlugCalendarRoute,
+  AppGGroupSlugCheesesRoute: AppGGroupSlugCheesesRoute,
+  AppGGroupSlugFinancesRoute: AppGGroupSlugFinancesRoute,
+  AppGGroupSlugGroceriesRoute: AppGGroupSlugGroceriesRoute,
+  AppGGroupSlugMealPlannerRoute: AppGGroupSlugMealPlannerRoute,
+  AppGGroupSlugNotesRoute: AppGGroupSlugNotesRoute,
+  AppGGroupSlugPantryRoute: AppGGroupSlugPantryRoute,
   AppGGroupSlugTasksRoute: AppGGroupSlugTasksRoute,
+  AppGGroupSlugWinesRoute: AppGGroupSlugWinesRoute,
   AppGGroupSlugIndexRoute: AppGGroupSlugIndexRoute,
   AppGGroupSlugBabyNewRoute: AppGGroupSlugBabyNewRoute,
   AppGGroupSlugFoodsNewRoute: AppGGroupSlugFoodsNewRoute,

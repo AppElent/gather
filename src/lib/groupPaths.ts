@@ -51,6 +51,20 @@ const GROUP_ROUTES = {
   editChild: `${GROUP_PREFIX}/baby/$babyId/edit`,
 
   tasks: `${GROUP_PREFIX}/tasks`,
+
+  // The Modules that are declared but not built yet. They live under the Group
+  // like every other Module rather than at a flat path of their own, so that
+  // "which Group am I in?" has the same answer on a placeholder as it does on
+  // Recipes — and so that nothing has to move when one of them grows a page.
+  mealPlanner: `${GROUP_PREFIX}/meal-planner`,
+  groceries: `${GROUP_PREFIX}/groceries`,
+  pantry: `${GROUP_PREFIX}/pantry`,
+  finances: `${GROUP_PREFIX}/finances`,
+  bills: `${GROUP_PREFIX}/bills`,
+  calendar: `${GROUP_PREFIX}/calendar`,
+  notes: `${GROUP_PREFIX}/notes`,
+  cheeses: `${GROUP_PREFIX}/cheeses`,
+  wines: `${GROUP_PREFIX}/wines`,
 } as const satisfies Record<string, LinkProps['to']>
 
 /** A page that exists inside a Group. */
@@ -111,6 +125,15 @@ const GROUP_MODULE_INDEXES = [
   'foods',
   'baby',
   'tasks',
+  'mealPlanner',
+  'groceries',
+  'pantry',
+  'finances',
+  'bills',
+  'calendar',
+  'notes',
+  'cheeses',
+  'wines',
 ] as const satisfies readonly GroupSurface[]
 
 export type GroupModuleIndex = (typeof GROUP_MODULE_INDEXES)[number]
@@ -219,14 +242,26 @@ export function groupIndexSurfaceOf(pathname: string): GroupModuleIndex | null {
 }
 
 /**
- * Where a Module lives inside a Group, or null when it has no Group-scoped
- * route yet. Keyed by `ModuleDef.id`.
+ * Where each Module lives inside a Group, keyed by `ModuleDef.id`.
+ *
+ * Total over `MODULES` — every Module has a Group surface, and a test holds it
+ * that way. This is the only place a Module's URL is written down; the registry
+ * itself carries no path, so there is nothing for the two to disagree about.
  */
 const MODULE_INDEX_SURFACES: Record<string, GroupModuleIndex> = {
   recipes: 'recipes',
   nutrition: 'nutrition',
   tasks: 'tasks',
   'baby-log': 'baby',
+  'meal-planner': 'mealPlanner',
+  groceries: 'groceries',
+  pantry: 'pantry',
+  finances: 'finances',
+  bills: 'bills',
+  calendar: 'calendar',
+  notes: 'notes',
+  cheeses: 'cheeses',
+  wines: 'wines',
 }
 
 export function groupSurfaceForModule(
