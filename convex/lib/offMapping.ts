@@ -28,7 +28,25 @@ interface OffResponse {
 }
 
 interface OffSearchResponse {
-  products?: unknown
+  hits?: unknown
+}
+
+// The v2 product-by-barcode API represents brands as a comma-joined string
+// ("Ferrero,Nutella"); search-a-licious (mapOffSearchResults' source)
+// represents the same field as a string array (["Nutella", " Ferrero"]).
+// Handle both shapes and return the first non-empty one, trimmed.
+function firstBrand(brands: unknown): string | undefined {
+  if (typeof brands === 'string') {
+    const first = brands.split(',')[0]?.trim()
+    return first || undefined
+  }
+  if (Array.isArray(brands)) {
+    const first = brands.find(
+      (b): b is string => typeof b === 'string' && b.trim() !== '',
+    )
+    return first?.trim()
+  }
+  return undefined
 }
 
 // Open Food Facts product names are per-product, not per-request-locale — a
@@ -95,14 +113,9 @@ function mapOffRawProduct(product: OffProduct): OffMappedFood {
     }
   }
 
-  const brand =
-    typeof product.brands === 'string' && product.brands.trim()
-      ? product.brands.split(',')[0].trim()
-      : undefined
-
   return {
     name: preferredName(product),
-    brand,
+    brand: firstBrand(product.brands),
     nutritionPer100,
     servingSize: parseServingSize(product),
     servingLabel:
@@ -125,20 +138,19 @@ export function mapOffProduct(raw: unknown): OffMappedFood | null {
   return mapOffRawProduct(product)
 }
 
-// Maps a raw Open Food Facts /api/v2/search response ({products: [...]}) to
-// a capped list of importable results. Unlike mapOffProduct, this drops
-// entries with no usable name (noise in a results list, spec §4.3 of the
-// 2026-07-20 OFF name-search design) or no barcode (unusable — the result
-// can't be upserted without one). Malformed/non-object input, or a missing
-// `products` array, returns an empty list — search is a soft fallback, never
-// throws.
+// Maps a raw search-a-licious /search response ({hits: [...]}) to a capped
+// list of importable results. Unlike mapOffProduct, this drops entries with
+// no usable name (noise in a results list, spec §4.3 of the 2026-07-20 OFF
+// name-search design) or no barcode (unusable — the result can't be
+// upserted without one). Malformed/non-object input, or a missing `hits`
+// array, returns an empty list — search is a soft fallback, never throws.
 export function mapOffSearchResults(raw: unknown): OffSearchResult[] {
   if (typeof raw !== 'object' || raw === null) return []
   const response = raw as OffSearchResponse
-  if (!Array.isArray(response.products)) return []
+  if (!Array.isArray(response.hits)) return []
 
   const results: OffSearchResult[] = []
-  for (const entry of response.products) {
+  for (const entry of response.hits) {
     if (typeof entry !== 'object' || entry === null) continue
     const product = entry as OffProduct
     const barcode =

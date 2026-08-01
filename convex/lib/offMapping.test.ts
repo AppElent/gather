@@ -129,9 +129,9 @@ describe('mapOffProduct — synthetic edge cases', () => {
 })
 
 describe('mapOffSearchResults', () => {
-  test('maps each product in the products array and attaches its barcode', () => {
+  test('maps each hit in the hits array and attaches its barcode', () => {
     const results = mapOffSearchResults({
-      products: [
+      hits: [
         {
           code: '3017620422003',
           product_name: 'Nutella',
@@ -152,16 +152,33 @@ describe('mapOffSearchResults', () => {
     ])
   })
 
+  // search-a-licious (the source of this response shape) represents brands
+  // as a string array, unlike the v2 product-by-barcode API's comma-joined
+  // string — this is the shape real responses actually use.
+  test('takes the first brand when brands is an array (search-a-licious shape)', () => {
+    const results = mapOffSearchResults({
+      hits: [
+        {
+          code: '8712800189930',
+          product_name: 'Chocomel Original',
+          brands: ['Chocomel', ' FrieslandCampina'],
+          nutriments: {},
+        },
+      ],
+    })
+    expect(results[0]?.brand).toBe('Chocomel')
+  })
+
   test('drops entries with no usable name', () => {
     const results = mapOffSearchResults({
-      products: [{ code: '111', nutriments: {} }],
+      hits: [{ code: '111', nutriments: {} }],
     })
     expect(results).toEqual([])
   })
 
   test('drops entries with a missing or empty barcode', () => {
     const results = mapOffSearchResults({
-      products: [
+      hits: [
         { product_name: 'No Code', nutriments: {} },
         { code: '', product_name: 'Empty Code', nutriments: {} },
       ],
@@ -171,7 +188,7 @@ describe('mapOffSearchResults', () => {
 
   test('prefers the Dutch product name, same as mapOffProduct', () => {
     const results = mapOffSearchResults({
-      products: [
+      hits: [
         {
           code: '222',
           product_name: 'Generic Name',
@@ -184,12 +201,12 @@ describe('mapOffSearchResults', () => {
   })
 
   test('caps the result at 20 entries', () => {
-    const products = Array.from({ length: 30 }, (_, i) => ({
+    const hits = Array.from({ length: 30 }, (_, i) => ({
       code: `${1000 + i}`,
       product_name: `Item ${i}`,
       nutriments: {},
     }))
-    const results = mapOffSearchResults({ products })
+    const results = mapOffSearchResults({ hits })
     expect(results).toHaveLength(20)
   })
 
@@ -197,6 +214,6 @@ describe('mapOffSearchResults', () => {
     expect(mapOffSearchResults(null)).toEqual([])
     expect(mapOffSearchResults('nope')).toEqual([])
     expect(mapOffSearchResults({})).toEqual([])
-    expect(mapOffSearchResults({ products: 'not-an-array' })).toEqual([])
+    expect(mapOffSearchResults({ hits: 'not-an-array' })).toEqual([])
   })
 })

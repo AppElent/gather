@@ -34,16 +34,23 @@ export async function fetchOffProduct(
 }
 
 // Searches Open Food Facts by free-text term (product name/brand) for the
-// "no local match" fallback in FoodAddTab. Same never-throw contract as
-// fetchOffProduct: returns the raw parsed JSON ({products: [...]} shape) on
+// "no local match" fallback in FoodAddTab. Full-text search is NOT part of
+// the world.openfoodfacts.org/api/v2 REST API — that API is structured/tag
+// search only and silently ignores an unrecognized `search_terms` param
+// (returning an unfiltered, identical-every-time page of the whole catalog
+// rather than an error, which is what shipped here originally). The actual
+// full-text search service is "search-a-licious" at search.openfoodfacts.org,
+// a separate host with its own response shape ({hits: [...]}, see
+// mapOffSearchResults) and `q` query param instead of `search_terms`. Same
+// never-throw contract as fetchOffProduct: returns the raw parsed JSON on
 // success, or null on any failure (network error, timeout, non-OK status,
 // invalid JSON) — the caller treats null the same as "no matches".
 export async function searchOffProducts(
   term: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<unknown | null> {
-  const url = new URL('https://world.openfoodfacts.org/api/v2/search')
-  url.searchParams.set('search_terms', term)
+  const url = new URL('https://search.openfoodfacts.org/search')
+  url.searchParams.set('q', term)
   url.searchParams.set('page_size', '20')
   url.searchParams.set(
     'fields',

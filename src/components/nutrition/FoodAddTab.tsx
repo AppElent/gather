@@ -14,11 +14,12 @@ import type {
 } from '../../../convex/lib/offMapping'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
 
-// Open Food Facts caps clients at 10 search requests/minute. Never fire two
-// OFF searches closer together than this from a single browser tab —
-// comfortably under the ~6s/request average the limit implies, leaving
-// headroom for the barcode-scan path's OFF calls too.
-const OFF_SEARCH_MIN_INTERVAL_MS = 4000
+// Open Food Facts documents a 10 search requests/minute cap on its legacy
+// search API; search-a-licious (the full-text search service this fallback
+// actually calls, see offFetch.ts) doesn't publish its own separate limit,
+// so treat 10/min as the conservative ceiling. 6.5s keeps a single tab under
+// ~9/min, leaving headroom for the barcode-scan path's OFF calls too.
+const OFF_SEARCH_MIN_INTERVAL_MS = 6500
 
 // _id is typed as the branded Id<'foods'>, not a plain string, because this
 // state is always populated directly from real Convex query results
