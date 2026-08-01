@@ -27,7 +27,7 @@ vi.mock('@appelent/auth', () => ({
       ▶ Dev: log in as test user
     </button>
   ),
-  useAuthConfig: () => ({ paths: { afterAuth: '/dashboard' } }),
+  useAuthConfig: () => ({ paths: { afterAuth: '/' } }),
 }))
 
 vi.mock('@tanstack/react-router', () => ({
@@ -66,7 +66,7 @@ test('redirects signed-in users away from the sign-in page', () => {
 
   render(<SignInPage />)
 
-  expect(navigateMock).toHaveBeenCalledWith({ to: '/dashboard' })
+  expect(navigateMock).toHaveBeenCalledWith({ to: '/' })
 })
 
 test('keeps form success navigation to the post-auth route', () => {
@@ -77,5 +77,5 @@ test('keeps form success navigation to the post-auth route', () => {
   render(<SignInPage />)
   fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
-  expect(navigateMock).toHaveBeenCalledWith({ to: '/dashboard' })
+  expect(navigateMock).toHaveBeenCalledWith({ to: '/' })
 })

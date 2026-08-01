@@ -9,12 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppSplatRouteImport } from './routes/_app/$'
 import { Route as AppAccountRouteImport } from './routes/_app/account'
 import { Route as AppBillsRouteImport } from './routes/_app/bills'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
@@ -70,11 +71,6 @@ import { Route as AppGGroupSlugFoodsFoodIdEditRouteImport } from './routes/_app/
 import { Route as AppGGroupSlugRecipesRecipeIdIndexRouteImport } from './routes/_app/g/$groupSlug/recipes/$recipeId.index'
 import { Route as AppGGroupSlugRecipesRecipeIdEditRouteImport } from './routes/_app/g/$groupSlug/recipes/$recipeId.edit'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -98,6 +94,16 @@ const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSplatRoute = AppSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppAccountRoute = AppAccountRouteImport.update({
   id: '/account',
@@ -380,11 +386,12 @@ const AppGGroupSlugRecipesRecipeIdEditRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
   '/about': typeof AboutRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/$': typeof AppSplatRoute
   '/account': typeof AppAccountRoute
   '/bills': typeof AppBillsRoute
   '/calendar': typeof AppCalendarRoute
@@ -441,11 +448,11 @@ export interface FileRoutesByFullPath {
   '/g/$groupSlug/recipes/$recipeId/': typeof AppGGroupSlugRecipesRecipeIdIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/$': typeof AppSplatRoute
   '/account': typeof AppAccountRoute
   '/bills': typeof AppBillsRoute
   '/calendar': typeof AppCalendarRoute
@@ -460,6 +467,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/tasks': typeof AppTasksRoute
   '/wines': typeof AppWinesRoute
+  '/': typeof AppIndexRoute
   '/baby/new': typeof AppBabyNewRoute
   '/foods/new': typeof AppFoodsNewRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
@@ -502,12 +510,12 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/about': typeof AboutRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/_app/$': typeof AppSplatRoute
   '/_app/account': typeof AppAccountRoute
   '/_app/bills': typeof AppBillsRoute
   '/_app/calendar': typeof AppCalendarRoute
@@ -522,6 +530,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/tasks': typeof AppTasksRoute
   '/_app/wines': typeof AppWinesRoute
+  '/_app/': typeof AppIndexRoute
   '/_app/baby/new': typeof AppBabyNewRoute
   '/_app/foods/new': typeof AppFoodsNewRoute
   '/_app/g/$groupSlug': typeof AppGGroupSlugRouteWithChildren
@@ -571,6 +580,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/sign-in'
     | '/sign-up'
+    | '/$'
     | '/account'
     | '/bills'
     | '/calendar'
@@ -627,11 +637,11 @@ export interface FileRouteTypes {
     | '/g/$groupSlug/recipes/$recipeId/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/about'
     | '/forgot-password'
     | '/sign-in'
     | '/sign-up'
+    | '/$'
     | '/account'
     | '/bills'
     | '/calendar'
@@ -646,6 +656,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/wines'
+    | '/'
     | '/baby/new'
     | '/foods/new'
     | '/integrations/callback'
@@ -687,12 +698,12 @@ export interface FileRouteTypes {
     | '/g/$groupSlug/recipes/$recipeId'
   id:
     | '__root__'
-    | '/'
     | '/_app'
     | '/about'
     | '/forgot-password'
     | '/sign-in'
     | '/sign-up'
+    | '/_app/$'
     | '/_app/account'
     | '/_app/bills'
     | '/_app/calendar'
@@ -707,6 +718,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/tasks'
     | '/_app/wines'
+    | '/_app/'
     | '/_app/baby/new'
     | '/_app/foods/new'
     | '/_app/g/$groupSlug'
@@ -750,7 +762,6 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AboutRoute: typeof AboutRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -760,13 +771,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_app': {
       id: '/_app'
       path: ''
@@ -801,6 +805,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/sign-up'
       preLoaderRoute: typeof SignUpRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/$': {
+      id: '/_app/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof AppSplatRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/account': {
       id: '/_app/account'
@@ -1245,6 +1263,7 @@ const AppGGroupSlugRouteWithChildren = AppGGroupSlugRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppSplatRoute: typeof AppSplatRoute
   AppAccountRoute: typeof AppAccountRoute
   AppBillsRoute: typeof AppBillsRoute
   AppCalendarRoute: typeof AppCalendarRoute
@@ -1259,6 +1278,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppTasksRoute: typeof AppTasksRoute
   AppWinesRoute: typeof AppWinesRoute
+  AppIndexRoute: typeof AppIndexRoute
   AppBabyNewRoute: typeof AppBabyNewRoute
   AppFoodsNewRoute: typeof AppFoodsNewRoute
   AppGGroupSlugRoute: typeof AppGGroupSlugRouteWithChildren
@@ -1277,6 +1297,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppSplatRoute: AppSplatRoute,
   AppAccountRoute: AppAccountRoute,
   AppBillsRoute: AppBillsRoute,
   AppCalendarRoute: AppCalendarRoute,
@@ -1291,6 +1312,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppTasksRoute: AppTasksRoute,
   AppWinesRoute: AppWinesRoute,
+  AppIndexRoute: AppIndexRoute,
   AppBabyNewRoute: AppBabyNewRoute,
   AppFoodsNewRoute: AppFoodsNewRoute,
   AppGGroupSlugRoute: AppGGroupSlugRouteWithChildren,
@@ -1311,7 +1333,6 @@ const AppRouteChildren: AppRouteChildren = {
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AboutRoute: AboutRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,

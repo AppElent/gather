@@ -1,0 +1,65 @@
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { useQuery } from 'convex/react'
+import { useEffect, useMemo } from 'react'
+import { api } from '../../../convex/_generated/api'
+import { groupLink } from '../../lib/groupPaths'
+import { landingGroupSlug } from '../../lib/landingGroup'
+import { legacyTarget } from '../../lib/legacyPaths'
+
+/**
+ * The one page that arrives without a Group and has to find one.
+ *
+ * Two routes render it: `/`, where nobody has said anything yet, and the splat
+ * that catches every address written before ADR-0002. They are the same job —
+ * work out which page was meant, work out which Group to read it in, and go
+ * there — so they are one component.
+ *
+ * It reads the URL, which pages under a Group are told never to do. The
+ * difference is that this *is* the URL's page: there is nothing else here, and
+ * what it does with the answer is replace it with an address that says the
+ * Group out loud. Nothing is stored on the way past.
+ */
+export function LandingRedirect() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const groups = useQuery(api.groups.myGroups)
+
+  const { pathname, hash, search } = location
+  // Rebuilt only when the address changes, so the effect below is not chasing a
+  // new object every render.
+  const target = useMemo(() => legacyTarget(pathname), [pathname])
+
+  useEffect(() => {
+    // Still asking. Guessing a Group here would mean redirecting twice and
+    // showing the wrong Group's Home in between.
+    if (groups === undefined) return
+
+    const groupSlug = landingGroupSlug(groups)
+    if (groupSlug === null) {
+      // In no Group at all, so there is no Group-scoped page to land on. The
+      // Groups list is where that gets fixed.
+      void navigate({ to: '/groups', replace: true })
+      return
+    }
+
+    const link = target ? target.link(groupSlug) : groupLink('home', groupSlug)
+    void navigate({
+      ...link,
+      search,
+      // A fragment names a place on the page and survives the move. TanStack
+      // stores it without the '#', and an empty one must stay absent rather
+      // than become a bare '#'.
+      hash: hash === '' ? undefined : hash,
+      // The address people typed is not a step in their history: going back
+      // from where they land should leave the app, not bounce off this page
+      // and forward again.
+      replace: true,
+    })
+  }, [groups, target, hash, search, navigate])
+
+  return (
+    <p className="py-16 text-center text-sm text-[var(--app-muted)]">
+      Taking you there…
+    </p>
+  )
+}
