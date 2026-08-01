@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { NutritionPanel } from './NutritionPanel'
+import { RecipeSharingPanel } from './RecipeSharingPanel'
 import type { RecipeNav } from './recipeNav'
 
 export interface RecipeDetailPageProps {
@@ -182,6 +183,18 @@ export function RecipeDetailPage({
           </div>
         </div>
       )}
+      {/* Where this recipe lives and who else can see it. Offered on the same
+          terms as Edit and Delete: moving or sharing follows the home Group,
+          not the shared list. */}
+      {recipe.canEdit && (
+        <RecipeSharingPanel
+          recipeId={recipe._id}
+          homeGroupName={recipe.homeGroupName}
+          homeGroupSlug={recipe.homeGroupSlug}
+          sharedGroups={recipe.sharedGroups}
+        />
+      )}
+
       {recipe.nutrition && (
         <NutritionPanel
           nutrition={recipe.nutrition}
