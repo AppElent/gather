@@ -19,9 +19,26 @@ timestamps come through unchanged, and it is why this migration is small.
 The two aux `taskLists` behind a child's to-do and questions cards move with
 them, so they do not end up in a Group the child no longer lives in.
 
+## Before anything here: 0001 and 0002 must already have run
+
+This migration ships in the same branch as `0001-group-slugs-and-personal-groups.md`
+and `0002-recipes-become-group-owned.md`, and step 1 below deploys **all three**
+tickets' schema at once. Convex validates the whole schema against the rows
+already on the deployment, so that deploy is rejected outright — writing nothing
+— while a single Group is missing `slug` or `isPersonal`, or a single recipe
+still carries `ownerId`.
+
+So on any deployment that has not had them: run 0001 end to end, then 0002, and
+only then step 1 here. On a deployment that has had them, step 1 is the ordinary
+deploy it looks like.
+
+A rejected deploy is safe — it is refused as a whole and nothing changes — but
+it is not a step in this migration, and hitting one here means the prerequisites
+were skipped rather than that something is wrong with the baby log.
+
 | Step | What | Reversible? |
 | --- | --- | --- |
-| 1 | Deploy | — nothing is written by the deploy |
+| 1 | Deploy — **after** 0001 and 0002 | — nothing is written by the deploy |
 | 2 | Verify, and **keep the output** | nothing written |
 | 3 | Decide which child belongs in which Group | — |
 | 4 | Run the move dry, per child, read the summary | nothing written |
@@ -47,8 +64,12 @@ pnpm run deploy:dev    # dev
 pnpm run deploy:prod   # prod
 ```
 
-The schema is unchanged, so this deploy writes nothing and cannot be rejected
-for a row it does not like. What it changes is the app: every baby query and
+Nothing in the *baby* tables changes shape, so no baby or event row can be the
+reason this deploy is rejected — and the deploy writes nothing either way. It
+can still be rejected for the Groups and recipes this branch's schema also
+tightens, which is what the prerequisites above are about.
+
+What it changes is the app: every baby query and
 mutation now takes the Group from the URL and refuses anything else. Until a
 child is in the Group its Members expect, that Group's pages will say there is
 no such child — which is the state steps 4 and 5 fix.
