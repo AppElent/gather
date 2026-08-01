@@ -1,9 +1,10 @@
 import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
-import { internalMutation } from './_generated/server'
+import { internalMutation, internalQuery } from './_generated/server'
 import { allocateGroupSlug } from './lib/groupSlugs'
 import { pickCanonicalUser } from './lib/sharing'
+import { stableDigest } from './lib/stableDigest'
 import { createPersonalGroup } from './users'
 
 /**
@@ -268,6 +269,200 @@ export const wipeRecipes = internalMutation({
       apply,
       recipesDeleted: recipes.length,
       entriesUnlinked: linked.length,
+    }
+  },
+})
+
+/**
+ * How many events a bounded sample takes, unless the caller says otherwise.
+ * Small enough to read side by side in a terminal.
+ */
+const DEFAULT_SAMPLE_SIZE = 20
+
+/**
+ * What the baby log looks like right now, per Group. Reads only — this is the
+ * instrument the migration is run *around*, not a step of it.
+ *
+ * Run it, move a child, run it again, and put the two outputs side by side:
+ * the per-Group counts are the only thing allowed to have changed, and every
+ * line of the sample must be identical. See
+ * docs/migrations/0003-baby-log-onto-group-scope.md, which says plainly to stop
+ * if it is not.
+ *
+ * The sample is the *oldest* entries by design. It is the part of the log that
+ * cannot be re-entered, it is what a botched move would damage, and it is
+ * stable while the app is still in use — a feed logged between the two runs
+ * lands at the far end and cannot shift the sampled rows.
+ *
+ * `data` is compared by digest rather than printed: the payloads are per-type
+ * objects whose key order is not guaranteed by anything, and a fingerprint
+ * diffs by eye where a wall of JSON does not.
+ */
+export const verifyBabyLogScope = internalQuery({
+  args: { sampleSize: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const sampleSize = args.sampleSize ?? DEFAULT_SAMPLE_SIZE
+    const groups = await ctx.db.query('groups').collect()
+    const memberships = await ctx.db.query('memberships').collect()
+    const babies = await ctx.db.query('babies').collect()
+    const events = await ctx.db.query('babyEvents').collect()
+
+    const membersOf = new Map<Id<'groups'>, number>()
+    for (const m of memberships) {
+      membersOf.set(m.groupId, (membersOf.get(m.groupId) ?? 0) + 1)
+    }
+    const eventsOf = new Map<Id<'babies'>, number>()
+    for (const e of events) {
+      eventsOf.set(e.babyId, (eventsOf.get(e.babyId) ?? 0) + 1)
+    }
+    const babyById = new Map(babies.map((b) => [b._id, b]))
+
+    const perGroup = groups
+      .map((group) => {
+        const held = babies.filter((b) => b.groupId === group._id)
+        return {
+          slug: group.slug,
+          isPersonal: group.isPersonal,
+          members: membersOf.get(group._id) ?? 0,
+          babies: held.length,
+          babyNames: held.map((b) => b.name).sort(),
+          events: held.reduce((n, b) => n + (eventsOf.get(b._id) ?? 0), 0),
+        }
+      })
+      // Sorted by slug so two runs list the Groups in the same order, whatever
+      // order the table happened to hand them over in.
+      .sort((a, b) => (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0))
+
+    const sample = [...events]
+      .sort((a, b) => a.timestamp - b.timestamp || (a._id < b._id ? -1 : 1))
+      .slice(0, sampleSize)
+      .map((e) => ({
+        baby: babyById.get(e.babyId)?.name ?? '(no such baby)',
+        type: e.type,
+        timestamp: e.timestamp,
+        loggedBy: e.loggedBy,
+        dataDigest: stableDigest(e.data),
+      }))
+
+    return {
+      totals: {
+        groups: groups.length,
+        babies: babies.length,
+        events: events.length,
+        // Every baby is accounted for by its Group, so the per-Group counts
+        // sum to the totals — unless an event hangs off a child that no longer
+        // exists, which is the one way a row could go missing unnoticed.
+        eventsWithoutBaby: events.filter((e) => !babyById.has(e.babyId)).length,
+      },
+      groups: perGroup,
+      sampleSize,
+      sample,
+    }
+  },
+})
+
+/** A Group as the move reports it — enough to see whether it is the right one. */
+async function groupSummary(ctx: MutationCtx, groupId: Id<'groups'>) {
+  const group = await ctx.db.get(groupId)
+  if (!group) return null
+  const members = await ctx.db
+    .query('memberships')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .collect()
+  return {
+    slug: group.slug,
+    name: group.name,
+    isPersonal: group.isPersonal,
+    members: members.length,
+  }
+}
+
+/**
+ * Move one child to a named Group, carrying their to-do and questions lists.
+ *
+ * Nothing here is destructive. A baby's events reference the *baby*, not a
+ * Group, so the whole log follows the child on one `groupId` patch and not a
+ * single event row is read, rewritten or reordered — which is the strongest
+ * guarantee available that payloads and timestamps come through unchanged. The
+ * two aux `taskLists` move with the child so they do not end up in a Group the
+ * child no longer lives in.
+ *
+ * **Which child belongs in which Group is the operator's call.** `defaultGroupId`
+ * meant "the last Group I picked" before #17 and "my Personal group" after it,
+ * so a child's current Group may or may not be the household one, and nothing
+ * in the data says which was meant. Both the child and the target Group are
+ * arguments; this does not guess, and a Personal target is reported rather than
+ * assumed to be wrong.
+ *
+ * Refuses a Group that does not exist, and a Group with no Members — nobody
+ * could read the log from there.
+ *
+ * Dry run by default — pass `{ apply: true }` to write. Idempotent: once the
+ * child is in the target Group a second run reports zero work and writes
+ * nothing.
+ */
+export const moveBabyToGroup = internalMutation({
+  args: {
+    babyId: v.id('babies'),
+    toGroupSlug: v.string(),
+    apply: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+
+    const baby = await ctx.db.get(args.babyId)
+    if (!baby) throw new Error('No baby has that id')
+
+    const target = await ctx.db
+      .query('groups')
+      .withIndex('by_slug', (q) => q.eq('slug', args.toGroupSlug))
+      .unique()
+    if (!target) throw new Error('No group has that slug')
+
+    const to = await groupSummary(ctx, target._id)
+    if (!to || to.members === 0) {
+      throw new Error('That group has no members — nobody could read the log')
+    }
+    const from = await groupSummary(ctx, baby.groupId)
+
+    const alreadyInTargetGroup = baby.groupId === target._id
+    if (!alreadyInTargetGroup && apply) {
+      await ctx.db.patch(baby._id, { groupId: target._id })
+    }
+
+    let taskListsMoved = 0
+    let taskListsMissing = 0
+    for (const field of ['taskListId', 'questionsListId'] as const) {
+      const listId = baby[field]
+      if (!listId) continue
+      const list = await ctx.db.get(listId)
+      if (!list) {
+        taskListsMissing++
+        continue
+      }
+      if (list.groupId === target._id) continue
+      taskListsMoved++
+      if (apply) await ctx.db.patch(listId, { groupId: target._id })
+    }
+
+    const events = await ctx.db
+      .query('babyEvents')
+      .withIndex('by_baby', (q) => q.eq('babyId', baby._id))
+      .collect()
+
+    return {
+      apply,
+      baby: { id: baby._id, name: baby.name },
+      from,
+      to,
+      alreadyInTargetGroup,
+      babiesMoved: alreadyInTargetGroup ? 0 : 1,
+      taskListsMoved,
+      taskListsMissing,
+      // The log follows the child. Reported so the operator can see how much
+      // is riding on the patch, and check it against the verification output.
+      eventsCarried: events.length,
+      eventsRewritten: 0,
     }
   },
 })
