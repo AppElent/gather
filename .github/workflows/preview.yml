@@ -20,6 +20,13 @@ jobs:
       WORKER_NAME: gather-pr-${{ github.event.pull_request.number }}
       CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
       VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.PREVIEW_CLERK_PUBLISHABLE_KEY }}
+      # Enables @appelent/auth's dev test-login button on the preview so the PR
+      # deployment can be signed into with one click. Only takes effect when the
+      # Clerk key is a `pk_test_...` instance. Note: Vite inlines VITE_* into the
+      # client bundle, so these creds are readable by anyone with the preview URL
+      # — keep this test user scoped to the Clerk test instance only.
+      VITE_TEST_USER_EMAIL: ${{ secrets.VITE_TEST_USER_EMAIL }}
+      VITE_TEST_USER_PASSWORD: ${{ secrets.VITE_TEST_USER_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -47,7 +54,7 @@ jobs:
           pnpm exec convex deploy \
             --preview-create pr-${{ github.event.pull_request.number }} \
             --cmd-url-env-var-name CONVEX_URL \
-            --cmd 'VITE_CONVEX_URL=$CONVEX_URL VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY pnpm build'
+            --cmd 'VITE_CONVEX_URL=$CONVEX_URL VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY VITE_TEST_USER_EMAIL="$VITE_TEST_USER_EMAIL" VITE_TEST_USER_PASSWORD="$VITE_TEST_USER_PASSWORD" pnpm build'
 
       - name: Deploy Worker (per-PR)
         id: deploy
