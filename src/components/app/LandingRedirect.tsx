@@ -19,6 +19,14 @@ import { legacyTarget } from '../../lib/legacyPaths'
  * what it does with the answer is replace it with an address that says the
  * Group out loud. Nothing is stored on the way past.
  */
+/**
+ * How long an empty list of Groups is treated as one that has not finished
+ * arriving. Long enough for `ensureUser` to insert a Personal group and for the
+ * query to push the new answer back; short enough that a genuinely group-less
+ * account is not left watching a message about going somewhere.
+ */
+const EMPTY_GRACE_MS = 5000
+
 export function LandingRedirect() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -47,15 +55,28 @@ export function LandingRedirect() {
     // showing the wrong Group's Home in between.
     if (groups === undefined) return
 
-    sent.current = true
-
     const groupSlug = landingGroupSlug(groups)
     if (groupSlug === null) {
-      // In no Group at all, so there is no Group-scoped page to land on. The
-      // Groups list is where that gets fixed.
-      void navigate({ to: '/groups', replace: true })
-      return
+      // An empty list usually means "not yet" rather than "none": `ensureUser`
+      // creates everybody's Personal group on the same mount that renders this,
+      // so on a first-ever visit the answer arrives empty and fills in a
+      // round-trip later. Sending a new arrival to the Groups list on that
+      // basis would greet them with a page about not being anywhere, moments
+      // before they were somewhere. Wait for the query to say otherwise —
+      // it is reactive, so it will.
+      //
+      // Not forever, though: a person whose Personal group has gone missing
+      // would wait on a Group that is never coming, and `ensureUser` only
+      // creates one alongside a new `users` row. After the grace period the
+      // Groups list is the honest answer after all.
+      const settle = setTimeout(() => {
+        sent.current = true
+        void navigate({ to: '/groups', replace: true })
+      }, EMPTY_GRACE_MS)
+      return () => clearTimeout(settle)
     }
+
+    sent.current = true
 
     const link = target ? target.link(groupSlug) : groupLink('home', groupSlug)
     void navigate({

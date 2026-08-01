@@ -109,12 +109,40 @@ test('takes the Group from the reader, not from the address', () => {
   )
 })
 
+/**
+ * A first-ever visit answers this query before `ensureUser` has finished
+ * creating the Personal group, so "no Groups" and "no Groups yet" arrive
+ * looking identical. Live, that greeted every new arrival with the Groups list
+ * instead of their own Home.
+ */
+test('waits out an empty list rather than greeting a new arrival with it', () => {
+  vi.useFakeTimers()
+  groups.value = []
+
+  const view = render(<LandingRedirect />)
+  expect(navigateMock).not.toHaveBeenCalled()
+
+  // `ensureUser` lands and the query pushes the Group back.
+  groups.value = [PERSONAL]
+  view.rerender(<LandingRedirect />)
+
+  expect(navigateMock).toHaveBeenCalledWith(
+    expect.objectContaining({ params: { groupSlug: 'me-alice' } }),
+  )
+  vi.useRealTimers()
+})
+
 test('sends someone in no Group somewhere they can join one', () => {
+  vi.useFakeTimers()
   groups.value = []
 
   render(<LandingRedirect />)
 
+  // Nothing arrives, so the list was telling the truth after all.
+  vi.advanceTimersByTime(5000)
+
   expect(navigateMock).toHaveBeenCalledWith({ to: '/groups', replace: true })
+  vi.useRealTimers()
 })
 
 /**
