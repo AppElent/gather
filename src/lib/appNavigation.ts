@@ -54,23 +54,21 @@ const ALL = 'all'
 export const DOCK_SLOTS = 5
 
 /**
- * Where Home points from wherever you are standing.
+ * Where Home points: the landing page of the Group you are standing in.
  *
- * Inside a Group that is the Group's own landing page. On a flat route there is
- * no Group in the URL to land in, so it falls back to the legacy surface —
- * which is exactly the fallback that disappears with the flat routes in #24.
+ * There is no answer without a Group. Home is *a Group's* shared surface
+ * (CONTEXT.md), so a Home that belongs to no Group is not a page that was
+ * removed — it is a page that never meant anything.
  */
-export function homeDestination(groupSlug: string | null): NavDestination {
-  return groupSlug ? groupLink(HOME, groupSlug) : { to: '/dashboard' }
+export function homeDestination(groupSlug: string): NavDestination {
+  return groupLink(HOME, groupSlug)
 }
 
-function allDestination(groupSlug: string | null): NavDestination {
-  return groupSlug
-    ? groupLink(ALL, groupSlug)
-    : { to: '/dashboard', hash: 'modules' }
+function allDestination(groupSlug: string): NavDestination {
+  return groupLink(ALL, groupSlug)
 }
 
-function moduleItem(module: ModuleDef, groupSlug: string | null): NavItem {
+function moduleItem(module: ModuleDef, groupSlug: string): NavItem {
   return {
     id: module.id,
     label: module.label,
@@ -91,11 +89,19 @@ function moduleItem(module: ModuleDef, groupSlug: string | null): NavItem {
  * Takes the stored Pin ids rather than resolved Modules, so an id no Module
  * declares is dropped on the way in — a Pin left behind by a Module that no
  * longer exists cannot put a hole in somebody's sidebar.
+ *
+ * Empty off any Group route, and that is the honest answer rather than a
+ * degraded one. Every item in this list — Home, a Module, All — names a page
+ * inside a Group; with no Group named there is nothing here to point at, and
+ * the surfaces that render it say so in words instead of showing rows that
+ * would have to guess a Group to go to.
  */
 export function navItems(
   pins: readonly string[] | undefined,
   groupSlug: string | null,
 ): NavItem[] {
+  if (!groupSlug) return []
+
   return [
     {
       id: HOME,
@@ -207,9 +213,16 @@ export interface JumpTarget {
  *
  * The shell's own pages carry no Module id and so stay flat wherever you are;
  * `/g/<slug>/settings` is not a thing, and Settings means the same page in
- * every Group.
+ * every Group. They are also all that is left to offer off a Group route —
+ * every other target here would have to invent a Group to be in.
  */
 export function jumpTargets(groupSlug: string | null): JumpTarget[] {
+  const shellPages: JumpTarget[] = [
+    { id: 'settings', label: 'Settings', link: { to: '/settings' } },
+    { id: 'groups', label: 'Groups', link: { to: '/groups' } },
+  ]
+  if (!groupSlug) return shellPages
+
   return [
     { id: HOME, label: 'Home', link: homeDestination(groupSlug) },
     ...MODULES.map((module) => ({
@@ -218,8 +231,7 @@ export function jumpTargets(groupSlug: string | null): JumpTarget[] {
       link: moduleLink(module, groupSlug),
     })),
     { id: ALL, label: 'All', link: allDestination(groupSlug) },
-    { id: 'settings', label: 'Settings', link: { to: '/settings' } },
-    { id: 'groups', label: 'Groups', link: { to: '/groups' } },
+    ...shellPages,
   ]
 }
 

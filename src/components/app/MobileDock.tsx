@@ -10,10 +10,17 @@ import { useNavigation } from './useNavigation'
  * shape is recognisably the same on both devices. Which item is active is
  * decided against the *full* list, not this one — a pin the dock had no room
  * for must not make the two surfaces disagree.
+ *
+ * Off a Group route the navigation is empty, so the dock is not there at all.
+ * A bar of nothing pinned to the bottom of a phone is a bar that still takes
+ * the space; Settings, Groups and Account are reached from the topbar — its
+ * navigation button and its user menu — which do not depend on a Group.
  */
 export function MobileDock() {
   const { items, activeId } = useNavigation()
   const shown = dockNavItems(items, activeId)
+
+  if (shown.length === 0) return null
 
   return (
     <nav

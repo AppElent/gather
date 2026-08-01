@@ -50,10 +50,13 @@ describe('the navigation list', () => {
     }
   })
 
-  test('falls back to a flat destination when no Group is in the URL', () => {
-    for (const item of navItems(['recipes'], null)) {
-      expect(String(item.link.to).startsWith('/g/')).toBe(false)
-    }
+  // Every row here names a page inside a Group. Off a Group route there is no
+  // Group to name, so there is nothing to render rather than something to
+  // render badly — the surfaces say so in words instead.
+  test('is empty off any Group route, however much I have pinned', () => {
+    expect(navItems(['recipes', 'tasks'], null)).toEqual([])
+    expect(navItems(undefined, null)).toEqual([])
+    expect(navItems([], null)).toEqual([])
   })
 
   test('marks a Module whose data is only ever mine', () => {
@@ -251,10 +254,11 @@ describe('where the jump-to palette can send you', () => {
     }
   })
 
-  test('falls back to flat destinations outside any Group', () => {
-    for (const target of jumpTargets(null)) {
-      expect(String(target.link.to).startsWith('/g/')).toBe(false)
-    }
+  // Outside a Group only the pages that exist outside one are offered. Anything
+  // else would have to pick a Group on the reader's behalf, which is the thing
+  // the slug in the URL exists to stop (ADR-0002).
+  test('offers only the pages that exist without a Group, outside one', () => {
+    expect(jumpTargets(null).map((t) => t.id)).toEqual(['settings', 'groups'])
   })
 
   test('names each destination once', () => {

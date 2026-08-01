@@ -17,6 +17,11 @@ export interface SidebarProps {
  * never opens. That was never a reason to let a Group switch Modules off:
  * everything stays available, and All is one click away at the bottom of this
  * same list.
+ *
+ * Off a Group route — Settings, Account, the Groups list — there is no list to
+ * render, and the sidebar says that in a sentence rather than showing rows that
+ * would each have to pick a Group for you. The switcher above it already reads
+ * "No group / Pick a group", and picking one is the way out.
  */
 export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
   const isDrawer = variant === 'drawer'
@@ -33,34 +38,40 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
     >
       <GroupSwitcher onNavigate={onNavigate} />
 
-      <nav className="grid gap-1" aria-label="Primary">
-        {items.map((item) => (
-          <Link
-            key={item.id}
-            {...item.link}
-            onClick={onNavigate}
-            aria-current={item.id === activeId ? 'page' : undefined}
-            className={`grid min-h-10 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline ${
-              item.id === activeId
-                ? 'border-[var(--app-fg)] bg-[var(--app-surface)]'
-                : ''
-            }`}
-          >
-            <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
-              <Icon name={item.icon} className="h-4 w-4" />
-            </span>
-            <span className="truncate">{item.label}</span>
-            <span className="flex shrink-0 items-center gap-1">
-              {item.placeholder ? <Pill>Soon</Pill> : null}
-              {item.personal ? (
-                <span title="Only you can see this. It is the same in every group.">
-                  <Pill>Only you</Pill>
-                </span>
-              ) : null}
-            </span>
-          </Link>
-        ))}
-      </nav>
+      {items.length === 0 ? (
+        <p className="m-0 px-2 text-sm leading-6 text-[var(--app-muted)]">
+          Pick a group to see its modules.
+        </p>
+      ) : (
+        <nav className="grid gap-1" aria-label="Primary">
+          {items.map((item) => (
+            <Link
+              key={item.id}
+              {...item.link}
+              onClick={onNavigate}
+              aria-current={item.id === activeId ? 'page' : undefined}
+              className={`grid min-h-10 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline ${
+                item.id === activeId
+                  ? 'border-[var(--app-fg)] bg-[var(--app-surface)]'
+                  : ''
+              }`}
+            >
+              <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
+                <Icon name={item.icon} className="h-4 w-4" />
+              </span>
+              <span className="truncate">{item.label}</span>
+              <span className="flex shrink-0 items-center gap-1">
+                {item.placeholder ? <Pill>Soon</Pill> : null}
+                {item.personal ? (
+                  <span title="Only you can see this. It is the same in every group.">
+                    <Pill>Only you</Pill>
+                  </span>
+                ) : null}
+              </span>
+            </Link>
+          ))}
+        </nav>
+      )}
 
       <section className="mt-auto rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
         <div className="mb-3 flex items-center justify-between gap-2">
