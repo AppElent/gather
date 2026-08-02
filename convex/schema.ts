@@ -12,14 +12,14 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     defaultGroupId: v.optional(v.id('groups')),
     nutritionTargets: v.optional(nutritionValidator),
-    // The Modules this person keeps in their own navigation, in their own
-    // order. A Pin is always personal — it is never set for a Group
-    // (CONTEXT.md), which is why it lives on the user row and nowhere else.
+    // Where Pins used to live, back when one person had one set of them for
+    // every Group at once. They are per Group now and live on the membership
+    // row below (ADR-0004); nothing writes this field any more.
     //
-    // Opaque strings, deliberately: the Module catalog is a client concept and
-    // this schema must not know it. Absent means "has never chosen", which is
-    // what lets a new person start from the default defined in code without a
-    // backfill; an empty array means "chose to keep none".
+    // It is still read, as the seed for a Group somebody has not chosen pins
+    // in — which is what lets the change land without a backfill and without
+    // anyone signing in to find their navigation reset. The contract half of
+    // expand–contract: droppable once every membership carries its own list.
     pinnedModuleIds: v.optional(v.array(v.string())),
   }).index('by_clerkId', ['clerkId']),
 
@@ -39,6 +39,21 @@ export default defineSchema({
     groupId: v.id('groups'),
     userId: v.id('users'),
     role: v.union(v.literal('admin'), v.literal('member')),
+    // The Modules this person keeps in *this* Group's navigation, in their own
+    // order (ADR-0004). A membership is already exactly one person in one
+    // Group, so the pair needs no table of its own — and a Pin then has the
+    // lifetime it should: leave the Group and your choices for it go with the
+    // row, instead of outliving your access to the place they described.
+    //
+    // Still one person's choice and still invisible to the rest of the Group.
+    // What changed is that a wine club and a household are different rooms, and
+    // the Modules worth reaching first differ between them.
+    //
+    // Opaque strings, deliberately: the Module catalog is a client concept and
+    // this schema must not know it. Absent means "has not chosen in this
+    // Group", which falls back to the person's pre-ADR-0004 list and then to
+    // the default defined in code; an empty array means "chose to keep none".
+    pinnedModuleIds: v.optional(v.array(v.string())),
   })
     .index('by_user', ['userId'])
     .index('by_group', ['groupId']),

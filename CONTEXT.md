@@ -37,8 +37,9 @@ log, integration connections.
 
 **Personal**:
 Records *about a person* rather than content they authored — their food diary,
-their nutrition targets, their pins. These follow the person across every Group
-and belong to no Group.
+their nutrition targets. These follow the person across every Group and belong
+to no Group. Pins were listed here and are not any more: they are one person's,
+but they are *about* a Group and are kept per Group (ADR-0004).
 
 **Catalog**:
 Reference data owned by nobody and readable by everybody — the food database.
@@ -53,8 +54,11 @@ available in every Group; a Group never enables or disables one.
 _Avoid_: Feature, App, Section, Widget
 
 **Pin**:
-One person's choice to keep a Module in their own sidebar. A Pin is always
-personal — it is never set for a Group.
+One person's choice to keep a Module in their own sidebar **in one Group**. A
+Pin is always one person's — never a Group's, and never visible to the rest of
+it — but it is kept per Group, because what you reach for first in a wine club
+is not what you reach for first at home (ADR-0004). Pinning never enables a
+Module: every Module is available in every Group either way.
 _Avoid_: Favourite, Shortcut, Bookmark, Enabled module
 
 **Home**:

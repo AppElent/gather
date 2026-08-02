@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
+import { requireGroupBySlug } from './lib/groupAccess'
 import { allocateGroupSlug } from './lib/groupSlugs'
 import { nutritionValidator } from './lib/nutrition'
 import { getCurrentUser, getUserByClerkId } from './lib/sharing'
@@ -94,7 +95,27 @@ export const ensureUser = mutation({
 export const MAX_PINNED_MODULES = 32
 
 /**
- * Replace the caller's Pins with the whole ordered list.
+ * The caller's Pins in one Group, or null if they have never chosen any.
+ *
+ * Null rather than the default list, because "has not chosen" and "chose these"
+ * are different answers and only the client knows the Module catalog the
+ * default is written in. `pinnedModuleIds` in `src/lib/pins.ts` turns the
+ * former into the latter.
+ *
+ * The fallback to the person's pre-ADR-0004 list is what makes a Group they
+ * have not touched since the change open with the pins they are used to,
+ * rather than with a default that would read as having lost them.
+ */
+export const myPins = query({
+  args: { groupSlug: v.string() },
+  handler: async (ctx, args) => {
+    const { user, membership } = await requireGroupBySlug(ctx, args.groupSlug)
+    return membership.pinnedModuleIds ?? user.pinnedModuleIds ?? null
+  },
+})
+
+/**
+ * Replace the caller's Pins in one Group with the whole ordered list.
  *
  * One ordered array covers adding, removing and reordering in a single shape,
  * so there is no way for three mutations to disagree about what the order is.
@@ -105,15 +126,16 @@ export const MAX_PINNED_MODULES = 32
  * where the catalog is known, when the list is read. All this does is refuse
  * duplicates and refuse an unbounded list.
  *
- * Pins are personal (CONTEXT.md): this writes to the caller's own row and can
- * reach no other person's, so one member's choices are invisible to the rest
- * of their Group by construction.
+ * Pins are still personal: this writes to the caller's own membership, reached
+ * through the Group in the URL and their own identity, so it can touch no other
+ * person's row and one Member's choices stay invisible to the rest of their
+ * Group by construction. What ADR-0004 changed is only which Group the choice
+ * is about.
  */
 export const setPins = mutation({
-  args: { moduleIds: v.array(v.string()) },
+  args: { groupSlug: v.string(), moduleIds: v.array(v.string()) },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    const { membership } = await requireGroupBySlug(ctx, args.groupSlug)
 
     const pinnedModuleIds: string[] = []
     for (const id of args.moduleIds) {
@@ -121,7 +143,7 @@ export const setPins = mutation({
       if (!pinnedModuleIds.includes(id)) pinnedModuleIds.push(id)
     }
 
-    await ctx.db.patch(user._id, { pinnedModuleIds })
+    await ctx.db.patch(membership._id, { pinnedModuleIds })
   },
 })
 

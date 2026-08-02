@@ -64,18 +64,20 @@ const BUTTON =
 
 function AllModulesPage() {
   const { groupSlug } = Route.useParams()
-  const me = useQuery(api.users.me)
+  // This Group's pins, not the reader's everywhere-pins (ADR-0004) — the page
+  // is inside a Group and every pin it shows or writes is about that one.
+  const pins = useQuery(api.users.myPins, { groupSlug })
   const savePins = useMutation(api.users.setPins)
 
   // Until the answer arrives, showing the default would be showing somebody
   // else's pins — an empty list and disabled buttons is the honest state.
-  const loaded = me !== undefined
-  const ids = loaded ? pinnedModuleIds(me?.pinnedModuleIds) : []
-  const pinned = loaded ? pinnedModules(me?.pinnedModuleIds) : []
+  const loaded = pins !== undefined
+  const ids = loaded ? pinnedModuleIds(pins ?? undefined) : []
+  const pinned = loaded ? pinnedModules(pins ?? undefined) : []
   const byGroup = modulesByGroup()
 
   const write = (next: string[]) => {
-    void savePins({ moduleIds: next })
+    void savePins({ groupSlug, moduleIds: next })
   }
 
   return (
@@ -84,7 +86,8 @@ function AllModulesPage() {
         <h1 className="m-0 text-2xl font-semibold">All modules</h1>
         <p className="mt-1 mb-0 text-sm leading-6 text-[var(--app-muted)]">
           Every module is available in this group. Pinning one keeps it in your
-          own navigation — nobody else in the group sees your choices.
+          own navigation here — nobody else in the group sees your choices, and
+          your other groups keep their own.
         </p>
       </header>
 

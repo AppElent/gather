@@ -1,6 +1,10 @@
 /**
  * Pins: the Modules one person keeps in their own navigation, in their own
- * order (CONTEXT.md).
+ * order, in one Group (CONTEXT.md, ADR-0004).
+ *
+ * Which Group is settled before anything reaches here — a caller passes the
+ * list it was handed for the Group it is drawing. Everything below is the same
+ * work whichever Group the strings came from.
  *
  * The backend stores opaque strings and knows nothing about the Module
  * catalog. Everything that turns those strings into Modules — the default for

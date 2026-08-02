@@ -21,9 +21,7 @@ import { Sidebar } from './Sidebar'
  */
 
 const location = vi.hoisted(() => ({ pathname: '/settings' }))
-const me = vi.hoisted(() => ({
-  value: { pinnedModuleIds: ['recipes', 'tasks'] } as unknown,
-}))
+const pins = vi.hoisted(() => ({ value: ['recipes', 'tasks'] as unknown }))
 const groups = vi.hoisted(() => ({ value: [] as unknown }))
 
 /**
@@ -74,17 +72,26 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 vi.mock('convex/react', () => ({
-  useQuery: (name: string) =>
-    name === 'groups:myGroups' ? groups.value : me.value,
+  // Pins are asked for per Group since ADR-0004, and not asked for at all when
+  // there is no Group to ask about — `'skip'` is Convex's token for that, and
+  // the mock honours it so a test cannot pass on pins the app never requested.
+  useQuery: (name: string, args: unknown) => {
+    if (name === 'groups:myGroups') return groups.value
+    if (name === 'users:myPins') return args === 'skip' ? undefined : pins.value
+    return undefined
+  },
 }))
 
 vi.mock('../../../convex/_generated/api', () => ({
-  api: { users: { me: 'users:me' }, groups: { myGroups: 'groups:myGroups' } },
+  api: {
+    users: { myPins: 'users:myPins' },
+    groups: { myGroups: 'groups:myGroups' },
+  },
 }))
 
 beforeEach(() => {
   location.pathname = '/settings'
-  me.value = { pinnedModuleIds: ['recipes', 'tasks'] }
+  pins.value = ['recipes', 'tasks']
   groups.value = [
     { _id: 'g1', name: 'Alice', slug: 'me-alice', isPersonal: true },
   ]

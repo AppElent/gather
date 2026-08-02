@@ -26,9 +26,12 @@ export function useNavigation(): {
   activeId: string | null
 } {
   const location = useLocation()
-  const me = useQuery(api.users.me)
   const { slug } = useShellGroup()
-  const items = navItems(me?.pinnedModuleIds, slug)
+  // Pins belong to a person *in a Group* (ADR-0004), so there is nothing to ask
+  // for until there is a Group to ask about — and `navItems` renders nothing
+  // without one either.
+  const pins = useQuery(api.users.myPins, slug ? { groupSlug: slug } : 'skip')
+  const items = navItems(pins ?? undefined, slug)
 
   return { items, activeId: activeNavItemId(location.pathname, items) }
 }
