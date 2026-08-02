@@ -258,6 +258,23 @@ describe('where the jump-to palette can send you', () => {
   test('names each destination once', () => {
     expect(new Set(labels(SLUG)).size).toBe(labels(SLUG).length)
   })
+
+  // A Group's settings and your own are two pages, and the palette is where
+  // they are most easily confused: both would otherwise be one word.
+  test('offers this Group’s settings, apart from your own', () => {
+    const settings = jumpTargets(SLUG).filter((t) =>
+      t.label.toLowerCase().includes('settings'),
+    )
+    expect(settings.map((t) => t.label)).toEqual(['Group settings', 'Settings'])
+    expect(settings[0].link.params).toMatchObject({ groupSlug: SLUG })
+    expect(settings[1].link.to).toBe('/settings')
+  })
+
+  test('offers no Group settings when you are standing in no Group', () => {
+    expect(jumpTargets(null).map((t) => t.label)).not.toContain(
+      'Group settings',
+    )
+  })
 })
 
 describe('the route context the topbar shows', () => {
