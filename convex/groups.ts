@@ -2,7 +2,11 @@ import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import { mutation, query } from './_generated/server'
 import type { MutationCtx } from './_generated/server'
-import { getMembership, resolveGroupBySlug } from './lib/groupAccess'
+import {
+  getMembership,
+  requireGroupBySlug,
+  resolveGroupBySlug,
+} from './lib/groupAccess'
 import { allocateGroupSlug } from './lib/groupSlugs'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
 
@@ -78,6 +82,46 @@ export const bySlug = query({
       },
       role,
     }
+  },
+})
+
+/**
+ * Who is in the Group the URL names.
+ *
+ * Home shows this whether or not anything has happened yet: it is what makes a
+ * Group worth opening on day one, and it is what gives the names in the
+ * activity stream faces to belong to. Authorised through the same resolution as
+ * everything else — the membership list of a Group you are not in is not
+ * public.
+ *
+ * A name and a standing, and nothing else. No email, because a Member list is
+ * not a reason to hand out addresses; no `inviteCode`, for the reason `bySlug`
+ * does not return one either — it is a capability, and a query that answers
+ * "who is here" has no business also answering "how do I let someone else in".
+ * Inviting lives on `/groups`.
+ */
+export const members = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.slug)
+    const memberships = await ctx.db
+      .query('memberships')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const users = await Promise.all(
+      memberships.map(async (m) => ({ m, user: await ctx.db.get(m.userId) })),
+    )
+    return users
+      .filter(
+        (row): row is { m: Doc<'memberships'>; user: Doc<'users'> } =>
+          row.user !== null,
+      )
+      .map(({ m, user }) => ({
+        userId: user._id,
+        name: user.name,
+        role: m.role,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
   },
 })
 
