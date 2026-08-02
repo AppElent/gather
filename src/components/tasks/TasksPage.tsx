@@ -42,7 +42,13 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
   }
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-4">
+    // Full width. The shell's `main` already supplies the page's margins, so a
+    // `max-w-5xl` on top of them centred the content inside its own column and
+    // left dead space either side — and with a two-column grid inside that, one
+    // list sat in the left half of an already-narrow measure and the page read
+    // as mostly empty. Cards of task titles are not prose and want no reading
+    // measure; they want the columns the width buys.
+    <div className="grid gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="m-0 text-2xl font-semibold">Tasks</h2>
@@ -70,7 +76,7 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
       )}
 
       {lists === undefined ? (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {[0, 1].map((i) => (
             <div
               key={i}
@@ -95,7 +101,9 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
           </div>
         </SurfaceCard>
       ) : (
-        <div className="grid items-start gap-3 md:grid-cols-2">
+        // A third column once there is room for one, so the extra width goes
+        // into more lists side by side rather than into two very wide cards.
+        <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
           {lists.map((l) =>
             l.provider === 'local' ? (
               <LocalTaskList
