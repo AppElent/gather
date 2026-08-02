@@ -21,9 +21,14 @@ function GroupSettings() {
   const group = useGroup()
 
   return (
-    <div className="mx-auto grid max-w-2xl gap-4">
+    // See `GroupHome` for why the track is `minmax(0,1fr)` and the heading is
+    // `wrap-anywhere`: a Group's name is somebody else's input and can be one
+    // long word, which an `auto` track would widen the whole page to fit.
+    <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-4">
       <header>
-        <h1 className="m-0 text-xl font-semibold">{group.name} settings</h1>
+        <h1 className="m-0 text-xl font-semibold wrap-anywhere">
+          {group.name} settings
+        </h1>
         <p className="mt-1 mb-0 text-sm leading-6 text-[var(--app-muted)]">
           Settings shared by everyone in this group. Your own appearance and
           account settings are in Settings, and are the same in every group.

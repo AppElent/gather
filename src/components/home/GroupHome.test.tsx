@@ -293,11 +293,13 @@ describe('nothing is stored per person, and nothing is editable', () => {
 })
 
 describe('what a phone has to survive', () => {
+  // Every name here is one unbroken word on purpose. A long name *with spaces*
+  // wraps by itself and proves nothing; the case that broke this page is the
+  // one the browser cannot break for you.
   test('a long name and a long title wrap instead of setting a width', () => {
     activity.value = [
       entry({
-        title:
-          'Slow-roasted shoulder of lamb with anchovy, rosemary and a great many potatoes',
+        title: 'Slowroastedlambshoulderwithanchovyrosemaryandflatbreads',
       }),
     ]
     members.value = [
@@ -310,28 +312,34 @@ describe('what a phone has to survive', () => {
     render(
       <GroupHome
         groupSlug="jansen-household"
-        groupName="The Jansen and De Vries Extended Household Cooking Collective"
+        groupName="Vandenbergenhuishoudenoverdewintermaanden"
         isPersonal={false}
       />,
     )
 
+    // jsdom does no layout, so these are assertions about the two properties
+    // that decide whether a long word can overflow — not about the width of
+    // anything. Both are needed and neither is enough on its own: the track has
+    // to be allowed to shrink, and the word has to be willing to break.
+    //
+    // `wrap-anywhere` and not `break-words`, which is the trap this page fell
+    // into: `overflow-wrap: break-word` breaks the word when it is *drawn* but
+    // still reports the unbroken word as its minimum size, so the grid track is
+    // already too wide. Only `anywhere` lowers the minimum. The page overflowed
+    // a 375px viewport with these tests passing.
     const heading = screen.getByRole('heading', { level: 1 })
-    expect(heading.className).toContain('break-words')
+    expect(heading.className).toContain('wrap-anywhere')
+    expect(heading.closest('div')?.className).toContain('minmax(0,1fr)')
 
-    // The row that carries the title is a two-column grid whose text column is
-    // `minmax(0,1fr)` and `min-w-0`; without both, a long unbroken title makes
-    // the grid wider than the viewport instead of wrapping.
     const row = screen
       .getByRole('region', { name: 'Recent activity' })
       .querySelector('li')
     expect(row?.className).toContain('minmax(0,1fr)')
     expect(row?.querySelector('div')?.className).toContain('min-w-0')
-    expect(row?.querySelector('p')?.className.includes('break-words')).toBe(
-      true,
-    )
+    expect(row?.querySelector('p')?.className).toContain('wrap-anywhere')
 
     const name = screen.getByText('Annabelle-Charlotte Van Der Meer-Jansen')
-    expect(name.className).toContain('break-words')
+    expect(name.className).toContain('wrap-anywhere')
   })
 
   test('the page never lays anything out in a table', () => {

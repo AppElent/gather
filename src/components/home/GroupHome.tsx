@@ -62,7 +62,7 @@ function MemberList({ groupSlug, groupName, isPersonal }: GroupHomeProps) {
             >
               {/* Wraps rather than truncating: a name is the one thing on this
                   card a reader cannot guess from the rest of it. */}
-              <span className="min-w-0 break-words">{member.name}</span>
+              <span className="min-w-0 wrap-anywhere">{member.name}</span>
               {/* The pill never wraps, so it has to be the part that keeps its
                   width while the name beside it gives way. */}
               {member.role === 'admin' ? (
@@ -149,10 +149,12 @@ function ActivityRow({
         <Icon name={activityModuleIcon(entry.kind)} className="h-4 w-4" />
       </span>
       <div className="min-w-0">
-        {/* `break-words` and no fixed width anywhere on this row: a long recipe
-            title has to wrap onto the next line rather than push the page
-            sideways on a phone. */}
-        <p className="m-0 text-sm leading-6 break-words">
+        {/* `minmax(0,1fr)` above and `wrap-anywhere` here, and no fixed width
+            anywhere on this row: a long recipe title has to wrap onto the next
+            line rather than push the page sideways on a phone. Both halves are
+            needed — the track has to be allowed to shrink, and the word has to
+            be willing to break. */}
+        <p className="m-0 text-sm leading-6 wrap-anywhere">
           <span className="font-semibold">{entry.byName ?? UNKNOWN_ACTOR}</span>{' '}
           {phrase.verb} <EntryTitle entry={entry} groupSlug={groupSlug} />
           {entry.context && phrase.connector
@@ -210,9 +212,21 @@ export function GroupHome({
   const activity = useQuery(api.activity.forGroup, { groupSlug })
 
   return (
-    <div className="mx-auto grid max-w-2xl gap-4">
+    // `grid-cols-[minmax(0,1fr)]` rather than a bare `grid`: an implicit track
+    // is sized `auto`, whose floor is the widest thing in it, so one unbreakable
+    // word sets a width the whole page then has to be scrolled sideways to read.
+    // `max-w-2xl` does not save it — a maximum cannot argue with a minimum.
+    <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-4">
       <header>
-        <h1 className="m-0 text-2xl font-semibold break-words">{groupName}</h1>
+        {/* `wrap-anywhere`, not `break-words`. They look alike and only one of
+            them counts here: `break-word` breaks a long word when it is drawn
+            but still reports the whole word as the smallest this can be, so the
+            track is already too wide by the time it wraps. `anywhere` is the one
+            that lowers the minimum. A Group's name is somebody else's input and
+            can be one long word. */}
+        <h1 className="m-0 text-2xl font-semibold wrap-anywhere">
+          {groupName}
+        </h1>
         <p className="mt-1 mb-0 text-sm leading-6 text-[var(--app-muted)]">
           {isPersonal
             ? 'Your own group. Anything kept here is private to you.'
