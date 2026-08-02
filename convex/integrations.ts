@@ -77,7 +77,7 @@ export const disconnect = mutation({
  * The caller and the Group they named, for an action, which has no `ctx.db`.
  *
  * `requireGroupBySlug` refuses anyone who is not a Member, so an action holding
- * this result is holding an authorised Group - which is the one `completeOAuth`
+ * this result is holding an authorised Group — which is the one `completeOAuth`
  * may store a token against.
  */
 export const getAuthorisedGroup = internalQuery({

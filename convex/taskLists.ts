@@ -51,7 +51,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     // A list belongs to the Group in the URL, and the connection it links to
-    // has to belong there too - both read the same groupId, so a slug cannot
+    // has to belong there too — both read the same groupId, so a slug cannot
     // be used to borrow another Group's Notion token.
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     const groupId = group._id
