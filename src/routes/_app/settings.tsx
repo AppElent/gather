@@ -1,6 +1,7 @@
 import { AppearanceSettings } from '@appelent/auth'
 import { createFileRoute } from '@tanstack/react-router'
 import { ConnectionsSettings } from '../../components/settings/ConnectionsSettings'
+import { SampleDataSettings } from '../../components/settings/SampleDataSettings'
 
 export const Route = createFileRoute('/_app/settings')({
   component: () => (
@@ -8,6 +9,8 @@ export const Route = createFileRoute('/_app/settings')({
       <h1 className="m-0 mb-4 text-xl font-semibold">Settings</h1>
       <AppearanceSettings />
       <ConnectionsSettings />
+      {/* Renders nothing unless this build enabled sample data. */}
+      <SampleDataSettings />
     </div>
   ),
 })

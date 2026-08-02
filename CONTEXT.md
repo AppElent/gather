@@ -41,9 +41,15 @@ their nutrition targets, their pins. These follow the person across every Group
 and belong to no Group.
 
 **Catalog**:
-Reference data owned by nobody and readable by everybody — the food database.
-Neither Group-scoped nor Personal.
+Reference data owned by nobody and readable by everybody — the foods that ship
+with Gather. Neither Group-scoped nor Personal. A Catalog entry has no author
+and nobody may edit it; it changes only when a new version of Gather ships a
+different one.
 _Avoid_: Global data, Public data
+
+A food *a person added themselves* is not Catalog. It sits alongside the
+Catalog and looks the same when you search, but it has Attribution and its
+creator can change it.
 
 ### Content
 
@@ -82,9 +88,18 @@ never grants access: it is checked on read, and it may point at something the
 reader can no longer see.
 _Avoid_: Link, Source
 
+**Sample household**:
+A complete, fake Group — members, recipes, tasks, a baby's log, a food diary —
+that exists so a test or preview environment can be looked at. Never present in
+production. Not Catalog: the Catalog is real data everyone gets, the Sample
+household is pretend data nobody outside testing ever sees.
+_Avoid_: Demo data, Dummy data, Test data, Seed data
+
 ## Standing rules
 
 - A Personal record **snapshots** what it references. Provenance is
   permission-checked on read and safe to dangle.
 - Content in a Group is visible to that Group. Privacy comes from *which Group*
   something lives in, never from a flag on the content.
+- The Catalog is read-only and always reflects the shipped version. A person
+  who needs a different entry creates their own alongside it.

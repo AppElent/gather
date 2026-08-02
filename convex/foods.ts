@@ -1,4 +1,4 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { nutritionValidator } from './lib/nutrition'
 import { getCurrentUser } from './lib/sharing'
@@ -78,6 +78,14 @@ export const update = mutation({
     const { id, ...rest } = args
     const food = await ctx.db.get(id)
     if (!food) throw new Error('Food not found')
+    // Catalog entries are owned by nobody and read-only (ADR 0004). Allowing
+    // the edit would be worse than refusing it: the next Catalog seed
+    // overwrites unconditionally, so the change would silently revert.
+    if (food.seedKey !== undefined) {
+      throw new ConvexError(
+        'This is a built-in catalog food and cannot be edited. Create a new food instead.',
+      )
+    }
     await ctx.db.patch(id, { ...rest, localEdited: true })
   },
 })

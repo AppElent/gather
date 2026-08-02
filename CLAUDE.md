@@ -9,8 +9,8 @@ cheeses, wines) built on the standard AppElent stack:
   `recipeImport.ts`, `recipeNutrition.ts`, `foods.ts`, `foodsLookup.ts`, `consumption.ts`,
   `taskLists.ts`, `tasks.ts`, `integrations.ts`, `lib/sharing.ts`, `lib/nutrition.ts`,
   `lib/offMapping.ts`, `lib/offFetch.ts`, `lib/consumption.ts`, `lib/taskAccess.ts`,
-  `lib/taskProviders/` (adapter pattern for Notion/Todoist). Schema in
-  `convex/schema.ts`.
+  `lib/taskProviders/` (adapter pattern for Notion/Todoist), `seed.ts` +
+  `lib/seed/` (see "Seed data" below). Schema in `convex/schema.ts`.
 - **Clerk** auth (`@clerk/clerk-react`), JWT-bridged to Convex via `CLERK_JWT_ISSUER_DOMAIN`
   (Convex deployment env var, set with `convex env set` — not committed anywhere).
 - **Cloudflare Workers** deploy via `wrangler.jsonc` — worker name `gather`
@@ -48,8 +48,42 @@ the shared package itself, out of scope here.
 Standard baseline set (`pnpm run <script>`): `dev`, `dev:all` (Convex once + Vite),
 `dev:watch` (Convex watch + Vite via `concurrently`), `generate-routes`, `build`,
 `build:development`, `preview`, `typecheck`, `test`, `format`, `lint`, `lint:fix`,
-`check`, `cf-typegen`, `deploy` (= `deploy:prod`), `deploy:dev`, `deploy:prod`.
-No `seed` script — `convex/seed.ts` doesn't exist.
+`check`, `cf-typegen`, `deploy` (= `deploy:prod`), `deploy:dev`, `deploy:prod`,
+`seed` (Catalog only, safe anywhere), `seed:sample` (rebuilds the Sample
+household on the dev deployment around the shared Clerk test user).
+
+`deploy:dev` and `deploy:prod` both run `convex run seed:seedCatalog` between
+the Convex deploy and the build — Convex has no post-deploy hook outside
+previews, so that step is the only deterministic place for it.
+
+## Seed data
+
+Two mechanisms with deliberately opposite rules, kept as two plain functions in
+`convex/seed.ts`. Fixtures and logic live in `convex/lib/seed/`; only
+`convex/seed.ts` exports callable functions. See
+`docs/adr/0004-catalog-entries-are-read-only-and-the-seed-always-wins.md`.
+
+- **Catalog** (`seedCatalog`, `lib/seed/catalogFoods.ts`) — reference data the
+  app needs to work, in every environment including production. Reconciled by
+  `seedKey`; the seed always wins, retired fixtures are deleted, and rows
+  without a `seedKey` are user-created and never touched. Catalog rows are
+  read-only in the app, enforced in `foods.update` as well as the UI.
+- **Sample household** (`seedPreview` / `loadSampleData`,
+  `lib/seed/sampleHousehold.ts`) — fake content for dev and preview only. Wiped
+  and recreated on every run, tracked in the `seedRuns` table, with every date
+  anchored to the run rather than hardcoded. Handwritten fixtures; `faker` is
+  only for padding lists out to test volume.
+
+**When you add a Module, add its seed contribution in the same change** — a
+Catalog fixture if it needs reference data, and Sample household fixtures so
+previews stay representative. There is no registry slot to leave visibly empty,
+so this rule is the only thing keeping previews useful as Modules land.
+
+The preview seed runs via `--preview-run seed:seedPreview` in
+`.github/workflows/preview.yml` and hardcodes the Clerk test user's subject
+(`--preview-run` takes no arguments). If that Clerk test user is ever
+recreated, update `PREVIEW_TEST_USER` in `convex/seed.ts` or previews will seed
+a household nobody can sign into.
 
 ## Env vars
 
@@ -57,7 +91,10 @@ Client (`.env.local`, see `.env.example` for the full documented list):
 `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_TEST_USER_EMAIL`, `VITE_TEST_USER_PASSWORD`
 (the latter two enable `@appelent/auth`'s dev-only test-login button when the
 Clerk key is `pk_test_...`), `CONVEX_DEPLOYMENT`, `VITE_CONVEX_URL`,
-`VITE_SENTRY_DSN`, `VITE_SENTRY_ORG`, `VITE_SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`.
+`VITE_SENTRY_DSN`, `VITE_SENTRY_ORG`, `VITE_SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`,
+`VITE_ENABLE_SAMPLE_DATA` (shows the Sample data panel in `/settings`; implied
+by `import.meta.env.DEV`, set explicitly for previews in `preview.yml`, never
+set for a production build).
 
 Convex deployment (server-side, set via `convex env set` / `convex env default set`,
 never in a committed file): `CLERK_JWT_ISSUER_DOMAIN` — set on dev, prod, and as the
@@ -71,6 +108,12 @@ list providers; optional (without them, connecting that provider fails with a
 clear "not configured" error and local lists work normally). Each provider's
 OAuth app must register the redirect URI `<app-origin>/integrations/callback`
 (e.g. `http://localhost:3000/integrations/callback` for dev).
+`ENABLE_SAMPLE_DATA` — must be `'true'` for the publicly-callable
+`seed.loadSampleData` / `seed.resetSampleData` mutations to run at all. Set it
+on dev and as a preview-type default (`convex env default set --type preview`);
+**never on production**, where its absence is what stops anyone with the
+deployment URL from writing a fake household into the real database. The
+internal `seedCatalog` / `seedPreview` entrypoints do not consult it.
 
 ## CI / PR previews
 
