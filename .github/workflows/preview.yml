@@ -48,13 +48,20 @@ jobs:
       # Convex provisions/refreshes preview backend pr-<N>, exposes its URL as
       # $CONVEX_URL inside --cmd, then runs the build (bridge CONVEX_URL ->
       # VITE_CONVEX_URL since the app reads the Vite-prefixed var at build
-      # time). No --preview-run seed step: this app has no convex/seed.ts.
+      # time).
+      #
+      # --preview-run seeds the fresh backend: seed:seedPreview reconciles the
+      # food Catalog and rebuilds the Sample household around the shared Clerk
+      # test user, so clicking test-login on the preview lands in a populated
+      # household instead of an empty app. It is ignored on production deploys
+      # by design, so this line can never fire against prod.
       - name: Convex preview deploy + build
         run: |
           pnpm exec convex deploy \
             --preview-create pr-${{ github.event.pull_request.number }} \
+            --preview-run seed:seedPreview \
             --cmd-url-env-var-name CONVEX_URL \
-            --cmd 'VITE_CONVEX_URL=$CONVEX_URL VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY VITE_TEST_USER_EMAIL="$VITE_TEST_USER_EMAIL" VITE_TEST_USER_PASSWORD="$VITE_TEST_USER_PASSWORD" pnpm build'
+            --cmd 'VITE_CONVEX_URL=$CONVEX_URL VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY VITE_TEST_USER_EMAIL="$VITE_TEST_USER_EMAIL" VITE_TEST_USER_PASSWORD="$VITE_TEST_USER_PASSWORD" VITE_ENABLE_SAMPLE_DATA=true pnpm build'
 
       - name: Deploy Worker (per-PR)
         id: deploy

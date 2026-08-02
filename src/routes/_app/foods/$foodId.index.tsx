@@ -28,14 +28,36 @@ function FoodDetail() {
           <h1 className="text-2xl font-semibold">{food.name}</h1>
           {food.brand && <p className="text-sm opacity-60">{food.brand}</p>}
         </div>
-        <Link
-          to="/foods/$foodId/edit"
-          params={{ foodId }}
-          className="rounded border px-3 py-1.5 text-sm no-underline"
-        >
-          Edit
-        </Link>
+        {/*
+          Catalog entries are owned by nobody and read-only (ADR 0004) — the
+          next Catalog seed overwrites them unconditionally, so offering an
+          edit that silently reverts would be worse than offering none.
+        */}
+        {food.seedKey === undefined ? (
+          <Link
+            to="/foods/$foodId/edit"
+            params={{ foodId }}
+            className="rounded border px-3 py-1.5 text-sm no-underline"
+          >
+            Edit
+          </Link>
+        ) : (
+          <span className="rounded border border-dashed px-3 py-1.5 text-sm opacity-60">
+            Built-in
+          </span>
+        )}
       </div>
+
+      {food.seedKey !== undefined && (
+        <p className="mb-4 text-sm opacity-60">
+          Part of gather's built-in food catalog, so it can't be edited. Need a
+          different version?{' '}
+          <Link to="/foods/new" className="underline">
+            Create your own food
+          </Link>
+          .
+        </p>
+      )}
 
       {error && (
         <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -53,7 +75,16 @@ function FoodDetail() {
       <NutritionPanel
         nutrition={food.nutritionPer100}
         unitLabel={`per 100 ${food.baseUnit}`}
-        source={food.source === 'openfoodfacts' ? 'imported' : 'manual'}
+        source={
+          food.source === 'seed'
+            ? // Neither "Imported" nor "Manual" is true of a Catalog entry,
+              // and the "Built-in" chip above already says where it came
+              // from — so no badge rather than a wrong one.
+              undefined
+            : food.source === 'openfoodfacts'
+              ? 'imported'
+              : 'manual'
+        }
       />
       {food.servingLabel && (
         <p className="mb-4 text-sm opacity-60">Serving: {food.servingLabel}</p>

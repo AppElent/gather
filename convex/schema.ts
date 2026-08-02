@@ -102,11 +102,21 @@ export default defineSchema({
     nutritionPer100: nutritionValidator,
     servingSize: v.optional(v.number()),
     servingLabel: v.optional(v.string()),
-    source: v.union(v.literal('openfoodfacts'), v.literal('manual')),
+    source: v.union(
+      v.literal('openfoodfacts'),
+      v.literal('manual'),
+      v.literal('seed'),
+    ),
     localEdited: v.optional(v.boolean()),
-    createdBy: v.id('users'),
+    // Absent on Catalog entries — seeded reference data is owned by nobody
+    // (CONTEXT.md, "Catalog"). Present on every row a person created.
+    createdBy: v.optional(v.id('users')),
+    // Stable identity for a Catalog entry across re-seeds. Absent on
+    // user-created rows, which the seed must never touch. See ADR 0004.
+    seedKey: v.optional(v.string()),
   })
     .index('by_barcode', ['barcode'])
+    .index('by_seedKey', ['seedKey'])
     .searchIndex('search_by_name', { searchField: 'name' }),
 
   consumptionEntries: defineTable({
@@ -148,4 +158,28 @@ export default defineSchema({
   })
     .index('by_baby', ['babyId'])
     .index('by_baby_type', ['babyId', 'type']),
+
+  // Bookkeeping for the Sample household seed, which wipes and recreates on
+  // every run: one row per run, listing exactly the documents that run
+  // created so the next one can remove those and nothing else. Deliberately
+  // not a marker field on every table — a new module contributes sample data
+  // without touching its own schema.
+  //
+  // The Catalog seed never writes here; it reconciles by `seedKey` instead.
+  seedRuns: defineTable({
+    label: v.string(),
+    createdAt: v.number(),
+    // Raw document ids spanning many tables. `db.delete` resolves the table
+    // from the id itself, so one flat list is enough and stays open-ended.
+    documentIds: v.array(v.string()),
+    // Where the owner's default Group pointed before the run took it over,
+    // so a reset can put it back instead of leaving the account with no
+    // default at all — which breaks Tasks and Baby until they visit Groups.
+    restoreDefaultGroup: v.optional(
+      v.object({
+        userId: v.id('users'),
+        groupId: v.optional(v.id('groups')),
+      }),
+    ),
+  }).index('by_label', ['label']),
 })
