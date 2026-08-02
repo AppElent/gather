@@ -162,7 +162,7 @@ describe('mapOffSearchResults', () => {
           code: '8712800189930',
           product_name: 'Chocomel Original',
           brands: ['Chocomel', ' FrieslandCampina'],
-          nutriments: {},
+          nutriments: { 'energy-kcal_100g': 62 },
         },
       ],
     })
@@ -171,7 +171,9 @@ describe('mapOffSearchResults', () => {
 
   test('drops entries with no usable name', () => {
     const results = mapOffSearchResults({
-      hits: [{ code: '111', nutriments: {} }],
+      hits: [
+        { code: '111', nutriments: { 'energy-kcal_100g': 100 } },
+      ],
     })
     expect(results).toEqual([])
   })
@@ -179,9 +181,26 @@ describe('mapOffSearchResults', () => {
   test('drops entries with a missing or empty barcode', () => {
     const results = mapOffSearchResults({
       hits: [
-        { product_name: 'No Code', nutriments: {} },
-        { code: '', product_name: 'Empty Code', nutriments: {} },
+        {
+          product_name: 'No Code',
+          nutriments: { 'energy-kcal_100g': 100 },
+        },
+        {
+          code: '',
+          product_name: 'Empty Code',
+          nutriments: { 'energy-kcal_100g': 100 },
+        },
       ],
+    })
+    expect(results).toEqual([])
+  })
+
+  // OFF's product database has many low-quality duplicate barcodes with no
+  // nutrition data at all published — useless for a nutrition tracker, and
+  // the direct cause of near-empty entries cluttering search results.
+  test('drops entries with no nutrition data at all', () => {
+    const results = mapOffSearchResults({
+      hits: [{ code: '333', product_name: 'Empty Nutrition', nutriments: {} }],
     })
     expect(results).toEqual([])
   })
@@ -193,18 +212,77 @@ describe('mapOffSearchResults', () => {
           code: '222',
           product_name: 'Generic Name',
           product_name_nl: 'Nederlandse Naam',
-          nutriments: {},
+          nutriments: { 'energy-kcal_100g': 100 },
         },
       ],
     })
     expect(results[0]?.name).toBe('Nederlandse Naam')
   })
 
-  test('caps the result at 20 entries', () => {
+  // A search for a popular product often returns many barcodes for the same
+  // real-world item, unevenly filled in by different contributors — keep
+  // only the one with the most nutrition data populated per name+brand.
+  test('deduplicates same name+brand hits, keeping the one with the most nutrients', () => {
+    const results = mapOffSearchResults({
+      hits: [
+        {
+          code: '111',
+          product_name: 'Nutella',
+          brands: 'Ferrero',
+          nutriments: { 'energy-kcal_100g': 539 },
+        },
+        {
+          code: '222',
+          product_name: 'Nutella',
+          brands: 'Ferrero',
+          nutriments: {
+            'energy-kcal_100g': 539,
+            proteins_100g: 6.3,
+            fat_100g: 30.9,
+          },
+        },
+        {
+          code: '333',
+          product_name: 'nutella', // case-insensitive dedup key
+          brands: 'Ferrero',
+          nutriments: { 'energy-kcal_100g': 539 },
+        },
+      ],
+    })
+    expect(results).toHaveLength(1)
+    expect(results[0]?.barcode).toBe('222')
+    expect(results[0]?.nutritionPer100).toEqual({
+      calories: 539,
+      protein: 6.3,
+      fat: 30.9,
+    })
+  })
+
+  test('does not deduplicate entries with the same name but a different brand', () => {
+    const results = mapOffSearchResults({
+      hits: [
+        {
+          code: '111',
+          product_name: 'Cola',
+          brands: 'Coca-Cola',
+          nutriments: { 'energy-kcal_100g': 42 },
+        },
+        {
+          code: '222',
+          product_name: 'Cola',
+          brands: 'Store Brand',
+          nutriments: { 'energy-kcal_100g': 40 },
+        },
+      ],
+    })
+    expect(results).toHaveLength(2)
+  })
+
+  test('caps the result at 20 entries after deduplication', () => {
     const hits = Array.from({ length: 30 }, (_, i) => ({
       code: `${1000 + i}`,
       product_name: `Item ${i}`,
-      nutriments: {},
+      nutriments: { 'energy-kcal_100g': 100 },
     }))
     const results = mapOffSearchResults({ hits })
     expect(results).toHaveLength(20)

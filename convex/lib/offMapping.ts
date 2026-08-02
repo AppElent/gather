@@ -138,18 +138,32 @@ export function mapOffProduct(raw: unknown): OffMappedFood | null {
   return mapOffRawProduct(product)
 }
 
-// Maps a raw search-a-licious /search response ({hits: [...]}) to a capped
-// list of importable results. Unlike mapOffProduct, this drops entries with
-// no usable name (noise in a results list, spec §4.3 of the 2026-07-20 OFF
-// name-search design) or no barcode (unusable — the result can't be
-// upserted without one). Malformed/non-object input, or a missing `hits`
-// array, returns an empty list — search is a soft fallback, never throws.
+// OFF's product database has many low-quality/duplicate barcodes for the
+// same real product (community-contributed, no dedup enforced) — a search
+// for "nutella" can return a dozen "Nutella" hits, several with no
+// nutrition data at all. Used both to drop unusable entries and, via
+// nutrientCount, to pick the best of several same-name/brand duplicates.
+function nutrientCount(nutritionPer100: NutritionFacts): number {
+  return Object.keys(nutritionPer100).length
+}
+
+// Maps a raw search-a-licious /search response ({hits: [...]}) to a capped,
+// deduplicated list of importable results. Unlike mapOffProduct, this drops
+// entries with no usable name (noise in a results list, spec §4.3 of the
+// 2026-07-20 OFF name-search design), no barcode (unusable — the result
+// can't be upserted without one), or no nutrition data at all (useless for
+// a nutrition tracker, and OFF has plenty of near-empty duplicate barcodes
+// for popular products). Remaining entries are deduplicated by normalized
+// name+brand, keeping whichever duplicate has the most nutrients populated
+// — search relevance order is otherwise preserved. Malformed/non-object
+// input, or a missing `hits` array, returns an empty list — search is a
+// soft fallback, never throws.
 export function mapOffSearchResults(raw: unknown): OffSearchResult[] {
   if (typeof raw !== 'object' || raw === null) return []
   const response = raw as OffSearchResponse
   if (!Array.isArray(response.hits)) return []
 
-  const results: OffSearchResult[] = []
+  const byDedupKey = new Map<string, OffSearchResult>()
   for (const entry of response.hits) {
     if (typeof entry !== 'object' || entry === null) continue
     const product = entry as OffProduct
@@ -158,8 +172,17 @@ export function mapOffSearchResults(raw: unknown): OffSearchResult[] {
     if (!barcode) continue
     const mapped = mapOffRawProduct(product)
     if (!mapped.name) continue
-    results.push({ ...mapped, barcode })
-    if (results.length >= 20) break
+    if (nutrientCount(mapped.nutritionPer100) === 0) continue
+
+    const dedupKey = `${mapped.name.toLowerCase()}|${(mapped.brand ?? '').toLowerCase()}`
+    const existing = byDedupKey.get(dedupKey)
+    if (
+      !existing ||
+      nutrientCount(mapped.nutritionPer100) >
+        nutrientCount(existing.nutritionPer100)
+    ) {
+      byDedupKey.set(dedupKey, { ...mapped, barcode })
+    }
   }
-  return results
+  return Array.from(byDedupKey.values()).slice(0, 20)
 }

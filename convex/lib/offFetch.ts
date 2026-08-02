@@ -51,7 +51,11 @@ export async function searchOffProducts(
 ): Promise<unknown | null> {
   const url = new URL('https://search.openfoodfacts.org/search')
   url.searchParams.set('q', term)
-  url.searchParams.set('page_size', '20')
+  // Requesting more than the ~20 we ultimately show: mapOffSearchResults
+  // drops empty-nutrition duplicates and dedupes same-name/brand hits (OFF
+  // has many low-quality duplicate barcodes for popular products), so a
+  // 1:1 page size would often leave far fewer than 20 usable results.
+  url.searchParams.set('page_size', '40')
   url.searchParams.set(
     'fields',
     'code,product_name,product_name_nl,brands,nutriments,serving_size,serving_quantity',

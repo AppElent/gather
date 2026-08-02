@@ -334,11 +334,18 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
                 <button
                   type="button"
                   onClick={() => handleOffResultSelect(result)}
-                  className="block w-full py-1.5 text-left text-sm"
+                  className="flex w-full items-baseline justify-between gap-2 py-1.5 text-left text-sm"
                 >
-                  {result.name}
-                  {result.brand && (
-                    <span className="ml-2 opacity-60">{result.brand}</span>
+                  <span>
+                    {result.name}
+                    {result.brand && (
+                      <span className="ml-2 opacity-60">{result.brand}</span>
+                    )}
+                  </span>
+                  {result.nutritionPer100.calories !== undefined && (
+                    <span className="shrink-0 text-xs opacity-60">
+                      {Math.round(result.nutritionPer100.calories)} kcal/100g
+                    </span>
                   )}
                 </button>
               </li>
