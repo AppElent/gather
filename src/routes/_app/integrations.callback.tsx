@@ -3,7 +3,7 @@ import { useAction } from 'convex/react'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { SurfaceCard } from '../../components/app/ShellPrimitives'
-import { errorMessage } from '../../components/settings/ConnectionsSettings'
+import { errorMessage } from '../../lib/errorMessage'
 import { consumeOAuthState, oauthRedirectUri } from '../../lib/oauth'
 
 export const Route = createFileRoute('/_app/integrations/callback')({

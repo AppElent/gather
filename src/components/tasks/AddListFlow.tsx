@@ -6,12 +6,10 @@ import type {
   ProviderSource,
   SourceProperty,
 } from '../../../convex/lib/taskProviders/types'
+import { errorMessage } from '../../lib/errorMessage'
 import type { ExternalProvider } from '../../lib/oauth'
 import { SurfaceCard } from '../app/ShellPrimitives'
-import {
-  errorMessage,
-  useConnectProvider,
-} from '../settings/ConnectionsSettings'
+import { useConnectProvider } from '../settings/ConnectionsSettings'
 
 type Step =
   | { kind: 'provider' }

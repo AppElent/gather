@@ -1,9 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { useAction, useQuery } from 'convex/react'
-import { ConvexError } from 'convex/values'
-import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { useConfirmAction } from '../app/ConfirmAction'
 import { NutritionPanel } from '../recipes/NutritionPanel'
 import type { FoodNav } from './foodNav'
 
@@ -16,8 +15,7 @@ export interface FoodDetailPageProps {
 export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
   const food = useQuery(api.foods.get, { id: foodId as Id<'foods'> })
   const refreshFromOff = useAction(api.foodsLookup.refreshFromOff)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshing, setRefreshing] = useState(false)
+  const { confirm, dialog } = useConfirmAction()
 
   if (food === undefined) return <p className="text-sm opacity-60">Loading…</p>
   if (food === null)
@@ -37,12 +35,6 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
           Edit
         </Link>
       </div>
-
-      {error && (
-        <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
-          {error}
-        </p>
-      )}
 
       {/*
         Reusing the "imported"/"manual" NutritionSource vocabulary for a
@@ -76,38 +68,22 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
       {food.barcode && (
         <button
           type="button"
-          disabled={refreshing}
-          className="rounded border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-          onClick={async () => {
-            if (
-              !window.confirm(
-                'Overwrite this food with the latest data from Open Food Facts? Any local edits will be replaced.',
-              )
-            ) {
-              return
-            }
-            setRefreshing(true)
-            setError(null)
-            try {
-              await refreshFromOff({ id: food._id })
-            } catch (err) {
-              setError(
-                err instanceof ConvexError
-                  ? typeof err.data === 'string'
-                    ? err.data
-                    : 'Could not refresh from Open Food Facts'
-                  : err instanceof Error
-                    ? err.message
-                    : 'Could not refresh from Open Food Facts',
-              )
-            } finally {
-              setRefreshing(false)
-            }
-          }}
+          className="rounded border px-3 py-1.5 text-sm"
+          onClick={() =>
+            confirm({
+              title: 'Refresh from Open Food Facts?',
+              body: 'This food is overwritten with the latest data there. Any local edits are replaced.',
+              confirmLabel: 'Refresh',
+              errorFallback: 'Could not refresh from Open Food Facts.',
+              run: () => refreshFromOff({ id: food._id }),
+            })
+          }
         >
-          {refreshing ? 'Refreshing…' : 'Refresh from Open Food Facts'}
+          Refresh from Open Food Facts
         </button>
       )}
+
+      {dialog}
     </article>
   )
 }

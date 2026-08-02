@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
+import { useConfirmAction } from '../app/ConfirmAction'
 import { ImageUploadField } from '../app/ImageUploadField'
 import { BabyForm } from './BabyForm'
 import type { BabyNav } from './babyNav'
@@ -43,6 +44,7 @@ function EditBabyForm({
   const remove = useMutation(api.babies.remove)
   const generateUploadUrl = useMutation(api.babies.generateUploadUrl)
   const navigate = useNavigate()
+  const { confirm, dialog } = useConfirmAction()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [photoId, setPhotoId] = useState<Id<'_storage'> | undefined>(
@@ -57,12 +59,18 @@ function EditBabyForm({
         <button
           type="button"
           className="rounded border px-3 py-1.5 text-sm"
-          onClick={async () => {
-            if (!window.confirm(`Delete ${baby.name} and all logged entries?`))
-              return
-            await remove({ id: baby._id, groupSlug })
-            navigate(nav.list)
-          }}
+          onClick={() =>
+            confirm({
+              title: `Delete ${baby.name}?`,
+              body: 'Every entry logged for them goes too, for everyone in this group.',
+              confirmLabel: `Delete ${baby.name}`,
+              errorFallback: 'Could not delete that child.',
+              run: async () => {
+                await remove({ id: baby._id, groupSlug })
+                navigate(nav.list)
+              },
+            })
+          }
         >
           Delete
         </button>
@@ -111,6 +119,8 @@ function EditBabyForm({
           }
         }}
       />
+
+      {dialog}
     </div>
   )
 }

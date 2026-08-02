@@ -1,13 +1,14 @@
 import { useAction, useMutation, useQuery } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
+import { errorMessage } from '../../lib/errorMessage'
 import { groupHref } from '../../lib/groupPaths'
 import {
   type ExternalProvider,
   newOAuthState,
   oauthRedirectUri,
 } from '../../lib/oauth'
+import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
 
 const PROVIDERS: Array<{ id: ExternalProvider; label: string }> = [
@@ -17,13 +18,6 @@ const PROVIDERS: Array<{ id: ExternalProvider; label: string }> = [
 
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold'
-
-export function errorMessage(error: unknown, fallback: string): string {
-  if (error instanceof ConvexError && typeof error.data === 'string') {
-    return error.data
-  }
-  return fallback
-}
 
 /**
  * Starts the provider OAuth flow for one Group; shared with the Tasks add-list
@@ -68,6 +62,7 @@ export function ConnectionsSettings({
     groupSlug,
     groupHref('settings', groupSlug),
   )
+  const { confirm, dialog } = useConfirmAction()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<ExternalProvider | null>(null)
 
@@ -110,15 +105,16 @@ export function ConnectionsSettings({
                 <button
                   type="button"
                   className={buttonClass}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Disconnect ${p.label} from ${groupName}? Linked lists will stop loading until it is reconnected.`,
-                      )
-                    ) {
-                      void disconnect({ connectionId: conn._id, groupSlug })
-                    }
-                  }}
+                  onClick={() =>
+                    confirm({
+                      title: `Disconnect ${p.label} from ${groupName}?`,
+                      body: 'Linked lists stop loading until it is reconnected.',
+                      confirmLabel: 'Disconnect',
+                      errorFallback: `Could not disconnect ${p.label}.`,
+                      run: () =>
+                        disconnect({ connectionId: conn._id, groupSlug }),
+                    })
+                  }
                 >
                   Disconnect
                 </button>
@@ -136,6 +132,8 @@ export function ConnectionsSettings({
           )
         })}
       </ul>
+
+      {dialog}
     </SurfaceCard>
   )
 }

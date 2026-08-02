@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { AddListFlow } from './AddListFlow'
 import { ExternalTaskList } from './ExternalTaskList'
@@ -28,11 +29,16 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
   const lists = useQuery(api.taskLists.list, { groupSlug })
   const removeList = useMutation(api.taskLists.remove)
   const [adding, setAdding] = useState(false)
+  const { confirm, dialog } = useConfirmAction()
 
   function confirmRemove(listId: Id<'taskLists'>, name: string) {
-    if (window.confirm(`Delete the list "${name}"?`)) {
-      void removeList({ listId, groupSlug })
-    }
+    confirm({
+      title: `Delete the list “${name}”?`,
+      body: 'Its tasks go with it, for everyone in this group.',
+      confirmLabel: 'Delete list',
+      errorFallback: 'Could not delete that list.',
+      run: () => removeList({ listId, groupSlug }),
+    })
   }
 
   return (
@@ -112,6 +118,8 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
           )}
         </div>
       )}
+
+      {dialog}
     </div>
   )
 }

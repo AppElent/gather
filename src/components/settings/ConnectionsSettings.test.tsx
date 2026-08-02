@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { ConnectionsSettings } from './ConnectionsSettings'
 
@@ -53,7 +59,6 @@ beforeEach(() => {
     configurable: true,
     value: { ...window.location, origin: 'http://localhost:3000', href: '' },
   })
-  window.confirm = () => true
 })
 
 function renderPanel() {
@@ -87,7 +92,12 @@ describe('what the panel does', () => {
     connections.value = [NOTION]
     renderPanel()
 
-    fireEvent.click(screen.getByRole('button', { name: /disconnect/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^disconnect$/i }))
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: /^disconnect$/i,
+      }),
+    )
 
     await waitFor(() => {
       expect(calls.value['integrations:disconnect']).toEqual([
@@ -96,18 +106,24 @@ describe('what the panel does', () => {
     })
   })
 
-  test('asks about this Group by name before disconnecting', () => {
+  /**
+   * The question used to be a `window.confirm`, which an embedded frame may
+   * suppress outright — the click then did nothing at all, silently, which is
+   * exactly how the delete-a-list bug presented. It is the app's own dialog
+   * now, so the asking is testable and cannot be taken away by the frame.
+   */
+  test('asks about this Group by name before disconnecting, and drops it on cancel', () => {
     connections.value = [NOTION]
-    let asked = ''
-    window.confirm = (message?: string) => {
-      asked = message ?? ''
-      return false
-    }
     renderPanel()
 
-    fireEvent.click(screen.getByRole('button', { name: /disconnect/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^disconnect$/i }))
 
-    expect(asked).toContain('Jansen Household')
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.textContent).toContain('Jansen Household')
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /cancel/i }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(calls.value['integrations:disconnect']).toBeUndefined()
   })
 

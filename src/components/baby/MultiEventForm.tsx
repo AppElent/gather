@@ -19,8 +19,8 @@ import {
   initialEventValues,
   rememberEventChoices,
 } from '../../lib/babyEventFormValues'
+import { errorMessage } from '../../lib/errorMessage'
 import { readLastUsed, writeLastUsed } from '../../lib/lastUsed'
-import { errorMessage } from './EventForm'
 import { EventIcon } from './EventIcon'
 import { EventTypeFields } from './EventTypeFields'
 
