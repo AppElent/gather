@@ -46,7 +46,13 @@ export function SampleDataSettings() {
         )
       } else {
         const out = await resetSampleData({})
-        setResult(`Removed ${out.deleted} sample rows.`)
+        setResult(
+          `Removed ${out.deleted} sample rows${
+            out.orphaned > 0
+              ? ` and ${out.orphaned} ${out.orphaned === 1 ? 'row' : 'rows'} added inside them`
+              : ''
+          }.`,
+        )
       }
     } catch (e) {
       setError(errorMessage(e, 'Could not run the seed — check the logs.'))
@@ -60,8 +66,11 @@ export function SampleDataSettings() {
       <h2 className="m-0 mb-1 text-base font-semibold">Sample data</h2>
       <p className="m-0 mb-3 text-sm opacity-70">
         Rebuilds a sample household around your account, with dates anchored to
-        today. Loading replaces any sample data already present; it never
-        touches content you created yourself. Not available in production.
+        today. Both actions remove the sample household completely —{' '}
+        <strong>including anything you added inside it</strong>, such as a task
+        on a sample list. Your own groups, your food diary and recipes you own
+        are left alone, and your default group is put back. Not available in
+        production.
       </p>
 
       {error && (
@@ -87,7 +96,7 @@ export function SampleDataSettings() {
           onClick={() => {
             if (
               window.confirm(
-                'Remove the sample household? Content you created yourself is left alone.',
+                'Remove the sample household, including anything you added inside it? Your own groups, diary and recipes are left alone.',
               )
             ) {
               void run('reset')

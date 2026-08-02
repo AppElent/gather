@@ -172,5 +172,14 @@ export default defineSchema({
     // Raw document ids spanning many tables. `db.delete` resolves the table
     // from the id itself, so one flat list is enough and stays open-ended.
     documentIds: v.array(v.string()),
+    // Where the owner's default Group pointed before the run took it over,
+    // so a reset can put it back instead of leaving the account with no
+    // default at all — which breaks Tasks and Baby until they visit Groups.
+    restoreDefaultGroup: v.optional(
+      v.object({
+        userId: v.id('users'),
+        groupId: v.optional(v.id('groups')),
+      }),
+    ),
   }).index('by_label', ['label']),
 })

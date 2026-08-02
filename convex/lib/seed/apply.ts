@@ -141,11 +141,22 @@ export async function applyCatalog(ctx: MutationCtx) {
 // ---------------------------------------------------------------------------
 
 /**
- * Remove everything previous Sample household runs created.
+ * Remove everything previous Sample household runs created, then repair what
+ * those deletions left behind.
  *
- * Only what the seed itself inserted: rows the *app* created during a review
- * session are not in `documentIds` and survive. The baby's lazily-created
- * to-do and questions lists (`babies.ensureTodoList`) are the case to expect.
+ * The recorded ids are not enough on their own. A row the *app* created
+ * inside the Sample household — a task added to a seeded list, an event
+ * logged against the seeded baby, the baby's lazily-created to-do list from
+ * `babies.ensureTodoList` — is not in `documentIds`, so deleting its parent
+ * would leave it in the database but unreachable: every query for it
+ * navigates through the list, baby or Group that no longer exists. Invisible
+ * garbage is worse than deletion, so the sweep below removes descendants
+ * whose parent has gone.
+ *
+ * Content that is *not* contained by the Sample household survives: a recipe
+ * a real person owns is only un-shared from the deleted Group, and Personal
+ * records (the food diary) belong to a user rather than a Group and are left
+ * alone entirely.
  */
 export async function resetSample(ctx: MutationCtx) {
   const runs = await ctx.db
@@ -162,17 +173,103 @@ export async function resetSample(ctx: MutationCtx) {
         deleted++
       }
     }
-    await ctx.db.delete(run._id)
   }
 
-  // The owner's `users` row is deliberately not deleted (it is upserted, so
-  // that a real signed-in account survives a reset), but its defaultGroupId
-  // may now point at a Group we just removed.
+  const alive = async (id: Id<TableNames> | undefined) =>
+    id !== undefined && (await ctx.db.get(id)) !== null
+
+  // Ordered by containment: Groups are gone already, so drop what hung off
+  // them first, then what hung off *those* rows.
+  let orphaned = 0
+
+  for (const membership of await ctx.db.query('memberships').collect()) {
+    if (!(await alive(membership.groupId)) || !(await alive(membership.userId))) {
+      await ctx.db.delete(membership._id)
+      orphaned++
+    }
+  }
+  // Holds a real OAuth access token — a dangling one is a live credential
+  // nobody can reach or revoke through the app.
+  for (const conn of await ctx.db.query('integrationConnections').collect()) {
+    if (!(await alive(conn.groupId))) {
+      await ctx.db.delete(conn._id)
+      orphaned++
+    }
+  }
+  for (const list of await ctx.db.query('taskLists').collect()) {
+    if (!(await alive(list.groupId))) {
+      await ctx.db.delete(list._id)
+      orphaned++
+    }
+  }
+  for (const baby of await ctx.db.query('babies').collect()) {
+    if (!(await alive(baby.groupId))) {
+      await ctx.db.delete(baby._id)
+      orphaned++
+    }
+  }
+  for (const task of await ctx.db.query('tasks').collect()) {
+    if (!(await alive(task.listId))) {
+      await ctx.db.delete(task._id)
+      orphaned++
+    }
+  }
+  for (const event of await ctx.db.query('babyEvents').collect()) {
+    if (!(await alive(event.babyId))) {
+      await ctx.db.delete(event._id)
+      orphaned++
+    }
+  }
+
+  // Recipes are owned by a person and *shared* into a Group, so a deleted
+  // Group is not a reason to delete one. Only a recipe whose owner is gone
+  // (a housemate) goes; the rest are just un-shared.
+  for (const recipe of await ctx.db.query('recipes').collect()) {
+    if (!(await alive(recipe.ownerId))) {
+      await ctx.db.delete(recipe._id)
+      orphaned++
+      continue
+    }
+    const shared: Id<'groups'>[] = []
+    for (const groupId of recipe.sharedGroupIds) {
+      if (await alive(groupId)) shared.push(groupId)
+    }
+    if (shared.length !== recipe.sharedGroupIds.length) {
+      await ctx.db.patch(recipe._id, { sharedGroupIds: shared })
+    }
+  }
+
+  // Personal records follow the person, not the Group — only a diary entry
+  // belonging to a user who no longer exists is orphaned. A dangling
+  // recipeId/foodId is fine: provenance is allowed to dangle (ADR 0003).
+  for (const entry of await ctx.db.query('consumptionEntries').collect()) {
+    if (!(await alive(entry.userId))) {
+      await ctx.db.delete(entry._id)
+      orphaned++
+    }
+  }
+
+  // Put the owner's default Group back where it pointed before the run took
+  // it over. Clearing it instead would leave Tasks and Baby in their
+  // no-default state until the user manually revisited Groups.
+  let defaultGroupRestored = false
+  for (const run of runs) {
+    const restore = run.restoreDefaultGroup
+    if (!restore) continue
+    if (!(await alive(restore.userId))) continue
+    const groupId = (await alive(restore.groupId)) ? restore.groupId : undefined
+    await ctx.db.patch(restore.userId, { defaultGroupId: groupId })
+    defaultGroupRestored = groupId !== undefined
+  }
+  // Anyone else still pointing at a Group we deleted (including the owner
+  // when there was nothing to restore) loses the stale pointer.
   for (const user of await ctx.db.query('users').collect()) {
-    if (user.defaultGroupId && !(await ctx.db.get(user.defaultGroupId))) {
+    if (user.defaultGroupId && !(await alive(user.defaultGroupId))) {
       await ctx.db.patch(user._id, { defaultGroupId: undefined })
     }
   }
+
+  for (const run of runs) await ctx.db.delete(run._id)
 
   const remaining = await ctx.db
     .query('seedRuns')
@@ -184,7 +281,7 @@ export async function resetSample(ctx: MutationCtx) {
     )
   }
 
-  return { deleted, runs: runs.length }
+  return { deleted, orphaned, defaultGroupRestored, runs: runs.length }
 }
 
 /**
@@ -216,6 +313,10 @@ export async function applySample(
   now: number,
 ) {
   const rec = new Recorder()
+
+  // Captured before the run takes the default over, so `resetSample` can put
+  // it back rather than leaving the account with no default Group.
+  const previousDefaultGroupId = (await ctx.db.get(ownerUserId))?.defaultGroupId
 
   // --- Group and members ---------------------------------------------------
   const groupId = rec.track(
@@ -407,6 +508,10 @@ export async function applySample(
     label: SAMPLE_LABEL,
     createdAt: now,
     documentIds: rec.ids,
+    restoreDefaultGroup: {
+      userId: ownerUserId,
+      groupId: previousDefaultGroupId,
+    },
   })
 
   const counts = {

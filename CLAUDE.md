@@ -72,7 +72,12 @@ Two mechanisms with deliberately opposite rules, kept as two plain functions in
   `lib/seed/sampleHousehold.ts`) — fake content for dev and preview only. Wiped
   and recreated on every run, tracked in the `seedRuns` table, with every date
   anchored to the run rather than hardcoded. Handwritten fixtures; `faker` is
-  only for padding lists out to test volume.
+  only for padding lists out to test volume. Reset also cascades through
+  containment — a task you added to a seeded list, or the baby's lazily-created
+  lists — because deleting only the recorded rows would leave those unreachable
+  rather than intact. Content the sample Group merely *contains a reference to*
+  survives: a recipe a real person owns is un-shared, not deleted, and the
+  owner's previous default Group is restored.
 
 **When you add a Module, add its seed contribution in the same change** — a
 Catalog fixture if it needs reference data, and Sample household fixtures so
