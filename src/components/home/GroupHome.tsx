@@ -62,8 +62,12 @@ function MemberList({ groupSlug, groupName, isPersonal }: GroupHomeProps) {
             >
               {/* Wraps rather than truncating: a name is the one thing on this
                   card a reader cannot guess from the rest of it. */}
-              <span className="break-words">{member.name}</span>
-              {member.role === 'admin' ? <Pill>Admin</Pill> : null}
+              <span className="min-w-0 break-words">{member.name}</span>
+              {/* The pill never wraps, so it has to be the part that keeps its
+                  width while the name beside it gives way. */}
+              {member.role === 'admin' ? (
+                <Pill className="shrink-0">Admin</Pill>
+              ) : null}
             </li>
           ))}
         </ul>
