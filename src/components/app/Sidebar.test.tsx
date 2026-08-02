@@ -26,28 +26,51 @@ const me = vi.hoisted(() => ({
 }))
 const groups = vi.hoisted(() => ({ value: [] as unknown }))
 
+/**
+ * The router's `Link`, modelled rather than stubbed.
+ *
+ * A plain `<a>` would miss the thing that actually broke. TanStack's `Link`
+ * decides for itself whether it points at the current page — by *prefix* unless
+ * `activeOptions.exact` says otherwise — and when it decides yes it spreads
+ * `{ 'data-status': 'active', 'aria-current': 'page' }` *after* the caller's own
+ * props, so it wins. Home points at `/g/<slug>`, a prefix of every page in the
+ * Group, so the dock lit Home under every Module a phone opened.
+ *
+ * This reproduces exactly that: the prefix rule, and the router's props landing
+ * last. Remove `activeOptions` from either surface and these tests fail.
+ */
 vi.mock('@tanstack/react-router', () => ({
   useLocation: () => location,
   Link: ({
     children,
     to,
     params,
+    activeOptions,
     ...rest
   }: {
     children: React.ReactNode
     to: string
     params?: Record<string, string>
-  }) => (
-    <a
-      href={Object.entries(params ?? {}).reduce(
-        (path, [key, value]) => path.replace(`$${key}`, value),
-        to,
-      )}
-      {...rest}
-    >
-      {children}
-    </a>
-  ),
+    activeOptions?: { exact?: boolean }
+  }) => {
+    const href = Object.entries(params ?? {}).reduce(
+      (path, [key, value]) => path.replace(`$${key}`, value),
+      to,
+    )
+    const isActive = activeOptions?.exact
+      ? location.pathname === href
+      : location.pathname.startsWith(href)
+
+    return (
+      <a
+        href={href}
+        {...rest}
+        {...(isActive && { 'data-status': 'active', 'aria-current': 'page' })}
+      >
+        {children}
+      </a>
+    )
+  },
 }))
 
 vi.mock('convex/react', () => ({
@@ -130,6 +153,52 @@ describe('the sidebar off any Group route', () => {
   })
 })
 
+/**
+ * Exactly one thing is the page you are on.
+ *
+ * Home's address is a prefix of every page in its Group, and the router marks a
+ * link active on a prefix by default — so the dock, which colours itself from
+ * `aria-current`, sat with Home lit under whichever Module was actually open.
+ * The sidebar colours itself from `activeId` and so looked right while carrying
+ * the same wrong attribute, which is the half a screen reader would have been
+ * left with.
+ */
+describe('which item claims to be the page you are on', () => {
+  test('the dock lights the Module, not Home above it', () => {
+    location.pathname = '/g/me-alice/tasks'
+    render(<MobileDock />)
+
+    const current = screen.getAllByRole('link', { current: 'page' })
+    expect(current.map((el) => el.textContent)).toEqual(['Tasks'])
+  })
+
+  test('the sidebar agrees, attribute and all', () => {
+    location.pathname = '/g/me-alice/tasks'
+    render(<Sidebar />)
+
+    const current = screen.getAllByRole('link', { current: 'page' })
+    expect(current.map((el) => el.textContent)).toEqual(['Tasks'])
+  })
+
+  test('a Module page below its index still belongs to that Module', () => {
+    // `/recipes/<id>` is Recipes, which only `activeNavItemId` knows — the
+    // router sees a link to `/recipes` that is not this page.
+    location.pathname = '/g/me-alice/recipes/rec_1'
+    render(<MobileDock />)
+
+    const current = screen.getAllByRole('link', { current: 'page' })
+    expect(current.map((el) => el.textContent)).toEqual(['Recipes'])
+  })
+
+  test('Home is lit on Home, and only there', () => {
+    location.pathname = '/g/me-alice'
+    render(<MobileDock />)
+
+    const current = screen.getAllByRole('link', { current: 'page' })
+    expect(current.map((el) => el.textContent)).toEqual(['Home'])
+  })
+})
+
 describe('the mobile dock with no Group ever visited', () => {
   test('is not there at all, rather than an empty bar', () => {
     const { container } = render(<MobileDock />)
@@ -187,9 +256,12 @@ describe('stepping out of a Group and back', () => {
     ).toBeDefined()
   })
 
-  test('but nothing claims to be the page you are on', () => {
-    const { container } = renderShell(() => <Sidebar />)
+  test('but no Module claims to be the page you are on', () => {
+    renderShell(() => <Sidebar />)
 
-    expect(container.querySelector('[aria-current="page"]')).toBeNull()
+    // The footer's own "Groups" link is a different matter — that one really is
+    // the page. It is the Module list that must not pretend you never left.
+    const modules = screen.getByRole('navigation', { name: 'Primary' })
+    expect(modules.querySelector('[aria-current="page"]')).toBeNull()
   })
 })

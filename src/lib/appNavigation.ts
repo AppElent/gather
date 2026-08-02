@@ -69,6 +69,26 @@ const GROUP_SETTINGS_SEGMENT = groupSurfaceSegment('settings')
 export const DOCK_SLOTS = 5
 
 /**
+ * What every navigation `<Link>` must pass, so the router stops answering a
+ * question this file already answers.
+ *
+ * TanStack's `Link` decides for itself whether it points at the current page,
+ * and by default it does so by *prefix* (`activeOptions.exact ?? false`). Home
+ * points at `/g/<slug>`, which is a prefix of every other page in the Group —
+ * so on `/g/<slug>/tasks` the router considered Home active, and its
+ * `STATIC_ACTIVE_PROPS` are spread after the caller's own props, forcing
+ * `aria-current="page"` onto Home no matter what we passed. The desktop sidebar
+ * hid this by colouring itself from `activeId` instead, but the dock styles
+ * `aria-[current=page]:`, so Home sat lit under every Module a phone opened.
+ *
+ * `exact` narrows the router's claim to the one case where it cannot be wrong —
+ * the link *is* the page — and `activeNavItemId` keeps the rest, including the
+ * two the router cannot know: `/g/<slug>/recipes/<id>` belongs to Recipes, and
+ * a Module nobody pinned lights All.
+ */
+export const NAV_ACTIVE_OPTIONS = { exact: true } as const
+
+/**
  * Where Home points: the landing page of the Group you are standing in.
  *
  * There is no answer without a Group. Home is *a Group's* shared surface

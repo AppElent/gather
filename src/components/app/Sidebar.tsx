@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { NAV_ACTIVE_OPTIONS } from '../../lib/appNavigation'
 import { GroupSwitcher } from './GroupSwitcher'
 import { Icon } from './Icon'
 import { Pill } from './ShellPrimitives'
@@ -56,6 +57,12 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
               key={item.id}
               {...item.link}
               onClick={onNavigate}
+              // Colouring here comes from `activeId` below rather than from
+              // `aria-current`, which is why the dock showed the router's
+              // prefix-matching bug and this did not. The attribute was just as
+              // wrong, and a screen reader had no second opinion to fall back
+              // on — see `NAV_ACTIVE_OPTIONS`.
+              activeOptions={NAV_ACTIVE_OPTIONS}
               aria-current={item.id === activeId ? 'page' : undefined}
               className={`grid min-h-10 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline ${
                 item.id === activeId

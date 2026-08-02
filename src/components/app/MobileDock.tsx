@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { dockNavItems } from '../../lib/appNavigation'
+import { dockNavItems, NAV_ACTIVE_OPTIONS } from '../../lib/appNavigation'
 import { Icon } from './Icon'
 import { useNavigation } from './useNavigation'
 
@@ -38,6 +38,11 @@ export function MobileDock() {
         <Link
           key={item.id}
           {...item.link}
+          // This bar colours itself from `aria-current`, so the router must not
+          // be allowed to set it by prefix — see `NAV_ACTIVE_OPTIONS`.
+          // This bar colours itself from `aria-current`, so the router must not
+          // be allowed to set it by prefix — see `NAV_ACTIVE_OPTIONS`.
+          activeOptions={NAV_ACTIVE_OPTIONS}
           aria-current={item.id === activeId ? 'page' : undefined}
           className="grid min-h-11 place-items-center rounded-[7px] text-xs text-[var(--app-muted)] no-underline aria-[current=page]:bg-[var(--app-surface-muted)] aria-[current=page]:text-[var(--app-fg)]"
         >
