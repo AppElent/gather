@@ -14,7 +14,12 @@
  */
 
 import type { LinkProps } from '@tanstack/react-router'
-import { groupLink, moduleLink, moduleSegment } from './groupPaths'
+import {
+  groupLink,
+  groupSurfaceSegment,
+  moduleLink,
+  moduleSegment,
+} from './groupPaths'
 import type { ModuleDef } from './modules'
 import { MODULES, moduleById } from './modules'
 import { pinnedModules } from './pins'
@@ -49,6 +54,16 @@ export interface RouteContext {
 /** The item ids the Group itself owns, either side of the Pins. */
 const HOME = 'home'
 const ALL = 'all'
+
+/**
+ * The Group's own settings page. Not a navigation item — the sidebar and the
+ * dock are Home, your Pins and All, and nothing else — but it is somewhere the
+ * palette can jump to and something the topbar has to be able to name.
+ */
+const GROUP_SETTINGS = 'group-settings'
+
+/** Read off the surface, so the id and the URL cannot drift apart. */
+const GROUP_SETTINGS_SEGMENT = groupSurfaceSegment('settings')
 
 /** How many items the mobile dock has room for, Home and All included. */
 export const DOCK_SLOTS = 5
@@ -168,6 +183,7 @@ function navTargetOf(pathname: string): string | null {
   const segment = (group[1] ?? '').split('/').filter(Boolean)[0] ?? ''
   if (segment === '') return HOME
   if (segment === ALL) return ALL
+  if (segment === GROUP_SETTINGS_SEGMENT) return GROUP_SETTINGS
   return MODULES.find((m) => moduleSegment(m.id) === segment)?.id ?? null
 }
 
@@ -206,10 +222,14 @@ export interface JumpTarget {
  * definition of where each points and the palette cannot drift from the
  * navigation beside it.
  *
- * The shell's own pages carry no Module id and so stay flat wherever you are;
- * `/g/<slug>/settings` is not a thing, and Settings means the same page in
- * every Group. They are also all that is left to offer off a Group route —
- * every other target here would have to invent a Group to be in.
+ * The shell's own pages carry no Module id and so stay flat wherever you are:
+ * Settings, Account and the Groups list are about you and read the same from
+ * everywhere. They are also all that is left to offer off a Group route — every
+ * other target here would have to invent a Group to be in.
+ *
+ * A Group's *own* settings are a different page and are offered separately,
+ * under a label that says whose settings they are, because the two would
+ * otherwise be one word meaning two things.
  */
 export function jumpTargets(groupSlug: string | null): JumpTarget[] {
   const shellPages: JumpTarget[] = [
@@ -226,6 +246,11 @@ export function jumpTargets(groupSlug: string | null): JumpTarget[] {
       link: moduleLink(module, groupSlug),
     })),
     { id: ALL, label: 'All', link: allDestination(groupSlug) },
+    {
+      id: GROUP_SETTINGS,
+      label: 'Group settings',
+      link: groupLink('settings', groupSlug),
+    },
     ...shellPages,
   ]
 }
@@ -253,6 +278,10 @@ const OWN_ROUTE_CONTEXT: Record<string, RouteContext> = {
   [ALL]: {
     title: 'All modules',
     subtitle: 'Every module in this group. Pin the ones you use.',
+  },
+  [GROUP_SETTINGS]: {
+    title: 'Group settings',
+    subtitle: 'Settings everyone in this group shares.',
   },
 }
 

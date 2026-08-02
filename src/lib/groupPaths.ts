@@ -33,6 +33,10 @@ const GROUP_ROUTES = {
   // collapsed sidebar section, so the mobile dock's last slot has somewhere to
   // go and both surfaces can be the same shape.
   all: `${GROUP_PREFIX}/all`,
+  // The Group's own settings, as against `/settings`, which is yours. What
+  // belongs here is whatever a Group owns and its Members share — today, the
+  // connections to Notion and Todoist that its linked task lists read through.
+  settings: `${GROUP_PREFIX}/settings`,
   nutrition: `${GROUP_PREFIX}/nutrition`,
 
   recipes: `${GROUP_PREFIX}/recipes`,
@@ -103,8 +107,8 @@ type ExtraArgs<S extends GroupSurface> = keyof ExtraParams<S> extends never
   : [ExtraParams<S>]
 
 /**
- * A Module's own front page inside a Group, plus the two pages the Group itself
- * owns: its landing page, and the list of every Module in it.
+ * A Module's own front page inside a Group, plus the pages the Group itself
+ * owns: its landing page, the list of every Module in it, and its settings.
  *
  * These are the destinations something generic — the Group switcher, the
  * sidebar — can send you to knowing only which page you were on and which
@@ -116,10 +120,16 @@ type ExtraArgs<S extends GroupSurface> = keyof ExtraParams<S> extends never
  * means and not something a path shape can be read off: `/recipes/new` needs no
  * parameter either, and is nowhere anyone should be sent by default. A test
  * holds the list to one segment deep.
+ *
+ * `settings` earns its place for the same reason `home` and `all` do: it means
+ * something in every Group, and someone comparing two households' connections
+ * wants the switcher to land them on the other household's settings rather than
+ * on its Home.
  */
 const GROUP_MODULE_INDEXES = [
   'home',
   'all',
+  'settings',
   'nutrition',
   'recipes',
   'foods',

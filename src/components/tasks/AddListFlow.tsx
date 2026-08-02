@@ -41,7 +41,7 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
   const listSources = useAction(api.integrations.listSources)
   const getSourceSchema = useAction(api.integrations.getSourceSchema)
   const createList = useMutation(api.taskLists.create)
-  const connect = useConnectProvider(returnTo)
+  const connect = useConnectProvider(groupSlug, returnTo)
 
   const [step, setStep] = useState<Step>({ kind: 'provider' })
   const [name, setName] = useState('')
@@ -66,7 +66,7 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
 
   async function pickExternal(provider: ExternalProvider) {
     await run(async () => {
-      const sources = await listSources({ provider })
+      const sources = await listSources({ provider, groupSlug })
       setStep({ kind: 'source', provider, sources })
     })
   }
@@ -91,7 +91,11 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
       return
     }
     await run(async () => {
-      const schema = await getSourceSchema({ provider, sourceId: source.id })
+      const schema = await getSourceSchema({
+        provider,
+        groupSlug,
+        sourceId: source.id,
+      })
       setStep({ kind: 'notion-mapping', source, schema })
     })
   }

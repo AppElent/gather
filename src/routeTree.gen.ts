@@ -31,6 +31,7 @@ import { Route as AppGGroupSlugGroceriesRouteImport } from './routes/_app/g/$gro
 import { Route as AppGGroupSlugMealPlannerRouteImport } from './routes/_app/g/$groupSlug/meal-planner'
 import { Route as AppGGroupSlugNotesRouteImport } from './routes/_app/g/$groupSlug/notes'
 import { Route as AppGGroupSlugPantryRouteImport } from './routes/_app/g/$groupSlug/pantry'
+import { Route as AppGGroupSlugSettingsRouteImport } from './routes/_app/g/$groupSlug/settings'
 import { Route as AppGGroupSlugTasksRouteImport } from './routes/_app/g/$groupSlug/tasks'
 import { Route as AppGGroupSlugWinesRouteImport } from './routes/_app/g/$groupSlug/wines'
 import { Route as AppGGroupSlugBabyIndexRouteImport } from './routes/_app/g/$groupSlug/baby/index'
@@ -157,6 +158,11 @@ const AppGGroupSlugPantryRoute = AppGGroupSlugPantryRouteImport.update({
   path: '/pantry',
   getParentRoute: () => AppGGroupSlugRoute,
 } as any)
+const AppGGroupSlugSettingsRoute = AppGGroupSlugSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppGGroupSlugRoute,
+} as any)
 const AppGGroupSlugTasksRoute = AppGGroupSlugTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -262,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/g/$groupSlug/meal-planner': typeof AppGGroupSlugMealPlannerRoute
   '/g/$groupSlug/notes': typeof AppGGroupSlugNotesRoute
   '/g/$groupSlug/pantry': typeof AppGGroupSlugPantryRoute
+  '/g/$groupSlug/settings': typeof AppGGroupSlugSettingsRoute
   '/g/$groupSlug/tasks': typeof AppGGroupSlugTasksRoute
   '/g/$groupSlug/wines': typeof AppGGroupSlugWinesRoute
   '/g/$groupSlug/': typeof AppGGroupSlugIndexRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/g/$groupSlug/meal-planner': typeof AppGGroupSlugMealPlannerRoute
   '/g/$groupSlug/notes': typeof AppGGroupSlugNotesRoute
   '/g/$groupSlug/pantry': typeof AppGGroupSlugPantryRoute
+  '/g/$groupSlug/settings': typeof AppGGroupSlugSettingsRoute
   '/g/$groupSlug/tasks': typeof AppGGroupSlugTasksRoute
   '/g/$groupSlug/wines': typeof AppGGroupSlugWinesRoute
   '/g/$groupSlug': typeof AppGGroupSlugIndexRoute
@@ -339,6 +347,7 @@ export interface FileRoutesById {
   '/_app/g/$groupSlug/meal-planner': typeof AppGGroupSlugMealPlannerRoute
   '/_app/g/$groupSlug/notes': typeof AppGGroupSlugNotesRoute
   '/_app/g/$groupSlug/pantry': typeof AppGGroupSlugPantryRoute
+  '/_app/g/$groupSlug/settings': typeof AppGGroupSlugSettingsRoute
   '/_app/g/$groupSlug/tasks': typeof AppGGroupSlugTasksRoute
   '/_app/g/$groupSlug/wines': typeof AppGGroupSlugWinesRoute
   '/_app/g/$groupSlug/': typeof AppGGroupSlugIndexRoute
@@ -379,6 +388,7 @@ export interface FileRouteTypes {
     | '/g/$groupSlug/meal-planner'
     | '/g/$groupSlug/notes'
     | '/g/$groupSlug/pantry'
+    | '/g/$groupSlug/settings'
     | '/g/$groupSlug/tasks'
     | '/g/$groupSlug/wines'
     | '/g/$groupSlug/'
@@ -416,6 +426,7 @@ export interface FileRouteTypes {
     | '/g/$groupSlug/meal-planner'
     | '/g/$groupSlug/notes'
     | '/g/$groupSlug/pantry'
+    | '/g/$groupSlug/settings'
     | '/g/$groupSlug/tasks'
     | '/g/$groupSlug/wines'
     | '/g/$groupSlug'
@@ -455,6 +466,7 @@ export interface FileRouteTypes {
     | '/_app/g/$groupSlug/meal-planner'
     | '/_app/g/$groupSlug/notes'
     | '/_app/g/$groupSlug/pantry'
+    | '/_app/g/$groupSlug/settings'
     | '/_app/g/$groupSlug/tasks'
     | '/_app/g/$groupSlug/wines'
     | '/_app/g/$groupSlug/'
@@ -637,6 +649,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGGroupSlugPantryRouteImport
       parentRoute: typeof AppGGroupSlugRoute
     }
+    '/_app/g/$groupSlug/settings': {
+      id: '/_app/g/$groupSlug/settings'
+      path: '/settings'
+      fullPath: '/g/$groupSlug/settings'
+      preLoaderRoute: typeof AppGGroupSlugSettingsRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
     '/_app/g/$groupSlug/tasks': {
       id: '/_app/g/$groupSlug/tasks'
       path: '/tasks'
@@ -755,6 +774,7 @@ interface AppGGroupSlugRouteChildren {
   AppGGroupSlugMealPlannerRoute: typeof AppGGroupSlugMealPlannerRoute
   AppGGroupSlugNotesRoute: typeof AppGGroupSlugNotesRoute
   AppGGroupSlugPantryRoute: typeof AppGGroupSlugPantryRoute
+  AppGGroupSlugSettingsRoute: typeof AppGGroupSlugSettingsRoute
   AppGGroupSlugTasksRoute: typeof AppGGroupSlugTasksRoute
   AppGGroupSlugWinesRoute: typeof AppGGroupSlugWinesRoute
   AppGGroupSlugIndexRoute: typeof AppGGroupSlugIndexRoute
@@ -783,6 +803,7 @@ const AppGGroupSlugRouteChildren: AppGGroupSlugRouteChildren = {
   AppGGroupSlugMealPlannerRoute: AppGGroupSlugMealPlannerRoute,
   AppGGroupSlugNotesRoute: AppGGroupSlugNotesRoute,
   AppGGroupSlugPantryRoute: AppGGroupSlugPantryRoute,
+  AppGGroupSlugSettingsRoute: AppGGroupSlugSettingsRoute,
   AppGGroupSlugTasksRoute: AppGGroupSlugTasksRoute,
   AppGGroupSlugWinesRoute: AppGGroupSlugWinesRoute,
   AppGGroupSlugIndexRoute: AppGGroupSlugIndexRoute,

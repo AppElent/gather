@@ -274,5 +274,6 @@ Finally, open the app as **each parent in turn**:
   regression — privacy is a consequence of which Group something lives in
   (ADR-0003), and this child's log is meant to be shared.
 - `convex/lib/groupAccess.ts`'s `groupIdFromSlugOrDefault` is no longer used by
-  anything in the Baby log. It stays in place for `taskLists` and
-  `integrations`, which are #26.
+  anything in the Baby log, and is now gone entirely: #26 took the same fallback
+  out of `taskLists` and `integrations`, which were its last callers. See
+  `0004-tasks-and-integrations-onto-group-scope.md`.

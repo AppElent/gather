@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { UnifiedTask } from '../../../convex/lib/taskProviders/types'
+import { groupLink } from '../../lib/groupPaths'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import { TaskRow } from './TaskRow'
 
@@ -88,8 +89,10 @@ export function ExternalTaskList({
         <p className="m-0 text-sm text-[var(--app-muted)]">
           The {PROVIDER_LABELS[state.provider]} connection needs to be
           reconnected.{' '}
-          <Link to="/settings" className="font-semibold">
-            Go to settings
+          {/* The connection belongs to this Group, so the page that can fix it
+              is this Group's settings and not the reader's own. */}
+          <Link {...groupLink('settings', groupSlug)} className="font-semibold">
+            Go to group settings
           </Link>
         </p>
       )}

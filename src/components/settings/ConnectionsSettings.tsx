@@ -2,6 +2,7 @@ import { useAction, useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
+import { groupHref } from '../../lib/groupPaths'
 import {
   type ExternalProvider,
   newOAuthState,
@@ -24,23 +25,49 @@ export function errorMessage(error: unknown, fallback: string): string {
   return fallback
 }
 
-/** Starts the provider OAuth flow; shared with the Tasks add-list flow. */
-export function useConnectProvider(returnTo: string) {
+/**
+ * Starts the provider OAuth flow for one Group; shared with the Tasks add-list
+ * flow, which connects from inside the Group it is adding a list to.
+ *
+ * The Group is written down before leaving, because the callback comes back on
+ * a fresh page load with nothing but what `sessionStorage` kept for it.
+ */
+export function useConnectProvider(groupSlug: string, returnTo: string) {
   const getAuthorizeUrl = useAction(api.integrations.getAuthorizeUrl)
   return async (provider: ExternalProvider) => {
     const url = await getAuthorizeUrl({
       provider,
       redirectUri: oauthRedirectUri(),
-      state: newOAuthState(provider, returnTo),
+      state: newOAuthState(provider, groupSlug, returnTo),
     })
     window.location.href = url
   }
 }
 
-export function ConnectionsSettings() {
-  const connections = useQuery(api.integrations.listConnections, {})
+export interface ConnectionsSettingsProps {
+  /** The Group these connections belong to. */
+  groupSlug: string
+  /** Its name, so the page says whose Notion it is about to disconnect. */
+  groupName: string
+}
+
+/**
+ * One Group's connections to Notion and Todoist.
+ *
+ * A connection is Group-scoped content — the token belongs to the household
+ * that authorised it, not to whoever clicked Connect — so this names the Group
+ * it is acting on rather than saying "your group" and leaving it to be guessed.
+ */
+export function ConnectionsSettings({
+  groupSlug,
+  groupName,
+}: ConnectionsSettingsProps) {
+  const connections = useQuery(api.integrations.listConnections, { groupSlug })
   const disconnect = useMutation(api.integrations.disconnect)
-  const connect = useConnectProvider('/settings')
+  const connect = useConnectProvider(
+    groupSlug,
+    groupHref('settings', groupSlug),
+  )
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<ExternalProvider | null>(null)
 
@@ -59,8 +86,8 @@ export function ConnectionsSettings() {
     <SurfaceCard>
       <h2 className="m-0 mb-1 text-base font-semibold">Connections</h2>
       <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
-        Connect external apps for your whole group. Modules like Tasks can link
-        lists to a connected app.
+        Connect an external app for {groupName}. Every member of {groupName} can
+        use it — Tasks can mirror a list from it — and nobody outside can.
       </p>
       {error && <p className="m-0 mb-2 text-sm text-red-600">{error}</p>}
       <ul className="m-0 grid list-none gap-2 p-0">
@@ -86,10 +113,10 @@ export function ConnectionsSettings() {
                   onClick={() => {
                     if (
                       window.confirm(
-                        `Disconnect ${p.label}? Linked lists will stop loading until it is reconnected.`,
+                        `Disconnect ${p.label} from ${groupName}? Linked lists will stop loading until it is reconnected.`,
                       )
                     ) {
-                      void disconnect({ connectionId: conn._id })
+                      void disconnect({ connectionId: conn._id, groupSlug })
                     }
                   }}
                 >
