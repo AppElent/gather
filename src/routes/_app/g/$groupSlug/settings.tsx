@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useGroup } from '../../../../components/app/GroupGate'
 import { ConnectionsSettings } from '../../../../components/settings/ConnectionsSettings'
+import { GroupIdentitySettings } from '../../../../components/settings/GroupIdentitySettings'
 
 /**
  * A Group's own settings, as against `/settings`, which is yours.
@@ -9,6 +10,12 @@ import { ConnectionsSettings } from '../../../../components/settings/Connections
  * belongs to a Group (ADR-0003): the Notion token a household authorised is the
  * household's, and which household is being changed has to be visible in the
  * address rather than inferred from an account default.
+ *
+ * This is also where a Group row on `/groups` now lands, so it carries the
+ * Group's own identity above that — its name, its invite code, and the way out
+ * of it. A page called "<Group> settings" that held only somebody else's OAuth
+ * tokens read as unfinished, and clicking a Group expecting to reach *it* and
+ * arriving at a Notion card would have made that worse.
  */
 export const Route = createFileRoute('/_app/g/$groupSlug/settings')({
   component: GroupSettings,
@@ -34,6 +41,7 @@ function GroupSettings() {
           account settings are in Settings, and are the same in every group.
         </p>
       </header>
+      <GroupIdentitySettings group={group} />
       <ConnectionsSettings groupSlug={groupSlug} groupName={group.name} />
     </div>
   )

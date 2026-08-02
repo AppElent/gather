@@ -98,7 +98,7 @@ export const bySlug = query({
  * not a reason to hand out addresses; no `inviteCode`, for the reason `bySlug`
  * does not return one either — it is a capability, and a query that answers
  * "who is here" has no business also answering "how do I let someone else in".
- * Inviting lives on `/groups`.
+ * Asking for the code is its own request, and `inviteCode` below is it.
  */
 export const members = query({
   args: { slug: v.string() },
@@ -122,6 +122,25 @@ export const members = query({
         role: m.role,
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
+  },
+})
+
+/**
+ * The code that lets somebody else into the Group the URL names.
+ *
+ * Deliberately its own query rather than a field on `bySlug` or `members`. The
+ * code is a capability — anyone holding it can join — so handing it out is a
+ * request a caller has to make on purpose, for one named Group, and not
+ * something that rides along with every gate check on every page.
+ *
+ * Any Member may read it. Inviting a housemate is not an administrative act,
+ * and a Group whose only admin is on holiday is still a household.
+ */
+export const inviteCode = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.slug)
+    return group.inviteCode
   },
 })
 
@@ -160,14 +179,16 @@ export const renameGroup = mutation({
     }
     // The slug follows the name, so the URL keeps telling you which Group you
     // are in. Existing links to the old slug break — accepted in ADR-0002.
-    await ctx.db.patch(group._id, {
+    const slug = await allocateGroupSlug(ctx, {
       name: args.name,
-      slug: await allocateGroupSlug(ctx, {
-        name: args.name,
-        isPersonal: false,
-        excludeGroupId: group._id,
-      }),
+      isPersonal: false,
+      excludeGroupId: group._id,
     })
+    await ctx.db.patch(group._id, { name: args.name, slug })
+    // Returned because the caller is standing on `/g/<old-slug>/settings` and
+    // has just made that address stop existing. It cannot work the new slug out
+    // for itself — `allocateGroupSlug` resolves collisions — so it is told.
+    return slug
   },
 })
 

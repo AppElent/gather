@@ -1,9 +1,7 @@
 import { Link } from '@tanstack/react-router'
-import { groupLink } from '../../lib/groupPaths'
 import { GroupSwitcher } from './GroupSwitcher'
 import { Icon } from './Icon'
 import { Pill } from './ShellPrimitives'
-import { useCurrentGroup } from './useCurrentGroup'
 import { useNavigation } from './useNavigation'
 
 export interface SidebarProps {
@@ -28,16 +26,13 @@ const FOOTER_LINK =
  * would each have to pick a Group for you. The switcher above it already reads
  * "No group / Pick a group", and picking one is the way out.
  *
- * At the bottom, the pages that are not a Module: the Group's own settings when
- * there is a Group, then Groups and your own Settings, which are about you and
- * read the same from everywhere.
+ * At the bottom, the pages that are not a Module: Groups and your own Settings,
+ * which are about you and read the same from everywhere. A Group's own settings
+ * are reached through the Group, on Groups, and not from here.
  */
 export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
   const isDrawer = variant === 'drawer'
   const { items, activeId } = useNavigation()
-  // Resolved against the Groups you are in rather than taken off the URL raw,
-  // so the Group settings link is only offered for a slug that leads somewhere.
-  const { current } = useCurrentGroup()
 
   return (
     <aside
@@ -88,18 +83,15 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
       {/* The pages that are not a Module. This used to be a card headed
           "Preview group" over a sentence promising that group and member
           details would appear once connected — a promise Home now keeps, on a
-          page, with real names on it. What was worth keeping is the three
-          links, which are the only way to leave a Group from the sidebar. */}
+          page, with real names on it. What was worth keeping is the links,
+          which are the only way to leave a Group from the sidebar.
+
+          A Group's own settings are no longer among them. A link that changes
+          destination depending on where you are standing, sitting a row above
+          one that never does and is called almost the same word, is two
+          meanings of "settings" in the same two inches. The Group's settings
+          hang off the Group instead: clicking it on Groups opens them. */}
       <nav className="mt-auto grid gap-1" aria-label="Settings and groups">
-        {current ? (
-          <Link
-            {...groupLink('settings', current.slug)}
-            onClick={onNavigate}
-            className={FOOTER_LINK}
-          >
-            Group settings
-          </Link>
-        ) : null}
         <Link to="/groups" onClick={onNavigate} className={FOOTER_LINK}>
           Groups
         </Link>

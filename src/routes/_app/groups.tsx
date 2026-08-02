@@ -1,7 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
+import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
+import { groupLink } from '../../lib/groupPaths'
 
 export const Route = createFileRoute('/_app/groups')({ component: GroupsPage })
 
@@ -31,19 +33,30 @@ function GroupsPage() {
       ) : (
         <ul className="mb-6 space-y-2">
           {groups.map((g) => (
-            <li
-              key={g._id}
-              className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-            >
-              <span>
-                {g.name}{' '}
-                <span className="opacity-50">· invite {g.inviteCode}</span>
-                {g.isPersonal && (
-                  <span className="ml-2 rounded bg-emerald-100 px-1.5 text-xs text-emerald-800">
-                    personal
-                  </span>
-                )}
-              </span>
+            <li key={g._id}>
+              {/* The row is the way into the Group's own settings. It used to
+                  be a bare span that went nowhere, next to a sidebar link
+                  called "Group settings" that went here — so the one thing on
+                  screen actually naming a Group was the one thing you could
+                  not click. */}
+              <Link
+                {...groupLink('settings', g.slug)}
+                className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm no-underline"
+              >
+                <span>
+                  {g.name}{' '}
+                  <span className="opacity-50">· invite {g.inviteCode}</span>
+                  {g.isPersonal && (
+                    <span className="ml-2 rounded bg-emerald-100 px-1.5 text-xs text-emerald-800">
+                      personal
+                    </span>
+                  )}
+                </span>
+                <ChevronRight
+                  className="h-4 w-4 shrink-0 opacity-50"
+                  aria-hidden="true"
+                />
+              </Link>
             </li>
           ))}
         </ul>

@@ -16,6 +16,7 @@ type Harness = ReturnType<typeof testConvex>
 
 const asAlice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
 const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
+const asCarol = { subject: 'clerk_carol', name: 'Carol', email: 'c@example.com' }
 
 /** Sign a person up exactly as the app does on first mount. */
 async function signUp(t: Harness, identity: typeof asAlice) {
@@ -225,6 +226,22 @@ describe('an ordinary Group', () => {
     expect(renamed?.slug).toBe('wine-club')
   })
 
+  /**
+   * The settings page renaming a Group is standing on that Group's address,
+   * which the rename makes stop existing. It cannot work the new slug out for
+   * itself — `allocateGroupSlug` resolves collisions — so it has to be told.
+   */
+  test('hands back the slug it moved to, so the renamer can follow', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+
+    const slug = await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.renameGroup, { groupId, name: 'Wine club' })
+
+    expect(slug).toBe('wine-club')
+  })
+
   test('cannot be renamed by a plain member', async () => {
     const t = testConvex()
     const groupId = await household(t)
@@ -250,6 +267,37 @@ describe('an ordinary Group', () => {
 
     const renamed = (await groupsOf(t, asAlice)).find((g) => g._id === groupId)
     expect(renamed?.slug).toBe('jansen-household')
+  })
+
+  /**
+   * The code is a capability: whoever holds it can join. It is deliberately
+   * absent from `bySlug` and `members`, so the settings page asks for it by
+   * name — and that request is authorised like every other Group-scoped read,
+   * from the slug the caller named.
+   */
+  test('hands its invite code to any member who asks for it', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const group = await t.run(async (ctx) => await ctx.db.get(groupId))
+
+    const asked = await t
+      .withIdentity(asBob)
+      .query(api.groups.inviteCode, { slug: group?.slug ?? '' })
+
+    expect(asked).toBe(group?.inviteCode)
+  })
+
+  test('does not hand its invite code to somebody outside it', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const group = await t.run(async (ctx) => await ctx.db.get(groupId))
+    await signUp(t, asCarol)
+
+    await expect(
+      t
+        .withIdentity(asCarol)
+        .query(api.groups.inviteCode, { slug: group?.slug ?? '' }),
+    ).rejects.toThrow()
   })
 
   test('can be left, and then its content is no longer yours to see', async () => {

@@ -78,9 +78,20 @@ describe('the sidebar off any Group route', () => {
     expect(screen.getByRole('button', { name: /switch group/i })).toBeDefined()
   })
 
-  test('offers no Group settings, because there is no Group to settle', () => {
+  /**
+   * The footer used to carry a "Group settings" link whose destination changed
+   * with the address, directly above a "Settings" link whose destination never
+   * did — two meanings of the word in two inches. A Group's settings hang off
+   * the Group now: its row on `/groups` opens them. The assertion is kept and
+   * inverted rather than deleted, because "no Group settings link here" is the
+   * decision, and a deleted test would not notice it being undone.
+   */
+  test('offers no Group settings link, in or out of a Group', () => {
     render(<Sidebar />)
+    expect(screen.queryByRole('link', { name: 'Group settings' })).toBeNull()
 
+    location.pathname = '/g/me-alice/recipes'
+    render(<Sidebar />)
     expect(screen.queryByRole('link', { name: 'Group settings' })).toBeNull()
   })
 
@@ -93,14 +104,10 @@ describe('the sidebar off any Group route', () => {
     expect(screen.getByRole('link', { name: /home/i })).toBeDefined()
   })
 
-  test('and offers that Group its own settings, apart from your own', () => {
+  test('and Settings still means yours, wherever you are standing', () => {
     location.pathname = '/g/me-alice/recipes'
     render(<Sidebar />)
 
-    expect(
-      screen.getByRole('link', { name: 'Group settings' }).getAttribute('href'),
-    ).toBe('/g/me-alice/settings')
-    // Two words that would otherwise be one meaning two things.
     expect(
       screen.getByRole('link', { name: 'Settings' }).getAttribute('href'),
     ).toBe('/settings')
