@@ -3,8 +3,8 @@
 import { ConvexError, v } from 'convex/values'
 import { api } from './_generated/api'
 import { action } from './_generated/server'
-import { fetchOffProduct } from './lib/offFetch'
-import { mapOffProduct } from './lib/offMapping'
+import { fetchOffProduct, searchOffProducts } from './lib/offFetch'
+import { mapOffProduct, mapOffSearchResults } from './lib/offMapping'
 
 // Fetches + maps a barcode from Open Food Facts, without saving anything —
 // the client shows the result for review and calls `foods.upsertFromOff`
@@ -51,5 +51,20 @@ export const refreshFromOff = action({
       servingSize: mapped.servingSize,
       servingLabel: mapped.servingLabel,
     })
+  },
+})
+
+// Searches Open Food Facts by name — the "no local match" fallback in
+// FoodAddTab's search box. Best-effort: any OFF-side failure (network,
+// timeout, malformed response) surfaces as an empty array, never a thrown
+// error, matching lookupBarcode's contract — a failed OFF search just means
+// "no matches", same as a genuinely empty result set.
+export const searchByName = action({
+  args: { term: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new ConvexError('Not authenticated')
+    const raw = await searchOffProducts(args.term)
+    return mapOffSearchResults(raw)
   },
 })

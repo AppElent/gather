@@ -64,13 +64,11 @@ describe('fetchOffProduct', () => {
 })
 
 describe('searchOffProducts', () => {
-  test('fetches the search endpoint with the term, page size, and field list', async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(mockResponse({ products: [] }))
+  test('fetches the search-a-licious endpoint with the term, page size, and field list', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(mockResponse({ hits: [] }))
     await searchOffProducts('nutella', fetchImpl)
     expect(fetchImpl).toHaveBeenCalledWith(
-      'https://world.openfoodfacts.org/api/v2/search?search_terms=nutella&page_size=20&fields=code%2Cproduct_name%2Cproduct_name_nl%2Cbrands%2Cnutriments%2Cserving_size%2Cserving_quantity',
+      'https://search.openfoodfacts.org/search?q=nutella&page_size=40&fields=code%2Cproduct_name%2Cproduct_name_nl%2Cbrands%2Cnutriments%2Cserving_size%2Cserving_quantity',
       expect.objectContaining({
         headers: expect.objectContaining({
           'User-Agent': expect.any(String),
@@ -83,10 +81,10 @@ describe('searchOffProducts', () => {
     const fetchImpl = vi
       .fn()
       .mockResolvedValue(
-        mockResponse({ products: [{ code: '123', product_name: 'Test' }] }),
+        mockResponse({ hits: [{ code: '123', product_name: 'Test' }] }),
       )
     expect(await searchOffProducts('test', fetchImpl)).toEqual({
-      products: [{ code: '123', product_name: 'Test' }],
+      hits: [{ code: '123', product_name: 'Test' }],
     })
   })
 
