@@ -1,7 +1,7 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import { mutation, query } from './_generated/server'
-import type { MutationCtx } from './_generated/server'
+import type { MutationCtx, QueryCtx } from './_generated/server'
 import {
   getMembership,
   requireGroupBySlug,
@@ -215,12 +215,84 @@ export const joinByInvite = mutation({
   },
 })
 
+/**
+ * Hand somebody else the admin role, or take it back.
+ *
+ * Exists because `leaveGroup` refuses the last admin's departure, and a refusal
+ * with no way to satisfy it is just a different trap. Admins only: deciding who
+ * else may rename or delete the Group is exactly the thing the role is for.
+ *
+ * A Personal group has one Member and no second role to give.
+ */
+export const setMemberRole = mutation({
+  args: {
+    groupId: v.id('groups'),
+    userId: v.id('users'),
+    role: v.union(v.literal('admin'), v.literal('member')),
+  },
+  handler: async (ctx, args) => {
+    const { group, membership } = await requireMembership(ctx, args.groupId)
+    if (!isAdmin(membership)) {
+      throw new ConvexError('Only an admin can change roles')
+    }
+    if (group.isPersonal) {
+      throw new ConvexError('A personal group has only you in it')
+    }
+
+    const target = await getMembership(ctx, group._id, args.userId)
+    if (!target) throw new ConvexError('That person is not in this group')
+
+    // Demoting the last admin leaves the Group with nobody who can undo it —
+    // the same hole `leaveGroup` refuses, reached by standing still instead of
+    // walking out.
+    if (isAdmin(target) && args.role === 'member') {
+      const admins = await adminsOf(ctx, group._id)
+      if (admins.length <= 1) {
+        throw new ConvexError(
+          'Make somebody else an admin first — a group cannot be left without one',
+        )
+      }
+    }
+
+    await ctx.db.patch(target._id, { role: args.role })
+  },
+})
+
+/** Every membership in a Group that carries admin rights. */
+async function adminsOf(ctx: QueryCtx, groupId: Id<'groups'>) {
+  const memberships = await ctx.db
+    .query('memberships')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .collect()
+  return memberships.filter(isAdmin)
+}
+
 export const leaveGroup = mutation({
   args: { groupId: v.id('groups') },
   handler: async (ctx, args) => {
     const { group, membership } = await requireMembership(ctx, args.groupId)
     // Everyone keeps somewhere private, always.
     if (group.isPersonal) throw new Error('You cannot leave your personal group')
+
+    // A Group whose last admin walks out cannot be renamed or deleted by
+    // anyone left in it, and nothing short of database repair can put that
+    // right — there is no self-service way back into a room nobody administers.
+    // So the door is held rather than the damage repaired afterwards, which is
+    // the same call `deleteGroup` below makes about its own other Members.
+    if (isAdmin(membership)) {
+      const others = await ctx.db
+        .query('memberships')
+        .withIndex('by_group', (q) => q.eq('groupId', group._id))
+        .collect()
+        .then((all) => all.filter((m) => m._id !== membership._id))
+
+      if (others.length > 0 && !others.some(isAdmin)) {
+        throw new ConvexError(
+          'You are the only admin. Make somebody else an admin before you leave.',
+        )
+      }
+    }
+
     await ctx.db.delete(membership._id)
   },
 })

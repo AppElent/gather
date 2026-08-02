@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useGroup } from '../../../../components/app/GroupGate'
 import { ConnectionsSettings } from '../../../../components/settings/ConnectionsSettings'
 import { GroupIdentitySettings } from '../../../../components/settings/GroupIdentitySettings'
+import { GroupMembersSettings } from '../../../../components/settings/GroupMembersSettings'
 
 /**
  * A Group's own settings, as against `/settings`, which is yours.
@@ -42,6 +43,7 @@ function GroupSettings() {
         </p>
       </header>
       <GroupIdentitySettings group={group} />
+      <GroupMembersSettings group={group} />
       <ConnectionsSettings groupSlug={groupSlug} groupName={group.name} />
     </div>
   )

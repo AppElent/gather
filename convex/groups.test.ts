@@ -311,6 +311,49 @@ describe('an ordinary Group', () => {
     expect((await groupsOf(t, asAlice)).map((g) => g._id)).toContain(groupId)
   })
 
+  /**
+   * A Group whose last admin walks out cannot be renamed, deleted or handed on
+   * by anyone left standing in it, and nothing short of database repair puts
+   * that right. The leave button on the settings page made that reachable, so
+   * the door is held instead.
+   */
+  test('cannot be left by its only admin while anyone else is still in it', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+
+    await expect(
+      t.withIdentity(asAlice).mutation(api.groups.leaveGroup, { groupId }),
+    ).rejects.toThrow(/only admin/i)
+
+    expect((await groupsOf(t, asAlice)).map((g) => g._id)).toContain(groupId)
+  })
+
+  test('can be left by its last admin once nobody else is in it', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+
+    await t.withIdentity(asBob).mutation(api.groups.leaveGroup, { groupId })
+    await t.withIdentity(asAlice).mutation(api.groups.leaveGroup, { groupId })
+
+    expect((await groupsOf(t, asAlice)).map((g) => g._id)).not.toContain(groupId)
+  })
+
+  test('can be left by its only admin once somebody else is one too', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const bob = await t.withIdentity(asBob).query(api.users.me, {})
+
+    await t.withIdentity(asAlice).mutation(api.groups.setMemberRole, {
+      groupId,
+      userId: bob?._id ?? ('' as never),
+      role: 'admin',
+    })
+    await t.withIdentity(asAlice).mutation(api.groups.leaveGroup, { groupId })
+
+    expect((await groupsOf(t, asAlice)).map((g) => g._id)).not.toContain(groupId)
+    expect((await groupsOf(t, asBob)).map((g) => g._id)).toContain(groupId)
+  })
+
   test('cannot be left by someone who is not in it', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
@@ -322,6 +365,58 @@ describe('an ordinary Group', () => {
     await expect(
       t.withIdentity(asBob).mutation(api.groups.leaveGroup, { groupId }),
     ).rejects.toThrow(/not a member/i)
+  })
+
+  test('hands the admin role over, and takes it back', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const bob = await t.withIdentity(asBob).query(api.users.me, {})
+    const bobId = bob?._id ?? ('' as never)
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.setMemberRole, { groupId, userId: bobId, role: 'admin' })
+    // Bob can now do an admin's work, which is the whole point of the handover.
+    await t
+      .withIdentity(asBob)
+      .mutation(api.groups.renameGroup, { groupId, name: 'Bob club' })
+
+    await t
+      .withIdentity(asBob)
+      .mutation(api.groups.setMemberRole, { groupId, userId: bobId, role: 'member' })
+    await expect(
+      t
+        .withIdentity(asBob)
+        .mutation(api.groups.renameGroup, { groupId, name: 'Again' }),
+    ).rejects.toThrow(/admin/i)
+  })
+
+  test('will not let its last admin demote themselves either', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const alice = await t.withIdentity(asAlice).query(api.users.me, {})
+
+    await expect(
+      t.withIdentity(asAlice).mutation(api.groups.setMemberRole, {
+        groupId,
+        userId: alice?._id ?? ('' as never),
+        role: 'member',
+      }),
+    ).rejects.toThrow(/somebody else an admin/i)
+  })
+
+  test('does not let a plain member appoint themselves', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const bob = await t.withIdentity(asBob).query(api.users.me, {})
+
+    await expect(
+      t.withIdentity(asBob).mutation(api.groups.setMemberRole, {
+        groupId,
+        userId: bob?._id ?? ('' as never),
+        role: 'admin',
+      }),
+    ).rejects.toThrow(/only an admin/i)
   })
 
   test('cannot be deleted while it still has other members', async () => {

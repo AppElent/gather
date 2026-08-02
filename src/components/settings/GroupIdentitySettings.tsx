@@ -122,6 +122,9 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
                     title: `Leave ${group.name}?`,
                     body: 'You stop seeing everything in it. Anything you added stays with the group.',
                     confirmLabel: 'Leave group',
+                    // The one refusal a reader can act on is the last admin's,
+                    // and the server's message names the fix; Members below is
+                    // where it happens.
                     errorFallback: 'Could not leave this group.',
                     run: async () => {
                       await leave({ groupId: group._id })
