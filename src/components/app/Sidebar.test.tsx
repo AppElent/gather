@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { MobileDock } from './MobileDock'
+import { ShellGroupProvider } from './ShellGroup'
 import { Sidebar } from './Sidebar'
 
 /**
@@ -8,10 +9,15 @@ import { Sidebar } from './Sidebar'
  *
  * Settings, Account and the Groups list are deliberately unscoped — Settings
  * and Account are Personal (ADR-0003), and Groups is where you pick a Group, so
- * it cannot require one. Standing on any of them, the navigation has nothing to
- * point at. These say what is shown instead, and — the part that is a
- * regression risk rather than a design choice — that a phone with no dock can
- * still reach all three.
+ * it cannot require one. Standing on any of them, the URL names no Group.
+ *
+ * Two different situations hide behind that, and the shell now tells them
+ * apart. Someone who has never been in a Group this session has nothing to
+ * draw, and gets a sentence saying so — that is what the first block below
+ * covers, rendering these surfaces bare, with no shell memory around them.
+ * Someone who walked out of a Group to reach `/groups` has one, and the last
+ * block covers that: the modules and the dock stay, so stepping out to pick a
+ * Group does not blank the shell on the way.
  */
 
 const location = vi.hoisted(() => ({ pathname: '/settings' }))
@@ -124,7 +130,7 @@ describe('the sidebar off any Group route', () => {
   })
 })
 
-describe('the mobile dock off any Group route', () => {
+describe('the mobile dock with no Group ever visited', () => {
   test('is not there at all, rather than an empty bar', () => {
     const { container } = render(<MobileDock />)
 
@@ -138,5 +144,52 @@ describe('the mobile dock off any Group route', () => {
     expect(
       screen.getByRole('navigation', { name: 'Mobile navigation' }),
     ).toBeDefined()
+  })
+})
+
+/**
+ * Leaving *to* the list of Groups is not leaving your Group.
+ *
+ * `/groups` sits outside `/g/<slug>`, so the URL genuinely names no Group there
+ * — and it must keep doing so, because ADR-0002 gives it the only say in what
+ * the app reads and writes. What changes is only what the shell draws: it holds
+ * on to the last Group the address named so the way back does not vanish while
+ * you are looking for it.
+ */
+describe('stepping out of a Group and back', () => {
+  // A fresh element each time, or React reuses the identical one and never
+  // re-reads the pathname the rerender is there to change.
+  function renderShell(ui: () => React.ReactNode) {
+    // Standing in a Group first is what gives the shell something to remember;
+    // the rerender is the navigation to a slugless route.
+    location.pathname = '/g/me-alice/recipes'
+    const view = render(<ShellGroupProvider>{ui()}</ShellGroupProvider>)
+    location.pathname = '/groups'
+    view.rerender(<ShellGroupProvider>{ui()}</ShellGroupProvider>)
+    return view
+  }
+
+  test('the modules stay listed on the way to Groups', () => {
+    renderShell(() => <Sidebar />)
+
+    expect(screen.getByRole('navigation', { name: 'Primary' })).toBeDefined()
+    expect(screen.queryByText(/pick a group to see its modules/i)).toBeNull()
+    expect(
+      screen.getByRole('link', { name: /home/i }).getAttribute('href'),
+    ).toBe('/g/me-alice')
+  })
+
+  test('and the dock stays with them', () => {
+    renderShell(() => <MobileDock />)
+
+    expect(
+      screen.getByRole('navigation', { name: 'Mobile navigation' }),
+    ).toBeDefined()
+  })
+
+  test('but nothing claims to be the page you are on', () => {
+    const { container } = renderShell(() => <Sidebar />)
+
+    expect(container.querySelector('[aria-current="page"]')).toBeNull()
   })
 })

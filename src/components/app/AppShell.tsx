@@ -12,6 +12,7 @@ import { CommandPalette } from './CommandPalette'
 import { GatherPanel } from './GatherPanel'
 import { IssueReporterModal } from './IssueReporterModal'
 import { MobileDock } from './MobileDock'
+import { ShellGroupProvider } from './ShellGroup'
 import { IconButton } from './ShellPrimitives'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
@@ -25,7 +26,20 @@ function getFocusableElements(container: HTMLElement) {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
 }
 
+/**
+ * The provider sits outside the shell rather than inside it because the shell
+ * itself asks for the navigation — it reserves the dock's space from the same
+ * list the dock renders — so the memory has to exist above that call.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <ShellGroupProvider>
+      <AppShellBody>{children}</AppShellBody>
+    </ShellGroupProvider>
+  )
+}
+
+function AppShellBody({ children }: { children: ReactNode }) {
   const location = useLocation()
   const context = getRouteContext(location.pathname)
   const { current: currentGroup } = useCurrentGroup()

@@ -2,8 +2,8 @@ import { Link, useLocation } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { groupIndexSurfaceOf, groupLink } from '../../lib/groupPaths'
 import { Icon } from './Icon'
+import { useShellGroup } from './ShellGroup'
 import { Pill } from './ShellPrimitives'
-import { useCurrentGroup } from './useCurrentGroup'
 
 export interface GroupSwitcherProps {
   onNavigate?: () => void
@@ -33,7 +33,15 @@ export interface GroupSwitcherProps {
  */
 export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
   const location = useLocation()
-  const { current, groups, slug: currentSlug } = useCurrentGroup()
+  // The shell's Group rather than the URL's: on `/groups` or `/settings` this
+  // keeps naming the Group you came from, which is the one the sidebar below is
+  // still listing and the one you are most likely on your way back to.
+  const {
+    group: current,
+    groups,
+    slug: currentSlug,
+    addressed,
+  } = useShellGroup()
   const surface = groupIndexSurfaceOf(location.pathname) ?? 'home'
 
   const [open, setOpen] = useState(false)
@@ -79,9 +87,14 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
           </strong>
           <span className="block truncate text-xs text-[var(--app-muted)]">
             {current
-              ? current.isPersonal
-                ? 'Your own group'
-                : 'Shared group'
+              ? // Off a Group route the name above is where you were, not where
+                // you are, and the line that would otherwise describe the Group
+                // says so instead.
+                !addressed
+                ? 'Go back to it'
+                : current.isPersonal
+                  ? 'Your own group'
+                  : 'Shared group'
               : 'Pick a group'}
           </span>
         </span>

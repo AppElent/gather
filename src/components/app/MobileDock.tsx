@@ -11,10 +11,13 @@ import { useNavigation } from './useNavigation'
  * decided against the *full* list, not this one — a pin the dock had no room
  * for must not make the two surfaces disagree.
  *
- * Off a Group route the navigation is empty, so the dock is not there at all.
- * A bar of nothing pinned to the bottom of a phone is a bar that still takes
- * the space; Settings, Groups and Account are reached from the topbar — its
- * navigation button and its user menu — which do not depend on a Group.
+ * Off a Group route the dock keeps pointing at the Group you were last in, so
+ * a trip to Groups or Settings does not take the bottom of the phone away and
+ * give it back. With no Group visited at all there is no navigation to show and
+ * the dock is not there — a bar of nothing pinned to the bottom of a phone is a
+ * bar that still takes the space. Settings, Groups and Account are reached from
+ * the topbar either way, through its navigation button and its user menu, which
+ * do not depend on a Group.
  */
 export function MobileDock() {
   const { items, activeId } = useNavigation()

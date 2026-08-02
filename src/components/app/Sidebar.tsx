@@ -21,10 +21,10 @@ const FOOTER_LINK =
  * everything stays available, and All is one click away at the bottom of this
  * same list.
  *
- * Off a Group route — Settings, Account, the Groups list — there is no list to
- * render, and the sidebar says that in a sentence rather than showing rows that
- * would each have to pick a Group for you. The switcher above it already reads
- * "No group / Pick a group", and picking one is the way out.
+ * Off a Group route — Settings, Account, the Groups list — the list is drawn
+ * for the Group you were last in, so stepping out to pick a Group does not
+ * blank the shell on the way. Only somebody who has not been in one yet gets
+ * the sentence instead, and the switcher above it says the same thing.
  *
  * At the bottom, the pages that are not a Module: Groups and your own Settings,
  * which are about you and read the same from everywhere. A Group's own settings

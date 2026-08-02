@@ -3,7 +3,7 @@ import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import type { NavItem } from '../../lib/appNavigation'
 import { activeNavItemId, navItems } from '../../lib/appNavigation'
-import { groupSlugOf } from '../../lib/groupPaths'
+import { useShellGroup } from './ShellGroup'
 
 /**
  * The navigation, resolved once and shared by every surface that renders it.
@@ -15,7 +15,11 @@ import { groupSlugOf } from '../../lib/groupPaths'
  *
  * The Group comes off the address bar because the shell is rendered above both
  * route trees, and the URL is the only thing that says which Group you are in
- * (ADR-0002).
+ * (ADR-0002) — through `useShellGroup`, which on a route naming no Group at all
+ * falls back to the last one it named rather than emptying the sidebar and
+ * unmounting the dock on the way to `/groups`. Which item is *active* is still
+ * decided against the real pathname, so standing on `/groups` highlights
+ * nothing: the links are there to go back with, not to claim you already did.
  */
 export function useNavigation(): {
   items: NavItem[]
@@ -23,7 +27,8 @@ export function useNavigation(): {
 } {
   const location = useLocation()
   const me = useQuery(api.users.me)
-  const items = navItems(me?.pinnedModuleIds, groupSlugOf(location.pathname))
+  const { slug } = useShellGroup()
+  const items = navItems(me?.pinnedModuleIds, slug)
 
   return { items, activeId: activeNavItemId(location.pathname, items) }
 }
