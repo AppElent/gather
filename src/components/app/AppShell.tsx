@@ -10,7 +10,6 @@ import {
 import { getRouteContext } from '../../lib/appNavigation'
 import { CommandPalette } from './CommandPalette'
 import { GatherPanel } from './GatherPanel'
-import { GroupInspector } from './GroupInspector'
 import { IssueReporterModal } from './IssueReporterModal'
 import { MobileDock } from './MobileDock'
 import { IconButton } from './ShellPrimitives'
@@ -94,7 +93,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="app-shell">
-      <div className="grid min-h-svh md:grid-cols-[264px_minmax(0,1fr)] xl:grid-cols-[264px_minmax(0,1fr)_336px]">
+      {/* Two columns at every width above a phone. There used to be a third at
+          `xl` carrying a "Group overview" rail of invented content — active
+          modules, a meal-planning slot, "member details will appear here". Home
+          is the Group's surface now (#22) and says all of it for real, so a
+          permanent rail beside it would be a second copy to keep in step with
+          the first. */}
+      <div className="grid min-h-svh md:grid-cols-[264px_minmax(0,1fr)]">
         <Sidebar />
         <div
           className={`flex min-w-0 flex-col md:pb-0 ${
@@ -110,9 +115,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main className="min-w-0 flex-1 px-3 py-4 md:px-5 md:py-5">
             {children}
           </main>
-        </div>
-        <div className="hidden border-l border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-surface)_86%,transparent)] p-4 xl:block">
-          <GroupInspector />
         </div>
       </div>
 
@@ -150,7 +152,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <MobileDock />
       <GatherPanel
         open={gatherOpen}
-        activeGroupName="Preview group"
+        // The Group the address bar names, or none — the same answer the
+        // switcher at the top of the sidebar gives. It used to be the literal
+        // string "Preview group" on every route, which told a reader the panel
+        // was about a Group that does not exist.
+        activeGroupName={currentGroup?.name ?? null}
         routeTitle={context.title}
         onClose={() => setGatherOpen(false)}
       />

@@ -1,7 +1,7 @@
 import { HeaderUser } from '@appelent/auth'
 import { Bug, Menu, MessageSquare, Search } from 'lucide-react'
 import type { RouteContext } from '../../lib/appNavigation'
-import { IconButton, StatusDot } from './ShellPrimitives'
+import { IconButton } from './ShellPrimitives'
 
 export interface TopbarProps {
   context: RouteContext
@@ -44,9 +44,6 @@ export function Topbar({
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <span className="hidden md:inline-flex">
-          <StatusDot label="Preview mode" tone="muted" />
-        </span>
         <IconButton
           label="Jump to"
           onClick={() => {

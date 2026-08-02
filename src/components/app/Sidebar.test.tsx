@@ -25,12 +25,20 @@ vi.mock('@tanstack/react-router', () => ({
   Link: ({
     children,
     to,
+    params,
     ...rest
   }: {
     children: React.ReactNode
     to: string
+    params?: Record<string, string>
   }) => (
-    <a href={to} {...rest}>
+    <a
+      href={Object.entries(params ?? {}).reduce(
+        (path, [key, value]) => path.replace(`$${key}`, value),
+        to,
+      )}
+      {...rest}
+    >
       {children}
     </a>
   ),
@@ -70,6 +78,12 @@ describe('the sidebar off any Group route', () => {
     expect(screen.getByRole('button', { name: /switch group/i })).toBeDefined()
   })
 
+  test('offers no Group settings, because there is no Group to settle', () => {
+    render(<Sidebar />)
+
+    expect(screen.queryByRole('link', { name: 'Group settings' })).toBeNull()
+  })
+
   test('lists the modules again as soon as the address names a Group', () => {
     location.pathname = '/g/me-alice/recipes'
     render(<Sidebar />)
@@ -77,6 +91,29 @@ describe('the sidebar off any Group route', () => {
     const nav = screen.getByRole('navigation', { name: 'Primary' })
     expect(nav).toBeDefined()
     expect(screen.getByRole('link', { name: /home/i })).toBeDefined()
+  })
+
+  test('and offers that Group its own settings, apart from your own', () => {
+    location.pathname = '/g/me-alice/recipes'
+    render(<Sidebar />)
+
+    expect(
+      screen.getByRole('link', { name: 'Group settings' }).getAttribute('href'),
+    ).toBe('/g/me-alice/settings')
+    // Two words that would otherwise be one meaning two things.
+    expect(
+      screen.getByRole('link', { name: 'Settings' }).getAttribute('href'),
+    ).toBe('/settings')
+  })
+
+  test('says nothing about preview data any more', () => {
+    location.pathname = '/g/me-alice/recipes'
+    const { container } = render(<Sidebar />)
+
+    // The footer used to be a card headed "Preview group" promising that group
+    // and member details would appear once connected. Home keeps that promise
+    // now, with real names on it.
+    expect(container.textContent).not.toMatch(/preview/i)
   })
 })
 

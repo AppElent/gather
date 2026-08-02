@@ -1,13 +1,18 @@
 import { Link } from '@tanstack/react-router'
+import { groupLink } from '../../lib/groupPaths'
 import { GroupSwitcher } from './GroupSwitcher'
 import { Icon } from './Icon'
 import { Pill } from './ShellPrimitives'
+import { useCurrentGroup } from './useCurrentGroup'
 import { useNavigation } from './useNavigation'
 
 export interface SidebarProps {
   variant?: 'desktop' | 'drawer'
   onNavigate?: () => void
 }
+
+const FOOTER_LINK =
+  'grid min-h-9 items-center rounded-[var(--app-radius)] px-2 text-sm text-[var(--app-muted)] no-underline'
 
 /**
  * Home, your pins, All — and nothing else.
@@ -22,10 +27,17 @@ export interface SidebarProps {
  * render, and the sidebar says that in a sentence rather than showing rows that
  * would each have to pick a Group for you. The switcher above it already reads
  * "No group / Pick a group", and picking one is the way out.
+ *
+ * At the bottom, the pages that are not a Module: the Group's own settings when
+ * there is a Group, then Groups and your own Settings, which are about you and
+ * read the same from everywhere.
  */
 export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
   const isDrawer = variant === 'drawer'
   const { items, activeId } = useNavigation()
+  // Resolved against the Groups you are in rather than taken off the URL raw,
+  // so the Group settings link is only offered for a slug that leads somewhere.
+  const { current } = useCurrentGroup()
 
   return (
     <aside
@@ -73,31 +85,28 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
         </nav>
       )}
 
-      <section className="mt-auto rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="m-0 text-sm font-semibold">Preview group</h2>
-          <Pill tone="warning">Preview data</Pill>
-        </div>
-        <p className="m-0 text-sm text-[var(--app-muted)]">
-          Group and member details appear here once connected.
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+      {/* The pages that are not a Module. This used to be a card headed
+          "Preview group" over a sentence promising that group and member
+          details would appear once connected — a promise Home now keeps, on a
+          page, with real names on it. What was worth keeping is the three
+          links, which are the only way to leave a Group from the sidebar. */}
+      <nav className="mt-auto grid gap-1" aria-label="Settings and groups">
+        {current ? (
           <Link
-            to="/groups"
+            {...groupLink('settings', current.slug)}
             onClick={onNavigate}
-            className="text-xs no-underline"
+            className={FOOTER_LINK}
           >
-            Groups
+            Group settings
           </Link>
-          <Link
-            to="/settings"
-            onClick={onNavigate}
-            className="text-xs no-underline"
-          >
-            Settings
-          </Link>
-        </div>
-      </section>
+        ) : null}
+        <Link to="/groups" onClick={onNavigate} className={FOOTER_LINK}>
+          Groups
+        </Link>
+        <Link to="/settings" onClick={onNavigate} className={FOOTER_LINK}>
+          Settings
+        </Link>
+      </nav>
     </aside>
   )
 }
