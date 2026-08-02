@@ -91,6 +91,7 @@ export function BabyDetailPage({
       {baby.taskListId && (
         <BabyChecklistCard
           taskListId={baby.taskListId}
+          groupSlug={groupSlug}
           title="To-do"
           placeholder="Buy diapers, call pediatrician…"
         />
@@ -98,6 +99,7 @@ export function BabyDetailPage({
       {baby.questionsListId && (
         <BabyChecklistCard
           taskListId={baby.questionsListId}
+          groupSlug={groupSlug}
           title="Questions"
           placeholder="Ask about sleep regression…"
           collapsible

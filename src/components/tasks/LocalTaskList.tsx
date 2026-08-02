@@ -12,16 +12,19 @@ const iconButtonClass =
 
 export interface LocalTaskListProps {
   listId: Id<'taskLists'>
+  /** The Group the list lives in — every read and write is asked of it. */
+  groupSlug: string
   name: string
   onRemoveList: () => void
 }
 
 export function LocalTaskList({
   listId,
+  groupSlug,
   name,
   onRemoveList,
 }: LocalTaskListProps) {
-  const tasks = useQuery(api.tasks.listByList, { listId })
+  const tasks = useQuery(api.tasks.listByList, { listId, groupSlug })
   const addTask = useMutation(api.tasks.add)
   const updateTask = useMutation(api.tasks.update)
   const toggleDone = useMutation(api.tasks.toggleDone)
@@ -36,18 +39,19 @@ export function LocalTaskList({
     const trimmed = quickTitle.trim()
     if (!trimmed) return
     setQuickTitle('')
-    await addTask({ listId, title: trimmed })
+    await addTask({ listId, groupSlug, title: trimmed })
   }
 
   async function detailedAdd(values: TaskEditorValues) {
     setShowDetails(false)
-    await addTask({ listId, ...values })
+    await addTask({ listId, groupSlug, ...values })
   }
 
   async function saveEdit(taskId: Id<'tasks'>, values: TaskEditorValues) {
     setEditingId(null)
     await updateTask({
       taskId,
+      groupSlug,
       title: values.title,
       dueDate: values.dueDate ?? null,
       priority: values.priority ?? null,
@@ -128,7 +132,7 @@ export function LocalTaskList({
               priority: t.priority,
               labels: t.labels,
             }}
-            onToggle={() => void toggleDone({ taskId: t._id })}
+            onToggle={() => void toggleDone({ taskId: t._id, groupSlug })}
             actions={
               <span className="flex items-center gap-1">
                 <button
@@ -136,7 +140,9 @@ export function LocalTaskList({
                   aria-label={`Move ${t.title} up`}
                   className={iconButtonClass}
                   disabled={i === 0 || tasks[i - 1].done !== t.done}
-                  onClick={() => void move({ taskId: t._id, direction: 'up' })}
+                  onClick={() =>
+                    void move({ taskId: t._id, groupSlug, direction: 'up' })
+                  }
                 >
                   <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
@@ -148,7 +154,7 @@ export function LocalTaskList({
                     i === tasks.length - 1 || tasks[i + 1].done !== t.done
                   }
                   onClick={() =>
-                    void move({ taskId: t._id, direction: 'down' })
+                    void move({ taskId: t._id, groupSlug, direction: 'down' })
                   }
                 >
                   <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
@@ -165,7 +171,7 @@ export function LocalTaskList({
                   type="button"
                   aria-label={`Delete ${t.title}`}
                   className={iconButtonClass}
-                  onClick={() => void removeTask({ taskId: t._id })}
+                  onClick={() => void removeTask({ taskId: t._id, groupSlug })}
                 >
                   <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>

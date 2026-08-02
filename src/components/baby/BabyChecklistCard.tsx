@@ -8,6 +8,11 @@ import { TaskRow } from '../tasks/TaskRow'
 
 interface BabyChecklistCardProps {
   taskListId: Id<'taskLists'>
+  /**
+   * The Group the child — and so this list — lives in. The card sits on a
+   * Group page and asks the Tasks module about the same Group that page does.
+   */
+  groupSlug: string
   title: string
   placeholder: string
   /** If true, the card starts collapsed to a single summary line. */
@@ -20,12 +25,16 @@ interface BabyChecklistCardProps {
  * Tasks module under a different lens, not a parallel concept. */
 export function BabyChecklistCard({
   taskListId,
+  groupSlug,
   title,
   placeholder,
   collapsible = false,
 }: BabyChecklistCardProps) {
   const [open, setOpen] = useState(!collapsible)
-  const tasks = useQuery(api.tasks.listByList, { listId: taskListId })
+  const tasks = useQuery(api.tasks.listByList, {
+    listId: taskListId,
+    groupSlug,
+  })
   const addTask = useMutation(api.tasks.add)
   const toggleDone = useMutation(api.tasks.toggleDone)
   const removeTask = useMutation(api.tasks.remove)
@@ -37,7 +46,7 @@ export function BabyChecklistCard({
     if (!trimmed) return
     setText('')
     if (collapsible) setOpen(true)
-    await addTask({ listId: taskListId, title: trimmed })
+    await addTask({ listId: taskListId, groupSlug, title: trimmed })
   }
 
   const openItems = (tasks ?? []).filter((t) => !t.done)
@@ -95,13 +104,15 @@ export function BabyChecklistCard({
               <TaskRow
                 key={t._id}
                 task={{ externalId: t._id, title: t.title, done: t.done }}
-                onToggle={() => void toggleDone({ taskId: t._id })}
+                onToggle={() => void toggleDone({ taskId: t._id, groupSlug })}
                 actions={
                   <button
                     type="button"
                     aria-label={`Delete ${t.title}`}
                     className="grid min-h-9 min-w-9 shrink-0 place-items-center rounded-[var(--app-radius)] text-[var(--app-muted)]"
-                    onClick={() => void removeTask({ taskId: t._id })}
+                    onClick={() =>
+                      void removeTask({ taskId: t._id, groupSlug })
+                    }
                   >
                     <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>

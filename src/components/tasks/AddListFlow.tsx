@@ -29,18 +29,15 @@ const inputClass =
   'min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm'
 
 export interface AddListFlowProps {
-  /** The Group the list is being added to, when the URL names one. */
-  groupSlug?: string
+  /** The Group the list is being added to. Always the one in the URL. */
+  groupSlug: string
   /** Where the provider OAuth round-trip should come back to. */
   returnTo: string
   onDone: () => void
 }
 
 export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
-  const connections = useQuery(
-    api.integrations.listConnections,
-    groupSlug ? { groupSlug } : {},
-  )
+  const connections = useQuery(api.integrations.listConnections, { groupSlug })
   const listSources = useAction(api.integrations.listSources)
   const getSourceSchema = useAction(api.integrations.getSourceSchema)
   const createList = useMutation(api.taskLists.create)

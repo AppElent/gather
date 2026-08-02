@@ -6,7 +6,7 @@ import {
   ProviderAuthError,
   type UnifiedTask,
 } from './lib/taskProviders/types'
-import { groupIdFromSlugOrDefault } from './lib/groupAccess'
+import { requireGroupBySlug } from './lib/groupAccess'
 import { requireListAccess } from './lib/taskAccess'
 
 const providerConfigValidator = v.object({
@@ -23,15 +23,14 @@ const providerConfigValidator = v.object({
   ),
 })
 
-/** Lists in the given Group, or the viewer's default one; null = no default. */
+/** The lists of the Group in the URL, and of no other. */
 export const list = query({
-  args: { groupSlug: v.optional(v.string()) },
+  args: { groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const groupId = await groupIdFromSlugOrDefault(ctx, args.groupSlug)
-    if (!groupId) return null
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     const lists = await ctx.db
       .query('taskLists')
-      .withIndex('by_group', (q) => q.eq('groupId', groupId))
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
       .collect()
     return lists
       .sort((a, b) => a.order - b.order)
@@ -48,17 +47,14 @@ export const create = mutation({
       v.literal('todoist'),
     ),
     providerConfig: v.optional(providerConfigValidator),
-    groupSlug: v.optional(v.string()),
+    groupSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    // A list added from a Group page belongs to that Group, and the connection
-    // it links to has to belong there too - the check below reads the same
-    // groupId either way, so a slug cannot be used to borrow another Group's
-    // Notion token.
-    const groupId = await groupIdFromSlugOrDefault(ctx, args.groupSlug)
-    if (!groupId) {
-      throw new ConvexError('Set a default group on the Groups page first')
-    }
+    // A list belongs to the Group in the URL, and the connection it links to
+    // has to belong there too - both read the same groupId, so a slug cannot
+    // be used to borrow another Group's Notion token.
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const groupId = group._id
 
     if (args.provider === 'local') {
       if (args.providerConfig) {
@@ -96,17 +92,21 @@ export const create = mutation({
 })
 
 export const rename = mutation({
-  args: { listId: v.id('taskLists'), name: v.string() },
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    name: v.string(),
+  },
   handler: async (ctx, args) => {
-    await requireListAccess(ctx, args.listId)
+    await requireListAccess(ctx, args.groupSlug, args.listId)
     await ctx.db.patch(args.listId, { name: args.name })
   },
 })
 
 export const remove = mutation({
-  args: { listId: v.id('taskLists') },
+  args: { listId: v.id('taskLists'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    await requireListAccess(ctx, args.listId)
+    await requireListAccess(ctx, args.groupSlug, args.listId)
     const tasks = await ctx.db
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
@@ -116,10 +116,15 @@ export const remove = mutation({
   },
 })
 
+/**
+ * The list behind `getTasks`, authorised for the caller. Internal because it
+ * carries `providerConfig`, not because it is trusted: an action has no `ctx.db`
+ * and the caller's identity reaches this query, so the Group is checked here.
+ */
 export const getList = internalQuery({
-  args: { listId: v.id('taskLists') },
+  args: { listId: v.id('taskLists'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const { list } = await requireListAccess(ctx, args.listId)
+    const { list } = await requireListAccess(ctx, args.groupSlug, args.listId)
     return list
   },
 })
@@ -133,10 +138,11 @@ export type GetTasksResult =
  * provider (spec §3). Local lists resolve from the tasks table; external
  * lists go through the matching adapter with the stored token. */
 export const getTasks = action({
-  args: { listId: v.id('taskLists') },
+  args: { listId: v.id('taskLists'), groupSlug: v.string() },
   handler: async (ctx, args): Promise<GetTasksResult> => {
     const list = await ctx.runQuery(internal.taskLists.getList, {
       listId: args.listId,
+      groupSlug: args.groupSlug,
     })
 
     if (list.provider === 'local') {

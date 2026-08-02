@@ -1,4 +1,3 @@
-import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
@@ -11,49 +10,29 @@ import { LocalTaskList } from './LocalTaskList'
 import type { TaskNav } from './taskNav'
 
 export interface TasksPageProps {
-  /** The Group whose lists these are, when the URL names one. */
-  groupSlug?: string
+  /** The Group whose lists these are. Always the one in the URL. */
+  groupSlug: string
   nav: TaskNav
 }
 
 /**
- * A household's task lists, whole. Rendered by both `/tasks` and
- * `/g/<slug>/tasks`.
+ * A household's task lists, whole.
  *
- * Task lists are Group-scoped content, so the slug goes to Convex: under a
- * Group this shows that Group's lists, and adding one — local or linked — puts
- * it there rather than wherever the account happens to default to.
+ * Task lists are Group-scoped content, so the slug goes to Convex with every
+ * read and every write: this is the lists of the Group in the address, and
+ * adding one — local or linked — puts it there. There is no slugless form to
+ * fall back to, and so no "pick a group first" state: `/g/<slug>/tasks` is the
+ * only page that renders this.
  */
 export function TasksPage({ groupSlug, nav }: TasksPageProps) {
-  const lists = useQuery(api.taskLists.list, groupSlug ? { groupSlug } : {})
+  const lists = useQuery(api.taskLists.list, { groupSlug })
   const removeList = useMutation(api.taskLists.remove)
   const [adding, setAdding] = useState(false)
 
   function confirmRemove(listId: Id<'taskLists'>, name: string) {
     if (window.confirm(`Delete the list "${name}"?`)) {
-      void removeList({ listId })
+      void removeList({ listId, groupSlug })
     }
-  }
-
-  if (lists === null) {
-    return (
-      <div className="mx-auto max-w-md">
-        <SurfaceCard>
-          <div className="grid gap-2 text-center">
-            <h2 className="m-0 text-base font-semibold">
-              Pick a default group first
-            </h2>
-            <p className="m-0 text-sm text-[var(--app-muted)]">
-              Task lists belong to a group. Choose or create one, then come
-              back.
-            </p>
-            <Link to="/groups" className="text-sm font-semibold">
-              Go to groups
-            </Link>
-          </div>
-        </SurfaceCard>
-      </div>
-    )
   }
 
   return (
@@ -116,6 +95,7 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
               <LocalTaskList
                 key={l._id}
                 listId={l._id}
+                groupSlug={groupSlug}
                 name={l.name}
                 onRemoveList={() => confirmRemove(l._id, l.name)}
               />
@@ -123,6 +103,7 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
               <ExternalTaskList
                 key={l._id}
                 listId={l._id}
+                groupSlug={groupSlug}
                 name={l.name}
                 provider={l.provider}
                 onRemoveList={() => confirmRemove(l._id, l.name)}

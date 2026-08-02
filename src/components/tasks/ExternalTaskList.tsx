@@ -18,6 +18,8 @@ const PROVIDER_LABELS = { notion: 'Notion', todoist: 'Todoist' } as const
 
 export interface ExternalTaskListProps {
   listId: Id<'taskLists'>
+  /** The Group the list — and the connection behind it — lives in. */
+  groupSlug: string
   name: string
   provider: 'notion' | 'todoist'
   onRemoveList: () => void
@@ -25,6 +27,7 @@ export interface ExternalTaskListProps {
 
 export function ExternalTaskList({
   listId,
+  groupSlug,
   name,
   provider,
   onRemoveList,
@@ -35,11 +38,11 @@ export function ExternalTaskList({
   const load = useCallback(async () => {
     setState({ status: 'loading' })
     try {
-      setState(await getTasks({ listId }))
+      setState(await getTasks({ listId, groupSlug }))
     } catch {
       setState({ status: 'error', message: 'Could not load this list.' })
     }
-  }, [getTasks, listId])
+  }, [getTasks, listId, groupSlug])
 
   useEffect(() => {
     void load()
