@@ -20,9 +20,11 @@
     "lint:fix": "biome check --write",
     "check": "biome check",
     "cf-typegen": "wrangler types",
+    "seed": "pnpm exec convex run seed:seedCatalog",
+    "seed:sample": "pnpm exec convex run seed:seedPreview",
     "deploy": "pnpm run deploy:prod",
-    "deploy:dev": "pnpm exec convex dev --once && pnpm run build:development && wrangler deploy --env dev",
-    "deploy:prod": "pnpm exec convex deploy && pnpm run build && wrangler deploy",
+    "deploy:dev": "pnpm exec convex dev --once && pnpm exec convex run seed:seedCatalog && pnpm run build:development && wrangler deploy --env dev",
+    "deploy:prod": "pnpm exec convex deploy && pnpm exec convex run seed:seedCatalog --prod && pnpm run build && wrangler deploy",
     "start": "node --import ./dist/server/instrument.server.mjs dist/server/index.mjs"
   },
   "dependencies": {

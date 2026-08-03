@@ -64,7 +64,7 @@ const BUTTON =
 
 function AllModulesPage() {
   const { groupSlug } = Route.useParams()
-  // This Group's pins, not the reader's everywhere-pins (ADR-0004) — the page
+  // This Group's pins, not the reader's everywhere-pins (ADR-0005) — the page
   // is inside a Group and every pin it shows or writes is about that one.
   const pins = useQuery(api.users.myPins, { groupSlug })
   const savePins = useMutation(api.users.setPins)

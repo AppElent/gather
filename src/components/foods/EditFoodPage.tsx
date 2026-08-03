@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { useState } from 'react'
@@ -23,6 +23,27 @@ export function EditFoodPage({ foodId, nav }: EditFoodPageProps) {
   if (food === undefined) return <p className="text-sm opacity-60">Loading…</p>
   if (food === null)
     return <p className="text-sm opacity-60">Food not found.</p>
+
+  // Reachable by typing the URL even though the detail page hides the link.
+  // `foods.update` refuses too — this only avoids offering a form that is
+  // guaranteed to fail on submit.
+  if (food.seedKey !== undefined) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <h1 className="mb-4 text-2xl font-semibold">{food.name}</h1>
+        <p className="text-sm opacity-60">
+          This is part of gather's built-in food catalog and can't be edited.{' '}
+          {/* Through the Group in the address rather than the flat `/foods/new`
+              this arrived as: that route is gone (ADR-0002), and linking to it
+              would drop the reader out of the Group they were browsing. */}
+          <Link {...nav.create()} className="underline">
+            Create your own food
+          </Link>{' '}
+          if you need a different version.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto max-w-2xl">

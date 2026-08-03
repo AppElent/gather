@@ -1,7 +1,7 @@
 # Three scopes: Group, Personal, Catalog
 
 Status: accepted (2026-07-28); amended by
-[ADR-0004](0004-pins-belong-to-a-person-in-a-group.md) (2026-08-02), which moves
+[ADR-0005](0005-pins-belong-to-a-person-in-a-group.md) (2026-08-02), which moves
 Pins out of **Personal**. The three scopes stand; Pins were the wrong example of
 one. Everything below reads as written except that "pins" is no longer among the
 Personal records.

@@ -9,7 +9,7 @@ import { MAX_PINNED_MODULES } from './users'
  *
  * Two rules matter, and a household would notice either being broken. A Pin is
  * one person's — a housemate reordering theirs must not move yours. And since
- * ADR-0004 a Pin is one person's *in one Group*: a wine club and a household
+ * ADR-0005 a Pin is one person's *in one Group*: a wine club and a household
  * are different rooms, and what you want to reach first differs between them.
  *
  * The order is part of the answer, not an implementation detail — it is what
@@ -158,7 +158,7 @@ describe('my Pins across Groups', () => {
   })
 
   /**
-   * The expand half of expand–contract. Pins written before ADR-0004 sit on the
+   * The expand half of expand–contract. Pins written before ADR-0005 sit on the
    * user row, and nothing backfilled them onto memberships — so a Group nobody
    * has chosen pins in since must still open with the pins they are used to,
    * rather than with a default that would read as having lost them.

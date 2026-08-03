@@ -1,4 +1,5 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
+import type { Doc } from './_generated/dataModel'
 import { mutation, query } from './_generated/server'
 import { nutritionValidator } from './lib/nutrition'
 import { getCurrentUser } from './lib/sharing'
@@ -10,6 +11,22 @@ const foodFields = {
   nutritionPer100: nutritionValidator,
   servingSize: v.optional(v.number()),
   servingLabel: v.optional(v.string()),
+}
+
+/**
+ * Catalog entries are owned by nobody and read-only (ADR 0004). Every write
+ * path into `foods` goes through this, not just the edit form: these are
+ * public mutations, so a client can call any of them with any food id
+ * regardless of what the UI offers. Allowing a write would be worse than
+ * refusing it — the next Catalog seed overwrites unconditionally, so the
+ * change would silently revert.
+ */
+function assertNotCatalog(food: Doc<'foods'>) {
+  if (food.seedKey !== undefined) {
+    throw new ConvexError(
+      'This is a built-in catalog food and cannot be changed. Create a new food instead.',
+    )
+  }
 }
 
 export const search = query({
@@ -78,6 +95,7 @@ export const update = mutation({
     const { id, ...rest } = args
     const food = await ctx.db.get(id)
     if (!food) throw new Error('Food not found')
+    assertNotCatalog(food)
     await ctx.db.patch(id, { ...rest, localEdited: true })
   },
 })
@@ -98,6 +116,9 @@ export const upsertFromOff = mutation({
       .withIndex('by_barcode', (q) => q.eq('barcode', barcode))
       .unique()
     if (existing) {
+      // No Catalog fixture carries a barcode today, so this is unreachable —
+      // but the invariant belongs to the table, not to the current fixtures.
+      assertNotCatalog(existing)
       if (!existing.localEdited) await ctx.db.patch(existing._id, rest)
       return existing._id
     }
@@ -122,6 +143,11 @@ export const applyOffRefresh = mutation({
     const { id, ...rest } = args
     const food = await ctx.db.get(id)
     if (!food) throw new Error('Food not found')
+    // `barcode` arrives as an argument rather than being read off the row, so
+    // the "this food has no barcode" check in `foodsLookup.refreshFromOff` is
+    // no protection here — a client can call this mutation directly with any
+    // food id at all.
+    assertNotCatalog(food)
     await ctx.db.patch(id, {
       ...rest,
       source: 'openfoodfacts',

@@ -65,7 +65,7 @@ The reading order, resolved in `convex/users.ts` and finished in
 
 1. this membership's `pinnedModuleIds`, if it has one — including an empty
    array, which is a real choice to pin nothing;
-2. otherwise the person's pre-ADR-0004 list on the user row;
+2. otherwise the person's pre-ADR-0005 list on the user row;
 3. otherwise the default defined in code.
 
 ## Consequences

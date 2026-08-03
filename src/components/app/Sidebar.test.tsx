@@ -72,7 +72,7 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 vi.mock('convex/react', () => ({
-  // Pins are asked for per Group since ADR-0004, and not asked for at all when
+  // Pins are asked for per Group since ADR-0005, and not asked for at all when
   // there is no Group to ask about — `'skip'` is Convex's token for that, and
   // the mock honours it so a test cannot pass on pins the app never requested.
   useQuery: (name: string, args: unknown) => {

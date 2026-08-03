@@ -102,7 +102,7 @@ export const MAX_PINNED_MODULES = 32
  * default is written in. `pinnedModuleIds` in `src/lib/pins.ts` turns the
  * former into the latter.
  *
- * The fallback to the person's pre-ADR-0004 list is what makes a Group they
+ * The fallback to the person's pre-ADR-0005 list is what makes a Group they
  * have not touched since the change open with the pins they are used to,
  * rather than with a default that would read as having lost them.
  */
@@ -129,7 +129,7 @@ export const myPins = query({
  * Pins are still personal: this writes to the caller's own membership, reached
  * through the Group in the URL and their own identity, so it can touch no other
  * person's row and one Member's choices stay invisible to the rest of their
- * Group by construction. What ADR-0004 changed is only which Group the choice
+ * Group by construction. What ADR-0005 changed is only which Group the choice
  * is about.
  */
 export const setPins = mutation({

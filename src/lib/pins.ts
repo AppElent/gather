@@ -1,6 +1,6 @@
 /**
  * Pins: the Modules one person keeps in their own navigation, in their own
- * order, in one Group (CONTEXT.md, ADR-0004).
+ * order, in one Group (CONTEXT.md, ADR-0005).
  *
  * Which Group is settled before anything reaches here — a caller passes the
  * list it was handed for the Group it is drawing. Everything below is the same
