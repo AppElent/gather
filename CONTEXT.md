@@ -113,6 +113,13 @@ taken from. Provenance never grants access: it is checked on read, and it may
 point at something the reader can no longer see.
 _Avoid_: Link, Source
 
+**Prepare**:
+What happens to a photo between being chosen and being stored — the person frames
+it, Gather shrinks it. What Gather keeps is the prepared photo; the file that was
+chosen is never stored (ADR-0010). What preparing does depends on where the photo
+will be shown.
+_Avoid_: Resize, Compress, Optimise, Process
+
 **Sample household**:
 A complete, fake Group — members, recipes, tasks, a baby's log, a food diary —
 that exists so a test or preview environment can be looked at. Never present in
@@ -133,6 +140,8 @@ _Avoid_: Demo data, Dummy data, Test data, Seed data
 - Whether you may change something follows its home Group from anywhere. *Where*
   you change it is the address: a write happens where the URL names the Group
   that is about to change.
+- A photo is stored as prepared and never as chosen. Preparing is the only way
+  in, so a photo that cannot be prepared is not stored at all.
 - A refusal inside a Group never says which refusal it is. "No such record" and
   "not in this Group" are one answer; refusing the Group itself is a separate,
   distinct one.
