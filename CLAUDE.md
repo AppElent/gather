@@ -120,6 +120,22 @@ on dev and as a preview-type default (`convex env default set --type preview`);
 deployment URL from writing a fake household into the real database. The
 internal `seedCatalog` / `seedPreview` entrypoints do not consult it.
 
+## One-shot code states its own end condition
+
+Migration mutations, backfills and compatibility shims are written to run against
+a data shape and then be dead — but they sit in `convex/` and `src/` looking
+exactly like live code, with tests that go on passing whether or not the shape
+still exists anywhere. So each one says, where it lives, what would retire it:
+
+- **Migration code** is deleted when its document in `docs/migrations/` records
+  that it has been run everywhere, or that something else has superseded it.
+- **A compatibility shim** names the date or the event after which it goes.
+- Code with no end condition does not get to be one-shot code. It is just code,
+  and it will be maintained forever.
+
+`src/lib/legacyPaths.ts` was the cautionary case: excellent about why it existed,
+silent about when it stopped, and on course to outlive every link it served.
+
 ## CI / PR previews
 
 - `.github/workflows/ci.yml` — check/typecheck/test/build gate on push to `master`
