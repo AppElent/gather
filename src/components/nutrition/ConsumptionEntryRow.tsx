@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { MealName } from '../../../convex/lib/consumption'
 import { MEAL_LABELS, MEAL_NAMES } from '../../../convex/lib/consumption'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import type { NutritionNav } from './nutritionNav'
 
 export interface ConsumptionEntryData {
   _id: string
@@ -18,6 +19,7 @@ export interface ConsumptionEntryData {
 
 interface Props {
   entry: ConsumptionEntryData
+  nav: NutritionNav
   onUpdate: (changes: {
     quantity: number
     meal: MealName
@@ -26,7 +28,7 @@ interface Props {
   onDelete: () => void
 }
 
-export function ConsumptionEntryRow({ entry, onUpdate, onDelete }: Props) {
+export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
   const [editing, setEditing] = useState(false)
   const [quantityInput, setQuantityInput] = useState(String(entry.quantity))
   const [meal, setMeal] = useState<MealName>(entry.meal)
@@ -46,8 +48,7 @@ export function ConsumptionEntryRow({ entry, onUpdate, onDelete }: Props) {
           </span>
           {entry.recipeId && (
             <Link
-              to="/recipes/$recipeId"
-              params={{ recipeId: entry.recipeId }}
+              {...nav.recipe(entry.recipeId)}
               className="ml-2 text-xs underline"
             >
               View recipe
@@ -55,8 +56,7 @@ export function ConsumptionEntryRow({ entry, onUpdate, onDelete }: Props) {
           )}
           {entry.foodId && (
             <Link
-              to="/foods/$foodId"
-              params={{ foodId: entry.foodId }}
+              {...nav.food(entry.foodId)}
               className="ml-2 text-xs underline"
             >
               View food

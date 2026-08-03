@@ -12,25 +12,62 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     defaultGroupId: v.optional(v.id('groups')),
     nutritionTargets: v.optional(nutritionValidator),
+    // Where Pins used to live, back when one person had one set of them for
+    // every Group at once. They are per Group now and live on the membership
+    // row below (ADR-0005); nothing writes this field any more.
+    //
+    // It is still read, as the seed for a Group somebody has not chosen pins
+    // in — which is what lets the change land without a backfill and without
+    // anyone signing in to find their navigation reset. The contract half of
+    // expand–contract: droppable once every membership carries its own list.
+    pinnedModuleIds: v.optional(v.array(v.string())),
   }).index('by_clerkId', ['clerkId']),
 
   groups: defineTable({
     name: v.string(),
     inviteCode: v.string(),
-    type: v.optional(v.string()),
-  }).index('by_inviteCode', ['inviteCode']),
+    // Globally unique, and readable so that the Group you are acting in is
+    // visible in the URL (ADR-0002).
+    slug: v.string(),
+    // A Personal group has one Member and cannot be left, renamed or deleted.
+    isPersonal: v.boolean(),
+  })
+    .index('by_inviteCode', ['inviteCode'])
+    .index('by_slug', ['slug']),
 
   memberships: defineTable({
     groupId: v.id('groups'),
     userId: v.id('users'),
-    role: v.union(v.literal('owner'), v.literal('member')),
+    role: v.union(v.literal('admin'), v.literal('member')),
+    // The Modules this person keeps in *this* Group's navigation, in their own
+    // order (ADR-0005). A membership is already exactly one person in one
+    // Group, so the pair needs no table of its own — and a Pin then has the
+    // lifetime it should: leave the Group and your choices for it go with the
+    // row, instead of outliving your access to the place they described.
+    //
+    // Still one person's choice and still invisible to the rest of the Group.
+    // What changed is that a wine club and a household are different rooms, and
+    // the Modules worth reaching first differ between them.
+    //
+    // Opaque strings, deliberately: the Module catalog is a client concept and
+    // this schema must not know it. Absent means "has not chosen in this
+    // Group", which falls back to the person's pre-ADR-0005 list and then to
+    // the default defined in code; an empty array means "chose to keep none".
+    pinnedModuleIds: v.optional(v.array(v.string())),
   })
     .index('by_user', ['userId'])
     .index('by_group', ['groupId']),
 
   recipes: defineTable({
-    ownerId: v.id('users'),
+    // A recipe belongs to a Group, not to whoever typed it in. `groupId` is the
+    // home Group; `sharedGroupIds` are the further Groups it is visible in and
+    // never contains `groupId`. `createdByUserId` is attribution — it records
+    // who added the recipe and confers no ownership and no access (CONTEXT.md).
+    // All three are required: an optional ownership field is a schema that has
+    // stopped saying who owns the row.
+    groupId: v.id('groups'),
     sharedGroupIds: v.array(v.id('groups')),
+    createdByUserId: v.id('users'),
     title: v.string(),
     description: v.optional(v.string()),
     imageId: v.optional(v.id('_storage')),
@@ -44,7 +81,7 @@ export default defineSchema({
     nutrition: v.optional(nutritionValidator),
     nutritionSource: v.optional(nutritionSourceValidator),
     nutritionStale: v.optional(v.boolean()),
-  }).index('by_owner', ['ownerId']),
+  }).index('by_group', ['groupId']),
 
   taskLists: defineTable({
     groupId: v.id('groups'),

@@ -6,12 +6,10 @@ import type {
   ProviderSource,
   SourceProperty,
 } from '../../../convex/lib/taskProviders/types'
+import { errorMessage } from '../../lib/errorMessage'
 import type { ExternalProvider } from '../../lib/oauth'
 import { SurfaceCard } from '../app/ShellPrimitives'
-import {
-  errorMessage,
-  useConnectProvider,
-} from '../settings/ConnectionsSettings'
+import { useConnectProvider } from '../settings/ConnectionsSettings'
 
 type Step =
   | { kind: 'provider' }
@@ -28,12 +26,20 @@ const buttonClass =
 const inputClass =
   'min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm'
 
-export function AddListFlow({ onDone }: { onDone: () => void }) {
-  const connections = useQuery(api.integrations.listConnections)
+export interface AddListFlowProps {
+  /** The Group the list is being added to. Always the one in the URL. */
+  groupSlug: string
+  /** Where the provider OAuth round-trip should come back to. */
+  returnTo: string
+  onDone: () => void
+}
+
+export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
+  const connections = useQuery(api.integrations.listConnections, { groupSlug })
   const listSources = useAction(api.integrations.listSources)
   const getSourceSchema = useAction(api.integrations.getSourceSchema)
   const createList = useMutation(api.taskLists.create)
-  const connect = useConnectProvider('/tasks')
+  const connect = useConnectProvider(groupSlug, returnTo)
 
   const [step, setStep] = useState<Step>({ kind: 'provider' })
   const [name, setName] = useState('')
@@ -58,7 +64,7 @@ export function AddListFlow({ onDone }: { onDone: () => void }) {
 
   async function pickExternal(provider: ExternalProvider) {
     await run(async () => {
-      const sources = await listSources({ provider })
+      const sources = await listSources({ provider, groupSlug })
       setStep({ kind: 'source', provider, sources })
     })
   }
@@ -76,13 +82,18 @@ export function AddListFlow({ onDone }: { onDone: () => void }) {
           name: source.name,
           provider: 'todoist',
           providerConfig: { connectionId: conn._id, sourceId: source.id },
+          groupSlug,
         })
         onDone()
       })
       return
     }
     await run(async () => {
-      const schema = await getSourceSchema({ provider, sourceId: source.id })
+      const schema = await getSourceSchema({
+        provider,
+        groupSlug,
+        sourceId: source.id,
+      })
       setStep({ kind: 'notion-mapping', source, schema })
     })
   }
@@ -92,7 +103,7 @@ export function AddListFlow({ onDone }: { onDone: () => void }) {
     const trimmed = name.trim()
     if (!trimmed) return
     await run(async () => {
-      await createList({ name: trimmed, provider: 'local' })
+      await createList({ name: trimmed, provider: 'local', groupSlug })
       onDone()
     })
   }
@@ -112,6 +123,7 @@ export function AddListFlow({ onDone }: { onDone: () => void }) {
           sourceId: source.id,
           propertyMapping: mapping,
         },
+        groupSlug,
       })
       onDone()
     })

@@ -19,7 +19,12 @@ beforeEach(() => {
 
 function renderForm(onDone = vi.fn()) {
   return render(
-    <MultiEventForm babyId={babyId} onDone={onDone} onCancel={vi.fn()} />,
+    <MultiEventForm
+      babyId={babyId}
+      groupSlug="jansen-household"
+      onDone={onDone}
+      onCancel={vi.fn()}
+    />,
   )
 }
 
@@ -42,6 +47,9 @@ test('saves one entry per checked type, all at the same timestamp', async () => 
   expect(calls.map((c) => c.type)).toEqual(['temperature', 'feeding', 'diaper'])
   expect(new Set(calls.map((c) => c.timestamp)).size).toBe(1)
   expect(calls.every((c) => c.babyId === babyId)).toBe(true)
+  // Every write says which Group it is being made in, so the child is
+  // authorised from the address rather than from the caller's memberships.
+  expect(calls.every((c) => c.groupSlug === 'jansen-household')).toBe(true)
   await waitFor(() => expect(onDone).toHaveBeenCalled())
 })
 

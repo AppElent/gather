@@ -2,8 +2,8 @@ import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { SAMPLE_GROUP_NAME } from '../../../convex/lib/seed/sampleHousehold'
+import { errorMessage } from '../../lib/errorMessage'
 import { SurfaceCard } from '../app/ShellPrimitives'
-import { errorMessage } from './ConnectionsSettings'
 
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60'

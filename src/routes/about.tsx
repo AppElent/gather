@@ -9,8 +9,8 @@ export function AboutPage() {
   return (
     <PublicPageFrame
       eyebrow="About Gather"
-      title="A group command center for everyday coordination"
-      subtitle="Gather keeps shared recipes, plans, lists, tasks, notes, and tasting logs in one compact workspace for the people who coordinate together."
+      title="One shared group for everyday coordination"
+      subtitle="Gather keeps shared recipes, plans, lists, tasks, notes, and tasting logs in one place, for the people who share a household."
     >
       <div className="grid gap-3 text-sm leading-6 text-[var(--app-muted)]">
         <p className="m-0">
@@ -20,8 +20,9 @@ export function AboutPage() {
           without changing products.
         </p>
         <p className="m-0">
-          The command center brings those modules together as a shared view of
-          what is active, what is planned, and what needs attention next.
+          Every module is available in every group. You pin the ones you use to
+          your own navigation, and the rest stay one click away — your choices
+          are yours alone and never move anybody else's.
         </p>
       </div>
     </PublicPageFrame>

@@ -6,7 +6,7 @@ test('does not render when closed', () => {
   render(
     <GatherPanel
       open={false}
-      activeGroupName="Preview group"
+      activeGroupName="Jansen Household"
       routeTitle="Recipes"
       onClose={() => {}}
     />,
@@ -19,17 +19,33 @@ test('renders non-automated placeholder prompts when open', () => {
   render(
     <GatherPanel
       open={true}
-      activeGroupName="Preview group"
+      activeGroupName="Jansen Household"
       routeTitle="Recipes"
       onClose={() => {}}
     />,
   )
 
   expect(screen.getByRole('dialog', { name: 'Ask Gather' })).toBeDefined()
-  expect(screen.getByText('Preview group')).toBeDefined()
+  expect(screen.getByText('Jansen Household')).toBeDefined()
   expect(screen.getByText('Context: Recipes')).toBeDefined()
   expect(screen.getByText(/automation is not connected yet/i)).toBeDefined()
   expect(screen.getByPlaceholderText(/ask gather/i)).toBeDefined()
+})
+
+test('names no group off a group route, rather than inventing one', () => {
+  render(
+    <GatherPanel
+      open={true}
+      activeGroupName={null}
+      routeTitle="Settings"
+      onClose={() => {}}
+    />,
+  )
+
+  // The shell passes the Group the address bar names, and there is none on
+  // Settings. This used to be the literal string "Preview group" on every
+  // route, which named a Group that has never existed.
+  expect(screen.getByText('No group')).toBeDefined()
 })
 
 test('calls onClose from close button and Escape', () => {
@@ -37,7 +53,7 @@ test('calls onClose from close button and Escape', () => {
   render(
     <GatherPanel
       open={true}
-      activeGroupName="Preview group"
+      activeGroupName="Jansen Household"
       routeTitle="Recipes"
       onClose={onClose}
     />,
@@ -78,7 +94,7 @@ test('restores focus to the opener when it closes', () => {
       <button type="button">Open Gather</button>
       <GatherPanel
         open={open}
-        activeGroupName="Preview group"
+        activeGroupName="Jansen Household"
         routeTitle="Recipes"
         onClose={() => {}}
       />

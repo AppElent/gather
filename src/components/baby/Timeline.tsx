@@ -10,17 +10,21 @@ import {
   formatEventTimestamp,
 } from '../../lib/babyDate'
 import { summarizeEvent } from '../../lib/babyEventSummary'
+import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { EventForm } from './EventForm'
 import { EventIcon } from './EventIcon'
 
 interface TimelineProps {
   babyId: Id<'babies'>
+  /** The Group the log is being read in — editing and deleting go through it. */
+  groupSlug: string
   events: Doc<'babyEvents'>[]
 }
 
-export function Timeline({ babyId, events }: TimelineProps) {
+export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
   const remove = useMutation(api.babyEvents.remove)
+  const { confirm, dialog } = useConfirmAction()
   const [editingId, setEditingId] = useState<Id<'babyEvents'> | null>(null)
 
   if (events.length === 0) {
@@ -55,6 +59,7 @@ export function Timeline({ babyId, events }: TimelineProps) {
                   <li key={event._id} className="p-3">
                     <EventForm
                       babyId={babyId}
+                      groupSlug={groupSlug}
                       type={event.type}
                       event={event}
                       onDone={() => setEditingId(null)}
@@ -96,11 +101,15 @@ export function Timeline({ babyId, events }: TimelineProps) {
                       type="button"
                       aria-label={`Delete ${BABY_EVENT_LABELS[event.type]} entry`}
                       className="grid min-h-9 min-w-9 shrink-0 place-items-center self-center rounded-[var(--app-radius)] text-red-800"
-                      onClick={() => {
-                        if (window.confirm('Delete this entry?')) {
-                          void remove({ eventId: event._id })
-                        }
-                      }}
+                      onClick={() =>
+                        confirm({
+                          title: 'Delete this entry?',
+                          body: `${BABY_EVENT_LABELS[event.type]} — ${formatEventTimestamp(event.timestamp)}`,
+                          confirmLabel: 'Delete entry',
+                          errorFallback: 'Could not delete that entry.',
+                          run: () => remove({ eventId: event._id, groupSlug }),
+                        })
+                      }
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -111,6 +120,8 @@ export function Timeline({ babyId, events }: TimelineProps) {
           </SurfaceCard>
         </div>
       ))}
+
+      {dialog}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import {
   computeFoodEntryNutrition,
   computeRecipeEntryNutrition,
 } from '../consumption'
+import { allocateGroupSlug } from '../groupSlugs'
 import { getUserByClerkId } from '../sharing'
 import { CATALOG_FOODS } from './catalogFoods'
 import {
@@ -154,7 +155,7 @@ export async function applyCatalog(ctx: MutationCtx) {
  * whose parent has gone.
  *
  * Content that is *not* contained by the Sample household survives: a recipe
- * a real person owns is only un-shared from the deleted Group, and Personal
+ * living in a real Group is only un-shared from the deleted one, and Personal
  * records (the food diary) belong to a user rather than a Group and are left
  * alone entirely.
  */
@@ -221,11 +222,14 @@ export async function resetSample(ctx: MutationCtx) {
     }
   }
 
-  // Recipes are owned by a person and *shared* into a Group, so a deleted
-  // Group is not a reason to delete one. Only a recipe whose owner is gone
-  // (a housemate) goes; the rest are just un-shared.
+  // A recipe lives in one Group and may be *shared* into others (ADR-0003), so
+  // it is the home Group that decides its fate: gone with it. This used to read
+  // the other way round, when a recipe was owned by a person and merely shared
+  // into a Group — under that model a deleted Group left the recipe standing.
+  // A recipe whose home Group has gone is unreachable by anybody, which is the
+  // invisible garbage this sweep exists to prevent.
   for (const recipe of await ctx.db.query('recipes').collect()) {
-    if (!(await alive(recipe.ownerId))) {
+    if (!(await alive(recipe.groupId))) {
       await ctx.db.delete(recipe._id)
       orphaned++
       continue
@@ -323,14 +327,21 @@ export async function applySample(
     await ctx.db.insert('groups', {
       name: SAMPLE_GROUP_NAME,
       inviteCode: crypto.randomUUID().slice(0, 8),
-      type: 'home',
+      // Allocated the same way a real Group's is, so the sample household has
+      // an address that behaves like every other (ADR-0002) — a hand-written
+      // slug here would be the one Group whose URL could collide.
+      slug: await allocateGroupSlug(ctx, {
+        name: SAMPLE_GROUP_NAME,
+        isPersonal: false,
+      }),
+      isPersonal: false,
     }),
   )
   rec.track(
     await ctx.db.insert('memberships', {
       groupId,
       userId: ownerUserId,
-      role: 'owner',
+      role: 'admin',
     }),
   )
 
@@ -368,8 +379,13 @@ export async function applySample(
   for (const recipe of SAMPLE_RECIPES) {
     const id = rec.track(
       await ctx.db.insert('recipes', {
-        ownerId: authors[recipe.author],
-        sharedGroupIds: [groupId],
+        // The recipe belongs to the household, not to whoever typed it in;
+        // `createdByUserId` is attribution and confers nothing (CONTEXT.md).
+        // That is the whole point of the varied authors in the fixtures — the
+        // activity stream has different names in it to look at.
+        groupId,
+        sharedGroupIds: [],
+        createdByUserId: authors[recipe.author],
         title: recipe.title,
         description: recipe.description,
         ingredients: recipe.ingredients,

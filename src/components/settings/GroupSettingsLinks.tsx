@@ -1,0 +1,48 @@
+import { Link } from '@tanstack/react-router'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
+import { groupLink } from '../../lib/groupPaths'
+import { SurfaceCard } from '../app/ShellPrimitives'
+
+/**
+ * Where the connections went.
+ *
+ * Connecting Notion or Todoist used to be a row on this page, which read as a
+ * setting about you; it is a setting about a Group, and now lives on each
+ * Group's own settings page. Somebody who knows where it was should find it
+ * rather than find it missing — so this says which Groups there are and links
+ * to each one, instead of the section simply vanishing.
+ */
+export function GroupSettingsLinks() {
+  const groups = useQuery(api.groups.myGroups)
+
+  return (
+    <SurfaceCard>
+      <h2 className="m-0 mb-1 text-base font-semibold">Group settings</h2>
+      <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
+        Connections to Notion and Todoist belong to a group, not to you — every
+        member of that group can use one, and nobody outside it can. Each group
+        keeps its own.
+      </p>
+      {groups === undefined ? (
+        <p className="m-0 text-sm text-[var(--app-muted)]">Loading…</p>
+      ) : (
+        <ul className="m-0 grid list-none gap-2 p-0">
+          {groups.map((group) => (
+            <li key={group._id}>
+              <Link
+                {...groupLink('settings', group.slug)}
+                className="flex min-h-9 items-center justify-between gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2 text-sm font-semibold no-underline"
+              >
+                {group.name}
+                <span className="text-xs font-normal text-[var(--app-muted)]">
+                  Settings
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SurfaceCard>
+  )
+}

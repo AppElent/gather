@@ -1,26 +1,39 @@
-import type { LinkProps } from '@tanstack/react-router'
-import { Link, useLocation } from '@tanstack/react-router'
-import type { LucideIcon } from 'lucide-react'
-import * as Icons from 'lucide-react'
-import { isPrimaryAreaActive, PRIMARY_AREAS } from '../../lib/appNavigation'
-import { MODULE_GROUPS, modulesByGroup } from '../../lib/modules'
+import { Link } from '@tanstack/react-router'
+import { NAV_ACTIVE_OPTIONS } from '../../lib/appNavigation'
+import { GroupSwitcher } from './GroupSwitcher'
+import { Icon } from './Icon'
 import { Pill } from './ShellPrimitives'
-
-function Icon({ name, className }: { name: string; className?: string }) {
-  const Component =
-    (Icons as unknown as Record<string, LucideIcon>)[name] ?? Icons.Square
-  return <Component className={className} aria-hidden="true" />
-}
+import { useNavigation } from './useNavigation'
 
 export interface SidebarProps {
   variant?: 'desktop' | 'drawer'
   onNavigate?: () => void
 }
 
+const FOOTER_LINK =
+  'grid min-h-9 items-center rounded-[var(--app-radius)] px-2 text-sm text-[var(--app-muted)] no-underline'
+
+/**
+ * Home, your pins, All — and nothing else.
+ *
+ * The full Module catalog used to live here, grouped into four headed blocks,
+ * which is why a household with fourteen Modules had to scroll past ten it
+ * never opens. That was never a reason to let a Group switch Modules off:
+ * everything stays available, and All is one click away at the bottom of this
+ * same list.
+ *
+ * Off a Group route — Settings, Account, the Groups list — the list is drawn
+ * for the Group you were last in, so stepping out to pick a Group does not
+ * blank the shell on the way. Only somebody who has not been in one yet gets
+ * the sentence instead, and the switcher above it says the same thing.
+ *
+ * At the bottom, the pages that are not a Module: Groups and your own Settings,
+ * which are about you and read the same from everywhere. A Group's own settings
+ * are reached through the Group, on Groups, and not from here.
+ */
 export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
-  const byGroup = modulesByGroup()
   const isDrawer = variant === 'drawer'
-  const location = useLocation()
+  const { items, activeId } = useNavigation()
 
   return (
     <aside
@@ -31,110 +44,68 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
       }
       aria-label="Gather navigation"
     >
-      <div className="flex min-h-11 items-center justify-between gap-3">
-        <Link
-          to="/dashboard"
-          onClick={onNavigate}
-          className="flex min-w-0 items-center gap-2 no-underline"
-        >
-          <span className="grid h-8 w-8 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-sm font-bold text-[var(--app-fg)]">
-            G
-          </span>
-          <span className="min-w-0">
-            <strong className="block truncate text-sm text-[var(--app-fg)]">
-              Gather
-            </strong>
-            <span className="block truncate text-xs text-[var(--app-muted)]">
-              Preview group
-            </span>
-          </span>
-        </Link>
-        <Link
-          to="/groups"
-          onClick={onNavigate}
-          className="shell-icon-button"
-          aria-label="Manage groups"
-          title="Manage groups"
-        >
-          <Icon name="Plus" className="h-4 w-4" />
-        </Link>
-      </div>
+      <GroupSwitcher onNavigate={onNavigate} />
 
-      <nav className="grid gap-1" aria-label="Primary">
-        <p className="m-0 px-2 pb-1 text-[11px] font-semibold uppercase text-[var(--app-muted)]">
-          Today
+      {items.length === 0 ? (
+        <p className="m-0 px-2 text-sm leading-6 text-[var(--app-muted)]">
+          Pick a group to see its modules.
         </p>
-        {PRIMARY_AREAS.map((item) => (
-          <Link
-            key={item.id}
-            to={item.path as LinkProps['to']}
-            onClick={onNavigate}
-            className={`grid min-h-10 grid-cols-[28px_minmax(0,1fr)] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline ${
-              isPrimaryAreaActive(location, item)
-                ? 'border-[var(--app-fg)] bg-[var(--app-surface)] text-[var(--app-fg)]'
-                : ''
-            }`}
-          >
-            <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
-              <Icon name={item.icon} className="h-4 w-4" />
-            </span>
-            <span className="truncate">{item.label}</span>
-          </Link>
-        ))}
-      </nav>
+      ) : (
+        <nav className="grid gap-1" aria-label="Primary">
+          {items.map((item) => (
+            <Link
+              key={item.id}
+              {...item.link}
+              onClick={onNavigate}
+              // Colouring here comes from `activeId` below rather than from
+              // `aria-current`, which is why the dock showed the router's
+              // prefix-matching bug and this did not. The attribute was just as
+              // wrong, and a screen reader had no second opinion to fall back
+              // on — see `NAV_ACTIVE_OPTIONS`.
+              activeOptions={NAV_ACTIVE_OPTIONS}
+              aria-current={item.id === activeId ? 'page' : undefined}
+              className={`grid min-h-10 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline ${
+                item.id === activeId
+                  ? 'border-[var(--app-fg)] bg-[var(--app-surface)]'
+                  : ''
+              }`}
+            >
+              <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
+                <Icon name={item.icon} className="h-4 w-4" />
+              </span>
+              <span className="truncate">{item.label}</span>
+              <span className="flex shrink-0 items-center gap-1">
+                {item.placeholder ? <Pill>Soon</Pill> : null}
+                {item.personal ? (
+                  <span title="Only you can see this. It is the same in every group.">
+                    <Pill>Only you</Pill>
+                  </span>
+                ) : null}
+              </span>
+            </Link>
+          ))}
+        </nav>
+      )}
 
-      <nav className="grid gap-3" aria-label="Modules">
-        {MODULE_GROUPS.map((group) => (
-          <div key={group} className="grid gap-1">
-            <p className="m-0 px-2 pb-1 text-[11px] font-semibold uppercase text-[var(--app-muted)]">
-              {group}
-            </p>
-            {byGroup[group].map((module) => (
-              <Link
-                key={module.id}
-                to={module.path as LinkProps['to']}
-                onClick={onNavigate}
-                className="grid min-h-9 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline"
-                activeProps={{
-                  className: 'border-[var(--app-fg)] bg-[var(--app-surface)]',
-                }}
-              >
-                <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
-                  <Icon name={module.icon} className="h-4 w-4" />
-                </span>
-                <span className="truncate">{module.label}</span>
-                {module.status === 'placeholder' ? <Pill>Soon</Pill> : null}
-              </Link>
-            ))}
-          </div>
-        ))}
-      </nav>
+      {/* The pages that are not a Module. This used to be a card headed
+          "Preview group" over a sentence promising that group and member
+          details would appear once connected — a promise Home now keeps, on a
+          page, with real names on it. What was worth keeping is the links,
+          which are the only way to leave a Group from the sidebar.
 
-      <section className="mt-auto rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="m-0 text-sm font-semibold">Preview group</h2>
-          <Pill tone="warning">Preview data</Pill>
-        </div>
-        <p className="m-0 text-sm text-[var(--app-muted)]">
-          Group and member details appear here once connected.
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Link
-            to="/groups"
-            onClick={onNavigate}
-            className="text-xs no-underline"
-          >
-            Groups
-          </Link>
-          <Link
-            to="/settings"
-            onClick={onNavigate}
-            className="text-xs no-underline"
-          >
-            Settings
-          </Link>
-        </div>
-      </section>
+          A Group's own settings are no longer among them. A link that changes
+          destination depending on where you are standing, sitting a row above
+          one that never does and is called almost the same word, is two
+          meanings of "settings" in the same two inches. The Group's settings
+          hang off the Group instead: clicking it on Groups opens them. */}
+      <nav className="mt-auto grid gap-1" aria-label="Settings and groups">
+        <Link to="/groups" onClick={onNavigate} className={FOOTER_LINK}>
+          Groups
+        </Link>
+        <Link to="/settings" onClick={onNavigate} className={FOOTER_LINK}>
+          Settings
+        </Link>
+      </nav>
     </aside>
   )
 }

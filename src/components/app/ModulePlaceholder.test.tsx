@@ -15,5 +15,7 @@ test('renders an operational placeholder page for a module', () => {
     screen.getByText('A shared shopping list you both check off.'),
   ).toBeDefined()
   expect(screen.getByText('Module planned')).toBeDefined()
-  expect(screen.getByText(/this group module is staged/i)).toBeDefined()
+  expect(
+    screen.getByText(/this module is listed in every group already/i),
+  ).toBeDefined()
 })

@@ -62,7 +62,7 @@ test('about page uses Gather-specific copy in the public frame', () => {
 
   expect(screen.getByText('Gather')).toBeDefined()
   expect(
-    screen.getByRole('heading', { name: /group command center/i }),
+    screen.getByRole('heading', { name: /one shared group/i }),
   ).toBeDefined()
   expect(screen.queryByText(/small starter/i)).toBeNull()
   expect(screen.queryByText(/TanStack Start/i)).toBeNull()
@@ -73,6 +73,6 @@ test('not found page is styled and gives a recovery path', () => {
 
   expect(screen.getByText('Gather')).toBeDefined()
   expect(screen.getByRole('heading', { name: /page not found/i })).toBeDefined()
-  expect(screen.getByRole('link', { name: /go to dashboard/i })).toBeDefined()
+  expect(screen.getByRole('link', { name: /go to gather/i })).toBeDefined()
   expect(screen.getByRole('main').textContent?.trim()).not.toBe('Not Found')
 })

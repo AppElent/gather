@@ -11,7 +11,13 @@ import { EventForm } from './EventForm'
 import { EventIcon } from './EventIcon'
 import { MultiEventForm } from './MultiEventForm'
 
-export function QuickLogButtons({ babyId }: { babyId: Id<'babies'> }) {
+interface QuickLogButtonsProps {
+  babyId: Id<'babies'>
+  /** The Group the entry is being logged in — every write is authorised by it. */
+  groupSlug: string
+}
+
+export function QuickLogButtons({ babyId, groupSlug }: QuickLogButtonsProps) {
   const [active, setActive] = useState<BabyEventType | 'multi' | null>(null)
 
   return (
@@ -32,12 +38,14 @@ export function QuickLogButtons({ babyId }: { babyId: Id<'babies'> }) {
       {active === 'multi' ? (
         <MultiEventForm
           babyId={babyId}
+          groupSlug={groupSlug}
           onDone={() => setActive(null)}
           onCancel={() => setActive(null)}
         />
       ) : active ? (
         <EventForm
           babyId={babyId}
+          groupSlug={groupSlug}
           type={active}
           onDone={() => setActive(null)}
           onCancel={() => setActive(null)}

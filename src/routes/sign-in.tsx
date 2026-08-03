@@ -24,7 +24,7 @@ export function SignInPage() {
       <PublicPageFrame
         eyebrow="Signed in"
         title="Opening Gather"
-        subtitle="Taking you to the command center."
+        subtitle="Taking you to your groups."
       >
         <p className="m-0 text-sm text-[var(--app-muted)]">Redirecting...</p>
       </PublicPageFrame>
@@ -35,7 +35,7 @@ export function SignInPage() {
     <PublicPageFrame
       eyebrow="Sign in"
       title="Welcome back"
-      subtitle="Use your Gather account to open the command center."
+      subtitle="Use your Gather account to open your groups."
     >
       <SignInForm onSuccess={onSuccess} />
     </PublicPageFrame>

@@ -6,8 +6,8 @@ import {
   ProviderAuthError,
   type UnifiedTask,
 } from './lib/taskProviders/types'
+import { requireGroupBySlug } from './lib/groupAccess'
 import { requireListAccess } from './lib/taskAccess'
-import { getCurrentUser } from './lib/sharing'
 
 const providerConfigValidator = v.object({
   connectionId: v.id('integrationConnections'),
@@ -23,16 +23,14 @@ const providerConfigValidator = v.object({
   ),
 })
 
-/** Lists for the viewer's default group; null = no default group set. */
+/** The lists of the Group in the URL, and of no other. */
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx)
-    if (!user?.defaultGroupId) return null
-    const groupId = user.defaultGroupId
+  args: { groupSlug: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     const lists = await ctx.db
       .query('taskLists')
-      .withIndex('by_group', (q) => q.eq('groupId', groupId))
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
       .collect()
     return lists
       .sort((a, b) => a.order - b.order)
@@ -49,14 +47,14 @@ export const create = mutation({
       v.literal('todoist'),
     ),
     providerConfig: v.optional(providerConfigValidator),
+    groupSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
-    if (!user.defaultGroupId) {
-      throw new ConvexError('Set a default group on the Groups page first')
-    }
-    const groupId = user.defaultGroupId
+    // A list belongs to the Group in the URL, and the connection it links to
+    // has to belong there too — both read the same groupId, so a slug cannot
+    // be used to borrow another Group's Notion token.
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const groupId = group._id
 
     if (args.provider === 'local') {
       if (args.providerConfig) {
@@ -94,17 +92,21 @@ export const create = mutation({
 })
 
 export const rename = mutation({
-  args: { listId: v.id('taskLists'), name: v.string() },
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    name: v.string(),
+  },
   handler: async (ctx, args) => {
-    await requireListAccess(ctx, args.listId)
+    await requireListAccess(ctx, args.groupSlug, args.listId)
     await ctx.db.patch(args.listId, { name: args.name })
   },
 })
 
 export const remove = mutation({
-  args: { listId: v.id('taskLists') },
+  args: { listId: v.id('taskLists'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    await requireListAccess(ctx, args.listId)
+    await requireListAccess(ctx, args.groupSlug, args.listId)
     const tasks = await ctx.db
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
@@ -114,10 +116,15 @@ export const remove = mutation({
   },
 })
 
+/**
+ * The list behind `getTasks`, authorised for the caller. Internal because it
+ * carries `providerConfig`, not because it is trusted: an action has no `ctx.db`
+ * and the caller's identity reaches this query, so the Group is checked here.
+ */
 export const getList = internalQuery({
-  args: { listId: v.id('taskLists') },
+  args: { listId: v.id('taskLists'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const { list } = await requireListAccess(ctx, args.listId)
+    const { list } = await requireListAccess(ctx, args.groupSlug, args.listId)
     return list
   },
 })
@@ -131,10 +138,11 @@ export type GetTasksResult =
  * provider (spec §3). Local lists resolve from the tasks table; external
  * lists go through the matching adapter with the stored token. */
 export const getTasks = action({
-  args: { listId: v.id('taskLists') },
+  args: { listId: v.id('taskLists'), groupSlug: v.string() },
   handler: async (ctx, args): Promise<GetTasksResult> => {
     const list = await ctx.runQuery(internal.taskLists.getList, {
       listId: args.listId,
+      groupSlug: args.groupSlug,
     })
 
     if (list.provider === 'local') {

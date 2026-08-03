@@ -1,16 +1,19 @@
 import { HeaderUser } from '@appelent/auth'
 import { Bug, Menu, MessageSquare, Search } from 'lucide-react'
 import type { RouteContext } from '../../lib/appNavigation'
-import { IconButton, StatusDot } from './ShellPrimitives'
+import { IconButton } from './ShellPrimitives'
 
 export interface TopbarProps {
   context: RouteContext
+  /** The Group the URL names, or null off any `/g/<slug>` route. */
+  groupName?: string | null
   onOpenNavigation: () => void
   onOpenGather: () => void
 }
 
 export function Topbar({
   context,
+  groupName,
   onOpenNavigation,
   onOpenGather,
 }: TopbarProps) {
@@ -31,16 +34,16 @@ export function Topbar({
           <p className="mt-1 hidden truncate text-sm text-[var(--app-muted)] md:block">
             {context.subtitle}
           </p>
+          {/* The phone has no sidebar on screen, so the Group it would have
+              named goes here — it is the one thing a reader cannot otherwise
+              see, and the subtitle it replaces only restates the title. */}
           <p className="mt-1 truncate text-sm text-[var(--app-muted)] md:hidden">
-            Preview group
+            {groupName ?? context.subtitle}
           </p>
         </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <span className="hidden md:inline-flex">
-          <StatusDot label="Preview mode" tone="muted" />
-        </span>
         <IconButton
           label="Jump to"
           onClick={() => {

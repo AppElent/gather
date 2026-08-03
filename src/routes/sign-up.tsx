@@ -13,7 +13,7 @@ export function SignUpPage() {
     <PublicPageFrame
       eyebrow="Create account"
       title="Start using Gather"
-      subtitle="Create your account and set up a shared command center."
+      subtitle="Create your account and start a group to share."
     >
       <SignUpForm onSuccess={onSuccess} />
     </PublicPageFrame>

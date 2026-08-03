@@ -22,5 +22,10 @@
     "noEmit": true
   },
   "include": ["./**/*"],
-  "exclude": ["./_generated"]
+  /* Test files are excluded because `convex deploy` typechecks with this
+   * config, which describes the Convex runtime — no DOM, no Vite. The suite
+   * reaches `test/convexHarness.ts` and its `import.meta.glob`, which is
+   * Vite-only syntax and fails here even though it is correct where it lives.
+   * The root `tsconfig.json` typechecks the tests, so nothing goes uncovered. */
+  "exclude": ["./_generated", "./**/*.test.ts"]
 }

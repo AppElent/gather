@@ -1,5 +1,4 @@
 import { useMutation } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
@@ -17,27 +16,24 @@ import {
   initialEventValues,
   rememberEventChoices,
 } from '../../lib/babyEventFormValues'
+import { errorMessage } from '../../lib/errorMessage'
 import { EventTypeFields } from './EventTypeFields'
 
 type BabyEventDoc = Doc<'babyEvents'>
 
 interface EventFormProps {
   babyId: Id<'babies'>
+  /** The Group the entry belongs to — every write is authorised by it. */
+  groupSlug: string
   type: BabyEventType
   event?: BabyEventDoc
   onDone: () => void
   onCancel: () => void
 }
 
-export function errorMessage(err: unknown, fallback: string): string {
-  if (err instanceof ConvexError) {
-    return typeof err.data === 'string' ? err.data : fallback
-  }
-  return err instanceof Error ? err.message : fallback
-}
-
 export function EventForm({
   babyId,
+  groupSlug,
   type,
   event,
   onDone,
@@ -68,6 +64,7 @@ export function EventForm({
       if (event) {
         await update({
           eventId: event._id,
+          groupSlug,
           timestamp: timestampMs,
           endTimestamp: built.endTimestamp ?? null,
           notes: notes.trim() || null,
@@ -76,6 +73,7 @@ export function EventForm({
       } else {
         await add({
           babyId,
+          groupSlug,
           type,
           timestamp: timestampMs,
           endTimestamp: built.endTimestamp,

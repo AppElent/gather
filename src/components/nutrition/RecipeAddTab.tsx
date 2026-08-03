@@ -6,15 +6,23 @@ import {
   computeRecipeEntryNutrition,
   type MealName,
 } from '../../../convex/lib/consumption'
+import type { NutritionNav } from './nutritionNav'
 
 interface Props {
   date: string
   meal: MealName
+  nav: NutritionNav
   onAdded: () => void
 }
 
-export function RecipeAddTab({ date, meal, onAdded }: Props) {
-  const recipes = useQuery(api.recipes.list)
+export function RecipeAddTab({ date, meal, nav, onAdded }: Props) {
+  // Deliberately every recipe the caller can reach, not the current Group's.
+  // The diary is Personal and reads the same in every Group (ADR-0002), so
+  // narrowing this to the Group in the URL would make the same page offer
+  // different recipes depending on which Group you happened to open it from.
+  // That is why this is `listAcrossMyGroups` and not `list`: `list` is a
+  // Group's collection and takes the slug, and the diary has no slug to give.
+  const recipes = useQuery(api.recipes.listAcrossMyGroups, {})
   const create = useMutation(api.consumption.create)
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [submittingId, setSubmittingId] = useState<string | null>(null)
@@ -112,8 +120,7 @@ export function RecipeAddTab({ date, meal, onAdded }: Props) {
           {withoutNutrition.map((recipe) => (
             <Link
               key={recipe._id}
-              to="/recipes/$recipeId"
-              params={{ recipeId: recipe._id }}
+              {...nav.recipe(recipe._id)}
               className="block text-xs underline"
             >
               {recipe.title}

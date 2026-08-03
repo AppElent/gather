@@ -1,5 +1,17 @@
 export type ModuleStatus = 'live' | 'placeholder'
 
+/**
+ * Who a Module's data belongs to.
+ *
+ * `group` — the Group you are viewing owns it, and its Members share it.
+ * `personal` — it is about you, follows you between Groups, and is the same
+ * whichever Group you view it from. A personal Module still renders under a
+ * `/g/<slug>/…` route: the segment governs navigation there, not ownership
+ * (ADR-0002). The UI says so on the page, because "who can see this?" is not
+ * something a reader should have to infer from the address bar.
+ */
+export type ModuleScope = 'group' | 'personal'
+
 export const MODULE_GROUPS = [
   'Kitchen',
   'Money',
@@ -8,13 +20,22 @@ export const MODULE_GROUPS = [
 ] as const
 export type ModuleGroup = (typeof MODULE_GROUPS)[number]
 
+/**
+ * What a Module is, minus where it lives.
+ *
+ * There is deliberately no path here. A Module's address is `/g/<slug>/…` and
+ * nothing else, and it is written once in `groupPaths.ts` where TanStack Router
+ * type-checks it against the generated route tree. A second copy in this
+ * registry would be a plain string the router never sees — which is what it
+ * used to be, and what let the sidebar point at a route that no longer existed.
+ */
 export interface ModuleDef {
   id: string
   label: string
   icon: string // lucide-react icon name
   group: ModuleGroup
-  path: string
   status: ModuleStatus
+  scope: ModuleScope
   description: string
 }
 
@@ -24,8 +45,8 @@ export const MODULES: ModuleDef[] = [
     label: 'Recipes',
     icon: 'ChefHat',
     group: 'Kitchen',
-    path: '/recipes',
     status: 'live',
+    scope: 'group',
     description: 'Keep and rate the dishes you cook.',
   },
   {
@@ -33,8 +54,10 @@ export const MODULES: ModuleDef[] = [
     label: 'Nutrition',
     icon: 'Apple',
     group: 'Kitchen',
-    path: '/nutrition',
     status: 'live',
+    // A food diary is about the person keeping it, not the household. It shows
+    // the same entries in every Group (ADR-0003).
+    scope: 'personal',
     description: 'Log what you eat and track daily targets.',
   },
   {
@@ -42,8 +65,8 @@ export const MODULES: ModuleDef[] = [
     label: 'Meal planner',
     icon: 'CalendarHeart',
     group: 'Kitchen',
-    path: '/meal-planner',
     status: 'placeholder',
+    scope: 'group',
     description: 'Plan the week’s meals.',
   },
   {
@@ -51,8 +74,8 @@ export const MODULES: ModuleDef[] = [
     label: 'Groceries',
     icon: 'ShoppingCart',
     group: 'Kitchen',
-    path: '/groceries',
     status: 'placeholder',
+    scope: 'group',
     description: 'A shared shopping list you both check off.',
   },
   {
@@ -60,8 +83,8 @@ export const MODULES: ModuleDef[] = [
     label: 'Pantry',
     icon: 'Refrigerator',
     group: 'Kitchen',
-    path: '/pantry',
     status: 'placeholder',
+    scope: 'group',
     description: 'Track what’s in stock at home.',
   },
   {
@@ -69,8 +92,8 @@ export const MODULES: ModuleDef[] = [
     label: 'Finances',
     icon: 'Wallet',
     group: 'Money',
-    path: '/finances',
     status: 'placeholder',
+    scope: 'group',
     description: 'Budgets and spending overview.',
   },
   {
@@ -78,8 +101,8 @@ export const MODULES: ModuleDef[] = [
     label: 'Bills & subscriptions',
     icon: 'Receipt',
     group: 'Money',
-    path: '/bills',
     status: 'placeholder',
+    scope: 'group',
     description: 'Recurring bills and subscriptions.',
   },
   {
@@ -87,8 +110,8 @@ export const MODULES: ModuleDef[] = [
     label: 'Tasks',
     icon: 'ListChecks',
     group: 'Home & life',
-    path: '/tasks',
     status: 'live',
+    scope: 'group',
     description: 'Shared to-do lists.',
   },
   {
@@ -96,8 +119,8 @@ export const MODULES: ModuleDef[] = [
     label: 'Baby log',
     icon: 'Baby',
     group: 'Home & life',
-    path: '/baby',
     status: 'live',
+    scope: 'group',
     description: 'Temperature, feeding, sleep, growth and more.',
   },
   {
@@ -105,8 +128,8 @@ export const MODULES: ModuleDef[] = [
     label: 'Calendar',
     icon: 'Calendar',
     group: 'Home & life',
-    path: '/calendar',
     status: 'placeholder',
+    scope: 'group',
     description: 'Household events and reminders.',
   },
   {
@@ -114,8 +137,8 @@ export const MODULES: ModuleDef[] = [
     label: 'Notes',
     icon: 'NotebookPen',
     group: 'Home & life',
-    path: '/notes',
     status: 'placeholder',
+    scope: 'group',
     description: 'Quick shared notes.',
   },
   {
@@ -123,8 +146,8 @@ export const MODULES: ModuleDef[] = [
     label: 'Cheeses',
     icon: 'Grape',
     group: 'Tasting',
-    path: '/cheeses',
     status: 'placeholder',
+    scope: 'group',
     description: 'Rate the cheeses you try.',
   },
   {
@@ -132,11 +155,16 @@ export const MODULES: ModuleDef[] = [
     label: 'Wines',
     icon: 'Wine',
     group: 'Tasting',
-    path: '/wines',
     status: 'placeholder',
+    scope: 'group',
     description: 'Rate the wines you try.',
   },
 ]
+
+/** A Module by id, or undefined when nothing declares that id. */
+export function moduleById(id: string): ModuleDef | undefined {
+  return MODULES.find((m) => m.id === id)
+}
 
 export function modulesByGroup(): Record<ModuleGroup, ModuleDef[]> {
   const out = Object.fromEntries(

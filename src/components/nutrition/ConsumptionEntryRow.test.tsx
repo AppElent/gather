@@ -1,6 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
+import { groupNutritionNav } from './nutritionNav'
+
+const nav = groupNutritionNav('jansen-household')
 
 // TanStack Router's <Link> requires a RouterProvider context to render (it
 // reads router state via useLinkProps); this component test renders in
@@ -44,7 +47,12 @@ const entry = {
 
 test('renders label, quantity, unit, and calories', () => {
   render(
-    <ConsumptionEntryRow entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />,
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={entry}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
   )
   expect(screen.getByText('Oatmeal')).toBeDefined()
   expect(screen.getByText(/1 serving/)).toBeDefined()
@@ -55,6 +63,7 @@ test('clicking Delete calls onDelete', () => {
   const onDelete = vi.fn()
   render(
     <ConsumptionEntryRow
+      nav={nav}
       entry={entry}
       onUpdate={vi.fn()}
       onDelete={onDelete}
@@ -66,7 +75,12 @@ test('clicking Delete calls onDelete', () => {
 
 test('shows no source link for a quick-add entry (no recipeId or foodId)', () => {
   render(
-    <ConsumptionEntryRow entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />,
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={entry}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
   )
   expect(screen.queryByText('View recipe')).toBeNull()
   expect(screen.queryByText('View food')).toBeNull()
@@ -75,31 +89,40 @@ test('shows no source link for a quick-add entry (no recipeId or foodId)', () =>
 test('shows a View recipe link when recipeId is set', () => {
   render(
     <ConsumptionEntryRow
+      nav={nav}
       entry={{ ...entry, recipeId: 'recipe1' }}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
     />,
   )
   const link = screen.getByText('View recipe')
-  expect(link.closest('a')).toHaveAttribute('href', '/recipes/recipe1')
+  expect(link.closest('a')).toHaveAttribute(
+    'href',
+    '/g/jansen-household/recipes/recipe1',
+  )
 })
 
 test('shows a View food link when foodId is set', () => {
   render(
     <ConsumptionEntryRow
+      nav={nav}
       entry={{ ...entry, foodId: 'food1' }}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
     />,
   )
   const link = screen.getByText('View food')
-  expect(link.closest('a')).toHaveAttribute('href', '/foods/food1')
+  expect(link.closest('a')).toHaveAttribute(
+    'href',
+    '/g/jansen-household/foods/food1',
+  )
 })
 
 test('editing quantity and saving calls onUpdate with the new quantity, current meal and date', async () => {
   const onUpdate = vi.fn().mockResolvedValue(undefined)
   render(
     <ConsumptionEntryRow
+      nav={nav}
       entry={entry}
       onUpdate={onUpdate}
       onDelete={vi.fn()}
@@ -121,6 +144,7 @@ test('a failed save keeps the row in edit mode and shows an error', async () => 
   const onUpdate = vi.fn().mockRejectedValue(new Error('Network error'))
   render(
     <ConsumptionEntryRow
+      nav={nav}
       entry={entry}
       onUpdate={onUpdate}
       onDelete={vi.fn()}
@@ -136,6 +160,7 @@ test('an invalid quantity does not call onUpdate', () => {
   const onUpdate = vi.fn()
   render(
     <ConsumptionEntryRow
+      nav={nav}
       entry={entry}
       onUpdate={onUpdate}
       onDelete={vi.fn()}

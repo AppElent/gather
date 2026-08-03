@@ -10,12 +10,14 @@ import {
 import { getRouteContext } from '../../lib/appNavigation'
 import { CommandPalette } from './CommandPalette'
 import { GatherPanel } from './GatherPanel'
-import { GroupInspector } from './GroupInspector'
 import { IssueReporterModal } from './IssueReporterModal'
 import { MobileDock } from './MobileDock'
+import { ShellGroupProvider } from './ShellGroup'
 import { IconButton } from './ShellPrimitives'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
+import { useCurrentGroup } from './useCurrentGroup'
+import { useNavigation } from './useNavigation'
 
 const FOCUSABLE_SELECTOR =
   'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
@@ -24,9 +26,27 @@ function getFocusableElements(container: HTMLElement) {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
 }
 
+/**
+ * The provider sits outside the shell rather than inside it because the shell
+ * itself asks for the navigation — it reserves the dock's space from the same
+ * list the dock renders — so the memory has to exist above that call.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <ShellGroupProvider>
+      <AppShellBody>{children}</AppShellBody>
+    </ShellGroupProvider>
+  )
+}
+
+function AppShellBody({ children }: { children: ReactNode }) {
   const location = useLocation()
   const context = getRouteContext(location.pathname)
+  const { current: currentGroup } = useCurrentGroup()
+  // The dock is only on screen when there is a navigation to put in it, and the
+  // room reserved for it has to go when it does — asked of the same list the
+  // dock renders, so the space and the bar cannot disagree.
+  const { items: navigation } = useNavigation()
   const [navigationOpen, setNavigationOpen] = useState(false)
   const [gatherOpen, setGatherOpen] = useState(false)
   const navigationDrawerRef = useRef<HTMLElement>(null)
@@ -87,20 +107,28 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="app-shell">
-      <div className="grid min-h-svh md:grid-cols-[264px_minmax(0,1fr)] xl:grid-cols-[264px_minmax(0,1fr)_336px]">
+      {/* Two columns at every width above a phone. There used to be a third at
+          `xl` carrying a "Group overview" rail of invented content — active
+          modules, a meal-planning slot, "member details will appear here". Home
+          is the Group's surface now (#22) and says all of it for real, so a
+          permanent rail beside it would be a second copy to keep in step with
+          the first. */}
+      <div className="grid min-h-svh md:grid-cols-[264px_minmax(0,1fr)]">
         <Sidebar />
-        <div className="flex min-w-0 flex-col pb-20 md:pb-0">
+        <div
+          className={`flex min-w-0 flex-col md:pb-0 ${
+            navigation.length > 0 ? 'pb-20' : ''
+          }`}
+        >
           <Topbar
             context={context}
+            groupName={currentGroup?.name}
             onOpenNavigation={() => setNavigationOpen(true)}
             onOpenGather={() => setGatherOpen(true)}
           />
           <main className="min-w-0 flex-1 px-3 py-4 md:px-5 md:py-5">
             {children}
           </main>
-        </div>
-        <div className="hidden border-l border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-surface)_86%,transparent)] p-4 xl:block">
-          <GroupInspector />
         </div>
       </div>
 
@@ -135,10 +163,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       ) : null}
 
-      <MobileDock location={location} />
+      <MobileDock />
       <GatherPanel
         open={gatherOpen}
-        activeGroupName="Preview group"
+        // The Group the address bar names, or none — the same answer the
+        // switcher at the top of the sidebar gives. It used to be the literal
+        // string "Preview group" on every route, which told a reader the panel
+        // was about a Group that does not exist.
+        activeGroupName={currentGroup?.name ?? null}
         routeTitle={context.title}
         onClose={() => setGatherOpen(false)}
       />

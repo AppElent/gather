@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as activity from "../activity.js";
 import type * as babies from "../babies.js";
 import type * as babyEvents from "../babyEvents.js";
 import type * as consumption from "../consumption.js";
@@ -18,6 +19,7 @@ import type * as integrations from "../integrations.js";
 import type * as lib_babyAccess from "../lib/babyAccess.js";
 import type * as lib_babyEvents from "../lib/babyEvents.js";
 import type * as lib_consumption from "../lib/consumption.js";
+import type * as lib_groupSlugs from "../lib/groupSlugs.js";
 import type * as lib_nutrition from "../lib/nutrition.js";
 import type * as lib_nutritionAiEstimate from "../lib/nutritionAiEstimate.js";
 import type * as lib_offFetch from "../lib/offFetch.js";
@@ -28,6 +30,7 @@ import type * as lib_seed_apply from "../lib/seed/apply.js";
 import type * as lib_seed_catalogFoods from "../lib/seed/catalogFoods.js";
 import type * as lib_seed_sampleHousehold from "../lib/seed/sampleHousehold.js";
 import type * as lib_sharing from "../lib/sharing.js";
+import type * as lib_slugs from "../lib/slugs.js";
 import type * as lib_taskAccess from "../lib/taskAccess.js";
 import type * as lib_taskProviders_index from "../lib/taskProviders/index.js";
 import type * as lib_taskProviders_notion from "../lib/taskProviders/notion.js";
@@ -49,6 +52,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  activity: typeof activity;
   babies: typeof babies;
   babyEvents: typeof babyEvents;
   consumption: typeof consumption;
@@ -59,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   "lib/babyAccess": typeof lib_babyAccess;
   "lib/babyEvents": typeof lib_babyEvents;
   "lib/consumption": typeof lib_consumption;
+  "lib/groupSlugs": typeof lib_groupSlugs;
   "lib/nutrition": typeof lib_nutrition;
   "lib/nutritionAiEstimate": typeof lib_nutritionAiEstimate;
   "lib/offFetch": typeof lib_offFetch;
@@ -69,6 +74,7 @@ declare const fullApi: ApiFromModules<{
   "lib/seed/catalogFoods": typeof lib_seed_catalogFoods;
   "lib/seed/sampleHousehold": typeof lib_seed_sampleHousehold;
   "lib/sharing": typeof lib_sharing;
+  "lib/slugs": typeof lib_slugs;
   "lib/taskAccess": typeof lib_taskAccess;
   "lib/taskProviders/index": typeof lib_taskProviders_index;
   "lib/taskProviders/notion": typeof lib_taskProviders_notion;

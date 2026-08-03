@@ -13,6 +13,7 @@ import type {
   OffSearchResult,
 } from '../../../convex/lib/offMapping'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
+import type { NutritionNav } from './nutritionNav'
 
 // Open Food Facts documents a 10 search requests/minute cap on its legacy
 // search API; search-a-licious (the full-text search service this fallback
@@ -36,10 +37,11 @@ interface FoodSummary {
 interface Props {
   date: string
   meal: MealName
+  nav: NutritionNav
   onAdded: () => void
 }
 
-export function FoodAddTab({ date, meal, onAdded }: Props) {
+export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
   const [term, setTerm] = useState('')
   const [debouncedTerm, setDebouncedTerm] = useState('')
   useEffect(() => {
@@ -284,11 +286,7 @@ export function FoodAddTab({ date, meal, onAdded }: Props) {
       {notFoundBarcode && (
         <p className="text-xs opacity-60">
           Not found.{' '}
-          <Link
-            to="/foods/new"
-            search={{ barcode: notFoundBarcode }}
-            className="underline"
-          >
+          <Link {...nav.createFood(notFoundBarcode)} className="underline">
             Add it to the foods library
           </Link>{' '}
           first.

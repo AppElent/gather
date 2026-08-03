@@ -3,7 +3,7 @@ import { useAction } from 'convex/react'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { SurfaceCard } from '../../components/app/ShellPrimitives'
-import { errorMessage } from '../../components/settings/ConnectionsSettings'
+import { errorMessage } from '../../lib/errorMessage'
 import { consumeOAuthState, oauthRedirectUri } from '../../lib/oauth'
 
 export const Route = createFileRoute('/_app/integrations/callback')({
@@ -34,8 +34,19 @@ function OAuthCallback() {
       setFailure('Invalid connection response — try connecting again.')
       return
     }
+    // A connection belongs to a Group, and this page is not inside one: the
+    // only Group it can know about is the one the flow set out from. Without
+    // it there is nowhere to store the token, and picking a Group on the
+    // caller's behalf is the guess ADR-0002 exists to stop — so this fails.
+    if (!consumed.groupSlug) {
+      setFailure(
+        'That connection came back without a group — start it again from the group’s settings page.',
+      )
+      return
+    }
     completeOAuth({
       provider: consumed.provider,
+      groupSlug: consumed.groupSlug,
       code,
       redirectUri: oauthRedirectUri(),
     })

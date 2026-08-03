@@ -1,9 +1,11 @@
 'use node'
 
 import { ConvexError, v } from 'convex/values'
+import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { action } from './_generated/server'
 import type { ActionCtx } from './_generated/server'
+import { GROUP_REFUSAL_MESSAGES } from './lib/groupAccess'
 import { extractRecipeWithAi } from './lib/recipeAiExtract'
 import { extractJsonLdRecipe, htmlToText } from './lib/recipeParsing'
 
@@ -91,11 +93,26 @@ export async function safeFetch(
   return undefined
 }
 
+/**
+ * Fetch and parse a recipe for the form to be filled in with.
+ *
+ * It takes the Group it is importing *for*, and refuses one the caller is not a
+ * Member of. Nothing is written to that Group here — the recipe is created by
+ * `recipes.create` when the form is saved — but an import belongs to a
+ * destination the moment it is started, and an import surface that shrugged at
+ * which Group it was aimed at is what lets a page decide silently.
+ */
 export const importFromUrl = action({
-  args: { url: v.string() },
+  args: { url: v.string(), groupSlug: v.string() },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new ConvexError('Not authenticated')
+
+    // An action has no `ctx.db` and so cannot call `requireGroupBySlug` itself.
+    // `groups.bySlug` is that same resolver behind a query, and refuses for the
+    // same three reasons in the same words.
+    const group = await ctx.runQuery(api.groups.bySlug, { slug: args.groupSlug })
+    if (!group.ok) throw new ConvexError(GROUP_REFUSAL_MESSAGES[group.reason])
 
     if (!isUrlSafeToFetch(args.url)) throw new ConvexError(BLOCKED_MESSAGE)
 
