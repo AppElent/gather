@@ -140,8 +140,9 @@ _Avoid_: Demo data, Dummy data, Test data, Seed data
 - Whether you may change something follows its home Group from anywhere. *Where*
   you change it is the address: a write happens where the URL names the Group
   that is about to change.
-- A photo is stored as prepared and never as chosen. Preparing is the only way
-  in, so a photo that cannot be prepared is not stored at all.
+- A photo a person chooses is stored as prepared and never as chosen, so one
+  that cannot be prepared is not stored at all. An image Gather fetches for
+  itself is neither chosen nor prepared (ADR-0010).
 - A refusal inside a Group never says which refusal it is. "No such record" and
   "not in this Group" are one answer; refusing the Group itself is a separate,
   distinct one.
