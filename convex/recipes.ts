@@ -14,6 +14,7 @@ import {
   nutritionValidator,
 } from './lib/nutrition'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
+import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
 
 /** A recipe as every list and detail page wants it: with its picture resolved. */
 async function withImageUrl<T extends { imageId?: Id<'_storage'> }>(
@@ -257,6 +258,9 @@ export const update = mutation({
         : undefined,
       nutritionStale: stale || undefined,
     })
+    // Behind the access check, and only once the row has stopped pointing at
+    // the old picture: nothing else in the app can reach it after this.
+    await replaceStoredFile(ctx, recipe.imageId, imageId)
   },
 })
 
@@ -291,6 +295,10 @@ export const remove = mutation({
     // that is what stops the reply telling a stranger their id was real.
     const recipe = await writableRecipe(ctx, args.id)
     if (!recipe) return
+    // The Groups this was Shared into lose the picture along with the recipe.
+    // A Share is standing to read and no claim on the content, so there is
+    // nothing of theirs to keep (ADR-0007).
+    await deleteStoredFile(ctx, recipe.imageId)
     await ctx.db.delete(args.id)
   },
 })

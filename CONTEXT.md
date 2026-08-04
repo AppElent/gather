@@ -143,6 +143,10 @@ _Avoid_: Demo data, Dummy data, Test data, Seed data
 - A photo a person chooses is stored as prepared and never as chosen, so one
   that cannot be prepared is not stored at all. An image Gather fetches for
   itself is neither chosen nor prepared (ADR-0010).
+- A stored file lives exactly as long as the row that points at it. The mutation
+  that replaces, clears or deletes that pointer deletes the file with it, so a
+  photo nobody can reach is not a thing storage holds. A file uploaded before any
+  row references it is the exception, and is not yet handled.
 - A refusal inside a Group never says which refusal it is. "No such record" and
   "not in this Group" are one answer; refusing the Group itself is a separate,
   distinct one.

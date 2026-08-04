@@ -3,6 +3,7 @@ import type { Doc, Id } from './_generated/dataModel'
 import { findBabyInGroup, requireBabyAccess } from './lib/babyAccess'
 import { requireGroupBySlug } from './lib/groupAccess'
 import { getCurrentUser } from './lib/sharing'
+import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
 import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 
@@ -161,7 +162,7 @@ export const update = mutation({
     photoId: v.optional(v.union(v.id('_storage'), v.null())),
   },
   handler: async (ctx, args) => {
-    await requireBabyAccess(ctx, args.groupSlug, args.id)
+    const { baby } = await requireBabyAccess(ctx, args.groupSlug, args.id)
     const { sex, photoId } = args
     await ctx.db.patch(args.id, {
       name: args.name,
@@ -169,6 +170,9 @@ export const update = mutation({
       ...(sex !== undefined ? { sex: sex ?? undefined } : {}),
       ...(photoId !== undefined ? { photoId: photoId ?? undefined } : {}),
     })
+    // Behind the access check, and only once the row has stopped pointing at
+    // the old photo: nothing else in the app can reach it after this.
+    await replaceStoredFile(ctx, baby.photoId, photoId)
   },
 })
 
@@ -196,6 +200,7 @@ export const remove = mutation({
     await Promise.all(events.map((e) => ctx.db.delete(e._id)))
     await deleteAuxTaskList(ctx, baby.taskListId)
     await deleteAuxTaskList(ctx, baby.questionsListId)
+    await deleteStoredFile(ctx, baby.photoId)
     await ctx.db.delete(args.id)
   },
 })

@@ -19,11 +19,14 @@ The alternative was to keep the original as well and store a derivative beside
 it, on Convex or on an external tier. That is a different shape of problem, not a
 setting: `babies.photoId` and `recipes.imageId` are each one optional
 `_storage` id, and a photo that is two blobs in two systems needs a schema that
-says so, provider credentials, and a deletion story across both. Gather does not
-have the last of those even for one blob today — nothing in `convex/` calls
-`ctx.storage.delete`, so every replaced photo is already an orphan that outlives
-the row that referenced it. Adding a second tier would double the number of files
-whose lifetime nobody manages. The tier is deferred rather than refused: when a
+says so, provider credentials, and a deletion story across both. Gather did not
+have the last of those even for one blob when this was decided — nothing in
+`convex/` called `ctx.storage.delete`, so every replaced photo was already an
+orphan that outlived the row that referenced it. (#38 has since fixed that for
+the one-blob case: the mutation that orphans a file deletes it —
+`convex/lib/storedFiles.ts`. Files uploaded before any row points at them are
+still nobody's, #41.) Adding a second tier would double the number of files whose
+lifetime nobody manages. The tier is deferred rather than refused: when a
 Module wants full photographs rather than avatars and headers, it will be worth
 having, and this ADR is what it will have to argue against.
 

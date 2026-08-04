@@ -1,0 +1,72 @@
+/**
+ * Keeping stored files from outliving the rows that point at them.
+ *
+ * A photo is uploaded to Convex storage and the row keeps its id. Nothing else
+ * ever looks at that blob, so the moment the row stops pointing at it — the
+ * photo is replaced, cleared, or the record deleted — it is unreachable, and
+ * storage that only grows is storage that fills up with pictures nobody can
+ * ever see again (#38).
+ *
+ * So the mutation that orphans a blob deletes it, in the same transaction, and
+ * these are the two shapes that takes: reconciling the id a row *held* with the
+ * id it is *being given*, and dropping the one a deleted record held. Recipes
+ * and Baby are the two Modules with a photo today and there will be a third, so
+ * the rule lives here once rather than open-coded in each.
+ *
+ * **Deletion belongs behind the access check the mutation already makes.** A
+ * `_storage` id carries no ownership — a function that took one and deleted it
+ * would let any signed-in caller destroy any blob in the deployment. Every
+ * caller here has already resolved the record and refused whoever may not write
+ * it; there is deliberately no publicly callable form of this.
+ *
+ * **The invariant this rests on: no two rows ever hold the same `_storage`
+ * id.** True today — nothing copies a storage id from one row to another, and
+ * the Copy verb described in `CONTEXT.md` is not implemented. Whoever
+ * implements Copy has to give the copy its own blob, or a copy's delete starts
+ * taking the original's picture with it.
+ *
+ * Out of scope, and both filed: blobs orphaned *before* any row references them
+ * (abandoned forms and imports, #41), and any sweep or backfill over the
+ * orphans already in storage (#38 states why that half is the hazardous one).
+ */
+
+import type { Id } from '../_generated/dataModel'
+import type { MutationCtx } from '../_generated/server'
+
+/**
+ * Delete a stored file, if there is one and it is still there.
+ *
+ * Already gone is not an error. A blob deleted out of band leaves a row still
+ * pointing at it, and throwing on that would make the record undeletable — a
+ * worse state than the stale pointer being cleaned up. Same call `recipes.remove`
+ * already makes about the row itself.
+ */
+export async function deleteStoredFile(
+  ctx: MutationCtx,
+  id: Id<'_storage'> | undefined | null,
+) {
+  if (!id) return
+  // File metadata is a system table read, and the only way to ask "is this
+  // blob still here?" from inside a mutation.
+  const metadata = await ctx.db.system.get(id)
+  if (!metadata) return
+  await ctx.storage.delete(id)
+}
+
+/**
+ * Reconcile the file a row stored with the one it is being given, deleting the
+ * previous blob when the row stops pointing at it.
+ *
+ * `next` speaks the language the update mutations already speak: `undefined` is
+ * "the field was absent, leave it alone", `null` is "clear it". Only an id that
+ * differs from the stored one, or a clear, orphans anything.
+ */
+export async function replaceStoredFile(
+  ctx: MutationCtx,
+  previous: Id<'_storage'> | undefined,
+  next: Id<'_storage'> | null | undefined,
+) {
+  if (next === undefined) return
+  if (!previous || next === previous) return
+  await deleteStoredFile(ctx, previous)
+}
