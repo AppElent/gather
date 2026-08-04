@@ -70,6 +70,7 @@ function EditRecipeForm({
 
       <ImageUploadField
         imageUrl={imageUrl}
+        preset="recipePhoto"
         generateUploadUrl={generateUploadUrl}
         onChange={(id) => {
           setImageId(id)

@@ -41,6 +41,7 @@ export function NewBabyPage({ groupSlug, nav }: NewBabyPageProps) {
 
       <ImageUploadField
         imageUrl={null}
+        preset="childPhoto"
         generateUploadUrl={generateUploadUrl}
         onChange={setPhotoId}
         fieldId="baby-photo-upload"
