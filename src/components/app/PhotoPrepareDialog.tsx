@@ -10,6 +10,7 @@ import {
   initialCrop,
   moveCrop,
   resizeCrop,
+  type Size,
   scaleCrop,
 } from '../../lib/cropFrame'
 import { errorMessage } from '../../lib/errorMessage'
@@ -60,13 +61,17 @@ export function PhotoPrepareDialog({
   onCancel,
   onConfirm,
 }: PhotoPrepareDialogProps) {
-  const { aspect, maxEdge } = photoPreset(preset)
+  const rules = photoPreset(preset)
+  const { aspect, maxEdge } = rules
   const [photo, setPhoto] = useState<DecodedPhoto | null>(null)
   const [crop, setCrop] = useState<CropRect | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [preparing, setPreparing] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const imageRef = useRef<HTMLImageElement>(null)
+  const frameRef = useRef<HTMLButtonElement>(null)
+  const openerRef = useRef<HTMLElement | null>(null)
+  const framePlacedRef = useRef(false)
 
   useEffect(() => {
     const url = URL.createObjectURL(file)
@@ -109,6 +114,50 @@ export function PhotoPrepareDialog({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onCancel])
 
+  // Focus goes to the frame and comes back to the file input afterwards, the
+  // same way `ConfirmAction` treats the question it opens. It matters more
+  // here: the frame is the control, and someone working by keyboard would
+  // otherwise have to tab into a dialog to reach the only thing in it that
+  // does anything.
+  useEffect(() => {
+    openerRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null
+    return () => {
+      const opener = openerRef.current
+      if (opener?.isConnected) opener.focus()
+    }
+  }, [])
+
+  // Once, when the frame first appears — not on every adjustment, which would
+  // snatch focus back off the size slider as someone was using it.
+  useEffect(() => {
+    if (!crop || framePlacedRef.current) return
+    framePlacedRef.current = true
+    frameRef.current?.focus()
+  }, [crop])
+
+  /** Tab stays inside the framing step until it is answered one way or another. */
+  const keepFocusInside = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Tab') return
+    const focusable = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), [href], input:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      ),
+    )
+    const first = focusable[0]
+    const last = focusable.at(-1)
+    if (!first || !last) return
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+
   /**
    * A drag in progress, frozen at the moment it started.
    *
@@ -142,15 +191,35 @@ export function PhotoPrepareDialog({
       event.currentTarget.setPointerCapture?.(event.pointerId)
     }
 
+  /**
+   * What a grab of each handle means, in one place.
+   *
+   * A pointer drag and an arrow key are the same two gestures arriving by
+   * different routes, so they resolve to the same pair of functions here
+   * rather than each branching on the mode for itself.
+   */
+  const dragged = (
+    mode: 'move' | 'resize',
+    from: CropRect,
+    image: Size,
+    dx: number,
+    dy: number,
+  ): CropRect =>
+    mode === 'move'
+      ? moveCrop(from, image, dx, dy)
+      : resizeCrop(from, image, aspect, dx, dy)
+
   const onPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
     const drag = dragRef.current
     if (!drag || !photo) return
-    const dx = (event.clientX - drag.startX) * drag.scale
-    const dy = (event.clientY - drag.startY) * drag.scale
     setCrop(
-      drag.mode === 'move'
-        ? moveCrop(drag.from, photo, dx, dy)
-        : resizeCrop(drag.from, photo, aspect, dx, dy),
+      dragged(
+        drag.mode,
+        drag.from,
+        photo,
+        (event.clientX - drag.startX) * drag.scale,
+        (event.clientY - drag.startY) * drag.scale,
+      ),
     )
   }
 
@@ -175,11 +244,7 @@ export function PhotoPrepareDialog({
       if (!delta) return
       event.preventDefault()
       event.stopPropagation()
-      setCrop(
-        mode === 'move'
-          ? moveCrop(crop, photo, delta[0], delta[1])
-          : resizeCrop(crop, photo, aspect, delta[0], delta[1]),
-      )
+      setCrop(dragged(mode, crop, photo, delta[0], delta[1]))
     }
 
   const confirm = async () => {
@@ -187,14 +252,14 @@ export function PhotoPrepareDialog({
     setPreparing(true)
     setError(null)
     try {
-      onConfirm(await preparePhoto(photo, crop, photoPreset(preset)))
+      onConfirm(await preparePhoto(photo, crop, rules))
     } catch (e: unknown) {
       setError(errorMessage(e, PHOTO_PREPARE_ERROR))
       setPreparing(false)
     }
   }
 
-  const stored = crop ? outputSize(crop, maxEdge) : null
+  const storedSize = crop ? outputSize(crop, maxEdge) : null
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
@@ -202,6 +267,7 @@ export function PhotoPrepareDialog({
         role="dialog"
         aria-modal="true"
         aria-label="Frame your photo"
+        onKeyDown={keepFocusInside}
         className="w-[min(36rem,100%)]"
       >
         <SurfaceCard>
@@ -245,6 +311,7 @@ export function PhotoPrepareDialog({
                   {crop && photo ? (
                     <>
                       <button
+                        ref={frameRef}
                         type="button"
                         aria-label="Move frame"
                         onPointerDown={beginDrag('move')}
@@ -303,8 +370,8 @@ export function PhotoPrepareDialog({
             ) : null}
 
             <p className="m-0 text-xs text-[var(--app-muted)]">
-              {stored
-                ? `Stored as ${stored.width} × ${stored.height} — the photo on your phone is untouched.`
+              {storedSize
+                ? `Stored as ${storedSize.width} × ${storedSize.height} — the photo on your phone is untouched.`
                 : 'Opening photo…'}
             </p>
 

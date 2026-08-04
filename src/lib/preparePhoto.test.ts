@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import {
+  type StubbedImagePipeline,
+  stubImagePipeline,
+} from '../test/imagePipeline'
 import { initialCrop } from './cropFrame'
 import { photoPreset } from './photoPresets'
 import {
@@ -19,8 +23,7 @@ import {
  * this can fail ends in a refusal rather than in bytes.
  */
 
-const drawImage = vi.fn()
-const toBlob = vi.fn()
+let pipeline: StubbedImagePipeline
 
 /** The stand-in for whatever `createImageBitmap` would have returned. */
 function decoded(width: number, height: number): DecodedPhoto {
@@ -28,17 +31,7 @@ function decoded(width: number, height: number): DecodedPhoto {
 }
 
 beforeEach(() => {
-  drawImage.mockReset()
-  toBlob.mockReset()
-  toBlob.mockImplementation(
-    (callback: (blob: Blob | null) => void, type: string) => {
-      callback(new Blob(['jpeg'], { type }))
-    },
-  )
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-    drawImage,
-  } as unknown as CanvasRenderingContext2D)
-  vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(toBlob)
+  pipeline = stubImagePipeline()
 })
 
 afterEach(() => {
@@ -148,7 +141,7 @@ describe('preparePhoto', () => {
 
     expect(prepared).toMatchObject({ width: 512, height: 512 })
     expect(prepared.blob.type).toBe('image/jpeg')
-    expect(toBlob).toHaveBeenCalledWith(
+    expect(pipeline.toBlob).toHaveBeenCalledWith(
       expect.any(Function),
       'image/jpeg',
       0.82,
@@ -176,7 +169,7 @@ describe('preparePhoto', () => {
       photoPreset('childPhoto'),
     )
 
-    expect(drawImage).toHaveBeenCalledWith(
+    expect(pipeline.drawImage).toHaveBeenCalledWith(
       photo.source,
       504,
       0,
@@ -190,9 +183,7 @@ describe('preparePhoto', () => {
   })
 
   test('refuses rather than uploading a PNG that toBlob substituted', async () => {
-    toBlob.mockImplementation((callback: (blob: Blob | null) => void) => {
-      callback(new Blob(['png'], { type: 'image/png' }))
-    })
+    pipeline.encodesTo(new Blob(['png'], { type: 'image/png' }))
     await expect(
       preparePhoto(
         decoded(800, 600),
@@ -203,9 +194,7 @@ describe('preparePhoto', () => {
   })
 
   test('refuses when the encode produces nothing', async () => {
-    toBlob.mockImplementation((callback: (blob: Blob | null) => void) => {
-      callback(null)
-    })
+    pipeline.encodesTo(null)
     await expect(
       preparePhoto(
         decoded(800, 600),
@@ -227,7 +216,7 @@ describe('preparePhoto', () => {
   })
 
   test('refuses when drawing throws', async () => {
-    drawImage.mockImplementation(() => {
+    pipeline.drawImage.mockImplementation(() => {
       throw new Error('out of memory')
     })
     await expect(

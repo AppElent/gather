@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { stubImagePipeline } from '../../test/imagePipeline'
 import { ImageUploadField } from './ImageUploadField'
 
 /**
@@ -18,21 +19,14 @@ const CHOSEN = new File(['original bytes'], 'IMG_4021.HEIC', {
 })
 
 const uploaded: Array<{ body: unknown; headers: Record<string, string> }> = []
-let decode: () => Promise<{ width: number; height: number; close: () => void }>
 
-function stubImagePipeline() {
-  vi.stubGlobal(
-    'createImageBitmap',
-    vi.fn(() => decode()),
-  )
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-    drawImage: vi.fn(),
-  } as unknown as CanvasRenderingContext2D)
-  vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(
-    (callback, type) => {
-      callback(new Blob(['prepared jpeg'], { type: type ?? 'image/png' }))
+/** Stub a browser that cannot read the chosen file. */
+function givenAnUnreadablePhoto() {
+  stubImagePipeline({
+    decode: async () => {
+      throw new Error('unsupported image type')
     },
-  )
+  })
 }
 
 function renderField(preset: 'childPhoto' | 'recipePhoto' = 'childPhoto') {
@@ -55,8 +49,7 @@ function choose(file: File = CHOSEN) {
 
 beforeEach(() => {
   uploaded.length = 0
-  decode = async () => ({ width: 4032, height: 3024, close: vi.fn() })
-  stubImagePipeline()
+  stubImagePipeline({ width: 4032, height: 3024 })
   vi.stubGlobal(
     'fetch',
     vi.fn(async (_url: string, init: RequestInit) => {
@@ -136,9 +129,7 @@ describe('choosing a photo', () => {
 
 describe('an image this browser cannot read', () => {
   test('says so, and uploads nothing', async () => {
-    decode = async () => {
-      throw new Error('unsupported image type')
-    }
+    givenAnUnreadablePhoto()
     const { onChange } = renderField()
 
     choose()
@@ -151,9 +142,7 @@ describe('an image this browser cannot read', () => {
   })
 
   test('offers no way to confirm a frame it never drew', async () => {
-    decode = async () => {
-      throw new Error('unsupported image type')
-    }
+    givenAnUnreadablePhoto()
     renderField()
     choose()
 

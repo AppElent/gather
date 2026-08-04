@@ -1,5 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
+import {
+  type StubbedImagePipeline,
+  stubImagePipeline,
+} from '../../test/imagePipeline'
 import { PhotoPrepareDialog } from './PhotoPrepareDialog'
 
 /**
@@ -14,25 +18,11 @@ import { PhotoPrepareDialog } from './PhotoPrepareDialog'
  * has, and hands over only what was framed.
  */
 
-const drawImage = vi.fn()
+let pipeline: StubbedImagePipeline
 
-/** The crop region passed to `drawImage`, in source pixels. */
-function drawnRegion() {
-  const [, x, y, width, height] = drawImage.mock.calls[0] as number[]
-  return { x, y, width, height }
-}
-
-function stubImagePipeline(width: number, height: number) {
-  vi.stubGlobal(
-    'createImageBitmap',
-    vi.fn(async () => ({ width, height, close: vi.fn() })),
-  )
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-    drawImage,
-  } as unknown as CanvasRenderingContext2D)
-  vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(
-    (callback, type) => callback(new Blob(['jpeg'], { type: type ?? '' })),
-  )
+/** Stub the browser's image pipeline for a photo of the given upright size. */
+function givenPhoto(width: number, height: number) {
+  pipeline = stubImagePipeline({ width, height })
 }
 
 function renderDialog(preset: 'childPhoto' | 'recipePhoto') {
@@ -55,10 +45,6 @@ async function confirm() {
   fireEvent.click(button)
 }
 
-beforeEach(() => {
-  drawImage.mockReset()
-})
-
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
@@ -66,42 +52,57 @@ afterEach(() => {
 
 describe('the frame a photo opens with', () => {
   test('a recipe photo opens on the whole image, so confirming crops nothing', async () => {
-    stubImagePipeline(4032, 3024)
+    givenPhoto(4032, 3024)
     const { onConfirm } = renderDialog('recipePhoto')
 
     await confirm()
 
     await waitFor(() => expect(onConfirm).toHaveBeenCalled())
-    expect(drawnRegion()).toEqual({ x: 0, y: 0, width: 4032, height: 3024 })
+    expect(pipeline.drawnRegion()).toEqual({
+      x: 0,
+      y: 0,
+      width: 4032,
+      height: 3024,
+    })
   })
 
   test("a child's photo opens on the largest square, centred", async () => {
-    stubImagePipeline(4032, 3024)
+    givenPhoto(4032, 3024)
     const { onConfirm } = renderDialog('childPhoto')
 
     await confirm()
 
     await waitFor(() => expect(onConfirm).toHaveBeenCalled())
-    expect(drawnRegion()).toEqual({ x: 504, y: 0, width: 3024, height: 3024 })
+    expect(pipeline.drawnRegion()).toEqual({
+      x: 504,
+      y: 0,
+      width: 3024,
+      height: 3024,
+    })
   })
 
   test('a portrait photo is framed against its upright dimensions', async () => {
     // What `createImageBitmap` returns here is already rotated, because it is
     // asked for `imageOrientation: 'from-image'`. The frame follows the
     // upright shape rather than the shape the pixels are stored in.
-    stubImagePipeline(3024, 4032)
+    givenPhoto(3024, 4032)
     renderDialog('childPhoto')
 
     expect(await screen.findByText(/Stored as 512 × 512/)).toBeInTheDocument()
     await confirm()
-    await waitFor(() => expect(drawImage).toHaveBeenCalled())
-    expect(drawnRegion()).toEqual({ x: 0, y: 504, width: 3024, height: 3024 })
+    await waitFor(() => expect(pipeline.drawImage).toHaveBeenCalled())
+    expect(pipeline.drawnRegion()).toEqual({
+      x: 0,
+      y: 504,
+      width: 3024,
+      height: 3024,
+    })
   })
 })
 
 describe("a child's frame cannot be made non-square", () => {
   test('not with the size slider', async () => {
-    stubImagePipeline(4032, 3024)
+    givenPhoto(4032, 3024)
     const { onConfirm } = renderDialog('childPhoto')
 
     const slider = await screen.findByLabelText('Frame size')
@@ -109,13 +110,13 @@ describe("a child's frame cannot be made non-square", () => {
     await confirm()
 
     await waitFor(() => expect(onConfirm).toHaveBeenCalled())
-    const region = drawnRegion()
+    const region = pipeline.drawnRegion()
     expect(region.width).toBe(region.height)
     expect(region.width).toBeLessThan(3024)
   })
 
   test('not with the resize handle', async () => {
-    stubImagePipeline(4032, 3024)
+    givenPhoto(4032, 3024)
     const { onConfirm } = renderDialog('childPhoto')
 
     const handle = await screen.findByRole('button', { name: 'Resize frame' })
@@ -124,12 +125,12 @@ describe("a child's frame cannot be made non-square", () => {
     await confirm()
 
     await waitFor(() => expect(onConfirm).toHaveBeenCalled())
-    const region = drawnRegion()
+    const region = pipeline.drawnRegion()
     expect(region.width).toBe(region.height)
   })
 
   test('and the photo it hands back is square', async () => {
-    stubImagePipeline(4032, 3024)
+    givenPhoto(4032, 3024)
     const { onConfirm } = renderDialog('childPhoto')
 
     const slider = await screen.findByLabelText('Frame size')
@@ -145,7 +146,7 @@ describe("a child's frame cannot be made non-square", () => {
 
 describe('moving the frame', () => {
   test('arrow keys move it, for anyone who cannot drag', async () => {
-    stubImagePipeline(4032, 3024)
+    givenPhoto(4032, 3024)
     const { onConfirm } = renderDialog('childPhoto')
 
     const frame = await screen.findByRole('button', { name: 'Move frame' })
@@ -153,11 +154,11 @@ describe('moving the frame', () => {
     await confirm()
 
     await waitFor(() => expect(onConfirm).toHaveBeenCalled())
-    expect(drawnRegion()).toMatchObject({ x: 423, width: 3024 })
+    expect(pipeline.drawnRegion()).toMatchObject({ x: 423, width: 3024 })
   })
 
   test('never past the edge of the image', async () => {
-    stubImagePipeline(4032, 3024)
+    givenPhoto(4032, 3024)
     const { onConfirm } = renderDialog('childPhoto')
 
     const frame = await screen.findByRole('button', { name: 'Move frame' })
@@ -167,14 +168,36 @@ describe('moving the frame', () => {
     await confirm()
 
     await waitFor(() => expect(onConfirm).toHaveBeenCalled())
-    const region = drawnRegion()
+    const region = pipeline.drawnRegion()
     expect(region.x + region.width).toBe(4032)
+  })
+})
+
+describe('focus', () => {
+  test('lands on the frame, which is the control the dialog is for', async () => {
+    givenPhoto(4032, 3024)
+    renderDialog('childPhoto')
+
+    const frame = await screen.findByRole('button', { name: 'Move frame' })
+    await waitFor(() => expect(frame).toHaveFocus())
+  })
+
+  test('is not snatched back off the slider while it is being used', async () => {
+    givenPhoto(4032, 3024)
+    renderDialog('childPhoto')
+
+    const slider = await screen.findByLabelText('Frame size')
+    slider.focus()
+    fireEvent.change(slider, { target: { value: '60' } })
+    fireEvent.change(slider, { target: { value: '55' } })
+
+    await waitFor(() => expect(slider).toHaveFocus())
   })
 })
 
 describe('leaving without a photo', () => {
   test('Escape cancels', async () => {
-    stubImagePipeline(4032, 3024)
+    givenPhoto(4032, 3024)
     const { onCancel, onConfirm } = renderDialog('childPhoto')
     await screen.findByRole('button', { name: 'Move frame' })
 
@@ -182,15 +205,13 @@ describe('leaving without a photo', () => {
 
     expect(onCancel).toHaveBeenCalled()
     expect(onConfirm).not.toHaveBeenCalled()
-    expect(drawImage).not.toHaveBeenCalled()
+    expect(pipeline.drawImage).not.toHaveBeenCalled()
   })
 
   test('a failed prepare keeps the dialog open and hands back nothing', async () => {
-    stubImagePipeline(4032, 3024)
-    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(
-      // The silent PNG substitution `canvas.toBlob` is specified to make.
-      (callback) => callback(new Blob(['png'], { type: 'image/png' })),
-    )
+    givenPhoto(4032, 3024)
+    // The silent PNG substitution `canvas.toBlob` is specified to make.
+    pipeline.encodesTo(new Blob(['png'], { type: 'image/png' }))
     const { onConfirm } = renderDialog('recipePhoto')
 
     await confirm()

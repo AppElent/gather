@@ -46,7 +46,7 @@ export function ImageUploadField({
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [choosing, setChoosing] = useState<File | null>(null)
+  const [chosenFile, setChosenFile] = useState<File | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // One owner for the preview's object URL: it is released when it is replaced
@@ -111,7 +111,7 @@ export function ImageUploadField({
               e.target.value = ''
               if (file) {
                 setError(null)
-                setChoosing(file)
+                setChosenFile(file)
               }
             }}
           />
@@ -136,13 +136,13 @@ export function ImageUploadField({
           )}
         </div>
       </div>
-      {choosing ? (
+      {chosenFile ? (
         <PhotoPrepareDialog
-          file={choosing}
+          file={chosenFile}
           preset={preset}
-          onCancel={() => setChoosing(null)}
+          onCancel={() => setChosenFile(null)}
           onConfirm={(prepared) => {
-            setChoosing(null)
+            setChosenFile(null)
             void upload(prepared)
           }}
         />
