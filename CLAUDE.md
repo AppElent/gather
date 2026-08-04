@@ -120,6 +120,34 @@ on dev and as a preview-type default (`convex env default set --type preview`);
 deployment URL from writing a fake household into the real database. The
 internal `seedCatalog` / `seedPreview` entrypoints do not consult it.
 
+## Internationalization
+
+`@appelent/i18n` supplies the engine; gather owns `src/lib/i18n/` — the
+`messages/{en,nl}/` trees, the root-route wiring, `LanguageToggle` (topbar) and
+`LanguageSettings` (`/settings`). **English is the source language**: a string is
+written in `messages/en/` first, and `messages/nl/` `satisfies` it, so a missing
+key fails `pnpm typecheck` and `src/lib/i18n/__tests__/messages.test.ts` catches
+what a type cannot (empty strings, drifted `{placeholder}` tokens). See
+`docs/adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md`
+for the chrome-vs-content boundary and the Dutch glossary.
+
+Two consequences worth knowing before you touch anything:
+
+- **A Module's `label` and `description` are not in `lib/modules.ts`.** They live
+  in `messages/<locale>/modules.ts`, keyed by Module id and typed against
+  `ModuleId`. **When you add a Module, add its message entries in the same
+  change** — like its seed contribution above, except this one is a compile
+  error if you forget.
+- **Only the shell is translated so far.** Recipes, Nutrition, Tasks, Baby log,
+  Foods and Group settings are still English literals; extract a feature area at
+  a time via `/appelent:feature apply i18n`, never half of one.
+
+Non-React code takes messages as a trailing parameter (`navItems`,
+`getRouteContext`, `formatActivityTime`) rather than importing the context —
+that is what keeps `lib/` callable from a test with no React tree. Component
+tests render through `renderWithI18n` from `src/lib/i18n/testing.tsx`;
+`useI18n` throws outside `LocaleProvider` rather than falling back.
+
 ## One-shot code states its own end condition
 
 Migration mutations, backfills and compatibility shims are written to run against

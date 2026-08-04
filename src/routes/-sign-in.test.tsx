@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../lib/i18n/testing'
 import { SignInPage } from './sign-in'
 
 const authState = vi.hoisted(() => ({
@@ -52,7 +53,7 @@ test('renders one dev login button from the sign-in form', () => {
   authState.isLoaded = true
   authState.isSignedIn = false
 
-  render(<SignInPage />)
+  renderWithI18n(<SignInPage />)
 
   expect(
     screen.getAllByRole('button', { name: '▶ Dev: log in as test user' }),
@@ -64,7 +65,7 @@ test('redirects signed-in users away from the sign-in page', () => {
   authState.isSignedIn = true
   navigateMock.mockClear()
 
-  render(<SignInPage />)
+  renderWithI18n(<SignInPage />)
 
   expect(navigateMock).toHaveBeenCalledWith({ to: '/' })
 })
@@ -74,7 +75,7 @@ test('keeps form success navigation to the post-auth route', () => {
   authState.isSignedIn = false
   navigateMock.mockClear()
 
-  render(<SignInPage />)
+  renderWithI18n(<SignInPage />)
   fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
   expect(navigateMock).toHaveBeenCalledWith({ to: '/' })

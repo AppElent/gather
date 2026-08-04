@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { dockNavItems, NAV_ACTIVE_OPTIONS } from '../../lib/appNavigation'
+import { useMessages } from '../../lib/i18n'
 import { Icon } from './Icon'
 import { useNavigation } from './useNavigation'
 
@@ -20,6 +21,7 @@ import { useNavigation } from './useNavigation'
  * do not depend on a Group.
  */
 export function MobileDock() {
+  const { dock } = useMessages().shell
   const { items, activeId } = useNavigation()
   const shown = dockNavItems(items, activeId)
 
@@ -27,7 +29,7 @@ export function MobileDock() {
 
   return (
     <nav
-      aria-label="Mobile navigation"
+      aria-label={dock.label}
       className="fixed inset-x-2 bottom-2 z-30 grid gap-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-1 md:hidden"
       // Someone who has pinned nothing gets two items, not four empty columns.
       style={{

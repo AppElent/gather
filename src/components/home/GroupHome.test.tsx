@@ -1,6 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import type { GroupActivityEntry } from '../../../convex/activity'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { GroupHome } from './GroupHome'
 
 /**
@@ -87,7 +88,7 @@ beforeEach(() => {
 
 describe('the very first visit, before anything has happened', () => {
   test('names the Group, says who is in it, and says what to do next', () => {
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     // The Group. Named as a heading, not buried in a sentence.
     expect(
@@ -112,7 +113,7 @@ describe('the very first visit, before anything has happened', () => {
   })
 
   test('the starters point into this Group and not at a bare module path', () => {
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     const recipes = screen.getByRole('link', { name: 'Recipes' })
     expect(recipes.getAttribute('href')).toBe('/g/jansen-household/recipes')
@@ -120,7 +121,7 @@ describe('the very first visit, before anything has happened', () => {
 
   test('a Personal group says it is private, and points at Groups to share', () => {
     members.value = [{ userId: 'u_alice', name: 'Alice', role: 'admin' }]
-    render(
+    renderWithI18n(
       <GroupHome
         groupSlug="me-alice"
         groupName="Alice's things"
@@ -141,7 +142,7 @@ describe('the very first visit, before anything has happened', () => {
   })
 
   test('a shared group says everyone here sees everything', () => {
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     const who = screen.getByRole('region', { name: 'Who is here' })
     expect(
@@ -152,7 +153,7 @@ describe('the very first visit, before anything has happened', () => {
 
   test('the Members are shown whether or not anything has happened', () => {
     activity.value = [entry()]
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     const who = screen.getByRole('region', { name: 'Who is here' })
     expect(within(who).getByText('Alice')).toBeDefined()
@@ -162,7 +163,7 @@ describe('the very first visit, before anything has happened', () => {
 
 describe('the stream', () => {
   test('asks for this Group and no other', () => {
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     expect(queryArgs.value).toContainEqual({
       name: 'activity:forGroup',
@@ -176,7 +177,7 @@ describe('the stream', () => {
 
   test('says who did what, and in which module', () => {
     activity.value = [entry()]
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     const card = screen.getByRole('region', { name: 'Recent activity' })
     expect(within(card).getByText('Bob')).toBeDefined()
@@ -189,7 +190,7 @@ describe('the stream', () => {
 
   test('links a recipe to its page inside this Group', () => {
     activity.value = [entry()]
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     expect(
       screen.getByRole('link', { name: 'Roast chicken' }).getAttribute('href'),
@@ -207,7 +208,7 @@ describe('the stream', () => {
         byName: 'Alice',
       }),
     ]
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     expect(
       screen.getByRole('link', { name: 'Feeding' }).getAttribute('href'),
@@ -226,7 +227,7 @@ describe('the stream', () => {
         targetId: null,
       }),
     ]
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     expect(
       screen.getByRole('link', { name: 'Buy nappies' }).getAttribute('href'),
@@ -236,7 +237,7 @@ describe('the stream', () => {
 
   test('an entry whose person has gone still says what happened', () => {
     activity.value = [entry({ byName: null })]
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     expect(screen.getByText('Someone')).toBeDefined()
     expect(screen.getByRole('link', { name: 'Roast chicken' })).toBeDefined()
@@ -247,7 +248,7 @@ describe('the stream', () => {
       entry({ id: 'r2', title: 'Newest' }),
       entry({ id: 'r1', title: 'Oldest' }),
     ]
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     const items = screen
       .getByRole('region', { name: 'Recent activity' })
@@ -259,7 +260,7 @@ describe('the stream', () => {
 
   test('says it is still loading rather than that nothing has happened', () => {
     activity.value = undefined
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     expect(screen.queryByText(/nothing has happened/i)).toBeNull()
   })
@@ -268,7 +269,7 @@ describe('the stream', () => {
 describe('nothing is stored per person, and nothing is editable', () => {
   test('there is no layout editor on the page', () => {
     activity.value = [entry()]
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     // A configurable Home would need at least one control to configure it
     // with. There is none: Home is one owned surface, the same for everybody
@@ -280,7 +281,7 @@ describe('nothing is stored per person, and nothing is editable', () => {
 
   test('nothing about the page is written back', () => {
     activity.value = [entry()]
-    render(<GroupHome {...HOUSEHOLD} />)
+    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     // `useMutation` is not even imported — the mock would throw if it were
     // called, and this asserts the page only ever reads.
@@ -309,7 +310,7 @@ describe('what a phone has to survive', () => {
         role: 'admin',
       },
     ]
-    render(
+    renderWithI18n(
       <GroupHome
         groupSlug="jansen-household"
         groupName="Vandenbergenhuishoudenoverdewintermaanden"
@@ -344,7 +345,7 @@ describe('what a phone has to survive', () => {
 
   test('the page never lays anything out in a table', () => {
     activity.value = [entry(), entry({ id: 'r2', title: 'Second' })]
-    const { container } = render(<GroupHome {...HOUSEHOLD} />)
+    const { container } = renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     // A table is the one layout that cannot be made to shrink below the sum of
     // its columns, which is how a page starts scrolling sideways on a phone.

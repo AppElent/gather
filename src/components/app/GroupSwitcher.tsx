@@ -1,6 +1,7 @@
 import { Link, useLocation } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { groupIndexSurfaceOf, groupLink } from '../../lib/groupPaths'
+import { useMessages } from '../../lib/i18n'
 import { Icon } from './Icon'
 import { useShellGroup } from './ShellGroup'
 import { Pill } from './ShellPrimitives'
@@ -33,6 +34,9 @@ export interface GroupSwitcherProps {
  */
 export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
   const location = useLocation()
+  const messages = useMessages()
+  const { groupSwitcher } = messages.shell
+  const { loading } = messages.common.errors
   // The shell's Group rather than the URL's: on `/groups` or `/settings` this
   // keeps naming the Group you came from, which is the one the sidebar below is
   // still listing and the one you are most likely on your way back to.
@@ -73,7 +77,7 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
         onClick={() => setOpen((wasOpen) => !wasOpen)}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label="Switch group"
+        aria-label={groupSwitcher.label}
         className="grid w-full grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1.5 text-left"
       >
         <span className="grid h-8 w-8 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-sm font-bold text-[var(--app-fg)]">
@@ -83,7 +87,8 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
           <strong className="block truncate text-sm text-[var(--app-fg)]">
             {/* Not "Gather": the app's name is the one thing on this screen
                 nobody needs telling. */}
-            {current?.name ?? (groups === undefined ? 'Loading…' : 'No group')}
+            {current?.name ??
+              (groups === undefined ? loading : groupSwitcher.none)}
           </strong>
           <span className="block truncate text-xs text-[var(--app-muted)]">
             {current
@@ -91,11 +96,11 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
                 // you are, and the line that would otherwise describe the Group
                 // says so instead.
                 !addressed
-                ? 'Go back to it'
+                ? groupSwitcher.elsewhere
                 : current.isPersonal
-                  ? 'Your own group'
-                  : 'Shared group'
-              : 'Pick a group'}
+                  ? groupSwitcher.personal
+                  : groupSwitcher.shared
+              : groupSwitcher.pick}
           </span>
         </span>
         <Icon
@@ -118,7 +123,9 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
               className="grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[7px] px-2 text-sm font-semibold text-[var(--app-fg)] no-underline aria-[current]:bg-[var(--app-surface-muted)]"
             >
               <span className="truncate">{group.name}</span>
-              {group.isPersonal ? <Pill>Personal</Pill> : null}
+              {group.isPersonal ? (
+                <Pill>{groupSwitcher.personalPill}</Pill>
+              ) : null}
             </Link>
           ))}
           <Link
@@ -129,7 +136,7 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
             }}
             className="grid min-h-9 items-center rounded-[7px] border-t border-[var(--app-border)] px-2 text-sm text-[var(--app-muted)] no-underline"
           >
-            Manage groups
+            {groupSwitcher.manage}
           </Link>
         </div>
       ) : null}

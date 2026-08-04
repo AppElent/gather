@@ -12,154 +12,141 @@ export type ModuleStatus = 'live' | 'placeholder'
  */
 export type ModuleScope = 'group' | 'personal'
 
-export const MODULE_GROUPS = [
-  'Kitchen',
-  'Money',
-  'Home & life',
-  'Tasting',
-] as const
+/**
+ * How All shelves the catalog. Ids rather than headings: the heading is a
+ * translated string and lives in each locale's `modules.ts` under
+ * `lib/i18n/messages/`, keyed by these (ADR-0011).
+ */
+export const MODULE_GROUPS = ['kitchen', 'money', 'home', 'tasting'] as const
 export type ModuleGroup = (typeof MODULE_GROUPS)[number]
 
 /**
- * What a Module is, minus where it lives.
+ * What a Module is, minus where it lives and minus what it is called.
  *
  * There is deliberately no path here. A Module's address is `/g/<slug>/…` and
  * nothing else, and it is written once in `groupPaths.ts` where TanStack Router
  * type-checks it against the generated route tree. A second copy in this
  * registry would be a plain string the router never sees — which is what it
  * used to be, and what let the sidebar point at a route that no longer existed.
+ *
+ * There is deliberately no label or description either, for the same shape of
+ * reason. Both are read by a person, so both are translated, and a translated
+ * string cannot live in a file that no React context may reach. They are keyed
+ * by `id` in the message tree, which typechecks that every Module declared here
+ * has been named there.
  */
 export interface ModuleDef {
   id: string
-  label: string
   icon: string // lucide-react icon name
   group: ModuleGroup
   status: ModuleStatus
   scope: ModuleScope
-  description: string
 }
 
-export const MODULES: ModuleDef[] = [
+export const MODULES = [
   {
     id: 'recipes',
-    label: 'Recipes',
     icon: 'ChefHat',
-    group: 'Kitchen',
+    group: 'kitchen',
     status: 'live',
     scope: 'group',
-    description: 'Keep and rate the dishes you cook.',
   },
   {
     id: 'nutrition',
-    label: 'Nutrition',
     icon: 'Apple',
-    group: 'Kitchen',
+    group: 'kitchen',
     status: 'live',
     // A food diary is about the person keeping it, not the household. It shows
     // the same entries in every Group (ADR-0003).
     scope: 'personal',
-    description: 'Log what you eat and track daily targets.',
   },
   {
     id: 'meal-planner',
-    label: 'Meal planner',
     icon: 'CalendarHeart',
-    group: 'Kitchen',
+    group: 'kitchen',
     status: 'placeholder',
     scope: 'group',
-    description: 'Plan the week’s meals.',
   },
   {
     id: 'groceries',
-    label: 'Groceries',
     icon: 'ShoppingCart',
-    group: 'Kitchen',
+    group: 'kitchen',
     status: 'placeholder',
     scope: 'group',
-    description: 'A shared shopping list you both check off.',
   },
   {
     id: 'pantry',
-    label: 'Pantry',
     icon: 'Refrigerator',
-    group: 'Kitchen',
+    group: 'kitchen',
     status: 'placeholder',
     scope: 'group',
-    description: 'Track what’s in stock at home.',
   },
   {
     id: 'finances',
-    label: 'Finances',
     icon: 'Wallet',
-    group: 'Money',
+    group: 'money',
     status: 'placeholder',
     scope: 'group',
-    description: 'Budgets and spending overview.',
   },
   {
     id: 'bills',
-    label: 'Bills & subscriptions',
     icon: 'Receipt',
-    group: 'Money',
+    group: 'money',
     status: 'placeholder',
     scope: 'group',
-    description: 'Recurring bills and subscriptions.',
   },
   {
     id: 'tasks',
-    label: 'Tasks',
     icon: 'ListChecks',
-    group: 'Home & life',
+    group: 'home',
     status: 'live',
     scope: 'group',
-    description: 'Shared to-do lists.',
   },
   {
     id: 'baby-log',
-    label: 'Baby log',
     icon: 'Baby',
-    group: 'Home & life',
+    group: 'home',
     status: 'live',
     scope: 'group',
-    description: 'Temperature, feeding, sleep, growth and more.',
   },
   {
     id: 'calendar',
-    label: 'Calendar',
     icon: 'Calendar',
-    group: 'Home & life',
+    group: 'home',
     status: 'placeholder',
     scope: 'group',
-    description: 'Household events and reminders.',
   },
   {
     id: 'notes',
-    label: 'Notes',
     icon: 'NotebookPen',
-    group: 'Home & life',
+    group: 'home',
     status: 'placeholder',
     scope: 'group',
-    description: 'Quick shared notes.',
   },
   {
     id: 'cheeses',
-    label: 'Cheeses',
     icon: 'Grape',
-    group: 'Tasting',
+    group: 'tasting',
     status: 'placeholder',
     scope: 'group',
-    description: 'Rate the cheeses you try.',
   },
   {
     id: 'wines',
-    label: 'Wines',
     icon: 'Wine',
-    group: 'Tasting',
+    group: 'tasting',
     status: 'placeholder',
     scope: 'group',
-    description: 'Rate the wines you try.',
   },
-]
+] as const satisfies readonly ModuleDef[]
+
+/**
+ * Every id the registry declares.
+ *
+ * `as const satisfies` above is what makes this a union of the actual ids
+ * rather than `string`, and that union is what the message tree is typed
+ * against — so adding a Module without naming it fails `pnpm typecheck`.
+ */
+export type ModuleId = (typeof MODULES)[number]['id']
 
 /** A Module by id, or undefined when nothing declares that id. */
 export function moduleById(id: string): ModuleDef | undefined {

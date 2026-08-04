@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../lib/i18n/testing'
 import { NotFoundPage } from './__root'
 import { AboutPage } from './about'
 
@@ -58,7 +59,7 @@ vi.mock('../integrations/tanstack-query/devtools', () => ({
 }))
 
 test('about page uses Gather-specific copy in the public frame', () => {
-  render(<AboutPage />)
+  renderWithI18n(<AboutPage />)
 
   expect(screen.getByText('Gather')).toBeDefined()
   expect(
@@ -69,7 +70,7 @@ test('about page uses Gather-specific copy in the public frame', () => {
 })
 
 test('not found page is styled and gives a recovery path', () => {
-  render(<NotFoundPage />)
+  renderWithI18n(<NotFoundPage />)
 
   expect(screen.getByText('Gather')).toBeDefined()
   expect(screen.getByRole('heading', { name: /page not found/i })).toBeDefined()

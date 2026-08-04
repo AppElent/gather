@@ -20,9 +20,33 @@ import {
   moduleLink,
   moduleSegment,
 } from './groupPaths'
-import type { ModuleDef } from './modules'
+import type { Messages } from './i18n/messages/en'
+import type { ModuleDef, ModuleId } from './modules'
 import { MODULES, moduleById } from './modules'
 import { pinnedModules } from './pins'
+
+/**
+ * The strings this file needs to say what it is returning.
+ *
+ * Passed in rather than read from a hook: everything here is a plain function
+ * over plain data, called from tests and from React alike, and importing the
+ * i18n context would end that (ADR-0011). A narrow slice rather than the whole
+ * tree, so the signature says which strings are actually involved.
+ */
+export type NavMessages = Pick<Messages, 'shell' | 'modules'>
+
+/**
+ * What a Module is called and what it is for, in the reader's language.
+ *
+ * The cast is the one place a `ModuleDef.id` is narrowed to a declared id, and
+ * it is safe for the same reason it is needed: every `ModuleDef` in circulation
+ * came out of `MODULES`, and the message tree is typed `Record<ModuleId, …>`
+ * against that same list, but `moduleById` has to accept the arbitrary strings
+ * that arrive from URLs and stored Pins.
+ */
+export function moduleText(module: ModuleDef, messages: NavMessages) {
+  return messages.modules.byId[module.id as ModuleId]
+}
 
 /** Where a navigation item points. */
 export type NavDestination = Pick<
@@ -103,10 +127,14 @@ function allDestination(groupSlug: string): NavDestination {
   return groupLink(ALL, groupSlug)
 }
 
-function moduleItem(module: ModuleDef, groupSlug: string): NavItem {
+function moduleItem(
+  module: ModuleDef,
+  groupSlug: string,
+  messages: NavMessages,
+): NavItem {
   return {
     id: module.id,
-    label: module.label,
+    label: moduleText(module, messages).label,
     icon: module.icon,
     // The shell renders above the route it is showing, so this is the one kind
     // of link a route cannot build. `moduleLink` knows where each Module lives
@@ -134,22 +162,25 @@ function moduleItem(module: ModuleDef, groupSlug: string): NavItem {
 export function navItems(
   pins: readonly string[] | undefined,
   groupSlug: string | null,
+  messages: NavMessages,
 ): NavItem[] {
   if (!groupSlug) return []
 
   return [
     {
       id: HOME,
-      label: 'Home',
+      label: messages.shell.nav.home,
       icon: 'Home',
       link: homeDestination(groupSlug),
       personal: false,
       placeholder: false,
     },
-    ...pinnedModules(pins).map((module) => moduleItem(module, groupSlug)),
+    ...pinnedModules(pins).map((module) =>
+      moduleItem(module, groupSlug, messages),
+    ),
     {
       id: ALL,
-      label: 'All',
+      label: messages.shell.nav.all,
       icon: 'Grid2X2',
       link: allDestination(groupSlug),
       personal: false,
@@ -251,75 +282,64 @@ export interface JumpTarget {
  * under a label that says whose settings they are, because the two would
  * otherwise be one word meaning two things.
  */
-export function jumpTargets(groupSlug: string | null): JumpTarget[] {
+export function jumpTargets(
+  groupSlug: string | null,
+  messages: NavMessages,
+): JumpTarget[] {
+  const nav = messages.shell.nav
   const shellPages: JumpTarget[] = [
-    { id: 'settings', label: 'Settings', link: { to: '/settings' } },
-    { id: 'groups', label: 'Groups', link: { to: '/groups' } },
+    { id: 'settings', label: nav.settings, link: { to: '/settings' } },
+    { id: 'groups', label: nav.groups, link: { to: '/groups' } },
   ]
   if (!groupSlug) return shellPages
 
   return [
-    { id: HOME, label: 'Home', link: homeDestination(groupSlug) },
+    { id: HOME, label: nav.home, link: homeDestination(groupSlug) },
     ...MODULES.map((module) => ({
       id: module.id,
-      label: module.label,
+      label: moduleText(module, messages).label,
       link: moduleLink(module, groupSlug),
     })),
-    { id: ALL, label: 'All', link: allDestination(groupSlug) },
+    { id: ALL, label: nav.all, link: allDestination(groupSlug) },
     {
       id: GROUP_SETTINGS,
-      label: 'Group settings',
+      label: nav.groupSettings,
       link: groupLink('settings', groupSlug),
     },
     ...shellPages,
   ]
 }
 
-const STATIC_ROUTE_CONTEXT: Record<string, RouteContext> = {
-  '/groups': {
-    title: 'Groups',
-    subtitle: 'Manage sharing and membership.',
-  },
-  '/settings': {
-    title: 'Settings',
-    subtitle: 'Tune appearance and app preferences.',
-  },
-  '/account': {
-    title: 'Account',
-    subtitle: 'Manage your profile and sign-in details.',
-  },
-}
+export function getRouteContext(
+  pathname: string,
+  messages: NavMessages,
+): RouteContext {
+  const routes = messages.shell.routes
+  const staticContext: Record<string, RouteContext> = {
+    '/groups': routes.groups,
+    '/settings': routes.settings,
+    '/account': routes.account,
+  }
+  const ownContext: Record<string, RouteContext> = {
+    [HOME]: routes.home,
+    [ALL]: routes.all,
+    [GROUP_SETTINGS]: routes.groupSettings,
+  }
 
-const OWN_ROUTE_CONTEXT: Record<string, RouteContext> = {
-  [HOME]: {
-    title: 'Home',
-    subtitle: 'What your group has been up to.',
-  },
-  [ALL]: {
-    title: 'All modules',
-    subtitle: 'Every module in this group. Pin the ones you use.',
-  },
-  [GROUP_SETTINGS]: {
-    title: 'Group settings',
-    subtitle: 'Settings everyone in this group shares.',
-  },
-}
-
-export function getRouteContext(pathname: string): RouteContext {
-  const staticContext = STATIC_ROUTE_CONTEXT[normalizePath(pathname)]
-  if (staticContext) return staticContext
+  const flat = staticContext[normalizePath(pathname)]
+  if (flat) return flat
 
   const target = navTargetOf(pathname)
-  const own = target ? OWN_ROUTE_CONTEXT[target] : undefined
+  const own = target ? ownContext[target] : undefined
   if (own) return own
 
   const module = target ? moduleById(target) : undefined
-  if (module) return { title: module.label, subtitle: module.description }
-
-  return {
-    title: 'Gather',
-    subtitle: 'Shared plans, modules, and context.',
+  if (module) {
+    const text = moduleText(module, messages)
+    return { title: text.label, subtitle: text.description }
   }
+
+  return routes.fallback
 }
 
 function normalizePath(pathname: string) {

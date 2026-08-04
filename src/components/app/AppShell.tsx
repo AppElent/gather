@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react'
 import { getRouteContext } from '../../lib/appNavigation'
+import { useMessages } from '../../lib/i18n'
 import { CommandPalette } from './CommandPalette'
 import { GatherPanel } from './GatherPanel'
 import { IssueReporterModal } from './IssueReporterModal'
@@ -41,7 +42,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 function AppShellBody({ children }: { children: ReactNode }) {
   const location = useLocation()
-  const context = getRouteContext(location.pathname)
+  const messages = useMessages()
+  const context = getRouteContext(location.pathname, messages)
   const { current: currentGroup } = useCurrentGroup()
   // The dock is only on screen when there is a navigation to put in it, and the
   // room reserved for it has to go when it does — asked of the same list the
@@ -142,14 +144,14 @@ function AppShellBody({ children }: { children: ReactNode }) {
             ref={navigationDrawerRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Navigation"
+            aria-label={messages.shell.drawer.label}
             onKeyDown={handleDrawerKeyDown}
             onClick={(event) => event.stopPropagation()}
             className="min-h-full w-[min(22rem,92vw)] overflow-y-auto border-r border-[var(--app-border)] bg-[var(--app-surface)]"
           >
             <div className="flex justify-end p-3">
               <IconButton
-                label="Close navigation"
+                label={messages.shell.drawer.close}
                 onClick={() => setNavigationOpen(false)}
               >
                 <X className="h-4 w-4" aria-hidden="true" />

@@ -12,10 +12,10 @@ import {
 describe('what a person has pinned', () => {
   test('is a sensible default before they have chosen anything', () => {
     expect(pinnedModuleIds(undefined)).toEqual([...DEFAULT_PINS])
-    expect(pinnedModules(undefined).map((m) => m.label)).toEqual([
-      'Recipes',
-      'Tasks',
-      'Nutrition',
+    expect(pinnedModules(undefined).map((m) => m.id)).toEqual([
+      'recipes',
+      'tasks',
+      'nutrition',
     ])
   })
 

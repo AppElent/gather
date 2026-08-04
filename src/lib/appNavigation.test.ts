@@ -7,6 +7,7 @@ import {
   jumpTargets,
   navItems,
 } from './appNavigation'
+import { en } from './i18n/messages/en'
 import { MODULES } from './modules'
 import { DEFAULT_PINS } from './pins'
 
@@ -19,7 +20,7 @@ import { DEFAULT_PINS } from './pins'
 const SLUG = 'jansen-household'
 
 function ids(pins: readonly string[] | undefined, slug: string | null = SLUG) {
-  return navItems(pins, slug).map((item) => item.id)
+  return navItems(pins, slug, en).map((item) => item.id)
 }
 
 describe('the navigation list', () => {
@@ -45,7 +46,7 @@ describe('the navigation list', () => {
   })
 
   test('keeps every pinned link inside the Group I am standing in', () => {
-    for (const item of navItems(['recipes', 'tasks', 'nutrition'], SLUG)) {
+    for (const item of navItems(['recipes', 'tasks', 'nutrition'], SLUG, en)) {
       expect(String(item.link.to).startsWith('/g/$groupSlug')).toBe(true)
     }
   })
@@ -54,25 +55,25 @@ describe('the navigation list', () => {
   // Group to name, so there is nothing to render rather than something to
   // render badly — the surfaces say so in words instead.
   test('is empty off any Group route, however much I have pinned', () => {
-    expect(navItems(['recipes', 'tasks'], null)).toEqual([])
-    expect(navItems(undefined, null)).toEqual([])
-    expect(navItems([], null)).toEqual([])
+    expect(navItems(['recipes', 'tasks'], null, en)).toEqual([])
+    expect(navItems(undefined, null, en)).toEqual([])
+    expect(navItems([], null, en)).toEqual([])
   })
 
   test('marks a Module whose data is only ever mine', () => {
-    const items = navItems(['recipes', 'nutrition'], SLUG)
+    const items = navItems(['recipes', 'nutrition'], SLUG, en)
     const personal = items.filter((item) => item.personal).map((i) => i.id)
     expect(personal).toEqual(['nutrition'])
   })
 
   test('marks a Module that is not built yet', () => {
-    const items = navItems(['recipes', 'wines'], SLUG)
+    const items = navItems(['recipes', 'wines'], SLUG, en)
     expect(items.find((i) => i.id === 'wines')?.placeholder).toBe(true)
     expect(items.find((i) => i.id === 'recipes')?.placeholder).toBe(false)
   })
 
   test('can reach every live Module through All, pinned or not', () => {
-    const list = navItems([], SLUG)
+    const list = navItems([], SLUG, en)
     expect(list.map((i) => i.id)).toContain('all')
     // Nothing is pinned, so every Module is only reachable via All — which is
     // the page that lists all of them.
@@ -82,7 +83,7 @@ describe('the navigation list', () => {
 
 describe('the mobile dock', () => {
   test('shows the whole list when it fits', () => {
-    const items = navItems(['recipes', 'tasks'], SLUG)
+    const items = navItems(['recipes', 'tasks'], SLUG, en)
     expect(dockNavItems(items).map((i) => i.id)).toEqual([
       'home',
       'recipes',
@@ -95,6 +96,7 @@ describe('the mobile dock', () => {
     const items = navItems(
       ['recipes', 'tasks', 'nutrition', 'baby-log', 'wines'],
       SLUG,
+      en,
     )
     const shown = dockNavItems(items)
     expect(shown).toHaveLength(DOCK_SLOTS)
@@ -108,7 +110,7 @@ describe('the mobile dock', () => {
   })
 
   test('copes with someone who has pinned nothing', () => {
-    expect(dockNavItems(navItems([], SLUG)).map((i) => i.id)).toEqual([
+    expect(dockNavItems(navItems([], SLUG, en)).map((i) => i.id)).toEqual([
       'home',
       'all',
     ])
@@ -117,7 +119,7 @@ describe('the mobile dock', () => {
 
 describe('which item is active', () => {
   const pins = ['recipes', 'tasks', 'nutrition']
-  const items = navItems(pins, SLUG)
+  const items = navItems(pins, SLUG, en)
 
   test('is Home on the Group landing page', () => {
     expect(activeNavItemId(`/g/${SLUG}`, items)).toBe('home')
@@ -176,6 +178,7 @@ describe('which item is active', () => {
     const many = navItems(
       ['recipes', 'tasks', 'nutrition', 'baby-log', 'wines'],
       SLUG,
+      en,
     )
     const paths = [
       `/g/${SLUG}`,
@@ -201,6 +204,7 @@ describe('which item is active', () => {
     const many = navItems(
       ['recipes', 'tasks', 'nutrition', 'baby-log', 'wines'],
       SLUG,
+      en,
     )
     expect(dockNavItems(many, 'baby-log').map((i) => i.id)).toEqual([
       'home',
@@ -214,7 +218,7 @@ describe('which item is active', () => {
 
 describe('where the jump-to palette can send you', () => {
   function labels(slug: string | null) {
-    return jumpTargets(slug).map((t) => t.label)
+    return jumpTargets(slug, en).map((t) => t.label)
   }
 
   test('starts at Home and offers All, whatever you have pinned', () => {
@@ -223,13 +227,13 @@ describe('where the jump-to palette can send you', () => {
   })
 
   test('offers every Module, not only the pinned ones', () => {
-    const offered = jumpTargets(SLUG).map((t) => t.id)
+    const offered = jumpTargets(SLUG, en).map((t) => t.id)
     for (const module of MODULES) expect(offered).toContain(module.id)
   })
 
   test('keeps Home, All and every Module in the Group I am standing in', () => {
     const staysFlat = new Set(['settings', 'groups'])
-    for (const target of jumpTargets(SLUG)) {
+    for (const target of jumpTargets(SLUG, en)) {
       if (staysFlat.has(target.id)) continue
       // Every other target names a page inside a Group, and it has to be the
       // Group the reader is standing in.
@@ -239,8 +243,8 @@ describe('where the jump-to palette can send you', () => {
   })
 
   test('sends Home and All to the same places the sidebar does', () => {
-    const nav = navItems([], SLUG)
-    const jump = jumpTargets(SLUG)
+    const nav = navItems([], SLUG, en)
+    const jump = jumpTargets(SLUG, en)
     for (const id of ['home', 'all']) {
       expect(jump.find((t) => t.id === id)?.link).toEqual(
         nav.find((i) => i.id === id)?.link,
@@ -252,7 +256,10 @@ describe('where the jump-to palette can send you', () => {
   // else would have to pick a Group on the reader's behalf, which is the thing
   // the slug in the URL exists to stop (ADR-0002).
   test('offers only the pages that exist without a Group, outside one', () => {
-    expect(jumpTargets(null).map((t) => t.id)).toEqual(['settings', 'groups'])
+    expect(jumpTargets(null, en).map((t) => t.id)).toEqual([
+      'settings',
+      'groups',
+    ])
   })
 
   test('names each destination once', () => {
@@ -262,7 +269,7 @@ describe('where the jump-to palette can send you', () => {
   // A Group's settings and your own are two pages, and the palette is where
   // they are most easily confused: both would otherwise be one word.
   test('offers this Group’s settings, apart from your own', () => {
-    const settings = jumpTargets(SLUG).filter((t) =>
+    const settings = jumpTargets(SLUG, en).filter((t) =>
       t.label.toLowerCase().includes('settings'),
     )
     expect(settings.map((t) => t.label)).toEqual(['Group settings', 'Settings'])
@@ -271,7 +278,7 @@ describe('where the jump-to palette can send you', () => {
   })
 
   test('offers no Group settings when you are standing in no Group', () => {
-    expect(jumpTargets(null).map((t) => t.label)).not.toContain(
+    expect(jumpTargets(null, en).map((t) => t.label)).not.toContain(
       'Group settings',
     )
   })
@@ -279,25 +286,27 @@ describe('where the jump-to palette can send you', () => {
 
 describe('the route context the topbar shows', () => {
   test('names the Group surfaces', () => {
-    expect(getRouteContext(`/g/${SLUG}`).title).toBe('Home')
-    expect(getRouteContext(`/g/${SLUG}/all`).title).toBe('All modules')
+    expect(getRouteContext(`/g/${SLUG}`, en).title).toBe('Home')
+    expect(getRouteContext(`/g/${SLUG}/all`, en).title).toBe('All modules')
   })
 
   test('names the Module you are in, from anywhere inside it', () => {
-    expect(getRouteContext(`/g/${SLUG}/recipes`)).toMatchObject({
+    expect(getRouteContext(`/g/${SLUG}/recipes`, en)).toMatchObject({
       title: 'Recipes',
       subtitle: 'Keep and rate the dishes you cook.',
     })
-    expect(getRouteContext(`/g/${SLUG}/recipes/new`).title).toBe('Recipes')
-    expect(getRouteContext(`/g/${SLUG}/recipes/r1/edit`).title).toBe('Recipes')
+    expect(getRouteContext(`/g/${SLUG}/recipes/new`, en).title).toBe('Recipes')
+    expect(getRouteContext(`/g/${SLUG}/recipes/r1/edit`, en).title).toBe(
+      'Recipes',
+    )
   })
 
   test('names the shell pages', () => {
-    expect(getRouteContext('/settings').title).toBe('Settings')
-    expect(getRouteContext('/account').title).toBe('Account')
+    expect(getRouteContext('/settings', en).title).toBe('Settings')
+    expect(getRouteContext('/account', en).title).toBe('Account')
   })
 
   test('falls back rather than showing an empty header', () => {
-    expect(getRouteContext('/nowhere').title).toBe('Gather')
+    expect(getRouteContext('/nowhere', en).title).toBe('Gather')
   })
 })
