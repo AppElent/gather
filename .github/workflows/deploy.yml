@@ -1,0 +1,108 @@
+name: Deploy
+
+# Merge to main -> dev. Manual "Run workflow" -> production.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never cancel a deploy mid-flight; queue behind the previous one instead.
+concurrency:
+  group: deploy-${{ github.event_name == 'workflow_dispatch' && 'production' || 'dev' }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: read }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - name: Configure GitHub Packages auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+        run: echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+      - run: pnpm run typecheck
+      - run: pnpm test
+      # No `pnpm build` here — the deploy job builds for real a few minutes later,
+      # and a build-only failure there fails the workflow just as loudly.
+
+  deploy:
+    needs: checks
+    runs-on: ubuntu-latest
+    # push to main -> dev; manual Run workflow -> production.
+    environment: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'dev' }}
+    permissions: { contents: read, packages: read }
+    env:
+      # Environment-scoped: each of `dev` and `production` holds its own value.
+      # An environment secret shadows a repo secret of the same name — preview.yml
+      # declares no `environment:`, so it keeps resolving the repo-level `preview:`
+      # CONVEX_DEPLOY_KEY. Giving preview.yml an `environment:` would break that.
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # `build` minifies for prod; `build:development` runs vite in development
+      # mode, matching what `pnpm run deploy:dev` does locally.
+      BUILD_SCRIPT: ${{ github.event_name == 'workflow_dispatch' && 'build' || 'build:development' }}
+      # wrangler.jsonc: top-level = `gather` (prod), env.dev = `gather-dev`. The
+      # production value is a space, not '': GitHub treats the empty string as
+      # falsy, so `… && '' || '--env dev'` would fall through to the dev branch.
+      # Word-splitting drops the space, leaving `wrangler deploy` bare.
+      WRANGLER_ARGS: ${{ github.event_name == 'workflow_dispatch' && ' ' || '--env dev' }}
+      # Sample-data panel on dev only. Never set for a production build — see
+      # CLAUDE.md; its absence is what keeps fake households out of real data.
+      # Polarity matters: the value we want empty must be the `||` fallback, per
+      # the falsy-'' rule above. `… == 'workflow_dispatch' && '' || 'true'` would
+      # evaluate to 'true' on *production*, which is the one thing it must not do.
+      VITE_ENABLE_SAMPLE_DATA: ${{ github.event_name != 'workflow_dispatch' && 'true' || '' }}
+      # @appelent/auth's test-login button, dev only. Vite inlines VITE_* into the
+      # client bundle, so these must stay scoped to the Clerk *test* instance and
+      # must never reach a production build.
+      VITE_TEST_USER_EMAIL: ${{ github.event_name != 'workflow_dispatch' && secrets.VITE_TEST_USER_EMAIL || '' }}
+      VITE_TEST_USER_PASSWORD: ${{ github.event_name != 'workflow_dispatch' && secrets.VITE_TEST_USER_PASSWORD || '' }}
+    steps:
+      # workflow_dispatch lets the operator pick any branch in the UI. Production
+      # ships from main only; fail loudly rather than skipping silently.
+      - name: Guard production ref
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Production deploys must run from main (got ${GITHUB_REF})."
+          exit 1
+
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+
+      # @appelent/* is a private GitHub Packages scope. pnpm won't expand env vars
+      # from the committed .npmrc, so write the token to the runner's ~/.npmrc.
+      - name: Configure GitHub Packages auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
+        run: echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
+
+      - run: pnpm install --frozen-lockfile
+
+      # CONVEX_DEPLOY_KEY alone picks the target deployment. Convex exposes its
+      # URL to --cmd as $CONVEX_URL; bridge it to VITE_CONVEX_URL, which is what
+      # the app actually reads at build time. Every other VITE_* is already on the
+      # job env, and Vite picks prefixed vars up from process.env.
+      - name: Convex deploy + build
+        run: |
+          pnpm exec convex deploy \
+            --cmd-url-env-var-name CONVEX_URL \
+            --cmd "VITE_CONVEX_URL=\$CONVEX_URL pnpm run $BUILD_SCRIPT"
+
+      # Convex has no post-deploy hook outside previews, so the Catalog seed is a
+      # separate step. Runs before the Worker flips, so the backend is complete by
+      # the time anyone can reach the new frontend.
+      - name: Seed Catalog
+        run: pnpm exec convex run seed:seedCatalog
+
+      - name: Deploy Worker
+        run: pnpm exec wrangler deploy $WRANGLER_ARGS

@@ -53,11 +53,22 @@ pnpm run check
 
 This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) and `wrangler.jsonc`. The worker is named `gather` in production and `gather-dev` for the dev environment.
 
-1. Authenticate: `pnpm exec wrangler login`
-2. Deploy to prod: `pnpm run deploy:prod` (runs `convex deploy && vite build && wrangler deploy`)
-3. Deploy to dev: `pnpm run deploy:dev` (runs `convex dev --once && vite build --mode development && wrangler deploy --env dev`)
+**CI is the normal path** — see `.github/workflows/deploy.yml`:
 
-For production env vars, run `wrangler secret put MY_VAR` for each secret listed in `.env.example`. Public (non-secret) vars go in `wrangler.jsonc` under `vars`. Convex-side vars (e.g. `CLERK_JWT_ISSUER_DOMAIN`) are set separately with `pnpm exec convex env set`.
+- **dev** — every merge to `main` deploys automatically.
+- **production** — **Actions → Deploy → Run workflow** on `main`. The click is the gate; there is no separate approval step.
+
+Both run `check` / `typecheck` / `test` first, then `convex deploy`, then `convex run seed:seedCatalog`, then `wrangler deploy`. Credentials live in the `dev` and `production` GitHub Environments (see the "CI / deploys / PR previews" section of `CLAUDE.md` for the secret layout).
+
+Deploying by hand is still possible and is what the npm scripts are for:
+
+1. Authenticate: `pnpm exec wrangler login`
+2. Deploy to prod: `pnpm run deploy:prod` (runs `convex deploy && convex run seed:seedCatalog --prod && pnpm run build && wrangler deploy`)
+3. Deploy to dev: `pnpm run deploy:dev` (runs `convex dev --once && convex run seed:seedCatalog && pnpm run build:development && wrangler deploy --env dev`)
+
+Both read `VITE_*` from your `.env.local`, and `deploy:dev` needs an interactive Convex login — which is why CI reimplements the pipeline instead of calling these.
+
+Server-side Worker secrets go in with `wrangler secret put MY_VAR`. Public (non-secret) Worker vars would go in `wrangler.jsonc` under `vars`, but there is no such block today — everything the client needs is a `VITE_*` var inlined into the bundle at build time. Convex-side vars (e.g. `CLERK_JWT_ISSUER_DOMAIN`) are set separately with `pnpm exec convex env set`.
 
 KV, D1, R2, and Durable Object bindings are configured in `wrangler.jsonc` — see https://developers.cloudflare.com/workers/wrangler/configuration/.
 
