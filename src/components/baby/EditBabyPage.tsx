@@ -84,6 +84,7 @@ function EditBabyForm({
 
       <ImageUploadField
         imageUrl={photoUrl}
+        preset="childPhoto"
         generateUploadUrl={generateUploadUrl}
         fieldId="baby-photo-upload"
         onChange={(id) => {
