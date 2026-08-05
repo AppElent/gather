@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { PublicPageFrame } from './PublicPageFrame'
 
 vi.mock('@tanstack/react-router', () => ({
@@ -19,7 +20,7 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 test('renders public pages in the app visual system', () => {
-  render(
+  renderWithI18n(
     <PublicPageFrame eyebrow="Public" title="Welcome back" subtitle="Sign in.">
       <form aria-label="Auth form" />
     </PublicPageFrame>,

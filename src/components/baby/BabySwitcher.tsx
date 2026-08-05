@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { useMessages } from '../../lib/i18n'
 import type { BabyNav } from './babyNav'
 
 interface BabySwitcherProps {
@@ -9,10 +10,12 @@ interface BabySwitcherProps {
 }
 
 export function BabySwitcher({ babies, activeId, nav }: BabySwitcherProps) {
+  const { child } = useMessages().baby.log
+
   if (babies.length < 2) return null
 
   return (
-    <nav className="flex flex-wrap gap-2" aria-label="Switch child">
+    <nav className="flex flex-wrap gap-2" aria-label={child.switch}>
       {babies.map((b) => (
         <Link
           key={b._id}

@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
+import { fmt, useMessages } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { ImageUploadField } from '../app/ImageUploadField'
 import { BabyForm } from './BabyForm'
@@ -21,10 +22,16 @@ export interface EditBabyPageProps {
 export function EditBabyPage({ babyId, groupSlug, nav }: EditBabyPageProps) {
   const id = babyId as Id<'babies'>
   const baby = useQuery(api.babies.get, { id, groupSlug })
+  const messages = useMessages()
 
-  if (baby === undefined) return <p className="text-sm opacity-60">Loading…</p>
+  if (baby === undefined)
+    return (
+      <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+    )
   if (baby === null)
-    return <p className="text-sm opacity-60">Child not found.</p>
+    return (
+      <p className="text-sm opacity-60">{messages.baby.log.child.notFound}</p>
+    )
 
   return (
     <EditBabyForm key={baby._id} baby={baby} groupSlug={groupSlug} nav={nav} />
@@ -51,20 +58,24 @@ function EditBabyForm({
     baby.photoId,
   )
   const [photoUrl, setPhotoUrl] = useState<string | null>(baby.photoUrl)
+  const messages = useMessages()
+  const { form } = messages.baby.log
 
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="m-0 text-2xl font-semibold">Edit {baby.name}</h1>
+        <h1 className="m-0 text-2xl font-semibold">
+          {fmt(form.editTitle, { name: baby.name })}
+        </h1>
         <button
           type="button"
           className="rounded border px-3 py-1.5 text-sm"
           onClick={() =>
             confirm({
-              title: `Delete ${baby.name}?`,
-              body: 'Every entry logged for them goes too, for everyone in this group.',
-              confirmLabel: `Delete ${baby.name}`,
-              errorFallback: 'Could not delete that child.',
+              title: fmt(form.deleteTitle, { name: baby.name }),
+              body: form.deleteBody,
+              confirmLabel: fmt(form.deleteConfirm, { name: baby.name }),
+              errorFallback: form.deleteFailed,
               run: async () => {
                 await remove({ id: baby._id, groupSlug })
                 navigate(nav.list)
@@ -72,7 +83,7 @@ function EditBabyForm({
             })
           }
         >
-          Delete
+          {messages.common.actions.delete}
         </button>
       </div>
 
@@ -113,9 +124,7 @@ function EditBabyForm({
             })
             navigate(nav.detail(baby._id))
           } catch (err) {
-            setError(
-              err instanceof Error ? err.message : 'Could not save that child',
-            )
+            setError(err instanceof Error ? err.message : form.saveFailed)
             setSubmitting(false)
           }
         }}

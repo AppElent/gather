@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { errorMessage } from '../../lib/errorMessage'
+import { fmt, useMessages } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
 import type { ActiveGroup } from '../app/GroupGate'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
@@ -37,6 +38,9 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
   const rename = useMutation(api.groups.renameGroup)
   const leave = useMutation(api.groups.leaveGroup)
   const { confirm, dialog } = useConfirmAction()
+  const messages = useMessages()
+  const group_ = messages.settings.group
+  const actions = messages.common.actions
   const [name, setName] = useState(group.name)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -59,7 +63,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
         params: { groupSlug: slug },
       })
     } catch (err) {
-      setError(errorMessage(err, 'Could not rename this group.'))
+      setError(errorMessage(err, group_.renameFailed))
     } finally {
       setSaving(false)
     }
@@ -67,11 +71,9 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
 
   return (
     <SurfaceCard>
-      <h2 className="m-0 mb-1 text-base font-semibold">This group</h2>
+      <h2 className="m-0 mb-1 text-base font-semibold">{group_.title}</h2>
       <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
-        {group.isPersonal
-          ? 'Your personal group. It is only ever yours, so there is nothing here to share or leave.'
-          : 'Its name, the code that lets somebody in, and the way out.'}
+        {group.isPersonal ? group_.personalNote : group_.sharedNote}
       </p>
 
       {error && (
@@ -84,7 +86,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
         {canRename ? (
           <form onSubmit={(e) => void submitRename(e)} className="grid gap-2">
             <label htmlFor="group-name" className="text-sm font-semibold">
-              Name
+              {group_.name}
             </label>
             <div className="flex flex-wrap items-center gap-2">
               <input
@@ -98,12 +100,11 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
                 disabled={saving || !name.trim() || name.trim() === group.name}
                 className={`${buttonClass} disabled:opacity-60`}
               >
-                {saving ? 'Saving…' : 'Rename'}
+                {saving ? actions.saving : group_.rename}
               </button>
             </div>
             <p className="m-0 text-xs text-[var(--app-muted)]">
-              The address changes with the name, so old links to this group stop
-              working.
+              {group_.addressChanges}
             </p>
           </form>
         ) : null}
@@ -112,20 +113,20 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
 
         {group.isPersonal ? null : (
           <div className="grid gap-2">
-            <span className="text-sm font-semibold">Leave</span>
+            <span className="text-sm font-semibold">{group_.leave}</span>
             <div>
               <button
                 type="button"
                 className={buttonClass}
                 onClick={() =>
                   confirm({
-                    title: `Leave ${group.name}?`,
-                    body: 'You stop seeing everything in it. Anything you added stays with the group.',
-                    confirmLabel: 'Leave group',
+                    title: fmt(group_.leaveTitle, { group: group.name }),
+                    body: group_.leaveBody,
+                    confirmLabel: group_.leaveConfirm,
                     // The one refusal a reader can act on is the last admin's,
                     // and the server's message names the fix; Members below is
                     // where it happens.
-                    errorFallback: 'Could not leave this group.',
+                    errorFallback: group_.leaveFailed,
                     run: async () => {
                       await leave({ groupId: group._id })
                       await navigate({ to: '/groups' })
@@ -133,7 +134,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
                   })
                 }
               >
-                Leave this group
+                {group_.leaveButton}
               </button>
             </div>
           </div>
@@ -154,20 +155,23 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
  */
 function InviteCode({ slug }: { slug: string }) {
   const code = useQuery(api.groups.inviteCode, { slug })
+  const messages = useMessages()
+  const group_ = messages.settings.group
 
   return (
     <div className="grid gap-2">
-      <span className="text-sm font-semibold">Invite code</span>
+      <span className="text-sm font-semibold">{group_.inviteCode}</span>
       <div className="flex flex-wrap items-center gap-2">
         {code === undefined ? (
-          <span className="text-sm text-[var(--app-muted)]">Loading…</span>
+          <span className="text-sm text-[var(--app-muted)]">
+            {messages.common.errors.loading}
+          </span>
         ) : (
           <Pill>{code}</Pill>
         )}
       </div>
       <p className="m-0 text-xs text-[var(--app-muted)]">
-        Anyone holding this code can join from Groups — share it only with
-        people you want in this group.
+        {group_.inviteCodeNote}
       </p>
     </div>
   )

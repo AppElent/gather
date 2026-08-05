@@ -7,6 +7,7 @@ import type {
   SourceProperty,
 } from '../../../convex/lib/taskProviders/types'
 import { errorMessage } from '../../lib/errorMessage'
+import { fmt, type Messages, useMessages } from '../../lib/i18n'
 import type { ExternalProvider } from '../../lib/oauth'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useConnectProvider } from '../settings/ConnectionsSettings'
@@ -40,6 +41,8 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
   const getSourceSchema = useAction(api.integrations.getSourceSchema)
   const createList = useMutation(api.taskLists.create)
   const connect = useConnectProvider(groupSlug, returnTo)
+  const messages = useMessages()
+  const { addList, notionMapping } = messages.tasks
 
   const [step, setStep] = useState<Step>({ kind: 'provider' })
   const [name, setName] = useState('')
@@ -52,7 +55,7 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
     try {
       await fn()
     } catch (e) {
-      setError(errorMessage(e, 'Something went wrong — try again.'))
+      setError(errorMessage(e, addList.failed))
     } finally {
       setBusy(false)
     }
@@ -132,13 +135,13 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
   return (
     <SurfaceCard>
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="m-0 text-base font-semibold">Add a list</h3>
+        <h3 className="m-0 text-base font-semibold">{addList.title}</h3>
         <button
           type="button"
           className="text-sm text-[var(--app-muted)]"
           onClick={onDone}
         >
-          Cancel
+          {messages.common.actions.cancel}
         </button>
       </div>
       {error && <p className="m-0 mb-2 text-sm text-red-600">{error}</p>}
@@ -150,7 +153,7 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
             className={buttonClass}
             onClick={() => setStep({ kind: 'local-name' })}
           >
-            Local list — created and edited here
+            {addList.local}
           </button>
           {(['notion', 'todoist'] as const).map((provider) =>
             connectionFor(provider) ? (
@@ -161,8 +164,9 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
                 disabled={busy}
                 onClick={() => void pickExternal(provider)}
               >
-                {provider === 'notion' ? 'Notion' : 'Todoist'} — read-only
-                mirror
+                {fmt(addList.mirror, {
+                  provider: provider === 'notion' ? 'Notion' : 'Todoist',
+                })}
               </button>
             ) : (
               <button
@@ -172,7 +176,9 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
                 disabled={busy}
                 onClick={() => void run(() => connect(provider))}
               >
-                Connect {provider === 'notion' ? 'Notion' : 'Todoist'} first…
+                {fmt(addList.connectFirst, {
+                  provider: provider === 'notion' ? 'Notion' : 'Todoist',
+                })}
               </button>
             ),
           )}
@@ -184,12 +190,12 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="List name"
-            aria-label="List name"
+            placeholder={addList.listName}
+            aria-label={addList.listName}
             className={`${inputClass} flex-1`}
           />
           <button type="submit" className={buttonClass} disabled={busy}>
-            Create
+            {addList.create}
           </button>
         </form>
       )}
@@ -198,13 +204,14 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
         <div className="grid gap-2">
           <p className="m-0 text-sm text-[var(--app-muted)]">
             {step.provider === 'notion'
-              ? 'Pick the Notion database to mirror:'
-              : 'Pick the Todoist project to mirror:'}
+              ? addList.pickNotion
+              : addList.pickTodoist}
           </p>
           {step.sources.length === 0 && (
             <p className="m-0 text-sm text-[var(--app-muted)]">
-              Nothing found — make sure the connection has access to at least
-              one {step.provider === 'notion' ? 'database' : 'project'}.
+              {step.provider === 'notion'
+                ? addList.nothingFoundNotion
+                : addList.nothingFoundTodoist}
             </p>
           )}
           {step.sources.map((source) => (
@@ -223,6 +230,8 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
 
       {step.kind === 'notion-mapping' && (
         <NotionMappingForm
+          text={notionMapping}
+          listNameLabel={addList.listName}
           schema={step.schema}
           name={name}
           onNameChange={setName}
@@ -234,13 +243,22 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
   )
 }
 
+/**
+ * Takes its words as props rather than reading the context itself — it is
+ * defined below its only caller and rendered by it alone, so threading them
+ * through keeps the whole flow's strings resolved in one place.
+ */
 function NotionMappingForm({
+  text,
+  listNameLabel,
   schema,
   name,
   onNameChange,
   busy,
   onSubmit,
 }: {
+  text: Messages['tasks']['notionMapping']
+  listNameLabel: string
   schema: SourceProperty[]
   name: string
   onNameChange: (name: string) => void
@@ -297,7 +315,7 @@ function NotionMappingForm({
           onChange={(e) => onChange(e.target.value)}
           className={selectClass}
         >
-          {!required && <option value="">Not mapped</option>}
+          {!required && <option value="">{text.notMapped}</option>}
           {options.map((p) => (
             <option key={p.name} value={p.name}>
               {p.name}
@@ -310,47 +328,44 @@ function NotionMappingForm({
 
   return (
     <form onSubmit={submit} className="grid gap-3">
-      <p className="m-0 text-sm text-[var(--app-muted)]">
-        Map this database's properties so gather knows how to read it. A status
-        property counts as done when it is named Done, Complete, or Completed.
-      </p>
+      <p className="m-0 text-sm text-[var(--app-muted)]">{text.intro}</p>
       <label className="grid gap-1 text-sm">
-        List name
+        {listNameLabel}
         <input
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           className={selectClass}
-          aria-label="List name"
+          aria-label={listNameLabel}
         />
       </label>
       <MappingSelect
-        label="Title property"
+        label={text.titleProperty}
         value={title}
         onChange={setTitle}
         options={titleProps}
         required
       />
       <MappingSelect
-        label="Done property (checkbox or status)"
+        label={text.doneProperty}
         value={done}
         onChange={setDone}
         options={doneProps}
         required
       />
       <MappingSelect
-        label="Due date property"
+        label={text.dueDateProperty}
         value={dueDate}
         onChange={setDueDate}
         options={dateProps}
       />
       <MappingSelect
-        label="Priority property (select named 1–4 or P1–P4)"
+        label={text.priorityProperty}
         value={priority}
         onChange={setPriority}
         options={selectProps}
       />
       <MappingSelect
-        label="Labels property"
+        label={text.labelsProperty}
         value={labels}
         onChange={setLabels}
         options={multiSelectProps}
@@ -360,7 +375,7 @@ function NotionMappingForm({
         disabled={busy || !title || !done}
         className="inline-flex min-h-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
       >
-        Create linked list
+        {text.create}
       </button>
     </form>
   )

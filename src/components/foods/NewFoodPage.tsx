@@ -3,6 +3,7 @@ import { useAction, useConvex, useMutation } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
+import { useMessages } from '../../lib/i18n'
 import { FoodForm, type FoodFormValues } from './FoodForm'
 import type { FoodNav } from './foodNav'
 
@@ -44,6 +45,7 @@ export function NewFoodPage({ barcode, nav }: NewFoodPageProps) {
   const lookupBarcode = useAction(api.foodsLookup.lookupBarcode)
   const create = useMutation(api.foods.create)
   const upsertFromOff = useMutation(api.foods.upsertFromOff)
+  const { create: createText, form } = useMessages().foods
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -87,16 +89,14 @@ export function NewFoodPage({ barcode, nav }: NewFoodPageProps) {
             },
             version: Date.now(),
           })
-          setSourceNote('From Open Food Facts — review before saving.')
+          setSourceNote(createText.fromOff)
         }
       } catch {
         // A failed OFF lookup (timeout, network error, thrown ConvexError)
         // leaves the form a blank manual entry prefilled with the barcode —
         // never blocks manual entry — but the user still gets a non-blocking
         // heads-up about why nothing was prefilled (spec §6).
-        setLookupNotice(
-          "Couldn't reach Open Food Facts — fill in the details yourself.",
-        )
+        setLookupNotice(createText.offUnreachable)
       } finally {
         setLooking(false)
       }
@@ -104,12 +104,12 @@ export function NewFoodPage({ barcode, nav }: NewFoodPageProps) {
   }, [])
 
   if (looking) {
-    return <p className="text-sm opacity-60">Looking up barcode…</p>
+    return <p className="text-sm opacity-60">{createText.lookingUp}</p>
   }
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-2xl font-semibold">Add food</h1>
+      <h1 className="mb-6 text-2xl font-semibold">{createText.title}</h1>
       {error && (
         <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
           {error}
@@ -141,10 +141,10 @@ export function NewFoodPage({ barcode, nav }: NewFoodPageProps) {
               err instanceof ConvexError
                 ? typeof err.data === 'string'
                   ? err.data
-                  : 'Could not save food'
+                  : form.saveFailed
                 : err instanceof Error
                   ? err.message
-                  : 'Could not save food',
+                  : form.saveFailed,
             )
             setSubmitting(false)
           }

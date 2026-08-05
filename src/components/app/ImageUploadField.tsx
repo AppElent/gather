@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { useMessages } from '../../lib/i18n'
 import type { PhotoPresetName } from '../../lib/photoPresets'
 import type { PreparedPhoto } from '../../lib/preparePhoto'
 import { PREPARED_PHOTO_TYPE } from '../../lib/preparePhoto'
@@ -31,6 +32,7 @@ interface ImageUploadFieldProps {
   generateUploadUrl: () => Promise<string>
   /** Which preparing rules apply — see `photoPresets.ts`. */
   preset: PhotoPresetName
+  /** Overrides the default "Photo" where a caller has a better word for it. */
   label?: string
   fieldId?: string
 }
@@ -40,9 +42,10 @@ export function ImageUploadField({
   onChange,
   generateUploadUrl,
   preset,
-  label = 'Photo',
+  label,
   fieldId = 'image-upload',
 }: ImageUploadFieldProps) {
+  const image = useMessages().common.image
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -73,7 +76,7 @@ export function ImageUploadField({
       setPreviewUrl(URL.createObjectURL(prepared.blob))
       onChange(storageId)
     } catch {
-      setError('Could not upload that image')
+      setError(image.failed)
     } finally {
       setUploading(false)
     }
@@ -84,7 +87,7 @@ export function ImageUploadField({
   return (
     <div className="mx-auto mb-6 max-w-2xl rounded-xl border p-4">
       <label htmlFor={fieldId} className="mb-2 block text-sm font-medium">
-        {label}
+        {label ?? image.label}
       </label>
       <div className="flex items-center gap-3">
         {displayUrl ? (
@@ -115,7 +118,7 @@ export function ImageUploadField({
               }
             }}
           />
-          {uploading && <p className="text-xs opacity-60">Uploading…</p>}
+          {uploading && <p className="text-xs opacity-60">{image.uploading}</p>}
           {error && (
             <p role="alert" className="text-xs text-red-800">
               {error}
@@ -131,7 +134,7 @@ export function ImageUploadField({
                 if (inputRef.current) inputRef.current.value = ''
               }}
             >
-              Remove photo
+              {image.remove}
             </button>
           )}
         </div>

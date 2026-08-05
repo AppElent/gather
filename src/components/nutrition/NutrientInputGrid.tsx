@@ -1,8 +1,5 @@
-import {
-  NUTRIENT_KEYS,
-  NUTRIENT_LABELS,
-  type NutrientKey,
-} from '../../../convex/lib/nutrition'
+import { NUTRIENT_KEYS, type NutrientKey } from '../../../convex/lib/nutrition'
+import { useMessages } from '../../lib/i18n'
 import { inputClass } from './nutrientInputs'
 
 interface Props {
@@ -12,11 +9,13 @@ interface Props {
 }
 
 export function NutrientInputGrid({ values, onChange, disabled }: Props) {
+  const labels = useMessages().nutrients.labels
+
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {NUTRIENT_KEYS.map((key) => (
         <label key={key} className="block text-sm">
-          <span className="mb-1 block font-medium">{NUTRIENT_LABELS[key]}</span>
+          <span className="mb-1 block font-medium">{labels[key]}</span>
           <input
             inputMode="decimal"
             className={inputClass}

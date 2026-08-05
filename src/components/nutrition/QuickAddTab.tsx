@@ -2,6 +2,7 @@ import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { MealName } from '../../../convex/lib/consumption'
+import { useMessages } from '../../lib/i18n'
 import { NutrientInputGrid } from './NutrientInputGrid'
 import {
   inputClass,
@@ -21,6 +22,8 @@ export function QuickAddTab({ date, meal, onAdded }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const create = useMutation(api.consumption.create)
+  const messages = useMessages()
+  const { quickAdd } = messages.nutrition.diary
 
   return (
     <form
@@ -41,7 +44,7 @@ export function QuickAddTab({ date, meal, onAdded }: Props) {
           })
           onAdded()
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Could not log this')
+          setError(err instanceof Error ? err.message : quickAdd.failed)
         } finally {
           setSubmitting(false)
         }
@@ -53,12 +56,12 @@ export function QuickAddTab({ date, meal, onAdded }: Props) {
         </p>
       )}
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Label</span>
+        <span className="mb-1 block font-medium">{quickAdd.label}</span>
         <input
           className={inputClass}
           value={label}
           onChange={(e) => setLabel(e.target.value)}
-          placeholder='e.g. "Restaurant meal"'
+          placeholder={quickAdd.placeholder}
           required
         />
       </label>
@@ -73,7 +76,7 @@ export function QuickAddTab({ date, meal, onAdded }: Props) {
         disabled={submitting}
         className="w-fit rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-4 py-2 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {submitting ? 'Adding…' : 'Add'}
+        {submitting ? quickAdd.adding : messages.common.actions.add}
       </button>
     </form>
   )

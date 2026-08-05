@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { RecipeSharingPanel } from './RecipeSharingPanel'
 
 /**
@@ -73,7 +74,7 @@ beforeEach(() => {
 function renderPanel(
   sharedGroups: Array<{ _id: Id<'groups'>; name: string; slug: string }> = [],
 ) {
-  render(
+  renderWithI18n(
     <RecipeSharingPanel
       recipeId={RECIPE_ID}
       homeGroupName="Household"

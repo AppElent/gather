@@ -1,6 +1,7 @@
 import { ArrowUpRight } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { UnifiedTask } from '../../../convex/lib/taskProviders/types'
+import { fmt, useMessages } from '../../lib/i18n'
 
 const PRIORITY_STYLES: Record<1 | 2 | 3 | 4, string> = {
   1: 'bg-red-500/15 text-red-600',
@@ -17,6 +18,8 @@ export interface TaskRowProps {
 }
 
 export function TaskRow({ task, onToggle, actions }: TaskRowProps) {
+  const { row } = useMessages().tasks
+
   return (
     <div className="flex items-center gap-2 py-1.5">
       <input
@@ -24,7 +27,7 @@ export function TaskRow({ task, onToggle, actions }: TaskRowProps) {
         checked={task.done}
         disabled={!onToggle}
         onChange={onToggle}
-        aria-label={`Toggle ${task.title}`}
+        aria-label={fmt(row.toggle, { task: task.title })}
       />
       <span
         className={`min-w-0 flex-1 truncate text-sm ${
@@ -56,7 +59,7 @@ export function TaskRow({ task, onToggle, actions }: TaskRowProps) {
           href={task.url}
           target="_blank"
           rel="noreferrer"
-          aria-label={`Open ${task.title} in its source app`}
+          aria-label={fmt(row.openInSource, { task: task.title })}
           className="text-[var(--app-muted)]"
         >
           <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />

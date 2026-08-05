@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { groupLink } from '../../lib/groupPaths'
+import { useMessages } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
 
 /**
@@ -15,17 +16,21 @@ import { SurfaceCard } from '../app/ShellPrimitives'
  */
 export function GroupSettingsLinks() {
   const groups = useQuery(api.groups.myGroups)
+  const messages = useMessages()
+  const { groupSettings } = messages.settings
 
   return (
     <SurfaceCard>
-      <h2 className="m-0 mb-1 text-base font-semibold">Group settings</h2>
+      <h2 className="m-0 mb-1 text-base font-semibold">
+        {groupSettings.title}
+      </h2>
       <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
-        Connections to Notion and Todoist belong to a group, not to you — every
-        member of that group can use one, and nobody outside it can. Each group
-        keeps its own.
+        {groupSettings.description}
       </p>
       {groups === undefined ? (
-        <p className="m-0 text-sm text-[var(--app-muted)]">Loading…</p>
+        <p className="m-0 text-sm text-[var(--app-muted)]">
+          {messages.common.errors.loading}
+        </p>
       ) : (
         <ul className="m-0 grid list-none gap-2 p-0">
           {groups.map((group) => (
@@ -36,7 +41,7 @@ export function GroupSettingsLinks() {
               >
                 {group.name}
                 <span className="text-xs font-normal text-[var(--app-muted)]">
-                  Settings
+                  {groupSettings.open}
                 </span>
               </Link>
             </li>

@@ -2,10 +2,8 @@ import { Layers } from 'lucide-react'
 import { useState } from 'react'
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { BabyEventType } from '../../../convex/lib/babyEvents'
-import {
-  BABY_EVENT_LABELS,
-  BABY_EVENT_TYPES,
-} from '../../../convex/lib/babyEvents'
+import { BABY_EVENT_TYPES } from '../../../convex/lib/babyEvents'
+import { useMessages } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { EventForm } from './EventForm'
 import { EventIcon } from './EventIcon'
@@ -19,19 +17,21 @@ interface QuickLogButtonsProps {
 
 export function QuickLogButtons({ babyId, groupSlug }: QuickLogButtonsProps) {
   const [active, setActive] = useState<BabyEventType | 'multi' | null>(null)
+  const messages = useMessages()
+  const { quickLog } = messages.baby.log
 
   return (
     <SurfaceCard>
       {active === null && (
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="m-0 text-sm font-semibold">Log an entry</h2>
+          <h2 className="m-0 text-sm font-semibold">{quickLog.heading}</h2>
           <button
             type="button"
             onClick={() => setActive('multi')}
             className="inline-flex min-h-9 items-center gap-1.5 rounded-[var(--app-radius)] border border-[var(--app-border)] px-2.5 text-sm font-semibold"
           >
             <Layers className="h-4 w-4" aria-hidden="true" />
-            Log several
+            {quickLog.several}
           </button>
         </div>
       )}
@@ -60,7 +60,7 @@ export function QuickLogButtons({ babyId, groupSlug }: QuickLogButtonsProps) {
               className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-xs font-semibold"
             >
               <EventIcon type={type} className="h-5 w-5" />
-              {BABY_EVENT_LABELS[type]}
+              {messages.baby.eventTypes[type]}
             </button>
           ))}
         </div>

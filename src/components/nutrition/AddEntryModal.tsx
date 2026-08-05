@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { MealName } from '../../../convex/lib/consumption'
-import { MEAL_LABELS } from '../../../convex/lib/consumption'
+import { fmt, useMessages } from '../../lib/i18n'
 import { FoodAddTab } from './FoodAddTab'
 import type { NutritionNav } from './nutritionNav'
 import { QuickAddTab } from './QuickAddTab'
@@ -8,11 +8,8 @@ import { RecipeAddTab } from './RecipeAddTab'
 
 type Tab = 'recipes' | 'foods' | 'quick'
 
-const TABS: Array<[Tab, string]> = [
-  ['recipes', 'Recipes'],
-  ['foods', 'Foods'],
-  ['quick', 'Quick add'],
-]
+/** Which tabs there are and in what order — the words are in the message tree. */
+const TABS = ['recipes', 'foods', 'quick'] as const satisfies readonly Tab[]
 
 interface Props {
   date: string
@@ -23,6 +20,8 @@ interface Props {
 
 export function AddEntryModal({ date, meal, nav, onClose }: Props) {
   const [tab, setTab] = useState<Tab>('recipes')
+  const { diary, meals } = useMessages().nutrition
+  const { add } = diary
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -42,7 +41,9 @@ export function AddEntryModal({ date, meal, nav, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Add to {MEAL_LABELS[meal]}</h2>
+          <h2 className="text-sm font-semibold">
+            {fmt(add.title, { meal: meals[meal] })}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -52,7 +53,7 @@ export function AddEntryModal({ date, meal, nav, onClose }: Props) {
           </button>
         </div>
         <div className="mb-3 flex gap-2 border-b border-[var(--app-border)]">
-          {TABS.map(([id, label]) => (
+          {TABS.map((id) => (
             <button
               key={id}
               type="button"
@@ -63,7 +64,7 @@ export function AddEntryModal({ date, meal, nav, onClose }: Props) {
                   : 'border-transparent opacity-60'
               }`}
             >
-              {label}
+              {add.tabs[id]}
             </button>
           ))}
         </div>

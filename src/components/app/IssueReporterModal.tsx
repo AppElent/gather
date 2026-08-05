@@ -1,17 +1,9 @@
 import { useUser } from '@clerk/clerk-react'
 import { useEffect, useState } from 'react'
-import {
-  ISSUE_REPORTER_TYPES,
-  type IssueReporterType,
-} from '../../lib/issueReporter'
+import { useMessages } from '../../lib/i18n'
+import type { IssueReporterType } from '../../lib/issueReporter'
+import { ISSUE_REPORTER_TYPES } from '../../lib/issueReporter'
 import { reportIssue } from '../../server/reportIssue'
-
-const TYPE_LABELS: Record<IssueReporterType, string> = {
-  bug: 'Bug',
-  enhancement: 'Enhancement',
-  docs: 'Docs',
-  question: 'Question',
-}
 
 type SubmitStatus =
   | { state: 'idle' }
@@ -25,6 +17,8 @@ export function IssueReporterModal() {
   const [text, setText] = useState('')
   const [status, setStatus] = useState<SubmitStatus>({ state: 'idle' })
   const { user } = useUser()
+  const messages = useMessages()
+  const { issueReporter } = messages.shell
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -66,7 +60,7 @@ export function IssueReporterModal() {
         setStatus({ state: 'error', error: result.error })
       }
     } catch {
-      setStatus({ state: 'error', error: 'Could not reach the server.' })
+      setStatus({ state: 'error', error: issueReporter.unreachable })
     }
   }
 
@@ -79,10 +73,10 @@ export function IssueReporterModal() {
         className="w-full max-w-md rounded-xl border bg-white p-4 shadow-lg dark:bg-neutral-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-3 text-sm font-semibold">Report an issue</h2>
+        <h2 className="mb-3 text-sm font-semibold">{issueReporter.title}</h2>
         {status.state === 'success' ? (
           <div className="space-y-3 text-sm">
-            <p>Thanks — your report was filed.</p>
+            <p>{issueReporter.filed}</p>
             {status.issueUrl && (
               <a
                 href={status.issueUrl}
@@ -90,7 +84,7 @@ export function IssueReporterModal() {
                 rel="noreferrer"
                 className="block text-emerald-600 underline dark:text-emerald-400"
               >
-                View issue
+                {issueReporter.viewIssue}
               </a>
             )}
             <button
@@ -101,7 +95,7 @@ export function IssueReporterModal() {
                 setStatus({ state: 'idle' })
               }}
             >
-              Close
+              {messages.common.actions.close}
             </button>
           </div>
         ) : (
@@ -113,7 +107,7 @@ export function IssueReporterModal() {
             >
               {ISSUE_REPORTER_TYPES.map((t) => (
                 <option key={t} value={t}>
-                  {TYPE_LABELS[t]}
+                  {issueReporter.types[t]}
                 </option>
               ))}
             </select>
@@ -121,7 +115,7 @@ export function IssueReporterModal() {
               autoFocus
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="What happened, or what would you like to see?"
+              placeholder={issueReporter.placeholder}
               rows={4}
               className="w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none"
             />
@@ -136,14 +130,16 @@ export function IssueReporterModal() {
                 className="rounded-md border px-3 py-1.5 text-sm"
                 onClick={() => setOpen(false)}
               >
-                Cancel
+                {messages.common.actions.cancel}
               </button>
               <button
                 type="submit"
                 disabled={status.state === 'submitting' || !text.trim()}
                 className="rounded-md border bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50 dark:bg-white dark:text-black"
               >
-                {status.state === 'submitting' ? 'Sending…' : 'Send'}
+                {status.state === 'submitting'
+                  ? issueReporter.sending
+                  : issueReporter.send}
               </button>
             </div>
           </form>

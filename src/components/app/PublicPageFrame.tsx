@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
+import { useMessages } from '../../lib/i18n'
 
 interface PublicPageFrameProps {
   eyebrow: string
@@ -16,6 +17,8 @@ export function PublicPageFrame({
   children,
   actions,
 }: PublicPageFrameProps) {
+  const { publicFrame } = useMessages().shell
+
   return (
     <main className="app-shell grid min-h-svh grid-rows-[auto_1fr] bg-[var(--app-bg)] text-[var(--app-fg)]">
       <header className="border-b border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-surface)_88%,transparent)]">
@@ -28,9 +31,11 @@ export function PublicPageFrame({
               G
             </span>
             <span className="min-w-0">
-              <strong className="block truncate text-sm">Gather</strong>
+              <strong className="block truncate text-sm">
+                {publicFrame.brand}
+              </strong>
               <span className="block truncate text-xs text-[var(--app-muted)]">
-                Household plans, shared
+                {publicFrame.tagline}
               </span>
             </span>
           </Link>

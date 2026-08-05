@@ -2,6 +2,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { errorMessage } from '../../lib/errorMessage'
+import { useMessages } from '../../lib/i18n'
 import type { ActiveGroup } from '../app/GroupGate'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 
@@ -31,6 +32,7 @@ export function GroupMembersSettings({ group }: GroupMembersSettingsProps) {
   const me = useQuery(api.users.me)
   const setRole = useMutation(api.groups.setMemberRole)
   const [error, setError] = useState<string | null>(null)
+  const { members: membersText } = useMessages().settings
   const [busyUserId, setBusyUserId] = useState<string | null>(null)
 
   if (group.isPersonal) return null
@@ -48,19 +50,17 @@ export function GroupMembersSettings({ group }: GroupMembersSettingsProps) {
         role,
       })
     } catch (e) {
-      setError(errorMessage(e, 'Could not change that role.'))
+      setError(errorMessage(e, membersText.roleFailed))
     } finally {
       setBusyUserId(null)
     }
   }
 
   return (
-    <SurfaceCard ariaLabel="Members">
-      <h2 className="m-0 mb-1 text-base font-semibold">Members</h2>
+    <SurfaceCard ariaLabel={membersText.title}>
+      <h2 className="m-0 mb-1 text-base font-semibold">{membersText.title}</h2>
       <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
-        {isAdmin
-          ? 'Admins can rename this group, change roles, and delete it. Everyone else can use everything in it.'
-          : 'Admins can rename this group and change roles. Everyone here can use everything in it.'}
+        {isAdmin ? membersText.personalNote : membersText.sharedNote}
       </p>
 
       {error && (
@@ -87,9 +87,11 @@ export function GroupMembersSettings({ group }: GroupMembersSettingsProps) {
                   <span className="truncate text-sm font-semibold">
                     {member.name}
                   </span>
-                  {member.userId === me?._id ? <Pill>You</Pill> : null}
+                  {member.userId === me?._id ? (
+                    <Pill>{membersText.you}</Pill>
+                  ) : null}
                   {member.role === 'admin' ? (
-                    <Pill tone="dark">Admin</Pill>
+                    <Pill tone="dark">{membersText.admin}</Pill>
                   ) : null}
                 </span>
 
@@ -98,11 +100,7 @@ export function GroupMembersSettings({ group }: GroupMembersSettingsProps) {
                     type="button"
                     className={buttonClass}
                     disabled={busyUserId === member.userId || isLastAdmin}
-                    title={
-                      isLastAdmin
-                        ? 'A group needs at least one admin'
-                        : undefined
-                    }
+                    title={isLastAdmin ? membersText.lastAdmin : undefined}
                     onClick={() =>
                       void change(
                         member.userId,
@@ -110,7 +108,9 @@ export function GroupMembersSettings({ group }: GroupMembersSettingsProps) {
                       )
                     }
                   >
-                    {member.role === 'admin' ? 'Make member' : 'Make admin'}
+                    {member.role === 'admin'
+                      ? membersText.makeMember
+                      : membersText.makeAdmin}
                   </button>
                 ) : null}
               </li>

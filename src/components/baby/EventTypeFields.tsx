@@ -5,13 +5,14 @@ import {
   toTimeInputValue,
 } from '../../lib/babyDate'
 import {
-  DIAPER_KIND_LABELS,
-  FEEDING_METHOD_LABELS,
+  DIAPER_KINDS,
+  FEEDING_METHODS,
   BABY_INPUT_CLASS as inputClass,
-  TEMPERATURE_METHOD_LABELS,
+  TEMPERATURE_METHODS,
   TEMPERATURE_OPTIONS,
 } from '../../lib/babyEventFields'
 import type { EventValues } from '../../lib/babyEventFormValues'
+import { useMessages } from '../../lib/i18n'
 
 interface EventTypeFieldsProps {
   type: BabyEventType
@@ -29,6 +30,7 @@ export function EventTypeFields({
   timestampMs,
   onChange,
 }: EventTypeFieldsProps) {
+  const { fields, options: labels } = useMessages().baby.log
   const str = (key: string) =>
     typeof values[key] === 'string' ? (values[key] as string) : ''
 
@@ -50,7 +52,7 @@ export function EventTypeFields({
 
   const endFields = (
     <div className="min-w-0">
-      <span className="mb-1 block text-sm font-medium">End (optional)</span>
+      <span className="mb-1 block text-sm font-medium">{fields.end}</span>
       <div className="flex gap-2">
         <input
           type="date"
@@ -78,7 +80,7 @@ export function EventTypeFields({
       return (
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Temperature (°C)</span>
+            <span className="mb-1 block font-medium">{fields.temperature}</span>
             <select
               className={inputClass}
               value={celsius}
@@ -92,16 +94,16 @@ export function EventTypeFields({
             </select>
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Method</span>
+            <span className="mb-1 block font-medium">{fields.method}</span>
             <select
               className={inputClass}
               value={str('method')}
               onChange={(e) => onChange({ method: e.target.value })}
             >
-              <option value="">Not specified</option>
-              {Object.entries(TEMPERATURE_METHOD_LABELS).map(([k, l]) => (
+              <option value="">{fields.notSpecified}</option>
+              {TEMPERATURE_METHODS.map((k) => (
                 <option key={k} value={k}>
-                  {l}
+                  {labels.temperatureMethod[k]}
                 </option>
               ))}
             </select>
@@ -115,15 +117,15 @@ export function EventTypeFields({
       return (
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Method</span>
+            <span className="mb-1 block font-medium">{fields.method}</span>
             <select
               className={inputClass}
               value={method}
               onChange={(e) => onChange({ method: e.target.value })}
             >
-              {Object.entries(FEEDING_METHOD_LABELS).map(([k, l]) => (
+              {FEEDING_METHODS.map((k) => (
                 <option key={k} value={k}>
-                  {l}
+                  {labels.feedingMethod[k]}
                 </option>
               ))}
             </select>
@@ -131,7 +133,7 @@ export function EventTypeFields({
           {method === 'breast' ? (
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-sm">
-                <span className="mb-1 block font-medium">Left (min)</span>
+                <span className="mb-1 block font-medium">{fields.leftMin}</span>
                 <input
                   type="number"
                   min="0"
@@ -142,7 +144,9 @@ export function EventTypeFields({
                 />
               </label>
               <label className="block text-sm">
-                <span className="mb-1 block font-medium">Right (min)</span>
+                <span className="mb-1 block font-medium">
+                  {fields.rightMin}
+                </span>
                 <input
                   type="number"
                   min="0"
@@ -155,7 +159,7 @@ export function EventTypeFields({
             </div>
           ) : (
             <label className="block text-sm">
-              <span className="mb-1 block font-medium">Amount (ml)</span>
+              <span className="mb-1 block font-medium">{fields.amountMl}</span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -175,15 +179,15 @@ export function EventTypeFields({
     case 'diaper':
       return (
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">Kind</span>
+          <span className="mb-1 block font-medium">{fields.kind}</span>
           <select
             className={inputClass}
             value={str('kind')}
             onChange={(e) => onChange({ kind: e.target.value })}
           >
-            {Object.entries(DIAPER_KIND_LABELS).map(([k, l]) => (
+            {DIAPER_KINDS.map((k) => (
               <option key={k} value={k}>
-                {l}
+                {labels.diaperKind[k]}
               </option>
             ))}
           </select>
@@ -197,7 +201,7 @@ export function EventTypeFields({
       return (
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Weight (kg)</span>
+            <span className="mb-1 block font-medium">{fields.weightKg}</span>
             <input
               type="number"
               step="0.01"
@@ -208,7 +212,7 @@ export function EventTypeFields({
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Height (cm)</span>
+            <span className="mb-1 block font-medium">{fields.heightCm}</span>
             <input
               type="number"
               step="0.1"
@@ -219,7 +223,7 @@ export function EventTypeFields({
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Head circ. (cm)</span>
+            <span className="mb-1 block font-medium">{fields.headCm}</span>
             <input
               type="number"
               step="0.1"
@@ -238,7 +242,9 @@ export function EventTypeFields({
       return (
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="block text-sm sm:col-span-1">
-            <span className="mb-1 block font-medium">Name</span>
+            <span className="mb-1 block font-medium">
+              {fields.medicationName}
+            </span>
             <input
               className={inputClass}
               value={str('name')}
@@ -247,7 +253,7 @@ export function EventTypeFields({
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Dose amount</span>
+            <span className="mb-1 block font-medium">{fields.doseAmount}</span>
             <input
               type="number"
               step="0.01"
@@ -258,10 +264,10 @@ export function EventTypeFields({
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Dose unit</span>
+            <span className="mb-1 block font-medium">{fields.doseUnit}</span>
             <input
               className={inputClass}
-              placeholder="ml, mg…"
+              placeholder={fields.doseUnitPlaceholder}
               value={str('doseUnit')}
               onChange={(e) => onChange({ doseUnit: e.target.value })}
             />
@@ -272,7 +278,7 @@ export function EventTypeFields({
     case 'vaccination':
       return (
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">Vaccine name</span>
+          <span className="mb-1 block font-medium">{fields.vaccineName}</span>
           <input
             className={inputClass}
             value={str('name')}
@@ -290,7 +296,7 @@ export function EventTypeFields({
             checked={values.milestone === true}
             onChange={(e) => onChange({ milestone: e.target.checked })}
           />
-          <span className="font-medium">Mark as a milestone</span>
+          <span className="font-medium">{fields.milestone}</span>
         </label>
       )
   }

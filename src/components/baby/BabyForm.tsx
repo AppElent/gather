@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useMessages } from '../../lib/i18n'
 
 const inputClass =
   'w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)] disabled:cursor-not-allowed disabled:opacity-60'
@@ -16,6 +17,9 @@ interface BabyFormProps {
 }
 
 export function BabyForm({ initial, submitting, onSubmit }: BabyFormProps) {
+  const messages = useMessages()
+  const { form } = messages.baby.log
+
   const [name, setName] = useState(initial?.name ?? '')
   const [birthDate, setBirthDate] = useState(initial?.birthDate ?? '')
   const [sex, setSex] = useState(initial?.sex ?? 'unspecified')
@@ -29,7 +33,7 @@ export function BabyForm({ initial, submitting, onSubmit }: BabyFormProps) {
       }}
     >
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Name</span>
+        <span className="mb-1 block font-medium">{form.name}</span>
         <input
           className={inputClass}
           value={name}
@@ -38,7 +42,7 @@ export function BabyForm({ initial, submitting, onSubmit }: BabyFormProps) {
         />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Birth date</span>
+        <span className="mb-1 block font-medium">{form.birthDate}</span>
         <input
           type="date"
           className={inputClass}
@@ -48,7 +52,7 @@ export function BabyForm({ initial, submitting, onSubmit }: BabyFormProps) {
         />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Sex</span>
+        <span className="mb-1 block font-medium">{form.sex}</span>
         <select
           className={inputClass}
           value={sex}
@@ -56,9 +60,9 @@ export function BabyForm({ initial, submitting, onSubmit }: BabyFormProps) {
             setSex(e.target.value as NonNullable<BabyFormValues['sex']>)
           }
         >
-          <option value="unspecified">Prefer not to say</option>
-          <option value="female">Female</option>
-          <option value="male">Male</option>
+          <option value="unspecified">{form.sexUnspecified}</option>
+          <option value="female">{form.sexFemale}</option>
+          <option value="male">{form.sexMale}</option>
         </select>
       </label>
       <button
@@ -66,7 +70,9 @@ export function BabyForm({ initial, submitting, onSubmit }: BabyFormProps) {
         disabled={submitting}
         className="w-fit rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-4 py-2 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {submitting ? 'Saving…' : 'Save'}
+        {submitting
+          ? messages.common.actions.saving
+          : messages.common.actions.save}
       </button>
     </form>
   )

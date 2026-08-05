@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
 import type { BabyEventType } from '../../../convex/lib/babyEvents'
-import { BABY_EVENT_LABELS } from '../../../convex/lib/babyEvents'
 import {
   combineDateTime,
   toDateInputValue,
@@ -17,6 +16,7 @@ import {
   rememberEventChoices,
 } from '../../lib/babyEventFormValues'
 import { errorMessage } from '../../lib/errorMessage'
+import { fmt, useMessages } from '../../lib/i18n'
 import { EventTypeFields } from './EventTypeFields'
 
 type BabyEventDoc = Doc<'babyEvents'>
@@ -49,12 +49,15 @@ export function EventForm({
   const [notes, setNotes] = useState(event?.notes ?? '')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const messages = useMessages()
+  const { entry, validation } = messages.baby.log
+  const typeName = messages.baby.eventTypes[type]
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     const built = buildEventInput(type, values, timestampMs)
     if (built.error) {
-      setError(built.error)
+      setError(validation[built.error])
       return
     }
     rememberEventChoices(type, values)
@@ -83,7 +86,7 @@ export function EventForm({
       }
       onDone()
     } catch (err) {
-      setError(errorMessage(err, 'Could not save this entry'))
+      setError(errorMessage(err, entry.saveFailed))
       setSubmitting(false)
     }
   }
@@ -91,12 +94,15 @@ export function EventForm({
   return (
     <form onSubmit={submit} className="grid gap-3">
       <h3 className="m-0 text-sm font-semibold">
-        {event ? 'Edit' : 'Log'} {BABY_EVENT_LABELS[type].toLowerCase()}
+        {/* The name is not lowercased on the way in: English put the type
+            after "Log " and could take a lowercase word, Dutch puts it first
+            and cannot. Each locale's template decides its own capitalisation. */}
+        {fmt(event ? entry.editTitle : entry.logTitle, { type: typeName })}
       </h3>
 
       <div className="min-w-0 sm:max-w-sm">
         <span className="mb-1 block text-sm font-medium">
-          {type === 'sleep' ? 'Start' : 'When'}
+          {type === 'sleep' ? entry.start : entry.when}
         </span>
         <div className="flex gap-2">
           <input
@@ -132,7 +138,7 @@ export function EventForm({
       />
 
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Notes</span>
+        <span className="mb-1 block font-medium">{entry.notes}</span>
         <textarea
           className={inputClass}
           value={notes}
@@ -149,14 +155,16 @@ export function EventForm({
           disabled={submitting}
           className="min-h-9 rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {submitting ? 'Saving…' : 'Save'}
+          {submitting
+            ? messages.common.actions.saving
+            : messages.common.actions.save}
         </button>
         <button
           type="button"
           onClick={onCancel}
           className="min-h-9 px-2 text-sm text-[var(--app-muted)]"
         >
-          Cancel
+          {messages.common.actions.cancel}
         </button>
       </div>
     </form>

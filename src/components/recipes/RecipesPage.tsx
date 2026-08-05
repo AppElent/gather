@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { Plus } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
+import { useMessages } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { RecipeCard } from './RecipeCard'
 import type { RecipeNav } from './recipeNav'
@@ -25,14 +26,18 @@ export function RecipesPage({
 }) {
   const recipes = useQuery(api.recipes.list, { groupSlug })
   const [viewMode, setViewMode] = useRecipeViewMode()
+  const messages = useMessages()
+  const { list } = messages.recipes
 
   return (
     <div className="mx-auto grid max-w-5xl gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="m-0 text-2xl font-semibold">Recipes</h2>
+          <h2 className="m-0 text-2xl font-semibold">
+            {messages.modules.byId.recipes.label}
+          </h2>
           <p className="mt-1 text-sm text-[var(--app-muted)]">
-            Keep and rate the dishes this group cooks.
+            {list.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -42,7 +47,7 @@ export function RecipesPage({
             className="inline-flex min-h-9 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold text-[var(--app-fg)] no-underline"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
-            Add recipe
+            {list.add}
           </Link>
         </div>
       </div>
@@ -59,15 +64,15 @@ export function RecipesPage({
       ) : recipes.length === 0 ? (
         <SurfaceCard>
           <div className="grid gap-3 text-center">
-            <h3 className="m-0 text-base font-semibold">No recipes yet</h3>
+            <h3 className="m-0 text-base font-semibold">{list.emptyTitle}</h3>
             <p className="m-0 text-sm text-[var(--app-muted)]">
-              Add the first recipe to make this module useful for the group.
+              {list.emptyBody}
             </p>
             <Link
               {...nav.create}
               className="mx-auto inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold no-underline"
             >
-              Add your first recipe
+              {list.emptyAction}
             </Link>
           </div>
         </SurfaceCard>

@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import {
   type StubbedImagePipeline,
   stubImagePipeline,
@@ -28,7 +29,7 @@ function givenPhoto(width: number, height: number) {
 function renderDialog(preset: 'childPhoto' | 'recipePhoto') {
   const onConfirm = vi.fn()
   const onCancel = vi.fn()
-  render(
+  renderWithI18n(
     <PhotoPrepareDialog
       file={new File(['bytes'], 'photo.jpg', { type: 'image/jpeg' })}
       preset={preset}

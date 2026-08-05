@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { readBarcodes } from 'zxing-wasm/reader'
+import { useMessages } from '../../lib/i18n'
 import { inputClass } from '../nutrition/nutrientInputs'
 
 interface Props {
@@ -20,8 +21,12 @@ export function BarcodeScanner({ onDetected }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [manualEntry, setManualEntry] = useState('')
-  const [cameraError, setCameraError] = useState<string | null>(null)
+  // A flag rather than the sentence: the sentence depends on the locale, and
+  // reading it inside the camera effect would tear the stream down and restart
+  // it every time somebody switched language mid-scan.
+  const [cameraDenied, setCameraDenied] = useState(false)
   const [scanning, setScanning] = useState(false)
+  const { scanner } = useMessages().foods
 
   // Read via a ref inside the scan loop below instead of depending on
   // `onDetected` directly — an inline arrow function passed by the caller
@@ -45,9 +50,7 @@ export function BarcodeScanner({ onDetected }: Props) {
           video: { facingMode: 'environment' },
         })
       } catch {
-        setCameraError(
-          'Camera access was denied or unavailable — enter the barcode number instead.',
-        )
+        setCameraDenied(true)
         setScanning(false)
         return
       }
@@ -123,14 +126,14 @@ export function BarcodeScanner({ onDetected }: Props) {
 
   return (
     <div className="grid gap-3">
-      {!cameraError && (
+      {!cameraDenied && (
         <div>
           <button
             type="button"
             onClick={() => setScanning((s) => !s)}
             className="rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-1.5 text-sm"
           >
-            {scanning ? 'Stop camera' : 'Scan barcode'}
+            {scanning ? scanner.stop : scanner.scan}
           </button>
           {scanning && (
             <div className="relative mt-2 max-w-sm">
@@ -145,18 +148,18 @@ export function BarcodeScanner({ onDetected }: Props) {
           )}
         </div>
       )}
-      {cameraError && <p className="text-sm text-red-800">{cameraError}</p>}
+      {cameraDenied && (
+        <p className="text-sm text-red-800">{scanner.cameraDenied}</p>
+      )}
       <label className="block max-w-xs text-sm">
-        <span className="mb-1 block font-medium">
-          Or enter the barcode number
-        </span>
+        <span className="mb-1 block font-medium">{scanner.manualLabel}</span>
         <div className="flex gap-2">
           <input
             inputMode="numeric"
             className={inputClass}
             value={manualEntry}
             onChange={(e) => setManualEntry(e.target.value.replace(/\D/g, ''))}
-            placeholder="8710398160005"
+            placeholder={scanner.manualPlaceholder}
           />
           <button
             type="button"
@@ -164,7 +167,7 @@ export function BarcodeScanner({ onDetected }: Props) {
             className="whitespace-nowrap rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
             onClick={() => onDetected(manualEntry)}
           >
-            Look up
+            {scanner.lookUp}
           </button>
         </div>
       </label>

@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { GatherPanel } from './GatherPanel'
 
 test('does not render when closed', () => {
-  render(
+  renderWithI18n(
     <GatherPanel
       open={false}
       activeGroupName="Jansen Household"
@@ -16,7 +17,7 @@ test('does not render when closed', () => {
 })
 
 test('renders non-automated placeholder prompts when open', () => {
-  render(
+  renderWithI18n(
     <GatherPanel
       open={true}
       activeGroupName="Jansen Household"
@@ -33,7 +34,7 @@ test('renders non-automated placeholder prompts when open', () => {
 })
 
 test('names no group off a group route, rather than inventing one', () => {
-  render(
+  renderWithI18n(
     <GatherPanel
       open={true}
       activeGroupName={null}
@@ -50,7 +51,7 @@ test('names no group off a group route, rather than inventing one', () => {
 
 test('calls onClose from close button and Escape', () => {
   const onClose = vi.fn()
-  render(
+  renderWithI18n(
     <GatherPanel
       open={true}
       activeGroupName="Jansen Household"
@@ -66,7 +67,7 @@ test('calls onClose from close button and Escape', () => {
 })
 
 test('moves focus into the panel and traps Tab navigation', () => {
-  render(
+  renderWithI18n(
     <GatherPanel
       open={true}
       activeGroupName="Oak House"
@@ -100,7 +101,7 @@ test('restores focus to the opener when it closes', () => {
       />
     </>
   )
-  const { rerender } = render(renderPanel(false))
+  const { rerender } = renderWithI18n(renderPanel(false))
   const opener = screen.getByRole('button', { name: 'Open Gather' })
 
   opener.focus()

@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, expect, test, vi } from 'vitest'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { MultiEventForm } from './MultiEventForm'
 
 const add = vi.fn()
@@ -18,7 +19,7 @@ beforeEach(() => {
 })
 
 function renderForm(onDone = vi.fn()) {
-  return render(
+  return renderWithI18n(
     <MultiEventForm
       babyId={babyId}
       groupSlug="jansen-household"

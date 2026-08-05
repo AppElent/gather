@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
 } from 'react'
+import { fmt, useMessages } from '../../lib/i18n'
 import { IconButton, Pill, SectionHeader, SurfaceCard } from './ShellPrimitives'
 
 export interface GatherPanelProps {
@@ -14,11 +15,11 @@ export interface GatherPanelProps {
   onClose: () => void
 }
 
-const PROMPTS = [
-  'Show me what changed recently',
-  'Draft a plan for this group',
-  'Summarize this page',
-]
+/**
+ * Which suggestions to offer, and in what order. The words are in the message
+ * tree; this is only the running order, which is not a translator's decision.
+ */
+const PROMPT_KEYS = ['recent', 'plan', 'summarize'] as const
 
 const FOCUSABLE_SELECTOR =
   'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
@@ -35,6 +36,7 @@ export function GatherPanel({
 }: GatherPanelProps) {
   const panelRef = useRef<HTMLElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
+  const { gatherPanel, groupSwitcher } = useMessages().shell
 
   useEffect(() => {
     if (!open) {
@@ -97,7 +99,7 @@ export function GatherPanel({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Ask Gather"
+        aria-label={gatherPanel.title}
         onKeyDown={handleKeyDown}
         className="fixed inset-x-0 bottom-0 max-h-[88svh] overflow-auto rounded-t-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-4 shadow-2xl md:inset-y-3 md:right-3 md:left-auto md:w-[360px] md:rounded-[var(--app-radius)]"
       >
@@ -107,14 +109,14 @@ export function GatherPanel({
                 the same answer the switcher gives rather than a guess at
                 which Group the question is about. */}
             <p className="mb-1 text-xs font-semibold uppercase text-[var(--app-muted)]">
-              {activeGroupName ?? 'No group'}
+              {activeGroupName ?? groupSwitcher.none}
             </p>
-            <h2 className="m-0 text-lg font-semibold">Ask Gather</h2>
+            <h2 className="m-0 text-lg font-semibold">{gatherPanel.title}</h2>
             <p className="mt-1 text-sm text-[var(--app-muted)]">
-              Context: {routeTitle}
+              {fmt(gatherPanel.context, { page: routeTitle })}
             </p>
           </div>
-          <IconButton label="Close Ask Gather" onClick={onClose}>
+          <IconButton label={gatherPanel.close} onClick={onClose}>
             <X className="h-4 w-4" aria-hidden="true" />
           </IconButton>
         </header>
@@ -122,34 +124,32 @@ export function GatherPanel({
         <SurfaceCard className="mb-3">
           <div className="mb-3 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-[var(--app-accent)]" />
-            <Pill tone="warning">Preview</Pill>
+            <Pill tone="warning">{gatherPanel.preview}</Pill>
           </div>
           <p className="m-0 text-sm leading-6 text-[var(--app-muted)]">
-            Automation is not connected yet. Use this panel as a command
-            scratchpad for the active group; real actions will arrive in a later
-            feature.
+            {gatherPanel.notConnected}
           </p>
         </SurfaceCard>
 
         <SurfaceCard>
-          <SectionHeader title="Try asking" />
+          <SectionHeader title={gatherPanel.tryAsking} />
           <div className="grid gap-2">
-            {PROMPTS.map((prompt) => (
+            {PROMPT_KEYS.map((key) => (
               <button
                 type="button"
-                key={prompt}
+                key={key}
                 className="rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)] px-3 py-2 text-left text-sm"
               >
-                {prompt}
+                {gatherPanel.prompts[key]}
               </button>
             ))}
           </div>
         </SurfaceCard>
 
         <label className="mt-3 block">
-          <span className="sr-only">Ask Gather</span>
+          <span className="sr-only">{gatherPanel.title}</span>
           <textarea
-            placeholder="Ask Gather to help with this group..."
+            placeholder={gatherPanel.placeholder}
             className="min-h-28 w-full resize-none rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)]"
           />
         </label>

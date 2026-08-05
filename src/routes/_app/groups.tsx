@@ -6,6 +6,7 @@ import { api } from '../../../convex/_generated/api'
 import { Pill, SurfaceCard } from '../../components/app/ShellPrimitives'
 import { errorMessage } from '../../lib/errorMessage'
 import { groupLink } from '../../lib/groupPaths'
+import { useMessages } from '../../lib/i18n'
 
 export const Route = createFileRoute('/_app/groups')({ component: GroupsPage })
 
@@ -38,14 +39,14 @@ function GroupsPage() {
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const { groups: text } = useMessages().shell
 
   return (
     <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-4">
       <header>
-        <h1 className="m-0 text-2xl font-semibold">Groups</h1>
+        <h1 className="m-0 text-2xl font-semibold">{text.title}</h1>
         <p className="mt-1 mb-0 text-sm leading-6 text-[var(--app-muted)]">
-          The households you are in. Open one to change its name, share its
-          invite code, or leave it.
+          {text.intro}
         </p>
       </header>
 
@@ -61,7 +62,7 @@ function GroupsPage() {
       {groups === undefined ? (
         <div className="h-24 animate-pulse rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface-muted)]" />
       ) : (
-        <SurfaceCard ariaLabel="Your groups">
+        <SurfaceCard ariaLabel={text.yours}>
           <ul className="m-0 grid list-none gap-1 p-0">
             {groups.map((g) => (
               <li key={g._id}>
@@ -78,7 +79,7 @@ function GroupsPage() {
                       word; `minmax(0,1fr)` above is what lets it truncate
                       instead of widening the page. */}
                   <span className="truncate">{g.name}</span>
-                  {g.isPersonal ? <Pill>Personal</Pill> : null}
+                  {g.isPersonal ? <Pill>{text.personal}</Pill> : null}
                   <ChevronRight
                     className="h-4 w-4 shrink-0 text-[var(--app-muted)]"
                     aria-hidden="true"
@@ -101,24 +102,24 @@ function GroupsPage() {
                 void createGroup({ name: name.trim() })
                   .then(() => setName(''))
                   .catch((err) =>
-                    setError(errorMessage(err, 'Could not create that group.')),
+                    setError(errorMessage(err, text.createFailed)),
                   )
             }}
           >
-            <h2 className="m-0 text-base font-semibold">New group</h2>
+            <h2 className="m-0 text-base font-semibold">{text.createTitle}</h2>
             <p className="m-0 text-sm text-[var(--app-muted)]">
-              A household of your own. You start as its admin.
+              {text.createBody}
             </p>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Wine club"
-              aria-label="New group name"
+              placeholder={text.createPlaceholder}
+              aria-label={text.createLabel}
               className={INPUT}
             />
             <div>
               <button type="submit" className={BUTTON}>
-                Create
+                {text.create}
               </button>
             </div>
           </form>
@@ -133,27 +134,23 @@ function GroupsPage() {
               if (code.trim())
                 void joinByInvite({ inviteCode: code.trim() })
                   .then(() => setCode(''))
-                  .catch((err) =>
-                    setError(
-                      errorMessage(err, 'Could not join with that code.'),
-                    ),
-                  )
+                  .catch((err) => setError(errorMessage(err, text.joinFailed)))
             }}
           >
-            <h2 className="m-0 text-base font-semibold">Join with a code</h2>
+            <h2 className="m-0 text-base font-semibold">{text.joinTitle}</h2>
             <p className="m-0 text-sm text-[var(--app-muted)]">
-              Somebody in the group finds it in that group's settings.
+              {text.joinBody}
             </p>
             <input
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="8-char code"
-              aria-label="Invite code"
+              placeholder={text.joinPlaceholder}
+              aria-label={text.joinLabel}
               className={INPUT}
             />
             <div>
               <button type="submit" className={BUTTON}>
-                Join
+                {text.join}
               </button>
             </div>
           </form>

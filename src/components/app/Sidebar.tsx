@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { NAV_ACTIVE_OPTIONS } from '../../lib/appNavigation'
+import { useMessages } from '../../lib/i18n'
 import { GroupSwitcher } from './GroupSwitcher'
 import { Icon } from './Icon'
 import { Pill } from './ShellPrimitives'
@@ -33,6 +34,7 @@ const FOOTER_LINK =
  */
 export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
   const isDrawer = variant === 'drawer'
+  const { sidebar, marks, nav } = useMessages().shell
   const { items, activeId } = useNavigation()
 
   return (
@@ -42,16 +44,16 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
           ? 'flex min-h-full flex-col gap-6 overflow-y-auto p-4'
           : 'hidden h-svh w-66 shrink-0 flex-col gap-6 overflow-y-auto border-r border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-surface)_86%,transparent)] p-4 md:flex'
       }
-      aria-label="Gather navigation"
+      aria-label={sidebar.label}
     >
       <GroupSwitcher onNavigate={onNavigate} />
 
       {items.length === 0 ? (
         <p className="m-0 px-2 text-sm leading-6 text-[var(--app-muted)]">
-          Pick a group to see its modules.
+          {sidebar.noGroup}
         </p>
       ) : (
-        <nav className="grid gap-1" aria-label="Primary">
+        <nav className="grid gap-1" aria-label={sidebar.primary}>
           {items.map((item) => (
             <Link
               key={item.id}
@@ -75,10 +77,10 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
               </span>
               <span className="truncate">{item.label}</span>
               <span className="flex shrink-0 items-center gap-1">
-                {item.placeholder ? <Pill>Soon</Pill> : null}
+                {item.placeholder ? <Pill>{marks.soon}</Pill> : null}
                 {item.personal ? (
-                  <span title="Only you can see this. It is the same in every group.">
-                    <Pill>Only you</Pill>
+                  <span title={marks.onlyYouExplained}>
+                    <Pill>{marks.onlyYou}</Pill>
                   </span>
                 ) : null}
               </span>
@@ -98,12 +100,12 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
           one that never does and is called almost the same word, is two
           meanings of "settings" in the same two inches. The Group's settings
           hang off the Group instead: clicking it on Groups opens them. */}
-      <nav className="mt-auto grid gap-1" aria-label="Settings and groups">
+      <nav className="mt-auto grid gap-1" aria-label={sidebar.footer}>
         <Link to="/groups" onClick={onNavigate} className={FOOTER_LINK}>
-          Groups
+          {nav.groups}
         </Link>
         <Link to="/settings" onClick={onNavigate} className={FOOTER_LINK}>
-          Settings
+          {nav.settings}
         </Link>
       </nav>
     </aside>

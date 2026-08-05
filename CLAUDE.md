@@ -120,6 +120,43 @@ on dev and as a preview-type default (`convex env default set --type preview`);
 deployment URL from writing a fake household into the real database. The
 internal `seedCatalog` / `seedPreview` entrypoints do not consult it.
 
+## Internationalization
+
+`@appelent/i18n` supplies the engine; gather owns `src/lib/i18n/` — the
+`messages/{en,nl}/` trees, the root-route wiring, `LanguageToggle` (topbar) and
+`LanguageSettings` (`/settings`). **English is the source language**: a string is
+written in `messages/en/` first, and `messages/nl/` `satisfies` it, so a missing
+key fails `pnpm typecheck` and `src/lib/i18n/__tests__/messages.test.ts` catches
+what a type cannot (empty strings, drifted `{placeholder}` tokens). See
+`docs/adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md`
+for the chrome-vs-content boundary and the Dutch glossary.
+
+The whole app is translated — shell and every Module. **Any new user-visible
+string goes in the message tree, in both locales**; there are no English
+literals left in `src/` to copy the old habit from.
+
+Four rules the conversion established, each of which will bite if ignored:
+
+- **Display strings never live in `convex/` or in a plain `lib/` data file.**
+  A Module's `label`/`description`, the nutrient names, the meal names and the
+  baby-log event names all moved out, keyed by the union the schema defines
+  (`ModuleId`, `NutrientKey`, `MealName`, `BabyEventType`). **When you add a
+  Module — or a nutrient, or an event type — add its message entries in the same
+  change**; `satisfies Record<…>` makes forgetting a compile error.
+- **Non-React code takes messages as a trailing parameter** (`navItems`,
+  `getRouteContext`, `formatActivityTime`, `formatAge`, `summarizeEvent`) rather
+  than importing the context. That is what keeps `lib/` callable from a test with
+  no React tree.
+- **A validator returns a key, not a sentence** — `buildEventInput` reports
+  `'enterVaccineName'` and the form resolves it.
+- **Never read a message inside a `useEffect`** whose deps you do not want the
+  locale in. Hold a key in state and resolve it at render; Biome's
+  `useExhaustiveDependencies` will point at this and adding the dep is usually
+  the wrong fix.
+
+Component tests render through `renderWithI18n` from `src/lib/i18n/testing.tsx`;
+`useI18n` throws outside `LocaleProvider` rather than falling back.
+
 ## One-shot code states its own end condition
 
 Migration mutations, backfills and compatibility shims are written to run against

@@ -3,10 +3,7 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { BabyEventType } from '../../../convex/lib/babyEvents'
-import {
-  BABY_EVENT_LABELS,
-  BABY_EVENT_TYPES,
-} from '../../../convex/lib/babyEvents'
+import { BABY_EVENT_TYPES } from '../../../convex/lib/babyEvents'
 import {
   combineDateTime,
   toDateInputValue,
@@ -20,6 +17,7 @@ import {
   rememberEventChoices,
 } from '../../lib/babyEventFormValues'
 import { errorMessage } from '../../lib/errorMessage'
+import { fmt, plural, useI18n } from '../../lib/i18n'
 import { readLastUsed, writeLastUsed } from '../../lib/lastUsed'
 import { EventIcon } from './EventIcon'
 import { EventTypeFields } from './EventTypeFields'
@@ -77,6 +75,9 @@ export function MultiEventForm({
   >({})
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const { locale, messages } = useI18n()
+  const { multi, validation } = messages.baby.log
+  const eventTypes = messages.baby.eventTypes
 
   function toggleType(type: BabyEventType) {
     setSelected((prev) =>
@@ -97,10 +98,11 @@ export function MultiEventForm({
 
     const inputs: { type: BabyEventType; values: EventValues }[] = []
     const errors: Partial<Record<BabyEventType, string>> = {}
+    // Keys in, sentences out: the validator does not know the language.
     for (const type of activeTypes) {
       const values = valuesByType[type] ?? initialEventValues(type)
       const built = buildEventInput(type, values, timestampMs)
-      if (built.error) errors[type] = built.error
+      if (built.error) errors[type] = validation[built.error]
       else inputs.push({ type, values })
     }
     setFieldErrors(errors)
@@ -129,10 +131,14 @@ export function MultiEventForm({
       // Keep only what still needs saving on screen, so a retry doesn't
       // duplicate the entries that already went through.
       setSelected((prev) => prev.filter((t) => !saved.includes(t)))
-      const detail = errorMessage(err, 'Could not save this entry')
+      const detail = errorMessage(err, messages.baby.log.entry.saveFailed)
       setError(
         saved.length > 0
-          ? `Saved ${saved.length} of ${inputs.length} entries — ${detail}`
+          ? fmt(multi.partial, {
+              saved: saved.length,
+              total: inputs.length,
+              detail,
+            })
           : detail,
       )
       setSubmitting(false)
@@ -141,10 +147,10 @@ export function MultiEventForm({
 
   return (
     <form onSubmit={submit} className="grid gap-3">
-      <h3 className="m-0 text-sm font-semibold">Log several entries</h3>
+      <h3 className="m-0 text-sm font-semibold">{multi.heading}</h3>
 
       <div className="min-w-0 sm:max-w-sm">
-        <span className="mb-1 block text-sm font-medium">When</span>
+        <span className="mb-1 block text-sm font-medium">{multi.when}</span>
         <div className="flex gap-2">
           <input
             type="date"
@@ -172,7 +178,7 @@ export function MultiEventForm({
       </div>
 
       <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-1 text-sm font-medium">Include</legend>
+        <legend className="mb-1 text-sm font-medium">{multi.include}</legend>
         <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
           {BABY_EVENT_TYPES.map((type) => (
             <label key={type} className="flex items-center gap-1.5 text-sm">
@@ -181,7 +187,7 @@ export function MultiEventForm({
                 checked={selected.includes(type)}
                 onChange={() => toggleType(type)}
               />
-              {BABY_EVENT_LABELS[type]}
+              {eventTypes[type]}
             </label>
           ))}
         </div>
@@ -194,7 +200,7 @@ export function MultiEventForm({
         >
           <p className="m-0 flex items-center gap-2 text-sm font-semibold">
             <EventIcon type={type} />
-            {BABY_EVENT_LABELS[type]}
+            {eventTypes[type]}
           </p>
           <EventTypeFields
             type={type}
@@ -211,7 +217,9 @@ export function MultiEventForm({
             }
           />
           <label className="block text-sm">
-            <span className="mb-1 block font-medium">Notes</span>
+            <span className="mb-1 block font-medium">
+              {messages.baby.log.entry.notes}
+            </span>
             <input
               className={inputClass}
               value={notesByType[type] ?? ''}
@@ -227,9 +235,7 @@ export function MultiEventForm({
       ))}
 
       {activeTypes.length === 0 && (
-        <p className="m-0 text-sm text-[var(--app-muted)]">
-          Pick at least one thing to log.
-        </p>
+        <p className="m-0 text-sm text-[var(--app-muted)]">{multi.pickOne}</p>
       )}
 
       {error && <p className="m-0 text-sm text-red-800">{error}</p>}
@@ -241,17 +247,15 @@ export function MultiEventForm({
           className="min-h-9 rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting
-            ? 'Saving…'
-            : `Save ${activeTypes.length || ''} ${
-                activeTypes.length === 1 ? 'entry' : 'entries'
-              }`.trim()}
+            ? messages.common.actions.saving
+            : plural(locale, activeTypes.length, multi.save)}
         </button>
         <button
           type="button"
           onClick={onCancel}
           className="min-h-9 px-2 text-sm text-[var(--app-muted)]"
         >
-          Cancel
+          {messages.common.actions.cancel}
         </button>
       </div>
     </form>

@@ -3,11 +3,11 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import {
-  MEAL_LABELS,
   MEAL_NAMES,
   type MealName,
   sumFacts,
 } from '../../../convex/lib/consumption'
+import { fmt, useMessages } from '../../lib/i18n'
 import { moduleById } from '../../lib/modules'
 import { AddEntryModal } from './AddEntryModal'
 import { DayTotals } from './DayTotals'
@@ -85,16 +85,19 @@ export function NutritionPage({
   const [addingMeal, setAddingMeal] = useState<MealName | null>(null)
   const [savingTargets, setSavingTargets] = useState(false)
   const [targetsError, setTargetsError] = useState<string | null>(null)
+  const messages = useMessages()
+  const { diary, meals } = messages.nutrition
 
   const totals = sumFacts((entries ?? []).map((e) => e.nutrition))
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-1 text-2xl font-semibold">Nutrition</h1>
+      <h1 className="mb-1 text-2xl font-semibold">
+        {messages.modules.byId.nutrition.label}
+      </h1>
       {moduleById('nutrition')?.scope === 'personal' && (
         <p className="mb-4 text-sm text-[var(--app-muted)]">
-          Yours alone. Nobody else in the group can see it, and it looks the
-          same whichever group you are in.
+          {diary.personalNote}
         </p>
       )}
 
@@ -104,7 +107,7 @@ export function NutritionPage({
           onClick={() => onDateChange(shiftDate(date, -1))}
           className="rounded border px-2 py-1 text-sm"
         >
-          ← Prev
+          {diary.prevDay}
         </button>
         <input
           type="date"
@@ -117,7 +120,7 @@ export function NutritionPage({
           onClick={() => onDateChange(shiftDate(date, 1))}
           className="rounded border px-2 py-1 text-sm"
         >
-          Next →
+          {diary.nextDay}
         </button>
       </div>
 
@@ -136,7 +139,7 @@ export function NutritionPage({
             await setTargets({ targets })
           } catch (err) {
             setTargetsError(
-              err instanceof Error ? err.message : 'Could not save targets',
+              err instanceof Error ? err.message : diary.targets.saveFailed,
             )
           } finally {
             setSavingTargets(false)
@@ -147,13 +150,17 @@ export function NutritionPage({
       <DayTotals
         totals={totals}
         targets={me?.nutritionTargets}
-        heading={date === todayLocal() ? "Today's totals" : `Totals — ${date}`}
+        heading={
+          date === todayLocal()
+            ? diary.totalsToday
+            : fmt(diary.totalsOn, { date })
+        }
       />
 
       {MEAL_NAMES.map((meal) => (
         <MealSlot
           key={meal}
-          label={MEAL_LABELS[meal]}
+          label={meals[meal]}
           entries={(entries ?? []).filter((e) => e.meal === meal)}
           nav={nav}
           onAdd={() => setAddingMeal(meal)}

@@ -18,6 +18,14 @@ import { PublicPageFrame } from '../components/app/PublicPageFrame'
 import ClerkProvider from '../integrations/clerk/provider'
 import ConvexProvider from '../integrations/convex/provider'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
+import {
+  type Locale,
+  LocaleProvider,
+  readClientLocale,
+  useMessages,
+} from '../lib/i18n'
+import { LanguageSync } from '../lib/i18n/LanguageSync'
+import { getSsrLocale } from '../lib/i18n/server'
 import appCss from '../styles.css?url'
 
 interface MyRouterContext {
@@ -53,32 +61,48 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
     ],
   }),
+  /**
+   * Which language to draw the first paint in.
+   *
+   * Two branches rather than one server call: after hydration the cookie is
+   * already on this machine, so asking the server again would be a round-trip
+   * to learn something the browser can read synchronously — and a flash of the
+   * wrong language while it is in flight.
+   */
+  loader: async () => {
+    if (typeof document !== 'undefined') {
+      return { locale: readClientLocale() }
+    }
+    const { locale } = (await getSsrLocale()) as { locale: Locale }
+    return { locale }
+  },
   shellComponent: RootDocument,
   notFoundComponent: NotFoundPage,
 })
 
 export function NotFoundPage() {
+  const { notFound } = useMessages().shell
+
   return (
     <PublicPageFrame
-      eyebrow="Not found"
-      title="Page not found"
-      subtitle="Gather has no page at this address."
+      eyebrow={notFound.eyebrow}
+      title={notFound.title}
+      subtitle={notFound.subtitle}
       actions={
         <Link to="/sign-in" className="text-[var(--app-muted)] no-underline">
-          Sign in
+          {notFound.signIn}
         </Link>
       }
     >
       <div className="grid gap-4">
         <p className="m-0 text-sm leading-6 text-[var(--app-muted)]">
-          The page may have moved, or the link may point to a module that has
-          not been added yet.
+          {notFound.body}
         </p>
         <Link
           to="/"
           className="inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)] no-underline"
         >
-          Go to Gather
+          {notFound.goHome}
         </Link>
       </div>
     </PublicPageFrame>
@@ -86,6 +110,8 @@ export function NotFoundPage() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const { locale } = Route.useLoaderData()
+
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
     navigator.serviceWorker.register('/sw.js').catch(() => {
@@ -94,31 +120,37 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: theme no-flash script must run before hydration; content is a static constant from @appelent/auth */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
       <body className="font-sans antialiased [overflow-wrap:anywhere]">
-        <ClerkProvider>
-          <ConvexProvider>
-            <AuthConfigProvider config={authConfig}>
-              <ThemeSync />
-              {children}
-              <TanStackDevtools
-                config={{ position: 'bottom-right' }}
-                plugins={[
-                  {
-                    name: 'Tanstack Router',
-                    render: <TanStackRouterDevtoolsPanel />,
-                  },
-                  TanStackQueryDevtools,
-                ]}
-              />
-            </AuthConfigProvider>
-          </ConvexProvider>
-        </ClerkProvider>
+        {/* Outermost, because every provider below it and every page inside
+            them may need a word from it. `LanguageSync` sits further in: it
+            mirrors the choice onto the signed-in user, so it needs Clerk. */}
+        <LocaleProvider initialLocale={locale}>
+          <ClerkProvider>
+            <ConvexProvider>
+              <AuthConfigProvider config={authConfig}>
+                <ThemeSync />
+                <LanguageSync />
+                {children}
+                <TanStackDevtools
+                  config={{ position: 'bottom-right' }}
+                  plugins={[
+                    {
+                      name: 'Tanstack Router',
+                      render: <TanStackRouterDevtoolsPanel />,
+                    },
+                    TanStackQueryDevtools,
+                  ]}
+                />
+              </AuthConfigProvider>
+            </ConvexProvider>
+          </ClerkProvider>
+        </LocaleProvider>
         <Scripts />
       </body>
     </html>

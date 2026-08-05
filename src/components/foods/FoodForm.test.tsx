@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { FoodForm } from './FoodForm'
 
 test('submits name, brand, base unit, and per-100 nutrition', () => {
   const onSubmit = vi.fn()
-  render(<FoodForm onSubmit={onSubmit} submitting={false} />)
+  renderWithI18n(<FoodForm onSubmit={onSubmit} submitting={false} />)
 
   fireEvent.change(screen.getByLabelText('Name'), {
     target: { value: 'Hagelslag' },
@@ -30,7 +31,7 @@ test('submits name, brand, base unit, and per-100 nutrition', () => {
 
 test('defaults to grams and omits optional fields when left blank', () => {
   const onSubmit = vi.fn()
-  render(<FoodForm onSubmit={onSubmit} submitting={false} />)
+  renderWithI18n(<FoodForm onSubmit={onSubmit} submitting={false} />)
   fireEvent.change(screen.getByLabelText('Name'), {
     target: { value: 'Water' },
   })
@@ -50,7 +51,7 @@ test('defaults to grams and omits optional fields when left blank', () => {
 
 test('prefills from initial values, shows a read-only barcode and source note', () => {
   const onSubmit = vi.fn()
-  render(
+  renderWithI18n(
     <FoodForm
       onSubmit={onSubmit}
       submitting={false}

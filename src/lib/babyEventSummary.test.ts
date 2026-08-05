@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import type { Doc } from '../../convex/_generated/dataModel'
 import { summarizeEvent } from './babyEventSummary'
+import { en } from './i18n/messages/en'
 
 const START = new Date('2026-07-25T09:00:00').getTime()
 
@@ -25,25 +26,29 @@ describe('summarizeEvent — feeding', () => {
     expect(
       summarizeEvent(
         feeding({ method: 'breast', side: 'both', leftMin: 10, rightMin: 8 }),
+        en.baby.log,
       ),
     ).toBe('Breastfeeding · Left 10m · Right 8m')
   })
 
   test('shows only the side that was fed', () => {
     expect(
-      summarizeEvent(feeding({ method: 'breast', side: 'right', rightMin: 7 })),
+      summarizeEvent(
+        feeding({ method: 'breast', side: 'right', rightMin: 7 }),
+        en.baby.log,
+      ),
     ).toBe('Breastfeeding · Right 7m')
   })
 
   test('falls back to the plain side for entries without minutes', () => {
-    expect(summarizeEvent(feeding({ method: 'breast', side: 'left' }))).toBe(
-      'Breastfeeding · Left',
-    )
+    expect(
+      summarizeEvent(feeding({ method: 'breast', side: 'left' }), en.baby.log),
+    ).toBe('Breastfeeding · Left')
   })
 
   test('bottle feeds still show the amount', () => {
-    expect(summarizeEvent(feeding({ method: 'bottle', amountMl: 120 }))).toBe(
-      'Bottle · 120 ml',
-    )
+    expect(
+      summarizeEvent(feeding({ method: 'bottle', amountMl: 120 }), en.baby.log),
+    ).toBe('Bottle · 120 ml')
   })
 })

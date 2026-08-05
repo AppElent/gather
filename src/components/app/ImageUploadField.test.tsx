@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { stubImagePipeline } from '../../test/imagePipeline'
 import { ImageUploadField } from './ImageUploadField'
 
@@ -31,7 +32,7 @@ function givenAnUnreadablePhoto() {
 
 function renderField(preset: 'childPhoto' | 'recipePhoto' = 'childPhoto') {
   const onChange = vi.fn()
-  render(
+  renderWithI18n(
     <ImageUploadField
       imageUrl={null}
       preset={preset}

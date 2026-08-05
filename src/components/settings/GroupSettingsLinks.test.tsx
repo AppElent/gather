@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { GroupSettingsLinks } from './GroupSettingsLinks'
 
 /**
@@ -42,7 +43,7 @@ beforeEach(() => {
 
 describe('the signpost to each Group’s settings', () => {
   test('says a connection belongs to a group rather than to you', () => {
-    render(<GroupSettingsLinks />)
+    renderWithI18n(<GroupSettingsLinks />)
     expect(screen.getByText(/belong to a group, not to you/i)).toBeDefined()
   })
 
@@ -52,7 +53,7 @@ describe('the signpost to each Group’s settings', () => {
       { _id: 'g2', name: 'Cooking club', slug: 'cooking-club' },
     ]
 
-    render(<GroupSettingsLinks />)
+    renderWithI18n(<GroupSettingsLinks />)
 
     expect(
       screen
@@ -65,7 +66,7 @@ describe('the signpost to each Group’s settings', () => {
   })
 
   test('offers nothing at all until the answer has arrived', () => {
-    render(<GroupSettingsLinks />)
+    renderWithI18n(<GroupSettingsLinks />)
     expect(screen.queryAllByRole('link')).toEqual([])
   })
 })

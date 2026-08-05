@@ -2,14 +2,15 @@ import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import type { GroupActivityEntry } from '../../../convex/activity'
+import { moduleText } from '../../lib/appNavigation'
 import {
-  ACTIVITY_PHRASES,
   activityModuleIcon,
   activityModuleLabel,
+  activityPhrase,
   formatActivityTime,
-  UNKNOWN_ACTOR,
 } from '../../lib/groupActivity'
 import { groupLink, moduleLink } from '../../lib/groupPaths'
+import { fmt, useI18n, useMessages } from '../../lib/i18n'
 import { MODULES } from '../../lib/modules'
 import { Icon } from '../app/Icon'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
@@ -47,12 +48,17 @@ const STARTERS = MODULES.filter(
 
 function MemberList({ groupSlug, groupName, isPersonal }: GroupHomeProps) {
   const members = useQuery(api.groups.members, { slug: groupSlug })
+  const messages = useMessages()
+  const { home } = messages.shell
+  const note = isPersonal ? home.personalNote : home.sharedNote
 
   return (
-    <SurfaceCard ariaLabel="Who is here">
-      <h2 className="m-0 mb-2 text-sm font-semibold">Who is here</h2>
+    <SurfaceCard ariaLabel={home.whoIsHere}>
+      <h2 className="m-0 mb-2 text-sm font-semibold">{home.whoIsHere}</h2>
       {members === undefined ? (
-        <p className="m-0 text-sm text-[var(--app-muted)]">Loading…</p>
+        <p className="m-0 text-sm text-[var(--app-muted)]">
+          {messages.common.errors.loading}
+        </p>
       ) : (
         <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
           {members.map((member) => (
@@ -66,25 +72,19 @@ function MemberList({ groupSlug, groupName, isPersonal }: GroupHomeProps) {
               {/* The pill never wraps, so it has to be the part that keeps its
                   width while the name beside it gives way. */}
               {member.role === 'admin' ? (
-                <Pill className="shrink-0">Admin</Pill>
+                <Pill className="shrink-0">{home.admin}</Pill>
               ) : null}
             </li>
           ))}
         </ul>
       )}
+      {/* Split around the link rather than assembled from one string: neither
+          half carries markup, so a translation is free to word the sentence
+          its own way without having to reproduce a `<Link>`. */}
       <p className="mt-3 mb-0 text-sm leading-6 text-[var(--app-muted)]">
-        {isPersonal ? (
-          <>
-            {groupName} is yours alone — nothing kept here is visible to anybody
-            else. To share something with other people, start a group with them
-            in <Link to="/groups">Groups</Link>.
-          </>
-        ) : (
-          <>
-            Everyone here sees everything in {groupName}. To invite somebody
-            else, or to leave, go to <Link to="/groups">Groups</Link>.
-          </>
-        )}
+        {fmt(note.before, { group: groupName })}{' '}
+        <Link to="/groups">{note.link}</Link>
+        {note.after}
       </p>
     </SurfaceCard>
   )
@@ -141,7 +141,8 @@ function ActivityRow({
   entry: GroupActivityEntry
   groupSlug: string
 }) {
-  const phrase = ACTIVITY_PHRASES[entry.kind]
+  const { locale, messages } = useI18n()
+  const phrase = activityPhrase(entry.kind, messages)
 
   return (
     <li className="grid grid-cols-[28px_minmax(0,1fr)] gap-2 border-t border-[var(--app-border)] py-2 first:border-t-0 first:pt-0">
@@ -155,16 +156,18 @@ function ActivityRow({
             needed — the track has to be allowed to shrink, and the word has to
             be willing to break. */}
         <p className="m-0 text-sm leading-6 wrap-anywhere">
-          <span className="font-semibold">{entry.byName ?? UNKNOWN_ACTOR}</span>{' '}
+          <span className="font-semibold">
+            {entry.byName ?? messages.shell.activity.unknownActor}
+          </span>{' '}
           {phrase.verb} <EntryTitle entry={entry} groupSlug={groupSlug} />
           {entry.context && phrase.connector
             ? ` ${phrase.connector} ${entry.context}`
             : null}
         </p>
         <p className="m-0 flex flex-wrap gap-x-2 text-xs text-[var(--app-muted)]">
-          <span>{activityModuleLabel(entry.kind)}</span>
+          <span>{activityModuleLabel(entry.kind, messages)}</span>
           <time dateTime={new Date(entry.at).toISOString()}>
-            {formatActivityTime(entry.at)}
+            {formatActivityTime(entry.at, messages, locale)}
           </time>
         </p>
       </div>
@@ -180,13 +183,14 @@ function ActivityRow({
  * making even for a household that has just been created.
  */
 function NothingYet({ groupSlug, groupName, isPersonal }: GroupHomeProps) {
+  const messages = useMessages()
+  const { home } = messages.shell
+
   return (
     <div className="grid gap-3">
       <p className="m-0 text-sm leading-6 text-[var(--app-muted)]">
-        Nothing has happened in {groupName} yet.{' '}
-        {isPersonal
-          ? 'Whatever you add here appears in this list, and only you will ever see it.'
-          : 'Whatever anybody here adds appears in this list, with their name on it.'}
+        {fmt(home.nothingYet, { group: groupName })}{' '}
+        {isPersonal ? home.nothingYetPersonal : home.nothingYetShared}
       </p>
       <div className="flex flex-wrap gap-2">
         {STARTERS.map((module) => (
@@ -196,7 +200,9 @@ function NothingYet({ groupSlug, groupName, isPersonal }: GroupHomeProps) {
             className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold text-[var(--app-fg)] no-underline"
           >
             <Icon name={module.icon} className="h-4 w-4" />
-            <span className="truncate">{module.label}</span>
+            <span className="truncate">
+              {moduleText(module, messages).label}
+            </span>
           </Link>
         ))}
       </div>
@@ -210,6 +216,8 @@ export function GroupHome({
   isPersonal,
 }: GroupHomeProps) {
   const activity = useQuery(api.activity.forGroup, { groupSlug })
+  const messages = useMessages()
+  const { home } = messages.shell
 
   return (
     // `grid-cols-[minmax(0,1fr)]` rather than a bare `grid`: an implicit track
@@ -228,9 +236,7 @@ export function GroupHome({
           {groupName}
         </h1>
         <p className="mt-1 mb-0 text-sm leading-6 text-[var(--app-muted)]">
-          {isPersonal
-            ? 'Your own group. Anything kept here is private to you.'
-            : 'What everyone in this group has been up to.'}
+          {isPersonal ? home.personalSubtitle : home.sharedSubtitle}
         </p>
       </header>
 
@@ -240,10 +246,14 @@ export function GroupHome({
         isPersonal={isPersonal}
       />
 
-      <SurfaceCard ariaLabel="Recent activity">
-        <h2 className="m-0 mb-2 text-sm font-semibold">Recent activity</h2>
+      <SurfaceCard ariaLabel={home.recentActivity}>
+        <h2 className="m-0 mb-2 text-sm font-semibold">
+          {home.recentActivity}
+        </h2>
         {activity === undefined ? (
-          <p className="m-0 text-sm text-[var(--app-muted)]">Loading…</p>
+          <p className="m-0 text-sm text-[var(--app-muted)]">
+            {messages.common.errors.loading}
+          </p>
         ) : activity.length === 0 ? (
           <NothingYet
             groupSlug={groupSlug}

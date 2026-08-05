@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { MobileDock } from './MobileDock'
 import { ShellGroupProvider } from './ShellGroup'
 import { Sidebar } from './Sidebar'
@@ -99,14 +100,14 @@ beforeEach(() => {
 
 describe('the sidebar off any Group route', () => {
   test('says why the modules are missing instead of listing none', () => {
-    render(<Sidebar />)
+    renderWithI18n(<Sidebar />)
 
     expect(screen.getByText(/pick a group to see its modules/i)).toBeDefined()
     expect(screen.queryByRole('navigation', { name: 'Primary' })).toBeNull()
   })
 
   test('still reaches the pages that do not need a Group', () => {
-    render(<Sidebar variant="drawer" />)
+    renderWithI18n(<Sidebar variant="drawer" />)
 
     expect(screen.getByRole('link', { name: 'Groups' })).toBeDefined()
     expect(screen.getByRole('link', { name: 'Settings' })).toBeDefined()
@@ -123,26 +124,41 @@ describe('the sidebar off any Group route', () => {
    * decision, and a deleted test would not notice it being undone.
    */
   test('offers no Group settings link, in or out of a Group', () => {
-    render(<Sidebar />)
+    renderWithI18n(<Sidebar />)
     expect(screen.queryByRole('link', { name: 'Group settings' })).toBeNull()
 
     location.pathname = '/g/me-alice/recipes'
-    render(<Sidebar />)
+    renderWithI18n(<Sidebar />)
     expect(screen.queryByRole('link', { name: 'Group settings' })).toBeNull()
   })
 
   test('lists the modules again as soon as the address names a Group', () => {
     location.pathname = '/g/me-alice/recipes'
-    render(<Sidebar />)
+    renderWithI18n(<Sidebar />)
 
     const nav = screen.getByRole('navigation', { name: 'Primary' })
     expect(nav).toBeDefined()
     expect(screen.getByRole('link', { name: /home/i })).toBeDefined()
   })
 
+  /**
+   * A Module's name reaches the sidebar through `navItems` and `moduleText`,
+   * neither of which is a component, so nothing else here would notice if the
+   * registry started handing back English again.
+   */
+  test('names the modules in the reader’s language', () => {
+    location.pathname = '/g/me-alice/recipes'
+    renderWithI18n(<Sidebar />, { locale: 'nl' })
+
+    const nav = screen.getByRole('navigation', { name: 'Hoofdnavigatie' })
+    expect(within(nav).getByRole('link', { name: 'Recepten' })).toBeDefined()
+    expect(within(nav).getByRole('link', { name: 'Taken' })).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Instellingen' })).toBeDefined()
+  })
+
   test('and Settings still means yours, wherever you are standing', () => {
     location.pathname = '/g/me-alice/recipes'
-    render(<Sidebar />)
+    renderWithI18n(<Sidebar />)
 
     expect(
       screen.getByRole('link', { name: 'Settings' }).getAttribute('href'),
@@ -151,7 +167,7 @@ describe('the sidebar off any Group route', () => {
 
   test('says nothing about preview data any more', () => {
     location.pathname = '/g/me-alice/recipes'
-    const { container } = render(<Sidebar />)
+    const { container } = renderWithI18n(<Sidebar />)
 
     // The footer used to be a card headed "Preview group" promising that group
     // and member details would appear once connected. Home keeps that promise
@@ -173,7 +189,7 @@ describe('the sidebar off any Group route', () => {
 describe('which item claims to be the page you are on', () => {
   test('the dock lights the Module, not Home above it', () => {
     location.pathname = '/g/me-alice/tasks'
-    render(<MobileDock />)
+    renderWithI18n(<MobileDock />)
 
     const current = screen.getAllByRole('link', { current: 'page' })
     expect(current.map((el) => el.textContent)).toEqual(['Tasks'])
@@ -181,7 +197,7 @@ describe('which item claims to be the page you are on', () => {
 
   test('the sidebar agrees, attribute and all', () => {
     location.pathname = '/g/me-alice/tasks'
-    render(<Sidebar />)
+    renderWithI18n(<Sidebar />)
 
     const current = screen.getAllByRole('link', { current: 'page' })
     expect(current.map((el) => el.textContent)).toEqual(['Tasks'])
@@ -191,7 +207,7 @@ describe('which item claims to be the page you are on', () => {
     // `/recipes/<id>` is Recipes, which only `activeNavItemId` knows — the
     // router sees a link to `/recipes` that is not this page.
     location.pathname = '/g/me-alice/recipes/rec_1'
-    render(<MobileDock />)
+    renderWithI18n(<MobileDock />)
 
     const current = screen.getAllByRole('link', { current: 'page' })
     expect(current.map((el) => el.textContent)).toEqual(['Recipes'])
@@ -199,7 +215,7 @@ describe('which item claims to be the page you are on', () => {
 
   test('Home is lit on Home, and only there', () => {
     location.pathname = '/g/me-alice'
-    render(<MobileDock />)
+    renderWithI18n(<MobileDock />)
 
     const current = screen.getAllByRole('link', { current: 'page' })
     expect(current.map((el) => el.textContent)).toEqual(['Home'])
@@ -208,14 +224,14 @@ describe('which item claims to be the page you are on', () => {
 
 describe('the mobile dock with no Group ever visited', () => {
   test('is not there at all, rather than an empty bar', () => {
-    const { container } = render(<MobileDock />)
+    const { container } = renderWithI18n(<MobileDock />)
 
     expect(container.firstChild).toBeNull()
   })
 
   test('comes back inside a Group', () => {
     location.pathname = '/g/me-alice/recipes'
-    render(<MobileDock />)
+    renderWithI18n(<MobileDock />)
 
     expect(
       screen.getByRole('navigation', { name: 'Mobile navigation' }),
@@ -239,7 +255,7 @@ describe('stepping out of a Group and back', () => {
     // Standing in a Group first is what gives the shell something to remember;
     // the rerender is the navigation to a slugless route.
     location.pathname = '/g/me-alice/recipes'
-    const view = render(<ShellGroupProvider>{ui()}</ShellGroupProvider>)
+    const view = renderWithI18n(<ShellGroupProvider>{ui()}</ShellGroupProvider>)
     location.pathname = '/groups'
     view.rerender(<ShellGroupProvider>{ui()}</ShellGroupProvider>)
     return view

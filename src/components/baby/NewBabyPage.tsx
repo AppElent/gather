@@ -4,6 +4,7 @@ import { ConvexError } from 'convex/values'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { useMessages } from '../../lib/i18n'
 import { ImageUploadField } from '../app/ImageUploadField'
 import { BabyForm, type BabyFormValues } from './BabyForm'
 import type { BabyNav } from './babyNav'
@@ -28,10 +29,11 @@ export function NewBabyPage({ groupSlug, nav }: NewBabyPageProps) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [photoId, setPhotoId] = useState<Id<'_storage'> | undefined>()
+  const { form } = useMessages().baby.log
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-2xl font-semibold">Add a child</h1>
+      <h1 className="mb-6 text-2xl font-semibold">{form.createTitle}</h1>
 
       {error && (
         <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -60,10 +62,10 @@ export function NewBabyPage({ groupSlug, nav }: NewBabyPageProps) {
               err instanceof ConvexError
                 ? typeof err.data === 'string'
                   ? err.data
-                  : 'Could not save that child'
+                  : form.saveFailed
                 : err instanceof Error
                   ? err.message
-                  : 'Could not save that child',
+                  : form.saveFailed,
             )
             setSubmitting(false)
           }

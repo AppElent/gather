@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
 import { groupNutritionNav } from './nutritionNav'
 
@@ -46,7 +47,7 @@ const entry = {
 }
 
 test('renders label, quantity, unit, and calories', () => {
-  render(
+  renderWithI18n(
     <ConsumptionEntryRow
       nav={nav}
       entry={entry}
@@ -61,7 +62,7 @@ test('renders label, quantity, unit, and calories', () => {
 
 test('clicking Delete calls onDelete', () => {
   const onDelete = vi.fn()
-  render(
+  renderWithI18n(
     <ConsumptionEntryRow
       nav={nav}
       entry={entry}
@@ -74,7 +75,7 @@ test('clicking Delete calls onDelete', () => {
 })
 
 test('shows no source link for a quick-add entry (no recipeId or foodId)', () => {
-  render(
+  renderWithI18n(
     <ConsumptionEntryRow
       nav={nav}
       entry={entry}
@@ -87,7 +88,7 @@ test('shows no source link for a quick-add entry (no recipeId or foodId)', () =>
 })
 
 test('shows a View recipe link when recipeId is set', () => {
-  render(
+  renderWithI18n(
     <ConsumptionEntryRow
       nav={nav}
       entry={{ ...entry, recipeId: 'recipe1' }}
@@ -103,7 +104,7 @@ test('shows a View recipe link when recipeId is set', () => {
 })
 
 test('shows a View food link when foodId is set', () => {
-  render(
+  renderWithI18n(
     <ConsumptionEntryRow
       nav={nav}
       entry={{ ...entry, foodId: 'food1' }}
@@ -120,7 +121,7 @@ test('shows a View food link when foodId is set', () => {
 
 test('editing quantity and saving calls onUpdate with the new quantity, current meal and date', async () => {
   const onUpdate = vi.fn().mockResolvedValue(undefined)
-  render(
+  renderWithI18n(
     <ConsumptionEntryRow
       nav={nav}
       entry={entry}
@@ -142,7 +143,7 @@ test('editing quantity and saving calls onUpdate with the new quantity, current 
 
 test('a failed save keeps the row in edit mode and shows an error', async () => {
   const onUpdate = vi.fn().mockRejectedValue(new Error('Network error'))
-  render(
+  renderWithI18n(
     <ConsumptionEntryRow
       nav={nav}
       entry={entry}
@@ -158,7 +159,7 @@ test('a failed save keeps the row in edit mode and shows an error', async () => 
 
 test('an invalid quantity does not call onUpdate', () => {
   const onUpdate = vi.fn()
-  render(
+  renderWithI18n(
     <ConsumptionEntryRow
       nav={nav}
       entry={entry}

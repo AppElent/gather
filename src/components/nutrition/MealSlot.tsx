@@ -1,4 +1,5 @@
 import type { MealName } from '../../../convex/lib/consumption'
+import { useMessages } from '../../lib/i18n'
 import type { ConsumptionEntryData } from './ConsumptionEntryRow'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
 import type { NutritionNav } from './nutritionNav'
@@ -23,16 +24,18 @@ export function MealSlot({
   onUpdateEntry,
   onDeleteEntry,
 }: Props) {
+  const { slot } = useMessages().nutrition.diary
+
   return (
     <section className="mb-4 rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-medium">{label}</h2>
         <button type="button" onClick={onAdd} className="text-sm underline">
-          + Add
+          {slot.add}
         </button>
       </div>
       {entries.length === 0 ? (
-        <p className="text-sm opacity-60">Nothing logged yet.</p>
+        <p className="text-sm opacity-60">{slot.empty}</p>
       ) : (
         <ul className="divide-y divide-[var(--app-border)]">
           {entries.map((entry) => (

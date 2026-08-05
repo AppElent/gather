@@ -1,3 +1,6 @@
+import { fmt, plural } from './i18n'
+import type { Messages } from './i18n/messages/en'
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 /** Whole months between `birth` and `now` (0 if `now` is before `birth`). */
@@ -10,25 +13,33 @@ function monthsBetween(birth: Date, now: Date): number {
 }
 
 /** Age as of `atMs` (defaults to now), e.g. "5 days old", "3 months old". */
+export type AgeMessages = Messages['baby']['log']['child']['age']
+
+/**
+ * How old the child is, in the largest unit that still says something useful.
+ *
+ * The words and the locale come in as arguments: this is a plain function the
+ * PDF export calls too, and English's one/other plural is not every language's
+ * (ADR-0011).
+ */
 export function formatAge(
   birthDate: string,
+  m: AgeMessages,
+  locale: string,
   atMs: number = Date.now(),
 ): string {
   const birth = new Date(`${birthDate}T00:00:00`)
   const now = new Date(atMs)
   const days = Math.max(0, Math.floor((atMs - birth.getTime()) / MS_PER_DAY))
-  if (days < 14) return `${days} day${days === 1 ? '' : 's'} old`
-  if (days < 60) {
-    const weeks = Math.floor(days / 7)
-    return `${weeks} week${weeks === 1 ? '' : 's'} old`
-  }
+  if (days < 14) return plural(locale, days, m.days)
+  if (days < 60) return plural(locale, Math.floor(days / 7), m.weeks)
   const months = monthsBetween(birth, now)
-  if (months < 24) return `${months} month${months === 1 ? '' : 's'} old`
+  if (months < 24) return plural(locale, months, m.months)
   const years = Math.floor(months / 12)
   const remMonths = months % 12
   return remMonths === 0
-    ? `${years} year${years === 1 ? '' : 's'} old`
-    : `${years}y ${remMonths}m old`
+    ? plural(locale, years, m.years)
+    : fmt(m.yearsMonths, { years, months: remMonths })
 }
 
 // `<input type="datetime-local">` renders unpredictably wide on mobile
@@ -55,8 +66,8 @@ export function combineDateTime(dateStr: string, timeStr: string): number {
   return new Date(`${dateStr}T${timeStr || '00:00'}`).getTime()
 }
 
-export function formatEventTimestamp(ms: number): string {
-  return new Date(ms).toLocaleString(undefined, {
+export function formatEventTimestamp(ms: number, locale: string): string {
+  return new Date(ms).toLocaleString(locale, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -65,8 +76,8 @@ export function formatEventTimestamp(ms: number): string {
   })
 }
 
-export function formatEventDateHeading(ms: number): string {
-  return new Date(ms).toLocaleDateString(undefined, {
+export function formatEventDateHeading(ms: number, locale: string): string {
+  return new Date(ms).toLocaleDateString(locale, {
     weekday: 'long',
     month: 'long',
     day: 'numeric',

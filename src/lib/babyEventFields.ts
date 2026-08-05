@@ -11,31 +11,22 @@ export const TEMPERATURE_OPTIONS: string[] = Array.from(
   (_, i) => (34 + i * 0.1).toFixed(1),
 )
 
-export const TEMPERATURE_METHOD_LABELS: Record<string, string> = {
-  oral: 'Oral',
-  rectal: 'Rectal',
-  axillary: 'Armpit',
-  ear: 'Ear',
-  forehead: 'Forehead',
-}
+// The option *labels* — how a temperature was taken, which side a feed was
+// on, what was in the diaper — used to live here as four records. They are
+// read by a person, so they are translated, and they now live under
+// `baby.log.options` in each locale's `baby.ts` (ADR-0011). The keys they are
+// stored under are unchanged and remain the schema's business.
 
-export const FEEDING_METHOD_LABELS: Record<string, string> = {
-  breast: 'Breastfeeding',
-  bottle: 'Bottle',
-  solid: 'Solid food',
-}
-
-export const FEEDING_SIDE_LABELS: Record<string, string> = {
-  left: 'Left',
-  right: 'Right',
-  both: 'Both',
-}
-
-export const DIAPER_KIND_LABELS: Record<string, string> = {
-  wet: 'Wet',
-  dirty: 'Dirty',
-  both: 'Both',
-}
+/** The option keys, in the order the selects offer them. */
+export const TEMPERATURE_METHODS = [
+  'oral',
+  'rectal',
+  'axillary',
+  'ear',
+  'forehead',
+] as const
+export const FEEDING_METHODS = ['breast', 'bottle', 'solid'] as const
+export const DIAPER_KINDS = ['wet', 'dirty', 'both'] as const
 
 export const EVENT_TYPE_ICONS: Record<string, string> = {
   temperature: 'Thermometer',

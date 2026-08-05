@@ -12,6 +12,7 @@ import type {
   OffMappedFood,
   OffSearchResult,
 } from '../../../convex/lib/offMapping'
+import { fmt, useMessages } from '../../lib/i18n'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
 import type { NutritionNav } from './nutritionNav'
 
@@ -56,7 +57,11 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
   const [lookupError, setLookupError] = useState<string | null>(null)
   const [offResults, setOffResults] = useState<OffSearchResult[] | null>(null)
   const [offSearching, setOffSearching] = useState(false)
-  const [offSearchError, setOffSearchError] = useState<string | null>(null)
+  // Keys, not sentences — see BarcodeScanner: a message read inside the search
+  // effect would make the effect depend on the locale.
+  const [offSearchError, setOffSearchError] = useState<
+    'searchFailed' | 'addFailed' | null
+  >(null)
   const offSearchedTermRef = useRef<string | null>(null)
   // Cache each term's OFF results for the component's lifetime (retyping the
   // same term costs nothing) and never fire two OFF calls closer together
@@ -75,6 +80,8 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
   const searchByName = useAction(api.foodsLookup.searchByName)
   const upsertFromOff = useMutation(api.foods.upsertFromOff)
   const createEntry = useMutation(api.consumption.create)
+  const messages = useMessages()
+  const { foodAdd } = messages.nutrition.diary
 
   // A name-search hit's barcode may already have a local row that the name
   // search itself didn't surface (searched by brand, an alternate-language
@@ -123,7 +130,7 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
       }
       await saveOffMatch(mapped, barcode)
     } catch {
-      setLookupError("Couldn't look up that barcode — try again.")
+      setLookupError(foodAdd.barcodeFailed)
     } finally {
       setResolving(false)
     }
@@ -134,7 +141,7 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
     try {
       await saveOffMatch(result, result.barcode)
     } catch {
-      setOffSearchError("Couldn't add that item — try again.")
+      setOffSearchError('addFailed')
     }
   }
 
@@ -176,7 +183,7 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
         })
         .catch(() => {
           if (offSearchedTermRef.current !== term) return
-          setOffSearchError("Couldn't search Open Food Facts.")
+          setOffSearchError('searchFailed')
         })
         .finally(() => {
           if (offSearchedTermRef.current !== term) return
@@ -217,8 +224,10 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
             <option value={selected.baseUnit}>{selected.baseUnit}</option>
             {selected.servingSize !== undefined && (
               <option value="piece">
-                piece ({selected.servingSize}
-                {selected.baseUnit})
+                {fmt(foodAdd.pieceOf, {
+                  size: selected.servingSize,
+                  unit: selected.baseUnit,
+                })}
               </option>
             )}
           </select>
@@ -234,7 +243,7 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
             onClick={() => setSelected(null)}
             className="rounded border px-2 py-1 text-xs"
           >
-            Back
+            {messages.common.actions.back}
           </button>
           <button
             type="button"
@@ -261,9 +270,7 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
                 onAdded()
               } catch (err) {
                 setSubmitError(
-                  err instanceof Error
-                    ? err.message
-                    : 'Could not log this food',
+                  err instanceof Error ? err.message : foodAdd.logFailed,
                 )
               } finally {
                 setSubmitting(false)
@@ -271,7 +278,7 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
             }}
             className="rounded border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 py-1 text-xs font-semibold text-[var(--app-surface)] disabled:opacity-60"
           >
-            Add
+            {messages.common.actions.add}
           </button>
         </div>
       </div>
@@ -281,22 +288,22 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
   return (
     <div className="grid gap-3">
       <BarcodeScanner onDetected={handleDetected} />
-      {resolving && <p className="text-xs opacity-60">Looking up…</p>}
+      {resolving && <p className="text-xs opacity-60">{foodAdd.lookingUp}</p>}
       {lookupError && <p className="text-xs text-red-700">{lookupError}</p>}
       {notFoundBarcode && (
         <p className="text-xs opacity-60">
-          Not found.{' '}
+          {foodAdd.notFound}{' '}
           <Link {...nav.createFood(notFoundBarcode)} className="underline">
-            Add it to the foods library
+            {foodAdd.addToLibrary}
           </Link>{' '}
-          first.
+          {foodAdd.addToLibraryAfter}
         </p>
       )}
       <input
         className="w-full rounded border border-[var(--app-border)] px-2 py-1 text-sm"
         value={term}
         onChange={(e) => setTerm(e.target.value)}
-        placeholder="Search foods…"
+        placeholder={foodAdd.searchPlaceholder}
       />
       <ul className="max-h-48 divide-y divide-[var(--app-border)] overflow-y-auto">
         {results?.map((food) => (
@@ -318,14 +325,14 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
         ))}
       </ul>
       {offSearching && (
-        <p className="text-xs opacity-60">Searching Open Food Facts…</p>
+        <p className="text-xs opacity-60">{foodAdd.searching}</p>
       )}
       {offSearchError && (
-        <p className="text-xs text-red-700">{offSearchError}</p>
+        <p className="text-xs text-red-700">{foodAdd[offSearchError]}</p>
       )}
       {offResults && offResults.length > 0 && (
         <div className="grid gap-1">
-          <p className="text-xs font-medium opacity-60">From Open Food Facts</p>
+          <p className="text-xs font-medium opacity-60">{foodAdd.fromOff}</p>
           <ul className="max-h-48 divide-y divide-[var(--app-border)] overflow-y-auto">
             {offResults.map((result) => (
               <li key={result.barcode}>
@@ -342,7 +349,9 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
                   </span>
                   {result.nutritionPer100.calories !== undefined && (
                     <span className="shrink-0 text-xs opacity-60">
-                      {Math.round(result.nutritionPer100.calories)} kcal/100g
+                      {fmt(foodAdd.perHundred, {
+                        calories: Math.round(result.nutritionPer100.calories),
+                      })}
                     </span>
                   )}
                 </button>
@@ -350,16 +359,16 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
             ))}
           </ul>
           <p className="text-xs opacity-60">
-            Data from{' '}
+            {messages.foods.detail.dataFrom}{' '}
             <a
               href="https://world.openfoodfacts.org"
               target="_blank"
               rel="noreferrer"
               className="underline"
             >
-              Open Food Facts
+              {messages.foods.detail.openFoodFacts}
             </a>{' '}
-            (ODbL).
+            {messages.foods.detail.odbl}
           </p>
         </div>
       )}

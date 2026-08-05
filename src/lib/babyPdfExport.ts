@@ -2,17 +2,20 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { Doc } from '../../convex/_generated/dataModel'
 import type { BabyEventType } from '../../convex/lib/babyEvents'
-import {
-  BABY_EVENT_LABELS,
-  BABY_EVENT_TYPES,
-} from '../../convex/lib/babyEvents'
+import { BABY_EVENT_TYPES } from '../../convex/lib/babyEvents'
 import { formatAge } from './babyDate'
+import type { BabySummaryMessages } from './babyEventSummary'
 import { summarizeEvent } from './babyEventSummary'
+import { fmt } from './i18n'
 
 export type BabyPdfLayout = 'category' | 'chronological'
 
 export interface BabyPdfExportOptions {
   baby: { name: string; birthDate: string }
+  /** The Baby log's words, and the locale to format dates in (ADR-0011). */
+  messages: BabySummaryMessages
+  eventTypes: Record<BabyEventType, string>
+  locale: string
   events: Doc<'babyEvents'>[]
   from: number
   to: number
@@ -74,13 +77,18 @@ function drawHeader(
   baby: { name: string; birthDate: string },
   from: number,
   to: number,
+  m: BabySummaryMessages,
+  locale: string,
 ) {
   doc.setFontSize(16)
-  doc.text(`${baby.name} — baby log`, 14, 18)
+  doc.text(fmt(m.pdf.title, { name: baby.name }), 14, 18)
   doc.setFontSize(10)
   doc.setTextColor(90)
   doc.text(
-    `Born ${new Date(`${baby.birthDate}T00:00:00`).toLocaleDateString()} · ${formatAge(baby.birthDate, to)}`,
+    fmt(m.pdf.born, {
+      date: new Date(`${baby.birthDate}T00:00:00`).toLocaleDateString(locale),
+      age: formatAge(baby.birthDate, m.child.age, locale, to),
+    }),
     14,
     25,
   )
@@ -93,6 +101,8 @@ function drawByCategory(
   doc: jsPDF,
   events: Doc<'babyEvents'>[],
   included: BabyEventType[],
+  m: BabySummaryMessages,
+  eventTypes: Record<BabyEventType, string>,
 ): boolean {
   let cursorY = 40
   let printedAny = false
@@ -110,15 +120,22 @@ function drawByCategory(
     }
 
     doc.setFontSize(12)
-    doc.text(BABY_EVENT_LABELS[type], 14, cursorY)
+    doc.text(eventTypes[type], 14, cursorY)
 
     autoTable(doc, {
       startY: cursorY + 3,
-      head: [['Date', 'Time', 'Details', 'Notes']],
+      head: [
+        [
+          m.pdf.columnDate,
+          m.pdf.columnTime,
+          m.pdf.columnDetails,
+          m.pdf.columnNotes,
+        ],
+      ],
       body: rows.map((e) => [
         formatDate(e.timestamp),
         formatTime(e.timestamp),
-        summarizeEvent(e),
+        summarizeEvent(e, m),
         e.notes ?? '',
       ]),
       ...TABLE_STYLES,
@@ -138,25 +155,34 @@ function drawChronological(
   doc: jsPDF,
   events: Doc<'babyEvents'>[],
   included: BabyEventType[],
+  m: BabySummaryMessages,
+  eventTypes: Record<BabyEventType, string>,
 ): boolean {
   const groups = groupEventsByMinute(events, included)
   if (groups.length === 0) return false
 
   autoTable(doc, {
     startY: 40,
-    head: [['Date', 'Time', 'Entries', 'Notes']],
+    head: [
+      [
+        m.pdf.columnDate,
+        m.pdf.columnTime,
+        m.pdf.columnEntries,
+        m.pdf.columnNotes,
+      ],
+    ],
     body: groups.map((group) => [
       formatDate(group.minuteMs),
       formatTime(group.minuteMs),
       group.events
-        .map((e) => `${BABY_EVENT_LABELS[e.type]}: ${summarizeEvent(e)}`)
+        .map((e) => `${eventTypes[e.type]}: ${summarizeEvent(e, m)}`)
         .join('\n'),
       group.events
         .filter((e) => e.notes)
         .map((e) =>
           // Only worth labelling whose note it is when the row holds several.
           group.events.length > 1
-            ? `${BABY_EVENT_LABELS[e.type]}: ${e.notes}`
+            ? `${eventTypes[e.type]}: ${e.notes}`
             : e.notes,
         )
         .join('\n'),
@@ -171,6 +197,9 @@ function drawChronological(
  * see the Baby log module plan). */
 export function exportBabyLogPdf({
   baby,
+  messages: m,
+  eventTypes,
+  locale,
   events,
   from,
   to,
@@ -180,19 +209,21 @@ export function exportBabyLogPdf({
   const included = types ?? [...BABY_EVENT_TYPES]
   const doc = new jsPDF()
 
-  drawHeader(doc, baby, from, to)
+  drawHeader(doc, baby, from, to, m, locale)
 
   const printedAny =
     layout === 'chronological'
-      ? drawChronological(doc, events, included)
-      : drawByCategory(doc, events, included)
+      ? drawChronological(doc, events, included, m, eventTypes)
+      : drawByCategory(doc, events, included, m, eventTypes)
 
   if (!printedAny) {
     doc.setFontSize(11)
-    doc.text('No entries in this date range.', 14, 40)
+    doc.text(m.pdf.empty, 14, 40)
   }
 
   const dateStamp = new Date(to).toISOString().slice(0, 10)
-  const safeName = baby.name.trim().replace(/\s+/g, '-').toLowerCase() || 'baby'
+  const safeName =
+    baby.name.trim().replace(/\s+/g, '-').toLowerCase() ||
+    m.pdf.fileNameFallback
   doc.save(`${safeName}-log-${dateStamp}.pdf`)
 }

@@ -27,11 +27,16 @@ import type { PhotoPreset } from './photoPresets'
  */
 export const PREPARED_PHOTO_TYPE = 'image/jpeg'
 
-/** Sentences a person is meant to read, not diagnostics. */
-export const PHOTO_DECODE_ERROR =
-  'That image could not be opened in this browser. Try saving it as a JPEG and choosing it again.'
-export const PHOTO_PREPARE_ERROR =
-  'That image could not be prepared. Try a smaller photo, or save it as a JPEG and choose it again.'
+/**
+ * Why preparing gave up, as a code rather than a sentence.
+ *
+ * These are thrown from a plain module that has no locale to write a sentence
+ * in, and the dialog that catches them does — so it maps them to
+ * `common.image.*` and shows the words (ADR-0011). An error from anywhere else
+ * still surfaces its own message.
+ */
+export const PHOTO_DECODE_ERROR = 'photo-decode-failed'
+export const PHOTO_PREPARE_ERROR = 'photo-prepare-failed'
 
 /**
  * A decoded image, upright, with the dimensions the person frames against.

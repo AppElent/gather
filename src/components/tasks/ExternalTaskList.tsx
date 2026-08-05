@@ -6,6 +6,7 @@ import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { UnifiedTask } from '../../../convex/lib/taskProviders/types'
 import { groupLink } from '../../lib/groupPaths'
+import { fmt, useMessages } from '../../lib/i18n'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import { TaskRow } from './TaskRow'
 
@@ -35,15 +36,17 @@ export function ExternalTaskList({
 }: ExternalTaskListProps) {
   const getTasks = useAction(api.taskLists.getTasks)
   const [state, setState] = useState<LoadState>({ status: 'loading' })
+  const messages = useMessages()
+  const { external } = messages.tasks
 
   const load = useCallback(async () => {
     setState({ status: 'loading' })
     try {
       setState(await getTasks({ listId, groupSlug }))
     } catch {
-      setState({ status: 'error', message: 'Could not load this list.' })
+      setState({ status: 'error', message: external.loadFailed })
     }
-  }, [getTasks, listId, groupSlug])
+  }, [getTasks, listId, groupSlug, external.loadFailed])
 
   useEffect(() => {
     void load()
@@ -57,7 +60,7 @@ export function ExternalTaskList({
           <Pill>{PROVIDER_LABELS[provider]}</Pill>
           <button
             type="button"
-            aria-label={`Refresh ${name}`}
+            aria-label={fmt(external.refresh, { name })}
             className="inline-flex items-center text-[var(--app-muted)]"
             onClick={() => void load()}
             disabled={state.status === 'loading'}
@@ -66,7 +69,7 @@ export function ExternalTaskList({
           </button>
           <button
             type="button"
-            aria-label={`Delete list ${name}`}
+            aria-label={fmt(messages.tasks.local.deleteList, { name })}
             className="inline-flex items-center text-[var(--app-muted)]"
             onClick={onRemoveList}
           >
@@ -87,12 +90,13 @@ export function ExternalTaskList({
       )}
       {state.status === 'reconnect' && (
         <p className="m-0 text-sm text-[var(--app-muted)]">
-          The {PROVIDER_LABELS[state.provider]} connection needs to be
-          reconnected.{' '}
+          {fmt(external.reconnect, {
+            provider: PROVIDER_LABELS[state.provider],
+          })}{' '}
           {/* The connection belongs to this Group, so the page that can fix it
               is this Group's settings and not the reader's own. */}
           <Link {...groupLink('settings', groupSlug)} className="font-semibold">
-            Go to group settings
+            {external.goToSettings}
           </Link>
         </p>
       )}
@@ -104,14 +108,14 @@ export function ExternalTaskList({
             className="font-semibold"
             onClick={() => void load()}
           >
-            Retry
+            {messages.common.actions.retry}
           </button>
         </p>
       )}
       {state.status === 'ok' &&
         (state.tasks.length === 0 ? (
           <p className="m-0 text-sm text-[var(--app-muted)]">
-            No open tasks in this {PROVIDER_LABELS[provider]} list.
+            {fmt(external.empty, { provider: PROVIDER_LABELS[provider] })}
           </p>
         ) : (
           state.tasks.map((t) => <TaskRow key={t.externalId} task={t} />)

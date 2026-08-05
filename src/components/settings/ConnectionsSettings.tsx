@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { errorMessage } from '../../lib/errorMessage'
 import { groupHref } from '../../lib/groupPaths'
+import { fmt, useMessages } from '../../lib/i18n'
 import {
   type ExternalProvider,
   newOAuthState,
@@ -57,6 +58,7 @@ export function ConnectionsSettings({
   groupName,
 }: ConnectionsSettingsProps) {
   const connections = useQuery(api.integrations.listConnections, { groupSlug })
+  const { connections: connectionsText } = useMessages().settings
   const disconnect = useMutation(api.integrations.disconnect)
   const connect = useConnectProvider(
     groupSlug,
@@ -73,16 +75,17 @@ export function ConnectionsSettings({
       await connect(provider)
     } catch (e) {
       setBusy(null)
-      setError(errorMessage(e, 'Could not start the connection — try again.'))
+      setError(errorMessage(e, connectionsText.startFailed))
     }
   }
 
   return (
     <SurfaceCard>
-      <h2 className="m-0 mb-1 text-base font-semibold">Connections</h2>
+      <h2 className="m-0 mb-1 text-base font-semibold">
+        {connectionsText.title}
+      </h2>
       <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
-        Connect an external app for {groupName}. Every member of {groupName} can
-        use it — Tasks can mirror a list from it — and nobody outside can.
+        {fmt(connectionsText.intro, { group: groupName })}
       </p>
       {error && <p className="m-0 mb-2 text-sm text-red-600">{error}</p>}
       <ul className="m-0 grid list-none gap-2 p-0">
@@ -97,8 +100,11 @@ export function ConnectionsSettings({
                 <span className="text-sm font-semibold">{p.label}</span>
                 <p className="m-0 text-xs text-[var(--app-muted)]">
                   {conn
-                    ? `${conn.accountLabel} — connected by ${conn.connectedByName}`
-                    : 'Not connected'}
+                    ? fmt(connectionsText.connectedBy, {
+                        account: conn.accountLabel,
+                        name: conn.connectedByName,
+                      })
+                    : connectionsText.notConnected}
                 </p>
               </div>
               {conn ? (
@@ -107,16 +113,21 @@ export function ConnectionsSettings({
                   className={buttonClass}
                   onClick={() =>
                     confirm({
-                      title: `Disconnect ${p.label} from ${groupName}?`,
-                      body: 'Linked lists stop loading until it is reconnected.',
-                      confirmLabel: 'Disconnect',
-                      errorFallback: `Could not disconnect ${p.label}.`,
+                      title: fmt(connectionsText.disconnectTitle, {
+                        provider: p.label,
+                        group: groupName,
+                      }),
+                      body: connectionsText.disconnectBody,
+                      confirmLabel: connectionsText.disconnect,
+                      errorFallback: fmt(connectionsText.disconnectFailed, {
+                        provider: p.label,
+                      }),
                       run: () =>
                         disconnect({ connectionId: conn._id, groupSlug }),
                     })
                   }
                 >
-                  Disconnect
+                  {connectionsText.disconnect}
                 </button>
               ) : (
                 <button
@@ -125,7 +136,9 @@ export function ConnectionsSettings({
                   disabled={busy === p.id}
                   onClick={() => void onConnect(p.id)}
                 >
-                  {busy === p.id ? 'Opening…' : 'Connect'}
+                  {busy === p.id
+                    ? connectionsText.opening
+                    : connectionsText.connect}
                 </button>
               )}
             </li>

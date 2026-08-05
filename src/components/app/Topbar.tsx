@@ -1,6 +1,8 @@
 import { HeaderUser } from '@appelent/auth'
 import { Bug, Menu, MessageSquare, Search } from 'lucide-react'
 import type { RouteContext } from '../../lib/appNavigation'
+import { useMessages } from '../../lib/i18n'
+import { LanguageToggle } from './LanguageToggle'
 import { IconButton } from './ShellPrimitives'
 
 export interface TopbarProps {
@@ -17,11 +19,13 @@ export function Topbar({
   onOpenNavigation,
   onOpenGather,
 }: TopbarProps) {
+  const { topbar } = useMessages().shell
+
   return (
     <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b border-[var(--app-border)] bg-[color-mix(in_oklch,var(--app-bg)_86%,transparent)] px-3 backdrop-blur md:min-h-[72px] md:px-5">
       <div className="flex min-w-0 items-center gap-3">
         <IconButton
-          label="Open navigation"
+          label={topbar.openNavigation}
           onClick={onOpenNavigation}
           className="md:hidden"
         >
@@ -45,7 +49,7 @@ export function Topbar({
 
       <div className="flex shrink-0 items-center gap-2">
         <IconButton
-          label="Jump to"
+          label={topbar.jumpTo}
           onClick={() => {
             window.dispatchEvent(
               new KeyboardEvent('keydown', { key: 'k', metaKey: true }),
@@ -54,11 +58,11 @@ export function Topbar({
         >
           <Search className="h-4 w-4" aria-hidden="true" />
         </IconButton>
-        <IconButton label="Ask Gather" onClick={onOpenGather}>
+        <IconButton label={topbar.askGather} onClick={onOpenGather}>
           <MessageSquare className="h-4 w-4" aria-hidden="true" />
         </IconButton>
         <IconButton
-          label="Report an issue"
+          label={topbar.reportIssue}
           onClick={() => {
             window.dispatchEvent(
               new KeyboardEvent('keydown', {
@@ -71,6 +75,7 @@ export function Topbar({
         >
           <Bug className="h-4 w-4" aria-hidden="true" />
         </IconButton>
+        <LanguageToggle />
         <HeaderUser />
       </div>
     </header>

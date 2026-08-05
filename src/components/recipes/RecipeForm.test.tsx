@@ -1,11 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { ConvexError } from 'convex/values'
 import { expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { RecipeForm } from './RecipeForm'
 
 test('submits title and newline-split ingredients/steps', () => {
   const onSubmit = vi.fn()
-  render(<RecipeForm onSubmit={onSubmit} submitting={false} />)
+  renderWithI18n(<RecipeForm onSubmit={onSubmit} submitting={false} />)
 
   fireEvent.change(screen.getByLabelText('Title'), {
     target: { value: 'Pasta' },
@@ -30,7 +31,7 @@ test('submits title and newline-split ingredients/steps', () => {
 
 test('star rating can be set and submitted', () => {
   const onSubmit = vi.fn()
-  render(<RecipeForm onSubmit={onSubmit} submitting={false} />)
+  renderWithI18n(<RecipeForm onSubmit={onSubmit} submitting={false} />)
 
   fireEvent.change(screen.getByLabelText('Title'), {
     target: { value: 'Pasta' },
@@ -43,7 +44,7 @@ test('star rating can be set and submitted', () => {
 
 test('submits typed nutrition as manual source', () => {
   const onSubmit = vi.fn()
-  render(<RecipeForm onSubmit={onSubmit} submitting={false} />)
+  renderWithI18n(<RecipeForm onSubmit={onSubmit} submitting={false} />)
 
   fireEvent.change(screen.getByLabelText('Title'), {
     target: { value: 'Pasta' },
@@ -70,7 +71,7 @@ test('submits typed nutrition as manual source', () => {
 
 test('omits nutrition when all nutrient fields are empty', () => {
   const onSubmit = vi.fn()
-  render(<RecipeForm onSubmit={onSubmit} submitting={false} />)
+  renderWithI18n(<RecipeForm onSubmit={onSubmit} submitting={false} />)
 
   fireEvent.change(screen.getByLabelText('Title'), {
     target: { value: 'Pasta' },
@@ -87,7 +88,7 @@ test('omits nutrition when all nutrient fields are empty', () => {
 
 test('keeps the imported source when prefilled nutrition is untouched', () => {
   const onSubmit = vi.fn()
-  render(
+  renderWithI18n(
     <RecipeForm
       onSubmit={onSubmit}
       submitting={false}
@@ -113,7 +114,7 @@ test('keeps the imported source when prefilled nutrition is untouched', () => {
 test('estimate button fills nutrition and submits ai source', async () => {
   const onSubmit = vi.fn()
   const onEstimate = vi.fn().mockResolvedValue({ calories: 300, fat: 10 })
-  render(
+  renderWithI18n(
     <RecipeForm
       onSubmit={onSubmit}
       submitting={false}
@@ -154,7 +155,7 @@ test('surfaces the ConvexError friendly data string on estimate failure', async 
     '[CONVEX A(recipeNutrition:estimateNutrition)] Uncaught ConvexError: ' +
     "Couldn't estimate nutrition — try entering it manually.\n  Called by client"
   const onEstimate = vi.fn().mockRejectedValue(err)
-  render(
+  renderWithI18n(
     <RecipeForm
       onSubmit={onSubmit}
       submitting={false}
@@ -183,7 +184,7 @@ test('disables nutrition inputs while an estimate is in flight', async () => {
         resolveEstimate = resolve
       }),
   )
-  render(
+  renderWithI18n(
     <RecipeForm
       onSubmit={onSubmit}
       submitting={false}
@@ -209,14 +210,14 @@ test('disables nutrition inputs while an estimate is in flight', async () => {
 })
 
 test('hides the estimate button when onEstimate is not provided', () => {
-  render(<RecipeForm onSubmit={vi.fn()} submitting={false} />)
+  renderWithI18n(<RecipeForm onSubmit={vi.fn()} submitting={false} />)
   expect(screen.queryByRole('button', { name: /estimate/i })).toBeNull()
 })
 
 // The destination is a claim about where a save lands, so it is asserted as
 // text a person would read rather than as a prop that was passed.
 test('names the group a save will land in', () => {
-  render(
+  renderWithI18n(
     <RecipeForm
       onSubmit={vi.fn()}
       submitting={false}
@@ -234,7 +235,7 @@ test('names the group a save will land in', () => {
 })
 
 test('says so when the group was chosen rather than asked for', () => {
-  render(
+  renderWithI18n(
     <RecipeForm
       onSubmit={vi.fn()}
       submitting={false}
@@ -252,6 +253,6 @@ test('says so when the group was chosen rather than asked for', () => {
 })
 
 test('says nothing about a destination when there is none to move', () => {
-  render(<RecipeForm onSubmit={vi.fn()} submitting={false} />)
+  renderWithI18n(<RecipeForm onSubmit={vi.fn()} submitting={false} />)
   expect(screen.queryByText(/adding to/i)).toBeNull()
 })

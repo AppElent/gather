@@ -1,6 +1,5 @@
 import { v } from 'convex/values'
 import { requireGroupBySlug } from './lib/groupAccess'
-import { BABY_EVENT_LABELS } from './lib/babyEvents'
 import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { query } from './_generated/server'
@@ -60,7 +59,16 @@ export interface GroupActivityEntry {
    * from the client. Null when the row it named has gone.
    */
   byName: string | null
-  /** What changed, in the words of the thing itself. */
+  /**
+   * What changed, in the words of the thing itself — a recipe's title, a
+   * task's title. These are content: somebody typed them, and they are shown
+   * as they were typed.
+   *
+   * The one exception is `kind: 'babyEvent'`, where there is no such
+   * sentence: what changed is *a temperature*, *a feed*, a category whose
+   * name is chrome and therefore translated. For those this carries the
+   * `BabyEventType` key and the client looks the word up (ADR-0011).
+   */
   title: string
   /** Where it sits: the list a task is in, the child a log entry is about. */
   context: string | null
@@ -275,7 +283,10 @@ export const forGroup = query({
             kind: 'babyEvent',
             at: event._creationTime,
             byName: nameOf(event.loggedBy),
-            title: BABY_EVENT_LABELS[event.type],
+            // The `babyEvent` case of `title` (see the field's comment):
+            // a type key, not a sentence, because the word for it is the
+            // reader's and this file does not know which language that is.
+            title: event.type,
             context: baby.name,
             targetId: baby._id,
           }),

@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { MealSlot } from './MealSlot'
 import { groupNutritionNav } from './nutritionNav'
 
@@ -18,7 +19,7 @@ const entries = [
 ]
 
 test('shows a placeholder when there are no entries', () => {
-  render(
+  renderWithI18n(
     <MealSlot
       nav={nav}
       label="Breakfast"
@@ -33,7 +34,7 @@ test('shows a placeholder when there are no entries', () => {
 
 test('renders entries and clicking + Add calls onAdd', () => {
   const onAdd = vi.fn()
-  render(
+  renderWithI18n(
     <MealSlot
       nav={nav}
       label="Breakfast"
@@ -50,7 +51,7 @@ test('renders entries and clicking + Add calls onAdd', () => {
 
 test('deleting an entry calls onDeleteEntry with its id', () => {
   const onDeleteEntry = vi.fn()
-  render(
+  renderWithI18n(
     <MealSlot
       nav={nav}
       label="Breakfast"

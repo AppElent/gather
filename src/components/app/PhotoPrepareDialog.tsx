@@ -15,11 +15,14 @@ import {
   scaleCrop,
 } from '../../lib/cropFrame'
 import { errorMessage } from '../../lib/errorMessage'
+import { fmt, useMessages } from '../../lib/i18n'
+import type { Messages } from '../../lib/i18n/messages/en'
 import { type PhotoPresetName, photoPreset } from '../../lib/photoPresets'
 import {
   type DecodedPhoto,
   decodePhoto,
   outputSize,
+  PHOTO_DECODE_ERROR,
   PHOTO_PREPARE_ERROR,
   type PreparedPhoto,
   preparePhoto,
@@ -56,12 +59,34 @@ interface PhotoPrepareDialogProps {
   onConfirm: (prepared: PreparedPhoto) => void
 }
 
+/**
+ * The words for a failure `preparePhoto` reports as a code, and the error's own
+ * message for anything else. The codes exist because that module is a plain one
+ * with no locale to write a sentence in (ADR-0011).
+ *
+ * Resolved at render rather than where the failure is caught: decoding must
+ * re-run for a new file and for nothing else, and reading a message inside that
+ * effect would put the locale in its dependencies — re-decoding the photo and
+ * discarding the frame the person had set, because they switched language.
+ */
+function photoErrorText(
+  detail: string,
+  image: Messages['common']['image'],
+): string {
+  if (detail === PHOTO_DECODE_ERROR) return image.decodeFailed
+  if (detail === PHOTO_PREPARE_ERROR) return image.prepareFailed
+  return detail
+}
+
 export function PhotoPrepareDialog({
   file,
   preset,
   onCancel,
   onConfirm,
 }: PhotoPrepareDialogProps) {
+  const messages = useMessages()
+  const image = messages.common.image
+  const cancelLabel = messages.common.actions.cancel
   const rules = photoPreset(preset)
   const { aspect, maxEdge } = rules
   const [photo, setPhoto] = useState<DecodedPhoto | null>(null)
@@ -98,7 +123,7 @@ export function PhotoPrepareDialog({
         setCrop(initialCrop(next, aspect))
       })
       .catch((e: unknown) => {
-        if (!abandoned) setError(errorMessage(e, PHOTO_PREPARE_ERROR))
+        if (!abandoned) setError(errorMessage(e, PHOTO_DECODE_ERROR))
       })
     return () => {
       abandoned = true
@@ -289,18 +314,18 @@ export function PhotoPrepareDialog({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Frame your photo"
+        aria-label={image.frameTitle}
         onKeyDown={keepFocusInside}
         className="w-[min(36rem,100%)]"
       >
         <SurfaceCard>
           <div className="grid gap-3">
             <div>
-              <h2 className="m-0 text-base font-semibold">Frame your photo</h2>
+              <h2 className="m-0 text-base font-semibold">
+                {image.frameTitle}
+              </h2>
               <p className="m-0 text-sm text-[var(--app-muted)]">
-                {aspect === null
-                  ? 'Drag to move the frame, or drag its corner to resize. Gather stores what is inside it.'
-                  : 'Drag to move the square, or drag its corner to resize. Gather stores what is inside it.'}
+                {aspect === null ? image.frameFree : image.frameSquare}
               </p>
             </div>
 
@@ -309,7 +334,7 @@ export function PhotoPrepareDialog({
                 role="alert"
                 className="m-0 rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 py-2 text-sm text-[var(--app-danger)]"
               >
-                {error}
+                {photoErrorText(error, image)}
               </p>
             ) : null}
 
@@ -336,7 +361,7 @@ export function PhotoPrepareDialog({
                       <button
                         ref={frameRef}
                         type="button"
-                        aria-label="Move frame"
+                        aria-label={image.moveFrame}
                         onPointerDown={beginDrag('move')}
                         onPointerMove={onPointerMove}
                         onPointerUp={endDrag}
@@ -352,7 +377,7 @@ export function PhotoPrepareDialog({
                       />
                       <button
                         type="button"
-                        aria-label="Resize frame"
+                        aria-label={image.resizeFrame}
                         onPointerDown={beginDrag('resize')}
                         onPointerMove={onPointerMove}
                         onPointerUp={endDrag}
@@ -372,7 +397,7 @@ export function PhotoPrepareDialog({
 
             {crop && photo ? (
               <label className="grid gap-1 text-sm">
-                <span className="font-medium">Frame size</span>
+                <span className="font-medium">{image.frameSize}</span>
                 <input
                   type="range"
                   min={5}
@@ -394,8 +419,11 @@ export function PhotoPrepareDialog({
 
             <p className="m-0 text-xs text-[var(--app-muted)]">
               {storedSize
-                ? `Stored as ${storedSize.width} × ${storedSize.height} — the photo on your phone is untouched.`
-                : 'Opening photo…'}
+                ? fmt(image.storedAs, {
+                    width: storedSize.width,
+                    height: storedSize.height,
+                  })
+                : image.opening}
             </p>
 
             <div className="flex justify-end gap-2">
@@ -404,7 +432,7 @@ export function PhotoPrepareDialog({
                 onClick={abandon}
                 className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
               >
-                Cancel
+                {cancelLabel}
               </button>
               <button
                 type="button"
@@ -412,7 +440,7 @@ export function PhotoPrepareDialog({
                 onClick={() => void confirm()}
                 className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold disabled:opacity-60"
               >
-                {preparing ? 'Preparing…' : 'Use photo'}
+                {preparing ? image.preparing : image.use}
               </button>
             </div>
           </div>

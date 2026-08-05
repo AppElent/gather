@@ -1,3 +1,4 @@
+import { useMessages } from '../../lib/i18n'
 import type { RecipeDestination } from './recipeDestination'
 
 /**
@@ -14,15 +15,15 @@ export function RecipeDestinationNotice({
 }: {
   destination: RecipeDestination
 }) {
+  const notice = useMessages().recipes.destination
+
   return (
     <p className="m-0 text-xs text-[var(--app-muted)]">
-      Adding to{' '}
+      {notice.prefix}{' '}
       <span className="font-semibold text-[var(--app-fg)]">
         {destination.groupName}
       </span>
-      {destination.fallback
-        ? ' — your personal group, because this page is not inside one.'
-        : '.'}
+      {destination.fallback ? ` ${notice.fallbackSuffix}` : notice.suffix}
     </p>
   )
 }

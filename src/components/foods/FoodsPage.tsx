@@ -2,6 +2,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { useEffect, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
+import { fmt, useMessages } from '../../lib/i18n'
 import { BarcodeScanner } from './BarcodeScanner'
 import type { FoodNav } from './foodNav'
 
@@ -22,25 +23,26 @@ export function FoodsPage({ nav }: { nav: FoodNav }) {
   }, [term])
   const results = useQuery(api.foods.search, { term: debouncedTerm })
   const navigate = useNavigate()
+  const { list } = useMessages().foods
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-2xl font-semibold">Foods</h1>
+      <h1 className="mb-6 text-2xl font-semibold">{list.title}</h1>
 
       <div className="mb-6 rounded-xl border p-4">
-        <p className="mb-2 text-sm font-medium">Scan a barcode</p>
+        <p className="mb-2 text-sm font-medium">{list.scanHeading}</p>
         <BarcodeScanner
           onDetected={(barcode) => navigate(nav.create(barcode))}
         />
       </div>
 
       <label className="mb-4 block text-sm">
-        <span className="mb-1 block font-medium">Search foods</span>
+        <span className="mb-1 block font-medium">{list.search}</span>
         <input
           className="w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)]"
           value={term}
           onChange={(e) => setTerm(e.target.value)}
-          placeholder="e.g. hagelslag"
+          placeholder={list.searchPlaceholder}
         />
       </label>
 
@@ -48,11 +50,11 @@ export function FoodsPage({ nav }: { nav: FoodNav }) {
         {...nav.create()}
         className="mb-4 inline-block rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-1.5 text-sm no-underline"
       >
-        Add manually
+        {list.addManually}
       </Link>
 
       {results === undefined && debouncedTerm.trim() && (
-        <p className="text-sm opacity-60">Searching…</p>
+        <p className="text-sm opacity-60">{list.searching}</p>
       )}
       <ul className="divide-y divide-[var(--app-border)]">
         {results?.map((food) => (
@@ -68,7 +70,7 @@ export function FoodsPage({ nav }: { nav: FoodNav }) {
       </ul>
       {results?.length === 0 && debouncedTerm.trim() && (
         <p className="text-sm opacity-60">
-          No foods found for "{debouncedTerm}".
+          {fmt(list.noResults, { term: debouncedTerm })}
         </p>
       )}
     </div>
