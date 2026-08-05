@@ -51,13 +51,20 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { title: 'gather' },
-      { name: 'theme-color', content: '#000000' },
+      // `theme-color` is deliberately absent here — it needs one entry per
+      // colour scheme, and the router's head manager dedupes `meta` by `name`,
+      // so a second entry silently replaces the first. Both live in
+      // `RootDocument`'s `<head>` instead.
       { name: 'apple-mobile-web-app-capable', content: 'yes' },
       { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
     ],
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'manifest', href: '/manifest.webmanifest' },
+      // .ico first as the universal fallback, .svg after it so browsers that
+      // understand vector favicons pick the crisp one.
+      { rel: 'icon', href: '/favicon.ico', sizes: '48x48' },
+      { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
       { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
     ],
   }),
@@ -122,6 +129,20 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
+        {/* Written here rather than in the route's `head.meta`: two entries
+            share the name `theme-color` and the head manager keeps only the
+            last one. The values are `--bg-base` from each scheme in
+            styles.css, so the browser chrome matches the page behind it. */}
+        <meta
+          name="theme-color"
+          media="(prefers-color-scheme: light)"
+          content="#e7f3ec"
+        />
+        <meta
+          name="theme-color"
+          media="(prefers-color-scheme: dark)"
+          content="#0a1418"
+        />
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: theme no-flash script must run before hydration; content is a static constant from @appelent/auth */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
