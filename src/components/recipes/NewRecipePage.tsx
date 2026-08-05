@@ -164,6 +164,7 @@ export function NewRecipePage({
       <ImageUploadField
         key={`image-${imported?.version ?? 'blank'}`}
         imageUrl={imageUrl}
+        preset="recipePhoto"
         generateUploadUrl={generateUploadUrl}
         onChange={(id) => {
           setImageId(id)

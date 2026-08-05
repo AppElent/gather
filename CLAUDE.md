@@ -8,7 +8,7 @@ cheeses, wines) built on the standard AppElent stack:
 - **Convex** backend (`convex/`) — functions: `recipes.ts`, `groups.ts`, `users.ts`,
   `recipeImport.ts`, `recipeNutrition.ts`, `foods.ts`, `foodsLookup.ts`, `consumption.ts`,
   `taskLists.ts`, `tasks.ts`, `integrations.ts`, `lib/sharing.ts`, `lib/nutrition.ts`,
-  `lib/offMapping.ts`, `lib/offFetch.ts`, `lib/consumption.ts`, `lib/taskAccess.ts`,
+  `lib/offMapping.ts`, `lib/offFetch.ts`, `lib/consumption.ts`, `lib/taskAccess.ts`, `lib/storedFiles.ts`,
   `lib/taskProviders/` (adapter pattern for Notion/Todoist), `seed.ts` +
   `lib/seed/` (see "Seed data" below). Schema in `convex/schema.ts`.
 - **Clerk** auth (`@clerk/clerk-react`), JWT-bridged to Convex via `CLERK_JWT_ISSUER_DOMAIN`

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
+import type { Id } from './_generated/dataModel'
 
 /**
  * Who can read which household's baby log, asserted through the real queries.
@@ -81,6 +82,30 @@ async function seed() {
   })
 
   return { t, ...ids }
+}
+
+type Harness = Awaited<ReturnType<typeof seed>>['t']
+
+/** A photo in storage, as an upload from the form would leave one. */
+async function storePhoto(t: Harness) {
+  return await t.run(async (ctx) => await ctx.storage.store(new Blob(['photo'])))
+}
+
+/** Give a child that photo, as `babies.create`/`update` would. */
+async function attachPhoto(
+  t: Harness,
+  babyId: Id<'babies'>,
+  photoId: Id<'_storage'>,
+) {
+  await t.run(async (ctx) => {
+    await ctx.db.patch(babyId, { photoId })
+  })
+}
+
+async function photoExists(t: Harness, photoId: Id<'_storage'>) {
+  return await t.run(
+    async (ctx) => (await ctx.storage.getUrl(photoId)) !== null,
+  )
 }
 
 describe('reading a household log through its Group', () => {
@@ -242,5 +267,197 @@ describe('editing a child under the wrong Group', () => {
         groupSlug: 'jansen-household',
       }),
     ).rejects.toThrow(/Baby not found/)
+  })
+})
+
+/**
+ * A child's photo is a blob in Convex storage that only their row points at, so
+ * the mutation that stops pointing at it is the last chance anything has to
+ * delete it (#38).
+ */
+describe("a child's photo does not outlive the row that held it", () => {
+  const noorsDetails = { name: 'Noor', birthDate: '2026-01-05' }
+
+  test('replacing it deletes the one that was there', async () => {
+    const { t, noor } = await seed()
+    const old = await storePhoto(t)
+    await attachPhoto(t, noor, old)
+    const replacement = await storePhoto(t)
+
+    await t.withIdentity(alice).mutation(api.babies.update, {
+      id: noor,
+      groupSlug: 'jansen-household',
+      ...noorsDetails,
+      photoId: replacement,
+    })
+
+    expect(await photoExists(t, old)).toBe(false)
+    expect(await photoExists(t, replacement)).toBe(true)
+    const baby = await t
+      .withIdentity(alice)
+      .query(api.babies.get, { id: noor, groupSlug: 'jansen-household' })
+    expect(baby?.photoId).toBe(replacement)
+  })
+
+  test('removing it deletes it and leaves the field absent', async () => {
+    const { t, noor } = await seed()
+    const photo = await storePhoto(t)
+    await attachPhoto(t, noor, photo)
+
+    await t.withIdentity(alice).mutation(api.babies.update, {
+      id: noor,
+      groupSlug: 'jansen-household',
+      ...noorsDetails,
+      photoId: null,
+    })
+
+    expect(await photoExists(t, photo)).toBe(false)
+    const baby = await t
+      .withIdentity(alice)
+      .query(api.babies.get, { id: noor, groupSlug: 'jansen-household' })
+    expect(baby?.photoId).toBeUndefined()
+  })
+
+  test('an edit that leaves the photo alone keeps it', async () => {
+    const { t, noor } = await seed()
+    const photo = await storePhoto(t)
+    await attachPhoto(t, noor, photo)
+
+    await t.withIdentity(alice).mutation(api.babies.update, {
+      id: noor,
+      groupSlug: 'jansen-household',
+      name: 'Noortje',
+      birthDate: noorsDetails.birthDate,
+    })
+    // Passing the same id back is the same non-event as omitting it.
+    await t.withIdentity(alice).mutation(api.babies.update, {
+      id: noor,
+      groupSlug: 'jansen-household',
+      name: 'Noortje',
+      birthDate: noorsDetails.birthDate,
+      photoId: photo,
+    })
+
+    expect(await photoExists(t, photo)).toBe(true)
+  })
+
+  test('deleting the child deletes their photo', async () => {
+    const { t, noor } = await seed()
+    const photo = await storePhoto(t)
+    await attachPhoto(t, noor, photo)
+
+    await t
+      .withIdentity(alice)
+      .mutation(api.babies.remove, { id: noor, groupSlug: 'jansen-household' })
+
+    expect(await photoExists(t, photo)).toBe(false)
+  })
+
+  test('a child with no photo is edited and deleted without incident', async () => {
+    const { t, noor } = await seed()
+
+    await t.withIdentity(alice).mutation(api.babies.update, {
+      id: noor,
+      groupSlug: 'jansen-household',
+      ...noorsDetails,
+      photoId: null,
+    })
+    await t
+      .withIdentity(alice)
+      .mutation(api.babies.remove, { id: noor, groupSlug: 'jansen-household' })
+
+    const jansen = await t
+      .withIdentity(alice)
+      .query(api.babies.list, { groupSlug: 'jansen-household' })
+    expect(jansen).toEqual([])
+  })
+
+  // The delete sits behind the access check, so the refusal path never reaches
+  // it — a caller who may not write the row cannot take its picture either.
+  test('a refused edit deletes nothing', async () => {
+    const { t, sam } = await seed()
+    const photo = await storePhoto(t)
+    await attachPhoto(t, sam, photo)
+
+    await expect(
+      t.withIdentity(alice).mutation(api.babies.update, {
+        id: sam,
+        groupSlug: 'jansen-household',
+        name: 'Renamed',
+        birthDate: '2025-11-20',
+        photoId: null,
+      }),
+    ).rejects.toThrow(/Baby not found/)
+
+    expect(await photoExists(t, photo)).toBe(true)
+  })
+
+  test('a refused delete deletes nothing', async () => {
+    const { t, sam } = await seed()
+    const photo = await storePhoto(t)
+    await attachPhoto(t, sam, photo)
+
+    await expect(
+      t
+        .withIdentity(alice)
+        .mutation(api.babies.remove, { id: sam, groupSlug: 'jansen-household' }),
+    ).rejects.toThrow(/Baby not found/)
+
+    expect(await photoExists(t, photo)).toBe(true)
+  })
+
+  /**
+   * `photoId` is client-supplied and every read of a child hands it back, so
+   * one row's photo can end up on another — Alice is in both households and can
+   * put Sam's photo on Noor. The child she can write is not the one that owns
+   * the picture, and deleting her own must not take it (PR #58 review).
+   */
+  test('a photo another child still points at is not deleted', async () => {
+    const { t, noor, sam } = await seed()
+    const photo = await storePhoto(t)
+    await attachPhoto(t, sam, photo)
+
+    const seen = await t
+      .withIdentity(alice)
+      .query(api.babies.get, { id: sam, groupSlug: 'de-vries-household' })
+    await t.withIdentity(alice).mutation(api.babies.update, {
+      id: noor,
+      groupSlug: 'jansen-household',
+      ...noorsDetails,
+      photoId: seen?.photoId,
+    })
+    await t
+      .withIdentity(alice)
+      .mutation(api.babies.remove, { id: noor, groupSlug: 'jansen-household' })
+
+    expect(await photoExists(t, photo)).toBe(true)
+    const stillSam = await t
+      .withIdentity(alice)
+      .query(api.babies.get, { id: sam, groupSlug: 'de-vries-household' })
+    expect(stillSam?.photoId).toBe(photo)
+  })
+
+  test('a photo already gone stops neither the edit nor the delete', async () => {
+    const { t, noor } = await seed()
+    const photo = await storePhoto(t)
+    await attachPhoto(t, noor, photo)
+    await t.run(async (ctx) => {
+      await ctx.storage.delete(photo)
+    })
+
+    await t.withIdentity(alice).mutation(api.babies.update, {
+      id: noor,
+      groupSlug: 'jansen-household',
+      ...noorsDetails,
+      photoId: null,
+    })
+    await t
+      .withIdentity(alice)
+      .mutation(api.babies.remove, { id: noor, groupSlug: 'jansen-household' })
+
+    const jansen = await t
+      .withIdentity(alice)
+      .query(api.babies.list, { groupSlug: 'jansen-household' })
+    expect(jansen).toEqual([])
   })
 })

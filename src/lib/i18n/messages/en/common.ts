@@ -36,5 +36,22 @@ export const common = {
     uploading: 'Uploading…',
     failed: 'Could not upload that image',
     remove: 'Remove photo',
+    decodeFailed:
+      'That image could not be opened in this browser. Try saving it as a JPEG and choosing it again.',
+    prepareFailed:
+      'That image could not be prepared. Try a smaller photo, or save it as a JPEG and choose it again.',
+    frameTitle: 'Frame your photo',
+    frameFree:
+      'Drag to move the frame, or drag its corner to resize. Gather stores what is inside it.',
+    frameSquare:
+      'Drag to move the square, or drag its corner to resize. Gather stores what is inside it.',
+    moveFrame: 'Move frame',
+    resizeFrame: 'Resize frame',
+    frameSize: 'Frame size',
+    opening: 'Opening photo…',
+    storedAs:
+      'Stored as {width} × {height} — the photo on your phone is untouched.',
+    use: 'Use photo',
+    preparing: 'Preparing…',
   },
 }
