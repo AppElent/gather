@@ -1,6 +1,8 @@
 name: CI
+# pull_request only. Anything landing on main is gated by deploy.yml's `checks`
+# job, which runs the same suite before it deploys — so a push trigger here would
+# only duplicate that run.
 on:
-  push: { branches: [master] }
   pull_request:
 concurrency:
   group: ci-${{ github.ref }}
@@ -23,6 +25,6 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm test
       # Build catches bundling/plugin/SSR-compile breakage that typecheck + tests
-      # miss. preview.yml only builds on pull_request, so without this a build-only
-      # failure could land green on a direct push to master.
+      # miss. preview.yml builds too, but only when its secrets are present — this
+      # keeps the build signal on every PR regardless.
       - run: pnpm build
