@@ -173,16 +173,39 @@ still exists anywhere. So each one says, where it lives, what would retire it:
 `src/lib/legacyPaths.ts` was the cautionary case: excellent about why it existed,
 silent about when it stopped, and on course to outlive every link it served.
 
-## CI / PR previews
+## CI / deploys / PR previews
 
-- `.github/workflows/ci.yml` — check/typecheck/test/build gate on push to `master`
-  and on PRs.
+The default branch is `main`. There has never been a `master`.
+
+- `.github/workflows/ci.yml` — check/typecheck/test/build gate, `pull_request`
+  only. `main` is gated by `deploy.yml`'s `checks` job instead, so a merge
+  produces one run rather than two.
+- `.github/workflows/deploy.yml` — merge to `main` deploys to **dev**;
+  `workflow_dispatch` from `main` deploys to **production**. One `deploy` job
+  parameterised by `github.event_name`, targeting the `dev` / `production`
+  GitHub Environment. See
+  `docs/adr/0012-dev-deploys-on-merge-production-deploys-on-a-click.md`.
 - `.github/workflows/preview.yml` — per-PR Convex preview deployment + per-PR
   Cloudflare Worker (`gather-pr-<N>`) + PR comment + teardown on close.
-  `PREVIEW_CLERK_PUBLISHABLE_KEY`, `VITE_TEST_USER_EMAIL` / `VITE_TEST_USER_PASSWORD`
-  (build-time only — they light up `@appelent/auth`'s test-login button on the
-  preview, and are inlined into the client bundle, so the test user must live on
-  the Clerk *test* instance), optionally `NODE_AUTH_TOKEN`.
+  `CONVEX_DEPLOY_KEY` (a `preview:` key), `CLOUDFLARE_API_TOKEN`,
+  `CLOUDFLARE_ACCOUNT_ID`, `PREVIEW_CLERK_PUBLISHABLE_KEY`,
+  `VITE_TEST_USER_EMAIL` / `VITE_TEST_USER_PASSWORD` (build-time only — they
+  light up `@appelent/auth`'s test-login button on the preview, and are inlined
+  into the client bundle, so the test user must live on the Clerk *test*
+  instance), optionally `NODE_AUTH_TOKEN`.
+
+**Secrets.** Scoped to the `dev` / `production` GitHub Environments, same names
+in both: `CONVEX_DEPLOY_KEY` (a `dev:` key for the shared dev deployment vs. the
+`prod:` key), `VITE_CLERK_PUBLISHABLE_KEY` (`pk_test_…` vs. `pk_live_…`),
+`CLOUDFLARE_API_TOKEN`. Repo-level and shared by all three workflows:
+`CLOUDFLARE_ACCOUNT_ID`, `VITE_TEST_USER_EMAIL`, `VITE_TEST_USER_PASSWORD`,
+`NODE_AUTH_TOKEN`, `PREVIEW_CLERK_PUBLISHABLE_KEY`, and a repo-level
+`CONVEX_DEPLOY_KEY` holding the `preview:` key.
+
+**An environment secret shadows a repo secret of the same name**, and that is
+what keeps the three `CONVEX_DEPLOY_KEY` values apart: `preview.yml` declares no
+`environment:`, so it resolves the repo-level `preview:` key. Adding an
+`environment:` key to `preview.yml` would silently point previews at dev or prod.
 
 ## Claude Code workflow layer
 
