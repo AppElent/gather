@@ -1088,3 +1088,86 @@ describe("a recipe's picture does not outlive the row that held it", () => {
     expect(survives).toBeNull()
   })
 })
+
+/**
+ * The delete rule rests on no two rows ever holding one `_storage` id — and
+ * nothing enforces that at the door. `imageId` is client-supplied on create and
+ * update, and every read of a recipe hands the id back, so a Member of a Group
+ * a recipe was merely *shared into* can put that id on a recipe of their own.
+ * They still cannot write the original row; without a guard, deleting their
+ * copy would take the original's picture with it (PR #58 review).
+ */
+describe('a picture two rows point at survives the first of them going', () => {
+  test('deleting a recipe that borrowed another Group’s image leaves it alone', async () => {
+    const { t, ids } = await seed()
+    const image = await storeImage(t)
+    await attachImage(t, ids.sharedWithClub, image)
+
+    // Carol reads the shared recipe — the id comes back with it — and puts that
+    // id on a recipe of her own, in the one Group she can write.
+    const seen = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.get, { id: ids.sharedWithClub, groupSlug: 'cooking-club' })
+    const borrowed = await t.withIdentity(asCarol).mutation(api.recipes.create, {
+      groupSlug: 'cooking-club',
+      title: 'Not mine',
+      ingredients: [],
+      steps: [],
+      tags: [],
+      imageId: seen?.imageId,
+    })
+
+    await t.withIdentity(asCarol).mutation(api.recipes.remove, { id: borrowed })
+
+    expect(await imageExists(t, image)).toBe(true)
+    const original = await t.run(async (ctx) => await ctx.db.get(ids.sharedWithClub))
+    expect(original?.imageId).toBe(image)
+  })
+
+  test('replacing the borrowed image leaves the original alone too', async () => {
+    const { t, ids } = await seed()
+    const image = await storeImage(t)
+    await attachImage(t, ids.sharedWithClub, image)
+
+    const borrowed = await t.withIdentity(asCarol).mutation(api.recipes.create, {
+      groupSlug: 'cooking-club',
+      title: 'Not mine',
+      ingredients: [],
+      steps: [],
+      tags: [],
+      imageId: image,
+    })
+    await t.withIdentity(asCarol).mutation(api.recipes.update, {
+      id: borrowed,
+      title: 'Not mine',
+      ingredients: [],
+      steps: [],
+      tags: [],
+      imageId: null,
+    })
+
+    expect(await imageExists(t, image)).toBe(true)
+  })
+
+  // The last row to let go of a blob is still the one that deletes it.
+  test('once the borrowing copy is gone, the original still deletes its own picture', async () => {
+    const { t, ids } = await seed()
+    const image = await storeImage(t)
+    await attachImage(t, ids.sharedWithClub, image)
+    const borrowed = await t.withIdentity(asCarol).mutation(api.recipes.create, {
+      groupSlug: 'cooking-club',
+      title: 'Not mine',
+      ingredients: [],
+      steps: [],
+      tags: [],
+      imageId: image,
+    })
+
+    await t.withIdentity(asCarol).mutation(api.recipes.remove, { id: borrowed })
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.recipes.remove, { id: ids.sharedWithClub })
+
+    expect(await imageExists(t, image)).toBe(false)
+  })
+})

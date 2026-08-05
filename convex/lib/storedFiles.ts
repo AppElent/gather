@@ -19,22 +19,79 @@
  * caller here has already resolved the record and refused whoever may not write
  * it; there is deliberately no publicly callable form of this.
  *
- * **The invariant this rests on: no two rows ever hold the same `_storage`
- * id.** True today — nothing copies a storage id from one row to another, and
- * the Copy verb described in `CONTEXT.md` is not implemented. Whoever
- * implements Copy has to give the copy its own blob, or a copy's delete starts
- * taking the original's picture with it.
+ * **A blob goes when the *last* row lets go of it, not the first.** #38 assumed
+ * no two rows ever hold one `_storage` id, and no gather code copies one — but
+ * nothing enforces it at the door either. `imageId`/`photoId` are supplied by
+ * the client on create and update, and every read hands the id back, so a
+ * Member of a Group a recipe was merely Shared into can put that id on a recipe
+ * of their own. They still cannot write the original row, and unguarded, their
+ * delete would have destroyed the original's picture (PR #58 review). So the
+ * rule is asked rather than assumed: after the write that let go, is any row
+ * still pointing at this blob? That also gives Copy a safe answer in advance —
+ * two rows on one blob keep the picture until both are gone.
+ *
+ * Reading every row of every photo-bearing table to answer it is affordable
+ * because it happens only on the paths that orphan a file, never on a read
+ * path, and `recipes.list` already scans that table on every page load.
  *
  * Out of scope, and both filed: blobs orphaned *before* any row references them
  * (abandoned forms and imports, #41), and any sweep or backfill over the
  * orphans already in storage (#38 states why that half is the hazardous one).
  */
 
-import type { Id } from '../_generated/dataModel'
+import type { Doc, Id, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 
 /**
- * Delete a stored file, if there is one and it is still there.
+ * The fields of one table that hold a `_storage` id, if it has any.
+ *
+ * Assignability runs field → id, not the other way about: a `_storage` id is a
+ * branded string and so is assignable *to* every plain `string` column, which
+ * would make every table in the schema look like a file holder.
+ */
+type StoredFileField<T extends TableNames> = {
+  [K in keyof Doc<T>]-?: [NonNullable<Doc<T>[K]>] extends [Id<'_storage'>]
+    ? K
+    : never
+}[keyof Doc<T>]
+
+/** Every table whose rows can point at a stored file. */
+type FileHolder = {
+  [T in TableNames]: [StoredFileField<T>] extends [never] ? never : T
+}[TableNames]
+
+/**
+ * Which field holds the file, per table that has one.
+ *
+ * Typed off the schema rather than written out, so adding a photo to a third
+ * Module fails to compile until it is registered here. A table missing from
+ * this map is invisible to the reference check, and a blob it alone still
+ * points at would be deleted out from under it — the one way this file can
+ * destroy a live photo, and worth a type error rather than vigilance.
+ */
+const FILE_HOLDERS: { [T in FileHolder]: StoredFileField<T> } = {
+  babies: 'photoId',
+  recipes: 'imageId',
+}
+
+/** Is any row — in any table — still pointing at this file? */
+async function isStillReferenced(ctx: MutationCtx, id: Id<'_storage'>) {
+  for (const table of Object.keys(FILE_HOLDERS) as FileHolder[]) {
+    const field = FILE_HOLDERS[table]
+    const rows = await ctx.db.query(table as TableNames).collect()
+    if (rows.some((row) => (row as Record<string, unknown>)[field] === id)) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Delete a stored file, once nothing points at it any more.
+ *
+ * Call this *after* the write that let go of it — the patch, or the row's own
+ * delete — so the row being changed is not found holding the id it just
+ * dropped.
  *
  * Already gone is not an error. A blob deleted out of band leaves a row still
  * pointing at it, and throwing on that would make the record undeletable — a
@@ -50,6 +107,7 @@ export async function deleteStoredFile(
   // blob still here?" from inside a mutation.
   const metadata = await ctx.db.system.get(id)
   if (!metadata) return
+  if (await isStillReferenced(ctx, id)) return
   await ctx.storage.delete(id)
 }
 

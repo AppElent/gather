@@ -295,11 +295,12 @@ export const remove = mutation({
     // that is what stops the reply telling a stranger their id was real.
     const recipe = await writableRecipe(ctx, args.id)
     if (!recipe) return
+    await ctx.db.delete(args.id)
     // The Groups this was Shared into lose the picture along with the recipe.
     // A Share is standing to read and no claim on the content, so there is
-    // nothing of theirs to keep (ADR-0007).
+    // nothing of theirs to keep (ADR-0007). After the row is gone, so that the
+    // recipe being deleted is not itself counted as still holding the file.
     await deleteStoredFile(ctx, recipe.imageId)
-    await ctx.db.delete(args.id)
   },
 })
 

@@ -200,7 +200,9 @@ export const remove = mutation({
     await Promise.all(events.map((e) => ctx.db.delete(e._id)))
     await deleteAuxTaskList(ctx, baby.taskListId)
     await deleteAuxTaskList(ctx, baby.questionsListId)
-    await deleteStoredFile(ctx, baby.photoId)
     await ctx.db.delete(args.id)
+    // After the row is gone, so that the child being deleted is not itself
+    // counted as still holding the photo.
+    await deleteStoredFile(ctx, baby.photoId)
   },
 })

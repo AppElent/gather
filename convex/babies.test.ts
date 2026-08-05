@@ -406,6 +406,37 @@ describe("a child's photo does not outlive the row that held it", () => {
     expect(await photoExists(t, photo)).toBe(true)
   })
 
+  /**
+   * `photoId` is client-supplied and every read of a child hands it back, so
+   * one row's photo can end up on another — Alice is in both households and can
+   * put Sam's photo on Noor. The child she can write is not the one that owns
+   * the picture, and deleting her own must not take it (PR #58 review).
+   */
+  test('a photo another child still points at is not deleted', async () => {
+    const { t, noor, sam } = await seed()
+    const photo = await storePhoto(t)
+    await attachPhoto(t, sam, photo)
+
+    const seen = await t
+      .withIdentity(alice)
+      .query(api.babies.get, { id: sam, groupSlug: 'de-vries-household' })
+    await t.withIdentity(alice).mutation(api.babies.update, {
+      id: noor,
+      groupSlug: 'jansen-household',
+      ...noorsDetails,
+      photoId: seen?.photoId,
+    })
+    await t
+      .withIdentity(alice)
+      .mutation(api.babies.remove, { id: noor, groupSlug: 'jansen-household' })
+
+    expect(await photoExists(t, photo)).toBe(true)
+    const stillSam = await t
+      .withIdentity(alice)
+      .query(api.babies.get, { id: sam, groupSlug: 'de-vries-household' })
+    expect(stillSam?.photoId).toBe(photo)
+  })
+
   test('a photo already gone stops neither the edit nor the delete', async () => {
     const { t, noor } = await seed()
     const photo = await storePhoto(t)
