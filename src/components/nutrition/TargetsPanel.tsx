@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import { useMessages } from '../../lib/i18n'
 import { NutrientInputGrid } from './NutrientInputGrid'
 import { nutrientInputsToFacts, toNutrientInputs } from './nutrientInputs'
 
@@ -11,6 +12,8 @@ interface Props {
 
 export function TargetsPanel({ targets, saving, onSave }: Props) {
   const [open, setOpen] = useState(false)
+  const messages = useMessages()
+  const { targets: targetsText } = messages.nutrition.diary
   const [inputs, setInputs] = useState(() => toNutrientInputs(targets))
 
   // `targets` starts undefined while the caller's `users.me` query is still
@@ -31,7 +34,7 @@ export function TargetsPanel({ targets, saving, onSave }: Props) {
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between text-sm font-medium"
       >
-        Daily targets
+        {targetsText.title}
         <span className="opacity-60">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
@@ -49,7 +52,7 @@ export function TargetsPanel({ targets, saving, onSave }: Props) {
             className="mt-3 rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 py-1.5 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
             onClick={() => onSave(nutrientInputsToFacts(inputs))}
           >
-            {saving ? 'Saving…' : 'Save targets'}
+            {saving ? messages.common.actions.saving : targetsText.save}
           </button>
         </div>
       )}

@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { fmt, useMessages } from '../../lib/i18n'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import { TaskEditor, type TaskEditorValues } from './TaskEditor'
 import { TaskRow } from './TaskRow'
@@ -33,6 +34,8 @@ export function LocalTaskList({
   const [quickTitle, setQuickTitle] = useState('')
   const [showDetails, setShowDetails] = useState(false)
   const [editingId, setEditingId] = useState<Id<'tasks'> | null>(null)
+  const messages = useMessages()
+  const { local } = messages.tasks
 
   async function quickAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -64,10 +67,10 @@ export function LocalTaskList({
       <div className="mb-2 flex items-center justify-between gap-2">
         <h3 className="m-0 text-base font-semibold">{name}</h3>
         <div className="flex items-center gap-2">
-          <Pill>Local</Pill>
+          <Pill>{local.pill}</Pill>
           <button
             type="button"
-            aria-label={`Delete list ${name}`}
+            aria-label={fmt(local.deleteList, { name })}
             className={iconButtonClass}
             onClick={onRemoveList}
           >
@@ -80,13 +83,13 @@ export function LocalTaskList({
         <input
           value={quickTitle}
           onChange={(e) => setQuickTitle(e.target.value)}
-          placeholder="Add a task…"
-          aria-label={`New task in ${name}`}
+          placeholder={local.quickAdd}
+          aria-label={fmt(local.newTaskIn, { name })}
           className="min-h-9 flex-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-3 text-sm"
         />
         <button
           type="submit"
-          aria-label="Add task"
+          aria-label={local.addTask}
           className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
@@ -97,11 +100,11 @@ export function LocalTaskList({
         className="mb-2 text-xs text-[var(--app-muted)]"
         onClick={() => setShowDetails((s) => !s)}
       >
-        {showDetails ? 'Hide details' : 'Add with details…'}
+        {showDetails ? local.hideDetails : local.showDetails}
       </button>
       {showDetails && (
         <TaskEditor
-          submitLabel="Add task"
+          submitLabel={local.addTask}
           onSubmit={(values) => void detailedAdd(values)}
           onCancel={() => setShowDetails(false)}
         />
@@ -117,7 +120,7 @@ export function LocalTaskList({
               priority: t.priority,
               labels: t.labels,
             }}
-            submitLabel="Save"
+            submitLabel={messages.common.actions.save}
             onSubmit={(values) => void saveEdit(t._id, values)}
             onCancel={() => setEditingId(null)}
           />
@@ -137,7 +140,7 @@ export function LocalTaskList({
               <span className="flex items-center gap-1">
                 <button
                   type="button"
-                  aria-label={`Move ${t.title} up`}
+                  aria-label={fmt(local.moveUp, { task: t.title })}
                   className={iconButtonClass}
                   disabled={i === 0 || tasks[i - 1].done !== t.done}
                   onClick={() =>
@@ -148,7 +151,7 @@ export function LocalTaskList({
                 </button>
                 <button
                   type="button"
-                  aria-label={`Move ${t.title} down`}
+                  aria-label={fmt(local.moveDown, { task: t.title })}
                   className={iconButtonClass}
                   disabled={
                     i === tasks.length - 1 || tasks[i + 1].done !== t.done
@@ -161,7 +164,7 @@ export function LocalTaskList({
                 </button>
                 <button
                   type="button"
-                  aria-label={`Edit ${t.title}`}
+                  aria-label={fmt(local.edit, { task: t.title })}
                   className={iconButtonClass}
                   onClick={() => setEditingId(t._id)}
                 >
@@ -169,7 +172,7 @@ export function LocalTaskList({
                 </button>
                 <button
                   type="button"
-                  aria-label={`Delete ${t.title}`}
+                  aria-label={fmt(local.delete, { task: t.title })}
                   className={iconButtonClass}
                   onClick={() => void removeTask({ taskId: t._id, groupSlug })}
                 >
@@ -181,7 +184,7 @@ export function LocalTaskList({
         ),
       )}
       {tasks?.length === 0 && (
-        <p className="m-0 text-sm text-[var(--app-muted)]">No tasks yet.</p>
+        <p className="m-0 text-sm text-[var(--app-muted)]">{local.empty}</p>
       )}
     </SurfaceCard>
   )

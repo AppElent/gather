@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { beforeEach, expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { IssueReporterModal } from './IssueReporterModal'
 
 const reportIssueMock = vi.fn()
@@ -27,7 +28,7 @@ function openModal() {
 }
 
 test('is closed until the keyboard shortcut is pressed', () => {
-  render(<IssueReporterModal />)
+  renderWithI18n(<IssueReporterModal />)
   expect(screen.queryByText('Report an issue')).toBeNull()
   openModal()
   expect(screen.getByText('Report an issue')).toBeDefined()
@@ -38,7 +39,7 @@ test('submits the report with the current user and page url', async () => {
     ok: true,
     issueUrl: 'https://github.com/o/r/issues/1',
   })
-  render(<IssueReporterModal />)
+  renderWithI18n(<IssueReporterModal />)
   openModal()
 
   fireEvent.change(screen.getByPlaceholderText(/what happened/i), {
@@ -67,7 +68,7 @@ test('shows the server-reported error', async () => {
     ok: false,
     error: 'GitHub issue reporter is not configured.',
   })
-  render(<IssueReporterModal />)
+  renderWithI18n(<IssueReporterModal />)
   openModal()
 
   fireEvent.change(screen.getByPlaceholderText(/what happened/i), {

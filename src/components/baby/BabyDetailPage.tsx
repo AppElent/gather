@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { formatAge } from '../../lib/babyDate'
+import { useI18n } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { BabyChecklistCard } from './BabyChecklistCard'
 import { BabySwitcher } from './BabySwitcher'
@@ -47,6 +48,8 @@ export function BabyDetailPage({
   )
   const ensureTodoList = useMutation(api.babies.ensureTodoList)
   const ensureQuestionsList = useMutation(api.babies.ensureQuestionsList)
+  const { locale, messages } = useI18n()
+  const { child } = messages.baby.log
 
   useEffect(() => {
     if (baby && !baby.taskListId)
@@ -82,9 +85,12 @@ export function BabyDetailPage({
     [events],
   )
 
-  if (baby === undefined) return <p className="text-sm opacity-60">Loading…</p>
+  if (baby === undefined)
+    return (
+      <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+    )
   if (baby === null)
-    return <p className="text-sm opacity-60">Child not found.</p>
+    return <p className="text-sm opacity-60">{child.notFound}</p>
 
   return (
     <div className="mx-auto grid max-w-5xl gap-4">
@@ -92,16 +98,16 @@ export function BabyDetailPage({
         <BabyChecklistCard
           taskListId={baby.taskListId}
           groupSlug={groupSlug}
-          title="To-do"
-          placeholder="Buy diapers, call pediatrician…"
+          title={child.todo}
+          placeholder={child.todoPlaceholder}
         />
       )}
       {baby.questionsListId && (
         <BabyChecklistCard
           taskListId={baby.questionsListId}
           groupSlug={groupSlug}
-          title="Questions"
-          placeholder="Ask about sleep regression…"
+          title={child.questions}
+          placeholder={child.questionsPlaceholder}
           collapsible
         />
       )}
@@ -122,7 +128,7 @@ export function BabyDetailPage({
           <div>
             <h1 className="m-0 text-2xl font-semibold">{baby.name}</h1>
             <p className="m-0 text-sm text-[var(--app-muted)]">
-              {formatAge(baby.birthDate)}
+              {formatAge(baby.birthDate, child.age, locale)}
             </p>
           </div>
         </div>
@@ -132,7 +138,7 @@ export function BabyDetailPage({
             {...nav.edit(id)}
             className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold no-underline"
           >
-            Edit
+            {messages.common.actions.edit}
           </Link>
         </div>
       </div>
@@ -154,14 +160,16 @@ export function BabyDetailPage({
           {temperaturePoints.length > 0 && (
             <SurfaceCard>
               <h2 className="m-0 mb-2 text-sm font-semibold">
-                Temperature trend
+                {child.temperatureTrend}
               </h2>
               <TrendChart points={temperaturePoints} unit="°C" />
             </SurfaceCard>
           )}
           {weightPoints.length > 0 && (
             <SurfaceCard>
-              <h2 className="m-0 mb-2 text-sm font-semibold">Weight trend</h2>
+              <h2 className="m-0 mb-2 text-sm font-semibold">
+                {child.weightTrend}
+              </h2>
               <TrendChart points={weightPoints} unit="kg" />
             </SurfaceCard>
           )}

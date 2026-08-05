@@ -4,6 +4,7 @@ import type {
   NutritionFacts,
   NutritionSource,
 } from '../../../convex/lib/nutrition'
+import { useMessages } from '../../lib/i18n'
 import { NutrientInputGrid } from '../nutrition/NutrientInputGrid'
 import {
   inputClass,
@@ -84,6 +85,8 @@ export function RecipeForm({
   >(initial?.nutritionSource)
   const [estimating, setEstimating] = useState(false)
   const [estimateError, setEstimateError] = useState<string | null>(null)
+  const messages = useMessages()
+  const { form, rating: ratingText } = messages.recipes
 
   return (
     <form
@@ -108,7 +111,7 @@ export function RecipeForm({
       }}
     >
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Title</span>
+        <span className="mb-1 block font-medium">{form.title}</span>
         <input
           className={inputClass}
           value={title}
@@ -117,7 +120,7 @@ export function RecipeForm({
         />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Description</span>
+        <span className="mb-1 block font-medium">{form.description}</span>
         <textarea
           className={inputClass}
           value={description}
@@ -125,45 +128,45 @@ export function RecipeForm({
         />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Ingredients</span>
+        <span className="mb-1 block font-medium">{form.ingredients}</span>
         <textarea
           className={`h-32 ${inputClass}`}
           value={ingredients}
           onChange={(e) => setIngredients(e.target.value)}
-          placeholder="One per line"
+          placeholder={form.onePerLine}
         />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Steps</span>
+        <span className="mb-1 block font-medium">{form.steps}</span>
         <textarea
           className={`h-32 ${inputClass}`}
           value={steps}
           onChange={(e) => setSteps(e.target.value)}
-          placeholder="One per line"
+          placeholder={form.onePerLine}
         />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Tags</span>
+        <span className="mb-1 block font-medium">{form.tags}</span>
         <input
           className={inputClass}
           value={tags}
           onChange={(e) => setTags(e.target.value)}
-          placeholder="comma, separated"
+          placeholder={form.commaSeparated}
         />
       </label>
 
       <fieldset className="rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
         <legend className="px-1 text-sm font-medium">
-          Nutrition (per serving)
+          {form.nutritionLegend}
         </legend>
         <label className="mb-3 block max-w-32 text-sm">
-          <span className="mb-1 block font-medium">Servings</span>
+          <span className="mb-1 block font-medium">{form.servings}</span>
           <input
             inputMode="numeric"
             className={inputClass}
             value={servings}
             onChange={(e) => setServings(e.target.value)}
-            placeholder="4"
+            placeholder={form.servingsPlaceholder}
             disabled={estimating}
           />
         </label>
@@ -196,17 +199,17 @@ export function RecipeForm({
                     err instanceof ConvexError
                       ? typeof err.data === 'string'
                         ? err.data
-                        : 'Could not estimate nutrition'
+                        : form.estimateFailed
                       : err instanceof Error
                         ? err.message
-                        : 'Could not estimate nutrition',
+                        : form.estimateFailed,
                   )
                 } finally {
                   setEstimating(false)
                 }
               }}
             >
-              {estimating ? 'Estimating…' : 'Estimate with AI'}
+              {estimating ? form.estimating : form.estimate}
             </button>
             {estimateError && (
               <p className="mt-2 text-sm text-red-800">{estimateError}</p>
@@ -216,7 +219,7 @@ export function RecipeForm({
       </fieldset>
 
       <div className="block text-sm">
-        <span className="mb-1 block font-medium">Rating</span>
+        <span className="mb-1 block font-medium">{ratingText.label}</span>
         <StarRating value={rating} onChange={setRating} />
       </div>
       <div className="grid gap-2">
@@ -226,7 +229,7 @@ export function RecipeForm({
           disabled={submitting || estimating}
           className="w-fit rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-4 py-2 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {submitting ? 'Saving…' : 'Save recipe'}
+          {submitting ? messages.common.actions.saving : form.save}
         </button>
       </div>
     </form>

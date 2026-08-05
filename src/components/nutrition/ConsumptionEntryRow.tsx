@@ -1,8 +1,9 @@
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { MealName } from '../../../convex/lib/consumption'
-import { MEAL_LABELS, MEAL_NAMES } from '../../../convex/lib/consumption'
+import { MEAL_NAMES } from '../../../convex/lib/consumption'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import { useMessages } from '../../lib/i18n'
 import type { NutritionNav } from './nutritionNav'
 
 export interface ConsumptionEntryData {
@@ -35,6 +36,8 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
   const [date, setDate] = useState(entry.date)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const messages = useMessages()
+  const { diary, meals, units } = messages.nutrition
 
   return (
     <li className="py-2 text-sm">
@@ -42,7 +45,7 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
         <div>
           <span className="font-medium">{entry.label}</span>
           <span className="ml-2 opacity-60">
-            {entry.quantity} {entry.quantityUnit}
+            {entry.quantity} {units[entry.quantityUnit]}
             {entry.nutrition.calories !== undefined &&
               ` · ${entry.nutrition.calories} kcal`}
           </span>
@@ -51,7 +54,7 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
               {...nav.recipe(entry.recipeId)}
               className="ml-2 text-xs underline"
             >
-              View recipe
+              {diary.entry.viewRecipe}
             </Link>
           )}
           {entry.foodId && (
@@ -59,7 +62,7 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
               {...nav.food(entry.foodId)}
               className="ml-2 text-xs underline"
             >
-              View food
+              {diary.entry.viewFood}
             </Link>
           )}
         </div>
@@ -69,21 +72,23 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
             onClick={() => setEditing((e) => !e)}
             className="text-xs underline"
           >
-            {editing ? 'Close' : 'Edit'}
+            {editing
+              ? messages.common.actions.close
+              : messages.common.actions.edit}
           </button>
           <button
             type="button"
             onClick={onDelete}
             className="text-xs text-red-700"
           >
-            Delete
+            {messages.common.actions.delete}
           </button>
         </div>
       </div>
       {editing && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <label className="text-xs">
-            Qty
+            {diary.entry.quantity}
             <input
               inputMode="decimal"
               value={quantityInput}
@@ -93,7 +98,7 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
             />
           </label>
           <label className="text-xs">
-            Meal
+            {diary.entry.meal}
             <select
               value={meal}
               onChange={(e) => setMeal(e.target.value as MealName)}
@@ -102,13 +107,13 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
             >
               {MEAL_NAMES.map((m) => (
                 <option key={m} value={m}>
-                  {MEAL_LABELS[m]}
+                  {meals[m]}
                 </option>
               ))}
             </select>
           </label>
           <label className="text-xs">
-            Date
+            {diary.entry.date}
             <input
               type="date"
               value={date}
@@ -130,7 +135,7 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
                 setEditing(false)
               } catch (err) {
                 setError(
-                  err instanceof Error ? err.message : 'Could not save changes',
+                  err instanceof Error ? err.message : diary.entry.saveFailed,
                 )
               } finally {
                 setSaving(false)
@@ -138,7 +143,9 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
             }}
             className="rounded border border-[var(--app-fg)] bg-[var(--app-fg)] px-2 py-0.5 text-xs font-semibold text-[var(--app-surface)] disabled:opacity-60"
           >
-            {saving ? 'Saving…' : 'Save'}
+            {saving
+              ? messages.common.actions.saving
+              : messages.common.actions.save}
           </button>
           {error && (
             <p className="w-full rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-800">

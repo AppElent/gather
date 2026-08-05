@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import { fmt, useMessages } from '../../lib/i18n'
 import { NutrientInputGrid } from '../nutrition/NutrientInputGrid'
 import {
   inputClass,
@@ -40,6 +41,8 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
     initial?.servingSize !== undefined ? String(initial.servingSize) : '',
   )
   const [servingLabel, setServingLabel] = useState(initial?.servingLabel ?? '')
+  const messages = useMessages()
+  const { form } = messages.foods
 
   return (
     <form
@@ -63,9 +66,11 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
           {sourceNote}
         </p>
       )}
-      {barcode && <p className="text-xs opacity-60">Barcode: {barcode}</p>}
+      {barcode && (
+        <p className="text-xs opacity-60">{fmt(form.barcode, { barcode })}</p>
+      )}
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Name</span>
+        <span className="mb-1 block font-medium">{form.name}</span>
         <input
           className={inputClass}
           value={name}
@@ -74,7 +79,7 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
         />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Brand</span>
+        <span className="mb-1 block font-medium">{form.brand}</span>
         <input
           className={inputClass}
           value={brand}
@@ -82,7 +87,7 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
         />
       </label>
       <fieldset className="rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
-        <legend className="px-1 text-sm font-medium">Base unit</legend>
+        <legend className="px-1 text-sm font-medium">{form.baseUnit}</legend>
         <div className="flex gap-4 text-sm">
           <label className="flex items-center gap-1">
             <input
@@ -91,7 +96,7 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
               checked={baseUnit === 'g'}
               onChange={() => setBaseUnit('g')}
             />
-            grams
+            {form.grams}
           </label>
           <label className="flex items-center gap-1">
             <input
@@ -100,13 +105,13 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
               checked={baseUnit === 'ml'}
               onChange={() => setBaseUnit('ml')}
             />
-            milliliters
+            {form.milliliters}
           </label>
         </div>
       </fieldset>
       <fieldset className="rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
         <legend className="px-1 text-sm font-medium">
-          Nutrition per 100 {baseUnit}
+          {fmt(form.nutritionLegend, { unit: baseUnit })}
         </legend>
         <NutrientInputGrid
           values={nutritionInputs}
@@ -117,7 +122,7 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
       </fieldset>
       <label className="block max-w-32 text-sm">
         <span className="mb-1 block font-medium">
-          Serving size ({baseUnit})
+          {fmt(form.servingSize, { unit: baseUnit })}
         </span>
         <input
           inputMode="decimal"
@@ -127,12 +132,12 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
         />
       </label>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Serving label</span>
+        <span className="mb-1 block font-medium">{form.servingLabel}</span>
         <input
           className={inputClass}
           value={servingLabel}
           onChange={(e) => setServingLabel(e.target.value)}
-          placeholder='e.g. "1 slice (30 g)"'
+          placeholder={form.servingLabelPlaceholder}
         />
       </label>
       <button
@@ -140,7 +145,7 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
         disabled={submitting}
         className="w-fit rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-4 py-2 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {submitting ? 'Saving…' : 'Save food'}
+        {submitting ? messages.common.actions.saving : form.save}
       </button>
     </form>
   )

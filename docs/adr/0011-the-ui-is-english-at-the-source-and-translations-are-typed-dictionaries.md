@@ -104,15 +104,41 @@ Lid, Module, Pin. Ordinary UI words are lowercase as Dutch normally writes them.
 | Cheeses / Wines | Kazen / Wijnen |
 | Kitchen / Money / Home & life / Tasting | Keuken / Geld / Huis & leven / Proeven |
 
-## What is not done
+## Backend files do not hold display strings
 
-Only the shell is translated: navigation, the topbar, the Group switcher, Home,
-All, the placeholder pages, the not-found page and `/settings`. Recipes,
-Nutrition, Tasks, the Baby log, Foods and a Group's own settings are still
-English literals in their components, and each is extracted as its own change
-using the same recipe. Until then the app is honestly half-translated rather
-than dishonestly half-typed — the parity test proves what *is* in the tree is
-complete, and says nothing about what has not been put there yet.
+Four records of English lived in `convex/`, read only by client components:
+`NUTRIENT_LABELS`, `MEAL_LABELS`, `BABY_EVENT_LABELS`, and the baby-log option
+labels in `src/lib/babyEventFields.ts`. All four moved to the message tree,
+keyed by the union the schema already defines, so the key stays where the data
+is and the word goes where the reader is.
+
+`BABY_EVENT_LABELS` was the one with a server-side reader: `activity.ts` used
+it to title a baby-log entry. That was the backend choosing a display word, so
+it now sends the `BabyEventType` key and the client names it. This makes the
+`title` field of `GroupActivityEntry` mean two things by `kind`, which its
+comment now spells out: content for a recipe or a task, a type key for a baby
+event. That is the honest shape — a recipe's title is somebody's words, a
+temperature entry's is ours.
+
+Two smaller rules fell out of doing this at scale:
+
+- **A validator returns a key, not a sentence.** `buildEventInput` reports
+  `'enterVaccineName'`; the form that renders the complaint resolves it. The
+  validator never has to be handed a message tree to stay testable.
+- **A message read inside a `useEffect` makes the effect depend on the
+  locale.** Where that is wrong — the camera stream in `BarcodeScanner`, the
+  once-only OAuth callback — the *state* holds a key and the words are chosen at
+  render. Biome's `useExhaustiveDependencies` catches this, and adding the
+  dependency is usually the wrong fix.
+
+## What is not done
 
 `@appelent/auth`'s own strings — the sign-in forms, the account panel,
 `AppearanceSettings` — belong to that package and are out of gather's reach.
+Everything gather itself renders is translated.
+
+Dates and numbers go through `Intl` with the active locale, so a Dutch reader
+gets `di 4 aug, 13:30` and `1 minuut geleden` without a second dictionary.
+Durations inside a summary (`1h 15m`) are not yet localised; they are compact
+enough to read either way, and doing them properly means a duration formatter
+rather than a message.

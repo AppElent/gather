@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { TaskRow } from './TaskRow'
 
 const fullTask = {
@@ -13,7 +14,7 @@ const fullTask = {
 }
 
 test('renders title, priority, labels, due date and link-out', () => {
-  render(<TaskRow task={fullTask} />)
+  renderWithI18n(<TaskRow task={fullTask} />)
   expect(screen.getByText('Buy milk')).toBeInTheDocument()
   expect(screen.getByText('P1')).toBeInTheDocument()
   expect(screen.getByText('home')).toBeInTheDocument()
@@ -27,7 +28,7 @@ test('renders title, priority, labels, due date and link-out', () => {
 
 test('checkbox toggles when onToggle is provided', () => {
   const onToggle = vi.fn()
-  render(
+  renderWithI18n(
     <TaskRow
       task={{ externalId: '1', title: 'x', done: false }}
       onToggle={onToggle}
@@ -40,6 +41,8 @@ test('checkbox toggles when onToggle is provided', () => {
 })
 
 test('done tasks render struck through', () => {
-  render(<TaskRow task={{ externalId: '1', title: 'Old', done: true }} />)
+  renderWithI18n(
+    <TaskRow task={{ externalId: '1', title: 'Old', done: true }} />,
+  )
   expect(screen.getByText('Old').className).toContain('line-through')
 })

@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { fmt, useMessages } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { AddListFlow } from './AddListFlow'
@@ -30,13 +31,15 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
   const removeList = useMutation(api.taskLists.remove)
   const [adding, setAdding] = useState(false)
   const { confirm, dialog } = useConfirmAction()
+  const messages = useMessages()
+  const { page } = messages.tasks
 
   function confirmRemove(listId: Id<'taskLists'>, name: string) {
     confirm({
-      title: `Delete the list “${name}”?`,
-      body: 'Its tasks go with it, for everyone in this group.',
-      confirmLabel: 'Delete list',
-      errorFallback: 'Could not delete that list.',
+      title: fmt(page.deleteListTitle, { name }),
+      body: page.deleteListBody,
+      confirmLabel: page.deleteListConfirm,
+      errorFallback: page.deleteListFailed,
       run: () => removeList({ listId, groupSlug }),
     })
   }
@@ -51,10 +54,11 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="m-0 text-2xl font-semibold">Tasks</h2>
+          <h2 className="m-0 text-2xl font-semibold">
+            {messages.modules.byId.tasks.label}
+          </h2>
           <p className="mt-1 text-sm text-[var(--app-muted)]">
-            Shared lists — local ones live here, linked ones mirror Notion or
-            Todoist.
+            {page.subtitle}
           </p>
         </div>
         <button
@@ -63,7 +67,7 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
           className="inline-flex min-h-9 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
-          Add list
+          {page.addList}
         </button>
       </div>
 
@@ -87,16 +91,16 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
       ) : lists.length === 0 && !adding ? (
         <SurfaceCard>
           <div className="grid gap-3 text-center">
-            <h3 className="m-0 text-base font-semibold">No lists yet</h3>
+            <h3 className="m-0 text-base font-semibold">{page.emptyTitle}</h3>
             <p className="m-0 text-sm text-[var(--app-muted)]">
-              Create a local list, or link one from Notion or Todoist.
+              {page.emptyBody}
             </p>
             <button
               type="button"
               onClick={() => setAdding(true)}
               className="mx-auto inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
             >
-              Add your first list
+              {page.emptyAction}
             </button>
           </div>
         </SurfaceCard>

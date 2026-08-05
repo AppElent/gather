@@ -12,7 +12,12 @@ export const common = {
     cancel: 'Cancel',
     close: 'Close',
     save: 'Save',
+    saving: 'Saving…',
     delete: 'Delete',
+    edit: 'Edit',
+    add: 'Add',
+    confirm: 'Confirm',
+    working: 'Working…',
     copy: 'Copy',
     copied: 'Copied!',
     retry: 'Try again',
@@ -22,5 +27,14 @@ export const common = {
     somethingWentWrong: 'Something went wrong. Please try again.',
     notFound: 'Not found.',
     loading: 'Loading…',
+    didNotWork: 'That did not work — try again.',
+  },
+
+  /** The photo field a recipe and a child's profile both use. */
+  image: {
+    label: 'Photo',
+    uploading: 'Uploading…',
+    failed: 'Could not upload that image',
+    remove: 'Remove photo',
   },
 }

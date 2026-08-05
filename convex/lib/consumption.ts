@@ -11,12 +11,10 @@ export const mealValidator = v.union(
   v.literal('snack'),
 )
 
-export const MEAL_LABELS: Record<MealName, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snack: 'Snack',
-}
+// The meal *names* used to live here. They are read by a person, so they are
+// translated, and they now live in each locale's `nutrition.ts` under
+// `src/lib/i18n/messages/` keyed by `MealName` (ADR-0011). No Convex function
+// ever read them; three client components did.
 
 export const QUANTITY_UNITS = ['serving', 'g', 'ml', 'piece'] as const
 export type QuantityUnit = (typeof QUANTITY_UNITS)[number]

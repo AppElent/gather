@@ -4,6 +4,7 @@ import { ConvexError } from 'convex/values'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { fmt, useMessages } from '../../lib/i18n'
 import { NutritionPanel } from './NutritionPanel'
 import { RecipeSharingPanel } from './RecipeSharingPanel'
 import type { RecipeNav } from './recipeNav'
@@ -38,11 +39,15 @@ export function RecipeDetailPage({
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
   const setNutrition = useMutation(api.recipes.setNutrition)
   const [estimating, setEstimating] = useState(false)
+  const messages = useMessages()
+  const { detail, form } = messages.recipes
 
   if (recipe === undefined)
-    return <p className="text-sm opacity-60">Loading…</p>
+    return (
+      <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+    )
   if (recipe === null)
-    return <p className="text-sm opacity-60">Recipe not found.</p>
+    return <p className="text-sm opacity-60">{detail.notFound}</p>
 
   return (
     <article className="mx-auto max-w-2xl">
@@ -62,7 +67,7 @@ export function RecipeDetailPage({
               {...nav.edit(recipeId)}
               className="rounded border px-3 py-1.5 text-sm no-underline"
             >
-              Edit
+              {messages.common.actions.edit}
             </Link>
             <button
               type="button"
@@ -74,14 +79,12 @@ export function RecipeDetailPage({
                   navigate(nav.list)
                 } catch (err) {
                   setError(
-                    err instanceof Error
-                      ? err.message
-                      : 'Could not delete recipe',
+                    err instanceof Error ? err.message : detail.deleteFailed,
                   )
                 }
               }}
             >
-              Delete
+              {messages.common.actions.delete}
             </button>
           </div>
         )}
@@ -110,11 +113,13 @@ export function RecipeDetailPage({
         there, which is a better answer than an empty "Added by".
       */}
       {recipe.addedByName && (
-        <p className="mb-4 text-xs opacity-60">Added by {recipe.addedByName}</p>
+        <p className="mb-4 text-xs opacity-60">
+          {fmt(detail.addedBy, { name: recipe.addedByName })}
+        </p>
       )}
       {recipe.sourceUrl && (
         <p className="mb-4 text-xs opacity-60">
-          Imported from{' '}
+          {detail.importedFrom}{' '}
           <a
             href={recipe.sourceUrl}
             target="_blank"
@@ -134,9 +139,7 @@ export function RecipeDetailPage({
       */}
       {recipe.nutritionStale && recipe.canEdit && (
         <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          <p className="mb-2">
-            Ingredients changed since nutrition was calculated — re-estimate?
-          </p>
+          <p className="mb-2">{detail.staleNutrition}</p>
           <div className="flex gap-2">
             {aiConfigured && (
               <button
@@ -161,24 +164,24 @@ export function RecipeDetailPage({
                       err instanceof ConvexError
                         ? typeof err.data === 'string'
                           ? err.data
-                          : 'Could not estimate nutrition'
+                          : form.estimateFailed
                         : err instanceof Error
                           ? err.message
-                          : 'Could not estimate nutrition',
+                          : form.estimateFailed,
                     )
                   } finally {
                     setEstimating(false)
                   }
                 }}
               >
-                {estimating ? 'Estimating…' : 'Re-estimate with AI'}
+                {estimating ? form.estimating : detail.reEstimate}
               </button>
             )}
             <Link
               {...nav.edit(recipeId)}
               className="rounded border border-amber-400 px-2 py-1 text-xs font-medium no-underline"
             >
-              Edit manually
+              {detail.editManually}
             </Link>
           </div>
         </div>
@@ -200,21 +203,21 @@ export function RecipeDetailPage({
           nutrition={recipe.nutrition}
           unitLabel={
             recipe.servings
-              ? `per serving · ${recipe.servings} servings`
-              : 'per serving'
+              ? fmt(detail.perServingOf, { count: recipe.servings })
+              : detail.perServing
           }
           source={recipe.nutritionSource}
         />
       )}
 
-      <h2 className="mb-2 font-medium">Ingredients</h2>
+      <h2 className="mb-2 font-medium">{form.ingredients}</h2>
       <ul className="mb-4 list-disc pl-5 text-sm">
         {recipe.ingredients.map((i, idx) => (
           <li key={idx}>{i}</li>
         ))}
       </ul>
 
-      <h2 className="mb-2 font-medium">Steps</h2>
+      <h2 className="mb-2 font-medium">{form.steps}</h2>
       <ol className="list-decimal space-y-1 pl-5 text-sm">
         {recipe.steps.map((s, idx) => (
           <li key={idx}>{s}</li>

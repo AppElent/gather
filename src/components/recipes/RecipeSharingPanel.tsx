@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { groupLink } from '../../lib/groupPaths'
+import { fmt, useMessages } from '../../lib/i18n'
 
 export interface RecipeSharingPanelProps {
   recipeId: Id<'recipes'>
@@ -38,6 +39,8 @@ export function RecipeSharingPanel({
   const share = useMutation(api.recipes.share)
   const unshare = useMutation(api.recipes.unshare)
   const navigate = useNavigate()
+  const messages = useMessages()
+  const { sharing } = messages.recipes
 
   const [moveTo, setMoveTo] = useState('')
   const [shareWith, setShareWith] = useState('')
@@ -54,7 +57,9 @@ export function RecipeSharingPanel({
     try {
       await action()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not do that')
+      setError(
+        err instanceof Error ? err.message : messages.common.errors.didNotWork,
+      )
     } finally {
       setBusy(false)
     }
@@ -62,19 +67,22 @@ export function RecipeSharingPanel({
 
   return (
     <section className="mb-4 rounded-md border px-3 py-3 text-sm">
-      <h2 className="mb-2 font-medium">Groups</h2>
+      <h2 className="mb-2 font-medium">{sharing.title}</h2>
 
       <p className="mb-1 opacity-80">
-        Lives in <strong>{homeGroupName ?? 'a group you are in'}</strong>
+        {sharing.livesIn}{' '}
+        <strong>{homeGroupName ?? sharing.unknownGroup}</strong>
       </p>
 
       {sharedGroups.length === 0 ? (
-        <p className="mb-3 opacity-60">Not shared with any other group.</p>
+        <p className="mb-3 opacity-60">{sharing.notShared}</p>
       ) : (
         <ul className="mb-3 list-none space-y-1 p-0">
           {sharedGroups.map((group) => (
             <li key={group._id} className="flex items-center gap-2">
-              <span className="opacity-80">Shared with {group.name}</span>
+              <span className="opacity-80">
+                {fmt(sharing.sharedWith, { group: group.name })}
+              </span>
               <button
                 type="button"
                 disabled={busy}
@@ -85,7 +93,7 @@ export function RecipeSharingPanel({
                   )
                 }
               >
-                Unshare
+                {sharing.unshare}
               </button>
             </li>
           ))}
@@ -99,15 +107,12 @@ export function RecipeSharingPanel({
       )}
 
       {others.length === 0 ? (
-        <p className="opacity-60">
-          You are only in one group, so there is nowhere to move or share this
-          to yet.
-        </p>
+        <p className="opacity-60">{sharing.onlyOneGroup}</p>
       ) : (
         <div className="grid gap-2">
           <div className="flex items-center gap-2">
             <label className="opacity-80" htmlFor="recipe-move-to">
-              Move to
+              {sharing.moveTo}
             </label>
             <select
               id="recipe-move-to"
@@ -115,7 +120,7 @@ export function RecipeSharingPanel({
               value={moveTo}
               onChange={(e) => setMoveTo(e.target.value)}
             >
-              <option value="">Choose a group…</option>
+              <option value="">{sharing.chooseGroup}</option>
               {others.map((group) => (
                 <option key={group._id} value={group.slug}>
                   {group.name}
@@ -137,14 +142,14 @@ export function RecipeSharingPanel({
                 })
               }
             >
-              Move
+              {sharing.move}
             </button>
           </div>
 
           {shareOptions.length > 0 && (
             <div className="flex items-center gap-2">
               <label className="opacity-80" htmlFor="recipe-share-with">
-                Share with
+                {sharing.shareWith}
               </label>
               <select
                 id="recipe-share-with"
@@ -152,7 +157,7 @@ export function RecipeSharingPanel({
                 value={shareWith}
                 onChange={(e) => setShareWith(e.target.value)}
               >
-                <option value="">Choose a group…</option>
+                <option value="">{sharing.chooseGroup}</option>
                 {shareOptions.map((group) => (
                   <option key={group._id} value={group.slug}>
                     {group.name}
@@ -170,7 +175,7 @@ export function RecipeSharingPanel({
                   })
                 }
               >
-                Share
+                {sharing.share}
               </button>
             </div>
           )}

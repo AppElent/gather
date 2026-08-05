@@ -129,7 +129,7 @@ describe('buildEventInput — breast feeds', () => {
     expect(
       buildEventInput('feeding', { method: 'breast', leftMin: '-5' }, START)
         .error,
-    ).toBe('Minutes cannot be negative')
+    ).toBe('negativeMinutes')
   })
 
   test('produces data the server validator accepts', () => {
@@ -168,15 +168,15 @@ describe('buildEventInput — other types', () => {
     expect(built.endTimestamp).toBe(START + 3600000)
   })
 
+  // Keys rather than sentences: the words live in the message tree and the
+  // component that shows the complaint resolves them (ADR-0011).
   test('reports the incomplete-entry errors', () => {
-    expect(buildEventInput('growth', {}, START).error).toBe(
-      'Enter at least one measurement',
-    )
+    expect(buildEventInput('growth', {}, START).error).toBe('enterMeasurement')
     expect(buildEventInput('medication', { name: '  ' }, START).error).toBe(
-      'Enter a medication name',
+      'enterMedicationName',
     )
     expect(buildEventInput('vaccination', { name: '' }, START).error).toBe(
-      'Enter a vaccine name',
+      'enterVaccineName',
     )
   })
 

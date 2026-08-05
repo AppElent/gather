@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { ConvexError } from 'convex/values'
 import { describe, expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { useConfirmAction } from './ConfirmAction'
 
 /**
@@ -40,7 +41,7 @@ function Harness({ run }: { run: () => Promise<unknown> | unknown }) {
 describe('asking', () => {
   test('nothing runs until the question is answered', () => {
     const run = vi.fn()
-    render(<Harness run={run} />)
+    renderWithI18n(<Harness run={run} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
@@ -52,7 +53,7 @@ describe('asking', () => {
 
   test('cancelling closes the question and runs nothing', () => {
     const run = vi.fn()
-    render(<Harness run={run} />)
+    renderWithI18n(<Harness run={run} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -63,7 +64,7 @@ describe('asking', () => {
 
   test('Escape cancels too', () => {
     const run = vi.fn()
-    render(<Harness run={run} />)
+    renderWithI18n(<Harness run={run} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     fireEvent.keyDown(window, { key: 'Escape' })
@@ -76,7 +77,7 @@ describe('asking', () => {
 describe('answering', () => {
   test('confirming runs the work and closes', async () => {
     const run = vi.fn().mockResolvedValue(undefined)
-    render(<Harness run={run} />)
+    renderWithI18n(<Harness run={run} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete list' }))
@@ -87,7 +88,7 @@ describe('answering', () => {
 
   test('a refusal is shown, and the question stays open', async () => {
     const run = vi.fn().mockRejectedValue(new ConvexError('List not found'))
-    render(<Harness run={run} />)
+    renderWithI18n(<Harness run={run} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete list' }))
@@ -101,7 +102,7 @@ describe('answering', () => {
 
   test('a failure with nothing readable in it still says something', async () => {
     const run = vi.fn().mockRejectedValue({})
-    render(<Harness run={run} />)
+    renderWithI18n(<Harness run={run} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete list' }))

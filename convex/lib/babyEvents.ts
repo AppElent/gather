@@ -23,16 +23,11 @@ export const babyEventTypeValidator = v.union(
   v.literal('note'),
 )
 
-export const BABY_EVENT_LABELS: Record<BabyEventType, string> = {
-  temperature: 'Temperature',
-  feeding: 'Feeding',
-  diaper: 'Diaper',
-  sleep: 'Sleep',
-  growth: 'Growth',
-  medication: 'Medication',
-  vaccination: 'Vaccination',
-  note: 'Note',
-}
+// The event-type *names* used to live here. They are read by a person, so they
+// are translated, and they now live in each locale's `baby.ts` under
+// `src/lib/i18n/messages/` keyed by `BabyEventType` (ADR-0011). `activity.ts`
+// used to read them to title an entry; it sends the type key now and lets the
+// client choose the word.
 
 export const temperatureMethodValidator = v.union(
   v.literal('oral'),

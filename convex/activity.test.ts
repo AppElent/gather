@@ -194,15 +194,18 @@ describe('the stream belongs to the Group in the address', () => {
       data: { kind: 'wet' },
     })
 
+    // A task's title is what somebody typed; a baby entry's is a category, and
+    // this returns its `BabyEventType` key rather than an English word so the
+    // client can name it in the reader's language (ADR-0011).
     const jansenStream = await activityIn(t, alice, JANSEN)
-    expect(titles(jansenStream).sort()).toEqual(['Buy nappies', 'Feeding'])
+    expect(titles(jansenStream).sort()).toEqual(['Buy nappies', 'feeding'])
     expect(jansenStream.map((e) => e.context).sort()).toEqual([
       'Noor',
       'Shopping',
     ])
 
     const devriesStream = await activityIn(t, alice, DE_VRIES)
-    expect(titles(devriesStream).sort()).toEqual(['Book the vet', 'Diaper'])
+    expect(titles(devriesStream).sort()).toEqual(['Book the vet', 'diaper'])
   })
 
   test('a recipe shared into a Group is not something that happened there', async () => {

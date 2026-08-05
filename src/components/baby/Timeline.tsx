@@ -3,13 +3,13 @@ import { ChevronRight, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
-import { BABY_EVENT_LABELS } from '../../../convex/lib/babyEvents'
 import {
   dayKey,
   formatEventDateHeading,
   formatEventTimestamp,
 } from '../../lib/babyDate'
 import { summarizeEvent } from '../../lib/babyEventSummary'
+import { fmt, useI18n, useMessages } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { EventForm } from './EventForm'
@@ -26,12 +26,16 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
   const remove = useMutation(api.babyEvents.remove)
   const { confirm, dialog } = useConfirmAction()
   const [editingId, setEditingId] = useState<Id<'babyEvents'> | null>(null)
+  const messages = useMessages()
+  const log = messages.baby.log
+  const eventTypes = messages.baby.eventTypes
+  const { locale } = useI18n()
 
   if (events.length === 0) {
     return (
       <SurfaceCard>
         <p className="m-0 text-sm text-[var(--app-muted)]">
-          No entries yet — log the first one above.
+          {log.timeline.empty}
         </p>
       </SurfaceCard>
     )
@@ -50,7 +54,7 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
       {Array.from(groups.entries()).map(([key, dayEvents]) => (
         <div key={key}>
           <p className="m-0 mb-2 text-xs font-semibold uppercase text-[var(--app-muted)]">
-            {formatEventDateHeading(dayEvents[0].timestamp)}
+            {formatEventDateHeading(dayEvents[0].timestamp, locale)}
           </p>
           <SurfaceCard>
             <ul className="m-0 list-none divide-y divide-[var(--app-border)] p-0">
@@ -79,13 +83,15 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-baseline gap-2">
                           <span className="font-semibold">
-                            {BABY_EVENT_LABELS[event.type]}
+                            {eventTypes[event.type]}
                           </span>
                           <span className="text-xs text-[var(--app-muted)]">
-                            {formatEventTimestamp(event.timestamp)}
+                            {formatEventTimestamp(event.timestamp, locale)}
                           </span>
                         </div>
-                        <p className="m-0 mt-0.5">{summarizeEvent(event)}</p>
+                        <p className="m-0 mt-0.5">
+                          {summarizeEvent(event, log)}
+                        </p>
                         {event.notes && (
                           <p className="m-0 mt-0.5 text-[var(--app-muted)]">
                             {event.notes}
@@ -99,14 +105,16 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
                     </button>
                     <button
                       type="button"
-                      aria-label={`Delete ${BABY_EVENT_LABELS[event.type]} entry`}
+                      aria-label={fmt(log.timeline.deleteEntry, {
+                        type: eventTypes[event.type],
+                      })}
                       className="grid min-h-9 min-w-9 shrink-0 place-items-center self-center rounded-[var(--app-radius)] text-red-800"
                       onClick={() =>
                         confirm({
-                          title: 'Delete this entry?',
-                          body: `${BABY_EVENT_LABELS[event.type]} — ${formatEventTimestamp(event.timestamp)}`,
-                          confirmLabel: 'Delete entry',
-                          errorFallback: 'Could not delete that entry.',
+                          title: log.timeline.deleteTitle,
+                          body: `${eventTypes[event.type]} — ${formatEventTimestamp(event.timestamp, locale)}`,
+                          confirmLabel: log.timeline.deleteConfirm,
+                          errorFallback: log.timeline.deleteFailed,
                           run: () => remove({ eventId: event._id, groupSlug }),
                         })
                       }

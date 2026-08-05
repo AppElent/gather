@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { TargetsPanel } from './TargetsPanel'
 
 test('starts collapsed and expands to show the nutrient grid', () => {
-  render(<TargetsPanel saving={false} onSave={vi.fn()} />)
+  renderWithI18n(<TargetsPanel saving={false} onSave={vi.fn()} />)
   expect(screen.queryByText('Calories (kcal)')).toBeNull()
   fireEvent.click(screen.getByText('Daily targets'))
   expect(screen.getByText('Calories (kcal)')).toBeDefined()
@@ -11,7 +12,7 @@ test('starts collapsed and expands to show the nutrient grid', () => {
 
 test('prefills from targets and calls onSave with parsed values', () => {
   const onSave = vi.fn()
-  render(
+  renderWithI18n(
     <TargetsPanel
       targets={{ calories: 2000 }}
       saving={false}
@@ -28,7 +29,9 @@ test('prefills from targets and calls onSave with parsed values', () => {
 })
 
 test('syncs the form when targets arrives after mount (e.g. the parent query was still loading)', () => {
-  const { rerender } = render(<TargetsPanel saving={false} onSave={vi.fn()} />)
+  const { rerender } = renderWithI18n(
+    <TargetsPanel saving={false} onSave={vi.fn()} />,
+  )
   fireEvent.click(screen.getByText('Daily targets'))
   expect(screen.getByLabelText('Calories (kcal)')).toHaveValue('')
   rerender(

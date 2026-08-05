@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { fmt, useMessages } from '../../lib/i18n'
 
 interface TrendChartProps {
   points: { x: number; y: number }[]
@@ -9,6 +10,8 @@ interface TrendChartProps {
 /** Minimal hand-rolled SVG line chart — no charting dependency, just enough
  * for temperature/growth trend lines over time. */
 export function TrendChart({ points, unit, height = 160 }: TrendChartProps) {
+  const { child } = useMessages().baby.log
+
   const containerRef = useRef<HTMLDivElement>(null)
   // The viewBox width must track the *actual* rendered pixel width, not a
   // fixed desktop-sized number — an SVG's font-size/stroke-width are in
@@ -31,9 +34,7 @@ export function TrendChart({ points, unit, height = 160 }: TrendChartProps) {
 
   if (points.length < 2) {
     return (
-      <p className="m-0 text-sm text-[var(--app-muted)]">
-        Log at least two entries to see a trend line.
-      </p>
+      <p className="m-0 text-sm text-[var(--app-muted)]">{child.trendEmpty}</p>
     )
   }
 
@@ -68,7 +69,10 @@ export function TrendChart({ points, unit, height = 160 }: TrendChartProps) {
         viewBox={`0 0 ${width} ${height}`}
         className="w-full"
         role="img"
-        aria-label={`Trend chart, ${unit}, ${sorted.length} points`}
+        aria-label={fmt(child.trendChart, {
+          unit,
+          count: sorted.length,
+        })}
       >
         <line
           x1={padding.left}

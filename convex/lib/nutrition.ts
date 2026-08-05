@@ -35,16 +35,10 @@ export const nutritionSourceValidator = v.union(
 
 export type NutritionSource = 'imported' | 'ai' | 'manual'
 
-export const NUTRIENT_LABELS: Record<NutrientKey, string> = {
-  calories: 'Calories (kcal)',
-  protein: 'Protein (g)',
-  carbs: 'Carbs (g)',
-  sugars: 'Sugars (g)',
-  fat: 'Fat (g)',
-  saturatedFat: 'Saturated fat (g)',
-  fiber: 'Fiber (g)',
-  salt: 'Salt (g)',
-}
+// The nutrient *names* used to live here, next to the keys. They are read by a
+// person, so they are translated, and they now live in each locale's
+// `nutrients.ts` under `src/lib/i18n/messages/` keyed by `NutrientKey`
+// (ADR-0011). No Convex function ever read them; three client components did.
 
 // JSON-LD nutrition values are free text in the wild: "250 kcal", "12,5 g"
 // (Dutch decimal comma), "1,200 kcal" (US thousands comma), "1046 kJ",

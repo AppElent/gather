@@ -125,9 +125,105 @@ export const shell = {
     goHome: 'Go to Gather',
   },
 
+  /** The gate in front of every `/g/<slug>` page. */
+  groupGate: {
+    unknownTitle: 'No such group',
+    unknownBody:
+      'Nothing here is called “{slug}”. Check the link, or pick a group from the sidebar.',
+    forbiddenTitle: 'This group is not yours',
+    forbiddenBody:
+      'You are not a member of it. Ask an admin of the group for an invite.',
+  },
+
+  /** The Groups page: the households you are in, and the two ways to get another. */
+  groups: {
+    title: 'Groups',
+    intro:
+      'The households you are in. Open one to change its name, share its invite code, or leave it.',
+    yours: 'Your groups',
+    personal: 'Personal',
+    createTitle: 'New group',
+    createBody: 'A household of your own. You start as its admin.',
+    createPlaceholder: 'e.g. Wine club',
+    createLabel: 'New group name',
+    create: 'Create',
+    createFailed: 'Could not create that group.',
+    joinTitle: 'Join with a code',
+    joinBody: "Somebody in the group finds it in that group's settings.",
+    joinPlaceholder: '8-char code',
+    joinLabel: 'Invite code',
+    join: 'Join',
+    joinFailed: 'Could not join with that code.',
+  },
+
+  /** What the app layout says while the session is still settling. */
+  session: {
+    stalledTitle: 'Could not finish signing in',
+    stalledBody:
+      'Gather could not connect your session to the backend. Reloading usually fixes it.',
+    reload: 'Reload',
+  },
+
+  /** The page a provider's OAuth round-trip comes back to. */
+  oauthCallback: {
+    finishing: 'Finishing the connection…',
+    failedTitle: 'Connection failed',
+    backToSettings: 'Back to settings',
+    cancelled: 'The connection was cancelled or refused.',
+    invalid: 'Invalid connection response — try connecting again.',
+    noGroup:
+      'That connection came back without a group — start it again from the group’s settings page.',
+    failed: 'Connecting failed — try again.',
+  },
+
+  /** The public About page. */
+  about: {
+    eyebrow: 'About Gather',
+    title: 'One shared group for everyday coordination',
+    subtitle:
+      'Gather keeps shared recipes, plans, lists, tasks, notes, and tasting logs in one place, for the people who share a household.',
+    modules:
+      'Recipes and Nutrition are live today, and the surrounding modules are staged so a group can grow into meal planning, groceries, pantry tracking, finances, bills, tasks, calendar, notes, cheeses, and wines without changing products.',
+    pins: "Every module is available in every group. You pin the ones you use to your own navigation, and the rest stay one click away — your choices are yours alone and never move anybody else's.",
+  },
+
   publicFrame: {
     brand: 'Gather',
     tagline: 'Household plans, shared',
+  },
+
+  /** The panel the topbar's Ask Gather button opens. */
+  gatherPanel: {
+    title: 'Ask Gather',
+    close: 'Close Ask Gather',
+    context: 'Context: {page}',
+    preview: 'Preview',
+    notConnected:
+      'Automation is not connected yet. Use this panel as a command scratchpad for the active group; real actions will arrive in a later feature.',
+    tryAsking: 'Try asking',
+    prompts: {
+      recent: 'Show me what changed recently',
+      plan: 'Draft a plan for this group',
+      summarize: 'Summarize this page',
+    },
+    placeholder: 'Ask Gather to help with this group...',
+  },
+
+  /** The modal behind the topbar's bug button and Ctrl+Shift+I. */
+  issueReporter: {
+    title: 'Report an issue',
+    types: {
+      bug: 'Bug',
+      enhancement: 'Enhancement',
+      docs: 'Docs',
+      question: 'Question',
+    },
+    placeholder: 'What happened, or what would you like to see?',
+    send: 'Send',
+    sending: 'Sending…',
+    filed: 'Thanks — your report was filed.',
+    viewIssue: 'View issue',
+    unreachable: 'Could not reach the server.',
   },
 
   home: {

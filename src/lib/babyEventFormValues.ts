@@ -1,7 +1,17 @@
 import type { Doc } from '../../convex/_generated/dataModel'
 import type { BabyEventData, BabyEventType } from '../../convex/lib/babyEvents'
 import { DEFAULT_TEMPERATURE_CELSIUS } from './babyEventFields'
+import type { Messages } from './i18n/messages/en'
 import { readLastUsed, writeLastUsed } from './lastUsed'
+
+/**
+ * Why an entry could not be built, as a key rather than a sentence.
+ *
+ * This is a pure validator called from two forms, and a key keeps it that way:
+ * it never has to be handed a message tree, and the component that renders the
+ * complaint is the one that already knows the reader's language (ADR-0011).
+ */
+export type EventValidationError = keyof Messages['baby']['log']['validation']
 
 /** Flat, string-keyed form state for one event type. Kept as plain values
  * (rather than a `useState` per field) so a single form can hold several
@@ -12,7 +22,7 @@ export interface EventInput {
   data: BabyEventData
   /** Absent means "no end time"; callers editing an event should send null. */
   endTimestamp?: number
-  error?: string
+  error?: EventValidationError
 }
 
 function str(value: string | boolean | undefined): string {
@@ -121,7 +131,7 @@ function buildFeeding(values: EventValues, timestampMs: number): EventInput {
   const leftMin = num(values.leftMin)
   const rightMin = num(values.rightMin)
   if ((leftMin ?? 0) < 0 || (rightMin ?? 0) < 0) {
-    return { data: {}, error: 'Minutes cannot be negative' }
+    return { data: {}, error: 'negativeMinutes' }
   }
 
   // Which side(s) got minutes *is* the side. With no minutes at all, keep
@@ -161,7 +171,7 @@ export function buildEventInput(
     case 'temperature': {
       const celsius = num(values.celsius)
       if (celsius === undefined) {
-        return { data: {}, error: 'Select a temperature' }
+        return { data: {}, error: 'selectTemperature' }
       }
       return { data: { celsius, method: str(values.method) || undefined } }
     }
@@ -180,13 +190,13 @@ export function buildEventInput(
         heightCm === undefined &&
         headCircumferenceCm === undefined
       ) {
-        return { data: {}, error: 'Enter at least one measurement' }
+        return { data: {}, error: 'enterMeasurement' }
       }
       return { data: { weightKg, heightCm, headCircumferenceCm } }
     }
     case 'medication': {
       const name = str(values.name).trim()
-      if (!name) return { data: {}, error: 'Enter a medication name' }
+      if (!name) return { data: {}, error: 'enterMedicationName' }
       return {
         data: {
           name,
@@ -197,7 +207,7 @@ export function buildEventInput(
     }
     case 'vaccination': {
       const name = str(values.name).trim()
-      if (!name) return { data: {}, error: 'Enter a vaccine name' }
+      if (!name) return { data: {}, error: 'enterVaccineName' }
       return { data: { name } }
     }
     case 'note':

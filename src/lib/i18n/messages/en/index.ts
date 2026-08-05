@@ -1,9 +1,35 @@
+import { baby } from './baby'
 import { common } from './common'
+import { foods } from './foods'
 import { modules } from './modules'
+import { nutrients } from './nutrients'
+import { nutrition } from './nutrition'
+import { recipes } from './recipes'
 import { settings } from './settings'
 import { shell } from './shell'
+import { tasks } from './tasks'
 
-export const en = { common, shell, modules, settings }
+/**
+ * One area per surface, plus two that cut across them.
+ *
+ * `common` is vocabulary every screen shares. `nutrients` is the nutrient names
+ * and where a set of figures came from — read by Recipes, Nutrition and Foods
+ * alike, which is why it is not inside any of the three. `nutrition` beside it
+ * is the food-diary module itself; the two are easy to confuse and are kept
+ * apart because one is a shared glossary and the other is a screen.
+ */
+export const en = {
+  common,
+  shell,
+  modules,
+  nutrients,
+  recipes,
+  nutrition,
+  foods,
+  tasks,
+  baby,
+  settings,
+}
 
 /**
  * The shape every other locale has to have. English is the source language:

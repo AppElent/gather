@@ -6,6 +6,7 @@ import {
   computeRecipeEntryNutrition,
   type MealName,
 } from '../../../convex/lib/consumption'
+import { useMessages } from '../../lib/i18n'
 import type { NutritionNav } from './nutritionNav'
 
 interface Props {
@@ -27,9 +28,13 @@ export function RecipeAddTab({ date, meal, nav, onAdded }: Props) {
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [submittingId, setSubmittingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const messages = useMessages()
+  const { recipeAdd } = messages.nutrition.diary
 
   if (recipes === undefined)
-    return <p className="text-sm opacity-60">Loading…</p>
+    return (
+      <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+    )
 
   const withNutrition = recipes.filter((r) => r.nutrition)
   const withoutNutrition = recipes.filter((r) => !r.nutrition)
@@ -42,9 +47,7 @@ export function RecipeAddTab({ date, meal, nav, onAdded }: Props) {
         </p>
       )}
       {withNutrition.length === 0 && (
-        <p className="text-sm opacity-60">
-          No recipes with nutrition data yet.
-        </p>
+        <p className="text-sm opacity-60">{recipeAdd.none}</p>
       )}
       {withNutrition.map((recipe) => {
         const quantityInput = quantities[recipe._id] ?? '1'
@@ -66,7 +69,7 @@ export function RecipeAddTab({ date, meal, nav, onAdded }: Props) {
                 }
                 className="w-14 rounded border border-[var(--app-border)] px-1 py-0.5"
               />
-              <span className="opacity-60">servings</span>
+              <span className="opacity-60">{recipeAdd.servings}</span>
               <button
                 type="button"
                 disabled={submittingId === recipe._id}
@@ -96,9 +99,7 @@ export function RecipeAddTab({ date, meal, nav, onAdded }: Props) {
                     onAdded()
                   } catch (err) {
                     setError(
-                      err instanceof Error
-                        ? err.message
-                        : 'Could not log this recipe',
+                      err instanceof Error ? err.message : recipeAdd.failed,
                     )
                   } finally {
                     setSubmittingId(null)
@@ -106,7 +107,7 @@ export function RecipeAddTab({ date, meal, nav, onAdded }: Props) {
                 }}
                 className="rounded border border-[var(--app-fg)] bg-[var(--app-fg)] px-2 py-0.5 text-xs font-semibold text-[var(--app-surface)] disabled:opacity-60"
               >
-                Add
+                {messages.common.actions.add}
               </button>
             </div>
           </div>
@@ -115,7 +116,7 @@ export function RecipeAddTab({ date, meal, nav, onAdded }: Props) {
       {withoutNutrition.length > 0 && (
         <div className="mt-2 border-t border-[var(--app-border)] pt-2">
           <p className="mb-1 text-xs opacity-60">
-            These recipes have no nutrition data yet:
+            {recipeAdd.withoutNutrition}
           </p>
           {withoutNutrition.map((recipe) => (
             <Link

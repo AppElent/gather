@@ -2,6 +2,7 @@ import { useQuery } from 'convex/react'
 import { createContext, type ReactNode, useContext, useMemo } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { fmt, useMessages } from '../../lib/i18n'
 
 /**
  * The Group a `/g/<slug>/…` page is being viewed in.
@@ -65,6 +66,8 @@ export interface GroupGateProps {
  */
 export function GroupGate({ slug, children }: GroupGateProps) {
   const result = useQuery(api.groups.bySlug, { slug })
+  const messages = useMessages()
+  const { groupGate } = messages.shell
 
   const group = useMemo<ActiveGroup | null>(
     () => (result?.ok ? { ...result.group, role: result.role } : null),
@@ -74,7 +77,7 @@ export function GroupGate({ slug, children }: GroupGateProps) {
   if (result === undefined) {
     return (
       <p className="py-16 text-center text-sm text-[var(--app-muted)]">
-        Loading…
+        {messages.common.errors.loading}
       </p>
     )
   }
@@ -83,8 +86,8 @@ export function GroupGate({ slug, children }: GroupGateProps) {
     if (result.reason === 'unknown-slug') {
       return (
         <GateMessage
-          title="No such group"
-          body={`Nothing here is called “${slug}”. Check the link, or pick a group from the sidebar.`}
+          title={groupGate.unknownTitle}
+          body={fmt(groupGate.unknownBody, { slug })}
         />
       )
     }
@@ -95,8 +98,8 @@ export function GroupGate({ slug, children }: GroupGateProps) {
     // group is not yours to see.
     return (
       <GateMessage
-        title="This group is not yours"
-        body="You are not a member of it. Ask an admin of the group for an invite."
+        title={groupGate.forbiddenTitle}
+        body={groupGate.forbiddenBody}
       />
     )
   }

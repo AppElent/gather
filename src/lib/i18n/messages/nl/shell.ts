@@ -116,9 +116,98 @@ export const shell = {
     goHome: 'Naar Gather',
   },
 
+  groupGate: {
+    unknownTitle: 'Die Groep bestaat niet',
+    unknownBody:
+      'Er is hier niets dat “{slug}” heet. Controleer de link, of kies een Groep in de zijbalk.',
+    forbiddenTitle: 'Deze Groep is niet van jou',
+    forbiddenBody:
+      'Je bent er geen lid van. Vraag een beheerder van de Groep om een uitnodiging.',
+  },
+
+  groups: {
+    title: 'Groepen',
+    intro:
+      'De huishoudens waar je in zit. Open er een om de naam te wijzigen, de uitnodigingscode te delen of te vertrekken.',
+    yours: 'Jouw Groepen',
+    personal: 'Persoonlijk',
+    createTitle: 'Nieuwe Groep',
+    createBody: 'Een eigen huishouden. Je begint als beheerder.',
+    createPlaceholder: 'bijv. Wijnclub',
+    createLabel: 'Naam van de nieuwe Groep',
+    create: 'Aanmaken',
+    createFailed: 'Kon die Groep niet aanmaken.',
+    joinTitle: 'Meedoen met een code',
+    joinBody: 'Iemand in de Groep vindt hem bij de instellingen van die Groep.',
+    joinPlaceholder: 'code van 8 tekens',
+    joinLabel: 'Uitnodigingscode',
+    join: 'Meedoen',
+    joinFailed: 'Kon niet meedoen met die code.',
+  },
+
+  session: {
+    stalledTitle: 'Inloggen kon niet worden afgerond',
+    stalledBody:
+      'Gather kon je sessie niet met de backend verbinden. Opnieuw laden helpt meestal.',
+    reload: 'Opnieuw laden',
+  },
+
+  oauthCallback: {
+    finishing: 'De koppeling wordt afgerond…',
+    failedTitle: 'Koppelen mislukt',
+    backToSettings: 'Terug naar instellingen',
+    cancelled: 'De koppeling is geannuleerd of geweigerd.',
+    invalid: 'Ongeldig antwoord — probeer opnieuw te koppelen.',
+    noGroup:
+      'Die koppeling kwam terug zonder Groep — begin opnieuw vanaf de instellingen van de Groep.',
+    failed: 'Koppelen mislukt — probeer het opnieuw.',
+  },
+
+  about: {
+    eyebrow: 'Over Gather',
+    title: 'Eén gedeelde Groep voor het dagelijks regelwerk',
+    subtitle:
+      'Gather houdt gedeelde recepten, plannen, lijsten, taken, notities en proefnotities op één plek, voor de mensen die een huishouden delen.',
+    modules:
+      'Recepten en Voeding werken vandaag al, en de modules eromheen staan klaar zodat een Groep kan doorgroeien naar maaltijdplanning, boodschappen, voorraad, financiën, rekeningen, taken, agenda, notities, kazen en wijnen zonder van app te wisselen.',
+    pins: 'Elke module is in elke Groep beschikbaar. Je zet de modules die je gebruikt vast in je eigen navigatie, de rest blijft één klik weg — je keuzes zijn alleen van jou en verplaatsen die van niemand anders.',
+  },
+
   publicFrame: {
     brand: 'Gather',
     tagline: 'Samen je huishouden regelen',
+  },
+
+  gatherPanel: {
+    title: 'Vraag het Gather',
+    close: 'Vraag het Gather sluiten',
+    context: 'Context: {page}',
+    preview: 'Voorproefje',
+    notConnected:
+      'Automatisering is nog niet aangesloten. Gebruik dit paneel als kladblok voor de Groep waar je staat; echte acties volgen later.',
+    tryAsking: 'Probeer eens',
+    prompts: {
+      recent: 'Laat zien wat er onlangs is veranderd',
+      plan: 'Maak een plan voor deze Groep',
+      summarize: 'Vat deze pagina samen',
+    },
+    placeholder: 'Vraag Gather om te helpen met deze Groep...',
+  },
+
+  issueReporter: {
+    title: 'Probleem melden',
+    types: {
+      bug: 'Bug',
+      enhancement: 'Verbetering',
+      docs: 'Documentatie',
+      question: 'Vraag',
+    },
+    placeholder: 'Wat ging er mis, of wat zou je graag willen zien?',
+    send: 'Versturen',
+    sending: 'Versturen…',
+    filed: 'Bedankt — je melding is aangemaakt.',
+    viewIssue: 'Melding bekijken',
+    unreachable: 'Kon de server niet bereiken.',
   },
 
   home: {

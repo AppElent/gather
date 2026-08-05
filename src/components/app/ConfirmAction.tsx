@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react'
 import { errorMessage } from '../../lib/errorMessage'
+import { useMessages } from '../../lib/i18n'
 import { SurfaceCard } from './ShellPrimitives'
 
 /**
@@ -55,6 +56,7 @@ function ConfirmDialog({
 }: ConfirmDialogProps) {
   const confirmRef = useRef<HTMLButtonElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
+  const actions = useMessages().common.actions
 
   useEffect(() => {
     openerRef.current =
@@ -132,7 +134,7 @@ function ConfirmDialog({
                 onClick={onCancel}
                 className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
               >
-                Cancel
+                {actions.cancel}
               </button>
               <button
                 ref={confirmRef}
@@ -141,7 +143,9 @@ function ConfirmDialog({
                 onClick={onConfirm}
                 className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 text-sm font-semibold text-[var(--app-danger)] disabled:opacity-60"
               >
-                {busy ? 'Working…' : (request.confirmLabel ?? 'Confirm')}
+                {busy
+                  ? actions.working
+                  : (request.confirmLabel ?? actions.confirm)}
               </button>
             </div>
           </div>
@@ -162,6 +166,7 @@ export function useConfirmAction() {
   const [request, setRequest] = useState<ConfirmRequest | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const didNotWork = useMessages().common.errors.didNotWork
 
   function confirm(next: ConfirmRequest) {
     setError(null)
@@ -183,12 +188,7 @@ export function useConfirmAction() {
       await request.run()
       setRequest(null)
     } catch (e) {
-      setError(
-        errorMessage(
-          e,
-          request.errorFallback ?? 'That did not work — try again.',
-        ),
-      )
+      setError(errorMessage(e, request.errorFallback ?? didNotWork))
     } finally {
       setBusy(false)
     }

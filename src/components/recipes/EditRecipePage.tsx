@@ -3,6 +3,7 @@ import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
+import { useMessages } from '../../lib/i18n'
 import { ImageUploadField } from '../app/ImageUploadField'
 import { RecipeForm } from './RecipeForm'
 import type { RecipeNav } from './recipeNav'
@@ -31,11 +32,16 @@ export function EditRecipePage({
     id: recipeId as Id<'recipes'>,
     groupSlug,
   })
+  const messages = useMessages()
 
   if (recipe === undefined)
-    return <p className="text-sm opacity-60">Loading…</p>
+    return (
+      <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+    )
   if (recipe === null)
-    return <p className="text-sm opacity-60">Recipe not found.</p>
+    return (
+      <p className="text-sm opacity-60">{messages.recipes.detail.notFound}</p>
+    )
 
   return <EditRecipeForm key={recipe._id} recipe={recipe} nav={nav} />
 }
@@ -52,6 +58,7 @@ function EditRecipeForm({
   const aiConfigured = useQuery(api.recipes.aiConfigured)
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
   const navigate = useNavigate()
+  const { edit, form } = useMessages().recipes
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [imageId, setImageId] = useState<Id<'_storage'> | undefined>(
@@ -61,7 +68,7 @@ function EditRecipeForm({
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold">Edit recipe</h1>
+      <h1 className="mb-6 text-2xl font-semibold">{edit.title}</h1>
       {error && (
         <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
           {error}
@@ -108,9 +115,7 @@ function EditRecipeForm({
             })
             navigate(nav.detail(recipe._id))
           } catch (err) {
-            setError(
-              err instanceof Error ? err.message : 'Could not save recipe',
-            )
+            setError(err instanceof Error ? err.message : form.saveFailed)
             setSubmitting(false)
           }
         }}

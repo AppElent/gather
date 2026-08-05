@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { api } from '../../convex/_generated/api'
 import { AppShell } from '../components/app/AppShell'
 import { useConvexAuthStalled } from '../integrations/convex/useConvexAuthStalled'
+import { useMessages } from '../lib/i18n'
 
 export const Route = createFileRoute('/_app')({
   component: AppLayout,
@@ -23,6 +24,8 @@ export function AppLayout() {
   // on, so waiting on isAuthenticated alone used to leave the whole app on
   // "Loading..." until the user reloaded by hand. Offer that reload instead.
   const authStalled = useConvexAuthStalled()
+  const messages = useMessages()
+  const { session } = messages.shell
   const ensureUser = useMutation(api.users.ensureUser)
   const navigate = useNavigate()
 
@@ -42,7 +45,7 @@ export function AppLayout() {
     if (!authStalled) {
       return (
         <div className="app-shell grid min-h-svh place-items-center text-sm text-[var(--app-muted)]">
-          Loading...
+          {messages.common.errors.loading}
         </div>
       )
     }
@@ -51,18 +54,15 @@ export function AppLayout() {
       <div className="app-shell grid min-h-svh place-items-center px-6 text-sm text-[var(--app-muted)]">
         <div className="grid max-w-sm justify-items-center gap-3 text-center">
           <p className="m-0 text-base font-semibold text-[var(--app-fg)]">
-            Could not finish signing in
+            {session.stalledTitle}
           </p>
-          <p className="m-0 leading-6">
-            Gather could not connect your session to the backend. Reloading
-            usually fixes it.
-          </p>
+          <p className="m-0 leading-6">{session.stalledBody}</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
             className="inline-flex min-h-10 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)]"
           >
-            Reload
+            {session.reload}
           </button>
         </div>
       </div>

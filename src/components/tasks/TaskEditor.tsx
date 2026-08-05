@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useMessages } from '../../lib/i18n'
 
 export interface TaskEditorValues {
   title: string
@@ -29,6 +30,8 @@ export function TaskEditor({
     initial?.priority ? String(initial.priority) : '',
   )
   const [labels, setLabels] = useState(initial?.labels?.join(', ') ?? '')
+  const messages = useMessages()
+  const { editor } = messages.tasks
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -51,8 +54,8 @@ export function TaskEditor({
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="Task title"
-        aria-label="Task title"
+        placeholder={editor.title}
+        aria-label={editor.title}
         className={inputClass}
       />
       <div className="flex flex-wrap gap-2">
@@ -60,26 +63,26 @@ export function TaskEditor({
           type="date"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
-          aria-label="Due date"
+          aria-label={editor.dueDate}
           className={inputClass}
         />
         <select
           value={priority}
           onChange={(e) => setPriority(e.target.value)}
-          aria-label="Priority"
+          aria-label={editor.priority}
           className={inputClass}
         >
-          <option value="">No priority</option>
-          <option value="1">P1 — urgent</option>
-          <option value="2">P2</option>
-          <option value="3">P3</option>
-          <option value="4">P4</option>
+          <option value="">{editor.noPriority}</option>
+          <option value="1">{editor.p1}</option>
+          <option value="2">{editor.p2}</option>
+          <option value="3">{editor.p3}</option>
+          <option value="4">{editor.p4}</option>
         </select>
         <input
           value={labels}
           onChange={(e) => setLabels(e.target.value)}
-          placeholder="Labels, comma-separated"
-          aria-label="Labels"
+          placeholder={editor.labelsPlaceholder}
+          aria-label={editor.labels}
           className={`${inputClass} flex-1`}
         />
       </div>
@@ -95,7 +98,7 @@ export function TaskEditor({
           onClick={onCancel}
           className="min-h-9 px-2 text-sm text-[var(--app-muted)]"
         >
-          Cancel
+          {messages.common.actions.cancel}
         </button>
       </div>
     </form>

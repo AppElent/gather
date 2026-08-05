@@ -4,6 +4,7 @@ import { ConvexError } from 'convex/values'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { useMessages } from '../../lib/i18n'
 import { ImageUploadField } from '../app/ImageUploadField'
 import { RecipeDestinationNotice } from './RecipeDestinationNotice'
 import { RecipeForm, type RecipeFormValues } from './RecipeForm'
@@ -49,6 +50,7 @@ export function NewRecipePage({
   const aiConfigured = useQuery(api.recipes.aiConfigured)
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
   const navigate = useNavigate()
+  const { create: createText, form } = useMessages().recipes
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -102,10 +104,10 @@ export function NewRecipePage({
         err instanceof ConvexError
           ? typeof err.data === 'string'
             ? err.data
-            : 'Could not import that recipe'
+            : createText.importFailed
           : err instanceof Error
             ? err.message
-            : 'Could not import that recipe',
+            : createText.importFailed,
       )
     } finally {
       setImporting(false)
@@ -124,17 +126,19 @@ export function NewRecipePage({
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold">New recipe</h1>
+      <h1 className="mb-6 text-2xl font-semibold">{createText.title}</h1>
 
       <div className="mx-auto mb-6 max-w-2xl rounded-xl border p-4">
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">Import from URL</span>
+          <span className="mb-1 block font-medium">
+            {createText.importLabel}
+          </span>
           <div className="flex gap-2">
             <input
               className="w-full rounded border px-2 py-1"
               value={importUrl}
               onChange={(e) => setImportUrl(e.target.value)}
-              placeholder="https://example.com/some-recipe"
+              placeholder={createText.importPlaceholder}
             />
             <button
               type="button"
@@ -142,7 +146,7 @@ export function NewRecipePage({
               onClick={() => runImport(importUrl)}
               className="whitespace-nowrap rounded-md border px-3 py-1.5 text-sm"
             >
-              {importing ? 'Importing…' : 'Import'}
+              {importing ? createText.importing : createText.import}
             </button>
           </div>
         </label>
@@ -153,9 +157,7 @@ export function NewRecipePage({
           <p className="mt-2 text-sm text-red-800">{importError}</p>
         )}
         {imported && !importing && !importError && (
-          <p className="mt-2 text-sm text-green-700">
-            Imported — review the details below, then save.
-          </p>
+          <p className="mt-2 text-sm text-green-700">{createText.imported}</p>
         )}
       </div>
 
@@ -199,10 +201,10 @@ export function NewRecipePage({
               err instanceof ConvexError
                 ? typeof err.data === 'string'
                   ? err.data
-                  : 'Could not save recipe'
+                  : form.saveFailed
                 : err instanceof Error
                   ? err.message
-                  : 'Could not save recipe',
+                  : form.saveFailed,
             )
             setSubmitting(false)
           }

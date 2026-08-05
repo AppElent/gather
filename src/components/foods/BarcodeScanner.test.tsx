@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { BarcodeScanner } from './BarcodeScanner'
 
 // jsdom does not implement navigator.mediaDevices at all (it's `undefined`,
@@ -21,7 +22,7 @@ afterEach(() => {
 
 test('manual entry keeps only digits and calls onDetected on Look up', () => {
   const onDetected = vi.fn()
-  render(<BarcodeScanner onDetected={onDetected} />)
+  renderWithI18n(<BarcodeScanner onDetected={onDetected} />)
 
   const input = screen.getByLabelText('Or enter the barcode number')
   fireEvent.change(input, { target: { value: '87a10-398b16000 5' } })
@@ -32,7 +33,7 @@ test('manual entry keeps only digits and calls onDetected on Look up', () => {
 })
 
 test('the Look up button is disabled until at least 8 digits are entered', () => {
-  render(<BarcodeScanner onDetected={vi.fn()} />)
+  renderWithI18n(<BarcodeScanner onDetected={vi.fn()} />)
   const lookUp = screen.getByRole('button', { name: /look up/i })
   const input = screen.getByLabelText('Or enter the barcode number')
 
@@ -47,7 +48,7 @@ test('shows a fallback message when camera access is denied', async () => {
   vi.spyOn(navigator.mediaDevices, 'getUserMedia').mockRejectedValue(
     new DOMException('Permission denied', 'NotAllowedError'),
   )
-  render(<BarcodeScanner onDetected={vi.fn()} />)
+  renderWithI18n(<BarcodeScanner onDetected={vi.fn()} />)
 
   fireEvent.click(screen.getByRole('button', { name: /scan barcode/i }))
   await waitFor(() =>

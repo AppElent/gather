@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { SAMPLE_GROUP_NAME } from '../../../convex/lib/seed/sampleHousehold'
 import { errorMessage } from '../../lib/errorMessage'
+import { fmt, plural, useI18n } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
 
 const buttonClass =
@@ -29,6 +30,8 @@ export function SampleDataSettings() {
   const loadSampleData = useMutation(api.seed.loadSampleData)
   const resetSampleData = useMutation(api.seed.resetSampleData)
   const [busy, setBusy] = useState<Busy>(null)
+  const { locale, messages } = useI18n()
+  const { sampleData } = messages.settings
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<string | null>(null)
 
@@ -42,20 +45,26 @@ export function SampleDataSettings() {
       if (kind === 'load') {
         const out = await loadSampleData({})
         setResult(
-          `Loaded ${out.sample.recipes} recipes, ${out.sample.tasks} tasks, ${out.sample.babyEvents} baby events and ${out.sample.diaryEntries} diary entries into “${SAMPLE_GROUP_NAME}”.`,
+          fmt(sampleData.loaded, {
+            recipes: out.sample.recipes,
+            tasks: out.sample.tasks,
+            babyEvents: out.sample.babyEvents,
+            diaryEntries: out.sample.diaryEntries,
+            group: SAMPLE_GROUP_NAME,
+          }),
         )
       } else {
         const out = await resetSampleData({})
         setResult(
-          `Removed ${out.deleted} sample rows${
-            out.orphaned > 0
-              ? ` and ${out.orphaned} ${out.orphaned === 1 ? 'row' : 'rows'} added inside them`
-              : ''
-          }.`,
+          out.orphaned > 0
+            ? fmt(plural(locale, out.orphaned, sampleData.removedWithOrphans), {
+                deleted: out.deleted,
+              })
+            : fmt(sampleData.removed, { deleted: out.deleted }),
         )
       }
     } catch (e) {
-      setError(errorMessage(e, 'Could not run the seed — check the logs.'))
+      setError(errorMessage(e, sampleData.failed))
     } finally {
       setBusy(null)
     }
@@ -63,14 +72,11 @@ export function SampleDataSettings() {
 
   return (
     <SurfaceCard>
-      <h2 className="m-0 mb-1 text-base font-semibold">Sample data</h2>
+      <h2 className="m-0 mb-1 text-base font-semibold">{sampleData.title}</h2>
       <p className="m-0 mb-3 text-sm opacity-70">
-        Rebuilds a sample household around your account, with dates anchored to
-        today. Both actions remove the sample household completely —{' '}
-        <strong>including anything you added inside it</strong>, such as a task
-        on a sample list. Your own groups, your food diary and recipes you own
-        are left alone, and your default group is put back. Not available in
-        production.
+        {sampleData.descriptionBefore}{' '}
+        <strong>{sampleData.descriptionStrong}</strong>
+        {sampleData.descriptionAfter}
       </p>
 
       {error && (
@@ -87,23 +93,19 @@ export function SampleDataSettings() {
           disabled={busy !== null}
           onClick={() => run('load')}
         >
-          {busy === 'load' ? 'Loading…' : 'Load sample data'}
+          {busy === 'load' ? sampleData.loading : sampleData.load}
         </button>
         <button
           type="button"
           className={buttonClass}
           disabled={busy !== null}
           onClick={() => {
-            if (
-              window.confirm(
-                'Remove the sample household, including anything you added inside it? Your own groups, diary and recipes are left alone.',
-              )
-            ) {
+            if (window.confirm(sampleData.confirmRemove)) {
               void run('reset')
             }
           }}
         >
-          {busy === 'reset' ? 'Removing…' : 'Remove sample data'}
+          {busy === 'reset' ? sampleData.removing : sampleData.remove}
         </button>
       </div>
     </SurfaceCard>

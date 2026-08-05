@@ -3,16 +3,14 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { BabyEventType } from '../../../convex/lib/babyEvents'
-import {
-  BABY_EVENT_LABELS,
-  BABY_EVENT_TYPES,
-} from '../../../convex/lib/babyEvents'
+import { BABY_EVENT_TYPES } from '../../../convex/lib/babyEvents'
 import {
   combineDateTime,
   toDateInputValue,
   toTimeInputValue,
 } from '../../lib/babyDate'
 import type { BabyPdfLayout } from '../../lib/babyPdfExport'
+import { useI18n } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
 
 const inputClass =
@@ -46,6 +44,8 @@ export function ExportPdfPanel({
   const [layout, setLayout] = useState<BabyPdfLayout>('category')
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { locale, messages } = useI18n()
+  const { export: exportText } = messages.baby.log
 
   function toggleType(t: BabyEventType) {
     setTypes((prev) =>
@@ -68,6 +68,9 @@ export function ExportPdfPanel({
       })
       exportBabyLogPdf({
         baby: { name: babyName, birthDate: babyBirthDate },
+        messages: messages.baby.log,
+        eventTypes: messages.baby.eventTypes,
+        locale,
         events,
         from: fromMs,
         to: toMs,
@@ -76,7 +79,7 @@ export function ExportPdfPanel({
       })
       onClose()
     } catch {
-      setError('Could not generate the PDF')
+      setError(exportText.failed)
     } finally {
       setExporting(false)
     }
@@ -84,10 +87,12 @@ export function ExportPdfPanel({
 
   return (
     <SurfaceCard>
-      <h2 className="m-0 mb-3 text-sm font-semibold">Export PDF</h2>
+      <h2 className="m-0 mb-3 text-sm font-semibold">{exportText.title}</h2>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="min-w-0">
-          <span className="mb-1 block text-sm font-medium">From</span>
+          <span className="mb-1 block text-sm font-medium">
+            {exportText.from}
+          </span>
           <div className="flex gap-2">
             <input
               type="date"
@@ -112,7 +117,9 @@ export function ExportPdfPanel({
           </div>
         </div>
         <div className="min-w-0">
-          <span className="mb-1 block text-sm font-medium">To</span>
+          <span className="mb-1 block text-sm font-medium">
+            {exportText.to}
+          </span>
           <div className="flex gap-2">
             <input
               type="date"
@@ -135,7 +142,9 @@ export function ExportPdfPanel({
       </div>
 
       <fieldset className="mt-3">
-        <legend className="mb-1 text-sm font-medium">Layout</legend>
+        <legend className="mb-1 text-sm font-medium">
+          {exportText.layout}
+        </legend>
         <div className="grid gap-1 sm:grid-cols-2">
           <label className="flex items-center gap-1.5 text-sm">
             <input
@@ -144,7 +153,7 @@ export function ExportPdfPanel({
               checked={layout === 'category'}
               onChange={() => setLayout('category')}
             />
-            By category
+            {exportText.byCategory}
           </label>
           <label className="flex items-center gap-1.5 text-sm">
             <input
@@ -153,13 +162,15 @@ export function ExportPdfPanel({
               checked={layout === 'chronological'}
               onChange={() => setLayout('chronological')}
             />
-            Chronological
+            {exportText.chronological}
           </label>
         </div>
       </fieldset>
 
       <fieldset className="mt-3">
-        <legend className="mb-1 text-sm font-medium">Include</legend>
+        <legend className="mb-1 text-sm font-medium">
+          {exportText.include}
+        </legend>
         <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
           {BABY_EVENT_TYPES.map((t) => (
             <label key={t} className="flex items-center gap-1.5 text-sm">
@@ -168,7 +179,7 @@ export function ExportPdfPanel({
                 checked={types.includes(t)}
                 onChange={() => toggleType(t)}
               />
-              {BABY_EVENT_LABELS[t]}
+              {messages.baby.eventTypes[t]}
             </label>
           ))}
         </div>
@@ -183,14 +194,14 @@ export function ExportPdfPanel({
           onClick={runExport}
           className="min-h-9 rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-3 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {exporting ? 'Generating…' : 'Download PDF'}
+          {exporting ? exportText.generating : exportText.download}
         </button>
         <button
           type="button"
           onClick={onClose}
           className="min-h-9 px-2 text-sm text-[var(--app-muted)]"
         >
-          Cancel
+          {messages.common.actions.cancel}
         </button>
       </div>
     </SurfaceCard>

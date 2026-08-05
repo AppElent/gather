@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useAction, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { fmt, useMessages } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { NutritionPanel } from '../recipes/NutritionPanel'
 import type { FoodNav } from './foodNav'
@@ -16,10 +17,15 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
   const food = useQuery(api.foods.get, { id: foodId as Id<'foods'> })
   const refreshFromOff = useAction(api.foodsLookup.refreshFromOff)
   const { confirm, dialog } = useConfirmAction()
+  const messages = useMessages()
+  const { detail } = messages.foods
 
-  if (food === undefined) return <p className="text-sm opacity-60">Loading…</p>
+  if (food === undefined)
+    return (
+      <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+    )
   if (food === null)
-    return <p className="text-sm opacity-60">Food not found.</p>
+    return <p className="text-sm opacity-60">{detail.notFound}</p>
 
   return (
     <article className="mx-auto max-w-2xl">
@@ -38,23 +44,22 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
             {...nav.edit(foodId)}
             className="rounded border px-3 py-1.5 text-sm no-underline"
           >
-            Edit
+            {messages.common.actions.edit}
           </Link>
         ) : (
           <span className="rounded border border-dashed px-3 py-1.5 text-sm opacity-60">
-            Built-in
+            {detail.builtIn}
           </span>
         )}
       </div>
 
       {food.seedKey !== undefined && (
         <p className="mb-4 text-sm opacity-60">
-          Part of gather's built-in food catalog, so it can't be edited. Need a
-          different version?{' '}
+          {detail.builtInNote}{' '}
           {/* Through the Group in the address; the flat `/foods/new` this
               arrived as is gone (ADR-0002). */}
           <Link {...nav.create()} className="underline">
-            Create your own food
+            {detail.createYourOwn}
           </Link>
           .
         </p>
@@ -69,7 +74,7 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
       */}
       <NutritionPanel
         nutrition={food.nutritionPer100}
-        unitLabel={`per 100 ${food.baseUnit}`}
+        unitLabel={fmt(detail.per100, { unit: food.baseUnit })}
         source={
           food.source === 'seed'
             ? // Neither "Imported" nor "Manual" is true of a Catalog entry,
@@ -82,20 +87,22 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
         }
       />
       {food.servingLabel && (
-        <p className="mb-4 text-sm opacity-60">Serving: {food.servingLabel}</p>
+        <p className="mb-4 text-sm opacity-60">
+          {fmt(detail.serving, { label: food.servingLabel })}
+        </p>
       )}
       {food.source === 'openfoodfacts' && (
         <p className="mb-4 text-xs opacity-60">
-          Nutrition data from{' '}
+          {detail.dataFrom}{' '}
           <a
             href="https://world.openfoodfacts.org"
             target="_blank"
             rel="noreferrer"
             className="underline"
           >
-            Open Food Facts
+            {detail.openFoodFacts}
           </a>{' '}
-          (ODbL).
+          {detail.odbl}
         </p>
       )}
       {food.barcode && (
@@ -104,15 +111,15 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
           className="rounded border px-3 py-1.5 text-sm"
           onClick={() =>
             confirm({
-              title: 'Refresh from Open Food Facts?',
-              body: 'This food is overwritten with the latest data there. Any local edits are replaced.',
-              confirmLabel: 'Refresh',
-              errorFallback: 'Could not refresh from Open Food Facts.',
+              title: detail.refreshTitle,
+              body: detail.refreshBody,
+              confirmLabel: detail.refreshConfirm,
+              errorFallback: detail.refreshFailed,
               run: () => refreshFromOff({ id: food._id }),
             })
           }
         >
-          Refresh from Open Food Facts
+          {detail.refresh}
         </button>
       )}
 

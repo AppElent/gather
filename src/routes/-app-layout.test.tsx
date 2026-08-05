@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { beforeEach, expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../lib/i18n/testing'
 import { AppLayout } from './_app'
 
 const clerk = vi.hoisted(() => ({
@@ -52,7 +53,7 @@ beforeEach(() => {
 })
 
 test('renders the app once Convex has authenticated the session', () => {
-  render(<AppLayout />)
+  renderWithI18n(<AppLayout />)
 
   expect(screen.getByTestId('app-shell')).toBeInTheDocument()
   expect(screen.getByTestId('outlet')).toBeInTheDocument()
@@ -62,9 +63,9 @@ test('waits while the Convex handshake is still in flight', () => {
   convexAuth.isLoading = true
   convexAuth.isAuthenticated = false
 
-  render(<AppLayout />)
+  renderWithI18n(<AppLayout />)
 
-  expect(screen.getByText('Loading...')).toBeInTheDocument()
+  expect(screen.getByText('Loading…')).toBeInTheDocument()
   expect(screen.queryByTestId('app-shell')).toBeNull()
 })
 
@@ -74,9 +75,9 @@ test('waits out a handshake that has not stalled yet', () => {
   convexAuth.isLoading = false
   convexAuth.isAuthenticated = false
 
-  render(<AppLayout />)
+  renderWithI18n(<AppLayout />)
 
-  expect(screen.getByText('Loading...')).toBeInTheDocument()
+  expect(screen.getByText('Loading…')).toBeInTheDocument()
 })
 
 test('offers a way out instead of an endless spinner once auth stalls', () => {
@@ -84,9 +85,9 @@ test('offers a way out instead of an endless spinner once auth stalls', () => {
   convexAuth.isAuthenticated = false
   stalled.value = true
 
-  render(<AppLayout />)
+  renderWithI18n(<AppLayout />)
 
-  expect(screen.queryByText('Loading...')).toBeNull()
+  expect(screen.queryByText('Loading…')).toBeNull()
   expect(screen.getByRole('button', { name: /reload/i })).toBeInTheDocument()
 })
 
@@ -100,7 +101,7 @@ test('reloads the page when the user asks', () => {
     value: { ...window.location, reload: reloadMock },
   })
 
-  render(<AppLayout />)
+  renderWithI18n(<AppLayout />)
   fireEvent.click(screen.getByRole('button', { name: /reload/i }))
 
   expect(reloadMock).toHaveBeenCalledTimes(1)
@@ -110,7 +111,7 @@ test('sends signed-out visitors to the sign-in page', () => {
   clerk.isSignedIn = false
   convexAuth.isAuthenticated = false
 
-  render(<AppLayout />)
+  renderWithI18n(<AppLayout />)
 
   expect(navigateMock).toHaveBeenCalledWith({ to: '/sign-in' })
   expect(screen.queryByTestId('app-shell')).toBeNull()
@@ -121,8 +122,8 @@ test('waits for Clerk before deciding anything', () => {
   clerk.isSignedIn = undefined
   convexAuth.isAuthenticated = false
 
-  render(<AppLayout />)
+  renderWithI18n(<AppLayout />)
 
-  expect(screen.getByText('Loading...')).toBeInTheDocument()
+  expect(screen.getByText('Loading…')).toBeInTheDocument()
   expect(navigateMock).not.toHaveBeenCalled()
 })

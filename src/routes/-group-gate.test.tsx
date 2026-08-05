@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { GroupGate, useGroup } from '../components/app/GroupGate'
+import { renderWithI18n } from '../lib/i18n/testing'
 
 /**
  * The four states of the `/g/<slug>` gate, and nothing about how they look.
@@ -27,7 +28,7 @@ beforeEach(() => {
 })
 
 test('waits while the Group is still being resolved', () => {
-  render(
+  renderWithI18n(
     <GroupGate slug="jansen-household">
       <ShowGroup />
     </GroupGate>,
@@ -48,7 +49,7 @@ test('renders the page for a member, and tells it which Group it is in', () => {
     role: 'admin',
   }
 
-  render(
+  renderWithI18n(
     <GroupGate slug="jansen-household">
       <ShowGroup />
     </GroupGate>,
@@ -60,7 +61,7 @@ test('renders the page for a member, and tells it which Group it is in', () => {
 test('refuses a Group you are not a member of, and stays put', () => {
   resolution.value = { ok: false, reason: 'not-a-member' }
 
-  render(
+  renderWithI18n(
     <GroupGate slug="someone-elses">
       <ShowGroup />
     </GroupGate>,
@@ -75,7 +76,7 @@ test('refuses a Group you are not a member of, and stays put', () => {
 test('says plainly when no Group has that slug', () => {
   resolution.value = { ok: false, reason: 'unknown-slug' }
 
-  render(
+  renderWithI18n(
     <GroupGate slug="typo">
       <ShowGroup />
     </GroupGate>,
@@ -89,6 +90,6 @@ test('says plainly when no Group has that slug', () => {
 test('a Group-scoped page cannot render outside the gate', () => {
   // Keep React's own error logging out of the test output.
   const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-  expect(() => render(<ShowGroup />)).toThrow(/useGroup/)
+  expect(() => renderWithI18n(<ShowGroup />)).toThrow(/useGroup/)
   error.mockRestore()
 })

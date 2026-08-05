@@ -3,6 +3,7 @@ import { ChevronDown, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { fmt, useMessages } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { TaskRow } from '../tasks/TaskRow'
 
@@ -30,6 +31,7 @@ export function BabyChecklistCard({
   placeholder,
   collapsible = false,
 }: BabyChecklistCardProps) {
+  const { child } = useMessages().baby.log
   const [open, setOpen] = useState(!collapsible)
   const tasks = useQuery(api.tasks.listByList, {
     listId: taskListId,
@@ -84,12 +86,12 @@ export function BabyChecklistCard({
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={placeholder}
-              aria-label={`Add to ${title}`}
+              aria-label={fmt(child.addTo, { list: title })}
               className="min-h-9 flex-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-3 text-sm"
             />
             <button
               type="submit"
-              aria-label={`Add to ${title}`}
+              aria-label={fmt(child.addTo, { list: title })}
               className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
@@ -97,7 +99,7 @@ export function BabyChecklistCard({
           </form>
           {tasks !== undefined && openItems.length === 0 ? (
             <p className="m-0 text-sm text-[var(--app-muted)]">
-              Nothing here — nice.
+              {child.checklistEmpty}
             </p>
           ) : (
             openItems.map((t) => (
@@ -108,7 +110,7 @@ export function BabyChecklistCard({
                 actions={
                   <button
                     type="button"
-                    aria-label={`Delete ${t.title}`}
+                    aria-label={fmt(child.deleteTask, { task: t.title })}
                     className="grid min-h-9 min-w-9 shrink-0 place-items-center rounded-[var(--app-radius)] text-[var(--app-muted)]"
                     onClick={() =>
                       void removeTask({ taskId: t._id, groupSlug })

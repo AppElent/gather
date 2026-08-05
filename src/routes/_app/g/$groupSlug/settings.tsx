@@ -3,6 +3,7 @@ import { useGroup } from '../../../../components/app/GroupGate'
 import { ConnectionsSettings } from '../../../../components/settings/ConnectionsSettings'
 import { GroupIdentitySettings } from '../../../../components/settings/GroupIdentitySettings'
 import { GroupMembersSettings } from '../../../../components/settings/GroupMembersSettings'
+import { fmt, useMessages } from '../../../../lib/i18n'
 
 /**
  * A Group's own settings, as against `/settings`, which is yours.
@@ -27,6 +28,7 @@ function GroupSettings() {
   // The gate has already resolved this Group and refused anyone who is not a
   // Member, so the name is here to be read rather than queried for again.
   const group = useGroup()
+  const { groupPage } = useMessages().settings
 
   return (
     // See `GroupHome` for why the track is `minmax(0,1fr)` and the heading is
@@ -35,11 +37,10 @@ function GroupSettings() {
     <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-4">
       <header>
         <h1 className="m-0 text-xl font-semibold wrap-anywhere">
-          {group.name} settings
+          {fmt(groupPage.title, { group: group.name })}
         </h1>
         <p className="mt-1 mb-0 text-sm leading-6 text-[var(--app-muted)]">
-          Settings shared by everyone in this group. Your own appearance and
-          account settings are in Settings, and are the same in every group.
+          {groupPage.intro}
         </p>
       </header>
       <GroupIdentitySettings group={group} />

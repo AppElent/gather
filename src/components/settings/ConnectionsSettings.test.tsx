@@ -1,11 +1,6 @@
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { ConnectionsSettings } from './ConnectionsSettings'
 
 /**
@@ -62,7 +57,7 @@ beforeEach(() => {
 })
 
 function renderPanel() {
-  render(
+  renderWithI18n(
     <ConnectionsSettings
       groupSlug="jansen-household"
       groupName="Jansen Household"

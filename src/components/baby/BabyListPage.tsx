@@ -3,6 +3,7 @@ import { useQuery } from 'convex/react'
 import { Plus } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import { formatAge } from '../../lib/babyDate'
+import { useI18n } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import type { BabyNav } from './babyNav'
 
@@ -21,15 +22,18 @@ export interface BabyListPageProps {
  */
 export function BabyListPage({ groupSlug, nav }: BabyListPageProps) {
   const babies = useQuery(api.babies.list, { groupSlug })
+  const { locale, messages } = useI18n()
+  const { child, list } = messages.baby.log
 
   return (
     <div className="mx-auto grid max-w-5xl gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="m-0 text-2xl font-semibold">Baby log</h2>
+          <h2 className="m-0 text-2xl font-semibold">
+            {messages.modules.byId['baby-log'].label}
+          </h2>
           <p className="mt-1 text-sm text-[var(--app-muted)]">
-            Temperature, feeding, sleep, growth and more — shared with the
-            group.
+            {list.subtitle}
           </p>
         </div>
         <Link
@@ -37,7 +41,7 @@ export function BabyListPage({ groupSlug, nav }: BabyListPageProps) {
           className="inline-flex min-h-9 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold text-[var(--app-fg)] no-underline"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
-          Add child
+          {list.addChild}
         </Link>
       </div>
 
@@ -53,15 +57,15 @@ export function BabyListPage({ groupSlug, nav }: BabyListPageProps) {
       ) : babies.length === 0 ? (
         <SurfaceCard>
           <div className="grid gap-3 text-center">
-            <h3 className="m-0 text-base font-semibold">No children yet</h3>
+            <h3 className="m-0 text-base font-semibold">{list.emptyTitle}</h3>
             <p className="m-0 text-sm text-[var(--app-muted)]">
-              Add a child to start logging temperature, feeding, sleep and more.
+              {list.emptyBody}
             </p>
             <Link
               {...nav.create}
               className="mx-auto inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold no-underline"
             >
-              Add your first child
+              {list.emptyAction}
             </Link>
           </div>
         </SurfaceCard>
@@ -89,7 +93,7 @@ export function BabyListPage({ groupSlug, nav }: BabyListPageProps) {
                       {b.name}
                     </h3>
                     <p className="m-0 text-sm text-[var(--app-muted)]">
-                      {formatAge(b.birthDate)}
+                      {formatAge(b.birthDate, child.age, locale)}
                     </p>
                   </div>
                 </div>

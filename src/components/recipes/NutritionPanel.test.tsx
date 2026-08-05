@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { expect, test } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
 import { NutritionPanel } from './NutritionPanel'
 
 test('renders present nutrients with labels, unit label, and the source badge', () => {
-  render(
+  renderWithI18n(
     <NutritionPanel
       nutrition={{ calories: 520, protein: 18.5 }}
       unitLabel="per serving · 4 servings"
@@ -19,13 +20,13 @@ test('renders present nutrients with labels, unit label, and the source badge', 
 })
 
 test('hides absent nutrients and badge when source/unitLabel are missing', () => {
-  render(<NutritionPanel nutrition={{ fat: 10 }} />)
+  renderWithI18n(<NutritionPanel nutrition={{ fat: 10 }} />)
   expect(screen.queryByText('Calories (kcal)')).toBeNull()
   expect(screen.queryByText('Imported')).toBeNull()
   expect(screen.getByText('Fat (g)')).toBeDefined()
 })
 
 test('renders nothing for empty nutrition', () => {
-  const { container } = render(<NutritionPanel nutrition={{}} />)
+  const { container } = renderWithI18n(<NutritionPanel nutrition={{}} />)
   expect(container.innerHTML).toBe('')
 })
