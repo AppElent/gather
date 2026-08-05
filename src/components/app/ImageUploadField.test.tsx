@@ -114,6 +114,28 @@ describe('choosing a photo', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
+  test('cancelling during a slow prepare still uploads nothing', async () => {
+    // Preparing is not instant on a phone with a 4032x3024 photo, and the
+    // person can leave while it runs. What finishes afterwards is not theirs
+    // to upload — they abandoned it.
+    const pipeline = stubImagePipeline({ width: 4032, height: 3024 })
+    const finishEncoding = pipeline.deferEncoding()
+    const { onChange } = renderField()
+    choose()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Use photo' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+    finishEncoding()
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Frame your photo' }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(uploaded).toHaveLength(0)
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   test('the same file can be chosen again after cancelling', async () => {
     renderField()
     choose()

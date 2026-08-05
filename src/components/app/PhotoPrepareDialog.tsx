@@ -1,5 +1,6 @@
 import {
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -72,6 +73,7 @@ export function PhotoPrepareDialog({
   const frameRef = useRef<HTMLButtonElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
   const framePlacedRef = useRef(false)
+  const abandonedRef = useRef(false)
 
   useEffect(() => {
     const url = URL.createObjectURL(file)
@@ -106,13 +108,27 @@ export function PhotoPrepareDialog({
     }
   }, [file, aspect])
 
+  // Leaving is final, and it is recorded the moment the person goes rather
+  // than whenever the unmount lands, so nothing in flight can outlive it.
+  useEffect(() => {
+    abandonedRef.current = false
+    return () => {
+      abandonedRef.current = true
+    }
+  }, [])
+
+  const abandon = useCallback(() => {
+    abandonedRef.current = true
+    onCancel()
+  }, [onCancel])
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onCancel()
+      if (event.key === 'Escape') abandon()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onCancel])
+  }, [abandon])
 
   // Focus goes to the frame and comes back to the file input afterwards, the
   // same way `ConfirmAction` treats the question it opens. It matters more
@@ -252,8 +268,15 @@ export function PhotoPrepareDialog({
     setPreparing(true)
     setError(null)
     try {
-      onConfirm(await preparePhoto(photo, crop, rules))
+      const prepared = await preparePhoto(photo, crop, rules)
+      // Preparing is not instant, and the person can leave while it runs.
+      // Bytes that arrive after they did are not theirs to upload: "abandoning
+      // the prepare step uploads nothing at all" has to hold in this gap too,
+      // which is the only place the guarantee is racy.
+      if (abandonedRef.current) return
+      onConfirm(prepared)
     } catch (e: unknown) {
+      if (abandonedRef.current) return
       setError(errorMessage(e, PHOTO_PREPARE_ERROR))
       setPreparing(false)
     }
@@ -378,7 +401,7 @@ export function PhotoPrepareDialog({
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                onClick={onCancel}
+                onClick={abandon}
                 className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
               >
                 Cancel

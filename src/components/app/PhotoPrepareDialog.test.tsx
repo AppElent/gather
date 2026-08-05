@@ -208,6 +208,19 @@ describe('leaving without a photo', () => {
     expect(pipeline.drawImage).not.toHaveBeenCalled()
   })
 
+  test('Escape during a slow prepare drops what finishes afterwards', async () => {
+    givenPhoto(4032, 3024)
+    const finishEncoding = pipeline.deferEncoding()
+    const { onCancel, onConfirm } = renderDialog('recipePhoto')
+
+    await confirm()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    finishEncoding()
+
+    await waitFor(() => expect(onCancel).toHaveBeenCalled())
+    expect(onConfirm).not.toHaveBeenCalled()
+  })
+
   test('a failed prepare keeps the dialog open and hands back nothing', async () => {
     givenPhoto(4032, 3024)
     // The silent PNG substitution `canvas.toBlob` is specified to make.

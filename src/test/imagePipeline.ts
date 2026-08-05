@@ -25,6 +25,11 @@ export interface StubbedImagePipeline {
   drawnRegion: () => { x: number; y: number; width: number; height: number }
   /** Make the encoder hand back something else — a PNG, or nothing at all. */
   encodesTo: (blob: Blob | null) => void
+  /**
+   * Hold the encode open, as a slow phone would; the returned function lets it
+   * finish. What happens in that gap — someone cancelling — is the point.
+   */
+  deferEncoding: () => () => void
 }
 
 interface StubOptions {
@@ -71,6 +76,15 @@ export function stubImagePipeline({
       toBlob.mockImplementation((callback: (b: Blob | null) => void) =>
         callback(blob),
       )
+    },
+    deferEncoding: () => {
+      let finish: (() => void) | null = null
+      toBlob.mockImplementation(
+        (callback: (b: Blob | null) => void, type?: string) => {
+          finish = () => callback(new Blob([contents], { type: type ?? '' }))
+        },
+      )
+      return () => finish?.()
     },
   }
 }
