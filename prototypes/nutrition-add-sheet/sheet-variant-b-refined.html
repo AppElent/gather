@@ -1,0 +1,993 @@
+<title>gather — Nutrition add sheet</title>
+
+<style>
+  /* ------------------------------------------------------------------
+     PROTOTYPE — throwaway. Variant B refined: everything is an
+     expandable card, nothing commits until confirmed.
+     Tokens are gather's own (src/styles.css), copied verbatim.
+     ------------------------------------------------------------------ */
+
+  :root {
+    --app-bg: oklch(99% 0.002 240);
+    --app-surface: oklch(100% 0 0);
+    --app-surface-muted: oklch(97% 0.004 250);
+    --app-fg: oklch(18% 0.012 250);
+    --app-muted: oklch(54% 0.012 250);
+    --app-border: oklch(92% 0.005 250);
+    --app-accent: oklch(58% 0.18 255);
+    --app-success: oklch(58% 0.14 150);
+    --app-warning: oklch(70% 0.14 75);
+    --app-danger: oklch(62% 0.16 25);
+    --app-radius: 8px;
+    --sea-ink: #173a40;
+    --sea-ink-soft: #416166;
+    --lagoon: #4fb8b2;
+    --lagoon-deep: #328f97;
+
+    --page-bg: oklch(95% 0.006 240);
+    --page-fg: oklch(30% 0.012 250);
+    --tile: color-mix(in oklch, var(--lagoon) 14%, var(--app-surface));
+    --on-lagoon: #ffffff;
+    --on-ink: #eaf6f4;
+
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --app-bg: oklch(16% 0.012 250);
+      --app-surface: oklch(20% 0.012 250);
+      --app-surface-muted: oklch(24% 0.012 250);
+      --app-fg: oklch(94% 0.006 250);
+      --app-muted: oklch(70% 0.012 250);
+      --app-border: oklch(31% 0.012 250);
+      --app-accent: oklch(70% 0.16 255);
+      --app-success: oklch(72% 0.13 150);
+      --app-warning: oklch(78% 0.12 75);
+      --app-danger: oklch(72% 0.13 25);
+      --sea-ink: #d7ece8;
+      --sea-ink-soft: #afcdc8;
+      --lagoon: #60d7cf;
+      --lagoon-deep: #8de5db;
+      --page-bg: oklch(12% 0.012 250);
+      --page-fg: oklch(80% 0.01 250);
+      --tile: color-mix(in oklch, var(--lagoon) 18%, var(--app-surface));
+      --on-lagoon: #08211f;
+      --on-ink: #0d2226;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --app-bg: oklch(16% 0.012 250);
+    --app-surface: oklch(20% 0.012 250);
+    --app-surface-muted: oklch(24% 0.012 250);
+    --app-fg: oklch(94% 0.006 250);
+    --app-muted: oklch(70% 0.012 250);
+    --app-border: oklch(31% 0.012 250);
+    --app-accent: oklch(70% 0.16 255);
+    --app-success: oklch(72% 0.13 150);
+    --app-warning: oklch(78% 0.12 75);
+    --app-danger: oklch(72% 0.13 25);
+    --sea-ink: #d7ece8;
+    --sea-ink-soft: #afcdc8;
+    --lagoon: #60d7cf;
+    --lagoon-deep: #8de5db;
+    --page-bg: oklch(12% 0.012 250);
+    --page-fg: oklch(80% 0.01 250);
+    --tile: color-mix(in oklch, var(--lagoon) 18%, var(--app-surface));
+    --on-lagoon: #08211f;
+    --on-ink: #0d2226;
+  }
+
+  :root[data-theme="light"] {
+    --app-bg: oklch(99% 0.002 240);
+    --app-surface: oklch(100% 0 0);
+    --app-surface-muted: oklch(97% 0.004 250);
+    --app-fg: oklch(18% 0.012 250);
+    --app-muted: oklch(54% 0.012 250);
+    --app-border: oklch(92% 0.005 250);
+    --app-accent: oklch(58% 0.18 255);
+    --app-success: oklch(58% 0.14 150);
+    --app-warning: oklch(70% 0.14 75);
+    --app-danger: oklch(62% 0.16 25);
+    --sea-ink: #173a40;
+    --sea-ink-soft: #416166;
+    --lagoon: #4fb8b2;
+    --lagoon-deep: #328f97;
+    --page-bg: oklch(95% 0.006 240);
+    --page-fg: oklch(30% 0.012 250);
+    --tile: color-mix(in oklch, var(--lagoon) 14%, var(--app-surface));
+    --on-lagoon: #ffffff;
+    --on-ink: #eaf6f4;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--page-bg);
+    color: var(--page-fg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--lagoon-deep); outline-offset: 2px; }
+
+  /* ---------- staging ---------- */
+
+  .stage {
+    min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 18px; padding: 26px 16px 40px;
+  }
+  .stage-intro { max-width: 48ch; text-align: center; display: grid; gap: 6px; }
+  .stage-intro h1 { margin: 0; font-size: 1.05rem; letter-spacing: -0.01em; color: var(--sea-ink); }
+  .stage-intro p { margin: 0; font-size: 0.82rem; line-height: 1.5; opacity: 0.85; }
+
+  .phone {
+    position: relative;
+    width: 390px; height: 800px; max-height: calc(100dvh - 150px);
+    border-radius: 34px;
+    border: 1px solid var(--app-border);
+    background: var(--app-bg); color: var(--app-fg);
+    overflow: hidden;
+    box-shadow: 0 24px 60px -20px oklch(20% 0.03 250 / 0.35);
+    isolation: isolate;
+    touch-action: manipulation;
+  }
+
+  @media (max-width: 560px) {
+    .stage { padding: 0; gap: 0; }
+    .stage-intro { display: none; }
+    .phone { width: 100%; height: 100dvh; max-height: none; border-radius: 0; border: none; box-shadow: none; }
+  }
+
+  /* ---------- diary ---------- */
+
+  .diary { height: 100%; overflow-y: auto; padding: 18px 16px 40px; touch-action: pan-y; }
+  .diary-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+  .diary-title { margin: 0; font-size: 1.3rem; font-weight: 600; letter-spacing: -0.015em; }
+  .daypill { display: flex; align-items: center; gap: 2px; border: 1px solid var(--app-border); border-radius: 999px; background: var(--app-surface); padding: 2px; }
+  .daypill button { border: 0; background: none; width: 40px; height: 40px; border-radius: 999px; font-size: 1.05rem; color: var(--app-muted); }
+  .daypill span { font-size: 0.78rem; font-weight: 600; padding: 0 4px; font-variant-numeric: tabular-nums; }
+
+  .totals { border: 1px solid var(--app-border); border-radius: 14px; background: var(--app-surface); padding: 14px; margin-bottom: 14px; }
+  .totals-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .totals-kcal { font-size: 1.5rem; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .totals-kcal small { font-size: 0.78rem; font-weight: 500; color: var(--app-muted); margin-left: 4px; }
+  .totals-left { font-size: 0.76rem; color: var(--app-muted); font-variant-numeric: tabular-nums; }
+  .bar { height: 6px; border-radius: 999px; background: var(--app-surface-muted); overflow: hidden; }
+  .bar > i { display: block; height: 100%; border-radius: 999px; background: var(--lagoon); }
+  .macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .macro { display: grid; gap: 3px; }
+  .macro b { font-size: 0.9rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .macro span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--app-muted); }
+
+  .slot { border-top: 1px solid var(--app-border); padding: 12px 0 4px; }
+  .slot-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .slot-name { font-size: 0.82rem; font-weight: 650; }
+  .slot-kcal { font-size: 0.76rem; color: var(--app-muted); font-variant-numeric: tabular-nums; }
+  .slot-add { border: 1px solid var(--app-border); background: var(--app-surface); border-radius: 999px; padding: 9px 16px; min-height: 42px; font-size: 0.82rem; font-weight: 600; color: var(--lagoon-deep); }
+  .slot-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 0.84rem; }
+  .slot-row .qty { color: var(--app-muted); font-size: 0.76rem; font-variant-numeric: tabular-nums; }
+  .slot-row .kcal { margin-left: auto; font-size: 0.78rem; color: var(--app-muted); font-variant-numeric: tabular-nums; }
+  .slot-empty { font-size: 0.78rem; color: var(--app-muted); padding: 4px 0 8px; }
+
+  /* ---------- sheet ---------- */
+
+  .scrim { position: absolute; inset: 0; background: oklch(15% 0.02 250); opacity: 0; pointer-events: none; z-index: 5; }
+  .scrim.on { pointer-events: auto; }
+
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
+    height: 93%; display: flex; flex-direction: column;
+    background: var(--app-surface);
+    border-top-left-radius: 22px; border-top-right-radius: 22px;
+    border-top: 1px solid var(--app-border);
+    box-shadow: 0 -12px 40px -12px oklch(20% 0.03 250 / 0.28);
+    will-change: transform; transform: translate3d(0, 100%, 0);
+  }
+  .sheet.animate { transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1); }
+  @media (prefers-reduced-motion: reduce) { .sheet.animate { transition-duration: 1ms; } }
+
+  .grab { padding: 8px 0 4px; display: flex; justify-content: center; flex: none; cursor: grab; touch-action: none; }
+  .grab::before { content: ""; width: 38px; height: 4px; border-radius: 999px; background: var(--app-border); }
+  .sheet.dragging .grab { cursor: grabbing; }
+
+  .sheet-head { flex: none; padding: 2px 16px 10px; touch-action: none; }
+  .sheet-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .sheet-title h2 { margin: 0; font-size: 0.95rem; font-weight: 650; letter-spacing: -0.01em; }
+  .sheet-close { border: 0; background: var(--app-surface-muted); border-radius: 999px; width: 40px; height: 40px; font-size: 1.05rem; color: var(--app-muted); display: grid; place-items: center; }
+
+  .searchrow { display: flex; gap: 8px; }
+  .search { flex: 1; display: flex; align-items: center; gap: 8px; border: 1px solid var(--app-border); border-radius: 11px; background: var(--app-surface-muted); padding: 0 10px; }
+  /* 16px is load-bearing, not taste: iOS Safari auto-zooms the page on
+     focusing any input below 16px. Fixing it here rather than with
+     maximum-scale, which would disable pinch-zoom for everyone. */
+  .search input {
+    flex: 1; min-width: 0; border: 0; background: none; outline: none;
+    color: var(--app-fg); font-family: inherit; font-size: 16px; padding: 12px 0;
+  }
+  .search input::placeholder { color: var(--app-muted); font-size: 15px; }
+  .scanbtn { flex: none; border: 1px solid var(--app-border); background: var(--app-surface); border-radius: 11px; width: 48px; min-height: 46px; display: grid; place-items: center; font-size: 1.1rem; }
+
+  .sheet-body {
+    flex: 1; overflow-y: auto; overscroll-behavior: contain;
+    padding: 4px 16px 26px; -webkit-overflow-scrolling: touch; touch-action: pan-y;
+  }
+  .sheet:not([data-detent="full"]) .sheet-body { overflow-y: hidden; }
+
+  /* ---------- groups + cards ---------- */
+
+  .group { margin-top: 14px; }
+  .group:first-child { margin-top: 6px; }
+  .group-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .group-head h3 { margin: 0; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--app-muted); }
+  .group-head::after { content: ""; flex: 1; height: 1px; background: var(--app-border); }
+
+  .tile { flex: none; width: 52px; height: 52px; border-radius: 12px; background: var(--tile); display: grid; place-items: center; font-size: 1.45rem; }
+  .tile.sm { width: 32px; height: 32px; border-radius: 8px; font-size: 0.95rem; }
+
+  .card { border: 1px solid var(--app-border); border-radius: 14px; overflow: hidden; background: var(--app-surface); margin-bottom: 8px; }
+  .card.open { border-color: color-mix(in oklch, var(--lagoon) 55%, var(--app-border)); }
+  .card-top { display: flex; align-items: center; gap: 11px; width: 100%; border: 0; background: none; text-align: left; padding: 11px 10px; min-height: 56px; }
+  .card-main { flex: 1; min-width: 0; display: grid; gap: 3px; }
+  .card-name { font-size: 0.88rem; font-weight: 570; line-height: 1.25; }
+  .card-sub { font-size: 0.73rem; color: var(--app-muted); line-height: 1.35; }
+  .card-right { flex: none; text-align: right; display: grid; gap: 1px; }
+  .card-kcal { font-size: 0.85rem; font-weight: 620; font-variant-numeric: tabular-nums; }
+  .card-unit { font-size: 0.65rem; color: var(--app-muted); }
+
+  .card-body { padding: 2px 12px 12px; display: grid; gap: 11px; }
+  .card-body[hidden] { display: none; }
+
+  .badge { display: inline-block; font-size: 0.61rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 5px; vertical-align: 1px; }
+  .badge.combo { background: color-mix(in oklch, var(--lagoon) 20%, transparent); color: var(--lagoon-deep); }
+  .badge.recipe { background: color-mix(in oklch, var(--app-warning) 22%, transparent); color: var(--app-warning); }
+  .badge.off { background: var(--app-surface-muted); color: var(--app-muted); }
+
+  /* ---------- servings ---------- */
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    border: 1px solid var(--app-border); background: var(--app-surface); border-radius: 999px;
+    padding: 10px 14px; min-height: 44px; font-size: 0.85rem; font-weight: 550;
+    font-variant-numeric: tabular-nums; display: inline-flex; align-items: center;
+  }
+  .chip.on { border-color: var(--lagoon-deep); background: color-mix(in oklch, var(--lagoon) 16%, var(--app-surface)); color: var(--lagoon-deep); }
+  .chip small { color: var(--app-muted); font-weight: 500; margin-left: 3px; }
+  .chip.on small { color: inherit; opacity: 0.75; }
+
+  .custom { display: flex; gap: 7px; align-items: stretch; }
+  .custom input {
+    flex: 1; min-width: 0; border: 1px solid var(--lagoon-deep); border-radius: 10px;
+    background: var(--app-surface); color: var(--app-fg);
+    font-family: inherit; font-size: 16px;   /* see .search input — iOS zoom */
+    padding: 11px 12px; outline: none; font-variant-numeric: tabular-nums;
+  }
+  .unittoggle { display: flex; border: 1px solid var(--app-border); border-radius: 10px; overflow: hidden; }
+  .unittoggle button { border: 0; background: var(--app-surface); padding: 0 16px; min-height: 46px; font-size: 0.82rem; font-weight: 600; color: var(--app-muted); }
+  .unittoggle button.on { background: var(--lagoon-deep); color: var(--on-lagoon); }
+
+  .nutgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+  .nut { display: grid; gap: 2px; padding: 8px; border-radius: 10px; background: var(--app-surface-muted); }
+  .nut b { font-size: 0.84rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .nut span { font-size: 0.61rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--app-muted); }
+
+  .cta { width: 100%; border: 0; border-radius: 12px; padding: 14px; min-height: 48px; background: var(--lagoon-deep); color: var(--on-lagoon); font-size: 0.92rem; font-weight: 650; }
+  .cta:disabled { opacity: 0.4; }
+  .linkbtn { border: 0; background: none; padding: 10px 0; min-height: 44px; font-size: 0.8rem; font-weight: 600; color: var(--lagoon-deep); text-align: left; justify-self: start; }
+
+  /* ---------- combo components ---------- */
+
+  .parts { display: grid; border: 1px solid var(--app-border); border-radius: 11px; padding: 2px 10px; }
+  .part { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--app-border); }
+  .part:last-child { border-bottom: 0; }
+  .part.gone { opacity: 0.4; }
+  .part-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .part-name { font-size: 0.82rem; font-weight: 540; line-height: 1.25; }
+  .part-sub { font-size: 0.7rem; color: var(--app-muted); font-variant-numeric: tabular-nums; }
+
+  /* 44px targets. The − reaching 0 *is* the remove, so there is no
+     second control to miss with a thumb. */
+  .stepper { flex: none; display: flex; align-items: center; border: 1px solid var(--app-border); border-radius: 999px; background: var(--app-surface); }
+  .stepper button { border: 0; background: none; width: 44px; height: 44px; border-radius: 999px; color: var(--lagoon-deep); font-size: 1.35rem; line-height: 1; display: grid; place-items: center; }
+  .stepper button:disabled { color: var(--app-border); }
+  .stepper span { min-width: 20px; text-align: center; font-size: 0.88rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+  .hint { font-size: 0.72rem; color: var(--app-muted); line-height: 1.45; }
+  .empty { font-size: 0.8rem; color: var(--app-muted); padding: 18px 0; text-align: center; }
+
+  /* ---------- toast ---------- */
+
+  .toast {
+    position: absolute; left: 12px; right: 12px; bottom: 14px; z-index: 20;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--app-fg); color: var(--app-surface);
+    border-radius: 12px; padding: 11px 13px; font-size: 0.82rem;
+    box-shadow: 0 10px 30px -10px oklch(20% 0.03 250 / 0.5);
+    opacity: 0; transform: translateY(10px); pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+  .toast.on { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .toast button { border: 0; background: none; margin-left: auto; font-weight: 700; color: var(--lagoon); white-space: nowrap; }
+</style>
+
+<div class="stage">
+  <div class="stage-intro">
+    <h1>Nutrition — add sheet</h1>
+    <p>Variant B, refined. Everything is a card that expands; nothing is logged until you confirm. Combos expand into their parts — the stepper counts that food's own serving, and stepping down to zero removes it. Every serving list ends in <b>Custom</b>.</p>
+  </div>
+
+  <div class="phone" id="phone">
+    <div class="diary" id="diary"></div>
+    <div class="scrim" id="scrim"></div>
+    <div class="sheet" id="sheet" data-detent="closed">
+      <div class="grab" id="grab"></div>
+      <div class="sheet-head" id="sheetHead"></div>
+      <div class="sheet-body" id="sheetBody"></div>
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------------------------------------------------------------- data
+
+  const FOODS = [
+    { id: 'brood',   emoji: '🍞', name: 'Volkorenbrood',       brand: 'AH Basic',      kcal100: 247, unit: 'g',  serve: 35,  serveName: 'slice',  p: 9.4, c: 41, f: 3.3,
+      servings: [['1 slice', 35], ['2 slices', 70], ['3 slices', 105], ['100 g', 100]] },
+    { id: 'gouda',   emoji: '🧀', name: 'Goudse kaas 48+',     brand: 'Old Amsterdam', kcal100: 356, unit: 'g',  serve: 20,  serveName: 'slice',  p: 25,  c: 0,  f: 28,
+      servings: [['1 slice', 20], ['2 slices', 40], ['30 g', 30], ['100 g', 100]] },
+    { id: 'koffie',  emoji: '☕', name: 'Koffie, zwart',       brand: '',              kcal100: 2,   unit: 'ml', serve: 125, serveName: 'cup',    p: 0.2, c: 0,  f: 0,
+      servings: [['1 cup', 125], ['1 mug', 250], ['1 espresso', 30], ['100 ml', 100]] },
+    { id: 'banaan',  emoji: '🍌', name: 'Banaan',              brand: '',              kcal100: 89,  unit: 'g',  serve: 118, serveName: 'banana', p: 1.1, c: 23, f: 0.3,
+      servings: [['1 small', 90], ['1 medium', 118], ['1 large', 150], ['100 g', 100]] },
+    { id: 'melk',    emoji: '🥛', name: 'Halfvolle melk',      brand: 'Campina',       kcal100: 46,  unit: 'ml', serve: 200, serveName: 'glass',  p: 3.5, c: 4.8, f: 1.5,
+      servings: [['1 glass', 200], ['1 splash', 30], ['250 ml', 250], ['100 ml', 100]] },
+    { id: 'yoghurt', emoji: '🥣', name: 'Griekse yoghurt 10%', brand: 'Fage',          kcal100: 115, unit: 'g',  serve: 150, serveName: 'pot',    p: 5.4, c: 3.2, f: 10,
+      servings: [['1 pot', 150], ['½ pot', 75], ['200 g', 200], ['100 g', 100]] },
+    { id: 'pinda',   emoji: '🥜', name: 'Pindakaas',           brand: 'Calvé',         kcal100: 588, unit: 'g',  serve: 15,  serveName: 'knife',  p: 25,  c: 12, f: 50,
+      servings: [['1 knife', 15], ['2 knives', 30], ['1 tbsp', 18], ['100 g', 100]] },
+    { id: 'ei',      emoji: '🥚', name: 'Ei, gekookt',         brand: '',              kcal100: 143, unit: 'g',  serve: 58,  serveName: 'egg',    p: 13,  c: 1.1, f: 9.5,
+      servings: [['1 egg', 58], ['2 eggs', 116], ['3 eggs', 174], ['100 g', 100]] },
+    { id: 'appel',   emoji: '🍎', name: 'Appel, Elstar',       brand: '',              kcal100: 52,  unit: 'g',  serve: 182, serveName: 'apple',  p: 0.3, c: 14, f: 0.2,
+      servings: [['1 apple', 182], ['½ apple', 91], ['100 g', 100]] },
+    { id: 'kip',     emoji: '🍗', name: 'Kipfilet, gegrild',   brand: '',              kcal100: 165, unit: 'g',  serve: 120, serveName: 'fillet', p: 31,  c: 0,  f: 3.6,
+      servings: [['1 fillet', 120], ['½ fillet', 60], ['150 g', 150], ['100 g', 100]] },
+    { id: 'haver',   emoji: '🌾', name: 'Havermout',           brand: 'Quaker',        kcal100: 371, unit: 'g',  serve: 40,  serveName: 'portion', p: 13, c: 60, f: 7,
+      servings: [['1 portion', 40], ['1 big portion', 60], ['100 g', 100]] },
+    { id: 'off-1',   emoji: '🥫', name: 'Kikkererwten',        brand: 'Bonduelle',     kcal100: 119, unit: 'g',  serve: 130, serveName: 'half tin', p: 7.2, c: 15, f: 2.6, off: true,
+      servings: [['½ tin', 130], ['1 tin', 265], ['100 g', 100]] },
+    { id: 'off-2',   emoji: '🍫', name: 'Chocolonely Melk',    brand: 'Tony’s',        kcal100: 535, unit: 'g',  serve: 25,  serveName: 'chunk',  p: 7.8, c: 56, f: 30, off: true,
+      servings: [['1 chunk', 25], ['2 chunks', 50], ['100 g', 100]] }
+  ];
+
+  const RECIPES = [
+    { id: 'r-pesto', emoji: '🍝', name: 'Pasta pesto',  servingsMade: 4, kcalServing: 612, p: 19, c: 71, f: 27 },
+    { id: 'r-linze', emoji: '🍲', name: 'Linzensoep',   servingsMade: 6, kcalServing: 248, p: 14, c: 33, f: 5.2 },
+    { id: 'r-curry', emoji: '🍛', name: 'Kippencurry',  servingsMade: 4, kcalServing: 486, p: 38, c: 24, f: 26 }
+  ];
+
+  const COMBOS = [
+    { id: 'c-lunch',   emoji: '🥪', name: 'Vaste lunch',        items: [['brood', 2], ['gouda', 1], ['koffie', 1]] },
+    { id: 'c-ontbijt', emoji: '🥣', name: 'Havermout-ontbijt',  items: [['haver', 1], ['melk', 1], ['banaan', 1]] },
+    { id: 'c-snack',   emoji: '🌙', name: 'Avondsnack',         items: [['yoghurt', 1], ['pinda', 1]] }
+  ];
+
+  const byId = Object.fromEntries(FOODS.map(f => [f.id, f]));
+  const RECENT = ['gouda', 'koffie', 'brood', 'banaan', 'ei'];
+
+  const RECIPE_SERVINGS = [['½ serving', 0.5], ['1 serving', 1], ['1½ servings', 1.5], ['2 servings', 2]];
+
+  const round = n => Math.round(n);
+  const foodKcal = (f, amount) => (f.kcal100 * amount) / 100;
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : (word.endsWith('s') ? '' : 's')}`;
+
+  // ------------------------------------------------------------- state
+
+  const state = {
+    slot: 'Lunch',
+    term: '',
+    open: null,                 // "food:brood" | "combo:c-lunch" | "recipe:r-pesto"
+    serving: {},                // foodId -> index into servings, or 'custom'
+    custom: {},                 // foodId -> { value: string, unit: 'base' | 'serve' }
+    recipeServing: {},          // recipeId -> index, or 'custom'
+    recipeCustom: {},           // recipeId -> string
+    comboQty: {},               // comboId -> { foodId: count }  (0 = removed)
+    logged: {
+      Breakfast: [ { name: 'Havermout', qty: '1 portion · 40 g', kcal: 148 }, { name: 'Halfvolle melk', qty: '1 glass · 200 ml', kcal: 92 } ],
+      Lunch: [],
+      Dinner: [ { name: 'Pasta pesto', qty: '1 serving', kcal: 612 } ],
+      Snack: [ { name: 'Appel, Elstar', qty: '1 apple · 182 g', kcal: 95 } ]
+    }
+  };
+
+  const TARGET = 2200;
+  const el = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ------------------------------------------------- serving resolution
+
+  /** The amount (in the food's base unit) currently chosen for a food. */
+  function chosenAmount(f) {
+    const sel = state.serving[f.id] ?? 0;
+    if (sel === 'custom') {
+      const c = state.custom[f.id] ?? { value: '', unit: 'base' };
+      const n = Number(String(c.value).replace(',', '.'));
+      if (!Number.isFinite(n) || n <= 0) return null;
+      return c.unit === 'serve' ? n * f.serve : n;
+    }
+    return f.servings[sel][1];
+  }
+
+  function chosenLabel(f) {
+    const sel = state.serving[f.id] ?? 0;
+    if (sel === 'custom') {
+      const c = state.custom[f.id] ?? { value: '', unit: 'base' };
+      const n = Number(String(c.value).replace(',', '.'));
+      if (!Number.isFinite(n) || n <= 0) return 'Custom';
+      return c.unit === 'serve' ? plural(n, f.serveName) : `${n} ${f.unit}`;
+    }
+    return f.servings[sel][0];
+  }
+
+  function comboQty(c) {
+    if (!state.comboQty[c.id]) {
+      state.comboQty[c.id] = Object.fromEntries(c.items.map(([id, n]) => [id, n]));
+    }
+    return state.comboQty[c.id];
+  }
+
+  const comboBase = c => Object.fromEntries(c.items.map(([id, n]) => [id, n]));
+  const comboChanged = c => {
+    const q = comboQty(c), b = comboBase(c);
+    return Object.keys(b).some(k => q[k] !== b[k]);
+  };
+  const comboKcal = c => {
+    const q = comboQty(c);
+    return Object.entries(q).reduce((s, [id, n]) => s + foodKcal(byId[id], n * byId[id].serve), 0);
+  };
+  const comboCount = c => Object.values(comboQty(c)).filter(n => n > 0).length;
+
+  function recipeAmount(r) {
+    const sel = state.recipeServing[r.id] ?? 1;
+    if (sel === 'custom') {
+      const n = Number(String(state.recipeCustom[r.id] ?? '').replace(',', '.'));
+      return Number.isFinite(n) && n > 0 ? n : null;
+    }
+    return RECIPE_SERVINGS[sel][1];
+  }
+  function recipeLabel(r) {
+    const sel = state.recipeServing[r.id] ?? 1;
+    if (sel === 'custom') {
+      const n = recipeAmount(r);
+      return n === null ? 'Custom' : `${n} serving${n === 1 ? '' : 's'}`;
+    }
+    return RECIPE_SERVINGS[sel][0];
+  }
+
+  // ------------------------------------------------------------- diary
+
+  const dayKcal = () => Object.values(state.logged).flat().reduce((s, e) => s + e.kcal, 0);
+
+  function renderDiary() {
+    const total = dayKcal();
+    const pct = Math.min(100, (total / TARGET) * 100);
+    const slots = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+
+    el('diary').innerHTML = `
+      <div class="diary-top">
+        <h1 class="diary-title">Nutrition</h1>
+        <div class="daypill">
+          <button type="button" aria-label="Previous day">‹</button>
+          <span>Wed 6 Aug</span>
+          <button type="button" aria-label="Next day">›</button>
+        </div>
+      </div>
+      <div class="totals">
+        <div class="totals-head">
+          <div class="totals-kcal">${round(total)}<small>/ ${TARGET} kcal</small></div>
+          <div class="totals-left">${round(TARGET - total)} left</div>
+        </div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="macros">
+          <div class="macro"><b>78 g</b><span>Protein</span></div>
+          <div class="macro"><b>141 g</b><span>Carbs</span></div>
+          <div class="macro"><b>52 g</b><span>Fat</span></div>
+        </div>
+      </div>
+      ${slots.map(s => {
+        const rows = state.logged[s];
+        const kcal = rows.reduce((a, e) => a + e.kcal, 0);
+        return `
+        <div class="slot">
+          <div class="slot-head">
+            <div><span class="slot-name">${s}</span>${kcal ? `<span class="slot-kcal"> · ${round(kcal)} kcal</span>` : ''}</div>
+            <button type="button" class="slot-add" data-open="${s}">+ Add</button>
+          </div>
+          ${rows.length
+            ? rows.map(e => `<div class="slot-row"><span>${esc(e.name)}</span><span class="qty">${esc(e.qty)}</span><span class="kcal">${round(e.kcal)}</span></div>`).join('')
+            : '<div class="slot-empty">Nothing logged yet.</div>'}
+        </div>`;
+      }).join('')}
+    `;
+    el('diary').querySelectorAll('[data-open]').forEach(b =>
+      b.addEventListener('click', () => { state.slot = b.dataset.open; openSheet('peek'); }));
+  }
+
+  // --------------------------------------------------- sheet mechanics
+
+  const sheet = el('sheet');
+  const scrim = el('scrim');
+
+  const DETENTS = { full: 0, peek: 0.42, closed: 1 };
+  let current = 'closed';
+  let pending = false, dragging = false, suppressClick = false;
+  let startY = 0, startFrac = 1, lastY = 0, lastT = 0, velocity = 0;
+  const DRAG_THRESHOLD = 6;
+
+  const sheetH = () => sheet.getBoundingClientRect().height;
+
+  function setFrac(frac, animate) {
+    sheet.classList.toggle('animate', !!animate);
+    sheet.style.transform = `translate3d(0, ${frac * 100}%, 0)`;
+    scrim.style.opacity = String((1 - frac) * 0.42);
+    scrim.classList.toggle('on', frac < 0.98);
+  }
+
+  function snapTo(name) {
+    current = name;
+    sheet.dataset.detent = name;
+    setFrac(DETENTS[name], true);
+  }
+
+  function openSheet(detent) {
+    resetSheetState();
+    renderSheet();
+    setFrac(1, false);
+    requestAnimationFrame(() => snapTo(detent || 'peek'));
+  }
+  const closeSheet = () => snapTo('closed');
+
+  function onDown(e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (e.target.closest('input, .chip, .stepper, .unittoggle')) return;
+    if (e.target.closest('.sheet-body') && current === 'full' && el('sheetBody').scrollTop > 0) return;
+    pending = true; dragging = false;
+    startY = e.clientY; lastY = e.clientY; lastT = performance.now();
+    velocity = 0; startFrac = DETENTS[current];
+  }
+
+  function onMove(e) {
+    if (!pending) return;
+    const dy = e.clientY - startY;
+    if (!dragging) {
+      if (Math.abs(dy) < DRAG_THRESHOLD) return;
+      dragging = true;
+      sheet.classList.add('dragging');
+      sheet.classList.remove('animate');
+    }
+    let frac = startFrac + dy / sheetH();
+    if (frac < 0) frac = frac * 0.25;
+    frac = Math.max(-0.04, Math.min(1, frac));
+    const now = performance.now();
+    if (now > lastT) velocity = (e.clientY - lastY) / (now - lastT);
+    lastY = e.clientY; lastT = now;
+    setFrac(frac, false);
+    e.preventDefault();
+  }
+
+  function onUp() {
+    if (!pending) return;
+    pending = false;
+    if (!dragging) return;
+    dragging = false;
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 0);
+    sheet.classList.remove('dragging');
+    const frac = parseFloat(sheet.style.transform.match(/,\s*([-\d.]+)%/)?.[1] ?? '100') / 100;
+    if (velocity > 0.55) snapTo(current === 'full' ? 'peek' : 'closed');
+    else if (velocity < -0.55) snapTo('full');
+    else {
+      const nearest = Object.entries(DETENTS).reduce((best, e) =>
+        Math.abs(e[1] - frac) < Math.abs(best[1] - frac) ? e : best);
+      snapTo(nearest[0]);
+    }
+  }
+
+  el('grab').addEventListener('pointerdown', onDown);
+  el('sheetHead').addEventListener('pointerdown', onDown);
+  el('sheetBody').addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove, { passive: false });
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+  scrim.addEventListener('click', closeSheet);
+  sheet.addEventListener('click', e => {
+    if (suppressClick) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
+  el('sheetBody').addEventListener('scroll', () => {
+    if (current !== 'full') el('sheetBody').scrollTop = 0;
+  });
+
+  // ---------------------------------------------------------- feedback
+
+  let toastTimer;
+  function toast(msg, actionLabel, action) {
+    const t = el('toast');
+    t.innerHTML = `<span>${esc(msg)}</span>${actionLabel ? `<button type="button">${esc(actionLabel)}</button>` : ''}`;
+    t.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('on'), 3200);
+    t.querySelector('button')?.addEventListener('click', () => {
+      action();
+      t.classList.remove('on');
+      renderDiary();
+    });
+  }
+
+  function logEntry(name, qty, kcal) {
+    state.logged[state.slot].push({ name, qty, kcal: round(kcal) });
+  }
+
+  // ----------------------------------------------------------- markup
+
+  const tile = (emoji, sm) => `<span class="tile${sm ? ' sm' : ''}" aria-hidden="true">${emoji}</span>`;
+
+  function servingChips(f) {
+    const sel = state.serving[f.id] ?? 0;
+    const c = state.custom[f.id] ?? { value: '', unit: 'base' };
+    return `
+      <div class="chips">
+        ${f.servings.map(([l, g], i) =>
+          `<button type="button" class="chip${sel === i ? ' on' : ''}" data-serv="${f.id}:${i}">${esc(l)}<small>${g} ${f.unit}</small></button>`).join('')}
+        <button type="button" class="chip${sel === 'custom' ? ' on' : ''}" data-serv="${f.id}:custom">Custom…</button>
+      </div>
+      ${sel === 'custom' ? `
+      <div class="custom">
+        <input type="text" inputmode="decimal" data-custom="${f.id}" value="${esc(c.value)}"
+               placeholder="Amount" aria-label="Custom amount">
+        <div class="unittoggle">
+          <button type="button" class="${c.unit === 'base' ? 'on' : ''}" data-cunit="${f.id}:base">${f.unit}</button>
+          <button type="button" class="${c.unit === 'serve' ? 'on' : ''}" data-cunit="${f.id}:serve">${esc(f.serveName)}${f.serveName.endsWith('s') ? '' : 's'}</button>
+        </div>
+      </div>` : ''}`;
+  }
+
+  function nutGrid(kcal, p, c, f) {
+    return `<div class="nutgrid">
+      <div class="nut"><b>${round(kcal)}</b><span>kcal</span></div>
+      <div class="nut"><b>${p.toFixed(1)} g</b><span>Protein</span></div>
+      <div class="nut"><b>${c.toFixed(1)} g</b><span>Carbs</span></div>
+      <div class="nut"><b>${f.toFixed(1)} g</b><span>Fat</span></div>
+    </div>`;
+  }
+
+  function foodCard(f) {
+    const key = `food:${f.id}`;
+    const open = state.open === key;
+    const amount = chosenAmount(f);
+    const label = chosenLabel(f);
+    const k = amount === null ? null : foodKcal(f, amount);
+    return `
+      <div class="card${open ? ' open' : ''}">
+        <button type="button" class="card-top" data-card="${key}">
+          ${tile(f.emoji)}
+          <span class="card-main">
+            <span class="card-name">${esc(f.name)}${f.off ? ' <span class="badge off">Open Food Facts</span>' : ''}</span>
+            <span class="card-sub">${esc([f.brand, `${f.kcal100} kcal / 100 ${f.unit}`].filter(Boolean).join(' · '))}</span>
+          </span>
+          <span class="card-right">
+            <span class="card-kcal">${k === null ? '—' : round(k)}</span>
+            <span class="card-unit">${esc(label)}</span>
+          </span>
+        </button>
+        <div class="card-body" ${open ? '' : 'hidden'}>
+          ${servingChips(f)}
+          ${nutGrid(k ?? 0, f.p * (amount ?? 0) / 100, f.c * (amount ?? 0) / 100, f.f * (amount ?? 0) / 100)}
+          <button type="button" class="cta" data-add-food="${f.id}" ${amount === null ? 'disabled' : ''}>
+            ${amount === null ? 'Enter an amount' : `Add · ${esc(label)} · ${round(k)} kcal`}
+          </button>
+        </div>
+      </div>`;
+  }
+
+  function comboCard(c) {
+    const key = `combo:${c.id}`;
+    const open = state.open === key;
+    const q = comboQty(c);
+    const changed = comboChanged(c);
+    const n = comboCount(c);
+    const summary = Object.entries(q).filter(([, v]) => v > 0)
+      .map(([id, v]) => `${v}× ${byId[id].serveName}${v === 1 ? '' : 's'} ${byId[id].name.split(',')[0].toLowerCase()}`)
+      .join(' · ') || 'Nothing left in this combo';
+
+    return `
+      <div class="card${open ? ' open' : ''}">
+        <button type="button" class="card-top" data-card="${key}">
+          ${tile(c.emoji)}
+          <span class="card-main">
+            <span class="card-name">${esc(c.name)} <span class="badge combo">Combo</span></span>
+            <span class="card-sub">${esc(summary)}</span>
+          </span>
+          <span class="card-right">
+            <span class="card-kcal">${round(comboKcal(c))}</span>
+            <span class="card-unit">${n} item${n === 1 ? '' : 's'}</span>
+          </span>
+        </button>
+        <div class="card-body" ${open ? '' : 'hidden'}>
+          <div class="parts">
+            ${c.items.map(([id]) => {
+              const f = byId[id];
+              const count = q[id] ?? 0;
+              const amount = count * f.serve;
+              return `
+              <div class="part${count === 0 ? ' gone' : ''}">
+                ${tile(f.emoji, true)}
+                <span class="part-main">
+                  <span class="part-name">${esc(f.name)}</span>
+                  <span class="part-sub">${count === 0 ? 'removed' : `${plural(count, f.serveName)} · ${round(amount)} ${f.unit} · ${round(foodKcal(f, amount))} kcal`}</span>
+                </span>
+                <span class="stepper">
+                  <button type="button" data-cq="${c.id}:${id}:-1" ${count === 0 ? 'disabled' : ''}
+                          aria-label="${count === 1 ? `Remove ${esc(f.name)}` : `Less ${esc(f.name)}`}">−</button>
+                  <span>${count}</span>
+                  <button type="button" data-cq="${c.id}:${id}:1" aria-label="More ${esc(f.name)}">+</button>
+                </span>
+              </div>`;
+            }).join('')}
+          </div>
+          <button type="button" class="cta" data-add-combo="${c.id}" ${n === 0 ? 'disabled' : ''}>
+            ${n === 0 ? 'Nothing to add' : `Add ${n} item${n === 1 ? '' : 's'} · ${round(comboKcal(c))} kcal`}
+          </button>
+          ${changed ? `<button type="button" class="linkbtn" data-reset="${c.id}">Reset to the saved combo</button>` : ''}
+        </div>
+      </div>`;
+  }
+
+  function recipeCard(r) {
+    const key = `recipe:${r.id}`;
+    const open = state.open === key;
+    const sel = state.recipeServing[r.id] ?? 1;
+    const n = recipeAmount(r);
+    const k = n === null ? null : r.kcalServing * n;
+    return `
+      <div class="card${open ? ' open' : ''}">
+        <button type="button" class="card-top" data-card="${key}">
+          ${tile(r.emoji)}
+          <span class="card-main">
+            <span class="card-name">${esc(r.name)} <span class="badge recipe">Recipe</span></span>
+            <span class="card-sub">Makes ${r.servingsMade} · ${r.kcalServing} kcal per serving</span>
+          </span>
+          <span class="card-right">
+            <span class="card-kcal">${k === null ? '—' : round(k)}</span>
+            <span class="card-unit">${esc(recipeLabel(r))}</span>
+          </span>
+        </button>
+        <div class="card-body" ${open ? '' : 'hidden'}>
+          <div class="chips">
+            ${RECIPE_SERVINGS.map(([l], i) =>
+              `<button type="button" class="chip${sel === i ? ' on' : ''}" data-rserv="${r.id}:${i}">${esc(l)}</button>`).join('')}
+            <button type="button" class="chip${sel === 'custom' ? ' on' : ''}" data-rserv="${r.id}:custom">Custom…</button>
+          </div>
+          ${sel === 'custom' ? `
+          <div class="custom">
+            <input type="text" inputmode="decimal" data-rcustom="${r.id}" value="${esc(state.recipeCustom[r.id] ?? '')}"
+                   placeholder="How many servings?" aria-label="Custom servings">
+            <div class="unittoggle"><button type="button" class="on">servings</button></div>
+          </div>` : ''}
+          ${nutGrid(k ?? 0, r.p * (n ?? 0), r.c * (n ?? 0), r.f * (n ?? 0))}
+          <button type="button" class="cta" data-add-recipe="${r.id}" ${n === null ? 'disabled' : ''}>
+            ${n === null ? 'Enter servings' : `Add · ${esc(recipeLabel(r))} · ${round(k)} kcal`}
+          </button>
+        </div>
+      </div>`;
+  }
+
+  const group = (title, inner) => inner
+    ? `<div class="group"><div class="group-head"><h3>${esc(title)}</h3></div>${inner}</div>` : '';
+
+  function matches(term) {
+    const t = term.trim().toLowerCase();
+    if (!t) return null;
+    const hit = s => (s || '').toLowerCase().includes(t);
+    return {
+      combos: COMBOS.filter(c => hit(c.name)),
+      foods: FOODS.filter(f => !f.off && (hit(f.name) || hit(f.brand))),
+      recipes: RECIPES.filter(r => hit(r.name)),
+      off: FOODS.filter(f => f.off && (hit(f.name) || hit(f.brand)))
+    };
+  }
+
+  // -------------------------------------------------------- rendering
+
+  function head() {
+    return `
+      <div class="sheet-title">
+        <h2>Add to ${esc(state.slot)}</h2>
+        <button type="button" class="sheet-close" id="closeBtn" aria-label="Close">✕</button>
+      </div>
+      <div class="searchrow">
+        <label class="search">
+          <span aria-hidden="true" style="opacity:.5">⌕</span>
+          <input id="term" type="search" value="${esc(state.term)}" placeholder="Search foods, combos, recipes…" autocomplete="off">
+        </label>
+        <button type="button" class="scanbtn" aria-label="Scan barcode">▤</button>
+      </div>`;
+  }
+
+  function body() {
+    const m = matches(state.term);
+    if (m) {
+      const total = m.combos.length + m.foods.length + m.recipes.length + m.off.length;
+      if (!total) return `<p class="empty">Nothing matched “${esc(state.term)}”.</p>`;
+      return group('Combos', m.combos.map(comboCard).join(''))
+        + group('Your foods', m.foods.map(foodCard).join(''))
+        + group('Recipes', m.recipes.map(recipeCard).join(''))
+        + group('Open Food Facts', m.off.map(foodCard).join(''));
+    }
+    return group('Combos', COMBOS.map(comboCard).join(''))
+      + group('Recent', RECENT.map(id => foodCard(byId[id])).join(''))
+      + group('Recipes', RECIPES.map(recipeCard).join(''))
+      + `<p class="hint" style="margin-top:12px">Tap any card to change the amount before adding. Combos open into their parts.</p>`;
+  }
+
+  function resetSheetState() {
+    state.term = '';
+    state.open = null;
+    state.serving = {};
+    state.custom = {};
+    state.recipeServing = {};
+    state.recipeCustom = {};
+    state.comboQty = {};
+  }
+
+  function renderSheet(keepFocus) {
+    const active = document.activeElement;
+    const activeId = active?.id;
+    const activeData = active?.dataset?.custom || active?.dataset?.rcustom;
+    const caret = active?.selectionStart;
+
+    el('sheetHead').innerHTML = head();
+    el('sheetBody').innerHTML = body();
+    wire();
+
+    if (keepFocus && activeId === 'term') {
+      const t = el('term');
+      t.focus();
+      t.setSelectionRange(t.value.length, t.value.length);
+    } else if (keepFocus && activeData) {
+      const next = sheet.querySelector(`[data-custom="${activeData}"], [data-rcustom="${activeData}"]`);
+      if (next) { next.focus(); try { next.setSelectionRange(caret, caret); } catch {} }
+    }
+  }
+
+  // ------------------------------------------------------------ wiring
+
+  function wire() {
+    el('closeBtn')?.addEventListener('click', closeSheet);
+
+    const term = el('term');
+    term?.addEventListener('input', e => {
+      state.term = e.target.value;
+      state.open = null;
+      if (current !== 'full') snapTo('full');
+      renderSheet(true);
+    });
+    term?.addEventListener('focus', () => { if (current !== 'full') snapTo('full'); });
+
+    // expand / collapse a card
+    sheet.querySelectorAll('[data-card]').forEach(b => b.addEventListener('click', () => {
+      state.open = state.open === b.dataset.card ? null : b.dataset.card;
+      if (current !== 'full') snapTo('full');
+      renderSheet();
+    }));
+
+    // food servings
+    sheet.querySelectorAll('[data-serv]').forEach(b => b.addEventListener('click', () => {
+      const [id, sel] = b.dataset.serv.split(':');
+      state.serving[id] = sel === 'custom' ? 'custom' : Number(sel);
+      if (sel === 'custom' && !state.custom[id]) state.custom[id] = { value: '', unit: 'base' };
+      renderSheet();
+      if (sel === 'custom') sheet.querySelector(`[data-custom="${id}"]`)?.focus();
+    }));
+    sheet.querySelectorAll('[data-custom]').forEach(i => i.addEventListener('input', e => {
+      const id = e.target.dataset.custom;
+      state.custom[id] = { ...(state.custom[id] ?? { unit: 'base' }), value: e.target.value };
+      renderSheet(true);
+    }));
+    sheet.querySelectorAll('[data-cunit]').forEach(b => b.addEventListener('click', () => {
+      const [id, unit] = b.dataset.cunit.split(':');
+      state.custom[id] = { ...(state.custom[id] ?? { value: '' }), unit };
+      renderSheet();
+    }));
+
+    // recipe servings
+    sheet.querySelectorAll('[data-rserv]').forEach(b => b.addEventListener('click', () => {
+      const [id, sel] = b.dataset.rserv.split(':');
+      state.recipeServing[id] = sel === 'custom' ? 'custom' : Number(sel);
+      renderSheet();
+      if (sel === 'custom') sheet.querySelector(`[data-rcustom="${id}"]`)?.focus();
+    }));
+    sheet.querySelectorAll('[data-rcustom]').forEach(i => i.addEventListener('input', e => {
+      state.recipeCustom[e.target.dataset.rcustom] = e.target.value;
+      renderSheet(true);
+    }));
+
+    // combo component quantity
+    sheet.querySelectorAll('[data-cq]').forEach(b => b.addEventListener('click', () => {
+      const [cid, fid, delta] = b.dataset.cq.split(':');
+      const c = COMBOS.find(x => x.id === cid);
+      const q = comboQty(c);
+      // 0 is "removed" — the stepper's − reaching 0 is the only remove there is.
+      q[fid] = Math.max(0, (q[fid] ?? 0) + Number(delta));
+      renderSheet();
+    }));
+    sheet.querySelectorAll('[data-reset]').forEach(b => b.addEventListener('click', () => {
+      delete state.comboQty[b.dataset.reset];
+      renderSheet();
+    }));
+
+    // commits
+    sheet.querySelectorAll('[data-add-food]').forEach(b => b.addEventListener('click', () => {
+      const f = byId[b.dataset.addFood];
+      const amount = chosenAmount(f);
+      if (amount === null) return;
+      logEntry(f.name, `${chosenLabel(f)} · ${round(amount)} ${f.unit}`, foodKcal(f, amount));
+      renderDiary();
+      toast(`${f.name} — ${chosenLabel(f)} logged`, 'Undo', () => state.logged[state.slot].pop());
+      closeSheet();
+    }));
+
+    sheet.querySelectorAll('[data-add-combo]').forEach(b => b.addEventListener('click', () => {
+      const c = COMBOS.find(x => x.id === b.dataset.addCombo);
+      const q = comboQty(c);
+      const changed = comboChanged(c);
+      const entries = Object.entries(q).filter(([, n]) => n > 0);
+      entries.forEach(([id, n]) => {
+        const f = byId[id];
+        const amount = n * f.serve;
+        logEntry(f.name, `${plural(n, f.serveName)} · ${round(amount)} ${f.unit}`, foodKcal(f, amount));
+      });
+      renderDiary();
+      // Logging a changed combo never edits it — saving is offered, never assumed.
+      if (changed) {
+        toast(`${c.name} logged, changed just this once`, `Update ${c.name}`,
+          () => toast(`${c.name} updated`));
+      } else {
+        toast(`${c.name} — ${entries.length} items logged`, 'Undo',
+          () => entries.forEach(() => state.logged[state.slot].pop()));
+      }
+      closeSheet();
+    }));
+
+    sheet.querySelectorAll('[data-add-recipe]').forEach(b => b.addEventListener('click', () => {
+      const r = RECIPES.find(x => x.id === b.dataset.addRecipe);
+      const n = recipeAmount(r);
+      if (n === null) return;
+      logEntry(r.name, recipeLabel(r), r.kcalServing * n);
+      renderDiary();
+      toast(`${r.name} — ${recipeLabel(r)} logged`, 'Undo', () => state.logged[state.slot].pop());
+      closeSheet();
+    }));
+  }
+
+  window.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (e.key === 'Escape') closeSheet();
+  });
+
+  // ------------------------------------------------------------- start
+
+  renderDiary();
+  setFrac(1, false);
+  renderSheet();
+  setTimeout(() => openSheet('peek'), 300);
+})();
+</script>
