@@ -1,6 +1,8 @@
 name: Deploy
 
-# Merge to main -> dev. Manual "Run workflow" -> production.
+# Merge to main -> stg. Manual "Run workflow" -> production. There is no
+# deployed dev environment: dev is `pnpm dev` against your own convex dev
+# deployment, which is why nothing here can push schema out from under it.
 on:
   push:
     branches: [main]
@@ -8,7 +10,7 @@ on:
 
 # Never cancel a deploy mid-flight; queue behind the previous one instead.
 concurrency:
-  group: deploy-${{ github.event_name == 'workflow_dispatch' && 'production' || 'dev' }}
+  group: deploy-${{ github.event_name == 'workflow_dispatch' && 'production' || 'stg' }}
   cancel-in-progress: false
 
 jobs:
@@ -34,11 +36,11 @@ jobs:
   deploy:
     needs: checks
     runs-on: ubuntu-latest
-    # push to main -> dev; manual Run workflow -> production.
-    environment: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'dev' }}
+    # push to main -> stg; manual Run workflow -> production.
+    environment: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'stg' }}
     permissions: { contents: read, packages: read }
     env:
-      # Environment-scoped: each of `dev` and `production` holds its own value.
+      # Environment-scoped: each of `stg` and `production` holds its own value.
       # An environment secret shadows a repo secret of the same name — preview.yml
       # declares no `environment:`, so it keeps resolving the repo-level `preview:`
       # CONVEX_DEPLOY_KEY. Giving preview.yml an `environment:` would break that.
@@ -46,21 +48,18 @@ jobs:
       VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      # `build` minifies for prod; `build:development` runs vite in development
-      # mode, matching what `pnpm run deploy:dev` does locally.
-      BUILD_SCRIPT: ${{ github.event_name == 'workflow_dispatch' && 'build' || 'build:development' }}
-      # wrangler.jsonc: top-level = `gather` (prod), env.dev = `gather-dev`. The
+      # wrangler.jsonc: top-level = `gather` (prod), env.stg = `gather-stg`. The
       # production value is a space, not '': GitHub treats the empty string as
-      # falsy, so `… && '' || '--env dev'` would fall through to the dev branch.
+      # falsy, so `… && '' || '--env stg'` would fall through to the stg branch.
       # Word-splitting drops the space, leaving `wrangler deploy` bare.
-      WRANGLER_ARGS: ${{ github.event_name == 'workflow_dispatch' && ' ' || '--env dev' }}
-      # Sample-data panel on dev only. Never set for a production build — see
+      WRANGLER_ARGS: ${{ github.event_name == 'workflow_dispatch' && ' ' || '--env stg' }}
+      # Sample-data panel on stg only. Never set for a production build — see
       # CLAUDE.md; its absence is what keeps fake households out of real data.
       # Polarity matters: the value we want empty must be the `||` fallback, per
       # the falsy-'' rule above. `… == 'workflow_dispatch' && '' || 'true'` would
       # evaluate to 'true' on *production*, which is the one thing it must not do.
       VITE_ENABLE_SAMPLE_DATA: ${{ github.event_name != 'workflow_dispatch' && 'true' || '' }}
-      # @appelent/auth's test-login button, dev only. Vite inlines VITE_* into the
+      # @appelent/auth's test-login button, stg only. Vite inlines VITE_* into the
       # client bundle, so these must stay scoped to the Clerk *test* instance and
       # must never reach a production build.
       VITE_TEST_USER_EMAIL: ${{ github.event_name != 'workflow_dispatch' && secrets.VITE_TEST_USER_EMAIL || '' }}
@@ -88,15 +87,20 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # CONVEX_DEPLOY_KEY alone picks the target deployment. Convex exposes its
-      # URL to --cmd as $CONVEX_URL; bridge it to VITE_CONVEX_URL, which is what
-      # the app actually reads at build time. Every other VITE_* is already on the
-      # job env, and Vite picks prefixed vars up from process.env.
+      # CONVEX_DEPLOY_KEY alone picks the target deployment — a deploy key scopes
+      # every convex command to it. Convex exposes that deployment's URL to --cmd
+      # as $CONVEX_URL; bridge it to VITE_CONVEX_URL, which is what the app reads
+      # at build time. Every other VITE_* is already on the job env, and Vite
+      # picks prefixed vars up from process.env.
+      #
+      # Both targets run `pnpm build`, not build:development — staging exists to
+      # exercise the same bundle production ships. What differs between them is
+      # env vars, not build mode.
       - name: Convex deploy + build
         run: |
           pnpm exec convex deploy \
             --cmd-url-env-var-name CONVEX_URL \
-            --cmd "VITE_CONVEX_URL=\$CONVEX_URL pnpm run $BUILD_SCRIPT"
+            --cmd "VITE_CONVEX_URL=\$CONVEX_URL pnpm build"
 
       # Convex has no post-deploy hook outside previews, so the Catalog seed is a
       # separate step. Runs before the Worker flips, so the backend is complete by
