@@ -1,6 +1,7 @@
 import { ConvexError, v } from 'convex/values'
 import type { Doc } from './_generated/dataModel'
 import { mutation, query } from './_generated/server'
+import { foodSearchText } from './lib/foodSearchText'
 import { nutritionValidator } from './lib/nutrition'
 import { getCurrentUser } from './lib/sharing'
 
@@ -36,7 +37,9 @@ export const search = query({
     if (!args.term.trim()) return []
     return await ctx.db
       .query('foods')
-      .withSearchIndex('search_by_name', (q) => q.search('name', args.term))
+      .withSearchIndex('search_by_text', (q) =>
+        q.search('searchText', args.term),
+      )
       .take(20)
   },
 })
@@ -78,6 +81,7 @@ export const create = mutation({
     }
     return await ctx.db.insert('foods', {
       ...args,
+      searchText: foodSearchText(args),
       source: 'manual',
       createdBy: user._id,
     })
@@ -96,7 +100,11 @@ export const update = mutation({
     const food = await ctx.db.get(id)
     if (!food) throw new Error('Food not found')
     assertNotCatalog(food)
-    await ctx.db.patch(id, { ...rest, localEdited: true })
+    await ctx.db.patch(id, {
+      ...rest,
+      searchText: foodSearchText(rest),
+      localEdited: true,
+    })
   },
 })
 
@@ -119,11 +127,17 @@ export const upsertFromOff = mutation({
       // No Catalog fixture carries a barcode today, so this is unreachable —
       // but the invariant belongs to the table, not to the current fixtures.
       assertNotCatalog(existing)
-      if (!existing.localEdited) await ctx.db.patch(existing._id, rest)
+      if (!existing.localEdited) {
+        await ctx.db.patch(existing._id, {
+          ...rest,
+          searchText: foodSearchText(rest),
+        })
+      }
       return existing._id
     }
     return await ctx.db.insert('foods', {
       ...rest,
+      searchText: foodSearchText(rest),
       barcode,
       source: 'openfoodfacts',
       createdBy: user._id,
@@ -150,6 +164,7 @@ export const applyOffRefresh = mutation({
     assertNotCatalog(food)
     await ctx.db.patch(id, {
       ...rest,
+      searchText: foodSearchText(rest),
       source: 'openfoodfacts',
       localEdited: false,
     })

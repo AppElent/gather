@@ -151,10 +151,15 @@ export default defineSchema({
     // Stable identity for a Catalog entry across re-seeds. Absent on
     // user-created rows, which the seed must never touch. See ADR 0004.
     seedKey: v.optional(v.string()),
+    // Name and brand as one field, because a search index has exactly one
+    // full-text field and a brand on the carton has to match (see
+    // `lib/foodSearchText.ts`). Optional only until the backfill has run
+    // everywhere — docs/migrations/0005 says what makes it required.
+    searchText: v.optional(v.string()),
   })
     .index('by_barcode', ['barcode'])
     .index('by_seedKey', ['seedKey'])
-    .searchIndex('search_by_name', { searchField: 'name' }),
+    .searchIndex('search_by_text', { searchField: 'searchText' }),
 
   consumptionEntries: defineTable({
     userId: v.id('users'),

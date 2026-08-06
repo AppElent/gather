@@ -858,3 +858,81 @@ describe('after the move, the household shares the log', () => {
     ).toBeNull()
   })
 })
+
+/**
+ * A food written before `searchText` existed has no value in the search index
+ * and therefore matches nothing at all — the backfill is what makes the whole
+ * library findable rather than only the rows written since. See
+ * docs/migrations/0005-food-search-text.md.
+ */
+describe('backfilling foods.searchText', () => {
+  async function foodWithoutSearchText() {
+    const t = testConvex()
+    await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    const id = await t.withIdentity(asAlice).mutation(api.foods.create, {
+      name: 'Halfvolle melk',
+      brand: 'Campina',
+      baseUnit: 'ml',
+      nutritionPer100: { calories: 46 },
+    })
+    // As the row existed before this field did.
+    await t.run(async (ctx) => {
+      await ctx.db.patch(id, { searchText: undefined })
+    })
+    return { t, id }
+  }
+
+  // What a row without the field does to a *search* is not asserted here:
+  // convex-test's search-index fake throws on a document missing the search
+  // field where real Convex simply does not match it. So the before state is
+  // read off the row and the after state is read through the query.
+  test('a row written before the field existed becomes findable by name and by brand', async () => {
+    const { t, id } = await foodWithoutSearchText()
+
+    expect(
+      await t.run(async (ctx) => (await ctx.db.get(id))?.searchText),
+    ).toBeFalsy()
+
+    await t.mutation(internal.maintenance.backfillFoodSearchText, {
+      apply: true,
+    })
+
+    expect(
+      (
+        await t.withIdentity(asAlice).query(api.foods.search, { term: 'melk' })
+      ).map((f) => f.name),
+    ).toEqual(['Halfvolle melk'])
+    expect(
+      (
+        await t
+          .withIdentity(asAlice)
+          .query(api.foods.search, { term: 'campina' })
+      ).map((f) => f.name),
+    ).toEqual(['Halfvolle melk'])
+  })
+
+  test('a dry run writes nothing and says what it would have written', async () => {
+    const { t, id } = await foodWithoutSearchText()
+
+    expect(
+      await t.mutation(internal.maintenance.backfillFoodSearchText, {}),
+    ).toEqual({ apply: false, foods: 1, updated: 1 })
+    expect(
+      await t.run(async (ctx) => (await ctx.db.get(id))?.searchText),
+    ).toBeFalsy()
+  })
+
+  test('running it twice is a no-op the second time', async () => {
+    const { t } = await foodWithoutSearchText()
+
+    await t.mutation(internal.maintenance.backfillFoodSearchText, {
+      apply: true,
+    })
+
+    expect(
+      await t.mutation(internal.maintenance.backfillFoodSearchText, {
+        apply: true,
+      }),
+    ).toEqual({ apply: true, foods: 1, updated: 0 })
+  })
+})

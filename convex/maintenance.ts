@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation, internalQuery } from './_generated/server'
+import { foodSearchText } from './lib/foodSearchText'
 import { allocateGroupSlug } from './lib/groupSlugs'
 import { pickCanonicalUser } from './lib/sharing'
 import { stableDigest } from './lib/stableDigest'
@@ -224,6 +225,41 @@ export const backfillGroupSlugsAndPersonalGroups = internalMutation({
       personalGroupsCreated,
       defaultGroupsRepointed,
     }
+  },
+})
+
+/**
+ * Give every food the `searchText` the search index now reads.
+ *
+ * The expand half of expand–contract: `foods.searchText` lands optional, every
+ * write path fills it in, and this fills in the rows written before it existed.
+ * Until it has run, `foods.search` finds nothing at all on a deployment's older
+ * rows — the index has no value to match — so this is not optional housekeeping
+ * on the way to brand search, it is what makes search work again.
+ *
+ * **End condition:** delete this once
+ * docs/migrations/0005-food-search-text.md records it as run on dev and prod.
+ * `searchText` becoming required in the schema is the same moment.
+ *
+ * Dry run by default — pass `{ apply: true }` to write. Idempotent: it only
+ * writes a row whose stored value differs from the one its name and brand
+ * produce, so a second run reports zero.
+ */
+export const backfillFoodSearchText = internalMutation({
+  args: { apply: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const foods = await ctx.db.query('foods').collect()
+
+    let updated = 0
+    for (const food of foods) {
+      const wanted = foodSearchText(food)
+      if (food.searchText === wanted) continue
+      updated++
+      if (apply) await ctx.db.patch(food._id, { searchText: wanted })
+    }
+
+    return { apply, foods: foods.length, updated }
   },
 })
 

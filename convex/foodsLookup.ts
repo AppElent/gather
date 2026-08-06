@@ -54,17 +54,21 @@ export const refreshFromOff = action({
   },
 })
 
-// Searches Open Food Facts by name — the "no local match" fallback in
-// FoodAddTab's search box. Best-effort: any OFF-side failure (network,
+// Searches Open Food Facts by name, alongside the local search rather than
+// only when it returns nothing — one poor local match used to suppress the
+// entire external catalogue. Best-effort: any OFF-side failure (network,
 // timeout, malformed response) surfaces as an empty array, never a thrown
 // error, matching lookupBarcode's contract — a failed OFF search just means
 // "no matches", same as a genuinely empty result set.
 export const searchByName = action({
-  args: { term: v.string() },
+  args: { term: v.string(), locale: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new ConvexError('Not authenticated')
-    const raw = await searchOffProducts(args.term)
+    // The locale the person is reading in, so the search looks in the
+    // language they are typing. `searchOffProducts` decides what an
+    // unrecognised one means; this only carries it.
+    const raw = await searchOffProducts(args.term, args.locale)
     return mapOffSearchResults(raw)
   },
 })

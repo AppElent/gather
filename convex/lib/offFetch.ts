@@ -2,6 +2,21 @@ const OFF_USER_AGENT =
   'gather-nutrition-tracker/1.0 (https://github.com/AppElent/gather)'
 const OFF_TIMEOUT_MS = 10_000
 const BARCODE_PATTERN = /^\d{8,14}$/
+const LANG_PATTERN = /^[a-z]{2}$/
+
+/**
+ * The language subfields search-a-licious should look in.
+ *
+ * The locale arrives from the client, so it is whatever a caller sent rather
+ * than one of gather's two locales — a regional tag (`nl-NL`), something
+ * unrecognised, or nothing at all. Take the base language when there is one
+ * and fall back to English, which is what the service does anyway when the
+ * parameter is missing.
+ */
+export function normalizeSearchLang(locale?: string): string {
+  const base = locale?.trim().toLowerCase().split(/[-_]/)[0] ?? ''
+  return LANG_PATTERN.test(base) ? base : 'en'
+}
 
 // Fetches a product from the Open Food Facts API by barcode. Returns the
 // raw parsed JSON response, or null on any failure (malformed barcode,
@@ -33,8 +48,8 @@ export async function fetchOffProduct(
   }
 }
 
-// Searches Open Food Facts by free-text term (product name/brand) for the
-// "no local match" fallback in FoodAddTab. Full-text search is NOT part of
+// Searches Open Food Facts by free-text term (product name/brand), run
+// alongside the local food search. Full-text search is NOT part of
 // the world.openfoodfacts.org/api/v2 REST API — that API is structured/tag
 // search only and silently ignores an unrecognized `search_terms` param
 // (returning an unfiltered, identical-every-time page of the whole catalog
@@ -47,10 +62,16 @@ export async function fetchOffProduct(
 // invalid JSON) — the caller treats null the same as "no matches".
 export async function searchOffProducts(
   term: string,
+  lang?: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<unknown | null> {
   const url = new URL('https://search.openfoodfacts.org/search')
   url.searchParams.set('q', term)
+  // Which language's name subfields are searched. search-a-licious defaults
+  // to English when this is absent, which is what gather did for as long as
+  // it has preferred Dutch names on the way *back* — it searched English and
+  // displayed Dutch, so a Dutch product name found nothing.
+  url.searchParams.set('langs', normalizeSearchLang(lang))
   // Requesting more than the ~20 we ultimately show: mapOffSearchResults
   // drops empty-nutrition duplicates and dedupes same-name/brand hits (OFF
   // has many low-quality duplicate barcodes for popular products), so a

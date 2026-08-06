@@ -64,16 +64,42 @@ describe('fetchOffProduct', () => {
 })
 
 describe('searchOffProducts', () => {
-  test('fetches the search-a-licious endpoint with the term, page size, and field list', async () => {
+  test('fetches the search-a-licious endpoint with the term, language, page size, and field list', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(mockResponse({ hits: [] }))
-    await searchOffProducts('nutella', fetchImpl)
+    await searchOffProducts('nutella', 'en', fetchImpl)
     expect(fetchImpl).toHaveBeenCalledWith(
-      'https://search.openfoodfacts.org/search?q=nutella&page_size=40&fields=code%2Cproduct_name%2Cproduct_name_nl%2Cbrands%2Cnutriments%2Cserving_size%2Cserving_quantity',
+      'https://search.openfoodfacts.org/search?q=nutella&langs=en&page_size=40&fields=code%2Cproduct_name%2Cproduct_name_nl%2Cbrands%2Cnutriments%2Cserving_size%2Cserving_quantity',
       expect.objectContaining({
         headers: expect.objectContaining({
           'User-Agent': expect.any(String),
         }),
       }),
+    )
+  })
+
+  test('searches in the language it was given, not the service default', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(mockResponse({ hits: [] }))
+    await searchOffProducts('hagelslag', 'nl', fetchImpl)
+    expect(new URL(fetchImpl.mock.calls[0][0]).searchParams.get('langs')).toBe(
+      'nl',
+    )
+  })
+
+  test('falls back to English when no usable language is given', async () => {
+    for (const locale of [undefined, '', 'not-a-language', '🇳🇱']) {
+      const fetchImpl = vi.fn().mockResolvedValue(mockResponse({ hits: [] }))
+      await searchOffProducts('brie', locale, fetchImpl)
+      expect(
+        new URL(fetchImpl.mock.calls[0][0]).searchParams.get('langs'),
+      ).toBe('en')
+    }
+  })
+
+  test('takes the base language of a regional locale', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(mockResponse({ hits: [] }))
+    await searchOffProducts('brie', 'nl-NL', fetchImpl)
+    expect(new URL(fetchImpl.mock.calls[0][0]).searchParams.get('langs')).toBe(
+      'nl',
     )
   })
 
@@ -83,7 +109,7 @@ describe('searchOffProducts', () => {
       .mockResolvedValue(
         mockResponse({ hits: [{ code: '123', product_name: 'Test' }] }),
       )
-    expect(await searchOffProducts('test', fetchImpl)).toEqual({
+    expect(await searchOffProducts('test', 'en', fetchImpl)).toEqual({
       hits: [{ code: '123', product_name: 'Test' }],
     })
   })
@@ -92,12 +118,14 @@ describe('searchOffProducts', () => {
     expect(
       await searchOffProducts(
         'test',
+        'en',
         vi.fn().mockResolvedValue(mockResponse({}, false)),
       ),
     ).toBeNull()
     expect(
       await searchOffProducts(
         'test',
+        'en',
         vi.fn().mockResolvedValue({
           ok: true,
           json: async () => {
@@ -109,6 +137,7 @@ describe('searchOffProducts', () => {
     expect(
       await searchOffProducts(
         'test',
+        'en',
         vi.fn().mockRejectedValue(new Error('network down')),
       ),
     ).toBeNull()

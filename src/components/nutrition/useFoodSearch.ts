@@ -3,42 +3,44 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc } from '../../../convex/_generated/dataModel'
 import type { OffSearchResult } from '../../../convex/lib/offMapping'
+import { useI18n } from '../../lib/i18n'
 
-// Open Food Facts documents a 10 search requests/minute cap on its legacy
-// search API; search-a-licious (the full-text search service this fallback
-// actually calls, see offFetch.ts) doesn't publish its own separate limit,
-// so treat 10/min as the conservative ceiling. 6.5s keeps a single tab under
-// ~9/min, leaving headroom for the barcode-scan path's OFF calls too.
-export const OFF_SEARCH_MIN_INTERVAL_MS = 6500
-
-/** How long the term sits still before either search runs. */
+/** How long the term sits still before the local search runs. */
 export const SEARCH_DEBOUNCE_MS = 250
 
 /**
- * Open Food Facts is worth querying once local search has definitively
- * resolved to zero results for a term long enough to mean something (3+
- * chars — avoids a network round-trip on every 1-2 character keystroke).
- * `undefined` local results mean the local query has not resolved yet, which
- * is not the same as "no local match".
+ * How long it sits still before Open Food Facts is asked.
+ *
+ * Open Food Facts documents a 10 search requests/minute cap on its legacy
+ * search API; search-a-licious (the service this actually calls, see
+ * offFetch.ts) publishes no separate limit, so treat 10/min as the ceiling.
+ *
+ * This used to be a 6.5s *minimum interval between calls*, which kept the
+ * volume down by making the second thing you searched for sit there doing
+ * nothing. A debounce spends the same budget without the stall: continuous
+ * typing produces one request per pause rather than one per keystroke, the
+ * three-character floor drops the first keystrokes of every term, and the
+ * per-term cache means backspacing and retyping costs nothing. Naming a
+ * product is a handful of requests, well inside the ceiling.
  */
-export function shouldSearchOff(
-  term: string,
-  localResults: readonly unknown[] | undefined,
-): boolean {
-  return (
-    term.trim().length >= 3 &&
-    localResults !== undefined &&
-    localResults.length === 0
-  )
-}
+export const OFF_SEARCH_DEBOUNCE_MS = 400
 
 /**
- * Milliseconds to wait before the next OFF call so two never land closer
- * together than OFF_SEARCH_MIN_INTERVAL_MS. A call that arrives too soon is
- * deferred rather than dropped, so the last thing typed is always searched.
+ * Whether a term is worth asking Open Food Facts about at all.
+ *
+ * Three characters, because a one- or two-character term is somebody still
+ * typing and matches half the catalogue. Deliberately *not* conditioned on the
+ * local results: local and external now run concurrently and both sections
+ * render, where the external search used to be gated on local returning
+ * exactly zero rows — one poor local match suppressed the whole catalogue.
  */
-export function offSearchWait(now: number, lastCallAt: number): number {
-  return Math.max(0, OFF_SEARCH_MIN_INTERVAL_MS - (now - lastCallAt))
+export function shouldSearchOff(term: string): boolean {
+  return term.trim().length >= 3
+}
+
+/** What the per-term cache is keyed by: the same term in another language is another search. */
+export function offCacheKey(term: string, locale: string): string {
+  return `${locale}:${term}`
 }
 
 export interface FoodSearch {
@@ -47,7 +49,7 @@ export interface FoodSearch {
   setTerm: (term: string) => void
   /** Local `foods` rows for the debounced term; `undefined` while loading. */
   results: Doc<'foods'>[] | undefined
-  /** Open Food Facts matches, or `null` when OFF was not queried at all. */
+  /** Open Food Facts matches, or `null` when OFF was not asked at all. */
   offResults: OffSearchResult[] | null
   offSearching: boolean
   /**
@@ -59,14 +61,16 @@ export interface FoodSearch {
 }
 
 /**
- * Searching for a food: your own rows and Open Food Facts, with the debounce,
- * the per-term cache, the minimum-interval deferral and the discarding of
- * responses for a term you have moved on from. Owns no notion of *choosing*
- * one — that is the caller's, and is why this is reusable between the add
- * dialog and whatever replaces it.
+ * Searching for a food: your own rows and Open Food Facts, concurrently, with
+ * the debounce, the per-term cache and the discarding of responses for a term
+ * you have moved on from. Owns no notion of *choosing* one — that is the
+ * caller's, and is why this is reusable between the add dialog and whatever
+ * replaces it.
  */
 export function useFoodSearch(): FoodSearch {
+  const { locale } = useI18n()
   const [term, setTerm] = useState('')
+
   const [debouncedTerm, setDebouncedTerm] = useState('')
   useEffect(() => {
     const id = setTimeout(() => setDebouncedTerm(term), SEARCH_DEBOUNCE_MS)
@@ -74,31 +78,29 @@ export function useFoodSearch(): FoodSearch {
   }, [term])
   const results = useQuery(api.foods.search, { term: debouncedTerm })
 
+  const [offTerm, setOffTerm] = useState('')
+  useEffect(() => {
+    const id = setTimeout(() => setOffTerm(term.trim()), OFF_SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(id)
+  }, [term])
+
   const [offResults, setOffResults] = useState<OffSearchResult[] | null>(null)
   const [offSearching, setOffSearching] = useState(false)
   const [offError, setOffError] = useState<'searchFailed' | null>(null)
-  const offSearchedTermRef = useRef<string | null>(null)
-  // Cache each term's OFF results for the hook's lifetime (retyping the same
-  // term costs nothing) and never fire two OFF calls closer together than
-  // OFF_SEARCH_MIN_INTERVAL_MS — see `offSearchWait`.
-  const offSearchCacheRef = useRef<Map<string, OffSearchResult[]>>(new Map())
-  const offLastCallAtRef = useRef(0)
-  const offSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Cache each term's OFF results for the hook's lifetime — retyping a term,
+  // or backspacing back into one, costs nothing.
+  const offCacheRef = useRef<Map<string, OffSearchResult[]>>(new Map())
 
   const searchByName = useAction(api.foodsLookup.searchByName)
 
   useEffect(() => {
-    const searchTerm = debouncedTerm.trim()
-    if (!shouldSearchOff(debouncedTerm, results)) {
+    if (!shouldSearchOff(offTerm)) {
       setOffResults(null)
       setOffSearching(false)
-      offSearchedTermRef.current = null
       return
     }
-    if (offSearchedTermRef.current === searchTerm) return
-    offSearchedTermRef.current = searchTerm
 
-    const cached = offSearchCacheRef.current.get(searchTerm)
+    const cached = offCacheRef.current.get(offCacheKey(offTerm, locale))
     if (cached) {
       setOffSearching(false)
       setOffError(null)
@@ -106,37 +108,32 @@ export function useFoodSearch(): FoodSearch {
       return
     }
 
-    const runSearch = () => {
-      offLastCallAtRef.current = Date.now()
-      setOffSearching(true)
-      setOffError(null)
-      searchByName({ term: searchTerm })
-        .then((found) => {
-          if (offSearchedTermRef.current !== searchTerm) return
-          offSearchCacheRef.current.set(searchTerm, found)
-          setOffResults(found)
-        })
-        .catch(() => {
-          if (offSearchedTermRef.current !== searchTerm) return
-          setOffError('searchFailed')
-        })
-        .finally(() => {
-          if (offSearchedTermRef.current !== searchTerm) return
-          setOffSearching(false)
-        })
-    }
+    // A Convex action cannot be recalled once sent, so "cancelling" the
+    // in-flight request means refusing its answer: this flips on cleanup, and
+    // every branch below checks it before touching state. Without it a slow
+    // response for a term you have moved on from arrives last and wins.
+    let abandoned = false
+    setOffSearching(true)
+    setOffError(null)
+    searchByName({ term: offTerm, locale })
+      .then((found) => {
+        if (abandoned) return
+        offCacheRef.current.set(offCacheKey(offTerm, locale), found)
+        setOffResults(found)
+      })
+      .catch(() => {
+        if (abandoned) return
+        setOffError('searchFailed')
+      })
+      .finally(() => {
+        if (abandoned) return
+        setOffSearching(false)
+      })
 
-    const wait = offSearchWait(Date.now(), offLastCallAtRef.current)
-    if (wait <= 0) {
-      runSearch()
-    } else {
-      setOffSearching(true)
-      offSearchTimeoutRef.current = setTimeout(runSearch, wait)
-    }
     return () => {
-      if (offSearchTimeoutRef.current) clearTimeout(offSearchTimeoutRef.current)
+      abandoned = true
     }
-  }, [debouncedTerm, results, searchByName])
+  }, [offTerm, locale, searchByName])
 
   const clearOffError = useCallback(() => setOffError(null), [])
 

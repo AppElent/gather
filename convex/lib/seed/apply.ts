@@ -4,6 +4,7 @@ import {
   computeFoodEntryNutrition,
   computeRecipeEntryNutrition,
 } from '../consumption'
+import { foodSearchText } from '../foodSearchText'
 import { allocateGroupSlug } from '../groupSlugs'
 import { getUserByClerkId } from '../sharing'
 import { CATALOG_FOODS } from './catalogFoods'
@@ -94,6 +95,7 @@ export async function applyCatalog(ctx: MutationCtx) {
       nutritionPer100: food.nutritionPer100,
       servingSize: food.servingSize,
       servingLabel: food.servingLabel,
+      searchText: foodSearchText(food),
       source: 'seed' as const,
       seedKey: food.seedKey,
     }
@@ -464,6 +466,7 @@ export async function applySample(
   rec.track(
     await ctx.db.insert('foods', {
       ...SAMPLE_USER_FOOD,
+      searchText: foodSearchText(SAMPLE_USER_FOOD),
       source: 'manual',
       createdBy: authors.nora,
     }),
