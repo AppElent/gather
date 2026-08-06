@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
-import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
-import { useEffect, useRef, useState } from 'react'
+import { useAction, useConvex, useMutation } from 'convex/react'
+import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import {
@@ -15,13 +15,7 @@ import type {
 import { fmt, useMessages } from '../../lib/i18n'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
 import type { NutritionNav } from './nutritionNav'
-
-// Open Food Facts documents a 10 search requests/minute cap on its legacy
-// search API; search-a-licious (the full-text search service this fallback
-// actually calls, see offFetch.ts) doesn't publish its own separate limit,
-// so treat 10/min as the conservative ceiling. 6.5s keeps a single tab under
-// ~9/min, leaving headroom for the barcode-scan path's OFF calls too.
-const OFF_SEARCH_MIN_INTERVAL_MS = 6500
+import { useFoodSearch } from './useFoodSearch'
 
 // _id is typed as the branded Id<'foods'>, not a plain string, because this
 // state is always populated directly from real Convex query results
@@ -43,33 +37,14 @@ interface Props {
 }
 
 export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
-  const [term, setTerm] = useState('')
-  const [debouncedTerm, setDebouncedTerm] = useState('')
-  useEffect(() => {
-    const id = setTimeout(() => setDebouncedTerm(term), 250)
-    return () => clearTimeout(id)
-  }, [term])
-  const results = useQuery(api.foods.search, { term: debouncedTerm })
+  const search = useFoodSearch()
+  const { results, offResults, offSearching, offError } = search
 
   const [selected, setSelected] = useState<FoodSummary | null>(null)
   const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null)
   const [resolving, setResolving] = useState(false)
   const [lookupError, setLookupError] = useState<string | null>(null)
-  const [offResults, setOffResults] = useState<OffSearchResult[] | null>(null)
-  const [offSearching, setOffSearching] = useState(false)
-  // Keys, not sentences — see BarcodeScanner: a message read inside the search
-  // effect would make the effect depend on the locale.
-  const [offSearchError, setOffSearchError] = useState<
-    'searchFailed' | 'addFailed' | null
-  >(null)
-  const offSearchedTermRef = useRef<string | null>(null)
-  // Cache each term's OFF results for the component's lifetime (retyping the
-  // same term costs nothing) and never fire two OFF calls closer together
-  // than OFF_SEARCH_MIN_INTERVAL_MS, deferring rather than dropping a call
-  // that arrives too soon — see the constant's comment below.
-  const offSearchCacheRef = useRef<Map<string, OffSearchResult[]>>(new Map())
-  const offLastCallAtRef = useRef(0)
-  const offSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [addError, setAddError] = useState<'addFailed' | null>(null)
   const [quantityInput, setQuantityInput] = useState('')
   const [unit, setUnit] = useState<'g' | 'ml' | 'piece'>('g')
   const [submitting, setSubmitting] = useState(false)
@@ -77,11 +52,11 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
 
   const convex = useConvex()
   const lookupBarcode = useAction(api.foodsLookup.lookupBarcode)
-  const searchByName = useAction(api.foodsLookup.searchByName)
   const upsertFromOff = useMutation(api.foods.upsertFromOff)
   const createEntry = useMutation(api.consumption.create)
   const messages = useMessages()
   const { foodAdd } = messages.nutrition.diary
+  const resultError = offError ?? addError
 
   // A name-search hit's barcode may already have a local row that the name
   // search itself didn't surface (searched by brand, an alternate-language
@@ -137,72 +112,14 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
   }
 
   async function handleOffResultSelect(result: OffSearchResult) {
-    setOffSearchError(null)
+    setAddError(null)
+    search.clearOffError()
     try {
       await saveOffMatch(result, result.barcode)
     } catch {
-      setOffSearchError('addFailed')
+      setAddError('addFailed')
     }
   }
-
-  // Fires once local search has definitively resolved to zero results for a
-  // term worth querying OFF over (3+ chars — avoids a network round-trip on
-  // every 1-2 character keystroke). Guards against re-firing for a term
-  // already searched, discards a stale response if the term changed while
-  // the request was in flight, serves repeat terms from offSearchCacheRef
-  // instead of re-hitting OFF, and defers (rather than drops) a call that
-  // would land inside OFF_SEARCH_MIN_INTERVAL_MS of the last one.
-  useEffect(() => {
-    const term = debouncedTerm.trim()
-    if (term.length < 3 || results === undefined || results.length > 0) {
-      setOffResults(null)
-      setOffSearching(false)
-      offSearchedTermRef.current = null
-      return
-    }
-    if (offSearchedTermRef.current === term) return
-    offSearchedTermRef.current = term
-
-    const cached = offSearchCacheRef.current.get(term)
-    if (cached) {
-      setOffSearching(false)
-      setOffSearchError(null)
-      setOffResults(cached)
-      return
-    }
-
-    const runSearch = () => {
-      offLastCallAtRef.current = Date.now()
-      setOffSearching(true)
-      setOffSearchError(null)
-      searchByName({ term })
-        .then((found) => {
-          if (offSearchedTermRef.current !== term) return
-          offSearchCacheRef.current.set(term, found)
-          setOffResults(found)
-        })
-        .catch(() => {
-          if (offSearchedTermRef.current !== term) return
-          setOffSearchError('searchFailed')
-        })
-        .finally(() => {
-          if (offSearchedTermRef.current !== term) return
-          setOffSearching(false)
-        })
-    }
-
-    const wait =
-      OFF_SEARCH_MIN_INTERVAL_MS - (Date.now() - offLastCallAtRef.current)
-    if (wait <= 0) {
-      runSearch()
-    } else {
-      setOffSearching(true)
-      offSearchTimeoutRef.current = setTimeout(runSearch, wait)
-    }
-    return () => {
-      if (offSearchTimeoutRef.current) clearTimeout(offSearchTimeoutRef.current)
-    }
-  }, [debouncedTerm, results, searchByName])
 
   if (selected) {
     return (
@@ -301,8 +218,8 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
       )}
       <input
         className="w-full rounded border border-[var(--app-border)] px-2 py-1 text-sm"
-        value={term}
-        onChange={(e) => setTerm(e.target.value)}
+        value={search.term}
+        onChange={(e) => search.setTerm(e.target.value)}
         placeholder={foodAdd.searchPlaceholder}
       />
       <ul className="max-h-48 divide-y divide-[var(--app-border)] overflow-y-auto">
@@ -327,8 +244,8 @@ export function FoodAddTab({ date, meal, nav, onAdded }: Props) {
       {offSearching && (
         <p className="text-xs opacity-60">{foodAdd.searching}</p>
       )}
-      {offSearchError && (
-        <p className="text-xs text-red-700">{foodAdd[offSearchError]}</p>
+      {resultError && (
+        <p className="text-xs text-red-700">{foodAdd[resultError]}</p>
       )}
       {offResults && offResults.length > 0 && (
         <div className="grid gap-1">
