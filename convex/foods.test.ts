@@ -269,3 +269,29 @@ describe('a food’s picture', () => {
     expect(await t.run(async (ctx) => ctx.db.system.get(orphan))).toBeNull()
   })
 })
+
+describe('editing a food’s servings', () => {
+  test('taking the last one off actually takes it off', async () => {
+    const t = testConvex()
+    await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    const id = await t.withIdentity(asAlice).mutation(api.foods.create, {
+      name: 'Wholemeal bread',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 250 },
+      servings: [{ label: '1 slice', amount: 35 }],
+    })
+
+    // The form sends no servings at all when every row has been removed, and
+    // an absent optional argument must mean "none" here rather than "leave
+    // what is there" — otherwise the last serving cannot be deleted.
+    await t.withIdentity(asAlice).mutation(api.foods.update, {
+      id,
+      name: 'Wholemeal bread',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 250 },
+    })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.servings ?? []).toEqual([])
+  })
+})

@@ -120,6 +120,10 @@ export const update = mutation({
     assertNotCatalog(food)
     await ctx.db.patch(id, {
       ...rest,
+      // An absent `servings` means "none" rather than "leave what is there":
+      // the form sends nothing once every row has been removed, and a patch
+      // that skipped the field would make the last serving undeletable.
+      servings: rest.servings ?? [],
       searchText: foodSearchText(rest),
       localEdited: true,
     })
