@@ -77,6 +77,7 @@ export function NutritionPage({
   const entries = useQuery(api.consumption.listForDay, { date })
   const updateEntry = useMutation(api.consumption.update)
   const deleteEntry = useMutation(api.consumption.remove)
+  const saveCombo = useMutation(api.combos.saveFromMeal)
 
   const messages = useMessages()
   const { diary, meals } = messages.nutrition
@@ -134,6 +135,9 @@ export function NutritionPage({
           entries={(entries ?? []).filter((e) => e.meal === meal)}
           nav={nav}
           addLink={nav.addEntry(date, meal)}
+          onSaveAsCombo={async (name) => {
+            await saveCombo({ date, meal, name })
+          }}
           onUpdateEntry={async (entryId, changes) => {
             await updateEntry({
               id: entryId as Id<'consumptionEntries'>,

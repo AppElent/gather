@@ -89,6 +89,30 @@ export const diary = {
     undoFailed: 'Could not undo that',
   },
 
+  /**
+   * The Combo — a named, reusable set of things you log together (ADR-0012).
+   * "Combo" is the domain term and stays capitalised nowhere in the UI, but it
+   * is deliberately not "meal" (which names the slot) or "food group".
+   */
+  combos: {
+    section: 'Combos',
+    itemCount: { one: '{count} item', other: '{count} items' },
+    kcal: '{calories} kcal',
+    amount: '{quantity} {unit}',
+    unavailable: 'Not available any more',
+    less: 'Less {label}',
+    more: 'More {label}',
+    reset: 'Reset',
+    nothingLeft: 'Nothing left to log',
+    save: 'Save as combo',
+    saveTitle: 'Save this meal as a combo',
+    namePlaceholder: 'e.g. "Work lunch"',
+    saveFailed: 'Could not save this combo',
+    saved: '“{name}” saved',
+    update: 'Update {name}',
+    updateFailed: 'Could not update that combo',
+  },
+
   recipeAdd: {
     servings: 'servings',
     perServing: '{calories} kcal/serving',

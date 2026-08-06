@@ -76,6 +76,25 @@ export const diary = {
     undoFailed: 'Kon dat niet ongedaan maken',
   },
 
+  combos: {
+    section: 'Combinaties',
+    itemCount: { one: '{count} onderdeel', other: '{count} onderdelen' },
+    kcal: '{calories} kcal',
+    amount: '{quantity} {unit}',
+    unavailable: 'Niet meer beschikbaar',
+    less: 'Minder {label}',
+    more: 'Meer {label}',
+    reset: 'Herstellen',
+    nothingLeft: 'Niets meer om te noteren',
+    save: 'Opslaan als combinatie',
+    saveTitle: 'Deze maaltijd opslaan als combinatie',
+    namePlaceholder: 'bijv. "Lunch op het werk"',
+    saveFailed: 'Kon deze combinatie niet opslaan',
+    saved: '“{name}” opgeslagen',
+    update: '{name} bijwerken',
+    updateFailed: 'Kon die combinatie niet bijwerken',
+  },
+
   recipeAdd: {
     servings: 'porties',
     perServing: '{calories} kcal/portie',

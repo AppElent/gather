@@ -119,6 +119,52 @@ export const create = mutation({
   },
 })
 
+/**
+ * Write several entries at once — what confirming a Combo does.
+ *
+ * One mutation rather than a loop of `create` calls from the client, so a
+ * Combo's entries land together or not at all, and so undo has every id it
+ * needs to take all of them back. The per-entry rules are `create`'s, applied
+ * to each.
+ */
+export const createMany = mutation({
+  args: {
+    date: v.string(),
+    meal: mealValidator,
+    entries: v.array(
+      v.object({
+        recipeId: v.optional(v.id('recipes')),
+        foodId: v.optional(v.id('foods')),
+        label: v.string(),
+        quantity: v.number(),
+        quantityUnit: quantityUnitValidator,
+        nutrition: nutritionValidator,
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+    if (!user) throw new Error('Not authenticated')
+    const ids: Id<'consumptionEntries'>[] = []
+    for (const entry of args.entries) {
+      if (entry.recipeId && entry.foodId) {
+        throw new Error('An entry cannot reference both a recipe and a food')
+      }
+      if (entry.quantity <= 0) throw new Error('Quantity must be positive')
+      assertValidNutrition(entry.nutrition)
+      ids.push(
+        await ctx.db.insert('consumptionEntries', {
+          userId: user._id,
+          date: args.date,
+          meal: args.meal,
+          ...entry,
+        }),
+      )
+    }
+    return ids
+  },
+})
+
 // On a quantity change, nutrition is recomputed from the current recipe/food
 // values when the source still exists (spec §4.5); if the source was
 // deleted, the existing snapshot is scaled proportionally instead so the

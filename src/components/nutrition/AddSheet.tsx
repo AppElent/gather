@@ -3,6 +3,7 @@ import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
 import { type ReactNode, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { type ComboCounts, comboEntries } from '../../../convex/lib/combos'
 import {
   computeRecipeEntryNutrition,
   type MealName,
@@ -18,6 +19,7 @@ import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
 import { BottomSheet } from './BottomSheet'
+import { ComboCard, type ComboSummary } from './ComboCard'
 import { FoodThumbnail } from './FoodThumbnail'
 import { useJustLogged } from './JustLogged'
 import { NutrientInputGrid } from './NutrientInputGrid'
@@ -82,7 +84,10 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
   const search = useFoodSearch()
   const term = search.term.trim()
   const recipes = useQuery(api.recipes.listAcrossMyGroups, {})
+  const combos = useQuery(api.combos.list, {})
   const createEntry = useMutation(api.consumption.create)
+  const createEntries = useMutation(api.consumption.createMany)
+  const replaceComboItems = useMutation(api.combos.replaceItems)
   const importFromOff = useAction(api.foodsLookup.importFromOff)
   const lookupBarcode = useAction(api.foodsLookup.lookupBarcode)
   const convex = useConvex()
@@ -94,6 +99,8 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
   }
 
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [comboBusy, setComboBusy] = useState(false)
+  const [comboError, setComboError] = useState<string | null>(null)
   const [promotions, setPromotions] = useState(0)
   const [scanning, setScanning] = useState(false)
   const [scanned, setScanned] = useState<FoodSummary | null>(null)
@@ -171,6 +178,70 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
     }
   }
 
+  /**
+   * Log a Combo as it stands today.
+   *
+   * The adjustments are today's entries only — the stored Combo is not touched
+   * (ADR-0012). If it *was* changed, the confirmation carries an unobtrusive
+   * offer to make the change permanent; ignoring it leaves the Combo alone.
+   */
+  async function logCombo(
+    combo: ComboSummary,
+    counts: ComboCounts,
+    modified: boolean,
+  ) {
+    const entries = comboEntries(combo.components, counts)
+    if (entries.length === 0) return
+    setComboBusy(true)
+    setComboError(null)
+    try {
+      const ids = await createEntries({
+        date,
+        meal,
+        entries: entries.map((entry) => ({
+          ...entry,
+          foodId: entry.foodId as Id<'foods'> | undefined,
+          recipeId: entry.recipeId as Id<'recipes'> | undefined,
+        })),
+      })
+      announce(
+        combo.name,
+        ids,
+        modified
+          ? {
+              label: fmt(messages.nutrition.diary.combos.update, {
+                name: combo.name,
+              }),
+              run: async () => {
+                await replaceComboItems({
+                  id: combo._id as Id<'combos'>,
+                  components: entries.map((entry) => ({
+                    foodId: entry.foodId as Id<'foods'> | undefined,
+                    recipeId: entry.recipeId as Id<'recipes'> | undefined,
+                    label: entry.label,
+                    quantity: entry.quantity,
+                    quantityUnit: entry.quantityUnit,
+                    nutrition:
+                      entry.foodId || entry.recipeId
+                        ? undefined
+                        : entry.nutrition,
+                  })),
+                })
+              },
+            }
+          : undefined,
+      )
+      onClose()
+    } catch (err) {
+      setComboError(errorMessage(err, messages.nutrition.diary.add.logFailed))
+    } finally {
+      setComboBusy(false)
+    }
+  }
+
+  const matchingCombos = (combos ?? []).filter(
+    (combo) => !term || combo.name.toLowerCase().includes(term.toLowerCase()),
+  )
   const foods = search.results ?? []
   const withNutrition = (recipes ?? []).filter((r) => r.nutrition)
   const matchingRecipes = term
@@ -181,6 +252,7 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
   const offResults = search.offResults ?? []
   const foundNothing =
     term.length > 0 &&
+    matchingCombos.length === 0 &&
     foods.length === 0 &&
     matchingRecipes.length === 0 &&
     offResults.length === 0 &&
@@ -246,6 +318,23 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
             </>
           )}
         </p>
+      )}
+
+      {/* Combos first: the fastest path is the first thing you see. */}
+      {matchingCombos.length > 0 && (
+        <Section title={messages.nutrition.diary.combos.section}>
+          {matchingCombos.map((combo) => (
+            <ComboCard
+              key={combo._id}
+              combo={combo}
+              expanded={expanded === `combo:${combo._id}`}
+              onToggle={() => toggle(`combo:${combo._id}`)}
+              busy={comboBusy}
+              error={expanded === `combo:${combo._id}` ? comboError : null}
+              onLog={(counts, modified) => logCombo(combo, counts, modified)}
+            />
+          ))}
+        </Section>
       )}
 
       {scanned && (
@@ -324,9 +413,10 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
         </Section>
       )}
 
-      {!term && matchingRecipes.length === 0 && !scanned && (
-        <p className="py-2 text-sm opacity-60">{add.searchHint}</p>
-      )}
+      {!term &&
+        matchingCombos.length === 0 &&
+        matchingRecipes.length === 0 &&
+        !scanned && <p className="py-2 text-sm opacity-60">{add.searchHint}</p>}
     </BottomSheet>
   )
 }

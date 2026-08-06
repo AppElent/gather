@@ -38,6 +38,8 @@ const foods = vi.hoisted(() => ({
     },
   ],
 }))
+/** The Combos this person has saved. */
+const combos = vi.hoisted(() => ({ value: [] as unknown[] }))
 /** What this person has logged for a food before — their own amounts. */
 const loggedAmounts = vi.hoisted(() => ({
   value: [] as Array<{ label: string; amount: number }>,
@@ -70,6 +72,7 @@ vi.mock('convex/react', () => ({
       )
     }
     if (name === 'recipes:listAcrossMyGroups') return recipes.value
+    if (name === 'combos:list') return combos.value
     if (name === 'consumption:loggedAmountsForFood') {
       return args === 'skip' ? undefined : loggedAmounts.value
     }
@@ -100,8 +103,10 @@ vi.mock('../../../convex/_generated/api', () => ({
       lookupBarcode: 'foodsLookup:lookupBarcode',
     },
     recipes: { listAcrossMyGroups: 'recipes:listAcrossMyGroups' },
+    combos: { list: 'combos:list', replaceItems: 'combos:replaceItems' },
     consumption: {
       create: 'consumption:create',
+      createMany: 'consumption:createMany',
       remove: 'consumption:remove',
       loggedAmountsForFood: 'consumption:loggedAmountsForFood',
     },
@@ -132,6 +137,7 @@ async function search(term: string) {
 beforeEach(() => {
   calls.value = []
   loggedAmounts.value = []
+  combos.value = []
 })
 
 test('one search fills labelled sections with foods, recipes and Open Food Facts', async () => {

@@ -192,6 +192,40 @@ export default defineSchema({
     // every entry the person has ever written.
     .index('by_user_food', ['userId', 'foodId']),
 
+  /**
+   * A named, reusable set of things logged together — the same lunch, again
+   * (ADR-0012).
+   *
+   * **Personal** in the sense of ADR-0003: it belongs to a person, follows
+   * them into every Group and belongs to none, which is why there is a
+   * `userId` here and no `groupId` anywhere near it.
+   */
+  combos: defineTable({
+    userId: v.id('users'),
+    name: v.string(),
+    order: v.number(),
+  }).index('by_user', ['userId']),
+
+  /**
+   * One thing inside a Combo — exactly a diary entry minus the date, the meal
+   * and the person.
+   *
+   * **References, not figures**: `foodId` / `recipeId` say what this is, so
+   * correcting a food's nutrition corrects every future log of every Combo
+   * containing it. `label` is a snapshot so a reference that has become
+   * unreachable still has something to render, and `nutrition` is present only
+   * for a one-off, which has nothing behind it to read figures from.
+   */
+  comboItems: defineTable({
+    comboId: v.id('combos'),
+    foodId: v.optional(v.id('foods')),
+    recipeId: v.optional(v.id('recipes')),
+    label: v.string(),
+    quantity: v.number(),
+    quantityUnit: quantityUnitValidator,
+    nutrition: v.optional(nutritionValidator),
+  }).index('by_combo', ['comboId']),
+
   babies: defineTable({
     groupId: v.id('groups'),
     name: v.string(),

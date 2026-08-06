@@ -14,12 +14,26 @@ import { fmt, useMessages } from '../../lib/i18n'
 /** How long the offer to undo stands before the diary is just the diary again. */
 const UNDO_MS = 6000
 
+/**
+ * Something else the confirmation may offer, beside undo — today, updating the
+ * Combo you have just logged a changed version of. An offer, never a prompt:
+ * it sits in the toast and ignoring it leaves everything alone.
+ */
+export interface JustLoggedOffer {
+  label: string
+  run: () => Promise<void>
+}
+
 interface JustLogged {
   /**
    * Report what was just written, so it can be taken back. A list because one
    * confirmation can produce several entries.
    */
-  announce: (label: string, entryIds: Id<'consumptionEntries'>[]) => void
+  announce: (
+    label: string,
+    entryIds: Id<'consumptionEntries'>[],
+    offer?: JustLoggedOffer,
+  ) => void
 }
 
 const JustLoggedContext = createContext<JustLogged | null>(null)
@@ -36,6 +50,7 @@ export function JustLoggedProvider({ children }: { children: ReactNode }) {
   const [logged, setLogged] = useState<{
     label: string
     entryIds: Id<'consumptionEntries'>[]
+    offer?: JustLoggedOffer
   } | null>(null)
   const [undoing, setUndoing] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -43,9 +58,13 @@ export function JustLoggedProvider({ children }: { children: ReactNode }) {
   const { add } = useMessages().nutrition.diary
 
   const announce = useCallback(
-    (label: string, entryIds: Id<'consumptionEntries'>[]) => {
+    (
+      label: string,
+      entryIds: Id<'consumptionEntries'>[],
+      offer?: JustLoggedOffer,
+    ) => {
       setFailed(false)
-      setLogged({ label, entryIds })
+      setLogged({ label, entryIds, offer })
     },
     [],
   )
@@ -64,6 +83,28 @@ export function JustLoggedProvider({ children }: { children: ReactNode }) {
           <span className="min-w-0 flex-1">
             {failed ? add.undoFailed : fmt(add.logged, { label: logged.label })}
           </span>
+          {!failed && logged.offer && (
+            <button
+              type="button"
+              disabled={undoing}
+              onClick={async () => {
+                const offer = logged.offer
+                if (!offer) return
+                setUndoing(true)
+                try {
+                  await offer.run()
+                  setLogged(null)
+                } catch {
+                  setFailed(true)
+                } finally {
+                  setUndoing(false)
+                }
+              }}
+              className="min-h-11 shrink-0 font-semibold underline disabled:opacity-60"
+            >
+              {logged.offer.label}
+            </button>
+          )}
           {!failed && (
             <button
               type="button"
