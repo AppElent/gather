@@ -57,43 +57,50 @@ export const diary = {
     saveFailed: 'Could not save changes',
   },
 
+  /**
+   * The add sheet. One list, no tabs: every row is a card, every card expands
+   * in place, and nothing reaches the diary until the confirm inside it.
+   */
   add: {
     title: 'Add to {meal}',
-    tabs: {
+    searchPlaceholder: 'Search foods and recipes…',
+    searchHint: 'Search for a food, or scan a barcode.',
+    scan: 'Scan',
+    hideScanner: 'Hide scanner',
+    sections: {
+      scanned: 'Scanned',
+      foods: 'Your foods',
       recipes: 'Recipes',
-      foods: 'Foods',
-      quick: 'Quick add',
+      off: 'Open Food Facts',
     },
-  },
-
-  quickAdd: {
-    label: 'Label',
-    placeholder: 'e.g. "Restaurant meal"',
-    adding: 'Adding…',
-    failed: 'Could not log this',
+    amount: 'Amount',
+    unit: 'Unit',
+    enterAmount: 'Enter an amount above 0',
+    confirm: 'Add to diary',
+    logFailed: 'Could not log this',
+    nothingFound: 'Nothing found for “{term}”',
+    oneOffTitle: 'Log “{term}” as a one-off',
+    oneOffHint: 'Fill in whatever figures you have — a partial record is fine.',
+    logged: '{label} logged',
+    undo: 'Undo',
+    undoFailed: 'Could not undo that',
   },
 
   recipeAdd: {
-    none: 'No recipes with nutrition data yet.',
     servings: 'servings',
-    failed: 'Could not log this recipe',
-    withoutNutrition: 'These recipes have no nutrition data yet:',
+    perServing: '{calories} kcal/serving',
   },
 
   foodAdd: {
-    lookingUp: 'Looking up…',
     barcodeFailed: 'Couldn’t look up that barcode — try again.',
     addFailed: 'Couldn’t add that item — try again.',
     notFound: 'Not found.',
     addToLibrary: 'Add it to the foods library',
     addToLibraryAfter: 'first.',
-    searchPlaceholder: 'Search foods…',
     searching: 'Searching Open Food Facts…',
     searchFailed: 'Couldn’t search Open Food Facts.',
-    fromOff: 'From Open Food Facts',
     perHundred: '{calories} kcal/100g',
     pieceOf: 'piece ({size}{unit})',
-    logFailed: 'Could not log this food',
   },
 }
 

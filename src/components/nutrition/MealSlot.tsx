@@ -1,4 +1,6 @@
+import { Link } from '@tanstack/react-router'
 import type { MealName } from '../../../convex/lib/consumption'
+import type { AppLink } from '../../lib/appLink'
 import { useMessages } from '../../lib/i18n'
 import type { ConsumptionEntryData } from './ConsumptionEntryRow'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
@@ -8,7 +10,8 @@ interface Props {
   label: string
   entries: ConsumptionEntryData[]
   nav: NutritionNav
-  onAdd: () => void
+  /** Where adding to this meal happens — an address now, not a dialog. */
+  addLink: AppLink
   onUpdateEntry: (
     id: string,
     changes: { quantity: number; meal: MealName; date: string },
@@ -20,7 +23,7 @@ export function MealSlot({
   label,
   entries,
   nav,
-  onAdd,
+  addLink,
   onUpdateEntry,
   onDeleteEntry,
 }: Props) {
@@ -30,9 +33,12 @@ export function MealSlot({
     <section className="mb-4 rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-medium">{label}</h2>
-        <button type="button" onClick={onAdd} className="text-sm underline">
+        <Link
+          {...addLink}
+          className="inline-flex min-h-11 items-center text-sm underline"
+        >
           {slot.add}
-        </button>
+        </Link>
       </div>
       {entries.length === 0 ? (
         <p className="text-sm opacity-60">{slot.empty}</p>

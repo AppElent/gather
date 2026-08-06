@@ -38,6 +38,10 @@ const GROUP_ROUTES = {
   // connections to Notion and Todoist that its linked task lists read through.
   settings: `${GROUP_PREFIX}/settings`,
   nutrition: `${GROUP_PREFIX}/nutrition`,
+  // Adding food is a place, not a dialog: the sheet has an address so the back
+  // gesture closes it and a reload does not lose it. Which day and which meal
+  // ride in the search, not the path — they are what is being added *to*.
+  addFood: `${GROUP_PREFIX}/nutrition/add`,
 
   recipes: `${GROUP_PREFIX}/recipes`,
   newRecipe: `${GROUP_PREFIX}/recipes/new`,

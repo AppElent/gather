@@ -1,31 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
-import {
-  NutritionPage,
-  validateNutritionSearch,
-} from '../../../../../components/nutrition/NutritionPage'
-import { groupNutritionNav } from '../../../../../components/nutrition/nutritionNav'
 
 /**
- * Nutrition inside a Group. It renders the very same component as the flat
- * `/nutrition` route, because a food diary is Personal: the Group segment picks
- * the navigation context and nothing else, so the page must look identical in
- * every Group (ADR-0002).
+ * The diary with nothing open on top of it.
+ *
+ * The day view itself is rendered by the parent route, which stays mounted
+ * while `/nutrition/add` is open. This route exists to be the address the sheet
+ * closes back to, and renders nothing of its own.
  */
 export const Route = createFileRoute('/_app/g/$groupSlug/nutrition/')({
-  component: GroupNutritionDay,
-  validateSearch: validateNutritionSearch,
+  component: () => null,
 })
-
-function GroupNutritionDay() {
-  const { groupSlug } = Route.useParams()
-  const { date } = Route.useSearch()
-  const navigate = Route.useNavigate()
-
-  return (
-    <NutritionPage
-      date={date}
-      onDateChange={(next) => navigate({ search: { date: next } })}
-      nav={groupNutritionNav(groupSlug)}
-    />
-  )
-}
