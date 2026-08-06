@@ -1,7 +1,7 @@
 import { useAction, useQuery } from 'convex/react'
+import type { FunctionReturnType } from 'convex/server'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import type { Doc } from '../../../convex/_generated/dataModel'
 import type { OffSearchResult } from '../../../convex/lib/offMapping'
 import { useI18n } from '../../lib/i18n'
 
@@ -43,12 +43,21 @@ export function offCacheKey(term: string, locale: string): string {
   return `${locale}:${term}`
 }
 
+/**
+ * A local match, as the query hands it over: the row plus a URL for its
+ * picture. Read off the function rather than restated, so a field the query
+ * starts or stops returning is a compile error here.
+ */
+export type FoodSearchResult = FunctionReturnType<
+  typeof api.foods.search
+>[number]
+
 export interface FoodSearch {
   /** What is in the search box, unthrottled. */
   term: string
   setTerm: (term: string) => void
   /** Local `foods` rows for the debounced term; `undefined` while loading. */
-  results: Doc<'foods'>[] | undefined
+  results: FoodSearchResult[] | undefined
   /** Open Food Facts matches, or `null` when OFF was not asked at all. */
   offResults: OffSearchResult[] | null
   offSearching: boolean

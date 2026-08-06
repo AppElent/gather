@@ -79,7 +79,7 @@ export async function searchOffProducts(
   url.searchParams.set('page_size', '40')
   url.searchParams.set(
     'fields',
-    'code,product_name,product_name_nl,brands,nutriments,serving_size,serving_quantity',
+    'code,product_name,product_name_nl,brands,nutriments,serving_size,serving_quantity,image_front_small_url,image_small_url,image_url',
   )
   let response: Response
   try {

@@ -7,7 +7,11 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
-import { mapOffProduct, mapOffSearchResults } from './offMapping'
+import {
+  mapOffProduct,
+  mapOffSearchResults,
+  preferredImageUrl,
+} from './offMapping'
 
 function fixture(name: string): unknown {
   return JSON.parse(
@@ -293,5 +297,44 @@ describe('mapOffSearchResults', () => {
     expect(mapOffSearchResults('nope')).toEqual([])
     expect(mapOffSearchResults({})).toEqual([])
     expect(mapOffSearchResults({ hits: 'not-an-array' })).toEqual([])
+  })
+})
+
+describe('the product picture', () => {
+  test('prefers the small front image, then the small one, then the full one', () => {
+    expect(
+      preferredImageUrl({
+        image_front_small_url: 'https://images.off/front-small.jpg',
+        image_small_url: 'https://images.off/small.jpg',
+        image_url: 'https://images.off/full.jpg',
+      }),
+    ).toBe('https://images.off/front-small.jpg')
+    expect(
+      preferredImageUrl({ image_url: 'https://images.off/full.jpg' }),
+    ).toBe('https://images.off/full.jpg')
+  })
+
+  test('a product with no usable image simply has none', () => {
+    expect(preferredImageUrl({})).toBeUndefined()
+    expect(preferredImageUrl({ image_url: '' })).toBeUndefined()
+    expect(preferredImageUrl({ image_url: 42 })).toBeUndefined()
+    // Community data: anything that is not an http(s) URL is not a picture.
+    expect(
+      preferredImageUrl({ image_url: 'javascript:alert(1)' }),
+    ).toBeUndefined()
+  })
+
+  test('a search result carries its picture through the mapping', () => {
+    const [result] = mapOffSearchResults({
+      hits: [
+        {
+          code: '3017620422003',
+          product_name: 'Nutella',
+          nutriments: { 'energy-kcal_100g': 539 },
+          image_front_small_url: 'https://images.off/nutella.jpg',
+        },
+      ],
+    })
+    expect(result.imageUrl).toBe('https://images.off/nutella.jpg')
   })
 })

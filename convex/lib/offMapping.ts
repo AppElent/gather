@@ -6,6 +6,12 @@ export interface OffMappedFood {
   nutritionPer100: NutritionFacts
   servingSize?: number
   servingLabel?: string
+  /**
+   * Where the product's own picture lives on Open Food Facts' servers. Only
+   * ever a URL here: a result nobody has imported has nothing stored, and the
+   * import is what turns this into a file of gather's own (#69).
+   */
+  imageUrl?: string
 }
 
 export interface OffSearchResult extends OffMappedFood {
@@ -20,6 +26,9 @@ interface OffProduct {
   nutriments?: Record<string, unknown>
   serving_size?: unknown
   serving_quantity?: unknown
+  image_front_small_url?: unknown
+  image_small_url?: unknown
+  image_url?: unknown
 }
 
 interface OffResponse {
@@ -61,6 +70,28 @@ function preferredName(product: OffProduct): string {
   const generic = product.product_name
   if (typeof generic === 'string' && generic.trim()) return generic.trim()
   return ''
+}
+
+/**
+ * The smallest picture Open Food Facts offers for the product, largest as a
+ * last resort.
+ *
+ * A thumbnail in a list is the whole job here, and the full-size image is
+ * several hundred kilobytes of a photograph of a packet. Anything that is not
+ * an http(s) URL is treated as no picture at all — the import must not fail
+ * over a field somebody typed by hand into a community database.
+ */
+export function preferredImageUrl(product: OffProduct): string | undefined {
+  for (const candidate of [
+    product.image_front_small_url,
+    product.image_small_url,
+    product.image_url,
+  ]) {
+    if (typeof candidate !== 'string') continue
+    const url = candidate.trim()
+    if (/^https?:\/\//.test(url)) return url
+  }
+  return undefined
 }
 
 function parseServingSize(product: OffProduct): number | undefined {
@@ -122,6 +153,7 @@ function mapOffRawProduct(product: OffProduct): OffMappedFood {
       typeof product.serving_size === 'string'
         ? product.serving_size.trim() || undefined
         : undefined,
+    imageUrl: preferredImageUrl(product),
   }
 }
 

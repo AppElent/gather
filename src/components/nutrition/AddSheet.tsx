@@ -18,6 +18,7 @@ import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
 import { BottomSheet } from './BottomSheet'
+import { FoodThumbnail } from './FoodThumbnail'
 import { useJustLogged } from './JustLogged'
 import { NutrientInputGrid } from './NutrientInputGrid'
 import { NutritionBreakdown } from './NutritionBreakdown'
@@ -50,6 +51,8 @@ interface FoodSummary {
   baseUnit: 'g' | 'ml'
   nutritionPer100: NutritionFacts
   servingSize?: number
+  /** Resolved by the query from the stored file; null when there is no picture. */
+  imageUrl?: string | null
 }
 
 interface Props {
@@ -74,7 +77,7 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
   const term = search.term.trim()
   const recipes = useQuery(api.recipes.listAcrossMyGroups, {})
   const createEntry = useMutation(api.consumption.create)
-  const upsertFromOff = useMutation(api.foods.upsertFromOff)
+  const importFromOff = useAction(api.foodsLookup.importFromOff)
   const lookupBarcode = useAction(api.foodsLookup.lookupBarcode)
   const convex = useConvex()
   const { announce } = useJustLogged()
@@ -111,7 +114,7 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
   }
 
   // A barcode's product may already have a local row that a name search would
-  // not have surfaced. Reuse it rather than upserting over it — upsertFromOff
+  // not have surfaced. Reuse it rather than importing over it — the import
   // would replace its name, nutrition and base unit with the mapped data.
   async function importOff(
     mapped: OffMappedFood,
@@ -119,7 +122,9 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
   ): Promise<FoodSummary> {
     const existing = await convex.query(api.foods.getByBarcode, { barcode })
     if (existing) return existing
-    const id = await upsertFromOff({
+    // An action rather than the mutation, because this is where the product's
+    // picture is fetched and stored (#69).
+    const id = await importFromOff({
       barcode,
       name: mapped.name,
       brand: mapped.brand,
@@ -127,6 +132,7 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
       nutritionPer100: mapped.nutritionPer100,
       servingSize: mapped.servingSize,
       servingLabel: mapped.servingLabel,
+      imageUrl: mapped.imageUrl,
     })
     const saved = await convex.query(api.foods.get, { id })
     if (!saved) throw new Error(foodAdd.addFailed)
@@ -421,6 +427,7 @@ function FoodCard({
 
   return (
     <ResultCard
+      thumbnail={<FoodThumbnail src={food.imageUrl} alt={food.name} />}
       title={food.name}
       subtitle={food.brand}
       meta={
@@ -582,6 +589,7 @@ function OffCard({
 
   return (
     <ResultCard
+      thumbnail={<FoodThumbnail src={result.imageUrl} alt={result.name} />}
       title={result.name}
       subtitle={result.brand}
       meta={

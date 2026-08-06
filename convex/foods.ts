@@ -1,9 +1,11 @@
 import { ConvexError, v } from 'convex/values'
 import type { Doc } from './_generated/dataModel'
+import type { QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import { foodSearchText } from './lib/foodSearchText'
 import { nutritionValidator } from './lib/nutrition'
 import { getCurrentUser } from './lib/sharing'
+import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
 
 const foodFields = {
   name: v.string(),
@@ -30,17 +32,31 @@ function assertNotCatalog(food: Doc<'foods'>) {
   }
 }
 
+/**
+ * A food as a reader gets it: the row, plus a URL for its picture.
+ *
+ * The row holds a `_storage` id, which is no use to an `<img>`. Resolving it
+ * here rather than in the client is what keeps a result list one round trip.
+ */
+async function withImageUrl(ctx: QueryCtx, food: Doc<'foods'>) {
+  return {
+    ...food,
+    imageUrl: food.imageId ? await ctx.storage.getUrl(food.imageId) : null,
+  }
+}
+
 export const search = query({
   args: { term: v.string() },
   handler: async (ctx, args) => {
     if (!(await getCurrentUser(ctx))) return []
     if (!args.term.trim()) return []
-    return await ctx.db
+    const rows = await ctx.db
       .query('foods')
       .withSearchIndex('search_by_text', (q) =>
         q.search('searchText', args.term),
       )
       .take(20)
+    return await Promise.all(rows.map((row) => withImageUrl(ctx, row)))
   },
 })
 
@@ -48,7 +64,8 @@ export const get = query({
   args: { id: v.id('foods') },
   handler: async (ctx, args) => {
     if (!(await getCurrentUser(ctx))) return null
-    return await ctx.db.get(args.id)
+    const food = await ctx.db.get(args.id)
+    return food ? await withImageUrl(ctx, food) : null
   },
 })
 
@@ -56,10 +73,11 @@ export const getByBarcode = query({
   args: { barcode: v.string() },
   handler: async (ctx, args) => {
     if (!(await getCurrentUser(ctx))) return null
-    return await ctx.db
+    const food = await ctx.db
       .query('foods')
       .withIndex('by_barcode', (q) => q.eq('barcode', args.barcode))
       .unique()
+    return food ? await withImageUrl(ctx, food) : null
   },
 })
 
@@ -114,7 +132,13 @@ export const update = mutation({
 // "refresh from Open Food Facts" flow (`applyOffRefresh` below) may
 // overwrite local edits.
 export const upsertFromOff = mutation({
-  args: { ...foodFields, barcode: v.string() },
+  args: {
+    ...foodFields,
+    barcode: v.string(),
+    // Already fetched and stored by `foodsLookup.importFromOff`, which is the
+    // only thing that can make the network call this needs.
+    imageId: v.optional(v.id('_storage')),
+  },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) throw new Error('Not authenticated')
@@ -127,12 +151,19 @@ export const upsertFromOff = mutation({
       // No Catalog fixture carries a barcode today, so this is unreachable —
       // but the invariant belongs to the table, not to the current fixtures.
       assertNotCatalog(existing)
-      if (!existing.localEdited) {
-        await ctx.db.patch(existing._id, {
-          ...rest,
-          searchText: foodSearchText(rest),
-        })
+      if (existing.localEdited) {
+        // Nothing is written, so the picture just fetched for this import is
+        // already unreachable. Deleting it here is what keeps "a blob lives
+        // exactly as long as a row points at it" true of a refused import.
+        await deleteStoredFile(ctx, rest.imageId)
+        return existing._id
       }
+      const previousImageId = existing.imageId
+      await ctx.db.patch(existing._id, {
+        ...rest,
+        searchText: foodSearchText(rest),
+      })
+      await replaceStoredFile(ctx, previousImageId, rest.imageId)
       return existing._id
     }
     return await ctx.db.insert('foods', {

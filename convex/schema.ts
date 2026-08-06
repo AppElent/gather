@@ -156,6 +156,11 @@ export default defineSchema({
     // `lib/foodSearchText.ts`). Optional only until the backfill has run
     // everywhere — docs/migrations/0005 says what makes it required.
     searchText: v.optional(v.string()),
+    // The product's own picture, fetched from Open Food Facts at import and
+    // stored here so it does not depend on their servers later. Never a
+    // photograph a person took: that would need the prepare-on-upload pipeline
+    // (ADR-0010) and is deliberately not offered.
+    imageId: v.optional(v.id('_storage')),
   })
     .index('by_barcode', ['barcode'])
     .index('by_seedKey', ['seedKey'])

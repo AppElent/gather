@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 
 interface Props {
+  /** The picture, or the space one would take. Absent for a row that has none to show. */
+  thumbnail?: ReactNode
   title: string
   /** The brand, the Group a recipe is in — whatever tells two similar rows apart. */
   subtitle?: ReactNode
@@ -21,6 +23,7 @@ interface Props {
  * differ.
  */
 export function ResultCard({
+  thumbnail,
   title,
   subtitle,
   meta,
@@ -36,7 +39,8 @@ export function ResultCard({
         onClick={onToggle}
         className="flex min-h-14 w-full items-center justify-between gap-3 px-3 py-2 text-left"
       >
-        <span className="min-w-0">
+        {thumbnail}
+        <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium">{title}</span>
           {subtitle && (
             <span className="block truncate text-xs opacity-60">

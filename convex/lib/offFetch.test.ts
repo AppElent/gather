@@ -68,7 +68,7 @@ describe('searchOffProducts', () => {
     const fetchImpl = vi.fn().mockResolvedValue(mockResponse({ hits: [] }))
     await searchOffProducts('nutella', 'en', fetchImpl)
     expect(fetchImpl).toHaveBeenCalledWith(
-      'https://search.openfoodfacts.org/search?q=nutella&langs=en&page_size=40&fields=code%2Cproduct_name%2Cproduct_name_nl%2Cbrands%2Cnutriments%2Cserving_size%2Cserving_quantity',
+      'https://search.openfoodfacts.org/search?q=nutella&langs=en&page_size=40&fields=code%2Cproduct_name%2Cproduct_name_nl%2Cbrands%2Cnutriments%2Cserving_size%2Cserving_quantity%2Cimage_front_small_url%2Cimage_small_url%2Cimage_url',
       expect.objectContaining({
         headers: expect.objectContaining({
           'User-Agent': expect.any(String),
