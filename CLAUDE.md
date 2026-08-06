@@ -14,7 +14,9 @@ cheeses, wines) built on the standard AppElent stack:
 - **Clerk** auth (`@clerk/clerk-react`), JWT-bridged to Convex via `CLERK_JWT_ISSUER_DOMAIN`
   (Convex deployment env var, set with `convex env set` — not committed anywhere).
 - **Cloudflare Workers** deploy via `wrangler.jsonc` — worker name `gather`
-  (prod) / `gather-dev` (dev env block).
+  (prod, top-level config) / `gather-stg` (`stg` env block, what a merge to
+  `main` deploys) / `gather-dev` (`dev` env block, manual only — dev proper is
+  local).
 - **Biome** for lint/format (tab-free, 2-space, single quotes, semicolons as needed).
 - **Vitest** + jsdom + Testing Library.
 - **Tailwind v4**.
@@ -102,9 +104,9 @@ by `import.meta.env.DEV`, set explicitly for previews in `preview.yml`, never
 set for a production build).
 
 Convex deployment (server-side, set via `convex env set` / `convex env default set`,
-never in a committed file): `CLERK_JWT_ISSUER_DOMAIN` — set on dev, prod, and as the
-default for preview deployments (PR previews create a fresh Convex backend per PR
-that doesn't inherit dev/prod env vars). `ANTHROPIC_API_KEY` — powers the recipe
+never in a committed file): `CLERK_JWT_ISSUER_DOMAIN` — set on dev, **staging**,
+prod, and as the default for preview deployments (PR previews create a fresh
+Convex backend per PR that doesn't inherit dev/prod env vars). `ANTHROPIC_API_KEY` — powers the recipe
 URL-import action's AI fallback; optional (JSON-LD-only imports work without it, and
 recipes without matching JSON-LD simply fail to import if it's unset).
 `NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` and `TODOIST_CLIENT_ID` /
@@ -115,10 +117,13 @@ OAuth app must register the redirect URI `<app-origin>/integrations/callback`
 (e.g. `http://localhost:3000/integrations/callback` for dev).
 `ENABLE_SAMPLE_DATA` — must be `'true'` for the publicly-callable
 `seed.loadSampleData` / `seed.resetSampleData` mutations to run at all. Set it
-on dev and as a preview-type default (`convex env default set --type preview`);
-**never on production**, where its absence is what stops anyone with the
-deployment URL from writing a fake household into the real database. The
-internal `seedCatalog` / `seedPreview` entrypoints do not consult it.
+on dev, on **staging**, and as a preview-type default (`convex env default set
+--type preview`); **never on production**, where its absence is what stops
+anyone with the deployment URL from writing a fake household into the real
+database. The internal `seedCatalog` / `seedPreview` entrypoints do not consult
+it. Note staging is a `--type prod` deployment, so the preview-type default does
+*not* reach it and it must be set explicitly — and "never on production" means
+the deployment holding real households, not the type label.
 
 ## Internationalization
 
@@ -180,11 +185,14 @@ The default branch is `main`. There has never been a `master`.
 - `.github/workflows/ci.yml` — check/typecheck/test/build gate, `pull_request`
   only. `main` is gated by `deploy.yml`'s `checks` job instead, so a merge
   produces one run rather than two.
-- `.github/workflows/deploy.yml` — merge to `main` deploys to **dev**;
-  `workflow_dispatch` from `main` deploys to **production**. One `deploy` job
-  parameterised by `github.event_name`, targeting the `dev` / `production`
-  GitHub Environment. See
-  `docs/adr/0012-dev-deploys-on-merge-production-deploys-on-a-click.md`.
+- `.github/workflows/deploy.yml` — merge to `main` deploys to **staging**
+  (`gather-stg` + the `staging` Convex deployment); `workflow_dispatch` from
+  `main` deploys to **production**. One `deploy` job parameterised by
+  `github.event_name`, targeting the `stg` / `production` GitHub Environment.
+  Both build with `pnpm build` — staging exists to exercise the bundle prod
+  ships, so only env vars differ. **There is no deployed dev environment**: dev
+  is `pnpm dev` against your own `convex dev` deployment. See
+  `docs/adr/0012-staging-deploys-on-merge-production-deploys-on-a-click.md`.
 - `.github/workflows/preview.yml` — per-PR Convex preview deployment + per-PR
   Cloudflare Worker (`gather-pr-<N>`) + PR comment + teardown on close.
   `CONVEX_DEPLOY_KEY` (a `preview:` key), `CLOUDFLARE_API_TOKEN`,
@@ -194,9 +202,10 @@ The default branch is `main`. There has never been a `master`.
   into the client bundle, so the test user must live on the Clerk *test*
   instance), optionally `NODE_AUTH_TOKEN`.
 
-**Secrets.** Scoped to the `dev` / `production` GitHub Environments, same names
-in both: `CONVEX_DEPLOY_KEY` (a `dev:` key for the shared dev deployment vs. the
-`prod:` key), `VITE_CLERK_PUBLISHABLE_KEY` (`pk_test_…` vs. `pk_live_…`),
+**Secrets.** Scoped to the `stg` / `production` GitHub Environments, same names
+in both: `CONVEX_DEPLOY_KEY` (both `prod:` keys — one for the `staging`
+deployment, one for the project's default production deployment),
+`VITE_CLERK_PUBLISHABLE_KEY` (`pk_test_…` vs. `pk_live_…`),
 `CLOUDFLARE_API_TOKEN`. Repo-level and shared by all three workflows:
 `CLOUDFLARE_ACCOUNT_ID`, `VITE_TEST_USER_EMAIL`, `VITE_TEST_USER_PASSWORD`,
 `NODE_AUTH_TOKEN`, `PREVIEW_CLERK_PUBLISHABLE_KEY`, and a repo-level
@@ -205,7 +214,13 @@ in both: `CONVEX_DEPLOY_KEY` (a `dev:` key for the shared dev deployment vs. the
 **An environment secret shadows a repo secret of the same name**, and that is
 what keeps the three `CONVEX_DEPLOY_KEY` values apart: `preview.yml` declares no
 `environment:`, so it resolves the repo-level `preview:` key. Adding an
-`environment:` key to `preview.yml` would silently point previews at dev or prod.
+`environment:` key to `preview.yml` would silently point previews at staging or
+prod.
+
+The `staging` Convex deployment is created with
+`convex deployment create staging --type prod` — **without** `--default`, which
+would hand it the project's default-production slot and make a local
+`pnpm run deploy:prod` deploy there instead.
 
 ## Claude Code workflow layer
 

@@ -51,14 +51,16 @@ pnpm run check
 
 ## Deploy to Cloudflare Workers
 
-This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) and `wrangler.jsonc`. The worker is named `gather` in production and `gather-dev` for the dev environment.
+This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) and `wrangler.jsonc`. The worker is named `gather` in production and `gather-stg` for staging.
 
 **CI is the normal path** — see `.github/workflows/deploy.yml`:
 
-- **dev** — every merge to `main` deploys automatically.
+- **staging** — every merge to `main` deploys automatically.
 - **production** — **Actions → Deploy → Run workflow** on `main`. The click is the gate; there is no separate approval step.
 
-Both run `check` / `typecheck` / `test` first, then `convex deploy`, then `convex run seed:seedCatalog`, then `wrangler deploy`. Credentials live in the `dev` and `production` GitHub Environments (see the "CI / deploys / PR previews" section of `CLAUDE.md` for the secret layout).
+Both run `check` / `typecheck` / `test` first, then `convex deploy`, then `convex run seed:seedCatalog`, then `wrangler deploy`. Both build with `pnpm build`: staging runs the same production bundle prod does, and differs only in env vars (sample data and the test-login button are on for staging, absent from prod). Credentials live in the `stg` and `production` GitHub Environments (see the "CI / deploys / PR previews" section of `CLAUDE.md` for the secret layout).
+
+**Dev is local.** There is no deployed dev environment — dev is `pnpm dev` against your own `convex dev` deployment. The `gather-dev` Worker and `deploy:dev` script below still work, but nothing automated touches them.
 
 Deploying by hand is still possible and is what the npm scripts are for:
 
@@ -67,6 +69,8 @@ Deploying by hand is still possible and is what the npm scripts are for:
 3. Deploy to dev: `pnpm run deploy:dev` (runs `convex dev --once && convex run seed:seedCatalog && pnpm run build:development && wrangler deploy --env dev`)
 
 Both read `VITE_*` from your `.env.local`, and `deploy:dev` needs an interactive Convex login — which is why CI reimplements the pipeline instead of calling these.
+
+There is deliberately no `deploy:stg` script, for the same reason: it would build against whatever `VITE_CONVEX_URL` your `.env.local` happens to hold. To reach staging by hand, export the staging `CONVEX_DEPLOY_KEY` and run the same steps `deploy.yml` does — `convex deploy --cmd-url-env-var-name CONVEX_URL --cmd '…pnpm build'`, then `wrangler deploy --env stg`.
 
 Server-side Worker secrets go in with `wrangler secret put MY_VAR`. Public (non-secret) Worker vars would go in `wrangler.jsonc` under `vars`, but there is no such block today — everything the client needs is a `VITE_*` var inlined into the bundle at build time. Convex-side vars (e.g. `CLERK_JWT_ISSUER_DOMAIN`) are set separately with `pnpm exec convex env set`.
 
