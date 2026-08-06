@@ -138,11 +138,6 @@ export default defineSchema({
     barcode: v.optional(v.string()),
     baseUnit: v.union(v.literal('g'), v.literal('ml')),
     nutritionPer100: nutritionValidator,
-    // The one serving a food used to be able to carry. Kept beside the list
-    // below for the length of the expand–contract: #71 removes both, and
-    // docs/migrations/0006-food-servings.md says what has to be true first.
-    servingSize: v.optional(v.number()),
-    servingLabel: v.optional(v.string()),
     // What somebody calls a portion of this food, in order — "1 slice",
     // "1 glass" — each an amount in `baseUnit`. Optional because most foods
     // have none: an empty list is answered by the person's own logged amounts

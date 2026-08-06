@@ -27,30 +27,15 @@ const MAX_LOGGED_SERVINGS = 3
 /**
  * The servings a food itself declares.
  *
- * **Compatibility shim.** A food written before `servings` existed carries at
- * most one serving, in `servingSize` + `servingLabel`. Rather than backfill
- * every row, this reads either shape and produces the new one, so the reader
- * side of the expand–contract is a single function instead of a condition at
- * every call site.
- *
- * **End condition:** this shim, and the two fields it reads, go together in
- * #71 — once docs/migrations/0006-food-servings.md records the servings list
- * as written everywhere it needs to be. Nothing else here is one-shot code.
+ * A food written before the list existed carried at most one serving, in
+ * `servingSize` + `servingLabel`, and this read either shape while both
+ * existed. The old pair is gone (#71, docs/migrations/0006-food-servings.md),
+ * so there is one shape left and this is now just the accessor — kept because
+ * every caller wants "the list, or nothing" and `?? []` at each of them is how
+ * that quietly becomes two answers.
  */
-export function authoredServings(food: {
-  baseUnit: 'g' | 'ml'
-  servings?: Serving[]
-  servingSize?: number
-  servingLabel?: string
-}): Serving[] {
-  if (food.servings?.length) return food.servings
-  if (food.servingSize === undefined || !(food.servingSize > 0)) return []
-  return [
-    {
-      label: food.servingLabel?.trim() || `${food.servingSize} ${food.baseUnit}`,
-      amount: food.servingSize,
-    },
-  ]
+export function authoredServings(food: { servings?: Serving[] }): Serving[] {
+  return food.servings ?? []
 }
 
 /**
@@ -95,12 +80,7 @@ export interface OfferedServing extends Serving {
  * rather than repeated under a second heading.
  */
 export function offeredServings(
-  food: {
-    baseUnit: 'g' | 'ml'
-    servings?: Serving[]
-    servingSize?: number
-    servingLabel?: string
-  },
+  food: { servings?: Serving[] },
   loggedAmounts: readonly Serving[] = [],
 ): OfferedServing[] {
   const authored = authoredServings(food).map((serving) => ({

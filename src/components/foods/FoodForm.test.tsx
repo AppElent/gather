@@ -42,8 +42,7 @@ test('defaults to grams and omits optional fields when left blank', () => {
       brand: undefined,
       baseUnit: 'g',
       barcode: undefined,
-      servingSize: undefined,
-      servingLabel: undefined,
+      servings: undefined,
       nutritionPer100: {},
     }),
   )
@@ -73,5 +72,77 @@ test('prefills from initial values, shows a read-only barcode and source note', 
       barcode: '3017620422003',
       nutritionPer100: { calories: 539 },
     }),
+  )
+})
+
+test('servings are typed as a list of named portions', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(<FoodForm onSubmit={onSubmit} submitting={false} />)
+  fireEvent.change(screen.getByLabelText('Name'), {
+    target: { value: 'Wholemeal bread' },
+  })
+  fireEvent.change(screen.getAllByLabelText('Serving label')[0], {
+    target: { value: '1 slice' },
+  })
+  fireEvent.change(screen.getAllByLabelText('Amount (g)')[0], {
+    target: { value: '35' },
+  })
+  // Typing in the last row offers another, so adding a second is not a step.
+  fireEvent.change(screen.getAllByLabelText('Serving label')[1], {
+    target: { value: '2 slices' },
+  })
+  fireEvent.change(screen.getAllByLabelText('Amount (g)')[1], {
+    target: { value: '70' },
+  })
+
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({
+      servings: [
+        { label: '1 slice', amount: 35 },
+        { label: '2 slices', amount: 70 },
+      ],
+    }),
+  )
+})
+
+test('a half-typed serving row is not a serving', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(<FoodForm onSubmit={onSubmit} submitting={false} />)
+  fireEvent.change(screen.getByLabelText('Name'), {
+    target: { value: 'Water' },
+  })
+  fireEvent.change(screen.getAllByLabelText('Serving label')[0], {
+    target: { value: '1 glass' },
+  })
+
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ servings: undefined }),
+  )
+})
+
+test('a serving can be taken off again', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(
+    <FoodForm
+      onSubmit={onSubmit}
+      submitting={false}
+      initial={{
+        name: 'Wholemeal bread',
+        baseUnit: 'g',
+        servings: [{ label: '1 slice', amount: 35 }],
+      }}
+    />,
+  )
+  expect(screen.getAllByLabelText('Serving label')[0]).toHaveValue('1 slice')
+
+  fireEvent.click(
+    screen.getAllByRole('button', { name: 'Remove this serving' })[0],
+  )
+
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ servings: undefined }),
   )
 })

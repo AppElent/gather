@@ -5,8 +5,6 @@ export interface OffMappedFood {
   name: string
   brand?: string
   nutritionPer100: NutritionFacts
-  servingSize?: number
-  servingLabel?: string
   /**
    * Where the product's own picture lives on Open Food Facts' servers. Only
    * ever a URL here: a result nobody has imported has nothing stored, and the
@@ -173,8 +171,6 @@ function mapOffRawProduct(product: OffProduct): OffMappedFood {
     name: preferredName(product),
     brand: firstBrand(product.brands),
     nutritionPer100,
-    servingSize: parseServingSize(product),
-    servingLabel: servingLabel(product),
     imageUrl: preferredImageUrl(product),
     servings: declaredServings(product),
   }

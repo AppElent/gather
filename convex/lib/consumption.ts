@@ -60,13 +60,19 @@ export function computeRecipeEntryNutrition(
 }
 
 // Food nutrition is stored per 100 g/ml. `unit: 'piece'` means quantity is a
-// count of `food.servingSize`-sized portions; g/ml means quantity is the
-// direct amount, matching food.baseUnit.
+// count of the food's own portions — its first named serving, which is what
+// the single `servingSize` field became (#68/#71). A food with no servings has
+// no portion to count, so a 'piece' of it is nothing; g/ml means quantity is
+// the direct amount, matching food.baseUnit.
 export function computeFoodEntryNutrition(
-  food: { nutritionPer100: NutritionFacts; servingSize?: number },
+  food: {
+    nutritionPer100: NutritionFacts
+    servings?: readonly { label: string; amount: number }[]
+  },
   quantity: number,
   unit: 'g' | 'ml' | 'piece',
 ): NutritionFacts {
-  const amount = unit === 'piece' ? quantity * (food.servingSize ?? 0) : quantity
+  const portion = food.servings?.[0]?.amount ?? 0
+  const amount = unit === 'piece' ? quantity * portion : quantity
   return scaleFacts(food.nutritionPer100, amount / 100)
 }

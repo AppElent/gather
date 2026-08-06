@@ -16,7 +16,8 @@ anything is taken away.
 | --- | --- | --- |
 | 1 | Deploy #68 | yes — `servings` is optional and nothing is removed |
 | 2 | Catalog seed (runs inside the deploy) | yes — re-seeding restores whatever the fixtures say |
-| 3 | Deploy #71 | **no** — `servingSize` and `servingLabel` are dropped from the schema |
+| 3 | `backfillFoodServings --apply` | yes — it only moves a value the row already held |
+| 4 | Deploy #71 | **no** — `servingSize` and `servingLabel` are dropped from the schema |
 
 ## 1. Deploy the expand half
 
@@ -42,29 +43,48 @@ between them they cover every row:
 
 A row written before #68 that has a `servingSize` keeps working through the
 compatibility shim, `authoredServings` in `convex/lib/servings.ts`, which reads
-either shape and produces the new one.
+either shape and produces the new one. **That shim is deleted by #71** — step 3
+is what makes deleting it safe.
 
-## What retires the shim
+## 3. Carry the old field across — **before** deploying #71
 
-`authoredServings`' legacy branch, `foods.servingSize` and `foods.servingLabel`
-go together in **#71**, once all of the following are true:
+**Run this before the contract deploy, not after.** Convex rejects a document
+carrying a field the schema does not describe, so a row still holding
+`servingSize` fails the deploy that removes it. The backfill is a prerequisite
+of that deploy, not tidying-up behind it.
 
-- [ ] #68 is deployed to dev and prod, so every writer produces `servings`
-- [ ] No client reads `servingSize` or `servingLabel` — grep is the check; the
-      last readers were the add sheet's amount control and `foods.upsertFromOff`
-- [ ] Any Open Food Facts row still carrying only `servingSize` has either been
-      re-imported or is accepted as losing its one serving suggestion, which
-      the person's own logged amounts then replace
+```sh
+pnpm exec convex run maintenance:backfillFoodServings            # dev, dry run
+pnpm exec convex run maintenance:backfillFoodServings '{"apply":true}'
+pnpm exec convex run maintenance:backfillFoodServings --prod     # prod, dry run
+pnpm exec convex run maintenance:backfillFoodServings '{"apply":true}' --prod
+```
 
-The third is a judgement rather than a migration: a serving suggestion is not
-data anybody typed, it is a hint, and re-deriving it costs one import. If that
-is ever judged too lossy, the alternative is a `backfillFoodServings` mutation
-running `authoredServings` over every row and writing the result — one-shot
-code with the same end condition as this document, not a schema decision.
-
-## 3. Deploy the contract half
-
-Ticked when #71 ships:
+Reports `{ apply, foods, stripped, converted }` — how many rows still carry
+either old field, and how many of those gain a servings entry from it (a row
+that already has a list keeps it; the list always won over the pair). It
+`replace`s rather than patches, because the fields being *gone* from the
+document is the point. Re-running is a no-op.
 
 - [ ] dev — run on:
 - [ ] prod — run on:
+
+## 4. Deploy the contract half
+
+```sh
+pnpm run deploy:dev    # dev
+pnpm run deploy:prod   # prod
+```
+
+What #71 removes: both fields from the schema, `authoredServings`' legacy
+branch, the serving pair from `OffMappedFood`, the Catalog fixtures' old
+fields, and the food form's two inputs — replaced by a list editor over the
+same data. `'piece'` quantities now count the food's **first named serving**,
+which is exactly what `servingSize` was, so no logged entry changes value.
+
+Once both boxes above are ticked, `maintenance:backfillFoodServings` is itself
+one-shot code with nothing left to find, and is deleted along with this
+document's reason for existing.
+
+- [ ] dev — deployed on:
+- [ ] prod — deployed on:

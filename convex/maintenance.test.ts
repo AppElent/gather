@@ -936,3 +936,142 @@ describe('backfilling foods.searchText', () => {
     ).toEqual({ apply: true, foods: 1, updated: 0 })
   })
 })
+
+/**
+ * Carrying a food's single serving into the list, and dropping the pair it
+ * lived in — the contract half of #68, and the thing that has to have run
+ * before the deploy that removes the fields (docs/migrations/0006).
+ *
+ * Like the Group backfill above, this can only be tested against rows the
+ * current schema no longer allows, so it builds its backend on the shape those
+ * rows actually have on disk.
+ */
+const legacyFoodSchema = defineSchema({
+  ...schema.tables,
+  foods: defineTable({
+    name: v.string(),
+    brand: v.optional(v.string()),
+    barcode: v.optional(v.string()),
+    baseUnit: v.union(v.literal('g'), v.literal('ml')),
+    nutritionPer100: v.any(),
+    servings: v.optional(
+      v.array(v.object({ label: v.string(), amount: v.number() })),
+    ),
+    // The pair #71 removes.
+    servingSize: v.optional(v.number()),
+    servingLabel: v.optional(v.string()),
+    source: v.union(
+      v.literal('openfoodfacts'),
+      v.literal('manual'),
+      v.literal('seed'),
+    ),
+    localEdited: v.optional(v.boolean()),
+    createdBy: v.optional(v.id('users')),
+    seedKey: v.optional(v.string()),
+    searchText: v.optional(v.string()),
+    imageId: v.optional(v.id('_storage')),
+  })
+    .index('by_barcode', ['barcode'])
+    .index('by_seedKey', ['seedKey'])
+    .searchIndex('search_by_text', { searchField: 'searchText' }),
+})
+
+describe('backfillFoodServings', () => {
+  async function withLegacyFoods() {
+    const t = convexTest(legacyFoodSchema, modules)
+    const ids = await t.run(async (ctx) => ({
+      labelled: await ctx.db.insert('foods', {
+        name: 'Wholemeal bread',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 250 },
+        servingSize: 40,
+        servingLabel: '1 slice (40 g)',
+        source: 'manual',
+      }),
+      unlabelled: await ctx.db.insert('foods', {
+        name: 'Whole milk',
+        baseUnit: 'ml',
+        nutritionPer100: { calories: 61 },
+        servingSize: 250,
+        source: 'openfoodfacts',
+      }),
+      alreadyMoved: await ctx.db.insert('foods', {
+        name: 'Granola',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 471 },
+        servingSize: 50,
+        servingLabel: 'legacy',
+        servings: [{ label: '1 bowl', amount: 50 }],
+        source: 'manual',
+      }),
+      neverHadOne: await ctx.db.insert('foods', {
+        name: 'Flour',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 364 },
+        source: 'seed',
+        seedKey: 'flour-plain',
+      }),
+    }))
+    return { t, ids }
+  }
+
+  const read = async (t: ReturnType<typeof convexTest>, id: Id<'foods'>) =>
+    await t.run(async (ctx) => {
+      const row = (await ctx.db.get(id)) as Record<string, unknown> | null
+      return {
+        servings: row?.servings,
+        hasLegacy: row ? 'servingSize' in row || 'servingLabel' in row : false,
+      }
+    })
+
+  test('changes nothing until asked to apply', async () => {
+    const { t, ids } = await withLegacyFoods()
+
+    expect(
+      await t.mutation(internal.maintenance.backfillFoodServings, {}),
+    ).toEqual({ apply: false, foods: 4, stripped: 3, converted: 2 })
+    expect((await read(t, ids.labelled)).hasLegacy).toBe(true)
+  })
+
+  test('carries the serving across, named by its label or by its own amount', async () => {
+    const { t, ids } = await withLegacyFoods()
+
+    await t.mutation(internal.maintenance.backfillFoodServings, { apply: true })
+
+    expect(await read(t, ids.labelled)).toEqual({
+      servings: [{ label: '1 slice (40 g)', amount: 40 }],
+      hasLegacy: false,
+    })
+    expect(await read(t, ids.unlabelled)).toEqual({
+      servings: [{ label: '250 ml', amount: 250 }],
+      hasLegacy: false,
+    })
+  })
+
+  test('leaves a list that already exists alone, and only drops the old fields', async () => {
+    const { t, ids } = await withLegacyFoods()
+
+    await t.mutation(internal.maintenance.backfillFoodServings, { apply: true })
+
+    expect(await read(t, ids.alreadyMoved)).toEqual({
+      servings: [{ label: '1 bowl', amount: 50 }],
+      hasLegacy: false,
+    })
+  })
+
+  test('a row that never had one is untouched, and a second run finds nothing', async () => {
+    const { t, ids } = await withLegacyFoods()
+
+    await t.mutation(internal.maintenance.backfillFoodServings, { apply: true })
+
+    expect(await read(t, ids.neverHadOne)).toEqual({
+      servings: undefined,
+      hasLegacy: false,
+    })
+    expect(
+      await t.mutation(internal.maintenance.backfillFoodServings, {
+        apply: true,
+      }),
+    ).toEqual({ apply: true, foods: 4, stripped: 0, converted: 0 })
+  })
+})

@@ -907,8 +907,6 @@ export const SAMPLE_USER_FOOD = {
     fiber: 7.8,
     salt: 0.1,
   },
-  servingSize: 50,
-  servingLabel: '1 portion (50 g)',
   // A food somebody authored, with the servings they actually think in — so a
   // preview shows the chips rather than an empty row where they should be.
   servings: [

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import type { Serving } from '../../../convex/lib/servings'
 import { fmt, useMessages } from '../../lib/i18n'
 import { NutrientInputGrid } from '../nutrition/NutrientInputGrid'
 import {
@@ -15,8 +16,39 @@ export interface FoodFormValues {
   barcode?: string
   baseUnit: 'g' | 'ml'
   nutritionPer100: NutritionFacts
-  servingSize?: number
-  servingLabel?: string
+  servings?: Serving[]
+}
+
+/** A serving being typed: both halves are text until they are read back. */
+interface ServingRow {
+  label: string
+  amount: string
+}
+
+/**
+ * The rows the form shows for a food's servings. Always one empty row to type
+ * into, so adding the first serving is not itself a step.
+ */
+function toServingRows(servings?: Serving[]): ServingRow[] {
+  return [
+    ...(servings ?? []).map((serving) => ({
+      label: serving.label,
+      amount: String(serving.amount),
+    })),
+    { label: '', amount: '' },
+  ]
+}
+
+/** Rows that name an amount somebody could actually eat; the rest are noise. */
+function fromServingRows(rows: ServingRow[]): Serving[] {
+  const servings: Serving[] = []
+  for (const row of rows) {
+    const label = row.label.trim()
+    const amount = parseDecimal(row.amount)
+    if (!label || amount === undefined || amount <= 0) continue
+    servings.push({ label, amount })
+  }
+  return servings
 }
 
 interface Props {
@@ -37,10 +69,9 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
   const [nutritionInputs, setNutritionInputs] = useState(() =>
     toNutrientInputs(initial?.nutritionPer100),
   )
-  const [servingSize, setServingSize] = useState(
-    initial?.servingSize !== undefined ? String(initial.servingSize) : '',
+  const [servingRows, setServingRows] = useState(() =>
+    toServingRows(initial?.servings),
   )
-  const [servingLabel, setServingLabel] = useState(initial?.servingLabel ?? '')
   const messages = useMessages()
   const { form } = messages.foods
 
@@ -49,15 +80,14 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
       className="mx-auto grid max-w-2xl gap-4"
       onSubmit={(e) => {
         e.preventDefault()
-        const size = parseDecimal(servingSize)
+        const servings = fromServingRows(servingRows)
         onSubmit({
           name: name.trim(),
           brand: brand.trim() || undefined,
           barcode: barcode || undefined,
           baseUnit,
           nutritionPer100: nutrientInputsToFacts(nutritionInputs),
-          servingSize: size && size > 0 ? size : undefined,
-          servingLabel: servingLabel.trim() || undefined,
+          servings: servings.length > 0 ? servings : undefined,
         })
       }}
     >
@@ -120,26 +150,66 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
           }
         />
       </fieldset>
-      <label className="block max-w-32 text-sm">
-        <span className="mb-1 block font-medium">
-          {fmt(form.servingSize, { unit: baseUnit })}
-        </span>
-        <input
-          inputMode="decimal"
-          className={inputClass}
-          value={servingSize}
-          onChange={(e) => setServingSize(e.target.value)}
-        />
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1 block font-medium">{form.servingLabel}</span>
-        <input
-          className={inputClass}
-          value={servingLabel}
-          onChange={(e) => setServingLabel(e.target.value)}
-          placeholder={form.servingLabelPlaceholder}
-        />
-      </label>
+      <fieldset className="rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
+        <legend className="px-1 text-sm font-medium">
+          {form.servingsLegend}
+        </legend>
+        <p className="mb-2 text-xs opacity-60">
+          {fmt(form.servingsHint, { unit: baseUnit })}
+        </p>
+        <div className="grid gap-2">
+          {servingRows.map((row, index) => (
+            // Keyed by position: a row has no identity of its own, it is a
+            // place in a list somebody is typing into, and there is no
+            // reordering for the index to go stale under.
+            <div key={index} className="flex items-center gap-2">
+              <input
+                className={inputClass}
+                value={row.label}
+                aria-label={form.servingLabel}
+                placeholder={form.servingLabelPlaceholder}
+                onChange={(e) =>
+                  setServingRows((rows) => {
+                    const next = rows.map((r, i) =>
+                      i === index ? { ...r, label: e.target.value } : r,
+                    )
+                    return index === rows.length - 1
+                      ? [...next, { label: '', amount: '' }]
+                      : next
+                  })
+                }
+              />
+              <input
+                inputMode="decimal"
+                className={`${inputClass} max-w-28`}
+                value={row.amount}
+                aria-label={fmt(form.servingAmount, { unit: baseUnit })}
+                onChange={(e) =>
+                  setServingRows((rows) =>
+                    rows.map((r, i) =>
+                      i === index ? { ...r, amount: e.target.value } : r,
+                    ),
+                  )
+                }
+              />
+              <button
+                type="button"
+                aria-label={form.removeServing}
+                onClick={() =>
+                  setServingRows((rows) =>
+                    rows.length === 1
+                      ? [{ label: '', amount: '' }]
+                      : rows.filter((_, i) => i !== index),
+                  )
+                }
+                className="min-h-11 min-w-11 rounded-[var(--app-radius)] border border-[var(--app-border)]"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      </fieldset>
       <button
         type="submit"
         disabled={submitting}

@@ -13,8 +13,6 @@ const foodFields = {
   brand: v.optional(v.string()),
   baseUnit: v.union(v.literal('g'), v.literal('ml')),
   nutritionPer100: nutritionValidator,
-  servingSize: v.optional(v.number()),
-  servingLabel: v.optional(v.string()),
   servings: v.optional(v.array(servingValidator)),
 }
 

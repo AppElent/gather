@@ -42,13 +42,17 @@ test('computeFoodEntryNutrition scales per-100 nutrition directly for g/ml quant
   })
 })
 
-test('computeFoodEntryNutrition scales by servingSize for piece quantities', () => {
-  const food = { nutritionPer100: { calories: 500 }, servingSize: 30 }
-  // 2 pieces * 30g = 60g -> 60/100 * 500 = 300
+test('computeFoodEntryNutrition counts the food’s own portion for piece quantities', () => {
+  // A 'piece' is one of the food's first named serving — what the single
+  // `servingSize` field became (#68/#71). 2 × 30 g = 60 g → 300 kcal.
+  const food = {
+    nutritionPer100: { calories: 500 },
+    servings: [{ label: '1 piece', amount: 30 }],
+  }
   expect(computeFoodEntryNutrition(food, 2, 'piece')).toEqual({ calories: 300 })
 })
 
-test('computeFoodEntryNutrition treats a missing servingSize as zero grams for piece quantities', () => {
+test('computeFoodEntryNutrition has nothing to count when a food declares no serving', () => {
   const food = { nutritionPer100: { calories: 500 } }
   expect(computeFoodEntryNutrition(food, 3, 'piece')).toEqual({ calories: 0 })
 })

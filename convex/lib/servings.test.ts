@@ -20,31 +20,12 @@ test('a food with a servings list simply has it', () => {
   expect(authoredServings(bread)).toEqual(bread.servings)
 })
 
-test('a food written before the list existed still offers its one serving', () => {
-  expect(
-    authoredServings({
-      baseUnit: 'g',
-      servingSize: 40,
-      servingLabel: '1 slice (40 g)',
-    }),
-  ).toEqual([{ label: '1 slice (40 g)', amount: 40 }])
-})
-
-test('a legacy serving with no label is named by its own amount', () => {
-  expect(authoredServings({ baseUnit: 'ml', servingSize: 250 })).toEqual([
-    { label: '250 ml', amount: 250 },
-  ])
-})
-
-test('a food with neither has nothing to offer, and says so with an empty list', () => {
-  expect(authoredServings({ baseUnit: 'g' })).toEqual([])
-  expect(authoredServings({ baseUnit: 'g', servingSize: 0 })).toEqual([])
-})
-
-test('the new list wins over the old fields while both exist', () => {
-  expect(
-    authoredServings({ ...bread, servingSize: 40, servingLabel: 'legacy' }),
-  ).toEqual(bread.servings)
+test('a food with no list has nothing to offer, and says so with an empty one', () => {
+  // The single `servingSize`/`servingLabel` pair this used to read as well is
+  // gone (#71); a row that had one was carried into the list by
+  // maintenance:backfillFoodServings before the fields were dropped.
+  expect(authoredServings({})).toEqual([])
+  expect(authoredServings({ servings: [] })).toEqual([])
 })
 
 test('choosing a serving resolves to its amount, its name and its nutrients', () => {
@@ -160,7 +141,7 @@ test('what is offered is the food’s own servings, then yours, without repeats'
 })
 
 test('a Catalog food nobody may edit still gets your own amounts', () => {
-  expect(
-    offeredServings({ baseUnit: 'g' }, [{ label: '90 g', amount: 90 }]),
-  ).toEqual([{ label: '90 g', amount: 90, own: true }])
+  expect(offeredServings({}, [{ label: '90 g', amount: 90 }])).toEqual([
+    { label: '90 g', amount: 90, own: true },
+  ])
 })

@@ -27,7 +27,6 @@ export interface ComboComponent {
   food?: {
     baseUnit: 'g' | 'ml'
     nutritionPer100: NutritionFacts
-    servingSize?: number
     servings?: Serving[]
   }
   /** The recipe's per-serving nutrition as it is *now*, when still reachable. */

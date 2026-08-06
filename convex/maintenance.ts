@@ -264,6 +264,73 @@ export const backfillFoodSearchText = internalMutation({
 })
 
 /**
+ * A food as it may still exist on disk: with the single serving the schema no
+ * longer describes.
+ *
+ * The tightening commit removes `servingSize` and `servingLabel`, and
+ * TypeScript then knows they cannot be there — so a migration that has to read
+ * them says so itself, the way the pre-#17 group fields above do.
+ */
+type LegacyFood = Doc<'foods'> & {
+  servingSize?: number
+  servingLabel?: string
+}
+
+/**
+ * Carry a food's single serving into its servings list, and drop the two
+ * fields it lived in.
+ *
+ * The contract half of #68's expand–contract. Convex rejects a document
+ * carrying a field the schema does not describe, so a row still holding
+ * `servingSize` would fail the deploy that removes it — which makes this a
+ * prerequisite of that deploy rather than tidying afterwards.
+ *
+ * The conversion is the shim's, moved here as it was deleted: the label the
+ * food carried, or its own amount when it carried none. A row that already has
+ * a servings list keeps it — the list has always won over the pair.
+ *
+ * **End condition:** delete this once
+ * docs/migrations/0006-food-servings.md records it as run on dev and prod.
+ * There is nothing left for it to find after that: no writer has produced
+ * either field since #71.
+ *
+ * Dry run by default — pass `{ apply: true }` to write. Idempotent: a row with
+ * neither legacy field present is left alone, so a second run reports zero.
+ */
+export const backfillFoodServings = internalMutation({
+  args: { apply: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const foods = (await ctx.db.query('foods').collect()) as LegacyFood[]
+
+    let converted = 0
+    let stripped = 0
+    for (const food of foods) {
+      const hasLegacy = 'servingSize' in food || 'servingLabel' in food
+      if (!hasLegacy) continue
+      stripped++
+      const { servingSize, servingLabel, ...rest } = food
+      const carried =
+        food.servings?.length || servingSize === undefined || !(servingSize > 0)
+          ? food.servings
+          : [
+              {
+                label: servingLabel?.trim() || `${servingSize} ${food.baseUnit}`,
+                amount: servingSize,
+              },
+            ]
+      if (carried !== food.servings) converted++
+      // `replace` rather than `patch`: the point is the fields being gone from
+      // the document, and a patch cannot remove what the schema no longer
+      // describes.
+      if (apply) await ctx.db.replace(food._id, { ...rest, servings: carried })
+    }
+
+    return { apply, foods: foods.length, stripped, converted }
+  },
+})
+
+/**
  * Delete every recipe, and clear the references that leaves dangling.
  *
  * #19 gives a recipe to a Group rather than to a person, and says so in fields

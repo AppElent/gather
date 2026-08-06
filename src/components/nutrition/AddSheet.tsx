@@ -14,6 +14,7 @@ import type {
   OffMappedFood,
   OffSearchResult,
 } from '../../../convex/lib/offMapping'
+import type { Serving } from '../../../convex/lib/servings'
 import { offeredServings, resolveAmount } from '../../../convex/lib/servings'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
@@ -58,7 +59,7 @@ interface FoodSummary {
   brand?: string
   baseUnit: 'g' | 'ml'
   nutritionPer100: NutritionFacts
-  servingSize?: number
+  servings?: Serving[]
   /** Resolved by the query from the stored file; null when there is no picture. */
   imageUrl?: string | null
 }
@@ -143,8 +144,6 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
       brand: mapped.brand,
       baseUnit: 'g',
       nutritionPer100: mapped.nutritionPer100,
-      servingSize: mapped.servingSize,
-      servingLabel: mapped.servingLabel,
       servings: mapped.servings,
       imageUrl: mapped.imageUrl,
     })

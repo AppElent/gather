@@ -56,8 +56,6 @@ export const refreshFromOff = action({
       brand: mapped.brand,
       baseUnit: food.baseUnit,
       nutritionPer100: mapped.nutritionPer100,
-      servingSize: mapped.servingSize,
-      servingLabel: mapped.servingLabel,
       servings: mapped.servings,
     })
   },
@@ -103,8 +101,6 @@ export const importFromOff = action({
     brand: v.optional(v.string()),
     baseUnit: v.union(v.literal('g'), v.literal('ml')),
     nutritionPer100: nutritionValidator,
-    servingSize: v.optional(v.number()),
-    servingLabel: v.optional(v.string()),
     servings: v.optional(v.array(servingValidator)),
     imageUrl: v.optional(v.string()),
   },

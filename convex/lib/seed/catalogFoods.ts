@@ -29,9 +29,6 @@ export interface CatalogFood {
    * translated (ADR-0011).
    */
   servings?: Serving[]
-  /** The single serving these used to be. Both fields go in #71. */
-  servingSize?: number
-  servingLabel?: string
 }
 
 export const CATALOG_FOODS: CatalogFood[] = [
@@ -185,8 +182,6 @@ export const CATALOG_FOODS: CatalogFood[] = [
       { label: '1 tbsp', amount: 15 },
       { label: '1 tsp', amount: 5 },
     ],
-    servingSize: 15,
-    servingLabel: '1 tbsp (15 ml)',
   },
   {
     seedKey: 'peanut-butter',
@@ -227,8 +222,6 @@ export const CATALOG_FOODS: CatalogFood[] = [
       { label: '1 medium egg', amount: 50 },
       { label: '1 large egg', amount: 60 },
     ],
-    servingSize: 50,
-    servingLabel: '1 medium egg (50 g)',
   },
   {
     seedKey: 'milk-whole',
@@ -249,8 +242,6 @@ export const CATALOG_FOODS: CatalogFood[] = [
       { label: '1 mug', amount: 200 },
       { label: 'a splash in tea', amount: 30 },
     ],
-    servingSize: 250,
-    servingLabel: '1 glass (250 ml)',
   },
   {
     seedKey: 'milk-semi-skimmed',
@@ -271,8 +262,6 @@ export const CATALOG_FOODS: CatalogFood[] = [
       { label: '1 mug', amount: 200 },
       { label: 'a splash in tea', amount: 30 },
     ],
-    servingSize: 250,
-    servingLabel: '1 glass (250 ml)',
   },
   {
     seedKey: 'butter-unsalted',
@@ -311,8 +300,6 @@ export const CATALOG_FOODS: CatalogFood[] = [
       { label: '1 pot', amount: 150 },
       { label: '1 large spoon', amount: 30 },
     ],
-    servingSize: 150,
-    servingLabel: '1 pot (150 g)',
   },
   {
     seedKey: 'cheese-cheddar',
@@ -579,8 +566,6 @@ export const CATALOG_FOODS: CatalogFood[] = [
       { label: '1 medium banana', amount: 118 },
       { label: '1 small banana', amount: 90 },
     ],
-    servingSize: 118,
-    servingLabel: '1 medium banana (118 g)',
   },
   {
     seedKey: 'apple',
@@ -599,8 +584,6 @@ export const CATALOG_FOODS: CatalogFood[] = [
     servings: [
       { label: '1 medium apple', amount: 150 },
     ],
-    servingSize: 150,
-    servingLabel: '1 medium apple (150 g)',
   },
 
   // Bakery
@@ -622,8 +605,6 @@ export const CATALOG_FOODS: CatalogFood[] = [
       { label: '1 slice', amount: 40 },
       { label: '2 slices', amount: 80 },
     ],
-    servingSize: 40,
-    servingLabel: '1 slice (40 g)',
   },
   {
     seedKey: 'oats-rolled',
@@ -643,7 +624,5 @@ export const CATALOG_FOODS: CatalogFood[] = [
       { label: '1 portion', amount: 40 },
       { label: '1 cup', amount: 90 },
     ],
-    servingSize: 40,
-    servingLabel: '1 portion (40 g)',
   },
 ]

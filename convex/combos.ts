@@ -51,7 +51,6 @@ async function resolveComponent(
         ? {
             baseUnit: food.baseUnit,
             nutritionPer100: food.nutritionPer100,
-            servingSize: food.servingSize,
             servings: food.servings,
           }
         : undefined,

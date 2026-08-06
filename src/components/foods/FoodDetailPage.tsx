@@ -86,9 +86,16 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
               : 'manual'
         }
       />
-      {food.servingLabel && (
+      {food.servings && food.servings.length > 0 && (
         <p className="mb-4 text-sm opacity-60">
-          {fmt(detail.serving, { label: food.servingLabel })}
+          {fmt(detail.servings, {
+            servings: food.servings
+              .map(
+                (serving) =>
+                  `${serving.label} — ${serving.amount} ${food.baseUnit}`,
+              )
+              .join(', '),
+          })}
         </p>
       )}
       {food.source === 'openfoodfacts' && (
