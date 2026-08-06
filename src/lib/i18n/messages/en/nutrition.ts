@@ -32,10 +32,15 @@ export const diary = {
   totalsToday: "Today's totals",
   totalsOn: 'Totals — {date}',
 
+  /**
+   * The target as *context* on the day's totals. Setting one is a preference
+   * and lives in Settings; these are the words around the figure you read
+   * every day.
+   */
   targets: {
-    title: 'Daily targets',
-    save: 'Save targets',
-    saveFailed: 'Could not save targets',
+    edit: 'Edit targets',
+    remaining: '{amount} left',
+    over: '{amount} over',
   },
 
   slot: {

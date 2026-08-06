@@ -29,9 +29,9 @@ export const diary = {
   totalsOn: 'Totalen — {date}',
 
   targets: {
-    title: 'Dagdoelen',
-    save: 'Doelen opslaan',
-    saveFailed: 'Kon de doelen niet opslaan',
+    edit: 'Doelen aanpassen',
+    remaining: 'nog {amount}',
+    over: '{amount} te veel',
   },
 
   slot: {

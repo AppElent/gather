@@ -13,7 +13,6 @@ import { AddEntryModal } from './AddEntryModal'
 import { DayTotals } from './DayTotals'
 import { MealSlot } from './MealSlot'
 import type { NutritionNav } from './nutritionNav'
-import { TargetsPanel } from './TargetsPanel'
 
 // Client-local YYYY-MM-DD — matches spec §3.4 ("no server timezone math").
 function todayLocal(): string {
@@ -80,11 +79,8 @@ export function NutritionPage({
   const entries = useQuery(api.consumption.listForDay, { date })
   const updateEntry = useMutation(api.consumption.update)
   const deleteEntry = useMutation(api.consumption.remove)
-  const setTargets = useMutation(api.users.setNutritionTargets)
 
   const [addingMeal, setAddingMeal] = useState<MealName | null>(null)
-  const [savingTargets, setSavingTargets] = useState(false)
-  const [targetsError, setTargetsError] = useState<string | null>(null)
   const messages = useMessages()
   const { diary, meals } = messages.nutrition
 
@@ -123,29 +119,6 @@ export function NutritionPage({
           {diary.nextDay}
         </button>
       </div>
-
-      {targetsError && (
-        <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
-          {targetsError}
-        </p>
-      )}
-      <TargetsPanel
-        targets={me?.nutritionTargets}
-        saving={savingTargets}
-        onSave={async (targets) => {
-          setSavingTargets(true)
-          setTargetsError(null)
-          try {
-            await setTargets({ targets })
-          } catch (err) {
-            setTargetsError(
-              err instanceof Error ? err.message : diary.targets.saveFailed,
-            )
-          } finally {
-            setSavingTargets(false)
-          }
-        }}
-      />
 
       <DayTotals
         totals={totals}

@@ -2,6 +2,7 @@ import { AppearanceSettings } from '@appelent/auth'
 import { createFileRoute } from '@tanstack/react-router'
 import { GroupSettingsLinks } from '../../components/settings/GroupSettingsLinks'
 import { LanguageSettings } from '../../components/settings/LanguageSettings'
+import { NutritionTargetsSettings } from '../../components/settings/NutritionTargetsSettings'
 import { SampleDataSettings } from '../../components/settings/SampleDataSettings'
 import { useMessages } from '../../lib/i18n'
 
@@ -26,6 +27,10 @@ function SettingsPage() {
           of every other setting on this page, including its own. */}
       <LanguageSettings />
       <AppearanceSettings />
+      {/* Your nutrition targets are Personal (ADR-0003): they follow you into
+          every Group, which is why they are edited here and not on a Group's
+          settings page. The diary reads them; this is where they are set. */}
+      <NutritionTargetsSettings />
       <GroupSettingsLinks />
       {/* Renders nothing unless this build enabled sample data. Stays here
           rather than moving to a Group's settings with Connections: loading or

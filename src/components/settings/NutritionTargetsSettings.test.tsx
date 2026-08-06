@@ -1,25 +1,23 @@
 import { fireEvent, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
-import { TargetsPanel } from './TargetsPanel'
+import { NutritionTargetsForm } from './NutritionTargetsSettings'
 
-test('starts collapsed and expands to show the nutrient grid', () => {
-  renderWithI18n(<TargetsPanel saving={false} onSave={vi.fn()} />)
-  expect(screen.queryByText('Calories (kcal)')).toBeNull()
-  fireEvent.click(screen.getByText('Daily targets'))
+test('shows the nutrient grid without anything to expand first', () => {
+  renderWithI18n(<NutritionTargetsForm saving={false} onSave={vi.fn()} />)
+  expect(screen.getByText('Daily targets')).toBeDefined()
   expect(screen.getByText('Calories (kcal)')).toBeDefined()
 })
 
 test('prefills from targets and calls onSave with parsed values', () => {
   const onSave = vi.fn()
   renderWithI18n(
-    <TargetsPanel
+    <NutritionTargetsForm
       targets={{ calories: 2000 }}
       saving={false}
       onSave={onSave}
     />,
   )
-  fireEvent.click(screen.getByText('Daily targets'))
   expect(screen.getByLabelText('Calories (kcal)')).toHaveValue('2000')
   fireEvent.change(screen.getByLabelText('Protein (g)'), {
     target: { value: '120' },
@@ -30,16 +28,26 @@ test('prefills from targets and calls onSave with parsed values', () => {
 
 test('syncs the form when targets arrives after mount (e.g. the parent query was still loading)', () => {
   const { rerender } = renderWithI18n(
-    <TargetsPanel saving={false} onSave={vi.fn()} />,
+    <NutritionTargetsForm saving={false} onSave={vi.fn()} />,
   )
-  fireEvent.click(screen.getByText('Daily targets'))
   expect(screen.getByLabelText('Calories (kcal)')).toHaveValue('')
   rerender(
-    <TargetsPanel
+    <NutritionTargetsForm
       targets={{ calories: 1800 }}
       saving={false}
       onSave={vi.fn()}
     />,
   )
   expect(screen.getByLabelText('Calories (kcal)')).toHaveValue('1800')
+})
+
+test('reports a failed save where the person just pressed save', () => {
+  renderWithI18n(
+    <NutritionTargetsForm
+      saving={false}
+      error="Could not save targets"
+      onSave={vi.fn()}
+    />,
+  )
+  expect(screen.getByText('Could not save targets')).toBeDefined()
 })
