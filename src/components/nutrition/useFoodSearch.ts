@@ -117,6 +117,11 @@ export function useFoodSearch(): FoodSearch {
       return
     }
 
+    // Nothing is known about this term yet, and what is on screen answers the
+    // last one. Leaving it there would show results for a search somebody has
+    // moved on from — and let them import one — under the term they are now
+    // looking at.
+    setOffResults(null)
     // A Convex action cannot be recalled once sent, so "cancelling" the
     // in-flight request means refusing its answer: this flips on cleanup, and
     // every branch below checks it before touching state. Without it a slow

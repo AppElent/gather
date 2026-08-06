@@ -14,6 +14,33 @@ import { safeFetch } from './recipeImport'
 /** Long enough for a thumbnail, short enough not to hold up an import. */
 const IMAGE_TIMEOUT_MS = 8_000
 
+/**
+ * The largest picture worth keeping. A front-of-packet thumbnail is tens of
+ * kilobytes; anything past this is not the thing we asked for.
+ */
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024
+
+/**
+ * Where a food picture may come from.
+ *
+ * `importFromOff` is a public action, so the `imageUrl` it is handed is
+ * whatever a caller sent — not necessarily what our own search returned.
+ * `safeFetch` already refuses private and loopback addresses, which closes
+ * SSRF; this closes the other half, which is gather's storage being used to
+ * mirror arbitrary files off the public internet. Only Open Food Facts.
+ */
+export function isOffImageUrl(url: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(url)
+    return (
+      protocol === 'https:' &&
+      (hostname === 'openfoodfacts.org' || hostname.endsWith('.openfoodfacts.org'))
+    )
+  } catch {
+    return false
+  }
+}
+
 // Fetches + maps a barcode from Open Food Facts, without saving anything —
 // the client shows the result for review and calls `foods.upsertFromOff`
 // (or falls back to a blank manual form) only once the user confirms.
@@ -64,23 +91,36 @@ export const refreshFromOff = action({
 /**
  * Fetch a product's picture and keep it.
  *
- * Best effort in every direction: a product with no picture, a URL that does
- * not resolve, a server that is down, a blob that will not store — each means
- * a food with no picture, never a failed import. `safeFetch` is the same
- * redirect-revalidating fetch recipe import uses, so an image URL out of a
- * community database cannot be pointed at something private.
+ * Best effort in every direction: a product with no picture, a URL that is not
+ * Open Food Facts', one that does not resolve, a server that is down, a
+ * response that is not an image or is too big, a blob that will not store —
+ * each means a food with no picture, never a failed import.
+ *
+ * Three separate refusals, because they close three different doors:
+ * `isOffImageUrl` (this is a public action, so the URL is whatever a caller
+ * sent), `safeFetch`'s redirect-revalidating host check (SSRF), and the
+ * content-type and size checks below (storage being filled with something that
+ * is not a thumbnail). A `content-length` that lies is caught by measuring the
+ * blob after, before anything is stored.
  */
 async function storeOffImage(
   ctx: ActionCtx,
   url: string | undefined,
 ): Promise<Id<'_storage'> | undefined> {
-  if (!url) return undefined
+  if (!url || !isOffImageUrl(url)) return undefined
   try {
     const response = await safeFetch(url, {
       signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS),
     })
     if (!response?.ok) return undefined
-    return await ctx.storage.store(await response.blob())
+    if (!response.headers.get('content-type')?.startsWith('image/')) {
+      return undefined
+    }
+    const declared = Number(response.headers.get('content-length'))
+    if (Number.isFinite(declared) && declared > MAX_IMAGE_BYTES) return undefined
+    const blob = await response.blob()
+    if (blob.size > MAX_IMAGE_BYTES) return undefined
+    return await ctx.storage.store(blob)
   } catch {
     return undefined
   }

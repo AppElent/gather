@@ -60,6 +60,8 @@ const offResults = vi.hoisted(() => ({
     },
   ],
 }))
+/** What `foods.getByBarcode` finds, for the "this is already in your library" path. */
+const existingFood = vi.hoisted(() => ({ value: null as unknown }))
 const calls = vi.hoisted(() => ({ value: [] as Array<[string, unknown]> }))
 
 vi.mock('convex/react', () => ({
@@ -87,7 +89,7 @@ vi.mock('convex/react', () => ({
     const term = (args.term ?? '').toLowerCase()
     return offResults.value.filter((r) => r.name.toLowerCase().includes(term))
   },
-  useConvex: () => ({ query: async () => null }),
+  useConvex: () => ({ query: async () => existingFood.value }),
 }))
 
 vi.mock('../../../convex/_generated/api', () => ({
@@ -138,6 +140,35 @@ beforeEach(() => {
   calls.value = []
   loggedAmounts.value = []
   combos.value = []
+  existingFood.value = null
+})
+
+test('an Open Food Facts result already in your library logs that food’s own figures', async () => {
+  // Somebody corrected this row by hand after importing it; the entry has to
+  // snapshot the food it references, not the search result it was picked from.
+  existingFood.value = {
+    _id: 'food9',
+    name: 'Volle melk',
+    baseUnit: 'ml',
+    nutritionPer100: { calories: 100 },
+  }
+  renderSheet()
+  await search('volle melk')
+  await waitFor(() => expect(screen.getByText('Volle melk')).toBeDefined())
+  fireEvent.click(screen.getByText('Volle melk'))
+  fireEvent.change(screen.getByLabelText('Amount'), {
+    target: { value: '200' },
+  })
+  fireEvent.click(screen.getByText('Add to diary'))
+
+  await waitFor(() => expect(calls.value).toHaveLength(1))
+  expect(calls.value[0][1]).toMatchObject({
+    foodId: 'food9',
+    quantity: 200,
+    quantityUnit: 'ml',
+    // 200 ml of the *food's* 100 kcal/100 ml, not the result's 64.
+    nutrition: { calories: 200 },
+  })
 })
 
 test('one search fills labelled sections with foods, recipes and Open Food Facts', async () => {

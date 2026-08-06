@@ -708,12 +708,23 @@ function OffCard({
           run(async () => {
             if (!resolved) return
             const food = await onImport(result, result.barcode)
+            // The import may hand back a row that already existed — one
+            // somebody has since corrected by hand, or that carries different
+            // figures from this result's. The entry must snapshot the food it
+            // references, not the search result it was chosen from, or a later
+            // quantity edit recomputes to figures the entry never had.
+            const logged = resolveAmount(food, {
+              kind: 'custom',
+              value: resolved.amount,
+              unit: 'base',
+            })
+            if (!logged) return
             await onLog({
               foodId: food._id,
               label: food.name,
-              quantity: resolved.amount,
-              quantityUnit: 'g',
-              nutrition: resolved.nutrition,
+              quantity: logged.amount,
+              quantityUnit: food.baseUnit,
+              nutrition: logged.nutrition,
             })
           })
         }
