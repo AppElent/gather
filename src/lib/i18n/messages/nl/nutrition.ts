@@ -62,6 +62,8 @@ export const diary = {
     },
     amount: 'Hoeveelheid',
     unit: 'Eenheid',
+    custom: 'Anders',
+    yourAmount: '(van jou)',
     enterAmount: 'Vul een hoeveelheid boven 0 in',
     confirm: 'Aan dagboek toevoegen',
     logFailed: 'Kon dit niet noteren',

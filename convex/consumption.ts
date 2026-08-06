@@ -9,6 +9,7 @@ import {
 } from './lib/consumption'
 import { isVisibleToGroups } from './lib/groupAccess'
 import { NUTRIENT_KEYS, type NutritionFacts, nutritionValidator } from './lib/nutrition'
+import { rankLoggedAmounts } from './lib/servings'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
@@ -64,6 +65,31 @@ export const listForDay = query({
         recipeId: await visibleRecipeId(ctx, entry.recipeId, viewerGroupIds),
       })),
     )
+  },
+})
+
+/**
+ * The amounts you have logged for one food before, most-used first.
+ *
+ * Your own history is the third source of servings (#68) and the only one that
+ * covers a Catalog food, which nobody may edit (ADR-0004). It is yours alone:
+ * the entries are read off your own diary, and there is no argument by which
+ * one person can ask about another's.
+ */
+export const loggedAmountsForFood = query({
+  args: { foodId: v.id('foods') },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+    if (!user) return []
+    const food = await ctx.db.get(args.foodId)
+    if (!food) return []
+    const entries = await ctx.db
+      .query('consumptionEntries')
+      .withIndex('by_user_food', (q) =>
+        q.eq('userId', user._id).eq('foodId', args.foodId),
+      )
+      .collect()
+    return rankLoggedAmounts(entries, food.baseUnit)
   },
 })
 

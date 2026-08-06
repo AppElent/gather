@@ -95,6 +95,7 @@ export async function applyCatalog(ctx: MutationCtx) {
       nutritionPer100: food.nutritionPer100,
       servingSize: food.servingSize,
       servingLabel: food.servingLabel,
+      servings: food.servings,
       searchText: foodSearchText(food),
       source: 'seed' as const,
       seedKey: food.seedKey,

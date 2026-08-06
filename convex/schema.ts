@@ -3,6 +3,7 @@ import { v } from 'convex/values'
 import { babyEventDataValidator, babyEventTypeValidator } from './lib/babyEvents'
 import { mealValidator, quantityUnitValidator } from './lib/consumption'
 import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
+import { servingValidator } from './lib/servings'
 
 export default defineSchema({
   users: defineTable({
@@ -137,8 +138,16 @@ export default defineSchema({
     barcode: v.optional(v.string()),
     baseUnit: v.union(v.literal('g'), v.literal('ml')),
     nutritionPer100: nutritionValidator,
+    // The one serving a food used to be able to carry. Kept beside the list
+    // below for the length of the expand–contract: #71 removes both, and
+    // docs/migrations/0006-food-servings.md says what has to be true first.
     servingSize: v.optional(v.number()),
     servingLabel: v.optional(v.string()),
+    // What somebody calls a portion of this food, in order — "1 slice",
+    // "1 glass" — each an amount in `baseUnit`. Optional because most foods
+    // have none: an empty list is answered by the person's own logged amounts
+    // rather than by inventing a portion for them.
+    servings: v.optional(v.array(servingValidator)),
     source: v.union(
       v.literal('openfoodfacts'),
       v.literal('manual'),
@@ -176,7 +185,12 @@ export default defineSchema({
     quantity: v.number(),
     quantityUnit: quantityUnitValidator,
     nutrition: nutritionValidator,
-  }).index('by_user_date', ['userId', 'date']),
+  })
+    .index('by_user_date', ['userId', 'date'])
+    // "Which amounts of this food have I logged before?" — read to offer them
+    // back as servings, and the reason this is an index rather than a scan of
+    // every entry the person has ever written.
+    .index('by_user_food', ['userId', 'foodId']),
 
   babies: defineTable({
     groupId: v.id('groups'),

@@ -4,6 +4,7 @@ import type { QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import { foodSearchText } from './lib/foodSearchText'
 import { nutritionValidator } from './lib/nutrition'
+import { servingValidator } from './lib/servings'
 import { getCurrentUser } from './lib/sharing'
 import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
 
@@ -14,6 +15,7 @@ const foodFields = {
   nutritionPer100: nutritionValidator,
   servingSize: v.optional(v.number()),
   servingLabel: v.optional(v.string()),
+  servings: v.optional(v.array(servingValidator)),
 }
 
 /**

@@ -4,7 +4,6 @@ import { type ReactNode, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import {
-  computeFoodEntryNutrition,
   computeRecipeEntryNutrition,
   type MealName,
   type QuantityUnit,
@@ -14,6 +13,7 @@ import type {
   OffMappedFood,
   OffSearchResult,
 } from '../../../convex/lib/offMapping'
+import { offeredServings, resolveAmount } from '../../../convex/lib/servings'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
@@ -29,6 +29,12 @@ import {
 } from './nutrientInputs'
 import type { NutritionNav } from './nutritionNav'
 import { ResultCard } from './ResultCard'
+import {
+  initialSelection,
+  ServingPicker,
+  type ServingSelection,
+  toChoice,
+} from './ServingPicker'
 import { useFoodSearch } from './useFoodSearch'
 
 /**
@@ -132,6 +138,7 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
       nutritionPer100: mapped.nutritionPer100,
       servingSize: mapped.servingSize,
       servingLabel: mapped.servingLabel,
+      servings: mapped.servings,
       imageUrl: mapped.imageUrl,
     })
     const saved = await convex.query(api.foods.get, { id })
@@ -415,15 +422,22 @@ function FoodCard({
   onToggle: () => void
   onLog: LogFn
 }) {
-  const messages = useMessages()
-  const { add, foodAdd } = messages.nutrition.diary
-  const [amount, setAmount] = useState('100')
-  const [unit, setUnit] = useState<'g' | 'ml' | 'piece'>(food.baseUnit)
+  const { add, foodAdd } = useMessages().nutrition.diary
+  // Your own past amounts for this food, which is what covers a Catalog food
+  // nobody may edit and a food whose authored list is empty. Only asked for
+  // once the card is open — a list of twenty results should not be twenty
+  // queries about amounts nobody is looking at.
+  const loggedAmounts = useQuery(
+    api.consumption.loggedAmountsForFood,
+    expanded ? { foodId: food._id } : 'skip',
+  )
+  const offered = offeredServings(food, loggedAmounts ?? [])
+  const [selection, setSelection] = useState<ServingSelection | null>(null)
+  const current = selection ?? initialSelection(offered)
   const { busy, error, run } = useLogging()
 
-  const quantity = parseDecimal(amount)
-  const valid = quantity !== undefined && quantity > 0
-  const facts = valid ? computeFoodEntryNutrition(food, quantity, unit) : {}
+  const choice = toChoice(offered, current)
+  const resolved = choice ? resolveAmount(food, choice) : undefined
 
   return (
     <ResultCard
@@ -440,48 +454,29 @@ function FoodCard({
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div className="flex items-center gap-2">
-        <input
-          inputMode="decimal"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          aria-label={add.amount}
-          className={`${fieldClass} w-24`}
-        />
-        <select
-          value={unit}
-          onChange={(e) => setUnit(e.target.value as 'g' | 'ml' | 'piece')}
-          aria-label={add.unit}
-          className={fieldClass}
-        >
-          <option value={food.baseUnit}>{food.baseUnit}</option>
-          {food.servingSize !== undefined && (
-            <option value="piece">
-              {fmt(foodAdd.pieceOf, {
-                size: food.servingSize,
-                unit: food.baseUnit,
-              })}
-            </option>
-          )}
-        </select>
-      </div>
+      <ServingPicker
+        baseUnit={food.baseUnit}
+        offered={offered}
+        selection={current}
+        onSelect={setSelection}
+      />
       <div className="mt-3">
-        <NutritionBreakdown facts={facts} />
+        <NutritionBreakdown facts={resolved?.nutrition ?? {}} />
       </div>
       <Confirm
-        disabled={!valid}
+        disabled={!resolved}
         reason={add.enterAmount}
         busy={busy}
         error={error}
         onConfirm={() =>
           run(async () => {
-            if (quantity === undefined) return
+            if (!resolved) return
             await onLog({
               foodId: food._id,
               label: food.name,
-              quantity,
-              quantityUnit: unit,
-              nutrition: computeFoodEntryNutrition(food, quantity, unit),
+              quantity: resolved.amount,
+              quantityUnit: food.baseUnit,
+              nutrition: resolved.nutrition,
             })
           })
         }
@@ -580,12 +575,16 @@ function OffCard({
   onLog: LogFn
 }) {
   const { add, foodAdd } = useMessages().nutrition.diary
-  const [amount, setAmount] = useState(String(result.servingSize ?? 100))
+  // An Open Food Facts result is always in grams: it is not a food of yours
+  // yet, so it has no base unit of its own and no history behind it.
+  const offUnit = { ...result, baseUnit: 'g' as const }
+  const offered = offeredServings(offUnit)
+  const [selection, setSelection] = useState<ServingSelection | null>(null)
+  const current = selection ?? initialSelection(offered)
   const { busy, error, run } = useLogging()
 
-  const quantity = parseDecimal(amount)
-  const valid = quantity !== undefined && quantity > 0
-  const facts = valid ? computeFoodEntryNutrition(result, quantity, 'g') : {}
+  const choice = toChoice(offered, current)
+  const resolved = choice ? resolveAmount(offUnit, choice) : undefined
 
   return (
     <ResultCard
@@ -602,34 +601,30 @@ function OffCard({
       expanded={expanded}
       onToggle={onToggle}
     >
-      <div className="flex items-center gap-2">
-        <input
-          inputMode="decimal"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          aria-label={add.amount}
-          className={`${fieldClass} w-24`}
-        />
-        <span className="text-sm opacity-60">g</span>
-      </div>
+      <ServingPicker
+        baseUnit="g"
+        offered={offered}
+        selection={current}
+        onSelect={setSelection}
+      />
       <div className="mt-3">
-        <NutritionBreakdown facts={facts} />
+        <NutritionBreakdown facts={resolved?.nutrition ?? {}} />
       </div>
       <Confirm
-        disabled={!valid}
+        disabled={!resolved}
         reason={add.enterAmount}
         busy={busy}
         error={error}
         onConfirm={() =>
           run(async () => {
-            if (quantity === undefined) return
+            if (!resolved) return
             const food = await onImport(result, result.barcode)
             await onLog({
               foodId: food._id,
               label: food.name,
-              quantity,
+              quantity: resolved.amount,
               quantityUnit: 'g',
-              nutrition: computeFoodEntryNutrition(food, quantity, 'g'),
+              nutrition: resolved.nutrition,
             })
           })
         }

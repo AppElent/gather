@@ -852,4 +852,11 @@ export const SAMPLE_USER_FOOD = {
   },
   servingSize: 50,
   servingLabel: '1 portion (50 g)',
+  // A food somebody authored, with the servings they actually think in — so a
+  // preview shows the chips rather than an empty row where they should be.
+  servings: [
+    { label: '1 bowl', amount: 50 },
+    { label: '1 small handful', amount: 20 },
+    { label: 'over yoghurt', amount: 35 },
+  ],
 }

@@ -8,6 +8,7 @@ import type { Id } from './_generated/dataModel'
 import { nutritionValidator } from './lib/nutrition'
 import { fetchOffProduct, searchOffProducts } from './lib/offFetch'
 import { mapOffProduct, mapOffSearchResults } from './lib/offMapping'
+import { servingValidator } from './lib/servings'
 import { safeFetch } from './recipeImport'
 
 /** Long enough for a thumbnail, short enough not to hold up an import. */
@@ -57,6 +58,7 @@ export const refreshFromOff = action({
       nutritionPer100: mapped.nutritionPer100,
       servingSize: mapped.servingSize,
       servingLabel: mapped.servingLabel,
+      servings: mapped.servings,
     })
   },
 })
@@ -103,6 +105,7 @@ export const importFromOff = action({
     nutritionPer100: nutritionValidator,
     servingSize: v.optional(v.number()),
     servingLabel: v.optional(v.string()),
+    servings: v.optional(v.array(servingValidator)),
     imageUrl: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Id<'foods'>> => {

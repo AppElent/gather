@@ -75,6 +75,9 @@ export const diary = {
     },
     amount: 'Amount',
     unit: 'Unit',
+    custom: 'Custom',
+    /** Marks a serving that came from your own logging rather than the food. */
+    yourAmount: '(yours)',
     enterAmount: 'Enter an amount above 0',
     confirm: 'Add to diary',
     logFailed: 'Could not log this',

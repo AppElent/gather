@@ -85,6 +85,7 @@ describe('mapOffProduct — synthetic edge cases', () => {
       nutritionPer100: { calories: 100 },
       servingSize: undefined,
       servingLabel: undefined,
+      servings: [],
     })
   })
 
@@ -117,6 +118,8 @@ describe('mapOffProduct — synthetic edge cases', () => {
     })
     expect(mapped?.servingSize).toBe(30)
     expect(mapped?.servingLabel).toBe('30 g (1 bowl)')
+    // The same serving, in the shape foods keep servings in (#68).
+    expect(mapped?.servings).toEqual([{ label: '30 g (1 bowl)', amount: 30 }])
   })
 
   test('falls back to parsing a leading number out of serving_size when serving_quantity is absent', () => {
@@ -152,6 +155,7 @@ describe('mapOffSearchResults', () => {
         nutritionPer100: { calories: 539 },
         servingSize: undefined,
         servingLabel: undefined,
+        servings: [],
       },
     ])
   })

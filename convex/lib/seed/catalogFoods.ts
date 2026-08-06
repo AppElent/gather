@@ -1,4 +1,5 @@
 import type { NutritionFacts } from '../nutrition'
+import type { Serving } from '../servings'
 
 /**
  * The Catalog: reference foods present in every environment, production
@@ -18,6 +19,17 @@ export interface CatalogFood {
   name: string
   baseUnit: 'g' | 'ml'
   nutritionPer100: NutritionFacts
+  /**
+   * What somebody calls a portion of this, in the food's base unit — the
+   * shortest route from "two slices of bread" to a number of grams (#68).
+   *
+   * Hand-authored, and reviewed as fixture data even where a draft came out of
+   * the AI estimator: estimating never runs while somebody is logging, because
+   * logging has to feel instant. Labels are content, so they are not
+   * translated (ADR-0011).
+   */
+  servings?: Serving[]
+  /** The single serving these used to be. Both fields go in #71. */
   servingSize?: number
   servingLabel?: string
 }
@@ -38,6 +50,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 2.7,
       salt: 0,
     },
+    servings: [
+      { label: '1 tbsp', amount: 8 },
+      { label: '1 cup', amount: 120 },
+    ],
   },
   {
     seedKey: 'sugar-granulated',
@@ -53,6 +69,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 0,
     },
+    servings: [
+      { label: '1 tsp', amount: 4 },
+      { label: '1 tbsp', amount: 12 },
+    ],
   },
   {
     seedKey: 'rice-white-dry',
@@ -68,6 +88,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 1.3,
       salt: 0.01,
     },
+    servings: [
+      { label: '1 portion', amount: 75 },
+      { label: '1 cup', amount: 185 },
+    ],
   },
   {
     seedKey: 'pasta-dry',
@@ -83,6 +107,9 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 3.2,
       salt: 0.02,
     },
+    servings: [
+      { label: '1 portion', amount: 100 },
+    ],
   },
   {
     seedKey: 'lentils-dry',
@@ -98,6 +125,9 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 30.5,
       salt: 0.01,
     },
+    servings: [
+      { label: '1 portion', amount: 80 },
+    ],
   },
   {
     seedKey: 'chickpeas-tinned',
@@ -113,6 +143,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 6.4,
       salt: 0.6,
     },
+    servings: [
+      { label: '1 tin', amount: 240 },
+      { label: 'half a tin', amount: 120 },
+    ],
   },
   {
     seedKey: 'chopped-tomatoes-tinned',
@@ -128,6 +162,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 1.3,
       salt: 0.03,
     },
+    servings: [
+      { label: '1 tin', amount: 400 },
+      { label: 'half a tin', amount: 200 },
+    ],
   },
   {
     seedKey: 'olive-oil',
@@ -143,6 +181,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 0,
     },
+    servings: [
+      { label: '1 tbsp', amount: 15 },
+      { label: '1 tsp', amount: 5 },
+    ],
     servingSize: 15,
     servingLabel: '1 tbsp (15 ml)',
   },
@@ -160,6 +202,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 6,
       salt: 1,
     },
+    servings: [
+      { label: '1 knife', amount: 10 },
+      { label: '1 tbsp', amount: 16 },
+    ],
   },
 
   // Dairy and eggs
@@ -177,6 +223,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 0.36,
     },
+    servings: [
+      { label: '1 medium egg', amount: 50 },
+      { label: '1 large egg', amount: 60 },
+    ],
     servingSize: 50,
     servingLabel: '1 medium egg (50 g)',
   },
@@ -194,6 +244,11 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 0.1,
     },
+    servings: [
+      { label: '1 glass', amount: 250 },
+      { label: '1 mug', amount: 200 },
+      { label: 'a splash in tea', amount: 30 },
+    ],
     servingSize: 250,
     servingLabel: '1 glass (250 ml)',
   },
@@ -211,6 +266,11 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 0.1,
     },
+    servings: [
+      { label: '1 glass', amount: 250 },
+      { label: '1 mug', amount: 200 },
+      { label: 'a splash in tea', amount: 30 },
+    ],
     servingSize: 250,
     servingLabel: '1 glass (250 ml)',
   },
@@ -228,6 +288,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 0.02,
     },
+    servings: [
+      { label: '1 knife', amount: 7 },
+      { label: '1 tbsp', amount: 14 },
+    ],
   },
   {
     seedKey: 'yoghurt-greek-natural',
@@ -243,6 +307,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 0.1,
     },
+    servings: [
+      { label: '1 pot', amount: 150 },
+      { label: '1 large spoon', amount: 30 },
+    ],
     servingSize: 150,
     servingLabel: '1 pot (150 g)',
   },
@@ -260,6 +328,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 1.8,
     },
+    servings: [
+      { label: '1 slice', amount: 25 },
+      { label: '1 handful grated', amount: 30 },
+    ],
   },
   {
     seedKey: 'cheese-parmesan',
@@ -275,6 +347,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 3.9,
     },
+    servings: [
+      { label: '1 tbsp grated', amount: 5 },
+      { label: '1 handful grated', amount: 25 },
+    ],
   },
   {
     seedKey: 'feta',
@@ -290,6 +366,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 3,
     },
+    servings: [
+      { label: 'crumbled over a salad', amount: 30 },
+      { label: 'half a pack', amount: 100 },
+    ],
   },
 
   // Meat and fish
@@ -307,6 +387,9 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 0.15,
     },
+    servings: [
+      { label: '1 breast', amount: 150 },
+    ],
   },
   {
     seedKey: 'beef-mince-5',
@@ -322,6 +405,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 0.15,
     },
+    servings: [
+      { label: '1 portion', amount: 125 },
+      { label: '1 pack', amount: 500 },
+    ],
   },
   {
     seedKey: 'salmon-fillet-raw',
@@ -337,6 +424,9 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 0.12,
     },
+    servings: [
+      { label: '1 fillet', amount: 130 },
+    ],
   },
 
   // Fruit and vegetables
@@ -354,6 +444,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 2.2,
       salt: 0.01,
     },
+    servings: [
+      { label: '1 medium potato', amount: 175 },
+      { label: '1 small potato', amount: 120 },
+    ],
   },
   {
     seedKey: 'onion',
@@ -369,6 +463,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 1.7,
       salt: 0.01,
     },
+    servings: [
+      { label: '1 medium onion', amount: 110 },
+      { label: 'half an onion', amount: 55 },
+    ],
   },
   {
     seedKey: 'garlic',
@@ -384,6 +482,9 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 2.1,
       salt: 0.04,
     },
+    servings: [
+      { label: '1 clove', amount: 5 },
+    ],
   },
   {
     seedKey: 'tomato',
@@ -399,6 +500,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 1.2,
       salt: 0.01,
     },
+    servings: [
+      { label: '1 medium tomato', amount: 120 },
+      { label: '1 cherry tomato', amount: 17 },
+    ],
   },
   {
     seedKey: 'carrot',
@@ -414,6 +519,9 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 2.8,
       salt: 0.17,
     },
+    servings: [
+      { label: '1 medium carrot', amount: 70 },
+    ],
   },
   {
     seedKey: 'bell-pepper-red',
@@ -429,6 +537,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 2.1,
       salt: 0.01,
     },
+    servings: [
+      { label: '1 pepper', amount: 150 },
+      { label: 'half a pepper', amount: 75 },
+    ],
   },
   {
     seedKey: 'spinach',
@@ -444,6 +556,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 2.2,
       salt: 0.2,
     },
+    servings: [
+      { label: '1 handful', amount: 30 },
+      { label: '1 bag', amount: 200 },
+    ],
   },
   {
     seedKey: 'banana',
@@ -459,6 +575,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 2.6,
       salt: 0,
     },
+    servings: [
+      { label: '1 medium banana', amount: 118 },
+      { label: '1 small banana', amount: 90 },
+    ],
     servingSize: 118,
     servingLabel: '1 medium banana (118 g)',
   },
@@ -476,6 +596,9 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 2.4,
       salt: 0,
     },
+    servings: [
+      { label: '1 medium apple', amount: 150 },
+    ],
     servingSize: 150,
     servingLabel: '1 medium apple (150 g)',
   },
@@ -495,6 +618,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 6,
       salt: 1,
     },
+    servings: [
+      { label: '1 slice', amount: 40 },
+      { label: '2 slices', amount: 80 },
+    ],
     servingSize: 40,
     servingLabel: '1 slice (40 g)',
   },
@@ -512,6 +639,10 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 10.1,
       salt: 0.01,
     },
+    servings: [
+      { label: '1 portion', amount: 40 },
+      { label: '1 cup', amount: 90 },
+    ],
     servingSize: 40,
     servingLabel: '1 portion (40 g)',
   },

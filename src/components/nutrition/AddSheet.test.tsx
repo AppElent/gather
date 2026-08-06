@@ -25,7 +25,22 @@ const foods = vi.hoisted(() => ({
       baseUnit: 'ml' as const,
       nutritionPer100: { calories: 46, protein: 3.5 },
     },
+    {
+      _id: 'food2',
+      name: 'Volkorenbrood',
+      brand: 'Bakkerij',
+      baseUnit: 'g' as const,
+      nutritionPer100: { calories: 250 },
+      servings: [
+        { label: '1 slice', amount: 35 },
+        { label: '2 slices', amount: 70 },
+      ],
+    },
   ],
+}))
+/** What this person has logged for a food before — their own amounts. */
+const loggedAmounts = vi.hoisted(() => ({
+  value: [] as Array<{ label: string; amount: number }>,
 }))
 const recipes = vi.hoisted(() => ({
   value: [
@@ -46,8 +61,8 @@ const offResults = vi.hoisted(() => ({
 const calls = vi.hoisted(() => ({ value: [] as Array<[string, unknown]> }))
 
 vi.mock('convex/react', () => ({
-  useQuery: (name: string, args: { term?: string }) => {
-    if (name === 'foods:search') {
+  useQuery: (name: string, args: { term?: string } | 'skip') => {
+    if (args !== 'skip' && name === 'foods:search') {
       const term = (args.term ?? '').trim().toLowerCase()
       if (!term) return []
       return foods.value.filter((f) =>
@@ -55,6 +70,9 @@ vi.mock('convex/react', () => ({
       )
     }
     if (name === 'recipes:listAcrossMyGroups') return recipes.value
+    if (name === 'consumption:loggedAmountsForFood') {
+      return args === 'skip' ? undefined : loggedAmounts.value
+    }
     return undefined
   },
   useMutation: (name: string) => async (args: unknown) => {
@@ -82,7 +100,11 @@ vi.mock('../../../convex/_generated/api', () => ({
       lookupBarcode: 'foodsLookup:lookupBarcode',
     },
     recipes: { listAcrossMyGroups: 'recipes:listAcrossMyGroups' },
-    consumption: { create: 'consumption:create', remove: 'consumption:remove' },
+    consumption: {
+      create: 'consumption:create',
+      remove: 'consumption:remove',
+      loggedAmountsForFood: 'consumption:loggedAmountsForFood',
+    },
   },
 }))
 
@@ -109,6 +131,7 @@ async function search(term: string) {
 
 beforeEach(() => {
   calls.value = []
+  loggedAmounts.value = []
 })
 
 test('one search fills labelled sections with foods, recipes and Open Food Facts', async () => {
@@ -204,4 +227,74 @@ test('a search matching nothing offers the typed term as a one-off', async () =>
     quantityUnit: 'piece',
     nutrition: { calories: 400 },
   })
+})
+
+test('a food’s named servings are the way an amount is chosen', async () => {
+  renderSheet()
+  await search('volkoren')
+  await waitFor(() => expect(screen.getByText('Volkorenbrood')).toBeDefined())
+  fireEvent.click(screen.getByText('Volkorenbrood'))
+
+  // The first serving is chosen for you, so an open card always shows what it
+  // would log — 35 g of bread at 250 kcal/100 g.
+  expect(screen.getByRole('button', { name: '1 slice' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  expect(screen.getByText('87.5')).toBeDefined()
+
+  fireEvent.click(screen.getByRole('button', { name: '2 slices' }))
+  expect(screen.getByText('175')).toBeDefined()
+
+  fireEvent.click(screen.getByText('Add to diary'))
+  await waitFor(() => expect(calls.value).toHaveLength(1))
+  expect(calls.value[0][1]).toMatchObject({
+    foodId: 'food2',
+    quantity: 70,
+    quantityUnit: 'g',
+    nutrition: { calories: 175 },
+  })
+})
+
+test('Custom takes an amount in grams or in the food’s own serving', async () => {
+  renderSheet()
+  await search('volkoren')
+  await waitFor(() => expect(screen.getByText('Volkorenbrood')).toBeDefined())
+  fireEvent.click(screen.getByText('Volkorenbrood'))
+
+  fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+  fireEvent.change(screen.getByLabelText('Amount'), {
+    target: { value: '1,5' },
+  })
+  fireEvent.change(screen.getByLabelText('Unit'), {
+    target: { value: 'serving' },
+  })
+
+  // 1.5 slices of 35 g, without anybody having to know what a slice weighs.
+  expect(screen.getByText('131.25')).toBeDefined()
+})
+
+test('an amount that is not a positive number keeps the confirm disabled', async () => {
+  renderSheet()
+  await search('volkoren')
+  await waitFor(() => expect(screen.getByText('Volkorenbrood')).toBeDefined())
+  fireEvent.click(screen.getByText('Volkorenbrood'))
+  fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+
+  fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '0' } })
+
+  expect(screen.getByText('Add to diary')).toBeDisabled()
+  expect(screen.getByText('Enter an amount above 0')).toBeDefined()
+})
+
+test('amounts you have logged before are offered as your own', async () => {
+  loggedAmounts.value = [{ label: '120 g', amount: 120 }]
+  renderSheet()
+  await search('volkoren')
+  await waitFor(() => expect(screen.getByText('Volkorenbrood')).toBeDefined())
+  fireEvent.click(screen.getByText('Volkorenbrood'))
+
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: '120 g (yours)' })).toBeDefined(),
+  )
 })
