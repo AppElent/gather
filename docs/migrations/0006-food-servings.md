@@ -54,7 +54,8 @@ Do it on each deployment being upgraded, immediately before its deploy.
   blob an imported food held stays in storage with nothing pointing at it.
   Small, and the same shape as the gap #41 already tracks.
 
-- [ ] dev — cleared on:
+- [x] dev — cleared on: 2026-08-07 (all 35 rows; 31 Catalog + Nora's granola,
+      Fromage Blanc Nature, Test Manual Food E2E, Nutella)
 - [ ] prod — cleared on:
 
 ## 2. Deploy
@@ -70,7 +71,9 @@ and the food form's two inputs — replaced by a list editor over the same data.
 `'piece'` quantities now count the food's **first named serving**, which is
 exactly what `servingSize` was, so no logged entry changes value.
 
-- [ ] dev — deployed on:
+- [x] dev — deployed on: 2026-08-07, from the branch rather than `deploy:dev` —
+      `convex dev` pushed the schema once the table was empty, and
+      `pnpm run seed` put the 31 Catalog fixtures back with their serving lists.
 - [ ] prod — deployed on:
 
 ## 3. The Catalog comes back by itself
