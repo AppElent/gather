@@ -289,10 +289,12 @@ type LegacyFood = Doc<'foods'> & {
  * food carried, or its own amount when it carried none. A row that already has
  * a servings list keeps it — the list has always won over the pair.
  *
- * **End condition:** delete this once
- * docs/migrations/0006-food-servings.md records it as run on dev and prod.
- * There is nothing left for it to find after that: no writer has produced
- * either field since #71.
+ * **End condition:** docs/migrations/0006-food-servings.md. The route actually
+ * taken there clears the `foods` table from the dashboard instead of running
+ * this — which is the only thing that works when the backfill ships inside the
+ * very push the legacy rows are blocking. This survives for a deployment whose
+ * foods are worth keeping, which needs the branch split into two deploys, and
+ * is deleted with that document if no such deployment appears.
  *
  * Dry run by default — pass `{ apply: true }` to write. Idempotent: a row with
  * neither legacy field present is left alone, so a second run reports zero.
