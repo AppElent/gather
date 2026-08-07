@@ -7,7 +7,11 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
-import { mapOffProduct, mapOffSearchResults } from './offMapping'
+import {
+  mapOffProduct,
+  mapOffSearchResults,
+  preferredImageUrl,
+} from './offMapping'
 
 function fixture(name: string): unknown {
   return JSON.parse(
@@ -33,8 +37,7 @@ describe('mapOffProduct — real captures', () => {
     expect(mapped?.brand).toBe('Nutella')
     expect(mapped?.name).toBe('Nutella')
     // This product publishes neither serving_size nor serving_quantity.
-    expect(mapped?.servingSize).toBeUndefined()
-    expect(mapped?.servingLabel).toBeUndefined()
+    expect(mapped?.servings).toEqual([])
   })
 
   test('hagelslag.json (AH Puur Hagelslag, barcode 8718906716223): publishes fiber, Dutch name path, string+number serving info', () => {
@@ -51,8 +54,7 @@ describe('mapOffProduct — real captures', () => {
     })
     expect(mapped?.brand).toBe('Albert Heijn')
     expect(mapped?.name).toBe('Puur Hagelslag')
-    expect(mapped?.servingSize).toBe(20)
-    expect(mapped?.servingLabel).toBe('20 gram')
+    expect(mapped?.servings).toEqual([{ label: '20 gram', amount: 20 }])
   })
 })
 
@@ -79,8 +81,7 @@ describe('mapOffProduct — synthetic edge cases', () => {
       name: 'Basic Item',
       brand: undefined,
       nutritionPer100: { calories: 100 },
-      servingSize: undefined,
-      servingLabel: undefined,
+      servings: [],
     })
   })
 
@@ -101,7 +102,7 @@ describe('mapOffProduct — synthetic edge cases', () => {
     expect(mapped?.name).toBe('')
   })
 
-  test('parses serving_quantity as servingSize and serving_size string as servingLabel', () => {
+  test('takes the declared serving as the food’s one serving, named by the packet', () => {
     const mapped = mapOffProduct({
       status: 1,
       product: {
@@ -111,8 +112,7 @@ describe('mapOffProduct — synthetic edge cases', () => {
         serving_size: '30 g (1 bowl)',
       },
     })
-    expect(mapped?.servingSize).toBe(30)
-    expect(mapped?.servingLabel).toBe('30 g (1 bowl)')
+    expect(mapped?.servings).toEqual([{ label: '30 g (1 bowl)', amount: 30 }])
   })
 
   test('falls back to parsing a leading number out of serving_size when serving_quantity is absent', () => {
@@ -124,7 +124,7 @@ describe('mapOffProduct — synthetic edge cases', () => {
         serving_size: '45g',
       },
     })
-    expect(mapped?.servingSize).toBe(45)
+    expect(mapped?.servings).toEqual([{ label: '45g', amount: 45 }])
   })
 })
 
@@ -146,8 +146,7 @@ describe('mapOffSearchResults', () => {
         name: 'Nutella',
         brand: 'Ferrero',
         nutritionPer100: { calories: 539 },
-        servingSize: undefined,
-        servingLabel: undefined,
+        servings: [],
       },
     ])
   })
@@ -293,5 +292,44 @@ describe('mapOffSearchResults', () => {
     expect(mapOffSearchResults('nope')).toEqual([])
     expect(mapOffSearchResults({})).toEqual([])
     expect(mapOffSearchResults({ hits: 'not-an-array' })).toEqual([])
+  })
+})
+
+describe('the product picture', () => {
+  test('prefers the small front image, then the small one, then the full one', () => {
+    expect(
+      preferredImageUrl({
+        image_front_small_url: 'https://images.off/front-small.jpg',
+        image_small_url: 'https://images.off/small.jpg',
+        image_url: 'https://images.off/full.jpg',
+      }),
+    ).toBe('https://images.off/front-small.jpg')
+    expect(
+      preferredImageUrl({ image_url: 'https://images.off/full.jpg' }),
+    ).toBe('https://images.off/full.jpg')
+  })
+
+  test('a product with no usable image simply has none', () => {
+    expect(preferredImageUrl({})).toBeUndefined()
+    expect(preferredImageUrl({ image_url: '' })).toBeUndefined()
+    expect(preferredImageUrl({ image_url: 42 })).toBeUndefined()
+    // Community data: anything that is not an http(s) URL is not a picture.
+    expect(
+      preferredImageUrl({ image_url: 'javascript:alert(1)' }),
+    ).toBeUndefined()
+  })
+
+  test('a search result carries its picture through the mapping', () => {
+    const [result] = mapOffSearchResults({
+      hits: [
+        {
+          code: '3017620422003',
+          product_name: 'Nutella',
+          nutriments: { 'energy-kcal_100g': 539 },
+          image_front_small_url: 'https://images.off/nutella.jpg',
+        },
+      ],
+    })
+    expect(result.imageUrl).toBe('https://images.off/nutella.jpg')
   })
 })

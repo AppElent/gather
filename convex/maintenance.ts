@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation, internalQuery } from './_generated/server'
+import { foodSearchText } from './lib/foodSearchText'
 import { allocateGroupSlug } from './lib/groupSlugs'
 import { pickCanonicalUser } from './lib/sharing'
 import { stableDigest } from './lib/stableDigest'
@@ -224,6 +225,110 @@ export const backfillGroupSlugsAndPersonalGroups = internalMutation({
       personalGroupsCreated,
       defaultGroupsRepointed,
     }
+  },
+})
+
+/**
+ * Give every food the `searchText` the search index now reads.
+ *
+ * The expand half of expand–contract: `foods.searchText` lands optional, every
+ * write path fills it in, and this fills in the rows written before it existed.
+ * Until it has run, `foods.search` finds nothing at all on a deployment's older
+ * rows — the index has no value to match — so this is not optional housekeeping
+ * on the way to brand search, it is what makes search work again.
+ *
+ * **End condition:** delete this once
+ * docs/migrations/0005-food-search-text.md records it as run on dev and prod.
+ * `searchText` becoming required in the schema is the same moment.
+ *
+ * Dry run by default — pass `{ apply: true }` to write. Idempotent: it only
+ * writes a row whose stored value differs from the one its name and brand
+ * produce, so a second run reports zero.
+ */
+export const backfillFoodSearchText = internalMutation({
+  args: { apply: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const foods = await ctx.db.query('foods').collect()
+
+    let updated = 0
+    for (const food of foods) {
+      const wanted = foodSearchText(food)
+      if (food.searchText === wanted) continue
+      updated++
+      if (apply) await ctx.db.patch(food._id, { searchText: wanted })
+    }
+
+    return { apply, foods: foods.length, updated }
+  },
+})
+
+/**
+ * A food as it may still exist on disk: with the single serving the schema no
+ * longer describes.
+ *
+ * The tightening commit removes `servingSize` and `servingLabel`, and
+ * TypeScript then knows they cannot be there — so a migration that has to read
+ * them says so itself, the way the pre-#17 group fields above do.
+ */
+type LegacyFood = Doc<'foods'> & {
+  servingSize?: number
+  servingLabel?: string
+}
+
+/**
+ * Carry a food's single serving into its servings list, and drop the two
+ * fields it lived in.
+ *
+ * The contract half of #68's expand–contract. Convex rejects a document
+ * carrying a field the schema does not describe, so a row still holding
+ * `servingSize` would fail the deploy that removes it — which makes this a
+ * prerequisite of that deploy rather than tidying afterwards.
+ *
+ * The conversion is the shim's, moved here as it was deleted: the label the
+ * food carried, or its own amount when it carried none. A row that already has
+ * a servings list keeps it — the list has always won over the pair.
+ *
+ * **End condition:** docs/migrations/0006-food-servings.md. The route actually
+ * taken there clears the `foods` table from the dashboard instead of running
+ * this — which is the only thing that works when the backfill ships inside the
+ * very push the legacy rows are blocking. This survives for a deployment whose
+ * foods are worth keeping, which needs the branch split into two deploys, and
+ * is deleted with that document if no such deployment appears.
+ *
+ * Dry run by default — pass `{ apply: true }` to write. Idempotent: a row with
+ * neither legacy field present is left alone, so a second run reports zero.
+ */
+export const backfillFoodServings = internalMutation({
+  args: { apply: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const foods = (await ctx.db.query('foods').collect()) as LegacyFood[]
+
+    let converted = 0
+    let stripped = 0
+    for (const food of foods) {
+      const hasLegacy = 'servingSize' in food || 'servingLabel' in food
+      if (!hasLegacy) continue
+      stripped++
+      const { servingSize, servingLabel, ...rest } = food
+      const carried =
+        food.servings?.length || servingSize === undefined || !(servingSize > 0)
+          ? food.servings
+          : [
+              {
+                label: servingLabel?.trim() || `${servingSize} ${food.baseUnit}`,
+                amount: servingSize,
+              },
+            ]
+      if (carried !== food.servings) converted++
+      // `replace` rather than `patch`: the point is the fields being gone from
+      // the document, and a patch cannot remove what the schema no longer
+      // describes.
+      if (apply) await ctx.db.replace(food._id, { ...rest, servings: carried })
+    }
+
+    return { apply, foods: foods.length, stripped, converted }
   },
 })
 

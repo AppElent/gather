@@ -12,6 +12,14 @@ export const settings = {
     },
   },
 
+  nutritionTargets: {
+    title: 'Daily targets',
+    description:
+      'What you are aiming for in a day. Your food diary shows the day against these; leave one blank and it is simply not tracked.',
+    save: 'Save targets',
+    saveFailed: 'Could not save targets',
+  },
+
   groupSettings: {
     title: 'Group settings',
     description:

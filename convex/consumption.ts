@@ -9,6 +9,7 @@ import {
 } from './lib/consumption'
 import { isVisibleToGroups } from './lib/groupAccess'
 import { NUTRIENT_KEYS, type NutritionFacts, nutritionValidator } from './lib/nutrition'
+import { rankLoggedAmounts } from './lib/servings'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
@@ -67,6 +68,31 @@ export const listForDay = query({
   },
 })
 
+/**
+ * The amounts you have logged for one food before, most-used first.
+ *
+ * Your own history is the third source of servings (#68) and the only one that
+ * covers a Catalog food, which nobody may edit (ADR-0004). It is yours alone:
+ * the entries are read off your own diary, and there is no argument by which
+ * one person can ask about another's.
+ */
+export const loggedAmountsForFood = query({
+  args: { foodId: v.id('foods') },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+    if (!user) return []
+    const food = await ctx.db.get(args.foodId)
+    if (!food) return []
+    const entries = await ctx.db
+      .query('consumptionEntries')
+      .withIndex('by_user_food', (q) =>
+        q.eq('userId', user._id).eq('foodId', args.foodId),
+      )
+      .collect()
+    return rankLoggedAmounts(entries, food.baseUnit)
+  },
+})
+
 export const create = mutation({
   args: {
     date: v.string(),
@@ -90,6 +116,52 @@ export const create = mutation({
       userId: user._id,
       ...args,
     })
+  },
+})
+
+/**
+ * Write several entries at once — what confirming a Combo does.
+ *
+ * One mutation rather than a loop of `create` calls from the client, so a
+ * Combo's entries land together or not at all, and so undo has every id it
+ * needs to take all of them back. The per-entry rules are `create`'s, applied
+ * to each.
+ */
+export const createMany = mutation({
+  args: {
+    date: v.string(),
+    meal: mealValidator,
+    entries: v.array(
+      v.object({
+        recipeId: v.optional(v.id('recipes')),
+        foodId: v.optional(v.id('foods')),
+        label: v.string(),
+        quantity: v.number(),
+        quantityUnit: quantityUnitValidator,
+        nutrition: nutritionValidator,
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+    if (!user) throw new Error('Not authenticated')
+    const ids: Id<'consumptionEntries'>[] = []
+    for (const entry of args.entries) {
+      if (entry.recipeId && entry.foodId) {
+        throw new Error('An entry cannot reference both a recipe and a food')
+      }
+      if (entry.quantity <= 0) throw new Error('Quantity must be positive')
+      assertValidNutrition(entry.nutrition)
+      ids.push(
+        await ctx.db.insert('consumptionEntries', {
+          userId: user._id,
+          date: args.date,
+          meal: args.meal,
+          ...entry,
+        }),
+      )
+    }
+    return ids
   },
 })
 

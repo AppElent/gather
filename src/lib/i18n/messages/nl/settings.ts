@@ -13,6 +13,14 @@ export const settings = {
     },
   },
 
+  nutritionTargets: {
+    title: 'Dagdoelen',
+    description:
+      'Waar je per dag naar streeft. Je voedingsdagboek zet de dag hiertegen af; laat je er een leeg, dan wordt die simpelweg niet bijgehouden.',
+    save: 'Doelen opslaan',
+    saveFailed: 'Kon de doelen niet opslaan',
+  },
+
   groupSettings: {
     title: 'Groepsinstellingen',
     description:

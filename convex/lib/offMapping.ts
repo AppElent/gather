@@ -1,11 +1,22 @@
 import { type NutritionFacts, parseNutritionValue } from './nutrition'
+import type { Serving } from './servings'
 
 export interface OffMappedFood {
   name: string
   brand?: string
   nutritionPer100: NutritionFacts
-  servingSize?: number
-  servingLabel?: string
+  /**
+   * Where the product's own picture lives on Open Food Facts' servers. Only
+   * ever a URL here: a result nobody has imported has nothing stored, and the
+   * import is what turns this into a file of gather's own (#69).
+   */
+  imageUrl?: string
+  /**
+   * The one serving the product declares, as a list of one — the shape foods
+   * keep servings in (#68). Empty when the product declares none, which is
+   * most of them.
+   */
+  servings: Serving[]
 }
 
 export interface OffSearchResult extends OffMappedFood {
@@ -20,6 +31,9 @@ interface OffProduct {
   nutriments?: Record<string, unknown>
   serving_size?: unknown
   serving_quantity?: unknown
+  image_front_small_url?: unknown
+  image_small_url?: unknown
+  image_url?: unknown
 }
 
 interface OffResponse {
@@ -63,6 +77,28 @@ function preferredName(product: OffProduct): string {
   return ''
 }
 
+/**
+ * The smallest picture Open Food Facts offers for the product, largest as a
+ * last resort.
+ *
+ * A thumbnail in a list is the whole job here, and the full-size image is
+ * several hundred kilobytes of a photograph of a packet. Anything that is not
+ * an http(s) URL is treated as no picture at all — the import must not fail
+ * over a field somebody typed by hand into a community database.
+ */
+export function preferredImageUrl(product: OffProduct): string | undefined {
+  for (const candidate of [
+    product.image_front_small_url,
+    product.image_small_url,
+    product.image_url,
+  ]) {
+    if (typeof candidate !== 'string') continue
+    const url = candidate.trim()
+    if (/^https?:\/\//.test(url)) return url
+  }
+  return undefined
+}
+
 function parseServingSize(product: OffProduct): number | undefined {
   if (
     typeof product.serving_quantity === 'number' &&
@@ -79,6 +115,24 @@ function parseServingSize(product: OffProduct): number | undefined {
     }
   }
   return undefined
+}
+
+function servingLabel(product: OffProduct): string | undefined {
+  return typeof product.serving_size === 'string'
+    ? product.serving_size.trim() || undefined
+    : undefined
+}
+
+/**
+ * A product declares at most one serving — "30 g", "1 bowl (45g)" — and that
+ * becomes the food's whole servings list. Its own words are kept as the label,
+ * because they are what is written on the packet; the amount is the number
+ * already parsed out of them.
+ */
+function declaredServings(product: OffProduct): Serving[] {
+  const amount = parseServingSize(product)
+  if (amount === undefined) return []
+  return [{ label: servingLabel(product) ?? String(amount), amount }]
 }
 
 const NUTRIMENT_MAPPINGS: Array<[keyof NutritionFacts, string]> = [
@@ -117,11 +171,8 @@ function mapOffRawProduct(product: OffProduct): OffMappedFood {
     name: preferredName(product),
     brand: firstBrand(product.brands),
     nutritionPer100,
-    servingSize: parseServingSize(product),
-    servingLabel:
-      typeof product.serving_size === 'string'
-        ? product.serving_size.trim() || undefined
-        : undefined,
+    imageUrl: preferredImageUrl(product),
+    servings: declaredServings(product),
   }
 }
 

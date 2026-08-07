@@ -410,3 +410,72 @@ describe('a move or an unshare leaves the diary alone', () => {
     expect(bobsDay[0].recipeId).toBe(seeded.ids.roast)
   })
 })
+
+/**
+ * Your own amounts, offered back to you.
+ *
+ * The third source of servings (#68), and the only one that reaches a Catalog
+ * food — nobody may author a serving onto one (ADR-0004), so what a person has
+ * actually logged is all there is to go on.
+ */
+describe('the amounts you have logged for a food', () => {
+  async function withDiary(
+    entries: Array<{ quantity: number; unit: 'g' | 'serving' }>,
+  ) {
+    const t = testConvex()
+    await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    await t.withIdentity(asBob).mutation(api.users.ensureUser, {})
+    const foodId = await t.withIdentity(asAlice).mutation(api.foods.create, {
+      name: 'Hagelslag',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 500 },
+    })
+    for (const [index, entry] of entries.entries()) {
+      await t.withIdentity(asAlice).mutation(api.consumption.create, {
+        date: DAY,
+        meal: 'breakfast',
+        foodId,
+        label: `Hagelslag ${index}`,
+        quantity: entry.quantity,
+        quantityUnit: entry.unit,
+        nutrition: { calories: 100 },
+      })
+    }
+    return { t, foodId }
+  }
+
+  test('come back most-used first', async () => {
+    const { t, foodId } = await withDiary([
+      { quantity: 15, unit: 'g' },
+      { quantity: 20, unit: 'g' },
+      { quantity: 20, unit: 'g' },
+    ])
+
+    expect(
+      await t
+        .withIdentity(asAlice)
+        .query(api.consumption.loggedAmountsForFood, { foodId }),
+    ).toEqual([
+      { label: '20 g', amount: 20 },
+      { label: '15 g', amount: 15 },
+    ])
+  })
+
+  test('are yours alone — somebody else’s diary is not consulted', async () => {
+    const { t, foodId } = await withDiary([{ quantity: 15, unit: 'g' }])
+
+    expect(
+      await t
+        .withIdentity(asBob)
+        .query(api.consumption.loggedAmountsForFood, { foodId }),
+    ).toEqual([])
+  })
+
+  test('are nothing at all without a session', async () => {
+    const { t, foodId } = await withDiary([{ quantity: 15, unit: 'g' }])
+
+    expect(
+      await t.query(api.consumption.loggedAmountsForFood, { foodId }),
+    ).toEqual([])
+  })
+})

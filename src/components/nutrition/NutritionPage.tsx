@@ -1,22 +1,17 @@
 import { useMutation, useQuery } from 'convex/react'
-import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import {
-  MEAL_NAMES,
-  type MealName,
-  sumFacts,
-} from '../../../convex/lib/consumption'
+import { MEAL_NAMES, sumFacts } from '../../../convex/lib/consumption'
 import { fmt, useMessages } from '../../lib/i18n'
 import { moduleById } from '../../lib/modules'
-import { AddEntryModal } from './AddEntryModal'
 import { DayTotals } from './DayTotals'
 import { MealSlot } from './MealSlot'
 import type { NutritionNav } from './nutritionNav'
-import { TargetsPanel } from './TargetsPanel'
 
 // Client-local YYYY-MM-DD — matches spec §3.4 ("no server timezone math").
-function todayLocal(): string {
+// Exported because the add route has to read "today" the same way the diary
+// does, or a sheet opened with no date in the URL would write to another day.
+export function todayLocal(): string {
   const d = new Date()
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -62,12 +57,14 @@ export interface NutritionPageProps {
 /**
  * The Nutrition day view, whole.
  *
- * Both `/nutrition` and `/g/<slug>/nutrition` render this one component. A food
- * diary is Personal (ADR-0003): it belongs to the person, not to the Group in
- * the URL, so the two routes must show the same thing. Sharing the component is
- * what makes that true rather than merely intended — the routes differ only in
- * where the date lives and where its links point, which is why those are the
- * only things they pass in.
+ * A food diary is Personal (ADR-0003): it belongs to the person, not to the
+ * Group in the URL, so it looks the same whichever Group it was opened from.
+ * The route passes in only the date and the links, which is what keeps that
+ * true — there is nothing else about it for a Group to change.
+ *
+ * There is one address, `/g/<slug>/nutrition`. An earlier version of this
+ * comment claimed a flat `/nutrition` route as well; ADR-0002 removed the flat
+ * tree, and `src/lib/legacyPaths.ts` is what answers for links to it now.
  */
 export function NutritionPage({
   date: dateParam,
@@ -80,11 +77,8 @@ export function NutritionPage({
   const entries = useQuery(api.consumption.listForDay, { date })
   const updateEntry = useMutation(api.consumption.update)
   const deleteEntry = useMutation(api.consumption.remove)
-  const setTargets = useMutation(api.users.setNutritionTargets)
+  const saveCombo = useMutation(api.combos.saveFromMeal)
 
-  const [addingMeal, setAddingMeal] = useState<MealName | null>(null)
-  const [savingTargets, setSavingTargets] = useState(false)
-  const [targetsError, setTargetsError] = useState<string | null>(null)
   const messages = useMessages()
   const { diary, meals } = messages.nutrition
 
@@ -124,29 +118,6 @@ export function NutritionPage({
         </button>
       </div>
 
-      {targetsError && (
-        <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
-          {targetsError}
-        </p>
-      )}
-      <TargetsPanel
-        targets={me?.nutritionTargets}
-        saving={savingTargets}
-        onSave={async (targets) => {
-          setSavingTargets(true)
-          setTargetsError(null)
-          try {
-            await setTargets({ targets })
-          } catch (err) {
-            setTargetsError(
-              err instanceof Error ? err.message : diary.targets.saveFailed,
-            )
-          } finally {
-            setSavingTargets(false)
-          }
-        }}
-      />
-
       <DayTotals
         totals={totals}
         targets={me?.nutritionTargets}
@@ -163,7 +134,10 @@ export function NutritionPage({
           label={meals[meal]}
           entries={(entries ?? []).filter((e) => e.meal === meal)}
           nav={nav}
-          onAdd={() => setAddingMeal(meal)}
+          addLink={nav.addEntry(date, meal)}
+          onSaveAsCombo={async (name) => {
+            await saveCombo({ date, meal, name })
+          }}
           onUpdateEntry={async (entryId, changes) => {
             await updateEntry({
               id: entryId as Id<'consumptionEntries'>,
@@ -175,15 +149,6 @@ export function NutritionPage({
           }
         />
       ))}
-
-      {addingMeal && (
-        <AddEntryModal
-          date={date}
-          meal={addingMeal}
-          nav={nav}
-          onClose={() => setAddingMeal(null)}
-        />
-      )}
     </div>
   )
 }

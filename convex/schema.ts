@@ -3,6 +3,7 @@ import { v } from 'convex/values'
 import { babyEventDataValidator, babyEventTypeValidator } from './lib/babyEvents'
 import { mealValidator, quantityUnitValidator } from './lib/consumption'
 import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
+import { servingValidator } from './lib/servings'
 
 export default defineSchema({
   users: defineTable({
@@ -137,8 +138,11 @@ export default defineSchema({
     barcode: v.optional(v.string()),
     baseUnit: v.union(v.literal('g'), v.literal('ml')),
     nutritionPer100: nutritionValidator,
-    servingSize: v.optional(v.number()),
-    servingLabel: v.optional(v.string()),
+    // What somebody calls a portion of this food, in order — "1 slice",
+    // "1 glass" — each an amount in `baseUnit`. Optional because most foods
+    // have none: an empty list is answered by the person's own logged amounts
+    // rather than by inventing a portion for them.
+    servings: v.optional(v.array(servingValidator)),
     source: v.union(
       v.literal('openfoodfacts'),
       v.literal('manual'),
@@ -151,10 +155,20 @@ export default defineSchema({
     // Stable identity for a Catalog entry across re-seeds. Absent on
     // user-created rows, which the seed must never touch. See ADR 0004.
     seedKey: v.optional(v.string()),
+    // Name and brand as one field, because a search index has exactly one
+    // full-text field and a brand on the carton has to match (see
+    // `lib/foodSearchText.ts`). Optional only until the backfill has run
+    // everywhere — docs/migrations/0005 says what makes it required.
+    searchText: v.optional(v.string()),
+    // The product's own picture, fetched from Open Food Facts at import and
+    // stored here so it does not depend on their servers later. Never a
+    // photograph a person took: that would need the prepare-on-upload pipeline
+    // (ADR-0010) and is deliberately not offered.
+    imageId: v.optional(v.id('_storage')),
   })
     .index('by_barcode', ['barcode'])
     .index('by_seedKey', ['seedKey'])
-    .searchIndex('search_by_name', { searchField: 'name' }),
+    .searchIndex('search_by_text', { searchField: 'searchText' }),
 
   consumptionEntries: defineTable({
     userId: v.id('users'),
@@ -166,7 +180,46 @@ export default defineSchema({
     quantity: v.number(),
     quantityUnit: quantityUnitValidator,
     nutrition: nutritionValidator,
-  }).index('by_user_date', ['userId', 'date']),
+  })
+    .index('by_user_date', ['userId', 'date'])
+    // "Which amounts of this food have I logged before?" — read to offer them
+    // back as servings, and the reason this is an index rather than a scan of
+    // every entry the person has ever written.
+    .index('by_user_food', ['userId', 'foodId']),
+
+  /**
+   * A named, reusable set of things logged together — the same lunch, again
+   * (ADR-0012).
+   *
+   * **Personal** in the sense of ADR-0003: it belongs to a person, follows
+   * them into every Group and belongs to none, which is why there is a
+   * `userId` here and no `groupId` anywhere near it.
+   */
+  combos: defineTable({
+    userId: v.id('users'),
+    name: v.string(),
+    order: v.number(),
+  }).index('by_user', ['userId']),
+
+  /**
+   * One thing inside a Combo — exactly a diary entry minus the date, the meal
+   * and the person.
+   *
+   * **References, not figures**: `foodId` / `recipeId` say what this is, so
+   * correcting a food's nutrition corrects every future log of every Combo
+   * containing it. `label` is a snapshot so a reference that has become
+   * unreachable still has something to render, and `nutrition` is present only
+   * for a one-off, which has nothing behind it to read figures from.
+   */
+  comboItems: defineTable({
+    comboId: v.id('combos'),
+    foodId: v.optional(v.id('foods')),
+    recipeId: v.optional(v.id('recipes')),
+    label: v.string(),
+    quantity: v.number(),
+    quantityUnit: quantityUnitValidator,
+    nutrition: v.optional(nutritionValidator),
+  }).index('by_combo', ['comboId']),
 
   babies: defineTable({
     groupId: v.id('groups'),

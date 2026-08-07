@@ -120,6 +120,19 @@ chosen is never stored (ADR-0010). What preparing does depends on where the phot
 will be shown.
 _Avoid_: Resize, Compress, Optimise, Process
 
+**Combo** (Dutch: *Combinatie*):
+A named, reusable set of things you log together — the same lunch, again. It is
+**Personal**: it belongs to a person, follows them into every Group, belongs to
+none, and no other Member sees it. Made by *saving a meal slot you have already
+filled in*, never by opening a builder, and logging one never edits it
+(ADR-0012). A Combo may contain a Recipe; it is not a kind of Recipe, and a
+Recipe is not a kind of Combo — they sit on opposite sides of the
+Group/Personal boundary.
+_Avoid_: **Food group** — an established nutrition term (grains, dairy,
+protein) that would actively mislead here. **Meal** — that word already names
+the breakfast/lunch/dinner/snack slot throughout the schema, and taking it would
+force a rename with nothing gained. Also avoid: Preset, Bundle, Template.
+
 **Sample household**:
 A complete, fake Group — members, recipes, tasks, a baby's log, a food diary —
 that exists so a test or preview environment can be looked at. Never present in
@@ -130,7 +143,10 @@ _Avoid_: Demo data, Dummy data, Test data, Seed data
 ## Standing rules
 
 - A Personal record **snapshots** what it references. Provenance is
-  permission-checked on read and safe to dangle.
+  permission-checked on read and safe to dangle. A **Combo** is the deliberate
+  exception and says why: it is a shortcut for what will happen rather than a
+  record of what did, so it holds references and reads their current figures
+  (ADR-0012).
 - Content in a Group is visible to that Group. Privacy comes from *which Group*
   something lives in, never from a flag on the content.
 - The Catalog is read-only and always reflects the shipped version. A person

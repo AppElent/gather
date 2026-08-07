@@ -68,8 +68,7 @@ export function EditFoodPage({ foodId, nav }: EditFoodPageProps) {
           barcode: food.barcode,
           baseUnit: food.baseUnit,
           nutritionPer100: food.nutritionPer100,
-          servingSize: food.servingSize,
-          servingLabel: food.servingLabel,
+          servings: food.servings,
         }}
         onSubmit={async (values) => {
           setSubmitting(true)

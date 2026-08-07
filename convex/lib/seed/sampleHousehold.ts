@@ -799,6 +799,63 @@ export type SampleDiaryEntry = {
 )
 
 /** Seven days of the owner's diary, thinning out toward the older end. */
+/**
+ * A Combo the sample person has saved, so a preview shows the fastest path in
+ * the add sheet rather than an empty section (ADR-0012).
+ *
+ * Components name what they point at the same way the diary fixtures do — a
+ * Catalog `seedKey` or a recipe key — because a Combo holds references, and
+ * the seed has to resolve them to real rows just as saving a meal does.
+ */
+export interface SampleComboItem {
+  label: string
+  quantity: number
+  unit: 'serving' | 'g' | 'ml' | 'piece'
+  seedKey?: string
+  recipeKey?: string
+  /** Only for a one-off, which has nothing behind it to read figures from. */
+  nutrition?: NutritionFacts
+}
+
+export interface SampleCombo {
+  name: string
+  items: SampleComboItem[]
+}
+
+export const SAMPLE_COMBOS: SampleCombo[] = [
+  {
+    name: 'Usual breakfast',
+    items: [
+      { label: 'Porridge oats', quantity: 60, unit: 'g', seedKey: 'oats-rolled' },
+      {
+        label: 'Semi-skimmed milk',
+        quantity: 200,
+        unit: 'ml',
+        seedKey: 'milk-semi-skimmed',
+      },
+      { label: 'Banana', quantity: 118, unit: 'g', seedKey: 'banana' },
+    ],
+  },
+  {
+    name: 'Desk lunch',
+    items: [
+      { label: 'Greek salad', quantity: 1, unit: 'serving', recipeKey: 'greek-salad' },
+      {
+        label: 'Wholemeal bread',
+        quantity: 80,
+        unit: 'g',
+        seedKey: 'bread-wholemeal',
+      },
+      {
+        label: 'Flat white from downstairs',
+        quantity: 1,
+        unit: 'piece',
+        nutrition: { calories: 120, protein: 6.5, fat: 6.4, carbs: 9.6 },
+      },
+    ],
+  },
+]
+
 export const SAMPLE_DIARY: SampleDiaryEntry[] = [
   // Today
   { daysAgo: 0, meal: 'breakfast', label: 'Overnight oats', kind: 'recipe', recipeKey: 'overnight-oats', servings: 1 },
@@ -850,6 +907,11 @@ export const SAMPLE_USER_FOOD = {
     fiber: 7.8,
     salt: 0.1,
   },
-  servingSize: 50,
-  servingLabel: '1 portion (50 g)',
+  // A food somebody authored, with the servings they actually think in — so a
+  // preview shows the chips rather than an empty row where they should be.
+  servings: [
+    { label: '1 bowl', amount: 50 },
+    { label: '1 small handful', amount: 20 },
+    { label: 'over yoghurt', amount: 35 },
+  ],
 }

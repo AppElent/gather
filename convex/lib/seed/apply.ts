@@ -4,12 +4,14 @@ import {
   computeFoodEntryNutrition,
   computeRecipeEntryNutrition,
 } from '../consumption'
+import { foodSearchText } from '../foodSearchText'
 import { allocateGroupSlug } from '../groupSlugs'
 import { getUserByClerkId } from '../sharing'
 import { CATALOG_FOODS } from './catalogFoods'
 import {
   SAMPLE_BABY,
   SAMPLE_BABY_EVENTS,
+  SAMPLE_COMBOS,
   SAMPLE_DIARY,
   SAMPLE_GROUP_NAME,
   SAMPLE_HOUSEMATES,
@@ -92,8 +94,8 @@ export async function applyCatalog(ctx: MutationCtx) {
       name: food.name,
       baseUnit: food.baseUnit,
       nutritionPer100: food.nutritionPer100,
-      servingSize: food.servingSize,
-      servingLabel: food.servingLabel,
+      servings: food.servings,
+      searchText: foodSearchText(food),
       source: 'seed' as const,
       seedKey: food.seedKey,
     }
@@ -249,6 +251,22 @@ export async function resetSample(ctx: MutationCtx) {
   for (const entry of await ctx.db.query('consumptionEntries').collect()) {
     if (!(await alive(entry.userId))) {
       await ctx.db.delete(entry._id)
+      orphaned++
+    }
+  }
+  // The same, for a Combo and the components inside one. A component whose
+  // Combo has gone is unreachable rather than intact, which is the containment
+  // rule this sweep exists for; a dangling foodId/recipeId inside a surviving
+  // one is fine for the same reason a diary entry's is.
+  for (const combo of await ctx.db.query('combos').collect()) {
+    if (!(await alive(combo.userId))) {
+      await ctx.db.delete(combo._id)
+      orphaned++
+    }
+  }
+  for (const item of await ctx.db.query('comboItems').collect()) {
+    if (!(await alive(item.comboId))) {
+      await ctx.db.delete(item._id)
       orphaned++
     }
   }
@@ -464,6 +482,7 @@ export async function applySample(
   rec.track(
     await ctx.db.insert('foods', {
       ...SAMPLE_USER_FOOD,
+      searchText: foodSearchText(SAMPLE_USER_FOOD),
       source: 'manual',
       createdBy: authors.nora,
     }),
@@ -520,6 +539,46 @@ export async function applySample(
     diaryEntries++
   }
 
+  // --- Combos ---------------------------------------------------------------
+  // Personal, like the diary: they belong to the person the sample household is
+  // built around, not to the Group (ADR-0012).
+  let combos = 0
+  for (const [order, combo] of SAMPLE_COMBOS.entries()) {
+    const comboId = rec.track(
+      await ctx.db.insert('combos', {
+        userId: ownerUserId,
+        name: combo.name,
+        order,
+      }),
+    )
+    for (const item of combo.items) {
+      const food = item.seedKey ? catalogByKey.get(item.seedKey) : undefined
+      if (item.seedKey && !food) {
+        throw new Error(
+          `Sample combo references unknown Catalog food ${item.seedKey}`,
+        )
+      }
+      const recipeId = item.recipeKey ? recipeIds.get(item.recipeKey) : undefined
+      if (item.recipeKey && !recipeId) {
+        throw new Error(
+          `Sample combo references unknown recipe ${item.recipeKey}`,
+        )
+      }
+      rec.track(
+        await ctx.db.insert('comboItems', {
+          comboId,
+          foodId: food?._id,
+          recipeId,
+          label: item.label,
+          quantity: item.quantity,
+          quantityUnit: item.unit,
+          nutrition: item.nutrition,
+        }),
+      )
+    }
+    combos++
+  }
+
   await ctx.db.insert('seedRuns', {
     label: SAMPLE_LABEL,
     createdAt: now,
@@ -536,6 +595,7 @@ export async function applySample(
     tasks: SAMPLE_TASK_LISTS.reduce((n, l) => n + l.tasks.length, 0),
     babyEvents: SAMPLE_BABY_EVENTS.length,
     diaryEntries,
+    combos,
     housemates: SAMPLE_HOUSEMATES.length,
   }
 
@@ -552,7 +612,9 @@ export async function applySample(
     1 + // baby
     counts.babyEvents +
     1 + // the user-created food
-    counts.diaryEntries
+    counts.diaryEntries +
+    counts.combos +
+    SAMPLE_COMBOS.reduce((n, combo) => n + combo.items.length, 0)
   if (rec.ids.length !== expectedTracked) {
     throw new Error(
       `Sample seed self-check failed: recorded ${rec.ids.length} rows, expected ${expectedTracked}`,

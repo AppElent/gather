@@ -84,8 +84,7 @@ export function NewFoodPage({ barcode, nav }: NewFoodPageProps) {
               name: mapped.name,
               brand: mapped.brand,
               nutritionPer100: mapped.nutritionPer100,
-              servingSize: mapped.servingSize,
-              servingLabel: mapped.servingLabel,
+              servings: mapped.servings,
             },
             version: Date.now(),
           })

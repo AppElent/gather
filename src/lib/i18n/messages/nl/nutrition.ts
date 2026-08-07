@@ -29,9 +29,9 @@ export const diary = {
   totalsOn: 'Totalen — {date}',
 
   targets: {
-    title: 'Dagdoelen',
-    save: 'Doelen opslaan',
-    saveFailed: 'Kon de doelen niet opslaan',
+    edit: 'Doelen aanpassen',
+    remaining: 'nog {amount}',
+    over: '{amount} te veel',
   },
 
   slot: {
@@ -50,41 +50,66 @@ export const diary = {
 
   add: {
     title: 'Toevoegen aan {meal}',
-    tabs: {
+    searchPlaceholder: 'Voedingsmiddelen en recepten zoeken…',
+    searchHint: 'Zoek een voedingsmiddel, of scan een barcode.',
+    scan: 'Scannen',
+    hideScanner: 'Scanner verbergen',
+    sections: {
+      scanned: 'Gescand',
+      foods: 'Jouw voedingsmiddelen',
       recipes: 'Recepten',
-      foods: 'Voedingsmiddelen',
-      quick: 'Snel toevoegen',
+      off: 'Open Food Facts',
     },
+    amount: 'Hoeveelheid',
+    unit: 'Eenheid',
+    custom: 'Anders',
+    yourAmount: '(van jou)',
+    enterAmount: 'Vul een hoeveelheid boven 0 in',
+    confirm: 'Aan dagboek toevoegen',
+    logFailed: 'Kon dit niet noteren',
+    nothingFound: 'Niets gevonden voor “{term}”',
+    oneOffTitle: '“{term}” eenmalig noteren',
+    oneOffHint:
+      'Vul in wat je weet — een gedeeltelijke notitie is beter dan niets.',
+    logged: '{label} genoteerd',
+    undo: 'Ongedaan maken',
+    undoFailed: 'Kon dat niet ongedaan maken',
   },
 
-  quickAdd: {
-    label: 'Omschrijving',
-    placeholder: 'bijv. "Uit eten"',
-    adding: 'Toevoegen…',
-    failed: 'Kon dit niet noteren',
+  combos: {
+    section: 'Combinaties',
+    itemCount: { one: '{count} onderdeel', other: '{count} onderdelen' },
+    kcal: '{calories} kcal',
+    amount: '{quantity} {unit}',
+    unavailable: 'Niet meer beschikbaar',
+    less: 'Minder {label}',
+    more: 'Meer {label}',
+    reset: 'Herstellen',
+    nothingLeft: 'Niets meer om te noteren',
+    save: 'Opslaan als combinatie',
+    saveTitle: 'Deze maaltijd opslaan als combinatie',
+    namePlaceholder: 'bijv. "Lunch op het werk"',
+    saveFailed: 'Kon deze combinatie niet opslaan',
+    saved: '“{name}” opgeslagen',
+    update: '{name} bijwerken',
+    updateFailed: 'Kon die combinatie niet bijwerken',
   },
 
   recipeAdd: {
-    none: 'Nog geen recepten met voedingswaarde.',
     servings: 'porties',
-    failed: 'Kon dit recept niet noteren',
-    withoutNutrition: 'Deze recepten hebben nog geen voedingswaarde:',
+    perServing: '{calories} kcal/portie',
   },
 
   foodAdd: {
-    lookingUp: 'Opzoeken…',
     barcodeFailed: 'Kon die barcode niet opzoeken — probeer het opnieuw.',
     addFailed: 'Kon dat item niet toevoegen — probeer het opnieuw.',
     notFound: 'Niet gevonden.',
     addToLibrary: 'Voeg het toe aan de voedingsmiddelen',
     addToLibraryAfter: 'en probeer het dan opnieuw.',
-    searchPlaceholder: 'Voedingsmiddelen zoeken…',
     searching: 'Zoeken bij Open Food Facts…',
     searchFailed: 'Kon niet zoeken bij Open Food Facts.',
-    fromOff: 'Van Open Food Facts',
     perHundred: '{calories} kcal/100 g',
     pieceOf: 'stuk ({size}{unit})',
-    logFailed: 'Kon dit voedingsmiddel niet noteren',
   },
 } satisfies typeof enDiary
 

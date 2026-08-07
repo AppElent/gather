@@ -4,7 +4,41 @@ import { renderWithI18n } from '../../lib/i18n/testing'
 import { MealSlot } from './MealSlot'
 import { groupNutritionNav } from './nutritionNav'
 
+// TanStack Router's <Link> requires a RouterProvider context to render (it
+// reads router state via useLinkProps); this component test renders in
+// isolation, so mock it out to a plain anchor, matching the same pattern used
+// in ConsumptionEntryRow.test.tsx / AppShell.test.tsx.
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({
+    children,
+    to,
+    params,
+    search,
+    className,
+  }: {
+    children: React.ReactNode
+    to: string
+    params?: Record<string, string>
+    search?: Record<string, string>
+    className?: string
+  }) => {
+    const path = params
+      ? Object.entries(params).reduce(
+          (acc, [key, value]) => acc.replace(`$${key}`, value),
+          to,
+        )
+      : to
+    const query = search ? `?${new URLSearchParams(search).toString()}` : ''
+    return (
+      <a href={`${path}${query}`} className={className}>
+        {children}
+      </a>
+    )
+  },
+}))
+
 const nav = groupNutritionNav('jansen-household')
+const addLink = nav.addEntry('2026-07-18', 'breakfast')
 
 const entries = [
   {
@@ -24,7 +58,7 @@ test('shows a placeholder when there are no entries', () => {
       nav={nav}
       label="Breakfast"
       entries={[]}
-      onAdd={vi.fn()}
+      addLink={addLink}
       onUpdateEntry={vi.fn()}
       onDeleteEntry={vi.fn()}
     />,
@@ -32,21 +66,22 @@ test('shows a placeholder when there are no entries', () => {
   expect(screen.getByText('Nothing logged yet.')).toBeDefined()
 })
 
-test('renders entries and clicking + Add calls onAdd', () => {
-  const onAdd = vi.fn()
+test('renders entries, and + Add goes to the add sheet for this day and meal', () => {
   renderWithI18n(
     <MealSlot
       nav={nav}
       label="Breakfast"
       entries={entries}
-      onAdd={onAdd}
+      addLink={addLink}
       onUpdateEntry={vi.fn()}
       onDeleteEntry={vi.fn()}
     />,
   )
   expect(screen.getByText('Oatmeal')).toBeDefined()
-  fireEvent.click(screen.getByText('+ Add'))
-  expect(onAdd).toHaveBeenCalled()
+  expect(screen.getByRole('link', { name: '+ Add' })).toHaveAttribute(
+    'href',
+    '/g/jansen-household/nutrition/add?date=2026-07-18&meal=breakfast',
+  )
 })
 
 test('deleting an entry calls onDeleteEntry with its id', () => {
@@ -56,7 +91,7 @@ test('deleting an entry calls onDeleteEntry with its id', () => {
       nav={nav}
       label="Breakfast"
       entries={entries}
-      onAdd={vi.fn()}
+      addLink={addLink}
       onUpdateEntry={vi.fn()}
       onDeleteEntry={onDeleteEntry}
     />,

@@ -32,10 +32,15 @@ export const diary = {
   totalsToday: "Today's totals",
   totalsOn: 'Totals — {date}',
 
+  /**
+   * The target as *context* on the day's totals. Setting one is a preference
+   * and lives in Settings; these are the words around the figure you read
+   * every day.
+   */
   targets: {
-    title: 'Daily targets',
-    save: 'Save targets',
-    saveFailed: 'Could not save targets',
+    edit: 'Edit targets',
+    remaining: '{amount} left',
+    over: '{amount} over',
   },
 
   slot: {
@@ -52,43 +57,77 @@ export const diary = {
     saveFailed: 'Could not save changes',
   },
 
+  /**
+   * The add sheet. One list, no tabs: every row is a card, every card expands
+   * in place, and nothing reaches the diary until the confirm inside it.
+   */
   add: {
     title: 'Add to {meal}',
-    tabs: {
+    searchPlaceholder: 'Search foods and recipes…',
+    searchHint: 'Search for a food, or scan a barcode.',
+    scan: 'Scan',
+    hideScanner: 'Hide scanner',
+    sections: {
+      scanned: 'Scanned',
+      foods: 'Your foods',
       recipes: 'Recipes',
-      foods: 'Foods',
-      quick: 'Quick add',
+      off: 'Open Food Facts',
     },
+    amount: 'Amount',
+    unit: 'Unit',
+    custom: 'Custom',
+    /** Marks a serving that came from your own logging rather than the food. */
+    yourAmount: '(yours)',
+    enterAmount: 'Enter an amount above 0',
+    confirm: 'Add to diary',
+    logFailed: 'Could not log this',
+    nothingFound: 'Nothing found for “{term}”',
+    oneOffTitle: 'Log “{term}” as a one-off',
+    oneOffHint: 'Fill in whatever figures you have — a partial record is fine.',
+    logged: '{label} logged',
+    undo: 'Undo',
+    undoFailed: 'Could not undo that',
   },
 
-  quickAdd: {
-    label: 'Label',
-    placeholder: 'e.g. "Restaurant meal"',
-    adding: 'Adding…',
-    failed: 'Could not log this',
+  /**
+   * The Combo — a named, reusable set of things you log together (ADR-0012).
+   * "Combo" is the domain term and stays capitalised nowhere in the UI, but it
+   * is deliberately not "meal" (which names the slot) or "food group".
+   */
+  combos: {
+    section: 'Combos',
+    itemCount: { one: '{count} item', other: '{count} items' },
+    kcal: '{calories} kcal',
+    amount: '{quantity} {unit}',
+    unavailable: 'Not available any more',
+    less: 'Less {label}',
+    more: 'More {label}',
+    reset: 'Reset',
+    nothingLeft: 'Nothing left to log',
+    save: 'Save as combo',
+    saveTitle: 'Save this meal as a combo',
+    namePlaceholder: 'e.g. "Work lunch"',
+    saveFailed: 'Could not save this combo',
+    saved: '“{name}” saved',
+    update: 'Update {name}',
+    updateFailed: 'Could not update that combo',
   },
 
   recipeAdd: {
-    none: 'No recipes with nutrition data yet.',
     servings: 'servings',
-    failed: 'Could not log this recipe',
-    withoutNutrition: 'These recipes have no nutrition data yet:',
+    perServing: '{calories} kcal/serving',
   },
 
   foodAdd: {
-    lookingUp: 'Looking up…',
     barcodeFailed: 'Couldn’t look up that barcode — try again.',
     addFailed: 'Couldn’t add that item — try again.',
     notFound: 'Not found.',
     addToLibrary: 'Add it to the foods library',
     addToLibraryAfter: 'first.',
-    searchPlaceholder: 'Search foods…',
     searching: 'Searching Open Food Facts…',
     searchFailed: 'Couldn’t search Open Food Facts.',
-    fromOff: 'From Open Food Facts',
     perHundred: '{calories} kcal/100g',
     pieceOf: 'piece ({size}{unit})',
-    logFailed: 'Could not log this food',
   },
 }
 
