@@ -22,6 +22,7 @@ import type * as lib_babyEvents from "../lib/babyEvents.js";
 import type * as lib_combos from "../lib/combos.js";
 import type * as lib_consumption from "../lib/consumption.js";
 import type * as lib_foodSearchText from "../lib/foodSearchText.js";
+import type * as lib_groupAccess from "../lib/groupAccess.js";
 import type * as lib_groupSlugs from "../lib/groupSlugs.js";
 import type * as lib_nutrition from "../lib/nutrition.js";
 import type * as lib_nutritionAiEstimate from "../lib/nutritionAiEstimate.js";
@@ -72,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   "lib/combos": typeof lib_combos;
   "lib/consumption": typeof lib_consumption;
   "lib/foodSearchText": typeof lib_foodSearchText;
+  "lib/groupAccess": typeof lib_groupAccess;
   "lib/groupSlugs": typeof lib_groupSlugs;
   "lib/nutrition": typeof lib_nutrition;
   "lib/nutritionAiEstimate": typeof lib_nutritionAiEstimate;
