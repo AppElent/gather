@@ -321,7 +321,11 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
     >
       {scanning && (
         <div className="mb-3">
-          <BarcodeScanner onDetected={onBarcode} />
+          {/* Pressing Scan in the header is the press that starts the camera:
+              this surface exists only because that was pressed, so making you
+              press a second Scan inside it was two taps for one intent (#81).
+              The header button is what stops it again. */}
+          <BarcodeScanner onDetected={onBarcode} autoStart />
         </div>
       )}
       {scanFailure && (
