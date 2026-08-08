@@ -48,6 +48,7 @@ export const foods = {
     grams: 'gram',
     milliliters: 'milliliter',
     nutritionLegend: 'Voedingswaarde per 100 {unit}',
+    nutritionSourceNote: 'Waar deze waarden vandaan komen: {source}',
     servingsLegend: 'Porties',
     servingsHint:
       'Hoe je een portie hiervan noemt, en hoeveel {unit} dat is. Laat je dit leeg, dan worden de hoeveelheden die je noteert aangeboden.',

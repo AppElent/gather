@@ -85,6 +85,9 @@ export function NewFoodPage({ barcode, nav }: NewFoodPageProps) {
               brand: mapped.brand,
               nutritionPer100: mapped.nutritionPer100,
               servings: mapped.servings,
+              // Open Food Facts' figures until the person types over one, at
+              // which point the form says `manual` and the save records it.
+              nutritionSource: 'imported',
             },
             version: Date.now(),
           })
