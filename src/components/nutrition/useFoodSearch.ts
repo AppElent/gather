@@ -2,6 +2,7 @@ import { useAction, useQuery } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
+import { barcodeTerm } from '../../../convex/lib/offFetch'
 import type { OffSearchResult } from '../../../convex/lib/offMapping'
 import { useI18n } from '../../lib/i18n'
 
@@ -24,6 +25,14 @@ export const SEARCH_DEBOUNCE_MS = 250
  * product is a handful of requests, well inside the ceiling.
  */
 export const OFF_SEARCH_DEBOUNCE_MS = 400
+
+/**
+ * Whether the term is a barcode, and so resolves by lookup rather than by
+ * search. Re-exported from `convex/lib/offFetch` rather than restated: the
+ * pattern that decides what a lookup will accept is the one that decides
+ * whether to make one.
+ */
+export { barcodeTerm }
 
 /**
  * Whether a term is worth asking Open Food Facts about at all.
@@ -85,7 +94,30 @@ export function useFoodSearch(): FoodSearch {
     const id = setTimeout(() => setDebouncedTerm(term), SEARCH_DEBOUNCE_MS)
     return () => clearTimeout(id)
   }, [term])
-  const results = useQuery(api.foods.search, { term: debouncedTerm })
+
+  // Read off the *debounced* term, so the mode is only ever decided about a
+  // term somebody has stopped typing: the digits of a barcode arriving one at a
+  // time never flip the list between a text search and a lookup on the way.
+  const localBarcode = barcodeTerm(debouncedTerm)
+  // The full-text index is built from name and brand (`foodSearchText.ts`), so
+  // a barcode put through it matches nothing. The row is found by its barcode
+  // instead — and found rather than imported, which is what keeps a product you
+  // already have from being overwritten by Open Food Facts' version of it.
+  const textMatches = useQuery(
+    api.foods.search,
+    localBarcode ? 'skip' : { term: debouncedTerm },
+  )
+  const barcodeMatch = useQuery(
+    api.foods.getByBarcode,
+    localBarcode ? { barcode: localBarcode } : 'skip',
+  )
+  const results: FoodSearchResult[] | undefined = localBarcode
+    ? barcodeMatch === undefined
+      ? undefined
+      : barcodeMatch
+        ? [barcodeMatch]
+        : []
+    : textMatches
 
   const [offTerm, setOffTerm] = useState('')
   useEffect(() => {
@@ -101,9 +133,11 @@ export function useFoodSearch(): FoodSearch {
   const offCacheRef = useRef<Map<string, OffSearchResult[]>>(new Map())
 
   const searchByName = useAction(api.foodsLookup.searchByName)
+  const lookupBarcode = useAction(api.foodsLookup.lookupBarcode)
 
   useEffect(() => {
-    if (!shouldSearchOff(offTerm)) {
+    const barcode = barcodeTerm(offTerm)
+    if (!barcode && !shouldSearchOff(offTerm)) {
       setOffResults(null)
       setOffSearching(false)
       return
@@ -129,7 +163,18 @@ export function useFoodSearch(): FoodSearch {
     let abandoned = false
     setOffSearching(true)
     setOffError(null)
-    searchByName({ term: offTerm, locale })
+    // A barcode is a lookup, not a search — but it goes through the same
+    // debounce, the same cache and the same abandonment as a name, because the
+    // rate ceiling is about how often this hook reaches Open Food Facts, not
+    // about which endpoint it reaches it by. A product the lookup has is one
+    // result; a barcode nobody has is none, which is the empty result the
+    // caller already turns into "not found — add it yourself".
+    const ask: Promise<OffSearchResult[]> = barcode
+      ? lookupBarcode({ barcode }).then((mapped) =>
+          mapped ? [{ ...mapped, barcode }] : [],
+        )
+      : searchByName({ term: offTerm, locale })
+    ask
       .then((found) => {
         if (abandoned) return
         offCacheRef.current.set(offCacheKey(offTerm, locale), found)
@@ -147,7 +192,7 @@ export function useFoodSearch(): FoodSearch {
     return () => {
       abandoned = true
     }
-  }, [offTerm, locale, searchByName])
+  }, [offTerm, locale, searchByName, lookupBarcode])
 
   const clearOffError = useCallback(() => setOffError(null), [])
 

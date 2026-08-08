@@ -62,6 +62,8 @@ const offResults = vi.hoisted(() => ({
 }))
 /** What `foods.getByBarcode` finds, for the "this is already in your library" path. */
 const existingFood = vi.hoisted(() => ({ value: null as unknown }))
+/** What `foodsLookup.lookupBarcode` finds on Open Food Facts. */
+const offProduct = vi.hoisted(() => ({ value: null as unknown }))
 const calls = vi.hoisted(() => ({ value: [] as Array<[string, unknown]> }))
 
 vi.mock('convex/react', () => ({
@@ -72,6 +74,9 @@ vi.mock('convex/react', () => ({
       return foods.value.filter((f) =>
         `${f.name} ${f.brand}`.toLowerCase().includes(term),
       )
+    }
+    if (name === 'foods:getByBarcode') {
+      return args === 'skip' ? undefined : existingFood.value
     }
     if (name === 'recipes:listAcrossMyGroups') return recipes.value
     if (name === 'combos:list') return combos.value
@@ -85,6 +90,7 @@ vi.mock('convex/react', () => ({
     return 'entry1'
   },
   useAction: (name: string) => async (args: { term?: string }) => {
+    if (name === 'foodsLookup:lookupBarcode') return offProduct.value
     if (name !== 'foodsLookup:searchByName') return null
     const term = (args.term ?? '').toLowerCase()
     return offResults.value.filter((r) => r.name.toLowerCase().includes(term))
@@ -141,6 +147,77 @@ beforeEach(() => {
   loggedAmounts.value = []
   combos.value = []
   existingFood.value = null
+  offProduct.value = null
+})
+
+test('a barcode you already have is shown from your own rows', async () => {
+  // Somebody edited these figures after importing this row once. Typing the
+  // barcode must find *that* row, not fetch Open Food Facts' version over it.
+  existingFood.value = {
+    _id: 'food9',
+    name: 'Volle melk',
+    brand: 'Zaanse Hoeve',
+    baseUnit: 'ml',
+    nutritionPer100: { calories: 100 },
+  }
+  renderSheet()
+  await search('8712345678901')
+
+  await waitFor(() => expect(screen.getByText('Your foods')).toBeDefined())
+  expect(screen.getByText('Volle melk')).toBeDefined()
+
+  fireEvent.click(screen.getByText('Volle melk'))
+  fireEvent.click(screen.getByText('Add to diary'))
+  await waitFor(() => expect(calls.value).toHaveLength(1))
+  expect(calls.value[0][1]).toMatchObject({
+    foodId: 'food9',
+    // The row's own figures, so nothing was imported over it.
+    nutrition: { calories: 100 },
+  })
+})
+
+test('a barcode only Open Food Facts has is offered as something to import', async () => {
+  offProduct.value = {
+    name: 'Nutella',
+    brand: 'Ferrero',
+    nutritionPer100: { calories: 539 },
+  }
+  renderSheet()
+  await search('3017620422003')
+
+  await waitFor(() => expect(screen.getByText('Open Food Facts')).toBeDefined())
+  expect(screen.getByText('Nutella')).toBeDefined()
+  // It is not pretending to be one of yours.
+  expect(screen.queryByText('Your foods')).toBeNull()
+})
+
+test('a barcode nobody has offers adding it, rather than an empty list', async () => {
+  renderSheet()
+  await search('9999999999999')
+
+  await waitFor(() => expect(screen.getByText(/Not found\./)).toBeDefined())
+  expect(screen.getByText('Add it to the foods library')).toBeDefined()
+  // Logging the digits themselves as a one-off would put "9999999999999" in a
+  // diary, which is not what typing a barcode meant.
+  expect(screen.queryByText(/as a one-off/)).toBeNull()
+})
+
+test('digits still being typed are an ordinary search, not a lookup', async () => {
+  // Long enough to be a number, too short to be a barcode: this must not
+  // resolve as one, or the list would flicker between modes on the way in.
+  existingFood.value = {
+    _id: 'food9',
+    name: 'Volle melk',
+    baseUnit: 'ml',
+    nutritionPer100: { calories: 100 },
+  }
+  renderSheet()
+  await search('871234')
+
+  await waitFor(() =>
+    expect(screen.getByText('Nothing found for “871234”')).toBeDefined(),
+  )
+  expect(screen.queryByText('Volle melk')).toBeNull()
 })
 
 test('an Open Food Facts result already in your library logs that food’s own figures', async () => {
@@ -169,6 +246,26 @@ test('an Open Food Facts result already in your library logs that food’s own f
     // 200 ml of the *food's* 100 kcal/100 ml, not the result's 64.
     nutrition: { calories: 200 },
   })
+})
+
+test('the search field offers a clear only while there is something to clear', async () => {
+  renderSheet()
+  expect(screen.queryByLabelText('Clear search')).toBeNull()
+
+  await search('melk')
+  await waitFor(() => expect(screen.getByText('Halfvolle melk')).toBeDefined())
+
+  fireEvent.click(screen.getByLabelText('Clear search'))
+
+  const field = screen.getByLabelText('Search foods and recipes…')
+  expect(field).toHaveValue('')
+  // Back where you left it, ready for the next thing you type.
+  expect(document.activeElement).toBe(field)
+  expect(screen.queryByLabelText('Clear search')).toBeNull()
+  // And the empty-search state is what is on screen again: the matches for the
+  // term are gone, the always-there sections are back.
+  await waitFor(() => expect(screen.queryByText('Halfvolle melk')).toBeNull())
+  expect(screen.getByText('Melkbroodjes')).toBeDefined()
 })
 
 test('one search fills labelled sections with foods, recipes and Open Food Facts', async () => {

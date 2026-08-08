@@ -52,6 +52,7 @@ export const diary = {
     title: 'Toevoegen aan {meal}',
     searchPlaceholder: 'Voedingsmiddelen en recepten zoeken…',
     searchHint: 'Zoek een voedingsmiddel, of scan een barcode.',
+    clearSearch: 'Zoekopdracht wissen',
     scan: 'Scannen',
     hideScanner: 'Scanner verbergen',
     sections: {

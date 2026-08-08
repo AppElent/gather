@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { type ComboCounts, comboEntries } from '../../../convex/lib/combos'
@@ -10,6 +10,7 @@ import {
   type QuantityUnit,
 } from '../../../convex/lib/consumption'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import { barcodeTerm } from '../../../convex/lib/offFetch'
 import type {
   OffMappedFood,
   OffSearchResult,
@@ -99,6 +100,7 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
     meals: messages.nutrition.meals,
   }
 
+  const searchRef = useRef<HTMLInputElement>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [comboBusy, setComboBusy] = useState(false)
   const [comboError, setComboError] = useState<string | null>(null)
@@ -256,6 +258,11 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
     matchingRecipes.length === 0 &&
     offResults.length === 0 &&
     !search.offSearching
+  // A barcode that matched nothing is not a thing to log the digits of: it is a
+  // product nobody has yet, so it gets the route the scanner already has for
+  // that — add it to your library, with the barcode it was looked up by —
+  // rather than the one-off card, which would write "8712345678901" in a diary.
+  const searchedBarcode = barcodeTerm(term)
 
   return (
     <BottomSheet
@@ -278,14 +285,35 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <input
-              value={search.term}
-              onChange={(e) => search.setTerm(e.target.value)}
-              onFocus={() => setPromotions((n) => n + 1)}
-              placeholder={add.searchPlaceholder}
-              aria-label={add.searchPlaceholder}
-              className={`${fieldClass} min-w-0 flex-1`}
-            />
+            <div className="relative flex min-w-0 flex-1 items-center">
+              <input
+                ref={searchRef}
+                value={search.term}
+                onChange={(e) => search.setTerm(e.target.value)}
+                onFocus={() => setPromotions((n) => n + 1)}
+                placeholder={add.searchPlaceholder}
+                aria-label={add.searchPlaceholder}
+                className={`${fieldClass} w-full min-w-0 pr-12`}
+              />
+              {/* Only while there is something to clear: an always-present ✕
+                  over an empty field is a control that does nothing. Focus goes
+                  back to the input, so clearing is the start of the next search
+                  rather than the end of this one — and the refocus re-promotes
+                  the sheet, which is why clearing never drops it to peek. */}
+              {search.term !== '' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    search.setTerm('')
+                    searchRef.current?.focus()
+                  }}
+                  aria-label={add.clearSearch}
+                  className="absolute right-0 flex min-h-11 min-w-11 items-center justify-center text-sm opacity-60"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => setScanning((on) => !on)}
@@ -299,22 +327,17 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
     >
       {scanning && (
         <div className="mb-3">
-          <BarcodeScanner onDetected={onBarcode} />
+          {/* Pressing Scan in the header is the press that starts the camera:
+              this surface exists only because that was pressed, so making you
+              press a second Scan inside it was two taps for one intent (#81).
+              The header button is what stops it again. */}
+          <BarcodeScanner onDetected={onBarcode} autoStart />
         </div>
       )}
       {scanFailure && (
         <p className="mb-3 text-xs opacity-60">
           {scanFailure.message ?? (
-            <>
-              {foodAdd.notFound}{' '}
-              <Link
-                {...nav.createFood(scanFailure.barcode)}
-                className="underline"
-              >
-                {foodAdd.addToLibrary}
-              </Link>{' '}
-              {foodAdd.addToLibraryAfter}
-            </>
+            <NoSuchBarcode barcode={scanFailure.barcode} nav={nav} />
           )}
         </p>
       )}
@@ -401,22 +424,52 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
         </Section>
       )}
 
-      {foundNothing && (
-        <Section title={fmt(add.nothingFound, { term })}>
-          <OneOffCard
-            term={term}
-            expanded={expanded === 'one-off'}
-            onToggle={() => toggle('one-off')}
-            onLog={log}
-          />
-        </Section>
-      )}
+      {foundNothing &&
+        (searchedBarcode ? (
+          <p className="py-2 text-xs opacity-60">
+            <NoSuchBarcode barcode={searchedBarcode} nav={nav} />
+          </p>
+        ) : (
+          <Section title={fmt(add.nothingFound, { term })}>
+            <OneOffCard
+              term={term}
+              expanded={expanded === 'one-off'}
+              onToggle={() => toggle('one-off')}
+              onLog={log}
+            />
+          </Section>
+        ))}
 
       {!term &&
         matchingCombos.length === 0 &&
         matchingRecipes.length === 0 &&
         !scanned && <p className="py-2 text-sm opacity-60">{add.searchHint}</p>}
     </BottomSheet>
+  )
+}
+
+/**
+ * What a barcode nobody has offers: adding it yourself, with the barcode
+ * already filled in — so the next person who scans or types it finds a food
+ * rather than this line again. Shared by the scanner and by a barcode typed
+ * into the search box, which are the same dead end reached two ways.
+ */
+function NoSuchBarcode({
+  barcode,
+  nav,
+}: {
+  barcode: string | undefined
+  nav: NutritionNav
+}) {
+  const { foodAdd } = useMessages().nutrition.diary
+  return (
+    <>
+      {foodAdd.notFound}{' '}
+      <Link {...nav.createFood(barcode)} className="underline">
+        {foodAdd.addToLibrary}
+      </Link>{' '}
+      {foodAdd.addToLibraryAfter}
+    </>
   )
 }
 
