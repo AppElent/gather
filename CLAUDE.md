@@ -192,7 +192,7 @@ The default branch is `main`. There has never been a `master`.
   Both build with `pnpm build` — staging exists to exercise the bundle prod
   ships, so only env vars differ. **There is no deployed dev environment**: dev
   is `pnpm dev` against your own `convex dev` deployment. See
-  `docs/adr/0012-staging-deploys-on-merge-production-deploys-on-a-click.md`.
+  `docs/adr/0013-staging-deploys-on-merge-production-deploys-on-a-click.md`.
 - `.github/workflows/preview.yml` — per-PR Convex preview deployment + per-PR
   Cloudflare Worker (`gather-pr-<N>`) + PR comment + teardown on close.
   `CONVEX_DEPLOY_KEY` (a `preview:` key), `CLOUDFLARE_API_TOKEN`,
