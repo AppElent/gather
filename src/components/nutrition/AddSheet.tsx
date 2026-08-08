@@ -426,7 +426,13 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide opacity-60">
         {title}
       </h3>
-      <ul className="grid gap-2">{children}</ul>
+      {/* `grid-cols-1` rather than a bare `grid`: the implicit column a bare
+          `grid` creates is sized `auto`, whose *minimum* is the min-content
+          width of its widest row, so one row that cannot shrink drags the whole
+          section past the sheet — and every other row in it stretches to match
+          (#83). `grid-cols-1` compiles to `repeat(1, minmax(0, 1fr))`, which
+          pins the track to the container instead. */}
+      <ul className="grid grid-cols-1 gap-2">{children}</ul>
     </div>
   )
 }

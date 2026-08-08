@@ -32,7 +32,12 @@ export function ResultCard({
   children,
 }: Props) {
   return (
-    <li className="rounded-[var(--app-radius)] border border-[var(--app-border)]">
+    // `min-w-0` because a grid item's automatic minimum size is its min-content
+    // width, which would let a row overflow its track even once the track is
+    // capped at the container (#83). The parts of the row below that cannot
+    // give — the `shrink-0` thumbnail and the `shrink-0` meta — are what that
+    // min-content width is made of.
+    <li className="min-w-0 rounded-[var(--app-radius)] border border-[var(--app-border)]">
       <button
         type="button"
         aria-expanded={expanded}
