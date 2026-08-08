@@ -113,10 +113,49 @@ export interface NutritionStaleState {
   nutritionStale?: boolean
 }
 
+/** Same figures, nutrient for nutrient. An absent nutrient is not a zero. */
 function nutritionEqual(a?: NutritionFacts, b?: NutritionFacts): boolean {
   if ((a === undefined) !== (b === undefined)) return false
   if (a === undefined || b === undefined) return true
   return NUTRIENT_KEYS.every((key) => (a[key] ?? null) === (b[key] ?? null))
+}
+
+/**
+ * Are there any figures here at all?
+ *
+ * Only ever asked before saying where figures came from: with none, there is
+ * nothing to have come from anywhere, and a food that says "Manual" over an
+ * empty panel is claiming an answer to a question nobody asked.
+ *
+ * Deliberately *not* "is this nutrition usable" — that one is about whether
+ * something can be logged from these figures, and energy alone would satisfy
+ * it. Different question, and it belongs to whoever needs it.
+ */
+export function hasNutritionFigures(facts?: NutritionFacts): boolean {
+  return facts !== undefined && NUTRIENT_KEYS.some((key) => facts[key] !== undefined)
+}
+
+/**
+ * Where a set of figures came from, after a save that may or may not have
+ * touched them.
+ *
+ * Typing over the figures makes them `manual`, whatever they were before —
+ * that is what stops a corrected estimate from still describing itself as one.
+ * A save that leaves the figures alone leaves the answer alone, including
+ * leaving it *absent* on a row that never recorded one: nothing is inferred
+ * for a food that predates the field, which is why it needs no backfill.
+ *
+ * Deliberately compares the figures rather than trusting the caller. Renaming
+ * a food, adding a serving or fixing a brand are not claims about its
+ * nutrition, and a client is in no position to say which of those it did.
+ */
+export function nextNutritionSource(
+  before: NutritionFacts | undefined,
+  after: NutritionFacts | undefined,
+  recorded: NutritionSource | undefined,
+): NutritionSource | undefined {
+  if (!hasNutritionFigures(after)) return undefined
+  return nutritionEqual(before, after) ? recorded : 'manual'
 }
 
 // Spec §5: the flag goes true when ingredients or servings change in a save
