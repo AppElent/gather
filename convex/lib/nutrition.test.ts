@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import {
+  hasNutritionFigures,
+  nextNutritionSource,
   nextNutritionStale,
   parseNutritionValue,
   parseServings,
@@ -134,5 +136,77 @@ describe('nextNutritionStale', () => {
     expect(nextNutritionStale({ ...base, nutritionStale: true }, { ...base })).toBe(
       true,
     )
+  })
+})
+
+/**
+ * Where a food's figures came from survives a save that was not about them,
+ * and stops being an import the moment somebody types over one.
+ *
+ * The comparison is the whole point: the alternative — recording `manual`
+ * whenever `update` runs — would make renaming a food a claim about its
+ * nutrition, and there is no way back from that to what it used to say.
+ */
+describe('nextNutritionSource', () => {
+  const figures = { calories: 539, sugars: 56.3 }
+
+  test('untouched figures keep the answer they had', () => {
+    expect(nextNutritionSource(figures, { ...figures }, 'imported')).toBe(
+      'imported',
+    )
+    expect(nextNutritionSource(figures, { ...figures }, 'ai')).toBe('ai')
+  })
+
+  test('a food that never recorded one still does not claim one', () => {
+    expect(
+      nextNutritionSource(figures, { ...figures }, undefined),
+    ).toBeUndefined()
+  })
+
+  test('changing a figure makes them manual, whatever they were', () => {
+    expect(nextNutritionSource(figures, { ...figures, sugars: 55 }, 'imported')).toBe(
+      'manual',
+    )
+    // The correction that must stop calling itself an estimate (#86, story 21).
+    expect(nextNutritionSource(figures, { ...figures, sugars: 55 }, 'ai')).toBe(
+      'manual',
+    )
+  })
+
+  test('adding or removing a nutrient counts as changing the figures', () => {
+    expect(
+      nextNutritionSource(figures, { ...figures, protein: 6.3 }, 'imported'),
+    ).toBe('manual')
+    expect(nextNutritionSource(figures, { calories: 539 }, 'imported')).toBe(
+      'manual',
+    )
+  })
+
+  test('an absent nutrient is not a zero', () => {
+    expect(
+      nextNutritionSource({ calories: 539 }, { calories: 539, salt: 0 }, 'imported'),
+    ).toBe('manual')
+  })
+
+  test('typing figures onto a food that had none is manual', () => {
+    expect(nextNutritionSource({}, figures, undefined)).toBe('manual')
+  })
+
+  test('clearing every figure clears the answer with them', () => {
+    // Nothing came from anywhere, so there is nothing to say — and no stale
+    // "Imported" left over an empty panel.
+    expect(nextNutritionSource(figures, {}, 'imported')).toBeUndefined()
+    expect(nextNutritionSource(figures, undefined, 'ai')).toBeUndefined()
+  })
+})
+
+describe('hasNutritionFigures', () => {
+  test('any single nutrient counts, including a real zero', () => {
+    expect(hasNutritionFigures({ calories: 539 })).toBe(true)
+    expect(hasNutritionFigures({ salt: 0 })).toBe(true)
+  })
+  test('nothing at all does not', () => {
+    expect(hasNutritionFigures({})).toBe(false)
+    expect(hasNutritionFigures(undefined)).toBe(false)
   })
 })

@@ -148,6 +148,19 @@ export default defineSchema({
       v.literal('manual'),
       v.literal('seed'),
     ),
+    // Where the *figures* came from, which is a different question from where
+    // the *row* came from (`source`, above): a food somebody added by hand can
+    // later be corrected off a packet, and an imported row can be typed over.
+    // Conflating the two loses both answers.
+    //
+    // The same union Recipes carry, rather than a second, finer vocabulary
+    // meaning nearly the same thing: an Open Food Facts record is `imported`,
+    // a model's guess is `ai`, typed figures are `manual`.
+    //
+    // Optional, and nothing backfills it — a food that predates the field
+    // simply does not claim a source. Absent on Catalog rows too: their
+    // figures are authored, and "Built-in" already says so.
+    nutritionSource: v.optional(nutritionSourceValidator),
     localEdited: v.optional(v.boolean()),
     // Absent on Catalog entries — seeded reference data is owned by nobody
     // (CONTEXT.md, "Catalog"). Present on every row a person created.

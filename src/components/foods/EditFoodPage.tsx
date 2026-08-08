@@ -69,8 +69,15 @@ export function EditFoodPage({ foodId, nav }: EditFoodPageProps) {
           baseUnit: food.baseUnit,
           nutritionPer100: food.nutritionPer100,
           servings: food.servings,
+          nutritionSource: food.nutritionSource,
         }}
-        onSubmit={async (values) => {
+        onSubmit={async ({
+          // Shown while editing, never sent: `foods.update` works this out
+          // from the figures themselves, so an edit cannot save one answer
+          // while changing the numbers behind it.
+          nutritionSource: _decidedByTheServer,
+          ...values
+        }) => {
           setSubmitting(true)
           setError(null)
           try {

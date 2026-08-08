@@ -66,25 +66,19 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
       )}
 
       {/*
-        Reusing the "imported"/"manual" NutritionSource vocabulary for a
-        food's `source` field ('openfoodfacts'/'manual') rather than adding
-        a fourth badge type — "Imported" reads fine for OFF-sourced data too,
-        and it avoids new plumbing just for foods. If this reads awkwardly
-        once real foods exist, revisit in Phase 3.
+        The badge says where the *figures* came from, which the row now
+        records for itself. It used to be derived from `source` — where the
+        *row* came from — which answered the wrong question: an imported row
+        somebody had since typed over still read "Imported".
+
+        A food that recorded nothing (anything older than the field, and every
+        Catalog entry, whose figures are authored) gets no badge rather than a
+        guessed one. Nothing is backfilled.
       */}
       <NutritionPanel
         nutrition={food.nutritionPer100}
         unitLabel={fmt(detail.per100, { unit: food.baseUnit })}
-        source={
-          food.source === 'seed'
-            ? // Neither "Imported" nor "Manual" is true of a Catalog entry,
-              // and the "Built-in" chip above already says where it came
-              // from — so no badge rather than a wrong one.
-              undefined
-            : food.source === 'openfoodfacts'
-              ? 'imported'
-              : 'manual'
-        }
+        source={food.nutritionSource}
       />
       {food.servings && food.servings.length > 0 && (
         <p className="mb-4 text-sm opacity-60">

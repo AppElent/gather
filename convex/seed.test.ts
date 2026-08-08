@@ -121,4 +121,53 @@ describe('the Sample household', () => {
     expect(left.groups).toBe(0)
     expect(left.recipes).toBe(0)
   })
+
+  /**
+   * A preview is where a distinction has to be visible before anything is
+   * built on it (#87, and #86's AI routes after it). Where a food's *figures*
+   * came from is invisible unless the sample contains foods that differ in
+   * it — and it is only obviously a separate question from where the *row*
+   * came from while at least one food answers the two differently.
+   */
+  test('contains foods carrying each answer about where their figures came from', async () => {
+    const t = testConvex()
+    await buildSample(t)
+
+    const userFoods = await t.run(async (ctx) =>
+      (await ctx.db.query('foods').collect()).filter(
+        (f) => f.seedKey === undefined,
+      ),
+    )
+
+    expect(new Set(userFoods.map((f) => f.nutritionSource))).toEqual(
+      new Set(['imported', 'ai', 'manual']),
+    )
+    // Catalog foods claim nothing: their figures are authored (ADR 0004).
+    const catalog = await t.run(async (ctx) =>
+      (await ctx.db.query('foods').collect()).filter(
+        (f) => f.seedKey !== undefined,
+      ),
+    )
+    expect(catalog.every((f) => f.nutritionSource === undefined)).toBe(true)
+    // The two questions, answered differently by the same row.
+    expect(
+      userFoods.some(
+        (f) => f.source === 'manual' && f.nutritionSource === 'ai',
+      ),
+    ).toBe(true)
+  })
+
+  test('takes its user-created foods with it when it is reset', async () => {
+    const t = testConvex()
+    await buildSample(t)
+
+    await t.run(async (ctx) => await resetSample(ctx))
+
+    const left = await t.run(async (ctx) =>
+      (await ctx.db.query('foods').collect()).filter(
+        (f) => f.seedKey === undefined,
+      ),
+    )
+    expect(left).toEqual([])
+  })
 })

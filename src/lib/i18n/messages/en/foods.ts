@@ -52,6 +52,9 @@ export const foods = {
     grams: 'grams',
     milliliters: 'milliliters',
     nutritionLegend: 'Nutrition per 100 {unit}',
+    // The source name itself is `nutrients.sources`, keyed by the union the
+    // schema defines — this is only the sentence it is said in.
+    nutritionSourceNote: 'Where these figures came from: {source}',
     servingsLegend: 'Servings',
     servingsHint:
       'What you call a portion of this, and how many {unit} that is. Leave it empty and the amounts you log will be offered instead.',
