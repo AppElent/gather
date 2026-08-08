@@ -171,6 +171,26 @@ test('an Open Food Facts result already in your library logs that food’s own f
   })
 })
 
+test('the search field offers a clear only while there is something to clear', async () => {
+  renderSheet()
+  expect(screen.queryByLabelText('Clear search')).toBeNull()
+
+  await search('melk')
+  await waitFor(() => expect(screen.getByText('Halfvolle melk')).toBeDefined())
+
+  fireEvent.click(screen.getByLabelText('Clear search'))
+
+  const field = screen.getByLabelText('Search foods and recipes…')
+  expect(field).toHaveValue('')
+  // Back where you left it, ready for the next thing you type.
+  expect(document.activeElement).toBe(field)
+  expect(screen.queryByLabelText('Clear search')).toBeNull()
+  // And the empty-search state is what is on screen again: the matches for the
+  // term are gone, the always-there sections are back.
+  await waitFor(() => expect(screen.queryByText('Halfvolle melk')).toBeNull())
+  expect(screen.getByText('Melkbroodjes')).toBeDefined()
+})
+
 test('one search fills labelled sections with foods, recipes and Open Food Facts', async () => {
   renderSheet()
   await search('melk')

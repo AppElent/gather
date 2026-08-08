@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { type ComboCounts, comboEntries } from '../../../convex/lib/combos'
@@ -99,6 +99,7 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
     meals: messages.nutrition.meals,
   }
 
+  const searchRef = useRef<HTMLInputElement>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [comboBusy, setComboBusy] = useState(false)
   const [comboError, setComboError] = useState<string | null>(null)
@@ -278,14 +279,35 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <input
-              value={search.term}
-              onChange={(e) => search.setTerm(e.target.value)}
-              onFocus={() => setPromotions((n) => n + 1)}
-              placeholder={add.searchPlaceholder}
-              aria-label={add.searchPlaceholder}
-              className={`${fieldClass} min-w-0 flex-1`}
-            />
+            <div className="relative flex min-w-0 flex-1 items-center">
+              <input
+                ref={searchRef}
+                value={search.term}
+                onChange={(e) => search.setTerm(e.target.value)}
+                onFocus={() => setPromotions((n) => n + 1)}
+                placeholder={add.searchPlaceholder}
+                aria-label={add.searchPlaceholder}
+                className={`${fieldClass} w-full min-w-0 pr-12`}
+              />
+              {/* Only while there is something to clear: an always-present ✕
+                  over an empty field is a control that does nothing. Focus goes
+                  back to the input, so clearing is the start of the next search
+                  rather than the end of this one — and the refocus re-promotes
+                  the sheet, which is why clearing never drops it to peek. */}
+              {search.term !== '' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    search.setTerm('')
+                    searchRef.current?.focus()
+                  }}
+                  aria-label={add.clearSearch}
+                  className="absolute right-0 flex min-h-11 min-w-11 items-center justify-center text-sm opacity-60"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => setScanning((on) => !on)}
