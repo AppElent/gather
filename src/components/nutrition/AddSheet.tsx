@@ -10,6 +10,7 @@ import {
   type QuantityUnit,
 } from '../../../convex/lib/consumption'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import { barcodeTerm } from '../../../convex/lib/offFetch'
 import type {
   OffMappedFood,
   OffSearchResult,
@@ -257,6 +258,11 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
     matchingRecipes.length === 0 &&
     offResults.length === 0 &&
     !search.offSearching
+  // A barcode that matched nothing is not a thing to log the digits of: it is a
+  // product nobody has yet, so it gets the route the scanner already has for
+  // that — add it to your library, with the barcode it was looked up by —
+  // rather than the one-off card, which would write "8712345678901" in a diary.
+  const searchedBarcode = barcodeTerm(term)
 
   return (
     <BottomSheet
@@ -331,16 +337,7 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
       {scanFailure && (
         <p className="mb-3 text-xs opacity-60">
           {scanFailure.message ?? (
-            <>
-              {foodAdd.notFound}{' '}
-              <Link
-                {...nav.createFood(scanFailure.barcode)}
-                className="underline"
-              >
-                {foodAdd.addToLibrary}
-              </Link>{' '}
-              {foodAdd.addToLibraryAfter}
-            </>
+            <NoSuchBarcode barcode={scanFailure.barcode} nav={nav} />
           )}
         </p>
       )}
@@ -427,22 +424,52 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
         </Section>
       )}
 
-      {foundNothing && (
-        <Section title={fmt(add.nothingFound, { term })}>
-          <OneOffCard
-            term={term}
-            expanded={expanded === 'one-off'}
-            onToggle={() => toggle('one-off')}
-            onLog={log}
-          />
-        </Section>
-      )}
+      {foundNothing &&
+        (searchedBarcode ? (
+          <p className="py-2 text-xs opacity-60">
+            <NoSuchBarcode barcode={searchedBarcode} nav={nav} />
+          </p>
+        ) : (
+          <Section title={fmt(add.nothingFound, { term })}>
+            <OneOffCard
+              term={term}
+              expanded={expanded === 'one-off'}
+              onToggle={() => toggle('one-off')}
+              onLog={log}
+            />
+          </Section>
+        ))}
 
       {!term &&
         matchingCombos.length === 0 &&
         matchingRecipes.length === 0 &&
         !scanned && <p className="py-2 text-sm opacity-60">{add.searchHint}</p>}
     </BottomSheet>
+  )
+}
+
+/**
+ * What a barcode nobody has offers: adding it yourself, with the barcode
+ * already filled in — so the next person who scans or types it finds a food
+ * rather than this line again. Shared by the scanner and by a barcode typed
+ * into the search box, which are the same dead end reached two ways.
+ */
+function NoSuchBarcode({
+  barcode,
+  nav,
+}: {
+  barcode: string | undefined
+  nav: NutritionNav
+}) {
+  const { foodAdd } = useMessages().nutrition.diary
+  return (
+    <>
+      {foodAdd.notFound}{' '}
+      <Link {...nav.createFood(barcode)} className="underline">
+        {foodAdd.addToLibrary}
+      </Link>{' '}
+      {foodAdd.addToLibraryAfter}
+    </>
   )
 }
 
