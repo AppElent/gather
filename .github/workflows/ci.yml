@@ -22,6 +22,9 @@ jobs:
         run: echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
+      # Manifest-only: internal consistency plus a stale .env.example. Needs no
+      # credentials, so it runs on every PR including one from a fork.
+      - run: pnpm run env:check
       - run: pnpm run typecheck
       - run: pnpm test
       # Build catches bundling/plugin/SSR-compile breakage that typecheck + tests
