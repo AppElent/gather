@@ -50,6 +50,10 @@ const recipes = vi.hoisted(() => ({
     { _id: 'recipe2', title: 'Chili', nutrition: undefined },
   ],
 }))
+/** What this person usually has at the meal the sheet is adding to (#76). */
+const suggestions = vi.hoisted(() => ({
+  value: { foods: [] as unknown[], recipes: [] as unknown[] },
+}))
 const offResults = vi.hoisted(() => ({
   value: [
     {
@@ -78,7 +82,12 @@ vi.mock('convex/react', () => ({
     if (name === 'foods:getByBarcode') {
       return args === 'skip' ? undefined : existingFood.value
     }
-    if (name === 'recipes:listAcrossMyGroups') return recipes.value
+    if (name === 'recipes:listAcrossMyGroups') {
+      return args === 'skip' ? undefined : recipes.value
+    }
+    if (name === 'consumption:suggestionsForMeal') {
+      return args === 'skip' ? undefined : suggestions.value
+    }
     if (name === 'combos:list') return combos.value
     if (name === 'consumption:loggedAmountsForFood') {
       return args === 'skip' ? undefined : loggedAmounts.value
@@ -117,6 +126,7 @@ vi.mock('../../../convex/_generated/api', () => ({
       createMany: 'consumption:createMany',
       remove: 'consumption:remove',
       loggedAmountsForFood: 'consumption:loggedAmountsForFood',
+      suggestionsForMeal: 'consumption:suggestionsForMeal',
     },
   },
 }))
@@ -148,6 +158,46 @@ beforeEach(() => {
   combos.value = []
   existingFood.value = null
   offProduct.value = null
+  suggestions.value = {
+    foods: [foods.value[1]],
+    recipes: [recipes.value[0]],
+  }
+})
+
+/**
+ * The first screen, before anything is typed (#76).
+ *
+ * It used to be every recipe you owned and none of your foods, which read as
+ * broken. It is what you usually have at *this* meal now — and a person with
+ * no history to draw on is the one who gets told to start typing.
+ */
+test('the sheet opens on what you usually have at this meal', async () => {
+  renderSheet()
+
+  expect(screen.getByText('Your usual foods')).toBeDefined()
+  expect(screen.getByText('Volkorenbrood')).toBeDefined()
+  expect(screen.getByText('Your usual recipes')).toBeDefined()
+  expect(screen.getByText('Melkbroodjes')).toBeDefined()
+  // Not a hint to start typing: there is something here to tap.
+  expect(screen.queryByText('Search for a food, or scan a barcode.')).toBeNull()
+})
+
+test('a recipe you have never logged is behind the search box', async () => {
+  // `recipes.value` still holds Melkbroodjes — what changed is that owning it
+  // is no longer why it would be on the first screen. Nothing is.
+  suggestions.value = { foods: [], recipes: [] }
+  renderSheet()
+
+  expect(screen.queryByText('Melkbroodjes')).toBeNull()
+  // And now the hint appears, which is exactly when it is useful: this person
+  // has logged nothing yet, so the search box is the only way in.
+  expect(
+    screen.getByText('Search for a food, or scan a barcode.'),
+  ).toBeDefined()
+
+  // Typed, it is findable — the library did not go anywhere.
+  await search('melk')
+  await waitFor(() => expect(screen.getByText('Melkbroodjes')).toBeDefined())
 })
 
 test('a barcode you already have is shown from your own rows', async () => {

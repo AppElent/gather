@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
+import type { Id } from './_generated/dataModel'
 
 /**
  * Provenance under Group ownership (ADR-0003), through the real diary
@@ -477,5 +478,197 @@ describe('the amounts you have logged for a food', () => {
     expect(
       await t.query(api.consumption.loggedAmountsForFood, { foodId }),
     ).toEqual([])
+  })
+})
+
+/**
+ * The first screen of the add sheet (#76).
+ *
+ * It used to show every recipe you owned and none of your foods. It shows what
+ * you usually have at *this* meal now — read off your own diary, ranked by how
+ * often, bounded at both ends — and everything else is behind the search box.
+ */
+describe('what the add sheet opens on', () => {
+  /** Long enough before `DAY` to be outside the 60-day window. */
+  const LAST_WINTER = '2026-01-04'
+
+  async function withHabits() {
+    const t = testConvex()
+    await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    await t.withIdentity(asBob).mutation(api.users.ensureUser, {})
+
+    const ids = await t.run(async (ctx) => {
+      const alice = (await ctx.db
+        .query('users')
+        .withIndex('by_clerkId', (q) => q.eq('clerkId', asAlice.subject))
+        .unique()) as { _id: Id<'users'> }
+      const household = await ctx.db.insert('groups', {
+        name: 'Household',
+        inviteCode: 'household-code',
+        slug: 'household',
+        isPersonal: false,
+      })
+      const membership = await ctx.db.insert('memberships', {
+        groupId: household,
+        userId: alice._id,
+        role: 'admin',
+      })
+      const recipe = (title: string) =>
+        ctx.db.insert('recipes', {
+          groupId: household,
+          sharedGroupIds: [],
+          createdByUserId: alice._id,
+          title,
+          ingredients: [],
+          steps: [],
+          tags: [],
+          servings: 2,
+          nutrition: RECIPE_PER_SERVING,
+        })
+      const food = (name: string) =>
+        ctx.db.insert('foods', {
+          name,
+          searchText: name.toLowerCase(),
+          baseUnit: 'g' as const,
+          nutritionPer100: { calories: 100 },
+          source: 'manual' as const,
+        })
+      return {
+        alice: alice._id,
+        membership,
+        oats: await food('Porridge oats'),
+        crisps: await food('Crisps'),
+        pancakes: await food('Pancake mix'),
+        overnightOats: await recipe('Overnight oats'),
+        neverLogged: await recipe('Sunday roast'),
+      }
+    })
+
+    /** A day's worth of the diary, written straight in so dates are chosen. */
+    const logged = async (
+      rows: Array<{
+        date: string
+        meal: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+        foodId?: Id<'foods'>
+        recipeId?: Id<'recipes'>
+        userId?: Id<'users'>
+      }>,
+    ) => {
+      await t.run(async (ctx) => {
+        for (const row of rows) {
+          await ctx.db.insert('consumptionEntries', {
+            userId: row.userId ?? ids.alice,
+            date: row.date,
+            meal: row.meal,
+            foodId: row.foodId,
+            recipeId: row.recipeId,
+            label: 'Something',
+            quantity: 1,
+            quantityUnit: row.foodId ? 'g' : 'serving',
+            nutrition: SNAPSHOT,
+          })
+        }
+      })
+    }
+
+    return { t, ids, logged }
+  }
+
+  const opened = (t: Seeded['t'], meal: 'breakfast' | 'dinner' = 'breakfast') =>
+    t
+      .withIdentity(asAlice)
+      .query(api.consumption.suggestionsForMeal, { date: DAY, meal })
+
+  test('the food you have most often at this meal is first', async () => {
+    const { t, ids, logged } = await withHabits()
+    await logged([
+      { date: '2026-07-28', meal: 'breakfast', foodId: ids.oats },
+      { date: '2026-07-29', meal: 'breakfast', foodId: ids.oats },
+      { date: '2026-07-29', meal: 'snack', foodId: ids.crisps },
+      { date: '2026-07-30', meal: 'breakfast', foodId: ids.pancakes },
+    ])
+
+    const { foods } = await opened(t)
+    expect(foods.map((food) => food.name)).toEqual([
+      'Porridge oats',
+      'Pancake mix',
+    ])
+  })
+
+  test('another meal’s habits are another meal’s', async () => {
+    const { t, ids, logged } = await withHabits()
+    await logged([
+      { date: '2026-07-29', meal: 'breakfast', foodId: ids.oats },
+      { date: '2026-07-29', meal: 'dinner', foodId: ids.crisps },
+    ])
+
+    expect((await opened(t, 'dinner')).foods.map((f) => f.name)).toEqual([
+      'Crisps',
+    ])
+  })
+
+  test('a habit older than the window has stopped being the first guess', async () => {
+    const { t, ids, logged } = await withHabits()
+    await logged([
+      { date: LAST_WINTER, meal: 'breakfast', foodId: ids.pancakes },
+      { date: LAST_WINTER, meal: 'breakfast', foodId: ids.pancakes },
+      { date: '2026-07-29', meal: 'breakfast', foodId: ids.oats },
+    ])
+
+    expect((await opened(t)).foods.map((f) => f.name)).toEqual([
+      'Porridge oats',
+    ])
+  })
+
+  test('a recipe you have never logged is behind the search box', async () => {
+    const { t, ids, logged } = await withHabits()
+    await logged([
+      { date: '2026-07-29', meal: 'breakfast', recipeId: ids.overnightOats },
+    ])
+
+    const { recipes } = await opened(t)
+    expect(recipes.map((recipe) => recipe.title)).toEqual(['Overnight oats'])
+  })
+
+  test('a recipe you can no longer see is not offered back by your own history', async () => {
+    const { t, ids, logged } = await withHabits()
+    await logged([
+      { date: '2026-07-29', meal: 'breakfast', recipeId: ids.overnightOats },
+    ])
+    await t.run(async (ctx) => {
+      await ctx.db.delete(ids.membership)
+    })
+
+    expect((await opened(t)).recipes).toEqual([])
+  })
+
+  test('are yours alone — somebody else’s habits are not consulted', async () => {
+    const { t, ids, logged } = await withHabits()
+    await logged([
+      { date: '2026-07-29', meal: 'breakfast', foodId: ids.oats },
+    ])
+
+    expect(
+      await t
+        .withIdentity(asBob)
+        .query(api.consumption.suggestionsForMeal, {
+          date: DAY,
+          meal: 'breakfast',
+        }),
+    ).toEqual({ foods: [], recipes: [] })
+  })
+
+  test('are nothing at all without a session', async () => {
+    const { t, ids, logged } = await withHabits()
+    await logged([
+      { date: '2026-07-29', meal: 'breakfast', foodId: ids.oats },
+    ])
+
+    expect(
+      await t.query(api.consumption.suggestionsForMeal, {
+        date: DAY,
+        meal: 'breakfast',
+      }),
+    ).toEqual({ foods: [], recipes: [] })
   })
 })

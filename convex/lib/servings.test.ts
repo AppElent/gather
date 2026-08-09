@@ -1,10 +1,13 @@
 import { expect, test } from 'vitest'
 import {
   authoredServings,
+  MAX_MEAL_SUGGESTIONS,
   offeredServings,
   parseServingAmount,
   rankLoggedAmounts,
+  rankMealChoices,
   resolveAmount,
+  suggestionWindowStart,
 } from './servings'
 
 const bread = {
@@ -144,4 +147,106 @@ test('a Catalog food nobody may edit still gets your own amounts', () => {
   expect(offeredServings({}, [{ label: '90 g', amount: 90 }])).toEqual([
     { label: '90 g', amount: 90, own: true },
   ])
+})
+
+/**
+ * What the add sheet opens on: the things you usually have at *this* meal.
+ *
+ * Breakfast opens on breakfast things — the whole point of the empty state is
+ * that the common case needs no typing, and what somebody has every morning is
+ * a far better guess than whatever they logged last night (#76, #73).
+ */
+const entry = (
+  meal: string,
+  date: string,
+  ref: { foodId?: string; recipeId?: string },
+) => ({ meal, date, ...ref })
+
+test('the things you have most often at a meal come first', () => {
+  expect(
+    rankMealChoices(
+      [
+        entry('breakfast', '2026-08-01', { foodId: 'oats' }),
+        entry('breakfast', '2026-08-02', { foodId: 'oats' }),
+        entry('breakfast', '2026-08-03', { foodId: 'toast' }),
+        entry('breakfast', '2026-08-04', { foodId: 'oats' }),
+      ],
+      { meal: 'breakfast' },
+    ),
+  ).toEqual({ foodIds: ['oats', 'toast'], recipeIds: [] })
+})
+
+test('a habit is per meal — dinner is not asked about breakfast', () => {
+  const entries = [
+    entry('breakfast', '2026-08-01', { foodId: 'oats' }),
+    entry('breakfast', '2026-08-02', { foodId: 'oats' }),
+    entry('dinner', '2026-08-01', { foodId: 'rice' }),
+  ]
+  expect(rankMealChoices(entries, { meal: 'dinner' })).toEqual({
+    foodIds: ['rice'],
+    recipeIds: [],
+  })
+})
+
+test('a tie goes to the newer habit, so a change of routine overtakes', () => {
+  expect(
+    rankMealChoices(
+      [
+        entry('lunch', '2026-06-01', { foodId: 'soup' }),
+        entry('lunch', '2026-06-02', { foodId: 'soup' }),
+        entry('lunch', '2026-07-20', { foodId: 'salad' }),
+        entry('lunch', '2026-07-21', { foodId: 'salad' }),
+      ],
+      { meal: 'lunch' },
+    ).foodIds,
+  ).toEqual(['salad', 'soup'])
+})
+
+test('foods and recipes are counted apart — they are two sections', () => {
+  expect(
+    rankMealChoices(
+      [
+        entry('dinner', '2026-08-01', { recipeId: 'curry' }),
+        entry('dinner', '2026-08-02', { recipeId: 'curry' }),
+        entry('dinner', '2026-08-02', { foodId: 'rice' }),
+        // A one-off references neither, and there is nothing to offer back.
+        entry('dinner', '2026-08-03', {}),
+      ],
+      { meal: 'dinner' },
+    ),
+  ).toEqual({ foodIds: ['rice'], recipeIds: ['curry'] })
+})
+
+test('a habit older than the window is not still the first thing offered', () => {
+  expect(
+    rankMealChoices(
+      [
+        entry('breakfast', '2026-01-01', { foodId: 'pancakes' }),
+        entry('breakfast', '2026-01-02', { foodId: 'pancakes' }),
+        entry('breakfast', '2026-08-01', { foodId: 'oats' }),
+      ],
+      { meal: 'breakfast', since: '2026-06-10' },
+    ).foodIds,
+  ).toEqual(['oats'])
+})
+
+test('the window is measured back from the day being logged', () => {
+  expect(suggestionWindowStart('2026-08-09', 60)).toBe('2026-06-10')
+  // Across a year boundary, because a diary does not stop on the 1st.
+  expect(suggestionWindowStart('2026-01-05', 60)).toBe('2025-11-06')
+  // A date this cannot parse narrows to the day itself rather than quietly
+  // widening the scan to the whole diary.
+  expect(suggestionWindowStart('not a date')).toBe('not a date')
+})
+
+test('only a handful is offered, however long the habit list is', () => {
+  const entries = Array.from({ length: 20 }, (_, i) =>
+    entry('snack', '2026-08-01', { foodId: `food${i}` }),
+  )
+  expect(rankMealChoices(entries, { meal: 'snack' }).foodIds).toHaveLength(
+    MAX_MEAL_SUGGESTIONS,
+  )
+  expect(
+    rankMealChoices(entries, { meal: 'snack', limit: 3 }).foodIds,
+  ).toHaveLength(3)
 })
