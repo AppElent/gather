@@ -11,6 +11,7 @@ import { withImageUrl } from './foods'
 import { isVisibleToGroups } from './lib/groupAccess'
 import { NUTRIENT_KEYS, type NutritionFacts, nutritionValidator } from './lib/nutrition'
 import {
+  MAX_MEAL_SUGGESTIONS,
   rankLoggedAmounts,
   rankMealChoices,
   suggestionWindowStart,
@@ -135,22 +136,33 @@ export const suggestionsForMeal = query({
     const user = await getCurrentUser(ctx)
     if (!user) return { foods: [], recipes: [] }
     const since = suggestionWindowStart(args.date)
+    // Both ends of the window. Without the upper one the scan below, which
+    // takes the newest rows first, could be spent entirely on entries written
+    // after the day being asked about — a sheet opened on a day last month
+    // would rank it by a routine its owner had not started yet.
     const entries = await ctx.db
       .query('consumptionEntries')
       .withIndex('by_user_date', (q) =>
-        q.eq('userId', user._id).gte('date', since),
+        q.eq('userId', user._id).gte('date', since).lte('date', args.date),
       )
       .order('desc')
       .take(SUGGESTION_SCAN_LIMIT)
     const { foodIds, recipeIds } = rankMealChoices(entries, {
       meal: args.meal,
       since,
+      until: args.date,
     })
 
+    // Ranked in full, then cut to size *after* the rows that cannot be logged
+    // are gone. The other order spends a slot on every deleted food and every
+    // recipe this reader may no longer see, and never fetches the perfectly
+    // good ninth-ranked one behind them. Still bounded work: the ranking is
+    // only ever as long as the window and the scan limit allowed.
     const foodDocs = await Promise.all(foodIds.map((id) => ctx.db.get(id)))
     const foods = await Promise.all(
       foodDocs
         .filter((food) => food !== null)
+        .slice(0, MAX_MEAL_SUGGESTIONS)
         .map((food) => withImageUrl(ctx, food)),
     )
 
@@ -161,6 +173,7 @@ export const suggestionsForMeal = query({
     // back to them by their own history.
     const recipes = []
     for (const recipe of recipeDocs) {
+      if (recipes.length === MAX_MEAL_SUGGESTIONS) break
       if (!recipe || !recipe.nutrition) continue
       if (!isVisibleToGroups(recipe, viewerGroupIds)) continue
       recipes.push({

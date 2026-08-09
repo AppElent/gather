@@ -671,4 +671,161 @@ describe('what the add sheet opens on', () => {
       }),
     ).toEqual({ foods: [], recipes: [] })
   })
+
+  /**
+   * A row that cannot be offered must not cost a slot.
+   *
+   * Ranking is one thing and being loggable is another: a recipe that has been
+   * deleted, or lost its nutrition, or moved out of a Group you are in, is
+   * discovered only once the document is read. Cap the ranking first and those
+   * discoveries come out of the eight — the sheet shows six, and the
+   * ninth-ranked recipe, which is perfectly good, is never even fetched.
+   */
+  describe('a row that cannot be logged does not eat a slot', () => {
+    /** Ten dinner recipes and nine dinner foods, strictly ordered by habit. */
+    async function withTenHabits() {
+      const t = testConvex()
+      await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+
+      const built = await t.run(async (ctx) => {
+        const alice = (await ctx.db
+          .query('users')
+          .withIndex('by_clerkId', (q) => q.eq('clerkId', asAlice.subject))
+          .unique()) as { _id: Id<'users'> }
+        const household = await ctx.db.insert('groups', {
+          name: 'Household',
+          inviteCode: 'household-code',
+          slug: 'household',
+          isPersonal: false,
+        })
+        await ctx.db.insert('memberships', {
+          groupId: household,
+          userId: alice._id,
+          role: 'admin',
+        })
+
+        const log = async (
+          ref: { foodId?: Id<'foods'>; recipeId?: Id<'recipes'> },
+          times: number,
+        ) => {
+          for (let n = 0; n < times; n += 1) {
+            await ctx.db.insert('consumptionEntries', {
+              userId: alice._id,
+              date: '2026-07-20',
+              meal: 'dinner',
+              ...ref,
+              label: 'Something',
+              quantity: 1,
+              quantityUnit: ref.foodId ? 'g' : 'serving',
+              nutrition: SNAPSHOT,
+            })
+          }
+        }
+
+        const recipes: Id<'recipes'>[] = []
+        for (let rank = 0; rank < 10; rank += 1) {
+          const id = await ctx.db.insert('recipes', {
+            groupId: household,
+            sharedGroupIds: [],
+            createdByUserId: alice._id,
+            title: `Dinner ${rank}`,
+            ingredients: [],
+            steps: [],
+            tags: [],
+            servings: 2,
+            nutrition: RECIPE_PER_SERVING,
+          })
+          recipes.push(id)
+          await log({ recipeId: id }, 10 - rank)
+        }
+
+        const foods: Id<'foods'>[] = []
+        for (let rank = 0; rank < 9; rank += 1) {
+          const id = await ctx.db.insert('foods', {
+            name: `Food ${rank}`,
+            searchText: `food ${rank}`,
+            baseUnit: 'g' as const,
+            nutritionPer100: { calories: 100 },
+            source: 'manual' as const,
+          })
+          foods.push(id)
+          await log({ foodId: id }, 9 - rank)
+        }
+
+        return { recipes, foods }
+      })
+
+      return { t, ...built }
+    }
+
+    const dinner = (t: Seeded['t']) =>
+      t
+        .withIdentity(asAlice)
+        .query(api.consumption.suggestionsForMeal, { date: DAY, meal: 'dinner' })
+
+    test('the eight offered are the eight most-chosen usable recipes', async () => {
+      const { t, recipes } = await withTenHabits()
+      await t.run(async (ctx) => {
+        // The most-chosen of all is gone, and the runner-up has lost the
+        // nutrition a card is built from.
+        await ctx.db.delete(recipes[0])
+        await ctx.db.patch(recipes[1], { nutrition: undefined })
+      })
+
+      expect((await dinner(t)).recipes.map((r) => r.title)).toEqual([
+        'Dinner 2',
+        'Dinner 3',
+        'Dinner 4',
+        'Dinner 5',
+        'Dinner 6',
+        'Dinner 7',
+        'Dinner 8',
+        'Dinner 9',
+      ])
+    })
+
+    test('a deleted food does not cost a slot either', async () => {
+      const { t, foods } = await withTenHabits()
+      await t.run(async (ctx) => {
+        await ctx.db.delete(foods[0])
+      })
+
+      expect((await dinner(t)).foods.map((f) => f.name)).toEqual([
+        'Food 1',
+        'Food 2',
+        'Food 3',
+        'Food 4',
+        'Food 5',
+        'Food 6',
+        'Food 7',
+        'Food 8',
+      ])
+    })
+  })
+
+  test('a day after the one being logged is not a habit of it', async () => {
+    // The window has two ends. Opening the sheet on a day last month must ask
+    // about the habits of that month — and the scan takes the newest rows
+    // first, so an unbounded top end does not merely skew the ranking, it can
+    // spend the whole scan on entries written after the day being asked about.
+    const { t, ids, logged } = await withHabits()
+    await logged([
+      { date: '2026-08-20', meal: 'breakfast', foodId: ids.pancakes },
+      { date: '2026-08-21', meal: 'breakfast', foodId: ids.pancakes },
+      { date: '2026-07-29', meal: 'breakfast', foodId: ids.oats },
+    ])
+
+    expect((await opened(t)).foods.map((f) => f.name)).toEqual([
+      'Porridge oats',
+    ])
+  })
+
+  test('the day being logged counts, so this morning is part of this morning', async () => {
+    const { t, ids, logged } = await withHabits()
+    await logged([{ date: DAY, meal: 'breakfast', foodId: ids.oats }])
+
+    expect((await opened(t)).foods.map((f) => f.name)).toEqual([
+      'Porridge oats',
+    ])
+  })
 })

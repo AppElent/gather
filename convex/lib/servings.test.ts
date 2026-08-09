@@ -230,6 +230,32 @@ test('a habit older than the window is not still the first thing offered', () =>
   ).toEqual(['oats'])
 })
 
+test('a day after the one being logged is not a habit of it', () => {
+  // The window has two ends. Opening the sheet on a day last month must ask
+  // about the habits of that month — if what came *after* counted, a historical
+  // day would be ranked by a routine its owner had not started yet, and the
+  // caller's newest-first scan cap would spend itself on those rows first.
+  expect(
+    rankMealChoices(
+      [
+        entry('breakfast', '2026-08-20', { foodId: 'granola' }),
+        entry('breakfast', '2026-08-21', { foodId: 'granola' }),
+        entry('breakfast', '2026-07-04', { foodId: 'oats' }),
+      ],
+      { meal: 'breakfast', since: '2026-05-06', until: '2026-07-05' },
+    ).foodIds,
+  ).toEqual(['oats'])
+})
+
+test('the day being logged counts, so this morning is part of this morning', () => {
+  expect(
+    rankMealChoices([entry('breakfast', '2026-07-05', { foodId: 'oats' })], {
+      meal: 'breakfast',
+      until: '2026-07-05',
+    }).foodIds,
+  ).toEqual(['oats'])
+})
+
 test('the window is measured back from the day being logged', () => {
   expect(suggestionWindowStart('2026-08-09', 60)).toBe('2026-06-10')
   // Across a year boundary, because a diary does not stop on the 1st.
@@ -239,14 +265,14 @@ test('the window is measured back from the day being logged', () => {
   expect(suggestionWindowStart('not a date')).toBe('not a date')
 })
 
-test('only a handful is offered, however long the habit list is', () => {
+test('everything in the window is ranked, because a slot must not be spent early', () => {
+  // Only a handful is ever *offered* (`MAX_MEAL_SUGGESTIONS`), but that cut is
+  // the caller's to make once it has read the rows and dropped the ones that
+  // cannot be logged. Cutting here would spend a slot on every deleted food
+  // and never reach the good one behind it.
   const entries = Array.from({ length: 20 }, (_, i) =>
     entry('snack', '2026-08-01', { foodId: `food${i}` }),
   )
-  expect(rankMealChoices(entries, { meal: 'snack' }).foodIds).toHaveLength(
-    MAX_MEAL_SUGGESTIONS,
-  )
-  expect(
-    rankMealChoices(entries, { meal: 'snack', limit: 3 }).foodIds,
-  ).toHaveLength(3)
+  expect(rankMealChoices(entries, { meal: 'snack' }).foodIds).toHaveLength(20)
+  expect(MAX_MEAL_SUGGESTIONS).toBe(8)
 })

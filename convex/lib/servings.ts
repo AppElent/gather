@@ -69,7 +69,12 @@ export function rankLoggedAmounts(
     .map(([amount]) => ({ label: `${amount} ${baseUnit}`, amount }))
 }
 
-/** How many things each section of the empty add sheet offers (#76). */
+/**
+ * How many things each section of the empty add sheet offers (#76).
+ *
+ * Applied by the caller *after* it has read the documents and dropped the ones
+ * that cannot be logged, never by the ranking — see `rankMealChoices`.
+ */
 export const MAX_MEAL_SUGGESTIONS = 8
 
 /**
@@ -125,27 +130,36 @@ export interface MealChoiceEntry<F extends string, R extends string> {
  * other. A one-off entry references neither and counts towards nothing: there
  * is nothing to offer back.
  *
- * Pure, and given the window rather than computing it, so the same bound the
- * caller's index range applies is applied again here — the two cannot drift,
- * and a test can state the window without a database.
+ * **The window has two ends.** `since` is the horizon and `until` is the day
+ * being logged, inclusive — so opening the sheet on a day last month asks
+ * about the habits of that month rather than being ranked by a routine its
+ * owner had not started yet. Pure, and given both bounds rather than computing
+ * them, so the same window the caller's index range applies is applied again
+ * here: the two cannot drift, and a test can state the window without a
+ * database.
+ *
+ * **Nothing is capped here.** How many to offer is `MAX_MEAL_SUGGESTIONS`, and
+ * it can only be applied once the documents have been read — a recipe that has
+ * been deleted, lost its nutrition or moved out of a Group you are in cannot
+ * be logged, and is discovered too late to have been ranked around. Capping
+ * first would spend those slots on rows nobody can be offered. The result is
+ * bounded by what the caller passed in, which is bounded by the window and by
+ * its own scan limit.
  */
 export function rankMealChoices<F extends string, R extends string>(
   entries: readonly MealChoiceEntry<F, R>[],
-  options: { meal: string; since?: string; limit?: number },
+  options: { meal: string; since?: string; until?: string },
 ): { foodIds: F[]; recipeIds: R[] } {
-  const limit = options.limit ?? MAX_MEAL_SUGGESTIONS
   const foods = new Map<F, Tally>()
   const recipes = new Map<R, Tally>()
   for (const entry of entries) {
     if (entry.meal !== options.meal) continue
     if (options.since !== undefined && entry.date < options.since) continue
+    if (options.until !== undefined && entry.date > options.until) continue
     if (entry.foodId !== undefined) tally(foods, entry.foodId, entry.date)
     if (entry.recipeId !== undefined) tally(recipes, entry.recipeId, entry.date)
   }
-  return {
-    foodIds: mostChosen(foods, limit),
-    recipeIds: mostChosen(recipes, limit),
-  }
+  return { foodIds: mostChosen(foods), recipeIds: mostChosen(recipes) }
 }
 
 interface Tally {
@@ -163,7 +177,7 @@ function tally<K extends string>(counts: Map<K, Tally>, key: K, date: string) {
   if (date > seen.last) seen.last = date
 }
 
-function mostChosen<K extends string>(counts: Map<K, Tally>, limit: number): K[] {
+function mostChosen<K extends string>(counts: Map<K, Tally>): K[] {
   return [...counts.entries()]
     .sort(
       ([aKey, a], [bKey, b]) =>
@@ -171,7 +185,6 @@ function mostChosen<K extends string>(counts: Map<K, Tally>, limit: number): K[]
         compare(b.last, a.last) ||
         compare(aKey as string, bKey as string),
     )
-    .slice(0, limit)
     .map(([key]) => key)
 }
 
