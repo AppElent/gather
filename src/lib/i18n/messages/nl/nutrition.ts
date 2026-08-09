@@ -108,7 +108,7 @@ export const diary = {
     notFound: 'Niet gevonden.',
     review: 'Controleren en toevoegen',
     reviewHint:
-      'Gegevens van Open Food Facts zijn vaak onvolledig. Controleer ze; bij opslaan wordt het voedingsmiddel toegevoegd en genoteerd.',
+      'Gegevens van Open Food Facts zijn vaak onvolledig. Controleer ze; bij opslaan wordt het voedingsmiddel toegevoegd en kom je hier terug om het te noteren.',
     addToLibrary: 'Voeg het toe aan de voedingsmiddelen',
     addToLibraryAfter: 'en probeer het dan opnieuw.',
     searching: 'Zoeken bij Open Food Facts…',

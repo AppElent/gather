@@ -133,7 +133,7 @@ export const diary = {
     /** What choosing an Open Food Facts result does now: opens it, saves nothing (#93). */
     review: 'Check and add',
     reviewHint:
-      'Open Food Facts data is often incomplete. Check it, then saving adds the food and logs it.',
+      'Open Food Facts data is often incomplete. Check it, then saving adds the food and brings you back here to log it.',
     addToLibrary: 'Add it to the foods library',
     addToLibraryAfter: 'first.',
     searching: 'Searching Open Food Facts…',
