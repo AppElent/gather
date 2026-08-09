@@ -928,9 +928,17 @@ export const SAMPLE_USER_FOODS = [
   {
     // Scanned in the shop and taken as it came: the row and its figures both
     // come from Open Food Facts.
+    //
+    // The barcode is deliberately a GS1 in-store code (prefix 2), never issued
+    // to a real retail product, rather than this product's actual EAN. The
+    // sample is wiped and recreated, but a *user-created* row is preserved —
+    // so a real EAN here would collide with one a developer had already scanned
+    // on dev, and `foods.getByBarcode` uses `.unique()`, which throws on two
+    // matches. That would break barcode lookup for that product until the
+    // sample was reset. A code no real packet carries cannot collide.
     name: 'Roomboter ontbijtkoek',
     brand: 'Peijnenburg',
-    barcode: '8710398160005',
+    barcode: '2000000000017',
     baseUnit: 'g' as const,
     nutritionPer100: {
       calories: 328,

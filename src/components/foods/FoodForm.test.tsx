@@ -216,6 +216,54 @@ test('a food with no figures claims no source for them', () => {
   )
 })
 
+test('an imported product with no nutriments claims no source either', () => {
+  // Open Food Facts holds plenty of products with a name, a picture and no
+  // figures at all. The form is opened as `imported` because the row came from
+  // there — but there is nothing for that to be true *of*, and a note over an
+  // empty grid reads as though numbers had been supplied.
+  renderWithI18n(
+    <FoodForm
+      onSubmit={vi.fn()}
+      submitting={false}
+      initial={{
+        name: 'Volkoren crackers',
+        brand: 'Plus',
+        nutritionPer100: {},
+        nutritionSource: 'imported',
+      }}
+    />,
+  )
+  expect(screen.queryByText(/Where these figures came from/)).toBeNull()
+})
+
+test('clearing the last figure takes the source note with it', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(
+    <FoodForm
+      onSubmit={onSubmit}
+      submitting={false}
+      initial={{
+        name: 'Nutella',
+        nutritionPer100: { calories: 539 },
+        nutritionSource: 'imported',
+      }}
+    />,
+  )
+  expect(
+    screen.getByText('Where these figures came from: Imported'),
+  ).toBeDefined()
+
+  fireEvent.change(screen.getByLabelText('Calories (kcal)'), {
+    target: { value: '' },
+  })
+  expect(screen.queryByText(/Where these figures came from/)).toBeNull()
+
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ nutritionSource: undefined }),
+  )
+})
+
 test('a serving can be taken off again', () => {
   const onSubmit = vi.fn()
   renderWithI18n(

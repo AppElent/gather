@@ -92,6 +92,18 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
   const messages = useMessages()
   const { form } = messages.foods
 
+  // The note answers for the figures on screen now, not for the answer the form
+  // was opened with. An Open Food Facts product with no nutriments arrives as
+  // `imported` over an empty grid, and clearing the last figure by hand leaves
+  // the same mismatch — both would otherwise read "these figures came from
+  // Imported" above nothing. This is the predicate the submit below already
+  // applies, so what is shown and what is saved cannot disagree.
+  const shownNutritionSource = hasNutritionFigures(
+    nutrientInputsToFacts(nutritionInputs),
+  )
+    ? nutritionSource
+    : undefined
+
   return (
     <form
       className="mx-auto grid max-w-2xl gap-4"
@@ -165,10 +177,10 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
         <legend className="px-1 text-sm font-medium">
           {fmt(form.nutritionLegend, { unit: baseUnit })}
         </legend>
-        {nutritionSource && (
+        {shownNutritionSource && (
           <p className="mb-2 text-xs opacity-60">
             {fmt(form.nutritionSourceNote, {
-              source: messages.nutrients.sources[nutritionSource],
+              source: messages.nutrients.sources[shownNutritionSource],
             })}
           </p>
         )}
