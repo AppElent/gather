@@ -589,3 +589,174 @@ describe('reviewing an import before it is saved', () => {
     expect(food?.nutritionSource).toBe('imported')
   })
 })
+
+/**
+ * The emoji a person picked for a food (#94).
+ *
+ * Content, stored rather than translated, and optional in both directions:
+ * nothing is backfilled, and taking one off has to be a thing the row can
+ * actually record. The tier below it in the tile is the generic glyph, and an
+ * icon stored as `''` would stand in front of that glyph rendering nothing —
+ * so "cleared" has to mean an absent field, which is what these check.
+ */
+describe('a food’s icon', () => {
+  async function signedIn() {
+    const t = testConvex()
+    await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    return t
+  }
+
+  test('is saved with the food, and read back with it', async () => {
+    const t = await signedIn()
+
+    const id = await t.withIdentity(asAlice).mutation(api.foods.create, {
+      name: 'Hagelslag',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 500 },
+      icon: '🍫',
+    })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.icon).toBe('🍫')
+  })
+
+  test('a food nobody gave one has no field at all', async () => {
+    const t = await signedIn()
+
+    const id = await t.withIdentity(asAlice).mutation(api.foods.create, {
+      name: 'Hagelslag',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 500 },
+    })
+
+    const row = await t.run(async (ctx) => ctx.db.get(id))
+    expect(row && 'icon' in row).toBe(false)
+  })
+
+  test('can be changed', async () => {
+    const t = await signedIn()
+    const id = await t.withIdentity(asAlice).mutation(api.foods.create, {
+      name: 'Melk',
+      baseUnit: 'ml',
+      nutritionPer100: { calories: 46 },
+      icon: '🥛',
+    })
+
+    await t.withIdentity(asAlice).mutation(api.foods.update, {
+      id,
+      name: 'Melk',
+      baseUnit: 'ml',
+      nutritionPer100: { calories: 46 },
+      icon: '🧀',
+    })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.icon).toBe('🧀')
+  })
+
+  // The one that would fail silently: an optional argument nobody sent is not
+  // a key on the arguments at all, so a save that only spread them would keep
+  // the old icon forever and clearing would look like it had worked.
+  test('clearing it removes the field rather than storing an empty string', async () => {
+    const t = await signedIn()
+    const id = await t.withIdentity(asAlice).mutation(api.foods.create, {
+      name: 'Melk',
+      baseUnit: 'ml',
+      nutritionPer100: { calories: 46 },
+      icon: '🥛',
+    })
+
+    // Exactly what the form sends once the icon has been taken off: every
+    // other field, and no icon.
+    await t.withIdentity(asAlice).mutation(api.foods.update, {
+      id,
+      name: 'Melk',
+      baseUnit: 'ml',
+      nutritionPer100: { calories: 46 },
+    })
+
+    const row = await t.run(async (ctx) => ctx.db.get(id))
+    expect(row?.icon).toBeUndefined()
+    expect(row && 'icon' in row).toBe(false)
+  })
+
+  // The path most likely to drop it: an import goes through the *action*, not
+  // the mutation, because of the picture. A field the action does not carry is
+  // lost at the save with nothing saying so.
+  test('survives an Open Food Facts import, which is where it is picked', async () => {
+    const t = await signedIn()
+
+    const id = await t
+      .withIdentity(asAlice)
+      .action(api.foodsLookup.importFromOff, {
+        barcode: '8712345678901',
+        name: 'Volkoren crackers',
+        brand: 'Plus',
+        baseUnit: 'g',
+        nutritionPer100: {},
+        // A product with no photograph and no figures — the review screen's
+        // whole reason for existing, and the row an icon does the most for.
+        icon: '🍞',
+      })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.icon).toBe('🍞')
+    expect(food?.source).toBe('openfoodfacts')
+  })
+
+  test('a refresh from Open Food Facts leaves the one you chose alone', async () => {
+    const t = await signedIn()
+    const id = await t.withIdentity(asAlice).mutation(api.foods.upsertFromOff, {
+      barcode: '3017620422003',
+      name: 'Nutella',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 539 },
+      icon: '🍫',
+    })
+
+    // Open Food Facts has no emoji, so a refresh has nothing to overwrite it
+    // with — and the icon was yours, not theirs.
+    await t.withIdentity(asAlice).mutation(api.foods.applyOffRefresh, {
+      id,
+      barcode: '3017620422003',
+      name: 'Nutella',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 546 },
+    })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.icon).toBe('🍫')
+    expect(food?.nutritionPer100.calories).toBe(546)
+  })
+
+  test('a Catalog food carries the fixture’s icon and still refuses every write', async () => {
+    const t = await signedIn()
+    const id = await t.run(async (ctx) =>
+      ctx.db.insert('foods', {
+        name: 'Banana',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 89 },
+        source: 'seed',
+        seedKey: 'banana',
+        icon: '🍌',
+      }),
+    )
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.icon).toBe('🍌')
+    // A fixture setting an icon is not the same as making these rows editable
+    // (ADR 0004) — `assertNotCatalog` still guards the write path.
+    await expect(
+      t.withIdentity(asAlice).mutation(api.foods.update, {
+        id,
+        name: 'Banana',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 89 },
+        icon: '🍎',
+      }),
+    ).rejects.toThrow()
+
+    const after = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(after?.icon).toBe('🍌')
+  })
+})

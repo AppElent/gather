@@ -524,6 +524,46 @@ test('a search matching nothing offers the typed term as a one-off', async () =>
   })
 })
 
+/**
+ * A one-off has no food and no recipe behind it, so an emoji is the only
+ * picture it can ever have — and the diary rows are where it shows (#94).
+ */
+test('a one-off can be given an icon, and it goes to the diary with it', async () => {
+  renderSheet()
+  await search('poffertjes at the fair')
+
+  await waitFor(() =>
+    expect(
+      screen.getByText('Nothing found for “poffertjes at the fair”'),
+    ).toBeDefined(),
+  )
+  fireEvent.click(screen.getByText('Log “poffertjes at the fair” as a one-off'))
+  fireEvent.click(screen.getByRole('button', { name: '🍬' }))
+  fireEvent.click(screen.getByText('Add to diary'))
+
+  await waitFor(() => expect(calls.value).toHaveLength(1))
+  expect(calls.value[0][1]).toMatchObject({
+    label: 'poffertjes at the fair',
+    icon: '🍬',
+  })
+})
+
+test('a one-off nobody decorated carries no icon at all', async () => {
+  renderSheet()
+  await search('poffertjes at the fair')
+
+  await waitFor(() =>
+    expect(
+      screen.getByText('Nothing found for “poffertjes at the fair”'),
+    ).toBeDefined(),
+  )
+  fireEvent.click(screen.getByText('Log “poffertjes at the fair” as a one-off'))
+  fireEvent.click(screen.getByText('Add to diary'))
+
+  await waitFor(() => expect(calls.value).toHaveLength(1))
+  expect((calls.value[0][1] as { icon?: string }).icon).toBeUndefined()
+})
+
 test('a search matching nothing also offers adding it as a food', async () => {
   // A one-off is right for a restaurant meal and wrong for a product you will
   // eat again next week: logged once, never findable, so the same search finds

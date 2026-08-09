@@ -1,0 +1,71 @@
+import { fireEvent, screen } from '@testing-library/react'
+import { expect, test, vi } from 'vitest'
+import { renderWithI18n } from '../../lib/i18n/testing'
+import { FOOD_ICONS, IconPicker } from './IconPicker'
+
+/**
+ * The picker is a curated set, and clearing is a real answer (#94).
+ *
+ * The one behaviour worth defending in a test is what "no icon" is stored as:
+ * `undefined`, never `''`. An empty string is set as far as the tile's fallback
+ * chain can tell, so it would sit in front of the generic glyph and render a
+ * blank square — a bug nobody would find by reading the picker.
+ */
+
+test('the set is curated rather than every emoji there is', () => {
+  // Roughly forty was the decision (#75's triage), not an exact number — this
+  // guards the shape of the answer, so that widening it later is a choice
+  // somebody makes rather than something that drifts.
+  expect(FOOD_ICONS.length).toBeGreaterThanOrEqual(30)
+  expect(FOOD_ICONS.length).toBeLessThanOrEqual(50)
+  expect(new Set(FOOD_ICONS).size).toBe(FOOD_ICONS.length)
+})
+
+test('choosing one reports it', () => {
+  const onChange = vi.fn()
+  renderWithI18n(<IconPicker onChange={onChange} />)
+
+  fireEvent.click(screen.getByRole('button', { name: '🍕' }))
+
+  expect(onChange).toHaveBeenCalledWith('🍕')
+})
+
+test('choosing another replaces the first', () => {
+  const onChange = vi.fn()
+  renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
+
+  fireEvent.click(screen.getByRole('button', { name: '🥗' }))
+
+  expect(onChange).toHaveBeenCalledWith('🥗')
+})
+
+test('the chosen one says so', () => {
+  renderWithI18n(<IconPicker value="🍕" onChange={vi.fn()} />)
+
+  expect(screen.getByRole('button', { name: '🍕' }).ariaPressed).toBe('true')
+  expect(screen.getByRole('button', { name: '🥗' }).ariaPressed).toBe('false')
+})
+
+test('clearing reports nothing at all, not an empty string', () => {
+  const onChange = vi.fn()
+  renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
+
+  fireEvent.click(screen.getByRole('button', { name: 'No icon' }))
+
+  expect(onChange).toHaveBeenCalledWith(undefined)
+})
+
+test('pressing the chosen one again clears it', () => {
+  const onChange = vi.fn()
+  renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
+
+  fireEvent.click(screen.getByRole('button', { name: '🍕' }))
+
+  expect(onChange).toHaveBeenCalledWith(undefined)
+})
+
+test('there is nothing to clear until something is chosen', () => {
+  renderWithI18n(<IconPicker onChange={vi.fn()} />)
+
+  expect(screen.queryByRole('button', { name: 'No icon' })).toBeNull()
+})

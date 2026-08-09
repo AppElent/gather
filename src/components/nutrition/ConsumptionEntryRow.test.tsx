@@ -157,6 +157,36 @@ test('a failed save keeps the row in edit mode and shows an error', async () => 
   expect(screen.getByText('Save')).toBeDefined()
 })
 
+/**
+ * The diary row is the whole argument for decorating a one-off (#94): it is
+ * logged once and never reused, so this is the only place the icon is ever
+ * seen. An entry that was given none reads exactly as it did before.
+ */
+test('a one-off shows the icon it was logged with', () => {
+  renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={{ ...entry, label: 'Poffertjes at the fair', icon: '🍬' }}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+  expect(screen.getByText('🍬')).toBeDefined()
+  expect(screen.getByText('Poffertjes at the fair')).toBeDefined()
+})
+
+test('an entry with no icon renders exactly as it always did', () => {
+  const { container } = renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={entry}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+  expect(container.querySelector('[aria-hidden="true"]')).toBeNull()
+})
+
 test('an invalid quantity does not call onUpdate', () => {
   const onUpdate = vi.fn()
   renderWithI18n(
