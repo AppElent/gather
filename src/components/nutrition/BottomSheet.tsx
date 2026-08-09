@@ -343,9 +343,19 @@ export function BottomSheet({
           />
         </div>
         <div className="flex-none px-4 pb-2">{header}</div>
+        {/* `overflow-x-hidden` is not decoration. Setting either axis to
+            something other than `visible` makes the other compute to `auto`, so
+            leaving it alone did not mean "no horizontal overflow" — it meant
+            the body was horizontally scrollable, and anything inside it that
+            outgrew the sheet took the sheet sideways rather than being clipped
+            by it (#83). Clipping keeps a future unshrinkable child contained.
+
+            This does not touch rule 3: `touch-action` is unchanged, and it
+            already refused horizontal panning at every detent. All that goes
+            away is a scrollable overflow region nothing was meant to reach. */}
         <div
           ref={bodyRef}
-          className={`flex-1 px-4 pb-8 ${
+          className={`flex-1 overflow-x-hidden px-4 pb-8 ${
             detent === 'full' ? 'overflow-y-auto' : 'overflow-y-hidden'
           }`}
           style={{
