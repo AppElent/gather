@@ -65,6 +65,7 @@ export const diary = {
     title: 'Add to {meal}',
     searchPlaceholder: 'Search foods and recipes…',
     searchHint: 'Search for a food, or scan a barcode.',
+    clearSearch: 'Clear search',
     scan: 'Scan',
     hideScanner: 'Hide scanner',
     sections: {

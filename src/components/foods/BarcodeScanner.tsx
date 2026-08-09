@@ -5,6 +5,18 @@ import { inputClass } from '../nutrition/nutrientInputs'
 
 interface Props {
   onDetected: (barcode: string) => void
+  /**
+   * Whether the camera comes on as soon as this mounts.
+   *
+   * Off by default, and deliberately a prop rather than the component's
+   * behaviour: the foods list renders a scanner on a page that is not about
+   * scanning, and turning the camera on whenever that page is opened would be
+   * a worse bug than the two-tap one this exists to fix (#81). A caller that
+   * *is* a scanning surface — the add sheet, reached by pressing Scan — sets
+   * it, and then owns stopping it, so the scanner's own Scan/Stop button goes
+   * away rather than sitting there duplicating the one that brought you here.
+   */
+  autoStart?: boolean
 }
 
 const ZXING_FORMATS = ['EAN-13', 'EAN-8', 'UPC-A', 'UPC-E'] as const
@@ -17,7 +29,7 @@ interface NativeBarcodeDetector {
   detect: (source: CanvasImageSource) => Promise<Array<{ rawValue: string }>>
 }
 
-export function BarcodeScanner({ onDetected }: Props) {
+export function BarcodeScanner({ onDetected, autoStart = false }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [manualEntry, setManualEntry] = useState('')
@@ -25,7 +37,7 @@ export function BarcodeScanner({ onDetected }: Props) {
   // reading it inside the camera effect would tear the stream down and restart
   // it every time somebody switched language mid-scan.
   const [cameraDenied, setCameraDenied] = useState(false)
-  const [scanning, setScanning] = useState(false)
+  const [scanning, setScanning] = useState(autoStart)
   const { scanner } = useMessages().foods
 
   // Read via a ref inside the scan loop below instead of depending on
@@ -128,15 +140,19 @@ export function BarcodeScanner({ onDetected }: Props) {
     <div className="grid gap-3">
       {!cameraDenied && (
         <div>
-          <button
-            type="button"
-            onClick={() => setScanning((s) => !s)}
-            className="rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-1.5 text-sm"
-          >
-            {scanning ? scanner.stop : scanner.scan}
-          </button>
+          {!autoStart && (
+            <button
+              type="button"
+              onClick={() => setScanning((s) => !s)}
+              className="rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-1.5 text-sm"
+            >
+              {scanning ? scanner.stop : scanner.scan}
+            </button>
+          )}
           {scanning && (
-            <div className="relative mt-2 max-w-sm">
+            <div
+              className={`relative max-w-sm ${autoStart ? '' : 'mt-2'}`.trim()}
+            >
               <video
                 ref={videoRef}
                 className="w-full rounded-[var(--app-radius)]"
