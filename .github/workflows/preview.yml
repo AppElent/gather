@@ -25,15 +25,26 @@ jobs:
       # and `production` Environments hold: an environment secret shadows a repo
       # secret of the same name, and identical names would make a missing
       # production value fall back to preview's rather than fail.
-      CONVEX_DEPLOY_KEY: ${{ secrets.PREVIEW_CONVEX_DEPLOY_KEY }}
+      #
+      # The `|| secrets.<old name>` fallbacks are a transition shim. Renaming a
+      # GitHub secret needs a repo-settings change no pull request can make, so
+      # without them this PR's own preview cannot build — and every *other* open
+      # PR's preview would break the moment this merges, before anyone had a
+      # chance to add the new names.
+      #
+      # Retire them once `pnpm run env:check preview` reports no missing values,
+      # which is precisely when the new names exist. Delete the four `||`
+      # clauses and the four old repo secrets together; leaving the old secrets
+      # in place is what would let a fallback silently mask a missing new value.
+      CONVEX_DEPLOY_KEY: ${{ secrets.PREVIEW_CONVEX_DEPLOY_KEY || secrets.CONVEX_DEPLOY_KEY }}
       SENTRY_AUTH_TOKEN: ${{ secrets.PREVIEW_SENTRY_AUTH_TOKEN }}
       # Published, not secret: Vite inlines every VITE_* into a bundle served at
       # a public preview URL, so calling these confidential would be a false
       # claim. The test user must therefore exist only on the Clerk test
       # instance — that, not secrecy, is what contains the blast radius.
-      VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.PREVIEW_VITE_CLERK_PUBLISHABLE_KEY }}
-      VITE_TEST_USER_EMAIL: ${{ vars.PREVIEW_VITE_TEST_USER_EMAIL }}
-      VITE_TEST_USER_PASSWORD: ${{ vars.PREVIEW_VITE_TEST_USER_PASSWORD }}
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.PREVIEW_VITE_CLERK_PUBLISHABLE_KEY || secrets.PREVIEW_CLERK_PUBLISHABLE_KEY }}
+      VITE_TEST_USER_EMAIL: ${{ vars.PREVIEW_VITE_TEST_USER_EMAIL || secrets.VITE_TEST_USER_EMAIL }}
+      VITE_TEST_USER_PASSWORD: ${{ vars.PREVIEW_VITE_TEST_USER_PASSWORD || secrets.VITE_TEST_USER_PASSWORD }}
       VITE_SENTRY_DSN: ${{ vars.PREVIEW_VITE_SENTRY_DSN }}
       VITE_SENTRY_ORG: ${{ vars.PREVIEW_VITE_SENTRY_ORG }}
       VITE_SENTRY_PROJECT: ${{ vars.PREVIEW_VITE_SENTRY_PROJECT }}
