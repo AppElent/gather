@@ -392,9 +392,10 @@ test('clearing one submits no icon at all', () => {
   fireEvent.click(screen.getByRole('button', { name: 'No icon' }))
   fireEvent.click(screen.getByRole('button', { name: /save food/i }))
 
-  expect(onSubmit).toHaveBeenCalledWith(
-    expect.objectContaining({ icon: undefined }),
-  )
+  // `null`, not `undefined`: Convex drops an undefined argument before it
+  // reaches the mutation, so a cleared icon submitted that way would arrive
+  // indistinguishable from one nobody mentioned, and never take.
+  expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ icon: null }))
 })
 
 test('a food nobody gave an icon submits none', () => {
@@ -405,7 +406,5 @@ test('a food nobody gave an icon submits none', () => {
   })
   fireEvent.click(screen.getByRole('button', { name: /save food/i }))
 
-  expect(onSubmit).toHaveBeenCalledWith(
-    expect.objectContaining({ icon: undefined }),
-  )
+  expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ icon: null }))
 })

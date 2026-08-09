@@ -153,7 +153,7 @@ export const importFromOff = action({
     // is exactly the food with nothing else to show. Every field of the review
     // reaches the row through this action, so an icon that stopped here would
     // be dropped at the save without anything saying so.
-    icon: v.optional(v.string()),
+    icon: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args): Promise<Id<'foods'>> => {
     const identity = await ctx.auth.getUserIdentity()

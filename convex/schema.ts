@@ -243,6 +243,11 @@ export default defineSchema({
     quantity: v.number(),
     quantityUnit: quantityUnitValidator,
     nutrition: v.optional(nutritionValidator),
+    // Kept for the same reason as the figures beside it, and only on the same
+    // rows: a one-off has no food and no recipe to read an icon back from, so
+    // a Combo that does not carry its own would lose it on every future log
+    // (#94).
+    icon: v.optional(v.string()),
   }).index('by_combo', ['comboId']),
 
   babies: defineTable({

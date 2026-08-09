@@ -41,6 +41,7 @@ async function resolveComponent(
     quantity: item.quantity,
     quantityUnit: item.quantityUnit,
     nutrition: item.nutrition,
+    icon: item.icon,
   }
   if (item.foodId) {
     const food = await ctx.db.get(item.foodId)
@@ -163,6 +164,10 @@ export const saveFromMeal = mutation({
         // later. A food or a Recipe is re-read on every log, deliberately.
         nutrition:
           entry.foodId || entry.recipeId ? undefined : entry.nutrition,
+        // Same rule for the icon (#94): a food's travels with the food, so
+        // changing it there changes every future log. A one-off's has nowhere
+        // else to live, and without this a Combo would quietly drop it.
+        icon: entry.foodId || entry.recipeId ? undefined : entry.icon,
       })
     }
     return comboId

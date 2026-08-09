@@ -667,17 +667,44 @@ describe('a food’s icon', () => {
     })
 
     // Exactly what the form sends once the icon has been taken off: every
-    // other field, and no icon.
+    // other field, and `null` for the icon. Not an omitted argument — Convex
+    // drops those before they arrive, so the mutation could not tell a clear
+    // from a caller that simply had nothing to say.
     await t.withIdentity(asAlice).mutation(api.foods.update, {
       id,
       name: 'Melk',
       baseUnit: 'ml',
       nutritionPer100: { calories: 46 },
+      icon: null,
     })
 
     const row = await t.run(async (ctx) => ctx.db.get(id))
     expect(row?.icon).toBeUndefined()
     expect(row && 'icon' in row).toBe(false)
+  })
+
+  // The other half of that contract, and the one a caller gets wrong silently:
+  // saying nothing about the icon has to leave it alone. Without this an edit
+  // that touched only the name would take the icon off on its way past.
+  test('an update that says nothing about the icon leaves it alone', async () => {
+    const t = await signedIn()
+    const id = await t.withIdentity(asAlice).mutation(api.foods.create, {
+      name: 'Melk',
+      baseUnit: 'ml',
+      nutritionPer100: { calories: 46 },
+      icon: '🥛',
+    })
+
+    await t.withIdentity(asAlice).mutation(api.foods.update, {
+      id,
+      name: 'Halfvolle melk',
+      baseUnit: 'ml',
+      nutritionPer100: { calories: 46 },
+    })
+
+    const row = await t.run(async (ctx) => ctx.db.get(id))
+    expect(row?.name).toBe('Halfvolle melk')
+    expect(row?.icon).toBe('🥛')
   })
 
   // The path most likely to drop it: an import goes through the *action*, not

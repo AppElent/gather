@@ -25,11 +25,13 @@ export interface FoodFormValues {
   /**
    * The emoji this food shows when there is no photograph of it (#94).
    *
-   * Absent when there is none, and absent is what a cleared icon submits —
-   * never `''`, which would sit in front of the generic glyph in the tile's
-   * fallback chain and render nothing.
+   * `null` when there is none, which is what a cleared icon submits — never
+   * `''`, which would sit in front of the generic glyph in the tile's fallback
+   * chain and render nothing, and never absent, because Convex drops an
+   * `undefined` argument before it arrives and the mutation would read that as
+   * "say nothing about the icon" rather than "take it off".
    */
-  icon?: string
+  icon?: string | null
   /**
    * Where the figures in this form came from, as the form last knew it —
    * prefilled by a lookup, or `manual` from the moment somebody types over a
@@ -89,7 +91,9 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
   // scan flow's URL param and is read-only display here (see /foods/new.tsx).
   const [barcode] = useState(initial?.barcode ?? '')
   const [baseUnit, setBaseUnit] = useState<'g' | 'ml'>(initial?.baseUnit ?? 'g')
-  const [icon, setIcon] = useState(initial?.icon)
+  // `null` on the way in means the same as absent — no icon. The distinction
+  // only matters on the way out, where it is what clears one.
+  const [icon, setIcon] = useState(initial?.icon ?? undefined)
   const [nutritionInputs, setNutritionInputs] = useState(() =>
     toNutrientInputs(initial?.nutritionPer100),
   )
@@ -126,7 +130,9 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
           brand: brand.trim() || undefined,
           barcode: barcode || undefined,
           baseUnit,
-          icon,
+          // Always stated, never omitted: this form is the whole truth about
+          // the food, so "no icon" has to travel as `null` and actually clear.
+          icon: icon ?? null,
           nutritionPer100: facts,
           servings: servings.length > 0 ? servings : undefined,
           // No figures, nothing to say about where they came from.

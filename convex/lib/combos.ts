@@ -33,6 +33,8 @@ export interface ComboComponent {
   recipe?: { nutrition: NutritionFacts }
   /** Figures of its own — only a one-off has these, because only a one-off needs them. */
   nutrition?: NutritionFacts
+  /** An icon of its own, for the same reason and on the same rows (#94). */
+  icon?: string
   available: boolean
 }
 
@@ -44,6 +46,7 @@ export interface ComboEntryInput {
   quantity: number
   quantityUnit: QuantityUnit
   nutrition: NutritionFacts
+  icon?: string
 }
 
 /**
@@ -90,6 +93,7 @@ export function comboEntries(
       quantity,
       quantityUnit: component.quantityUnit,
       nutrition,
+      icon: component.icon,
     })
   }
   return entries

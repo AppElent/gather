@@ -34,10 +34,29 @@ const foodFields = {
  * Absent means none. It is never stored as an empty string — a set-but-empty
  * icon would sit in front of the generic glyph in the tile's fallback chain
  * and render nothing at all.
+ *
+ * Three states, not two, which is why `null` is in the type. Convex drops an
+ * argument whose value is `undefined` before it reaches the server, so an
+ * optional string can only say "a person chose this one" or nothing at all —
+ * and "nothing at all" would have to mean both *leave what is there* and
+ * *take it off*. `null` is the clear, because it survives the wire; omitting
+ * the field leaves the icon alone, which is what any caller that does not
+ * know about icons should do.
  */
 const savedFoodFields = {
   ...foodFields,
-  icon: v.optional(v.string()),
+  icon: v.optional(v.union(v.string(), v.null())),
+}
+
+/**
+ * The patch fragment for an icon argument, given the three states above.
+ *
+ * `{}` when omitted, so a spread leaves the stored icon untouched; a written
+ * key of `undefined` when cleared, because writing `undefined` is what makes
+ * Convex *remove* a field rather than skip it.
+ */
+function iconPatch(icon: string | null | undefined) {
+  return icon === undefined ? {} : { icon: icon ?? undefined }
 }
 
 /**
@@ -131,6 +150,9 @@ export const create = mutation({
     }
     return await ctx.db.insert('foods', {
       ...args,
+      // Nothing to leave alone on a new row: both "omitted" and "cleared" are
+      // simply no icon.
+      icon: args.icon ?? undefined,
       nutritionSource: hasNutritionFigures(args.nutritionPer100)
         ? (args.nutritionSource ?? 'manual')
         : undefined,
@@ -153,7 +175,7 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) throw new Error('Not authenticated')
-    const { id, ...rest } = args
+    const { id, icon, ...rest } = args
     const food = await ctx.db.get(id)
     if (!food) throw new Error('Food not found')
     assertNotCatalog(food)
@@ -163,13 +185,11 @@ export const update = mutation({
       // the form sends nothing once every row has been removed, and a patch
       // that skipped the field would make the last serving undeletable.
       servings: rest.servings ?? [],
-      // Named rather than left to the spread above, for the same reason and
-      // with the opposite remedy: an optional argument nobody sent is not a
-      // key on `rest` at all, so a spread would silently keep the old icon and
-      // clearing one would never take. Writing the key with `undefined` is
-      // what makes Convex *remove* the field — which is the only clearing that
-      // leaves the tile's fallback chain reading correctly.
-      icon: rest.icon,
+      // The icon reads the opposite way round, and has to say which it means
+      // rather than leave it to whether the key arrived: the edit form clears
+      // one by sending `null`, and a caller that says nothing about icons
+      // keeps the one that is there.
+      ...iconPatch(icon),
       searchText: foodSearchText(rest),
       // Decided here, from the figures themselves, rather than accepted as an
       // argument — this mutation is the one place a person can type over a
@@ -208,7 +228,7 @@ export const upsertFromOff = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) throw new Error('Not authenticated')
-    const { barcode, nutritionSource, ...withoutSource } = args
+    const { barcode, nutritionSource, icon, ...withoutSource } = args
     const rest = {
       ...withoutSource,
       nutritionSource: hasNutritionFigures(args.nutritionPer100)
@@ -234,10 +254,11 @@ export const upsertFromOff = mutation({
       await ctx.db.patch(existing._id, {
         ...rest,
         searchText: foodSearchText(rest),
-        // Named for the same reason as in `update`: the review form states what
-        // this food is, icon included, so an import that chose none has to be
-        // able to take one off rather than silently inherit the old one.
-        icon: rest.icon,
+        // Handled the same way as in `update`: the review form states what this
+        // food is, icon included, so an import whose reviewer took the icon off
+        // sends `null` and it goes, while an import that never mentions one
+        // leaves what is there.
+        ...iconPatch(icon),
       })
       await replaceStoredFile(ctx, previousImageId, rest.imageId)
       return existing._id
@@ -245,6 +266,9 @@ export const upsertFromOff = mutation({
     return await ctx.db.insert('foods', {
       ...rest,
       searchText: foodSearchText(rest),
+      // A new row has nothing to leave alone, so both "omitted" and "cleared"
+      // are simply no icon.
+      icon: icon ?? undefined,
       barcode,
       source: 'openfoodfacts',
       createdBy: user._id,

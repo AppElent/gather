@@ -143,6 +143,7 @@ export const createMany = mutation({
         quantity: v.number(),
         quantityUnit: quantityUnitValidator,
         nutrition: nutritionValidator,
+        icon: v.optional(v.string()),
       }),
     ),
   },
