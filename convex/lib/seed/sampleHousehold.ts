@@ -798,7 +798,6 @@ export type SampleDiaryEntry = {
   | { kind: 'recipe'; recipeKey: string; servings: number }
 )
 
-/** Seven days of the owner's diary, thinning out toward the older end. */
 /**
  * A Combo the sample person has saved, so a preview shows the fastest path in
  * the add sheet rather than an empty section (ADR-0012).
@@ -856,11 +855,33 @@ export const SAMPLE_COMBOS: SampleCombo[] = [
   },
 ]
 
+/**
+ * A fortnight of the owner's diary, thinning out toward the older end.
+ *
+ * **Deliberately repetitive, per meal.** The add sheet opens on what you
+ * usually have at the meal you are logging, ranked by how often (#76) — so a
+ * diary in which everything appears exactly once demonstrates nothing: the
+ * ranking is real but the order it produces looks arbitrary, and a preview is
+ * how anybody decides whether this feature was worth building. These fixtures
+ * give each meal a habit and a runner-up:
+ *
+ * - **breakfast** — porridge oats with semi-skimmed milk five times, wholemeal
+ *   toast with peanut butter three, and overnight oats as the recipe you make
+ *   on a slow morning.
+ * - **lunch** — bread and cheddar at a desk three times, Greek salad three.
+ * - **dinner** — the chickpea curry more often than anything else, grated
+ *   parmesan on the pasta nights.
+ * - **snack** — a banana most days, Greek yoghurt otherwise.
+ *
+ * Seven days was not enough room for that to be visible without making every
+ * day identical, which is why this is fourteen. Every date is still relative
+ * to the run, so a preview is never looking at a stale month.
+ */
 export const SAMPLE_DIARY: SampleDiaryEntry[] = [
   // Today
   { daysAgo: 0, meal: 'breakfast', label: 'Overnight oats', kind: 'recipe', recipeKey: 'overnight-oats', servings: 1 },
-  { daysAgo: 0, meal: 'snack', label: 'Banana', kind: 'food', seedKey: 'banana', quantity: 1, unit: 'piece' },
   { daysAgo: 0, meal: 'lunch', label: 'Greek salad', kind: 'recipe', recipeKey: 'greek-salad', servings: 1 },
+  { daysAgo: 0, meal: 'snack', label: 'Banana', kind: 'food', seedKey: 'banana', quantity: 1, unit: 'piece' },
   // Yesterday
   { daysAgo: 1, meal: 'breakfast', label: 'Porridge oats', kind: 'food', seedKey: 'oats-rolled', quantity: 60, unit: 'g' },
   { daysAgo: 1, meal: 'breakfast', label: 'Semi-skimmed milk', kind: 'food', seedKey: 'milk-semi-skimmed', quantity: 200, unit: 'ml' },
@@ -876,16 +897,63 @@ export const SAMPLE_DIARY: SampleDiaryEntry[] = [
   { daysAgo: 3, meal: 'breakfast', label: 'Banana oat pancakes', kind: 'recipe', recipeKey: 'banana-oat-pancakes', servings: 1 },
   { daysAgo: 3, meal: 'lunch', label: 'Minestrone', kind: 'recipe', recipeKey: 'minestrone', servings: 1.5 },
   { daysAgo: 3, meal: 'dinner', label: 'Lasagne alla bolognese', kind: 'recipe', recipeKey: 'lasagne', servings: 1 },
+  { daysAgo: 3, meal: 'dinner', label: 'Parmesan', kind: 'food', seedKey: 'cheese-parmesan', quantity: 15, unit: 'g' },
+  { daysAgo: 3, meal: 'snack', label: 'Banana', kind: 'food', seedKey: 'banana', quantity: 1, unit: 'piece' },
   // Four days ago
   { daysAgo: 4, meal: 'breakfast', label: 'Overnight oats', kind: 'recipe', recipeKey: 'overnight-oats', servings: 1 },
   { daysAgo: 4, meal: 'dinner', label: 'Shakshuka', kind: 'recipe', recipeKey: 'shakshuka', servings: 1.5 },
   { daysAgo: 4, meal: 'snack', label: 'Cheddar', kind: 'food', seedKey: 'cheese-cheddar', quantity: 30, unit: 'g' },
   // Five days ago
+  { daysAgo: 5, meal: 'breakfast', label: 'Porridge oats', kind: 'food', seedKey: 'oats-rolled', quantity: 60, unit: 'g' },
+  { daysAgo: 5, meal: 'breakfast', label: 'Semi-skimmed milk', kind: 'food', seedKey: 'milk-semi-skimmed', quantity: 200, unit: 'ml' },
   { daysAgo: 5, meal: 'lunch', label: 'Tarka dal', kind: 'recipe', recipeKey: 'tarka-dal', servings: 1 },
   { daysAgo: 5, meal: 'dinner', label: 'Chicken and potato traybake', kind: 'recipe', recipeKey: 'chicken-traybake', servings: 1 },
   // Six days ago
   { daysAgo: 6, meal: 'breakfast', label: 'Wholemeal toast', kind: 'food', seedKey: 'bread-wholemeal', quantity: 2, unit: 'piece' },
+  { daysAgo: 6, meal: 'breakfast', label: 'Peanut butter', kind: 'food', seedKey: 'peanut-butter', quantity: 20, unit: 'g' },
   { daysAgo: 6, meal: 'dinner', label: 'Spinach and feta filo pie', kind: 'recipe', recipeKey: 'spinach-feta-pie', servings: 1 },
+  { daysAgo: 6, meal: 'dinner', label: 'Wholemeal bread', kind: 'food', seedKey: 'bread-wholemeal', quantity: 40, unit: 'g' },
+  { daysAgo: 6, meal: 'snack', label: 'Banana', kind: 'food', seedKey: 'banana', quantity: 1, unit: 'piece' },
+  // A week ago
+  { daysAgo: 7, meal: 'breakfast', label: 'Porridge oats', kind: 'food', seedKey: 'oats-rolled', quantity: 60, unit: 'g' },
+  { daysAgo: 7, meal: 'breakfast', label: 'Semi-skimmed milk', kind: 'food', seedKey: 'milk-semi-skimmed', quantity: 200, unit: 'ml' },
+  { daysAgo: 7, meal: 'lunch', label: 'Greek salad', kind: 'recipe', recipeKey: 'greek-salad', servings: 1 },
+  { daysAgo: 7, meal: 'dinner', label: 'Chickpea and spinach curry', kind: 'recipe', recipeKey: 'chickpea-curry', servings: 1.5 },
+  { daysAgo: 7, meal: 'snack', label: 'Greek yoghurt', kind: 'food', seedKey: 'yoghurt-greek-natural', quantity: 150, unit: 'g' },
+  // Eight days ago
+  { daysAgo: 8, meal: 'breakfast', label: 'Overnight oats', kind: 'recipe', recipeKey: 'overnight-oats', servings: 1 },
+  { daysAgo: 8, meal: 'lunch', label: 'Wholemeal bread', kind: 'food', seedKey: 'bread-wholemeal', quantity: 80, unit: 'g' },
+  { daysAgo: 8, meal: 'lunch', label: 'Cheddar', kind: 'food', seedKey: 'cheese-cheddar', quantity: 30, unit: 'g' },
+  { daysAgo: 8, meal: 'dinner', label: 'Salmon and rice bowl', kind: 'recipe', recipeKey: 'salmon-rice-bowl', servings: 1 },
+  { daysAgo: 8, meal: 'snack', label: 'Apple', kind: 'food', seedKey: 'apple', quantity: 1, unit: 'piece' },
+  // Nine days ago
+  { daysAgo: 9, meal: 'breakfast', label: 'Porridge oats', kind: 'food', seedKey: 'oats-rolled', quantity: 60, unit: 'g' },
+  { daysAgo: 9, meal: 'breakfast', label: 'Semi-skimmed milk', kind: 'food', seedKey: 'milk-semi-skimmed', quantity: 200, unit: 'ml' },
+  { daysAgo: 9, meal: 'lunch', label: 'Greek salad', kind: 'recipe', recipeKey: 'greek-salad', servings: 1 },
+  { daysAgo: 9, meal: 'dinner', label: 'Pasta puttanesca', kind: 'recipe', recipeKey: 'pasta-puttanesca', servings: 1.5 },
+  { daysAgo: 9, meal: 'dinner', label: 'Parmesan', kind: 'food', seedKey: 'cheese-parmesan', quantity: 15, unit: 'g' },
+  { daysAgo: 9, meal: 'snack', label: 'Banana', kind: 'food', seedKey: 'banana', quantity: 1, unit: 'piece' },
+  // Ten days ago
+  { daysAgo: 10, meal: 'lunch', label: 'Wholemeal bread', kind: 'food', seedKey: 'bread-wholemeal', quantity: 80, unit: 'g' },
+  { daysAgo: 10, meal: 'lunch', label: 'Cheddar', kind: 'food', seedKey: 'cheese-cheddar', quantity: 30, unit: 'g' },
+  { daysAgo: 10, meal: 'dinner', label: 'Shakshuka', kind: 'recipe', recipeKey: 'shakshuka', servings: 1 },
+  { daysAgo: 10, meal: 'snack', label: 'Greek yoghurt', kind: 'food', seedKey: 'yoghurt-greek-natural', quantity: 150, unit: 'g' },
+  // Eleven days ago
+  { daysAgo: 11, meal: 'breakfast', label: 'Porridge oats', kind: 'food', seedKey: 'oats-rolled', quantity: 60, unit: 'g' },
+  { daysAgo: 11, meal: 'breakfast', label: 'Semi-skimmed milk', kind: 'food', seedKey: 'milk-semi-skimmed', quantity: 200, unit: 'ml' },
+  { daysAgo: 11, meal: 'dinner', label: 'Lasagne alla bolognese', kind: 'recipe', recipeKey: 'lasagne', servings: 1 },
+  { daysAgo: 11, meal: 'dinner', label: 'Parmesan', kind: 'food', seedKey: 'cheese-parmesan', quantity: 15, unit: 'g' },
+  { daysAgo: 11, meal: 'snack', label: 'Peanut butter', kind: 'food', seedKey: 'peanut-butter', quantity: 20, unit: 'g' },
+  // Twelve days ago
+  { daysAgo: 12, meal: 'breakfast', label: 'Wholemeal toast', kind: 'food', seedKey: 'bread-wholemeal', quantity: 2, unit: 'piece' },
+  { daysAgo: 12, meal: 'breakfast', label: 'Peanut butter', kind: 'food', seedKey: 'peanut-butter', quantity: 20, unit: 'g' },
+  { daysAgo: 12, meal: 'lunch', label: 'Wholemeal bread', kind: 'food', seedKey: 'bread-wholemeal', quantity: 80, unit: 'g' },
+  { daysAgo: 12, meal: 'dinner', label: 'Chicken and potato traybake', kind: 'recipe', recipeKey: 'chicken-traybake', servings: 1 },
+  { daysAgo: 12, meal: 'snack', label: 'Banana', kind: 'food', seedKey: 'banana', quantity: 1, unit: 'piece' },
+  // A fortnight ago, all but forgotten
+  { daysAgo: 13, meal: 'breakfast', label: 'Banana oat pancakes', kind: 'recipe', recipeKey: 'banana-oat-pancakes', servings: 1 },
+  { daysAgo: 13, meal: 'lunch', label: 'Minestrone', kind: 'recipe', recipeKey: 'minestrone', servings: 1.5 },
+  { daysAgo: 13, meal: 'dinner', label: 'Chickpea and spinach curry', kind: 'recipe', recipeKey: 'chickpea-curry', servings: 1 },
 ]
 
 /**

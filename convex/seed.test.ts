@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
+import { api } from './_generated/api'
 import {
   applyCatalog,
   applySample,
@@ -7,6 +8,7 @@ import {
   resetSample,
 } from './lib/seed/apply'
 import { SAMPLE_GROUP_NAME } from './lib/seed/sampleHousehold'
+import { MAX_MEAL_SUGGESTIONS } from './lib/servings'
 
 /**
  * The Sample household, built against the Group boundary.
@@ -120,5 +122,49 @@ describe('the Sample household', () => {
 
     expect(left.groups).toBe(0)
     expect(left.recipes).toBe(0)
+  })
+
+  /**
+   * The add sheet's first screen has to *demonstrate* something in a preview
+   * (#76). A diary in which everything appears exactly once ranks correctly and
+   * still looks arbitrary, so the fixtures owe each meal a habit — and this is
+   * the test that notices when an edit to them quietly takes one away.
+   */
+  test('gives each meal a habit the add sheet can open on', async () => {
+    const t = testConvex()
+    await buildSample(t)
+    const today = new Date().toISOString().slice(0, 10)
+    const asOwner = t.withIdentity({ subject: owner.clerkId })
+
+    const breakfast = await asOwner.query(api.consumption.suggestionsForMeal, {
+      date: today,
+      meal: 'breakfast',
+    })
+    // Porridge and milk, most mornings — ahead of the toast, on count. They
+    // are logged together every time, so which of the two leads is decided by
+    // the last tie-break and is not worth asserting.
+    expect(breakfast.foods.slice(0, 2).map((f) => f.name).sort()).toEqual([
+      'Milk, semi-skimmed',
+      'Oats, rolled',
+    ])
+    expect(breakfast.recipes[0].title).toBe('Overnight oats')
+
+    const dinner = await asOwner.query(api.consumption.suggestionsForMeal, {
+      date: today,
+      meal: 'dinner',
+    })
+    // A different meal opens on different things, which is the whole point.
+    expect(dinner.recipes[0].title).toBe('Chickpea and spinach curry')
+    expect(dinner.recipes.map((r) => r.title)).not.toContain('Overnight oats')
+
+    // And bounded: eight of each at most, however much has been logged.
+    for (const suggestions of [breakfast, dinner]) {
+      expect(suggestions.foods.length).toBeLessThanOrEqual(
+        MAX_MEAL_SUGGESTIONS,
+      )
+      expect(suggestions.recipes.length).toBeLessThanOrEqual(
+        MAX_MEAL_SUGGESTIONS,
+      )
+    }
   })
 })
