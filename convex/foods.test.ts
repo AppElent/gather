@@ -295,3 +295,188 @@ describe('editing a food’s servings', () => {
     expect(food?.servings ?? []).toEqual([])
   })
 })
+
+/**
+ * A food says where its *figures* came from, which is a different question
+ * from where the *row* came from (`source`). The two can disagree — a row
+ * somebody added by hand can carry figures read off a packet, and an imported
+ * row can carry figures they typed over — and the pair is only worth having
+ * while each keeps answering its own question.
+ *
+ * `foods.update` decides this itself rather than being told, because it is the
+ * one place a person can type over a food's nutrition. It is a public
+ * mutation: if it took the answer as an argument, "these came from Open Food
+ * Facts" would be a claim any caller could make about numbers it had just
+ * changed.
+ */
+describe('where a food’s figures came from', () => {
+  const nutella = {
+    barcode: '3017620422003',
+    name: 'Nutella',
+    baseUnit: 'g' as const,
+    nutritionPer100: { calories: 539, sugars: 56.3 },
+  }
+
+  async function signedIn() {
+    const t = testConvex()
+    await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    return t
+  }
+
+  test('an Open Food Facts import records its figures as imported', async () => {
+    const t = await signedIn()
+    const id = await t
+      .withIdentity(asAlice)
+      .mutation(api.foods.upsertFromOff, nutella)
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.nutritionSource).toBe('imported')
+    // The row came from Open Food Facts too — but that is the other question,
+    // and it is still being answered separately.
+    expect(food?.source).toBe('openfoodfacts')
+  })
+
+  test('a food created by hand records its figures as manual', async () => {
+    const t = await signedIn()
+    const id = await t.withIdentity(asAlice).mutation(api.foods.create, {
+      name: 'Nora’s granola',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 471 },
+    })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.nutritionSource).toBe('manual')
+  })
+
+  test('an import corrected in the review form saves as manual', async () => {
+    const t = await signedIn()
+    // The form shows Open Food Facts' figures until the person types over
+    // one, at which point it says `manual` and the save records that.
+    const id = await t.withIdentity(asAlice).mutation(api.foods.upsertFromOff, {
+      ...nutella,
+      nutritionPer100: { calories: 530, sugars: 56.3 },
+      nutritionSource: 'manual',
+    })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.nutritionSource).toBe('manual')
+  })
+
+  test('editing the figures by hand makes them manual, whatever they were', async () => {
+    const t = await signedIn()
+    const id = await t
+      .withIdentity(asAlice)
+      .mutation(api.foods.upsertFromOff, nutella)
+
+    await t.withIdentity(asAlice).mutation(api.foods.update, {
+      id,
+      name: 'Nutella',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 530, sugars: 56.3 },
+    })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.nutritionSource).toBe('manual')
+  })
+
+  test('editing without touching the figures leaves the record alone', async () => {
+    const t = await signedIn()
+    const id = await t
+      .withIdentity(asAlice)
+      .mutation(api.foods.upsertFromOff, nutella)
+
+    // A brand, a serving, the same numbers: nothing has been claimed about
+    // where those numbers came from.
+    await t.withIdentity(asAlice).mutation(api.foods.update, {
+      id,
+      name: 'Nutella',
+      brand: 'Ferrero',
+      baseUnit: 'g',
+      nutritionPer100: { ...nutella.nutritionPer100 },
+      servings: [{ label: '1 spoon', amount: 15 }],
+    })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.nutritionSource).toBe('imported')
+  })
+
+  test('a food that recorded nothing goes on recording nothing', async () => {
+    const t = await signedIn()
+    const id = await t
+      .withIdentity(asAlice)
+      .mutation(api.foods.upsertFromOff, nutella)
+    // Exactly the rows that predate the field: nothing backfills them, so an
+    // edit that leaves the figures alone must not invent an answer either.
+    await t.run(async (ctx) => ctx.db.patch(id, { nutritionSource: undefined }))
+
+    await t.withIdentity(asAlice).mutation(api.foods.update, {
+      id,
+      name: 'Nutella',
+      brand: 'Ferrero',
+      baseUnit: 'g',
+      nutritionPer100: { ...nutella.nutritionPer100 },
+    })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.nutritionSource).toBeUndefined()
+  })
+
+  test('a refresh from Open Food Facts takes the figures back to imported', async () => {
+    const t = await signedIn()
+    const id = await t
+      .withIdentity(asAlice)
+      .mutation(api.foods.upsertFromOff, nutella)
+    await t.withIdentity(asAlice).mutation(api.foods.update, {
+      id,
+      name: 'Nutella',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 530 },
+    })
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.foods.applyOffRefresh, { id, ...nutella })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.nutritionSource).toBe('imported')
+  })
+
+  test('a food saved with no figures claims nothing about them', async () => {
+    const t = await signedIn()
+    const id = await t.withIdentity(asAlice).mutation(api.foods.create, {
+      name: 'Water',
+      baseUnit: 'ml',
+      nutritionPer100: {},
+    })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.nutritionSource).toBeUndefined()
+  })
+
+  test('a Catalog food claims nothing, and no edit can give it an answer', async () => {
+    const t = await signedIn()
+    const id = await t.run(async (ctx) =>
+      ctx.db.insert('foods', {
+        name: 'Banana',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 89 },
+        source: 'seed',
+        seedKey: 'banana',
+      }),
+    )
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    // Their figures are authored, and "Built-in" already says where they came
+    // from — no badge rather than a wrong one.
+    expect(food?.nutritionSource).toBeUndefined()
+    // Read-only (ADR 0004), and the new field is no way around that.
+    await expect(
+      t.withIdentity(asAlice).mutation(api.foods.update, {
+        id,
+        name: 'Banana',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 100 },
+      }),
+    ).rejects.toThrow()
+  })
+})

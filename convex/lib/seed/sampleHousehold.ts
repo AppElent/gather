@@ -889,29 +889,90 @@ export const SAMPLE_DIARY: SampleDiaryEntry[] = [
 ]
 
 /**
- * One food the owner "created" by hand, so the app shows the contrast the
- * Catalog rules depend on: this one is editable and carries Attribution,
+ * The foods the household "added" themselves, so the app shows the contrast
+ * the Catalog rules depend on: these are editable and carry Attribution,
  * while everything from `CATALOG_FOODS` is read-only and owned by nobody.
+ *
+ * One per value of `nutritionSource`, because a preview is where the
+ * distinction has to be visible before anything is built on it — and the two
+ * fields answering different questions is exactly what is easy to miss:
+ * `source` says where the row came from, `nutritionSource` where its figures
+ * did. The estimated one is a row somebody added by hand whose *numbers* a
+ * model guessed, which is the pair that would collapse if they were one field.
  */
-export const SAMPLE_USER_FOOD = {
-  name: 'Nora’s granola',
-  brand: 'Homemade',
-  baseUnit: 'g' as const,
-  nutritionPer100: {
-    calories: 471,
-    protein: 10.2,
-    carbs: 54.3,
-    sugars: 18.7,
-    fat: 22.6,
-    saturatedFat: 4.1,
-    fiber: 7.8,
-    salt: 0.1,
+export const SAMPLE_USER_FOODS = [
+  {
+    name: 'Nora’s granola',
+    brand: 'Homemade',
+    baseUnit: 'g' as const,
+    nutritionPer100: {
+      calories: 471,
+      protein: 10.2,
+      carbs: 54.3,
+      sugars: 18.7,
+      fat: 22.6,
+      saturatedFat: 4.1,
+      fiber: 7.8,
+      salt: 0.1,
+    },
+    // A food somebody authored, with the servings they actually think in — so
+    // a preview shows the chips rather than an empty row where they should be.
+    servings: [
+      { label: '1 bowl', amount: 50 },
+      { label: '1 small handful', amount: 20 },
+      { label: 'over yoghurt', amount: 35 },
+    ],
+    source: 'manual' as const,
+    nutritionSource: 'manual' as const,
   },
-  // A food somebody authored, with the servings they actually think in — so a
-  // preview shows the chips rather than an empty row where they should be.
-  servings: [
-    { label: '1 bowl', amount: 50 },
-    { label: '1 small handful', amount: 20 },
-    { label: 'over yoghurt', amount: 35 },
-  ],
-}
+  {
+    // Scanned in the shop and taken as it came: the row and its figures both
+    // come from Open Food Facts.
+    //
+    // The barcode is deliberately a GS1 in-store code (prefix 2), never issued
+    // to a real retail product, rather than this product's actual EAN. The
+    // sample is wiped and recreated, but a *user-created* row is preserved —
+    // so a real EAN here would collide with one a developer had already scanned
+    // on dev, and `foods.getByBarcode` uses `.unique()`, which throws on two
+    // matches. That would break barcode lookup for that product until the
+    // sample was reset. A code no real packet carries cannot collide.
+    name: 'Roomboter ontbijtkoek',
+    brand: 'Peijnenburg',
+    barcode: '2000000000017',
+    baseUnit: 'g' as const,
+    nutritionPer100: {
+      calories: 328,
+      protein: 4.6,
+      carbs: 70.2,
+      sugars: 32.4,
+      fat: 2.4,
+      saturatedFat: 1.3,
+      fiber: 3.1,
+      salt: 0.75,
+    },
+    servings: [{ label: '1 plak', amount: 25 }],
+    source: 'openfoodfacts' as const,
+    nutritionSource: 'imported' as const,
+  },
+  {
+    // A store brand nobody has filed: added by hand, with figures nobody
+    // typed — the case #86's AI routes exist for, shown here as the record
+    // they leave behind.
+    name: 'Bakery seeded spelt loaf',
+    brand: 'Buurtbakker',
+    baseUnit: 'g' as const,
+    nutritionPer100: {
+      calories: 259,
+      protein: 9.4,
+      carbs: 42.1,
+      sugars: 2.8,
+      fat: 4.6,
+      saturatedFat: 0.8,
+      fiber: 6.2,
+      salt: 1.1,
+    },
+    servings: [{ label: '1 slice', amount: 40 }],
+    source: 'manual' as const,
+    nutritionSource: 'ai' as const,
+  },
+]

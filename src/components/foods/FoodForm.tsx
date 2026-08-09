@@ -1,5 +1,9 @@
 import { useState } from 'react'
-import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import {
+  hasNutritionFigures,
+  type NutritionFacts,
+  type NutritionSource,
+} from '../../../convex/lib/nutrition'
 import type { Serving } from '../../../convex/lib/servings'
 import { fmt, useMessages } from '../../lib/i18n'
 import { NutrientInputGrid } from '../nutrition/NutrientInputGrid'
@@ -17,6 +21,16 @@ export interface FoodFormValues {
   baseUnit: 'g' | 'ml'
   nutritionPer100: NutritionFacts
   servings?: Serving[]
+  /**
+   * Where the figures in this form came from, as the form last knew it —
+   * prefilled by a lookup, or `manual` from the moment somebody types over a
+   * nutrient. Same vocabulary and same behaviour as `RecipeForm`.
+   *
+   * Only the paths that *create* a food read this off the form; `foods.update`
+   * decides for itself by comparing the figures it is given with the ones on
+   * the row, so an edit cannot claim to be an import.
+   */
+  nutritionSource?: NutritionSource
 }
 
 /** A serving being typed: both halves are text until they are read back. */
@@ -69,11 +83,26 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
   const [nutritionInputs, setNutritionInputs] = useState(() =>
     toNutrientInputs(initial?.nutritionPer100),
   )
+  const [nutritionSource, setNutritionSource] = useState<
+    NutritionSource | undefined
+  >(initial?.nutritionSource)
   const [servingRows, setServingRows] = useState(() =>
     toServingRows(initial?.servings),
   )
   const messages = useMessages()
   const { form } = messages.foods
+
+  // The note answers for the figures on screen now, not for the answer the form
+  // was opened with. An Open Food Facts product with no nutriments arrives as
+  // `imported` over an empty grid, and clearing the last figure by hand leaves
+  // the same mismatch — both would otherwise read "these figures came from
+  // Imported" above nothing. This is the predicate the submit below already
+  // applies, so what is shown and what is saved cannot disagree.
+  const shownNutritionSource = hasNutritionFigures(
+    nutrientInputsToFacts(nutritionInputs),
+  )
+    ? nutritionSource
+    : undefined
 
   return (
     <form
@@ -81,13 +110,18 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
       onSubmit={(e) => {
         e.preventDefault()
         const servings = fromServingRows(servingRows)
+        const facts = nutrientInputsToFacts(nutritionInputs)
         onSubmit({
           name: name.trim(),
           brand: brand.trim() || undefined,
           barcode: barcode || undefined,
           baseUnit,
-          nutritionPer100: nutrientInputsToFacts(nutritionInputs),
+          nutritionPer100: facts,
           servings: servings.length > 0 ? servings : undefined,
+          // No figures, nothing to say about where they came from.
+          nutritionSource: hasNutritionFigures(facts)
+            ? (nutritionSource ?? 'manual')
+            : undefined,
         })
       }}
     >
@@ -143,11 +177,22 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
         <legend className="px-1 text-sm font-medium">
           {fmt(form.nutritionLegend, { unit: baseUnit })}
         </legend>
+        {shownNutritionSource && (
+          <p className="mb-2 text-xs opacity-60">
+            {fmt(form.nutritionSourceNote, {
+              source: messages.nutrients.sources[shownNutritionSource],
+            })}
+          </p>
+        )}
         <NutrientInputGrid
           values={nutritionInputs}
-          onChange={(key, value) =>
+          onChange={(key, value) => {
             setNutritionInputs((prev) => ({ ...prev, [key]: value }))
-          }
+            // Typing over a figure makes the figures yours, so the note above
+            // stops saying they came from somewhere else — the same thing
+            // `foods.update` concludes independently when the save lands.
+            setNutritionSource('manual')
+          }}
         />
       </fieldset>
       <fieldset className="rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">

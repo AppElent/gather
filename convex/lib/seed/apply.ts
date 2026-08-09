@@ -17,7 +17,7 @@ import {
   SAMPLE_HOUSEMATES,
   SAMPLE_RECIPES,
   SAMPLE_TASK_LISTS,
-  SAMPLE_USER_FOOD,
+  SAMPLE_USER_FOODS,
   type SampleAuthor,
 } from './sampleHousehold'
 
@@ -478,15 +478,19 @@ export async function applySample(
     )
   }
 
-  // --- A user-created food, for contrast with the read-only Catalog --------
-  rec.track(
-    await ctx.db.insert('foods', {
-      ...SAMPLE_USER_FOOD,
-      searchText: foodSearchText(SAMPLE_USER_FOOD),
-      source: 'manual',
-      createdBy: authors.nora,
-    }),
-  )
+  // --- User-created foods, for contrast with the read-only Catalog ---------
+  // One per `nutritionSource`, so a preview shows what each of them looks
+  // like on a food — and that it is a separate answer from `source`, which
+  // each fixture carries in its own right.
+  for (const food of SAMPLE_USER_FOODS) {
+    rec.track(
+      await ctx.db.insert('foods', {
+        ...food,
+        searchText: foodSearchText(food),
+        createdBy: authors.nora,
+      }),
+    )
+  }
 
   // --- Food diary ----------------------------------------------------------
   const catalogByKey = new Map(
@@ -597,6 +601,7 @@ export async function applySample(
     diaryEntries,
     combos,
     housemates: SAMPLE_HOUSEMATES.length,
+    userFoods: SAMPLE_USER_FOODS.length,
   }
 
   // Self-check: the run recorded every row it created. Anything missing here
@@ -611,7 +616,7 @@ export async function applySample(
     counts.tasks +
     1 + // baby
     counts.babyEvents +
-    1 + // the user-created food
+    counts.userFoods +
     counts.diaryEntries +
     counts.combos +
     SAMPLE_COMBOS.reduce((n, combo) => n + combo.items.length, 0)

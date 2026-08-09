@@ -122,6 +122,148 @@ test('a half-typed serving row is not a serving', () => {
   )
 })
 
+/**
+ * Where the figures came from is part of reading them, so the form says it
+ * while somebody is looking at the numbers rather than only afterwards on the
+ * food itself. Typing over one changes the answer in front of them — the same
+ * conclusion `foods.update` reaches independently when the save lands, which
+ * is what keeps the note honest rather than merely reassuring.
+ */
+test('says where the figures came from, and stops saying it once they are typed over', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(
+    <FoodForm
+      onSubmit={onSubmit}
+      submitting={false}
+      initial={{
+        name: 'Nutella',
+        nutritionPer100: { calories: 539 },
+        nutritionSource: 'imported',
+      }}
+    />,
+  )
+  expect(
+    screen.getByText('Where these figures came from: Imported'),
+  ).toBeDefined()
+
+  fireEvent.change(screen.getByLabelText('Calories (kcal)'), {
+    target: { value: '530' },
+  })
+
+  expect(
+    screen.getByText('Where these figures came from: Manual'),
+  ).toBeDefined()
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ nutritionSource: 'manual' }),
+  )
+})
+
+test('an untouched import is still an import when it is saved', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(
+    <FoodForm
+      onSubmit={onSubmit}
+      submitting={false}
+      initial={{
+        name: 'Nutella',
+        brand: 'Ferrero',
+        nutritionPer100: { calories: 539 },
+        nutritionSource: 'imported',
+      }}
+    />,
+  )
+  // Editing something that is not a figure says nothing about the figures.
+  fireEvent.change(screen.getByLabelText('Brand'), {
+    target: { value: 'Ferrero Nederland' },
+  })
+
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ nutritionSource: 'imported' }),
+  )
+})
+
+test('says it in Dutch too', () => {
+  renderWithI18n(
+    <FoodForm
+      onSubmit={vi.fn()}
+      submitting={false}
+      initial={{
+        name: 'Nutella',
+        nutritionPer100: { calories: 539 },
+        nutritionSource: 'ai',
+      }}
+    />,
+    { locale: 'nl' },
+  )
+  expect(
+    screen.getByText('Waar deze waarden vandaan komen: AI-schatting'),
+  ).toBeDefined()
+})
+
+test('a food with no figures claims no source for them', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(<FoodForm onSubmit={onSubmit} submitting={false} />)
+  expect(screen.queryByText(/Where these figures came from/)).toBeNull()
+
+  fireEvent.change(screen.getByLabelText('Name'), {
+    target: { value: 'Water' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ nutritionSource: undefined }),
+  )
+})
+
+test('an imported product with no nutriments claims no source either', () => {
+  // Open Food Facts holds plenty of products with a name, a picture and no
+  // figures at all. The form is opened as `imported` because the row came from
+  // there — but there is nothing for that to be true *of*, and a note over an
+  // empty grid reads as though numbers had been supplied.
+  renderWithI18n(
+    <FoodForm
+      onSubmit={vi.fn()}
+      submitting={false}
+      initial={{
+        name: 'Volkoren crackers',
+        brand: 'Plus',
+        nutritionPer100: {},
+        nutritionSource: 'imported',
+      }}
+    />,
+  )
+  expect(screen.queryByText(/Where these figures came from/)).toBeNull()
+})
+
+test('clearing the last figure takes the source note with it', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(
+    <FoodForm
+      onSubmit={onSubmit}
+      submitting={false}
+      initial={{
+        name: 'Nutella',
+        nutritionPer100: { calories: 539 },
+        nutritionSource: 'imported',
+      }}
+    />,
+  )
+  expect(
+    screen.getByText('Where these figures came from: Imported'),
+  ).toBeDefined()
+
+  fireEvent.change(screen.getByLabelText('Calories (kcal)'), {
+    target: { value: '' },
+  })
+  expect(screen.queryByText(/Where these figures came from/)).toBeNull()
+
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ nutritionSource: undefined }),
+  )
+})
+
 test('a serving can be taken off again', () => {
   const onSubmit = vi.fn()
   renderWithI18n(

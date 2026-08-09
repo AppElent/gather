@@ -3,7 +3,12 @@ import type { Doc } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import { foodSearchText } from './lib/foodSearchText'
-import { nutritionValidator } from './lib/nutrition'
+import {
+  hasNutritionFigures,
+  nextNutritionSource,
+  nutritionSourceValidator,
+  nutritionValidator,
+} from './lib/nutrition'
 import { servingValidator } from './lib/servings'
 import { getCurrentUser } from './lib/sharing'
 import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
@@ -86,7 +91,15 @@ export const getByBarcode = query({
 // hand), reuse that row instead of creating a duplicate — the "no duplicate
 // row per barcode" invariant applies here too, not just to `upsertFromOff`.
 export const create = mutation({
-  args: { ...foodFields, barcode: v.optional(v.string()) },
+  args: {
+    ...foodFields,
+    barcode: v.optional(v.string()),
+    // What the person was looking at when they pressed save: figures they
+    // typed are `manual`, figures something filled in for them and they
+    // accepted keep whatever the form was showing. Absent means manual,
+    // which is what typing into an empty form is.
+    nutritionSource: v.optional(nutritionSourceValidator),
+  },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) throw new Error('Not authenticated')
@@ -99,6 +112,9 @@ export const create = mutation({
     }
     return await ctx.db.insert('foods', {
       ...args,
+      nutritionSource: hasNutritionFigures(args.nutritionPer100)
+        ? (args.nutritionSource ?? 'manual')
+        : undefined,
       searchText: foodSearchText(args),
       source: 'manual',
       createdBy: user._id,
@@ -125,6 +141,17 @@ export const update = mutation({
       // that skipped the field would make the last serving undeletable.
       servings: rest.servings ?? [],
       searchText: foodSearchText(rest),
+      // Decided here, from the figures themselves, rather than accepted as an
+      // argument — this mutation is the one place a person can type over a
+      // food's nutrition, and it must not be possible to do that while still
+      // claiming the numbers came off a packet. A save that renames the food
+      // and leaves the figures alone changes nothing about where they came
+      // from, including leaving a row that never recorded one still silent.
+      nutritionSource: nextNutritionSource(
+        food.nutritionPer100,
+        rest.nutritionPer100,
+        food.nutritionSource,
+      ),
       localEdited: true,
     })
   },
@@ -142,11 +169,22 @@ export const upsertFromOff = mutation({
     // Already fetched and stored by `foodsLookup.importFromOff`, which is the
     // only thing that can make the network call this needs.
     imageId: v.optional(v.id('_storage')),
+    // Every import is reviewed before it is saved (spec §6), so "imported" is
+    // the default rather than the certainty: a person who corrected the
+    // figures in that review form sends `manual` instead, and the food says
+    // the true thing about the numbers it actually carries.
+    nutritionSource: v.optional(nutritionSourceValidator),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) throw new Error('Not authenticated')
-    const { barcode, ...rest } = args
+    const { barcode, nutritionSource, ...withoutSource } = args
+    const rest = {
+      ...withoutSource,
+      nutritionSource: hasNutritionFigures(args.nutritionPer100)
+        ? (nutritionSource ?? ('imported' as const))
+        : undefined,
+    }
     const existing = await ctx.db
       .query('foods')
       .withIndex('by_barcode', (q) => q.eq('barcode', barcode))
@@ -201,6 +239,12 @@ export const applyOffRefresh = mutation({
       ...rest,
       searchText: foodSearchText(rest),
       source: 'openfoodfacts',
+      // A refresh replaces the figures wholesale with Open Food Facts', so
+      // whatever they used to be, that is where they come from now — unless
+      // it came back with none, which claims nothing.
+      nutritionSource: hasNutritionFigures(rest.nutritionPer100)
+        ? 'imported'
+        : undefined,
       localEdited: false,
     })
   },
