@@ -28,6 +28,7 @@ jobs:
         run: echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
+      - run: pnpm run env:check
       - run: pnpm run typecheck
       - run: pnpm test
       # No `pnpm build` here — the deploy job builds for real a few minutes later,
@@ -40,30 +41,39 @@ jobs:
     environment: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'stg' }}
     permissions: { contents: read, packages: read }
     env:
-      # Environment-scoped: each of `stg` and `production` holds its own value.
-      # An environment secret shadows a repo secret of the same name — preview.yml
-      # declares no `environment:`, so it keeps resolving the repo-level `preview:`
-      # CONVEX_DEPLOY_KEY. Giving preview.yml an `environment:` would break that.
+      # Every value below is environment-scoped: the `stg` and `production`
+      # GitHub Environments hold their own copies, so this file names each once
+      # and never selects between them.
+      #
+      # It used to. `WRANGLER_ARGS`, `VITE_ENABLE_SAMPLE_DATA` and the two test
+      # credentials were `github.event_name` ternaries, each carrying a comment
+      # about GitHub's empty-string falsiness — including one warning that the
+      # opposite polarity "would evaluate to 'true' on *production*, which is the
+      # one thing it must not do". Those were per-environment values written as
+      # expressions. They are now per-environment values, and the absence of a
+      # value on `production` is what keeps it off production.
+      #
+      # Which of these exist in which environment is declared in env.manifest.ts
+      # and verified by the `Check environment` step below, before anything ships.
+      ENVIRONMENT_NAME: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'stg' }}
       CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
-      VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      # wrangler.jsonc: top-level = `gather` (prod), env.stg = `gather-stg`. The
-      # production value is a space, not '': GitHub treats the empty string as
-      # falsy, so `… && '' || '--env stg'` would fall through to the stg branch.
-      # Word-splitting drops the space, leaving `wrangler deploy` bare.
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      # Public values are GitHub *variables*, not secrets — masking a value the
+      # build inlines into a downloadable bundle only makes the logs harder to
+      # read. It also lets `env:check` compare them against the committed
+      # env/<environment>.public.env, which is the one value-diff a secret store
+      # can never support.
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
+      VITE_ENABLE_SAMPLE_DATA: ${{ vars.VITE_ENABLE_SAMPLE_DATA }}
+      VITE_TEST_USER_EMAIL: ${{ vars.VITE_TEST_USER_EMAIL }}
+      VITE_TEST_USER_PASSWORD: ${{ vars.VITE_TEST_USER_PASSWORD }}
+      VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+      VITE_SENTRY_ORG: ${{ vars.VITE_SENTRY_ORG }}
+      VITE_SENTRY_PROJECT: ${{ vars.VITE_SENTRY_PROJECT }}
+      # wrangler.jsonc: top-level = `gather` (prod), env.stg = `gather-stg`.
       WRANGLER_ARGS: ${{ github.event_name == 'workflow_dispatch' && ' ' || '--env stg' }}
-      # Sample-data panel on stg only. Never set for a production build — see
-      # CLAUDE.md; its absence is what keeps fake households out of real data.
-      # Polarity matters: the value we want empty must be the `||` fallback, per
-      # the falsy-'' rule above. `… == 'workflow_dispatch' && '' || 'true'` would
-      # evaluate to 'true' on *production*, which is the one thing it must not do.
-      VITE_ENABLE_SAMPLE_DATA: ${{ github.event_name != 'workflow_dispatch' && 'true' || '' }}
-      # @appelent/auth's test-login button, stg only. Vite inlines VITE_* into the
-      # client bundle, so these must stay scoped to the Clerk *test* instance and
-      # must never reach a production build.
-      VITE_TEST_USER_EMAIL: ${{ github.event_name != 'workflow_dispatch' && secrets.VITE_TEST_USER_EMAIL || '' }}
-      VITE_TEST_USER_PASSWORD: ${{ github.event_name != 'workflow_dispatch' && secrets.VITE_TEST_USER_PASSWORD || '' }}
     steps:
       # workflow_dispatch lets the operator pick any branch in the UI. Production
       # ships from main only; fail loudly rather than skipping silently.
@@ -86,6 +96,15 @@ jobs:
         run: echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
 
       - run: pnpm install --frozen-lockfile
+
+      # Fails the deploy rather than shipping a half-configured environment.
+      # `--ci` checks the job env instead of calling APIs: a workflow cannot list
+      # GitHub secrets (GITHUB_TOKEN cannot be granted secrets:read) and does not
+      # need to, because it holds them. This is what catches the hazard ADR 0013
+      # names — "the staging deployment inherits nothing" — before a merge ships
+      # a staging site nobody can sign into.
+      - name: Check environment
+        run: node scripts/env.mjs check "$ENVIRONMENT_NAME" --ci
 
       # CONVEX_DEPLOY_KEY alone picks the target deployment — a deploy key scopes
       # every convex command to it. Convex exposes that deployment's URL to --cmd
