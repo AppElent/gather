@@ -16,6 +16,20 @@ import type { Serving } from '../servings'
  */
 export interface CatalogFood {
   seedKey: string
+  /**
+   * The emoji this food shows where there is no photograph of it (#94) — and
+   * there never is one here, because a Catalog entry is generic and a picture
+   * would be of somebody's particular packet. So this is the tier of the
+   * tile's fallback these rows actually live in.
+   *
+   * Content, so it is not translated (ADR-0011), and picked from the same
+   * curated set the picker offers (`src/components/foods/IconPicker.tsx`) so
+   * that a Catalog food never wears something nobody could have chosen.
+   *
+   * Setting one here does not make these rows editable: they are still
+   * read-only in the app and `assertNotCatalog` still refuses every write.
+   */
+  icon?: string
   name: string
   baseUnit: 'g' | 'ml'
   nutritionPer100: NutritionFacts
@@ -35,6 +49,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   // Store cupboard
   {
     seedKey: 'flour-plain',
+    icon: '🌾',
     name: 'Flour, plain',
     baseUnit: 'g',
     nutritionPer100: {
@@ -54,6 +69,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'sugar-granulated',
+    icon: '🍬',
     name: 'Sugar, granulated',
     baseUnit: 'g',
     nutritionPer100: {
@@ -73,6 +89,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'rice-white-dry',
+    icon: '🍚',
     name: 'Rice, white long grain (dry)',
     baseUnit: 'g',
     nutritionPer100: {
@@ -92,6 +109,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'pasta-dry',
+    icon: '🍝',
     name: 'Pasta, dried',
     baseUnit: 'g',
     nutritionPer100: {
@@ -110,6 +128,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'lentils-dry',
+    icon: '🫘',
     name: 'Lentils, dried',
     baseUnit: 'g',
     nutritionPer100: {
@@ -128,6 +147,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'chickpeas-tinned',
+    icon: '🫘',
     name: 'Chickpeas, tinned (drained)',
     baseUnit: 'g',
     nutritionPer100: {
@@ -147,6 +167,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'chopped-tomatoes-tinned',
+    icon: '🍅',
     name: 'Chopped tomatoes, tinned',
     baseUnit: 'g',
     nutritionPer100: {
@@ -166,6 +187,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'olive-oil',
+    icon: '🫒',
     name: 'Olive oil',
     baseUnit: 'ml',
     nutritionPer100: {
@@ -185,6 +207,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'peanut-butter',
+    icon: '🥜',
     name: 'Peanut butter',
     baseUnit: 'g',
     nutritionPer100: {
@@ -206,6 +229,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   // Dairy and eggs
   {
     seedKey: 'egg-whole',
+    icon: '🥚',
     name: 'Egg, whole',
     baseUnit: 'g',
     nutritionPer100: {
@@ -225,6 +249,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'milk-whole',
+    icon: '🥛',
     name: 'Milk, whole',
     baseUnit: 'ml',
     nutritionPer100: {
@@ -245,6 +270,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'milk-semi-skimmed',
+    icon: '🥛',
     name: 'Milk, semi-skimmed',
     baseUnit: 'ml',
     nutritionPer100: {
@@ -265,6 +291,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'butter-unsalted',
+    icon: '🧈',
     name: 'Butter, unsalted',
     baseUnit: 'g',
     nutritionPer100: {
@@ -284,6 +311,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'yoghurt-greek-natural',
+    icon: '🥣',
     name: 'Greek yoghurt, natural',
     baseUnit: 'g',
     nutritionPer100: {
@@ -303,6 +331,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'cheese-cheddar',
+    icon: '🧀',
     name: 'Cheddar',
     baseUnit: 'g',
     nutritionPer100: {
@@ -322,6 +351,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'cheese-parmesan',
+    icon: '🧀',
     name: 'Parmesan',
     baseUnit: 'g',
     nutritionPer100: {
@@ -341,6 +371,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'feta',
+    icon: '🧀',
     name: 'Feta',
     baseUnit: 'g',
     nutritionPer100: {
@@ -362,6 +393,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   // Meat and fish
   {
     seedKey: 'chicken-breast-raw',
+    icon: '🍗',
     name: 'Chicken breast, raw',
     baseUnit: 'g',
     nutritionPer100: {
@@ -380,6 +412,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'beef-mince-5',
+    icon: '🥩',
     name: 'Beef mince, 5% fat',
     baseUnit: 'g',
     nutritionPer100: {
@@ -399,6 +432,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'salmon-fillet-raw',
+    icon: '🐟',
     name: 'Salmon fillet, raw',
     baseUnit: 'g',
     nutritionPer100: {
@@ -419,6 +453,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   // Fruit and vegetables
   {
     seedKey: 'potato',
+    icon: '🥔',
     name: 'Potato',
     baseUnit: 'g',
     nutritionPer100: {
@@ -438,6 +473,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'onion',
+    icon: '🧅',
     name: 'Onion',
     baseUnit: 'g',
     nutritionPer100: {
@@ -457,6 +493,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'garlic',
+    icon: '🧄',
     name: 'Garlic',
     baseUnit: 'g',
     nutritionPer100: {
@@ -475,6 +512,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'tomato',
+    icon: '🍅',
     name: 'Tomato',
     baseUnit: 'g',
     nutritionPer100: {
@@ -494,6 +532,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'carrot',
+    icon: '🥕',
     name: 'Carrot',
     baseUnit: 'g',
     nutritionPer100: {
@@ -512,6 +551,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'bell-pepper-red',
+    icon: '🫑',
     name: 'Bell pepper, red',
     baseUnit: 'g',
     nutritionPer100: {
@@ -531,6 +571,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'spinach',
+    icon: '🥬',
     name: 'Spinach',
     baseUnit: 'g',
     nutritionPer100: {
@@ -550,6 +591,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'banana',
+    icon: '🍌',
     name: 'Banana',
     baseUnit: 'g',
     nutritionPer100: {
@@ -569,6 +611,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'apple',
+    icon: '🍎',
     name: 'Apple',
     baseUnit: 'g',
     nutritionPer100: {
@@ -589,6 +632,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   // Bakery
   {
     seedKey: 'bread-wholemeal',
+    icon: '🍞',
     name: 'Bread, wholemeal',
     baseUnit: 'g',
     nutritionPer100: {
@@ -608,6 +652,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
   },
   {
     seedKey: 'oats-rolled',
+    icon: '🥣',
     name: 'Oats, rolled',
     baseUnit: 'g',
     nutritionPer100: {

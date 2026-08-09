@@ -331,3 +331,80 @@ test('a serving can be taken off again', () => {
     expect.objectContaining({ servings: undefined }),
   )
 })
+
+/**
+ * The icon (#94). This form is also the Open Food Facts review screen (#93),
+ * which is where an icon is most obviously missing: their products carry a
+ * photograph or they carry nothing at all.
+ */
+test('an icon picked while reviewing is part of what is saved', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(
+    <FoodForm
+      onSubmit={onSubmit}
+      submitting={false}
+      initial={{
+        name: 'Nutella',
+        nutritionPer100: { calories: 539 },
+        nutritionSource: 'imported',
+      }}
+      sourceNote="From Open Food Facts — review before saving."
+    />,
+  )
+
+  fireEvent.click(screen.getByRole('button', { name: '🍫' }))
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ icon: '🍫', nutritionSource: 'imported' }),
+  )
+})
+
+test('a food that had one opens holding it, and can be given another', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(
+    <FoodForm
+      onSubmit={onSubmit}
+      submitting={false}
+      initial={{ name: 'Melk', icon: '🥛', nutritionPer100: {} }}
+    />,
+  )
+  expect(screen.getByRole('button', { name: '🥛' }).ariaPressed).toBe('true')
+
+  fireEvent.click(screen.getByRole('button', { name: '🧀' }))
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+
+  expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ icon: '🧀' }))
+})
+
+// Nothing rather than '': an empty string is set as far as the tile's fallback
+// chain can tell, and would render a blank square in front of the glyph.
+test('clearing one submits no icon at all', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(
+    <FoodForm
+      onSubmit={onSubmit}
+      submitting={false}
+      initial={{ name: 'Melk', icon: '🥛', nutritionPer100: {} }}
+    />,
+  )
+
+  fireEvent.click(screen.getByRole('button', { name: 'No icon' }))
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+
+  // `null`, not `undefined`: Convex drops an undefined argument before it
+  // reaches the mutation, so a cleared icon submitted that way would arrive
+  // indistinguishable from one nobody mentioned, and never take.
+  expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ icon: null }))
+})
+
+test('a food nobody gave an icon submits none', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(<FoodForm onSubmit={onSubmit} submitting={false} />)
+  fireEvent.change(screen.getByLabelText('Name'), {
+    target: { value: 'Water' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+
+  expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ icon: null }))
+})

@@ -103,6 +103,10 @@ export const create = mutation({
     quantity: v.number(),
     quantityUnit: quantityUnitValidator,
     nutrition: nutritionValidator,
+    // An emoji, for a one-off (#94). Sent only by the card that writes one:
+    // an entry that references a food or a recipe has something behind it to
+    // show, and reads that instead of carrying a copy.
+    icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
@@ -139,6 +143,7 @@ export const createMany = mutation({
         quantity: v.number(),
         quantityUnit: quantityUnitValidator,
         nutrition: nutritionValidator,
+        icon: v.optional(v.string()),
       }),
     ),
   },

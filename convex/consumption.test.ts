@@ -479,3 +479,53 @@ describe('the amounts you have logged for a food', () => {
     ).toEqual([])
   })
 })
+
+/**
+ * The emoji on a one-off (#94).
+ *
+ * A one-off has no `foodId` and no `recipeId`, so there is nothing behind it to
+ * read a picture from and there never will be — this is the only picture it can
+ * have. An entry logged without one is stored exactly as entries always were.
+ */
+describe('a one-off’s icon', () => {
+  async function signedIn() {
+    const t = testConvex()
+    await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    return t
+  }
+
+  const oneOff = {
+    date: DAY,
+    meal: 'breakfast' as const,
+    label: 'Poffertjes at the fair',
+    quantity: 1,
+    quantityUnit: 'piece' as const,
+    nutrition: { calories: 400 },
+  }
+
+  test('is written with the entry and comes back on the day', async () => {
+    const t = await signedIn()
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.consumption.create, { ...oneOff, icon: '🍬' })
+
+    const entries = await t
+      .withIdentity(asAlice)
+      .query(api.consumption.listForDay, { date: DAY })
+    expect(entries.map((e) => [e.label, e.icon])).toEqual([
+      ['Poffertjes at the fair', '🍬'],
+    ])
+  })
+
+  test('an entry logged without one has no field at all', async () => {
+    const t = await signedIn()
+
+    const id = await t
+      .withIdentity(asAlice)
+      .mutation(api.consumption.create, oneOff)
+
+    const row = await t.run(async (ctx) => ctx.db.get(id))
+    expect(row && 'icon' in row).toBe(false)
+  })
+})

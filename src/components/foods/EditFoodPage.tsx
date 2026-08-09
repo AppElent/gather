@@ -67,6 +67,7 @@ export function EditFoodPage({ foodId, nav }: EditFoodPageProps) {
           brand: food.brand,
           barcode: food.barcode,
           baseUnit: food.baseUnit,
+          icon: food.icon,
           nutritionPer100: food.nutritionPer100,
           servings: food.servings,
           nutritionSource: food.nutritionSource,

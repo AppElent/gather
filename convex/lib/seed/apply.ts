@@ -92,6 +92,7 @@ export async function applyCatalog(ctx: MutationCtx) {
 
     const fields = {
       name: food.name,
+      icon: food.icon,
       baseUnit: food.baseUnit,
       nutritionPer100: food.nutritionPer100,
       servings: food.servings,

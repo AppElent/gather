@@ -24,6 +24,12 @@ export const common = {
     didNotWork: 'Dat lukte niet — probeer het opnieuw.',
   },
 
+  icon: {
+    label: 'Icoon',
+    hint: 'Wordt getoond als er geen foto van is.',
+    none: 'Geen icoon',
+  },
+
   image: {
     label: 'Foto',
     choose: 'Foto kiezen',

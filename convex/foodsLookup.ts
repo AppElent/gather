@@ -148,6 +148,12 @@ export const importFromOff = action({
     // in that form arrives here saying `manual`. Absent still means `imported`,
     // which `foods.upsertFromOff` is the one to decide.
     nutritionSource: v.optional(nutritionSourceValidator),
+    // The emoji picked while reviewing (#94) — which is where one is most
+    // obviously missing, because an Open Food Facts product with no photograph
+    // is exactly the food with nothing else to show. Every field of the review
+    // reaches the row through this action, so an icon that stopped here would
+    // be dropped at the save without anything saying so.
+    icon: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args): Promise<Id<'foods'>> => {
     const identity = await ctx.auth.getUserIdentity()
