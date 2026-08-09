@@ -191,6 +191,25 @@ test('a barcode only Open Food Facts has is offered as something to import', asy
   expect(screen.queryByText('Your foods')).toBeNull()
 })
 
+test('a nameless Open Food Facts product is not offered as a blank card', async () => {
+  // `mapOffProduct` maps a product with no `product_name` rather than rejecting
+  // it, deliberately leaving the name to a confirmation screen — and there is
+  // no confirmation screen on this path. Left unfiltered it renders an
+  // unlabelled row whose confirm would save a food called "". The search path
+  // drops nameless rows for the same reason.
+  offProduct.value = {
+    name: '',
+    brand: 'Plus',
+    nutritionPer100: { calories: 78 },
+  }
+  renderSheet()
+  await search('8712345678901')
+
+  await waitFor(() => expect(screen.getByText(/Not found\./)).toBeDefined())
+  expect(screen.queryByText('Open Food Facts')).toBeNull()
+  expect(screen.getByText('Add it to the foods library')).toBeDefined()
+})
+
 test('a barcode nobody has offers adding it, rather than an empty list', async () => {
   renderSheet()
   await search('9999999999999')

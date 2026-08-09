@@ -169,9 +169,16 @@ export function useFoodSearch(): FoodSearch {
     // about which endpoint it reaches it by. A product the lookup has is one
     // result; a barcode nobody has is none, which is the empty result the
     // caller already turns into "not found — add it yourself".
+    //
+    // A nameless product counts as none. `mapOffProduct` deliberately maps a
+    // product with no `product_name` rather than rejecting it, leaving the name
+    // to the confirmation screen — but there is no confirmation screen on this
+    // path, so an unfiltered mapping renders a blank card whose confirm would
+    // save a food called "". `mapOffSearchResults` drops nameless rows for the
+    // same reason; this is that filter, applied where the barcode path needs it.
     const ask: Promise<OffSearchResult[]> = barcode
       ? lookupBarcode({ barcode }).then((mapped) =>
-          mapped ? [{ ...mapped, barcode }] : [],
+          mapped?.name.trim() ? [{ ...mapped, barcode }] : [],
         )
       : searchByName({ term: offTerm, locale })
     ask
