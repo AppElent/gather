@@ -70,6 +70,8 @@ export const diary = {
     hideScanner: 'Hide scanner',
     sections: {
       scanned: 'Scanned',
+      /** The food a review form just saved, handed back ready to log (#93/#79). */
+      justAdded: 'Just added',
       foods: 'Your foods',
       recipes: 'Recipes',
       off: 'Open Food Facts',
@@ -85,6 +87,12 @@ export const diary = {
     nothingFound: 'Nothing found for “{term}”',
     oneOffTitle: 'Log “{term}” as a one-off',
     oneOffHint: 'Fill in whatever figures you have — a partial record is fine.',
+    /**
+     * The other half of an empty result (#79). A one-off is right for a
+     * restaurant meal and wrong for a product you will eat again, which is
+     * something only the person typing knows.
+     */
+    addAsFood: 'Add “{term}” to my foods',
     logged: '{label} logged',
     undo: 'Undo',
     undoFailed: 'Could not undo that',
@@ -121,8 +129,11 @@ export const diary = {
 
   foodAdd: {
     barcodeFailed: 'Couldn’t look up that barcode — try again.',
-    addFailed: 'Couldn’t add that item — try again.',
     notFound: 'Not found.',
+    /** What choosing an Open Food Facts result does now: opens it, saves nothing (#93). */
+    review: 'Check and add',
+    reviewHint:
+      'Open Food Facts data is often incomplete. Check it, then saving adds the food and brings you back here to log it.',
     addToLibrary: 'Add it to the foods library',
     addToLibraryAfter: 'first.',
     searching: 'Searching Open Food Facts…',

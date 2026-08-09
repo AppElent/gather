@@ -7,12 +7,19 @@ import { AddSheet } from '../../../../../components/nutrition/AddSheet'
 import { todayLocal } from '../../../../../components/nutrition/NutritionPage'
 import { groupNutritionNav } from '../../../../../components/nutrition/nutritionNav'
 
-/** The meal being added to, defaulting to the first slot for a hand-typed URL. */
+/**
+ * The meal being added to, defaulting to the first slot for a hand-typed URL,
+ * and optionally the food a just-saved form handed back (#93/#79).
+ */
 function validateAddSearch(search: Record<string, unknown>): {
   meal: MealName
+  food?: string
 } {
   const meal = MEAL_NAMES.find((name) => name === search.meal)
-  return { meal: meal ?? 'breakfast' }
+  return {
+    meal: meal ?? 'breakfast',
+    food: typeof search.food === 'string' ? search.food : undefined,
+  }
 }
 
 /**
@@ -31,13 +38,14 @@ export const Route = createFileRoute('/_app/g/$groupSlug/nutrition/add')({
 
 function AddToMeal() {
   const { groupSlug } = Route.useParams()
-  const { date, meal } = Route.useSearch()
+  const { date, meal, food } = Route.useSearch()
   const navigate = useNavigate()
 
   return (
     <AddSheet
       date={date || todayLocal()}
       meal={meal}
+      justAddedFoodId={food}
       nav={groupNutritionNav(groupSlug)}
       onClose={() =>
         navigate({

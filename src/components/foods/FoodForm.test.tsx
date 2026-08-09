@@ -264,6 +264,49 @@ test('clearing the last figure takes the source note with it', () => {
   )
 })
 
+/**
+ * Open Food Facts holds products with no `product_name` at all, and
+ * `mapOffProduct` maps them rather than rejecting them — deliberately leaving
+ * the name "to the user on the confirmation screen". This form is that screen
+ * (#93), so the one thing it must not do is let a food called "" through.
+ */
+test('a product Open Food Facts has no name for cannot be saved unnamed', () => {
+  const onSubmit = vi.fn()
+  renderWithI18n(
+    <FoodForm
+      onSubmit={onSubmit}
+      submitting={false}
+      initial={{
+        name: '',
+        brand: 'Plus',
+        barcode: '8712345678901',
+        nutritionPer100: { calories: 78 },
+        nutritionSource: 'imported',
+      }}
+      sourceNote="From Open Food Facts — review before saving."
+    />,
+  )
+  // It arrives with the name empty and asked for, rather than filled in with
+  // something nobody chose.
+  const name = screen.getByLabelText('Name')
+  expect(name).toHaveValue('')
+  expect(name).toBeRequired()
+  expect(name).toBeInvalid()
+
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+  expect(onSubmit).not.toHaveBeenCalled()
+
+  fireEvent.change(name, { target: { value: 'Volkoren crackers' } })
+  fireEvent.click(screen.getByRole('button', { name: /save food/i }))
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: 'Volkoren crackers',
+      barcode: '8712345678901',
+      nutritionSource: 'imported',
+    }),
+  )
+})
+
 test('a serving can be taken off again', () => {
   const onSubmit = vi.fn()
   renderWithI18n(

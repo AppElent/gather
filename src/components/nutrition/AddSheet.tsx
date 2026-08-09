@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
 import { type ReactNode, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -11,12 +11,10 @@ import {
 } from '../../../convex/lib/consumption'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
 import { barcodeTerm } from '../../../convex/lib/offFetch'
-import type {
-  OffMappedFood,
-  OffSearchResult,
-} from '../../../convex/lib/offMapping'
+import type { OffSearchResult } from '../../../convex/lib/offMapping'
 import type { Serving } from '../../../convex/lib/servings'
 import { offeredServings, resolveAmount } from '../../../convex/lib/servings'
+import type { AppLink } from '../../lib/appLink'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
@@ -68,6 +66,12 @@ interface FoodSummary {
 interface Props {
   date: string
   meal: MealName
+  /**
+   * The food a review form just saved and handed back (#93/#79). It opens
+   * expanded and ready to log, so reviewing an import reads as a step inside
+   * logging rather than a detour through the Catalog.
+   */
+  justAddedFoodId?: string
   nav: NutritionNav
   onClose: () => void
 }
@@ -82,17 +86,24 @@ interface Props {
  * it is what the empty result offers you, with the term you already typed as
  * the label.
  */
-export function AddSheet({ date, meal, nav, onClose }: Props) {
+export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const search = useFoodSearch()
   const term = search.term.trim()
   const recipes = useQuery(api.recipes.listAcrossMyGroups, {})
   const combos = useQuery(api.combos.list, {})
+  // The food a review form just saved. Read back rather than carried in the
+  // URL, because what is logged has to be the row as it was written — the form
+  // is where somebody may have corrected the figures.
+  const justAdded = useQuery(
+    api.foods.get,
+    justAddedFoodId ? { id: justAddedFoodId as Id<'foods'> } : 'skip',
+  )
   const createEntry = useMutation(api.consumption.create)
   const createEntries = useMutation(api.consumption.createMany)
   const replaceComboItems = useMutation(api.combos.replaceItems)
-  const importFromOff = useAction(api.foodsLookup.importFromOff)
   const lookupBarcode = useAction(api.foodsLookup.lookupBarcode)
   const convex = useConvex()
+  const navigate = useNavigate()
   const { announce } = useJustLogged()
   const messages = useMessages()
   const { add, foodAdd, meals } = {
@@ -101,7 +112,9 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
   }
 
   const searchRef = useRef<HTMLInputElement>(null)
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<string | null>(
+    justAddedFoodId ? `food:${justAddedFoodId}` : null,
+  )
   const [comboBusy, setComboBusy] = useState(false)
   const [comboError, setComboError] = useState<string | null>(null)
   const [promotions, setPromotions] = useState(0)
@@ -129,31 +142,28 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
     onClose()
   }
 
-  // A barcode's product may already have a local row that a name search would
-  // not have surfaced. Reuse it rather than importing over it — the import
-  // would replace its name, nutrition and base unit with the mapped data.
-  async function importOff(
-    mapped: OffMappedFood,
-    barcode: string,
-  ): Promise<FoodSummary> {
-    const existing = await convex.query(api.foods.getByBarcode, { barcode })
-    if (existing) return existing
-    // An action rather than the mutation, because this is where the product's
-    // picture is fetched and stored (#69).
-    const id = await importFromOff({
-      barcode,
-      name: mapped.name,
-      brand: mapped.brand,
-      baseUnit: 'g',
-      nutritionPer100: mapped.nutritionPer100,
-      servings: mapped.servings,
-      imageUrl: mapped.imageUrl,
-    })
-    const saved = await convex.query(api.foods.get, { id })
-    if (!saved) throw new Error(foodAdd.addFailed)
-    return saved
+  /**
+   * Reviewing a food before it exists: the pre-filled form, with the day and
+   * the meal along for the ride so saving comes back here (#93/#79).
+   *
+   * There is no second editor and no second prefill. `NewFoodPage` already
+   * resolves a barcode against Open Food Facts and fills the form from the
+   * mapping, so an import is a *link to it*, not a copy of it.
+   */
+  function review(intent: { barcode?: string; name?: string }) {
+    return nav.createFood({ ...intent, returnTo: { date, meal } })
   }
 
+  /**
+   * A scanned barcode.
+   *
+   * A product you already have is not an import: it goes straight to the
+   * expanded card, ready to log, which is the one-tap path #63/#66 built. A
+   * product that is *new* is an import, and every import is reviewed before
+   * anything is written (#93) — including the Open Food Facts products that
+   * carry no `product_name` at all, which used to be imported under the name
+   * `""` because nothing on this path ever asked.
+   */
   async function onBarcode(barcode: string) {
     setScanFailure(null)
     try {
@@ -170,10 +180,8 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
         setScanFailure({ barcode })
         return
       }
-      const imported = await importOff(mapped, barcode)
-      setScanned(imported)
-      setExpanded(`food:${imported._id}`)
       setScanning(false)
+      navigate(review({ barcode }))
     } catch {
       setScanFailure({ message: foodAdd.barcodeFailed })
     }
@@ -337,7 +345,7 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
       {scanFailure && (
         <p className="mb-3 text-xs opacity-60">
           {scanFailure.message ?? (
-            <NoSuchBarcode barcode={scanFailure.barcode} nav={nav} />
+            <NoSuchBarcode barcode={scanFailure.barcode} createFood={review} />
           )}
         </p>
       )}
@@ -356,6 +364,17 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
               onLog={(counts, modified) => logCombo(combo, counts, modified)}
             />
           ))}
+        </Section>
+      )}
+
+      {justAdded && (
+        <Section title={add.sections.justAdded}>
+          <FoodCard
+            food={justAdded}
+            expanded={expanded === `food:${justAdded._id}`}
+            onToggle={() => toggle(`food:${justAdded._id}`)}
+            onLog={log}
+          />
         </Section>
       )}
 
@@ -417,8 +436,7 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
               result={result}
               expanded={expanded === `off:${result.barcode}`}
               onToggle={() => toggle(`off:${result.barcode}`)}
-              onImport={importOff}
-              onLog={log}
+              reviewLink={review({ barcode: result.barcode })}
             />
           ))}
         </Section>
@@ -427,9 +445,15 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
       {foundNothing &&
         (searchedBarcode ? (
           <p className="py-2 text-xs opacity-60">
-            <NoSuchBarcode barcode={searchedBarcode} nav={nav} />
+            <NoSuchBarcode barcode={searchedBarcode} createFood={review} />
           </p>
         ) : (
+          // Two routes, both carrying the words already typed. A one-off is
+          // right for a restaurant meal and wrong for a product you will eat
+          // again next week — that one is logged once and can never be found
+          // again, so the next search for the same words offers a one-off
+          // again (#79). Which of the two this is is a thing only the person
+          // knows, so both are offered rather than guessed at.
           <Section title={fmt(add.nothingFound, { term })}>
             <OneOffCard
               term={term}
@@ -437,6 +461,14 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
               onToggle={() => toggle('one-off')}
               onLog={log}
             />
+            <li>
+              <Link
+                {...review({ name: term })}
+                className="flex min-h-14 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2 text-sm no-underline"
+              >
+                {fmt(add.addAsFood, { term })}
+              </Link>
+            </li>
           </Section>
         ))}
 
@@ -456,16 +488,16 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
  */
 function NoSuchBarcode({
   barcode,
-  nav,
+  createFood,
 }: {
   barcode: string | undefined
-  nav: NutritionNav
+  createFood: (intent: { barcode?: string }) => AppLink
 }) {
   const { foodAdd } = useMessages().nutrition.diary
   return (
     <>
       {foodAdd.notFound}{' '}
-      <Link {...nav.createFood(barcode)} className="underline">
+      <Link {...createFood({ barcode })} className="underline">
         {foodAdd.addToLibrary}
       </Link>{' '}
       {foodAdd.addToLibraryAfter}
@@ -706,33 +738,28 @@ function RecipeCard({
 }
 
 /**
- * An Open Food Facts result is not a food yet. Confirming imports it — which is
- * what puts it in your own library for next time — and then logs it.
+ * An Open Food Facts result is not a food yet, and choosing one does not make
+ * it one: it opens the food form pre-filled from the mapping, and *saving* is
+ * what imports the food and logs the entry (#93).
+ *
+ * This card writes nothing at all, which is the whole point. Open Food Facts
+ * data is thin often enough — a missing nutrient, no serving, an unhelpful or
+ * absent name — that logging something wrong quickly is worse than logging
+ * something right slowly. The one-tap path is still there through your own
+ * foods and Combos, which is where repeats live.
  */
 function OffCard({
   result,
   expanded,
   onToggle,
-  onImport,
-  onLog,
+  reviewLink,
 }: {
   result: OffSearchResult
   expanded: boolean
   onToggle: () => void
-  onImport: (mapped: OffMappedFood, barcode: string) => Promise<FoodSummary>
-  onLog: LogFn
+  reviewLink: AppLink
 }) {
-  const { add, foodAdd } = useMessages().nutrition.diary
-  // An Open Food Facts result is always in grams: it is not a food of yours
-  // yet, so it has no base unit of its own and no history behind it.
-  const offUnit = { ...result, baseUnit: 'g' as const }
-  const offered = offeredServings(offUnit)
-  const [selection, setSelection] = useState<ServingSelection | null>(null)
-  const current = selection ?? initialSelection(offered)
-  const { busy, error, run } = useLogging()
-
-  const choice = toChoice(offered, current)
-  const resolved = choice ? resolveAmount(offUnit, choice) : undefined
+  const { foodAdd } = useMessages().nutrition.diary
 
   return (
     <ResultCard
@@ -749,45 +776,15 @@ function OffCard({
       expanded={expanded}
       onToggle={onToggle}
     >
-      <ServingPicker
-        baseUnit="g"
-        offered={offered}
-        selection={current}
-        onSelect={setSelection}
-      />
+      {/* What Open Food Facts has, per 100, before anybody agrees to it —
+          which is exactly what the review form opens holding. */}
+      <NutritionBreakdown facts={result.nutritionPer100} />
+      <p className="mt-3 text-xs opacity-60">{foodAdd.reviewHint}</p>
       <div className="mt-3">
-        <NutritionBreakdown facts={resolved?.nutrition ?? {}} />
+        <Link {...reviewLink} className={`${confirmClass} inline-block py-2.5`}>
+          {foodAdd.review}
+        </Link>
       </div>
-      <Confirm
-        disabled={!resolved}
-        reason={add.enterAmount}
-        busy={busy}
-        error={error}
-        onConfirm={() =>
-          run(async () => {
-            if (!resolved) return
-            const food = await onImport(result, result.barcode)
-            // The import may hand back a row that already existed — one
-            // somebody has since corrected by hand, or that carries different
-            // figures from this result's. The entry must snapshot the food it
-            // references, not the search result it was chosen from, or a later
-            // quantity edit recomputes to figures the entry never had.
-            const logged = resolveAmount(food, {
-              kind: 'custom',
-              value: resolved.amount,
-              unit: 'base',
-            })
-            if (!logged) return
-            await onLog({
-              foodId: food._id,
-              label: food.name,
-              quantity: logged.amount,
-              quantityUnit: food.baseUnit,
-              nutrition: logged.nutrition,
-            })
-          })
-        }
-      />
     </ResultCard>
   )
 }
