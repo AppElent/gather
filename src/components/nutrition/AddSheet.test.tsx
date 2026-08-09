@@ -62,6 +62,8 @@ const offResults = vi.hoisted(() => ({
 }))
 /** What `foods.getByBarcode` finds, for the "this is already in your library" path. */
 const existingFood = vi.hoisted(() => ({ value: null as unknown }))
+/** What `foods.get` finds for the food a review form just handed back. */
+const justAddedFood = vi.hoisted(() => ({ value: null as unknown }))
 /** What `foodsLookup.lookupBarcode` finds on Open Food Facts. */
 const offProduct = vi.hoisted(() => ({ value: null as unknown }))
 const calls = vi.hoisted(() => ({ value: [] as Array<[string, unknown]> }))
@@ -77,6 +79,9 @@ vi.mock('convex/react', () => ({
     }
     if (name === 'foods:getByBarcode') {
       return args === 'skip' ? undefined : existingFood.value
+    }
+    if (name === 'foods:get') {
+      return args === 'skip' ? undefined : justAddedFood.value
     }
     if (name === 'recipes:listAcrossMyGroups') return recipes.value
     if (name === 'combos:list') return combos.value
@@ -121,17 +126,58 @@ vi.mock('../../../convex/_generated/api', () => ({
   },
 }))
 
+/** Where a `<Link>` or a `navigate()` would have taken us. */
+const navigated = vi.hoisted(() => ({ value: [] as unknown[] }))
+
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children }: { children: React.ReactNode }) => (
-    <a href="/">{children}</a>
+  Link: ({
+    children,
+    to,
+    params,
+    search,
+  }: {
+    children: React.ReactNode
+    to: string
+    params?: Record<string, string>
+    search?: Record<string, string>
+  }) => (
+    <a href={href({ to, params, search })} data-search={JSON.stringify(search)}>
+      {children}
+    </a>
   ),
+  useNavigate: () => (link: unknown) => {
+    navigated.value.push(link)
+  },
 }))
+
+function href({
+  to,
+  params,
+  search,
+}: {
+  to: string
+  params?: Record<string, string>
+  search?: Record<string, string>
+}) {
+  const path = Object.entries(params ?? {}).reduce(
+    (acc, [key, value]) => acc.replace(`$${key}`, value),
+    to,
+  )
+  const query = new URLSearchParams(search ?? {}).toString()
+  return query ? `${path}?${query}` : path
+}
 
 const nav = groupNutritionNav('jansen-household')
 
-function renderSheet(onClose = vi.fn()) {
+function renderSheet(onClose = vi.fn(), justAddedFoodId?: string) {
   renderWithI18n(
-    <AddSheet date="2026-07-18" meal="breakfast" nav={nav} onClose={onClose} />,
+    <AddSheet
+      date="2026-07-18"
+      meal="breakfast"
+      justAddedFoodId={justAddedFoodId}
+      nav={nav}
+      onClose={onClose}
+    />,
   )
   return onClose
 }
@@ -144,11 +190,30 @@ async function search(term: string) {
 
 beforeEach(() => {
   calls.value = []
+  navigated.value = []
   loggedAmounts.value = []
   combos.value = []
   existingFood.value = null
+  justAddedFood.value = null
   offProduct.value = null
+  // jsdom has no `navigator.mediaDevices`, which is what the scanner asks for
+  // first. A stand-in that refuses is the state a phone with the camera denied
+  // is in, and it leaves the manual barcode entry — the part this suite drives.
+  if (!navigator.mediaDevices) {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockRejectedValue(new Error('no camera')) },
+      configurable: true,
+    })
+  }
 })
+
+/** Drive the scanner the way a phone would, minus the camera. */
+async function scan(barcode: string) {
+  fireEvent.click(screen.getByText('Scan'))
+  const field = await screen.findByLabelText('Or enter the barcode number')
+  fireEvent.change(field, { target: { value: barcode } })
+  fireEvent.click(screen.getByText('Look up'))
+}
 
 test('a barcode you already have is shown from your own rows', async () => {
   // Somebody edited these figures after importing this row once. Typing the
@@ -239,9 +304,28 @@ test('digits still being typed are an ordinary search, not a lookup', async () =
   expect(screen.queryByText('Volle melk')).toBeNull()
 })
 
-test('an Open Food Facts result already in your library logs that food’s own figures', async () => {
-  // Somebody corrected this row by hand after importing it; the entry has to
-  // snapshot the food it references, not the search result it was picked from.
+test('choosing an Open Food Facts result opens the review form and writes nothing', async () => {
+  renderSheet()
+  await search('volle melk')
+  await waitFor(() => expect(screen.getByText('Open Food Facts')).toBeDefined())
+  fireEvent.click(screen.getByText('Volle melk'))
+
+  // No serving picker, no confirm: there is nothing to log yet, because there
+  // is no food yet. What is offered is the review that would make one.
+  expect(screen.queryByText('Add to diary')).toBeNull()
+  const review = screen.getByText('Check and add')
+  expect(review).toHaveAttribute(
+    'href',
+    '/g/jansen-household/foods/new?barcode=8712345678901&returnDate=2026-07-18&returnMeal=breakfast',
+  )
+  // Following it is a navigation, not a write. Nothing has been imported and
+  // nothing has been logged.
+  expect(calls.value).toEqual([])
+})
+
+test('a scanned barcode you already have skips review entirely', async () => {
+  // The one-tap path #63/#66 built: this is not an import, so it does not go
+  // anywhere — it opens where it stands, ready to log.
   existingFood.value = {
     _id: 'food9',
     name: 'Volle melk',
@@ -249,21 +333,77 @@ test('an Open Food Facts result already in your library logs that food’s own f
     nutritionPer100: { calories: 100 },
   }
   renderSheet()
-  await search('volle melk')
-  await waitFor(() => expect(screen.getByText('Volle melk')).toBeDefined())
-  fireEvent.click(screen.getByText('Volle melk'))
-  fireEvent.change(screen.getByLabelText('Amount'), {
-    target: { value: '200' },
+  await scan('8712345678901')
+
+  await waitFor(() => expect(screen.getByText('Scanned')).toBeDefined())
+  expect(navigated.value).toEqual([])
+  fireEvent.click(screen.getByText('Add to diary'))
+
+  await waitFor(() => expect(calls.value).toHaveLength(1))
+  expect(calls.value[0][1]).toMatchObject({ foodId: 'food9' })
+})
+
+test('a scanned product nobody has is reviewed before anything is written', async () => {
+  offProduct.value = {
+    name: 'Nutella',
+    brand: 'Ferrero',
+    nutritionPer100: { calories: 539 },
+  }
+  renderSheet()
+  await scan('3017620422003')
+
+  await waitFor(() => expect(navigated.value).toHaveLength(1))
+  expect(navigated.value[0]).toMatchObject({
+    to: '/g/$groupSlug/foods/new',
+    search: {
+      barcode: '3017620422003',
+      returnDate: '2026-07-18',
+      returnMeal: 'breakfast',
+    },
   })
+  expect(calls.value).toEqual([])
+})
+
+test('a scanned product with no name is asked about rather than imported as ""', async () => {
+  // `mapOffProduct` maps a product with no `product_name` rather than
+  // rejecting it, deliberately leaving the name "to the user on the
+  // confirmation screen". This path used to have no confirmation screen, and
+  // sent the mapping straight to the import — silently saving a food called
+  // "". The review form *is* that screen, and its name field is required, so
+  // the name is supplied before anything is written.
+  offProduct.value = { name: '', brand: 'Plus', nutritionPer100: {} }
+  renderSheet()
+  await scan('8712345678901')
+
+  await waitFor(() => expect(navigated.value).toHaveLength(1))
+  expect(navigated.value[0]).toMatchObject({
+    to: '/g/$groupSlug/foods/new',
+    search: { barcode: '8712345678901' },
+  })
+  expect(calls.value).toEqual([])
+})
+
+test('the food a review form just saved comes back expanded and ready to log', async () => {
+  justAddedFood.value = {
+    _id: 'food9',
+    name: 'Volle melk',
+    baseUnit: 'ml',
+    nutritionPer100: { calories: 64 },
+  }
+  renderSheet(vi.fn(), 'food9')
+
+  await waitFor(() => expect(screen.getByText('Just added')).toBeDefined())
+  // Already open: the amount is on screen without anybody tapping the card.
+  expect(screen.getAllByLabelText('Amount')[0]).toHaveValue('100')
   fireEvent.click(screen.getByText('Add to diary'))
 
   await waitFor(() => expect(calls.value).toHaveLength(1))
   expect(calls.value[0][1]).toMatchObject({
     foodId: 'food9',
-    quantity: 200,
+    label: 'Volle melk',
+    quantity: 100,
     quantityUnit: 'ml',
-    // 200 ml of the *food's* 100 kcal/100 ml, not the result's 64.
-    nutrition: { calories: 200 },
+    nutrition: { calories: 64 },
   })
 })
 
@@ -380,6 +520,26 @@ test('a search matching nothing offers the typed term as a one-off', async () =>
     quantityUnit: 'piece',
     nutrition: { calories: 400 },
   })
+})
+
+test('a search matching nothing also offers adding it as a food', async () => {
+  // A one-off is right for a restaurant meal and wrong for a product you will
+  // eat again next week: logged once, never findable, so the same search finds
+  // nothing again. Both routes carry the words already typed (#79).
+  renderSheet()
+  await search('hagelslag')
+
+  await waitFor(() =>
+    expect(screen.getByText('Nothing found for “hagelslag”')).toBeDefined(),
+  )
+  expect(screen.getByText('Log “hagelslag” as a one-off')).toBeDefined()
+  const addFood = screen.getByText('Add “hagelslag” to my foods')
+  expect(addFood).toHaveAttribute(
+    'href',
+    '/g/jansen-household/foods/new?name=hagelslag&returnDate=2026-07-18&returnMeal=breakfast',
+  )
+  // Offering it is not taking it: nothing is written by looking at the choice.
+  expect(calls.value).toEqual([])
 })
 
 test('a food’s named servings are the way an amount is chosen', async () => {

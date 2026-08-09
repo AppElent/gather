@@ -39,13 +39,20 @@ export interface FoodNav {
 export function groupFoodNav(groupSlug: string): FoodNav {
   return {
     list: groupLink('foods', groupSlug),
+    // Only the parts there are: a key carrying `undefined` is a query parameter
+    // in some serialisers and nothing in others, and `/foods/new` with no
+    // intent is one address rather than four spellings of it.
     create: (intent) => ({
       ...groupLink('newFood', groupSlug),
       search: {
-        barcode: intent?.barcode,
-        name: intent?.name,
-        returnDate: intent?.returnTo?.date,
-        returnMeal: intent?.returnTo?.meal,
+        ...(intent?.barcode ? { barcode: intent.barcode } : {}),
+        ...(intent?.name ? { name: intent.name } : {}),
+        ...(intent?.returnTo
+          ? {
+              returnDate: intent.returnTo.date,
+              returnMeal: intent.returnTo.meal,
+            }
+          : {}),
       },
     }),
     detail: (foodId) => groupLink('food', groupSlug, { foodId }),

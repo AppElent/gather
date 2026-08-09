@@ -46,7 +46,10 @@ export function groupNutritionNav(groupSlug: string): NutritionNav {
     createFood: foods.create,
     addEntry: (date, meal, foodId) => ({
       ...groupLink('addFood', groupSlug),
-      search: { date, meal, food: foodId },
+      // The food only when there is one: a key carrying `undefined` is a query
+      // parameter in some serialisers and nothing in others, and the sheet's
+      // address should not depend on which.
+      search: { date, meal, ...(foodId ? { food: foodId } : {}) },
     }),
   }
 }

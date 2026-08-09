@@ -81,11 +81,6 @@ describe('links built for a Group', () => {
   test('a search param survives being given the Group treatment', () => {
     expect(
       groupFoodNav(SLUG).create({ barcode: '3017620422003' }).search,
-    ).toEqual({
-      barcode: '3017620422003',
-      name: undefined,
-      returnDate: undefined,
-      returnMeal: undefined,
-    })
+    ).toEqual({ barcode: '3017620422003' })
   })
 })
