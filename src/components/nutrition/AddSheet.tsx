@@ -65,6 +65,13 @@ interface FoodSummary {
   imageUrl?: string | null
 }
 
+/** What a recipe card needs, from a search match or from your own history. */
+interface RecipeSummary {
+  _id: Id<'recipes'>
+  title: string
+  nutrition: NutritionFacts
+}
+
 interface Props {
   date: string
   meal: MealName
@@ -85,7 +92,14 @@ interface Props {
 export function AddSheet({ date, meal, nav, onClose }: Props) {
   const search = useFoodSearch()
   const term = search.term.trim()
-  const recipes = useQuery(api.recipes.listAcrossMyGroups, {})
+  const recipes = useQuery(api.recipes.listAcrossMyGroups, term ? {} : 'skip')
+  // What this person usually has at *this* meal, most-chosen first (#76). Only
+  // asked for while the search box is empty: once there is a term, the sheet is
+  // answering that instead, and the whole library is behind it.
+  const suggestions = useQuery(
+    api.consumption.suggestionsForMeal,
+    term ? 'skip' : { date, meal },
+  )
   const combos = useQuery(api.combos.list, {})
   const createEntry = useMutation(api.consumption.create)
   const createEntries = useMutation(api.consumption.createMany)
@@ -243,13 +257,25 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
   const matchingCombos = (combos ?? []).filter(
     (combo) => !term || combo.name.toLowerCase().includes(term.toLowerCase()),
   )
-  const foods = search.results ?? []
-  const withNutrition = (recipes ?? []).filter((r) => r.nutrition)
-  const matchingRecipes = term
-    ? withNutrition.filter((r) =>
-        r.title.toLowerCase().includes(term.toLowerCase()),
-      )
-    : withNutrition
+  // Empty box: your habits, bounded and ranked by the query. Anything typed:
+  // what matches it. The two never mix — a term is a question the sheet has to
+  // answer with the whole library rather than with the first screen's guesses.
+  const foods: FoodSummary[] = term
+    ? (search.results ?? [])
+    : (suggestions?.foods ?? [])
+  const matchingRecipes: RecipeSummary[] = term
+    ? (recipes ?? [])
+        .filter(
+          (r) =>
+            r.nutrition && r.title.toLowerCase().includes(term.toLowerCase()),
+        )
+        .map((r) => ({
+          _id: r._id,
+          title: r.title,
+          // Filtered to recipes that have it, which the type cannot see.
+          nutrition: r.nutrition as NutritionFacts,
+        }))
+    : (suggestions?.recipes ?? [])
   const offResults = search.offResults ?? []
   const foundNothing =
     term.length > 0 &&
@@ -371,7 +397,7 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
       )}
 
       {foods.length > 0 && (
-        <Section title={add.sections.foods}>
+        <Section title={term ? add.sections.foods : add.sections.usualFoods}>
           {foods.map((food) => (
             <FoodCard
               key={food._id}
@@ -385,16 +411,13 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
       )}
 
       {matchingRecipes.length > 0 && (
-        <Section title={add.sections.recipes}>
+        <Section
+          title={term ? add.sections.recipes : add.sections.usualRecipes}
+        >
           {matchingRecipes.map((recipe) => (
             <RecipeCard
               key={recipe._id}
-              recipe={{
-                _id: recipe._id,
-                title: recipe.title,
-                // Filtered to recipes that have it, which the type cannot see.
-                nutrition: recipe.nutrition as NutritionFacts,
-              }}
+              recipe={recipe}
               expanded={expanded === `recipe:${recipe._id}`}
               onToggle={() => toggle(`recipe:${recipe._id}`)}
               onLog={log}
@@ -440,8 +463,17 @@ export function AddSheet({ date, meal, nav, onClose }: Props) {
           </Section>
         ))}
 
+      {/* The hint used to require no Combos *and* no Recipes, and every recipe
+          you owned counted — so it almost never appeared. Now that the first
+          screen is your own history, it shows exactly when there is no history
+          to show: a person who has logged nothing yet, for whom the search box
+          really is the only way in. Both queries have to have answered first,
+          or it flashes on the way to a full sheet. */}
       {!term &&
+        combos !== undefined &&
+        suggestions !== undefined &&
         matchingCombos.length === 0 &&
+        foods.length === 0 &&
         matchingRecipes.length === 0 &&
         !scanned && <p className="py-2 text-sm opacity-60">{add.searchHint}</p>}
     </BottomSheet>

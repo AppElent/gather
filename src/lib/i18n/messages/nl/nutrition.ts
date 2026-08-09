@@ -60,6 +60,8 @@ export const diary = {
       foods: 'Jouw voedingsmiddelen',
       recipes: 'Recepten',
       off: 'Open Food Facts',
+      usualFoods: 'Jouw vaste voedingsmiddelen',
+      usualRecipes: 'Jouw vaste recepten',
     },
     amount: 'Hoeveelheid',
     unit: 'Eenheid',

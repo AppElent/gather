@@ -7,9 +7,14 @@ import {
   quantityUnitValidator,
   scaleFacts,
 } from './lib/consumption'
+import { withImageUrl } from './foods'
 import { isVisibleToGroups } from './lib/groupAccess'
 import { NUTRIENT_KEYS, type NutritionFacts, nutritionValidator } from './lib/nutrition'
-import { rankLoggedAmounts } from './lib/servings'
+import {
+  rankLoggedAmounts,
+  rankMealChoices,
+  suggestionWindowStart,
+} from './lib/servings'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
@@ -90,6 +95,82 @@ export const loggedAmountsForFood = query({
       )
       .collect()
     return rankLoggedAmounts(entries, food.baseUnit)
+  },
+})
+
+/**
+ * How many diary rows the empty sheet will read to work out a habit.
+ *
+ * The date window is the real bound; this is the second one, for the person
+ * who logs a dozen things a day and would otherwise turn "what do I usually
+ * have for breakfast" into a two-month scan. Entries come back newest-first,
+ * so what a cap this size drops is always the oldest of a very full window.
+ */
+const SUGGESTION_SCAN_LIMIT = 400
+
+/**
+ * What the add sheet opens on: the foods and recipes you usually have at this
+ * meal, most-chosen first (#76).
+ *
+ * The sheet used to open on every recipe you own and none of your foods, which
+ * read as broken — foods came from a search that returns nothing for an empty
+ * term, and recipes came from a list with no bound on it. Both sections are
+ * answered from your own diary now, ranked the same way and bounded to the
+ * same handful. Anything you have never logged is behind the search box, which
+ * is where a thing you have to think about belongs.
+ *
+ * The meal is an argument because the answer differs by meal — that is the
+ * point of it (#73). The date is an argument too: the window is measured back
+ * from the day being logged, so opening the sheet on a day last month asks
+ * about the habits of that month.
+ *
+ * Yours alone, like every other read of your diary: the entries are found by
+ * your user id and there is no argument by which one person can ask about
+ * another's. A recipe you can no longer see drops out here exactly as it drops
+ * out of `listForDay` (ADR-0003).
+ */
+export const suggestionsForMeal = query({
+  args: { date: v.string(), meal: mealValidator },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+    if (!user) return { foods: [], recipes: [] }
+    const since = suggestionWindowStart(args.date)
+    const entries = await ctx.db
+      .query('consumptionEntries')
+      .withIndex('by_user_date', (q) =>
+        q.eq('userId', user._id).gte('date', since),
+      )
+      .order('desc')
+      .take(SUGGESTION_SCAN_LIMIT)
+    const { foodIds, recipeIds } = rankMealChoices(entries, {
+      meal: args.meal,
+      since,
+    })
+
+    const foodDocs = await Promise.all(foodIds.map((id) => ctx.db.get(id)))
+    const foods = await Promise.all(
+      foodDocs
+        .filter((food) => food !== null)
+        .map((food) => withImageUrl(ctx, food)),
+    )
+
+    const viewerGroupIds = await getMyGroupIds(ctx, user._id)
+    const recipeDocs = await Promise.all(recipeIds.map((id) => ctx.db.get(id)))
+    // Only what a card can be built from: a recipe with no nutrition has
+    // nothing to log, and one this reader may no longer see is not offered
+    // back to them by their own history.
+    const recipes = []
+    for (const recipe of recipeDocs) {
+      if (!recipe || !recipe.nutrition) continue
+      if (!isVisibleToGroups(recipe, viewerGroupIds)) continue
+      recipes.push({
+        _id: recipe._id,
+        title: recipe.title,
+        nutrition: recipe.nutrition,
+      })
+    }
+
+    return { foods, recipes }
   },
 })
 

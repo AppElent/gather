@@ -73,6 +73,15 @@ export const diary = {
       foods: 'Your foods',
       recipes: 'Recipes',
       off: 'Open Food Facts',
+      /**
+       * What the sheet opens on before anything is typed: the foods and
+       * recipes you most often log in *this* meal (#76). Two headings rather
+       * than one, because they are two kinds of thing logged in different
+       * units — and both say "usual" so it is clear why these few are here
+       * and the rest of your library is not.
+       */
+      usualFoods: 'Your usual foods',
+      usualRecipes: 'Your usual recipes',
     },
     amount: 'Amount',
     unit: 'Unit',

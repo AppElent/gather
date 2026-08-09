@@ -38,7 +38,7 @@ function assertNotCatalog(food: Doc<'foods'>) {
  * The row holds a `_storage` id, which is no use to an `<img>`. Resolving it
  * here rather than in the client is what keeps a result list one round trip.
  */
-async function withImageUrl(ctx: QueryCtx, food: Doc<'foods'>) {
+export async function withImageUrl(ctx: QueryCtx, food: Doc<'foods'>) {
   return {
     ...food,
     imageUrl: food.imageId ? await ctx.storage.getUrl(food.imageId) : null,

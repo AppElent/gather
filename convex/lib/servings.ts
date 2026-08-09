@@ -69,6 +69,116 @@ export function rankLoggedAmounts(
     .map(([amount]) => ({ label: `${amount} ${baseUnit}`, amount }))
 }
 
+/** How many things each section of the empty add sheet offers (#76). */
+export const MAX_MEAL_SUGGESTIONS = 8
+
+/**
+ * How far back the empty add sheet looks for a habit.
+ *
+ * Bounded on purpose: a year of entries is not needed to know what somebody
+ * has for breakfast, and the alternative is collecting a diary of unbounded
+ * length on every open of the sheet. Two months is long enough that a habit
+ * kept a few times a week is obvious and short enough that one abandoned in
+ * spring is not still the first thing offered in autumn.
+ */
+export const SUGGESTION_WINDOW_DAYS = 60
+
+/**
+ * The earliest day the empty sheet counts, given the day being logged.
+ *
+ * Days rather than timestamps because that is what a diary entry stores — an
+ * ISO `YYYY-MM-DD` string, which compares and sorts as a date without being
+ * parsed. A date this cannot parse yields itself, so a broken argument narrows
+ * the window to a single day rather than quietly widening it to everything.
+ */
+export function suggestionWindowStart(
+  date: string,
+  days: number = SUGGESTION_WINDOW_DAYS,
+): string {
+  const start = new Date(`${date}T00:00:00Z`)
+  if (Number.isNaN(start.getTime())) return date
+  start.setUTCDate(start.getUTCDate() - days)
+  return start.toISOString().slice(0, 10)
+}
+
+/** As much of a diary entry as ranking a meal's habits depends on. */
+export interface MealChoiceEntry<F extends string, R extends string> {
+  meal: string
+  date: string
+  foodId?: F
+  recipeId?: R
+}
+
+/**
+ * What somebody usually has at this meal, most-chosen first (#76, #73).
+ *
+ * The empty add sheet's whole point is that the common case needs no typing,
+ * and "the thing I eat every breakfast" is a far better guess than "the thing
+ * I logged last night" — so this ranks a person's distinct foods and recipes
+ * by *how often* they logged each one in this meal slot, and breaks ties on
+ * recency so that a new habit overtakes an old one of equal count. The final
+ * tie-break on the id itself is not meaningful; it is there so the order does
+ * not depend on which entry a query happened to return first.
+ *
+ * Foods and recipes are counted separately because they are offered as two
+ * sections and logged in different units — they are never ranked against each
+ * other. A one-off entry references neither and counts towards nothing: there
+ * is nothing to offer back.
+ *
+ * Pure, and given the window rather than computing it, so the same bound the
+ * caller's index range applies is applied again here — the two cannot drift,
+ * and a test can state the window without a database.
+ */
+export function rankMealChoices<F extends string, R extends string>(
+  entries: readonly MealChoiceEntry<F, R>[],
+  options: { meal: string; since?: string; limit?: number },
+): { foodIds: F[]; recipeIds: R[] } {
+  const limit = options.limit ?? MAX_MEAL_SUGGESTIONS
+  const foods = new Map<F, Tally>()
+  const recipes = new Map<R, Tally>()
+  for (const entry of entries) {
+    if (entry.meal !== options.meal) continue
+    if (options.since !== undefined && entry.date < options.since) continue
+    if (entry.foodId !== undefined) tally(foods, entry.foodId, entry.date)
+    if (entry.recipeId !== undefined) tally(recipes, entry.recipeId, entry.date)
+  }
+  return {
+    foodIds: mostChosen(foods, limit),
+    recipeIds: mostChosen(recipes, limit),
+  }
+}
+
+interface Tally {
+  count: number
+  last: string
+}
+
+function tally<K extends string>(counts: Map<K, Tally>, key: K, date: string) {
+  const seen = counts.get(key)
+  if (!seen) {
+    counts.set(key, { count: 1, last: date })
+    return
+  }
+  seen.count += 1
+  if (date > seen.last) seen.last = date
+}
+
+function mostChosen<K extends string>(counts: Map<K, Tally>, limit: number): K[] {
+  return [...counts.entries()]
+    .sort(
+      ([aKey, a], [bKey, b]) =>
+        b.count - a.count ||
+        compare(b.last, a.last) ||
+        compare(aKey as string, bKey as string),
+    )
+    .slice(0, limit)
+    .map(([key]) => key)
+}
+
+function compare(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
 /** A serving on offer, and whether it came from the food or from your own logging. */
 export interface OfferedServing extends Serving {
   own: boolean
