@@ -20,8 +20,8 @@ cheeses, wines) built on the standard AppElent stack:
 - **Biome** for lint/format (tab-free, 2-space, single quotes, semicolons as needed).
 - **Vitest** + jsdom + Testing Library.
 - **Tailwind v4**.
-- **`@t3-oss/env-core`** for typed env validation (`src/env.ts`, currently minimal —
-  not yet wired to the Clerk/Convex/Sentry vars actually in use).
+- **`@t3-oss/env-core`** for typed env validation (`src/env.ts`), whose schemas are
+  *derived* from `env.manifest.ts` rather than restating a list of names.
 - **Sentry** (`@sentry/tanstackstart-react`, wired via `instrument.server.mjs`).
 - **Package manager: pnpm, always.**
 
@@ -53,6 +53,8 @@ Standard baseline set (`pnpm run <script>`): `dev`, `dev:all` (Convex once + Vit
 `check`, `cf-typegen`, `deploy` (= `deploy:prod`), `deploy:dev`, `deploy:prod`,
 `seed` (Catalog only, safe anywhere), `seed:sample` (rebuilds the Sample
 household on the dev deployment around the shared Clerk test user).
+
+Plus `env:check`, `env:apply` and `env:generate` — see "Env vars" below.
 
 `deploy:dev` and `deploy:prod` both run `convex run seed:seedCatalog` between
 the Convex deploy and the build — Convex has no post-deploy hook outside
@@ -94,37 +96,59 @@ a household nobody can sign into.
 
 ## Env vars
 
-Client (`.env.local`, see `.env.example` for the full documented list):
-`VITE_CLERK_PUBLISHABLE_KEY`, `VITE_TEST_USER_EMAIL`, `VITE_TEST_USER_PASSWORD`
-(the latter two enable `@appelent/auth`'s dev-only test-login button when the
-Clerk key is `pk_test_...`), `CONVEX_DEPLOYMENT`, `VITE_CONVEX_URL`,
-`VITE_SENTRY_DSN`, `VITE_SENTRY_ORG`, `VITE_SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`,
-`VITE_ENABLE_SAMPLE_DATA` (shows the Sample data panel in `/settings`; implied
-by `import.meta.env.DEV`, set explicitly for previews in `preview.yml`, never
-set for a production build).
+**`env.manifest.ts` is the source of truth.** An entry declares *who reads* a
+value — `vite-build`, `build-tooling`, `local-tooling`, `worker-runtime`,
+`convex-functions`, `workflow` — and which of `local` / `preview` / `stg` /
+`production` need it. A single table in that file derives *where* the value must
+be written from (consumer, environment). Nothing else lists variable names:
+`src/env.ts` derives its schemas from the manifest, and `.env.example` is
+generated. See
+`docs/adr/0014-a-variable-declares-its-consumer-not-its-destination.md`.
 
-Convex deployment (server-side, set via `convex env set` / `convex env default set`,
-never in a committed file): `CLERK_JWT_ISSUER_DOMAIN` — set on dev, **staging**,
-prod, and as the default for preview deployments (PR previews create a fresh
-Convex backend per PR that doesn't inherit dev/prod env vars). `ANTHROPIC_API_KEY` — powers the recipe
-URL-import action's AI fallback; optional (JSON-LD-only imports work without it, and
-recipes without matching JSON-LD simply fail to import if it's unset).
-`NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` and `TODOIST_CLIENT_ID` /
-`TODOIST_CLIENT_SECRET` — OAuth credentials for the Tasks module's external
-list providers; optional (without them, connecting that provider fails with a
-clear "not configured" error and local lists work normally). Each provider's
-OAuth app must register the redirect URI `<app-origin>/integrations/callback`
-(e.g. `http://localhost:3000/integrations/callback` for dev).
-`ENABLE_SAMPLE_DATA` — must be `'true'` for the publicly-callable
-`seed.loadSampleData` / `seed.resetSampleData` mutations to run at all. Set it
-on dev, on **staging**, and as a preview-type default (`convex env default set
---type preview`); **never on production**, where its absence is what stops
-anyone with the deployment URL from writing a fake household into the real
-database. The internal `seedCatalog` / `seedPreview` entrypoints do not consult
-it. Note staging is a `--type prod` deployment, so the preview-type default does
-*not* reach it and it must be set explicitly — and "never on production" means
-the deployment holding real households, not the type label.
+```
+pnpm run env:check                 manifest consistency + .env.example freshness
+pnpm run env:check <environment>   compare the manifest with reality
+pnpm run env:apply <environment>   write it
+pnpm run env:generate              regenerate .env.example
+```
 
+**When you add a variable, add it to the manifest in the same change** — there
+is nowhere else to add it, which is the point. Two rules the types enforce: a
+value the Vite build reads may not be `secret: true` (the build inlines it into
+a public bundle), and a `vite-build` name must start with `VITE_` (Vite delivers
+nothing else).
+
+**Values** live in `env/<environment>.public.env` (committed — none of it is
+confidential, and a fresh clone then needs only the secrets) and
+`env/<environment>.secret.env` (never committed). `.env.local` and `.dev.vars`
+are *generated* by `env:apply local`; `apply` refuses to overwrite either if it
+did not write it.
+
+Three invariants `scripts/env.mjs` holds: it never writes an empty value (a
+value missing on this machine is skipped and reported, so `apply production`
+from a laptop without the production secrets cannot blank production), it never
+deletes without `--prune`, and it never prints a secret.
+
+**What `check` can and cannot prove.** Public values are GitHub *variables* and
+Convex returns its values, so those get a real value-diff against the committed
+file. Secrets are presence-only — every secret store returns names alone — so
+"the right name holding the wrong value" is undetectable by design.
+
+**GitHub scope.** `stg` and `production` are GitHub Environments holding the
+same names with different values. `preview.yml` declares no `environment:`, so
+it resolves *repo-level* names, which carry a `PREVIEW_` prefix. That prefix is
+a safety rule: an environment secret shadows a repo secret of the same name, so
+identical names would let a missing production value fall back to preview's.
+
+**Convex deployment vars** (`CLERK_JWT_ISSUER_DOMAIN`, `ANTHROPIC_API_KEY`,
+`NOTION_*` / `TODOIST_*`, `ENABLE_SAMPLE_DATA`) are set by `env:apply`, not by
+hand. `ENABLE_SAMPLE_DATA` must never be set on production — its absence is what
+stops anyone with the deployment URL writing a fake household into the real
+database — and the manifest enforces that by not declaring it there at all. Note
+staging is a `--type prod` deployment, so the preview-type default does *not*
+reach it; "never on production" means the deployment holding real households,
+not the type label. Each OAuth provider's app must register the redirect URI
+`<app-origin>/integrations/callback`.
 ## Internationalization
 
 `@appelent/i18n` supplies the engine; gather owns `src/lib/i18n/` — the
@@ -195,27 +219,26 @@ The default branch is `main`. There has never been a `master`.
   `docs/adr/0013-staging-deploys-on-merge-production-deploys-on-a-click.md`.
 - `.github/workflows/preview.yml` — per-PR Convex preview deployment + per-PR
   Cloudflare Worker (`gather-pr-<N>`) + PR comment + teardown on close.
-  `CONVEX_DEPLOY_KEY` (a `preview:` key), `CLOUDFLARE_API_TOKEN`,
-  `CLOUDFLARE_ACCOUNT_ID`, `PREVIEW_CLERK_PUBLISHABLE_KEY`,
-  `VITE_TEST_USER_EMAIL` / `VITE_TEST_USER_PASSWORD` (build-time only — they
-  light up `@appelent/auth`'s test-login button on the preview, and are inlined
-  into the client bundle, so the test user must live on the Clerk *test*
-  instance), optionally `NODE_AUTH_TOKEN`.
+  It also applies the per-PR Worker's secrets after deploying, because a fresh
+  `gather-pr-<N>` starts with none — which is why the in-app issue reporter used
+  to answer "not configured" on every preview.
 
-**Secrets.** Scoped to the `stg` / `production` GitHub Environments, same names
-in both: `CONVEX_DEPLOY_KEY` (both `prod:` keys — one for the `staging`
-deployment, one for the project's default production deployment),
-`VITE_CLERK_PUBLISHABLE_KEY` (`pk_test_…` vs. `pk_live_…`),
-`CLOUDFLARE_API_TOKEN`. Repo-level and shared by all three workflows:
-`CLOUDFLARE_ACCOUNT_ID`, `VITE_TEST_USER_EMAIL`, `VITE_TEST_USER_PASSWORD`,
-`NODE_AUTH_TOKEN`, `PREVIEW_CLERK_PUBLISHABLE_KEY`, and a repo-level
-`CONVEX_DEPLOY_KEY` holding the `preview:` key.
+**Secrets and variables.** Which value belongs in which scope is declared in
+`env.manifest.ts`, not here, and `pnpm run env:apply <environment>` writes them.
+Two things are worth knowing without reading it:
 
-**An environment secret shadows a repo secret of the same name**, and that is
-what keeps the three `CONVEX_DEPLOY_KEY` values apart: `preview.yml` declares no
-`environment:`, so it resolves the repo-level `preview:` key. Adding an
-`environment:` key to `preview.yml` would silently point previews at staging or
-prod.
+- The `stg` and `production` GitHub Environments hold the **same names** with
+  different values. `preview.yml` declares no `environment:`, so it resolves
+  **repo-level** names, which carry a `PREVIEW_` prefix.
+- Public values are GitHub **variables** (`vars.X`), secrets are GitHub
+  **secrets** (`secrets.X`). A value the Vite build reads is always public — it
+  is inlined into a downloadable bundle — and the manifest's types enforce that.
+
+**An environment secret shadows a repo secret of the same name.** The `PREVIEW_`
+prefix exists so that can never matter: with distinct names, a missing
+`production` value fails loudly instead of silently falling back to preview's.
+Adding an `environment:` key to `preview.yml` would still be wrong — it would
+point previews at staging's or prod's Convex deploy key.
 
 The `staging` Convex deployment is created with
 `convex deployment create staging --type prod` — **without** `--default`, which
