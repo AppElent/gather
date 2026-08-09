@@ -18,6 +18,7 @@ import type { AppLink } from '../../lib/appLink'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
+import { IconPicker } from '../foods/IconPicker'
 import { BottomSheet } from './BottomSheet'
 import { ComboCard, type ComboSummary } from './ComboCard'
 import { FoodThumbnail } from './FoodThumbnail'
@@ -61,6 +62,8 @@ interface FoodSummary {
   servings?: Serving[]
   /** Resolved by the query from the stored file; null when there is no picture. */
   imageUrl?: string | null
+  /** The emoji somebody picked for it, shown when there is no picture (#94). */
+  icon?: string
 }
 
 interface Props {
@@ -136,6 +139,8 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
     quantity: number
     quantityUnit: QuantityUnit
     nutrition: NutritionFacts
+    /** Only a one-off sends one — everything else has a row to read it from. */
+    icon?: string
   }) {
     const id = await createEntry({ date, meal, ...entry })
     announce(entry.label, [id])
@@ -523,6 +528,7 @@ type LogFn = (entry: {
   quantity: number
   quantityUnit: QuantityUnit
   nutrition: NutritionFacts
+  icon?: string
 }) => Promise<void>
 
 /**
@@ -615,7 +621,9 @@ function FoodCard({
 
   return (
     <ResultCard
-      thumbnail={<FoodThumbnail src={food.imageUrl} alt={food.name} />}
+      thumbnail={
+        <FoodThumbnail src={food.imageUrl} icon={food.icon} alt={food.name} />
+      }
       title={food.name}
       subtitle={food.brand}
       meta={
@@ -786,6 +794,12 @@ function OffCard({
 /**
  * What a search that matched nothing offers: log the words you already typed,
  * with whatever figures you have. A restaurant meal is not a dead end.
+ *
+ * The icon here is the one case that can never be answered any other way: a
+ * one-off has no food and no recipe behind it, so there is nothing for it to
+ * inherit a picture from and there never will be (#94). It is decoration on
+ * something ephemeral — logged once, never reused — and it earns its place
+ * because the diary rows are where it shows.
  */
 function OneOffCard({
   term,
@@ -800,6 +814,7 @@ function OneOffCard({
 }) {
   const { add } = useMessages().nutrition.diary
   const [inputs, setInputs] = useState(() => toNutrientInputs())
+  const [icon, setIcon] = useState<string | undefined>()
   const { busy, error, run } = useLogging()
 
   return (
@@ -816,6 +831,9 @@ function OneOffCard({
         }
         disabled={busy}
       />
+      <div className="mt-3">
+        <IconPicker value={icon} onChange={setIcon} disabled={busy} />
+      </div>
       <Confirm
         disabled={false}
         reason=""
@@ -828,6 +846,7 @@ function OneOffCard({
               quantity: 1,
               quantityUnit: 'piece',
               nutrition: nutrientInputsToFacts(inputs),
+              icon,
             })
           })
         }

@@ -30,6 +30,19 @@ export const common = {
     didNotWork: 'That did not work — try again.',
   },
 
+  /**
+   * The emoji field a food and a one-off both use (#94).
+   *
+   * The emoji themselves are content and are never translated — they are
+   * stored on the row, the way a serving's label is (ADR-0011). Only these
+   * words around the grid are.
+   */
+  icon: {
+    label: 'Icon',
+    hint: 'Shown when there is no picture of this.',
+    none: 'No icon',
+  },
+
   /** The photo field a recipe and a child's profile both use. */
   image: {
     label: 'Photo',

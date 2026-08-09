@@ -22,6 +22,25 @@ const foodFields = {
 }
 
 /**
+ * The fields a *person* saves, which is `foodFields` plus the emoji they
+ * picked (#94).
+ *
+ * Separate from `foodFields` because of the one write that is not a person
+ * saying what this food is: `applyOffRefresh` replaces a row wholesale with
+ * Open Food Facts' answer, and Open Food Facts has no emoji. A refresh
+ * therefore leaves the icon you chose exactly where it was, rather than
+ * clearing it on your behalf.
+ *
+ * Absent means none. It is never stored as an empty string — a set-but-empty
+ * icon would sit in front of the generic glyph in the tile's fallback chain
+ * and render nothing at all.
+ */
+const savedFoodFields = {
+  ...foodFields,
+  icon: v.optional(v.string()),
+}
+
+/**
  * Catalog entries are owned by nobody and read-only (ADR 0004). Every write
  * path into `foods` goes through this, not just the edit form: these are
  * public mutations, so a client can call any of them with any food id
@@ -92,7 +111,7 @@ export const getByBarcode = query({
 // row per barcode" invariant applies here too, not just to `upsertFromOff`.
 export const create = mutation({
   args: {
-    ...foodFields,
+    ...savedFoodFields,
     barcode: v.optional(v.string()),
     // What the person was looking at when they pressed save: figures they
     // typed are `manual`, figures something filled in for them and they
@@ -126,7 +145,11 @@ export const create = mutation({
 // point on, a rescan of this barcode must never silently overwrite what the
 // user typed, until they explicitly ask to refresh.
 export const update = mutation({
-  args: { id: v.id('foods'), ...foodFields, barcode: v.optional(v.string()) },
+  args: {
+    id: v.id('foods'),
+    ...savedFoodFields,
+    barcode: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) throw new Error('Not authenticated')
@@ -140,6 +163,13 @@ export const update = mutation({
       // the form sends nothing once every row has been removed, and a patch
       // that skipped the field would make the last serving undeletable.
       servings: rest.servings ?? [],
+      // Named rather than left to the spread above, for the same reason and
+      // with the opposite remedy: an optional argument nobody sent is not a
+      // key on `rest` at all, so a spread would silently keep the old icon and
+      // clearing one would never take. Writing the key with `undefined` is
+      // what makes Convex *remove* the field — which is the only clearing that
+      // leaves the tile's fallback chain reading correctly.
+      icon: rest.icon,
       searchText: foodSearchText(rest),
       // Decided here, from the figures themselves, rather than accepted as an
       // argument — this mutation is the one place a person can type over a
@@ -164,7 +194,7 @@ export const update = mutation({
 // overwrite local edits.
 export const upsertFromOff = mutation({
   args: {
-    ...foodFields,
+    ...savedFoodFields,
     barcode: v.string(),
     // Already fetched and stored by `foodsLookup.importFromOff`, which is the
     // only thing that can make the network call this needs.
@@ -204,6 +234,10 @@ export const upsertFromOff = mutation({
       await ctx.db.patch(existing._id, {
         ...rest,
         searchText: foodSearchText(rest),
+        // Named for the same reason as in `update`: the review form states what
+        // this food is, icon included, so an import that chose none has to be
+        // able to take one off rather than silently inherit the old one.
+        icon: rest.icon,
       })
       await replaceStoredFile(ctx, previousImageId, rest.imageId)
       return existing._id

@@ -13,6 +13,7 @@ import {
   parseDecimal,
   toNutrientInputs,
 } from '../nutrition/nutrientInputs'
+import { IconPicker } from './IconPicker'
 
 export interface FoodFormValues {
   name: string
@@ -21,6 +22,14 @@ export interface FoodFormValues {
   baseUnit: 'g' | 'ml'
   nutritionPer100: NutritionFacts
   servings?: Serving[]
+  /**
+   * The emoji this food shows when there is no photograph of it (#94).
+   *
+   * Absent when there is none, and absent is what a cleared icon submits —
+   * never `''`, which would sit in front of the generic glyph in the tile's
+   * fallback chain and render nothing.
+   */
+  icon?: string
   /**
    * Where the figures in this form came from, as the form last knew it —
    * prefilled by a lookup, or `manual` from the moment somebody types over a
@@ -80,6 +89,7 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
   // scan flow's URL param and is read-only display here (see /foods/new.tsx).
   const [barcode] = useState(initial?.barcode ?? '')
   const [baseUnit, setBaseUnit] = useState<'g' | 'ml'>(initial?.baseUnit ?? 'g')
+  const [icon, setIcon] = useState(initial?.icon)
   const [nutritionInputs, setNutritionInputs] = useState(() =>
     toNutrientInputs(initial?.nutritionPer100),
   )
@@ -116,6 +126,7 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
           brand: brand.trim() || undefined,
           barcode: barcode || undefined,
           baseUnit,
+          icon,
           nutritionPer100: facts,
           servings: servings.length > 0 ? servings : undefined,
           // No figures, nothing to say about where they came from.
@@ -173,6 +184,11 @@ export function FoodForm({ initial, submitting, onSubmit, sourceNote }: Props) {
           </label>
         </div>
       </fieldset>
+      {/* Above the figures, because it answers a different kind of question and
+          a shorter one: what this *is*, rather than what is in it. It is also
+          the field an Open Food Facts review most often has to fill in — their
+          products carry a picture or they carry nothing (#94). */}
+      <IconPicker value={icon} onChange={setIcon} disabled={submitting} />
       <fieldset className="rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
         <legend className="px-1 text-sm font-medium">
           {fmt(form.nutritionLegend, { unit: baseUnit })}

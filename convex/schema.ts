@@ -178,6 +178,12 @@ export default defineSchema({
     // photograph a person took: that would need the prepare-on-upload pipeline
     // (ADR-0010) and is deliberately not offered.
     imageId: v.optional(v.id('_storage')),
+    // An emoji somebody picked, for a food with no picture behind it (#94).
+    // Content, not a display string, so it is stored rather than translated
+    // (ADR-0011) — exactly like a serving's `label`. Optional and nothing
+    // backfills it: a food with none renders the generic glyph it always did.
+    // A tile prefers the photograph, then this, then that glyph.
+    icon: v.optional(v.string()),
   })
     .index('by_barcode', ['barcode'])
     .index('by_seedKey', ['seedKey'])
@@ -193,6 +199,11 @@ export default defineSchema({
     quantity: v.number(),
     quantityUnit: quantityUnitValidator,
     nutrition: nutritionValidator,
+    // An emoji, for a **one-off** — an entry with no `foodId` and no
+    // `recipeId`, which has nothing to inherit a picture from and never will
+    // (#94). An entry that does reference a food reads the food's own icon
+    // instead, so this stays absent there. Content, not a display string.
+    icon: v.optional(v.string()),
   })
     .index('by_user_date', ['userId', 'date'])
     // "Which amounts of this food have I logged before?" — read to offer them

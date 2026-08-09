@@ -16,6 +16,12 @@ export interface ConsumptionEntryData {
   nutrition: NutritionFacts
   recipeId?: string
   foodId?: string
+  /**
+   * The emoji a one-off was given (#94). Only a one-off carries one: an entry
+   * with a food or a recipe behind it has something to read a picture from,
+   * and does not keep a copy of the answer here.
+   */
+  icon?: string
 }
 
 interface Props {
@@ -43,6 +49,14 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
     <li className="py-2 text-sm">
       <div className="flex items-center justify-between gap-2">
         <div>
+          {/* Decoration, and marked as such: the label beside it already says
+              what this is, so a screen reader repeating the emoji's name would
+              only be reading the row twice. */}
+          {entry.icon && (
+            <span aria-hidden="true" className="mr-1.5">
+              {entry.icon}
+            </span>
+          )}
           <span className="font-medium">{entry.label}</span>
           <span className="ml-2 opacity-60">
             {entry.quantity} {units[entry.quantityUnit]}
