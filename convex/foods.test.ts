@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 
@@ -478,5 +478,114 @@ describe('where a food’s figures came from', () => {
         nutritionPer100: { calories: 100 },
       }),
     ).rejects.toThrow()
+  })
+})
+
+/**
+ * Every Open Food Facts import is reviewed before it is saved (#93): choosing a
+ * result opens the pre-filled form, and *saving* is what imports the food and
+ * logs the entry.
+ *
+ * The property that makes that safe is the first one below — the lookup that
+ * fills the form is a read, all the way down. Somebody who opens the review and
+ * changes their mind leaves the database exactly as they found it: no orphaned
+ * food row, and no picture in storage. The picture is fetched by
+ * `importFromOff`, at the save, which is the only reason that can be true.
+ */
+describe('reviewing an import before it is saved', () => {
+  const product = {
+    status: 1,
+    product: {
+      code: '3017620422003',
+      product_name: 'Nutella',
+      brands: 'Ferrero',
+      nutriments: { 'energy-kcal_100g': 539 },
+      image_front_small_url:
+        'https://images.openfoodfacts.org/images/products/front.jpg',
+    },
+  }
+
+  async function signedIn() {
+    const t = testConvex()
+    await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    return t
+  }
+
+  /** What is actually in the database, whatever anybody meant to put there. */
+  async function contents(t: ReturnType<typeof testConvex>) {
+    return await t.run(async (ctx) => ({
+      foods: await ctx.db.query('foods').collect(),
+      files: await ctx.db.system.query('_storage').collect(),
+    }))
+  }
+
+  test('abandoning the form leaves no orphaned food and no stored picture', async () => {
+    const t = await signedIn()
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(new Response(JSON.stringify(product), { status: 200 })),
+    )
+
+    try {
+      const mapped = await t
+        .withIdentity(asAlice)
+        .action(api.foodsLookup.lookupBarcode, { barcode: '3017620422003' })
+
+      // The form is filled from this, so it really did resolve the product —
+      // what follows is about a lookup that worked, not one that quietly
+      // did nothing.
+      expect(mapped?.name).toBe('Nutella')
+      expect(mapped?.imageUrl).toBeTruthy()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+
+    // …and then the person closed the form. Nothing was written, including the
+    // picture, which is still only a URL on Open Food Facts' servers.
+    const after = await contents(t)
+    expect(after.foods).toEqual([])
+    expect(after.files).toEqual([])
+  })
+
+  test('saving is what imports the food, and it carries the review’s answer', async () => {
+    const t = await signedIn()
+
+    // No picture on this product, so nothing is fetched — the same call the
+    // review form makes when it saves, minus the network. The person corrected
+    // a figure while reviewing, so the food must not go on claiming the
+    // numbers came off a packet.
+    const id = await t
+      .withIdentity(asAlice)
+      .action(api.foodsLookup.importFromOff, {
+        barcode: '3017620422003',
+        name: 'Nutella',
+        brand: 'Ferrero',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 530 },
+        nutritionSource: 'manual',
+      })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.name).toBe('Nutella')
+    expect(food?.source).toBe('openfoodfacts')
+    expect(food?.nutritionSource).toBe('manual')
+  })
+
+  test('an import accepted as it stands still says the figures were imported', async () => {
+    const t = await signedIn()
+
+    const id = await t
+      .withIdentity(asAlice)
+      .action(api.foodsLookup.importFromOff, {
+        barcode: '3017620422003',
+        name: 'Nutella',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 539 },
+      })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.nutritionSource).toBe('imported')
   })
 })

@@ -201,7 +201,9 @@ beforeEach(() => {
   // is in, and it leaves the manual barcode entry — the part this suite drives.
   if (!navigator.mediaDevices) {
     Object.defineProperty(navigator, 'mediaDevices', {
-      value: { getUserMedia: vi.fn().mockRejectedValue(new Error('no camera')) },
+      value: {
+        getUserMedia: vi.fn().mockRejectedValue(new Error('no camera')),
+      },
       configurable: true,
     })
   }

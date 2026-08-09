@@ -86,13 +86,7 @@ interface Props {
  * it is what the empty result offers you, with the term you already typed as
  * the label.
  */
-export function AddSheet({
-  date,
-  meal,
-  justAddedFoodId,
-  nav,
-  onClose,
-}: Props) {
+export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const search = useFoodSearch()
   const term = search.term.trim()
   const recipes = useQuery(api.recipes.listAcrossMyGroups, {})
