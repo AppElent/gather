@@ -46,6 +46,8 @@ export const common = {
   /** The photo field a recipe and a child's profile both use. */
   image: {
     label: 'Photo',
+    choose: 'Choose photo',
+    replace: 'Replace photo',
     uploading: 'Uploading…',
     failed: 'Could not upload that image',
     remove: 'Remove photo',
