@@ -359,4 +359,60 @@ describe('logging a Combo', () => {
     expect(after.components[0]).toMatchObject({ quantity: 140 })
     expect(after.name).toBe('Usual breakfast')
   })
+
+  /**
+   * Saving a Combo keeps a one-off's icon; editing one has to keep it too.
+   *
+   * `replaceItems` deletes and recreates every row, so any field the payload
+   * does not carry is lost the first time somebody changes a count — silently,
+   * and long after the save that appeared to work. The initial-save test two
+   * blocks up would go on passing throughout.
+   */
+  test('a one-off’s icon survives editing the Combo', async () => {
+    const { t } = await loggedBreakfast()
+    await t.withIdentity(asAlice).mutation(api.consumption.create, {
+      date: DAY,
+      meal: 'breakfast',
+      label: 'Stroopwafel from the market',
+      quantity: 1,
+      quantityUnit: 'piece',
+      nutrition: { calories: 150 },
+      icon: '🍪',
+    })
+    const comboId = await t
+      .withIdentity(asAlice)
+      .mutation(api.combos.saveFromMeal, {
+        date: DAY,
+        meal: 'breakfast',
+        name: 'Usual breakfast',
+      })
+
+    const [before] = await t.withIdentity(asAlice).query(api.combos.list, {})
+    const saved = before.components.find(
+      (c) => c.label === 'Stroopwafel from the market',
+    )
+    expect(saved?.icon).toBe('🍪')
+
+    // Exactly what the add sheet sends when a count changed and the offer to
+    // update was taken: every component rebuilt from what was logged.
+    await t.withIdentity(asAlice).mutation(api.combos.replaceItems, {
+      id: comboId,
+      components: comboEntries(before.components).map((entry) => ({
+        foodId: entry.foodId as Id<'foods'> | undefined,
+        recipeId: entry.recipeId as Id<'recipes'> | undefined,
+        label: entry.label,
+        quantity: entry.quantity,
+        quantityUnit: entry.quantityUnit,
+        nutrition:
+          entry.foodId || entry.recipeId ? undefined : entry.nutrition,
+        icon: entry.foodId || entry.recipeId ? undefined : entry.icon,
+      })),
+    })
+
+    const [after] = await t.withIdentity(asAlice).query(api.combos.list, {})
+    const rebuilt = after.components.find(
+      (c) => c.label === 'Stroopwafel from the market',
+    )
+    expect(rebuilt?.icon).toBe('🍪')
+  })
 })

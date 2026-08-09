@@ -115,6 +115,10 @@ const componentFields = {
   quantity: v.number(),
   quantityUnit: quantityUnitValidator,
   nutrition: v.optional(nutritionValidator),
+  // Travels with the figures, and for the same reason (#94): `replaceItems`
+  // deletes and recreates every row, so a field missing here is a field the
+  // Combo loses the moment anybody edits it — even though saving it kept it.
+  icon: v.optional(v.string()),
 }
 
 /**

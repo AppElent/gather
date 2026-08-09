@@ -239,6 +239,11 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
                       entry.foodId || entry.recipeId
                         ? undefined
                         : entry.nutrition,
+                    // Same rule as the figures beside it: only a one-off keeps
+                    // its own, and this payload rebuilds every row, so leaving
+                    // it out would drop the icon on every Combo edit.
+                    icon:
+                      entry.foodId || entry.recipeId ? undefined : entry.icon,
                   })),
                 })
               },
