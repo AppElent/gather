@@ -32,7 +32,7 @@ export function FoodsPage({ nav }: { nav: FoodNav }) {
       <div className="mb-6 rounded-xl border p-4">
         <p className="mb-2 text-sm font-medium">{list.scanHeading}</p>
         <BarcodeScanner
-          onDetected={(barcode) => navigate(nav.create(barcode))}
+          onDetected={(barcode) => navigate(nav.create({ barcode }))}
         />
       </div>
 

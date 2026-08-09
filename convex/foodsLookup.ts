@@ -5,7 +5,7 @@ import { api } from './_generated/api'
 import type { ActionCtx } from './_generated/server'
 import { action } from './_generated/server'
 import type { Id } from './_generated/dataModel'
-import { nutritionValidator } from './lib/nutrition'
+import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
 import { fetchOffProduct, searchOffProducts } from './lib/offFetch'
 import { mapOffProduct, mapOffSearchResults } from './lib/offMapping'
 import { servingValidator } from './lib/servings'
@@ -143,6 +143,11 @@ export const importFromOff = action({
     nutritionPer100: nutritionValidator,
     servings: v.optional(v.array(servingValidator)),
     imageUrl: v.optional(v.string()),
+    // Carried through rather than assumed: every import is now reviewed in the
+    // food form before it is saved (#93), and somebody who corrected a figure
+    // in that form arrives here saying `manual`. Absent still means `imported`,
+    // which `foods.upsertFromOff` is the one to decide.
+    nutritionSource: v.optional(nutritionSourceValidator),
   },
   handler: async (ctx, args): Promise<Id<'foods'>> => {
     const identity = await ctx.auth.getUserIdentity()

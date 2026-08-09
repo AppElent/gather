@@ -25,7 +25,7 @@ function foodDestinations(nav: FoodNav): AppLink[] {
   return [
     nav.list,
     nav.create(),
-    nav.create('3017620422003'),
+    nav.create({ barcode: '3017620422003' }),
     nav.detail('f1'),
     nav.edit('f1'),
   ]
@@ -79,8 +79,13 @@ describe('links built for a Group', () => {
   })
 
   test('a search param survives being given the Group treatment', () => {
-    expect(groupFoodNav(SLUG).create('3017620422003').search).toEqual({
+    expect(
+      groupFoodNav(SLUG).create({ barcode: '3017620422003' }).search,
+    ).toEqual({
       barcode: '3017620422003',
+      name: undefined,
+      returnDate: undefined,
+      returnMeal: undefined,
     })
   })
 })
