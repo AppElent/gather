@@ -24,6 +24,18 @@ import { PhotoPrepareDialog } from './PhotoPrepareDialog'
  * id only once that id exists in Convex, and with `undefined` only when the
  * person clears the photo. A form is never holding an id for a blob that was
  * never uploaded.
+ *
+ * The `<input type="file">` is visually hidden and driven by a styled
+ * `<label htmlFor>` instead of being rendered by the browser (#61). A native
+ * file input's width is its UA button plus its "no file chosen" text, in the
+ * *browser's* language, and it does not shrink to its container — in Dutch
+ * ("Kies bestand geen bestand geselecteerd") that was wide enough to push this
+ * card past the viewport and scroll the whole document sideways. Taking the
+ * control's width back also takes its wording back, so the field reads the same
+ * in every browser and its text lives in the message tree like everything else.
+ * Nothing is lost by hiding it: the filename it would show is never the point
+ * here, because choosing a file goes straight to the framing step and what is
+ * kept afterwards is the preview.
  */
 
 interface ImageUploadFieldProps {
@@ -94,18 +106,21 @@ export function ImageUploadField({
           <img
             src={displayUrl}
             alt=""
-            className="h-20 w-20 rounded-lg object-cover"
+            className="h-20 w-20 shrink-0 rounded-lg object-cover"
           />
         ) : (
-          <div className="h-20 w-20 rounded-lg bg-black/5 dark:bg-white/10" />
+          <div className="h-20 w-20 shrink-0 rounded-lg bg-black/5 dark:bg-white/10" />
         )}
-        <div>
+        <div className="min-w-0 flex-1">
+          {/* Visually hidden, not removed: it is still the field, still the
+              thing the label above names, and still what a screen reader and a
+              keyboard reach. Only its rendering is ours now. */}
           <input
             ref={inputRef}
             id={fieldId}
             type="file"
             accept="image/*"
-            className="text-sm"
+            className="peer sr-only"
             disabled={uploading}
             onChange={(e) => {
               const file = e.target.files?.[0]
@@ -118,6 +133,12 @@ export function ImageUploadField({
               }
             }}
           />
+          <label
+            htmlFor={fieldId}
+            className="inline-flex max-w-full min-h-9 cursor-pointer items-center truncate rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--app-accent)] peer-disabled:cursor-not-allowed peer-disabled:opacity-60"
+          >
+            {displayUrl ? image.replace : image.choose}
+          </label>
           {uploading && <p className="text-xs opacity-60">{image.uploading}</p>}
           {error && (
             <p role="alert" className="text-xs text-red-800">

@@ -26,6 +26,8 @@ export const common = {
 
   image: {
     label: 'Foto',
+    choose: 'Foto kiezen',
+    replace: 'Andere foto kiezen',
     uploading: 'Uploaden…',
     failed: 'Kon die afbeelding niet uploaden',
     remove: 'Foto verwijderen',
