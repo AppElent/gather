@@ -386,19 +386,31 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
 
       {adding && (
         <Section title={add.addOptions}>
-          <OneOffCard
-            key={`one-off-${term}`}
-            term={term}
-            expanded={expanded === 'persistent-one-off'}
-            onToggle={() => toggle('persistent-one-off')}
-            onLog={log}
-          />
+          {!searchedBarcode && (
+            <OneOffCard
+              key={`one-off-${term}`}
+              term={term}
+              expanded={expanded === 'persistent-one-off'}
+              onToggle={() => toggle('persistent-one-off')}
+              onLog={log}
+            />
+          )}
           <li>
             <Link
-              {...review(term ? { name: term } : {})}
+              {...review(
+                searchedBarcode
+                  ? { barcode: searchedBarcode }
+                  : term
+                    ? { name: term }
+                    : {},
+              )}
               className="flex min-h-14 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2 text-sm no-underline"
             >
-              {term ? fmt(add.addAsFood, { term }) : add.addFood}
+              {searchedBarcode
+                ? foodAdd.addToLibrary
+                : term
+                  ? fmt(add.addAsFood, { term })
+                  : add.addFood}
             </Link>
           </li>
         </Section>

@@ -288,6 +288,26 @@ test('a barcode nobody has offers adding it, rather than an empty list', async (
   expect(screen.queryByText(/as a one-off/)).toBeNull()
 })
 
+test('the persistent add menu keeps a barcode out of one-offs', async () => {
+  renderSheet()
+  await search('9999999999999')
+
+  await waitFor(() => expect(screen.getByText(/Not found\./)).toBeDefined())
+  fireEvent.click(screen.getByRole('button', { name: 'Add food' }))
+
+  // A barcode identifies a product, not a diary label. The persistent menu
+  // must take the same route as the empty-result offer rather than creating a
+  // one-off whose name is just the digits.
+  expect(screen.queryByText(/9999999999999.*one-off/)).toBeNull()
+  const addToLibrary = screen.getAllByRole('link', {
+    name: 'Add it to the foods library',
+  })
+  expect(addToLibrary[0]).toHaveAttribute(
+    'href',
+    '/g/jansen-household/foods/new?barcode=9999999999999&returnDate=2026-07-18&returnMeal=breakfast',
+  )
+})
+
 test('digits still being typed are an ordinary search, not a lookup', async () => {
   // Long enough to be a number, too short to be a barcode: this must not
   // resolve as one, or the list would flicker between modes on the way in.
