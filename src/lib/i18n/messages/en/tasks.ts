@@ -45,6 +45,9 @@ export const tasks = {
     reconnect: 'The {provider} connection needs to be reconnected.',
     goToSettings: 'Go to group settings',
     empty: 'No open tasks in this {provider} list.',
+    /** Which account and which source at it this list reads from. */
+    source: '{source} · {account}',
+    sourceUnknownAccount: '{source} · disconnected account',
   },
 
   editor: {
@@ -68,6 +71,8 @@ export const tasks = {
     listName: 'List name',
     create: 'Create',
     failed: 'Something went wrong — try again.',
+    pickConnection: 'Which {provider} account?',
+    connectAnother: 'Connect another {provider} account…',
     pickNotion: 'Pick the Notion database to mirror:',
     pickTodoist: 'Pick the Todoist project to mirror:',
     nothingFoundNotion:

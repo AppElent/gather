@@ -81,6 +81,25 @@ describe('mapNotionPage', () => {
 })
 
 describe('notionAdapter', () => {
+  test('getAccountIdentity names the workspace behind the token', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({
+        id: 'bot-1',
+        name: 'gather',
+        bot: { workspace_name: 'Jansen workspace' },
+      }),
+    )
+    await expect(
+      notionAdapter.getAccountIdentity(
+        'tok',
+        fetchImpl as unknown as typeof fetch,
+      ),
+    ).resolves.toEqual({
+      externalAccountId: 'bot-1',
+      accountLabel: 'Jansen workspace',
+    })
+  })
+
   test('listAvailableSources maps database search results', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       jsonResponse({

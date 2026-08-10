@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
-import { api } from './_generated/api'
+import { api, internal } from './_generated/api'
 
 /**
  * Which household's task lists a caller gets, asserted through the real
@@ -108,6 +108,7 @@ async function seed() {
       provider: 'notion',
       accessToken: JANSEN_TOKEN,
       accountLabel: 'Jansen workspace',
+      externalAccountId: 'notion-jansen',
       connectedBy: aliceId,
     })
 
@@ -452,7 +453,7 @@ describe('a provider connection', () => {
     expect(jansen.map((c) => c.accountLabel)).toEqual(['Jansen workspace'])
   })
 
-  test('is disconnected at its own address', async () => {
+  test('is disconnected at its own address, and keeps saying which account it was', async () => {
     const { t, jansenConnection } = await seed()
 
     await t.withIdentity(alice).mutation(api.integrations.disconnect, {
@@ -460,11 +461,200 @@ describe('a provider connection', () => {
       groupSlug: JANSEN,
     })
 
+    // The row outlives its token. A linked list has to be able to name the
+    // account it is waiting on, and reconnecting that account has to land
+    // back here rather than on a fresh row the list knows nothing about.
     expect(
       await t
         .withIdentity(alice)
         .query(api.integrations.listConnections, { groupSlug: JANSEN }),
-    ).toEqual([])
+    ).toEqual([
+      expect.objectContaining({
+        accountLabel: 'Jansen workspace',
+        status: 'disconnected',
+      }),
+    ])
+    // The token itself is gone from the row, not merely hidden from readers.
+    expect(
+      await t.run(
+        async (ctx) => (await ctx.db.get(jansenConnection))?.accessToken ?? null,
+      ),
+    ).toBeNull()
+  })
+
+  test('is not usable as a source of truth once disconnected', async () => {
+    const { t, jansenConnection } = await seed()
+
+    await t.withIdentity(alice).mutation(api.integrations.disconnect, {
+      connectionId: jansenConnection,
+      groupSlug: JANSEN,
+    })
+
+    await expect(
+      t.withIdentity(alice).mutation(api.taskLists.create, {
+        name: 'Linked to nothing',
+        provider: 'notion',
+        groupSlug: JANSEN,
+        providerConfig: {
+          connectionId: jansenConnection,
+          sourceId: 'db1',
+          propertyMapping: { title: 'Name', done: 'Done' },
+        },
+      }),
+    ).rejects.toThrow(/disconnected/)
+  })
+})
+
+describe('a Group with more than one account at the same provider', () => {
+  test('keeps both, and reconnecting one of them refills that one', async () => {
+    const { t, jansen, aliceId } = await seed()
+
+    await t.mutation(internal.integrations.storeConnection, {
+      groupId: jansen,
+      provider: 'todoist',
+      accessToken: 'token-shared',
+      accountLabel: 'household@example.com',
+      externalAccountId: 'todoist-1',
+      connectedBy: aliceId,
+    })
+    await t.mutation(internal.integrations.storeConnection, {
+      groupId: jansen,
+      provider: 'todoist',
+      accessToken: 'token-alice',
+      accountLabel: 'alice@example.com',
+      externalAccountId: 'todoist-2',
+      connectedBy: aliceId,
+    })
+
+    const both = await t
+      .withIdentity(alice)
+      .query(api.integrations.listConnections, { groupSlug: JANSEN })
+    expect(
+      both.filter((c) => c.provider === 'todoist').map((c) => c.accountLabel),
+    ).toEqual(['household@example.com', 'alice@example.com'])
+
+    // Re-authorising the shared account is that account again, not a third
+    // connection — the account decides, not the provider.
+    await t.mutation(internal.integrations.storeConnection, {
+      groupId: jansen,
+      provider: 'todoist',
+      accessToken: 'token-shared-rotated',
+      accountLabel: 'household@example.com',
+      externalAccountId: 'todoist-1',
+      connectedBy: aliceId,
+    })
+
+    const after = await t
+      .withIdentity(alice)
+      .query(api.integrations.listConnections, { groupSlug: JANSEN })
+    expect(after.filter((c) => c.provider === 'todoist')).toHaveLength(2)
+  })
+
+  test('reconnecting a disconnected account puts its lists back to work', async () => {
+    const { t, jansen, aliceId } = await seed()
+
+    const connectionId = await t.mutation(
+      internal.integrations.storeConnection,
+      {
+        groupId: jansen,
+        provider: 'todoist',
+        accessToken: 'token-shared',
+        accountLabel: 'household@example.com',
+        externalAccountId: 'todoist-1',
+        connectedBy: aliceId,
+      },
+    )
+    await t.withIdentity(alice).mutation(api.taskLists.create, {
+      name: 'Household',
+      provider: 'todoist',
+      groupSlug: JANSEN,
+      providerConfig: { connectionId, sourceId: 'p1', sourceName: 'Household' },
+    })
+    await t.withIdentity(alice).mutation(api.integrations.disconnect, {
+      connectionId,
+      groupSlug: JANSEN,
+    })
+
+    const whileGone = await t
+      .withIdentity(alice)
+      .query(api.taskLists.list, { groupSlug: JANSEN })
+    expect(whileGone.find((l) => l.name === 'Household')?.source).toMatchObject({
+      connectionStatus: 'disconnected',
+    })
+
+    const reconnected = await t.mutation(
+      internal.integrations.storeConnection,
+      {
+        groupId: jansen,
+        provider: 'todoist',
+        accessToken: 'token-shared-again',
+        accountLabel: 'household@example.com',
+        externalAccountId: 'todoist-1',
+        connectedBy: aliceId,
+      },
+    )
+    // The same row, so the list's own connectionId still points at it.
+    expect(reconnected).toBe(connectionId)
+    const back = await t
+      .withIdentity(alice)
+      .query(api.taskLists.list, { groupSlug: JANSEN })
+    expect(back.find((l) => l.name === 'Household')?.source).toMatchObject({
+      connectionStatus: 'connected',
+    })
+  })
+
+  test('one connection backs several lists, each with its own source', async () => {
+    const { t, jansen, aliceId } = await seed()
+
+    const connectionId = await t.mutation(
+      internal.integrations.storeConnection,
+      {
+        groupId: jansen,
+        provider: 'todoist',
+        accessToken: 'token-shared',
+        accountLabel: 'household@example.com',
+        externalAccountId: 'todoist-1',
+        connectedBy: aliceId,
+      },
+    )
+    for (const [sourceId, sourceName] of [
+      ['p1', 'Groceries'],
+      ['p2', 'Renovation'],
+    ]) {
+      await t.withIdentity(alice).mutation(api.taskLists.create, {
+        name: sourceName,
+        provider: 'todoist',
+        groupSlug: JANSEN,
+        providerConfig: { connectionId, sourceId, sourceName },
+      })
+    }
+
+    const lists = await t
+      .withIdentity(alice)
+      .query(api.taskLists.list, { groupSlug: JANSEN })
+    const linked = lists.filter((l) => l.provider === 'todoist')
+    expect(
+      linked.map((l) => [l.source?.sourceName, l.source?.accountLabel]),
+    ).toEqual([
+      ['Groceries', 'household@example.com'],
+      ['Renovation', 'household@example.com'],
+    ])
+    // Reuse, not duplication: no second OAuth round trip was needed for the
+    // second list.
+    expect(new Set(linked.map((l) => l.source?.connectionId)).size).toBe(1)
+  })
+
+  test('a connection cannot be reached from a Group it is not in', async () => {
+    const { t, jansenConnection } = await seed()
+
+    // Alice is a Member of De Vries too, which is exactly the case a
+    // caller-wide check would let through.
+    await expect(
+      t.withIdentity(alice).action(api.integrations.listSources, {
+        connectionId: jansenConnection,
+        groupSlug: DE_VRIES,
+      }),
+    ).rejects.toThrow(/Connection not found/)
   })
 })
 

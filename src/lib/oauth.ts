@@ -15,6 +15,17 @@
 
 export type ExternalProvider = 'notion' | 'todoist'
 
+/**
+ * What each provider calls itself. A proper noun rather than a display string,
+ * so it is not in the message tree (ADR-0011) — and one table rather than the
+ * three that had drifted apart across the settings page, the add-list flow and
+ * the list card.
+ */
+export const PROVIDER_LABELS: Record<ExternalProvider, string> = {
+  notion: 'Notion',
+  todoist: 'Todoist',
+}
+
 const STATE_KEY = 'gather.oauth.state'
 const RETURN_KEY = 'gather.oauth.returnTo'
 const GROUP_KEY = 'gather.oauth.groupSlug'

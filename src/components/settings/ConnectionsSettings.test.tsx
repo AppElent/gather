@@ -41,6 +41,7 @@ const NOTION = {
   _id: 'conn_1',
   provider: 'notion',
   accountLabel: 'Jansen workspace',
+  status: 'connected',
   connectedByName: 'Alice',
 }
 
@@ -79,6 +80,50 @@ describe('what the panel says', () => {
     expect(
       screen.getByText(/Jansen workspace — connected by Alice/),
     ).toBeDefined()
+  })
+
+  /**
+   * A Group may hold several accounts at the same provider, so the panel is a
+   * list per provider rather than one slot to fill. Each is named by its
+   * account: "Todoist" twice would tell a household nothing about which of
+   * their two Todoists a list is reading.
+   */
+  test('lists every account a Group holds at one provider', () => {
+    connections.value = [
+      {
+        _id: 'conn_2',
+        provider: 'todoist',
+        accountLabel: 'household@example.com',
+        status: 'connected',
+        connectedByName: 'Alice',
+      },
+      {
+        _id: 'conn_3',
+        provider: 'todoist',
+        accountLabel: 'alice@example.com',
+        status: 'connected',
+        connectedByName: 'Alice',
+      },
+    ]
+    renderPanel()
+
+    expect(
+      screen.getByText(/household@example.com — connected by/),
+    ).toBeDefined()
+    expect(screen.getByText(/alice@example.com — connected by/)).toBeDefined()
+    expect(
+      screen.getByRole('button', { name: /connect another account/i }),
+    ).toBeDefined()
+  })
+
+  test('keeps a disconnected account listed, with the way back', () => {
+    connections.value = [{ ...NOTION, status: 'disconnected' }]
+    renderPanel()
+
+    // Still named, because it is the account a linked list is waiting on.
+    expect(screen.getByText(/Jansen workspace — disconnected/)).toBeDefined()
+    expect(screen.getByRole('button', { name: /^reconnect$/i })).toBeDefined()
+    expect(screen.queryByRole('button', { name: /^disconnect$/i })).toBeNull()
   })
 })
 

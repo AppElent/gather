@@ -16,6 +16,23 @@ export interface ProviderSource {
   name: string
 }
 
+/**
+ * Which account at the provider a token actually speaks for.
+ *
+ * A Group may connect the same provider more than once — a shared household
+ * Todoist and somebody's own, two Notion workspaces — so "the Group's Todoist"
+ * is no longer an identity. `externalAccountId` is: it is what tells a second
+ * connection apart from a re-authorisation of the first, and so what stops
+ * reconnecting from quietly stacking up duplicate rows.
+ *
+ * It comes from the provider rather than from the token, because a token is
+ * rotated and the account behind it is not.
+ */
+export interface ProviderAccount {
+  externalAccountId: string
+  accountLabel: string
+}
+
 export interface SourceProperty {
   id: string
   name: string
@@ -53,6 +70,14 @@ export class ProviderAuthError extends Error {
 export interface TaskProviderAdapter {
   id: ExternalProviderId
   capabilities: ProviderCapabilities
+  /**
+   * Who this token is, at the provider. Asked once, when a connection is
+   * stored, so that a Group's connections can be told apart from each other.
+   */
+  getAccountIdentity(
+    accessToken: string,
+    fetchImpl?: typeof fetch,
+  ): Promise<ProviderAccount>
   listAvailableSources(
     accessToken: string,
     fetchImpl?: typeof fetch,

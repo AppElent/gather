@@ -1,6 +1,7 @@
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
+import type { Id } from '../../../convex/_generated/dataModel'
 import type {
   PropertyMapping,
   ProviderSource,
@@ -8,16 +9,38 @@ import type {
 } from '../../../convex/lib/taskProviders/types'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, type Messages, useMessages } from '../../lib/i18n'
-import type { ExternalProvider } from '../../lib/oauth'
+import { type ExternalProvider, PROVIDER_LABELS } from '../../lib/oauth'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useConnectProvider } from '../settings/ConnectionsSettings'
+
+/**
+ * A connection as this flow needs it: which account, so a Group holding two
+ * Todoists can be asked which one, and never the token behind it.
+ */
+type Connection = {
+  _id: Id<'integrationConnections'>
+  provider: ExternalProvider
+  accountLabel: string
+  status: 'connected' | 'disconnected'
+}
 
 type Step =
   | { kind: 'provider' }
   | { kind: 'local-name' }
-  | { kind: 'source'; provider: ExternalProvider; sources: ProviderSource[] }
+  | {
+      kind: 'connection'
+      provider: ExternalProvider
+      connections: Connection[]
+    }
+  | {
+      kind: 'source'
+      provider: ExternalProvider
+      connectionId: Id<'integrationConnections'>
+      sources: ProviderSource[]
+    }
   | {
       kind: 'notion-mapping'
+      connectionId: Id<'integrationConnections'>
       source: ProviderSource
       schema: SourceProperty[]
     }
@@ -61,30 +84,50 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
     }
   }
 
-  function connectionFor(provider: ExternalProvider) {
-    return connections?.find((c) => c.provider === provider)
+  /** The Group's usable connections for one provider — disconnected ones
+   * cannot list sources, so they are not offered as somewhere to link to. */
+  function connectionsFor(provider: ExternalProvider): Connection[] {
+    return (connections ?? []).filter(
+      (c) => c.provider === provider && c.status === 'connected',
+    )
   }
 
-  async function pickExternal(provider: ExternalProvider) {
+  async function pickProvider(provider: ExternalProvider) {
+    const available = connectionsFor(provider)
+    // One account is not a choice worth making somebody make; two are.
+    if (available.length === 1) {
+      await pickConnection(provider, available[0]._id)
+      return
+    }
+    setStep({ kind: 'connection', provider, connections: available })
+  }
+
+  async function pickConnection(
+    provider: ExternalProvider,
+    connectionId: Id<'integrationConnections'>,
+  ) {
     await run(async () => {
-      const sources = await listSources({ provider, groupSlug })
-      setStep({ kind: 'source', provider, sources })
+      const sources = await listSources({ connectionId, groupSlug })
+      setStep({ kind: 'source', provider, connectionId, sources })
     })
   }
 
   async function pickSource(
     provider: ExternalProvider,
+    connectionId: Id<'integrationConnections'>,
     source: ProviderSource,
   ) {
     setName(source.name)
     if (provider === 'todoist') {
       await run(async () => {
-        const conn = connectionFor('todoist')
-        if (!conn) throw new Error('No connection')
         await createList({
           name: source.name,
           provider: 'todoist',
-          providerConfig: { connectionId: conn._id, sourceId: source.id },
+          providerConfig: {
+            connectionId,
+            sourceId: source.id,
+            sourceName: source.name,
+          },
           groupSlug,
         })
         onDone()
@@ -93,11 +136,11 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
     }
     await run(async () => {
       const schema = await getSourceSchema({
-        provider,
+        connectionId,
         groupSlug,
         sourceId: source.id,
       })
-      setStep({ kind: 'notion-mapping', source, schema })
+      setStep({ kind: 'notion-mapping', connectionId, source, schema })
     })
   }
 
@@ -112,18 +155,18 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
   }
 
   async function createNotion(
+    connectionId: Id<'integrationConnections'>,
     source: ProviderSource,
     mapping: PropertyMapping,
   ) {
     await run(async () => {
-      const conn = connectionFor('notion')
-      if (!conn) throw new Error('No connection')
       await createList({
         name: name.trim() || source.name,
         provider: 'notion',
         providerConfig: {
-          connectionId: conn._id,
+          connectionId,
           sourceId: source.id,
+          sourceName: source.name,
           propertyMapping: mapping,
         },
         groupSlug,
@@ -156,17 +199,15 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
             {addList.local}
           </button>
           {(['notion', 'todoist'] as const).map((provider) =>
-            connectionFor(provider) ? (
+            connectionsFor(provider).length > 0 ? (
               <button
                 key={provider}
                 type="button"
                 className={buttonClass}
                 disabled={busy}
-                onClick={() => void pickExternal(provider)}
+                onClick={() => void pickProvider(provider)}
               >
-                {fmt(addList.mirror, {
-                  provider: provider === 'notion' ? 'Notion' : 'Todoist',
-                })}
+                {fmt(addList.mirror, { provider: PROVIDER_LABELS[provider] })}
               </button>
             ) : (
               <button
@@ -177,11 +218,42 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
                 onClick={() => void run(() => connect(provider))}
               >
                 {fmt(addList.connectFirst, {
-                  provider: provider === 'notion' ? 'Notion' : 'Todoist',
+                  provider: PROVIDER_LABELS[provider],
                 })}
               </button>
             ),
           )}
+        </div>
+      )}
+
+      {step.kind === 'connection' && (
+        <div className="grid gap-2">
+          <p className="m-0 text-sm text-[var(--app-muted)]">
+            {fmt(addList.pickConnection, {
+              provider: PROVIDER_LABELS[step.provider],
+            })}
+          </p>
+          {step.connections.map((conn) => (
+            <button
+              key={conn._id}
+              type="button"
+              className={buttonClass}
+              disabled={busy}
+              onClick={() => void pickConnection(step.provider, conn._id)}
+            >
+              {conn.accountLabel}
+            </button>
+          ))}
+          <button
+            type="button"
+            className={buttonClass}
+            disabled={busy}
+            onClick={() => void run(() => connect(step.provider))}
+          >
+            {fmt(addList.connectAnother, {
+              provider: PROVIDER_LABELS[step.provider],
+            })}
+          </button>
         </div>
       )}
 
@@ -220,7 +292,9 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
               type="button"
               className={buttonClass}
               disabled={busy}
-              onClick={() => void pickSource(step.provider, source)}
+              onClick={() =>
+                void pickSource(step.provider, step.connectionId, source)
+              }
             >
               {source.name}
             </button>
@@ -236,7 +310,9 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
           name={name}
           onNameChange={setName}
           busy={busy}
-          onSubmit={(mapping) => void createNotion(step.source, mapping)}
+          onSubmit={(mapping) =>
+            void createNotion(step.connectionId, step.source, mapping)
+          }
         />
       )}
     </SurfaceCard>

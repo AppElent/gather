@@ -42,6 +42,43 @@ describe('mapTodoistTask', () => {
 })
 
 describe('todoistAdapter', () => {
+  test('getAccountIdentity names the account behind the token', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({
+        user: { id: 4242, email: 'household@example.com', full_name: 'Home' },
+      }),
+    )
+    await expect(
+      todoistAdapter.getAccountIdentity(
+        'tok',
+        fetchImpl as unknown as typeof fetch,
+      ),
+    ).resolves.toEqual({
+      externalAccountId: '4242',
+      accountLabel: 'household@example.com',
+    })
+  })
+
+  test('getAccountIdentity fails loudly rather than inventing an identity', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ user: {} }))
+    await expect(
+      todoistAdapter.getAccountIdentity(
+        'tok',
+        fetchImpl as unknown as typeof fetch,
+      ),
+    ).rejects.toThrow(/did not identify/)
+  })
+
+  test('getAccountIdentity reports a rejected token as an auth failure', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({}, 401))
+    await expect(
+      todoistAdapter.getAccountIdentity(
+        'tok',
+        fetchImpl as unknown as typeof fetch,
+      ),
+    ).rejects.toBeInstanceOf(ProviderAuthError)
+  })
+
   test('listAvailableSources maps projects', async () => {
     const fetchImpl = vi
       .fn()

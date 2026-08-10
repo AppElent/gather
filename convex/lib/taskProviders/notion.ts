@@ -84,6 +84,27 @@ export const notionAdapter: TaskProviderAdapter = {
   id: 'notion',
   capabilities: { write: false, priority: true, labels: true },
 
+  async getAccountIdentity(accessToken, fetchImpl = fetch) {
+    // The bot user, which is this integration inside one workspace — a
+    // different workspace authorising the same integration is a different bot,
+    // which is exactly the granularity a connection has.
+    const me = (await notionRequest(
+      accessToken,
+      '/users/me',
+      { method: 'GET' },
+      fetchImpl,
+    )) as {
+      id?: string
+      name?: string
+      bot?: { workspace_name?: string }
+    }
+    if (!me.id) throw new Error('Notion did not identify the workspace')
+    return {
+      externalAccountId: me.id,
+      accountLabel: me.bot?.workspace_name ?? me.name ?? 'Notion workspace',
+    }
+  },
+
   async listAvailableSources(accessToken, fetchImpl = fetch) {
     const data = (await notionRequest(
       accessToken,

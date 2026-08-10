@@ -7,6 +7,7 @@ import type { Id } from '../../../convex/_generated/dataModel'
 import type { UnifiedTask } from '../../../convex/lib/taskProviders/types'
 import { groupLink } from '../../lib/groupPaths'
 import { fmt, useMessages } from '../../lib/i18n'
+import { PROVIDER_LABELS } from '../../lib/oauth'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import { TaskRow } from './TaskRow'
 
@@ -16,7 +17,11 @@ type LoadState =
   | { status: 'reconnect'; provider: 'notion' | 'todoist' }
   | { status: 'error'; message: string }
 
-const PROVIDER_LABELS = { notion: 'Notion', todoist: 'Todoist' } as const
+/** Where a linked list reads from, as `taskLists.list` reports it. */
+export interface ExternalSource {
+  accountLabel: string | null
+  sourceName: string | null
+}
 
 export interface ExternalTaskListProps {
   listId: Id<'taskLists'>
@@ -24,6 +29,8 @@ export interface ExternalTaskListProps {
   groupSlug: string
   name: string
   provider: 'notion' | 'todoist'
+  /** Null only for a list stored before a list recorded its source. */
+  source: ExternalSource | null
   onRemoveList: () => void
 }
 
@@ -32,6 +39,7 @@ export function ExternalTaskList({
   groupSlug,
   name,
   provider,
+  source,
   onRemoveList,
 }: ExternalTaskListProps) {
   const getTasks = useAction(api.taskLists.getTasks)
@@ -55,7 +63,24 @@ export function ExternalTaskList({
   return (
     <SurfaceCard>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="m-0 text-base font-semibold">{name}</h3>
+        <div className="min-w-0">
+          <h3 className="m-0 text-base font-semibold">{name}</h3>
+          {/* Which account and which source, because a Group may hold two
+              Todoists and "Todoist" alone would not say whose tasks these
+              are. */}
+          {source?.sourceName && (
+            <p className="m-0 truncate text-xs text-[var(--app-muted)]">
+              {source.accountLabel
+                ? fmt(external.source, {
+                    source: source.sourceName,
+                    account: source.accountLabel,
+                  })
+                : fmt(external.sourceUnknownAccount, {
+                    source: source.sourceName,
+                  })}
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <Pill>{PROVIDER_LABELS[provider]}</Pill>
           <button

@@ -5,6 +5,7 @@ import {
 } from './types'
 
 const TODOIST_API = 'https://api.todoist.com/rest/v2'
+const TODOIST_SYNC_API = 'https://api.todoist.com/sync/v9'
 
 async function todoistRequest(
   accessToken: string,
@@ -13,6 +14,30 @@ async function todoistRequest(
 ): Promise<unknown> {
   const res = await fetchImpl(`${TODOIST_API}${path}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (res.status === 401 || res.status === 403) {
+    throw new ProviderAuthError('todoist')
+  }
+  if (!res.ok) throw new Error(`Todoist API error (${res.status})`)
+  return await res.json()
+}
+
+/**
+ * The Sync API, which is where the things REST v2 has no endpoint for live —
+ * the signed-in user among them.
+ */
+async function todoistSyncRequest(
+  accessToken: string,
+  body: Record<string, string>,
+  fetchImpl: typeof fetch,
+): Promise<unknown> {
+  const res = await fetchImpl(`${TODOIST_SYNC_API}/sync`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams(body).toString(),
   })
   if (res.status === 401 || res.status === 403) {
     throw new ProviderAuthError('todoist')
@@ -46,6 +71,22 @@ export function mapTodoistTask(t: TodoistApiTask): UnifiedTask {
 export const todoistAdapter: TaskProviderAdapter = {
   id: 'todoist',
   capabilities: { write: false, priority: true, labels: true },
+
+  async getAccountIdentity(accessToken, fetchImpl = fetch) {
+    const data = (await todoistSyncRequest(
+      accessToken,
+      { sync_token: '*', resource_types: '["user"]' },
+      fetchImpl,
+    )) as { user?: { id?: string; email?: string; full_name?: string } }
+    const user = data.user
+    if (!user?.id) throw new Error('Todoist did not identify the account')
+    return {
+      externalAccountId: String(user.id),
+      // The email, because a household connecting two Todoist accounts is
+      // choosing between two people — "Todoist" twice tells them nothing.
+      accountLabel: user.email ?? user.full_name ?? 'Todoist',
+    }
+  },
 
   async listAvailableSources(accessToken, fetchImpl = fetch) {
     const projects = (await todoistRequest(

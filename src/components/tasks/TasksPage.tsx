@@ -124,6 +124,7 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
                 groupSlug={groupSlug}
                 name={l.name}
                 provider={l.provider}
+                source={l.source}
                 onRemoveList={() => confirmRemove(l._id, l.name)}
               />
             ),

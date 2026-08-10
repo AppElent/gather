@@ -96,6 +96,12 @@ export default defineSchema({
       v.object({
         connectionId: v.id('integrationConnections'),
         sourceId: v.string(), // Notion database id / Todoist project id
+        // What that source was called at the provider when the list was
+        // linked. Stored rather than fetched, so a list can say which project
+        // it is reading without a round trip — and so it still says something
+        // when the provider is unreachable. Optional only for lists linked
+        // before this field existed.
+        sourceName: v.optional(v.string()),
         propertyMapping: v.optional(
           v.object({
             title: v.string(),
@@ -124,12 +130,31 @@ export default defineSchema({
     order: v.number(),
   }).index('by_list', ['listId']),
 
+  /**
+   * A Group's authorisation to reach one account at one provider.
+   *
+   * There may be several per provider in one Group — a shared household
+   * Todoist and somebody's own, two Notion workspaces — and one connection may
+   * back several Task lists. The index is therefore a lookup, never a
+   * uniqueness claim; `externalAccountId` is what makes two rows for the same
+   * provider distinguishable.
+   */
   integrationConnections: defineTable({
     groupId: v.id('groups'),
     provider: v.union(v.literal('notion'), v.literal('todoist')),
-    accessToken: v.string(), // server-only; never returned by a public function
-    accountLabel: v.string(), // Notion workspace name / 'Todoist'
+    // Server-only; never returned by a public function. Absent means
+    // disconnected: the row outlives its token so that the lists pointing at
+    // it keep saying *which* account they are waiting to be reconnected to,
+    // and so that reconnecting the same account revives their link instead of
+    // stranding them against a deleted id.
+    accessToken: v.optional(v.string()),
+    accountLabel: v.string(), // Notion workspace name / Todoist account email
+    // Who this token is at the provider. Optional only for rows stored before
+    // a Group could hold more than one connection per provider — see
+    // docs/migrations/0007-connection-account-identity.md.
+    externalAccountId: v.optional(v.string()),
     connectedBy: v.id('users'),
+    disconnectedAt: v.optional(v.number()),
   }).index('by_group_provider', ['groupId', 'provider']),
 
   foods: defineTable({

@@ -1,6 +1,8 @@
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
+import type { Doc, Id } from './_generated/dataModel'
 import { action, internalQuery, mutation, query } from './_generated/server'
+import type { QueryCtx } from './_generated/server'
 import { getAdapter } from './lib/taskProviders'
 import {
   ProviderAuthError,
@@ -12,6 +14,7 @@ import { requireListAccess } from './lib/taskAccess'
 const providerConfigValidator = v.object({
   connectionId: v.id('integrationConnections'),
   sourceId: v.string(),
+  sourceName: v.optional(v.string()),
   propertyMapping: v.optional(
     v.object({
       title: v.string(),
@@ -23,7 +26,15 @@ const providerConfigValidator = v.object({
   ),
 })
 
-/** The lists of the Group in the URL, and of no other. */
+/**
+ * The lists of the Group in the URL, and of no other.
+ *
+ * An external list comes back saying where it reads from — which provider,
+ * which of the Group's connections, and which source at that connection. A
+ * list that does not say which of two Todoist accounts it is showing is a list
+ * whose contents nobody can account for; the token behind that connection is
+ * still not in the answer.
+ */
 export const list = query({
   args: { groupSlug: v.string() },
   handler: async (ctx, args) => {
@@ -32,11 +43,48 @@ export const list = query({
       .query('taskLists')
       .withIndex('by_group', (q) => q.eq('groupId', group._id))
       .collect()
-    return lists
-      .sort((a, b) => a.order - b.order)
-      .map((l) => ({ _id: l._id, name: l.name, provider: l.provider }))
+    return await Promise.all(
+      lists
+        .sort((a, b) => a.order - b.order)
+        .map(async (l) => ({
+          _id: l._id,
+          name: l.name,
+          provider: l.provider,
+          source: await describeSource(ctx, l),
+        })),
+    )
   },
 })
+
+export interface TaskListSourceView {
+  connectionId: Id<'integrationConnections'>
+  /** Absent when the connection has been removed outright. */
+  accountLabel: string | null
+  connectionStatus: 'connected' | 'disconnected' | 'missing'
+  sourceId: string
+  sourceName: string | null
+}
+
+/** What an external list reads from, in words, with no token in it. */
+async function describeSource(
+  ctx: QueryCtx,
+  list: Doc<'taskLists'>,
+): Promise<TaskListSourceView | null> {
+  const config = list.providerConfig
+  if (list.provider === 'local' || !config) return null
+  const conn = await ctx.db.get(config.connectionId)
+  return {
+    connectionId: config.connectionId,
+    accountLabel: conn?.accountLabel ?? null,
+    connectionStatus: !conn
+      ? 'missing'
+      : conn.accessToken
+        ? 'connected'
+        : 'disconnected',
+    sourceId: config.sourceId,
+    sourceName: config.sourceName ?? null,
+  }
+}
 
 export const create = mutation({
   args: {
@@ -70,6 +118,11 @@ export const create = mutation({
       const conn = await ctx.db.get(args.providerConfig.connectionId)
       if (!conn || conn.groupId !== groupId || conn.provider !== args.provider) {
         throw new ConvexError('That connection does not belong to this group')
+      }
+      if (!conn.accessToken) {
+        throw new ConvexError(
+          'That connection is disconnected — reconnect it first',
+        )
       }
     }
 
@@ -172,7 +225,9 @@ export const getTasks = action({
     const conn = await ctx.runQuery(internal.integrations.getConnection, {
       connectionId: config.connectionId,
     })
-    if (!conn) return { status: 'reconnect', provider: list.provider }
+    if (!conn?.accessToken) {
+      return { status: 'reconnect', provider: list.provider }
+    }
     try {
       const tasks = await getAdapter(list.provider).fetchTasks(
         conn.accessToken,

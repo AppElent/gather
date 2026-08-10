@@ -43,6 +43,21 @@ by design: it is how someone notices which Group they are acting in.
 Content owned by a Group and visible to its Members — recipes, tasks, a baby's
 log, integration connections.
 
+**Connection**:
+A Group's authorisation to reach one **account** at one external provider. A
+Group may hold several per provider — the shared household Todoist and
+somebody's own — and one connection may back several Task lists. Named by the
+account rather than by the provider, because "Todoist" twice says nothing about
+whose tasks a list is showing. Its token is server-side and never leaves it.
+_Avoid_: Integration, Account link, Credential
+
+**Backend**:
+Where a Module's collection actually lives. `local` is one — named, not implied
+— and an external provider is another; a Task list has exactly one, chosen when
+it is created and never changed behind anyone's back. When the Backend is
+external the provider owns the records and gather keeps a cache (ADR-0013).
+_Avoid_: Sync target, Data source, Storage
+
 **Personal**:
 Records *about a person* rather than content they authored — their food diary,
 their nutrition targets. These follow the person across every Group and belong

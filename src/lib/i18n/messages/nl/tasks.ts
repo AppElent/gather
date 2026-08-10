@@ -40,6 +40,8 @@ export const tasks = {
     reconnect: 'De koppeling met {provider} moet opnieuw worden gelegd.',
     goToSettings: 'Naar de Groepsinstellingen',
     empty: 'Geen open taken in deze {provider}-lijst.',
+    source: '{source} · {account}',
+    sourceUnknownAccount: '{source} · losgekoppeld account',
   },
 
   editor: {
@@ -63,6 +65,8 @@ export const tasks = {
     listName: 'Lijstnaam',
     create: 'Aanmaken',
     failed: 'Er ging iets mis — probeer het opnieuw.',
+    pickConnection: 'Welk {provider}-account?',
+    connectAnother: 'Nog een {provider}-account koppelen…',
     pickNotion: 'Kies de Notion-database om te spiegelen:',
     pickTodoist: 'Kies het Todoist-project om te spiegelen:',
     nothingFoundNotion:
