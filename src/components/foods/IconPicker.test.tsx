@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { FOOD_ICONS, IconPicker } from './IconPicker'
@@ -60,7 +60,7 @@ test('the chosen one says so', () => {
   expect(screen.getByRole('button', { name: '🥗' }).ariaPressed).toBe('false')
 })
 
-test('clearing reports nothing at all, not an empty string', () => {
+test('clearing from the sheet reports undefined and collapses it', () => {
   const onChange = vi.fn()
   renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
 
@@ -68,6 +68,31 @@ test('clearing reports nothing at all, not an empty string', () => {
   fireEvent.click(screen.getByRole('button', { name: 'No icon' }))
 
   expect(onChange).toHaveBeenCalledWith(undefined)
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
+
+test('Escape dismisses without changing the icon and restores trigger focus', async () => {
+  const onChange = vi.fn()
+  renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
+
+  const trigger = screen.getByRole('button', { name: 'Change icon' })
+  fireEvent.click(trigger)
+  fireEvent.keyDown(window, { key: 'Escape' })
+
+  expect(onChange).not.toHaveBeenCalled()
+  await waitFor(() => expect(trigger).toHaveFocus())
+})
+
+test('closing the sheet leaves the icon unchanged and restores trigger focus', async () => {
+  const onChange = vi.fn()
+  renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
+
+  const trigger = screen.getByRole('button', { name: 'Change icon' })
+  fireEvent.click(trigger)
+  fireEvent.click(screen.getByRole('button', { name: 'Close icon picker' }))
+
+  expect(onChange).not.toHaveBeenCalled()
+  await waitFor(() => expect(trigger).toHaveFocus())
 })
 
 test('pressing the chosen one again clears it', () => {

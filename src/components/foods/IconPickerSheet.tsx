@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useMessages } from '../../lib/i18n'
 
@@ -27,6 +28,17 @@ export function IconPickerSheet({
   onClose,
 }: Props) {
   const { icon } = useMessages().common
+
+  useEffect(() => {
+    if (!open) return
+
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+
+    window.addEventListener('keydown', dismissOnEscape)
+    return () => window.removeEventListener('keydown', dismissOnEscape)
+  }, [open, onClose])
 
   if (!open) return null
 

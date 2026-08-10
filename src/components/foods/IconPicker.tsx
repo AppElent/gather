@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useMessages } from '../../lib/i18n'
 import { IconPickerSheet } from './IconPickerSheet'
 
@@ -99,12 +99,24 @@ interface Props {
 export function IconPicker({ value, onChange, disabled }: Props) {
   const { icon } = useMessages().common
   const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+
+  const close = () => {
+    setOpen(false)
+    requestAnimationFrame(() => triggerRef.current?.focus())
+  }
+
+  const clear = () => {
+    onChange(undefined)
+    close()
+  }
 
   return (
     <fieldset className="rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
       <legend className="px-1 text-sm font-medium">{icon.label}</legend>
       <p className="mb-2 text-xs opacity-60">{icon.hint}</p>
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         aria-expanded={open}
@@ -122,10 +134,10 @@ export function IconPicker({ value, onChange, disabled }: Props) {
         disabled={disabled}
         onChoose={(candidate) => {
           onChange(candidate === value ? undefined : candidate)
-          setOpen(false)
+          close()
         }}
-        onClear={() => onChange(undefined)}
-        onClose={() => setOpen(false)}
+        onClear={clear}
+        onClose={close}
       />
     </fieldset>
   )
