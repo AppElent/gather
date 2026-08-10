@@ -23,8 +23,9 @@ const MAX_IMAGE_BYTES = 2 * 1024 * 1024
 /**
  * Where a food picture may come from.
  *
- * `importFromOff` is a public action, so the `imageUrl` it is handed is
- * whatever a caller sent — not necessarily what our own search returned.
+ * `importFromOff` and `storeOffImage` are public actions, so the `imageUrl`
+ * each is handed is whatever a caller sent — not necessarily what our own
+ * search returned.
  * `safeFetch` already refuses private and loopback addresses, which closes
  * SSRF; this closes the other half, which is gather's storage being used to
  * mirror arbitrary files off the public internet. Only Open Food Facts.
@@ -103,7 +104,7 @@ export const refreshFromOff = action({
  * is not a thumbnail). A `content-length` that lies is caught by measuring the
  * blob after, before anything is stored.
  */
-async function storeOffImage(
+async function fetchAndStoreOffImage(
   ctx: ActionCtx,
   url: string | undefined,
 ): Promise<Id<'_storage'> | undefined> {
@@ -158,11 +159,35 @@ export const importFromOff = action({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new ConvexError('Not authenticated')
     const { imageUrl, ...fields } = args
-    const imageId = await storeOffImage(ctx, imageUrl)
+    const imageId = await fetchAndStoreOffImage(ctx, imageUrl)
     // The mutation decides whether this blob is used at all — an existing row
     // somebody has edited keeps what it has — and deletes it if not, so a
     // refused import leaves nothing behind in storage.
     return await ctx.runMutation(api.foods.upsertFromOff, { ...fields, imageId })
+  },
+})
+
+/**
+ * Fetches an OFF picture after the food has already been saved. Image failures
+ * are intentionally silent: the food's data is usable without one, and the
+ * add sheet must not wait for an external image host before logging.
+ */
+export const storeOffImage = action({
+  args: { id: v.id('foods'), imageUrl: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new ConvexError('Not authenticated')
+    // This public action fetches before it can know whether storage will
+    // accept the blob. Reject an absent or read-only target first, otherwise a
+    // caller could leave an unreachable file behind by naming a Catalog row.
+    const food = await ctx.runQuery(api.foods.get, { id: args.id })
+    if (!food || food.seedKey !== undefined) return
+    const imageId = await fetchAndStoreOffImage(ctx, args.imageUrl)
+    if (!imageId) return
+    await ctx.runMutation(api.foods.attachOffImage, {
+      id: args.id,
+      imageId,
+    })
   },
 })
 

@@ -59,6 +59,19 @@ describe('the food Catalog', () => {
     expect(await t.query(api.foods.get, { id: hagelslag })).toBeNull()
     expect(await t.query(api.foods.search, { term: 'hagelslag' })).toEqual([])
   })
+
+  test('refuses an edit from somebody other than the creator', async () => {
+    const { t, hagelslag } = await seed()
+
+    await expect(
+      t.withIdentity(asBob).mutation(api.foods.update, {
+        id: hagelslag,
+        name: 'Bob’s hagelslag',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 500 },
+      }),
+    ).rejects.toThrow('Only the person who created this food can edit it.')
+  })
 })
 
 /**
@@ -175,6 +188,52 @@ describe('a food’s picture', () => {
     const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
     expect(food?.name).toBe('Nutella')
     expect(food?.imageUrl).toBeNull()
+  })
+
+  test('a background OFF picture attaches after the food is ready to log', async () => {
+    const t = testConvex()
+    await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    const id = await t.withIdentity(asAlice).mutation(api.foods.upsertFromOff, {
+      barcode: '3017620422003',
+      name: 'Nutella',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 539 },
+    })
+    const imageId = await storedImage(t, 'nutella')
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.foods.attachOffImage, { id, imageId })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.imageId).toBe(imageId)
+    expect(food?.imageUrl).toBeTruthy()
+  })
+
+  test('a background OFF picture cannot overwrite a local edit', async () => {
+    const t = testConvex()
+    await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    const id = await t.withIdentity(asAlice).mutation(api.foods.upsertFromOff, {
+      barcode: '3017620422003',
+      name: 'Nutella',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 539 },
+    })
+    await t.withIdentity(asAlice).mutation(api.foods.update, {
+      id,
+      name: 'My Nutella',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 530 },
+    })
+    const imageId = await storedImage(t, 'too late')
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.foods.attachOffImage, { id, imageId })
+
+    const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
+    expect(food?.imageId).toBeUndefined()
+    expect(await t.run(async (ctx) => ctx.db.system.get(imageId))).toBeNull()
   })
 
   test('re-importing with a new picture deletes the one it replaces', async () => {

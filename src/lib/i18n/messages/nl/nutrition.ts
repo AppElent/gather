@@ -111,6 +111,7 @@ export const diary = {
       'Voegt dit voedingsmiddel toe met gegevens van Open Food Facts. Controleer het eerst om ze na te kijken of te wijzigen.',
     importFailed:
       'Kon dit voedingsmiddel niet toevoegen — probeer het opnieuw.',
+    editFood: 'Voedingsmiddelgegevens bewerken',
     addToLibrary: 'Voeg het toe aan de voedingsmiddelen',
     addToLibraryAfter: 'en probeer het dan opnieuw.',
     searching: 'Zoeken bij Open Food Facts…',

@@ -134,6 +134,7 @@ export const diary = {
     reviewHint:
       'Imports this food with Open Food Facts’ figures. Check first to review or correct them.',
     importFailed: 'Couldn’t add this food — try again.',
+    editFood: 'Edit food details',
     addToLibrary: 'Add it to the foods library',
     addToLibraryAfter: 'first.',
     searching: 'Searching Open Food Facts…',

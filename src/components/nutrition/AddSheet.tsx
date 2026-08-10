@@ -1,6 +1,6 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { type ComboCounts, comboEntries } from '../../../convex/lib/combos'
@@ -9,7 +9,10 @@ import {
   type MealName,
   type QuantityUnit,
 } from '../../../convex/lib/consumption'
-import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import type {
+  NutritionFacts,
+  NutritionSource,
+} from '../../../convex/lib/nutrition'
 import { barcodeTerm } from '../../../convex/lib/offFetch'
 import type { OffSearchResult } from '../../../convex/lib/offMapping'
 import type { Serving } from '../../../convex/lib/servings'
@@ -18,6 +21,7 @@ import type { AppLink } from '../../lib/appLink'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
+import { FoodForm } from '../foods/FoodForm'
 import { IconPicker } from '../foods/IconPicker'
 import { BottomSheet } from './BottomSheet'
 import { ComboCard, type ComboSummary } from './ComboCard'
@@ -57,13 +61,19 @@ interface FoodSummary {
   _id: Id<'foods'>
   name: string
   brand?: string
+  barcode?: string
   baseUnit: 'g' | 'ml'
   nutritionPer100: NutritionFacts
+  nutritionSource?: NutritionSource
   servings?: Serving[]
   /** Resolved by the query from the stored file; null when there is no picture. */
   imageUrl?: string | null
   /** The emoji somebody picked for it, shown when there is no picture (#94). */
   icon?: string
+  /** Catalog rows are read-only, so they never get the editor. */
+  seedKey?: string
+  /** User-created foods can only be changed by their creator. */
+  createdBy?: Id<'users'>
 }
 
 interface Props {
@@ -94,6 +104,7 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const term = search.term.trim()
   const recipes = useQuery(api.recipes.listAcrossMyGroups, {})
   const combos = useQuery(api.combos.list, {})
+  const me = useQuery(api.users.me)
   // The food a review form just saved. Read back rather than carried in the
   // URL, because what is logged has to be the row as it was written — the form
   // is where somebody may have corrected the figures.
@@ -105,9 +116,8 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const createEntries = useMutation(api.consumption.createMany)
   const replaceComboItems = useMutation(api.combos.replaceItems)
   const lookupBarcode = useAction(api.foodsLookup.lookupBarcode)
-  // This is deliberately the action, not `foods.upsertFromOff`: it fetches and
-  // stores Open Food Facts' picture as part of the import (#69).
-  const importFromOff = useAction(api.foodsLookup.importFromOff)
+  const upsertFromOff = useMutation(api.foods.upsertFromOff)
+  const storeOffImage = useAction(api.foodsLookup.storeOffImage)
   const convex = useConvex()
   const navigate = useNavigate()
   const { announce } = useJustLogged()
@@ -121,6 +131,12 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const [expanded, setExpanded] = useState<string | null>(
     justAddedFoodId ? `food:${justAddedFoodId}` : null,
   )
+  // The add sheet stays mounted when its `food` search parameter changes. A
+  // state initializer only sees the first value, so follow later return trips
+  // too (#112).
+  useEffect(() => {
+    if (justAddedFoodId) setExpanded(`food:${justAddedFoodId}`)
+  }, [justAddedFoodId])
   const [comboBusy, setComboBusy] = useState(false)
   const [comboError, setComboError] = useState<string | null>(null)
   const [promotions, setPromotions] = useState(0)
@@ -172,20 +188,21 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   }
 
   /**
-   * The fast OFF path: create the food, including its picture, then reopen
-   * this same meal with its stored card expanded for the amount choice.
+   * The fast OFF path writes the food first, then reopens this same meal with
+   * its stored card expanded for the amount choice. Its photograph follows in
+   * the background: an unreliable remote image must not hold up logging.
    *
    * OFF supplies figures per 100g and no reliable unit signal, which is the
    * same `g` default the review form starts with. Checking first remains how a
    * person changes that default or any imported figure before writing.
    */
-  async function importOff(result: OffSearchResult) {
-    if (importInFlight.current) return
+  async function importOff(result: OffSearchResult): Promise<boolean> {
+    if (importInFlight.current) return false
     importInFlight.current = true
     setImporting(true)
     setImportError(null)
     try {
-      const id = await importFromOff({
+      const id = await upsertFromOff({
         barcode: result.barcode,
         name: result.name,
         brand: result.brand,
@@ -193,11 +210,18 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
         nutritionPer100: result.nutritionPer100,
         nutritionSource: 'imported',
         ...(result.servings?.length ? { servings: result.servings } : {}),
-        ...(result.imageUrl ? { imageUrl: result.imageUrl } : {}),
       })
       navigate(nav.addEntry(date, meal, id))
+      if (result.imageUrl) {
+        void storeOffImage({ id, imageUrl: result.imageUrl }).catch(() => {
+          // A picture is decoration. The food already exists and is ready to
+          // log, so a failed OFF fetch must remain invisible to that flow.
+        })
+      }
+      return true
     } catch {
       setImportError({ barcode: result.barcode, message: foodAdd.importFailed })
+      return false
     } finally {
       importInFlight.current = false
       setImporting(false)
@@ -234,7 +258,9 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
         navigate(review({ barcode }))
         return
       }
-      await importOff({ ...mapped, barcode })
+      if (!(await importOff({ ...mapped, barcode }))) {
+        setScanFailure({ message: foodAdd.importFailed })
+      }
     } catch {
       setScanFailure({ message: foodAdd.barcodeFailed })
     }
@@ -309,7 +335,12 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const matchingCombos = (combos ?? []).filter(
     (combo) => !term || combo.name.toLowerCase().includes(term.toLowerCase()),
   )
-  const foods = search.results ?? []
+  // Returning from an OFF name search preserves the typed term. Its saved row
+  // will now match that term too, but it belongs in the focused "Just added"
+  // slot rather than twice in the list.
+  const foods = (search.results ?? []).filter(
+    (food) => food._id !== justAdded?._id,
+  )
   const withNutrition = (recipes ?? []).filter((r) => r.nutrition)
   const matchingRecipes = term
     ? withNutrition.filter((r) =>
@@ -428,10 +459,12 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
       {justAdded && (
         <Section title={add.sections.justAdded}>
           <FoodCard
+            key={justAdded._id}
             food={justAdded}
             expanded={expanded === `food:${justAdded._id}`}
             onToggle={() => toggle(`food:${justAdded._id}`)}
             onLog={log}
+            canEdit={justAdded.createdBy === me?._id}
           />
         </Section>
       )}
@@ -443,6 +476,7 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
             expanded={expanded === `food:${scanned._id}`}
             onToggle={() => toggle(`food:${scanned._id}`)}
             onLog={log}
+            canEdit={scanned.createdBy === me?._id}
           />
         </Section>
       )}
@@ -456,6 +490,7 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
               expanded={expanded === `food:${food._id}`}
               onToggle={() => toggle(`food:${food._id}`)}
               onLog={log}
+              canEdit={food.createdBy === me?._id}
             />
           ))}
         </Section>
@@ -660,13 +695,16 @@ function FoodCard({
   expanded,
   onToggle,
   onLog,
+  canEdit,
 }: {
   food: FoodSummary
   expanded: boolean
   onToggle: () => void
   onLog: LogFn
+  canEdit: boolean
 }) {
-  const { add, foodAdd } = useMessages().nutrition.diary
+  const messages = useMessages()
+  const { add, foodAdd } = messages.nutrition.diary
   // Your own past amounts for this food, which is what covers a Catalog food
   // nobody may edit and a food whose authored list is empty. Only asked for
   // once the card is open — a list of twenty results should not be twenty
@@ -677,6 +715,10 @@ function FoodCard({
   )
   const offered = offeredServings(food, loggedAmounts ?? [])
   const [selection, setSelection] = useState<ServingSelection | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [editBusy, setEditBusy] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const updateFood = useMutation(api.foods.update)
   const current = selection ?? initialSelection(offered)
   const { busy, error, run } = useLogging()
 
@@ -709,6 +751,58 @@ function FoodCard({
       <div className="mt-3">
         <NutritionBreakdown facts={resolved?.nutrition ?? {}} />
       </div>
+      {food.seedKey === undefined && canEdit && (
+        <div className="mt-3 border-t border-[var(--app-border)] pt-3">
+          <button
+            type="button"
+            onClick={() => {
+              setEditing((value) => !value)
+              setEditError(null)
+            }}
+            className="min-h-11 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm"
+          >
+            {editing ? messages.common.actions.cancel : foodAdd.editFood}
+          </button>
+          {editing && (
+            <div className="mt-3">
+              {editError && (
+                <p className="mb-3 text-sm text-red-700">{editError}</p>
+              )}
+              <FoodForm
+                key={food._id}
+                submitting={editBusy}
+                initial={{
+                  name: food.name,
+                  brand: food.brand,
+                  barcode: food.barcode,
+                  baseUnit: food.baseUnit,
+                  icon: food.icon,
+                  nutritionPer100: food.nutritionPer100,
+                  servings: food.servings,
+                  nutritionSource: food.nutritionSource,
+                }}
+                onSubmit={async ({
+                  nutritionSource: _decidedByTheServer,
+                  ...values
+                }) => {
+                  setEditBusy(true)
+                  setEditError(null)
+                  try {
+                    await updateFood({ id: food._id, ...values })
+                    setEditing(false)
+                  } catch (err) {
+                    setEditError(
+                      errorMessage(err, messages.foods.form.saveFailed),
+                    )
+                  } finally {
+                    setEditBusy(false)
+                  }
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
       <Confirm
         disabled={!resolved}
         reason={add.enterAmount}
