@@ -36,15 +36,35 @@ function assertValidNutrition(nutrition: NutritionFacts) {
  * the nutrition are a snapshot, and a snapshot does not change because the
  * thing it was taken from did.
  */
-async function visibleRecipeId(
+async function entryThumbnail(
   ctx: QueryCtx,
-  recipeId: Id<'recipes'> | undefined,
+  entry: Doc<'consumptionEntries'>,
   viewerGroupIds: Id<'groups'>[],
-): Promise<Id<'recipes'> | undefined> {
-  if (!recipeId) return undefined
-  const recipe = await ctx.db.get(recipeId)
-  if (!recipe || !isVisibleToGroups(recipe, viewerGroupIds)) return undefined
-  return recipeId
+): Promise<{
+  recipeId: Id<'recipes'> | undefined
+  imageUrl?: string | null
+  sourceIcon?: string
+  thumbnailKind: 'food' | 'recipe'
+}> {
+  if (entry.foodId) {
+    const food = await ctx.db.get(entry.foodId)
+    return {
+      recipeId: undefined,
+      imageUrl: food?.imageId ? await ctx.storage.getUrl(food.imageId) : null,
+      sourceIcon: food?.icon,
+      thumbnailKind: 'food',
+    }
+  }
+  if (!entry.recipeId) return { recipeId: undefined, thumbnailKind: 'food' }
+  const recipe = await ctx.db.get(entry.recipeId)
+  if (!recipe || !isVisibleToGroups(recipe, viewerGroupIds)) {
+    return { recipeId: undefined, thumbnailKind: 'recipe' }
+  }
+  return {
+    recipeId: entry.recipeId,
+    imageUrl: recipe.imageId ? await ctx.storage.getUrl(recipe.imageId) : null,
+    thumbnailKind: 'recipe',
+  }
 }
 
 export const listForDay = query({
@@ -62,7 +82,7 @@ export const listForDay = query({
     return await Promise.all(
       entries.map(async (entry) => ({
         ...entry,
-        recipeId: await visibleRecipeId(ctx, entry.recipeId, viewerGroupIds),
+        ...(await entryThumbnail(ctx, entry, viewerGroupIds)),
       })),
     )
   },

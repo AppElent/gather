@@ -12,6 +12,7 @@ import {
   resolveAmount,
 } from '../../../convex/lib/servings'
 import { useMessages } from '../../lib/i18n'
+import { FoodThumbnail, type ThumbnailKind } from './FoodThumbnail'
 import type { NutritionNav } from './nutritionNav'
 import {
   ServingPicker,
@@ -36,6 +37,12 @@ export interface ConsumptionEntryData {
    * and does not keep a copy of the answer here.
    */
   icon?: string
+  /** The current source picture, if a food or visible recipe still has one. */
+  imageUrl?: string | null
+  /** A food's current chosen icon; a one-off continues to use `icon`. */
+  sourceIcon?: string
+  /** The source type survives when its provenance link is no longer visible. */
+  thumbnailKind?: ThumbnailKind
 }
 
 interface Props {
@@ -171,37 +178,40 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
   return (
     <li className="py-2 text-sm">
       <div className="flex items-center justify-between gap-2">
-        <div>
-          {/* Decoration, and marked as such: the label beside it already says
-              what this is, so a screen reader repeating the emoji's name would
-              only be reading the row twice. */}
-          {entry.icon && (
-            <span aria-hidden="true" className="mr-1.5">
-              {entry.icon}
-            </span>
-          )}
-          <span className="font-medium">{entry.label}</span>
-          <span className="ml-2 opacity-60">
-            {entry.quantity} {units[entry.quantityUnit]}
-            {entry.nutrition.calories !== undefined &&
-              ` · ${entry.nutrition.calories} kcal`}
+        <div className="flex min-w-0 items-center gap-2">
+          {/* Decoration: the label already names this row, so the tile must not
+              make a screen reader announce the same thing twice. */}
+          <span aria-hidden="true">
+            <FoodThumbnail
+              src={entry.imageUrl}
+              icon={entry.sourceIcon ?? entry.icon}
+              kind={entry.thumbnailKind ?? 'food'}
+            />
           </span>
-          {entry.recipeId && (
-            <Link
-              {...nav.recipe(entry.recipeId)}
-              className="ml-2 text-xs underline"
-            >
-              {diary.entry.viewRecipe}
-            </Link>
-          )}
-          {entry.foodId && (
-            <Link
-              {...nav.food(entry.foodId)}
-              className="ml-2 text-xs underline"
-            >
-              {diary.entry.viewFood}
-            </Link>
-          )}
+          <div className="min-w-0">
+            <span className="font-medium">{entry.label}</span>
+            <span className="ml-2 opacity-60">
+              {entry.quantity} {units[entry.quantityUnit]}
+              {entry.nutrition.calories !== undefined &&
+                ` · ${entry.nutrition.calories} kcal`}
+            </span>
+            {entry.recipeId && (
+              <Link
+                {...nav.recipe(entry.recipeId)}
+                className="ml-2 text-xs underline"
+              >
+                {diary.entry.viewRecipe}
+              </Link>
+            )}
+            {entry.foodId && (
+              <Link
+                {...nav.food(entry.foodId)}
+                className="ml-2 text-xs underline"
+              >
+                {diary.entry.viewFood}
+              </Link>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button

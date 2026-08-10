@@ -179,6 +179,9 @@ export const update = mutation({
     const food = await ctx.db.get(id)
     if (!food) throw new Error('Food not found')
     assertNotCatalog(food)
+    if (food.createdBy !== user._id) {
+      throw new ConvexError('Only the person who created this food can edit it.')
+    }
     await ctx.db.patch(id, {
       ...rest,
       // An absent `servings` means "none" rather than "leave what is there":
@@ -216,13 +219,12 @@ export const upsertFromOff = mutation({
   args: {
     ...savedFoodFields,
     barcode: v.string(),
-    // Already fetched and stored by `foodsLookup.importFromOff`, which is the
-    // only thing that can make the network call this needs.
+    // Either already fetched by `foodsLookup.importFromOff`, or omitted for
+    // a fast add-sheet import whose picture follows in the background.
     imageId: v.optional(v.id('_storage')),
-    // Every import is reviewed before it is saved (spec §6), so "imported" is
-    // the default rather than the certainty: a person who corrected the
-    // figures in that review form sends `manual` instead, and the food says
-    // the true thing about the numbers it actually carries.
+    // A direct import uses `imported`; a person who checked first and
+    // corrected the figures sends `manual` instead, and the food says the
+    // true thing about the numbers it actually carries (#112).
     nutritionSource: v.optional(nutritionSourceValidator),
   },
   handler: async (ctx, args) => {
@@ -273,6 +275,35 @@ export const upsertFromOff = mutation({
       source: 'openfoodfacts',
       createdBy: user._id,
     })
+  },
+})
+
+/**
+ * Attaches an OFF image after its food is already available to log.
+ *
+ * An import writes its row before downloading the optional image so the
+ * external host never delays the add-sheet return. If a row gained an image
+ * while the fetch was in flight, keep that newer one and delete this
+ * unreachable blob instead.
+ */
+export const attachOffImage = mutation({
+  args: { id: v.id('foods'), imageId: v.id('_storage') },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx)
+    if (!user) throw new Error('Not authenticated')
+    const food = await ctx.db.get(args.id)
+    if (!food) {
+      await deleteStoredFile(ctx, args.imageId)
+      return
+    }
+    // The upload may finish after somebody corrects the food in the add sheet.
+    // Treat that exactly like the rescan path: their local edit wins, and this
+    // no-longer-needed file is removed.
+    if (food.seedKey !== undefined || food.localEdited || food.imageId) {
+      await deleteStoredFile(ctx, args.imageId)
+      return
+    }
+    await ctx.db.patch(food._id, { imageId: args.imageId })
   },
 })
 

@@ -57,6 +57,7 @@ const offResults = vi.hoisted(() => ({
       name: 'Volle melk',
       brand: 'Zaanse Hoeve',
       nutritionPer100: { calories: 64 },
+      imageUrl: 'https://images.openfoodfacts.org/images/products/front.jpg',
     },
   ],
 }))
@@ -66,7 +67,11 @@ const existingFood = vi.hoisted(() => ({ value: null as unknown }))
 const justAddedFood = vi.hoisted(() => ({ value: null as unknown }))
 /** What `foodsLookup.lookupBarcode` finds on Open Food Facts. */
 const offProduct = vi.hoisted(() => ({ value: null as unknown }))
+/** Makes the next fast import fail, to exercise the retry state. */
+const offImportFailure = vi.hoisted(() => ({ value: null as Error | null }))
 const calls = vi.hoisted(() => ({ value: [] as Array<[string, unknown]> }))
+const offImageCalls = vi.hoisted(() => ({ value: [] as unknown[] }))
+const currentUser = vi.hoisted(() => ({ value: { _id: 'user1' } as unknown }))
 
 vi.mock('convex/react', () => ({
   useQuery: (name: string, args: { term?: string } | 'skip') => {
@@ -83,6 +88,7 @@ vi.mock('convex/react', () => ({
     if (name === 'foods:get') {
       return args === 'skip' ? undefined : justAddedFood.value
     }
+    if (name === 'users:me') return currentUser.value
     if (name === 'recipes:listAcrossMyGroups') return recipes.value
     if (name === 'combos:list') return combos.value
     if (name === 'consumption:loggedAmountsForFood') {
@@ -92,10 +98,18 @@ vi.mock('convex/react', () => ({
   },
   useMutation: (name: string) => async (args: unknown) => {
     calls.value.push([name, args])
+    if (name === 'foods:upsertFromOff') {
+      if (offImportFailure.value) throw offImportFailure.value
+      return 'food9'
+    }
     return 'entry1'
   },
   useAction: (name: string) => async (args: { term?: string }) => {
     if (name === 'foodsLookup:lookupBarcode') return offProduct.value
+    if (name === 'foodsLookup:storeOffImage') {
+      offImageCalls.value.push(args)
+      return undefined
+    }
     if (name !== 'foodsLookup:searchByName') return null
     const term = (args.term ?? '').toLowerCase()
     return offResults.value.filter((r) => r.name.toLowerCase().includes(term))
@@ -110,13 +124,16 @@ vi.mock('../../../convex/_generated/api', () => ({
       get: 'foods:get',
       getByBarcode: 'foods:getByBarcode',
       upsertFromOff: 'foods:upsertFromOff',
+      update: 'foods:update',
     },
     foodsLookup: {
       searchByName: 'foodsLookup:searchByName',
       lookupBarcode: 'foodsLookup:lookupBarcode',
+      storeOffImage: 'foodsLookup:storeOffImage',
     },
     recipes: { listAcrossMyGroups: 'recipes:listAcrossMyGroups' },
     combos: { list: 'combos:list', replaceItems: 'combos:replaceItems' },
+    users: { me: 'users:me' },
     consumption: {
       create: 'consumption:create',
       createMany: 'consumption:createMany',
@@ -196,6 +213,9 @@ beforeEach(() => {
   existingFood.value = null
   justAddedFood.value = null
   offProduct.value = null
+  offImportFailure.value = null
+  offImageCalls.value = []
+  currentUser.value = { _id: 'user1' }
   // jsdom has no `navigator.mediaDevices`, which is what the scanner asks for
   // first. A stand-in that refuses is the state a phone with the camera denied
   // is in, and it leaves the manual barcode entry — the part this suite drives.
@@ -211,7 +231,7 @@ beforeEach(() => {
 
 /** Drive the scanner the way a phone would, minus the camera. */
 async function scan(barcode: string) {
-  fireEvent.click(screen.getByText('Scan'))
+  fireEvent.click(screen.getByRole('button', { name: 'Scan barcode' }))
   const field = await screen.findByLabelText('Or enter the barcode number')
   fireEvent.change(field, { target: { value: barcode } })
   fireEvent.click(screen.getByText('Look up'))
@@ -288,6 +308,26 @@ test('a barcode nobody has offers adding it, rather than an empty list', async (
   expect(screen.queryByText(/as a one-off/)).toBeNull()
 })
 
+test('the persistent add menu keeps a barcode out of one-offs', async () => {
+  renderSheet()
+  await search('9999999999999')
+
+  await waitFor(() => expect(screen.getByText(/Not found\./)).toBeDefined())
+  fireEvent.click(screen.getByRole('button', { name: 'Add food' }))
+
+  // A barcode identifies a product, not a diary label. The persistent menu
+  // must take the same route as the empty-result offer rather than creating a
+  // one-off whose name is just the digits.
+  expect(screen.queryByText(/9999999999999.*one-off/)).toBeNull()
+  const addToLibrary = screen.getAllByRole('link', {
+    name: 'Add it to the foods library',
+  })
+  expect(addToLibrary[0]).toHaveAttribute(
+    'href',
+    '/g/jansen-household/foods/new?barcode=9999999999999&returnDate=2026-07-18&returnMeal=breakfast',
+  )
+})
+
 test('digits still being typed are an ordinary search, not a lookup', async () => {
   // Long enough to be a number, too short to be a barcode: this must not
   // resolve as one, or the list would flicker between modes on the way in.
@@ -306,23 +346,74 @@ test('digits still being typed are an ordinary search, not a lookup', async () =
   expect(screen.queryByText('Volle melk')).toBeNull()
 })
 
-test('choosing an Open Food Facts result opens the review form and writes nothing', async () => {
+test('choosing an Open Food Facts result imports it and returns ready to log', async () => {
   renderSheet()
   await search('volle melk')
   await waitFor(() => expect(screen.getByText('Open Food Facts')).toBeDefined())
   fireEvent.click(screen.getByText('Volle melk'))
 
-  // No serving picker, no confirm: there is nothing to log yet, because there
-  // is no food yet. What is offered is the review that would make one.
-  expect(screen.queryByText('Add to diary')).toBeNull()
-  const review = screen.getByText('Check and add')
+  await waitFor(() => expect(calls.value).toHaveLength(1))
+  expect(calls.value).toEqual([
+    [
+      'foods:upsertFromOff',
+      {
+        barcode: '8712345678901',
+        name: 'Volle melk',
+        brand: 'Zaanse Hoeve',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 64 },
+        nutritionSource: 'imported',
+      },
+    ],
+  ])
+  expect(navigated.value).toEqual([
+    {
+      to: '/g/$groupSlug/nutrition/add',
+      params: { groupSlug: 'jansen-household' },
+      search: { date: '2026-07-18', meal: 'breakfast', food: 'food9' },
+    },
+  ])
+  expect(offImageCalls.value).toEqual([
+    {
+      id: 'food9',
+      imageUrl: 'https://images.openfoodfacts.org/images/products/front.jpg',
+    },
+  ])
+})
+
+test('checking an Open Food Facts result first still opens review without importing', async () => {
+  renderSheet()
+  await search('volle melk')
+  await waitFor(() => expect(screen.getByText('Open Food Facts')).toBeDefined())
+
+  const review = screen.getByText('Check first')
   expect(review).toHaveAttribute(
     'href',
     '/g/jansen-household/foods/new?barcode=8712345678901&returnDate=2026-07-18&returnMeal=breakfast',
   )
-  // Following it is a navigation, not a write. Nothing has been imported and
-  // nothing has been logged.
   expect(calls.value).toEqual([])
+})
+
+test('a failed Open Food Facts import stays put and can be retried', async () => {
+  offImportFailure.value = new Error('offline')
+  renderSheet()
+  await search('volle melk')
+  await waitFor(() => expect(screen.getByText('Open Food Facts')).toBeDefined())
+
+  fireEvent.click(screen.getByText('Volle melk'))
+
+  await waitFor(() =>
+    expect(
+      screen.getByText('Couldn’t add this food — try again.'),
+    ).toBeDefined(),
+  )
+  expect(navigated.value).toEqual([])
+
+  offImportFailure.value = null
+  fireEvent.click(screen.getByText('Volle melk'))
+
+  await waitFor(() => expect(navigated.value).toHaveLength(1))
+  expect(calls.value).toHaveLength(2)
 })
 
 test('a scanned barcode you already have skips review entirely', async () => {
@@ -345,7 +436,7 @@ test('a scanned barcode you already have skips review entirely', async () => {
   expect(calls.value[0][1]).toMatchObject({ foodId: 'food9' })
 })
 
-test('a scanned product nobody has is reviewed before anything is written', async () => {
+test('a scanned product nobody has imports and returns ready to log', async () => {
   offProduct.value = {
     name: 'Nutella',
     brand: 'Ferrero',
@@ -354,16 +445,44 @@ test('a scanned product nobody has is reviewed before anything is written', asyn
   renderSheet()
   await scan('3017620422003')
 
-  await waitFor(() => expect(navigated.value).toHaveLength(1))
-  expect(navigated.value[0]).toMatchObject({
-    to: '/g/$groupSlug/foods/new',
-    search: {
+  await waitFor(() => expect(calls.value).toHaveLength(1))
+  expect(calls.value[0]).toEqual([
+    'foods:upsertFromOff',
+    {
       barcode: '3017620422003',
-      returnDate: '2026-07-18',
-      returnMeal: 'breakfast',
+      name: 'Nutella',
+      brand: 'Ferrero',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 539 },
+      nutritionSource: 'imported',
+    },
+  ])
+  expect(navigated.value[0]).toMatchObject({
+    to: '/g/$groupSlug/nutrition/add',
+    search: {
+      date: '2026-07-18',
+      meal: 'breakfast',
+      food: 'food9',
     },
   })
-  expect(calls.value).toEqual([])
+})
+
+test('a failed scanned import tells the person what happened', async () => {
+  offImportFailure.value = new Error('offline')
+  offProduct.value = {
+    name: 'Nutella',
+    brand: 'Ferrero',
+    nutritionPer100: { calories: 539 },
+  }
+  renderSheet()
+  await scan('3017620422003')
+
+  await waitFor(() =>
+    expect(
+      screen.getByText('Couldn’t add this food — try again.'),
+    ).toBeDefined(),
+  )
+  expect(navigated.value).toEqual([])
 })
 
 test('a scanned product with no name is asked about rather than imported as ""', async () => {
@@ -409,6 +528,130 @@ test('the food a review form just saved comes back expanded and ready to log', a
   })
 })
 
+test('a food returned through the same add-sheet route opens after its search changes', async () => {
+  const { rerender } = renderWithI18n(
+    <AddSheet date="2026-07-18" meal="breakfast" nav={nav} onClose={vi.fn()} />,
+  )
+  justAddedFood.value = {
+    _id: 'food9',
+    name: 'Volle melk',
+    baseUnit: 'ml',
+    nutritionPer100: { calories: 64 },
+  }
+
+  rerender(
+    <AddSheet
+      date="2026-07-18"
+      meal="breakfast"
+      justAddedFoodId="food9"
+      nav={nav}
+      onClose={vi.fn()}
+    />,
+  )
+
+  await waitFor(() => expect(screen.getByText('Just added')).toBeDefined())
+  expect(screen.getAllByLabelText('Amount')[0]).toHaveValue('100')
+})
+
+test('a just-added food is not repeated in its matching search results', async () => {
+  justAddedFood.value = {
+    _id: 'food1',
+    name: 'Halfvolle melk',
+    brand: 'Campina',
+    baseUnit: 'ml',
+    nutritionPer100: { calories: 46, protein: 3.5 },
+  }
+  renderSheet(vi.fn(), 'food1')
+  await search('melk')
+
+  await waitFor(() => expect(screen.getByText('Just added')).toBeDefined())
+  expect(screen.getAllByText('Halfvolle melk')).toHaveLength(1)
+})
+
+test('returning from a second import starts with a fresh food card', async () => {
+  const { rerender } = renderWithI18n(
+    <AddSheet
+      date="2026-07-18"
+      meal="breakfast"
+      justAddedFoodId="food9"
+      nav={nav}
+      onClose={vi.fn()}
+    />,
+  )
+  justAddedFood.value = {
+    _id: 'food9',
+    name: 'First milk',
+    baseUnit: 'ml',
+    nutritionPer100: { calories: 64 },
+    createdBy: 'user1',
+  }
+  rerender(
+    <AddSheet
+      date="2026-07-18"
+      meal="breakfast"
+      justAddedFoodId="food9"
+      nav={nav}
+      onClose={vi.fn()}
+    />,
+  )
+  await waitFor(() => expect(screen.getByText('First milk')).toBeDefined())
+  fireEvent.click(screen.getByText('Edit food details'))
+  expect(screen.getByText('Save food')).toBeDefined()
+
+  justAddedFood.value = {
+    _id: 'food10',
+    name: 'Second milk',
+    baseUnit: 'ml',
+    nutritionPer100: { calories: 64 },
+    createdBy: 'user1',
+  }
+  rerender(
+    <AddSheet
+      date="2026-07-18"
+      meal="breakfast"
+      justAddedFoodId="food10"
+      nav={nav}
+      onClose={vi.fn()}
+    />,
+  )
+
+  await waitFor(() => expect(screen.getByText('Second milk')).toBeDefined())
+  expect(screen.queryByText('Save food')).toBeNull()
+})
+
+test('an expanded food card edits the full food before it is logged', async () => {
+  justAddedFood.value = {
+    _id: 'food9',
+    name: 'Volle melk',
+    barcode: '8712345678901',
+    baseUnit: 'ml',
+    nutritionPer100: { calories: 64 },
+    nutritionSource: 'imported',
+    createdBy: 'user1',
+  }
+  renderSheet(vi.fn(), 'food9')
+
+  await waitFor(() => expect(screen.getByText('Just added')).toBeDefined())
+  fireEvent.click(screen.getByText('Edit food details'))
+  fireEvent.change(screen.getByLabelText('Name'), {
+    target: { value: 'Corrected milk' },
+  })
+  fireEvent.click(screen.getByText('Save food'))
+
+  await waitFor(() =>
+    expect(calls.value).toContainEqual([
+      'foods:update',
+      expect.objectContaining({
+        id: 'food9',
+        name: 'Corrected milk',
+        barcode: '8712345678901',
+        baseUnit: 'ml',
+        nutritionPer100: { calories: 64 },
+      }),
+    ]),
+  )
+})
+
 test('the search field offers a clear only while there is something to clear', async () => {
   renderSheet()
   expect(screen.queryByLabelText('Clear search')).toBeNull()
@@ -427,6 +670,33 @@ test('the search field offers a clear only while there is something to clear', a
   // term are gone, the always-there sections are back.
   await waitFor(() => expect(screen.queryByText('Halfvolle melk')).toBeNull())
   expect(screen.getByText('Melkbroodjes')).toBeDefined()
+})
+
+test('scan and add stay reachable, and add carries the current term into either route', async () => {
+  renderSheet()
+
+  const scanControl = screen.getByRole('button', { name: 'Scan barcode' })
+  const addControl = screen.getByRole('button', { name: 'Add food' })
+  expect(scanControl).toBeDefined()
+  expect(addControl).toBeDefined()
+
+  // The choices exist before a search too: a one-off can be named there, and
+  // creating a food begins with an ordinary blank form.
+  fireEvent.click(addControl)
+  fireEvent.click(screen.getByText('Log a one-off'))
+  expect(screen.getByLabelText('What did you have?')).toBeDefined()
+
+  await search('melk')
+  await waitFor(() => expect(screen.getByText('Halfvolle melk')).toBeDefined())
+
+  // Results do not replace the two alternatives. Both receive what was typed
+  // so neither starts a second, unrelated flow.
+  expect(screen.getByRole('button', { name: 'Scan barcode' })).toBeDefined()
+  expect(screen.getByText('Log “melk” as a one-off')).toBeDefined()
+  expect(screen.getByText('Add “melk” to my foods')).toHaveAttribute(
+    'href',
+    '/g/jansen-household/foods/new?name=melk&returnDate=2026-07-18&returnMeal=breakfast',
+  )
 })
 
 test('one search fills labelled sections with foods, recipes and Open Food Facts', async () => {
@@ -522,6 +792,7 @@ test('a search matching nothing offers the typed term as a one-off', async () =>
     quantityUnit: 'piece',
     nutrition: { calories: 400 },
   })
+  expect(calls.value[0][1]).not.toHaveProperty('foodId')
 })
 
 /**
@@ -538,6 +809,7 @@ test('a one-off can be given an icon, and it goes to the diary with it', async (
     ).toBeDefined(),
   )
   fireEvent.click(screen.getByText('Log “poffertjes at the fair” as a one-off'))
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
   fireEvent.click(screen.getByRole('button', { name: '🍬' }))
   fireEvent.click(screen.getByText('Add to diary'))
 
@@ -546,6 +818,52 @@ test('a one-off can be given an icon, and it goes to the diary with it', async (
     label: 'poffertjes at the fair',
     icon: '🍬',
   })
+})
+
+test('Escape closes only the icon picker and leaves the one-off draft usable', async () => {
+  const onClose = renderSheet()
+  await search('poffertjes at the fair')
+  await waitFor(() =>
+    expect(
+      screen.getByText('Nothing found for “poffertjes at the fair”'),
+    ).toBeDefined(),
+  )
+  fireEvent.click(screen.getByText('Log “poffertjes at the fair” as a one-off'))
+  const calories = screen.getByLabelText('Calories (kcal)')
+  fireEvent.change(calories, { target: { value: '400' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+
+  fireEvent.keyDown(window, { key: 'Escape' })
+
+  expect(screen.queryByRole('dialog', { name: 'Choose an icon' })).toBeNull()
+  expect(onClose).not.toHaveBeenCalled()
+  expect(calories).toHaveValue('400')
+  fireEvent.change(calories, { target: { value: '450' } })
+  expect(calories).toHaveValue('450')
+})
+
+test('a pointer gesture in the icon picker does not drag the add sheet', async () => {
+  const onClose = renderSheet()
+  await search('poffertjes at the fair')
+  await waitFor(() =>
+    expect(
+      screen.getByText('Nothing found for “poffertjes at the fair”'),
+    ).toBeDefined(),
+  )
+  fireEvent.click(screen.getByText('Log “poffertjes at the fair” as a one-off'))
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+  const dialog = screen.getByRole('dialog', { name: 'Choose an icon' })
+
+  fireEvent.pointerDown(dialog, {
+    button: 0,
+    pointerId: 1,
+    clientY: 100,
+  })
+  fireEvent.pointerMove(window, { pointerId: 1, clientY: 900 })
+  fireEvent.pointerUp(window, { pointerId: 1, clientY: 900 })
+
+  expect(onClose).not.toHaveBeenCalled()
+  expect(dialog).toBeVisible()
 })
 
 test('a one-off nobody decorated carries no icon at all', async () => {
