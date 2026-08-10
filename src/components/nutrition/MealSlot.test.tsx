@@ -117,7 +117,34 @@ test('shows a kcal subtotal for the meal, summing the entries on show', () => {
       onDeleteEntry={vi.fn()}
     />,
   )
-  expect(screen.getByText('397.5 kcal')).toBeDefined()
+  // 300 + 97.5 = 397.5, shown as a whole number: a fraction of a kcal is noise
+  // nobody acts on, and the stored figure keeps its decimals either way.
+  expect(screen.getByText('398 kcal')).toBeDefined()
+})
+
+test('rounds the subtotal to a whole number rather than showing decimals', () => {
+  renderWithI18n(
+    <MealSlot
+      nav={nav}
+      label="Breakfast"
+      entries={[
+        {
+          _id: 'e1',
+          label: 'Muesli',
+          quantity: 60,
+          quantityUnit: 'g' as const,
+          meal: 'breakfast' as const,
+          date: '2026-07-18',
+          nutrition: { calories: 221.34 },
+        },
+      ]}
+      addLink={addLink}
+      onUpdateEntry={vi.fn()}
+      onDeleteEntry={vi.fn()}
+    />,
+  )
+  expect(screen.getByText('221 kcal')).toBeDefined()
+  expect(screen.queryByText('221.34 kcal')).toBeNull()
 })
 
 test('shows no subtotal when nothing in the meal has calories', () => {

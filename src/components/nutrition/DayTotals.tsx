@@ -5,6 +5,7 @@ import {
 } from '../../../convex/lib/nutrition'
 import { fmt, useMessages } from '../../lib/i18n'
 import { NUTRITION_TARGETS_ANCHOR } from '../settings/NutritionTargetsSettings'
+import { roundKcal } from './kcal'
 
 interface Props {
   totals: NutritionFacts
@@ -58,13 +59,16 @@ export function DayTotals({ totals, targets, heading }: Props) {
       </div>
       <dl className="grid gap-2">
         {present.map((key) => {
-          const value = totals[key] ?? 0
+          const raw = totals[key] ?? 0
+          // Only calories round, and only for the eye: the arithmetic below —
+          // what is left, how full the bar is — still runs on the stored
+          // figure, so rounding never moves a target or a percentage.
+          const value = key === 'calories' ? roundKcal(raw) : raw
           const target = targets?.[key]
-          const left =
-            target !== undefined ? remainder(value, target) : undefined
+          const left = target !== undefined ? remainder(raw, target) : undefined
           const pct =
             target !== undefined && target > 0
-              ? Math.min(100, Math.round((value / target) * 100))
+              ? Math.min(100, Math.round((raw / target) * 100))
               : undefined
           return (
             <div key={key}>

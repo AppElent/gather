@@ -5,6 +5,7 @@ import type { AppLink } from '../../lib/appLink'
 import { fmt, useMessages } from '../../lib/i18n'
 import type { ConsumptionEntryData } from './ConsumptionEntryRow'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
+import { roundKcal } from './kcal'
 import type { NutritionNav } from './nutritionNav'
 import { SaveAsCombo } from './SaveAsCombo'
 
@@ -47,7 +48,7 @@ export function MealSlot({
           {label}
           {subtotal !== undefined && (
             <span className="ml-2 text-sm font-normal opacity-60">
-              {fmt(slot.subtotal, { calories: subtotal })}
+              {fmt(slot.subtotal, { calories: roundKcal(subtotal) })}
             </span>
           )}
         </h2>
