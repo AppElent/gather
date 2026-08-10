@@ -68,6 +68,8 @@ export const diary = {
     clearSearch: 'Clear search',
     scan: 'Scan',
     hideScanner: 'Hide scanner',
+    addFood: 'Add food',
+    addOptions: 'Add',
     sections: {
       scanned: 'Scanned',
       /** The food a review form just saved, handed back ready to log (#93/#79). */
@@ -93,6 +95,9 @@ export const diary = {
      * something only the person typing knows.
      */
     addAsFood: 'Add “{term}” to my foods',
+    oneOffTitleEmpty: 'Log a one-off',
+    oneOffName: 'What did you have?',
+    enterOneOffName: 'Enter what you had',
     logged: '{label} logged',
     undo: 'Undo',
     undoFailed: 'Could not undo that',

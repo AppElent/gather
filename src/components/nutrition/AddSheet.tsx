@@ -1,5 +1,6 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
+import { Barcode, Plus } from 'lucide-react'
 import { type ReactNode, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
@@ -85,9 +86,10 @@ interface Props {
  * The dialog this replaces made you choose *what kind of thing* you were
  * logging — Recipes, Foods or Quick add — before you were allowed to search for
  * it. Here there is one search box and one list, with your foods, your Recipes
- * and Open Food Facts in labelled sections. Quick add is not a place any more:
- * it is what the empty result offers you, with the term you already typed as
- * the label.
+ * and Open Food Facts in labelled sections. Quick add is not a separate place:
+ * the always-visible Add control gives it and adding to the foods library equal
+ * weight, while an empty result repeats both offers at the moment of highest
+ * intent.
  */
 export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const search = useFoodSearch()
@@ -122,6 +124,7 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const [comboError, setComboError] = useState<string | null>(null)
   const [promotions, setPromotions] = useState(0)
   const [scanning, setScanning] = useState(false)
+  const [adding, setAdding] = useState(false)
   const [scanned, setScanned] = useState<FoodSummary | null>(null)
   const [scanFailure, setScanFailure] = useState<{
     barcode?: string
@@ -302,7 +305,7 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
               ✕
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <div className="relative flex min-w-0 flex-1 items-center">
               <input
                 ref={searchRef}
@@ -334,10 +337,31 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => setScanning((on) => !on)}
-              className="min-h-11 shrink-0 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm"
+              onClick={() => {
+                setScanning((on) => !on)
+                setAdding(false)
+              }}
+              aria-label={
+                scanning ? add.hideScanner : messages.foods.scanner.scan
+              }
+              aria-pressed={scanning}
+              title={scanning ? add.hideScanner : messages.foods.scanner.scan}
+              className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)]"
             >
-              {scanning ? add.hideScanner : add.scan}
+              <Barcode className="h-5 w-5" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAdding((on) => !on)
+                setScanning(false)
+              }}
+              aria-label={add.addFood}
+              aria-expanded={adding}
+              title={add.addFood}
+              className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)]"
+            >
+              <Plus className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -358,6 +382,26 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
             <NoSuchBarcode barcode={scanFailure.barcode} createFood={review} />
           )}
         </p>
+      )}
+
+      {adding && (
+        <Section title={add.addOptions}>
+          <OneOffCard
+            key={`one-off-${term}`}
+            term={term}
+            expanded={expanded === 'persistent-one-off'}
+            onToggle={() => toggle('persistent-one-off')}
+            onLog={log}
+          />
+          <li>
+            <Link
+              {...review(term ? { name: term } : {})}
+              className="flex min-h-14 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2 text-sm no-underline"
+            >
+              {term ? fmt(add.addAsFood, { term }) : add.addFood}
+            </Link>
+          </li>
+        </Section>
       )}
 
       {/* Combos first: the fastest path is the first thing you see. */}
@@ -825,16 +869,27 @@ function OneOffCard({
 }) {
   const { add } = useMessages().nutrition.diary
   const [inputs, setInputs] = useState(() => toNutrientInputs())
+  const [name, setName] = useState('')
   const [icon, setIcon] = useState<string | undefined>()
   const { busy, error, run } = useLogging()
 
   return (
     <ResultCard
-      title={fmt(add.oneOffTitle, { term })}
+      title={term ? fmt(add.oneOffTitle, { term }) : add.oneOffTitleEmpty}
       subtitle={add.oneOffHint}
       expanded={expanded}
       onToggle={onToggle}
     >
+      {!term && (
+        <label className="mb-3 block text-sm">
+          <span className="mb-1 block font-medium">{add.oneOffName}</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={`${fieldClass} w-full`}
+          />
+        </label>
+      )}
       <NutrientInputGrid
         values={inputs}
         onChange={(key, value) =>
@@ -846,14 +901,14 @@ function OneOffCard({
         <IconPicker value={icon} onChange={setIcon} disabled={busy} />
       </div>
       <Confirm
-        disabled={false}
-        reason=""
+        disabled={!term && name.trim() === ''}
+        reason={add.enterOneOffName}
         busy={busy}
         error={error}
         onConfirm={() =>
           run(async () => {
             await onLog({
-              label: term,
+              label: term || name.trim(),
               quantity: 1,
               quantityUnit: 'piece',
               nutrition: nutrientInputsToFacts(inputs),
