@@ -1,10 +1,24 @@
 import { Link } from '@tanstack/react-router'
+import { useQuery } from 'convex/react'
 import { useState } from 'react'
+import { api } from '../../../convex/_generated/api'
+import type { Id } from '../../../convex/_generated/dataModel'
 import type { MealName } from '../../../convex/lib/consumption'
 import { MEAL_NAMES } from '../../../convex/lib/consumption'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import {
+  offeredServings,
+  parseServingAmount,
+  resolveAmount,
+} from '../../../convex/lib/servings'
 import { useMessages } from '../../lib/i18n'
 import type { NutritionNav } from './nutritionNav'
+import {
+  ServingPicker,
+  type ServingSelection,
+  selectionForAmount,
+  toChoice,
+} from './ServingPicker'
 
 export interface ConsumptionEntryData {
   _id: string
@@ -35,9 +49,118 @@ interface Props {
   onDelete: () => void
 }
 
+/**
+ * The plain amount field: a number in whatever unit the entry already counts.
+ *
+ * It owns the text and reports only what that text *means*, because a half-typed
+ * amount is not an amount — the same rule `ServingPicker`'s custom field
+ * follows, so the row above can read one answer from either.
+ */
+function AmountField({
+  initial,
+  disabled,
+  onAmount,
+}: {
+  initial: number
+  disabled: boolean
+  onAmount: (amount: number | undefined) => void
+}) {
+  const [text, setText] = useState(String(initial))
+  const { entry } = useMessages().nutrition.diary
+
+  return (
+    <label className="text-xs">
+      {entry.quantity}
+      <input
+        inputMode="decimal"
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value)
+          onAmount(parseServingAmount(e.target.value))
+        }}
+        disabled={disabled}
+        className="ml-1 w-16 rounded border border-[var(--app-border)] px-1 py-0.5"
+      />
+    </label>
+  )
+}
+
+/**
+ * How much of a food, edited the way it was logged (#102).
+ *
+ * The same three sources the add sheet offers — what the food declares, what
+ * you have logged for it before, and an amount you type — resolved by the same
+ * `resolveAmount`, so an edit and a log can never disagree about what "1 slice"
+ * comes to. What leaves here is only ever the canonical amount in the food's
+ * base unit: the entry keeps one quantity, and the nutrition that goes with it
+ * is recomputed server-side from the food itself.
+ *
+ * Two entries get the plain field instead, for the same reason: their number is
+ * not a base-unit amount that the chips could replace. A food that has gone has
+ * nothing to offer at all, and an entry counted in the food's *portions*
+ * ('piece') is counting something else.
+ */
+function FoodEntryAmount({
+  entry,
+  disabled,
+  onAmount,
+}: {
+  entry: ConsumptionEntryData & { foodId: string }
+  disabled: boolean
+  onAmount: (amount: number | undefined) => void
+}) {
+  const { add } = useMessages().nutrition.diary
+  const foodId = entry.foodId as Id<'foods'>
+  const food = useQuery(api.foods.get, { id: foodId })
+  const loggedAmounts = useQuery(api.consumption.loggedAmountsForFood, {
+    foodId,
+  })
+  const [selection, setSelection] = useState<ServingSelection | null>(null)
+
+  // In flight. Nothing is shown rather than a field that would be replaced by
+  // chips a moment later; the row still saves the amount the entry already has.
+  if (food === undefined) return null
+
+  if (!food || entry.quantityUnit !== food.baseUnit) {
+    return (
+      <AmountField
+        initial={entry.quantity}
+        disabled={disabled}
+        onAmount={onAmount}
+      />
+    )
+  }
+
+  const offered = offeredServings(food, loggedAmounts ?? [])
+  // Left derived until something is chosen, so the chips settle once your own
+  // amounts arrive — the entry's amount may be one of them.
+  const current = selection ?? selectionForAmount(offered, entry.quantity)
+
+  return (
+    <div className="w-full">
+      <span className="mb-1 block text-xs">{add.amount}</span>
+      <ServingPicker
+        baseUnit={food.baseUnit}
+        offered={offered}
+        selection={current}
+        onSelect={(next) => {
+          setSelection(next)
+          const choice = toChoice(offered, next)
+          onAmount(choice ? resolveAmount(food, choice)?.amount : undefined)
+        }}
+      />
+    </div>
+  )
+}
+
 export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
   const [editing, setEditing] = useState(false)
-  const [quantityInput, setQuantityInput] = useState(String(entry.quantity))
+  /**
+   * What saving would write, in the unit the entry counts. Undefined means the
+   * amount on show does not resolve to one — an empty field, a typed word —
+   * and saving does nothing, which is what it always did.
+   */
+  const [amount, setAmount] = useState<number | undefined>(entry.quantity)
   const [meal, setMeal] = useState<MealName>(entry.meal)
   const [date, setDate] = useState(entry.date)
   const [saving, setSaving] = useState(false)
@@ -83,7 +206,17 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setEditing((e) => !e)}
+            onClick={() => {
+              // Opening the editor shows what the entry says, not what was
+              // left behind the last time it was opened and abandoned.
+              if (!editing) {
+                setAmount(entry.quantity)
+                setMeal(entry.meal)
+                setDate(entry.date)
+                setError(null)
+              }
+              setEditing(!editing)
+            }}
             className="text-xs underline"
           >
             {editing
@@ -101,16 +234,19 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
       </div>
       {editing && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="text-xs">
-            {diary.entry.quantity}
-            <input
-              inputMode="decimal"
-              value={quantityInput}
-              onChange={(e) => setQuantityInput(e.target.value)}
+          {entry.foodId ? (
+            <FoodEntryAmount
+              entry={{ ...entry, foodId: entry.foodId }}
               disabled={saving}
-              className="ml-1 w-16 rounded border border-[var(--app-border)] px-1 py-0.5"
+              onAmount={setAmount}
             />
-          </label>
+          ) : (
+            <AmountField
+              initial={entry.quantity}
+              disabled={saving}
+              onAmount={setAmount}
+            />
+          )}
           <label className="text-xs">
             {diary.entry.meal}
             <select
@@ -140,8 +276,8 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
             type="button"
             disabled={saving}
             onClick={async () => {
-              const quantity = Number(quantityInput.replace(',', '.'))
-              if (!Number.isFinite(quantity) || quantity <= 0) return
+              if (amount === undefined) return
+              const quantity = amount
               setSaving(true)
               setError(null)
               try {

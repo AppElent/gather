@@ -24,6 +24,27 @@ export function initialSelection(
 }
 
 /**
+ * What a picker opens on when the amount is already known — editing an entry
+ * rather than logging a new one (#102).
+ *
+ * The chip that *means* this amount if there is one, so a "1 slice" entry
+ * opens on "1 slice" rather than on an anonymous 35 that would quietly become
+ * a custom amount the moment anything else was touched. Anything else opens as
+ * the custom amount it is, which is also the whole answer for a food with no
+ * servings at all — unlike `initialSelection`, there is an amount to start
+ * from here, so nothing has to be defaulted.
+ */
+export function selectionForAmount(
+  offered: readonly OfferedServing[],
+  amount: number,
+): ServingSelection {
+  const index = offered.findIndex((serving) => serving.amount === amount)
+  return index >= 0
+    ? { kind: 'serving', index }
+    : { kind: 'custom', input: String(amount), unit: 'base' }
+}
+
+/**
  * Turn a selection into the choice `resolveAmount` understands, or
  * `undefined` when there is nothing coherent to log yet — an empty custom
  * field, a chip that is no longer there.

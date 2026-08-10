@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
+import type { Id } from './_generated/dataModel'
 
 /**
  * Provenance under Group ownership (ADR-0003), through the real diary
@@ -477,6 +478,164 @@ describe('the amounts you have logged for a food', () => {
     expect(
       await t.query(api.consumption.loggedAmountsForFood, { foodId }),
     ).toEqual([])
+  })
+})
+
+/**
+ * Editing a food entry (#102).
+ *
+ * The amount is chosen the same way logging chose it — an authored serving, an
+ * amount you have logged before, or one you type — but what reaches here is
+ * only ever the canonical amount in the food's base unit. There is no second
+ * quantity: the entry stores what it always stored, and the snapshot is
+ * recomputed from the food that is there *now*, with the same fallback as a
+ * recipe entry when the food has gone.
+ */
+describe('editing a food entry', () => {
+  const BREAD_PER_100 = { calories: 250 }
+  const YOGHURT_PER_100 = { calories: 60 }
+  /**
+   * Deliberately unlike anything either food implies, so "recomputed from the
+   * food" and "scaled from the snapshot" can never be mistaken for each other.
+   */
+  const WRONG = { calories: 7 }
+
+  /** A Catalog food with authored servings, and one Alice added herself. */
+  async function seedFoods() {
+    const t = testConvex()
+    await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    const yoghurtId = await t.withIdentity(asAlice).mutation(api.foods.create, {
+      name: 'Yoghurt',
+      baseUnit: 'ml',
+      nutritionPer100: YOGHURT_PER_100,
+    })
+    const breadId = await t.run(
+      async (ctx) =>
+        await ctx.db.insert('foods', {
+          name: 'Wholemeal bread',
+          baseUnit: 'g',
+          nutritionPer100: BREAD_PER_100,
+          servings: [
+            { label: '1 slice', amount: 35 },
+            { label: '2 slices', amount: 70 },
+          ],
+          source: 'seed',
+          seedKey: 'bread-wholemeal',
+        }),
+    )
+    return { t, breadId, yoghurtId }
+  }
+
+  type Foods = Awaited<ReturnType<typeof seedFoods>>
+
+  async function log(
+    t: Foods['t'],
+    foodId: Id<'foods'>,
+    quantity: number,
+    quantityUnit: 'g' | 'ml',
+  ) {
+    return await t.withIdentity(asAlice).mutation(api.consumption.create, {
+      date: DAY,
+      meal: 'breakfast',
+      foodId,
+      label: 'Something',
+      quantity,
+      quantityUnit,
+      nutrition: WRONG,
+    })
+  }
+
+  async function stored(t: Foods['t'], id: Id<'consumptionEntries'>) {
+    const row = await t.run(async (ctx) => await ctx.db.get(id))
+    if (!row) throw new Error('Entry should still be there')
+    return {
+      quantity: row.quantity,
+      quantityUnit: row.quantityUnit,
+      nutrition: row.nutrition,
+    }
+  }
+
+  test('an authored serving of a Catalog food is stored as its amount', async () => {
+    const { t, breadId } = await seedFoods()
+    const id = await log(t, breadId, 35, 'g')
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.consumption.update, { id, quantity: 70 })
+
+    // 70 g of a 250 kcal/100 g food — read off the food, not off the snapshot.
+    expect(await stored(t, id)).toEqual({
+      quantity: 70,
+      quantityUnit: 'g',
+      nutrition: { calories: 175 },
+    })
+  })
+
+  test('an amount logged before is stored as that amount', async () => {
+    const { t, breadId } = await seedFoods()
+    const id = await log(t, breadId, 35, 'g')
+
+    // What `loggedAmountsForFood` would offer back is a plain base-unit
+    // amount, and it arrives here as exactly that.
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.consumption.update, { id, quantity: 20 })
+
+    expect(await stored(t, id)).toEqual({
+      quantity: 20,
+      quantityUnit: 'g',
+      nutrition: { calories: 50 },
+    })
+  })
+
+  test('a custom amount of a user-created food with no servings', async () => {
+    const { t, yoghurtId } = await seedFoods()
+    const id = await log(t, yoghurtId, 250, 'ml')
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.consumption.update, { id, quantity: 200 })
+
+    expect(await stored(t, id)).toEqual({
+      quantity: 200,
+      quantityUnit: 'ml',
+      nutrition: { calories: 120 },
+    })
+  })
+
+  test.each([0, -5])('%p is refused and nothing is written', async (bad) => {
+    const { t, breadId } = await seedFoods()
+    const id = await log(t, breadId, 35, 'g')
+
+    await expect(
+      t
+        .withIdentity(asAlice)
+        .mutation(api.consumption.update, { id, quantity: bad }),
+    ).rejects.toThrow(/positive/)
+
+    expect(await stored(t, id)).toEqual({
+      quantity: 35,
+      quantityUnit: 'g',
+      nutrition: WRONG,
+    })
+  })
+
+  test('a food that has gone leaves the snapshot to be scaled', async () => {
+    const { t, breadId } = await seedFoods()
+    const id = await log(t, breadId, 35, 'g')
+    await t.run(async (ctx) => {
+      await ctx.db.delete(breadId)
+    })
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.consumption.update, { id, quantity: 70 })
+
+    expect(await stored(t, id)).toEqual({
+      quantity: 70,
+      quantityUnit: 'g',
+      nutrition: { calories: 14 },
+    })
   })
 })
 

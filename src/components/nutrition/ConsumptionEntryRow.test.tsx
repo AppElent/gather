@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { expect, test, vi } from 'vitest'
+import { beforeEach, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
 import { groupNutritionNav } from './nutritionNav'
@@ -36,6 +36,36 @@ vi.mock('@tanstack/react-router', () => ({
   },
 }))
 
+/**
+ * The food an entry points at, as `foods.get` answers it: `undefined` while the
+ * query is in flight, `null` for a food that is not there any more.
+ */
+const food = vi.hoisted(() => ({ value: undefined as unknown }))
+/** What this person has logged for that food before — their own amounts (#68). */
+const loggedAmounts = vi.hoisted(() => ({
+  value: [] as Array<{ label: string; amount: number }>,
+}))
+
+vi.mock('convex/react', () => ({
+  useQuery: (name: string) => {
+    if (name === 'foods:get') return food.value
+    if (name === 'consumption:loggedAmountsForFood') return loggedAmounts.value
+    return undefined
+  },
+}))
+
+vi.mock('../../../convex/_generated/api', () => ({
+  api: {
+    foods: { get: 'foods:get' },
+    consumption: { loggedAmountsForFood: 'consumption:loggedAmountsForFood' },
+  },
+}))
+
+beforeEach(() => {
+  food.value = undefined
+  loggedAmounts.value = []
+})
+
 const entry = {
   _id: 'entry1',
   label: 'Oatmeal',
@@ -44,6 +74,52 @@ const entry = {
   meal: 'breakfast' as const,
   date: '2026-07-18',
   nutrition: { calories: 300 },
+}
+
+/** A Catalog food: authored servings, owned by nobody, editable by nobody. */
+const CATALOG_BREAD = {
+  _id: 'food2',
+  name: 'Volkorenbrood',
+  baseUnit: 'g' as const,
+  nutritionPer100: { calories: 250 },
+  servings: [
+    { label: '1 slice', amount: 35 },
+    { label: '2 slices', amount: 70 },
+  ],
+  seedKey: 'bread-wholemeal',
+}
+
+/** A food somebody added themselves, with no named servings at all. */
+const MY_YOGHURT = {
+  _id: 'food3',
+  name: 'Yoghurt',
+  baseUnit: 'ml' as const,
+  nutritionPer100: { calories: 60 },
+  createdBy: 'user1',
+}
+
+/** One slice of the Catalog bread, as the add sheet would have written it. */
+const breadEntry = {
+  ...entry,
+  label: 'Volkorenbrood',
+  foodId: 'food2',
+  quantity: 35,
+  quantityUnit: 'g' as const,
+  nutrition: { calories: 87.5 },
+}
+
+function renderRow(
+  props: Partial<Parameters<typeof ConsumptionEntryRow>[0]> = {},
+) {
+  return renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={entry}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+      {...props}
+    />,
+  )
 }
 
 test('renders label, quantity, unit, and calories', () => {
@@ -201,4 +277,188 @@ test('an invalid quantity does not call onUpdate', () => {
   fireEvent.change(screen.getByDisplayValue('1'), { target: { value: '0' } })
   fireEvent.click(screen.getByText('Save'))
   expect(onUpdate).not.toHaveBeenCalled()
+})
+
+/**
+ * Editing a food entry is the same question as logging one (#102): the amount
+ * is *chosen*, from what the food declares, from what you have logged before,
+ * or as a plain amount you type. What is stored stays what was always stored —
+ * one canonical amount in the food's base unit — and the nutrition is
+ * recomputed from the food on the server, not sent along from here.
+ */
+test('a food entry offers the servings the food declares, opening on the one it recorded', () => {
+  food.value = CATALOG_BREAD
+  renderRow({ entry: breadEntry })
+
+  fireEvent.click(screen.getByText('Edit'))
+  expect(screen.getByRole('button', { name: '1 slice' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  expect(screen.getByRole('button', { name: '2 slices' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  )
+  expect(screen.getByRole('button', { name: 'Custom' })).toBeDefined()
+})
+
+test('a food entry can be changed to an authored named serving', () => {
+  food.value = CATALOG_BREAD
+  const onUpdate = vi.fn().mockResolvedValue(undefined)
+  renderRow({ entry: breadEntry, onUpdate })
+
+  fireEvent.click(screen.getByText('Edit'))
+  fireEvent.click(screen.getByRole('button', { name: '2 slices' }))
+  fireEvent.click(screen.getByText('Save'))
+
+  expect(onUpdate).toHaveBeenCalledWith({
+    quantity: 70,
+    meal: 'breakfast',
+    date: '2026-07-18',
+  })
+})
+
+test('a food entry can be changed to an amount it was logged with before', () => {
+  food.value = CATALOG_BREAD
+  loggedAmounts.value = [{ label: '20 g', amount: 20 }]
+  const onUpdate = vi.fn().mockResolvedValue(undefined)
+  renderRow({ entry: breadEntry, onUpdate })
+
+  fireEvent.click(screen.getByText('Edit'))
+  const own = screen.getByRole('button', { name: /20 g/ })
+  expect(own.textContent).toContain('(yours)')
+  fireEvent.click(own)
+  fireEvent.click(screen.getByText('Save'))
+
+  expect(onUpdate).toHaveBeenCalledWith({
+    quantity: 20,
+    meal: 'breakfast',
+    date: '2026-07-18',
+  })
+})
+
+test('a food entry can be changed to a custom base-unit amount', () => {
+  food.value = CATALOG_BREAD
+  const onUpdate = vi.fn().mockResolvedValue(undefined)
+  renderRow({ entry: breadEntry, onUpdate })
+
+  fireEvent.click(screen.getByText('Edit'))
+  fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+  fireEvent.change(screen.getByLabelText('Amount'), {
+    target: { value: '45' },
+  })
+  fireEvent.click(screen.getByText('Save'))
+
+  expect(onUpdate).toHaveBeenCalledWith({
+    quantity: 45,
+    meal: 'breakfast',
+    date: '2026-07-18',
+  })
+})
+
+test('a food with no named servings still edits by a custom base-unit amount', () => {
+  food.value = MY_YOGHURT
+  const onUpdate = vi.fn().mockResolvedValue(undefined)
+  const yoghurt = {
+    ...entry,
+    label: 'Yoghurt',
+    foodId: 'food3',
+    quantity: 250,
+    quantityUnit: 'ml' as const,
+    nutrition: { calories: 150 },
+  }
+  renderRow({ entry: yoghurt, onUpdate })
+
+  fireEvent.click(screen.getByText('Edit'))
+  // Nothing to choose from, so it opens on the amount it recorded rather than
+  // on the default a fresh log would start from.
+  expect(screen.getByLabelText('Amount')).toHaveValue('250')
+  fireEvent.change(screen.getByLabelText('Amount'), {
+    target: { value: '200' },
+  })
+  fireEvent.click(screen.getByText('Save'))
+
+  expect(onUpdate).toHaveBeenCalledWith({
+    quantity: 200,
+    meal: 'breakfast',
+    date: '2026-07-18',
+  })
+})
+
+test.each([
+  '0',
+  '-5',
+  'abc',
+  '',
+])('a food entry refuses the amount %p, exactly as the numeric editor always did', (typed) => {
+  food.value = CATALOG_BREAD
+  const onUpdate = vi.fn()
+  renderRow({ entry: breadEntry, onUpdate })
+
+  fireEvent.click(screen.getByText('Edit'))
+  fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+  fireEvent.change(screen.getByLabelText('Amount'), {
+    target: { value: typed },
+  })
+  fireEvent.click(screen.getByText('Save'))
+
+  expect(onUpdate).not.toHaveBeenCalled()
+})
+
+/**
+ * A recipe entry counts servings of the recipe, and there is nothing to choose
+ * from — the servings a food declares are amounts of a food.
+ */
+test('a recipe entry still edits by servings', () => {
+  const onUpdate = vi.fn().mockResolvedValue(undefined)
+  renderRow({ entry: { ...entry, recipeId: 'recipe1' }, onUpdate })
+
+  fireEvent.click(screen.getByText('Edit'))
+  expect(screen.queryByRole('button', { name: 'Custom' })).toBeNull()
+  fireEvent.change(screen.getByDisplayValue('1'), { target: { value: '2' } })
+  fireEvent.click(screen.getByText('Save'))
+
+  expect(onUpdate).toHaveBeenCalledWith({
+    quantity: 2,
+    meal: 'breakfast',
+    date: '2026-07-18',
+  })
+})
+
+/**
+ * A food that is gone leaves nothing to choose from, so the plain amount field
+ * is what is left — and the server scales the snapshot it already has, which is
+ * the fallback that was always there.
+ */
+test('a food entry whose food is gone keeps the plain amount field', () => {
+  food.value = null
+  const onUpdate = vi.fn().mockResolvedValue(undefined)
+  renderRow({ entry: breadEntry, onUpdate })
+
+  fireEvent.click(screen.getByText('Edit'))
+  expect(screen.queryByRole('button', { name: 'Custom' })).toBeNull()
+  fireEvent.change(screen.getByDisplayValue('35'), { target: { value: '50' } })
+  fireEvent.click(screen.getByText('Save'))
+
+  expect(onUpdate).toHaveBeenCalledWith({
+    quantity: 50,
+    meal: 'breakfast',
+    date: '2026-07-18',
+  })
+})
+
+/**
+ * An entry counted in the food's *portions* rather than its base unit — the
+ * shape the sample household still seeds. Its number means something else, so
+ * the chips, which are all base-unit amounts, are not offered for it.
+ */
+test('a food entry counted in pieces keeps the plain amount field', () => {
+  food.value = CATALOG_BREAD
+  renderRow({
+    entry: { ...breadEntry, quantity: 2, quantityUnit: 'piece' as const },
+  })
+
+  fireEvent.click(screen.getByText('Edit'))
+  expect(screen.queryByRole('button', { name: 'Custom' })).toBeNull()
+  expect(screen.getByDisplayValue('2')).toBeDefined()
 })
