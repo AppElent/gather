@@ -1,6 +1,10 @@
 # A Combo is a Personal shortcut, and not a kind of Recipe
 
-Status: accepted (2026-08-06)
+Status: accepted (2026-08-06); amended in place (2026-08-10) by #99, which makes
+saving take a **selection** of a meal's entries and put the Combo in their
+place. Everything below reads as written except the section on how a Combo is
+created, which was headed "Created by saving, never by authoring" and captured
+a whole slot without disturbing it.
 
 A **Combo** is a named, reusable set of things logged together — the same lunch,
 again. It is **Personal** in the sense of
@@ -52,15 +56,36 @@ become unreachable still has something to render. That component is shown as
 unavailable and simply is not logged; the rest of the Combo still logs. Losing
 access to one thing does not break the whole shortcut.
 
-## Created by saving, never by authoring
+## Created by saving, and saving takes the entries' place
 
-There is no Combo builder. A filled-in meal slot gains a "Save as combo" action
-which captures its entries, and that is the only way one is made. The curation
-is a by-product of logging something you were logging anyway.
+There is no Combo builder. A filled-in meal slot gains a "Save as combo"
+action; it asks which of that meal's entries go in, and those entries are then
+replaced by the Combo's own expanded log for the same day and meal. Everything
+else in the meal is untouched. That is the only way one is made, and the
+curation is still a by-product of logging something you were logging anyway.
 
 The alternative — a builder that opens empty and asks you to pick everything
 again — is how a Combo becomes a second food library to maintain, with its own
-staleness and its own reason to be abandoned.
+staleness and its own reason to be abandoned. Choosing does not reopen that
+door: there is still nothing to choose from but a meal you have already filled
+in, and nothing to save when nothing is ticked.
+
+Two narrower alternatives were rejected with it. **Capturing the whole slot**
+was what shipped first, and it was wrong about what a meal is: the coffee is
+not part of your usual lunch merely by having happened at the same hour, and
+saying so cost a round of deleting and re-logging. **Leaving the originals in
+place** cost that same round on every save — the first use of a shortcut being
+more work than not having it.
+
+What replaces them is the Combo's ordinary expansion and nothing special, so
+the entries you are left with are the entries logging it tomorrow would give
+you: figures re-read from the food or the Recipe, a one-off scaled from its
+own. Creating the Combo, deleting the chosen entries and writing the expansion
+are one Convex mutation, which is one transaction — there is no half of this to
+land. A component that could not be logged back, a Recipe that has gone out of
+reach, refuses the save outright rather than quietly costing somebody a diary
+entry. That is the one place this differs from logging a Combo, which skips
+such a component and logs the rest: there, nothing is being taken away.
 
 ## Logging one never edits it
 
@@ -87,5 +112,6 @@ it: it would need its own permissions and its own answer to what happens when
 the person who saved it leaves.
 
 Expanding a Combo into diary entries is a pure function
-(`convex/lib/combos.ts`), imported directly by the client, so what the expanded
-card shows and what the mutation writes cannot drift apart.
+(`convex/lib/combos.ts`), imported directly by the client and by `saveFromMeal`
+on the way to writing a replacement, so what the expanded card shows and what
+either mutation writes cannot drift apart.

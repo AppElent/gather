@@ -123,11 +123,12 @@ _Avoid_: Resize, Compress, Optimise, Process
 **Combo** (Dutch: *Combinatie*):
 A named, reusable set of things you log together — the same lunch, again. It is
 **Personal**: it belongs to a person, follows them into every Group, belongs to
-none, and no other Member sees it. Made by *saving a meal slot you have already
-filled in*, never by opening a builder, and logging one never edits it
-(ADR-0012). A Combo may contain a Recipe; it is not a kind of Recipe, and a
-Recipe is not a kind of Combo — they sit on opposite sides of the
-Group/Personal boundary.
+none, and no other Member sees it. Made by *choosing entries from a meal you
+have already filled in*, never by opening a builder; saving replaces the
+entries it was made from with the Combo's own log and leaves the rest of the
+meal alone, and logging one afterwards never edits it (ADR-0012). A Combo may
+contain a Recipe; it is not a kind of Recipe, and a Recipe is not a kind of
+Combo — they sit on opposite sides of the Group/Personal boundary.
 _Avoid_: **Food group** — an established nutrition term (grains, dairy,
 protein) that would actively mislead here. **Meal** — that word already names
 the breakfast/lunch/dinner/snack slot throughout the schema, and taking it would

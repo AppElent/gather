@@ -114,9 +114,17 @@ export const diary = {
     reset: 'Reset',
     nothingLeft: 'Nothing left to log',
     save: 'Save as combo',
-    saveTitle: 'Save this meal as a combo',
+    saveTitle: 'Save these entries as a combo',
     namePlaceholder: 'e.g. "Work lunch"',
     saveFailed: 'Could not save this combo',
+    /**
+     * Saving picks entries out of a meal and takes their place (#99), so the
+     * ticking and what it costs both have to be said before the name is typed.
+     */
+    selectEntry: 'Include {label}',
+    selectHint:
+      'Tick what goes in the combo. Those entries are replaced by it; the rest of the meal stays.',
+    selectNothing: 'Tick at least one entry.',
     saved: '“{name}” saved',
     update: 'Update {name}',
     updateFailed: 'Could not update that combo',

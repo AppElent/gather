@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { MealName } from '../../../convex/lib/consumption'
 import { MEAL_NAMES } from '../../../convex/lib/consumption'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
-import { useMessages } from '../../lib/i18n'
+import { fmt, useMessages } from '../../lib/i18n'
 import type { NutritionNav } from './nutritionNav'
 
 export interface ConsumptionEntryData {
@@ -27,6 +27,12 @@ export interface ConsumptionEntryData {
 interface Props {
   entry: ConsumptionEntryData
   nav: NutritionNav
+  /**
+   * Whether this row is going into the Combo being saved (#99). Absent the
+   * rest of the time: the diary is for reading, and a permanent column of
+   * ticks would say otherwise.
+   */
+  selection?: { selected: boolean; onChange: (selected: boolean) => void }
   onUpdate: (changes: {
     quantity: number
     meal: MealName
@@ -35,7 +41,13 @@ interface Props {
   onDelete: () => void
 }
 
-export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
+export function ConsumptionEntryRow({
+  entry,
+  nav,
+  selection,
+  onUpdate,
+  onDelete,
+}: Props) {
   const [editing, setEditing] = useState(false)
   const [quantityInput, setQuantityInput] = useState(String(entry.quantity))
   const [meal, setMeal] = useState<MealName>(entry.meal)
@@ -49,6 +61,15 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
     <li className="py-2 text-sm">
       <div className="flex items-center justify-between gap-2">
         <div>
+          {selection && (
+            <input
+              type="checkbox"
+              checked={selection.selected}
+              onChange={(e) => selection.onChange(e.target.checked)}
+              aria-label={fmt(diary.combos.selectEntry, { label: entry.label })}
+              className="mr-2 h-5 w-5 align-middle accent-[var(--app-fg)]"
+            />
+          )}
           {/* Decoration, and marked as such: the label beside it already says
               what this is, so a screen reader repeating the emoji's name would
               only be reading the row twice. */}

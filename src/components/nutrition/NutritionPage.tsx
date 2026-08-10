@@ -135,8 +135,16 @@ export function NutritionPage({
           entries={(entries ?? []).filter((e) => e.meal === meal)}
           nav={nav}
           addLink={nav.addEntry(date, meal)}
-          onSaveAsCombo={async (name) => {
-            await saveCombo({ date, meal, name })
+          // One call, because it is one transaction: the Combo, the entries it
+          // takes the place of and the expansion that replaces them either all
+          // happen or none of them do (#99).
+          onSaveAsCombo={async (name, entryIds) => {
+            await saveCombo({
+              date,
+              meal,
+              name,
+              entryIds: entryIds as Id<'consumptionEntries'>[],
+            })
           }}
           onUpdateEntry={async (entryId, changes) => {
             await updateEntry({
