@@ -23,8 +23,9 @@ const MAX_IMAGE_BYTES = 2 * 1024 * 1024
 /**
  * Where a food picture may come from.
  *
- * `importFromOff` is a public action, so the `imageUrl` it is handed is
- * whatever a caller sent — not necessarily what our own search returned.
+ * `importFromOff` and `storeOffImage` are public actions, so the `imageUrl`
+ * each is handed is whatever a caller sent — not necessarily what our own
+ * search returned.
  * `safeFetch` already refuses private and loopback addresses, which closes
  * SSRF; this closes the other half, which is gather's storage being used to
  * mirror arbitrary files off the public internet. Only Open Food Facts.
@@ -41,9 +42,9 @@ export function isOffImageUrl(url: string): boolean {
   }
 }
 
-// Fetches + maps a barcode from Open Food Facts, without saving anything —
-// the client shows the result for review and calls `foods.upsertFromOff`
-// (or falls back to a blank manual form) only once the user confirms.
+// Fetches + maps a barcode from Open Food Facts, without saving anything. The
+// client may import a named result directly, or show it for review first; a
+// nameless result always needs that required-name form.
 export const lookupBarcode = action({
   args: { barcode: v.string() },
   handler: async (ctx, args) => {
@@ -103,7 +104,7 @@ export const refreshFromOff = action({
  * is not a thumbnail). A `content-length` that lies is caught by measuring the
  * blob after, before anything is stored.
  */
-async function storeOffImage(
+async function fetchAndStoreOffImage(
   ctx: ActionCtx,
   url: string | undefined,
 ): Promise<Id<'_storage'> | undefined> {
@@ -143,10 +144,9 @@ export const importFromOff = action({
     nutritionPer100: nutritionValidator,
     servings: v.optional(v.array(servingValidator)),
     imageUrl: v.optional(v.string()),
-    // Carried through rather than assumed: every import is now reviewed in the
-    // food form before it is saved (#93), and somebody who corrected a figure
-    // in that form arrives here saying `manual`. Absent still means `imported`,
-    // which `foods.upsertFromOff` is the one to decide.
+    // A direct import carries its figures as `imported`; somebody who checks
+    // first and corrects one arrives here saying `manual`. Absent still means
+    // `imported`, which `foods.upsertFromOff` is the one to decide (#112).
     nutritionSource: v.optional(nutritionSourceValidator),
     // The emoji picked while reviewing (#94) — which is where one is most
     // obviously missing, because an Open Food Facts product with no photograph
@@ -159,11 +159,35 @@ export const importFromOff = action({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new ConvexError('Not authenticated')
     const { imageUrl, ...fields } = args
-    const imageId = await storeOffImage(ctx, imageUrl)
+    const imageId = await fetchAndStoreOffImage(ctx, imageUrl)
     // The mutation decides whether this blob is used at all — an existing row
     // somebody has edited keeps what it has — and deletes it if not, so a
     // refused import leaves nothing behind in storage.
     return await ctx.runMutation(api.foods.upsertFromOff, { ...fields, imageId })
+  },
+})
+
+/**
+ * Fetches an OFF picture after the food has already been saved. Image failures
+ * are intentionally silent: the food's data is usable without one, and the
+ * add sheet must not wait for an external image host before logging.
+ */
+export const storeOffImage = action({
+  args: { id: v.id('foods'), imageUrl: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new ConvexError('Not authenticated')
+    // This public action fetches before it can know whether storage will
+    // accept the blob. Reject an absent or read-only target first, otherwise a
+    // caller could leave an unreachable file behind by naming a Catalog row.
+    const food = await ctx.runQuery(api.foods.get, { id: args.id })
+    if (!food || food.seedKey !== undefined) return
+    const imageId = await fetchAndStoreOffImage(ctx, args.imageUrl)
+    if (!imageId) return
+    await ctx.runMutation(api.foods.attachOffImage, {
+      id: args.id,
+      imageId,
+    })
   },
 })
 

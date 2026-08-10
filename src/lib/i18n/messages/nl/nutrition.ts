@@ -56,6 +56,8 @@ export const diary = {
     clearSearch: 'Zoekopdracht wissen',
     scan: 'Scannen',
     hideScanner: 'Scanner verbergen',
+    addFood: 'Voedingsmiddel toevoegen',
+    addOptions: 'Toevoegen',
     sections: {
       scanned: 'Gescand',
       justAdded: 'Net toegevoegd',
@@ -75,6 +77,9 @@ export const diary = {
     oneOffHint:
       'Vul in wat je weet — een gedeeltelijke notitie is beter dan niets.',
     addAsFood: '“{term}” toevoegen aan mijn voedingsmiddelen',
+    oneOffTitleEmpty: 'Eenmalig noteren',
+    oneOffName: 'Wat heb je gegeten?',
+    enterOneOffName: 'Vul in wat je hebt gegeten',
     logged: '{label} genoteerd',
     undo: 'Ongedaan maken',
     undoFailed: 'Kon dat niet ongedaan maken',
@@ -107,9 +112,12 @@ export const diary = {
   foodAdd: {
     barcodeFailed: 'Kon die barcode niet opzoeken — probeer het opnieuw.',
     notFound: 'Niet gevonden.',
-    review: 'Controleren en toevoegen',
+    review: 'Eerst controleren',
     reviewHint:
-      'Gegevens van Open Food Facts zijn vaak onvolledig. Controleer ze; bij opslaan wordt het voedingsmiddel toegevoegd en kom je hier terug om het te noteren.',
+      'Voegt dit voedingsmiddel toe met gegevens van Open Food Facts. Controleer het eerst om ze na te kijken of te wijzigen.',
+    importFailed:
+      'Kon dit voedingsmiddel niet toevoegen — probeer het opnieuw.',
+    editFood: 'Voedingsmiddelgegevens bewerken',
     addToLibrary: 'Voeg het toe aan de voedingsmiddelen',
     addToLibraryAfter: 'en probeer het dan opnieuw.',
     searching: 'Zoeken bij Open Food Facts…',

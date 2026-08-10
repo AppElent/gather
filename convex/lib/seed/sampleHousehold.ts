@@ -904,6 +904,7 @@ export const SAMPLE_USER_FOODS = [
   {
     name: 'Nora’s granola',
     brand: 'Homemade',
+    icon: '🥣',
     baseUnit: 'g' as const,
     nutritionPer100: {
       calories: 471,
@@ -938,6 +939,7 @@ export const SAMPLE_USER_FOODS = [
     // sample was reset. A code no real packet carries cannot collide.
     name: 'Roomboter ontbijtkoek',
     brand: 'Peijnenburg',
+    icon: '🍞',
     barcode: '2000000000017',
     baseUnit: 'g' as const,
     nutritionPer100: {
@@ -960,6 +962,7 @@ export const SAMPLE_USER_FOODS = [
     // they leave behind.
     name: 'Bakery seeded spelt loaf',
     brand: 'Buurtbakker',
+    icon: '🥖',
     baseUnit: 'g' as const,
     nutritionPer100: {
       calories: 259,
