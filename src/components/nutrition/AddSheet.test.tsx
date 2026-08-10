@@ -211,7 +211,7 @@ beforeEach(() => {
 
 /** Drive the scanner the way a phone would, minus the camera. */
 async function scan(barcode: string) {
-  fireEvent.click(screen.getByText('Scan'))
+  fireEvent.click(screen.getByRole('button', { name: 'Scan barcode' }))
   const field = await screen.findByLabelText('Or enter the barcode number')
   fireEvent.change(field, { target: { value: barcode } })
   fireEvent.click(screen.getByText('Look up'))
@@ -286,6 +286,26 @@ test('a barcode nobody has offers adding it, rather than an empty list', async (
   // Logging the digits themselves as a one-off would put "9999999999999" in a
   // diary, which is not what typing a barcode meant.
   expect(screen.queryByText(/as a one-off/)).toBeNull()
+})
+
+test('the persistent add menu keeps a barcode out of one-offs', async () => {
+  renderSheet()
+  await search('9999999999999')
+
+  await waitFor(() => expect(screen.getByText(/Not found\./)).toBeDefined())
+  fireEvent.click(screen.getByRole('button', { name: 'Add food' }))
+
+  // A barcode identifies a product, not a diary label. The persistent menu
+  // must take the same route as the empty-result offer rather than creating a
+  // one-off whose name is just the digits.
+  expect(screen.queryByText(/9999999999999.*one-off/)).toBeNull()
+  const addToLibrary = screen.getAllByRole('link', {
+    name: 'Add it to the foods library',
+  })
+  expect(addToLibrary[0]).toHaveAttribute(
+    'href',
+    '/g/jansen-household/foods/new?barcode=9999999999999&returnDate=2026-07-18&returnMeal=breakfast',
+  )
 })
 
 test('digits still being typed are an ordinary search, not a lookup', async () => {
@@ -429,6 +449,33 @@ test('the search field offers a clear only while there is something to clear', a
   expect(screen.getByText('Melkbroodjes')).toBeDefined()
 })
 
+test('scan and add stay reachable, and add carries the current term into either route', async () => {
+  renderSheet()
+
+  const scanControl = screen.getByRole('button', { name: 'Scan barcode' })
+  const addControl = screen.getByRole('button', { name: 'Add food' })
+  expect(scanControl).toBeDefined()
+  expect(addControl).toBeDefined()
+
+  // The choices exist before a search too: a one-off can be named there, and
+  // creating a food begins with an ordinary blank form.
+  fireEvent.click(addControl)
+  fireEvent.click(screen.getByText('Log a one-off'))
+  expect(screen.getByLabelText('What did you have?')).toBeDefined()
+
+  await search('melk')
+  await waitFor(() => expect(screen.getByText('Halfvolle melk')).toBeDefined())
+
+  // Results do not replace the two alternatives. Both receive what was typed
+  // so neither starts a second, unrelated flow.
+  expect(screen.getByRole('button', { name: 'Scan barcode' })).toBeDefined()
+  expect(screen.getByText('Log “melk” as a one-off')).toBeDefined()
+  expect(screen.getByText('Add “melk” to my foods')).toHaveAttribute(
+    'href',
+    '/g/jansen-household/foods/new?name=melk&returnDate=2026-07-18&returnMeal=breakfast',
+  )
+})
+
 test('one search fills labelled sections with foods, recipes and Open Food Facts', async () => {
   renderSheet()
   await search('melk')
@@ -522,6 +569,7 @@ test('a search matching nothing offers the typed term as a one-off', async () =>
     quantityUnit: 'piece',
     nutrition: { calories: 400 },
   })
+  expect(calls.value[0][1]).not.toHaveProperty('foodId')
 })
 
 /**
