@@ -352,6 +352,7 @@ test('an icon picked while reviewing is part of what is saved', () => {
     />,
   )
 
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
   fireEvent.click(screen.getByRole('button', { name: '🍫' }))
   fireEvent.click(screen.getByRole('button', { name: /save food/i }))
 
@@ -369,6 +370,7 @@ test('a food that had one opens holding it, and can be given another', () => {
       initial={{ name: 'Melk', icon: '🥛', nutritionPer100: {} }}
     />,
   )
+  fireEvent.click(screen.getByRole('button', { name: 'Change icon' }))
   expect(screen.getByRole('button', { name: '🥛' }).ariaPressed).toBe('true')
 
   fireEvent.click(screen.getByRole('button', { name: '🧀' }))
@@ -389,6 +391,7 @@ test('clearing one submits no icon at all', () => {
     />,
   )
 
+  fireEvent.click(screen.getByRole('button', { name: 'Change icon' }))
   fireEvent.click(screen.getByRole('button', { name: 'No icon' }))
   fireEvent.click(screen.getByRole('button', { name: /save food/i }))
 

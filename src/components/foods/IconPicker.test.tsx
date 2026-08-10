@@ -1,7 +1,26 @@
-import { fireEvent, screen } from '@testing-library/react'
-import { expect, test, vi } from 'vitest'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { FOOD_ICONS, IconPicker } from './IconPicker'
+
+let scrollTo: ReturnType<typeof vi.spyOn>
+
+beforeAll(() => {
+  scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+})
+
+afterAll(() => {
+  scrollTo.mockRestore()
+})
+
+test('starts collapsed and invites the person to choose an icon', () => {
+  renderWithI18n(<IconPicker onChange={vi.fn()} />)
+
+  const trigger = screen.getByRole('button', { name: 'Choose icon' })
+  expect(trigger.ariaExpanded).toBe('false')
+  expect(trigger).toHaveTextContent('🍽️')
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
 
 /**
  * The picker is a curated set, and clearing is a real answer (#94).
@@ -21,19 +40,23 @@ test('the set is curated rather than every emoji there is', () => {
   expect(new Set(FOOD_ICONS).size).toBe(FOOD_ICONS.length)
 })
 
-test('choosing one reports it', () => {
+test('choosing an icon in the sheet reports it and collapses the picker', () => {
   const onChange = vi.fn()
   renderWithI18n(<IconPicker onChange={onChange} />)
 
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+  expect(screen.getByRole('dialog', { name: 'Choose an icon' })).toBeVisible()
   fireEvent.click(screen.getByRole('button', { name: '🍕' }))
 
   expect(onChange).toHaveBeenCalledWith('🍕')
+  expect(screen.queryByRole('dialog')).toBeNull()
 })
 
 test('choosing another replaces the first', () => {
   const onChange = vi.fn()
   renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
 
+  fireEvent.click(screen.getByRole('button', { name: 'Change icon' }))
   fireEvent.click(screen.getByRole('button', { name: '🥗' }))
 
   expect(onChange).toHaveBeenCalledWith('🥗')
@@ -42,23 +65,122 @@ test('choosing another replaces the first', () => {
 test('the chosen one says so', () => {
   renderWithI18n(<IconPicker value="🍕" onChange={vi.fn()} />)
 
+  fireEvent.click(screen.getByRole('button', { name: 'Change icon' }))
   expect(screen.getByRole('button', { name: '🍕' }).ariaPressed).toBe('true')
   expect(screen.getByRole('button', { name: '🥗' }).ariaPressed).toBe('false')
 })
 
-test('clearing reports nothing at all, not an empty string', () => {
+test('clearing from the sheet reports undefined and collapses it', () => {
   const onChange = vi.fn()
   renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
 
+  fireEvent.click(screen.getByRole('button', { name: 'Change icon' }))
   fireEvent.click(screen.getByRole('button', { name: 'No icon' }))
 
   expect(onChange).toHaveBeenCalledWith(undefined)
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
+
+test('Escape dismisses without changing the icon and restores trigger focus', async () => {
+  const onChange = vi.fn()
+  renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
+
+  const trigger = screen.getByRole('button', { name: 'Change icon' })
+  fireEvent.click(trigger)
+  fireEvent.keyDown(window, { key: 'Escape' })
+
+  expect(onChange).not.toHaveBeenCalled()
+  await waitFor(() => expect(trigger).toHaveFocus())
+})
+
+test('opening the sheet moves focus to its close button', async () => {
+  renderWithI18n(<IconPicker onChange={vi.fn()} />)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Close icon picker' }),
+    ).toHaveFocus(),
+  )
+})
+
+test('Tab wraps in both directions within the sheet controls', () => {
+  renderWithI18n(<IconPicker onChange={vi.fn()} />)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+  const close = screen.getByRole('button', { name: 'Close icon picker' })
+  const lastIcon = screen.getByRole('button', {
+    name: FOOD_ICONS[FOOD_ICONS.length - 1],
+  })
+
+  lastIcon.focus()
+  fireEvent.keyDown(lastIcon, { key: 'Tab' })
+  expect(close).toHaveFocus()
+
+  fireEvent.keyDown(close, { key: 'Tab', shiftKey: true })
+  expect(lastIcon).toHaveFocus()
+})
+
+test('simultaneous picker dialogs have distinct accessible title ids', () => {
+  renderWithI18n(
+    <>
+      <IconPicker onChange={vi.fn()} />
+      <IconPicker onChange={vi.fn()} />
+    </>,
+  )
+
+  for (const trigger of screen.getAllByRole('button', {
+    name: 'Choose icon',
+  })) {
+    fireEvent.click(trigger)
+  }
+
+  const titleIds = screen
+    .getAllByRole('dialog', { name: 'Choose an icon' })
+    .map((dialog) => dialog.getAttribute('aria-labelledby'))
+  expect(new Set(titleIds).size).toBe(2)
+  for (const titleId of titleIds) {
+    expect(titleId).not.toBeNull()
+    expect(document.getElementById(titleId as string)).not.toBeNull()
+  }
+})
+
+test('closing the sheet leaves the icon unchanged and restores trigger focus', async () => {
+  const onChange = vi.fn()
+  renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
+
+  const trigger = screen.getByRole('button', { name: 'Change icon' })
+  fireEvent.click(trigger)
+  fireEvent.click(screen.getByRole('button', { name: 'Close icon picker' }))
+
+  expect(onChange).not.toHaveBeenCalled()
+  await waitFor(() => expect(trigger).toHaveFocus())
+})
+
+test('dismissing the sheet from its backdrop leaves the icon unchanged and restores trigger focus', async () => {
+  const onChange = vi.fn()
+  renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
+
+  const trigger = screen.getByRole('button', { name: 'Change icon' })
+  fireEvent.click(trigger)
+  const backdrop = screen
+    .getByRole('dialog')
+    .parentElement?.querySelector<HTMLButtonElement>(
+      'button[aria-hidden="true"]',
+    )
+  if (!backdrop) throw new Error('Icon picker backdrop was not rendered')
+  fireEvent.click(backdrop)
+
+  expect(onChange).not.toHaveBeenCalled()
+  await waitFor(() => expect(trigger).toHaveFocus())
 })
 
 test('pressing the chosen one again clears it', () => {
   const onChange = vi.fn()
   renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
 
+  fireEvent.click(screen.getByRole('button', { name: 'Change icon' }))
   fireEvent.click(screen.getByRole('button', { name: '🍕' }))
 
   expect(onChange).toHaveBeenCalledWith(undefined)
@@ -67,5 +189,20 @@ test('pressing the chosen one again clears it', () => {
 test('there is nothing to clear until something is chosen', () => {
   renderWithI18n(<IconPicker onChange={vi.fn()} />)
 
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+
   expect(screen.queryByRole('button', { name: 'No icon' })).toBeNull()
+})
+
+test('locks page scrolling while the standalone picker sheet is open', async () => {
+  document.body.style.cssText = ''
+  renderWithI18n(<IconPicker onChange={vi.fn()} />)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+
+  expect(document.body.style.position).toBe('fixed')
+
+  fireEvent.click(screen.getByRole('button', { name: 'Close icon picker' }))
+
+  await waitFor(() => expect(document.body.style.position).toBe(''))
 })
