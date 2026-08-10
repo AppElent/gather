@@ -1,7 +1,17 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { expect, test, vi } from 'vitest'
+import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { FOOD_ICONS, IconPicker } from './IconPicker'
+
+let scrollTo: ReturnType<typeof vi.spyOn>
+
+beforeAll(() => {
+  scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+})
+
+afterAll(() => {
+  scrollTo.mockRestore()
+})
 
 test('starts collapsed and invites the person to choose an icon', () => {
   renderWithI18n(<IconPicker onChange={vi.fn()} />)
@@ -182,4 +192,17 @@ test('there is nothing to clear until something is chosen', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
 
   expect(screen.queryByRole('button', { name: 'No icon' })).toBeNull()
+})
+
+test('locks page scrolling while the standalone picker sheet is open', async () => {
+  document.body.style.cssText = ''
+  renderWithI18n(<IconPicker onChange={vi.fn()} />)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+
+  expect(document.body.style.position).toBe('fixed')
+
+  fireEvent.click(screen.getByRole('button', { name: 'Close icon picker' }))
+
+  await waitFor(() => expect(document.body.style.position).toBe(''))
 })

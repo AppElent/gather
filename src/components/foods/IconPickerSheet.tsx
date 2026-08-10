@@ -22,6 +22,33 @@ function focusableElements(container: HTMLElement) {
   ).filter((element) => !element.hidden && element.tabIndex >= 0)
 }
 
+function useBodyScrollLock(active: boolean) {
+  useEffect(() => {
+    if (!active) return
+
+    const { body } = document
+    const y = window.scrollY
+    const previous = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    }
+    body.style.position = 'fixed'
+    body.style.top = `${-y}px`
+    body.style.left = '0'
+    body.style.right = '0'
+    body.style.width = '100%'
+    body.style.overflow = 'hidden'
+    return () => {
+      Object.assign(body.style, previous)
+      window.scrollTo(0, y)
+    }
+  }, [active])
+}
+
 interface Props {
   open: boolean
   icons: readonly string[]
@@ -70,6 +97,8 @@ export function IconPickerSheet({
     window.addEventListener('keydown', dismissOnEscape, true)
     return () => window.removeEventListener('keydown', dismissOnEscape, true)
   }, [open, onClose])
+
+  useBodyScrollLock(open)
 
   const trapFocus = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.key !== 'Tab') return
