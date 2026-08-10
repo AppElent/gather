@@ -95,6 +95,24 @@ test('closing the sheet leaves the icon unchanged and restores trigger focus', a
   await waitFor(() => expect(trigger).toHaveFocus())
 })
 
+test('dismissing the sheet from its backdrop leaves the icon unchanged and restores trigger focus', async () => {
+  const onChange = vi.fn()
+  renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
+
+  const trigger = screen.getByRole('button', { name: 'Change icon' })
+  fireEvent.click(trigger)
+  const backdrop = screen
+    .getByRole('dialog')
+    .parentElement?.querySelector<HTMLButtonElement>(
+      'button[aria-hidden="true"]',
+    )
+  if (!backdrop) throw new Error('Icon picker backdrop was not rendered')
+  fireEvent.click(backdrop)
+
+  expect(onChange).not.toHaveBeenCalled()
+  await waitFor(() => expect(trigger).toHaveFocus())
+})
+
 test('pressing the chosen one again clears it', () => {
   const onChange = vi.fn()
   renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)

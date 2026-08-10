@@ -538,6 +538,7 @@ test('a one-off can be given an icon, and it goes to the diary with it', async (
     ).toBeDefined(),
   )
   fireEvent.click(screen.getByText('Log “poffertjes at the fair” as a one-off'))
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
   fireEvent.click(screen.getByRole('button', { name: '🍬' }))
   fireEvent.click(screen.getByText('Add to diary'))
 
