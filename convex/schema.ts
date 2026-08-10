@@ -114,9 +114,24 @@ export default defineSchema({
       }),
     ),
     order: v.number(),
+    // When the provider was last read into the cache, and when reading it last
+    // failed. Both together, because they answer different questions: the
+    // first is how old what you are looking at is, the second is whether it is
+    // stale on purpose. A successful refresh clears the failure (ADR-0013).
+    lastSyncedAt: v.optional(v.number()),
+    lastSyncFailedAt: v.optional(v.number()),
   }).index('by_group', ['groupId']),
 
-  // Rows exist only for provider === 'local' lists.
+  /**
+   * Tasks — the Group's own on a local list, and the **cache** of the
+   * provider's on an external one (ADR-0013).
+   *
+   * One table rather than two, because the Tasks Module renders both through
+   * the same experience and a second table would make every read branch on
+   * which one it wanted. `externalId` is what tells them apart: present means
+   * the provider owns this row and gather is only holding a copy, and it is
+   * the identity reconciliation matches on.
+   */
   tasks: defineTable({
     listId: v.id('taskLists'),
     title: v.string(),
@@ -126,9 +141,21 @@ export default defineSchema({
       v.union(v.literal(1), v.literal(2), v.literal(3), v.literal(4)),
     ),
     labels: v.optional(v.array(v.string())),
-    createdBy: v.id('users'),
+    // Absent on a cached row: nobody here wrote it, and attributing it to
+    // whoever pressed Refresh would be an invention. Present on every row
+    // somebody in this Group created, which is what the activity stream reads.
+    createdBy: v.optional(v.id('users')),
     order: v.number(),
-  }).index('by_list', ['listId']),
+    // The provider's own id for this task. Absent on a local row.
+    externalId: v.optional(v.string()),
+    // Link-out to the item in the app that owns it.
+    url: v.optional(v.string()),
+  })
+    .index('by_list', ['listId'])
+    // Reconciliation asks "which cached row is this provider task", once per
+    // task per refresh. A scan of the list per task is the same question asked
+    // quadratically.
+    .index('by_list_external', ['listId', 'externalId']),
 
   /**
    * A Group's authorisation to reach one account at one provider.

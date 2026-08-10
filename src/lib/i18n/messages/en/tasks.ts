@@ -41,6 +41,7 @@ export const tasks = {
 
   external: {
     refresh: 'Refresh {name}',
+    refreshing: 'Refreshing…',
     loadFailed: 'Could not load this list.',
     reconnect: 'The {provider} connection needs to be reconnected.',
     goToSettings: 'Go to group settings',
@@ -48,6 +49,15 @@ export const tasks = {
     /** Which account and which source at it this list reads from. */
     source: '{source} · {account}',
     sourceUnknownAccount: '{source} · disconnected account',
+    /** The cache is all there is at the moment, and says so. */
+    stale:
+      'Could not reach {provider}. These are the tasks gather last saw, and they are read-only until it answers again.',
+    reconnectStale:
+      'The {provider} connection for this list is disconnected. These are the tasks gather last saw, and they are read-only until it is reconnected.',
+    unconfigured: 'This list is missing its provider configuration.',
+    /** Why a control this Module usually offers is not on offer here. */
+    readOnlyProvider: 'Tasks in this list are edited in {provider}.',
+    neverSynced: 'Loading this list from {provider}…',
   },
 
   editor: {

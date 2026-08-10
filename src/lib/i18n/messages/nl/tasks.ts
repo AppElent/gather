@@ -36,12 +36,20 @@ export const tasks = {
 
   external: {
     refresh: '{name} vernieuwen',
+    refreshing: 'Vernieuwen…',
     loadFailed: 'Kon deze lijst niet laden.',
     reconnect: 'De koppeling met {provider} moet opnieuw worden gelegd.',
     goToSettings: 'Naar de Groepsinstellingen',
     empty: 'Geen open taken in deze {provider}-lijst.',
     source: '{source} · {account}',
     sourceUnknownAccount: '{source} · losgekoppeld account',
+    stale:
+      'Kon {provider} niet bereiken. Dit zijn de taken die gather het laatst zag; ze zijn alleen-lezen totdat er weer antwoord komt.',
+    reconnectStale:
+      'De koppeling met {provider} voor deze lijst is losgekoppeld. Dit zijn de taken die gather het laatst zag; ze zijn alleen-lezen totdat de koppeling is hersteld.',
+    unconfigured: 'Bij deze lijst ontbreken de koppelingsgegevens.',
+    readOnlyProvider: 'Taken in deze lijst bewerk je in {provider}.',
+    neverSynced: 'Deze lijst wordt uit {provider} geladen…',
   },
 
   editor: {

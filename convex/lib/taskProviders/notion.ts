@@ -1,6 +1,7 @@
 import {
   type PropertyMapping,
   ProviderAuthError,
+  READ_ONLY_CAPABILITIES,
   type SourceConfig,
   type TaskProviderAdapter,
   type UnifiedTask,
@@ -82,7 +83,23 @@ export function mapNotionPage(
 
 export const notionAdapter: TaskProviderAdapter = {
   id: 'notion',
-  capabilities: { write: false, priority: true, labels: true },
+  // Read-only, and deliberately so (ADR-0014): a Notion write means deciding
+  // what to put in properties gather did not choose and does not understand,
+  // and its sub-page model is not the subtask model the common Task record
+  // has. That design is worth doing on its own.
+  capabilities: READ_ONLY_CAPABILITIES,
+
+  capabilitiesForSource(config) {
+    // What a *this* database has, not what Notion supports in general: a
+    // mapping with no date property has no due dates to show.
+    const mapping = config.propertyMapping
+    return {
+      ...READ_ONLY_CAPABILITIES,
+      dueDate: Boolean(mapping?.dueDate),
+      priority: Boolean(mapping?.priority),
+      labels: Boolean(mapping?.labels),
+    }
+  },
 
   async getAccountIdentity(accessToken, fetchImpl = fetch) {
     // The bot user, which is this integration inside one workspace — a

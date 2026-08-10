@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { TaskCapabilities } from '../../../convex/lib/taskProviders/types'
 import { useMessages } from '../../lib/i18n'
 
 export interface TaskEditorValues {
@@ -10,16 +11,26 @@ export interface TaskEditorValues {
 
 export interface TaskEditorProps {
   initial?: TaskEditorValues
+  /**
+   * Which of the common Task record's fields this list's Backend actually
+   * keeps. A field the Backend has no home for is not offered: filling one in
+   * and watching it vanish at the next refresh is worse than never being asked
+   * (ADR-0014).
+   */
+  capabilities?: Pick<TaskCapabilities, 'dueDate' | 'priority' | 'labels'>
   submitLabel: string
   onSubmit: (values: TaskEditorValues) => void
   onCancel: () => void
 }
+
+const ALL_FIELDS = { dueDate: true, priority: true, labels: true }
 
 const inputClass =
   'min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm'
 
 export function TaskEditor({
   initial,
+  capabilities = ALL_FIELDS,
   submitLabel,
   onSubmit,
   onCancel,
@@ -59,32 +70,38 @@ export function TaskEditor({
         className={inputClass}
       />
       <div className="flex flex-wrap gap-2">
-        <input
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          aria-label={editor.dueDate}
-          className={inputClass}
-        />
-        <select
-          value={priority}
-          onChange={(e) => setPriority(e.target.value)}
-          aria-label={editor.priority}
-          className={inputClass}
-        >
-          <option value="">{editor.noPriority}</option>
-          <option value="1">{editor.p1}</option>
-          <option value="2">{editor.p2}</option>
-          <option value="3">{editor.p3}</option>
-          <option value="4">{editor.p4}</option>
-        </select>
-        <input
-          value={labels}
-          onChange={(e) => setLabels(e.target.value)}
-          placeholder={editor.labelsPlaceholder}
-          aria-label={editor.labels}
-          className={`${inputClass} flex-1`}
-        />
+        {capabilities.dueDate && (
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            aria-label={editor.dueDate}
+            className={inputClass}
+          />
+        )}
+        {capabilities.priority && (
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
+            aria-label={editor.priority}
+            className={inputClass}
+          >
+            <option value="">{editor.noPriority}</option>
+            <option value="1">{editor.p1}</option>
+            <option value="2">{editor.p2}</option>
+            <option value="3">{editor.p3}</option>
+            <option value="4">{editor.p4}</option>
+          </select>
+        )}
+        {capabilities.labels && (
+          <input
+            value={labels}
+            onChange={(e) => setLabels(e.target.value)}
+            placeholder={editor.labelsPlaceholder}
+            aria-label={editor.labels}
+            className={`${inputClass} flex-1`}
+          />
+        )}
       </div>
       <div className="flex gap-2">
         <button

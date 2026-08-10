@@ -1,5 +1,6 @@
 import {
   ProviderAuthError,
+  READ_ONLY_CAPABILITIES,
   type TaskProviderAdapter,
   type UnifiedTask,
 } from './types'
@@ -70,7 +71,15 @@ export function mapTodoistTask(t: TodoistApiTask): UnifiedTask {
 
 export const todoistAdapter: TaskProviderAdapter = {
   id: 'todoist',
-  capabilities: { write: false, priority: true, labels: true },
+  // Read-only for now: the write paths land with #106. Ordering stays
+  // Todoist's whatever happens — gather does not offer to reorder somebody
+  // else's project.
+  capabilities: {
+    ...READ_ONLY_CAPABILITIES,
+    priority: true,
+    labels: true,
+    dueDate: true,
+  },
 
   async getAccountIdentity(accessToken, fetchImpl = fetch) {
     const data = (await todoistSyncRequest(

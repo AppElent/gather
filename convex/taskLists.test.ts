@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 import { testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 
@@ -262,28 +262,47 @@ describe('reaching one list', () => {
     expect(jansen.map((l) => l.name)).toEqual(['Chores'])
   })
 
-  test('a local list loads through the unified action, at its own address only', async () => {
+  test('a local list describes its Backend at its own address only', async () => {
     const { t, jansenList } = await seed()
 
-    const result = await t
-      .withIdentity(alice)
-      .action(api.taskLists.getTasks, {
-        listId: jansenList,
-        groupSlug: JANSEN,
-      })
-    expect(result).toEqual({
-      status: 'ok',
-      tasks: [
-        expect.objectContaining({ title: 'Take the bins out', done: false }),
-      ],
+    const backend = await t.withIdentity(alice).query(api.taskLists.backend, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+    })
+    expect(backend).toMatchObject({
+      provider: 'local',
+      readOnly: false,
+      source: null,
+      sync: null,
+      // A local list is this app, so it can do everything this app can.
+      capabilities: expect.objectContaining({ create: true, delete: true }),
     })
 
     await expect(
-      t.withIdentity(alice).action(api.taskLists.getTasks, {
+      t.withIdentity(alice).query(api.taskLists.backend, {
         listId: jansenList,
         groupSlug: DE_VRIES,
       }),
     ).rejects.toThrow(/List not found/)
+  })
+
+  test('refreshing a local list is a no-op rather than an error', async () => {
+    const { t, jansenList } = await seed()
+
+    // One control in the Module, whatever the Backend — the card does not have
+    // to decide whether Refresh exists before offering it.
+    expect(
+      await t.withIdentity(alice).action(api.taskLists.refresh, {
+        listId: jansenList,
+        groupSlug: JANSEN,
+      }),
+    ).toEqual({ status: 'ok', added: 0, updated: 0, deleted: 0 })
+
+    const tasks = await t.withIdentity(alice).query(api.tasks.listByList, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+    })
+    expect(tasks.map((task) => task.title)).toEqual(['Take the bins out'])
   })
 })
 
@@ -670,7 +689,7 @@ describe('the access token', () => {
         groupSlug: JANSEN,
       }),
       await as.query(api.integrations.listConnections, { groupSlug: JANSEN }),
-      await as.action(api.taskLists.getTasks, {
+      await as.query(api.taskLists.backend, {
         listId: jansenList,
         groupSlug: JANSEN,
       }),
@@ -721,5 +740,300 @@ describe('adding a list from inside a Group', () => {
         groupSlug: JANSEN,
       }),
     ).rejects.toThrow(/Not a member/)
+  })
+})
+
+/**
+ * An external list, from the point of view of somebody reading it.
+ *
+ * The provider owns these tasks and gather holds a cache (ADR-0013), so the
+ * behaviour worth asserting is what a Member can read, when it is refreshed,
+ * and what happens to what they were reading when the provider stops
+ * answering. The Todoist API is a stubbed `fetch`; what it returns is the
+ * provider's answer.
+ */
+describe('a Todoist-backed list', () => {
+  const todoistTask = (id: string, content: string, over = {}) => ({
+    id,
+    content,
+    priority: 1,
+    ...over,
+  })
+
+  /** Jansen, with a Todoist connection and a list linked to one project. */
+  async function seedLinked() {
+    const base = await seed()
+    const connectionId = await base.t.mutation(
+      internal.integrations.storeConnection,
+      {
+        groupId: base.jansen,
+        provider: 'todoist',
+        accessToken: 'todoist-token',
+        accountLabel: 'household@example.com',
+        externalAccountId: 'todoist-1',
+        connectedBy: base.aliceId,
+      },
+    )
+    const listId = await base.t
+      .withIdentity(alice)
+      .mutation(api.taskLists.create, {
+        name: 'Household',
+        provider: 'todoist',
+        groupSlug: JANSEN,
+        providerConfig: {
+          connectionId,
+          sourceId: 'p1',
+          sourceName: 'Household',
+        },
+      })
+    return { ...base, connectionId, listId }
+  }
+
+  /** Answer the next provider read with these tasks, or with a failure. */
+  function provider(response: unknown[] | { status: number }) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Array.isArray(response)
+          ? new Response(JSON.stringify(response), { status: 200 })
+          : new Response('{}', { status: response.status }),
+      ),
+    )
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  async function tasksIn(
+    t: Awaited<ReturnType<typeof seedLinked>>['t'],
+    listId: Awaited<ReturnType<typeof seedLinked>>['listId'],
+  ) {
+    return await t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+  }
+
+  test('has nothing until it is first read, and holds what it read', async () => {
+    const { t, listId } = await seedLinked()
+
+    const before = await t.withIdentity(alice).query(api.taskLists.backend, {
+      listId,
+      groupSlug: JANSEN,
+    })
+    expect(before.sync).toMatchObject({ neverSynced: true, state: 'ready' })
+    expect(await tasksIn(t, listId)).toEqual([])
+
+    provider([todoistTask('t1', 'Water plants'), todoistTask('t2', 'Bins')])
+    expect(
+      await t
+        .withIdentity(alice)
+        .action(api.taskLists.refresh, { listId, groupSlug: JANSEN }),
+    ).toEqual({ status: 'ok', added: 2, updated: 0, deleted: 0 })
+
+    expect((await tasksIn(t, listId)).map((task) => task.title)).toEqual([
+      'Water plants',
+      'Bins',
+    ])
+    const after = await t.withIdentity(alice).query(api.taskLists.backend, {
+      listId,
+      groupSlug: JANSEN,
+    })
+    expect(after.sync?.neverSynced).toBe(false)
+    expect(after.sync?.lastSyncedAt).toBeTypeOf('number')
+    expect(after.readOnly).toBe(false)
+  })
+
+  test('the provider wins the next time it is asked', async () => {
+    const { t, listId } = await seedLinked()
+    provider([todoistTask('t1', 'Water plants'), todoistTask('t2', 'Bins')])
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    // Renamed there, and one of them deleted there.
+    provider([todoistTask('t1', 'Water the plants')])
+    expect(
+      await t
+        .withIdentity(alice)
+        .action(api.taskLists.refresh, { listId, groupSlug: JANSEN }),
+    ).toEqual({ status: 'ok', added: 0, updated: 1, deleted: 1 })
+
+    expect((await tasksIn(t, listId)).map((task) => task.title)).toEqual([
+      'Water the plants',
+    ])
+  })
+
+  test('a provider that will not answer leaves the last tasks readable, and read-only', async () => {
+    const { t, listId } = await seedLinked()
+    provider([todoistTask('t1', 'Water plants')])
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    provider({ status: 500 })
+    const result = await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+    expect(result.status).toBe('error')
+
+    // Still there — the last thing Todoist said is more use than an empty
+    // card — but the list now says so, and nothing may be written to it.
+    expect((await tasksIn(t, listId)).map((task) => task.title)).toEqual([
+      'Water plants',
+    ])
+    const backendView = await t
+      .withIdentity(alice)
+      .query(api.taskLists.backend, { listId, groupSlug: JANSEN })
+    expect(backendView.sync?.state).toBe('stale')
+    expect(backendView.readOnly).toBe(true)
+  })
+
+  test('a provider that answers again clears the staleness', async () => {
+    const { t, listId } = await seedLinked()
+    provider({ status: 500 })
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    provider([todoistTask('t1', 'Water plants')])
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    const backendView = await t
+      .withIdentity(alice)
+      .query(api.taskLists.backend, { listId, groupSlug: JANSEN })
+    expect(backendView.sync?.state).toBe('ready')
+    expect(backendView.readOnly).toBe(false)
+  })
+
+  test('a rejected token asks for a reconnect rather than reporting a fault', async () => {
+    const { t, listId } = await seedLinked()
+    provider([todoistTask('t1', 'Water plants')])
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    provider({ status: 401 })
+    expect(
+      await t
+        .withIdentity(alice)
+        .action(api.taskLists.refresh, { listId, groupSlug: JANSEN }),
+    ).toEqual({ status: 'reconnect', provider: 'todoist' })
+  })
+
+  test('a disconnected account leaves the cache readable and points at the way back', async () => {
+    const { t, listId, connectionId } = await seedLinked()
+    provider([todoistTask('t1', 'Water plants')])
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    await t.withIdentity(alice).mutation(api.integrations.disconnect, {
+      connectionId,
+      groupSlug: JANSEN,
+    })
+
+    expect((await tasksIn(t, listId)).map((task) => task.title)).toEqual([
+      'Water plants',
+    ])
+    const backendView = await t
+      .withIdentity(alice)
+      .query(api.taskLists.backend, { listId, groupSlug: JANSEN })
+    expect(backendView.sync?.state).toBe('reconnect')
+    expect(backendView.readOnly).toBe(true)
+    // The card can name the account to reconnect, which is the whole point of
+    // the row outliving its token.
+    expect(backendView.source).toMatchObject({
+      accountLabel: 'household@example.com',
+      connectionStatus: 'disconnected',
+      sourceName: 'Household',
+    })
+  })
+
+  test('is refreshed and described only at its own Group’s address', async () => {
+    const { t, listId } = await seedLinked()
+    provider([todoistTask('t1', 'Water plants')])
+
+    for (const run of [
+      t
+        .withIdentity(alice)
+        .action(api.taskLists.refresh, { listId, groupSlug: DE_VRIES }),
+      t
+        .withIdentity(alice)
+        .query(api.taskLists.backend, { listId, groupSlug: DE_VRIES }),
+      t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: DE_VRIES }),
+    ]) {
+      await expect(run).rejects.toThrow(/List not found/)
+    }
+  })
+
+  test('its cached tasks are never local tasks', async () => {
+    const { t, listId } = await seedLinked()
+    provider([todoistTask('t1', 'Water plants')])
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    const [cachedTask] = await tasksIn(t, listId)
+    // Every local write path refuses an external list, so a change gather
+    // could not send to Todoist cannot be made to look as though it had been.
+    for (const run of [
+      t.withIdentity(alice).mutation(api.tasks.add, {
+        listId,
+        groupSlug: JANSEN,
+        title: 'Written locally',
+      }),
+      t.withIdentity(alice).mutation(api.tasks.toggleDone, {
+        taskId: cachedTask._id,
+        groupSlug: JANSEN,
+      }),
+      t.withIdentity(alice).mutation(api.tasks.remove, {
+        taskId: cachedTask._id,
+        groupSlug: JANSEN,
+      }),
+    ]) {
+      await expect(run).rejects.toThrow(/read-only/)
+    }
+  })
+})
+
+describe('what a Backend says it can do', () => {
+  test('a Notion list is read-only, and says which fields it has at all', async () => {
+    const { t, jansen, aliceId, jansenConnection } = await seed()
+    const listId = await t.run(
+      async (ctx) =>
+        await ctx.db.insert('taskLists', {
+          groupId: jansen,
+          name: 'Notion chores',
+          provider: 'notion',
+          order: 5,
+          providerConfig: {
+            connectionId: jansenConnection,
+            sourceId: 'db1',
+            // No date, priority or labels property mapped: this database does
+            // not have them, whatever Notion supports in general.
+            propertyMapping: { title: 'Name', done: 'Done' },
+          },
+        }),
+    )
+    expect(aliceId).toBeDefined()
+
+    const backendView = await t
+      .withIdentity(alice)
+      .query(api.taskLists.backend, { listId, groupSlug: JANSEN })
+    expect(backendView.capabilities).toMatchObject({
+      create: false,
+      edit: false,
+      complete: false,
+      delete: false,
+      subtasks: false,
+      dueDate: false,
+      priority: false,
+      labels: false,
+    })
   })
 })
