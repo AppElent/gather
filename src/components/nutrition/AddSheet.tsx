@@ -560,6 +560,7 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
               recipe={{
                 _id: recipe._id,
                 title: recipe.title,
+                imageUrl: recipe.imageUrl,
                 // Filtered to recipes that have it, which the type cannot see.
                 nutrition: recipe.nutrition as NutritionFacts,
               }}
@@ -783,9 +784,7 @@ function FoodCard({
 
   return (
     <ResultCard
-      thumbnail={
-        <FoodThumbnail src={food.imageUrl} icon={food.icon} alt={food.name} />
-      }
+      thumbnail={<FoodThumbnail src={food.imageUrl} icon={food.icon} />}
       title={food.name}
       subtitle={food.brand}
       meta={
@@ -887,7 +886,12 @@ function RecipeCard({
   onToggle,
   onLog,
 }: {
-  recipe: { _id: Id<'recipes'>; title: string; nutrition: NutritionFacts }
+  recipe: {
+    _id: Id<'recipes'>
+    title: string
+    imageUrl: string | null
+    nutrition: NutritionFacts
+  }
   expanded: boolean
   onToggle: () => void
   onLog: LogFn
@@ -904,6 +908,7 @@ function RecipeCard({
 
   return (
     <ResultCard
+      thumbnail={<FoodThumbnail src={recipe.imageUrl} kind="recipe" />}
       title={recipe.title}
       meta={
         recipe.nutrition.calories !== undefined
@@ -982,7 +987,7 @@ function OffCard({
           onClick={onImport}
           className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left disabled:opacity-60"
         >
-          <FoodThumbnail src={result.imageUrl} alt={result.name} />
+          <FoodThumbnail src={result.imageUrl} />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium">
               {result.name}

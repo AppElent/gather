@@ -49,6 +49,7 @@ function render(onLog = vi.fn()) {
 test('shows what is in it before anything is committed', () => {
   const onLog = render()
   expect(screen.getByText('Usual breakfast')).toBeDefined()
+  expect(screen.getByText('🍱')).toBeDefined()
   expect(screen.getByText('2 items')).toBeDefined()
   expect(screen.getByText('Wholemeal bread')).toBeDefined()
   expect(screen.getByText('Flat white')).toBeDefined()
