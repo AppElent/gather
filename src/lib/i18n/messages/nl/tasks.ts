@@ -3,7 +3,7 @@ import type { tasks as enTasks } from '../en/tasks'
 export const tasks = {
   page: {
     subtitle:
-      'Gedeelde lijsten — lokale staan hier, gekoppelde spiegelen Notion of Todoist.',
+      'Gedeelde lijsten — lokale staan hier, gekoppelde staan in Notion of Todoist.',
     addList: 'Lijst toevoegen',
     emptyTitle: 'Nog geen lijsten',
     emptyBody: 'Maak een lokale lijst, of koppel er een uit Notion of Todoist.',
@@ -50,6 +50,10 @@ export const tasks = {
     unconfigured: 'Bij deze lijst ontbreken de koppelingsgegevens.',
     readOnlyProvider: 'Taken in deze lijst bewerk je in {provider}.',
     neverSynced: 'Deze lijst wordt uit {provider} geladen…',
+    savedRemotely:
+      'Opgeslagen in {provider}. Gather heeft het nog niet overgenomen.',
+    refreshNow: 'Nu vernieuwen',
+    writeFailed: 'Die wijziging is niet opgeslagen — hier is niets veranderd.',
   },
 
   editor: {
@@ -68,7 +72,7 @@ export const tasks = {
   addList: {
     title: 'Een lijst toevoegen',
     local: 'Lokale lijst — hier gemaakt en bewerkt',
-    mirror: '{provider} — alleen lezen',
+    mirror: 'Een lijst uit {provider} koppelen',
     connectFirst: 'Eerst {provider} koppelen…',
     listName: 'Lijstnaam',
     create: 'Aanmaken',

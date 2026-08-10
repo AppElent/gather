@@ -106,12 +106,69 @@ export const READ_ONLY_CAPABILITIES: TaskCapabilities = {
   dueDate: true,
 }
 
+/**
+ * A write, as the common Task record expresses it.
+ *
+ * `null` clears a field and `undefined` leaves it alone — the same distinction
+ * the local mutations make, and one an external write needs even more, because
+ * "leave it alone" there means "do not mention it to the provider at all".
+ */
+export interface TaskInput {
+  title?: string
+  dueDate?: string | null
+  priority?: 1 | 2 | 3 | 4 | null
+  labels?: string[] | null
+}
+
 /** Thrown when the provider rejects our token (expired/revoked). The UI
  * turns this into a "reconnect" prompt instead of a generic error. */
 export class ProviderAuthError extends Error {
   constructor(provider: ExternalProviderId) {
     super(`${provider} connection is no longer valid`)
     this.name = 'ProviderAuthError'
+  }
+}
+
+/**
+ * The provider is asking us to slow down. Distinct from a fault because the
+ * answer is different: wait and try the same thing again, rather than assume
+ * anything is wrong with what was sent.
+ */
+export class ProviderRateLimitError extends Error {
+  constructor(
+    provider: ExternalProviderId,
+    /** Seconds the provider asked us to wait, when it said. */
+    readonly retryAfterSeconds?: number,
+  ) {
+    super(`${provider} is rate limiting this connection`)
+    this.name = 'ProviderRateLimitError'
+  }
+}
+
+/**
+ * This Backend cannot do this at all — a Notion write, a reorder in Todoist.
+ *
+ * Reaching this is a bug rather than a state a reader can get into: the
+ * capability list is what the UI offers from, so an unsupported operation
+ * should never be requested. It throws rather than falling back to a local
+ * write, because a local write the provider never accepted is exactly the lie
+ * ADR-0014 exists to prevent.
+ */
+export class ProviderUnsupportedError extends Error {
+  constructor(provider: ExternalProviderId, operation: string) {
+    super(`${provider} does not support ${operation}`)
+    this.name = 'ProviderUnsupportedError'
+  }
+}
+
+/** The provider refused this particular request — bad input, no permission. */
+export class ProviderRequestError extends Error {
+  constructor(
+    provider: ExternalProviderId,
+    readonly status: number,
+  ) {
+    super(`${provider} refused the request (${status})`)
+    this.name = 'ProviderRequestError'
   }
 }
 
@@ -146,4 +203,39 @@ export interface TaskProviderAdapter {
     config: SourceConfig,
     fetchImpl?: typeof fetch,
   ): Promise<UnifiedTask[]>
+
+  /**
+   * The writes, present only on a Backend that has them. Each returns the task
+   * as the provider now holds it, so the cache is updated from the provider's
+   * answer rather than from what we hoped it would do (ADR-0013) — and a
+   * provider that quietly normalised something is believed.
+   *
+   * Absent here means unsupported, which the capability list already said.
+   */
+  createTask?(
+    accessToken: string,
+    config: SourceConfig,
+    input: TaskInput & { title: string },
+    fetchImpl?: typeof fetch,
+  ): Promise<UnifiedTask>
+  updateTask?(
+    accessToken: string,
+    config: SourceConfig,
+    externalId: string,
+    input: TaskInput,
+    fetchImpl?: typeof fetch,
+  ): Promise<UnifiedTask>
+  setDone?(
+    accessToken: string,
+    config: SourceConfig,
+    externalId: string,
+    done: boolean,
+    fetchImpl?: typeof fetch,
+  ): Promise<void>
+  deleteTask?(
+    accessToken: string,
+    config: SourceConfig,
+    externalId: string,
+    fetchImpl?: typeof fetch,
+  ): Promise<void>
 }

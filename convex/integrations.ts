@@ -220,7 +220,12 @@ export const getAuthorizeUrl = action({
     }
     const url = new URL('https://todoist.com/oauth/authorize')
     url.searchParams.set('client_id', requireEnv('TODOIST_CLIENT_ID'))
-    url.searchParams.set('scope', 'data:read')
+    // Read *and* write: Todoist is a writable Backend, and a token that can
+    // only read would make every write fail at the provider with nothing gather
+    // could do about it. A connection authorised before this line changed still
+    // has the narrower scope and has to be reconnected once to gain writes —
+    // which is what the permission failure it reports says to do.
+    url.searchParams.set('scope', 'data:read_write')
     url.searchParams.set('state', args.state)
     return url.toString()
   },

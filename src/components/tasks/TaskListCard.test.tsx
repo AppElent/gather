@@ -17,6 +17,8 @@ const state = vi.hoisted(() => ({
   backend: null as TaskListBackendView | null,
   tasks: [] as unknown[],
   calls: {} as Record<string, unknown[]>,
+  actionResult: { status: 'ok' } as { status: string },
+  actionFails: false,
 }))
 
 vi.mock('convex/react', () => ({
@@ -27,7 +29,11 @@ vi.mock('convex/react', () => ({
   },
   useAction: (name: string) => async (args: unknown) => {
     state.calls[name] = [...(state.calls[name] ?? []), args]
-    return { status: 'ok', added: 0, updated: 0, deleted: 0 }
+    if (name === 'taskLists:refresh') {
+      return { status: 'ok', added: 0, updated: 0, deleted: 0 }
+    }
+    if (state.actionFails) throw new Error('provider refused')
+    return state.actionResult
   },
 }))
 
@@ -41,6 +47,12 @@ vi.mock('../../../convex/_generated/api', () => ({
       toggleDone: 'tasks:toggleDone',
       remove: 'tasks:remove',
       move: 'tasks:move',
+    },
+    externalTasks: {
+      create: 'externalTasks:create',
+      update: 'externalTasks:update',
+      setDone: 'externalTasks:setDone',
+      remove: 'externalTasks:remove',
     },
   },
 }))
@@ -93,7 +105,12 @@ function externalBackend(
       sourceId: 'p1',
       sourceName: 'Household',
     },
-    sync: { lastSyncedAt: 1, neverSynced: false, state: 'ready' },
+    sync: {
+      lastSyncedAt: 1,
+      neverSynced: false,
+      state: 'ready',
+      pendingReconciliation: false,
+    },
     readOnly: false,
     ...over,
   }
@@ -105,6 +122,8 @@ beforeEach(() => {
   state.backend = localBackend
   state.tasks = [task]
   state.calls = {}
+  state.actionResult = { status: 'ok' }
+  state.actionFails = false
 })
 
 function renderCard() {
@@ -190,7 +209,12 @@ describe('a read-only external list', () => {
 
   test('fetches once when opened for the first time, and not again', async () => {
     state.backend = externalBackend({
-      sync: { lastSyncedAt: null, neverSynced: true, state: 'ready' },
+      sync: {
+        lastSyncedAt: null,
+        neverSynced: true,
+        state: 'ready',
+        pendingReconciliation: false,
+      },
     })
     state.tasks = []
     renderCard()
@@ -206,7 +230,12 @@ describe('an external list the provider is not answering', () => {
     state.backend = externalBackend({
       capabilities: ALL,
       readOnly: true,
-      sync: { lastSyncedAt: 1, neverSynced: false, state: 'stale' },
+      sync: {
+        lastSyncedAt: 1,
+        neverSynced: false,
+        state: 'stale',
+        pendingReconciliation: false,
+      },
     })
     renderCard()
 
@@ -228,7 +257,12 @@ describe('an external list the provider is not answering', () => {
         sourceId: 'p1',
         sourceName: 'Household',
       },
-      sync: { lastSyncedAt: 1, neverSynced: false, state: 'reconnect' },
+      sync: {
+        lastSyncedAt: 1,
+        neverSynced: false,
+        state: 'reconnect',
+        pendingReconciliation: false,
+      },
     })
     renderCard()
 
@@ -236,5 +270,100 @@ describe('an external list the provider is not answering', () => {
     expect(
       screen.getByRole('link', { name: /group settings/i }),
     ).toBeInTheDocument()
+  })
+})
+
+describe('a writable external list', () => {
+  beforeEach(() => {
+    state.backend = externalBackend({
+      capabilities: { ...ALL, reorder: false },
+    })
+  })
+
+  test('sends every write through the provider-first path', async () => {
+    renderCard()
+
+    fireEvent.change(screen.getByLabelText(/new task in household/i), {
+      target: { value: 'Buy milk' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^add task$/i }))
+    await waitFor(() => {
+      expect(state.calls['externalTasks:create']).toEqual([
+        {
+          listId: 'list_1',
+          groupSlug: 'jansen-household',
+          title: 'Buy milk',
+          dueDate: undefined,
+          priority: undefined,
+          labels: undefined,
+        },
+      ])
+    })
+    // Never the local mutation: a cached row is not this app's to write.
+    expect(state.calls['tasks:add']).toBeUndefined()
+
+    fireEvent.click(screen.getByRole('checkbox'))
+    await waitFor(() => {
+      expect(state.calls['externalTasks:setDone']).toEqual([
+        { taskId: 't1', groupSlug: 'jansen-household', done: true },
+      ])
+    })
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /delete water plants/i }),
+    )
+    await waitFor(() => {
+      expect(state.calls['externalTasks:remove']).toEqual([
+        { taskId: 't1', groupSlug: 'jansen-household' },
+      ])
+    })
+  })
+
+  test('does not offer to reorder a list whose order is the provider’s', () => {
+    renderCard()
+    expect(
+      screen.queryByRole('button', { name: /move water plants up/i }),
+    ).toBeNull()
+  })
+
+  test('reports a provider-accepted write the cache missed as saved, not failed', async () => {
+    state.actionResult = { status: 'savedRemotely' }
+    renderCard()
+
+    fireEvent.click(screen.getByRole('checkbox'))
+
+    // "Saved in Todoist" rather than an error: telling the reader it failed
+    // would invite them to send it a second time.
+    await waitFor(() => {
+      expect(screen.getByText(/saved in todoist/i)).toBeInTheDocument()
+    })
+    expect(
+      screen.getByRole('button', { name: /refresh now/i }),
+    ).toBeInTheDocument()
+  })
+
+  test('says plainly when a write did not happen at all', async () => {
+    state.actionFails = true
+    renderCard()
+
+    fireEvent.click(screen.getByRole('checkbox'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/was not saved/i)).toBeInTheDocument()
+    })
+  })
+
+  test('carries a list already marked for reconciliation', () => {
+    state.backend = externalBackend({
+      capabilities: { ...ALL, reorder: false },
+      sync: {
+        lastSyncedAt: 1,
+        neverSynced: false,
+        state: 'ready',
+        pendingReconciliation: true,
+      },
+    })
+    renderCard()
+    expect(screen.getByText(/saved in todoist/i)).toBeInTheDocument()
   })
 })

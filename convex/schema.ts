@@ -120,6 +120,11 @@ export default defineSchema({
     // stale on purpose. A successful refresh clears the failure (ADR-0013).
     lastSyncedAt: v.optional(v.number()),
     lastSyncFailedAt: v.optional(v.number()),
+    // The provider accepted a write and the cache update did not land. The one
+    // state where what is on screen is knowingly behind what is true, and it
+    // says so rather than claiming the write failed — the provider took it
+    // (ADR-0013). Cleared by the next successful refresh.
+    pendingReconciliation: v.optional(v.boolean()),
   }).index('by_group', ['groupId']),
 
   /**

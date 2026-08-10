@@ -8,7 +8,7 @@
 export const tasks = {
   page: {
     subtitle:
-      'Shared lists — local ones live here, linked ones mirror Notion or Todoist.',
+      'Shared lists — local ones live here, linked ones live in Notion or Todoist.',
     addList: 'Add list',
     emptyTitle: 'No lists yet',
     emptyBody: 'Create a local list, or link one from Notion or Todoist.',
@@ -58,6 +58,10 @@ export const tasks = {
     /** Why a control this Module usually offers is not on offer here. */
     readOnlyProvider: 'Tasks in this list are edited in {provider}.',
     neverSynced: 'Loading this list from {provider}…',
+    /** The provider took the change; only gather's copy is behind. */
+    savedRemotely: 'Saved in {provider}. Gather has not caught up with it yet.',
+    refreshNow: 'Refresh now',
+    writeFailed: 'That change was not saved — nothing here has changed.',
   },
 
   editor: {
@@ -76,7 +80,7 @@ export const tasks = {
   addList: {
     title: 'Add a list',
     local: 'Local list — created and edited here',
-    mirror: '{provider} — read-only mirror',
+    mirror: 'Link a list from {provider}',
     connectFirst: 'Connect {provider} first…',
     listName: 'List name',
     create: 'Create',

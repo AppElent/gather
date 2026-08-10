@@ -219,6 +219,11 @@ export interface TaskListSyncView {
   /** Nothing has been fetched yet: the first open is what fetches it. */
   neverSynced: boolean
   state: 'ready' | 'stale' | 'reconnect' | 'unconfigured'
+  /**
+   * The provider accepted a write that the cache did not record. What is on
+   * screen is knowingly behind what is true, and a refresh settles it.
+   */
+  pendingReconciliation: boolean
 }
 
 export const backend = query({
@@ -257,6 +262,7 @@ export const backend = query({
         lastSyncedAt: list.lastSyncedAt ?? null,
         neverSynced: list.lastSyncedAt === undefined,
         state,
+        pendingReconciliation: list.pendingReconciliation === true,
       },
       readOnly: state !== 'ready',
     }
@@ -367,6 +373,9 @@ export const applyRefresh = internalMutation({
     await ctx.db.patch(args.listId, {
       lastSyncedAt: Date.now(),
       lastSyncFailedAt: undefined,
+      // Settled: whatever the cache was behind on, it has just been read from
+      // the provider directly.
+      pendingReconciliation: undefined,
     })
     return counts
   },

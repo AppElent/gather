@@ -56,15 +56,40 @@ export function TaskListCard({
   const backend = useQuery(api.taskLists.backend, { listId, groupSlug })
   const tasks = useQuery(api.tasks.listByList, { listId, groupSlug })
   const refresh = useAction(api.taskLists.refresh)
-  const commands = useTaskCommands(listId, groupSlug)
+  const commands = useTaskCommands(
+    listId,
+    groupSlug,
+    backend?.provider === 'local',
+  )
 
   const [quickTitle, setQuickTitle] = useState('')
   const [showDetails, setShowDetails] = useState(false)
   const [editingId, setEditingId] = useState<Id<'tasks'> | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState(false)
+  // A key rather than a sentence, so the locale is not a dependency of the
+  // effect or the handler that set it.
+  const [writeOutcome, setWriteOutcome] = useState<
+    'savedRemotely' | 'failed' | null
+  >(null)
   const messages = useMessages()
   const { local, external } = messages.tasks
+
+  /**
+   * Every write goes through here, so that a provider's answer reaches the
+   * reader whatever the control was. Three outcomes, and only one of them is a
+   * failure: a change the provider accepted but could not be cached is *saved*,
+   * and must not be presented as something to try again (ADR-0013).
+   */
+  const run = useCallback(async (command: Promise<{ status: string }>) => {
+    setWriteOutcome(null)
+    try {
+      const result = await command
+      if (result.status === 'savedRemotely') setWriteOutcome('savedRemotely')
+    } catch {
+      setWriteOutcome('failed')
+    }
+  }, [])
 
   const runRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -164,6 +189,26 @@ export function TaskListCard({
         settingsLabel={external.goToSettings}
       />
 
+      {/* The provider took the change and gather's copy is behind. Saying so
+          — with the way to settle it — is the honest report; calling it a
+          failure would invite the reader to send it a second time. */}
+      {(writeOutcome === 'savedRemotely' ||
+        backend.sync?.pendingReconciliation) && (
+        <Notice>
+          {fmt(external.savedRemotely, {
+            provider: providerLabel ?? '',
+          })}{' '}
+          <button
+            type="button"
+            className="font-semibold"
+            onClick={() => void runRefresh()}
+          >
+            {external.refreshNow}
+          </button>
+        </Notice>
+      )}
+      {writeOutcome === 'failed' && <Notice>{external.writeFailed}</Notice>}
+
       {capabilities.create && !readOnly && (
         <>
           <form
@@ -172,7 +217,7 @@ export function TaskListCard({
               const trimmed = quickTitle.trim()
               if (!trimmed) return
               setQuickTitle('')
-              void commands.add({ title: trimmed })
+              void run(commands.add({ title: trimmed }))
             }}
             className="mb-1 flex gap-2"
           >
@@ -204,7 +249,7 @@ export function TaskListCard({
               submitLabel={local.addTask}
               onSubmit={(values: TaskEditorValues) => {
                 setShowDetails(false)
-                void commands.add(values)
+                void run(commands.add(values))
               }}
               onCancel={() => setShowDetails(false)}
             />
@@ -226,7 +271,7 @@ export function TaskListCard({
             submitLabel={messages.common.actions.save}
             onSubmit={(values: TaskEditorValues) => {
               setEditingId(null)
-              void commands.update(t._id, values)
+              void run(commands.update(t._id, values))
             }}
             onCancel={() => setEditingId(null)}
           />
@@ -244,7 +289,7 @@ export function TaskListCard({
             }}
             onToggle={
               capabilities.complete && !readOnly
-                ? () => void commands.toggleDone(t._id)
+                ? () => void run(commands.setDone(t._id, !t.done))
                 : undefined
             }
             actions={
@@ -256,7 +301,7 @@ export function TaskListCard({
                       aria-label={fmt(local.moveUp, { task: t.title })}
                       className={iconButtonClass}
                       disabled={i === 0 || tasks[i - 1].done !== t.done}
-                      onClick={() => void commands.move(t._id, 'up')}
+                      onClick={() => void run(commands.move(t._id, 'up'))}
                     >
                       <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
@@ -267,7 +312,7 @@ export function TaskListCard({
                       disabled={
                         i === tasks.length - 1 || tasks[i + 1].done !== t.done
                       }
-                      onClick={() => void commands.move(t._id, 'down')}
+                      onClick={() => void run(commands.move(t._id, 'down'))}
                     >
                       <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
@@ -288,7 +333,7 @@ export function TaskListCard({
                     type="button"
                     aria-label={fmt(local.delete, { task: t.title })}
                     className={iconButtonClass}
-                    onClick={() => void commands.remove(t._id)}
+                    onClick={() => void run(commands.remove(t._id))}
                   >
                     <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>

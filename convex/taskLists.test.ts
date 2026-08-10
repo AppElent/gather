@@ -789,15 +789,31 @@ describe('a Todoist-backed list', () => {
     return { ...base, connectionId, listId }
   }
 
-  /** Answer the next provider read with these tasks, or with a failure. */
-  function provider(response: unknown[] | { status: number }) {
+  /**
+   * Answer the next provider read with these tasks, or with a failure.
+   *
+   * A read is two requests — the open tasks from REST, the finished ones from
+   * the Sync API — because Todoist drops a completed task out of `/tasks`
+   * entirely and a list that fetched only the active ones would make
+   * completing something look exactly like deleting it.
+   */
+  function provider(
+    active: unknown[] | { status: number },
+    completed: unknown[] = [],
+  ) {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        Array.isArray(response)
-          ? new Response(JSON.stringify(response), { status: 200 })
-          : new Response('{}', { status: response.status }),
-      ),
+      vi.fn().mockImplementation((url: string) => {
+        if (!Array.isArray(active)) {
+          return Promise.resolve(new Response('{}', { status: active.status }))
+        }
+        const body = String(url).includes('/completed/get_all')
+          ? { items: completed }
+          : active
+        return Promise.resolve(
+          new Response(JSON.stringify(body), { status: 200 }),
+        )
+      }),
     )
   }
 
@@ -1035,5 +1051,286 @@ describe('what a Backend says it can do', () => {
       priority: false,
       labels: false,
     })
+  })
+})
+
+/**
+ * Writing to a Todoist-backed list.
+ *
+ * Todoist owns these tasks, so every write goes there first and the cache is
+ * updated only once Todoist has agreed (ADR-0013). What these assert is that
+ * order, from the outside: what Todoist was sent, what the cache says
+ * afterwards, and — when Todoist refuses — that the cache says exactly what it
+ * said before.
+ */
+describe('writing through Todoist', () => {
+  async function seedLinkedWithTask() {
+    const base = await seed()
+    const connectionId = await base.t.mutation(
+      internal.integrations.storeConnection,
+      {
+        groupId: base.jansen,
+        provider: 'todoist',
+        accessToken: 'todoist-token',
+        accountLabel: 'household@example.com',
+        externalAccountId: 'todoist-1',
+        connectedBy: base.aliceId,
+      },
+    )
+    const listId = await base.t
+      .withIdentity(alice)
+      .mutation(api.taskLists.create, {
+        name: 'Household',
+        provider: 'todoist',
+        groupSlug: JANSEN,
+        providerConfig: {
+          connectionId,
+          sourceId: 'p1',
+          sourceName: 'Household',
+        },
+      })
+    // One task already in Todoist and already cached.
+    stubTodoist(() =>
+      jsonBody([{ id: 't1', content: 'Water plants', priority: 1 }]),
+    )
+    await base.t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+    const [cachedTask] = await base.t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    return { ...base, connectionId, listId, cachedTask }
+  }
+
+  function jsonBody(body: unknown, status = 200) {
+    return new Response(JSON.stringify(body), { status })
+  }
+
+  /** Answer every provider request with whatever this returns for its URL. */
+  function stubTodoist(respond: (url: string) => Response) {
+    const calls: Array<{ url: string; init?: RequestInit }> = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        calls.push({ url: String(url), init })
+        return Promise.resolve(
+          String(url).includes('/completed/get_all')
+            ? jsonBody({ items: [] })
+            : respond(String(url)),
+        )
+      }),
+    )
+    return calls
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  async function tasksIn(
+    t: Awaited<ReturnType<typeof seedLinkedWithTask>>['t'],
+    listId: Awaited<ReturnType<typeof seedLinkedWithTask>>['listId'],
+  ) {
+    return await t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+  }
+
+  test('a new task goes to Todoist first, and the cache takes Todoist’s version', async () => {
+    const { t, listId } = await seedLinkedWithTask()
+    const calls = stubTodoist(() =>
+      // Todoist normalised the title; the cache believes Todoist, not us.
+      jsonBody({ id: 'new-1', content: 'Buy milk (2L)', priority: 1 }),
+    )
+
+    expect(
+      await t.withIdentity(alice).action(api.externalTasks.create, {
+        listId,
+        groupSlug: JANSEN,
+        title: 'Buy milk',
+      }),
+    ).toEqual({ status: 'ok' })
+
+    expect(calls[0].url).toContain('/tasks')
+    expect(calls[0].init?.method).toBe('POST')
+    expect((await tasksIn(t, listId)).map((task) => task.title)).toEqual([
+      'Water plants',
+      'Buy milk (2L)',
+    ])
+  })
+
+  test('an edit reaches Todoist and then the cache', async () => {
+    const { t, listId, cachedTask } = await seedLinkedWithTask()
+    stubTodoist(() =>
+      jsonBody({ id: 't1', content: 'Water the plants', priority: 4 }),
+    )
+
+    await t.withIdentity(alice).action(api.externalTasks.update, {
+      taskId: cachedTask._id,
+      groupSlug: JANSEN,
+      title: 'Water the plants',
+    })
+
+    expect((await tasksIn(t, listId))[0]).toMatchObject({
+      title: 'Water the plants',
+      priority: 1,
+    })
+  })
+
+  test('completing and reopening survive the round trip', async () => {
+    const { t, listId, cachedTask } = await seedLinkedWithTask()
+    const calls = stubTodoist(() => new Response(null, { status: 204 }))
+
+    await t.withIdentity(alice).action(api.externalTasks.setDone, {
+      taskId: cachedTask._id,
+      groupSlug: JANSEN,
+      done: true,
+    })
+    expect(calls.at(-1)?.url).toContain('/close')
+    expect((await tasksIn(t, listId))[0].done).toBe(true)
+
+    await t.withIdentity(alice).action(api.externalTasks.setDone, {
+      taskId: cachedTask._id,
+      groupSlug: JANSEN,
+      done: false,
+    })
+    expect(calls.at(-1)?.url).toContain('/reopen')
+    expect((await tasksIn(t, listId))[0].done).toBe(false)
+  })
+
+  test('a deletion Todoist accepted is a deletion here', async () => {
+    const { t, listId, cachedTask } = await seedLinkedWithTask()
+    stubTodoist(() => new Response(null, { status: 204 }))
+
+    await t.withIdentity(alice).action(api.externalTasks.remove, {
+      taskId: cachedTask._id,
+      groupSlug: JANSEN,
+    })
+
+    expect(await tasksIn(t, listId)).toEqual([])
+  })
+
+  test('a write Todoist refused changes nothing here', async () => {
+    const { t, listId, cachedTask } = await seedLinkedWithTask()
+    stubTodoist(() => jsonBody({}, 400))
+
+    await expect(
+      t.withIdentity(alice).action(api.externalTasks.update, {
+        taskId: cachedTask._id,
+        groupSlug: JANSEN,
+        title: 'Never sent',
+      }),
+    ).rejects.toThrow(/refused that change/)
+
+    // The point of provider-first: an unacknowledged write leaves no trace.
+    expect((await tasksIn(t, listId))[0].title).toBe('Water plants')
+  })
+
+  test('each kind of provider failure says what to do about it', async () => {
+    const { t, cachedTask } = await seedLinkedWithTask()
+
+    for (const [status, expected] of [
+      [401, /expired/],
+      [429, /busy/],
+      [404, /no longer in todoist/i],
+      [500, /refused/],
+    ] as const) {
+      stubTodoist(() => jsonBody({}, status))
+      await expect(
+        t.withIdentity(alice).action(api.externalTasks.remove, {
+          taskId: cachedTask._id,
+          groupSlug: JANSEN,
+        }),
+      ).rejects.toThrow(expected)
+    }
+  })
+
+  test('a disconnected account cannot be written through', async () => {
+    const { t, listId, cachedTask, connectionId } = await seedLinkedWithTask()
+    await t.withIdentity(alice).mutation(api.integrations.disconnect, {
+      connectionId,
+      groupSlug: JANSEN,
+    })
+    const calls = stubTodoist(() => jsonBody({ id: 'x', content: 'x', priority: 1 }))
+
+    for (const run of [
+      t.withIdentity(alice).action(api.externalTasks.create, {
+        listId,
+        groupSlug: JANSEN,
+        title: 'While disconnected',
+      }),
+      t.withIdentity(alice).action(api.externalTasks.remove, {
+        taskId: cachedTask._id,
+        groupSlug: JANSEN,
+      }),
+    ]) {
+      await expect(run).rejects.toThrow(/disconnected/)
+    }
+    // Refused before anything left the building — no token to leave with.
+    expect(calls).toEqual([])
+  })
+
+  test('is refused from another Group the caller is in', async () => {
+    const { t, listId, cachedTask } = await seedLinkedWithTask()
+    stubTodoist(() => jsonBody({ id: 'x', content: 'x', priority: 1 }))
+
+    await expect(
+      t.withIdentity(alice).action(api.externalTasks.create, {
+        listId,
+        groupSlug: DE_VRIES,
+        title: 'Snuck in',
+      }),
+    ).rejects.toThrow(/List not found/)
+    await expect(
+      t.withIdentity(alice).action(api.externalTasks.setDone, {
+        taskId: cachedTask._id,
+        groupSlug: DE_VRIES,
+        done: true,
+      }),
+    ).rejects.toThrow(/List not found/)
+  })
+
+  test('a write the cache did not record is saved, and says so until a refresh', async () => {
+    const { t, listId } = await seedLinkedWithTask()
+
+    // The state itself, reached the way the action reaches it. It is not an
+    // error: Todoist took the change, and only gather's copy is behind.
+    await t.mutation(internal.externalTasks.markPendingReconciliation, {
+      listId,
+    })
+    expect(
+      (
+        await t
+          .withIdentity(alice)
+          .query(api.taskLists.backend, { listId, groupSlug: JANSEN })
+      ).sync?.pendingReconciliation,
+    ).toBe(true)
+
+    stubTodoist(() =>
+      jsonBody([{ id: 't1', content: 'Water plants', priority: 1 }]),
+    )
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    expect(
+      (
+        await t
+          .withIdentity(alice)
+          .query(api.taskLists.backend, { listId, groupSlug: JANSEN })
+      ).sync?.pendingReconciliation,
+    ).toBe(false)
+  })
+
+  test('a local list is not written through the external path', async () => {
+    const { t, jansenList } = await seedLinkedWithTask()
+
+    await expect(
+      t.withIdentity(alice).action(api.externalTasks.create, {
+        listId: jansenList,
+        groupSlug: JANSEN,
+        title: 'x',
+      }),
+    ).rejects.toThrow(/written locally/)
   })
 })
