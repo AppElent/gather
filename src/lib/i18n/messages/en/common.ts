@@ -42,6 +42,8 @@ export const common = {
     hint: 'Shown when there is no picture of this.',
     choose: 'Choose icon',
     change: 'Change icon',
+    chooseTitle: 'Choose an icon',
+    close: 'Close icon picker',
     none: 'No icon',
   },
 

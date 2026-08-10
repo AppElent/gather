@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMessages } from '../../lib/i18n'
+import { IconPickerSheet } from './IconPickerSheet'
 
 /**
  * The emoji a food or a one-off may wear, curated (#94, #75).
@@ -114,38 +115,18 @@ export function IconPicker({ value, onChange, disabled }: Props) {
       >
         {value ?? '🍽️'}
       </button>
-      {open && <div className="flex flex-wrap gap-1">
-        {FOOD_ICONS.map((candidate) => {
-          const chosen = candidate === value
-          return (
-            <button
-              key={candidate}
-              type="button"
-              disabled={disabled}
-              aria-pressed={chosen}
-              onClick={() => onChange(chosen ? undefined : candidate)}
-              className={`flex min-h-11 min-w-11 items-center justify-center rounded-[var(--app-radius)] border text-xl ${
-                chosen
-                  ? 'border-[var(--app-fg)] bg-[var(--app-bg)]'
-                  : 'border-transparent'
-              }`}
-            >
-              {candidate}
-            </button>
-          )
-        })}
-        {value !== undefined && (
-          <button
-            type="button"
-            disabled={disabled}
-            aria-label={icon.none}
-            onClick={() => onChange(undefined)}
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] text-sm opacity-60"
-          >
-            ✕
-          </button>
-        )}
-      </div>}
+      <IconPickerSheet
+        open={open}
+        icons={FOOD_ICONS}
+        value={value}
+        disabled={disabled}
+        onChoose={(candidate) => {
+          onChange(candidate === value ? undefined : candidate)
+          setOpen(false)
+        }}
+        onClear={() => onChange(undefined)}
+        onClose={() => setOpen(false)}
+      />
     </fieldset>
   )
 }

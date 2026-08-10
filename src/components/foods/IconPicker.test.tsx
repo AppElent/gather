@@ -30,14 +30,16 @@ test('the set is curated rather than every emoji there is', () => {
   expect(new Set(FOOD_ICONS).size).toBe(FOOD_ICONS.length)
 })
 
-test('choosing one reports it', () => {
+test('choosing an icon in the sheet reports it and collapses the picker', () => {
   const onChange = vi.fn()
   renderWithI18n(<IconPicker onChange={onChange} />)
 
   fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+  expect(screen.getByRole('dialog', { name: 'Choose an icon' })).toBeVisible()
   fireEvent.click(screen.getByRole('button', { name: '🍕' }))
 
   expect(onChange).toHaveBeenCalledWith('🍕')
+  expect(screen.queryByRole('dialog')).toBeNull()
 })
 
 test('choosing another replaces the first', () => {
@@ -80,6 +82,8 @@ test('pressing the chosen one again clears it', () => {
 
 test('there is nothing to clear until something is chosen', () => {
   renderWithI18n(<IconPicker onChange={vi.fn()} />)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
 
   expect(screen.queryByRole('button', { name: 'No icon' })).toBeNull()
 })

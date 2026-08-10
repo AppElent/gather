@@ -29,6 +29,8 @@ export const common = {
     hint: 'Wordt getoond als er geen foto van is.',
     choose: 'Icoon kiezen',
     change: 'Icoon wijzigen',
+    chooseTitle: 'Kies een icoon',
+    close: 'Icoonkiezer sluiten',
     none: 'Geen icoon',
   },
 
