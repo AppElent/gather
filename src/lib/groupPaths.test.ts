@@ -48,6 +48,15 @@ describe('building a Group URL', () => {
     )
   })
 
+  // Both destinations Nutrition points at are Group-scoped addresses holding
+  // content that is not the Group's: the Catalog belongs to nobody and a Combo
+  // belongs to a person. The slug rides along so following the link cannot
+  // move anybody between Groups (ADR-0002).
+  test('gives the Combos library and the Catalog addresses inside the Group', () => {
+    expect(groupHref('combos', 'me-alice')).toBe('/g/me-alice/combos')
+    expect(groupHref('foods', 'me-alice')).toBe('/g/me-alice/foods')
+  })
+
   test('escapes every param on its way into a string path', () => {
     expect(groupHref('nutrition', 'a b')).toBe('/g/a%20b/nutrition')
     expect(groupHref('recipe', 'a b', { recipeId: 'r 1' })).toBe(

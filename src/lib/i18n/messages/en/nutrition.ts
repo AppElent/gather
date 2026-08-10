@@ -43,6 +43,17 @@ export const diary = {
     over: '{amount} over',
   },
 
+  /**
+   * The two libraries the diary points at (#100). Both were reachable only by
+   * typing their address before, which made the Catalog feel like a place the
+   * app did not have and Combos like something only the add sheet knew about.
+   */
+  libraries: {
+    heading: 'Libraries',
+    foods: 'Foods',
+    combos: 'Combos',
+  },
+
   slot: {
     add: '+ Add',
     empty: 'Nothing logged yet.',
@@ -143,4 +154,21 @@ export const diary = {
   },
 }
 
-export const nutrition = { meals, units, diary }
+/**
+ * The Combos library: somewhere to see what you have saved (#100).
+ *
+ * Browsing only. There is no builder to open here and there never will be — a
+ * Combo is made by saving a meal slot you have already filled in, and that is
+ * what the empty state says rather than offering a button that cannot exist
+ * (ADR-0012). The words for what is *inside* a Combo are `diary.combos`, which
+ * the add sheet uses too.
+ */
+export const combosLibrary = {
+  title: 'Combos',
+  back: 'Back to the diary',
+  empty: 'No combos yet.',
+  emptyHow:
+    'A combo is made out of a meal you have already filled in: open a day in the diary, fill in a meal, then use “Save as combo” on it. There is no separate builder to keep.',
+}
+
+export const nutrition = { meals, units, diary, combosLibrary }

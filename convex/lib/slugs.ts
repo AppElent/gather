@@ -32,6 +32,10 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   // registry entry, no sidebar row — so nothing else claims the segment on its
   // behalf, and `groupPaths.segments.test.ts` holds it here instead.
   'foods',
+  // The Combos library, reserved for the same reason as `foods` above: it has a
+  // Group-level route and is not a Module — a Combo is Personal (ADR-0012), so
+  // there is no registry entry to claim the segment on its behalf.
+  'combos',
   'new',
   'all',
   'home',

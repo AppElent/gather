@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
@@ -81,6 +82,7 @@ export function NutritionPage({
 
   const messages = useMessages()
   const { diary, meals } = messages.nutrition
+  const { libraries } = diary
 
   const totals = sumFacts((entries ?? []).map((e) => e.nutrition))
 
@@ -94,6 +96,28 @@ export function NutritionPage({
           {diary.personalNote}
         </p>
       )}
+
+      {/* The two libraries the diary draws on. Both were addresses you had to
+          know before (#100): the Catalog had no way in from here at all, and a
+          Combo could only be met inside the add sheet. They sit above the day
+          rather than in the shell because neither is a Module — Foods is
+          Catalog and a Combo is Personal — so nothing in the sidebar or the
+          dock claims a row for them, and a phone reaches them the same way a
+          desktop does. */}
+      <nav aria-label={libraries.heading} className="mb-4 flex flex-wrap gap-2">
+        <Link
+          {...nav.foods}
+          className="inline-flex min-h-11 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm no-underline"
+        >
+          {libraries.foods}
+        </Link>
+        <Link
+          {...nav.combos}
+          className="inline-flex min-h-11 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm no-underline"
+        >
+          {libraries.combos}
+        </Link>
+      </nav>
 
       <div className="mb-4 flex items-center justify-between gap-2">
         <button
