@@ -44,10 +44,10 @@ export function RecipesPage({
           <ViewModeToggle mode={viewMode} onChange={setViewMode} />
           <Link
             {...nav.create}
-            className="inline-flex min-h-9 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold text-[var(--app-fg)] no-underline"
+            aria-label={list.add}
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-fg)] no-underline"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
-            {list.add}
           </Link>
         </div>
       </div>
@@ -70,9 +70,10 @@ export function RecipesPage({
             </p>
             <Link
               {...nav.create}
-              className="mx-auto inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold no-underline"
+              aria-label={list.emptyAction}
+              className="mx-auto inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] no-underline"
             >
-              {list.emptyAction}
+              <Plus className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
         </SurfaceCard>

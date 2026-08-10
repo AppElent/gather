@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useAction, useQuery } from 'convex/react'
+import { Pencil, RefreshCw } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, useMessages } from '../../lib/i18n'
@@ -42,9 +43,10 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
         {food.seedKey === undefined ? (
           <Link
             {...nav.edit(foodId)}
-            className="rounded border px-3 py-1.5 text-sm no-underline"
+            aria-label={messages.common.actions.edit}
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border no-underline"
           >
-            {messages.common.actions.edit}
+            <Pencil className="h-4 w-4" aria-hidden="true" />
           </Link>
         ) : (
           <span className="rounded border border-dashed px-3 py-1.5 text-sm opacity-60">
@@ -109,7 +111,8 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
       {food.barcode && (
         <button
           type="button"
-          className="rounded border px-3 py-1.5 text-sm"
+          aria-label={detail.refresh}
+          className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border"
           onClick={() =>
             confirm({
               title: detail.refreshTitle,
@@ -120,7 +123,7 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
             })
           }
         >
-          {detail.refresh}
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
         </button>
       )}
 

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
@@ -65,13 +66,15 @@ export function RecipeDetailPage({
           <div className="flex gap-2">
             <Link
               {...nav.edit(recipeId)}
-              className="rounded border px-3 py-1.5 text-sm no-underline"
+              aria-label={messages.common.actions.edit}
+              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border no-underline"
             >
-              {messages.common.actions.edit}
+              <Pencil className="h-4 w-4" aria-hidden="true" />
             </Link>
             <button
               type="button"
-              className="rounded border px-3 py-1.5 text-sm"
+              aria-label={messages.common.actions.delete}
+              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border"
               onClick={async () => {
                 setError(null)
                 try {
@@ -84,7 +87,7 @@ export function RecipeDetailPage({
                 }
               }}
             >
-              {messages.common.actions.delete}
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         )}
@@ -179,9 +182,10 @@ export function RecipeDetailPage({
             )}
             <Link
               {...nav.edit(recipeId)}
-              className="rounded border border-amber-400 px-2 py-1 text-xs font-medium no-underline"
+              aria-label={detail.editManually}
+              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border border-amber-400 no-underline"
             >
-              {detail.editManually}
+              <Pencil className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
         </div>
