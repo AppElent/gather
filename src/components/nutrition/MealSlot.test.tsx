@@ -84,6 +84,80 @@ test('renders entries, and + Add goes to the add sheet for this day and meal', (
   )
 })
 
+test('shows a kcal subtotal for the meal, summing the entries on show', () => {
+  renderWithI18n(
+    <MealSlot
+      nav={nav}
+      label="Breakfast"
+      entries={[
+        ...entries,
+        {
+          _id: 'e2',
+          label: 'Banana',
+          quantity: 1,
+          quantityUnit: 'piece' as const,
+          meal: 'breakfast' as const,
+          date: '2026-07-18',
+          // No calories on this one: a partial snapshot still contributes what
+          // it has, and the entries that do have kcal still add up.
+          nutrition: { protein: 1.3 },
+        },
+        {
+          _id: 'e3',
+          label: 'Yoghurt',
+          quantity: 150,
+          quantityUnit: 'g' as const,
+          meal: 'breakfast' as const,
+          date: '2026-07-18',
+          nutrition: { calories: 97.5 },
+        },
+      ]}
+      addLink={addLink}
+      onUpdateEntry={vi.fn()}
+      onDeleteEntry={vi.fn()}
+    />,
+  )
+  expect(screen.getByText('397.5 kcal')).toBeDefined()
+})
+
+test('shows no subtotal when nothing in the meal has calories', () => {
+  renderWithI18n(
+    <MealSlot
+      nav={nav}
+      label="Breakfast"
+      entries={[
+        {
+          _id: 'e2',
+          label: 'Banana',
+          quantity: 1,
+          quantityUnit: 'piece' as const,
+          meal: 'breakfast' as const,
+          date: '2026-07-18',
+          nutrition: { protein: 1.3 },
+        },
+      ]}
+      addLink={addLink}
+      onUpdateEntry={vi.fn()}
+      onDeleteEntry={vi.fn()}
+    />,
+  )
+  expect(screen.queryByText(/kcal/)).toBeNull()
+})
+
+test('shows no subtotal for an empty meal', () => {
+  renderWithI18n(
+    <MealSlot
+      nav={nav}
+      label="Breakfast"
+      entries={[]}
+      addLink={addLink}
+      onUpdateEntry={vi.fn()}
+      onDeleteEntry={vi.fn()}
+    />,
+  )
+  expect(screen.queryByText(/kcal/)).toBeNull()
+})
+
 test('deleting an entry calls onDeleteEntry with its id', () => {
   const onDeleteEntry = vi.fn()
   renderWithI18n(

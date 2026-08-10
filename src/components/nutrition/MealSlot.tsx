@@ -1,7 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import type { MealName } from '../../../convex/lib/consumption'
+import { sumFacts } from '../../../convex/lib/consumption'
 import type { AppLink } from '../../lib/appLink'
-import { useMessages } from '../../lib/i18n'
+import { fmt, useMessages } from '../../lib/i18n'
 import type { ConsumptionEntryData } from './ConsumptionEntryRow'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
 import type { NutritionNav } from './nutritionNav'
@@ -33,10 +34,23 @@ export function MealSlot({
 }: Props) {
   const { slot } = useMessages().nutrition.diary
 
+  // The same summation the day's totals use, over the entries this slot is
+  // already rendering — so a meal's kcal and the day's kcal cannot drift, and
+  // a meal whose entries carry no calories has no `calories` key at all rather
+  // than a fabricated zero.
+  const subtotal = sumFacts(entries.map((entry) => entry.nutrition)).calories
+
   return (
     <section className="mb-4 rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-medium">{label}</h2>
+        <h2 className="font-medium">
+          {label}
+          {subtotal !== undefined && (
+            <span className="ml-2 text-sm font-normal opacity-60">
+              {fmt(slot.subtotal, { calories: subtotal })}
+            </span>
+          )}
+        </h2>
         <Link
           {...addLink}
           className="inline-flex min-h-11 items-center text-sm underline"
