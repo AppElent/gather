@@ -482,9 +482,9 @@ describe('where a food’s figures came from', () => {
 })
 
 /**
- * Every Open Food Facts import is reviewed before it is saved (#93): choosing a
- * result opens the pre-filled form, and *saving* is what imports the food and
- * logs the entry.
+ * A person may check an Open Food Facts result before it is saved (#112).
+ * Choosing that secondary action opens the pre-filled form, and *saving* is
+ * what imports the food and logs the entry.
  *
  * The property that makes that safe is the first one below — the lookup that
  * fills the form is a read, all the way down. Somebody who opens the review and

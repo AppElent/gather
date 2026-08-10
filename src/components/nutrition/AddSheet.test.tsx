@@ -66,6 +66,8 @@ const existingFood = vi.hoisted(() => ({ value: null as unknown }))
 const justAddedFood = vi.hoisted(() => ({ value: null as unknown }))
 /** What `foodsLookup.lookupBarcode` finds on Open Food Facts. */
 const offProduct = vi.hoisted(() => ({ value: null as unknown }))
+/** Makes the next fast import fail, to exercise the retry state. */
+const offImportFailure = vi.hoisted(() => ({ value: null as Error | null }))
 const calls = vi.hoisted(() => ({ value: [] as Array<[string, unknown]> }))
 
 vi.mock('convex/react', () => ({
@@ -96,6 +98,11 @@ vi.mock('convex/react', () => ({
   },
   useAction: (name: string) => async (args: { term?: string }) => {
     if (name === 'foodsLookup:lookupBarcode') return offProduct.value
+    if (name === 'foodsLookup:importFromOff') {
+      calls.value.push([name, args])
+      if (offImportFailure.value) throw offImportFailure.value
+      return 'food9'
+    }
     if (name !== 'foodsLookup:searchByName') return null
     const term = (args.term ?? '').toLowerCase()
     return offResults.value.filter((r) => r.name.toLowerCase().includes(term))
@@ -114,6 +121,7 @@ vi.mock('../../../convex/_generated/api', () => ({
     foodsLookup: {
       searchByName: 'foodsLookup:searchByName',
       lookupBarcode: 'foodsLookup:lookupBarcode',
+      importFromOff: 'foodsLookup:importFromOff',
     },
     recipes: { listAcrossMyGroups: 'recipes:listAcrossMyGroups' },
     combos: { list: 'combos:list', replaceItems: 'combos:replaceItems' },
@@ -196,6 +204,7 @@ beforeEach(() => {
   existingFood.value = null
   justAddedFood.value = null
   offProduct.value = null
+  offImportFailure.value = null
   // jsdom has no `navigator.mediaDevices`, which is what the scanner asks for
   // first. A stand-in that refuses is the state a phone with the camera denied
   // is in, and it leaves the manual barcode entry — the part this suite drives.
@@ -306,23 +315,68 @@ test('digits still being typed are an ordinary search, not a lookup', async () =
   expect(screen.queryByText('Volle melk')).toBeNull()
 })
 
-test('choosing an Open Food Facts result opens the review form and writes nothing', async () => {
+test('choosing an Open Food Facts result imports it and returns ready to log', async () => {
   renderSheet()
   await search('volle melk')
   await waitFor(() => expect(screen.getByText('Open Food Facts')).toBeDefined())
   fireEvent.click(screen.getByText('Volle melk'))
 
-  // No serving picker, no confirm: there is nothing to log yet, because there
-  // is no food yet. What is offered is the review that would make one.
-  expect(screen.queryByText('Add to diary')).toBeNull()
-  const review = screen.getByText('Check and add')
+  await waitFor(() => expect(calls.value).toHaveLength(1))
+  expect(calls.value).toEqual([
+    [
+      'foodsLookup:importFromOff',
+      {
+        barcode: '8712345678901',
+        name: 'Volle melk',
+        brand: 'Zaanse Hoeve',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 64 },
+        nutritionSource: 'imported',
+      },
+    ],
+  ])
+  expect(navigated.value).toEqual([
+    {
+      to: '/g/$groupSlug/nutrition/add',
+      params: { groupSlug: 'jansen-household' },
+      search: { date: '2026-07-18', meal: 'breakfast', food: 'food9' },
+    },
+  ])
+})
+
+test('checking an Open Food Facts result first still opens review without importing', async () => {
+  renderSheet()
+  await search('volle melk')
+  await waitFor(() => expect(screen.getByText('Open Food Facts')).toBeDefined())
+
+  const review = screen.getByText('Check first')
   expect(review).toHaveAttribute(
     'href',
     '/g/jansen-household/foods/new?barcode=8712345678901&returnDate=2026-07-18&returnMeal=breakfast',
   )
-  // Following it is a navigation, not a write. Nothing has been imported and
-  // nothing has been logged.
   expect(calls.value).toEqual([])
+})
+
+test('a failed Open Food Facts import stays put and can be retried', async () => {
+  offImportFailure.value = new Error('offline')
+  renderSheet()
+  await search('volle melk')
+  await waitFor(() => expect(screen.getByText('Open Food Facts')).toBeDefined())
+
+  fireEvent.click(screen.getByText('Volle melk'))
+
+  await waitFor(() =>
+    expect(
+      screen.getByText('Couldn’t add this food — try again.'),
+    ).toBeDefined(),
+  )
+  expect(navigated.value).toEqual([])
+
+  offImportFailure.value = null
+  fireEvent.click(screen.getByText('Volle melk'))
+
+  await waitFor(() => expect(navigated.value).toHaveLength(1))
+  expect(calls.value).toHaveLength(2)
 })
 
 test('a scanned barcode you already have skips review entirely', async () => {
@@ -345,7 +399,7 @@ test('a scanned barcode you already have skips review entirely', async () => {
   expect(calls.value[0][1]).toMatchObject({ foodId: 'food9' })
 })
 
-test('a scanned product nobody has is reviewed before anything is written', async () => {
+test('a scanned product nobody has imports and returns ready to log', async () => {
   offProduct.value = {
     name: 'Nutella',
     brand: 'Ferrero',
@@ -354,16 +408,26 @@ test('a scanned product nobody has is reviewed before anything is written', asyn
   renderSheet()
   await scan('3017620422003')
 
-  await waitFor(() => expect(navigated.value).toHaveLength(1))
-  expect(navigated.value[0]).toMatchObject({
-    to: '/g/$groupSlug/foods/new',
-    search: {
+  await waitFor(() => expect(calls.value).toHaveLength(1))
+  expect(calls.value[0]).toEqual([
+    'foodsLookup:importFromOff',
+    {
       barcode: '3017620422003',
-      returnDate: '2026-07-18',
-      returnMeal: 'breakfast',
+      name: 'Nutella',
+      brand: 'Ferrero',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 539 },
+      nutritionSource: 'imported',
+    },
+  ])
+  expect(navigated.value[0]).toMatchObject({
+    to: '/g/$groupSlug/nutrition/add',
+    search: {
+      date: '2026-07-18',
+      meal: 'breakfast',
+      food: 'food9',
     },
   })
-  expect(calls.value).toEqual([])
 })
 
 test('a scanned product with no name is asked about rather than imported as ""', async () => {

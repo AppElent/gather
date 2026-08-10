@@ -105,6 +105,9 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const createEntries = useMutation(api.consumption.createMany)
   const replaceComboItems = useMutation(api.combos.replaceItems)
   const lookupBarcode = useAction(api.foodsLookup.lookupBarcode)
+  // This is deliberately the action, not `foods.upsertFromOff`: it fetches and
+  // stores Open Food Facts' picture as part of the import (#69).
+  const importFromOff = useAction(api.foodsLookup.importFromOff)
   const convex = useConvex()
   const navigate = useNavigate()
   const { announce } = useJustLogged()
@@ -127,6 +130,15 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
     barcode?: string
     message?: string
   } | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState<{
+    barcode: string
+    message: string
+  } | null>(null)
+  // State only updates after React handles this event. The ref closes the gap
+  // between two quick taps so they cannot start two imports before the buttons
+  // rerender disabled.
+  const importInFlight = useRef(false)
 
   const toggle = (key: string) =>
     setExpanded((current) => (current === key ? null : key))
@@ -160,14 +172,46 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   }
 
   /**
+   * The fast OFF path: create the food, including its picture, then reopen
+   * this same meal with its stored card expanded for the amount choice.
+   *
+   * OFF supplies figures per 100g and no reliable unit signal, which is the
+   * same `g` default the review form starts with. Checking first remains how a
+   * person changes that default or any imported figure before writing.
+   */
+  async function importOff(result: OffSearchResult) {
+    if (importInFlight.current) return
+    importInFlight.current = true
+    setImporting(true)
+    setImportError(null)
+    try {
+      const id = await importFromOff({
+        barcode: result.barcode,
+        name: result.name,
+        brand: result.brand,
+        baseUnit: 'g',
+        nutritionPer100: result.nutritionPer100,
+        nutritionSource: 'imported',
+        ...(result.servings?.length ? { servings: result.servings } : {}),
+        ...(result.imageUrl ? { imageUrl: result.imageUrl } : {}),
+      })
+      navigate(nav.addEntry(date, meal, id))
+    } catch {
+      setImportError({ barcode: result.barcode, message: foodAdd.importFailed })
+    } finally {
+      importInFlight.current = false
+      setImporting(false)
+    }
+  }
+
+  /**
    * A scanned barcode.
    *
    * A product you already have is not an import: it goes straight to the
    * expanded card, ready to log, which is the one-tap path #63/#66 built. A
-   * product that is *new* is an import, and every import is reviewed before
-   * anything is written (#93) — including the Open Food Facts products that
-   * carry no `product_name` at all, which used to be imported under the name
-   * `""` because nothing on this path ever asked.
+   * named product that is *new* takes the fast import path. A product with no
+   * `product_name` still opens review, whose required name field prevents an
+   * import under the name `""` (#112).
    */
   async function onBarcode(barcode: string) {
     setScanFailure(null)
@@ -186,7 +230,11 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
         return
       }
       setScanning(false)
-      navigate(review({ barcode }))
+      if (!mapped.name.trim()) {
+        navigate(review({ barcode }))
+        return
+      }
+      await importOff({ ...mapped, barcode })
     } catch {
       setScanFailure({ message: foodAdd.barcodeFailed })
     }
@@ -444,8 +492,13 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
             <OffCard
               key={result.barcode}
               result={result}
-              expanded={expanded === `off:${result.barcode}`}
-              onToggle={() => toggle(`off:${result.barcode}`)}
+              importing={importing}
+              error={
+                importError?.barcode === result.barcode
+                  ? importError.message
+                  : null
+              }
+              onImport={() => importOff(result)}
               reviewLink={review({ barcode: result.barcode })}
             />
           ))}
@@ -751,54 +804,64 @@ function RecipeCard({
 }
 
 /**
- * An Open Food Facts result is not a food yet, and choosing one does not make
- * it one: it opens the food form pre-filled from the mapping, and *saving* is
- * what imports the food and logs the entry (#93).
- *
- * This card writes nothing at all, which is the whole point. Open Food Facts
- * data is thin often enough — a missing nutrient, no serving, an unhelpful or
- * absent name — that logging something wrong quickly is worse than logging
- * something right slowly. The one-tap path is still there through your own
- * foods and Combos, which is where repeats live.
+ * Tapping an Open Food Facts result imports it, then returns to this meal with
+ * the newly stored card expanded for its amount. Review remains available as a
+ * secondary action for the times its incomplete data needs correcting (#112).
  */
 function OffCard({
   result,
-  expanded,
-  onToggle,
+  importing,
+  error,
+  onImport,
   reviewLink,
 }: {
   result: OffSearchResult
-  expanded: boolean
-  onToggle: () => void
+  importing: boolean
+  error: string | null
+  onImport: () => void
   reviewLink: AppLink
 }) {
   const { foodAdd } = useMessages().nutrition.diary
 
   return (
-    <ResultCard
-      thumbnail={<FoodThumbnail src={result.imageUrl} alt={result.name} />}
-      title={result.name}
-      subtitle={result.brand}
-      meta={
-        result.nutritionPer100.calories !== undefined
-          ? fmt(foodAdd.perHundred, {
-              calories: Math.round(result.nutritionPer100.calories),
-            })
-          : undefined
-      }
-      expanded={expanded}
-      onToggle={onToggle}
-    >
-      {/* What Open Food Facts has, per 100, before anybody agrees to it —
-          which is exactly what the review form opens holding. */}
-      <NutritionBreakdown facts={result.nutritionPer100} />
-      <p className="mt-3 text-xs opacity-60">{foodAdd.reviewHint}</p>
-      <div className="mt-3">
-        <Link {...reviewLink} className={`${confirmClass} inline-block py-2.5`}>
+    <li className="min-w-0 rounded-[var(--app-radius)] border border-[var(--app-border)]">
+      <div className="flex items-center gap-2 px-3 py-2">
+        <button
+          type="button"
+          disabled={importing}
+          onClick={onImport}
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left disabled:opacity-60"
+        >
+          <FoodThumbnail src={result.imageUrl} alt={result.name} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium">
+              {result.name}
+            </span>
+            {result.brand && (
+              <span className="block truncate text-xs opacity-60">
+                {result.brand}
+              </span>
+            )}
+          </span>
+          {result.nutritionPer100.calories !== undefined && (
+            <span className="shrink-0 text-xs opacity-60">
+              {fmt(foodAdd.perHundred, {
+                calories: Math.round(result.nutritionPer100.calories),
+              })}
+            </span>
+          )}
+        </button>
+        <Link
+          {...reviewLink}
+          className="flex min-h-11 shrink-0 items-center text-sm underline"
+        >
           {foodAdd.review}
         </Link>
       </div>
-    </ResultCard>
+      <p className="border-t border-[var(--app-border)] px-3 py-2 text-xs opacity-60">
+        {error ?? foodAdd.reviewHint}
+      </p>
+    </li>
   )
 }
 

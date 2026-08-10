@@ -130,10 +130,10 @@ export const diary = {
   foodAdd: {
     barcodeFailed: 'Couldn’t look up that barcode — try again.',
     notFound: 'Not found.',
-    /** What choosing an Open Food Facts result does now: opens it, saves nothing (#93). */
-    review: 'Check and add',
+    review: 'Check first',
     reviewHint:
-      'Open Food Facts data is often incomplete. Check it, then saving adds the food and brings you back here to log it.',
+      'Imports this food with Open Food Facts’ figures. Check first to review or correct them.',
+    importFailed: 'Couldn’t add this food — try again.',
     addToLibrary: 'Add it to the foods library',
     addToLibraryAfter: 'first.',
     searching: 'Searching Open Food Facts…',

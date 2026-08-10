@@ -41,9 +41,9 @@ export function isOffImageUrl(url: string): boolean {
   }
 }
 
-// Fetches + maps a barcode from Open Food Facts, without saving anything —
-// the client shows the result for review and calls `foods.upsertFromOff`
-// (or falls back to a blank manual form) only once the user confirms.
+// Fetches + maps a barcode from Open Food Facts, without saving anything. The
+// client may import a named result directly, or show it for review first; a
+// nameless result always needs that required-name form.
 export const lookupBarcode = action({
   args: { barcode: v.string() },
   handler: async (ctx, args) => {
@@ -143,10 +143,9 @@ export const importFromOff = action({
     nutritionPer100: nutritionValidator,
     servings: v.optional(v.array(servingValidator)),
     imageUrl: v.optional(v.string()),
-    // Carried through rather than assumed: every import is now reviewed in the
-    // food form before it is saved (#93), and somebody who corrected a figure
-    // in that form arrives here saying `manual`. Absent still means `imported`,
-    // which `foods.upsertFromOff` is the one to decide.
+    // A direct import carries its figures as `imported`; somebody who checks
+    // first and corrects one arrives here saying `manual`. Absent still means
+    // `imported`, which `foods.upsertFromOff` is the one to decide (#112).
     nutritionSource: v.optional(nutritionSourceValidator),
     // The emoji picked while reviewing (#94) — which is where one is most
     // obviously missing, because an Open Food Facts product with no photograph

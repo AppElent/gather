@@ -219,10 +219,9 @@ export const upsertFromOff = mutation({
     // Already fetched and stored by `foodsLookup.importFromOff`, which is the
     // only thing that can make the network call this needs.
     imageId: v.optional(v.id('_storage')),
-    // Every import is reviewed before it is saved (spec §6), so "imported" is
-    // the default rather than the certainty: a person who corrected the
-    // figures in that review form sends `manual` instead, and the food says
-    // the true thing about the numbers it actually carries.
+    // A direct import uses `imported`; a person who checked first and
+    // corrected the figures sends `manual` instead, and the food says the
+    // true thing about the numbers it actually carries (#112).
     nutritionSource: v.optional(nutritionSourceValidator),
   },
   handler: async (ctx, args) => {
