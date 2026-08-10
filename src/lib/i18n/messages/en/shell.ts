@@ -32,6 +32,21 @@ export const shell = {
     close: 'Close navigation',
   },
 
+  /**
+   * The trail a nested page draws above itself, and the way back out of it.
+   *
+   * The sidebar and the dock say which Module you are in; neither can say where
+   * you are *inside* it, because the shell renders above the route and does not
+   * know that this page is a food, or that food's edit form. So the trail is
+   * built by the page, and these are the only two words the shape itself needs:
+   * what the landmark is called, and what the back action on a phone says.
+   */
+  breadcrumbs: {
+    label: 'Breadcrumb',
+    /** The mobile back action's accessible name — `{page}` is the parent. */
+    backTo: 'Back to {page}',
+  },
+
   palette: {
     placeholder: 'Jump to…',
   },

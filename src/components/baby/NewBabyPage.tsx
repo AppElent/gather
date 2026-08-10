@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useMessages } from '../../lib/i18n'
+import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { ImageUploadField } from '../app/ImageUploadField'
 import { BabyForm, type BabyFormValues } from './BabyForm'
 import type { BabyNav } from './babyNav'
@@ -29,10 +30,18 @@ export function NewBabyPage({ groupSlug, nav }: NewBabyPageProps) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [photoId, setPhotoId] = useState<Id<'_storage'> | undefined>()
-  const { form } = useMessages().baby.log
+  const messages = useMessages()
+  const { form } = messages.baby.log
+
+  /** Baby log → Add a child. */
+  const trail: Crumb[] = [
+    { label: messages.modules.byId['baby-log'].label, link: nav.list },
+    { label: form.createTitle },
+  ]
 
   return (
     <div className="mx-auto max-w-2xl">
+      <Breadcrumbs trail={trail} />
       <h1 className="mb-6 text-2xl font-semibold">{form.createTitle}</h1>
 
       {error && (

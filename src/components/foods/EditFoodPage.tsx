@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useMessages } from '../../lib/i18n'
+import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { FoodForm } from './FoodForm'
 import type { FoodNav } from './foodNav'
 
@@ -23,12 +24,28 @@ export function EditFoodPage({ foodId, nav }: EditFoodPageProps) {
   const messages = useMessages()
   const { detail, edit, form } = messages.foods
 
+  // Foods → this food → Edit. The middle step is the page this form saves back
+  // to, so the trail and the save land in the same place.
+  const trail: Crumb[] = [
+    { label: messages.foods.list.title, link: nav.list },
+    ...(food ? [{ label: food.name, link: nav.detail(foodId) }] : []),
+    { label: messages.common.actions.edit },
+  ]
+
   if (food === undefined)
     return (
-      <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+      <div className="mx-auto max-w-2xl">
+        <Breadcrumbs trail={trail} />
+        <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+      </div>
     )
   if (food === null)
-    return <p className="text-sm opacity-60">{detail.notFound}</p>
+    return (
+      <div className="mx-auto max-w-2xl">
+        <Breadcrumbs trail={trail} />
+        <p className="text-sm opacity-60">{detail.notFound}</p>
+      </div>
+    )
 
   // Reachable by typing the URL even though the detail page hides the link.
   // `foods.update` refuses too — this only avoids offering a form that is
@@ -36,6 +53,7 @@ export function EditFoodPage({ foodId, nav }: EditFoodPageProps) {
   if (food.seedKey !== undefined) {
     return (
       <div className="mx-auto max-w-2xl">
+        <Breadcrumbs trail={trail} />
         <h1 className="mb-4 text-2xl font-semibold">{food.name}</h1>
         <p className="text-sm opacity-60">
           {edit.builtInBefore}{' '}
@@ -53,6 +71,7 @@ export function EditFoodPage({ foodId, nav }: EditFoodPageProps) {
 
   return (
     <div className="mx-auto max-w-2xl">
+      <Breadcrumbs trail={trail} />
       <h1 className="mb-6 text-2xl font-semibold">{edit.title}</h1>
       {error && (
         <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">

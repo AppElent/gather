@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useMessages } from '../../lib/i18n'
+import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { ImageUploadField } from '../app/ImageUploadField'
 import { RecipeDestinationNotice } from './RecipeDestinationNotice'
 import { RecipeForm, type RecipeFormValues } from './RecipeForm'
@@ -50,7 +51,14 @@ export function NewRecipePage({
   const aiConfigured = useQuery(api.recipes.aiConfigured)
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
   const navigate = useNavigate()
-  const { create: createText, form } = useMessages().recipes
+  const messages = useMessages()
+  const { create: createText, form } = messages.recipes
+
+  /** Recipes → New recipe. */
+  const trail: Crumb[] = [
+    { label: messages.modules.byId.recipes.label, link: nav.list },
+    { label: createText.title },
+  ]
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -126,6 +134,7 @@ export function NewRecipePage({
 
   return (
     <div>
+      <Breadcrumbs trail={trail} />
       <h1 className="mb-6 text-2xl font-semibold">{createText.title}</h1>
 
       <div className="mx-auto mb-6 max-w-2xl rounded-xl border p-4">

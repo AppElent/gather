@@ -6,6 +6,7 @@ import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { AppLink } from '../../lib/appLink'
 import { useMessages } from '../../lib/i18n'
+import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { FoodForm, type FoodFormValues } from './FoodForm'
 import type { FoodNav } from './foodNav'
 
@@ -70,7 +71,15 @@ export function NewFoodPage({ barcode, name, after, nav }: NewFoodPageProps) {
   // at the save, rather than when the form was opened, is what makes abandoning
   // the review leave no stored picture behind (#93).
   const importFromOff = useAction(api.foodsLookup.importFromOff)
-  const { create: createText, form } = useMessages().foods
+  const messages = useMessages()
+  const { create: createText, form } = messages.foods
+
+  // Foods → Add food. Fixed: nothing on this page is loaded before the trail
+  // is true, so it is the same trail from the first paint.
+  const trail: Crumb[] = [
+    { label: messages.foods.list.title, link: nav.list },
+    { label: createText.title },
+  ]
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -140,11 +149,17 @@ export function NewFoodPage({ barcode, name, after, nav }: NewFoodPageProps) {
   }, [])
 
   if (looking) {
-    return <p className="text-sm opacity-60">{createText.lookingUp}</p>
+    return (
+      <div className="mx-auto max-w-2xl">
+        <Breadcrumbs trail={trail} />
+        <p className="text-sm opacity-60">{createText.lookingUp}</p>
+      </div>
+    )
   }
 
   return (
     <div className="mx-auto max-w-2xl">
+      <Breadcrumbs trail={trail} />
       <h1 className="mb-6 text-2xl font-semibold">{createText.title}</h1>
       {error && (
         <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
