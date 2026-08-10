@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useMessages } from '../../lib/i18n'
 
 /**
@@ -96,12 +97,24 @@ interface Props {
  */
 export function IconPicker({ value, onChange, disabled }: Props) {
   const { icon } = useMessages().common
+  const [open, setOpen] = useState(false)
 
   return (
     <fieldset className="rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
       <legend className="px-1 text-sm font-medium">{icon.label}</legend>
       <p className="mb-2 text-xs opacity-60">{icon.hint}</p>
-      <div className="flex flex-wrap gap-1">
+      <button
+        type="button"
+        disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-label={value === undefined ? icon.choose : icon.change}
+        onClick={() => setOpen(true)}
+        className="flex min-h-11 min-w-11 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] text-xl"
+      >
+        {value ?? '🍽️'}
+      </button>
+      {open && <div className="flex flex-wrap gap-1">
         {FOOD_ICONS.map((candidate) => {
           const chosen = candidate === value
           return (
@@ -132,7 +145,7 @@ export function IconPicker({ value, onChange, disabled }: Props) {
             ✕
           </button>
         )}
-      </div>
+      </div>}
     </fieldset>
   )
 }

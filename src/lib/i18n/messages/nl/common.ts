@@ -27,6 +27,8 @@ export const common = {
   icon: {
     label: 'Icoon',
     hint: 'Wordt getoond als er geen foto van is.',
+    choose: 'Icoon kiezen',
+    change: 'Icoon wijzigen',
     none: 'Geen icoon',
   },
 

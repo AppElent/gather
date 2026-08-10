@@ -3,6 +3,15 @@ import { expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { FOOD_ICONS, IconPicker } from './IconPicker'
 
+test('starts collapsed and invites the person to choose an icon', () => {
+  renderWithI18n(<IconPicker onChange={vi.fn()} />)
+
+  const trigger = screen.getByRole('button', { name: 'Choose icon' })
+  expect(trigger.ariaExpanded).toBe('false')
+  expect(trigger).toHaveTextContent('🍽️')
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
+
 /**
  * The picker is a curated set, and clearing is a real answer (#94).
  *
@@ -25,6 +34,7 @@ test('choosing one reports it', () => {
   const onChange = vi.fn()
   renderWithI18n(<IconPicker onChange={onChange} />)
 
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
   fireEvent.click(screen.getByRole('button', { name: '🍕' }))
 
   expect(onChange).toHaveBeenCalledWith('🍕')
@@ -34,6 +44,7 @@ test('choosing another replaces the first', () => {
   const onChange = vi.fn()
   renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
 
+  fireEvent.click(screen.getByRole('button', { name: 'Change icon' }))
   fireEvent.click(screen.getByRole('button', { name: '🥗' }))
 
   expect(onChange).toHaveBeenCalledWith('🥗')
@@ -42,6 +53,7 @@ test('choosing another replaces the first', () => {
 test('the chosen one says so', () => {
   renderWithI18n(<IconPicker value="🍕" onChange={vi.fn()} />)
 
+  fireEvent.click(screen.getByRole('button', { name: 'Change icon' }))
   expect(screen.getByRole('button', { name: '🍕' }).ariaPressed).toBe('true')
   expect(screen.getByRole('button', { name: '🥗' }).ariaPressed).toBe('false')
 })
@@ -50,6 +62,7 @@ test('clearing reports nothing at all, not an empty string', () => {
   const onChange = vi.fn()
   renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
 
+  fireEvent.click(screen.getByRole('button', { name: 'Change icon' }))
   fireEvent.click(screen.getByRole('button', { name: 'No icon' }))
 
   expect(onChange).toHaveBeenCalledWith(undefined)
@@ -59,6 +72,7 @@ test('pressing the chosen one again clears it', () => {
   const onChange = vi.fn()
   renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)
 
+  fireEvent.click(screen.getByRole('button', { name: 'Change icon' }))
   fireEvent.click(screen.getByRole('button', { name: '🍕' }))
 
   expect(onChange).toHaveBeenCalledWith(undefined)

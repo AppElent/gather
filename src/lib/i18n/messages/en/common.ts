@@ -40,6 +40,8 @@ export const common = {
   icon: {
     label: 'Icon',
     hint: 'Shown when there is no picture of this.',
+    choose: 'Choose icon',
+    change: 'Change icon',
     none: 'No icon',
   },
 
