@@ -55,6 +55,8 @@ export const diary = {
     clearSearch: 'Zoekopdracht wissen',
     scan: 'Scannen',
     hideScanner: 'Scanner verbergen',
+    addFood: 'Voedingsmiddel toevoegen',
+    addOptions: 'Toevoegen',
     sections: {
       scanned: 'Gescand',
       justAdded: 'Net toegevoegd',
@@ -74,6 +76,9 @@ export const diary = {
     oneOffHint:
       'Vul in wat je weet — een gedeeltelijke notitie is beter dan niets.',
     addAsFood: '“{term}” toevoegen aan mijn voedingsmiddelen',
+    oneOffTitleEmpty: 'Eenmalig noteren',
+    oneOffName: 'Wat heb je gegeten?',
+    enterOneOffName: 'Vul in wat je hebt gegeten',
     logged: '{label} genoteerd',
     undo: 'Ongedaan maken',
     undoFailed: 'Kon dat niet ongedaan maken',
