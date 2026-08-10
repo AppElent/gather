@@ -1,4 +1,6 @@
+import { useRef, useState } from 'react'
 import { useMessages } from '../../lib/i18n'
+import { IconPickerSheet } from './IconPickerSheet'
 
 /**
  * The emoji a food or a one-off may wear, curated (#94, #75).
@@ -96,43 +98,47 @@ interface Props {
  */
 export function IconPicker({ value, onChange, disabled }: Props) {
   const { icon } = useMessages().common
+  const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+
+  const close = () => {
+    setOpen(false)
+    requestAnimationFrame(() => triggerRef.current?.focus())
+  }
+
+  const clear = () => {
+    onChange(undefined)
+    close()
+  }
 
   return (
     <fieldset className="rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
       <legend className="px-1 text-sm font-medium">{icon.label}</legend>
       <p className="mb-2 text-xs opacity-60">{icon.hint}</p>
-      <div className="flex flex-wrap gap-1">
-        {FOOD_ICONS.map((candidate) => {
-          const chosen = candidate === value
-          return (
-            <button
-              key={candidate}
-              type="button"
-              disabled={disabled}
-              aria-pressed={chosen}
-              onClick={() => onChange(chosen ? undefined : candidate)}
-              className={`flex min-h-11 min-w-11 items-center justify-center rounded-[var(--app-radius)] border text-xl ${
-                chosen
-                  ? 'border-[var(--app-fg)] bg-[var(--app-bg)]'
-                  : 'border-transparent'
-              }`}
-            >
-              {candidate}
-            </button>
-          )
-        })}
-        {value !== undefined && (
-          <button
-            type="button"
-            disabled={disabled}
-            aria-label={icon.none}
-            onClick={() => onChange(undefined)}
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] text-sm opacity-60"
-          >
-            ✕
-          </button>
-        )}
-      </div>
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-label={value === undefined ? icon.choose : icon.change}
+        onClick={() => setOpen(true)}
+        className="flex min-h-11 min-w-11 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] text-xl"
+      >
+        {value ?? '🍽️'}
+      </button>
+      <IconPickerSheet
+        open={open}
+        icons={FOOD_ICONS}
+        value={value}
+        disabled={disabled}
+        onChoose={(candidate) => {
+          onChange(candidate === value ? undefined : candidate)
+          close()
+        }}
+        onClear={clear}
+        onClose={close}
+      />
     </fieldset>
   )
 }

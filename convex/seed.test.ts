@@ -142,6 +142,9 @@ describe('the Sample household', () => {
     expect(new Set(userFoods.map((f) => f.nutritionSource))).toEqual(
       new Set(['imported', 'ai', 'manual']),
     )
+    // A review of a seeded preview must demonstrate the icon fallback without
+    // having to type a search first (#114).
+    expect(userFoods.every((f) => f.icon !== undefined)).toBe(true)
     // Catalog foods claim nothing: their figures are authored (ADR 0004).
     const catalog = await t.run(async (ctx) =>
       (await ctx.db.query('foods').collect()).filter(

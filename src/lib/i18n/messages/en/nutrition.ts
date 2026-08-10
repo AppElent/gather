@@ -79,6 +79,8 @@ export const diary = {
     clearSearch: 'Clear search',
     scan: 'Scan',
     hideScanner: 'Hide scanner',
+    addFood: 'Add food',
+    addOptions: 'Add',
     sections: {
       scanned: 'Scanned',
       /** The food a review form just saved, handed back ready to log (#93/#79). */
@@ -104,6 +106,9 @@ export const diary = {
      * something only the person typing knows.
      */
     addAsFood: 'Add “{term}” to my foods',
+    oneOffTitleEmpty: 'Log a one-off',
+    oneOffName: 'What did you have?',
+    enterOneOffName: 'Enter what you had',
     logged: '{label} logged',
     undo: 'Undo',
     undoFailed: 'Could not undo that',
@@ -141,10 +146,11 @@ export const diary = {
   foodAdd: {
     barcodeFailed: 'Couldn’t look up that barcode — try again.',
     notFound: 'Not found.',
-    /** What choosing an Open Food Facts result does now: opens it, saves nothing (#93). */
-    review: 'Check and add',
+    review: 'Check first',
     reviewHint:
-      'Open Food Facts data is often incomplete. Check it, then saving adds the food and brings you back here to log it.',
+      'Imports this food with Open Food Facts’ figures. Check first to review or correct them.',
+    importFailed: 'Couldn’t add this food — try again.',
+    editFood: 'Edit food details',
     addToLibrary: 'Add it to the foods library',
     addToLibraryAfter: 'first.',
     searching: 'Searching Open Food Facts…',

@@ -3,6 +3,7 @@ import type { ComboComponent, ComboCounts } from '../../../convex/lib/combos'
 import { comboEntries, countOf, isModified } from '../../../convex/lib/combos'
 import { sumFacts } from '../../../convex/lib/consumption'
 import { fmt, plural, useI18n } from '../../lib/i18n'
+import { FoodThumbnail } from './FoodThumbnail'
 import { NutritionBreakdown } from './NutritionBreakdown'
 import { ResultCard } from './ResultCard'
 
@@ -55,6 +56,7 @@ export function ComboCard({
 
   return (
     <ResultCard
+      thumbnail={<FoodThumbnail kind="combo" />}
       title={combo.name}
       subtitle={fmt(plural(locale, combo.components.length, combos.itemCount), {
         count: combo.components.length,

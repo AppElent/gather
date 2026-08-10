@@ -3,6 +3,7 @@ import { useQuery } from 'convex/react'
 import { useEffect, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { fmt, useMessages } from '../../lib/i18n'
+import { FoodThumbnail } from '../nutrition/FoodThumbnail'
 import { BarcodeScanner } from './BarcodeScanner'
 import type { FoodNav } from './foodNav'
 
@@ -59,11 +60,17 @@ export function FoodsPage({ nav }: { nav: FoodNav }) {
       <ul className="divide-y divide-[var(--app-border)]">
         {results?.map((food) => (
           <li key={food._id}>
-            <Link {...nav.detail(food._id)} className="block py-2 no-underline">
-              <span className="font-medium">{food.name}</span>
-              {food.brand && (
-                <span className="ml-2 text-sm opacity-60">{food.brand}</span>
-              )}
+            <Link
+              {...nav.detail(food._id)}
+              className="flex items-center gap-3 py-2 no-underline"
+            >
+              <FoodThumbnail src={food.imageUrl} icon={food.icon} />
+              <span>
+                <span className="font-medium">{food.name}</span>
+                {food.brand && (
+                  <span className="ml-2 text-sm opacity-60">{food.brand}</span>
+                )}
+              </span>
             </Link>
           </li>
         ))}
