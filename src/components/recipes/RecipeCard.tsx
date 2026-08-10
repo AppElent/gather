@@ -1,3 +1,5 @@
+import { FoodThumbnail } from '../nutrition/FoodThumbnail'
+
 export type RecipeViewMode = 'grid' | 'banner' | 'compact'
 
 export interface RecipeCardData {
@@ -19,18 +21,18 @@ function Stars({ rating }: { rating?: number }) {
 
 function Photo({
   imageUrl,
-  title,
   className,
 }: {
   imageUrl: string | null
-  title: string
   className: string
 }) {
-  if (!imageUrl) {
-    return <div className={`${className} bg-black/5 dark:bg-white/10`} />
-  }
   return (
-    <img src={imageUrl} alt={title} className={`${className} object-cover`} />
+    <FoodThumbnail
+      src={imageUrl}
+      kind="recipe"
+      className={className}
+      glyphClassName="text-4xl"
+    />
   )
 }
 
@@ -40,7 +42,6 @@ export function RecipeCard({ recipe, mode }: RecipeCardProps) {
       <div className="relative h-56 overflow-hidden rounded-xl">
         <Photo
           imageUrl={recipe.imageUrl}
-          title={recipe.title}
           className="absolute inset-0 h-full w-full"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
@@ -57,7 +58,6 @@ export function RecipeCard({ recipe, mode }: RecipeCardProps) {
       <div className="flex items-center gap-3 rounded-xl border p-2">
         <Photo
           imageUrl={recipe.imageUrl}
-          title={recipe.title}
           className="h-16 w-16 flex-shrink-0 rounded-lg"
         />
         <div>
@@ -75,7 +75,6 @@ export function RecipeCard({ recipe, mode }: RecipeCardProps) {
     <div className="rounded-xl border p-4">
       <Photo
         imageUrl={recipe.imageUrl}
-        title={recipe.title}
         className="mb-3 h-32 w-full rounded-lg"
       />
       <p className="font-medium">{recipe.title}</p>
