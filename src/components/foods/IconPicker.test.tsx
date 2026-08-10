@@ -83,6 +83,59 @@ test('Escape dismisses without changing the icon and restores trigger focus', as
   await waitFor(() => expect(trigger).toHaveFocus())
 })
 
+test('opening the sheet moves focus to its close button', async () => {
+  renderWithI18n(<IconPicker onChange={vi.fn()} />)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Close icon picker' }),
+    ).toHaveFocus(),
+  )
+})
+
+test('Tab wraps in both directions within the sheet controls', () => {
+  renderWithI18n(<IconPicker onChange={vi.fn()} />)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+  const close = screen.getByRole('button', { name: 'Close icon picker' })
+  const lastIcon = screen.getByRole('button', {
+    name: FOOD_ICONS[FOOD_ICONS.length - 1],
+  })
+
+  lastIcon.focus()
+  fireEvent.keyDown(lastIcon, { key: 'Tab' })
+  expect(close).toHaveFocus()
+
+  fireEvent.keyDown(close, { key: 'Tab', shiftKey: true })
+  expect(lastIcon).toHaveFocus()
+})
+
+test('simultaneous picker dialogs have distinct accessible title ids', () => {
+  renderWithI18n(
+    <>
+      <IconPicker onChange={vi.fn()} />
+      <IconPicker onChange={vi.fn()} />
+    </>,
+  )
+
+  for (const trigger of screen.getAllByRole('button', {
+    name: 'Choose icon',
+  })) {
+    fireEvent.click(trigger)
+  }
+
+  const titleIds = screen
+    .getAllByRole('dialog', { name: 'Choose an icon' })
+    .map((dialog) => dialog.getAttribute('aria-labelledby'))
+  expect(new Set(titleIds).size).toBe(2)
+  for (const titleId of titleIds) {
+    expect(titleId).not.toBeNull()
+    expect(document.getElementById(titleId as string)).not.toBeNull()
+  }
+})
+
 test('closing the sheet leaves the icon unchanged and restores trigger focus', async () => {
   const onChange = vi.fn()
   renderWithI18n(<IconPicker value="🍕" onChange={onChange} />)

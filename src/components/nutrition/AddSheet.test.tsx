@@ -549,6 +549,52 @@ test('a one-off can be given an icon, and it goes to the diary with it', async (
   })
 })
 
+test('Escape closes only the icon picker and leaves the one-off draft usable', async () => {
+  const onClose = renderSheet()
+  await search('poffertjes at the fair')
+  await waitFor(() =>
+    expect(
+      screen.getByText('Nothing found for “poffertjes at the fair”'),
+    ).toBeDefined(),
+  )
+  fireEvent.click(screen.getByText('Log “poffertjes at the fair” as a one-off'))
+  const calories = screen.getByLabelText('Calories (kcal)')
+  fireEvent.change(calories, { target: { value: '400' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+
+  fireEvent.keyDown(window, { key: 'Escape' })
+
+  expect(screen.queryByRole('dialog', { name: 'Choose an icon' })).toBeNull()
+  expect(onClose).not.toHaveBeenCalled()
+  expect(calories).toHaveValue('400')
+  fireEvent.change(calories, { target: { value: '450' } })
+  expect(calories).toHaveValue('450')
+})
+
+test('a pointer gesture in the icon picker does not drag the add sheet', async () => {
+  const onClose = renderSheet()
+  await search('poffertjes at the fair')
+  await waitFor(() =>
+    expect(
+      screen.getByText('Nothing found for “poffertjes at the fair”'),
+    ).toBeDefined(),
+  )
+  fireEvent.click(screen.getByText('Log “poffertjes at the fair” as a one-off'))
+  fireEvent.click(screen.getByRole('button', { name: 'Choose icon' }))
+  const dialog = screen.getByRole('dialog', { name: 'Choose an icon' })
+
+  fireEvent.pointerDown(dialog, {
+    button: 0,
+    pointerId: 1,
+    clientY: 100,
+  })
+  fireEvent.pointerMove(window, { pointerId: 1, clientY: 900 })
+  fireEvent.pointerUp(window, { pointerId: 1, clientY: 900 })
+
+  expect(onClose).not.toHaveBeenCalled()
+  expect(dialog).toBeVisible()
+})
+
 test('a one-off nobody decorated carries no icon at all', async () => {
   renderSheet()
   await search('poffertjes at the fair')
