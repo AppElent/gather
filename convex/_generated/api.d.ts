@@ -41,6 +41,7 @@ import type * as lib_stableDigest from "../lib/stableDigest.js";
 import type * as lib_storedFiles from "../lib/storedFiles.js";
 import type * as lib_taskAccess from "../lib/taskAccess.js";
 import type * as lib_taskCache from "../lib/taskCache.js";
+import type * as lib_taskTree from "../lib/taskTree.js";
 import type * as lib_taskProviders_index from "../lib/taskProviders/index.js";
 import type * as lib_taskProviders_notion from "../lib/taskProviders/notion.js";
 import type * as lib_taskProviders_todoist from "../lib/taskProviders/todoist.js";
@@ -94,6 +95,7 @@ declare const fullApi: ApiFromModules<{
   "lib/storedFiles": typeof lib_storedFiles;
   "lib/taskAccess": typeof lib_taskAccess;
   "lib/taskCache": typeof lib_taskCache;
+  "lib/taskTree": typeof lib_taskTree;
   "lib/taskProviders/index": typeof lib_taskProviders_index;
   "lib/taskProviders/notion": typeof lib_taskProviders_notion;
   "lib/taskProviders/todoist": typeof lib_taskProviders_todoist;

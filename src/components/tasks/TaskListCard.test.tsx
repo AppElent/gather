@@ -47,12 +47,14 @@ vi.mock('../../../convex/_generated/api', () => ({
       toggleDone: 'tasks:toggleDone',
       remove: 'tasks:remove',
       move: 'tasks:move',
+      reparent: 'tasks:reparent',
     },
     externalTasks: {
       create: 'externalTasks:create',
       update: 'externalTasks:update',
       setDone: 'externalTasks:setDone',
       remove: 'externalTasks:remove',
+      move: 'externalTasks:move',
     },
   },
 }))
@@ -365,5 +367,130 @@ describe('a writable external list', () => {
     })
     renderCard()
     expect(screen.getByText(/saved in todoist/i)).toBeInTheDocument()
+  })
+})
+
+/**
+ * Subtasks, and the controls that go with them.
+ *
+ * What is on offer comes from the capability list, including the Backend's own
+ * nesting limit — a fifth level in Todoist is a write Todoist would refuse, so
+ * it is never offered here (ADR-0014).
+ */
+describe('nested subtasks', () => {
+  const parent = { _id: 't1', title: 'Plant beds', done: false, order: 0 }
+  const child = {
+    _id: 't2',
+    title: 'Buy pots',
+    done: false,
+    order: 0,
+    parentTaskId: 't1',
+  }
+
+  test('draws a subtask under its parent, indented', () => {
+    state.tasks = [child, parent]
+    renderCard()
+
+    const rows = screen.getAllByRole('checkbox')
+    expect(rows).toHaveLength(2)
+    // Parent first, whatever order the query returned them in.
+    expect(
+      screen.getAllByText(/Plant beds|Buy pots/).map((n) => n.textContent),
+    ).toEqual(['Plant beds', 'Buy pots'])
+  })
+
+  test('adds a subtask under the task the control belongs to', async () => {
+    state.tasks = [parent]
+    renderCard()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /add a subtask to plant beds/i }),
+    )
+    fireEvent.change(screen.getByLabelText(/new subtask under plant beds/i), {
+      target: { value: 'Buy pots' },
+    })
+    fireEvent.click(screen.getAllByRole('button', { name: /^add task$/i })[1])
+
+    await waitFor(() => {
+      expect(state.calls['tasks:add']).toEqual([
+        {
+          listId: 'list_1',
+          groupSlug: 'jansen-household',
+          title: 'Buy pots',
+          parentTaskId: 't1',
+        },
+      ])
+    })
+  })
+
+  test('offers to promote a subtask, and nothing to promote on a parent', async () => {
+    state.tasks = [parent, child]
+    renderCard()
+
+    expect(
+      screen.queryByRole('button', {
+        name: /move plant beds out of its parent/i,
+      }),
+    ).toBeNull()
+    fireEvent.click(
+      screen.getByRole('button', { name: /move buy pots out of its parent/i }),
+    )
+
+    await waitFor(() => {
+      expect(state.calls['tasks:reparent']).toEqual([
+        { taskId: 't2', groupSlug: 'jansen-household', parentTaskId: null },
+      ])
+    })
+  })
+
+  test('stops offering subtasks at the Backend’s own limit', () => {
+    state.backend = externalBackend({
+      capabilities: { ...ALL, reorder: false, maxDepth: 2 },
+    })
+    state.tasks = [parent, child]
+    renderCard()
+
+    // The parent sits at depth 0, so a child of it would be level 2 — allowed.
+    expect(
+      screen.getByRole('button', { name: /add a subtask to plant beds/i }),
+    ).toBeInTheDocument()
+    // The child is already level 2; a subtask of it would be the third.
+    expect(
+      screen.queryByRole('button', { name: /add a subtask to buy pots/i }),
+    ).toBeNull()
+  })
+
+  test('offers nothing at all on a Backend without subtasks', () => {
+    state.backend = externalBackend({
+      capabilities: { ...ALL, subtasks: false },
+    })
+    state.tasks = [parent, child]
+    renderCard()
+
+    expect(
+      screen.queryByRole('button', { name: /add a subtask to plant beds/i }),
+    ).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: /out of its parent/i }),
+    ).toBeNull()
+  })
+
+  test('a subtask on a Todoist list moves through the provider', async () => {
+    state.backend = externalBackend({
+      capabilities: { ...ALL, reorder: false, maxDepth: 4 },
+    })
+    state.tasks = [parent, child]
+    renderCard()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /move buy pots out of its parent/i }),
+    )
+
+    await waitFor(() => {
+      expect(state.calls['externalTasks:move']).toEqual([
+        { taskId: 't2', groupSlug: 'jansen-household', parentTaskId: null },
+      ])
+    })
+    expect(state.calls['tasks:reparent']).toBeUndefined()
   })
 })

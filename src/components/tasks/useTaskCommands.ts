@@ -11,8 +11,11 @@ import type { TaskEditorValues } from './TaskEditor'
  */
 export type TaskCommandResult = { status: 'ok' } | { status: 'savedRemotely' }
 
+/** A new task, and optionally where in the hierarchy it goes. */
+export type NewTask = TaskEditorValues & { parentTaskId?: Id<'tasks'> }
+
 export interface TaskCommands {
-  add: (values: TaskEditorValues) => Promise<TaskCommandResult>
+  add: (values: NewTask) => Promise<TaskCommandResult>
   update: (
     taskId: Id<'tasks'>,
     values: TaskEditorValues,
@@ -22,6 +25,11 @@ export interface TaskCommands {
   move: (
     taskId: Id<'tasks'>,
     direction: 'up' | 'down',
+  ) => Promise<TaskCommandResult>
+  /** Move a task under another, or with `null`, back to the top level. */
+  reparent: (
+    taskId: Id<'tasks'>,
+    parentTaskId: Id<'tasks'> | null,
   ) => Promise<TaskCommandResult>
 }
 
@@ -51,11 +59,13 @@ export function useTaskCommands(
   const toggleDoneTask = useMutation(api.tasks.toggleDone)
   const removeTask = useMutation(api.tasks.remove)
   const moveTask = useMutation(api.tasks.move)
+  const reparentTask = useMutation(api.tasks.reparent)
 
   const createExternal = useAction(api.externalTasks.create)
   const updateExternal = useAction(api.externalTasks.update)
   const setDoneExternal = useAction(api.externalTasks.setDone)
   const removeExternal = useAction(api.externalTasks.remove)
+  const moveExternal = useAction(api.externalTasks.move)
 
   if (isLocal) {
     return {
@@ -90,6 +100,10 @@ export function useTaskCommands(
         await moveTask({ taskId, groupSlug, direction })
         return OK
       },
+      reparent: async (taskId, parentTaskId) => {
+        await reparentTask({ taskId, groupSlug, parentTaskId })
+        return OK
+      },
     }
   }
 
@@ -102,6 +116,7 @@ export function useTaskCommands(
         dueDate: values.dueDate,
         priority: values.priority,
         labels: values.labels,
+        parentTaskId: values.parentTaskId,
       }),
     update: (taskId, values) =>
       updateExternal({
@@ -118,5 +133,7 @@ export function useTaskCommands(
     // this is unreachable rather than unimplemented — the capability list says
     // so before the control is drawn.
     move: async () => OK,
+    reparent: (taskId, parentTaskId) =>
+      moveExternal({ taskId, groupSlug, parentTaskId }),
   }
 }

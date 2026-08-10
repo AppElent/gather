@@ -290,3 +290,112 @@ describe('writing to Todoist', () => {
     ).rejects.toBeInstanceOf(ProviderAuthError)
   })
 })
+
+describe('Todoist subtasks', () => {
+  test('a task’s parent comes back as the provider’s own id', () => {
+    expect(
+      mapTodoistTask({
+        id: '2',
+        content: 'Buy pots',
+        priority: 1,
+        parent_id: '1',
+      }).parentExternalId,
+    ).toBe('1')
+  })
+
+  test('a top-level task has no parent rather than a null one', () => {
+    expect(
+      mapTodoistTask({ id: '1', content: 'x', priority: 1, parent_id: null })
+        .parentExternalId,
+    ).toBeUndefined()
+  })
+
+  test('creating a subtask names its parent to Todoist', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse({ id: '2', content: 'Buy pots', priority: 1, parent_id: '1' }),
+      )
+
+    await todoistAdapter.createTask?.(
+      'tok',
+      { sourceId: 'p1' },
+      { title: 'Buy pots', parentExternalId: '1' },
+      fetchImpl as unknown as typeof fetch,
+    )
+
+    expect(JSON.parse(String(fetchImpl.mock.calls[0][1].body))).toMatchObject({
+      parent_id: '1',
+      project_id: 'p1',
+    })
+  })
+
+  test('moving goes through the Sync API, which REST v2 has no endpoint for', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ sync_status: { 'uuid-1': 'ok' } }))
+
+    await todoistAdapter.moveTask?.(
+      'tok',
+      { sourceId: 'p1' },
+      '2',
+      '1',
+      fetchImpl as unknown as typeof fetch,
+    )
+
+    const body = String(fetchImpl.mock.calls[0][1].body)
+    expect(fetchImpl.mock.calls[0][0]).toContain('/sync/v9/sync')
+    expect(JSON.parse(new URLSearchParams(body).get('commands') ?? '[]')[0]).toMatchObject({
+      type: 'item_move',
+      args: { id: '2', parent_id: '1' },
+    })
+  })
+
+  test('moving to the top level names the project instead of a parent', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ sync_status: { 'uuid-1': 'ok' } }))
+
+    await todoistAdapter.moveTask?.(
+      'tok',
+      { sourceId: 'p1' },
+      '2',
+      null,
+      fetchImpl as unknown as typeof fetch,
+    )
+
+    const body = String(fetchImpl.mock.calls[0][1].body)
+    expect(
+      JSON.parse(new URLSearchParams(body).get('commands') ?? '[]')[0].args,
+    ).toEqual({ id: '2', project_id: 'p1' })
+  })
+
+  test('a move Todoist refused is a refusal, not a 200', async () => {
+    // The Sync API answers 200 with a per-command status, so a refusal here is
+    // not an HTTP error and would otherwise pass for success.
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({
+        sync_status: { 'uuid-1': { error: 'Invalid parent', error_code: 15 } },
+      }),
+    )
+
+    await expect(
+      todoistAdapter.moveTask?.(
+        'tok',
+        { sourceId: 'p1' },
+        '2',
+        '1',
+        fetchImpl as unknown as typeof fetch,
+      ),
+    ).rejects.toMatchObject({ name: 'ProviderRequestError' })
+  })
+
+  test('declares the nesting it can hold, so nobody has to know whose limit it is', () => {
+    expect(todoistAdapter.capabilities).toMatchObject({
+      subtasks: true,
+      maxDepth: 4,
+      // Ordering stays Todoist's.
+      reorder: false,
+    })
+  })
+})

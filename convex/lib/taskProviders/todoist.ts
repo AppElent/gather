@@ -99,6 +99,7 @@ export interface TodoistApiTask {
   priority: 1 | 2 | 3 | 4 // API: 4 = most urgent (UI "p1")
   labels?: string[]
   url?: string
+  parent_id?: string | null
 }
 
 /** One entry of the Sync API's completed list, which is a different shape. */
@@ -119,6 +120,7 @@ export function mapTodoistTask(t: TodoistApiTask): UnifiedTask {
     priority: (5 - t.priority) as 1 | 2 | 3 | 4,
     labels: t.labels?.length ? t.labels : undefined,
     url: t.url,
+    parentExternalId: t.parent_id ?? undefined,
   }
 }
 
@@ -153,6 +155,9 @@ function toTodoistPriority(priority: 1 | 2 | 3 | 4): number {
 function toTodoistBody(input: TaskInput): Record<string, unknown> {
   const body: Record<string, unknown> = {}
   if (input.title !== undefined) body.content = input.title
+  // Only on create: REST v2 will not reparent through an update, which is what
+  // `moveTask` and the Sync API are for.
+  if (input.parentExternalId) body.parent_id = input.parentExternalId
   if (input.dueDate !== undefined) {
     if (input.dueDate === null) body.due_string = 'no date'
     else body.due_date = input.dueDate
@@ -170,7 +175,15 @@ export const todoistAdapter: TaskProviderAdapter = {
   id: 'todoist',
   // Writable, save for ordering: a Todoist project's order is Todoist's, and
   // gather does not offer to rearrange somebody else's project (ADR-0014).
-  capabilities: { ...LOCAL_CAPABILITIES, reorder: false },
+  capabilities: {
+    ...LOCAL_CAPABILITIES,
+    reorder: false,
+    subtasks: true,
+    // Todoist nests four levels deep and refuses the fifth. The limit lives
+    // here rather than in the Module, so the Module never has to know whose
+    // limit it is (ADR-0014).
+    maxDepth: 4,
+  },
 
   async getAccountIdentity(accessToken, fetchImpl = fetch) {
     const data = (await todoistSyncRequest(
@@ -274,5 +287,41 @@ export const todoistAdapter: TaskProviderAdapter = {
       fetchImpl,
       { method: 'DELETE' },
     )
+  },
+
+  /**
+   * Reparent, through the Sync API's `item_move` command.
+   *
+   * REST v2 has no way to do this — its update endpoint ignores `parent_id` —
+   * so a task's place in the hierarchy is the one write that has to go through
+   * the other API. Moving to the top level means naming the project instead of
+   * a parent, which is what Todoist wants and not an omission.
+   */
+  async moveTask(
+    accessToken,
+    config,
+    externalId,
+    parentExternalId,
+    fetchImpl = fetch,
+  ) {
+    const args = parentExternalId
+      ? { id: externalId, parent_id: parentExternalId }
+      : { id: externalId, project_id: config.sourceId }
+    const result = (await todoistSyncRequest(
+      accessToken,
+      {
+        commands: JSON.stringify([
+          { type: 'item_move', uuid: crypto.randomUUID(), args },
+        ]),
+      },
+      fetchImpl,
+    )) as { sync_status?: Record<string, unknown> }
+
+    // The Sync API answers 200 with a per-command status, so a refusal here is
+    // not an HTTP error and would otherwise pass for success.
+    const status = Object.values(result.sync_status ?? {})[0]
+    if (status !== undefined && status !== 'ok') {
+      throw new ProviderRequestError('todoist', 400)
+    }
   },
 }

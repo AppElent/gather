@@ -2,13 +2,15 @@ import { Link } from '@tanstack/react-router'
 import { useAction, useQuery } from 'convex/react'
 import {
   ChevronDown,
+  ChevronLeft,
   ChevronUp,
+  CornerDownRight,
   Pencil,
   Plus,
   RefreshCw,
   Trash2,
 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { TaskListBackendView } from '../../../convex/taskLists'
@@ -18,6 +20,7 @@ import { type ExternalProvider, PROVIDER_LABELS } from '../../lib/oauth'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import { TaskEditor, type TaskEditorValues } from './TaskEditor'
 import { TaskRow } from './TaskRow'
+import { toTaskTree } from './taskTree'
 import { useTaskCommands } from './useTaskCommands'
 
 const iconButtonClass =
@@ -65,6 +68,9 @@ export function TaskListCard({
   const [quickTitle, setQuickTitle] = useState('')
   const [showDetails, setShowDetails] = useState(false)
   const [editingId, setEditingId] = useState<Id<'tasks'> | null>(null)
+  const [addingSubtaskTo, setAddingSubtaskTo] = useState<Id<'tasks'> | null>(
+    null,
+  )
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState(false)
   // A key rather than a sentence, so the locale is not a dependency of the
@@ -73,7 +79,7 @@ export function TaskListCard({
     'savedRemotely' | 'failed' | null
   >(null)
   const messages = useMessages()
-  const { local, external } = messages.tasks
+  const { local, external, subtasks } = messages.tasks
 
   /**
    * Every write goes through here, so that a provider's answer reaches the
@@ -257,90 +263,143 @@ export function TaskListCard({
         </>
       )}
 
-      {tasks.map((t, i) =>
-        editingId === t._id ? (
-          <TaskEditor
-            key={t._id}
-            capabilities={capabilities}
-            initial={{
-              title: t.title,
-              dueDate: t.dueDate,
-              priority: t.priority,
-              labels: t.labels,
-            }}
-            submitLabel={messages.common.actions.save}
-            onSubmit={(values: TaskEditorValues) => {
-              setEditingId(null)
-              void run(commands.update(t._id, values))
-            }}
-            onCancel={() => setEditingId(null)}
-          />
-        ) : (
-          <TaskRow
-            key={t._id}
-            task={{
-              externalId: t.externalId ?? t._id,
-              title: t.title,
-              done: t.done,
-              dueDate: t.dueDate,
-              priority: t.priority,
-              labels: t.labels,
-              url: t.url,
-            }}
-            onToggle={
-              capabilities.complete && !readOnly
-                ? () => void run(commands.setDone(t._id, !t.done))
-                : undefined
-            }
-            actions={
-              <span className="flex items-center gap-1">
-                {capabilities.reorder && !readOnly && (
-                  <>
-                    <button
-                      type="button"
-                      aria-label={fmt(local.moveUp, { task: t.title })}
-                      className={iconButtonClass}
-                      disabled={i === 0 || tasks[i - 1].done !== t.done}
-                      onClick={() => void run(commands.move(t._id, 'up'))}
-                    >
-                      <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={fmt(local.moveDown, { task: t.title })}
-                      className={iconButtonClass}
-                      disabled={
-                        i === tasks.length - 1 || tasks[i + 1].done !== t.done
-                      }
-                      onClick={() => void run(commands.move(t._id, 'down'))}
-                    >
-                      <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-                    </button>
-                  </>
-                )}
-                {capabilities.edit && !readOnly && (
-                  <button
-                    type="button"
-                    aria-label={fmt(local.edit, { task: t.title })}
-                    className={iconButtonClass}
-                    onClick={() => setEditingId(t._id)}
-                  >
-                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
-                )}
-                {capabilities.delete && !readOnly && (
-                  <button
-                    type="button"
-                    aria-label={fmt(local.delete, { task: t.title })}
-                    className={iconButtonClass}
-                    onClick={() => void run(commands.remove(t._id))}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
-                )}
-              </span>
-            }
-          />
+      {toTaskTree(tasks).map(
+        ({ task: t, depth, hasPreviousSibling, hasNextSibling }) => (
+          <Fragment key={t._id}>
+            {editingId === t._id ? (
+              <TaskEditor
+                capabilities={capabilities}
+                initial={{
+                  title: t.title,
+                  dueDate: t.dueDate,
+                  priority: t.priority,
+                  labels: t.labels,
+                }}
+                submitLabel={messages.common.actions.save}
+                onSubmit={(values: TaskEditorValues) => {
+                  setEditingId(null)
+                  void run(commands.update(t._id, values))
+                }}
+                onCancel={() => setEditingId(null)}
+              />
+            ) : (
+              <TaskRow
+                depth={depth}
+                task={{
+                  externalId: t.externalId ?? t._id,
+                  title: t.title,
+                  done: t.done,
+                  dueDate: t.dueDate,
+                  priority: t.priority,
+                  labels: t.labels,
+                  url: t.url,
+                }}
+                onToggle={
+                  capabilities.complete && !readOnly
+                    ? () => void run(commands.setDone(t._id, !t.done))
+                    : undefined
+                }
+                actions={
+                  <span className="flex items-center gap-1">
+                    {capabilities.reorder && !readOnly && (
+                      <>
+                        <button
+                          type="button"
+                          aria-label={fmt(local.moveUp, { task: t.title })}
+                          className={iconButtonClass}
+                          disabled={!hasPreviousSibling}
+                          onClick={() => void run(commands.move(t._id, 'up'))}
+                        >
+                          <ChevronUp
+                            className="h-3.5 w-3.5"
+                            aria-hidden="true"
+                          />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={fmt(local.moveDown, { task: t.title })}
+                          className={iconButtonClass}
+                          disabled={!hasNextSibling}
+                          onClick={() => void run(commands.move(t._id, 'down'))}
+                        >
+                          <ChevronDown
+                            className="h-3.5 w-3.5"
+                            aria-hidden="true"
+                          />
+                        </button>
+                      </>
+                    )}
+                    {capabilities.subtasks &&
+                      capabilities.create &&
+                      !readOnly &&
+                      // The Backend's own limit, not gather's: a fifth level in
+                      // Todoist is a write Todoist would refuse, so it is not
+                      // offered (ADR-0014).
+                      (capabilities.maxDepth === undefined ||
+                        depth + 2 <= capabilities.maxDepth) && (
+                        <button
+                          type="button"
+                          aria-label={fmt(subtasks.add, { task: t.title })}
+                          className={iconButtonClass}
+                          onClick={() => setAddingSubtaskTo(t._id)}
+                        >
+                          <CornerDownRight
+                            className="h-3.5 w-3.5"
+                            aria-hidden="true"
+                          />
+                        </button>
+                      )}
+                    {capabilities.subtasks && !readOnly && t.parentTaskId && (
+                      <button
+                        type="button"
+                        aria-label={fmt(subtasks.promote, { task: t.title })}
+                        className={iconButtonClass}
+                        onClick={() => void run(commands.reparent(t._id, null))}
+                      >
+                        <ChevronLeft
+                          className="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    )}
+                    {capabilities.edit && !readOnly && (
+                      <button
+                        type="button"
+                        aria-label={fmt(local.edit, { task: t.title })}
+                        className={iconButtonClass}
+                        onClick={() => setEditingId(t._id)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    )}
+                    {capabilities.delete && !readOnly && (
+                      <button
+                        type="button"
+                        aria-label={fmt(local.delete, { task: t.title })}
+                        className={iconButtonClass}
+                        onClick={() => void run(commands.remove(t._id))}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    )}
+                  </span>
+                }
+              />
+            )}
+            {addingSubtaskTo === t._id && (
+              <SubtaskForm
+                depth={depth}
+                label={fmt(subtasks.newUnder, { task: t.title })}
+                submitLabel={local.addTask}
+                cancelLabel={messages.common.actions.cancel}
+                onSubmit={(title) => {
+                  setAddingSubtaskTo(null)
+                  void run(commands.add({ title, parentTaskId: t._id }))
+                }}
+                onCancel={() => setAddingSubtaskTo(null)}
+              />
+            )}
+          </Fragment>
         ),
       )}
 
@@ -415,6 +474,65 @@ function BackendNotice({
     )
   }
   return null
+}
+
+/**
+ * Adding one subtask, inline and indented under its parent — the same shape
+ * the row above it has, so where the new task will land is visible before it
+ * is typed.
+ */
+function SubtaskForm({
+  depth,
+  label,
+  submitLabel,
+  cancelLabel,
+  onSubmit,
+  onCancel,
+}: {
+  depth: number
+  label: string
+  submitLabel: string
+  cancelLabel: string
+  onSubmit: (title: string) => void
+  onCancel: () => void
+}) {
+  const [title, setTitle] = useState('')
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        const trimmed = title.trim()
+        if (!trimmed) return
+        onSubmit(trimmed)
+      }}
+      className="flex gap-2 py-1"
+      style={{ paddingLeft: `${(depth + 1) * 1.25}rem` }}
+    >
+      {/* Focused on appearing: this form exists only because somebody just
+          clicked "add a subtask" on one particular row, and it exists only to
+          be typed into. */}
+      <input
+        autoFocus
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        aria-label={label}
+        className="min-h-8 flex-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm"
+      />
+      <button
+        type="submit"
+        className="min-h-8 rounded-[var(--app-radius)] border border-[var(--app-border)] px-2 text-xs font-semibold"
+      >
+        {submitLabel}
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="min-h-8 px-1 text-xs text-[var(--app-muted)]"
+      >
+        {cancelLabel}
+      </button>
+    </form>
+  )
 }
 
 function Notice({ children }: { children: React.ReactNode }) {

@@ -1334,3 +1334,380 @@ describe('writing through Todoist', () => {
     ).rejects.toThrow(/written locally/)
   })
 })
+
+/**
+ * Nesting, on both kinds of Backend.
+ *
+ * The domain model is arbitrary depth; what limits it is the Backend, which
+ * says so in its capability list rather than in the Module (ADR-0014). Two
+ * things have to hold whatever the Backend: a task is never its own ancestor,
+ * and deleting a task takes what hangs off it.
+ */
+describe('subtasks on a local list', () => {
+  test('nest as deep as anyone wants', async () => {
+    const { t, jansenList, jansenTask } = await seed()
+
+    let parent = jansenTask
+    for (const title of ['Level 2', 'Level 3', 'Level 4', 'Level 5']) {
+      parent = await t.withIdentity(alice).mutation(api.tasks.add, {
+        listId: jansenList,
+        groupSlug: JANSEN,
+        title,
+        parentTaskId: parent,
+      })
+    }
+
+    const tasks = await t.withIdentity(alice).query(api.tasks.listByList, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+    })
+    expect(tasks).toHaveLength(5)
+    // A local list is this app, and this app has no limit of its own.
+    expect(
+      (
+        await t
+          .withIdentity(alice)
+          .query(api.taskLists.backend, {
+            listId: jansenList,
+            groupSlug: JANSEN,
+          })
+      ).capabilities,
+    ).toMatchObject({ subtasks: true })
+    expect(
+      (
+        await t.withIdentity(alice).query(api.taskLists.backend, {
+          listId: jansenList,
+          groupSlug: JANSEN,
+        })
+      ).capabilities.maxDepth,
+    ).toBeUndefined()
+  })
+
+  test('deleting a task takes its subtasks with it', async () => {
+    const { t, jansenList, jansenTask } = await seed()
+    const child = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+      title: 'Child',
+      parentTaskId: jansenTask,
+    })
+    await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+      title: 'Grandchild',
+      parentTaskId: child,
+    })
+
+    await t.withIdentity(alice).mutation(api.tasks.remove, {
+      taskId: jansenTask,
+      groupSlug: JANSEN,
+    })
+
+    // Not orphaned at the top level: a subtask whose parent is gone is a row
+    // nothing in the Module can reach.
+    expect(
+      await t.withIdentity(alice).query(api.tasks.listByList, {
+        listId: jansenList,
+        groupSlug: JANSEN,
+      }),
+    ).toEqual([])
+  })
+
+  test('a task cannot be moved under itself or under its own subtask', async () => {
+    const { t, jansenList, jansenTask } = await seed()
+    const child = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+      title: 'Child',
+      parentTaskId: jansenTask,
+    })
+
+    await expect(
+      t.withIdentity(alice).mutation(api.tasks.reparent, {
+        taskId: jansenTask,
+        groupSlug: JANSEN,
+        parentTaskId: jansenTask,
+      }),
+    ).rejects.toThrow(/its own subtask/)
+    await expect(
+      t.withIdentity(alice).mutation(api.tasks.reparent, {
+        taskId: jansenTask,
+        groupSlug: JANSEN,
+        parentTaskId: child,
+      }),
+    ).rejects.toThrow(/its own subtask/)
+  })
+
+  test('a subtask is promoted back to the top level', async () => {
+    const { t, jansenList, jansenTask } = await seed()
+    const child = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+      title: 'Child',
+      parentTaskId: jansenTask,
+    })
+
+    await t.withIdentity(alice).mutation(api.tasks.reparent, {
+      taskId: child,
+      groupSlug: JANSEN,
+      parentTaskId: null,
+    })
+
+    const tasks = await t.withIdentity(alice).query(api.tasks.listByList, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+    })
+    expect(tasks.find((task) => task._id === child)?.parentTaskId).toBeUndefined()
+  })
+
+  test('a parent in another list is refused', async () => {
+    const { t, jansenList, devriesList, jansenTask } = await seed()
+    expect(devriesList).toBeDefined()
+
+    await expect(
+      t.withIdentity(alice).mutation(api.tasks.add, {
+        listId: devriesList,
+        groupSlug: DE_VRIES,
+        title: 'Across lists',
+        parentTaskId: jansenTask,
+      }),
+    ).rejects.toThrow(/not in this list/)
+    expect(jansenList).toBeDefined()
+  })
+})
+
+describe('subtasks on a Todoist list', () => {
+  function jsonBody(body: unknown, status = 200) {
+    return new Response(JSON.stringify(body), { status })
+  }
+
+  function stubTodoist(respond: (url: string) => Response) {
+    const calls: Array<{ url: string; init?: RequestInit }> = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        calls.push({ url: String(url), init })
+        return Promise.resolve(
+          String(url).includes('/completed/get_all')
+            ? jsonBody({ items: [] })
+            : respond(String(url)),
+        )
+      }),
+    )
+    return calls
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  /** A Todoist list holding one task, four levels of nesting available. */
+  async function seedLinked() {
+    const base = await seed()
+    const connectionId = await base.t.mutation(
+      internal.integrations.storeConnection,
+      {
+        groupId: base.jansen,
+        provider: 'todoist',
+        accessToken: 'todoist-token',
+        accountLabel: 'household@example.com',
+        externalAccountId: 'todoist-1',
+        connectedBy: base.aliceId,
+      },
+    )
+    const listId = await base.t
+      .withIdentity(alice)
+      .mutation(api.taskLists.create, {
+        name: 'Household',
+        provider: 'todoist',
+        groupSlug: JANSEN,
+        providerConfig: { connectionId, sourceId: 'p1', sourceName: 'Household' },
+      })
+    stubTodoist(() => jsonBody([{ id: 't1', content: 'Plant beds', priority: 1 }]))
+    await base.t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+    const [parent] = await base.t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    return { ...base, listId, parent }
+  }
+
+  test('a refresh brings the hierarchy back intact', async () => {
+    const { t, listId } = await seedLinked()
+    stubTodoist(() =>
+      jsonBody([
+        { id: 't1', content: 'Plant beds', priority: 1 },
+        { id: 't2', content: 'Buy pots', priority: 1, parent_id: 't1' },
+        { id: 't3', content: 'Measure', priority: 1, parent_id: 't2' },
+      ]),
+    )
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    const tasks = await t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    const byExternalId = new Map(tasks.map((task) => [task.externalId, task]))
+    expect(byExternalId.get('t2')?.parentTaskId).toBe(
+      byExternalId.get('t1')?._id,
+    )
+    expect(byExternalId.get('t3')?.parentTaskId).toBe(
+      byExternalId.get('t2')?._id,
+    )
+  })
+
+  test('a new subtask names its parent to Todoist before anything is cached', async () => {
+    const { t, listId, parent } = await seedLinked()
+    const calls = stubTodoist(() =>
+      jsonBody({ id: 't2', content: 'Buy pots', priority: 1, parent_id: 't1' }),
+    )
+
+    await t.withIdentity(alice).action(api.externalTasks.create, {
+      listId,
+      groupSlug: JANSEN,
+      title: 'Buy pots',
+      parentTaskId: parent._id,
+    })
+
+    expect(JSON.parse(String(calls[0].init?.body))).toMatchObject({
+      parent_id: 't1',
+    })
+    const tasks = await t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    expect(
+      tasks.find((task) => task.externalId === 't2')?.parentTaskId,
+    ).toBe(parent._id)
+  })
+
+  test('deleting a parent clears its subtasks from the cache too', async () => {
+    const { t, listId, parent } = await seedLinked()
+    stubTodoist(() =>
+      jsonBody([
+        { id: 't1', content: 'Plant beds', priority: 1 },
+        { id: 't2', content: 'Buy pots', priority: 1, parent_id: 't1' },
+      ]),
+    )
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    stubTodoist(() => new Response(null, { status: 204 }))
+    await t.withIdentity(alice).action(api.externalTasks.remove, {
+      taskId: parent._id,
+      groupSlug: JANSEN,
+    })
+
+    // Todoist deletes the subtasks with the parent; keeping the cached child
+    // would leave a row that is unreachable here and gone there.
+    expect(
+      await t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: JANSEN }),
+    ).toEqual([])
+  })
+
+  test('a fifth level is refused before anything is sent', async () => {
+    const { t, listId } = await seedLinked()
+    stubTodoist(() =>
+      jsonBody([
+        { id: 't1', content: 'L1', priority: 1 },
+        { id: 't2', content: 'L2', priority: 1, parent_id: 't1' },
+        { id: 't3', content: 'L3', priority: 1, parent_id: 't2' },
+        { id: 't4', content: 'L4', priority: 1, parent_id: 't3' },
+      ]),
+    )
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+    const tasks = await t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    const deepest = tasks.find((task) => task.externalId === 't4')
+
+    const calls = stubTodoist(() => jsonBody({ id: 't5', content: 'L5', priority: 1 }))
+    await expect(
+      t.withIdentity(alice).action(api.externalTasks.create, {
+        listId,
+        groupSlug: JANSEN,
+        title: 'L5',
+        parentTaskId: deepest?._id ?? tasks[0]._id,
+      }),
+    ).rejects.toThrow(/4 levels deep at most/)
+    // Todoist's limit, enforced here rather than discovered by being refused.
+    expect(calls).toEqual([])
+  })
+
+  test('moving a subtask goes provider-first, like every other write', async () => {
+    const { t, listId, parent } = await seedLinked()
+    stubTodoist(() =>
+      jsonBody([
+        { id: 't1', content: 'Plant beds', priority: 1 },
+        { id: 't2', content: 'Buy pots', priority: 1, parent_id: 't1' },
+      ]),
+    )
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+    const child = (
+      await t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    ).find((task) => task.externalId === 't2')
+
+    const calls = stubTodoist(() =>
+      jsonBody({ sync_status: { 'uuid-1': 'ok' } }),
+    )
+    await t.withIdentity(alice).action(api.externalTasks.move, {
+      taskId: child?._id ?? parent._id,
+      groupSlug: JANSEN,
+      parentTaskId: null,
+    })
+
+    expect(calls[0].url).toContain('/sync')
+    const after = (
+      await t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    ).find((task) => task.externalId === 't2')
+    expect(after?.parentTaskId).toBeUndefined()
+  })
+
+  test('a move Todoist refused leaves the hierarchy alone', async () => {
+    const { t, listId, parent } = await seedLinked()
+    stubTodoist(() =>
+      jsonBody([
+        { id: 't1', content: 'Plant beds', priority: 1 },
+        { id: 't2', content: 'Buy pots', priority: 1, parent_id: 't1' },
+      ]),
+    )
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+    const child = (
+      await t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    ).find((task) => task.externalId === 't2')
+
+    stubTodoist(() =>
+      jsonBody({ sync_status: { 'uuid-1': { error: 'nope', error_code: 15 } } }),
+    )
+    await expect(
+      t.withIdentity(alice).action(api.externalTasks.move, {
+        taskId: child?._id ?? parent._id,
+        groupSlug: JANSEN,
+        parentTaskId: null,
+      }),
+    ).rejects.toThrow(/refused/)
+
+    const after = (
+      await t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    ).find((task) => task.externalId === 't2')
+    expect(after?.parentTaskId).toBe(parent._id)
+  })
+})

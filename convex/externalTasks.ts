@@ -26,7 +26,13 @@ import type { Id } from './_generated/dataModel'
 import type { ActionCtx } from './_generated/server'
 import { action, internalMutation, internalQuery } from './_generated/server'
 import { requireListAccess } from './lib/taskAccess'
-import { getAdapter } from './lib/taskProviders'
+import {
+  depthUnder,
+  requireDepthWithin,
+  requireValidParent,
+  withDescendants,
+} from './lib/taskTree'
+import { capabilitiesFor, getAdapter } from './lib/taskProviders'
 import {
   type ExternalProviderId,
   ProviderAuthError,
@@ -122,6 +128,87 @@ export const getWritableTask = internalQuery({
   },
 })
 
+/**
+ * The provider's id for a parent a new subtask is going under, with the depth
+ * the placement would sit at checked against what the Backend can hold.
+ *
+ * The check is here rather than in the UI as well as the UI: a control the
+ * capability list hid is not a control an API may assume was never used.
+ */
+export const resolveParent = internalQuery({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    parentTaskId: v.id('tasks'),
+  },
+  handler: async (ctx, args) => {
+    const { list } = await requireListAccess(ctx, args.groupSlug, args.listId)
+    const parent = await ctx.db.get(args.parentTaskId)
+    if (!parent || parent.listId !== args.listId) {
+      throw new ConvexError('That parent task is not in this list')
+    }
+    if (!parent.externalId) {
+      throw new ConvexError('That task is not known to the provider')
+    }
+    requireDepthWithin(
+      await depthUnder(ctx, args.parentTaskId),
+      capabilitiesFor(list.provider, list.providerConfig).maxDepth,
+    )
+    return parent.externalId
+  },
+})
+
+/** A task and its subtasks, so a deletion here matches the provider's. */
+export const cascadeIds = internalQuery({
+  args: { taskId: v.id('tasks'), groupSlug: v.string() },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.taskId)
+    if (!task) return []
+    await requireListAccess(ctx, args.groupSlug, task.listId)
+    return await withDescendants(ctx, args.taskId)
+  },
+})
+
+/**
+ * The move a reparent is asking for, checked before anything is sent: the new
+ * parent has to be in this list, must not be the task or anything under it,
+ * and the result must sit within the Backend's depth.
+ */
+export const resolveMove = internalQuery({
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    parentTaskId: v.optional(v.union(v.id('tasks'), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.taskId)
+    if (!task) throw new ConvexError('Task not found')
+    const { list } = await requireListAccess(ctx, args.groupSlug, task.listId)
+    if (list.provider === 'local') {
+      throw new ConvexError('This list is written locally')
+    }
+    if (!task.externalId) {
+      throw new ConvexError('That task is not known to the provider')
+    }
+    const parentTaskId = args.parentTaskId ?? undefined
+    await requireValidParent(ctx, task, parentTaskId)
+    requireDepthWithin(
+      await depthUnder(ctx, parentTaskId),
+      capabilitiesFor(list.provider, list.providerConfig).maxDepth,
+    )
+    const parent = parentTaskId ? await ctx.db.get(parentTaskId) : null
+    if (parentTaskId && !parent?.externalId) {
+      throw new ConvexError('That task is not known to the provider')
+    }
+    return {
+      listId: list._id,
+      externalId: task.externalId,
+      parentExternalId: parent?.externalId ?? null,
+      parentTaskId: parentTaskId ?? null,
+    }
+  },
+})
+
 // ---------- cache updates, after the provider has agreed ----------
 
 const unifiedTaskValidator = v.object({
@@ -132,6 +219,7 @@ const unifiedTaskValidator = v.object({
   priority: v.optional(priorityValidator),
   labels: v.optional(v.array(v.string())),
   url: v.optional(v.string()),
+  parentExternalId: v.optional(v.string()),
 })
 
 /**
@@ -141,7 +229,11 @@ const unifiedTaskValidator = v.object({
  * same list through `requireListAccess` against the Group in the URL.
  */
 export const cacheTask = internalMutation({
-  args: { listId: v.id('taskLists'), task: unifiedTaskValidator },
+  args: {
+    listId: v.id('taskLists'),
+    task: unifiedTaskValidator,
+    parentTaskId: v.optional(v.union(v.id('tasks'), v.null())),
+  },
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query('tasks')
@@ -171,6 +263,10 @@ export const cacheTask = internalMutation({
       listId: args.listId,
       externalId: args.task.externalId,
       order: siblings.reduce((max, t) => Math.max(max, t.order), -1) + 1,
+      // The caller knows the parent as a row here; the provider's answer knows
+      // it as an id there. Both say the same thing, and the row's is the one
+      // this table can check.
+      parentTaskId: args.parentTaskId ?? undefined,
       ...fields,
     })
   },
@@ -178,9 +274,26 @@ export const cacheTask = internalMutation({
 
 /** As `cacheTask`, authorised by the same callers. */
 export const uncacheTask = internalMutation({
-  args: { taskId: v.id('tasks') },
+  args: { taskIds: v.array(v.id('tasks')) },
   handler: async (ctx, args) => {
-    await ctx.db.delete(args.taskId)
+    for (const taskId of args.taskIds) {
+      // Already gone is fine — this is reconciling a deletion the provider has
+      // already made, and the cache being ahead of us is not a failure.
+      if (await ctx.db.get(taskId)) await ctx.db.delete(taskId)
+    }
+  },
+})
+
+/** As `cacheTask`, authorised by the same callers. */
+export const setParentInCache = internalMutation({
+  args: {
+    taskId: v.id('tasks'),
+    parentTaskId: v.union(v.id('tasks'), v.null()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.taskId, {
+      parentTaskId: args.parentTaskId ?? undefined,
+    })
   },
 })
 
@@ -293,12 +406,21 @@ export const create = action({
     // A new task has to be called something, so `title` is required here even
     // though an edit may leave it alone.
     title: v.string(),
+    /** Makes this a subtask of another task on the same list. */
+    parentTaskId: v.optional(v.id('tasks')),
   },
   handler: async (ctx, args): Promise<ExternalWriteResult> => {
     const list = await ctx.runQuery(internal.externalTasks.getWritableList, {
       listId: args.listId,
       groupSlug: args.groupSlug,
     })
+    const parentExternalId = args.parentTaskId
+      ? await ctx.runQuery(internal.externalTasks.resolveParent, {
+          listId: args.listId,
+          groupSlug: args.groupSlug,
+          parentTaskId: args.parentTaskId,
+        })
+      : undefined
     const adapter = getAdapter(list.provider)
 
     let created: UnifiedTask
@@ -307,12 +429,11 @@ export const create = action({
         adapter.createTask,
         list.provider,
         'creating tasks',
-      ).call(
-        adapter,
-        list.accessToken,
-        list.config as SourceConfig,
-        { ...toTaskInput(args), title: args.title },
-      )
+      ).call(adapter, list.accessToken, list.config as SourceConfig, {
+        ...toTaskInput(args),
+        title: args.title,
+        parentExternalId,
+      })
     } catch (error) {
       toUserError(error, list.provider)
     }
@@ -321,6 +442,56 @@ export const create = action({
       ctx.runMutation(internal.externalTasks.cacheTask, {
         listId: args.listId,
         task: created,
+        parentTaskId: args.parentTaskId ?? null,
+      }),
+    )
+  },
+})
+
+/**
+ * Move a task under a different parent, or to the top level.
+ *
+ * Provider-first like every other write: Todoist decides whether the move is
+ * allowed, and the cache follows only once it has.
+ */
+export const move = action({
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    parentTaskId: v.optional(v.union(v.id('tasks'), v.null())),
+  },
+  handler: async (ctx, args): Promise<ExternalWriteResult> => {
+    const move = await ctx.runQuery(internal.externalTasks.resolveMove, {
+      taskId: args.taskId,
+      groupSlug: args.groupSlug,
+      parentTaskId: args.parentTaskId,
+    })
+    const list = await ctx.runQuery(internal.externalTasks.getWritableList, {
+      listId: move.listId,
+      groupSlug: args.groupSlug,
+    })
+    const adapter = getAdapter(list.provider)
+
+    try {
+      await requireOperation(
+        adapter.moveTask,
+        list.provider,
+        'moving subtasks',
+      ).call(
+        adapter,
+        list.accessToken,
+        list.config as SourceConfig,
+        move.externalId,
+        move.parentExternalId,
+      )
+    } catch (error) {
+      toUserError(error, list.provider)
+    }
+
+    return await afterProviderAccepted(ctx, list.listId, () =>
+      ctx.runMutation(internal.externalTasks.setParentInCache, {
+        taskId: args.taskId,
+        parentTaskId: move.parentTaskId,
       }),
     )
   },
@@ -439,9 +610,16 @@ export const remove = action({
       toUserError(error, list.provider)
     }
 
+    // Todoist deletes a task's subtasks with it, so the cache does too —
+    // otherwise the next reader sees rows that nothing in the Module can reach
+    // and that no longer exist at the provider.
+    const cascade = await ctx.runQuery(internal.externalTasks.cascadeIds, {
+      taskId: args.taskId,
+      groupSlug: args.groupSlug,
+    })
     return await afterProviderAccepted(ctx, list.listId, () =>
       ctx.runMutation(internal.externalTasks.uncacheTask, {
-        taskId: args.taskId,
+        taskIds: cascade,
       }),
     )
   },

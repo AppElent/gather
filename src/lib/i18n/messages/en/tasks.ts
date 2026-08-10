@@ -64,6 +64,12 @@ export const tasks = {
     writeFailed: 'That change was not saved — nothing here has changed.',
   },
 
+  subtasks: {
+    add: 'Add a subtask to {task}',
+    newUnder: 'New subtask under {task}',
+    promote: 'Move {task} out of its parent',
+  },
+
   editor: {
     title: 'Task title',
     dueDate: 'Due date',

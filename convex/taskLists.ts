@@ -353,6 +353,7 @@ const unifiedTaskValidator = v.object({
   ),
   labels: v.optional(v.array(v.string())),
   url: v.optional(v.string()),
+  parentExternalId: v.optional(v.string()),
 })
 
 /**

@@ -109,5 +109,61 @@ export async function reconcileList(
     result.deleted += 1
   }
 
+  await linkParents(ctx, listId, tasks)
   return result
+}
+
+/**
+ * Resolve the provider's parent references onto rows in this table.
+ *
+ * A second pass, because a subtask can arrive before its parent does and a
+ * reference to a row that does not exist yet is not a reference. By the time
+ * this runs every task the provider mentioned has a row, so every parent it
+ * named can be found — and one it did not name resolves to nothing, which is
+ * the same as being top-level and is what a parent deleted at the provider
+ * leaves behind.
+ */
+async function linkParents(
+  ctx: MutationCtx,
+  listId: Id<'taskLists'>,
+  tasks: UnifiedTask[],
+): Promise<void> {
+  if (!tasks.some((t) => t.parentExternalId)) {
+    // Nothing nested in this answer. Any parent link still on a row is one the
+    // provider has stopped asserting, so it goes — but only walk the rows if
+    // there is something to clear.
+    const rows = await ctx.db
+      .query('tasks')
+      .withIndex('by_list', (q) => q.eq('listId', listId))
+      .collect()
+    for (const row of rows) {
+      if (row.parentTaskId) {
+        await ctx.db.patch(row._id, { parentTaskId: undefined })
+      }
+    }
+    return
+  }
+
+  const rows = await ctx.db
+    .query('tasks')
+    .withIndex('by_list', (q) => q.eq('listId', listId))
+    .collect()
+  const idByExternalId = new Map(
+    rows.filter((r) => r.externalId).map((r) => [r.externalId, r._id]),
+  )
+  const parentByExternalId = new Map(
+    tasks.map((t) => [t.externalId, t.parentExternalId]),
+  )
+
+  for (const row of rows) {
+    const parentExternalId = row.externalId
+      ? parentByExternalId.get(row.externalId)
+      : undefined
+    const parentTaskId = parentExternalId
+      ? idByExternalId.get(parentExternalId)
+      : undefined
+    if (row.parentTaskId !== parentTaskId) {
+      await ctx.db.patch(row._id, { parentTaskId })
+    }
+  }
 }

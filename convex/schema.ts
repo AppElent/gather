@@ -155,6 +155,15 @@ export default defineSchema({
     externalId: v.optional(v.string()),
     // Link-out to the item in the app that owns it.
     url: v.optional(v.string()),
+    // This task's parent, for a subtask. Arbitrary depth in the domain model;
+    // what actually limits it is the Backend, which says so in its capability
+    // list rather than here (ADR-0014). Absent on a top-level task.
+    //
+    // Deliberately an id in *this* table rather than the provider's, even on a
+    // cached row: the tree is walked here, and a reference the database can
+    // check is worth more than one it cannot. Reconciliation resolves the
+    // provider's `parentExternalId` onto it.
+    parentTaskId: v.optional(v.id('tasks')),
   })
     .index('by_list', ['listId'])
     // Reconciliation asks "which cached row is this provider task", once per

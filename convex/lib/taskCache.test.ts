@@ -133,3 +133,88 @@ describe('reconcileList', () => {
     expect(await cached(t, listId)).toEqual([])
   })
 })
+
+describe('reconciling a hierarchy', () => {
+  test('resolves the provider’s parents onto rows in this table', async () => {
+    const { t, listId } = await listWithCache([
+      task('parent'),
+      task('child', { parentExternalId: 'parent' }),
+    ])
+
+    const rows = await cached(t, listId)
+    const parent = rows.find((r) => r.externalId === 'parent')
+    const child = rows.find((r) => r.externalId === 'child')
+    // The provider states the shape; the cache holds it as a reference this
+    // database can check.
+    expect(child?.parentTaskId).toBe(parent?._id)
+    expect(parent?.parentTaskId).toBeUndefined()
+  })
+
+  test('a subtask that arrives before its parent still finds it', async () => {
+    // Nothing promises the provider lists a parent first, and a reference to a
+    // row that does not exist yet is not a reference — hence the second pass.
+    const { t, listId } = await listWithCache([
+      task('child', { parentExternalId: 'parent' }),
+      task('parent'),
+    ])
+
+    const rows = await cached(t, listId)
+    expect(rows.find((r) => r.externalId === 'child')?.parentTaskId).toBe(
+      rows.find((r) => r.externalId === 'parent')?._id,
+    )
+  })
+
+  test('a task moved out of its parent at the provider is moved out here', async () => {
+    const { t, listId } = await listWithCache([
+      task('parent'),
+      task('child', { parentExternalId: 'parent' }),
+    ])
+
+    await t.run((ctx) =>
+      reconcileList(ctx, listId, [task('parent'), task('child')]),
+    )
+
+    expect(
+      (await cached(t, listId)).find((r) => r.externalId === 'child')
+        ?.parentTaskId,
+    ).toBeUndefined()
+  })
+
+  test('deleting a parent at the provider takes its subtasks with it', async () => {
+    const { t, listId } = await listWithCache([
+      task('parent'),
+      task('child', { parentExternalId: 'parent' }),
+    ])
+
+    // Todoist removes the subtasks with the parent, so its next answer
+    // mentions neither — and the cache must not keep a row that is unreachable
+    // here and gone there.
+    await t.run((ctx) => reconcileList(ctx, listId, []))
+
+    expect(await cached(t, listId)).toEqual([])
+  })
+
+  test('parent identity survives a refresh that rewrites every field', async () => {
+    const { t, listId } = await listWithCache([
+      task('parent'),
+      task('child', { parentExternalId: 'parent' }),
+    ])
+    const before = await cached(t, listId)
+
+    await t.run((ctx) =>
+      reconcileList(ctx, listId, [
+        task('parent', { title: 'Renamed', done: true }),
+        task('child', { parentExternalId: 'parent', title: 'Also renamed' }),
+      ]),
+    )
+
+    const after = await cached(t, listId)
+    // Same rows, not replacements: the provider's ids are what identify them.
+    expect(after.map((r) => r._id).sort()).toEqual(
+      before.map((r) => r._id).sort(),
+    )
+    expect(after.find((r) => r.externalId === 'child')?.parentTaskId).toBe(
+      after.find((r) => r.externalId === 'parent')?._id,
+    )
+  })
+})

@@ -56,6 +56,12 @@ export const tasks = {
     writeFailed: 'Die wijziging is niet opgeslagen — hier is niets veranderd.',
   },
 
+  subtasks: {
+    add: 'Subtaak toevoegen aan {task}',
+    newUnder: 'Nieuwe subtaak onder {task}',
+    promote: '{task} uit de bovenliggende taak halen',
+  },
+
   editor: {
     title: 'Taakomschrijving',
     dueDate: 'Datum',

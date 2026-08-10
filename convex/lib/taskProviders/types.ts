@@ -9,6 +9,12 @@ export interface UnifiedTask {
   priority?: 1 | 2 | 3 | 4 // 1 = most urgent (Todoist "p1")
   labels?: string[]
   url?: string // link-out to the item in its source app (external only)
+  /**
+   * The provider's id of this task's parent, for a subtask. The provider's
+   * own identity rather than gather's, so a hierarchy survives a refresh that
+   * rewrites every row: the shape is the provider's to state.
+   */
+  parentExternalId?: string
 }
 
 export interface ProviderSource {
@@ -118,6 +124,8 @@ export interface TaskInput {
   dueDate?: string | null
   priority?: 1 | 2 | 3 | 4 | null
   labels?: string[] | null
+  /** Where in the hierarchy a *new* task goes. Moving one is `moveTask`. */
+  parentExternalId?: string
 }
 
 /** Thrown when the provider rejects our token (expired/revoked). The UI
@@ -236,6 +244,20 @@ export interface TaskProviderAdapter {
     accessToken: string,
     config: SourceConfig,
     externalId: string,
+    fetchImpl?: typeof fetch,
+  ): Promise<void>
+  /**
+   * Move a task under a different parent, or to the top level with `null`.
+   *
+   * Separate from `updateTask` because providers treat it separately: it is
+   * about a task's place in the hierarchy rather than about its fields, and
+   * a Backend may support one and not the other.
+   */
+  moveTask?(
+    accessToken: string,
+    config: SourceConfig,
+    externalId: string,
+    parentExternalId: string | null,
     fetchImpl?: typeof fetch,
   ): Promise<void>
 }
