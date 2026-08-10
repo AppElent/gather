@@ -175,8 +175,26 @@ test('a one-off shows the icon it was logged with', () => {
   expect(screen.getByText('Poffertjes at the fair')).toBeDefined()
 })
 
-test('an entry with no icon renders exactly as it always did', () => {
-  const { container } = renderWithI18n(
+test('a food entry uses the food icon when it has no photograph', () => {
+  renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={{
+        ...entry,
+        foodId: 'food1',
+        sourceIcon: '🥣',
+        thumbnailKind: 'food',
+      }}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+
+  expect(screen.getByText('🥣')).toBeDefined()
+})
+
+test('a one-off with no icon falls back to the food glyph', () => {
+  renderWithI18n(
     <ConsumptionEntryRow
       nav={nav}
       entry={entry}
@@ -184,7 +202,7 @@ test('an entry with no icon renders exactly as it always did', () => {
       onDelete={vi.fn()}
     />,
   )
-  expect(container.querySelector('[aria-hidden="true"]')).toBeNull()
+  expect(screen.getByText('🍽')).toBeDefined()
 })
 
 test('an invalid quantity does not call onUpdate', () => {
