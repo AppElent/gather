@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, useMessages } from '../../lib/i18n'
+import { FoodThumbnail } from '../nutrition/FoodThumbnail'
 import { NutritionPanel } from './NutritionPanel'
 import { RecipeSharingPanel } from './RecipeSharingPanel'
 import type { RecipeNav } from './recipeNav'
@@ -96,13 +97,12 @@ export function RecipeDetailPage({
         </p>
       )}
 
-      {recipe.imageUrl && (
-        <img
-          src={recipe.imageUrl}
-          alt={recipe.title}
-          className="mb-4 w-full rounded-xl object-cover"
-        />
-      )}
+      <FoodThumbnail
+        src={recipe.imageUrl}
+        kind="recipe"
+        className="mb-4 h-64 w-full"
+        glyphClassName="text-6xl"
+      />
       {recipe.description && (
         <p className="mb-4 opacity-80">{recipe.description}</p>
       )}

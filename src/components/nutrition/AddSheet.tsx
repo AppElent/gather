@@ -1,6 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
-import { type ReactNode, useRef, useState } from 'react'
+import { Barcode, Plus } from 'lucide-react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { type ComboCounts, comboEntries } from '../../../convex/lib/combos'
@@ -9,7 +10,10 @@ import {
   type MealName,
   type QuantityUnit,
 } from '../../../convex/lib/consumption'
-import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import type {
+  NutritionFacts,
+  NutritionSource,
+} from '../../../convex/lib/nutrition'
 import { barcodeTerm } from '../../../convex/lib/offFetch'
 import type { OffSearchResult } from '../../../convex/lib/offMapping'
 import type { Serving } from '../../../convex/lib/servings'
@@ -18,6 +22,7 @@ import type { AppLink } from '../../lib/appLink'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
+import { FoodForm } from '../foods/FoodForm'
 import { IconPicker } from '../foods/IconPicker'
 import { BottomSheet } from './BottomSheet'
 import { ComboCard, type ComboSummary } from './ComboCard'
@@ -57,13 +62,19 @@ interface FoodSummary {
   _id: Id<'foods'>
   name: string
   brand?: string
+  barcode?: string
   baseUnit: 'g' | 'ml'
   nutritionPer100: NutritionFacts
+  nutritionSource?: NutritionSource
   servings?: Serving[]
   /** Resolved by the query from the stored file; null when there is no picture. */
   imageUrl?: string | null
   /** The emoji somebody picked for it, shown when there is no picture (#94). */
   icon?: string
+  /** Catalog rows are read-only, so they never get the editor. */
+  seedKey?: string
+  /** User-created foods can only be changed by their creator. */
+  createdBy?: Id<'users'>
 }
 
 interface Props {
@@ -85,15 +96,17 @@ interface Props {
  * The dialog this replaces made you choose *what kind of thing* you were
  * logging — Recipes, Foods or Quick add — before you were allowed to search for
  * it. Here there is one search box and one list, with your foods, your Recipes
- * and Open Food Facts in labelled sections. Quick add is not a place any more:
- * it is what the empty result offers you, with the term you already typed as
- * the label.
+ * and Open Food Facts in labelled sections. Quick add is not a separate place:
+ * the always-visible Add control gives it and adding to the foods library equal
+ * weight, while an empty result repeats both offers at the moment of highest
+ * intent.
  */
 export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const search = useFoodSearch()
   const term = search.term.trim()
   const recipes = useQuery(api.recipes.listAcrossMyGroups, {})
   const combos = useQuery(api.combos.list, {})
+  const me = useQuery(api.users.me)
   // The food a review form just saved. Read back rather than carried in the
   // URL, because what is logged has to be the row as it was written — the form
   // is where somebody may have corrected the figures.
@@ -105,6 +118,8 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const createEntries = useMutation(api.consumption.createMany)
   const replaceComboItems = useMutation(api.combos.replaceItems)
   const lookupBarcode = useAction(api.foodsLookup.lookupBarcode)
+  const upsertFromOff = useMutation(api.foods.upsertFromOff)
+  const storeOffImage = useAction(api.foodsLookup.storeOffImage)
   const convex = useConvex()
   const navigate = useNavigate()
   const { announce } = useJustLogged()
@@ -118,15 +133,31 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const [expanded, setExpanded] = useState<string | null>(
     justAddedFoodId ? `food:${justAddedFoodId}` : null,
   )
+  // The add sheet stays mounted when its `food` search parameter changes. A
+  // state initializer only sees the first value, so follow later return trips
+  // too (#112).
+  useEffect(() => {
+    if (justAddedFoodId) setExpanded(`food:${justAddedFoodId}`)
+  }, [justAddedFoodId])
   const [comboBusy, setComboBusy] = useState(false)
   const [comboError, setComboError] = useState<string | null>(null)
   const [promotions, setPromotions] = useState(0)
   const [scanning, setScanning] = useState(false)
+  const [adding, setAdding] = useState(false)
   const [scanned, setScanned] = useState<FoodSummary | null>(null)
   const [scanFailure, setScanFailure] = useState<{
     barcode?: string
     message?: string
   } | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState<{
+    barcode: string
+    message: string
+  } | null>(null)
+  // State only updates after React handles this event. The ref closes the gap
+  // between two quick taps so they cannot start two imports before the buttons
+  // rerender disabled.
+  const importInFlight = useRef(false)
 
   const toggle = (key: string) =>
     setExpanded((current) => (current === key ? null : key))
@@ -160,14 +191,54 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   }
 
   /**
+   * The fast OFF path writes the food first, then reopens this same meal with
+   * its stored card expanded for the amount choice. Its photograph follows in
+   * the background: an unreliable remote image must not hold up logging.
+   *
+   * OFF supplies figures per 100g and no reliable unit signal, which is the
+   * same `g` default the review form starts with. Checking first remains how a
+   * person changes that default or any imported figure before writing.
+   */
+  async function importOff(result: OffSearchResult): Promise<boolean> {
+    if (importInFlight.current) return false
+    importInFlight.current = true
+    setImporting(true)
+    setImportError(null)
+    try {
+      const id = await upsertFromOff({
+        barcode: result.barcode,
+        name: result.name,
+        brand: result.brand,
+        baseUnit: 'g',
+        nutritionPer100: result.nutritionPer100,
+        nutritionSource: 'imported',
+        ...(result.servings?.length ? { servings: result.servings } : {}),
+      })
+      navigate(nav.addEntry(date, meal, id))
+      if (result.imageUrl) {
+        void storeOffImage({ id, imageUrl: result.imageUrl }).catch(() => {
+          // A picture is decoration. The food already exists and is ready to
+          // log, so a failed OFF fetch must remain invisible to that flow.
+        })
+      }
+      return true
+    } catch {
+      setImportError({ barcode: result.barcode, message: foodAdd.importFailed })
+      return false
+    } finally {
+      importInFlight.current = false
+      setImporting(false)
+    }
+  }
+
+  /**
    * A scanned barcode.
    *
    * A product you already have is not an import: it goes straight to the
    * expanded card, ready to log, which is the one-tap path #63/#66 built. A
-   * product that is *new* is an import, and every import is reviewed before
-   * anything is written (#93) — including the Open Food Facts products that
-   * carry no `product_name` at all, which used to be imported under the name
-   * `""` because nothing on this path ever asked.
+   * named product that is *new* takes the fast import path. A product with no
+   * `product_name` still opens review, whose required name field prevents an
+   * import under the name `""` (#112).
    */
   async function onBarcode(barcode: string) {
     setScanFailure(null)
@@ -186,7 +257,13 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
         return
       }
       setScanning(false)
-      navigate(review({ barcode }))
+      if (!mapped.name.trim()) {
+        navigate(review({ barcode }))
+        return
+      }
+      if (!(await importOff({ ...mapped, barcode }))) {
+        setScanFailure({ message: foodAdd.importFailed })
+      }
     } catch {
       setScanFailure({ message: foodAdd.barcodeFailed })
     }
@@ -261,7 +338,12 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
   const matchingCombos = (combos ?? []).filter(
     (combo) => !term || combo.name.toLowerCase().includes(term.toLowerCase()),
   )
-  const foods = search.results ?? []
+  // Returning from an OFF name search preserves the typed term. Its saved row
+  // will now match that term too, but it belongs in the focused "Just added"
+  // slot rather than twice in the list.
+  const foods = (search.results ?? []).filter(
+    (food) => food._id !== justAdded?._id,
+  )
   const withNutrition = (recipes ?? []).filter((r) => r.nutrition)
   const matchingRecipes = term
     ? withNutrition.filter((r) =>
@@ -302,7 +384,7 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
               ✕
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <div className="relative flex min-w-0 flex-1 items-center">
               <input
                 ref={searchRef}
@@ -334,10 +416,31 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => setScanning((on) => !on)}
-              className="min-h-11 shrink-0 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm"
+              onClick={() => {
+                setScanning((on) => !on)
+                setAdding(false)
+              }}
+              aria-label={
+                scanning ? add.hideScanner : messages.foods.scanner.scan
+              }
+              aria-pressed={scanning}
+              title={scanning ? add.hideScanner : messages.foods.scanner.scan}
+              className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)]"
             >
-              {scanning ? add.hideScanner : add.scan}
+              <Barcode className="h-5 w-5" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAdding((on) => !on)
+                setScanning(false)
+              }}
+              aria-label={add.addFood}
+              aria-expanded={adding}
+              title={add.addFood}
+              className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)]"
+            >
+              <Plus className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -360,6 +463,38 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
         </p>
       )}
 
+      {adding && (
+        <Section title={add.addOptions}>
+          {!searchedBarcode && (
+            <OneOffCard
+              key={`one-off-${term}`}
+              term={term}
+              expanded={expanded === 'persistent-one-off'}
+              onToggle={() => toggle('persistent-one-off')}
+              onLog={log}
+            />
+          )}
+          <li>
+            <Link
+              {...review(
+                searchedBarcode
+                  ? { barcode: searchedBarcode }
+                  : term
+                    ? { name: term }
+                    : {},
+              )}
+              className="flex min-h-14 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2 text-sm no-underline"
+            >
+              {searchedBarcode
+                ? foodAdd.addToLibrary
+                : term
+                  ? fmt(add.addAsFood, { term })
+                  : add.addFood}
+            </Link>
+          </li>
+        </Section>
+      )}
+
       {/* Combos first: the fastest path is the first thing you see. */}
       {matchingCombos.length > 0 && (
         <Section title={messages.nutrition.diary.combos.section}>
@@ -380,10 +515,12 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
       {justAdded && (
         <Section title={add.sections.justAdded}>
           <FoodCard
+            key={justAdded._id}
             food={justAdded}
             expanded={expanded === `food:${justAdded._id}`}
             onToggle={() => toggle(`food:${justAdded._id}`)}
             onLog={log}
+            canEdit={justAdded.createdBy === me?._id}
           />
         </Section>
       )}
@@ -395,6 +532,7 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
             expanded={expanded === `food:${scanned._id}`}
             onToggle={() => toggle(`food:${scanned._id}`)}
             onLog={log}
+            canEdit={scanned.createdBy === me?._id}
           />
         </Section>
       )}
@@ -408,6 +546,7 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
               expanded={expanded === `food:${food._id}`}
               onToggle={() => toggle(`food:${food._id}`)}
               onLog={log}
+              canEdit={food.createdBy === me?._id}
             />
           ))}
         </Section>
@@ -421,6 +560,7 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
               recipe={{
                 _id: recipe._id,
                 title: recipe.title,
+                imageUrl: recipe.imageUrl,
                 // Filtered to recipes that have it, which the type cannot see.
                 nutrition: recipe.nutrition as NutritionFacts,
               }}
@@ -444,8 +584,13 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
             <OffCard
               key={result.barcode}
               result={result}
-              expanded={expanded === `off:${result.barcode}`}
-              onToggle={() => toggle(`off:${result.barcode}`)}
+              importing={importing}
+              error={
+                importError?.barcode === result.barcode
+                  ? importError.message
+                  : null
+              }
+              onImport={() => importOff(result)}
               reviewLink={review({ barcode: result.barcode })}
             />
           ))}
@@ -607,13 +752,16 @@ function FoodCard({
   expanded,
   onToggle,
   onLog,
+  canEdit,
 }: {
   food: FoodSummary
   expanded: boolean
   onToggle: () => void
   onLog: LogFn
+  canEdit: boolean
 }) {
-  const { add, foodAdd } = useMessages().nutrition.diary
+  const messages = useMessages()
+  const { add, foodAdd } = messages.nutrition.diary
   // Your own past amounts for this food, which is what covers a Catalog food
   // nobody may edit and a food whose authored list is empty. Only asked for
   // once the card is open — a list of twenty results should not be twenty
@@ -624,6 +772,10 @@ function FoodCard({
   )
   const offered = offeredServings(food, loggedAmounts ?? [])
   const [selection, setSelection] = useState<ServingSelection | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [editBusy, setEditBusy] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const updateFood = useMutation(api.foods.update)
   const current = selection ?? initialSelection(offered)
   const { busy, error, run } = useLogging()
 
@@ -632,9 +784,7 @@ function FoodCard({
 
   return (
     <ResultCard
-      thumbnail={
-        <FoodThumbnail src={food.imageUrl} icon={food.icon} alt={food.name} />
-      }
+      thumbnail={<FoodThumbnail src={food.imageUrl} icon={food.icon} />}
       title={food.name}
       subtitle={food.brand}
       meta={
@@ -656,6 +806,58 @@ function FoodCard({
       <div className="mt-3">
         <NutritionBreakdown facts={resolved?.nutrition ?? {}} />
       </div>
+      {food.seedKey === undefined && canEdit && (
+        <div className="mt-3 border-t border-[var(--app-border)] pt-3">
+          <button
+            type="button"
+            onClick={() => {
+              setEditing((value) => !value)
+              setEditError(null)
+            }}
+            className="min-h-11 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm"
+          >
+            {editing ? messages.common.actions.cancel : foodAdd.editFood}
+          </button>
+          {editing && (
+            <div className="mt-3">
+              {editError && (
+                <p className="mb-3 text-sm text-red-700">{editError}</p>
+              )}
+              <FoodForm
+                key={food._id}
+                submitting={editBusy}
+                initial={{
+                  name: food.name,
+                  brand: food.brand,
+                  barcode: food.barcode,
+                  baseUnit: food.baseUnit,
+                  icon: food.icon,
+                  nutritionPer100: food.nutritionPer100,
+                  servings: food.servings,
+                  nutritionSource: food.nutritionSource,
+                }}
+                onSubmit={async ({
+                  nutritionSource: _decidedByTheServer,
+                  ...values
+                }) => {
+                  setEditBusy(true)
+                  setEditError(null)
+                  try {
+                    await updateFood({ id: food._id, ...values })
+                    setEditing(false)
+                  } catch (err) {
+                    setEditError(
+                      errorMessage(err, messages.foods.form.saveFailed),
+                    )
+                  } finally {
+                    setEditBusy(false)
+                  }
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
       <Confirm
         disabled={!resolved}
         reason={add.enterAmount}
@@ -684,7 +886,12 @@ function RecipeCard({
   onToggle,
   onLog,
 }: {
-  recipe: { _id: Id<'recipes'>; title: string; nutrition: NutritionFacts }
+  recipe: {
+    _id: Id<'recipes'>
+    title: string
+    imageUrl: string | null
+    nutrition: NutritionFacts
+  }
   expanded: boolean
   onToggle: () => void
   onLog: LogFn
@@ -701,6 +908,7 @@ function RecipeCard({
 
   return (
     <ResultCard
+      thumbnail={<FoodThumbnail src={recipe.imageUrl} kind="recipe" />}
       title={recipe.title}
       meta={
         recipe.nutrition.calories !== undefined
@@ -751,54 +959,64 @@ function RecipeCard({
 }
 
 /**
- * An Open Food Facts result is not a food yet, and choosing one does not make
- * it one: it opens the food form pre-filled from the mapping, and *saving* is
- * what imports the food and logs the entry (#93).
- *
- * This card writes nothing at all, which is the whole point. Open Food Facts
- * data is thin often enough — a missing nutrient, no serving, an unhelpful or
- * absent name — that logging something wrong quickly is worse than logging
- * something right slowly. The one-tap path is still there through your own
- * foods and Combos, which is where repeats live.
+ * Tapping an Open Food Facts result imports it, then returns to this meal with
+ * the newly stored card expanded for its amount. Review remains available as a
+ * secondary action for the times its incomplete data needs correcting (#112).
  */
 function OffCard({
   result,
-  expanded,
-  onToggle,
+  importing,
+  error,
+  onImport,
   reviewLink,
 }: {
   result: OffSearchResult
-  expanded: boolean
-  onToggle: () => void
+  importing: boolean
+  error: string | null
+  onImport: () => void
   reviewLink: AppLink
 }) {
   const { foodAdd } = useMessages().nutrition.diary
 
   return (
-    <ResultCard
-      thumbnail={<FoodThumbnail src={result.imageUrl} alt={result.name} />}
-      title={result.name}
-      subtitle={result.brand}
-      meta={
-        result.nutritionPer100.calories !== undefined
-          ? fmt(foodAdd.perHundred, {
-              calories: Math.round(result.nutritionPer100.calories),
-            })
-          : undefined
-      }
-      expanded={expanded}
-      onToggle={onToggle}
-    >
-      {/* What Open Food Facts has, per 100, before anybody agrees to it —
-          which is exactly what the review form opens holding. */}
-      <NutritionBreakdown facts={result.nutritionPer100} />
-      <p className="mt-3 text-xs opacity-60">{foodAdd.reviewHint}</p>
-      <div className="mt-3">
-        <Link {...reviewLink} className={`${confirmClass} inline-block py-2.5`}>
+    <li className="min-w-0 rounded-[var(--app-radius)] border border-[var(--app-border)]">
+      <div className="flex items-center gap-2 px-3 py-2">
+        <button
+          type="button"
+          disabled={importing}
+          onClick={onImport}
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left disabled:opacity-60"
+        >
+          <FoodThumbnail src={result.imageUrl} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium">
+              {result.name}
+            </span>
+            {result.brand && (
+              <span className="block truncate text-xs opacity-60">
+                {result.brand}
+              </span>
+            )}
+          </span>
+          {result.nutritionPer100.calories !== undefined && (
+            <span className="shrink-0 text-xs opacity-60">
+              {fmt(foodAdd.perHundred, {
+                calories: Math.round(result.nutritionPer100.calories),
+              })}
+            </span>
+          )}
+        </button>
+        <Link
+          {...reviewLink}
+          className="flex min-h-11 shrink-0 items-center text-sm underline"
+        >
           {foodAdd.review}
         </Link>
       </div>
-    </ResultCard>
+      <p className="border-t border-[var(--app-border)] px-3 py-2 text-xs opacity-60">
+        {error ?? foodAdd.reviewHint}
+      </p>
+    </li>
   )
 }
 
@@ -825,16 +1043,27 @@ function OneOffCard({
 }) {
   const { add } = useMessages().nutrition.diary
   const [inputs, setInputs] = useState(() => toNutrientInputs())
+  const [name, setName] = useState('')
   const [icon, setIcon] = useState<string | undefined>()
   const { busy, error, run } = useLogging()
 
   return (
     <ResultCard
-      title={fmt(add.oneOffTitle, { term })}
+      title={term ? fmt(add.oneOffTitle, { term }) : add.oneOffTitleEmpty}
       subtitle={add.oneOffHint}
       expanded={expanded}
       onToggle={onToggle}
     >
+      {!term && (
+        <label className="mb-3 block text-sm">
+          <span className="mb-1 block font-medium">{add.oneOffName}</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={`${fieldClass} w-full`}
+          />
+        </label>
+      )}
       <NutrientInputGrid
         values={inputs}
         onChange={(key, value) =>
@@ -846,14 +1075,14 @@ function OneOffCard({
         <IconPicker value={icon} onChange={setIcon} disabled={busy} />
       </div>
       <Confirm
-        disabled={false}
-        reason=""
+        disabled={!term && name.trim() === ''}
+        reason={add.enterOneOffName}
         busy={busy}
         error={error}
         onConfirm={() =>
           run(async () => {
             await onLog({
-              label: term,
+              label: term || name.trim(),
               quantity: 1,
               quantityUnit: 'piece',
               nutrition: nutrientInputsToFacts(inputs),
