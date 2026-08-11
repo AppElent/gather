@@ -77,11 +77,15 @@ export function ComboActions({ name, onRename, onDelete }: Props) {
         </button>
         <button
           type="button"
+          // Nothing to cancel once the write has left: putting the form away
+          // would look like it stopped something it cannot stop, and leave the
+          // card offering a rename on a row that is already changing.
+          disabled={busy}
           onClick={() => {
             setDraft(name)
             idle()
           }}
-          className="min-h-11 text-sm underline"
+          className="min-h-11 text-sm underline disabled:opacity-60"
         >
           {messages.common.actions.cancel}
         </button>
@@ -117,8 +121,11 @@ export function ComboActions({ name, onRename, onDelete }: Props) {
         </button>
         <button
           type="button"
+          // Same reason as the rename form's: a delete already on its way
+          // cannot be called back, so Cancel must not pretend otherwise.
+          disabled={busy}
           onClick={idle}
-          className="min-h-11 text-sm underline"
+          className="min-h-11 text-sm underline disabled:opacity-60"
         >
           {messages.common.actions.cancel}
         </button>

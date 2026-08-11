@@ -154,3 +154,64 @@ test('a refusal is shown in the reader’s language, not the server’s', async 
   )
   expect(screen.queryByText('Combo not found')).toBeNull()
 })
+
+/**
+ * Cancel must not look like it stopped something it cannot stop. Once the
+ * write has left, calling it back is not on offer — and putting the controls
+ * away would invite a rename on a row that is already disappearing.
+ */
+test('cancelling is not offered while a delete is in flight', async () => {
+  let finish!: () => void
+  const onDelete = vi.fn(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve
+      }),
+  )
+  renderWithI18n(
+    <ComboActions
+      name="Usual breakfast"
+      onRename={vi.fn()}
+      onDelete={onDelete}
+    />,
+  )
+
+  fireEvent.click(screen.getByText('Delete'))
+  fireEvent.click(screen.getAllByText('Delete').at(-1) as HTMLElement)
+
+  await waitFor(() => expect(screen.getByText('Cancel')).toBeDisabled())
+  fireEvent.click(screen.getByText('Cancel'))
+  // Still the confirmation, not the buttons it would have gone back to.
+  expect(screen.getByText('Delete “Usual breakfast”?')).toBeDefined()
+
+  finish()
+})
+
+test('cancelling is not offered while a rename is in flight', async () => {
+  let finish!: () => void
+  const onRename = vi.fn(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve
+      }),
+  )
+  renderWithI18n(
+    <ComboActions
+      name="Usual breakfast"
+      onRename={onRename}
+      onDelete={vi.fn()}
+    />,
+  )
+
+  fireEvent.click(screen.getByText('Rename'))
+  fireEvent.change(screen.getByDisplayValue('Usual breakfast'), {
+    target: { value: 'Weekday breakfast' },
+  })
+  fireEvent.click(screen.getByText('Save'))
+
+  await waitFor(() => expect(screen.getByText('Cancel')).toBeDisabled())
+  fireEvent.click(screen.getByText('Cancel'))
+  expect(screen.getByDisplayValue('Weekday breakfast')).toBeDefined()
+
+  finish()
+})
