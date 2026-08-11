@@ -187,12 +187,18 @@ describe('focus', () => {
     givenPhoto(4032, 3024)
     renderDialog('childPhoto')
 
+    // Let the dialog complete its one-time initial focus before exercising the
+    // slider. Otherwise this test races the frame-focus effect instead of
+    // testing whether changing the slider preserves focus.
+    const frame = await screen.findByRole('button', { name: 'Move frame' })
+    await waitFor(() => expect(frame).toHaveFocus())
+
     const slider = await screen.findByLabelText('Frame size')
     slider.focus()
     fireEvent.change(slider, { target: { value: '60' } })
     fireEvent.change(slider, { target: { value: '55' } })
 
-    await waitFor(() => expect(slider).toHaveFocus())
+    expect(slider).toHaveFocus()
   })
 })
 
