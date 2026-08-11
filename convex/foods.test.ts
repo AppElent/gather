@@ -75,6 +75,46 @@ describe('the food Catalog', () => {
 })
 
 /**
+ * Arriving at Foods shows the Catalog. `search` cannot answer that — an empty
+ * term means nothing to a full-text index, and it rightly returns nothing — so
+ * browsing is its own query (#100 review).
+ */
+describe('browsing the Catalog without searching', () => {
+  test('lists the foods in alphabetical order', async () => {
+    const { t } = await seed()
+    for (const name of ['Yoghurt', 'Appelstroop']) {
+      await t.withIdentity(asAlice).mutation(api.foods.create, {
+        name,
+        baseUnit: 'g',
+        nutritionPer100: { calories: 100 },
+      })
+    }
+
+    const rows = await t.withIdentity(asBob).query(api.foods.list, {})
+
+    expect(rows.map((f) => f.name)).toEqual([
+      'Appelstroop',
+      'Hagelslag',
+      'Yoghurt',
+    ])
+  })
+
+  test('reads the same for two people who share no group', async () => {
+    const { t } = await seed()
+
+    expect(await t.withIdentity(asAlice).query(api.foods.list, {})).toEqual(
+      await t.withIdentity(asBob).query(api.foods.list, {}),
+    )
+  })
+
+  test('is not readable at all without a session', async () => {
+    const { t } = await seed()
+
+    expect(await t.query(api.foods.list, {})).toEqual([])
+  })
+})
+
+/**
  * A brand is what is written largest on the carton, so it is what people type.
  * A search index has one full-text field, so matching it is a fact about the
  * row rather than about the query — see `lib/foodSearchText.ts`.

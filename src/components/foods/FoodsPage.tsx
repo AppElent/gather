@@ -22,7 +22,17 @@ export function FoodsPage({ nav }: { nav: FoodNav }) {
     const id = setTimeout(() => setDebouncedTerm(term), 250)
     return () => clearTimeout(id)
   }, [term])
-  const results = useQuery(api.foods.search, { term: debouncedTerm })
+  // Two questions, and only ever one of them asked: with nothing typed the
+  // page shows the Catalog, and typing narrows it. `search` cannot answer the
+  // first — an empty term means nothing to a full-text index — so browsing is
+  // its own query rather than a special case bolted onto searching.
+  const browsing = !debouncedTerm.trim()
+  const searched = useQuery(
+    api.foods.search,
+    browsing ? 'skip' : { term: debouncedTerm },
+  )
+  const browsed = useQuery(api.foods.list, browsing ? {} : 'skip')
+  const results = browsing ? browsed : searched
   const navigate = useNavigate()
   const { list } = useMessages().foods
 

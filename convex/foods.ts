@@ -103,6 +103,35 @@ export const search = query({
   },
 })
 
+/** How much of the Catalog a browse shows before somebody narrows it. */
+const BROWSE_LIMIT = 100
+
+/**
+ * The Catalog to browse, rather than to search.
+ *
+ * `search` answers an empty term with nothing, and rightly — a full-text index
+ * has no meaning for `''`. But that left the Foods page blank until somebody
+ * typed, which made a catalog you are meant to be able to look through feel
+ * like one you have to guess at (#100 review). This is the other half of the
+ * page: the Catalog itself, in alphabetical order.
+ *
+ * Sorted here rather than by an index because `foods` has none on `name`, and
+ * `take` bounds what is read either way. If the Catalog ever outgrows one
+ * page, this is where paging goes — not a bigger limit.
+ */
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    if (!(await getCurrentUser(ctx))) return []
+    const rows = await ctx.db.query('foods').take(BROWSE_LIMIT)
+    return await Promise.all(
+      [...rows]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((row) => withImageUrl(ctx, row)),
+    )
+  },
+})
+
 export const get = query({
   args: { id: v.id('foods') },
   handler: async (ctx, args) => {
