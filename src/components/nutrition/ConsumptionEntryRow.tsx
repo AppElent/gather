@@ -5,6 +5,7 @@ import { MEAL_NAMES } from '../../../convex/lib/consumption'
 import type { NutritionFacts } from '../../../convex/lib/nutrition'
 import { useMessages } from '../../lib/i18n'
 import { FoodThumbnail, type ThumbnailKind } from './FoodThumbnail'
+import { roundKcal } from './kcal'
 import type { NutritionNav } from './nutritionNav'
 
 export interface ConsumptionEntryData {
@@ -70,7 +71,7 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
             <span className="ml-2 opacity-60">
               {entry.quantity} {units[entry.quantityUnit]}
               {entry.nutrition.calories !== undefined &&
-                ` · ${entry.nutrition.calories} kcal`}
+                ` · ${roundKcal(entry.nutrition.calories)} kcal`}
             </span>
             {entry.recipeId && (
               <Link

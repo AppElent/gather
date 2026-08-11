@@ -5,6 +5,7 @@ import { MEAL_NAMES, sumFacts } from '../../../convex/lib/consumption'
 import { fmt, useMessages } from '../../lib/i18n'
 import { moduleById } from '../../lib/modules'
 import { DayTotals } from './DayTotals'
+import { sumKcal } from './kcal'
 import { MealSlot } from './MealSlot'
 import type { NutritionNav } from './nutritionNav'
 
@@ -82,7 +83,12 @@ export function NutritionPage({
   const messages = useMessages()
   const { diary, meals } = messages.nutrition
 
-  const totals = sumFacts((entries ?? []).map((e) => e.nutrition))
+  // Every nutrient summed from the stored figures, except calories, which are
+  // rounded per entry first so the day is exactly the meals added up and each
+  // meal is exactly its rows (`sumKcal`). Costs at most a kcal against the
+  // stored total; buys the only arithmetic a reader can actually check.
+  const facts = (entries ?? []).map((e) => e.nutrition)
+  const totals = { ...sumFacts(facts), calories: sumKcal(facts) }
 
   return (
     <div className="mx-auto max-w-2xl">
