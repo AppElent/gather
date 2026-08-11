@@ -97,18 +97,33 @@ export const listForDay = query({
  * one person can ask about another's.
  */
 export const loggedAmountsForFood = query({
-  args: { foodId: v.id('foods') },
+  args: {
+    foodId: v.id('foods'),
+    /**
+     * The entry being edited, left out of its own history.
+     *
+     * What you logged before is offered back to you; the row you are changing
+     * right now is not "before", it is the thing being changed. Counting it
+     * would offer somebody their own current amount as a suggestion, and — on
+     * a food with no other history — put a chip where the plain field
+     * belongs, so that switching to Custom would forget the amount rather
+     * than start from it.
+     */
+    excludeEntryId: v.optional(v.id('consumptionEntries')),
+  },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) return []
     const food = await ctx.db.get(args.foodId)
     if (!food) return []
-    const entries = await ctx.db
-      .query('consumptionEntries')
-      .withIndex('by_user_food', (q) =>
-        q.eq('userId', user._id).eq('foodId', args.foodId),
-      )
-      .collect()
+    const entries = (
+      await ctx.db
+        .query('consumptionEntries')
+        .withIndex('by_user_food', (q) =>
+          q.eq('userId', user._id).eq('foodId', args.foodId),
+        )
+        .collect()
+    ).filter((entry) => entry._id !== args.excludeEntryId)
     return rankLoggedAmounts(entries, food.baseUnit)
   },
 })

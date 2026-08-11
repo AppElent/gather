@@ -479,6 +479,47 @@ describe('the amounts you have logged for a food', () => {
       await t.query(api.consumption.loggedAmountsForFood, { foodId }),
     ).toEqual([])
   })
+
+  test('leave out the entry being edited — it is not its own history', async () => {
+    const { t, foodId } = await withDiary([
+      { quantity: 15, unit: 'g' },
+      { quantity: 20, unit: 'g' },
+    ])
+    const [edited] = await t.run(async (ctx) =>
+      ctx.db
+        .query('consumptionEntries')
+        .filter((q) => q.eq(q.field('quantity'), 15))
+        .collect(),
+    )
+
+    expect(
+      await t
+        .withIdentity(asAlice)
+        .query(api.consumption.loggedAmountsForFood, {
+          foodId,
+          excludeEntryId: edited._id,
+        }),
+    ).toEqual([{ label: '20 g', amount: 20 }])
+  })
+
+  test('are empty for a food logged only by the entry being edited', async () => {
+    // This is what decides which control the editor shows: with no history
+    // left there is no chip to open on, so the plain field starts from the
+    // entry's own amount rather than from the default.
+    const { t, foodId } = await withDiary([{ quantity: 250, unit: 'g' }])
+    const [only] = await t.run(async (ctx) =>
+      ctx.db.query('consumptionEntries').collect(),
+    )
+
+    expect(
+      await t
+        .withIdentity(asAlice)
+        .query(api.consumption.loggedAmountsForFood, {
+          foodId,
+          excludeEntryId: only._id,
+        }),
+    ).toEqual([])
+  })
 })
 
 describe('a food entry’s tile', () => {

@@ -121,6 +121,8 @@ function FoodEntryAmount({
   const food = useQuery(api.foods.get, { id: foodId })
   const loggedAmounts = useQuery(api.consumption.loggedAmountsForFood, {
     foodId,
+    // This row is what is being changed, not history to suggest back.
+    excludeEntryId: entry._id as Id<'consumptionEntries'>,
   })
   const [selection, setSelection] = useState<ServingSelection | null>(null)
 
@@ -150,6 +152,7 @@ function FoodEntryAmount({
         baseUnit={food.baseUnit}
         offered={offered}
         selection={current}
+        disabled={disabled}
         onSelect={(next) => {
           setSelection(next)
           const choice = toChoice(offered, next)

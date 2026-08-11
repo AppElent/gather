@@ -76,6 +76,12 @@ interface Props {
   offered: readonly OfferedServing[]
   selection: ServingSelection
   onSelect: (selection: ServingSelection) => void
+  /**
+   * Locked while a save is in flight. The handler has already captured the
+   * amount it is writing, so a chip tapped now would change what is on screen
+   * without changing what is being saved — and the editor closes over it.
+   */
+  disabled?: boolean
 }
 
 /**
@@ -91,6 +97,7 @@ export function ServingPicker({
   offered,
   selection,
   onSelect,
+  disabled = false,
 }: Props) {
   const { add } = useMessages().nutrition.diary
   const custom = selection.kind === 'custom'
@@ -107,8 +114,9 @@ export function ServingPicker({
               key={`${serving.label}-${serving.amount}`}
               type="button"
               aria-pressed={selected}
+              disabled={disabled}
               onClick={() => onSelect({ kind: 'serving', index })}
-              className={`min-h-11 rounded-full border px-3 text-sm ${
+              className={`min-h-11 rounded-full border px-3 text-sm disabled:opacity-60 ${
                 selected
                   ? 'border-[var(--app-fg)] bg-[var(--app-fg)] text-[var(--app-surface)]'
                   : 'border-[var(--app-border)]'
@@ -130,6 +138,7 @@ export function ServingPicker({
         <button
           type="button"
           aria-pressed={custom}
+          disabled={disabled}
           onClick={() =>
             onSelect({
               kind: 'custom',
@@ -137,7 +146,7 @@ export function ServingPicker({
               unit: 'base',
             })
           }
-          className={`min-h-11 rounded-full border px-3 text-sm ${
+          className={`min-h-11 rounded-full border px-3 text-sm disabled:opacity-60 ${
             custom
               ? 'border-[var(--app-fg)] bg-[var(--app-fg)] text-[var(--app-surface)]'
               : 'border-[var(--app-border)]'
@@ -150,6 +159,7 @@ export function ServingPicker({
         <div className="flex items-center gap-2">
           <input
             inputMode="decimal"
+            disabled={disabled}
             value={selection.input}
             onChange={(e) => onSelect({ ...selection, input: e.target.value })}
             aria-label={add.amount}
@@ -157,6 +167,7 @@ export function ServingPicker({
           />
           {unitServing ? (
             <select
+              disabled={disabled}
               value={selection.unit}
               onChange={(e) =>
                 onSelect({
