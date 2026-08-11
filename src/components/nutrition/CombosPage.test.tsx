@@ -22,10 +22,20 @@ vi.mock('convex/react', () => ({
     queried.value.push([name, args])
     return combos.value
   },
+  // Renaming and deleting live on the card (#129). What they do is covered in
+  // `ComboActions.test.tsx` and, against the real mutations, in
+  // `convex/combos.test.ts`; here they only have to exist.
+  useMutation: () => vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('../../../convex/_generated/api', () => ({
-  api: { combos: { list: 'combos:list' } },
+  api: {
+    combos: {
+      list: 'combos:list',
+      rename: 'combos:rename',
+      remove: 'combos:remove',
+    },
+  },
 }))
 
 vi.mock('@tanstack/react-router', () => ({
