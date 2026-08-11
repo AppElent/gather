@@ -44,9 +44,12 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
           <Link
             {...nav.edit(foodId)}
             aria-label={messages.common.actions.edit}
-            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border no-underline"
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border no-underline lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
           >
             <Pencil className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden lg:inline">
+              {messages.common.actions.edit}
+            </span>
           </Link>
         ) : (
           <span className="rounded border border-dashed px-3 py-1.5 text-sm opacity-60">
@@ -112,7 +115,7 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
         <button
           type="button"
           aria-label={detail.refresh}
-          className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border"
+          className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
           onClick={() =>
             confirm({
               title: detail.refreshTitle,
@@ -124,6 +127,7 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
           }
         >
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden lg:inline">{detail.refresh}</span>
         </button>
       )}
 

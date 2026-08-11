@@ -157,6 +157,14 @@ Four rules the conversion established, each of which will bite if ignored:
 Component tests render through `renderWithI18n` from `src/lib/i18n/testing.tsx`;
 `useI18n` throws outside `LocaleProvider` rather than falling back.
 
+## Responsive action controls
+
+Compact add, edit, delete, and refresh controls show only their icon below
+Tailwind's desktop breakpoint (`lg`, 1024px), including on tablets. At `lg` and
+above, show the icon and its translated visible label. Every icon-only control
+still needs its translated `aria-label`. Keep a textual label when it carries
+essential state or workflow context, such as a form submission or confirmation.
+
 ## One-shot code states its own end condition
 
 Migration mutations, backfills and compatibility shims are written to run against

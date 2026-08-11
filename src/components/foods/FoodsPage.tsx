@@ -50,9 +50,10 @@ export function FoodsPage({ nav }: { nav: FoodNav }) {
       <Link
         {...nav.create()}
         aria-label={list.addManually}
-        className="mb-4 inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] no-underline"
+        className="mb-4 inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] no-underline lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
       >
         <Plus className="h-4 w-4" aria-hidden="true" />
+        <span className="hidden lg:inline">{list.addManually}</span>
       </Link>
 
       {results === undefined && debouncedTerm.trim() && (

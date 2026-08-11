@@ -67,14 +67,17 @@ export function RecipeDetailPage({
             <Link
               {...nav.edit(recipeId)}
               aria-label={messages.common.actions.edit}
-              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border no-underline"
+              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border no-underline lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
             >
               <Pencil className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden lg:inline">
+                {messages.common.actions.edit}
+              </span>
             </Link>
             <button
               type="button"
               aria-label={messages.common.actions.delete}
-              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border"
+              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
               onClick={async () => {
                 setError(null)
                 try {
@@ -88,6 +91,9 @@ export function RecipeDetailPage({
               }}
             >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden lg:inline">
+                {messages.common.actions.delete}
+              </span>
             </button>
           </div>
         )}
@@ -183,9 +189,10 @@ export function RecipeDetailPage({
             <Link
               {...nav.edit(recipeId)}
               aria-label={detail.editManually}
-              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border border-amber-400 no-underline"
+              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border border-amber-400 no-underline lg:gap-1 lg:px-2 lg:py-1 lg:text-xs lg:font-medium"
             >
               <Pencil className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden lg:inline">{detail.editManually}</span>
             </Link>
           </div>
         </div>
