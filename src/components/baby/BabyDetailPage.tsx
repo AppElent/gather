@@ -5,6 +5,7 @@ import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { formatAge } from '../../lib/babyDate'
 import { useI18n } from '../../lib/i18n'
+import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { BabyChecklistCard } from './BabyChecklistCard'
 import { BabySwitcher } from './BabySwitcher'
@@ -85,15 +86,32 @@ export function BabyDetailPage({
     [events],
   )
 
+  // Baby log → this child. The switcher below moves sideways between the
+  // children of one household; this is the step up out of them.
+  const trail: Crumb[] = [
+    { label: messages.modules.byId['baby-log'].label, link: nav.list },
+    ...(baby ? [{ label: baby.name }] : []),
+  ]
+
   if (baby === undefined)
     return (
-      <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+      <div className="mx-auto max-w-5xl">
+        <Breadcrumbs trail={trail} />
+        <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+      </div>
     )
   if (baby === null)
-    return <p className="text-sm opacity-60">{child.notFound}</p>
+    return (
+      <div className="mx-auto max-w-5xl">
+        <Breadcrumbs trail={trail} />
+        <p className="text-sm opacity-60">{child.notFound}</p>
+      </div>
+    )
 
   return (
     <div className="mx-auto grid max-w-5xl gap-4">
+      {/* The grid above already spaces its children. */}
+      <Breadcrumbs trail={trail} className="" />
       {baby.taskListId && (
         <BabyChecklistCard
           taskListId={baby.taskListId}

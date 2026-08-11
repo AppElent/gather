@@ -53,6 +53,28 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => (link: unknown) => {
     navigated.value.push(link)
   },
+  // The contextual trail above the form links out of it (#101), so this file's
+  // router stub has to answer for `Link` as well as `useNavigate`.
+  Link: ({
+    children,
+    to,
+    params,
+    ...rest
+  }: {
+    children: React.ReactNode
+    to: string
+    params?: Record<string, string>
+  }) => (
+    <a
+      href={Object.entries(params ?? {}).reduce(
+        (path, [key, value]) => path.replace(`$${key}`, value),
+        to,
+      )}
+      {...rest}
+    >
+      {children}
+    </a>
+  ),
 }))
 
 const nav = groupFoodNav('jansen-household')
@@ -69,6 +91,18 @@ beforeEach(() => {
   navigated.value = []
   offProduct.value = null
   existingFood.value = null
+})
+
+test('says where the form sits, and offers the way back out of it', () => {
+  renderWithI18n(<NewFoodPage nav={nav} />)
+
+  const trail = screen.getByRole('navigation', { name: 'Breadcrumb' })
+  expect(trail).toBeDefined()
+  // Back to the Catalog in the Group somebody is browsing, not to a `/foods`
+  // that would drop them out of it (ADR-0002).
+  expect(
+    screen.getByRole('link', { name: 'Back to Foods' }).getAttribute('href'),
+  ).toBe('/g/jansen-household/foods')
 })
 
 test('the words a search found nothing for arrive as the name', async () => {

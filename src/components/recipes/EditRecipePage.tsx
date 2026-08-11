@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
 import { useMessages } from '../../lib/i18n'
+import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { ImageUploadField } from '../app/ImageUploadField'
 import { RecipeForm } from './RecipeForm'
 import type { RecipeNav } from './recipeNav'
@@ -34,24 +35,43 @@ export function EditRecipePage({
   })
   const messages = useMessages()
 
+  // Recipes → this recipe → Edit. Built here rather than in the form below,
+  // because the two states that never reach the form — still loading, and not
+  // visible from this Group — are the two where a way back matters most.
+  const trail: Crumb[] = [
+    { label: messages.modules.byId.recipes.label, link: nav.list },
+    ...(recipe ? [{ label: recipe.title, link: nav.detail(recipe._id) }] : []),
+    { label: messages.common.actions.edit },
+  ]
+
   if (recipe === undefined)
     return (
-      <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+      <div>
+        <Breadcrumbs trail={trail} />
+        <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+      </div>
     )
   if (recipe === null)
     return (
-      <p className="text-sm opacity-60">{messages.recipes.detail.notFound}</p>
+      <div>
+        <Breadcrumbs trail={trail} />
+        <p className="text-sm opacity-60">{messages.recipes.detail.notFound}</p>
+      </div>
     )
 
-  return <EditRecipeForm key={recipe._id} recipe={recipe} nav={nav} />
+  return (
+    <EditRecipeForm key={recipe._id} recipe={recipe} nav={nav} trail={trail} />
+  )
 }
 
 function EditRecipeForm({
   recipe,
   nav,
+  trail,
 }: {
   recipe: RecipeDetail
   nav: RecipeNav
+  trail: readonly Crumb[]
 }) {
   const update = useMutation(api.recipes.update)
   const generateUploadUrl = useMutation(api.recipes.generateUploadUrl)
@@ -68,6 +88,7 @@ function EditRecipeForm({
 
   return (
     <div>
+      <Breadcrumbs trail={trail} />
       <h1 className="mb-6 text-2xl font-semibold">{edit.title}</h1>
       {error && (
         <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">

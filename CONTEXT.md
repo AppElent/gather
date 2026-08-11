@@ -171,3 +171,6 @@ _Avoid_: Demo data, Dummy data, Test data, Seed data
 - A refusal inside a Group never says which refusal it is. "No such record" and
   "not in this Group" are one answer; refusing the Group itself is a separate,
   distinct one.
+- A page below a Module's index carries its own trail, and its way back is the
+  parent's **address** rather than the browser's history — the same answer
+  however somebody arrived, and the Group travels with it (ADR-0013).
