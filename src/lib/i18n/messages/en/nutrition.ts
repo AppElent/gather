@@ -46,6 +46,12 @@ export const diary = {
   slot: {
     add: '+ Add',
     empty: 'Nothing logged yet.',
+    /**
+     * The meal's own kcal, beside its name. Only ever shown when at least one
+     * entry in the slot carries calories — a meal of things nobody has
+     * nutrition figures for says nothing rather than "0 kcal".
+     */
+    subtotal: '{calories} kcal',
   },
 
   entry: {
