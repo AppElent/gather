@@ -115,15 +115,25 @@ const BROWSE_LIMIT = 100
  * like one you have to guess at (#100 review). This is the other half of the
  * page: the Catalog itself, in alphabetical order.
  *
- * Sorted here rather than by an index because `foods` has none on `name`, and
- * `take` bounds what is read either way. If the Catalog ever outgrows one
- * page, this is where paging goes — not a bigger limit.
+ * Ordered by the `by_name` index rather than sorted after the fact: `take`
+ * has to cut the Catalog somewhere, and cutting it before sorting would make
+ * the first page whatever the table happened to return — not the first page
+ * alphabetically. `foods` is one globally readable table, so it passes a
+ * hundred rows on somebody else's account rather than on the seed's.
+ *
+ * The index orders by raw name, so the page is chosen by that; the sort below
+ * only settles how those same rows read to a person, where case and accents
+ * matter and byte order does not. If the Catalog outgrows one page, this is
+ * where cursor paging goes — not a bigger limit.
  */
 export const list = query({
   args: {},
   handler: async (ctx) => {
     if (!(await getCurrentUser(ctx))) return []
-    const rows = await ctx.db.query('foods').take(BROWSE_LIMIT)
+    const rows = await ctx.db
+      .query('foods')
+      .withIndex('by_name')
+      .take(BROWSE_LIMIT)
     return await Promise.all(
       [...rows]
         .sort((a, b) => a.name.localeCompare(b.name))

@@ -99,6 +99,25 @@ describe('browsing the Catalog without searching', () => {
     ])
   })
 
+  test('takes the first page alphabetically, not an arbitrary hundred', async () => {
+    const { t } = await seed()
+    // Inserted last-first, and past the browse limit, so a page cut before
+    // sorting would keep the z-names and drop the a-names entirely.
+    for (let i = 120; i > 0; i--) {
+      await t.withIdentity(asAlice).mutation(api.foods.create, {
+        name: `Food ${String(i).padStart(3, '0')}`,
+        baseUnit: 'g',
+        nutritionPer100: { calories: 100 },
+      })
+    }
+
+    const rows = await t.withIdentity(asBob).query(api.foods.list, {})
+
+    expect(rows).toHaveLength(100)
+    expect(rows[0].name).toBe('Food 001')
+    expect(rows.at(-1)?.name).toBe('Food 100')
+  })
+
   test('reads the same for two people who share no group', async () => {
     const { t } = await seed()
 
