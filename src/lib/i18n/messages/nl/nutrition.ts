@@ -1,4 +1,5 @@
 import type {
+  combosLibrary as enCombosLibrary,
   diary as enDiary,
   meals as enMeals,
   nutrition as enNutrition,
@@ -32,6 +33,12 @@ export const diary = {
     edit: 'Doelen aanpassen',
     remaining: 'nog {amount}',
     over: '{amount} te veel',
+  },
+
+  libraries: {
+    heading: 'Bibliotheken',
+    foods: 'Voedingsmiddelen',
+    combos: 'Combinaties',
   },
 
   slot: {
@@ -127,4 +134,17 @@ export const diary = {
   },
 } satisfies typeof enDiary
 
-export const nutrition = { meals, units, diary } satisfies typeof enNutrition
+export const combosLibrary = {
+  title: 'Combinaties',
+  back: 'Terug naar het dagboek',
+  empty: 'Nog geen combinaties.',
+  emptyHow:
+    'Een combinatie maak je van een maaltijd die je al hebt ingevuld: open een dag in het dagboek, vul een maaltijd in en kies daar “Opslaan als combinatie”. Er is geen aparte bouwer om bij te houden.',
+} satisfies typeof enCombosLibrary
+
+export const nutrition = {
+  meals,
+  units,
+  diary,
+  combosLibrary,
+} satisfies typeof enNutrition

@@ -187,6 +187,11 @@ export default defineSchema({
   })
     .index('by_barcode', ['barcode'])
     .index('by_seedKey', ['seedKey'])
+    // Browsing reads a page of the Catalog in name order. Without this the
+    // page would be whatever the table happened to hand back and only then be
+    // sorted, which is not the first page alphabetically the moment there are
+    // more foods than fit on one (#100 review).
+    .index('by_name', ['name'])
     .searchIndex('search_by_text', { searchField: 'searchText' }),
 
   consumptionEntries: defineTable({

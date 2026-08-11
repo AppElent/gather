@@ -75,6 +75,65 @@ describe('the food Catalog', () => {
 })
 
 /**
+ * Arriving at Foods shows the Catalog. `search` cannot answer that — an empty
+ * term means nothing to a full-text index, and it rightly returns nothing — so
+ * browsing is its own query (#100 review).
+ */
+describe('browsing the Catalog without searching', () => {
+  test('lists the foods in alphabetical order', async () => {
+    const { t } = await seed()
+    for (const name of ['Yoghurt', 'Appelstroop']) {
+      await t.withIdentity(asAlice).mutation(api.foods.create, {
+        name,
+        baseUnit: 'g',
+        nutritionPer100: { calories: 100 },
+      })
+    }
+
+    const rows = await t.withIdentity(asBob).query(api.foods.list, {})
+
+    expect(rows.map((f) => f.name)).toEqual([
+      'Appelstroop',
+      'Hagelslag',
+      'Yoghurt',
+    ])
+  })
+
+  test('takes the first page alphabetically, not an arbitrary hundred', async () => {
+    const { t } = await seed()
+    // Inserted last-first, and past the browse limit, so a page cut before
+    // sorting would keep the z-names and drop the a-names entirely.
+    for (let i = 120; i > 0; i--) {
+      await t.withIdentity(asAlice).mutation(api.foods.create, {
+        name: `Food ${String(i).padStart(3, '0')}`,
+        baseUnit: 'g',
+        nutritionPer100: { calories: 100 },
+      })
+    }
+
+    const rows = await t.withIdentity(asBob).query(api.foods.list, {})
+
+    expect(rows).toHaveLength(100)
+    expect(rows[0].name).toBe('Food 001')
+    expect(rows.at(-1)?.name).toBe('Food 100')
+  })
+
+  test('reads the same for two people who share no group', async () => {
+    const { t } = await seed()
+
+    expect(await t.withIdentity(asAlice).query(api.foods.list, {})).toEqual(
+      await t.withIdentity(asBob).query(api.foods.list, {}),
+    )
+  })
+
+  test('is not readable at all without a session', async () => {
+    const { t } = await seed()
+
+    expect(await t.query(api.foods.list, {})).toEqual([])
+  })
+})
+
+/**
  * A brand is what is written largest on the carton, so it is what people type.
  * A search index has one full-text field, so matching it is a fact about the
  * row rather than about the query — see `lib/foodSearchText.ts`.
