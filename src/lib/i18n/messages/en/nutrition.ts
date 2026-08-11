@@ -204,6 +204,24 @@ export const combosLibrary = {
   empty: 'No combos yet.',
   emptyHow:
     'A combo is made out of a meal you have already filled in: open a day in the diary, fill in a meal, then use “Save as combo” on it. There is no separate builder to keep.',
+  /**
+   * Renaming and deleting (#129). A Combo's name is something a person typed
+   * — content, never translated — so it arrives as `{name}` and these are
+   * only the sentences around it.
+   */
+  rename: 'Rename',
+  renameLabel: 'New name for “{name}”',
+  renameFailed: 'Could not rename this combo',
+  delete: 'Delete',
+  deleteLabel: 'Delete “{name}”',
+  /** Replaces the buttons once Delete is pressed. There is no undo. */
+  deleteConfirm: 'Delete “{name}”?',
+  /**
+   * Said where the deleting is confirmed, because it is the one thing
+   * somebody might reasonably fear losing by pressing it.
+   */
+  deleteKeepsDiary: 'What you have already logged stays in your diary.',
+  deleteFailed: 'Could not delete this combo',
 }
 
 export const nutrition = { meals, units, diary, combosLibrary }

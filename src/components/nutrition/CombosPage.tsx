@@ -1,9 +1,11 @@
 import { Link } from '@tanstack/react-router'
-import { useQuery } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
+import type { Id } from '../../../convex/_generated/dataModel'
 import { comboEntries } from '../../../convex/lib/combos'
 import { sumFacts } from '../../../convex/lib/consumption'
 import { fmt, plural, useI18n } from '../../lib/i18n'
+import { ComboActions } from './ComboActions'
 import type { NutritionNav } from './nutritionNav'
 
 /**
@@ -24,6 +26,10 @@ export function CombosPage({ nav }: { nav: NutritionNav }) {
   const library = messages.nutrition.combosLibrary
   const { combos: comboWords, personalNote } = messages.nutrition.diary
   const combos = useQuery(api.combos.list, {})
+  // Both already resolve the caller and read only their own rows — a Combo is
+  // Personal, so there is no Group argument to pass and none to get wrong.
+  const rename = useMutation(api.combos.rename)
+  const remove = useMutation(api.combos.remove)
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -96,6 +102,15 @@ export function CombosPage({ nav }: { nav: NutritionNav }) {
                   </li>
                 ))}
               </ul>
+              <ComboActions
+                name={combo.name}
+                onRename={async (name) => {
+                  await rename({ id: combo._id as Id<'combos'>, name })
+                }}
+                onDelete={async () => {
+                  await remove({ id: combo._id as Id<'combos'> })
+                }}
+              />
             </li>
           )
         })}

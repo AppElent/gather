@@ -148,6 +148,14 @@ export const combosLibrary = {
   empty: 'Nog geen combinaties.',
   emptyHow:
     'Een combinatie maak je van een maaltijd die je al hebt ingevuld: open een dag in het dagboek, vul een maaltijd in en kies daar “Opslaan als combinatie”. Er is geen aparte bouwer om bij te houden.',
+  rename: 'Hernoemen',
+  renameLabel: 'Nieuwe naam voor “{name}”',
+  renameFailed: 'Kon deze combinatie niet hernoemen',
+  delete: 'Verwijderen',
+  deleteLabel: '“{name}” verwijderen',
+  deleteConfirm: '“{name}” verwijderen?',
+  deleteKeepsDiary: 'Wat je al hebt genoteerd blijft in je dagboek staan.',
+  deleteFailed: 'Kon deze combinatie niet verwijderen',
 } satisfies typeof enCombosLibrary
 
 export const nutrition = {

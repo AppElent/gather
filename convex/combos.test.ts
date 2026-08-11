@@ -533,6 +533,16 @@ describe('a Combo is one person’s', () => {
     expect(await t.query(api.combos.list, {})).toEqual([])
   })
 
+  test('nobody else can delete it', async () => {
+    const { t, comboId } = await saveBreakfast()
+    await expect(
+      t.withIdentity(asBob).mutation(api.combos.remove, { id: comboId }),
+    ).rejects.toThrow()
+    expect(
+      await t.withIdentity(asAlice).query(api.combos.list, {}),
+    ).toHaveLength(1)
+  })
+
   test('reads identically however many Groups the person is in', async () => {
     const { t } = await saveBreakfast()
     const before = await t.withIdentity(asAlice).query(api.combos.list, {})
@@ -773,5 +783,103 @@ describe('logging a Combo', () => {
       (c) => c.label === 'Stroopwafel from the market',
     )
     expect(rebuilt?.icon).toBe('🍪')
+  })
+})
+
+/**
+ * Renaming and deleting from the library (#129).
+ *
+ * A Combo is a shortcut for what will happen; the diary is the record of what
+ * did. So neither of these may reach into the diary — which is the thing
+ * somebody would reasonably fear when pressing Delete.
+ */
+describe('keeping the library tidy', () => {
+  test('renaming changes what the library and the add sheet find', async () => {
+    const { t, comboId } = await saveBreakfast()
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.combos.rename, { id: comboId, name: 'Weekday breakfast' })
+
+    const [combo] = await t.withIdentity(asAlice).query(api.combos.list, {})
+    expect(combo.name).toBe('Weekday breakfast')
+  })
+
+  test('a name of nothing but spaces is refused', async () => {
+    const { t, comboId } = await saveBreakfast()
+
+    await expect(
+      t.withIdentity(asAlice).mutation(api.combos.rename, {
+        id: comboId,
+        name: '   ',
+      }),
+    ).rejects.toThrow()
+
+    const [combo] = await t.withIdentity(asAlice).query(api.combos.list, {})
+    expect(combo.name).toBe('Usual breakfast')
+  })
+
+  test('deleting takes the components with it, leaving no orphans', async () => {
+    const { t, comboId } = await saveBreakfast()
+    expect(
+      await t.run(async (ctx) => ctx.db.query('comboItems').collect()),
+    ).not.toHaveLength(0)
+
+    await t.withIdentity(asAlice).mutation(api.combos.remove, { id: comboId })
+
+    expect(await t.withIdentity(asAlice).query(api.combos.list, {})).toEqual([])
+    expect(
+      await t.run(async (ctx) => ctx.db.query('comboItems').collect()),
+    ).toEqual([])
+  })
+
+  test('deleting leaves the diary exactly as it was', async () => {
+    const { t, comboId } = await saveBreakfast()
+    const before = await t
+      .withIdentity(asAlice)
+      .query(api.consumption.listForDay, { date: DAY })
+    expect(before).not.toHaveLength(0)
+
+    await t.withIdentity(asAlice).mutation(api.combos.remove, { id: comboId })
+
+    // What was logged happened. Losing the shortcut does not unhappen it.
+    expect(
+      await t.withIdentity(asAlice).query(api.consumption.listForDay, {
+        date: DAY,
+      }),
+    ).toEqual(before)
+  })
+
+  test('renaming leaves the diary exactly as it was', async () => {
+    const { t, comboId } = await saveBreakfast()
+    const before = await t
+      .withIdentity(asAlice)
+      .query(api.consumption.listForDay, { date: DAY })
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.combos.rename, { id: comboId, name: 'Something else' })
+
+    expect(
+      await t.withIdentity(asAlice).query(api.consumption.listForDay, {
+        date: DAY,
+      }),
+    ).toEqual(before)
+  })
+
+  test('a Combo that is not yours refuses the same way one that does not exist does', async () => {
+    const { t, comboId } = await saveBreakfast()
+    await t.withIdentity(asAlice).mutation(api.combos.remove, { id: comboId })
+
+    // Gone now, so this is the "no such combo" case; Bob's attempt above is
+    // the "not yours" one. Neither wording may tell them apart (ADR-0009).
+    await expect(
+      t.withIdentity(asAlice).mutation(api.combos.remove, { id: comboId }),
+    ).rejects.toThrow('Combo not found')
+    await expect(
+      t
+        .withIdentity(asBob)
+        .mutation(api.combos.remove, { id: comboId }),
+    ).rejects.toThrow('Combo not found')
   })
 })
