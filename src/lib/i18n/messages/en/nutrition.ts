@@ -43,14 +43,37 @@ export const diary = {
     over: '{amount} over',
   },
 
+  /**
+   * The two libraries the diary points at (#100). Both were reachable only by
+   * typing their address before, which made the Catalog feel like a place the
+   * app did not have and Combos like something only the add sheet knew about.
+   */
+  libraries: {
+    heading: 'Libraries',
+    foods: 'Foods',
+    combos: 'Combos',
+  },
+
   slot: {
     add: '+ Add',
     empty: 'Nothing logged yet.',
+    /**
+     * The meal's own kcal, beside its name. Only ever shown when at least one
+     * entry in the slot carries calories — a meal of things nobody has
+     * nutrition figures for says nothing rather than "0 kcal".
+     */
+    subtotal: '{calories} kcal',
   },
 
   entry: {
     viewRecipe: 'View recipe',
     viewFood: 'View food',
+    /**
+     * The badge on a row a Combo logged. The badge itself shows the Combo's
+     * name — content, never translated — so this is the sentence that says
+     * what the name means, for a tooltip and for a screen reader.
+     */
+    fromCombo: 'Logged by the combo “{name}”',
     quantity: 'Qty',
     meal: 'Meal',
     date: 'Date',
@@ -119,9 +142,26 @@ export const diary = {
     reset: 'Reset',
     nothingLeft: 'Nothing left to log',
     save: 'Save as combo',
-    saveTitle: 'Save this meal as a combo',
+    saveTitle: 'Save these entries as a combo',
     namePlaceholder: 'e.g. "Work lunch"',
     saveFailed: 'Could not save this combo',
+    /**
+     * Saving picks entries out of a meal and takes their place (#99), so the
+     * ticking and what it costs both have to be said before the name is typed.
+     */
+    selectEntry: 'Include {label}',
+    selectHint:
+      'Tick what goes in the combo. Those entries are replaced by it; the rest of the meal stays.',
+    selectNothing: 'Tick at least one entry.',
+    /**
+     * The refusals `combos.saveFromMeal` answers with. It throws a key and
+     * this resolves it: the server cannot know which language it is being
+     * read in, so a sentence built there reaches a Dutch reader in English
+     * (ADR-0011).
+     */
+    comboNothingSelected: 'Tick at least one entry.',
+    comboComponentUnavailable:
+      'Something here can no longer be logged, so nothing was changed.',
     saved: '“{name}” saved',
     update: 'Update {name}',
     updateFailed: 'Could not update that combo',
@@ -149,4 +189,39 @@ export const diary = {
   },
 }
 
-export const nutrition = { meals, units, diary }
+/**
+ * The Combos library: somewhere to see what you have saved (#100).
+ *
+ * Browsing only. There is no builder to open here and there never will be — a
+ * Combo is made by saving a meal slot you have already filled in, and that is
+ * what the empty state says rather than offering a button that cannot exist
+ * (ADR-0012). The words for what is *inside* a Combo are `diary.combos`, which
+ * the add sheet uses too.
+ */
+export const combosLibrary = {
+  title: 'Combos',
+  back: 'Back to the diary',
+  empty: 'No combos yet.',
+  emptyHow:
+    'A combo is made out of a meal you have already filled in: open a day in the diary, fill in a meal, then use “Save as combo” on it. There is no separate builder to keep.',
+  /**
+   * Renaming and deleting (#129). A Combo's name is something a person typed
+   * — content, never translated — so it arrives as `{name}` and these are
+   * only the sentences around it.
+   */
+  rename: 'Rename',
+  renameLabel: 'New name for “{name}”',
+  renameFailed: 'Could not rename this combo',
+  delete: 'Delete',
+  deleteLabel: 'Delete “{name}”',
+  /** Replaces the buttons once Delete is pressed. There is no undo. */
+  deleteConfirm: 'Delete “{name}”?',
+  /**
+   * Said where the deleting is confirmed, because it is the one thing
+   * somebody might reasonably fear losing by pressing it.
+   */
+  deleteKeepsDiary: 'What you have already logged stays in your diary.',
+  deleteFailed: 'Could not delete this combo',
+}
+
+export const nutrition = { meals, units, diary, combosLibrary }

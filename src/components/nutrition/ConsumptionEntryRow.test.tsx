@@ -281,6 +281,40 @@ test('a one-off with no icon falls back to the food glyph', () => {
   expect(screen.getByText('🍽')).toBeDefined()
 })
 
+/**
+ * The tick that puts a row into a Combo being saved (#99). It is named after
+ * the row rather than "select", because a screen reader hears it out of the
+ * column it is in.
+ */
+test('a selectable row offers a tick named after what it holds', () => {
+  const onChange = vi.fn()
+  renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={entry}
+      selection={{ selected: false, onChange }}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+  const box = screen.getByLabelText('Include Oatmeal') as HTMLInputElement
+  expect(box.checked).toBe(false)
+  fireEvent.click(box)
+  expect(onChange).toHaveBeenCalledWith(true)
+})
+
+test('a row nobody is choosing from has no tick at all', () => {
+  renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={entry}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+  expect(screen.queryByRole('checkbox')).toBeNull()
+})
+
 test('an invalid quantity does not call onUpdate', () => {
   const onUpdate = vi.fn()
   renderWithI18n(
@@ -467,16 +501,110 @@ test('a food entry whose food is gone keeps the plain amount field', () => {
 
 /**
  * An entry counted in the food's *portions* rather than its base unit — the
- * shape the sample household still seeds. Its number means something else, so
- * the chips, which are all base-unit amounts, are not offered for it.
+ * shape the sample household seeds, and so the shape most people meet first.
+ *
+ * It used to keep the plain grams box, on the grounds that its number counts
+ * something the chips do not. But a piece *is* an amount: `quantity` lots of
+ * the food's first serving. Leaving it out meant the seeded diary showed the
+ * old editor and a freshly logged food showed the new one, which is what was
+ * reported on #126. It converts, so it is offered.
  */
-test('a food entry counted in pieces keeps the plain amount field', () => {
+test('a food entry counted in pieces is offered the servings too', () => {
   food.value = CATALOG_BREAD
   renderRow({
     entry: { ...breadEntry, quantity: 2, quantityUnit: 'piece' as const },
   })
 
   fireEvent.click(screen.getByText('Edit'))
+  // 2 pieces of a food whose first serving is 35 g is 70 g, which is exactly
+  // what "2 slices" names — so that is the chip it opens on.
+  expect(
+    screen
+      .getByRole('button', { name: '2 slices' })
+      .getAttribute('aria-pressed'),
+  ).toBe('true')
+})
+
+test('re-choosing a piece entry moves it onto the food’s base unit', async () => {
+  food.value = CATALOG_BREAD
+  const onUpdate = vi.fn().mockResolvedValue(undefined)
+  renderRow({
+    entry: { ...breadEntry, quantity: 2, quantityUnit: 'piece' as const },
+    onUpdate,
+  })
+
+  fireEvent.click(screen.getByText('Edit'))
+  fireEvent.click(screen.getByRole('button', { name: '1 slice' }))
+  fireEvent.click(screen.getByText('Save'))
+
+  // The picker answers in grams, so the entry has to stop counting pieces —
+  // otherwise 35 would be reread as 35 portions.
+  await waitFor(() =>
+    expect(onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ quantity: 35, quantityUnit: 'g' }),
+    ),
+  )
+})
+
+test('a piece entry whose food declares no serving keeps the plain field', () => {
+  // Nothing to count, so the number converts to nothing and the chips would
+  // be answering a different question than the one on screen.
+  food.value = MY_YOGHURT
+  renderRow({
+    entry: {
+      ...breadEntry,
+      foodId: MY_YOGHURT._id,
+      quantity: 2,
+      quantityUnit: 'piece' as const,
+    },
+  })
+
+  fireEvent.click(screen.getByText('Edit'))
   expect(screen.queryByRole('button', { name: 'Custom' })).toBeNull()
   expect(screen.getByDisplayValue('2')).toBeDefined()
+})
+
+test('editing an entry already in base units does not send a unit', async () => {
+  food.value = CATALOG_BREAD
+  const onUpdate = vi.fn().mockResolvedValue(undefined)
+  renderRow({ entry: breadEntry, onUpdate })
+
+  fireEvent.click(screen.getByText('Edit'))
+  fireEvent.click(screen.getByRole('button', { name: '2 slices' }))
+  fireEvent.click(screen.getByText('Save'))
+
+  await waitFor(() => expect(onUpdate).toHaveBeenCalled())
+  expect(onUpdate.mock.calls[0][0].quantityUnit).toBeUndefined()
+})
+
+/**
+ * A Combo expands to the entries it was made from, so saving one changes the
+ * rows underneath without changing how they read. The badge is the only thing
+ * that says it happened (#99).
+ */
+test('a row a Combo logged is badged with its name', () => {
+  renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={{ ...entry, comboLabel: 'Usual breakfast' }}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+  expect(screen.getByText('Usual breakfast')).toBeDefined()
+  expect(
+    screen.getByTitle('Logged by the combo “Usual breakfast”'),
+  ).toBeDefined()
+})
+
+test('a row logged one thing at a time carries no badge', () => {
+  renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={entry}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+  expect(screen.queryByTitle(/Logged by the combo/)).toBeNull()
 })

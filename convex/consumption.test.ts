@@ -627,6 +627,83 @@ describe('editing a food entry', () => {
     }
   }
 
+  test('a piece entry re-chosen in grams stops counting portions', async () => {
+    const { t, breadId } = await seedFoods()
+    // Two slices, logged the way the sample household seeds them.
+    const id = await t.withIdentity(asAlice).mutation(api.consumption.create, {
+      date: DAY,
+      meal: 'breakfast',
+      foodId: breadId,
+      label: 'Wholemeal toast',
+      quantity: 2,
+      quantityUnit: 'piece',
+      nutrition: WRONG,
+    })
+
+    await t.withIdentity(asAlice).mutation(api.consumption.update, {
+      id,
+      quantity: 35,
+      quantityUnit: 'g',
+    })
+
+    // 35 g, not 35 portions — which would have been 1225 g of bread.
+    expect(await stored(t, id)).toEqual({
+      quantity: 35,
+      quantityUnit: 'g',
+      nutrition: { calories: 87.5 },
+    })
+  })
+
+  test('a unit change alone still recomputes, even at the same number', async () => {
+    const { t, breadId } = await seedFoods()
+    const id = await t.withIdentity(asAlice).mutation(api.consumption.create, {
+      date: DAY,
+      meal: 'breakfast',
+      foodId: breadId,
+      label: 'Wholemeal toast',
+      quantity: 35,
+      quantityUnit: 'piece',
+      nutrition: WRONG,
+    })
+
+    // The number does not move; what it counts does. 35 portions of 35 g was
+    // 1225 g; 35 g is 35 g.
+    await t.withIdentity(asAlice).mutation(api.consumption.update, {
+      id,
+      quantityUnit: 'g',
+    })
+
+    expect(await stored(t, id)).toEqual({
+      quantity: 35,
+      quantityUnit: 'g',
+      nutrition: { calories: 87.5 },
+    })
+  })
+
+  test('an edit that sends no unit leaves the entry counting what it did', async () => {
+    const { t, breadId } = await seedFoods()
+    const id = await t.withIdentity(asAlice).mutation(api.consumption.create, {
+      date: DAY,
+      meal: 'breakfast',
+      foodId: breadId,
+      label: 'Wholemeal toast',
+      quantity: 1,
+      quantityUnit: 'piece',
+      nutrition: WRONG,
+    })
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.consumption.update, { id, quantity: 2 })
+
+    // Still pieces: 2 × 35 g = 70 g of a 250 kcal/100 g food.
+    expect(await stored(t, id)).toEqual({
+      quantity: 2,
+      quantityUnit: 'piece',
+      nutrition: { calories: 175 },
+    })
+  })
+
   test('an authored serving of a Catalog food is stored as its amount', async () => {
     const { t, breadId } = await seedFoods()
     const id = await log(t, breadId, 35, 'g')

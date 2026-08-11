@@ -25,6 +25,11 @@ export const shell = {
     close: 'Navigatie sluiten',
   },
 
+  breadcrumbs: {
+    label: 'Kruimelpad',
+    backTo: 'Terug naar {page}',
+  },
+
   palette: {
     placeholder: 'Ga naar…',
   },

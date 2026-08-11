@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
@@ -5,6 +6,7 @@ import { MEAL_NAMES, sumFacts } from '../../../convex/lib/consumption'
 import { fmt, useMessages } from '../../lib/i18n'
 import { moduleById } from '../../lib/modules'
 import { DayTotals } from './DayTotals'
+import { sumKcal } from './kcal'
 import { MealSlot } from './MealSlot'
 import type { NutritionNav } from './nutritionNav'
 
@@ -81,8 +83,14 @@ export function NutritionPage({
 
   const messages = useMessages()
   const { diary, meals } = messages.nutrition
+  const { libraries } = diary
 
-  const totals = sumFacts((entries ?? []).map((e) => e.nutrition))
+  // Every nutrient summed from the stored figures, except calories, which are
+  // rounded per entry first so the day is exactly the meals added up and each
+  // meal is exactly its rows (`sumKcal`). Costs at most a kcal against the
+  // stored total; buys the only arithmetic a reader can actually check.
+  const facts = (entries ?? []).map((e) => e.nutrition)
+  const totals = { ...sumFacts(facts), calories: sumKcal(facts) }
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -94,6 +102,28 @@ export function NutritionPage({
           {diary.personalNote}
         </p>
       )}
+
+      {/* The two libraries the diary draws on. Both were addresses you had to
+          know before (#100): the Catalog had no way in from here at all, and a
+          Combo could only be met inside the add sheet. They sit above the day
+          rather than in the shell because neither is a Module — Foods is
+          Catalog and a Combo is Personal — so nothing in the sidebar or the
+          dock claims a row for them, and a phone reaches them the same way a
+          desktop does. */}
+      <nav aria-label={libraries.heading} className="mb-4 flex flex-wrap gap-2">
+        <Link
+          {...nav.foods}
+          className="inline-flex min-h-11 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm no-underline"
+        >
+          {libraries.foods}
+        </Link>
+        <Link
+          {...nav.combos}
+          className="inline-flex min-h-11 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm no-underline"
+        >
+          {libraries.combos}
+        </Link>
+      </nav>
 
       <div className="mb-4 flex items-center justify-between gap-2">
         <button
@@ -130,13 +160,26 @@ export function NutritionPage({
 
       {MEAL_NAMES.map((meal) => (
         <MealSlot
-          key={meal}
+          // The day is part of which slot this is, not just what it shows.
+          // A slot holds the ticks for a Combo being saved (#99), and those
+          // name rows of *this* day; keyed by meal alone, stepping to
+          // yesterday would keep them, leaving a form open over rows it does
+          // not describe and a Save that submits an empty selection.
+          key={`${date}-${meal}`}
           label={meals[meal]}
           entries={(entries ?? []).filter((e) => e.meal === meal)}
           nav={nav}
           addLink={nav.addEntry(date, meal)}
-          onSaveAsCombo={async (name) => {
-            await saveCombo({ date, meal, name })
+          // One call, because it is one transaction: the Combo, the entries it
+          // takes the place of and the expansion that replaces them either all
+          // happen or none of them do (#99).
+          onSaveAsCombo={async (name, entryIds) => {
+            await saveCombo({
+              date,
+              meal,
+              name,
+              entryIds: entryIds as Id<'consumptionEntries'>[],
+            })
           }}
           onUpdateEntry={async (entryId, changes) => {
             await updateEntry({

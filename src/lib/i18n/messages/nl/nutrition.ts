@@ -1,4 +1,5 @@
 import type {
+  combosLibrary as enCombosLibrary,
   diary as enDiary,
   meals as enMeals,
   nutrition as enNutrition,
@@ -34,14 +35,22 @@ export const diary = {
     over: '{amount} te veel',
   },
 
+  libraries: {
+    heading: 'Bibliotheken',
+    foods: 'Voedingsmiddelen',
+    combos: 'Combinaties',
+  },
+
   slot: {
     add: '+ Toevoegen',
     empty: 'Nog niets genoteerd.',
+    subtotal: '{calories} kcal',
   },
 
   entry: {
     viewRecipe: 'Recept bekijken',
     viewFood: 'Voedingsmiddel bekijken',
+    fromCombo: 'Genoteerd door de combinatie “{name}”',
     quantity: 'Aantal',
     meal: 'Maaltijd',
     date: 'Datum',
@@ -95,9 +104,16 @@ export const diary = {
     reset: 'Herstellen',
     nothingLeft: 'Niets meer om te noteren',
     save: 'Opslaan als combinatie',
-    saveTitle: 'Deze maaltijd opslaan als combinatie',
+    saveTitle: 'Deze items opslaan als combinatie',
     namePlaceholder: 'bijv. "Lunch op het werk"',
     saveFailed: 'Kon deze combinatie niet opslaan',
+    selectEntry: '{label} meenemen',
+    selectHint:
+      'Vink aan wat in de combinatie komt. Die items worden erdoor vervangen; de rest van de maaltijd blijft staan.',
+    selectNothing: 'Vink minstens één item aan.',
+    comboNothingSelected: 'Vink minstens één item aan.',
+    comboComponentUnavailable:
+      'Iets hierin kan niet meer genoteerd worden, dus er is niets gewijzigd.',
     saved: '“{name}” opgeslagen',
     update: '{name} bijwerken',
     updateFailed: 'Kon die combinatie niet bijwerken',
@@ -126,4 +142,25 @@ export const diary = {
   },
 } satisfies typeof enDiary
 
-export const nutrition = { meals, units, diary } satisfies typeof enNutrition
+export const combosLibrary = {
+  title: 'Combinaties',
+  back: 'Terug naar het dagboek',
+  empty: 'Nog geen combinaties.',
+  emptyHow:
+    'Een combinatie maak je van een maaltijd die je al hebt ingevuld: open een dag in het dagboek, vul een maaltijd in en kies daar “Opslaan als combinatie”. Er is geen aparte bouwer om bij te houden.',
+  rename: 'Hernoemen',
+  renameLabel: 'Nieuwe naam voor “{name}”',
+  renameFailed: 'Kon deze combinatie niet hernoemen',
+  delete: 'Verwijderen',
+  deleteLabel: '“{name}” verwijderen',
+  deleteConfirm: '“{name}” verwijderen?',
+  deleteKeepsDiary: 'Wat je al hebt genoteerd blijft in je dagboek staan.',
+  deleteFailed: 'Kon deze combinatie niet verwijderen',
+} satisfies typeof enCombosLibrary
+
+export const nutrition = {
+  meals,
+  units,
+  diary,
+  combosLibrary,
+} satisfies typeof enNutrition

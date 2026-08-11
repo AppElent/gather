@@ -42,6 +42,12 @@ const GROUP_ROUTES = {
   // gesture closes it and a reload does not lose it. Which day and which meal
   // ride in the search, not the path — they are what is being added *to*.
   addFood: `${GROUP_PREFIX}/nutrition/add`,
+  // The Combos library. A sibling of the diary rather than a page beneath it:
+  // `/nutrition` is a layout that renders the diary itself so the add sheet can
+  // sit over a page that never went away, and a library nested under it would
+  // open below the whole day. Foods is next to Nutrition for the same reason
+  // and reached from the same place, so the two match.
+  combos: `${GROUP_PREFIX}/combos`,
 
   recipes: `${GROUP_PREFIX}/recipes`,
   newRecipe: `${GROUP_PREFIX}/recipes/new`,
@@ -135,6 +141,7 @@ const GROUP_MODULE_INDEXES = [
   'all',
   'settings',
   'nutrition',
+  'combos',
   'recipes',
   'foods',
   'baby',

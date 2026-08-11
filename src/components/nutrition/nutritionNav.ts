@@ -35,6 +35,18 @@ export interface NutritionNav {
    * Catalog.
    */
   addEntry: (date: string, meal: MealName, foodId?: string) => AppLink
+  /**
+   * The two libraries beside the diary (#100).
+   *
+   * Neither one's *content* depends on the Group in the URL — the Catalog
+   * belongs to nobody and a Combo belongs to a person — but both addresses do,
+   * for the same reason every destination here does: a link that dropped the
+   * slug would move whoever followed it into some other Group (ADR-0002).
+   */
+  foods: AppLink
+  combos: AppLink
+  /** The diary itself — what the Combos library is a detour from, and back to. */
+  diary: AppLink
 }
 
 export function groupNutritionNav(groupSlug: string): NutritionNav {
@@ -51,5 +63,8 @@ export function groupNutritionNav(groupSlug: string): NutritionNav {
       // address should not depend on which.
       search: { date, meal, ...(foodId ? { food: foodId } : {}) },
     }),
+    foods: foods.list,
+    combos: groupLink('combos', groupSlug),
+    diary: groupLink('nutrition', groupSlug),
   }
 }

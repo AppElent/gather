@@ -123,10 +123,14 @@ _Avoid_: Resize, Compress, Optimise, Process
 **Combo** (Dutch: *Combinatie*):
 A named, reusable set of things you log together — the same lunch, again. It is
 **Personal**: it belongs to a person, follows them into every Group, belongs to
-none, and no other Member sees it. Made by *saving a meal slot you have already
-filled in*, never by opening a builder, and logging one never edits it
-(ADR-0012). A Combo may contain a Recipe; it is not a kind of Recipe, and a
-Recipe is not a kind of Combo — they sit on opposite sides of the
+none, and no other Member sees it. Made by *choosing entries from a meal you
+have already filled in*, never by opening a builder; saving replaces the
+entries it was made from with the Combo's own log and leaves the rest of the
+meal alone, and logging one afterwards never edits it (ADR-0012). An entry a
+Combo wrote is badged with its name — snapshotted, the way a Personal record
+snapshots everything it references, so renaming the Combo does not rewrite the
+day it was logged on. A Combo may contain a Recipe; it is not a kind of Recipe,
+and a Recipe is not a kind of Combo — they sit on opposite sides of the
 Group/Personal boundary.
 _Avoid_: **Food group** — an established nutrition term (grains, dairy,
 protein) that would actively mislead here. **Meal** — that word already names
@@ -167,3 +171,6 @@ _Avoid_: Demo data, Dummy data, Test data, Seed data
 - A refusal inside a Group never says which refusal it is. "No such record" and
   "not in this Group" are one answer; refusing the Group itself is a separate,
   distinct one.
+- A page below a Module's index carries its own trail, and its way back is the
+  parent's **address** rather than the browser's history — the same answer
+  however somebody arrived, and the Group travels with it (ADR-0013).

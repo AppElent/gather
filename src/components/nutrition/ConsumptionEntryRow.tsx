@@ -11,8 +11,9 @@ import {
   parseServingAmount,
   resolveAmount,
 } from '../../../convex/lib/servings'
-import { useMessages } from '../../lib/i18n'
+import { fmt, useMessages } from '../../lib/i18n'
 import { FoodThumbnail, type ThumbnailKind } from './FoodThumbnail'
+import { roundKcal } from './kcal'
 import type { NutritionNav } from './nutritionNav'
 import {
   ServingPicker,
@@ -43,15 +44,33 @@ export interface ConsumptionEntryData {
   sourceIcon?: string
   /** The source type survives when its provenance link is no longer visible. */
   thumbnailKind?: ThumbnailKind
+  /**
+   * The Combo this row was logged by, named as it was at the time (#99).
+   *
+   * A snapshot, not a lookup: renaming the Combo does not rewrite the day,
+   * and deleting it does not blank what it left behind.
+   */
+  comboLabel?: string
 }
 
 interface Props {
   entry: ConsumptionEntryData
   nav: NutritionNav
+  /**
+   * Whether this row is going into the Combo being saved (#99). Absent the
+   * rest of the time: the diary is for reading, and a permanent column of
+   * ticks would say otherwise.
+   */
+  selection?: { selected: boolean; onChange: (selected: boolean) => void }
   onUpdate: (changes: {
     quantity: number
     meal: MealName
     date: string
+    /**
+     * Sent only when re-choosing the amount moved the entry off the unit it
+     * was counting in — a 'piece' entry answered with a base-unit chip (#102).
+     */
+    quantityUnit?: ConsumptionEntryData['quantityUnit']
   }) => Promise<void>
   onDelete: () => void
 }
@@ -102,10 +121,18 @@ function AmountField({
  * base unit: the entry keeps one quantity, and the nutrition that goes with it
  * is recomputed server-side from the food itself.
  *
- * Two entries get the plain field instead, for the same reason: their number is
- * not a base-unit amount that the chips could replace. A food that has gone has
- * nothing to offer at all, and an entry counted in the food's *portions*
- * ('piece') is counting something else.
+ * An entry counted in the food's *portions* ('piece') is included, and that is
+ * the case this feature was reported missing on (#102 review): the seeded diary
+ * logs a banana as one piece, so the entries most people meet first were the
+ * ones still getting a bare grams box. A piece is `quantity` lots of the food's
+ * first named serving, which is an amount like any other — it is converted to
+ * base units to find the chip it already sits on, and re-choosing moves the
+ * entry onto the base unit rather than leaving a number whose meaning quietly
+ * changed underneath it.
+ *
+ * The plain field remains for a food that has gone (nothing to offer at all)
+ * and for a piece entry whose food declares no serving to count, where the
+ * number does not convert to anything.
  */
 function FoodEntryAmount({
   entry,
@@ -114,7 +141,10 @@ function FoodEntryAmount({
 }: {
   entry: ConsumptionEntryData & { foodId: string }
   disabled: boolean
-  onAmount: (amount: number | undefined) => void
+  onAmount: (
+    amount: number | undefined,
+    unit?: ConsumptionEntryData['quantityUnit'],
+  ) => void
 }) {
   const { add } = useMessages().nutrition.diary
   const foodId = entry.foodId as Id<'foods'>
@@ -130,7 +160,18 @@ function FoodEntryAmount({
   // chips a moment later; the row still saves the amount the entry already has.
   if (food === undefined) return null
 
-  if (!food || entry.quantityUnit !== food.baseUnit) {
+  // What the entry's number is worth in the food's base unit — itself when it
+  // already counts those, and `portion` lots of the first serving when it
+  // counts pieces.
+  const portion = food?.servings?.[0]?.amount
+  const baseAmount =
+    food && entry.quantityUnit === food.baseUnit
+      ? entry.quantity
+      : entry.quantityUnit === 'piece' && portion
+        ? Math.round(entry.quantity * portion * 100) / 100
+        : undefined
+
+  if (!food || baseAmount === undefined) {
     return (
       <AmountField
         initial={entry.quantity}
@@ -143,7 +184,7 @@ function FoodEntryAmount({
   const offered = offeredServings(food, loggedAmounts ?? [])
   // Left derived until something is chosen, so the chips settle once your own
   // amounts arrive — the entry's amount may be one of them.
-  const current = selection ?? selectionForAmount(offered, entry.quantity)
+  const current = selection ?? selectionForAmount(offered, baseAmount)
 
   return (
     <div className="w-full">
@@ -156,14 +197,27 @@ function FoodEntryAmount({
         onSelect={(next) => {
           setSelection(next)
           const choice = toChoice(offered, next)
-          onAmount(choice ? resolveAmount(food, choice)?.amount : undefined)
+          // Always the food's base unit, which is the only thing the picker
+          // can answer in. For a 'piece' entry that is a change of unit, and
+          // the row has to pass it on or the number would be reread as a
+          // count of portions.
+          onAmount(
+            choice ? resolveAmount(food, choice)?.amount : undefined,
+            food.baseUnit,
+          )
         }}
       />
     </div>
   )
 }
 
-export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
+export function ConsumptionEntryRow({
+  entry,
+  nav,
+  selection,
+  onUpdate,
+  onDelete,
+}: Props) {
   const [editing, setEditing] = useState(false)
   /**
    * What saving would write, in the unit the entry counts. Undefined means the
@@ -171,6 +225,10 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
    * and saving does nothing, which is what it always did.
    */
   const [amount, setAmount] = useState<number | undefined>(entry.quantity)
+  /** Absent unless the amount on show is in a different unit than the entry. */
+  const [unit, setUnit] = useState<
+    ConsumptionEntryData['quantityUnit'] | undefined
+  >(undefined)
   const [meal, setMeal] = useState<MealName>(entry.meal)
   const [date, setDate] = useState(entry.date)
   const [saving, setSaving] = useState(false)
@@ -182,6 +240,15 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
     <li className="py-2 text-sm">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
+          {selection && (
+            <input
+              type="checkbox"
+              checked={selection.selected}
+              onChange={(e) => selection.onChange(e.target.checked)}
+              aria-label={fmt(diary.combos.selectEntry, { label: entry.label })}
+              className="h-5 w-5 shrink-0 accent-[var(--app-fg)]"
+            />
+          )}
           {/* Decoration: the label already names this row, so the tile must not
               make a screen reader announce the same thing twice. */}
           <span aria-hidden="true">
@@ -193,10 +260,21 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
           </span>
           <div className="min-w-0">
             <span className="font-medium">{entry.label}</span>
+            {/* Where this row came from, when a Combo put it here (#99). The
+                expansion is the entries it replaced, so without this the
+                saving that just happened leaves no trace anybody can see. */}
+            {entry.comboLabel && (
+              <span
+                title={fmt(diary.entry.fromCombo, { name: entry.comboLabel })}
+                className="ml-2 rounded-full border border-[var(--app-border)] px-2 py-0.5 align-middle text-[11px] opacity-70"
+              >
+                {entry.comboLabel}
+              </span>
+            )}
             <span className="ml-2 opacity-60">
               {entry.quantity} {units[entry.quantityUnit]}
               {entry.nutrition.calories !== undefined &&
-                ` · ${entry.nutrition.calories} kcal`}
+                ` · ${roundKcal(entry.nutrition.calories)} kcal`}
             </span>
             {entry.recipeId && (
               <Link
@@ -224,6 +302,7 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
               // left behind the last time it was opened and abandoned.
               if (!editing) {
                 setAmount(entry.quantity)
+                setUnit(undefined)
                 setMeal(entry.meal)
                 setDate(entry.date)
                 setError(null)
@@ -251,7 +330,10 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
             <FoodEntryAmount
               entry={{ ...entry, foodId: entry.foodId }}
               disabled={saving}
-              onAmount={setAmount}
+              onAmount={(next, nextUnit) => {
+                setAmount(next)
+                setUnit(nextUnit === entry.quantityUnit ? undefined : nextUnit)
+              }}
             />
           ) : (
             <AmountField
@@ -294,7 +376,12 @@ export function ConsumptionEntryRow({ entry, nav, onUpdate, onDelete }: Props) {
               setSaving(true)
               setError(null)
               try {
-                await onUpdate({ quantity, meal, date })
+                await onUpdate({
+                  quantity,
+                  meal,
+                  date,
+                  ...(unit ? { quantityUnit: unit } : {}),
+                })
                 setEditing(false)
               } catch (err) {
                 setError(

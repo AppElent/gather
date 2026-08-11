@@ -157,6 +157,36 @@ Four rules the conversion established, each of which will bite if ignored:
 Component tests render through `renderWithI18n` from `src/lib/i18n/testing.tsx`;
 `useI18n` throws outside `LocaleProvider` rather than falling back.
 
+## A nested page carries its own trail
+
+Every route below a Module's index renders `<Breadcrumbs>`
+(`src/components/app/Breadcrumbs.tsx`) with the trail from that index down to
+itself — Foods → *Hagelslag* → Edit, and the equivalent for Recipes and the
+Baby log. The shell keeps global navigation; the page owns the local hierarchy,
+because the page is the only thing that knows which food this is. See
+`docs/adr/0013-a-nested-page-carries-its-own-trail.md`.
+
+**When you add a nested route, give it its trail in the same change.** Nothing
+enforces this — there is no registry slot to leave visibly empty, and a page
+without one renders perfectly well — so this line is the only thing standing
+between the app and a set of pages you can get into but not out of.
+
+Three rules that will bite if ignored:
+
+- **A `Crumb`'s `label` is already in the reader's language.** Half of a trail
+  is content — a food's name, a recipe's title — which is never translated
+  (ADR-0011), so the page resolves the words and `Breadcrumbs` never reaches
+  for a message tree.
+- **Back points at the parent's address, never `history.back()`.** Build the
+  link with `groupPaths` so the Group travels with it (ADR-0002). Where
+  somebody came *from* is not the collection the page belongs to.
+- **The page you are on is the one step with no `link`.** That is what makes it
+  render as `aria-current="page"` instead of as a link to itself.
+
+Collection indexes get no trail, and neither do flat shell pages (Settings,
+Account, Groups) — the shell already names those, and a one-step trail is
+chrome that says nothing.
+
 ## One-shot code states its own end condition
 
 Migration mutations, backfills and compatibility shims are written to run against
