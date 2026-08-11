@@ -166,6 +166,16 @@ export const createMany = mutation({
         icon: v.optional(v.string()),
       }),
     ),
+    /**
+     * The Combo these came from, when they came from one (#99).
+     *
+     * Stamped on every entry written here so the diary can say where they
+     * came from. The name travels with the id because an entry snapshots what
+     * it references (ADR-0003) — renaming the Combo must not rewrite the day
+     * it was logged on.
+     */
+    comboId: v.optional(v.id('combos')),
+    comboLabel: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
@@ -182,6 +192,8 @@ export const createMany = mutation({
           userId: user._id,
           date: args.date,
           meal: args.meal,
+          comboId: args.comboId,
+          comboLabel: args.comboLabel,
           ...entry,
         }),
       )

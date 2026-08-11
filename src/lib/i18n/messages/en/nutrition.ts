@@ -68,6 +68,12 @@ export const diary = {
   entry: {
     viewRecipe: 'View recipe',
     viewFood: 'View food',
+    /**
+     * The badge on a row a Combo logged. The badge itself shows the Combo's
+     * name — content, never translated — so this is the sentence that says
+     * what the name means, for a tooltip and for a screen reader.
+     */
+    fromCombo: 'Logged by the combo “{name}”',
     quantity: 'Qty',
     meal: 'Meal',
     date: 'Date',
@@ -136,9 +142,26 @@ export const diary = {
     reset: 'Reset',
     nothingLeft: 'Nothing left to log',
     save: 'Save as combo',
-    saveTitle: 'Save this meal as a combo',
+    saveTitle: 'Save these entries as a combo',
     namePlaceholder: 'e.g. "Work lunch"',
     saveFailed: 'Could not save this combo',
+    /**
+     * Saving picks entries out of a meal and takes their place (#99), so the
+     * ticking and what it costs both have to be said before the name is typed.
+     */
+    selectEntry: 'Include {label}',
+    selectHint:
+      'Tick what goes in the combo. Those entries are replaced by it; the rest of the meal stays.',
+    selectNothing: 'Tick at least one entry.',
+    /**
+     * The refusals `combos.saveFromMeal` answers with. It throws a key and
+     * this resolves it: the server cannot know which language it is being
+     * read in, so a sentence built there reaches a Dutch reader in English
+     * (ADR-0011).
+     */
+    comboNothingSelected: 'Tick at least one entry.',
+    comboComponentUnavailable:
+      'Something here can no longer be logged, so nothing was changed.',
     saved: '“{name}” saved',
     update: 'Update {name}',
     updateFailed: 'Could not update that combo',

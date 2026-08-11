@@ -160,13 +160,26 @@ export function NutritionPage({
 
       {MEAL_NAMES.map((meal) => (
         <MealSlot
-          key={meal}
+          // The day is part of which slot this is, not just what it shows.
+          // A slot holds the ticks for a Combo being saved (#99), and those
+          // name rows of *this* day; keyed by meal alone, stepping to
+          // yesterday would keep them, leaving a form open over rows it does
+          // not describe and a Save that submits an empty selection.
+          key={`${date}-${meal}`}
           label={meals[meal]}
           entries={(entries ?? []).filter((e) => e.meal === meal)}
           nav={nav}
           addLink={nav.addEntry(date, meal)}
-          onSaveAsCombo={async (name) => {
-            await saveCombo({ date, meal, name })
+          // One call, because it is one transaction: the Combo, the entries it
+          // takes the place of and the expansion that replaces them either all
+          // happen or none of them do (#99).
+          onSaveAsCombo={async (name, entryIds) => {
+            await saveCombo({
+              date,
+              meal,
+              name,
+              entryIds: entryIds as Id<'consumptionEntries'>[],
+            })
           }}
           onUpdateEntry={async (entryId, changes) => {
             await updateEntry({

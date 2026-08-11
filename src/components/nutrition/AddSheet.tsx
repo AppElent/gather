@@ -294,6 +294,11 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
           foodId: entry.foodId as Id<'foods'> | undefined,
           recipeId: entry.recipeId as Id<'recipes'> | undefined,
         })),
+        // Where these rows came from, so the diary can say so (#99). Stamped
+        // whether the Combo was logged as saved or adjusted on the way in:
+        // an adjusted logging is still that Combo's doing.
+        comboId: combo._id as Id<'combos'>,
+        comboLabel: combo.name,
       })
       announce(
         combo.name,

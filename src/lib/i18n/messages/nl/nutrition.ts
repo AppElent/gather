@@ -50,6 +50,7 @@ export const diary = {
   entry: {
     viewRecipe: 'Recept bekijken',
     viewFood: 'Voedingsmiddel bekijken',
+    fromCombo: 'Genoteerd door de combinatie “{name}”',
     quantity: 'Aantal',
     meal: 'Maaltijd',
     date: 'Datum',
@@ -103,9 +104,16 @@ export const diary = {
     reset: 'Herstellen',
     nothingLeft: 'Niets meer om te noteren',
     save: 'Opslaan als combinatie',
-    saveTitle: 'Deze maaltijd opslaan als combinatie',
+    saveTitle: 'Deze items opslaan als combinatie',
     namePlaceholder: 'bijv. "Lunch op het werk"',
     saveFailed: 'Kon deze combinatie niet opslaan',
+    selectEntry: '{label} meenemen',
+    selectHint:
+      'Vink aan wat in de combinatie komt. Die items worden erdoor vervangen; de rest van de maaltijd blijft staan.',
+    selectNothing: 'Vink minstens één item aan.',
+    comboNothingSelected: 'Vink minstens één item aan.',
+    comboComponentUnavailable:
+      'Iets hierin kan niet meer genoteerd worden, dus er is niets gewijzigd.',
     saved: '“{name}” opgeslagen',
     update: '{name} bijwerken',
     updateFailed: 'Kon die combinatie niet bijwerken',

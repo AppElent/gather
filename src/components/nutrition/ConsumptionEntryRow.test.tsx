@@ -205,6 +205,40 @@ test('a one-off with no icon falls back to the food glyph', () => {
   expect(screen.getByText('🍽')).toBeDefined()
 })
 
+/**
+ * The tick that puts a row into a Combo being saved (#99). It is named after
+ * the row rather than "select", because a screen reader hears it out of the
+ * column it is in.
+ */
+test('a selectable row offers a tick named after what it holds', () => {
+  const onChange = vi.fn()
+  renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={entry}
+      selection={{ selected: false, onChange }}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+  const box = screen.getByLabelText('Include Oatmeal') as HTMLInputElement
+  expect(box.checked).toBe(false)
+  fireEvent.click(box)
+  expect(onChange).toHaveBeenCalledWith(true)
+})
+
+test('a row nobody is choosing from has no tick at all', () => {
+  renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={entry}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+  expect(screen.queryByRole('checkbox')).toBeNull()
+})
+
 test('an invalid quantity does not call onUpdate', () => {
   const onUpdate = vi.fn()
   renderWithI18n(
@@ -219,4 +253,36 @@ test('an invalid quantity does not call onUpdate', () => {
   fireEvent.change(screen.getByDisplayValue('1'), { target: { value: '0' } })
   fireEvent.click(screen.getByText('Save'))
   expect(onUpdate).not.toHaveBeenCalled()
+})
+
+/**
+ * A Combo expands to the entries it was made from, so saving one changes the
+ * rows underneath without changing how they read. The badge is the only thing
+ * that says it happened (#99).
+ */
+test('a row a Combo logged is badged with its name', () => {
+  renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={{ ...entry, comboLabel: 'Usual breakfast' }}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+  expect(screen.getByText('Usual breakfast')).toBeDefined()
+  expect(
+    screen.getByTitle('Logged by the combo “Usual breakfast”'),
+  ).toBeDefined()
+})
+
+test('a row logged one thing at a time carries no badge', () => {
+  renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={entry}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+  expect(screen.queryByTitle(/Logged by the combo/)).toBeNull()
 })
