@@ -22,7 +22,16 @@ interface Props {
   onSaveAsCombo?: (name: string, entryIds: string[]) => Promise<void>
   onUpdateEntry: (
     id: string,
-    changes: { quantity: number; meal: MealName; date: string },
+    changes: {
+      quantity: number
+      meal: MealName
+      date: string
+      /**
+       * Present only when the edit moved the entry off the unit it was
+       * counting in — a 'piece' entry re-chosen from the picker (#102).
+       */
+      quantityUnit?: ConsumptionEntryData['quantityUnit']
+    },
   ) => Promise<void>
   onDeleteEntry: (id: string) => void
 }

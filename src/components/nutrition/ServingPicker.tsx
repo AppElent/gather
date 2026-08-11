@@ -24,6 +24,27 @@ export function initialSelection(
 }
 
 /**
+ * What a picker opens on when the amount is already known — editing an entry
+ * rather than logging a new one (#102).
+ *
+ * The chip that *means* this amount if there is one, so a "1 slice" entry
+ * opens on "1 slice" rather than on an anonymous 35 that would quietly become
+ * a custom amount the moment anything else was touched. Anything else opens as
+ * the custom amount it is, which is also the whole answer for a food with no
+ * servings at all — unlike `initialSelection`, there is an amount to start
+ * from here, so nothing has to be defaulted.
+ */
+export function selectionForAmount(
+  offered: readonly OfferedServing[],
+  amount: number,
+): ServingSelection {
+  const index = offered.findIndex((serving) => serving.amount === amount)
+  return index >= 0
+    ? { kind: 'serving', index }
+    : { kind: 'custom', input: String(amount), unit: 'base' }
+}
+
+/**
  * Turn a selection into the choice `resolveAmount` understands, or
  * `undefined` when there is nothing coherent to log yet — an empty custom
  * field, a chip that is no longer there.
@@ -55,6 +76,12 @@ interface Props {
   offered: readonly OfferedServing[]
   selection: ServingSelection
   onSelect: (selection: ServingSelection) => void
+  /**
+   * Locked while a save is in flight. The handler has already captured the
+   * amount it is writing, so a chip tapped now would change what is on screen
+   * without changing what is being saved — and the editor closes over it.
+   */
+  disabled?: boolean
 }
 
 /**
@@ -70,6 +97,7 @@ export function ServingPicker({
   offered,
   selection,
   onSelect,
+  disabled = false,
 }: Props) {
   const { add } = useMessages().nutrition.diary
   const custom = selection.kind === 'custom'
@@ -86,8 +114,9 @@ export function ServingPicker({
               key={`${serving.label}-${serving.amount}`}
               type="button"
               aria-pressed={selected}
+              disabled={disabled}
               onClick={() => onSelect({ kind: 'serving', index })}
-              className={`min-h-11 rounded-full border px-3 text-sm ${
+              className={`min-h-11 rounded-full border px-3 text-sm disabled:opacity-60 ${
                 selected
                   ? 'border-[var(--app-fg)] bg-[var(--app-fg)] text-[var(--app-surface)]'
                   : 'border-[var(--app-border)]'
@@ -109,6 +138,7 @@ export function ServingPicker({
         <button
           type="button"
           aria-pressed={custom}
+          disabled={disabled}
           onClick={() =>
             onSelect({
               kind: 'custom',
@@ -116,7 +146,7 @@ export function ServingPicker({
               unit: 'base',
             })
           }
-          className={`min-h-11 rounded-full border px-3 text-sm ${
+          className={`min-h-11 rounded-full border px-3 text-sm disabled:opacity-60 ${
             custom
               ? 'border-[var(--app-fg)] bg-[var(--app-fg)] text-[var(--app-surface)]'
               : 'border-[var(--app-border)]'
@@ -129,6 +159,7 @@ export function ServingPicker({
         <div className="flex items-center gap-2">
           <input
             inputMode="decimal"
+            disabled={disabled}
             value={selection.input}
             onChange={(e) => onSelect({ ...selection, input: e.target.value })}
             aria-label={add.amount}
@@ -136,6 +167,7 @@ export function ServingPicker({
           />
           {unitServing ? (
             <select
+              disabled={disabled}
               value={selection.unit}
               onChange={(e) =>
                 onSelect({

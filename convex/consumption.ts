@@ -97,18 +97,33 @@ export const listForDay = query({
  * one person can ask about another's.
  */
 export const loggedAmountsForFood = query({
-  args: { foodId: v.id('foods') },
+  args: {
+    foodId: v.id('foods'),
+    /**
+     * The entry being edited, left out of its own history.
+     *
+     * What you logged before is offered back to you; the row you are changing
+     * right now is not "before", it is the thing being changed. Counting it
+     * would offer somebody their own current amount as a suggestion, and — on
+     * a food with no other history — put a chip where the plain field
+     * belongs, so that switching to Custom would forget the amount rather
+     * than start from it.
+     */
+    excludeEntryId: v.optional(v.id('consumptionEntries')),
+  },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) return []
     const food = await ctx.db.get(args.foodId)
     if (!food) return []
-    const entries = await ctx.db
-      .query('consumptionEntries')
-      .withIndex('by_user_food', (q) =>
-        q.eq('userId', user._id).eq('foodId', args.foodId),
-      )
-      .collect()
+    const entries = (
+      await ctx.db
+        .query('consumptionEntries')
+        .withIndex('by_user_food', (q) =>
+          q.eq('userId', user._id).eq('foodId', args.foodId),
+        )
+        .collect()
+    ).filter((entry) => entry._id !== args.excludeEntryId)
     return rankLoggedAmounts(entries, food.baseUnit)
   },
 })
@@ -217,6 +232,8 @@ async function recomputeFromSource(
   entry: Doc<'consumptionEntries'>,
   quantity: number,
   viewerGroupIds: Id<'groups'>[],
+  /** The unit the new quantity is in, when the edit changed it. */
+  unit: Doc<'consumptionEntries'>['quantityUnit'] = entry.quantityUnit,
 ): Promise<NutritionFacts | null> {
   if (entry.recipeId) {
     const recipe = await ctx.db.get(entry.recipeId)
@@ -231,11 +248,7 @@ async function recomputeFromSource(
     // schema's quantityUnit field is the full 4-member union — narrow to
     // the 3 units computeFoodEntryNutrition actually accepts.
     return food
-      ? computeFoodEntryNutrition(
-          food,
-          quantity,
-          entry.quantityUnit as 'g' | 'ml' | 'piece',
-        )
+      ? computeFoodEntryNutrition(food, quantity, unit as 'g' | 'ml' | 'piece')
       : null
   }
   return null
@@ -247,6 +260,16 @@ export const update = mutation({
     date: v.optional(v.string()),
     meal: v.optional(mealValidator),
     quantity: v.optional(v.number()),
+    /**
+     * The unit the new quantity is in, when the edit changed it.
+     *
+     * A food entry counted in `'piece'` counts the food's own portions, and
+     * the editor's serving picker answers in base units — so re-choosing the
+     * amount of such an entry moves it onto the food's base unit rather than
+     * leaving a number whose meaning has silently changed (#102 review).
+     * Omitted by every caller that is only changing how much.
+     */
+    quantityUnit: v.optional(quantityUnitValidator),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
@@ -257,23 +280,40 @@ export const update = mutation({
 
     let nutrition = entry.nutrition
     let quantity = entry.quantity
-    if (args.quantity !== undefined && args.quantity !== entry.quantity) {
-      if (args.quantity <= 0) throw new Error('Quantity must be positive')
-      quantity = args.quantity
+    const unit = args.quantityUnit ?? entry.quantityUnit
+    // The unit is as much a part of "how much" as the number is: 2 pieces and
+    // 2 g are different amounts, so a changed unit has to recompute even when
+    // the number beside it did not move.
+    if (
+      (args.quantity !== undefined && args.quantity !== entry.quantity) ||
+      unit !== entry.quantityUnit
+    ) {
+      quantity = args.quantity ?? entry.quantity
+      if (quantity <= 0) throw new Error('Quantity must be positive')
       const viewerGroupIds = await getMyGroupIds(ctx, user._id)
       const recomputed = await recomputeFromSource(
         ctx,
         entry,
         quantity,
         viewerGroupIds,
+        unit,
       )
-      nutrition = recomputed ?? scaleFacts(entry.nutrition, quantity / entry.quantity)
+      // The fallback scales the old snapshot, which only means anything while
+      // the unit is the one those figures were taken in. A unit change with
+      // no source to read leaves the figures alone rather than scaling them
+      // by a ratio between two different things.
+      nutrition =
+        recomputed ??
+        (unit === entry.quantityUnit
+          ? scaleFacts(entry.nutrition, quantity / entry.quantity)
+          : entry.nutrition)
     }
 
     await ctx.db.patch(args.id, {
       ...(args.date !== undefined ? { date: args.date } : {}),
       ...(args.meal !== undefined ? { meal: args.meal } : {}),
       quantity,
+      quantityUnit: unit,
       nutrition,
     })
   },
