@@ -51,6 +51,12 @@ export const diary = {
   entry: {
     viewRecipe: 'View recipe',
     viewFood: 'View food',
+    /**
+     * The badge on a row a Combo logged. The badge itself shows the Combo's
+     * name — content, never translated — so this is the sentence that says
+     * what the name means, for a tooltip and for a screen reader.
+     */
+    fromCombo: 'Logged by the combo “{name}”',
     quantity: 'Qty',
     meal: 'Meal',
     date: 'Date',

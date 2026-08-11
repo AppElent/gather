@@ -42,6 +42,7 @@ export const diary = {
   entry: {
     viewRecipe: 'Recept bekijken',
     viewFood: 'Voedingsmiddel bekijken',
+    fromCombo: 'Genoteerd door de combinatie “{name}”',
     quantity: 'Aantal',
     meal: 'Maaltijd',
     date: 'Datum',

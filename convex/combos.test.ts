@@ -293,6 +293,78 @@ describe('saving a selection replaces exactly what was chosen', () => {
     )
   })
 
+  test('the replacements say which Combo put them there', async () => {
+    const { t } = await loggedBreakfast()
+    const [bread, coffee] = await entryIdsFor(t, 'breakfast')
+
+    const comboId = await t
+      .withIdentity(asAlice)
+      .mutation(api.combos.saveFromMeal, {
+        date: DAY,
+        meal: 'breakfast',
+        name: 'Bread and coffee',
+        entryIds: [bread, coffee],
+      })
+
+    const after = await t
+      .withIdentity(asAlice)
+      .query(api.consumption.listForDay, { date: DAY })
+    const stamped = after.filter((entry) => entry.comboId === comboId)
+    // The two that were replaced, and only those: the granola nobody ticked
+    // was not logged by a Combo and must not claim it was.
+    expect(stamped).toHaveLength(2)
+    expect(stamped.every((e) => e.comboLabel === 'Bread and coffee')).toBe(true)
+    expect(
+      after.filter((entry) => entry.comboId === undefined),
+    ).toHaveLength(1)
+  })
+
+  test('renaming the Combo afterwards does not rewrite the day it was logged on', async () => {
+    const { t } = await loggedBreakfast()
+    const before = await entryIdsFor(t, 'breakfast')
+    const comboId = await t
+      .withIdentity(asAlice)
+      .mutation(api.combos.saveFromMeal, {
+        date: DAY,
+        meal: 'breakfast',
+        name: 'Usual breakfast',
+        entryIds: before,
+      })
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.combos.rename, { id: comboId, name: 'Weekday breakfast' })
+
+    // An entry snapshots what it references (ADR-0003). What happened that
+    // morning was "Usual breakfast", whatever the Combo is called now.
+    const after = await t
+      .withIdentity(asAlice)
+      .query(api.consumption.listForDay, { date: DAY })
+    expect(after.every((e) => e.comboLabel === 'Usual breakfast')).toBe(true)
+  })
+
+  test('deleting the Combo leaves the entries it wrote saying so', async () => {
+    const { t } = await loggedBreakfast()
+    const before = await entryIdsFor(t, 'breakfast')
+    const comboId = await t
+      .withIdentity(asAlice)
+      .mutation(api.combos.saveFromMeal, {
+        date: DAY,
+        meal: 'breakfast',
+        name: 'Usual breakfast',
+        entryIds: before,
+      })
+
+    await t.withIdentity(asAlice).mutation(api.combos.remove, { id: comboId })
+
+    // Provenance is allowed to dangle; the record of what happened is not.
+    const after = await t
+      .withIdentity(asAlice)
+      .query(api.consumption.listForDay, { date: DAY })
+    expect(after).not.toHaveLength(0)
+    expect(after.every((e) => e.comboLabel === 'Usual breakfast')).toBe(true)
+  })
+
   test('entries nobody ticked are left exactly as they were', async () => {
     const { t } = await loggedBreakfast()
     const [bread, granola, coffee] = await entryIdsFor(t, 'breakfast')
@@ -550,6 +622,54 @@ describe('logging a Combo', () => {
         .withIdentity(asAlice)
         .query(api.consumption.listForDay, { date: '2026-08-01' }),
     ).toEqual([])
+  })
+
+  test('stamps the entries with the Combo that wrote them', async () => {
+    const { t } = await saveBreakfast()
+    const [combo] = await t.withIdentity(asAlice).query(api.combos.list, {})
+
+    await t.withIdentity(asAlice).mutation(api.consumption.createMany, {
+      date: '2026-08-01',
+      meal: 'breakfast',
+      entries: combo.components.map((component) => ({
+        foodId: component.foodId as Id<'foods'> | undefined,
+        recipeId: component.recipeId as Id<'recipes'> | undefined,
+        label: component.label,
+        quantity: component.quantity,
+        quantityUnit: component.quantityUnit,
+        nutrition: { calories: 100 },
+      })),
+      comboId: combo._id,
+      comboLabel: combo.name,
+    })
+
+    // Logging one and saving one both leave the same mark: the diary says a
+    // Combo put these here, whichever way it happened.
+    const entries = await t
+      .withIdentity(asAlice)
+      .query(api.consumption.listForDay, { date: '2026-08-01' })
+    expect(entries).toHaveLength(3)
+    expect(entries.every((e) => e.comboId === combo._id)).toBe(true)
+    expect(entries.every((e) => e.comboLabel === combo.name)).toBe(true)
+  })
+
+  test('an entry logged one at a time claims no Combo', async () => {
+    const { t } = await saveBreakfast()
+
+    await t.withIdentity(asAlice).mutation(api.consumption.create, {
+      date: '2026-08-01',
+      meal: 'lunch',
+      label: 'An apple',
+      quantity: 1,
+      quantityUnit: 'piece',
+      nutrition: { calories: 52 },
+    })
+
+    const [entry] = await t
+      .withIdentity(asAlice)
+      .query(api.consumption.listForDay, { date: '2026-08-01' })
+    expect(entry.comboId).toBeUndefined()
+    expect(entry.comboLabel).toBeUndefined()
   })
 
   test('leaves the stored Combo alone however much today’s logging changed', async () => {

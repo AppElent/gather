@@ -1,10 +1,11 @@
 # A Combo is a Personal shortcut, and not a kind of Recipe
 
 Status: accepted (2026-08-06); amended in place (2026-08-10) by #99, which makes
-saving take a **selection** of a meal's entries and put the Combo in their
-place. Everything below reads as written except the section on how a Combo is
-created, which was headed "Created by saving, never by authoring" and captured
-a whole slot without disturbing it.
+saving take a **selection** of a meal's entries, put the Combo in their place,
+and leave the entries it writes saying which Combo wrote them. Everything below
+reads as written except the section on how a Combo is created — which was
+headed "Created by saving, never by authoring" and captured a whole slot
+without disturbing it — and "What a Combo leaves behind", which is new.
 
 A **Combo** is a named, reusable set of things logged together — the same lunch,
 again. It is **Personal** in the sense of
@@ -86,6 +87,36 @@ land. A component that could not be logged back, a Recipe that has gone out of
 reach, refuses the save outright rather than quietly costing somebody a diary
 entry. That is the one place this differs from logging a Combo, which skips
 such a component and logs the rest: there, nothing is being taken away.
+
+## What a Combo leaves behind
+
+An entry a Combo wrote carries `comboId` and `comboLabel`, and the diary badges
+the row with that name.
+
+This exists because the expansion is *indistinguishable* from what it replaced.
+The same foods, the same labels, the same quantities — so a save that did
+exactly what it promised left the meal looking untouched, and the first person
+to try it reasonably reported that nothing had happened. A shortcut you cannot
+tell has been applied is a shortcut nobody trusts.
+
+The stamp is provenance and follows the diary's rules, not the Combo's. The
+name is **snapshotted** beside the id exactly as the entry already snapshots a
+food's `label` beside its `foodId` (ADR-0003): renaming a Combo does not rewrite
+last Tuesday, deleting one does not blank what it left behind, and the id is
+free to dangle. This is the opposite of how a Combo's own components behave —
+they hold references and read current figures — and it is the same reason as
+ever. An entry is a record of what happened; a Combo is a shortcut for what
+will.
+
+Both ways of logging one leave the same mark: saving a selection, and logging a
+saved Combo from the add sheet. An adjusted logging is still that Combo's
+doing, so it is stamped too. An entry logged one thing at a time claims no
+Combo at all.
+
+Rejected: **grouping the rows under a heading**, which would have to decide
+whether logging the same Combo twice in a meal is one group or two, and answer
+it differently depending on how you squint. A badge per row needs no such
+answer, and every row stays individually editable.
 
 ## Logging one never edits it
 

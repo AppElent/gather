@@ -204,6 +204,17 @@ export default defineSchema({
     // (#94). An entry that does reference a food reads the food's own icon
     // instead, so this stays absent there. Content, not a display string.
     icon: v.optional(v.string()),
+    // Which Combo wrote this entry, and what that Combo was called when it
+    // did (#99). Absent on everything logged one thing at a time.
+    //
+    // Both, and for the reason the entry already keeps a `label` beside its
+    // `foodId`: a Personal record snapshots what it references, and its
+    // provenance is allowed to dangle (ADR-0003). The name is therefore the
+    // name at the time — renaming a Combo does not rewrite last Tuesday, and
+    // deleting one does not blank what it left behind. The id is what makes
+    // two Combos that happen to share a name still two Combos.
+    comboId: v.optional(v.id('combos')),
+    comboLabel: v.optional(v.string()),
   })
     .index('by_user_date', ['userId', 'date'])
     // "Which amounts of this food have I logged before?" — read to offer them

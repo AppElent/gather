@@ -254,3 +254,35 @@ test('an invalid quantity does not call onUpdate', () => {
   fireEvent.click(screen.getByText('Save'))
   expect(onUpdate).not.toHaveBeenCalled()
 })
+
+/**
+ * A Combo expands to the entries it was made from, so saving one changes the
+ * rows underneath without changing how they read. The badge is the only thing
+ * that says it happened (#99).
+ */
+test('a row a Combo logged is badged with its name', () => {
+  renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={{ ...entry, comboLabel: 'Usual breakfast' }}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+  expect(screen.getByText('Usual breakfast')).toBeDefined()
+  expect(
+    screen.getByTitle('Logged by the combo “Usual breakfast”'),
+  ).toBeDefined()
+})
+
+test('a row logged one thing at a time carries no badge', () => {
+  renderWithI18n(
+    <ConsumptionEntryRow
+      nav={nav}
+      entry={entry}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  )
+  expect(screen.queryByTitle(/Logged by the combo/)).toBeNull()
+})

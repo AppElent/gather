@@ -29,6 +29,13 @@ export interface ConsumptionEntryData {
   sourceIcon?: string
   /** The source type survives when its provenance link is no longer visible. */
   thumbnailKind?: ThumbnailKind
+  /**
+   * The Combo this row was logged by, named as it was at the time (#99).
+   *
+   * A snapshot, not a lookup: renaming the Combo does not rewrite the day,
+   * and deleting it does not blank what it left behind.
+   */
+  comboLabel?: string
 }
 
 interface Props {
@@ -88,6 +95,17 @@ export function ConsumptionEntryRow({
           </span>
           <div className="min-w-0">
             <span className="font-medium">{entry.label}</span>
+            {/* Where this row came from, when a Combo put it here (#99). The
+                expansion is the entries it replaced, so without this the
+                saving that just happened leaves no trace anybody can see. */}
+            {entry.comboLabel && (
+              <span
+                title={fmt(diary.entry.fromCombo, { name: entry.comboLabel })}
+                className="ml-2 rounded-full border border-[var(--app-border)] px-2 py-0.5 align-middle text-[11px] opacity-70"
+              >
+                {entry.comboLabel}
+              </span>
+            )}
             <span className="ml-2 opacity-60">
               {entry.quantity} {units[entry.quantityUnit]}
               {entry.nutrition.calories !== undefined &&

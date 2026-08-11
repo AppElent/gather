@@ -244,6 +244,11 @@ export const saveFromMeal = mutation({
         quantityUnit: entry.quantityUnit,
         nutrition: entry.nutrition,
         icon: entry.icon,
+        // What makes the replacement visible. Without this the expansion is
+        // the entries it replaced, down to the label and the quantity, and
+        // saving a Combo looks like it did nothing at all.
+        comboId,
+        comboLabel: name,
       })
     }
     return comboId
