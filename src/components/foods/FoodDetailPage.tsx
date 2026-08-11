@@ -4,7 +4,9 @@ import { Pencil, RefreshCw } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, useMessages } from '../../lib/i18n'
+import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { useConfirmAction } from '../app/ConfirmAction'
+import { FoodThumbnail } from '../nutrition/FoodThumbnail'
 import { NutritionPanel } from '../recipes/NutritionPanel'
 import type { FoodNav } from './foodNav'
 
@@ -21,19 +23,39 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
   const messages = useMessages()
   const { detail } = messages.foods
 
+  // Foods → this food. The name is only known once the row arrives, so while
+  // it is loading — and when it turns out not to exist — the trail is the
+  // collection alone, which is still the way out of here.
+  const trail: Crumb[] = [
+    { label: messages.foods.list.title, link: nav.list },
+    ...(food ? [{ label: food.name }] : []),
+  ]
+
   if (food === undefined)
     return (
-      <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+      <div className="mx-auto max-w-2xl">
+        <Breadcrumbs trail={trail} />
+        <p className="text-sm opacity-60">{messages.common.errors.loading}</p>
+      </div>
     )
   if (food === null)
-    return <p className="text-sm opacity-60">{detail.notFound}</p>
+    return (
+      <div className="mx-auto max-w-2xl">
+        <Breadcrumbs trail={trail} />
+        <p className="text-sm opacity-60">{detail.notFound}</p>
+      </div>
+    )
 
   return (
     <article className="mx-auto max-w-2xl">
+      <Breadcrumbs trail={trail} />
       <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">{food.name}</h1>
-          {food.brand && <p className="text-sm opacity-60">{food.brand}</p>}
+        <div className="flex items-center gap-3">
+          <FoodThumbnail src={food.imageUrl} icon={food.icon} />
+          <div>
+            <h1 className="text-2xl font-semibold">{food.name}</h1>
+            {food.brand && <p className="text-sm opacity-60">{food.brand}</p>}
+          </div>
         </div>
         {/*
           Catalog entries are owned by nobody and read-only (ADR 0004) — the

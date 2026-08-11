@@ -3,6 +3,7 @@ import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import type { ComboComponent } from './lib/combos'
+import { comboEntries } from './lib/combos'
 import { mealValidator, quantityUnitValidator } from './lib/consumption'
 import { isVisibleToGroups } from './lib/groupAccess'
 import { nutritionValidator } from './lib/nutrition'
@@ -122,22 +123,52 @@ const componentFields = {
 }
 
 /**
- * Make a Combo out of a meal slot you have already filled in.
+ * Make a Combo out of entries you have already logged, and put the Combo in
+ * their place.
  *
  * This is the only way one is created: the curation is a by-product of
  * logging, not a second library to maintain (ADR-0012). What it captures is
- * every entry in that slot, of all three kinds — a food, a Recipe, or a
- * one-off with figures of its own — so nothing you logged is silently
- * dropped.
+ * the entries you ticked, of all three kinds — a food, a Recipe, or a one-off
+ * with figures of its own — so nothing you chose is silently dropped, and the
+ * entries you did not tick are not touched at all.
+ *
+ * Then it *replaces* them (#99). Saving used to leave the originals behind, so
+ * the shortcut's first use cost a round of deleting and re-logging what you
+ * had just curated. The replacement is the Combo's own expansion — the same
+ * pure function the card renders from, so what you get is exactly what logging
+ * that Combo tomorrow will get you.
+ *
+ * Creating, deleting and re-logging happen in this one mutation because a
+ * Convex mutation is a transaction: anything thrown below rolls the whole lot
+ * back. There is no order of client-side calls that could promise the same,
+ * which is why there is no order of client-side calls.
  */
 export const saveFromMeal = mutation({
-  args: { date: v.string(), meal: mealValidator, name: v.string() },
+  args: {
+    date: v.string(),
+    meal: mealValidator,
+    name: v.string(),
+    /** Which of that meal's entries go in. Empty is not a Combo. */
+    entryIds: v.array(v.id('consumptionEntries')),
+  },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx)
     if (!user) throw new ConvexError('Not authenticated')
     const name = args.name.trim()
     if (!name) throw new ConvexError('A combo needs a name.')
 
+    const chosen = new Set<string>(args.entryIds)
+    if (chosen.size === 0) {
+      // A key, not a sentence. This refusal is shown to somebody, and the
+      // form that shows it is the only thing that knows their language
+      // (ADR-0011) — a message built here would reach a Dutch reader in
+      // English.
+      throw new ConvexError('comboNothingSelected')
+    }
+
+    // Read the meal and keep what was ticked, rather than reading the ticked
+    // ids one by one: the Combo is saved in the order the meal is in, not in
+    // whatever order the ticks arrived.
     const entries = (
       await ctx.db
         .query('consumptionEntries')
@@ -145,9 +176,12 @@ export const saveFromMeal = mutation({
           q.eq('userId', user._id).eq('date', args.date),
         )
         .collect()
-    ).filter((entry) => entry.meal === args.meal)
-    if (entries.length === 0) {
-      throw new ConvexError('There is nothing in this meal to save.')
+    ).filter((entry) => entry.meal === args.meal && chosen.has(entry._id))
+    if (entries.length !== chosen.size) {
+      // One answer for an entry that does not exist, one somebody else wrote,
+      // and one sitting in another meal — how the refusal reads may not be
+      // used to tell them apart (ADR-0009).
+      throw new ConvexError('Entry not found')
     }
 
     const existing = await myCombos(ctx, user._id)
@@ -172,6 +206,49 @@ export const saveFromMeal = mutation({
         // changing it there changes every future log. A one-off's has nowhere
         // else to live, and without this a Combo would quietly drop it.
         icon: entry.foodId || entry.recipeId ? undefined : entry.icon,
+      })
+    }
+
+    const items = await ctx.db
+      .query('comboItems')
+      .withIndex('by_combo', (q) => q.eq('comboId', comboId))
+      .collect()
+    const viewerGroupIds = await getMyGroupIds(ctx, user._id)
+    const components = await Promise.all(
+      items.map((item) => resolveComponent(ctx, item, viewerGroupIds)),
+    )
+    const expanded = comboEntries(components)
+    if (expanded.length !== entries.length) {
+      // Logging an existing Combo skips a component that has gone out of reach
+      // and logs the rest — losing one thing does not break the shortcut. Here
+      // the originals are about to be deleted, so a component that cannot come
+      // back would take a diary entry with it. Refuse the save instead; the
+      // transaction takes the half-made Combo with it.
+      // A key rather than a sentence, for the same reason as above: the form
+      // resolves it into the reader's language.
+      throw new ConvexError('comboComponentUnavailable')
+    }
+
+    for (const entry of entries) await ctx.db.delete(entry._id)
+    for (const entry of expanded) {
+      await ctx.db.insert('consumptionEntries', {
+        userId: user._id,
+        date: args.date,
+        meal: args.meal,
+        // Read off the rows just written, so the ids are the ones the schema
+        // already validated on the way in.
+        foodId: entry.foodId as Id<'foods'> | undefined,
+        recipeId: entry.recipeId as Id<'recipes'> | undefined,
+        label: entry.label,
+        quantity: entry.quantity,
+        quantityUnit: entry.quantityUnit,
+        nutrition: entry.nutrition,
+        icon: entry.icon,
+        // What makes the replacement visible. Without this the expansion is
+        // the entries it replaced, down to the label and the quantity, and
+        // saving a Combo looks like it did nothing at all.
+        comboId,
+        comboLabel: name,
       })
     }
     return comboId

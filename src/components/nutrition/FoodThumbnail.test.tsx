@@ -15,40 +15,49 @@ import { FoodThumbnail } from './FoodThumbnail'
 
 const GLYPH = '🍽'
 
+test.each([
+  ['food', '🍽'],
+  ['recipe', '🍲'],
+  ['combo', '🍱'],
+] as const)('%s uses its own generic glyph', (kind, glyph) => {
+  render(<FoodThumbnail kind={kind} />)
+
+  expect(screen.getByText(glyph)).toBeDefined()
+})
+
 test('a photograph wins over an icon', () => {
-  render(
-    <FoodThumbnail
-      src="https://example.test/nutella.jpg"
-      icon="🍫"
-      alt="Nutella"
-    />,
+  const { container } = render(
+    <FoodThumbnail src="https://example.test/nutella.jpg" icon="🍫" />,
   )
 
-  expect(screen.getByAltText('Nutella')).toBeDefined()
+  expect(container.querySelector('img')).toHaveAttribute(
+    'src',
+    'https://example.test/nutella.jpg',
+  )
   expect(screen.queryByText('🍫')).toBeNull()
   expect(screen.queryByText(GLYPH)).toBeNull()
 })
 
 test('a photograph and nothing else is the photograph', () => {
-  render(<FoodThumbnail src="https://example.test/nutella.jpg" alt="Nutella" />)
+  const { container } = render(
+    <FoodThumbnail src="https://example.test/nutella.jpg" />,
+  )
 
-  expect(screen.getByAltText('Nutella')).toBeDefined()
+  expect(container.querySelector('img')).toBeDefined()
   expect(screen.queryByText(GLYPH)).toBeNull()
 })
 
 test('an icon stands in when there is no photograph', () => {
-  render(<FoodThumbnail icon="🍫" alt="Nutella" />)
+  render(<FoodThumbnail icon="🍫" />)
 
   expect(screen.getByText('🍫')).toBeDefined()
-  expect(screen.queryByAltText('Nutella')).toBeNull()
   expect(screen.queryByText(GLYPH)).toBeNull()
 })
 
 test('neither leaves the generic glyph exactly where it was', () => {
-  render(<FoodThumbnail alt="Nutella" />)
+  render(<FoodThumbnail />)
 
   expect(screen.getByText(GLYPH)).toBeDefined()
-  expect(screen.queryByAltText('Nutella')).toBeNull()
 })
 
 /**
@@ -56,7 +65,7 @@ test('neither leaves the generic glyph exactly where it was', () => {
  * `undefined` — the icon has to answer for that the same way.
  */
 test('a food whose picture query came back empty still shows its icon', () => {
-  render(<FoodThumbnail src={null} icon="🥛" alt="Milk" />)
+  render(<FoodThumbnail src={null} icon="🥛" />)
 
   expect(screen.getByText('🥛')).toBeDefined()
 })

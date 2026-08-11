@@ -480,6 +480,37 @@ describe('the amounts you have logged for a food', () => {
   })
 })
 
+describe('a food entry’s tile', () => {
+  test('reads the food’s current icon for the diary fallback', async () => {
+    const t = testConvex()
+    await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    const foodId = await t.withIdentity(asAlice).mutation(api.foods.create, {
+      name: 'Oatmeal',
+      baseUnit: 'g',
+      nutritionPer100: { calories: 375 },
+      icon: '🥣',
+    })
+    await t.withIdentity(asAlice).mutation(api.consumption.create, {
+      date: DAY,
+      meal: 'breakfast',
+      foodId,
+      label: 'Oatmeal',
+      quantity: 50,
+      quantityUnit: 'g',
+      nutrition: { calories: 188 },
+    })
+
+    const [entry] = await t
+      .withIdentity(asAlice)
+      .query(api.consumption.listForDay, { date: DAY })
+
+    expect(entry).toMatchObject({
+      sourceIcon: '🥣',
+      thumbnailKind: 'food',
+    })
+  })
+})
+
 /**
  * The emoji on a one-off (#94).
  *
