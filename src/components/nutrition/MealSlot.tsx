@@ -1,11 +1,10 @@
 import { Link } from '@tanstack/react-router'
 import type { MealName } from '../../../convex/lib/consumption'
-import { sumFacts } from '../../../convex/lib/consumption'
 import type { AppLink } from '../../lib/appLink'
 import { fmt, useMessages } from '../../lib/i18n'
 import type { ConsumptionEntryData } from './ConsumptionEntryRow'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
-import { roundKcal } from './kcal'
+import { sumKcal } from './kcal'
 import type { NutritionNav } from './nutritionNav'
 import { SaveAsCombo } from './SaveAsCombo'
 
@@ -35,11 +34,11 @@ export function MealSlot({
 }: Props) {
   const { slot } = useMessages().nutrition.diary
 
-  // The same summation the day's totals use, over the entries this slot is
-  // already rendering — so a meal's kcal and the day's kcal cannot drift, and
-  // a meal whose entries carry no calories has no `calories` key at all rather
-  // than a fabricated zero.
-  const subtotal = sumFacts(entries.map((entry) => entry.nutrition)).calories
+  // Exactly the rows below, added up the way the day's total is: each entry
+  // rounded, then summed, so this figure is the sum of the figures underneath
+  // it and the day's is the sum of these. A meal whose entries carry no
+  // calories gets undefined rather than a fabricated zero.
+  const subtotal = sumKcal(entries.map((entry) => entry.nutrition))
 
   return (
     <section className="mb-4 rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
@@ -48,7 +47,7 @@ export function MealSlot({
           {label}
           {subtotal !== undefined && (
             <span className="ml-2 text-sm font-normal opacity-60">
-              {fmt(slot.subtotal, { calories: roundKcal(subtotal) })}
+              {fmt(slot.subtotal, { calories: subtotal })}
             </span>
           )}
         </h2>
