@@ -130,6 +130,15 @@ export const diary = {
     selectHint:
       'Tick what goes in the combo. Those entries are replaced by it; the rest of the meal stays.',
     selectNothing: 'Tick at least one entry.',
+    /**
+     * The refusals `combos.saveFromMeal` answers with. It throws a key and
+     * this resolves it: the server cannot know which language it is being
+     * read in, so a sentence built there reaches a Dutch reader in English
+     * (ADR-0011).
+     */
+    comboNothingSelected: 'Tick at least one entry.',
+    comboComponentUnavailable:
+      'Something here can no longer be logged, so nothing was changed.',
     saved: '“{name}” saved',
     update: 'Update {name}',
     updateFailed: 'Could not update that combo',

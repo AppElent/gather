@@ -102,6 +102,9 @@ export const diary = {
     selectHint:
       'Vink aan wat in de combinatie komt. Die items worden erdoor vervangen; de rest van de maaltijd blijft staan.',
     selectNothing: 'Vink minstens één item aan.',
+    comboNothingSelected: 'Vink minstens één item aan.',
+    comboComponentUnavailable:
+      'Iets hierin kan niet meer genoteerd worden, dus er is niets gewijzigd.',
     saved: '“{name}” opgeslagen',
     update: '{name} bijwerken',
     updateFailed: 'Kon die combinatie niet bijwerken',

@@ -159,7 +159,11 @@ export const saveFromMeal = mutation({
 
     const chosen = new Set<string>(args.entryIds)
     if (chosen.size === 0) {
-      throw new ConvexError('Choose at least one entry to save.')
+      // A key, not a sentence. This refusal is shown to somebody, and the
+      // form that shows it is the only thing that knows their language
+      // (ADR-0011) — a message built here would reach a Dutch reader in
+      // English.
+      throw new ConvexError('comboNothingSelected')
     }
 
     // Read the meal and keep what was ticked, rather than reading the ticked
@@ -220,7 +224,9 @@ export const saveFromMeal = mutation({
       // the originals are about to be deleted, so a component that cannot come
       // back would take a diary entry with it. Refuse the save instead; the
       // transaction takes the half-made Combo with it.
-      throw new ConvexError('Something in this meal can no longer be logged.')
+      // A key rather than a sentence, for the same reason as above: the form
+      // resolves it into the reader's language.
+      throw new ConvexError('comboComponentUnavailable')
     }
 
     for (const entry of entries) await ctx.db.delete(entry._id)

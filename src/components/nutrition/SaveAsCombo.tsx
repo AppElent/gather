@@ -1,6 +1,30 @@
 import { useState } from 'react'
 import { useMessages } from '../../lib/i18n'
 
+/** The refusal keys `combos.saveFromMeal` throws, and nothing else. */
+const REFUSAL_KEYS = [
+  'comboNothingSelected',
+  'comboComponentUnavailable',
+] as const
+
+type Combos = ReturnType<typeof useMessages>['nutrition']['diary']['combos']
+
+/**
+ * What to show when the save is refused.
+ *
+ * The mutation throws a key for the refusals it means a person to read, and
+ * this resolves it — the server cannot know which language it is being read
+ * in, so anything it phrased itself would reach a Dutch reader in English
+ * (ADR-0011). Anything else that fell out of the call is not a sentence meant
+ * for anybody, so it gets the general one rather than being put on screen raw.
+ */
+export function refusalText(error: unknown, combos: Combos): string {
+  const key = error instanceof Error ? error.message : ''
+  return REFUSAL_KEYS.includes(key as (typeof REFUSAL_KEYS)[number])
+    ? combos[key as (typeof REFUSAL_KEYS)[number]]
+    : combos.saveFailed
+}
+
 interface Props {
   /** How many entries are ticked right now. Nothing ticked is not a Combo. */
   selectedCount: number
@@ -71,7 +95,7 @@ export function SaveAsCombo({
           setName('')
           stop()
         } catch (err) {
-          setError(err instanceof Error ? err.message : combos.saveFailed)
+          setError(refusalText(err, combos))
         } finally {
           setSaving(false)
         }

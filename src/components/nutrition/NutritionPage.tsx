@@ -130,7 +130,12 @@ export function NutritionPage({
 
       {MEAL_NAMES.map((meal) => (
         <MealSlot
-          key={meal}
+          // The day is part of which slot this is, not just what it shows.
+          // A slot holds the ticks for a Combo being saved (#99), and those
+          // name rows of *this* day; keyed by meal alone, stepping to
+          // yesterday would keep them, leaving a form open over rows it does
+          // not describe and a Save that submits an empty selection.
+          key={`${date}-${meal}`}
           label={meals[meal]}
           entries={(entries ?? []).filter((e) => e.meal === meal)}
           nav={nav}

@@ -200,7 +200,9 @@ describe('saving entries from a meal as a Combo', () => {
         name: 'Nothing',
         entryIds: [],
       }),
-    ).rejects.toThrow()
+      // The key, not a sentence: the form resolves it into the reader's
+      // language, so changing it here without the message tree must fail.
+    ).rejects.toThrow('comboNothingSelected')
     expect(await t.withIdentity(asAlice).query(api.combos.list, {})).toEqual([])
   })
 
@@ -397,7 +399,7 @@ describe('saving a selection replaces exactly what was chosen', () => {
         name: 'Usual breakfast',
         entryIds: breakfast,
       }),
-    ).rejects.toThrow()
+    ).rejects.toThrow('comboComponentUnavailable')
 
     expect(await t.withIdentity(asAlice).query(api.combos.list, {})).toEqual([])
     const orphans = await t.run(async (ctx) =>
