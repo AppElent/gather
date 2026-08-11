@@ -1,5 +1,6 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
+import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { fmt, useMessages } from '../../lib/i18n'
@@ -59,9 +60,11 @@ export function FoodsPage({ nav }: { nav: FoodNav }) {
 
       <Link
         {...nav.create()}
-        className="mb-4 inline-block rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-1.5 text-sm no-underline"
+        aria-label={list.addManually}
+        className="mb-4 inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] no-underline lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
       >
-        {list.addManually}
+        <Plus className="h-4 w-4" aria-hidden="true" />
+        <span className="hidden lg:inline">{list.addManually}</span>
       </Link>
 
       {results === undefined && debouncedTerm.trim() && (

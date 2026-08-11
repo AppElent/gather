@@ -44,10 +44,11 @@ export function RecipesPage({
           <ViewModeToggle mode={viewMode} onChange={setViewMode} />
           <Link
             {...nav.create}
-            className="inline-flex min-h-9 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold text-[var(--app-fg)] no-underline"
+            aria-label={list.add}
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-fg)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
-            {list.add}
+            <span className="hidden lg:inline">{list.add}</span>
           </Link>
         </div>
       </div>
@@ -70,9 +71,11 @@ export function RecipesPage({
             </p>
             <Link
               {...nav.create}
-              className="mx-auto inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold no-underline"
+              aria-label={list.emptyAction}
+              className="mx-auto inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
             >
-              {list.emptyAction}
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden lg:inline">{list.emptyAction}</span>
             </Link>
           </div>
         </SurfaceCard>
