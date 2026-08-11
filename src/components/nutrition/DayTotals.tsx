@@ -58,6 +58,10 @@ export function DayTotals({ totals, targets, heading }: Props) {
       </div>
       <dl className="grid gap-2">
         {present.map((key) => {
+          // One figure, shown and reckoned with. Calories arrive already
+          // whole (`sumKcal`), so there is no rounded-for-display value here
+          // to disagree with the target beside it — 1999.6 can no longer read
+          // "2000 / 2000 · 0.4 left".
           const value = totals[key] ?? 0
           const target = targets?.[key]
           const left =

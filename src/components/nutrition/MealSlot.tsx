@@ -2,9 +2,10 @@ import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { MealName } from '../../../convex/lib/consumption'
 import type { AppLink } from '../../lib/appLink'
-import { useMessages } from '../../lib/i18n'
+import { fmt, useMessages } from '../../lib/i18n'
 import type { ConsumptionEntryData } from './ConsumptionEntryRow'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
+import { sumKcal } from './kcal'
 import type { NutritionNav } from './nutritionNav'
 import { SaveAsCombo } from './SaveAsCombo'
 
@@ -40,10 +41,23 @@ export function MealSlot({
   // than the form below it, because the checkboxes live on the rows.
   const [selectedIds, setSelectedIds] = useState<string[] | null>(null)
 
+  // Exactly the rows below, added up the way the day's total is: each entry
+  // rounded, then summed, so this figure is the sum of the figures underneath
+  // it and the day's is the sum of these. A meal whose entries carry no
+  // calories gets undefined rather than a fabricated zero.
+  const subtotal = sumKcal(entries.map((entry) => entry.nutrition))
+
   return (
     <section className="mb-4 rounded-[var(--app-radius)] border border-[var(--app-border)] p-3">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-medium">{label}</h2>
+        <h2 className="font-medium">
+          {label}
+          {subtotal !== undefined && (
+            <span className="ml-2 text-sm font-normal opacity-60">
+              {fmt(slot.subtotal, { calories: subtotal })}
+            </span>
+          )}
+        </h2>
         <Link
           {...addLink}
           className="inline-flex min-h-11 items-center text-sm underline"

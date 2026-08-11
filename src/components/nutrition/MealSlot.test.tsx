@@ -97,6 +97,107 @@ test('renders entries, and + Add goes to the add sheet for this day and meal', (
   )
 })
 
+test('shows a kcal subtotal for the meal, summing the entries on show', () => {
+  renderWithI18n(
+    <MealSlot
+      nav={nav}
+      label="Breakfast"
+      entries={[
+        ...entries,
+        {
+          _id: 'e2',
+          label: 'Banana',
+          quantity: 1,
+          quantityUnit: 'piece' as const,
+          meal: 'breakfast' as const,
+          date: '2026-07-18',
+          // No calories on this one: a partial snapshot still contributes what
+          // it has, and the entries that do have kcal still add up.
+          nutrition: { protein: 1.3 },
+        },
+        {
+          _id: 'e3',
+          label: 'Yoghurt',
+          quantity: 150,
+          quantityUnit: 'g' as const,
+          meal: 'breakfast' as const,
+          date: '2026-07-18',
+          nutrition: { calories: 97.5 },
+        },
+      ]}
+      addLink={addLink}
+      onUpdateEntry={vi.fn()}
+      onDeleteEntry={vi.fn()}
+    />,
+  )
+  // 300 + 97.5 = 397.5, shown as a whole number: a fraction of a kcal is noise
+  // nobody acts on, and the stored figure keeps its decimals either way.
+  expect(screen.getByText('398 kcal')).toBeDefined()
+})
+
+test('rounds the subtotal to a whole number rather than showing decimals', () => {
+  renderWithI18n(
+    <MealSlot
+      nav={nav}
+      label="Breakfast"
+      entries={[
+        {
+          _id: 'e1',
+          label: 'Muesli',
+          quantity: 60,
+          quantityUnit: 'g' as const,
+          meal: 'breakfast' as const,
+          date: '2026-07-18',
+          nutrition: { calories: 221.34 },
+        },
+      ]}
+      addLink={addLink}
+      onUpdateEntry={vi.fn()}
+      onDeleteEntry={vi.fn()}
+    />,
+  )
+  expect(screen.getByText('221 kcal')).toBeDefined()
+  expect(screen.queryByText('221.34 kcal')).toBeNull()
+})
+
+test('shows no subtotal when nothing in the meal has calories', () => {
+  renderWithI18n(
+    <MealSlot
+      nav={nav}
+      label="Breakfast"
+      entries={[
+        {
+          _id: 'e2',
+          label: 'Banana',
+          quantity: 1,
+          quantityUnit: 'piece' as const,
+          meal: 'breakfast' as const,
+          date: '2026-07-18',
+          nutrition: { protein: 1.3 },
+        },
+      ]}
+      addLink={addLink}
+      onUpdateEntry={vi.fn()}
+      onDeleteEntry={vi.fn()}
+    />,
+  )
+  expect(screen.queryByText(/kcal/)).toBeNull()
+})
+
+test('shows no subtotal for an empty meal', () => {
+  renderWithI18n(
+    <MealSlot
+      nav={nav}
+      label="Breakfast"
+      entries={[]}
+      addLink={addLink}
+      onUpdateEntry={vi.fn()}
+      onDeleteEntry={vi.fn()}
+    />,
+  )
+  expect(screen.queryByText(/kcal/)).toBeNull()
+})
+
 /**
  * Saving a Combo starts by choosing (#99). The rows only grow checkboxes once
  * somebody has asked to save one — the diary is for reading the rest of the

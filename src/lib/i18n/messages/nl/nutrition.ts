@@ -37,6 +37,7 @@ export const diary = {
   slot: {
     add: '+ Toevoegen',
     empty: 'Nog niets genoteerd.',
+    subtotal: '{calories} kcal',
   },
 
   entry: {

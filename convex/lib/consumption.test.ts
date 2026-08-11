@@ -27,6 +27,29 @@ test('sumFacts returns an empty object for an empty list', () => {
   expect(sumFacts([])).toEqual({})
 })
 
+test('sumFacts leaves out a nutrient no entry has, rather than reporting zero', () => {
+  expect(sumFacts([{ protein: 1.3 }, { protein: 2 }]).calories).toBeUndefined()
+})
+
+test('summing the meals gives the same figure as summing the day (#98)', () => {
+  // A meal subtotal and the day's total are the same function over nested
+  // slices of the same list, which is what stops the two from ever drifting.
+  const breakfast = [{ calories: 300 }, { protein: 1.3 }, { calories: 97.5 }]
+  const lunch = [{ calories: 512.25 }]
+  const dinner = [{ calories: 640.8 }, { calories: 55.15 }]
+  const snack = [{ protein: 4 }]
+  const perMeal = [breakfast, lunch, dinner, snack].map(sumFacts)
+  expect(sumFacts(perMeal).calories).toBe(
+    sumFacts([...breakfast, ...lunch, ...dinner, ...snack]).calories,
+  )
+  expect(perMeal.map((m) => m.calories)).toEqual([
+    397.5,
+    512.25,
+    695.95,
+    undefined,
+  ])
+})
+
 test('computeRecipeEntryNutrition scales per-serving nutrition by quantity in servings', () => {
   expect(computeRecipeEntryNutrition({ calories: 400, protein: 20 }, 2)).toEqual({
     calories: 800,
