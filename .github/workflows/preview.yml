@@ -9,8 +9,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  changes:
     if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - name: Check whether the web app changed
+        id: filter
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              per_page: 100,
+            });
+            const web = files.some(({ filename }) =>
+              filename !== 'pnpm-lock.yaml' && !filename.startsWith('apps/mobile/'),
+            );
+            core.setOutput('web', web);
+
+  deploy:
+    needs: changes
+    if: github.event.action != 'closed' && needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
