@@ -178,9 +178,13 @@ async function recentRecipes(ctx: QueryCtx, groupId: Id<'groups'>) {
  *
  * A task carries no Group of its own — it hangs off a list — so the Group is
  * read on the lists and the tasks follow from them, exactly as `taskAccess`
- * does it. Only local lists have rows here; an external list's items live in
- * Notion or Todoist and were never written by anyone in this app, so there is
- * no attribution for them and nothing to put in the stream.
+ * does it.
+ *
+ * **Local lists only.** An external list has rows here now — it is cached
+ * rather than fetched per render (ADR-0013) — and they are still nothing to put
+ * in the stream: nobody in this Group wrote them, so there is no "who", and the
+ * activity stream is derived from rows that testify to something somebody here
+ * did (ADR-0008). A refresh is not an event in the household.
  */
 async function recentTasks(ctx: QueryCtx, groupId: Id<'groups'>) {
   const lists = await ctx.db
@@ -188,14 +192,16 @@ async function recentTasks(ctx: QueryCtx, groupId: Id<'groups'>) {
     .withIndex('by_group', (q) => q.eq('groupId', groupId))
     .collect()
   const perList = await Promise.all(
-    lists.map(async (list) => ({
-      list,
-      tasks: await ctx.db
-        .query('tasks')
-        .withIndex('by_list', (q) => q.eq('listId', list._id))
-        .order('desc')
-        .take(ACTIVITY_LIMIT),
-    })),
+    lists
+      .filter((list) => list.provider === 'local')
+      .map(async (list) => ({
+        list,
+        tasks: await ctx.db
+          .query('tasks')
+          .withIndex('by_list', (q) => q.eq('listId', list._id))
+          .order('desc')
+          .take(ACTIVITY_LIMIT),
+      })),
   )
   return perList
 }
@@ -243,11 +249,14 @@ export const forGroup = query({
 
     const actorIds: Id<'users'>[] = [
       ...recipes.map((r) => r.createdByUserId),
-      ...taskLists.flatMap(({ tasks }) => tasks.map((t) => t.createdBy)),
+      ...taskLists.flatMap(({ tasks }) =>
+        tasks.flatMap((t) => (t.createdBy ? [t.createdBy] : [])),
+      ),
       ...babies.flatMap(({ events }) => events.map((e) => e.loggedBy)),
     ]
     const names = await displayNames(ctx, actorIds)
-    const nameOf = (id: Id<'users'>) => names.get(id) ?? null
+    const nameOf = (id: Id<'users'> | undefined) =>
+      (id && names.get(id)) ?? null
 
     const candidates: GroupActivityEntry[] = [
       ...recipes.map(

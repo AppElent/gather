@@ -1,6 +1,6 @@
-import { describe, expect, test } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 import { testConvex } from '../test/convexHarness'
-import { api } from './_generated/api'
+import { api, internal } from './_generated/api'
 
 /**
  * Which household's task lists a caller gets, asserted through the real
@@ -108,6 +108,7 @@ async function seed() {
       provider: 'notion',
       accessToken: JANSEN_TOKEN,
       accountLabel: 'Jansen workspace',
+      externalAccountId: 'notion-jansen',
       connectedBy: aliceId,
     })
 
@@ -261,28 +262,47 @@ describe('reaching one list', () => {
     expect(jansen.map((l) => l.name)).toEqual(['Chores'])
   })
 
-  test('a local list loads through the unified action, at its own address only', async () => {
+  test('a local list describes its Backend at its own address only', async () => {
     const { t, jansenList } = await seed()
 
-    const result = await t
-      .withIdentity(alice)
-      .action(api.taskLists.getTasks, {
-        listId: jansenList,
-        groupSlug: JANSEN,
-      })
-    expect(result).toEqual({
-      status: 'ok',
-      tasks: [
-        expect.objectContaining({ title: 'Take the bins out', done: false }),
-      ],
+    const backend = await t.withIdentity(alice).query(api.taskLists.backend, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+    })
+    expect(backend).toMatchObject({
+      provider: 'local',
+      readOnly: false,
+      source: null,
+      sync: null,
+      // A local list is this app, so it can do everything this app can.
+      capabilities: expect.objectContaining({ create: true, delete: true }),
     })
 
     await expect(
-      t.withIdentity(alice).action(api.taskLists.getTasks, {
+      t.withIdentity(alice).query(api.taskLists.backend, {
         listId: jansenList,
         groupSlug: DE_VRIES,
       }),
     ).rejects.toThrow(/List not found/)
+  })
+
+  test('refreshing a local list is a no-op rather than an error', async () => {
+    const { t, jansenList } = await seed()
+
+    // One control in the Module, whatever the Backend — the card does not have
+    // to decide whether Refresh exists before offering it.
+    expect(
+      await t.withIdentity(alice).action(api.taskLists.refresh, {
+        listId: jansenList,
+        groupSlug: JANSEN,
+      }),
+    ).toEqual({ status: 'ok', added: 0, updated: 0, deleted: 0 })
+
+    const tasks = await t.withIdentity(alice).query(api.tasks.listByList, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+    })
+    expect(tasks.map((task) => task.title)).toEqual(['Take the bins out'])
   })
 })
 
@@ -452,7 +472,7 @@ describe('a provider connection', () => {
     expect(jansen.map((c) => c.accountLabel)).toEqual(['Jansen workspace'])
   })
 
-  test('is disconnected at its own address', async () => {
+  test('is disconnected at its own address, and keeps saying which account it was', async () => {
     const { t, jansenConnection } = await seed()
 
     await t.withIdentity(alice).mutation(api.integrations.disconnect, {
@@ -460,11 +480,200 @@ describe('a provider connection', () => {
       groupSlug: JANSEN,
     })
 
+    // The row outlives its token. A linked list has to be able to name the
+    // account it is waiting on, and reconnecting that account has to land
+    // back here rather than on a fresh row the list knows nothing about.
     expect(
       await t
         .withIdentity(alice)
         .query(api.integrations.listConnections, { groupSlug: JANSEN }),
-    ).toEqual([])
+    ).toEqual([
+      expect.objectContaining({
+        accountLabel: 'Jansen workspace',
+        status: 'disconnected',
+      }),
+    ])
+    // The token itself is gone from the row, not merely hidden from readers.
+    expect(
+      await t.run(
+        async (ctx) => (await ctx.db.get(jansenConnection))?.accessToken ?? null,
+      ),
+    ).toBeNull()
+  })
+
+  test('is not usable as a source of truth once disconnected', async () => {
+    const { t, jansenConnection } = await seed()
+
+    await t.withIdentity(alice).mutation(api.integrations.disconnect, {
+      connectionId: jansenConnection,
+      groupSlug: JANSEN,
+    })
+
+    await expect(
+      t.withIdentity(alice).mutation(api.taskLists.create, {
+        name: 'Linked to nothing',
+        provider: 'notion',
+        groupSlug: JANSEN,
+        providerConfig: {
+          connectionId: jansenConnection,
+          sourceId: 'db1',
+          propertyMapping: { title: 'Name', done: 'Done' },
+        },
+      }),
+    ).rejects.toThrow(/disconnected/)
+  })
+})
+
+describe('a Group with more than one account at the same provider', () => {
+  test('keeps both, and reconnecting one of them refills that one', async () => {
+    const { t, jansen, aliceId } = await seed()
+
+    await t.mutation(internal.integrations.storeConnection, {
+      groupId: jansen,
+      provider: 'todoist',
+      accessToken: 'token-shared',
+      accountLabel: 'household@example.com',
+      externalAccountId: 'todoist-1',
+      connectedBy: aliceId,
+    })
+    await t.mutation(internal.integrations.storeConnection, {
+      groupId: jansen,
+      provider: 'todoist',
+      accessToken: 'token-alice',
+      accountLabel: 'alice@example.com',
+      externalAccountId: 'todoist-2',
+      connectedBy: aliceId,
+    })
+
+    const both = await t
+      .withIdentity(alice)
+      .query(api.integrations.listConnections, { groupSlug: JANSEN })
+    expect(
+      both.filter((c) => c.provider === 'todoist').map((c) => c.accountLabel),
+    ).toEqual(['household@example.com', 'alice@example.com'])
+
+    // Re-authorising the shared account is that account again, not a third
+    // connection — the account decides, not the provider.
+    await t.mutation(internal.integrations.storeConnection, {
+      groupId: jansen,
+      provider: 'todoist',
+      accessToken: 'token-shared-rotated',
+      accountLabel: 'household@example.com',
+      externalAccountId: 'todoist-1',
+      connectedBy: aliceId,
+    })
+
+    const after = await t
+      .withIdentity(alice)
+      .query(api.integrations.listConnections, { groupSlug: JANSEN })
+    expect(after.filter((c) => c.provider === 'todoist')).toHaveLength(2)
+  })
+
+  test('reconnecting a disconnected account puts its lists back to work', async () => {
+    const { t, jansen, aliceId } = await seed()
+
+    const connectionId = await t.mutation(
+      internal.integrations.storeConnection,
+      {
+        groupId: jansen,
+        provider: 'todoist',
+        accessToken: 'token-shared',
+        accountLabel: 'household@example.com',
+        externalAccountId: 'todoist-1',
+        connectedBy: aliceId,
+      },
+    )
+    await t.withIdentity(alice).mutation(api.taskLists.create, {
+      name: 'Household',
+      provider: 'todoist',
+      groupSlug: JANSEN,
+      providerConfig: { connectionId, sourceId: 'p1', sourceName: 'Household' },
+    })
+    await t.withIdentity(alice).mutation(api.integrations.disconnect, {
+      connectionId,
+      groupSlug: JANSEN,
+    })
+
+    const whileGone = await t
+      .withIdentity(alice)
+      .query(api.taskLists.list, { groupSlug: JANSEN })
+    expect(whileGone.find((l) => l.name === 'Household')?.source).toMatchObject({
+      connectionStatus: 'disconnected',
+    })
+
+    const reconnected = await t.mutation(
+      internal.integrations.storeConnection,
+      {
+        groupId: jansen,
+        provider: 'todoist',
+        accessToken: 'token-shared-again',
+        accountLabel: 'household@example.com',
+        externalAccountId: 'todoist-1',
+        connectedBy: aliceId,
+      },
+    )
+    // The same row, so the list's own connectionId still points at it.
+    expect(reconnected).toBe(connectionId)
+    const back = await t
+      .withIdentity(alice)
+      .query(api.taskLists.list, { groupSlug: JANSEN })
+    expect(back.find((l) => l.name === 'Household')?.source).toMatchObject({
+      connectionStatus: 'connected',
+    })
+  })
+
+  test('one connection backs several lists, each with its own source', async () => {
+    const { t, jansen, aliceId } = await seed()
+
+    const connectionId = await t.mutation(
+      internal.integrations.storeConnection,
+      {
+        groupId: jansen,
+        provider: 'todoist',
+        accessToken: 'token-shared',
+        accountLabel: 'household@example.com',
+        externalAccountId: 'todoist-1',
+        connectedBy: aliceId,
+      },
+    )
+    for (const [sourceId, sourceName] of [
+      ['p1', 'Groceries'],
+      ['p2', 'Renovation'],
+    ]) {
+      await t.withIdentity(alice).mutation(api.taskLists.create, {
+        name: sourceName,
+        provider: 'todoist',
+        groupSlug: JANSEN,
+        providerConfig: { connectionId, sourceId, sourceName },
+      })
+    }
+
+    const lists = await t
+      .withIdentity(alice)
+      .query(api.taskLists.list, { groupSlug: JANSEN })
+    const linked = lists.filter((l) => l.provider === 'todoist')
+    expect(
+      linked.map((l) => [l.source?.sourceName, l.source?.accountLabel]),
+    ).toEqual([
+      ['Groceries', 'household@example.com'],
+      ['Renovation', 'household@example.com'],
+    ])
+    // Reuse, not duplication: no second OAuth round trip was needed for the
+    // second list.
+    expect(new Set(linked.map((l) => l.source?.connectionId)).size).toBe(1)
+  })
+
+  test('a connection cannot be reached from a Group it is not in', async () => {
+    const { t, jansenConnection } = await seed()
+
+    // Alice is a Member of De Vries too, which is exactly the case a
+    // caller-wide check would let through.
+    await expect(
+      t.withIdentity(alice).action(api.integrations.listSources, {
+        connectionId: jansenConnection,
+        groupSlug: DE_VRIES,
+      }),
+    ).rejects.toThrow(/Connection not found/)
   })
 })
 
@@ -480,7 +689,7 @@ describe('the access token', () => {
         groupSlug: JANSEN,
       }),
       await as.query(api.integrations.listConnections, { groupSlug: JANSEN }),
-      await as.action(api.taskLists.getTasks, {
+      await as.query(api.taskLists.backend, {
         listId: jansenList,
         groupSlug: JANSEN,
       }),
@@ -531,5 +740,974 @@ describe('adding a list from inside a Group', () => {
         groupSlug: JANSEN,
       }),
     ).rejects.toThrow(/Not a member/)
+  })
+})
+
+/**
+ * An external list, from the point of view of somebody reading it.
+ *
+ * The provider owns these tasks and gather holds a cache (ADR-0013), so the
+ * behaviour worth asserting is what a Member can read, when it is refreshed,
+ * and what happens to what they were reading when the provider stops
+ * answering. The Todoist API is a stubbed `fetch`; what it returns is the
+ * provider's answer.
+ */
+describe('a Todoist-backed list', () => {
+  const todoistTask = (id: string, content: string, over = {}) => ({
+    id,
+    content,
+    priority: 1,
+    ...over,
+  })
+
+  /** Jansen, with a Todoist connection and a list linked to one project. */
+  async function seedLinked() {
+    const base = await seed()
+    const connectionId = await base.t.mutation(
+      internal.integrations.storeConnection,
+      {
+        groupId: base.jansen,
+        provider: 'todoist',
+        accessToken: 'todoist-token',
+        accountLabel: 'household@example.com',
+        externalAccountId: 'todoist-1',
+        connectedBy: base.aliceId,
+      },
+    )
+    const listId = await base.t
+      .withIdentity(alice)
+      .mutation(api.taskLists.create, {
+        name: 'Household',
+        provider: 'todoist',
+        groupSlug: JANSEN,
+        providerConfig: {
+          connectionId,
+          sourceId: 'p1',
+          sourceName: 'Household',
+        },
+      })
+    return { ...base, connectionId, listId }
+  }
+
+  /**
+   * Answer the next provider read with these tasks, or with a failure.
+   *
+   * A read is two requests — the open tasks from REST, the finished ones from
+   * the Sync API — because Todoist drops a completed task out of `/tasks`
+   * entirely and a list that fetched only the active ones would make
+   * completing something look exactly like deleting it.
+   */
+  function provider(
+    active: unknown[] | { status: number },
+    completed: unknown[] = [],
+  ) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (!Array.isArray(active)) {
+          return Promise.resolve(new Response('{}', { status: active.status }))
+        }
+        const body = String(url).includes('/completed/get_all')
+          ? { items: completed }
+          : active
+        return Promise.resolve(
+          new Response(JSON.stringify(body), { status: 200 }),
+        )
+      }),
+    )
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  async function tasksIn(
+    t: Awaited<ReturnType<typeof seedLinked>>['t'],
+    listId: Awaited<ReturnType<typeof seedLinked>>['listId'],
+  ) {
+    return await t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+  }
+
+  test('has nothing until it is first read, and holds what it read', async () => {
+    const { t, listId } = await seedLinked()
+
+    const before = await t.withIdentity(alice).query(api.taskLists.backend, {
+      listId,
+      groupSlug: JANSEN,
+    })
+    expect(before.sync).toMatchObject({ neverSynced: true, state: 'ready' })
+    expect(await tasksIn(t, listId)).toEqual([])
+
+    provider([todoistTask('t1', 'Water plants'), todoistTask('t2', 'Bins')])
+    expect(
+      await t
+        .withIdentity(alice)
+        .action(api.taskLists.refresh, { listId, groupSlug: JANSEN }),
+    ).toEqual({ status: 'ok', added: 2, updated: 0, deleted: 0 })
+
+    expect((await tasksIn(t, listId)).map((task) => task.title)).toEqual([
+      'Water plants',
+      'Bins',
+    ])
+    const after = await t.withIdentity(alice).query(api.taskLists.backend, {
+      listId,
+      groupSlug: JANSEN,
+    })
+    expect(after.sync?.neverSynced).toBe(false)
+    expect(after.sync?.lastSyncedAt).toBeTypeOf('number')
+    expect(after.readOnly).toBe(false)
+  })
+
+  test('the provider wins the next time it is asked', async () => {
+    const { t, listId } = await seedLinked()
+    provider([todoistTask('t1', 'Water plants'), todoistTask('t2', 'Bins')])
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    // Renamed there, and one of them deleted there.
+    provider([todoistTask('t1', 'Water the plants')])
+    expect(
+      await t
+        .withIdentity(alice)
+        .action(api.taskLists.refresh, { listId, groupSlug: JANSEN }),
+    ).toEqual({ status: 'ok', added: 0, updated: 1, deleted: 1 })
+
+    expect((await tasksIn(t, listId)).map((task) => task.title)).toEqual([
+      'Water the plants',
+    ])
+  })
+
+  test('a provider that will not answer leaves the last tasks readable, and read-only', async () => {
+    const { t, listId } = await seedLinked()
+    provider([todoistTask('t1', 'Water plants')])
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    provider({ status: 500 })
+    const result = await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+    expect(result.status).toBe('error')
+
+    // Still there — the last thing Todoist said is more use than an empty
+    // card — but the list now says so, and nothing may be written to it.
+    expect((await tasksIn(t, listId)).map((task) => task.title)).toEqual([
+      'Water plants',
+    ])
+    const backendView = await t
+      .withIdentity(alice)
+      .query(api.taskLists.backend, { listId, groupSlug: JANSEN })
+    expect(backendView.sync?.state).toBe('stale')
+    expect(backendView.readOnly).toBe(true)
+  })
+
+  test('a provider that answers again clears the staleness', async () => {
+    const { t, listId } = await seedLinked()
+    provider({ status: 500 })
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    provider([todoistTask('t1', 'Water plants')])
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    const backendView = await t
+      .withIdentity(alice)
+      .query(api.taskLists.backend, { listId, groupSlug: JANSEN })
+    expect(backendView.sync?.state).toBe('ready')
+    expect(backendView.readOnly).toBe(false)
+  })
+
+  test('a rejected token asks for a reconnect rather than reporting a fault', async () => {
+    const { t, listId } = await seedLinked()
+    provider([todoistTask('t1', 'Water plants')])
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    provider({ status: 401 })
+    expect(
+      await t
+        .withIdentity(alice)
+        .action(api.taskLists.refresh, { listId, groupSlug: JANSEN }),
+    ).toEqual({ status: 'reconnect', provider: 'todoist' })
+  })
+
+  test('a disconnected account leaves the cache readable and points at the way back', async () => {
+    const { t, listId, connectionId } = await seedLinked()
+    provider([todoistTask('t1', 'Water plants')])
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    await t.withIdentity(alice).mutation(api.integrations.disconnect, {
+      connectionId,
+      groupSlug: JANSEN,
+    })
+
+    expect((await tasksIn(t, listId)).map((task) => task.title)).toEqual([
+      'Water plants',
+    ])
+    const backendView = await t
+      .withIdentity(alice)
+      .query(api.taskLists.backend, { listId, groupSlug: JANSEN })
+    expect(backendView.sync?.state).toBe('reconnect')
+    expect(backendView.readOnly).toBe(true)
+    // The card can name the account to reconnect, which is the whole point of
+    // the row outliving its token.
+    expect(backendView.source).toMatchObject({
+      accountLabel: 'household@example.com',
+      connectionStatus: 'disconnected',
+      sourceName: 'Household',
+    })
+  })
+
+  test('is refreshed and described only at its own Group’s address', async () => {
+    const { t, listId } = await seedLinked()
+    provider([todoistTask('t1', 'Water plants')])
+
+    for (const run of [
+      t
+        .withIdentity(alice)
+        .action(api.taskLists.refresh, { listId, groupSlug: DE_VRIES }),
+      t
+        .withIdentity(alice)
+        .query(api.taskLists.backend, { listId, groupSlug: DE_VRIES }),
+      t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: DE_VRIES }),
+    ]) {
+      await expect(run).rejects.toThrow(/List not found/)
+    }
+  })
+
+  test('its cached tasks are never local tasks', async () => {
+    const { t, listId } = await seedLinked()
+    provider([todoistTask('t1', 'Water plants')])
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    const [cachedTask] = await tasksIn(t, listId)
+    // Every local write path refuses an external list, so a change gather
+    // could not send to Todoist cannot be made to look as though it had been.
+    for (const run of [
+      t.withIdentity(alice).mutation(api.tasks.add, {
+        listId,
+        groupSlug: JANSEN,
+        title: 'Written locally',
+      }),
+      t.withIdentity(alice).mutation(api.tasks.toggleDone, {
+        taskId: cachedTask._id,
+        groupSlug: JANSEN,
+      }),
+      t.withIdentity(alice).mutation(api.tasks.remove, {
+        taskId: cachedTask._id,
+        groupSlug: JANSEN,
+      }),
+    ]) {
+      await expect(run).rejects.toThrow(/read-only/)
+    }
+  })
+})
+
+describe('what a Backend says it can do', () => {
+  test('a Notion list is read-only, and says which fields it has at all', async () => {
+    const { t, jansen, aliceId, jansenConnection } = await seed()
+    const listId = await t.run(
+      async (ctx) =>
+        await ctx.db.insert('taskLists', {
+          groupId: jansen,
+          name: 'Notion chores',
+          provider: 'notion',
+          order: 5,
+          providerConfig: {
+            connectionId: jansenConnection,
+            sourceId: 'db1',
+            // No date, priority or labels property mapped: this database does
+            // not have them, whatever Notion supports in general.
+            propertyMapping: { title: 'Name', done: 'Done' },
+          },
+        }),
+    )
+    expect(aliceId).toBeDefined()
+
+    const backendView = await t
+      .withIdentity(alice)
+      .query(api.taskLists.backend, { listId, groupSlug: JANSEN })
+    expect(backendView.capabilities).toMatchObject({
+      create: false,
+      edit: false,
+      complete: false,
+      delete: false,
+      subtasks: false,
+      dueDate: false,
+      priority: false,
+      labels: false,
+    })
+  })
+})
+
+/**
+ * Writing to a Todoist-backed list.
+ *
+ * Todoist owns these tasks, so every write goes there first and the cache is
+ * updated only once Todoist has agreed (ADR-0013). What these assert is that
+ * order, from the outside: what Todoist was sent, what the cache says
+ * afterwards, and — when Todoist refuses — that the cache says exactly what it
+ * said before.
+ */
+describe('writing through Todoist', () => {
+  async function seedLinkedWithTask() {
+    const base = await seed()
+    const connectionId = await base.t.mutation(
+      internal.integrations.storeConnection,
+      {
+        groupId: base.jansen,
+        provider: 'todoist',
+        accessToken: 'todoist-token',
+        accountLabel: 'household@example.com',
+        externalAccountId: 'todoist-1',
+        connectedBy: base.aliceId,
+      },
+    )
+    const listId = await base.t
+      .withIdentity(alice)
+      .mutation(api.taskLists.create, {
+        name: 'Household',
+        provider: 'todoist',
+        groupSlug: JANSEN,
+        providerConfig: {
+          connectionId,
+          sourceId: 'p1',
+          sourceName: 'Household',
+        },
+      })
+    // One task already in Todoist and already cached.
+    stubTodoist(() =>
+      jsonBody([{ id: 't1', content: 'Water plants', priority: 1 }]),
+    )
+    await base.t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+    const [cachedTask] = await base.t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    return { ...base, connectionId, listId, cachedTask }
+  }
+
+  function jsonBody(body: unknown, status = 200) {
+    return new Response(JSON.stringify(body), { status })
+  }
+
+  /** Answer every provider request with whatever this returns for its URL. */
+  function stubTodoist(respond: (url: string) => Response) {
+    const calls: Array<{ url: string; init?: RequestInit }> = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        calls.push({ url: String(url), init })
+        return Promise.resolve(
+          String(url).includes('/completed/get_all')
+            ? jsonBody({ items: [] })
+            : respond(String(url)),
+        )
+      }),
+    )
+    return calls
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  async function tasksIn(
+    t: Awaited<ReturnType<typeof seedLinkedWithTask>>['t'],
+    listId: Awaited<ReturnType<typeof seedLinkedWithTask>>['listId'],
+  ) {
+    return await t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+  }
+
+  test('a new task goes to Todoist first, and the cache takes Todoist’s version', async () => {
+    const { t, listId } = await seedLinkedWithTask()
+    const calls = stubTodoist(() =>
+      // Todoist normalised the title; the cache believes Todoist, not us.
+      jsonBody({ id: 'new-1', content: 'Buy milk (2L)', priority: 1 }),
+    )
+
+    expect(
+      await t.withIdentity(alice).action(api.externalTasks.create, {
+        listId,
+        groupSlug: JANSEN,
+        title: 'Buy milk',
+      }),
+    ).toEqual({ status: 'ok' })
+
+    expect(calls[0].url).toContain('/tasks')
+    expect(calls[0].init?.method).toBe('POST')
+    expect((await tasksIn(t, listId)).map((task) => task.title)).toEqual([
+      'Water plants',
+      'Buy milk (2L)',
+    ])
+  })
+
+  test('an edit reaches Todoist and then the cache', async () => {
+    const { t, listId, cachedTask } = await seedLinkedWithTask()
+    stubTodoist(() =>
+      jsonBody({ id: 't1', content: 'Water the plants', priority: 4 }),
+    )
+
+    await t.withIdentity(alice).action(api.externalTasks.update, {
+      taskId: cachedTask._id,
+      groupSlug: JANSEN,
+      title: 'Water the plants',
+    })
+
+    expect((await tasksIn(t, listId))[0]).toMatchObject({
+      title: 'Water the plants',
+      priority: 1,
+    })
+  })
+
+  test('completing and reopening survive the round trip', async () => {
+    const { t, listId, cachedTask } = await seedLinkedWithTask()
+    const calls = stubTodoist(() => new Response(null, { status: 204 }))
+
+    await t.withIdentity(alice).action(api.externalTasks.setDone, {
+      taskId: cachedTask._id,
+      groupSlug: JANSEN,
+      done: true,
+    })
+    expect(calls.at(-1)?.url).toContain('/close')
+    expect((await tasksIn(t, listId))[0].done).toBe(true)
+
+    await t.withIdentity(alice).action(api.externalTasks.setDone, {
+      taskId: cachedTask._id,
+      groupSlug: JANSEN,
+      done: false,
+    })
+    expect(calls.at(-1)?.url).toContain('/reopen')
+    expect((await tasksIn(t, listId))[0].done).toBe(false)
+  })
+
+  test('a deletion Todoist accepted is a deletion here', async () => {
+    const { t, listId, cachedTask } = await seedLinkedWithTask()
+    stubTodoist(() => new Response(null, { status: 204 }))
+
+    await t.withIdentity(alice).action(api.externalTasks.remove, {
+      taskId: cachedTask._id,
+      groupSlug: JANSEN,
+    })
+
+    expect(await tasksIn(t, listId)).toEqual([])
+  })
+
+  test('a write Todoist refused changes nothing here', async () => {
+    const { t, listId, cachedTask } = await seedLinkedWithTask()
+    stubTodoist(() => jsonBody({}, 400))
+
+    await expect(
+      t.withIdentity(alice).action(api.externalTasks.update, {
+        taskId: cachedTask._id,
+        groupSlug: JANSEN,
+        title: 'Never sent',
+      }),
+    ).rejects.toThrow(/refused that change/)
+
+    // The point of provider-first: an unacknowledged write leaves no trace.
+    expect((await tasksIn(t, listId))[0].title).toBe('Water plants')
+  })
+
+  test('each kind of provider failure says what to do about it', async () => {
+    const { t, cachedTask } = await seedLinkedWithTask()
+
+    for (const [status, expected] of [
+      [401, /expired/],
+      [429, /busy/],
+      [404, /no longer in todoist/i],
+      [500, /refused/],
+    ] as const) {
+      stubTodoist(() => jsonBody({}, status))
+      await expect(
+        t.withIdentity(alice).action(api.externalTasks.remove, {
+          taskId: cachedTask._id,
+          groupSlug: JANSEN,
+        }),
+      ).rejects.toThrow(expected)
+    }
+  })
+
+  test('a disconnected account cannot be written through', async () => {
+    const { t, listId, cachedTask, connectionId } = await seedLinkedWithTask()
+    await t.withIdentity(alice).mutation(api.integrations.disconnect, {
+      connectionId,
+      groupSlug: JANSEN,
+    })
+    const calls = stubTodoist(() => jsonBody({ id: 'x', content: 'x', priority: 1 }))
+
+    for (const run of [
+      t.withIdentity(alice).action(api.externalTasks.create, {
+        listId,
+        groupSlug: JANSEN,
+        title: 'While disconnected',
+      }),
+      t.withIdentity(alice).action(api.externalTasks.remove, {
+        taskId: cachedTask._id,
+        groupSlug: JANSEN,
+      }),
+    ]) {
+      await expect(run).rejects.toThrow(/disconnected/)
+    }
+    // Refused before anything left the building — no token to leave with.
+    expect(calls).toEqual([])
+  })
+
+  test('is refused from another Group the caller is in', async () => {
+    const { t, listId, cachedTask } = await seedLinkedWithTask()
+    stubTodoist(() => jsonBody({ id: 'x', content: 'x', priority: 1 }))
+
+    await expect(
+      t.withIdentity(alice).action(api.externalTasks.create, {
+        listId,
+        groupSlug: DE_VRIES,
+        title: 'Snuck in',
+      }),
+    ).rejects.toThrow(/List not found/)
+    await expect(
+      t.withIdentity(alice).action(api.externalTasks.setDone, {
+        taskId: cachedTask._id,
+        groupSlug: DE_VRIES,
+        done: true,
+      }),
+    ).rejects.toThrow(/List not found/)
+  })
+
+  test('a write the cache did not record is saved, and says so until a refresh', async () => {
+    const { t, listId } = await seedLinkedWithTask()
+
+    // The state itself, reached the way the action reaches it. It is not an
+    // error: Todoist took the change, and only gather's copy is behind.
+    await t.mutation(internal.externalTasks.markPendingReconciliation, {
+      listId,
+    })
+    expect(
+      (
+        await t
+          .withIdentity(alice)
+          .query(api.taskLists.backend, { listId, groupSlug: JANSEN })
+      ).sync?.pendingReconciliation,
+    ).toBe(true)
+
+    stubTodoist(() =>
+      jsonBody([{ id: 't1', content: 'Water plants', priority: 1 }]),
+    )
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    expect(
+      (
+        await t
+          .withIdentity(alice)
+          .query(api.taskLists.backend, { listId, groupSlug: JANSEN })
+      ).sync?.pendingReconciliation,
+    ).toBe(false)
+  })
+
+  test('a local list is not written through the external path', async () => {
+    const { t, jansenList } = await seedLinkedWithTask()
+
+    await expect(
+      t.withIdentity(alice).action(api.externalTasks.create, {
+        listId: jansenList,
+        groupSlug: JANSEN,
+        title: 'x',
+      }),
+    ).rejects.toThrow(/written locally/)
+  })
+})
+
+/**
+ * Nesting, on both kinds of Backend.
+ *
+ * The domain model is arbitrary depth; what limits it is the Backend, which
+ * says so in its capability list rather than in the Module (ADR-0014). Two
+ * things have to hold whatever the Backend: a task is never its own ancestor,
+ * and deleting a task takes what hangs off it.
+ */
+describe('subtasks on a local list', () => {
+  test('nest as deep as anyone wants', async () => {
+    const { t, jansenList, jansenTask } = await seed()
+
+    let parent = jansenTask
+    for (const title of ['Level 2', 'Level 3', 'Level 4', 'Level 5']) {
+      parent = await t.withIdentity(alice).mutation(api.tasks.add, {
+        listId: jansenList,
+        groupSlug: JANSEN,
+        title,
+        parentTaskId: parent,
+      })
+    }
+
+    const tasks = await t.withIdentity(alice).query(api.tasks.listByList, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+    })
+    expect(tasks).toHaveLength(5)
+    // A local list is this app, and this app has no limit of its own.
+    expect(
+      (
+        await t
+          .withIdentity(alice)
+          .query(api.taskLists.backend, {
+            listId: jansenList,
+            groupSlug: JANSEN,
+          })
+      ).capabilities,
+    ).toMatchObject({ subtasks: true })
+    expect(
+      (
+        await t.withIdentity(alice).query(api.taskLists.backend, {
+          listId: jansenList,
+          groupSlug: JANSEN,
+        })
+      ).capabilities.maxDepth,
+    ).toBeUndefined()
+  })
+
+  test('deleting a task takes its subtasks with it', async () => {
+    const { t, jansenList, jansenTask } = await seed()
+    const child = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+      title: 'Child',
+      parentTaskId: jansenTask,
+    })
+    await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+      title: 'Grandchild',
+      parentTaskId: child,
+    })
+
+    await t.withIdentity(alice).mutation(api.tasks.remove, {
+      taskId: jansenTask,
+      groupSlug: JANSEN,
+    })
+
+    // Not orphaned at the top level: a subtask whose parent is gone is a row
+    // nothing in the Module can reach.
+    expect(
+      await t.withIdentity(alice).query(api.tasks.listByList, {
+        listId: jansenList,
+        groupSlug: JANSEN,
+      }),
+    ).toEqual([])
+  })
+
+  test('a task cannot be moved under itself or under its own subtask', async () => {
+    const { t, jansenList, jansenTask } = await seed()
+    const child = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+      title: 'Child',
+      parentTaskId: jansenTask,
+    })
+
+    await expect(
+      t.withIdentity(alice).mutation(api.tasks.reparent, {
+        taskId: jansenTask,
+        groupSlug: JANSEN,
+        parentTaskId: jansenTask,
+      }),
+    ).rejects.toThrow(/its own subtask/)
+    await expect(
+      t.withIdentity(alice).mutation(api.tasks.reparent, {
+        taskId: jansenTask,
+        groupSlug: JANSEN,
+        parentTaskId: child,
+      }),
+    ).rejects.toThrow(/its own subtask/)
+  })
+
+  test('a subtask is promoted back to the top level', async () => {
+    const { t, jansenList, jansenTask } = await seed()
+    const child = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+      title: 'Child',
+      parentTaskId: jansenTask,
+    })
+
+    await t.withIdentity(alice).mutation(api.tasks.reparent, {
+      taskId: child,
+      groupSlug: JANSEN,
+      parentTaskId: null,
+    })
+
+    const tasks = await t.withIdentity(alice).query(api.tasks.listByList, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+    })
+    expect(tasks.find((task) => task._id === child)?.parentTaskId).toBeUndefined()
+  })
+
+  test('a parent in another list is refused', async () => {
+    const { t, jansenList, devriesList, jansenTask } = await seed()
+    expect(devriesList).toBeDefined()
+
+    await expect(
+      t.withIdentity(alice).mutation(api.tasks.add, {
+        listId: devriesList,
+        groupSlug: DE_VRIES,
+        title: 'Across lists',
+        parentTaskId: jansenTask,
+      }),
+    ).rejects.toThrow(/not in this list/)
+    expect(jansenList).toBeDefined()
+  })
+})
+
+describe('subtasks on a Todoist list', () => {
+  function jsonBody(body: unknown, status = 200) {
+    return new Response(JSON.stringify(body), { status })
+  }
+
+  function stubTodoist(respond: (url: string) => Response) {
+    const calls: Array<{ url: string; init?: RequestInit }> = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        calls.push({ url: String(url), init })
+        return Promise.resolve(
+          String(url).includes('/completed/get_all')
+            ? jsonBody({ items: [] })
+            : respond(String(url)),
+        )
+      }),
+    )
+    return calls
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  /** A Todoist list holding one task, four levels of nesting available. */
+  async function seedLinked() {
+    const base = await seed()
+    const connectionId = await base.t.mutation(
+      internal.integrations.storeConnection,
+      {
+        groupId: base.jansen,
+        provider: 'todoist',
+        accessToken: 'todoist-token',
+        accountLabel: 'household@example.com',
+        externalAccountId: 'todoist-1',
+        connectedBy: base.aliceId,
+      },
+    )
+    const listId = await base.t
+      .withIdentity(alice)
+      .mutation(api.taskLists.create, {
+        name: 'Household',
+        provider: 'todoist',
+        groupSlug: JANSEN,
+        providerConfig: { connectionId, sourceId: 'p1', sourceName: 'Household' },
+      })
+    stubTodoist(() => jsonBody([{ id: 't1', content: 'Plant beds', priority: 1 }]))
+    await base.t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+    const [parent] = await base.t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    return { ...base, listId, parent }
+  }
+
+  test('a refresh brings the hierarchy back intact', async () => {
+    const { t, listId } = await seedLinked()
+    stubTodoist(() =>
+      jsonBody([
+        { id: 't1', content: 'Plant beds', priority: 1 },
+        { id: 't2', content: 'Buy pots', priority: 1, parent_id: 't1' },
+        { id: 't3', content: 'Measure', priority: 1, parent_id: 't2' },
+      ]),
+    )
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    const tasks = await t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    const byExternalId = new Map(tasks.map((task) => [task.externalId, task]))
+    expect(byExternalId.get('t2')?.parentTaskId).toBe(
+      byExternalId.get('t1')?._id,
+    )
+    expect(byExternalId.get('t3')?.parentTaskId).toBe(
+      byExternalId.get('t2')?._id,
+    )
+  })
+
+  test('a new subtask names its parent to Todoist before anything is cached', async () => {
+    const { t, listId, parent } = await seedLinked()
+    const calls = stubTodoist(() =>
+      jsonBody({ id: 't2', content: 'Buy pots', priority: 1, parent_id: 't1' }),
+    )
+
+    await t.withIdentity(alice).action(api.externalTasks.create, {
+      listId,
+      groupSlug: JANSEN,
+      title: 'Buy pots',
+      parentTaskId: parent._id,
+    })
+
+    expect(JSON.parse(String(calls[0].init?.body))).toMatchObject({
+      parent_id: 't1',
+    })
+    const tasks = await t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    expect(
+      tasks.find((task) => task.externalId === 't2')?.parentTaskId,
+    ).toBe(parent._id)
+  })
+
+  test('deleting a parent clears its subtasks from the cache too', async () => {
+    const { t, listId, parent } = await seedLinked()
+    stubTodoist(() =>
+      jsonBody([
+        { id: 't1', content: 'Plant beds', priority: 1 },
+        { id: 't2', content: 'Buy pots', priority: 1, parent_id: 't1' },
+      ]),
+    )
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+
+    stubTodoist(() => new Response(null, { status: 204 }))
+    await t.withIdentity(alice).action(api.externalTasks.remove, {
+      taskId: parent._id,
+      groupSlug: JANSEN,
+    })
+
+    // Todoist deletes the subtasks with the parent; keeping the cached child
+    // would leave a row that is unreachable here and gone there.
+    expect(
+      await t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: JANSEN }),
+    ).toEqual([])
+  })
+
+  test('a fifth level is refused before anything is sent', async () => {
+    const { t, listId } = await seedLinked()
+    stubTodoist(() =>
+      jsonBody([
+        { id: 't1', content: 'L1', priority: 1 },
+        { id: 't2', content: 'L2', priority: 1, parent_id: 't1' },
+        { id: 't3', content: 'L3', priority: 1, parent_id: 't2' },
+        { id: 't4', content: 'L4', priority: 1, parent_id: 't3' },
+      ]),
+    )
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+    const tasks = await t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    const deepest = tasks.find((task) => task.externalId === 't4')
+
+    const calls = stubTodoist(() => jsonBody({ id: 't5', content: 'L5', priority: 1 }))
+    await expect(
+      t.withIdentity(alice).action(api.externalTasks.create, {
+        listId,
+        groupSlug: JANSEN,
+        title: 'L5',
+        parentTaskId: deepest?._id ?? tasks[0]._id,
+      }),
+    ).rejects.toThrow(/4 levels deep at most/)
+    // Todoist's limit, enforced here rather than discovered by being refused.
+    expect(calls).toEqual([])
+  })
+
+  test('moving a subtask goes provider-first, like every other write', async () => {
+    const { t, listId, parent } = await seedLinked()
+    stubTodoist(() =>
+      jsonBody([
+        { id: 't1', content: 'Plant beds', priority: 1 },
+        { id: 't2', content: 'Buy pots', priority: 1, parent_id: 't1' },
+      ]),
+    )
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+    const child = (
+      await t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    ).find((task) => task.externalId === 't2')
+
+    const calls = stubTodoist(() =>
+      jsonBody({ sync_status: { 'uuid-1': 'ok' } }),
+    )
+    await t.withIdentity(alice).action(api.externalTasks.move, {
+      taskId: child?._id ?? parent._id,
+      groupSlug: JANSEN,
+      parentTaskId: null,
+    })
+
+    expect(calls[0].url).toContain('/sync')
+    const after = (
+      await t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    ).find((task) => task.externalId === 't2')
+    expect(after?.parentTaskId).toBeUndefined()
+  })
+
+  test('a move Todoist refused leaves the hierarchy alone', async () => {
+    const { t, listId, parent } = await seedLinked()
+    stubTodoist(() =>
+      jsonBody([
+        { id: 't1', content: 'Plant beds', priority: 1 },
+        { id: 't2', content: 'Buy pots', priority: 1, parent_id: 't1' },
+      ]),
+    )
+    await t
+      .withIdentity(alice)
+      .action(api.taskLists.refresh, { listId, groupSlug: JANSEN })
+    const child = (
+      await t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    ).find((task) => task.externalId === 't2')
+
+    stubTodoist(() =>
+      jsonBody({ sync_status: { 'uuid-1': { error: 'nope', error_code: 15 } } }),
+    )
+    await expect(
+      t.withIdentity(alice).action(api.externalTasks.move, {
+        taskId: child?._id ?? parent._id,
+        groupSlug: JANSEN,
+        parentTaskId: null,
+      }),
+    ).rejects.toThrow(/refused/)
+
+    const after = (
+      await t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    ).find((task) => task.externalId === 't2')
+    expect(after?.parentTaskId).toBe(parent._id)
   })
 })

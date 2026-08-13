@@ -7,8 +7,7 @@ import { fmt, useMessages } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { AddListFlow } from './AddListFlow'
-import { ExternalTaskList } from './ExternalTaskList'
-import { LocalTaskList } from './LocalTaskList'
+import { TaskListCard } from './TaskListCard'
 import type { TaskNav } from './taskNav'
 
 export interface TasksPageProps {
@@ -108,26 +107,17 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
         // A third column once there is room for one, so the extra width goes
         // into more lists side by side rather than into two very wide cards.
         <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {lists.map((l) =>
-            l.provider === 'local' ? (
-              <LocalTaskList
-                key={l._id}
-                listId={l._id}
-                groupSlug={groupSlug}
-                name={l.name}
-                onRemoveList={() => confirmRemove(l._id, l.name)}
-              />
-            ) : (
-              <ExternalTaskList
-                key={l._id}
-                listId={l._id}
-                groupSlug={groupSlug}
-                name={l.name}
-                provider={l.provider}
-                onRemoveList={() => confirmRemove(l._id, l.name)}
-              />
-            ),
-          )}
+          {/* One component for every list, local or linked: which Backend a
+              list has changes what it can do, not what Module it is in. */}
+          {lists.map((l) => (
+            <TaskListCard
+              key={l._id}
+              listId={l._id}
+              groupSlug={groupSlug}
+              name={l.name}
+              onRemoveList={() => confirmRemove(l._id, l.name)}
+            />
+          ))}
         </div>
       )}
 

@@ -3,7 +3,7 @@ import type { tasks as enTasks } from '../en/tasks'
 export const tasks = {
   page: {
     subtitle:
-      'Gedeelde lijsten — lokale staan hier, gekoppelde spiegelen Notion of Todoist.',
+      'Gedeelde lijsten — lokale staan hier, gekoppelde staan in Notion of Todoist.',
     addList: 'Lijst toevoegen',
     emptyTitle: 'Nog geen lijsten',
     emptyBody: 'Maak een lokale lijst, of koppel er een uit Notion of Todoist.',
@@ -36,10 +36,30 @@ export const tasks = {
 
   external: {
     refresh: '{name} vernieuwen',
+    refreshing: 'Vernieuwen…',
     loadFailed: 'Kon deze lijst niet laden.',
     reconnect: 'De koppeling met {provider} moet opnieuw worden gelegd.',
     goToSettings: 'Naar de Groepsinstellingen',
     empty: 'Geen open taken in deze {provider}-lijst.',
+    source: '{source} · {account}',
+    sourceUnknownAccount: '{source} · losgekoppeld account',
+    stale:
+      'Kon {provider} niet bereiken. Dit zijn de taken die gather het laatst zag; ze zijn alleen-lezen totdat er weer antwoord komt.',
+    reconnectStale:
+      'De koppeling met {provider} voor deze lijst is losgekoppeld. Dit zijn de taken die gather het laatst zag; ze zijn alleen-lezen totdat de koppeling is hersteld.',
+    unconfigured: 'Bij deze lijst ontbreken de koppelingsgegevens.',
+    readOnlyProvider: 'Taken in deze lijst bewerk je in {provider}.',
+    neverSynced: 'Deze lijst wordt uit {provider} geladen…',
+    savedRemotely:
+      'Opgeslagen in {provider}. Gather heeft het nog niet overgenomen.',
+    refreshNow: 'Nu vernieuwen',
+    writeFailed: 'Die wijziging is niet opgeslagen — hier is niets veranderd.',
+  },
+
+  subtasks: {
+    add: 'Subtaak toevoegen aan {task}',
+    newUnder: 'Nieuwe subtaak onder {task}',
+    promote: '{task} uit de bovenliggende taak halen',
   },
 
   editor: {
@@ -58,11 +78,13 @@ export const tasks = {
   addList: {
     title: 'Een lijst toevoegen',
     local: 'Lokale lijst — hier gemaakt en bewerkt',
-    mirror: '{provider} — alleen lezen',
+    mirror: 'Een lijst uit {provider} koppelen',
     connectFirst: 'Eerst {provider} koppelen…',
     listName: 'Lijstnaam',
     create: 'Aanmaken',
     failed: 'Er ging iets mis — probeer het opnieuw.',
+    pickConnection: 'Welk {provider}-account?',
+    connectAnother: 'Nog een {provider}-account koppelen…',
     pickNotion: 'Kies de Notion-database om te spiegelen:',
     pickTodoist: 'Kies het Todoist-project om te spiegelen:',
     nothingFoundNotion:

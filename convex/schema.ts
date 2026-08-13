@@ -96,6 +96,12 @@ export default defineSchema({
       v.object({
         connectionId: v.id('integrationConnections'),
         sourceId: v.string(), // Notion database id / Todoist project id
+        // What that source was called at the provider when the list was
+        // linked. Stored rather than fetched, so a list can say which project
+        // it is reading without a round trip — and so it still says something
+        // when the provider is unreachable. Optional only for lists linked
+        // before this field existed.
+        sourceName: v.optional(v.string()),
         propertyMapping: v.optional(
           v.object({
             title: v.string(),
@@ -108,9 +114,29 @@ export default defineSchema({
       }),
     ),
     order: v.number(),
+    // When the provider was last read into the cache, and when reading it last
+    // failed. Both together, because they answer different questions: the
+    // first is how old what you are looking at is, the second is whether it is
+    // stale on purpose. A successful refresh clears the failure (ADR-0013).
+    lastSyncedAt: v.optional(v.number()),
+    lastSyncFailedAt: v.optional(v.number()),
+    // The provider accepted a write and the cache update did not land. The one
+    // state where what is on screen is knowingly behind what is true, and it
+    // says so rather than claiming the write failed — the provider took it
+    // (ADR-0013). Cleared by the next successful refresh.
+    pendingReconciliation: v.optional(v.boolean()),
   }).index('by_group', ['groupId']),
 
-  // Rows exist only for provider === 'local' lists.
+  /**
+   * Tasks — the Group's own on a local list, and the **cache** of the
+   * provider's on an external one (ADR-0013).
+   *
+   * One table rather than two, because the Tasks Module renders both through
+   * the same experience and a second table would make every read branch on
+   * which one it wanted. `externalId` is what tells them apart: present means
+   * the provider owns this row and gather is only holding a copy, and it is
+   * the identity reconciliation matches on.
+   */
   tasks: defineTable({
     listId: v.id('taskLists'),
     title: v.string(),
@@ -120,16 +146,56 @@ export default defineSchema({
       v.union(v.literal(1), v.literal(2), v.literal(3), v.literal(4)),
     ),
     labels: v.optional(v.array(v.string())),
-    createdBy: v.id('users'),
+    // Absent on a cached row: nobody here wrote it, and attributing it to
+    // whoever pressed Refresh would be an invention. Present on every row
+    // somebody in this Group created, which is what the activity stream reads.
+    createdBy: v.optional(v.id('users')),
     order: v.number(),
-  }).index('by_list', ['listId']),
+    // The provider's own id for this task. Absent on a local row.
+    externalId: v.optional(v.string()),
+    // Link-out to the item in the app that owns it.
+    url: v.optional(v.string()),
+    // This task's parent, for a subtask. Arbitrary depth in the domain model;
+    // what actually limits it is the Backend, which says so in its capability
+    // list rather than here (ADR-0014). Absent on a top-level task.
+    //
+    // Deliberately an id in *this* table rather than the provider's, even on a
+    // cached row: the tree is walked here, and a reference the database can
+    // check is worth more than one it cannot. Reconciliation resolves the
+    // provider's `parentExternalId` onto it.
+    parentTaskId: v.optional(v.id('tasks')),
+  })
+    .index('by_list', ['listId'])
+    // Reconciliation asks "which cached row is this provider task", once per
+    // task per refresh. A scan of the list per task is the same question asked
+    // quadratically.
+    .index('by_list_external', ['listId', 'externalId']),
 
+  /**
+   * A Group's authorisation to reach one account at one provider.
+   *
+   * There may be several per provider in one Group — a shared household
+   * Todoist and somebody's own, two Notion workspaces — and one connection may
+   * back several Task lists. The index is therefore a lookup, never a
+   * uniqueness claim; `externalAccountId` is what makes two rows for the same
+   * provider distinguishable.
+   */
   integrationConnections: defineTable({
     groupId: v.id('groups'),
     provider: v.union(v.literal('notion'), v.literal('todoist')),
-    accessToken: v.string(), // server-only; never returned by a public function
-    accountLabel: v.string(), // Notion workspace name / 'Todoist'
+    // Server-only; never returned by a public function. Absent means
+    // disconnected: the row outlives its token so that the lists pointing at
+    // it keep saying *which* account they are waiting to be reconnected to,
+    // and so that reconnecting the same account revives their link instead of
+    // stranding them against a deleted id.
+    accessToken: v.optional(v.string()),
+    accountLabel: v.string(), // Notion workspace name / Todoist account email
+    // Who this token is at the provider. Optional only for rows stored before
+    // a Group could hold more than one connection per provider — see
+    // docs/migrations/0007-connection-account-identity.md.
+    externalAccountId: v.optional(v.string()),
     connectedBy: v.id('users'),
+    disconnectedAt: v.optional(v.number()),
   }).index('by_group_provider', ['groupId', 'provider']),
 
   foods: defineTable({

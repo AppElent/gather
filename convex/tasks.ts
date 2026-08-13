@@ -4,6 +4,7 @@ import { internalQuery, mutation, query } from './_generated/server'
 import type { MutationCtx } from './_generated/server'
 import { requireGroupBySlug } from './lib/groupAccess'
 import { findListInGroup, requireListAccess } from './lib/taskAccess'
+import { requireValidParent, withDescendants } from './lib/taskTree'
 
 const byOpenThenOrder = (a: Doc<'tasks'>, b: Doc<'tasks'>) =>
   Number(a.done) - Number(b.done) || a.order - b.order
@@ -82,6 +83,8 @@ export const add = mutation({
     dueDate: v.optional(v.string()),
     priority: v.optional(priorityValidator),
     labels: v.optional(v.array(v.string())),
+    /** Makes this a subtask of another task in the same list. */
+    parentTaskId: v.optional(v.id('tasks')),
   },
   handler: async (ctx, args) => {
     const { user, list } = await requireListAccess(
@@ -91,6 +94,12 @@ export const add = mutation({
     )
     if (list.provider !== 'local') {
       throw new ConvexError('This list is read-only')
+    }
+    if (args.parentTaskId) {
+      const parent = await ctx.db.get(args.parentTaskId)
+      if (!parent || parent.listId !== args.listId) {
+        throw new ConvexError('That parent task is not in this list')
+      }
     }
     const existing = await ctx.db
       .query('tasks')
@@ -110,7 +119,30 @@ export const add = mutation({
       labels: args.labels,
       createdBy: user._id,
       order: nextOrder,
+      parentTaskId: args.parentTaskId,
     })
+  },
+})
+
+/**
+ * Move a task to a different place in the hierarchy — under another task, or
+ * with `null`, back to the top level.
+ *
+ * Its own mutation rather than a field on `update`, because it is about where
+ * a task sits rather than what it says, and a Backend may allow one and not the
+ * other (ADR-0014).
+ */
+export const reparent = mutation({
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    parentTaskId: v.optional(v.union(v.id('tasks'), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    const parentTaskId = args.parentTaskId ?? undefined
+    await requireValidParent(ctx, task, parentTaskId)
+    await ctx.db.patch(args.taskId, { parentTaskId })
   },
 })
 
@@ -148,11 +180,21 @@ export const remove = mutation({
   args: { taskId: v.id('tasks'), groupSlug: v.string() },
   handler: async (ctx, args) => {
     await requireEditableTask(ctx, args.groupSlug, args.taskId)
-    await ctx.db.delete(args.taskId)
+    // Its subtasks go with it. A subtask whose parent is gone is not a
+    // top-level task; it is a row nothing in the Module can reach.
+    for (const id of await withDescendants(ctx, args.taskId)) {
+      await ctx.db.delete(id)
+    }
   },
 })
 
-/** Swap order with the adjacent task in the current sorted view. */
+/**
+ * Swap order with the adjacent task *among its own siblings*.
+ *
+ * Siblings, not the whole list: once tasks nest, "the next row on screen" may
+ * be somebody's subtask, and swapping order with it would move a task past its
+ * own parent while leaving the tree saying otherwise.
+ */
 export const move = mutation({
   args: {
     taskId: v.id('tasks'),
@@ -166,10 +208,11 @@ export const move = mutation({
         .query('tasks')
         .withIndex('by_list', (q) => q.eq('listId', task.listId))
         .collect()
-    ).sort(byOpenThenOrder)
+    )
+      .filter((t) => t.parentTaskId === task.parentTaskId)
+      .sort(byOpenThenOrder)
     const index = siblings.findIndex((t) => t._id === args.taskId)
-    const neighbor =
-      siblings[args.direction === 'up' ? index - 1 : index + 1]
+    const neighbor = siblings[args.direction === 'up' ? index - 1 : index + 1]
     if (!neighbor || neighbor.done !== task.done) return
     await ctx.db.patch(task._id, { order: neighbor.order })
     await ctx.db.patch(neighbor._id, { order: task.order })

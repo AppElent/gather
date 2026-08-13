@@ -12,16 +12,25 @@ const PRIORITY_STYLES: Record<1 | 2 | 3 | 4, string> = {
 
 export interface TaskRowProps {
   task: UnifiedTask
+  /**
+   * How far under a parent this task sits, top level being 0. Drawn as an
+   * indent rather than as a separate nested list, so that one flat scan of the
+   * card still reads as one list of tasks.
+   */
+  depth?: number
   onToggle?: () => void
   /** Extra per-row controls (edit/delete/move) rendered at the end. */
   actions?: ReactNode
 }
 
-export function TaskRow({ task, onToggle, actions }: TaskRowProps) {
+export function TaskRow({ task, depth = 0, onToggle, actions }: TaskRowProps) {
   const { row } = useMessages().tasks
 
   return (
-    <div className="flex items-center gap-2 py-1.5">
+    <div
+      className="flex items-center gap-2 py-1.5"
+      style={depth ? { paddingLeft: `${depth * 1.25}rem` } : undefined}
+    >
       <input
         type="checkbox"
         checked={task.done}
