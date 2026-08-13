@@ -174,3 +174,8 @@ _Avoid_: Demo data, Dummy data, Test data, Seed data
 - A page below a Module's index carries its own trail, and its way back is the
   parent's **address** rather than the browser's history — the same answer
   however somebody arrived, and the Group travels with it (ADR-0013).
+- Every client names things the same way and looks however suits it. The words a
+  person reads — a Group, a Pin, a Module and what it is for — are one answer
+  wherever they are read; the palette, the type and the layout are each client's
+  own. So "which one am I using?" is answered by what is on screen, and "what is
+  this called?" never is (ADR-0017).
