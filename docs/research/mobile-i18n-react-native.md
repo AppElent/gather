@@ -51,7 +51,7 @@ Mapped onto the five exported members:
 | `hasExplicitLocaleChoice` | **Yes** — `document.cookie`. | Must be replaced. |
 | `setLocale` (on the context value) | **Yes** — `document.cookie` and `document.documentElement.lang`. | Must be replaced. |
 | `fmt`, `isLocale`, `resolveLocale` (re-exported from `core.ts`) | **No.** Pure string/array functions. | **Portable as-is.** |
-| `plural` (re-exported from `core.ts`) | No DOM — but see the `Intl.PluralRules` finding below. | Portable *given a polyfill*. |
+| `plural` (re-exported from `core.ts`) | No DOM — but `Intl.PluralRules` is **missing on Hermes** and it is unguarded. | **Not portable.** Reimplemented natively; see finding 4. |
 
 `src/core.ts` is worth calling out separately: it is 56 lines of pure TypeScript with
 **zero imports**. `isLocale`, `resolveLocale`, `fmt` and `plural` touch no global except
@@ -291,17 +291,98 @@ a genuine, if minor, accessibility regression on native with no available fix, a
 worth writing down rather than discovering later: on the web the "Nederlands" button is
 announced in Dutch; on the phone it will be announced in the system voice.
 
-### 4. `Intl.PluralRules` → very likely a polyfill. **Verify on the emulator.**
+### 4. `Intl.PluralRules` is **MISSING** on Hermes — and the answer is not a polyfill
 
-This is the one finding I am not certain about, and it is the one most likely to bite,
-because it is not visible until a plural string renders.
+> **Measured, then decided.** This section was originally a prediction with a
+> "verify on the emulator" instruction. The measurement was taken in #136 and the
+> decision made in [#150](https://github.com/AppElent/gather/issues/150). Both are
+> recorded below; the polyfill this section used to recommend was **rejected**.
 
-`core.ts`:53 does `new Intl.PluralRules(locale).select(count)`. gather calls `plural()`
-in **11 places** — `src/lib/groupActivity.ts` (2, the "n minutes ago" activity line),
-`src/lib/babyDate.ts` (4), and five components. `groupActivity.ts` is shell code, so this
-is squarely on the mobile path, not deferred with the modules.
+**The measurement** — Android emulator, Expo SDK 57, Expo Go, Hermes:
 
-The sources disagree:
+| API | Result |
+| --- | --- |
+| `Intl.PluralRules` | **MISSING** |
+| `Intl.RelativeTimeFormat` | **MISSING** (and unused anywhere in gather) |
+| `Intl.NumberFormat` | ✅ `1.234,5` for `nl-NL` |
+| `Intl.DateTimeFormat` | ✅ `13-8-2026` for `nl-NL` |
+
+So Hermes' own `Features.md`, FormatJS and Lingui were right, and **Expo's general
+"you can use the `Intl` API on all platforms" is wrong** for these two. The sibling
+question below about date formatting is answered in the same pass: the OS-backed
+formatters are genuinely fine, so the 8 `toLocale*` call sites across `src/` are safe.
+
+**And it is a crash, not a cosmetic bug.** `core.ts`:53 does
+`new Intl.PluralRules(locale).select(count)` with no guard and no `try`/`catch`, so on
+Hermes it is a `TypeError` and a red screen — not a wrong plural form. gather calls
+`plural()` in **11 places** — `src/lib/groupActivity.ts` (2, the "n minutes ago"
+activity line), `src/lib/babyDate.ts` (4), and five components. Only `groupActivity.ts`
+is shell code; the other nine sit behind modules that ship as placeholders in v1. So the
+mobile shell may render zero plurals and the landmine still detonates on whoever first
+shows an activity timestamp.
+
+**The decision: mobile owns `plural()` and never touches `Intl`.**
+
+`plural()`'s API is **two-form by construction** — its own JSDoc says "Assumes one/other
+CLDR categories", and its body is `category === 'one' ? forms.one : forms.other`. It uses
+a full CLDR plural engine to compute a boolean. For English and Dutch, CLDR's `one` rule
+is identical (`i = 1 and v = 0`), so that boolean is exactly `count === 1`:
+
+```ts
+// apps/mobile's own i18n core — no @appelent/i18n dependency, no polyfill
+export function plural<L extends string>(
+  _locale: L,
+  count: number,
+  forms: { one: string; other: string },
+): string {
+  return fmt(count === 1 ? forms.one : forms.other, { count })
+}
+```
+
+Zero new dependencies, zero bundle cost, and nothing to sequence before first render —
+which matters, because `expo-router/entry` is not a file the app owns, so a polyfill
+import would have meant introducing a custom entry just to hold it. This is **permanent
+native code, not a shim**: `apps/mobile` takes no dependency on `@appelent/i18n` at all,
+so there is nothing for it to retire into.
+
+The cost is honest: `count === 1` is wrong for a locale whose `one` category is not
+`n === 1` — French (`0` and `1`), or any language with more than two categories, which
+this API could not express anyway. gather has en and nl and the rule holds for both.
+
+**`plural()` hard-throwing is separately a bug in `@appelent/i18n`**, independent of
+Hermes: a formatting helper should degrade on a missing platform API, not take the render
+down with it. The agreed fix is a feature-detect falling back to the same `count === 1`
+rule — the web then pays one `typeof` that always passes and ships no polyfill. Filed on
+the catalog rather than applied here, following the precedent ADR-0014 set: the cost is
+not the six lines, it is the release, and gather no longer hits the bug.
+
+**For the record, the polyfill that was rejected** — should a future Appelent app need
+real CLDR on Hermes, this is the shape, and the two details that are easy to get wrong.
+`@formatjs/intl-pluralrules` requires `Intl.getCanonicalLocales` and `Intl.Locale` (or
+their polyfills) as prerequisites, and `/polyfill-force` rather than `/polyfill` is
+specifically recommended for RN because "the polyfill conditional detection code runs
+very slowly on Android and can slow down your app's startup time by seconds."
+
+```ts
+// rejected for gather — three packages and a custom entry, to compute a boolean
+import '@formatjs/intl-getcanonicallocales/polyfill-force'
+import '@formatjs/intl-locale/polyfill-force'
+import '@formatjs/intl-pluralrules/polyfill-force'
+import '@formatjs/intl-pluralrules/locale-data/en'
+import '@formatjs/intl-pluralrules/locale-data/nl'
+```
+
+**`Intl.RelativeTimeFormat` is also missing, and gather does not use it** — zero
+references across `src/`, `convex/` and the package. Recorded so nobody re-measures it,
+and so anyone reaching for relative-time formatting on the phone knows it needs a
+polyfill first.
+
+---
+
+<details>
+<summary>The original prediction, kept for the reasoning that got it right</summary>
+
+The sources disagreed:
 
 - **Expo's localization guide** says flatly: "If you're using Hermes in your app, you can
   use the `Intl` API on all platforms."
@@ -320,45 +401,20 @@ The sources disagree:
   "`Intl.Locale` using `@formatjs/intl-locale`" and "`Intl.PluralRules` using
   `@formatjs/intl-pluralrules`."
 
-Three independent sources say it is missing; one general Expo statement implies it is
-present. **Weight of evidence says the polyfill is needed.** Expo's sentence is a broad
-reassurance about `Intl` as a whole, and the specific sources beat the general one.
+Three independent sources said it was missing; one general Expo statement implied it was
+present. **Weight of evidence said the polyfill was needed** — the specific sources beat
+the general one, and on the *fact* they were right. Where this reasoning fell short was
+in treating "the API is absent" as settling "therefore polyfill it", without reading what
+`plural()` actually needed the API for.
 
-**Do not resolve this from documentation. It is a one-line experiment.** On the Android
-emulator the map already calls for, evaluate:
-
-```js
-new Intl.PluralRules('nl').select(2) // expect 'other'
-new Intl.PluralRules('nl').select(1) // expect 'one'
-typeof Intl.PluralRules              // expect 'function'
-```
-
-If it throws or `Intl.PluralRules` is undefined, the fix is known and small:
-
-```ts
-// at the very top of apps/mobile's entry, before anything reads Intl
-import '@formatjs/intl-getcanonicallocales/polyfill-force'
-import '@formatjs/intl-locale/polyfill-force'
-import '@formatjs/intl-pluralrules/polyfill-force'
-import '@formatjs/intl-pluralrules/locale-data/en'
-import '@formatjs/intl-pluralrules/locale-data/nl'
-```
-
-Two details from FormatJS's docs that are easy to get wrong: `intl-pluralrules` requires
-`Intl.getCanonicalLocales` and `Intl.Locale` (or their polyfills) as prerequisites, and
-`/polyfill-force` rather than `/polyfill` is specifically recommended for RN because "The
-polyfill conditional detection code runs very slowly on Android and can slow down your
-app's startup time by seconds." Loading only the `en` and `nl` locale data keeps the
-bundle cost down — the full set covers 700+ locales, and gather needs two.
-
-**The same question applies to date formatting, and probably has a happier answer.**
+**The same question applied to date formatting, and had the happier answer predicted.**
 `src/lib/groupActivity.ts`:106 and `src/lib/babyDate.ts`:70,80 call
 `toLocaleDateString(locale, …)` / `toLocaleString(locale, …)` — i.e. `Intl.DateTimeFormat`.
-That *is* a formatter, so it is exactly what the OS-backed implementation covers, and it
-is far more likely to work unpolyfilled. Test it in the same emulator pass rather than
-assuming: `new Date().toLocaleDateString('nl', { weekday: 'short' })` should give a Dutch
-weekday, not an English one. Silently falling back to English formatting is the failure
-mode to watch for, because it does not throw.
+That *is* a formatter, so it is exactly what the OS-backed implementation covers. The
+failure mode to have watched for was silent English rather than a throw; it did not
+occur.
+
+</details>
 
 Sources: [FormatJS intl-pluralrules](https://formatjs.github.io/docs/polyfills/intl-pluralrules/),
 [Hermes Features.md](https://github.com/facebook/hermes/blob/main/doc/Features.md),
@@ -378,7 +434,7 @@ Sources: [FormatJS intl-pluralrules](https://formatjs.github.io/docs/polyfills/i
 | `src/lib/i18n/messages/nl/*.ts` (10 files) | Same. |
 | `src/lib/modules.ts` | Zero imports; `as const satisfies`; icon is a string name. |
 | `@appelent/i18n`'s `core.ts` exports — `isLocale`, `resolveLocale`, `fmt` | Pure functions, no globals. |
-| `@appelent/i18n`'s `plural` | Pure — but see the `Intl.PluralRules` finding. |
+| `@appelent/i18n`'s `plural` | **Does not cross** — throws on Hermes. Reimplemented natively; see finding 4. |
 | `useI18n`, `useMessages` | `useContext` only. Portable *if* the native app keeps `createI18n`'s context; moot under option (1). |
 
 That is **2,536 lines of message tree** plus the registry, crossing with no rewrite.
@@ -445,11 +501,11 @@ Five facts this ticket establishes that #143 should take as given:
 
 ## Open, and how to close it
 
-- **`Intl.PluralRules` on Hermes.** Evidence points to "polyfill needed", sources
-  conflict, and it is a five-minute check on the Android emulator. Do it in the first
-  session that has an emulator running; do not carry the assumption further.
-- **`Intl.DateTimeFormat` locale fidelity on Hermes.** Likely fine (OS-backed), but its
-  failure mode is silent English rather than a throw. Check in the same pass.
+- ~~**`Intl.PluralRules` on Hermes.**~~ **Closed.** Measured in #136: missing. Decided in
+  [#150](https://github.com/AppElent/gather/issues/150): mobile reimplements `plural()`
+  as `count === 1`, no polyfill. See finding 4.
+- ~~**`Intl.DateTimeFormat` locale fidelity on Hermes.**~~ **Closed.** Measured in #136:
+  correct for `nl-NL`, as predicted. The 8 `toLocale*` call sites are safe.
 - **Async vs sync storage hydration.** Resolved *if* `expo-sqlite/kv-store`'s
   `getItemSync()` is used. If something else is chosen, the first-paint-flash question
   the root route's loader comment already worried about comes back, and needs an answer.
