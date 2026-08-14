@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./appearance": "./src/appearance.ts",
     "./domain": "./src/domain.ts",
     "./groups": "./src/groups.ts",
     "./i18n": "./src/i18n.ts",

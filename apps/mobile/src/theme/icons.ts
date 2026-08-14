@@ -25,6 +25,7 @@ import Check from 'lucide-react-native/icons/check'
 import ChefHat from 'lucide-react-native/icons/chef-hat'
 import ChevronDown from 'lucide-react-native/icons/chevron-down'
 import ChevronLeft from 'lucide-react-native/icons/chevron-left'
+import ChevronRight from 'lucide-react-native/icons/chevron-right'
 import CircleAlert from 'lucide-react-native/icons/circle-alert'
 import Eye from 'lucide-react-native/icons/eye'
 import EyeOff from 'lucide-react-native/icons/eye-off'
@@ -33,6 +34,7 @@ import ListChecks from 'lucide-react-native/icons/list-checks'
 import NotebookPen from 'lucide-react-native/icons/notebook-pen'
 import Receipt from 'lucide-react-native/icons/receipt'
 import Refrigerator from 'lucide-react-native/icons/refrigerator'
+import Settings from 'lucide-react-native/icons/settings'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
 import Wallet from 'lucide-react-native/icons/wallet'
 import Wine from 'lucide-react-native/icons/wine'
@@ -62,7 +64,9 @@ export const UI_ICONS = {
   Check,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   CircleAlert,
   Eye,
   EyeOff,
+  Settings,
 } satisfies Record<string, LucideIcon>

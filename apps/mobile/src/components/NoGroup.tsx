@@ -6,28 +6,41 @@
  * reached after `GroupProvider`'s grace period, so it means "you are in no
  * Group", never "the list has not arrived".
  *
- * It offers no way out yet, on purpose: creating and joining a Group on the
- * phone is #164's, and inventing a second create surface here would be a
- * second thing to keep in step with it. What it does instead is say what has
- * happened and name the one place that can currently fix it.
+ * It used to offer no way out but the web, because the phone had no way to make
+ * a Group. From #164 it renders the same `GroupForms` the Groups screen does —
+ * the same component, not a second create surface to keep in step — so the one
+ * screen where somebody has nothing else to do is the one screen that can fix
+ * itself. Creating or joining makes `myGroups` non-empty, and the provider
+ * replaces this with the shell on the next answer.
+ *
+ * The scroll view is not decoration: two forms and a keyboard do not fit on a
+ * small phone, and a create button under the fold is the same dead end in a
+ * different disguise.
  */
-import { StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useI18n } from '../i18n'
 import { useTokens } from '../theme/tokens'
 import { useHideSplash } from '../useHideSplash'
 import { AuthButton } from './AuthButton'
+import { GroupForms } from './GroupForms'
 
 export function NoGroup({ onSignOut }: { onSignOut: () => void }) {
   const tokens = useTokens()
   const { t } = useI18n()
+  const insets = useSafeAreaInsets()
   const onLayout = useHideSplash()
 
   return (
-    <SafeAreaView
+    <ScrollView
       onLayout={onLayout}
-      style={[styles.wrap, { backgroundColor: tokens.bg }]}
+      style={{ backgroundColor: tokens.bg }}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 16 },
+      ]}
+      keyboardShouldPersistTaps="handled"
     >
       <View style={styles.body}>
         <Text
@@ -41,18 +54,20 @@ export function NoGroup({ onSignOut }: { onSignOut: () => void }) {
         </Text>
       </View>
 
+      <GroupForms />
+
       <AuthButton
         variant="secondary"
         label={t.signedIn.signOut}
         onPress={onSignOut}
       />
-    </SafeAreaView>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, paddingHorizontal: 24, paddingBottom: 12 },
-  body: { flex: 1, justifyContent: 'center', gap: 10 },
+  content: { paddingHorizontal: 24, gap: 20 },
+  body: { gap: 10 },
   heading: { fontSize: 27, fontWeight: '700', letterSpacing: -0.5 },
   text: { fontSize: 15, lineHeight: 22 },
 })

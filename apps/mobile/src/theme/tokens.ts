@@ -10,7 +10,8 @@
  */
 
 import { MODULE_TINTS, type ModuleGroup } from '@gather/core/module-tints'
-import { useColorScheme } from 'react-native'
+
+import { useAppearance } from './appearance'
 
 export type { ModuleGroup }
 
@@ -57,9 +58,14 @@ const DANGER = { light: '#a4372c', dark: '#f0917f' } as const
  * learns why its accent is teal. The front door belongs to no Module, so it
  * calls this with no group and gets ink — which is the accent rule, not a
  * default.
+ *
+ * The scheme comes from `useAppearance()` rather than from `useColorScheme()`
+ * directly, because from #164 the device is only one of the two things that can
+ * decide it: a Member who chose dark on a light phone is in dark everywhere,
+ * and a call site must not be able to reach past that choice to the device's.
  */
 export function useTokens(group?: ModuleGroup): Tokens {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light'
+  const { scheme } = useAppearance()
   const base = BASE[scheme]
   return {
     scheme,

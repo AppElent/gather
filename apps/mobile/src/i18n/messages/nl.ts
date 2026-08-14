@@ -57,6 +57,43 @@ export const nl = {
       shared: coreNl.shell.groupSwitcher.shared,
       current: 'Huidige Groep',
     },
+
+    groups: {
+      ...coreNl.shell.groups,
+      intro:
+        'De huishoudens waar je in zit. Op Home wissel je tussen Groepen; hieronder begin je er een of doe je mee met die van iemand anders.',
+    },
+
+    openSettings: coreNl.shell.nav.settings,
+  },
+
+  settings: {
+    title: coreNl.settings.title,
+
+    language: coreNl.settings.language,
+
+    appearance: {
+      title: 'Weergave',
+      description:
+        'Hoe Gather er op deze telefoon uitziet. Dit wordt hier onthouden en niet bij je account, dus het is in elke Groep hetzelfde en gaat niet mee naar een ander apparaat.',
+      // "Systeem" is what iOS and Android both call it in their own Dutch, so
+      // it is the word somebody has already read on the setting this follows.
+      modes: {
+        light: 'Licht',
+        system: 'Systeem',
+        dark: 'Donker',
+      },
+      choose: 'Weergave: {mode}',
+    },
+
+    account: coreNl.shell.routes.account.title,
+    groups: coreNl.shell.groups.title,
+  },
+
+  account: {
+    title: coreNl.shell.routes.account.title,
+    managedOnWeb:
+      'Je naam, e-mailadres en wachtwoord beheer je in Gather op het web.',
   },
 
   social: {
@@ -139,7 +176,7 @@ export const nl = {
     loading: coreNl.common.errors.loading,
     noneTitle: 'Je zit nog niet in een Groep',
     noneBody:
-      'Gather maakt bij je eerste keer inloggen een persoonlijke Groep voor je. Blijft dit staan, open Gather dan op het web om er een aan te maken of aan mee te doen.',
+      'Gather maakt bij je eerste keer inloggen een persoonlijke Groep voor je. Blijft dit staan, begin er dan hieronder een of doe mee met die van iemand anders met hun uitnodigingscode.',
   },
 
   signedIn: {

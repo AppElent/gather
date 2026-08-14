@@ -30,7 +30,6 @@ import { ClerkProvider, useAuth } from '@clerk/expo'
 import { tokenCache } from '@clerk/expo/token-cache'
 import Constants, { ExecutionEnvironment } from 'expo-constants'
 import { Stack } from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
 import * as SplashScreen from 'expo-splash-screen'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
@@ -38,6 +37,8 @@ import { AuthUnavailable } from '../src/components/AuthUnavailable'
 import { publishableKey } from '../src/auth/config'
 import { AppConvexProvider } from '../src/convex/provider'
 import { LocaleProvider } from '../src/i18n'
+import { AppearanceProvider } from '../src/theme/appearance'
+import { NativeChrome } from '../src/theme/NativeChrome'
 
 /** How long a held splash is patience, after which it is a hang. */
 const SPLASH_TIMEOUT_MS = 4000
@@ -59,20 +60,30 @@ if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
 
 export default function RootLayout() {
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      {/* Above the router, like Clerk itself: the client holds one websocket
-          and its authentication follows the session, so it must not be torn
-          down and rebuilt as screens come and go. Signed-out screens simply
-          never query. */}
-      <AppConvexProvider>
-        <LocaleProvider>
-          <SafeAreaProvider>
-            <RootNavigator />
-            <StatusBar style="auto" />
-          </SafeAreaProvider>
-        </LocaleProvider>
-      </AppConvexProvider>
-    </ClerkProvider>
+    // Both outside Clerk on purpose, and the nesting is the enforcement rather
+    // than a comment about it: appearance and language are properties of this
+    // phone, held locally, and have to keep working when the service does not —
+    // including on the Unavailable gate below, which is drawn in the scheme and
+    // the language its reader chose rather than the ones their device implies.
+    // Neither provider reads a session or a query, so neither can be put back
+    // inside one without something below it breaking first.
+    <AppearanceProvider>
+      <LocaleProvider>
+        <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+          {/* Above the router, like Clerk itself: the client holds one websocket
+              and its authentication follows the session, so it must not be torn
+              down and rebuilt as screens come and go. Signed-out screens simply
+              never query. */}
+          <AppConvexProvider>
+            <SafeAreaProvider>
+              <NativeChrome>
+                <RootNavigator />
+              </NativeChrome>
+            </SafeAreaProvider>
+          </AppConvexProvider>
+        </ClerkProvider>
+      </LocaleProvider>
+    </AppearanceProvider>
   )
 }
 

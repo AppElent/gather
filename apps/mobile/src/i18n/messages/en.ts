@@ -1,3 +1,4 @@
+import type { AppearancePreference } from '@gather/core/appearance'
 import { en as coreEn } from '@gather/core/messages'
 
 /**
@@ -77,6 +78,79 @@ export const en = {
       /** Marks the row you are already in, for a reader who cannot see the tick. */
       current: 'Current group',
     },
+
+    /** The Groups screen: the households you are in, and the two ways to get another. */
+    groups: {
+      ...coreEn.shell.groups,
+      /**
+       * The one string here that is *not* the web's. The web's intro says
+       * "Open one to change its name, share its invite code, or leave it" —
+       * three things the phone cannot do and one, switching, that it does
+       * somewhere else entirely (ADR-0015: on Home). Shared words stop being
+       * shared the moment they describe a surface the other client does not
+       * have.
+       */
+      intro:
+        'The households you are in. Home is where you switch between them; start another one or join somebody else’s below.',
+    },
+
+    /** The way into the utility surfaces that sit above the tabs. */
+    openSettings: coreEn.shell.nav.settings,
+  },
+
+  /**
+   * Settings, which on the phone is where every preference that is about *you*
+   * rather than about a Group lives, plus the way on to Account and Groups.
+   *
+   * Language is the web's own words: the sentence explaining that Gather's
+   * chrome is translated and your content is not is the same promise on both
+   * clients, and ADR-0017 says a second vocabulary for it would be the failure.
+   *
+   * Appearance is not, and cannot be. The web's control comes from
+   * `@appelent/auth`, which is React-DOM only, hardcodes its copy in English,
+   * and calls the third option "Auto"; none of that crosses. The phone writes
+   * its own three words and uses the platform's — see
+   * `@gather/core/appearance` for why the stored token is `system`.
+   */
+  settings: {
+    title: coreEn.settings.title,
+
+    language: coreEn.settings.language,
+
+    appearance: {
+      title: 'Appearance',
+      description:
+        'How Gather looks on this phone. It is remembered here rather than on your account, so it is the same in every group and does not follow you to another device.',
+      /**
+       * Keyed by the preference union, so adding a fourth appearance without
+       * naming it is a type error rather than a blank button.
+       */
+      modes: {
+        light: 'Light',
+        system: 'System',
+        dark: 'Dark',
+      } satisfies Record<AppearancePreference, string>,
+      /** The accessible name of a mode button; `{mode}` is one of the three above. */
+      choose: 'Appearance: {mode}',
+    },
+
+    /** The rows out of Settings, each named for where it lands. */
+    account: coreEn.shell.routes.account.title,
+    groups: coreEn.shell.groups.title,
+  },
+
+  /**
+   * Who you are, and the way out.
+   *
+   * Deliberately read-only. Clerk can change a name or a password from the
+   * phone, but a native profile editor is not this shell's job (#159 keeps v1
+   * to the shell), and an editable-looking field that does nothing would be
+   * worse than saying where it can be done.
+   */
+  account: {
+    title: coreEn.shell.routes.account.title,
+    managedOnWeb:
+      'Your name, email address and password are managed in Gather on the web.',
   },
 
   /**
@@ -175,23 +249,21 @@ export const en = {
    * The ambient Group (ADR-0015) while it is being established, and the one
    * signed-in state where there is none to establish.
    *
-   * `noneBody` names the web deliberately. Creating and joining a Group on the
-   * phone is #164's, and until it exists the honest answer is where it can
-   * actually be done.
+   * `noneBody` used to send people to the web, because the phone had no way to
+   * make a Group. It has one from #164, and the same two forms the Groups
+   * screen uses are rendered directly under this — a dead end that names
+   * another client is not an answer when the answer is on screen.
    */
   group: {
     loading: coreEn.common.errors.loading,
     noneTitle: 'You are not in a group yet',
     noneBody:
-      'Gather makes you a personal group the first time you sign in. If this stays here, open Gather on the web to create or join one.',
+      'Gather makes you a personal group the first time you sign in. If this stays here, start one below or join somebody else’s with their invite code.',
   },
 
   /**
-   * Who you are, and the way out.
-   *
-   * Both sit on Home only until #164 gives the shell an Account destination
-   * above the tabs; sign-out has to stay reachable in the meantime, because a
-   * shell you cannot leave is not something to hand to a tester.
+   * Who you are, and the way out. Both live on Account, above the tabs — they
+   * sat on Home until #164 gave the shell somewhere for them.
    */
   signedIn: {
     /** `{email}` is the signed-in account. */

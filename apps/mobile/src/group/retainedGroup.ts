@@ -1,57 +1,41 @@
 /**
  * Where the phone remembers which Group it was last in.
  *
- * **Local, and synchronous.** Local because a Group stored on the `users` row is
- * the model ADR-0002 deleted, and would let the phone silently change what the
- * web's shell defaults to; synchronous because the first frame after a cold
- * start has to be drawn in the right Group, and an awaited read means a frame in
- * the wrong one. `expo-sqlite/kv-store` is the store #140 chose for the locale
- * for exactly that property, so there is one persistence mechanism here rather
- * than two.
+ * The store itself, and why it is local and synchronous, is
+ * `prefs/localPreference.ts` — the retained Group was the first of the three
+ * preferences that live there, and appearance and language joined it in #164
+ * rather than each bringing its own persistence.
  *
- * Best-effort in both directions: a store that will not open is a phone that
- * forgets where it was, which is a fallback (ADR-0015), not an error.
- *
- * The `try` blocks cover reading and writing, not the import. `expo-sqlite` is a
- * native module, so a client whose native side predates it throws on load and
- * there is no handler that could catch that — **the dev client has to be rebuilt
- * for this dependency**, exactly as it did for `expo-secure-store`. Expo Go
- * bundles it already.
- *
- * What is stored is a *slug*, not an id. It is the same thing the web's address
- * bar carries, so a deep link and a retained selection say the Group the same
- * way, and it is legible in a debugger.
+ * What is left here is the part that is about a Group: what is stored is a
+ * *slug*, not an id. It is the same thing the web's address bar carries, so a
+ * deep link and a retained selection say the Group the same way, and it is
+ * legible in a debugger.
  */
-import Storage from 'expo-sqlite/kv-store'
-
-const KEY = 'gather:group:retained'
+import {
+  clearPreference,
+  PREFERENCE_KEYS,
+  readPreference,
+  writePreference,
+} from '../prefs/localPreference'
 
 /** The slug the app was last in, or null if it has never been anywhere. */
 export function readRetainedGroup(): string | null {
-  try {
-    return Storage.getItemSync(KEY)
-  } catch {
-    return null
-  }
+  return readPreference(PREFERENCE_KEYS.group)
 }
 
 export function writeRetainedGroup(slug: string) {
-  try {
-    Storage.setItemSync(KEY, slug)
-  } catch {
-    // ignore — the next launch just lands on the landing Group
-  }
+  writePreference(PREFERENCE_KEYS.group, slug)
 }
 
 /**
  * Forget the retained Group. Sign-out's job: the next person to sign in on this
  * phone must not open in the last person's household, and a slug that is not
  * theirs would be rejected on read anyway — silently, and one round-trip late.
+ *
+ * Appearance and language are deliberately *not* forgotten with it. They are
+ * properties of the phone rather than of the account, and somebody signing back
+ * in should not have to set the app dark again.
  */
 export function clearRetainedGroup() {
-  try {
-    Storage.removeItemSync(KEY)
-  } catch {
-    // ignore — a stale slug is validated against the Member's Groups on read
-  }
+  clearPreference(PREFERENCE_KEYS.group)
 }

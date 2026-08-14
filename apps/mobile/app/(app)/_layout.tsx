@@ -17,9 +17,16 @@
  *
  * The tab bar is fixed and stable across Groups (ADR-0015), so anything that is
  * *not* one of the five destinations has to sit somewhere else — and the native
- * answer is above them, in this stack. The Group switcher is the first such
- * surface; Settings, Account and Groups join it here in #164. They get native
- * push and back behaviour and never compete with the bar.
+ * answer is above them, in this stack. The Group switcher was the first such
+ * surface; Settings, Account and Groups joined it in #164. They get native push
+ * and back behaviour and never compete with the bar.
+ *
+ * The three pushed screens are the only ones in the app with a native header,
+ * and they are declared here rather than in each screen so that the titles read
+ * as one list. They are `headerShown` because a pushed screen needs the
+ * platform's back affordance; the tabs are not, because each of those draws its
+ * own heading and a native header above it would title the same thing twice.
+ * Their colours come from `NativeChrome`'s navigation theme, not from here.
  *
  * `anchor` is the part that is not obvious. A `Stack` takes its initial route
  * from the first screen it is *told* about, so without this the app opens on
@@ -33,6 +40,7 @@ import { GroupPending } from '../../src/components/GroupPending'
 import { NoGroup } from '../../src/components/NoGroup'
 import { useEnsureUser } from '../../src/convex/useEnsureUser'
 import { GroupProvider } from '../../src/group/GroupProvider'
+import { useI18n } from '../../src/i18n'
 import { useTokens } from '../../src/theme/tokens'
 
 export const unstable_settings = { anchor: '(tabs)' }
@@ -40,6 +48,7 @@ export const unstable_settings = { anchor: '(tabs)' }
 export default function AppLayout() {
   const { isSignedIn } = useAuth()
   const tokens = useTokens()
+  const { t } = useI18n()
   const signOut = useSignOut()
 
   // Before any of the below can find a Group, there has to be a Member to have
@@ -70,6 +79,18 @@ export default function AppLayout() {
             sheetAllowedDetents: [0.55, 1],
             sheetGrabberVisible: true,
           }}
+        />
+        <Stack.Screen
+          name="settings"
+          options={{ headerShown: true, title: t.settings.title }}
+        />
+        <Stack.Screen
+          name="account"
+          options={{ headerShown: true, title: t.account.title }}
+        />
+        <Stack.Screen
+          name="groups"
+          options={{ headerShown: true, title: t.shell.groups.title }}
         />
       </Stack>
     </GroupProvider>

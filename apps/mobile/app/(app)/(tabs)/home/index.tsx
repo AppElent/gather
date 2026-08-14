@@ -10,15 +10,19 @@
  *
  * Home is deliberately not the catalogue. The Group's shared surface — the
  * Pins strip and the activity it has seen — is #163's; what is here now is the
- * orientation the Group switch needs to be observable, plus the way out of the
- * app until #164 gives Account a home above the tabs.
+ * orientation the Group switch needs to be observable.
+ *
+ * Beside the Group's name is the one way into everything that is not a Module
+ * and not a Group: Settings, and through it Account and Groups (#164). One
+ * entrance rather than three, because the header has room for the Group and one
+ * more thing, and because Settings is what somebody is looking *for* when they
+ * are not looking for a Module.
  *
  * It also hides the splash: on a cold start with a retained session this is the
  * first screen mounted.
  */
 import { moduleText } from '@gather/core/modules'
 import { pinnedModules } from '@gather/core/pins'
-import { useUser } from '@clerk/expo'
 import { useQuery } from 'convex/react'
 import { router } from 'expo-router'
 import {
@@ -31,8 +35,6 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { useSignOut } from '../../../../src/auth/useSignOut'
-import { AuthButton } from '../../../../src/components/AuthButton'
 import { api } from '../../../../../../convex/_generated/api'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
@@ -44,15 +46,13 @@ export default function Home() {
   const tokens = useTokens()
   const { t } = useI18n()
   const insets = useSafeAreaInsets()
-  const signOut = useSignOut()
-  const { user } = useUser()
   const { group } = useGroup()
   const onLayout = useHideSplash()
   const pins = useQuery(api.users.myPins, { groupSlug: group.slug })
   const pinned = pins === undefined ? null : pinnedModules(pins ?? undefined)
 
   const ChevronDown = UI_ICONS.ChevronDown
-  const email = user?.primaryEmailAddress?.emailAddress ?? ''
+  const SettingsIcon = UI_ICONS.Settings
 
   return (
     <ScrollView
@@ -63,25 +63,40 @@ export default function Home() {
         { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 },
       ]}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={fmt(t.shell.home.switchFrom, {
-          group: group.name,
-          action: t.shell.switcher.action,
-        })}
-        onPress={() => router.push('/switch-group')}
-        hitSlop={8}
-        style={({ pressed }) => [styles.groupButton, pressed && styles.pressed]}
-      >
-        <Text
-          accessibilityRole="header"
-          numberOfLines={1}
-          style={[styles.groupName, { color: tokens.fg }]}
+      <View style={styles.header}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={fmt(t.shell.home.switchFrom, {
+            group: group.name,
+            action: t.shell.switcher.action,
+          })}
+          onPress={() => router.push('/switch-group')}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.groupButton,
+            pressed && styles.pressed,
+          ]}
         >
-          {group.name}
-        </Text>
-        <ChevronDown size={22} color={tokens.muted} />
-      </Pressable>
+          <Text
+            accessibilityRole="header"
+            numberOfLines={1}
+            style={[styles.groupName, { color: tokens.fg }]}
+          >
+            {group.name}
+          </Text>
+          <ChevronDown size={22} color={tokens.muted} />
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.shell.openSettings}
+          onPress={() => router.push('/settings')}
+          hitSlop={10}
+          style={({ pressed }) => [styles.settings, pressed && styles.pressed]}
+        >
+          <SettingsIcon size={23} color={tokens.muted} strokeWidth={1.8} />
+        </Pressable>
+      </View>
 
       <Text style={[styles.subtitle, { color: tokens.muted }]}>
         {group.isPersonal
@@ -132,24 +147,17 @@ export default function Home() {
           </View>
         )}
       </View>
-
-      <View style={styles.footer}>
-        <Text style={[styles.account, { color: tokens.muted }]}>
-          {fmt(t.signedIn.as, { email })}
-        </Text>
-        <AuthButton
-          variant="secondary"
-          label={t.signedIn.signOut}
-          onPress={signOut}
-        />
-      </View>
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, gap: 6 },
-  groupButton: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  // `flexShrink` on the name and `flex: 1` here are what let a long Group name
+  // truncate instead of pushing the gear off the screen.
+  groupButton: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2 },
+  settings: { padding: 4 },
   pressed: { opacity: 0.7 },
   groupName: {
     flexShrink: 1,
@@ -171,6 +179,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   pinLabel: { fontSize: 16, fontWeight: '700' },
-  footer: { marginTop: 32, gap: 12 },
-  account: { fontSize: 13 },
 })
