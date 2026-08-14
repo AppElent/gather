@@ -1,7 +1,7 @@
+import { MODULES } from '@gather/core/modules'
 import { describe, expect, test } from 'vitest'
 import { groupSurfaceForModule } from './groupPaths'
 import { legacyTarget } from './legacyPaths'
-import { MODULES } from './modules'
 
 /**
  * Every address the app used to answer to, and where it answers from now.

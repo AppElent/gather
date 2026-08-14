@@ -1,6 +1,6 @@
+import type { Messages } from '@gather/core/messages'
 import type { Doc } from '../../convex/_generated/dataModel'
 import { fmt } from './i18n'
-import type { Messages } from './i18n/messages/en'
 
 /**
  * The words this file needs. Passed in rather than read from a hook: the

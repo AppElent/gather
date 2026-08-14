@@ -1,7 +1,4 @@
-import type {
-  NutrientKey,
-  NutritionSource,
-} from '../../../../../convex/lib/nutrition'
+import type { NutrientKey, NutritionSource } from '../../domain'
 
 /**
  * The nutrient names, shared by Recipes, Nutrition and Foods.

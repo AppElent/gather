@@ -1,5 +1,6 @@
 packages:
   - "apps/*"
+  - "packages/*"
 
 # pnpm 11 default-denies install/build lifecycle scripts (neutralizes the
 # postinstall-RCE vector supply-chain worms rely on). Only packages that

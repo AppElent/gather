@@ -12,16 +12,17 @@
  * worse promise than a tile that plainly is not, and there is nothing behind it
  * to tap into until you are signed in.
  */
+
+import { MODULE_GROUPS, MODULES } from '@gather/core/modules'
 import { StyleSheet, Text, View } from 'react-native'
 
-import { CATALOGUE, type CatalogueEntry, GROUP_ORDER } from '../catalogue'
 import { useI18n } from '../i18n'
 import { MODULE_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
 
 /** Group order, so the four tints read as four bands rather than confetti. */
-const ORDERED: readonly CatalogueEntry[] = GROUP_ORDER.flatMap((group) =>
-  CATALOGUE.filter((entry) => entry.group === group),
+const ORDERED: readonly (typeof MODULES)[number][] = MODULE_GROUPS.flatMap(
+  (group) => MODULES.filter((module) => module.group === group),
 )
 
 export function CatalogueStrip() {
@@ -44,7 +45,7 @@ export function CatalogueStrip() {
           >
             <Icon size={14} color={tint.fg} strokeWidth={1.9} />
             <Text style={[styles.chipLabel, { color: tint.fg }]}>
-              {t.modules.byId[entry.id]}
+              {t.modules.byId[entry.id].label}
             </Text>
           </View>
         )
@@ -72,7 +73,7 @@ export function CatalogueGrid() {
               numberOfLines={2}
               style={[styles.tileLabel, { color: tint.fg }]}
             >
-              {t.modules.byId[entry.id]}
+              {t.modules.byId[entry.id].label}
             </Text>
           </View>
         )

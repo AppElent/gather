@@ -1,8 +1,14 @@
 import { v } from 'convex/values'
+import {
+  MEAL_NAMES,
+  QUANTITY_UNITS,
+  type MealName,
+  type QuantityUnit,
+} from '@gather/core/domain'
 import { NUTRIENT_KEYS, type NutritionFacts } from './nutrition'
 
-export const MEAL_NAMES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
-export type MealName = (typeof MEAL_NAMES)[number]
+export { MEAL_NAMES, QUANTITY_UNITS }
+export type { MealName, QuantityUnit }
 
 export const mealValidator = v.union(
   v.literal('breakfast'),
@@ -15,9 +21,6 @@ export const mealValidator = v.union(
 // translated, and they now live in each locale's `nutrition.ts` under
 // `src/lib/i18n/messages/` keyed by `MealName` (ADR-0011). No Convex function
 // ever read them; three client components did.
-
-export const QUANTITY_UNITS = ['serving', 'g', 'ml', 'piece'] as const
-export type QuantityUnit = (typeof QUANTITY_UNITS)[number]
 
 export const quantityUnitValidator = v.union(
   v.literal('serving'),

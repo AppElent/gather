@@ -1,0 +1,18 @@
+{
+  "name": "@gather/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./domain": "./src/domain.ts",
+    "./i18n": "./src/i18n.ts",
+    "./messages": "./src/messages.ts",
+    "./module-tints": "./src/moduleTints.ts",
+    "./modules": "./src/modules.ts",
+    "./pins": "./src/pins.ts"
+  },
+  "dependencies": {},
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

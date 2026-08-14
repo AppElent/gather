@@ -13,13 +13,25 @@
  * so the device decides. A toggle belongs in Settings, behind the door.
  */
 
+import {
+  type Locale,
+  resolveLocale,
+  SUPPORTED_LOCALES,
+} from '@gather/core/i18n'
 import { getLocales } from 'expo-localization'
 import { createContext, type ReactNode, use, useMemo } from 'react'
 
 import { en } from './messages/en'
 import { nl } from './messages/nl'
 
-export type Locale = 'en' | 'nl'
+export type { Locale } from '@gather/core/i18n'
+export {
+  fmt,
+  isLocale,
+  plural,
+  resolveLocale,
+  SUPPORTED_LOCALES,
+} from '@gather/core/i18n'
 export type Messages = typeof en
 
 const DICTIONARIES: Record<Locale, Messages> = { en, nl }
@@ -30,17 +42,13 @@ const DICTIONARIES: Record<Locale, Messages> = { en, nl }
  * over a later one we also speak.
  */
 function detectLocale(): Locale {
-  for (const { languageCode } of getLocales()) {
-    if (languageCode === 'nl') return 'nl'
-    if (languageCode === 'en') return 'en'
-  }
-  return 'en'
-}
-
-/** Substitutes `{name}` tokens. A token with no value is left visible on purpose. */
-export function fmt(template: string, values: Record<string, string>): string {
-  return template.replace(/\{(\w+)\}/g, (whole, key: string) =>
-    key in values ? values[key] : whole,
+  return resolveLocale(
+    SUPPORTED_LOCALES,
+    'en',
+    undefined,
+    getLocales()
+      .map(({ languageTag }) => languageTag)
+      .join(','),
   )
 }
 

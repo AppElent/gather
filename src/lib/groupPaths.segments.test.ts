@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { MODULES } from '@gather/core/modules'
 import { describe, expect, test } from 'vitest'
 import { RESERVED_SLUGS } from '../../convex/lib/slugs'
 import {
@@ -8,7 +9,6 @@ import {
   groupSurfaceSegment,
   moduleSegment,
 } from './groupPaths'
-import { MODULES } from './modules'
 
 /**
  * Under `/g/<slug>/` there is one flat namespace of segments, and two things

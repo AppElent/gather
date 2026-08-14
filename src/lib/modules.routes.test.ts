@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { MODULES } from '@gather/core/modules'
 import { describe, expect, test } from 'vitest'
 import { groupSurfaceForModule, moduleSegment } from './groupPaths'
-import { MODULES } from './modules'
 
 /**
  * Every Module is reachable inside a Group, and nowhere else.

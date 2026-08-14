@@ -1,6 +1,5 @@
+import { type ModuleId, moduleById } from '@gather/core/modules'
 import { useMessages } from '../../lib/i18n'
-import type { ModuleId } from '../../lib/modules'
-import { moduleById } from '../../lib/modules'
 import { Icon } from './Icon'
 import { Pill, SurfaceCard } from './ShellPrimitives'
 

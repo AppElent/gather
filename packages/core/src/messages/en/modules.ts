@@ -1,4 +1,4 @@
-import type { ModuleGroup, ModuleId } from '../../../modules'
+import type { ModuleGroup, ModuleId } from '../../modules'
 
 /**
  * What every Module is called and what it is for.

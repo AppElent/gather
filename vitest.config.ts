@@ -43,6 +43,15 @@ export default defineConfig({
           server: { deps: { inline: ['convex-test'] } },
         },
       },
+      {
+        test: {
+          name: 'core',
+          environment: 'node',
+          globals: true,
+          include: ['packages/core/src/**/*.test.ts'],
+          exclude,
+        },
+      },
     ],
   },
 })

@@ -1,3 +1,6 @@
+import { en } from '@gather/core/messages'
+import { MODULES } from '@gather/core/modules'
+import { DEFAULT_PINS } from '@gather/core/pins'
 import { describe, expect, test } from 'vitest'
 import {
   activeNavItemId,
@@ -7,9 +10,6 @@ import {
   jumpTargets,
   navItems,
 } from './appNavigation'
-import { en } from './i18n/messages/en'
-import { MODULES } from './modules'
-import { DEFAULT_PINS } from './pins'
 
 /**
  * The navigation, tested where it lives: one list, and one answer about which

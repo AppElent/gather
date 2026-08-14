@@ -1,5 +1,5 @@
+import { nl } from '@gather/core/messages'
 import { expect, test } from 'vitest'
-import { nl } from '../../lib/i18n/messages/nl'
 import { refusalText } from './SaveAsCombo'
 
 /**

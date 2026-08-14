@@ -9,16 +9,17 @@
  * Dutch, not a re-translation — see the glossary in ADR-0011. "Groep" is
  * capitalised because it is the product's noun, not the generic word.
  */
+
+import { nl as coreNl } from '@gather/core/messages'
 import type { en } from './en'
 
 export const nl = {
-  brand: 'Gather',
+  brand: coreNl.shell.publicFrame.brand,
 
   welcome: {
-    tagline: 'Samen je huishouden regelen',
-    title: 'Eén gedeelde Groep voor het dagelijks regelwerk',
-    subtitle:
-      'Gather houdt gedeelde recepten, plannen, lijsten, taken, notities en proefnotities op één plek, voor de mensen die een huishouden delen.',
+    tagline: coreNl.shell.publicFrame.tagline,
+    title: coreNl.shell.about.title,
+    subtitle: coreNl.shell.about.subtitle,
     catalogueHeading: 'Alles wat een Groep krijgt',
     signIn: 'Inloggen',
     createAccount: 'Account aanmaken',
@@ -26,29 +27,7 @@ export const nl = {
     devBadge: 'Testversie',
   },
 
-  modules: {
-    byId: {
-      recipes: 'Recepten',
-      nutrition: 'Voeding',
-      'meal-planner': 'Maaltijdplanner',
-      groceries: 'Boodschappen',
-      pantry: 'Voorraadkast',
-      finances: 'Financiën',
-      bills: 'Rekeningen & abonnementen',
-      tasks: 'Taken',
-      'baby-log': 'Babylogboek',
-      calendar: 'Agenda',
-      notes: 'Notities',
-      cheeses: 'Kazen',
-      wines: 'Wijnen',
-    },
-    groups: {
-      kitchen: 'Keuken',
-      money: 'Geld',
-      home: 'Huis & leven',
-      tasting: 'Proeven',
-    },
-  },
+  modules: coreNl.modules,
 
   social: {
     heading: 'Of ga verder met',

@@ -1,3 +1,5 @@
+import { en, nl } from '@gather/core/messages'
+import { moduleById } from '@gather/core/modules'
 import { describe, expect, test } from 'vitest'
 import {
   ACTIVITY_MODULE_ID,
@@ -5,9 +7,6 @@ import {
   activityPhrase,
   formatActivityTime,
 } from './groupActivity'
-import { en } from './i18n/messages/en'
-import { nl } from './i18n/messages/nl'
-import { moduleById } from './modules'
 
 /**
  * The client half of an activity entry: which Module it came from, and when.

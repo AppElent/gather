@@ -1,4 +1,4 @@
-import { resolveLocale } from '@appelent/i18n'
+import { resolveLocale } from '@gather/core/i18n'
 import { createServerFn } from '@tanstack/react-start'
 import { getCookie, getRequestHeader } from '@tanstack/react-start/server'
 import { type Locale, SUPPORTED_LOCALES } from './index'

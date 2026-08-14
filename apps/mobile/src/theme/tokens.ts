@@ -5,15 +5,14 @@
  * written in `oklch()`, which React Native's colour parser rejects outright, and
  * nothing here is a port of them anyway: the phone owns its look.
  *
- * The four group tints are transcribed from #144's accepted artefact (direction
- * C), the same values #146's navigation prototype ran with. ADR-0017 puts them
- * in `packages/core/src/moduleTints.ts` so the two clients cannot disagree about
- * them; that package does not exist yet (#143 decided it, nothing has built it),
- * so they live here with this note rather than being invented twice.
+ * The four group tints are shared from `@gather/core/module-tints`, so the two
+ * clients cannot disagree about the catalogue's visual grouping (ADR-0017).
  */
+
+import { MODULE_TINTS, type ModuleGroup } from '@gather/core/module-tints'
 import { useColorScheme } from 'react-native'
 
-export type ModuleGroup = 'kitchen' | 'money' | 'home' | 'tasting'
+export type { ModuleGroup }
 
 const BASE = {
   light: {
@@ -33,22 +32,6 @@ const BASE = {
     muted: '#a2a8a4',
     border: '#2f3431',
     onAccent: '#121413',
-  },
-} as const
-
-/** [tile background, ink on that tile] per group, per scheme. */
-const TINTS = {
-  light: {
-    kitchen: ['#e2f2f0', '#2b7f86'],
-    money: ['#e4efe6', '#2f6a4a'],
-    home: ['#f2ece0', '#8a6a33'],
-    tasting: ['#f0e6ec', '#7d3f5f'],
-  },
-  dark: {
-    kitchen: ['#13302f', '#67cfc8'],
-    money: ['#16301f', '#6ec89a'],
-    home: ['#2e2718', '#d3b477'],
-    tasting: ['#2c1b25', '#d693b3'],
   },
 } as const
 
@@ -81,10 +64,13 @@ export function useTokens(group?: ModuleGroup): Tokens {
   return {
     scheme,
     ...base,
-    accent: group ? TINTS[scheme][group][1] : base.fg,
+    accent: group ? MODULE_TINTS[scheme][group][1] : base.fg,
     onAccent: group ? base.surface : base.onAccent,
     danger: DANGER[scheme],
-    tintOf: (g) => ({ bg: TINTS[scheme][g][0], fg: TINTS[scheme][g][1] }),
+    tintOf: (g) => ({
+      bg: MODULE_TINTS[scheme][g][0],
+      fg: MODULE_TINTS[scheme][g][1],
+    }),
   }
 }
 

@@ -1,3 +1,5 @@
+import { en as coreEn } from '@gather/core/messages'
+
 /**
  * English is the source language (ADR-0011). Every string a signed-out person
  * can see lives here first, and `nl.ts` `satisfies` this object — so a key that
@@ -13,19 +15,14 @@
  * - **Shared words** — `brand`, `welcome.tagline/title/subtitle`, and the whole
  *   of `modules`. These are transcribed from the web's `src/lib/i18n/messages/`
  *   so the two clients make the same promise in the same words.
- *   TODO(#143): move to `packages/core` when it exists, and delete these.
  */
 export const en = {
-  brand: 'Gather',
+  brand: coreEn.shell.publicFrame.brand,
 
   welcome: {
-    /** Web: shell.publicFrame.tagline */
-    tagline: 'Household plans, shared',
-    /** Web: shell.about.title */
-    title: 'One shared group for everyday coordination',
-    /** Web: shell.about.subtitle */
-    subtitle:
-      'Gather keeps shared recipes, plans, lists, tasks, notes, and tasting logs in one place, for the people who share a household.',
+    tagline: coreEn.shell.publicFrame.tagline,
+    title: coreEn.shell.about.title,
+    subtitle: coreEn.shell.about.subtitle,
     catalogueHeading: 'Everything a group gets',
     signIn: 'Sign in',
     createAccount: 'Create an account',
@@ -34,30 +31,7 @@ export const en = {
     devBadge: 'Test build',
   },
 
-  /** Web: modules.byId[*].label and modules.groups. */
-  modules: {
-    byId: {
-      recipes: 'Recipes',
-      nutrition: 'Nutrition',
-      'meal-planner': 'Meal planner',
-      groceries: 'Groceries',
-      pantry: 'Pantry',
-      finances: 'Finances',
-      bills: 'Bills & subscriptions',
-      tasks: 'Tasks',
-      'baby-log': 'Baby log',
-      calendar: 'Calendar',
-      notes: 'Notes',
-      cheeses: 'Cheeses',
-      wines: 'Wines',
-    },
-    groups: {
-      kitchen: 'Kitchen',
-      money: 'Money',
-      home: 'Home & life',
-      tasting: 'Tasting',
-    },
-  },
+  modules: coreEn.modules,
 
   /**
    * Social sign-in, announced before it exists.

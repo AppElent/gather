@@ -122,6 +122,13 @@ internal `seedCatalog` / `seedPreview` entrypoints do not consult it.
 
 ## Internationalization
 
+**Current portable-core layout:** `@gather/core` owns the English and Dutch
+message trees in `packages/core/src/messages/`, plus Gather's pure locale
+helpers. The web's `src/lib/i18n/` owns only the React/web engine wiring. Add
+every new Module's metadata in `packages/core/src/modules.ts` and its names and
+descriptions in both core message trees; the Node-based core test verifies the
+locale trees stay complete and interpolation-compatible.
+
 `@appelent/i18n` supplies the engine; gather owns `src/lib/i18n/` — the
 `messages/{en,nl}/` trees, the root-route wiring, `LanguageToggle` (topbar) and
 `LanguageSettings` (`/settings`). **English is the source language**: a string is

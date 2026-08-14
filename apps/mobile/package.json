@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@gather/core": "workspace:*",
     "@clerk/expo": "^4.2.3",
     "@expo/metro-runtime": "57.0.8",
     "@expo/vector-icons": "^15.0.3",

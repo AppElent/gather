@@ -1,3 +1,4 @@
+import { MODULES } from '@gather/core/modules'
 import { describe, expect, test } from 'vitest'
 import {
   GROUP_MODULE_INDEX_SURFACES,
@@ -8,7 +9,6 @@ import {
   groupSurfaceForModule,
   moduleLink,
 } from './groupPaths'
-import { MODULES } from './modules'
 
 describe('building a Group URL', () => {
   test('gives link options the router can check the route of', () => {

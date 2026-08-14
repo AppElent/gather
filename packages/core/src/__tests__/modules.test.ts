@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { MODULE_GROUPS, MODULES, modulesByGroup } from './modules'
+import { MODULE_GROUPS, MODULES, modulesByGroup } from '../modules'
 
 describe('module registry', () => {
   test('every module has a unique id', () => {

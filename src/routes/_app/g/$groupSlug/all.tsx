@@ -1,3 +1,11 @@
+import type { ModuleDef } from '@gather/core/modules'
+import { MODULE_GROUPS, modulesByGroup, moduleText } from '@gather/core/modules'
+import {
+  movePin,
+  pinnedModuleIds,
+  pinnedModules,
+  togglePin,
+} from '@gather/core/pins'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { ArrowDown, ArrowUp } from 'lucide-react'
@@ -5,17 +13,8 @@ import { api } from '../../../../../convex/_generated/api'
 import { Icon } from '../../../../components/app/Icon'
 import { Pill, SurfaceCard } from '../../../../components/app/ShellPrimitives'
 import type { NavMessages } from '../../../../lib/appNavigation'
-import { moduleText } from '../../../../lib/appNavigation'
 import { moduleLink } from '../../../../lib/groupPaths'
 import { fmt, useMessages } from '../../../../lib/i18n'
-import type { ModuleDef } from '../../../../lib/modules'
-import { MODULE_GROUPS, modulesByGroup } from '../../../../lib/modules'
-import {
-  movePin,
-  pinnedModuleIds,
-  pinnedModules,
-  togglePin,
-} from '../../../../lib/pins'
 
 /**
  * Every Module in this Group, pinned or not.

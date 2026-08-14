@@ -1,3 +1,4 @@
+import { en } from '@gather/core/messages'
 import { describe, expect, test } from 'vitest'
 import {
   combineDateTime,
@@ -5,7 +6,6 @@ import {
   toDateInputValue,
   toTimeInputValue,
 } from './babyDate'
-import { en } from './i18n/messages/en'
 
 const DAY = 24 * 60 * 60 * 1000
 

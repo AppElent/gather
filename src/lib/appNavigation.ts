@@ -13,6 +13,10 @@
  * list back.
  */
 
+import type { Messages } from '@gather/core/messages'
+import type { ModuleDef } from '@gather/core/modules'
+import { MODULES, moduleById, moduleText } from '@gather/core/modules'
+import { pinnedModules } from '@gather/core/pins'
 import type { LinkProps } from '@tanstack/react-router'
 import {
   groupLink,
@@ -20,10 +24,6 @@ import {
   moduleLink,
   moduleSegment,
 } from './groupPaths'
-import type { Messages } from './i18n/messages/en'
-import type { ModuleDef, ModuleId } from './modules'
-import { MODULES, moduleById } from './modules'
-import { pinnedModules } from './pins'
 
 /**
  * The strings this file needs to say what it is returning.
@@ -44,10 +44,6 @@ export type NavMessages = Pick<Messages, 'shell' | 'modules'>
  * against that same list, but `moduleById` has to accept the arbitrary strings
  * that arrive from URLs and stored Pins.
  */
-export function moduleText(module: ModuleDef, messages: NavMessages) {
-  return messages.modules.byId[module.id as ModuleId]
-}
-
 /** Where a navigation item points. */
 export type NavDestination = Pick<
   LinkProps,

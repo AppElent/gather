@@ -1,7 +1,7 @@
+import { en } from '@gather/core/messages'
 import { describe, expect, test } from 'vitest'
 import type { Doc } from '../../convex/_generated/dataModel'
 import { summarizeEvent } from './babyEventSummary'
-import { en } from './i18n/messages/en'
 
 const START = new Date('2026-07-25T09:00:00').getTime()
 

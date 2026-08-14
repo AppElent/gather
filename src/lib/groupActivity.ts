@@ -13,11 +13,10 @@
  * a React tree around it (ADR-0011).
  */
 
-import { fmt, plural } from '@appelent/i18n'
+import { fmt, plural } from '@gather/core/i18n'
+import { moduleById, moduleText } from '@gather/core/modules'
 import type { ActivityKind } from '../../convex/activity'
 import type { NavMessages } from './appNavigation'
-import { moduleText } from './appNavigation'
-import { moduleById } from './modules'
 
 /** Which Module in `MODULES` each kind of entry came out of. */
 export const ACTIVITY_MODULE_ID: Record<ActivityKind, string> = {

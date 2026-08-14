@@ -180,10 +180,15 @@ uniformity with sibling apps. It does not obsolete
 **AppElent/appelent-packages#16** — `@appelent/i18n`'s unguarded
 `Intl.PluralRules` remains a real bug for any other app that meets Hermes.
 
-## The unverified assumption, named
+## The initially unverified assumption
 
-**Whether `convex deploy` accepts a `workspace:*` package is not yet verified.**
-Convex runs its own esbuild bundle *and* its own `tsc` against
+**Verified (2026-08-14):** after the extraction, `pnpm exec convex dev --once`
+completed successfully against the development deployment. Convex accepts the
+workspace package in both its bundle and typecheck path, so the fallback below
+is not needed.
+
+**Whether `convex deploy` accepts a `workspace:*` package was initially
+unverified.** Convex runs its own esbuild bundle *and* its own `tsc` against
 `convex/tsconfig.json`, independently of `pnpm typecheck` — so a green typecheck
 is not evidence either way. The domain-union hoist puts `convex/lib/*` on the
 far side of that boundary, which makes this the one assumption that can

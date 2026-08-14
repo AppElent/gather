@@ -1,18 +1,16 @@
 import { createI18n } from '@appelent/i18n'
-import { en, type Messages } from './messages/en'
-import { nl } from './messages/nl'
+import { fmt, type Locale, plural, SUPPORTED_LOCALES } from '@gather/core/i18n'
+import { en, type Messages, nl } from '@gather/core/messages'
 
 /**
- * Gather's i18n engine, built once from its own locale set and message tree.
+ * Joins Gather's portable locale contract to the web i18n engine.
  *
- * The engine itself — locale resolution, `fmt`/`plural`, the provider and hooks
- * — lives in `@appelent/i18n` and is shared across Appelent apps. What is
- * gather's own is this file's three lines of configuration and everything under
- * `messages/`. See ADR-0011 for which strings belong there and which do not.
+ * The provider and hooks live in `@appelent/i18n`; Gather's messages and pure
+ * locale helpers live in `@gather/core`. See ADR-0011 for the chrome/content
+ * boundary.
  */
-export const SUPPORTED_LOCALES = ['en', 'nl'] as const
-export type Locale = (typeof SUPPORTED_LOCALES)[number]
-export type { Messages }
+export { fmt, plural, SUPPORTED_LOCALES }
+export type { Locale, Messages }
 
 export const {
   LocaleProvider,
@@ -25,5 +23,3 @@ export const {
   fallback: 'en',
   messages: { en, nl },
 })
-
-export { fmt, plural } from '@appelent/i18n'

@@ -1,4 +1,4 @@
-import type { BabyEventType } from '../../../../../convex/lib/babyEvents'
+import type { BabyEventType } from '../../domain'
 
 /**
  * The names of the eight things a log entry can be.

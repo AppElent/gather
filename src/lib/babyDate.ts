@@ -1,5 +1,5 @@
+import type { Messages } from '@gather/core/messages'
 import { fmt, plural } from './i18n'
-import type { Messages } from './i18n/messages/en'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 

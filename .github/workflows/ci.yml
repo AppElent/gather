@@ -21,6 +21,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
       - run: pnpm run typecheck
+      - run: pnpm --filter @gather/core typecheck
+      - run: pnpm --filter @gather/mobile typecheck
+      - run: pnpm --filter @gather/mobile lint
       - run: pnpm test
       # Build catches bundling/plugin/SSR-compile breakage that typecheck + tests
       # miss. preview.yml only builds on pull_request, so without this a build-only

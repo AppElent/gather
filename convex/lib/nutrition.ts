@@ -1,17 +1,12 @@
 import { v } from 'convex/values'
+import {
+  NUTRIENT_KEYS,
+  type NutrientKey,
+  type NutritionSource,
+} from '@gather/core/domain'
 
-export const NUTRIENT_KEYS = [
-  'calories',
-  'protein',
-  'carbs',
-  'sugars',
-  'fat',
-  'saturatedFat',
-  'fiber',
-  'salt',
-] as const
-
-export type NutrientKey = (typeof NUTRIENT_KEYS)[number]
+export { NUTRIENT_KEYS }
+export type { NutrientKey, NutritionSource }
 
 /** All values per serving (recipes) or per 100 g/ml (foods, phase 2). Calories in kcal, everything else grams. */
 export type NutritionFacts = Partial<Record<NutrientKey, number>>
@@ -32,8 +27,6 @@ export const nutritionSourceValidator = v.union(
   v.literal('ai'),
   v.literal('manual'),
 )
-
-export type NutritionSource = 'imported' | 'ai' | 'manual'
 
 // The nutrient *names* used to live here, next to the keys. They are read by a
 // person, so they are translated, and they now live in each locale's

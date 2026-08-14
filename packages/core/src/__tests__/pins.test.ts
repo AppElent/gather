@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { MODULES } from './modules'
+import { MODULES } from '../modules'
 import {
   DEFAULT_PINS,
   isPinned,
@@ -7,7 +7,7 @@ import {
   pinnedModuleIds,
   pinnedModules,
   togglePin,
-} from './pins'
+} from '../pins'
 
 describe('what a person has pinned', () => {
   test('is a sensible default before they have chosen anything', () => {

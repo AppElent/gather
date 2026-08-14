@@ -13,6 +13,8 @@
  * so a Module declared with a name that is not in the union fails the build
  * instead of rendering an empty square.
  */
+
+import type { ModuleIconName } from '@gather/core/modules'
 import type { LucideIcon } from 'lucide-react-native'
 import Apple from 'lucide-react-native/icons/apple'
 import Baby from 'lucide-react-native/icons/baby'
@@ -39,21 +41,6 @@ import Wine from 'lucide-react-native/icons/wine'
  * web's, because the glyphs are identical and a Module should not have to say
  * which client is asking.
  */
-export type ModuleIconName =
-  | 'Apple'
-  | 'Baby'
-  | 'Calendar'
-  | 'CalendarHeart'
-  | 'ChefHat'
-  | 'Grape'
-  | 'ListChecks'
-  | 'NotebookPen'
-  | 'Receipt'
-  | 'Refrigerator'
-  | 'ShoppingCart'
-  | 'Wallet'
-  | 'Wine'
-
 export const MODULE_ICONS = {
   Apple,
   Baby,

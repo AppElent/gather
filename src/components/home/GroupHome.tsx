@@ -1,8 +1,8 @@
+import { MODULES, moduleText } from '@gather/core/modules'
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import type { GroupActivityEntry } from '../../../convex/activity'
-import { moduleText } from '../../lib/appNavigation'
 import {
   activityModuleIcon,
   activityModuleLabel,
@@ -11,7 +11,6 @@ import {
 } from '../../lib/groupActivity'
 import { groupLink, moduleLink } from '../../lib/groupPaths'
 import { fmt, useI18n, useMessages } from '../../lib/i18n'
-import { MODULES } from '../../lib/modules'
 import { Icon } from '../app/Icon'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 

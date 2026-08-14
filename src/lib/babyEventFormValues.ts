@@ -1,7 +1,7 @@
+import type { Messages } from '@gather/core/messages'
 import type { Doc } from '../../convex/_generated/dataModel'
 import type { BabyEventData, BabyEventType } from '../../convex/lib/babyEvents'
 import { DEFAULT_TEMPERATURE_CELSIUS } from './babyEventFields'
-import type { Messages } from './i18n/messages/en'
 import { readLastUsed, writeLastUsed } from './lastUsed'
 
 /**

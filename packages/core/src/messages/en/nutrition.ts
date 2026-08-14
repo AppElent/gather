@@ -1,7 +1,4 @@
-import type {
-  MealName,
-  QuantityUnit,
-} from '../../../../../convex/lib/consumption'
+import type { MealName, QuantityUnit } from '../../domain'
 
 /**
  * Meal names, moved out of `convex/lib/consumption.ts` for the same reason the
