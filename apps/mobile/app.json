@@ -6,17 +6,34 @@
     "orientation": "portrait",
     "scheme": "gather",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
-    },
-    "android": {
-      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro"
     },
-    "plugins": ["expo-router", "expo-system-ui"],
+    "plugins": [
+      "expo-router",
+      "expo-system-ui",
+      "expo-font",
+      "expo-web-browser",
+      "expo-image",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#faf9f7",
+          "dark": {
+            "backgroundColor": "#121413"
+          }
+        }
+      ],
+      "@clerk/expo",
+      "expo-secure-store",
+      "expo-localization"
+    ],
     "experiments": {
       "typedRoutes": true
     }

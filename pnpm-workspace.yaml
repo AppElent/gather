@@ -17,6 +17,9 @@ allowBuilds:
   protobufjs: false # no native binary needed at install time
   unrs-resolver: true # native binary resolver (napi-postinstall picks the platform build)
   core-js: false # postinstall is just a sponsorship notice, no native binary (pulled in by jspdf's html2canvas dep)
+  browser-tabs-lock: false # postinstall just prints a SuperTokens plug, no native binary (pulled in by @clerk/expo)
+  bufferutil: false # optional native speed-up for `ws`; it falls back to JS without it
+  utf-8-validate: false # ditto — optional native `ws` accelerator, not needed to run
 
 minimumReleaseAge: 4320 # 3 days — blocks the worm/account-takeover window
 minimumReleaseAgeExclude:
