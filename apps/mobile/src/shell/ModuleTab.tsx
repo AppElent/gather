@@ -7,21 +7,20 @@
  * push into yet, so there is no stack, and therefore nothing for a Group switch
  * to reset — the two tabs that do have one key it with the active Group.
  *
- * One component for all three so the honest sentence is written once. #163
- * replaces it with the tinted placeholder.
+ * One component keeps the three fixed tabs on the exact same placeholder as a
+ * Module opened from Home or All.
  */
-import { ShellStub } from '../components/ShellStub'
-import { fmt, useI18n } from '../i18n'
+import { type ModuleId, moduleById } from '@gather/core/modules'
+
+import { ModulePlaceholder } from '../components/ModulePlaceholder'
 
 export interface ModuleTabProps {
-  tab: 'recipes' | 'tasks' | 'nutrition'
+  tab: Extract<ModuleId, 'recipes' | 'tasks' | 'nutrition'>
 }
 
 export function ModuleTab({ tab }: ModuleTabProps) {
-  const { t } = useI18n()
-  const name = t.shell.tabs[tab]
+  const module = moduleById(tab)
+  if (!module) throw new Error(`Unknown fixed Module tab: ${tab}`)
 
-  return (
-    <ShellStub title={name} body={fmt(t.shell.stub.module, { module: name })} />
-  )
+  return <ModulePlaceholder module={module} />
 }

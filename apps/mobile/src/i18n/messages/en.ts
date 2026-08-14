@@ -61,7 +61,13 @@ export const en = {
       switchFrom: 'Group: {group}. {action}',
       personalSubtitle: coreEn.shell.home.personalSubtitle,
       sharedSubtitle: coreEn.shell.home.sharedSubtitle,
+      pins: coreEn.shell.allModules.yourPins,
+      nothingPinned: 'Nothing pinned in this Group yet.',
     },
+
+    all: coreEn.shell.allModules,
+
+    placeholder: coreEn.shell.placeholder,
 
     switcher: {
       action: coreEn.shell.groupSwitcher.label,
@@ -70,21 +76,6 @@ export const en = {
       shared: coreEn.shell.groupSwitcher.shared,
       /** Marks the row you are already in, for a reader who cannot see the tick. */
       current: 'Current group',
-    },
-
-    /**
-     * What a tab says while its Module has no phone version yet.
-     *
-     * Honest rather than empty: Recipes, Tasks and Nutrition all work on the
-     * web today, so the phone says where they are instead of implying they do
-     * not exist. The Module-tinted placeholder these become is #163's.
-     */
-    stub: {
-      /** `{module}` is the tab's own name. */
-      module:
-        '{module} is on the web today. This is where it lands on the phone.',
-      all: coreEn.shell.allModules.title,
-      allBody: 'Every Module Gather offers will be listed here.',
     },
   },
 

@@ -16,17 +16,28 @@
  * It also hides the splash: on a cold start with a retained session this is the
  * first screen mounted.
  */
+import { moduleText } from '@gather/core/modules'
+import { pinnedModules } from '@gather/core/pins'
 import { useUser } from '@clerk/expo'
+import { useQuery } from 'convex/react'
 import { router } from 'expo-router'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useSignOut } from '../../../../src/auth/useSignOut'
 import { AuthButton } from '../../../../src/components/AuthButton'
+import { api } from '../../../../../../convex/_generated/api'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
-import { UI_ICONS } from '../../../../src/theme/icons'
-import { useTokens } from '../../../../src/theme/tokens'
+import { MODULE_ICONS, UI_ICONS } from '../../../../src/theme/icons'
+import { RADIUS, useTokens } from '../../../../src/theme/tokens'
 import { useHideSplash } from '../../../../src/useHideSplash'
 
 export default function Home() {
@@ -37,6 +48,8 @@ export default function Home() {
   const { user } = useUser()
   const { group } = useGroup()
   const onLayout = useHideSplash()
+  const pins = useQuery(api.users.myPins, { groupSlug: group.slug })
+  const pinned = pins === undefined ? null : pinnedModules(pins ?? undefined)
 
   const ChevronDown = UI_ICONS.ChevronDown
   const email = user?.primaryEmailAddress?.emailAddress ?? ''
@@ -76,6 +89,50 @@ export default function Home() {
           : t.shell.home.sharedSubtitle}
       </Text>
 
+      <View style={styles.pins}>
+        <Text style={[styles.pinsTitle, { color: tokens.fg }]}>
+          {t.shell.home.pins}
+        </Text>
+        {pinned === null ? (
+          <ActivityIndicator color={tokens.muted} />
+        ) : pinned.length === 0 ? (
+          <Text style={[styles.emptyPins, { color: tokens.muted }]}>
+            {t.shell.home.nothingPinned}
+          </Text>
+        ) : (
+          <View style={styles.pinList}>
+            {pinned.map((module) => {
+              const text = moduleText(module, t)
+              const tint = tokens.tintOf(module.group)
+              const Icon = MODULE_ICONS[module.icon]
+              return (
+                <Pressable
+                  key={module.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={text.label}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/home/[moduleId]',
+                      params: { moduleId: module.id },
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.pin,
+                    { backgroundColor: tint.bg },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Icon size={20} color={tint.fg} strokeWidth={1.8} />
+                  <Text style={[styles.pinLabel, { color: tint.fg }]}>
+                    {text.label}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
+        )}
+      </View>
+
       <View style={styles.footer}>
         <Text style={[styles.account, { color: tokens.muted }]}>
           {fmt(t.signedIn.as, { email })}
@@ -101,6 +158,19 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subtitle: { fontSize: 15, lineHeight: 22 },
+  pins: { marginTop: 26, gap: 10 },
+  pinsTitle: { fontSize: 18, fontWeight: '700' },
+  emptyPins: { fontSize: 15, lineHeight: 22 },
+  pinList: { gap: 8 },
+  pin: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: RADIUS.card,
+    paddingVertical: 14,
+    paddingHorizontal: 15,
+  },
+  pinLabel: { fontSize: 16, fontWeight: '700' },
   footer: { marginTop: 32, gap: 12 },
   account: { fontSize: 13 },
 })

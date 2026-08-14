@@ -42,7 +42,13 @@ export const nl = {
       switchFrom: 'Groep: {group}. {action}',
       personalSubtitle: coreNl.shell.home.personalSubtitle,
       sharedSubtitle: coreNl.shell.home.sharedSubtitle,
+      pins: coreNl.shell.allModules.yourPins,
+      nothingPinned: 'Nog niets vastgezet in deze Groep.',
     },
+
+    all: coreNl.shell.allModules,
+
+    placeholder: coreNl.shell.placeholder,
 
     switcher: {
       action: coreNl.shell.groupSwitcher.label,
@@ -50,13 +56,6 @@ export const nl = {
       personal: coreNl.shell.groupSwitcher.personalPill,
       shared: coreNl.shell.groupSwitcher.shared,
       current: 'Huidige Groep',
-    },
-
-    stub: {
-      module:
-        '{module} staat vandaag op het web. Hier komt het op de telefoon.',
-      all: coreNl.shell.allModules.title,
-      allBody: 'Hier komt elke Module die Gather aanbiedt.',
     },
   },
 
