@@ -34,6 +34,61 @@ export const en = {
   modules: coreEn.modules,
 
   /**
+   * The signed-in shell: the five fixed tabs, the Group switcher sheet, and
+   * the seat a tab keeps until its Module is built for the phone.
+   *
+   * Almost nothing here is newly written. A tab is the Module's own `label`,
+   * Home and All are the web's `shell.nav`, the switcher speaks
+   * `shell.groupSwitcher`, and Home's subtitle is the web's Home subtitle —
+   * ADR-0017's rule is that the phone owns its look and shares its words, and
+   * a second vocabulary for the same five destinations is the failure it names.
+   */
+  shell: {
+    tabs: {
+      home: coreEn.shell.nav.home,
+      recipes: coreEn.modules.byId.recipes.label,
+      tasks: coreEn.modules.byId.tasks.label,
+      nutrition: coreEn.modules.byId.nutrition.label,
+      all: coreEn.shell.nav.all,
+    },
+
+    /**
+     * Home names the current Group and is the way out of it, in one control
+     * (ADR-0015). There is no Group line anywhere else in the shell.
+     */
+    home: {
+      /** The accessible name of the Group button; `{group}` is its name. */
+      switchFrom: 'Group: {group}. {action}',
+      personalSubtitle: coreEn.shell.home.personalSubtitle,
+      sharedSubtitle: coreEn.shell.home.sharedSubtitle,
+    },
+
+    switcher: {
+      action: coreEn.shell.groupSwitcher.label,
+      title: coreEn.shell.groupSwitcher.pick,
+      personal: coreEn.shell.groupSwitcher.personalPill,
+      shared: coreEn.shell.groupSwitcher.shared,
+      /** Marks the row you are already in, for a reader who cannot see the tick. */
+      current: 'Current group',
+    },
+
+    /**
+     * What a tab says while its Module has no phone version yet.
+     *
+     * Honest rather than empty: Recipes, Tasks and Nutrition all work on the
+     * web today, so the phone says where they are instead of implying they do
+     * not exist. The Module-tinted placeholder these become is #163's.
+     */
+    stub: {
+      /** `{module}` is the tab's own name. */
+      module:
+        '{module} is on the web today. This is where it lands on the phone.',
+      all: coreEn.shell.allModules.title,
+      allBody: 'Every Module Gather offers will be listed here.',
+    },
+  },
+
+  /**
    * Social sign-in, announced before it exists.
    *
    * None of these are enabled on the Clerk instance (`socialProviders: []`, see
@@ -138,19 +193,18 @@ export const en = {
     noneTitle: 'You are not in a group yet',
     noneBody:
       'Gather makes you a personal group the first time you sign in. If this stays here, open Gather on the web to create or join one.',
-    /** Home's ambient orientation line; `{group}` is the current group's name. */
-    inGroup: 'In {group}',
   },
 
   /**
-   * The placeholder behind the door. Signing in has to land somewhere to prove
-   * the guard and the cold start, and the real shell is #146's, unmerged.
+   * Who you are, and the way out.
+   *
+   * Both sit on Home only until #164 gives the shell an Account destination
+   * above the tabs; sign-out has to stay reachable in the meantime, because a
+   * shell you cannot leave is not something to hand to a tester.
    */
   signedIn: {
-    heading: 'You are signed in',
     /** `{email}` is the signed-in account. */
     as: 'Signed in as {email}',
-    note: 'The Group shell lands here (#146). This prototype stops at the door.',
     signOut: 'Sign out',
   },
 
