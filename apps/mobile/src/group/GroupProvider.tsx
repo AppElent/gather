@@ -67,9 +67,9 @@ export interface GroupContextValue {
    * only way to obtain one is a stale list, and honouring it would put the app
    * in a Group the backend then refuses every query for.
    *
-   * ADR-0015 also requires a switch to unwind every tab stack. That belongs
-   * with the tabs (#162) — there are none yet — and this is the seam it hooks
-   * onto.
+   * ADR-0015 also requires a switch to unwind every tab stack. That is not done
+   * here: each nested tab stack is keyed by the slug, so changing it remounts
+   * every visited stack at its root while the fixed tab navigator stays put.
    */
   setGroup: (slug: string) => void
 }

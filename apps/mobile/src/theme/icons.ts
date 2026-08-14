@@ -23,6 +23,7 @@ import CalendarHeart from 'lucide-react-native/icons/calendar-heart'
 // Chrome. Not Modules, so deliberately kept out of the union below.
 import Check from 'lucide-react-native/icons/check'
 import ChefHat from 'lucide-react-native/icons/chef-hat'
+import ChevronDown from 'lucide-react-native/icons/chevron-down'
 import ChevronLeft from 'lucide-react-native/icons/chevron-left'
 import CircleAlert from 'lucide-react-native/icons/circle-alert'
 import Eye from 'lucide-react-native/icons/eye'
@@ -59,6 +60,7 @@ export const MODULE_ICONS = {
 
 export const UI_ICONS = {
   Check,
+  ChevronDown,
   ChevronLeft,
   CircleAlert,
   Eye,

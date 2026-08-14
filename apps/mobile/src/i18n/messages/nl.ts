@@ -29,6 +29,37 @@ export const nl = {
 
   modules: coreNl.modules,
 
+  shell: {
+    tabs: {
+      home: coreNl.shell.nav.home,
+      recipes: coreNl.modules.byId.recipes.label,
+      tasks: coreNl.modules.byId.tasks.label,
+      nutrition: coreNl.modules.byId.nutrition.label,
+      all: coreNl.shell.nav.all,
+    },
+
+    home: {
+      switchFrom: 'Groep: {group}. {action}',
+      personalSubtitle: coreNl.shell.home.personalSubtitle,
+      sharedSubtitle: coreNl.shell.home.sharedSubtitle,
+    },
+
+    switcher: {
+      action: coreNl.shell.groupSwitcher.label,
+      title: coreNl.shell.groupSwitcher.pick,
+      personal: coreNl.shell.groupSwitcher.personalPill,
+      shared: coreNl.shell.groupSwitcher.shared,
+      current: 'Huidige Groep',
+    },
+
+    stub: {
+      module:
+        '{module} staat vandaag op het web. Hier komt het op de telefoon.',
+      all: coreNl.shell.allModules.title,
+      allBody: 'Hier komt elke Module die Gather aanbiedt.',
+    },
+  },
+
   social: {
     heading: 'Of ga verder met',
     soon: 'Binnenkort',
@@ -110,13 +141,10 @@ export const nl = {
     noneTitle: 'Je zit nog niet in een Groep',
     noneBody:
       'Gather maakt bij je eerste keer inloggen een persoonlijke Groep voor je. Blijft dit staan, open Gather dan op het web om er een aan te maken of aan mee te doen.',
-    inGroup: 'In {group}',
   },
 
   signedIn: {
-    heading: 'Je bent ingelogd',
     as: 'Ingelogd als {email}',
-    note: 'Hier komt de Groepsschil (#146). Dit prototype stopt bij de deur.',
     signOut: 'Uitloggen',
   },
 
