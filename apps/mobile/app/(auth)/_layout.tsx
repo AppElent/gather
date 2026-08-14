@@ -15,13 +15,16 @@
 import { Redirect, Stack } from 'expo-router'
 import { useAuth } from '@clerk/expo'
 
+import { pendingGroupLink } from '../../src/shell/pendingGroupLink'
 import { useTokens } from '../../src/theme/tokens'
 
 export default function AuthLayout() {
   const { isSignedIn } = useAuth()
   const tokens = useTokens()
 
-  if (isSignedIn) return <Redirect href="/home" />
+  if (isSignedIn) {
+    return <Redirect href={pendingGroupLink() ? '/deep-link' : '/home'} />
+  }
 
   return (
     <Stack

@@ -69,6 +69,7 @@ export default function AppLayout() {
         }}
       >
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="deep-link" />
         {/* A sheet with an address, so the back gesture and the swipe down
             dismiss it for free and neither has to be re-implemented as state
             (ADR-0015). */}
