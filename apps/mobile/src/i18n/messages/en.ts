@@ -168,6 +168,8 @@ export const en = {
     network: 'No connection. Check your network and try again.',
     identifierNotFound: 'We could not find an account with that email.',
     passwordIncorrect: 'That password is not right.',
+    passwordDoesNotMeetRequirements:
+      'That password does not meet the requirements.',
     identifierExists: 'There is already an account with that email.',
     emailInvalid: 'That does not look like an email address.',
     passwordTooShort: 'Passwords need at least eight characters.',

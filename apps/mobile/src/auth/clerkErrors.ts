@@ -36,7 +36,7 @@ const CODE_MAP: Record<string, ErrorKey> = {
   form_param_missing: 'required',
   form_password_length_too_short: 'passwordTooShort',
   form_password_pwned: 'passwordPwned',
-  form_password_validation_failed: 'passwordIncorrect',
+  form_password_validation_failed: 'passwordDoesNotMeetRequirements',
   form_code_incorrect: 'codeIncorrect',
   verification_failed: 'codeIncorrect',
   verification_expired: 'codeExpired',

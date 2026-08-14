@@ -138,6 +138,8 @@ export const nl = {
     network: 'Geen verbinding. Controleer je netwerk en probeer het opnieuw.',
     identifierNotFound: 'We konden geen account met dat e-mailadres vinden.',
     passwordIncorrect: 'Dat wachtwoord klopt niet.',
+    passwordDoesNotMeetRequirements:
+      'Dat wachtwoord voldoet niet aan de vereisten.',
     identifierExists: 'Er bestaat al een account met dat e-mailadres.',
     emailInvalid: 'Dat lijkt geen e-mailadres te zijn.',
     passwordTooShort: 'Een wachtwoord heeft minstens acht tekens nodig.',
