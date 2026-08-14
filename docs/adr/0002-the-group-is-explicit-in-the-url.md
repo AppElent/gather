@@ -28,6 +28,11 @@ existing links. Both are accepted: the alternative — slugs unique only within
 your own memberships — would make the same URL mean different things to
 different people, which breaks sharing entirely.
 
+This describes the web app. `apps/mobile` keeps the Group ambient rather than
+addressed, and repays the noticeability the slug is bought for at the point of
+write instead — see
+[ADR-0015](0015-the-group-is-addressed-on-the-web-and-ambient-on-the-phone.md).
+
 Modules whose data is Personal (Nutrition) still render under a Group route and
 show the same content in every Group. The segment governs navigation there, not
 ownership. This is a known and accepted inconsistency; hoisting those Modules to
