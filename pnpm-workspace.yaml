@@ -2,6 +2,19 @@ packages:
   - "apps/*"
   - "packages/*"
 
+# pnpm 11 auto-installs before running any script when node_modules looks
+# stale. That is convenient locally and fatal on EAS Build: EAS authenticates
+# to our private @appelent scope from an `eas-build-pre-install` hook, and the
+# auto-install fires *before* the hook body, so the install that needs the
+# token runs without one. Under pnpm 11.8 the resulting 401 is then reported as
+# ERR_PNPM_TARBALL_URL_MISMATCH — it accuses the lockfile of tampering rather
+# than naming the auth failure (pnpm/pnpm#12489, fixed in 11.9).
+# Retire this when the pin reaches 11.9+ *and* EAS auth no longer depends on a
+# pre-install hook; until both hold, turning it off is what makes iOS builds
+# possible at all. The cost is that `pnpm run <script>` no longer installs for
+# you when dependencies are stale — run `pnpm install` yourself.
+verifyDepsBeforeRun: false
+
 # pnpm 11 default-denies install/build lifecycle scripts (neutralizes the
 # postinstall-RCE vector supply-chain worms rely on). Only packages that
 # genuinely compile/download a native binary are allowed to run scripts;
