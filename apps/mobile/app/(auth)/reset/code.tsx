@@ -4,6 +4,12 @@
  * A correct code moves `signIn.status` to `'needs_new_password'`. It does not
  * sign anyone in and must not look as though it has — hence a third screen
  * rather than revealing a password field in place.
+ *
+ * Clerk **Core 3** (ADR-0014). The phone is a Clerk generation ahead of the
+ * web, which is Core 2 via `@appelent/auth` — so that package's form logic
+ * reads like a reference implementation and is not one. Same hook names,
+ * different returns: `{ error }` instead of `throw`, `finalize()` instead of
+ * `setActive()`, per-field errors on the hook's `errors` signal.
  */
 import { useState } from 'react'
 import { useSignIn } from '@clerk/expo'

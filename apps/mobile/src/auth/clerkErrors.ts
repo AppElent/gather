@@ -10,6 +10,12 @@
  * A code we have not mapped falls back to `errors.generic`. That is the right
  * default and also the reason this file logs the unmapped code in development:
  * the mapping below can only grow by someone noticing a gap.
+ *
+ * Clerk **Core 3** (ADR-0014). The phone is a Clerk generation ahead of the
+ * web, which is Core 2 via `@appelent/auth` — so that package's form logic
+ * reads like a reference implementation and is not one. Same hook names,
+ * different returns: `{ error }` instead of `throw`, `finalize()` instead of
+ * `setActive()`, per-field errors on the hook's `errors` signal.
  */
 import type { Messages } from '../i18n'
 

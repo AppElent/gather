@@ -10,6 +10,12 @@
  * lives on the Clerk client rather than in a param or a context. That is what
  * makes the back gesture work between them: going back a step does not discard
  * the attempt, it just stops looking at it.
+ *
+ * Clerk **Core 3** (ADR-0014). The phone is a Clerk generation ahead of the
+ * web, which is Core 2 via `@appelent/auth` — so that package's form logic
+ * reads like a reference implementation and is not one. Same hook names,
+ * different returns: `{ error }` instead of `throw`, `finalize()` instead of
+ * `setActive()`, per-field errors on the hook's `errors` signal.
  */
 import { useState } from 'react'
 import { useSignIn } from '@clerk/expo'

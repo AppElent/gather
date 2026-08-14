@@ -8,6 +8,12 @@
  *
  * `autoComplete="new-password"` is what makes the platform offer to generate and
  * save one, which is the only reason the sign-in screen has anything to fill.
+ *
+ * Clerk **Core 3** (ADR-0014). The phone is a Clerk generation ahead of the
+ * web, which is Core 2 via `@appelent/auth` — so that package's form logic
+ * reads like a reference implementation and is not one. Same hook names,
+ * different returns: `{ error }` instead of `throw`, `finalize()` instead of
+ * `setActive()`, per-field errors on the hook's `errors` signal.
  */
 import { useRef, useState } from 'react'
 import type { TextInput } from 'react-native'

@@ -10,6 +10,12 @@
  * `autoComplete="sms-otp"` covers Android's autofill of a code that arrives by
  * SMS; the email code has no equivalent, so the keyboard is the fallback and the
  * field is numeric and capped at six.
+ *
+ * Clerk **Core 3** (ADR-0014). The phone is a Clerk generation ahead of the
+ * web, which is Core 2 via `@appelent/auth` — so that package's form logic
+ * reads like a reference implementation and is not one. Same hook names,
+ * different returns: `{ error }` instead of `throw`, `finalize()` instead of
+ * `setActive()`, per-field errors on the hook's `errors` signal.
  */
 import { useState } from 'react'
 import { StyleSheet, Text } from 'react-native'

@@ -11,6 +11,12 @@
  * someone resetting one they think was stolen wants exactly that. Neither
  * default is right without asking, and asking is a question this prototype has
  * no answer for — see the resolution on #147.
+ *
+ * Clerk **Core 3** (ADR-0014). The phone is a Clerk generation ahead of the
+ * web, which is Core 2 via `@appelent/auth` — so that package's form logic
+ * reads like a reference implementation and is not one. Same hook names,
+ * different returns: `{ error }` instead of `throw`, `finalize()` instead of
+ * `setActive()`, per-field errors on the hook's `errors` signal.
  */
 import { useState } from 'react'
 import { useSignIn } from '@clerk/expo'
