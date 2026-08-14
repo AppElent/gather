@@ -9,7 +9,7 @@
  *
  * This file answers only the half that is a pure function of the path: *which
  * page*. Which Group is a separate question with a separate answer
- * (`landingGroup.ts`), and the two are deliberately not mixed, so this can be
+ * (`@gather/core/groups`), and the two are deliberately not mixed, so this can be
  * tested exhaustively without a session.
  *
  * Anything unrecognised is null, meaning the Group's Home. An old link should

@@ -8,8 +8,10 @@
  * exists to prevent.
  *
  * Every screen that can be the *first* one mounted calls this: the welcome, the
- * signed-in landing, and the auth-unavailable gate. `hideAsync()` after the
- * splash is already gone is a no-op, so a second caller costs nothing.
+ * signed-in landing, the auth-unavailable gate, and either side of the Group
+ * gate — on a cold start with a retained session, waiting for the Groups is
+ * what is on screen first. `hideAsync()` after the splash is already gone is a
+ * no-op, so a second caller costs nothing.
  */
 
 import * as SplashScreen from 'expo-splash-screen'

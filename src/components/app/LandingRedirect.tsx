@@ -1,9 +1,9 @@
+import { landingGroupSlug } from '@gather/core/groups'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { useEffect, useMemo, useRef } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { groupLink } from '../../lib/groupPaths'
-import { landingGroupSlug } from '../../lib/landingGroup'
 import { legacyTarget } from '../../lib/legacyPaths'
 
 /**

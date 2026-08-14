@@ -105,6 +105,14 @@ export const nl = {
     offline: 'Nog steeds bezig Gather te bereiken. Controleer je verbinding.',
   },
 
+  group: {
+    loading: coreNl.common.errors.loading,
+    noneTitle: 'Je zit nog niet in een Groep',
+    noneBody:
+      'Gather maakt bij je eerste keer inloggen een persoonlijke Groep voor je. Blijft dit staan, open Gather dan op het web om er een aan te maken of aan mee te doen.',
+    inGroup: 'In {group}',
+  },
+
   signedIn: {
     heading: 'Je bent ingelogd',
     as: 'Ingelogd als {email}',

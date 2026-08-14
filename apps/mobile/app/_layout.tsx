@@ -36,6 +36,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import { AuthUnavailable } from '../src/components/AuthUnavailable'
 import { publishableKey } from '../src/auth/config'
+import { AppConvexProvider } from '../src/convex/provider'
 import { LocaleProvider } from '../src/i18n'
 
 /** How long a held splash is patience, after which it is a hang. */
@@ -59,12 +60,18 @@ if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
 export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <LocaleProvider>
-        <SafeAreaProvider>
-          <RootNavigator />
-          <StatusBar style="auto" />
-        </SafeAreaProvider>
-      </LocaleProvider>
+      {/* Above the router, like Clerk itself: the client holds one websocket
+          and its authentication follows the session, so it must not be torn
+          down and rebuilt as screens come and go. Signed-out screens simply
+          never query. */}
+      <AppConvexProvider>
+        <LocaleProvider>
+          <SafeAreaProvider>
+            <RootNavigator />
+            <StatusBar style="auto" />
+          </SafeAreaProvider>
+        </LocaleProvider>
+      </AppConvexProvider>
     </ClerkProvider>
   )
 }

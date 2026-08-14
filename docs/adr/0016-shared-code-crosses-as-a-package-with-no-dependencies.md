@@ -63,6 +63,15 @@ domain unions, both locales of the message tree, and four pure i18n helpers —
 `groupPaths.ts`, `appNavigation.ts`'s `NavItem` / `NavDestination`,
 `createI18n`, and the rest of `src/lib/`.
 
+**Joined later, in [#161](https://github.com/AppElent/gather/issues/161):**
+`landingGroupSlug` — which was `src/lib/landingGroup.ts` and moved wholesale —
+plus `selectGroup`, which validates a retained slug against the Member's Groups
+and falls back to the landing Group. Exactly the shape this ADR predicts: which
+Group a client opens in when nothing has named one is a rule that **drifts
+invisibly** if each client owns a copy, and it is pure TypeScript with nothing to
+import. The web reads it from a URL that named no Group, the phone from a slug it
+retained across a launch (ADR-0015); the answer has to be the same one.
+
 ## Two boundaries, one rule each
 
 - **Hand-written shared logic crosses only via `@gather/core`.**

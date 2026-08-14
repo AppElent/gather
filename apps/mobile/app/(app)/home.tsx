@@ -14,11 +14,13 @@
  *
  * Deleted when #146's shell lands here.
  */
-import { useAuth, useUser } from '@clerk/expo'
+import { useUser } from '@clerk/expo'
 import { StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { useSignOut } from '../../src/auth/useSignOut'
 import { AuthButton } from '../../src/components/AuthButton'
+import { useGroup } from '../../src/group/GroupProvider'
 import { useHideSplash } from '../../src/useHideSplash'
 import { useTokens } from '../../src/theme/tokens'
 import { fmt, useI18n } from '../../src/i18n'
@@ -26,8 +28,9 @@ import { fmt, useI18n } from '../../src/i18n'
 export default function Home() {
   const tokens = useTokens()
   const { t } = useI18n()
-  const { signOut } = useAuth()
+  const signOut = useSignOut()
   const { user } = useUser()
+  const { group } = useGroup()
   const onLayout = useHideSplash()
 
   const email = user?.primaryEmailAddress?.emailAddress ?? ''
@@ -47,6 +50,12 @@ export default function Home() {
         <Text style={[styles.line, { color: tokens.muted }]}>
           {fmt(t.signedIn.as, { email })}
         </Text>
+        {/* Ambient orientation, which is what the phone pays instead of the
+            web's slug in the address bar (ADR-0015). Home names the Group; the
+            switcher that this line becomes is #162's. */}
+        <Text style={[styles.line, { color: tokens.fg }]}>
+          {fmt(t.group.inGroup, { group: group.name })}
+        </Text>
         <Text style={[styles.note, { color: tokens.muted }]}>
           {t.signedIn.note}
         </Text>
@@ -55,7 +64,7 @@ export default function Home() {
       <AuthButton
         variant="secondary"
         label={t.signedIn.signOut}
-        onPress={() => signOut()}
+        onPress={signOut}
       />
     </SafeAreaView>
   )

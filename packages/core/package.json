@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./domain": "./src/domain.ts",
+    "./groups": "./src/groups.ts",
     "./i18n": "./src/i18n.ts",
     "./messages": "./src/messages.ts",
     "./module-tints": "./src/moduleTints.ts",

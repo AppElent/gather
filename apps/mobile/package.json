@@ -12,10 +12,11 @@
     "eas-build-pre-install": "echo \"//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}\" >> ~/.npmrc"
   },
   "dependencies": {
-    "@gather/core": "workspace:*",
     "@clerk/expo": "^4.2.3",
     "@expo/metro-runtime": "57.0.8",
     "@expo/vector-icons": "^15.0.3",
+    "@gather/core": "workspace:*",
+    "convex": "^1.42.3",
     "expo": "~57.0.11",
     "expo-constants": "~57.0.9",
     "expo-dev-client": "~57.0.11",
@@ -27,6 +28,7 @@
     "expo-router": "~57.0.11",
     "expo-secure-store": "~57.0.1",
     "expo-splash-screen": "~57.0.5",
+    "expo-sqlite": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.2",
     "expo-system-ui": "~57.0.2",

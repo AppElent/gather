@@ -126,6 +126,23 @@ export const en = {
   },
 
   /**
+   * The ambient Group (ADR-0015) while it is being established, and the one
+   * signed-in state where there is none to establish.
+   *
+   * `noneBody` names the web deliberately. Creating and joining a Group on the
+   * phone is #164's, and until it exists the honest answer is where it can
+   * actually be done.
+   */
+  group: {
+    loading: coreEn.common.errors.loading,
+    noneTitle: 'You are not in a group yet',
+    noneBody:
+      'Gather makes you a personal group the first time you sign in. If this stays here, open Gather on the web to create or join one.',
+    /** Home's ambient orientation line; `{group}` is the current group's name. */
+    inGroup: 'In {group}',
+  },
+
+  /**
    * The placeholder behind the door. Signing in has to land somewhere to prove
    * the guard and the cold start, and the real shell is #146's, unmerged.
    */
