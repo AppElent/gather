@@ -6,14 +6,15 @@
   "build": {
     "development": {
       "developmentClient": true,
+      "distribution": "internal",
       "autoIncrement": true,
       "environment": "development",
+      "env": {
+        "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
+      },
       "android": {
         "buildType": "apk"
       }
     }
-  },
-  "submit": {
-    "development": {}
   }
 }
