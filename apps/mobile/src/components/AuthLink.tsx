@@ -42,7 +42,13 @@ export function AuthLink({ prompt, label, onPress }: AuthLinkProps) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'center' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
   prompt: { fontSize: 14.5 },
   hit: { paddingVertical: 11 },
   pressed: { opacity: 0.6 },

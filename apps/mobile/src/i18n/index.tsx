@@ -12,8 +12,9 @@
  * nowhere to have stated a preference. The device is the only thing that knows,
  * so the device decides. A toggle belongs in Settings, behind the door.
  */
-import { createContext, use, useMemo, type ReactNode } from 'react'
+
 import { getLocales } from 'expo-localization'
+import { createContext, type ReactNode, use, useMemo } from 'react'
 
 import { en } from './messages/en'
 import { nl } from './messages/nl'

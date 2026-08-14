@@ -12,10 +12,10 @@
 import {
   ActivityIndicator,
   Pressable,
+  type StyleProp,
   StyleSheet,
   Text,
   View,
-  type StyleProp,
   type ViewStyle,
 } from 'react-native'
 
@@ -45,7 +45,11 @@ export function AuthButton({
     variant === 'primary'
       ? { backgroundColor: tokens.accent }
       : variant === 'secondary'
-        ? { backgroundColor: 'transparent', borderWidth: 1, borderColor: tokens.border }
+        ? {
+            backgroundColor: 'transparent',
+            borderWidth: 1,
+            borderColor: tokens.border,
+          }
         : { backgroundColor: 'transparent' }
 
   const color = variant === 'primary' ? tokens.onAccent : tokens.fg

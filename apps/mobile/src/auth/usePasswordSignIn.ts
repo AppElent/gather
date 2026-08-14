@@ -31,11 +31,11 @@
  * different returns: `{ error }` instead of `throw`, `finalize()` instead of
  * `setActive()`, per-field errors on the hook's `errors` signal.
  */
-import { useCallback, useState } from 'react'
-import { useSignIn } from '@clerk/expo'
 
-import { pickError, type CodedError } from './clerkErrors'
+import { useSignIn } from '@clerk/expo'
+import { useCallback, useState } from 'react'
 import { useI18n } from '../i18n'
+import { type CodedError, pickError } from './clerkErrors'
 
 export function usePasswordSignIn() {
   const { signIn, errors } = useSignIn()

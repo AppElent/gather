@@ -30,6 +30,8 @@ export const publishableKey: string = PUBLISHABLE_KEY
 
 /** The credentials for the one-tap shortcut, or `null` when it must not exist. */
 export const devLogin: { email: string; password: string } | null =
-  PUBLISHABLE_KEY.startsWith('pk_test_') && TEST_USER_EMAIL && TEST_USER_PASSWORD
+  PUBLISHABLE_KEY.startsWith('pk_test_') &&
+  TEST_USER_EMAIL &&
+  TEST_USER_PASSWORD
     ? { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD }
     : null

@@ -11,8 +11,9 @@
  * signed-in landing, and the auth-unavailable gate. `hideAsync()` after the
  * splash is already gone is a no-op, so a second caller costs nothing.
  */
-import { useCallback } from 'react'
+
 import * as SplashScreen from 'expo-splash-screen'
+import { useCallback } from 'react'
 
 export function useHideSplash() {
   return useCallback(() => {

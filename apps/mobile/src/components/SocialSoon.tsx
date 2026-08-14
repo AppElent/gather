@@ -18,9 +18,8 @@
  * gather already has a vocabulary for "staged but not built" and this is it.
  */
 import { StyleSheet, Text, View } from 'react-native'
-
-import { RADIUS, useTokens } from '../theme/tokens'
 import { fmt, useI18n } from '../i18n'
+import { RADIUS, useTokens } from '../theme/tokens'
 
 const PROVIDERS = ['apple', 'microsoft', 'google'] as const
 
@@ -67,7 +66,12 @@ export function SocialSoon() {
 
 const styles = StyleSheet.create({
   wrap: { gap: 9 },
-  headingRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 2 },
+  headingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 2,
+  },
   rule: { flex: 1, height: StyleSheet.hairlineWidth },
   heading: { fontSize: 12.5, fontWeight: '600' },
   row: {

@@ -11,8 +11,9 @@
  * is transcribed from `src/lib/modules.ts` and must be deleted, not amended,
  * when `@gather/core` lands.
  */
-import type { ModuleGroup } from './theme/tokens'
+
 import type { ModuleIconName } from './theme/icons'
+import type { ModuleGroup } from './theme/tokens'
 
 export type ModuleId =
   | 'recipes'

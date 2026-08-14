@@ -14,13 +14,12 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View,
   type TextInputProps,
+  View,
 } from 'react-native'
-
+import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
-import { useI18n } from '../i18n'
 
 interface AuthFieldProps extends Omit<TextInputProps, 'style'> {
   label: string

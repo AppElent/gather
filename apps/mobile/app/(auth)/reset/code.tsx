@@ -47,7 +47,9 @@ export default function ResetCode() {
     }
 
     setBusy(false)
-    router.push('/reset/password')
+    // The code has been consumed. Keeping this screen in history would strand
+    // a Back navigation on a code that cannot be submitted again.
+    router.replace('/reset/password')
   }
 
   return (

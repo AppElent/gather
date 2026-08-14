@@ -123,7 +123,8 @@ export const en = {
     request: {
       title: 'Reset your password',
       heading: 'Reset your password',
-      subtitle: 'Tell us the address you signed up with and we will send a code.',
+      subtitle:
+        'Tell us the address you signed up with and we will send a code.',
       submit: 'Send the code',
     },
     code: {

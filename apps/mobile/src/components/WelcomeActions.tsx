@@ -11,15 +11,15 @@
  * publishable key's prefix and not `__DEV__`. It is `null` in every build that
  * points at a live instance, so this file renders nothing extra there.
  */
-import { StyleSheet, Text, View } from 'react-native'
-import { useRouter } from 'expo-router'
 
-import { AuthButton } from './AuthButton'
-import { AuthError } from './AuthError'
+import { useRouter } from 'expo-router'
+import { StyleSheet, Text, View } from 'react-native'
 import { devLogin } from '../auth/config'
 import { usePasswordSignIn } from '../auth/usePasswordSignIn'
-import { useTokens } from '../theme/tokens'
 import { useI18n } from '../i18n'
+import { useTokens } from '../theme/tokens'
+import { AuthButton } from './AuthButton'
+import { AuthError } from './AuthError'
 
 export function WelcomeActions() {
   const router = useRouter()
@@ -72,7 +72,11 @@ const styles = StyleSheet.create({
   wrap: { gap: 10 },
   dev: { marginTop: 6, gap: 4 },
   rule: { height: StyleSheet.hairlineWidth, marginBottom: 6 },
-  devRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  devRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   devButton: { paddingHorizontal: 10 },
   badge: {
     borderWidth: 1,

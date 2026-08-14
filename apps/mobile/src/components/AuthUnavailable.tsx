@@ -8,10 +8,9 @@
  * the real first screen.
  */
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
-
-import { useHideSplash } from '../useHideSplash'
-import { useTokens } from '../theme/tokens'
 import { useI18n } from '../i18n'
+import { useTokens } from '../theme/tokens'
+import { useHideSplash } from '../useHideSplash'
 
 export function AuthUnavailable() {
   const tokens = useTokens()

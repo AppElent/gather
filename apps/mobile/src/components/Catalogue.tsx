@@ -14,10 +14,10 @@
  */
 import { StyleSheet, Text, View } from 'react-native'
 
-import { CATALOGUE, GROUP_ORDER, type CatalogueEntry } from '../catalogue'
+import { CATALOGUE, type CatalogueEntry, GROUP_ORDER } from '../catalogue'
+import { useI18n } from '../i18n'
 import { MODULE_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
-import { useI18n } from '../i18n'
 
 /** Group order, so the four tints read as four bands rather than confetti. */
 const ORDERED: readonly CatalogueEntry[] = GROUP_ORDER.flatMap((group) =>
