@@ -144,6 +144,19 @@ production. Not Catalog: the Catalog is real data everyone gets, the Sample
 household is pretend data nobody outside testing ever sees.
 _Avoid_: Demo data, Dummy data, Test data, Seed data
 
+### Runtime states
+
+**Connected-only**:
+Gather mobile v1's network posture. A live connection is required for service
+data and service actions; it promises neither cached content nor offline writes.
+
+**Unavailable**:
+The state in which Gather cannot reach the service it needs while a person's
+identity is still unresolved or retained. It is distinct from being signed out:
+an unavailable person is not sent to the welcome screen merely because a
+connection or refresh failed.
+_Avoid_: Signed out, Offline mode
+
 ## Standing rules
 
 - A Personal record **snapshots** what it references. Provenance is
