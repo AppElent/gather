@@ -220,7 +220,7 @@ silent about when it stopped, and on course to outlive every link it served.
 
 ## CI / PR previews
 
-- `.github/workflows/ci.yml` — check/typecheck/test/build gate on push to `master`
+- `.github/workflows/ci.yml` — check/typecheck/test/build gate on push to `main`
   and on PRs.
 - `.github/workflows/preview.yml` — per-PR Convex preview deployment + per-PR
   Cloudflare Worker (`gather-pr-<N>`) + PR comment + teardown on close.

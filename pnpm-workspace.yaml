@@ -34,6 +34,7 @@ allowBuilds:
   browser-tabs-lock: false # postinstall just prints a SuperTokens plug, no native binary (pulled in by @clerk/expo)
   bufferutil: false # optional native speed-up for `ws`; it falls back to JS without it
   utf-8-validate: false # ditto — optional native `ws` accelerator, not needed to run
+  dtrace-provider: false # optional native tracing; EAS CLI runs without it
 
 minimumReleaseAge: 4320 # 3 days — blocks the worm/account-takeover window
 minimumReleaseAgeExclude:
