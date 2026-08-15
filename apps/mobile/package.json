@@ -4,9 +4,13 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:dev-client": "expo start --dev-client",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "deploy:development": "eas build --platform ios --profile development",
+    "deploy:preview": "eas build --platform ios --profile preview",
+    "deploy:prod": "eas build --platform ios --profile production",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "eas-build-pre-install": "echo \"//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}\" >> ~/.npmrc"
@@ -47,6 +51,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.17",
+    "eas-cli": "^16.32.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~57.0.1",
     "typescript": "~6.0.3"
