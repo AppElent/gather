@@ -58,9 +58,11 @@ export function SettingsCard({
 export function SettingsRow({
   label,
   onPress,
+  disabled = false,
 }: {
   label: string
   onPress: () => void
+  disabled?: boolean
 }) {
   const tokens = useTokens()
   const ChevronRight = UI_ICONS.ChevronRight
@@ -69,8 +71,14 @@ export function SettingsRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.row,
+        pressed && !disabled && styles.pressed,
+        disabled && styles.disabled,
+      ]}
     >
       <Text numberOfLines={1} style={[styles.rowLabel, { color: tokens.fg }]}>
         {label}
@@ -103,4 +111,5 @@ const styles = StyleSheet.create({
   },
   rowLabel: { flex: 1, fontSize: 16, fontWeight: '600' },
   pressed: { opacity: 0.7 },
+  disabled: { opacity: 0.45 },
 })

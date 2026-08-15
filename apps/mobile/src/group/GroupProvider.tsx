@@ -40,6 +40,7 @@ import {
 
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
+import { groupsForSurface } from './groupsForSurface'
 import { readRetainedGroup, writeRetainedGroup } from './retainedGroup'
 
 /** How long an empty list of Groups is treated as one that has not finished
@@ -123,8 +124,15 @@ export function GroupProvider({ children, pending, none }: GroupProviderProps) {
       })),
     [myGroups],
   )
+  // Convex removes a query result while its auth token or socket is being
+  // recovered. Keep the last resolved list so an in-shell connection loss
+  // preserves the Group name and orientation instead of replacing the shell
+  // with a loading gate.
+  const [lastGroups, setLastGroups] = useState<AmbientGroup[] | undefined>()
+  if (groups !== undefined && groups !== lastGroups) setLastGroups(groups)
+  const visibleGroups = groupsForSurface(groups, lastGroups)
 
-  const selection = selectGroup(retained, groups)
+  const selection = selectGroup(retained, visibleGroups)
 
   // Runs out once and stays run out — it is only ever consulted while the
   // answer is `none`, so there is nothing to reset it for. The cost is that
@@ -157,17 +165,17 @@ export function GroupProvider({ children, pending, none }: GroupProviderProps) {
 
   const setGroup = useCallback(
     (next: string) => {
-      if (!groups?.some((candidate) => candidate.slug === next)) return
+      if (!visibleGroups?.some((candidate) => candidate.slug === next)) return
       setRetained(next)
     },
-    [groups],
+    [visibleGroups],
   )
 
   const value = useMemo<GroupContextValue | null>(() => {
-    if (!groups || !slug) return null
-    const group = groups.find((candidate) => candidate.slug === slug)
-    return group ? { group, groups, setGroup } : null
-  }, [groups, slug, setGroup])
+    if (!visibleGroups || !slug) return null
+    const group = visibleGroups.find((candidate) => candidate.slug === slug)
+    return group ? { group, groups: visibleGroups, setGroup } : null
+  }, [visibleGroups, slug, setGroup])
 
   if (!value) {
     return selection.status === 'none' && graceElapsed ? none : pending

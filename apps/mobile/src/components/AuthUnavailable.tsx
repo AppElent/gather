@@ -1,18 +1,16 @@
-/**
- * What is behind the splash when the splash gives up.
- *
- * Deliberately not a route: reaching it does not mean navigating anywhere, and
- * it must be able to disappear the instant Clerk resolves. There is no retry
- * button because there is nothing to retry — `@clerk/expo` keeps trying on its
- * own, and the moment `isLoaded` flips the root navigator replaces this with
- * the real first screen.
- */
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import { useI18n } from '../i18n'
 import { useTokens } from '../theme/tokens'
 import { useHideSplash } from '../useHideSplash'
+import { AuthButton } from './AuthButton'
 
-export function AuthUnavailable() {
+export function AuthUnavailable({
+  onRetry,
+  retrying,
+}: {
+  onRetry: () => void
+  retrying: boolean
+}) {
   const tokens = useTokens()
   const { t } = useI18n()
   const onLayout = useHideSplash()
@@ -22,13 +20,25 @@ export function AuthUnavailable() {
       onLayout={onLayout}
       style={[styles.wrap, { backgroundColor: tokens.bg }]}
     >
-      <ActivityIndicator color={tokens.muted} />
+      <Text
+        accessibilityRole="header"
+        style={[styles.title, { color: tokens.fg }]}
+      >
+        {t.gate.title}
+      </Text>
       <Text
         accessibilityLiveRegion="polite"
         style={[styles.text, { color: tokens.muted }]}
       >
         {t.gate.offline}
       </Text>
+      <AuthButton
+        label={t.gate.retry}
+        busy={retrying}
+        disabled={retrying}
+        onPress={onRetry}
+        style={styles.retry}
+      />
     </View>
   )
 }
@@ -41,5 +51,7 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 44,
   },
+  title: { fontSize: 24, fontWeight: '700', letterSpacing: -0.4 },
   text: { fontSize: 15, lineHeight: 22, textAlign: 'center' },
+  retry: { minWidth: 150 },
 })

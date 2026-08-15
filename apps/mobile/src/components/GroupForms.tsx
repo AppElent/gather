@@ -28,6 +28,7 @@ import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { api } from '../../../../convex/_generated/api'
+import { useAvailability } from '../availability/AvailabilityProvider'
 import { useI18n } from '../i18n'
 import { RADIUS, useTokens } from '../theme/tokens'
 import { AuthButton } from './AuthButton'
@@ -39,6 +40,7 @@ export function GroupForms() {
   const tokens = useTokens()
   const { t } = useI18n()
   const text = t.shell.groups
+  const { serviceActionsEnabled } = useAvailability()
   const createGroup = useMutation(api.groups.createGroup)
   const joinByInvite = useMutation(api.groups.joinByInvite)
 
@@ -74,16 +76,18 @@ export function GroupForms() {
       .finally(() => setBusy(null))
   }
 
-  // One submit per form, shared by the button and the keyboard's "done", so the
-  // two cannot drift about what counts as submittable.
   function submitCreate() {
     const trimmed = name.trim()
-    if (trimmed) run('create', () => createGroup({ name: trimmed }))
+    if (serviceActionsEnabled && trimmed) {
+      run('create', () => createGroup({ name: trimmed }))
+    }
   }
 
   function submitJoin() {
     const trimmed = code.trim()
-    if (trimmed) run('join', () => joinByInvite({ inviteCode: trimmed }))
+    if (serviceActionsEnabled && trimmed) {
+      run('join', () => joinByInvite({ inviteCode: trimmed }))
+    }
   }
 
   return (
@@ -111,11 +115,12 @@ export function GroupForms() {
           autoCapitalize="words"
           returnKeyType="done"
           onSubmitEditing={submitCreate}
+          editable={serviceActionsEnabled}
         />
         <AuthButton
           label={text.create}
           busy={busy === 'create'}
-          disabled={!name.trim() || busy !== null}
+          disabled={!serviceActionsEnabled || !name.trim() || busy !== null}
           onPress={submitCreate}
         />
         {failed === 'create' ? (
@@ -154,12 +159,13 @@ export function GroupForms() {
           autoCorrect={false}
           returnKeyType="done"
           onSubmitEditing={submitJoin}
+          editable={serviceActionsEnabled}
         />
         <AuthButton
           variant="secondary"
           label={text.join}
           busy={busy === 'join'}
-          disabled={!code.trim() || busy !== null}
+          disabled={!serviceActionsEnabled || !code.trim() || busy !== null}
           onPress={submitJoin}
         />
         {failed === 'join' ? (

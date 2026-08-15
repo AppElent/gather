@@ -237,12 +237,14 @@ export const en = {
   },
 
   /**
-   * The in-app gate. Only ever seen when Clerk takes longer than the splash hold
-   * allows — the splash is the real answer to the cold-start question, and this
-   * is what is behind it when the timeout wins.
+   * The in-app availability states. Local preferences remain outside this
+   * boundary so the gate and its recovery action can always render.
    */
   gate: {
+    title: 'Gather is unavailable',
     offline: 'Still trying to reach Gather. Check your connection.',
+    connectionLost: 'Connection lost. Gather will keep trying to reconnect.',
+    retry: 'Try again',
   },
 
   /**

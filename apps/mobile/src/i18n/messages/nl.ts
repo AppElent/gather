@@ -169,7 +169,11 @@ export const nl = {
   },
 
   gate: {
+    title: 'Gather is niet beschikbaar',
     offline: 'Nog steeds bezig Gather te bereiken. Controleer je verbinding.',
+    connectionLost:
+      'Verbinding verbroken. Gather probeert opnieuw te verbinden.',
+    retry: 'Probeer opnieuw',
   },
 
   group: {
