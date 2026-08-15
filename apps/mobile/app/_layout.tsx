@@ -24,24 +24,25 @@
  * show `<AuthUnavailable>` instead, which says what is happening and gets
  * replaced automatically if Clerk turns up late.
  */
-import { useEffect, useState } from 'react'
-import { LogBox } from 'react-native'
-import { ClerkProvider, useAuth } from '@clerk/expo'
+import { LogBox, StyleSheet, View } from 'react-native'
+import { ClerkProvider } from '@clerk/expo'
 import { tokenCache } from '@clerk/expo/token-cache'
 import Constants, { ExecutionEnvironment } from 'expo-constants'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
+import { AvailabilityProvider, useAvailability } from '../src/availability/AvailabilityProvider'
 import { AuthUnavailable } from '../src/components/AuthUnavailable'
+import { ConnectionLostBanner } from '../src/components/ConnectionLostBanner'
 import { publishableKey } from '../src/auth/config'
 import { AppConvexProvider } from '../src/convex/provider'
 import { LocaleProvider } from '../src/i18n'
 import { AppearanceProvider } from '../src/theme/appearance'
 import { NativeChrome } from '../src/theme/NativeChrome'
 
-/** How long a held splash is patience, after which it is a hang. */
-const SPLASH_TIMEOUT_MS = 4000
+// Clerk and Convex own the grace period together. Appearance and language stay
+// outside both so the Unavailable gate remains locally usable.
 
 // Clerk warns, on every reload, that the key is a development one. It is, on
 // purpose, and the warning covers the whole screen in the dev client. Silenced
@@ -75,11 +76,13 @@ export default function RootLayout() {
               down and rebuilt as screens come and go. Signed-out screens simply
               never query. */}
           <AppConvexProvider>
-            <SafeAreaProvider>
-              <NativeChrome>
-                <RootNavigator />
-              </NativeChrome>
-            </SafeAreaProvider>
+            <AvailabilityProvider>
+              <SafeAreaProvider>
+                <NativeChrome>
+                  <RootNavigator />
+                </NativeChrome>
+              </SafeAreaProvider>
+            </AvailabilityProvider>
           </AppConvexProvider>
         </ClerkProvider>
       </LocaleProvider>
@@ -88,24 +91,26 @@ export default function RootLayout() {
 }
 
 function RootNavigator() {
-  const { isLoaded } = useAuth()
-  const [gaveUp, setGaveUp] = useState(false)
-
-  useEffect(() => {
-    if (isLoaded) return
-    const id = setTimeout(() => setGaveUp(true), SPLASH_TIMEOUT_MS)
-    return () => clearTimeout(id)
-  }, [isLoaded])
+  const { mode, retry, retrying } = useAvailability()
 
   // Still behind the splash. Rendering nothing is the point.
-  if (!isLoaded && !gaveUp) return null
+  if (mode === 'splash') return null
 
-  if (!isLoaded) return <AuthUnavailable />
+  if (mode === 'unavailable') {
+    return <AuthUnavailable onRetry={retry} retrying={retrying} />
+  }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(app)" />
-    </Stack>
+    <View style={styles.root}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(app)" />
+      </Stack>
+      {mode === 'connection-lost' ? <ConnectionLostBanner /> : null}
+    </View>
   )
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+})

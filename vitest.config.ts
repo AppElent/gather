@@ -52,6 +52,15 @@ export default defineConfig({
           exclude,
         },
       },
+      {
+        test: {
+          name: 'mobile',
+          environment: 'node',
+          globals: true,
+          include: ['apps/mobile/src/**/*.test.ts'],
+          exclude,
+        },
+      },
     ],
   },
 })

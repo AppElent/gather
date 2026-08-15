@@ -27,6 +27,7 @@ import { router } from 'expo-router'
 import { ScrollView, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useAvailability } from '../../src/availability/AvailabilityProvider'
 import { Segmented } from '../../src/components/Segmented'
 import { SettingsCard, SettingsRow } from '../../src/components/SettingsCard'
 import { fmt, SUPPORTED_LOCALES, useI18n } from '../../src/i18n'
@@ -40,6 +41,7 @@ export default function Settings() {
   const tokens = useTokens()
   const { t, locale, setLocale } = useI18n()
   const { preference, setPreference } = useAppearance()
+  const { serviceActionsEnabled } = useAvailability()
   const insets = useSafeAreaInsets()
   const text = t.settings
 
@@ -90,10 +92,12 @@ export default function Settings() {
       <SettingsCard>
         <SettingsRow
           label={text.account}
+          disabled={!serviceActionsEnabled}
           onPress={() => router.push('/account')}
         />
         <SettingsRow
           label={text.groups}
+          disabled={!serviceActionsEnabled}
           onPress={() => router.push('/groups')}
         />
       </SettingsCard>

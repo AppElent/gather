@@ -17,6 +17,7 @@ import { useUser } from '@clerk/expo'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useAvailability } from '../../src/availability/AvailabilityProvider'
 import { useSignOut } from '../../src/auth/useSignOut'
 import { AuthButton } from '../../src/components/AuthButton'
 import { SettingsCard } from '../../src/components/SettingsCard'
@@ -28,6 +29,7 @@ export default function Account() {
   const { t } = useI18n()
   const { user } = useUser()
   const signOut = useSignOut()
+  const { serviceActionsEnabled } = useAvailability()
   const insets = useSafeAreaInsets()
 
   const email = user?.primaryEmailAddress?.emailAddress ?? ''
@@ -64,6 +66,7 @@ export default function Account() {
       <AuthButton
         variant="secondary"
         label={t.signedIn.signOut}
+        disabled={!serviceActionsEnabled}
         onPress={signOut}
       />
     </ScrollView>

@@ -31,6 +31,7 @@
 import { router } from 'expo-router'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
+import { useAvailability } from '../../src/availability/AvailabilityProvider'
 import { useGroup } from '../../src/group/GroupProvider'
 import { useI18n } from '../../src/i18n'
 import { UI_ICONS } from '../../src/theme/icons'
@@ -40,6 +41,7 @@ export default function SwitchGroup() {
   const tokens = useTokens()
   const { t } = useI18n()
   const { group: current, groups, setGroup } = useGroup()
+  const { serviceActionsEnabled } = useAvailability()
   const Check = UI_ICONS.Check
 
   function choose(slug: string) {
@@ -65,7 +67,11 @@ export default function SwitchGroup() {
           <Pressable
             key={group.slug}
             accessibilityRole="button"
-            accessibilityState={{ selected: isCurrent }}
+            accessibilityState={{
+              selected: isCurrent,
+              disabled: !serviceActionsEnabled,
+            }}
+            disabled={!serviceActionsEnabled}
             onPress={() => choose(group.slug)}
             style={({ pressed }) => [
               styles.row,

@@ -36,6 +36,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { api } from '../../../../../../convex/_generated/api'
+import { useAvailability } from '../../../../src/availability/AvailabilityProvider'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
 import { MODULE_ICONS, UI_ICONS } from '../../../../src/theme/icons'
@@ -47,6 +48,7 @@ export default function Home() {
   const { t } = useI18n()
   const insets = useSafeAreaInsets()
   const { group } = useGroup()
+  const { serviceActionsEnabled } = useAvailability()
   const onLayout = useHideSplash()
   const pins = useQuery(api.users.myPins, { groupSlug: group.slug })
   const pinned = pins === undefined ? null : pinnedModules(pins ?? undefined)
@@ -71,6 +73,8 @@ export default function Home() {
             action: t.shell.switcher.action,
           })}
           onPress={() => router.push('/switch-group')}
+          disabled={!serviceActionsEnabled}
+          accessibilityState={{ disabled: !serviceActionsEnabled }}
           hitSlop={8}
           style={({ pressed }) => [
             styles.groupButton,

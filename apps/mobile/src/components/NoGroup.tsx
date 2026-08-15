@@ -20,6 +20,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useAvailability } from '../availability/AvailabilityProvider'
 import { useI18n } from '../i18n'
 import { useTokens } from '../theme/tokens'
 import { useHideSplash } from '../useHideSplash'
@@ -29,6 +30,7 @@ import { GroupForms } from './GroupForms'
 export function NoGroup({ onSignOut }: { onSignOut: () => void }) {
   const tokens = useTokens()
   const { t } = useI18n()
+  const { serviceActionsEnabled } = useAvailability()
   const insets = useSafeAreaInsets()
   const onLayout = useHideSplash()
 
@@ -59,6 +61,7 @@ export function NoGroup({ onSignOut }: { onSignOut: () => void }) {
       <AuthButton
         variant="secondary"
         label={t.signedIn.signOut}
+        disabled={!serviceActionsEnabled}
         onPress={onSignOut}
       />
     </ScrollView>
