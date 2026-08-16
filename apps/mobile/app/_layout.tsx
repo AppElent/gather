@@ -24,18 +24,21 @@
  * show `<AuthUnavailable>` instead, which says what is happening and gets
  * replaced automatically if Clerk turns up late.
  */
-import { LogBox, StyleSheet, View } from 'react-native'
+
 import { ClerkProvider } from '@clerk/expo'
 import { tokenCache } from '@clerk/expo/token-cache'
 import Constants, { ExecutionEnvironment } from 'expo-constants'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
+import { LogBox, StyleSheet, View } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-
-import { AvailabilityProvider, useAvailability } from '../src/availability/AvailabilityProvider'
+import { publishableKey } from '../src/auth/config'
+import {
+  AvailabilityProvider,
+  useAvailability,
+} from '../src/availability/AvailabilityProvider'
 import { AuthUnavailable } from '../src/components/AuthUnavailable'
 import { ConnectionLostBanner } from '../src/components/ConnectionLostBanner'
-import { publishableKey } from '../src/auth/config'
 import { AppConvexProvider } from '../src/convex/provider'
 import { LocaleProvider } from '../src/i18n'
 import { AppearanceProvider } from '../src/theme/appearance'

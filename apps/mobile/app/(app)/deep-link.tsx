@@ -5,8 +5,9 @@
  * link against the live membership answer, it replaces itself with a tabbed
  * destination; the Group then lives solely in `GroupProvider` (ADR-0015).
  */
-import { useEffect, useMemo } from 'react'
+
 import { router } from 'expo-router'
+import { useEffect, useMemo } from 'react'
 
 import { useGroup } from '../../src/group/GroupProvider'
 import { nativeDestinationForGroupLink } from '../../src/shell/groupLink'
@@ -26,7 +27,11 @@ export default function GroupLinkHandoff() {
   useEffect(() => {
     // Do both checks before changing context. Invalid and unsupported links
     // resolve to Home in the Group the Member was already in.
-    if (!link || !destination || !groups.some((candidate) => candidate.slug === link.groupSlug)) {
+    if (
+      !link ||
+      !destination ||
+      !groups.some((candidate) => candidate.slug === link.groupSlug)
+    ) {
       clearPendingGroupLink()
       router.replace('/home')
       return

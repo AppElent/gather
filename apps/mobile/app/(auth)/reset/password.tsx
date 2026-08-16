@@ -18,14 +18,14 @@
  * different returns: `{ error }` instead of `throw`, `finalize()` instead of
  * `setActive()`, per-field errors on the hook's `errors` signal.
  */
-import { useState } from 'react'
-import { useSignIn } from '@clerk/expo'
 
+import { useSignIn } from '@clerk/expo'
+import { useState } from 'react'
+import { type CodedError, pickError } from '../../../src/auth/clerkErrors'
 import { AuthButton } from '../../../src/components/AuthButton'
 import { AuthError } from '../../../src/components/AuthError'
 import { AuthField } from '../../../src/components/AuthField'
 import { AuthScreen } from '../../../src/components/AuthScreen'
-import { pickError, type CodedError } from '../../../src/auth/clerkErrors'
 import { useI18n } from '../../../src/i18n'
 
 export default function ResetPassword() {

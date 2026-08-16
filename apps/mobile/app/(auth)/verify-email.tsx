@@ -17,19 +17,19 @@
  * different returns: `{ error }` instead of `throw`, `finalize()` instead of
  * `setActive()`, per-field errors on the hook's `errors` signal.
  */
-import { useState } from 'react'
-import { StyleSheet, Text } from 'react-native'
+
 import { useSignUp } from '@clerk/expo'
 import { useLocalSearchParams } from 'expo-router'
-
+import { useState } from 'react'
+import { StyleSheet, Text } from 'react-native'
+import { type CodedError, pickError } from '../../src/auth/clerkErrors'
 import { AuthButton } from '../../src/components/AuthButton'
 import { AuthError } from '../../src/components/AuthError'
 import { AuthField } from '../../src/components/AuthField'
 import { AuthLink } from '../../src/components/AuthLink'
 import { AuthScreen } from '../../src/components/AuthScreen'
-import { pickError, type CodedError } from '../../src/auth/clerkErrors'
-import { useTokens } from '../../src/theme/tokens'
 import { fmt, useI18n } from '../../src/i18n'
+import { useTokens } from '../../src/theme/tokens'
 
 const CODE_LENGTH = 6
 

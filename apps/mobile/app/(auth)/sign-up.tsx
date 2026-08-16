@@ -15,18 +15,18 @@
  * different returns: `{ error }` instead of `throw`, `finalize()` instead of
  * `setActive()`, per-field errors on the hook's `errors` signal.
  */
-import { useRef, useState } from 'react'
-import type { TextInput } from 'react-native'
+
 import { useSignUp } from '@clerk/expo'
 import { useRouter } from 'expo-router'
-
+import { useRef, useState } from 'react'
+import type { TextInput } from 'react-native'
+import { type CodedError, pickError } from '../../src/auth/clerkErrors'
 import { AuthButton } from '../../src/components/AuthButton'
 import { AuthError } from '../../src/components/AuthError'
 import { AuthField } from '../../src/components/AuthField'
 import { AuthLink } from '../../src/components/AuthLink'
 import { AuthScreen } from '../../src/components/AuthScreen'
 import { SocialSoon } from '../../src/components/SocialSoon'
-import { pickError, type CodedError } from '../../src/auth/clerkErrors'
 import { useI18n } from '../../src/i18n'
 
 export default function SignUp() {

@@ -15,21 +15,43 @@
  * stacks remount at their roots.
  */
 import { NativeTabs } from 'expo-router/unstable-native-tabs'
+import { useState } from 'react'
+import { View } from 'react-native'
 
+import { useGroup } from '../../../src/group/GroupProvider'
 import { useI18n } from '../../../src/i18n'
+import { QuickActionSheet } from '../../../src/shell/QuickActionSheet'
 import { SHELL_TABS } from '../../../src/shell/tabs'
 
 export default function TabsLayout() {
   const { t } = useI18n()
+  const { group } = useGroup()
+  const [launcherOpen, setLauncherOpen] = useState(false)
 
   return (
-    <NativeTabs labelVisibilityMode="labeled">
-      {SHELL_TABS.map((tab) => (
-        <NativeTabs.Trigger key={tab.name} name={tab.name}>
-          <NativeTabs.Trigger.Icon sf={tab.sf} md={tab.md} />
-          <NativeTabs.Trigger.Label>{tab.label(t)}</NativeTabs.Trigger.Label>
-        </NativeTabs.Trigger>
-      ))}
-    </NativeTabs>
+    <View style={{ flex: 1 }}>
+      <NativeTabs labelVisibilityMode="labeled">
+        {SHELL_TABS.map((tab) => (
+          <NativeTabs.Trigger
+            key={tab.name}
+            name={tab.name}
+            disabled={tab.name === 'add'}
+            listeners={
+              tab.name === 'add'
+                ? { tabPress: () => setLauncherOpen(true) }
+                : undefined
+            }
+          >
+            <NativeTabs.Trigger.Icon sf={tab.sf} md={tab.md} />
+            <NativeTabs.Trigger.Label>{tab.label(t)}</NativeTabs.Trigger.Label>
+          </NativeTabs.Trigger>
+        ))}
+      </NativeTabs>
+      <QuickActionSheet
+        visible={launcherOpen}
+        groupName={group.name}
+        onClose={() => setLauncherOpen(false)}
+      />
+    </View>
   )
 }

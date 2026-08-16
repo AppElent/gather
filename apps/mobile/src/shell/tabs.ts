@@ -45,7 +45,7 @@ type MaterialSymbolName = Exclude<MaterialIcon['md'], object>
 
 export interface ShellTab {
   /** The route segment under `app/(app)/(tabs)/`. */
-  name: 'home' | 'recipes' | 'tasks' | 'nutrition' | 'all'
+  name: 'home' | 'search' | 'add' | 'profile' | 'all'
   /** iOS. `selected` gives the filled variant the platform expects. */
   sf: { default: SFSymbolName; selected: SFSymbolName }
   /** Android. */
@@ -61,22 +61,25 @@ export const SHELL_TABS = [
     label: (t) => t.shell.tabs.home,
   },
   {
-    name: 'recipes',
-    sf: { default: 'fork.knife', selected: 'fork.knife' },
-    md: 'restaurant_menu',
-    label: (t) => t.shell.tabs.recipes,
+    name: 'search',
+    sf: { default: 'magnifyingglass', selected: 'magnifyingglass' },
+    md: 'search',
+    label: (t) => t.shell.tabs.search,
   },
   {
-    name: 'tasks',
-    sf: { default: 'checklist', selected: 'checklist' },
-    md: 'checklist',
-    label: (t) => t.shell.tabs.tasks,
+    name: 'add',
+    sf: { default: 'plus.circle', selected: 'plus.circle.fill' },
+    md: 'add_circle',
+    label: (t) => t.shell.tabs.add,
   },
   {
-    name: 'nutrition',
-    sf: { default: 'leaf', selected: 'leaf.fill' },
-    md: 'nutrition',
-    label: (t) => t.shell.tabs.nutrition,
+    name: 'profile',
+    sf: {
+      default: 'person.crop.circle',
+      selected: 'person.crop.circle.fill',
+    },
+    md: 'person',
+    label: (t) => t.shell.tabs.profile,
   },
   {
     name: 'all',

@@ -94,7 +94,7 @@ export default function Home() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t.shell.openSettings}
-          onPress={() => router.push('/settings')}
+          onPress={() => router.push('/profile/settings')}
           hitSlop={10}
           style={({ pressed }) => [styles.settings, pressed && styles.pressed]}
         >

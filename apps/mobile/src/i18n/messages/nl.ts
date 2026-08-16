@@ -32,10 +32,81 @@ export const nl = {
   shell: {
     tabs: {
       home: coreNl.shell.nav.home,
-      recipes: coreNl.modules.byId.recipes.label,
-      tasks: coreNl.modules.byId.tasks.label,
-      nutrition: coreNl.modules.byId.nutrition.label,
+      search: 'Zoeken',
+      add: 'Toevoegen',
+      profile: 'Profiel',
       all: coreNl.shell.nav.all,
+    },
+
+    add: {
+      title: 'Toevoegen aan {group}',
+      workingOnly: 'Alleen acties die vandaag werken.',
+      close: 'Sluiten',
+      back: 'Terug naar acties',
+      save: '{noun} opslaan',
+      saved: 'Toegevoegd: {items}',
+      sheetHint:
+        'Opslaan houdt je in {group}. Met de pijl terug ga je naar de andere acties.',
+      kinds: {
+        row: 'in de rij',
+        sheet: 'in het blad',
+        handoff: 'opent een formulier',
+      },
+      actions: {
+        'task-new': {
+          label: 'Taak toevoegen',
+          module: coreNl.modules.byId.tasks.label,
+          fields: ['Wat moet er gebeuren?'],
+          noun: 'taak',
+        },
+        'recipe-import': {
+          label: 'Importeren vanaf een link',
+          module: coreNl.modules.byId.recipes.label,
+          fields: ['Plak een receptlink'],
+          noun: 'import',
+        },
+        'meal-log': {
+          label: 'Maaltijd loggen',
+          module: coreNl.modules.byId.nutrition.label,
+          fields: ['Voedingsmiddel', 'Hoeveel?'],
+          noun: 'maaltijd',
+        },
+        'recipe-new': {
+          label: 'Recept schrijven',
+          module: coreNl.modules.byId.recipes.label,
+          fields: [],
+          noun: 'recept',
+        },
+        'food-scan': {
+          label: 'Barcode scannen',
+          module: coreNl.modules.byId.nutrition.label,
+          fields: [],
+          noun: 'voedingsmiddel',
+        },
+      },
+      create: {
+        title: 'Maken',
+        description:
+          'Dit is een tijdelijke vervanger voor het volledige moduleformulier. Er wordt niets opgeslagen.',
+        fields: ['Naam', 'Notities', 'Tags'],
+        save: 'Opslaan',
+        saved: 'Er is niets opgeslagen — dit is een demostroom.',
+      },
+    },
+
+    search: {
+      title: 'Zoeken',
+      deferred:
+        'Zoeken wordt ontworpen rond de gegevens die het veilig kan vinden.',
+    },
+
+    profile: {
+      group: 'In {group}',
+      destinations: {
+        account: { label: 'Account', detail: 'Naam, e-mailadres, uitloggen' },
+        groups: { label: 'Groepen', detail: 'Huishoudens waar je in zit' },
+        settings: { label: 'Instellingen', detail: 'Weergave en taal' },
+      },
     },
 
     home: {

@@ -15,17 +15,17 @@
  * different returns: `{ error }` instead of `throw`, `finalize()` instead of
  * `setActive()`, per-field errors on the hook's `errors` signal.
  */
+
+import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import type { TextInput } from 'react-native'
-import { useRouter } from 'expo-router'
-
+import { usePasswordSignIn } from '../../src/auth/usePasswordSignIn'
 import { AuthButton } from '../../src/components/AuthButton'
 import { AuthError } from '../../src/components/AuthError'
 import { AuthField } from '../../src/components/AuthField'
 import { AuthLink } from '../../src/components/AuthLink'
 import { AuthScreen } from '../../src/components/AuthScreen'
 import { SocialSoon } from '../../src/components/SocialSoon'
-import { usePasswordSignIn } from '../../src/auth/usePasswordSignIn'
 import { useI18n } from '../../src/i18n'
 
 export default function SignIn() {
@@ -83,10 +83,7 @@ export default function SignIn() {
         disabled={!ready}
         onPress={() => submit(email, password)}
       />
-      <AuthLink
-        label={t.signIn.forgot}
-        onPress={() => router.push('/reset')}
-      />
+      <AuthLink label={t.signIn.forgot} onPress={() => router.push('/reset')} />
 
       <SocialSoon />
     </AuthScreen>

@@ -38,6 +38,7 @@ import Settings from 'lucide-react-native/icons/settings'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
 import Wallet from 'lucide-react-native/icons/wallet'
 import Wine from 'lucide-react-native/icons/wine'
+import X from 'lucide-react-native/icons/x'
 
 /**
  * ADR-0017's narrowing of `ModuleDef.icon` from `string`. The names are the
@@ -69,4 +70,5 @@ export const UI_ICONS = {
   Eye,
   EyeOff,
   Settings,
+  X,
 } satisfies Record<string, LucideIcon>

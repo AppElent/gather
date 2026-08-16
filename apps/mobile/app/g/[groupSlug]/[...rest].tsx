@@ -5,8 +5,9 @@
  * It does not validate or select a Group itself; it holds the intent across
  * Clerk's gate and lets the authenticated handoff do both against live data.
  */
-import { useEffect, useMemo } from 'react'
+
 import { router, useLocalSearchParams } from 'expo-router'
+import { useEffect, useMemo } from 'react'
 
 import { rememberGroupLink } from '../../../src/shell/pendingGroupLink'
 

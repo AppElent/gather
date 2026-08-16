@@ -9,9 +9,11 @@
     "ignoreUnknown": false,
     "includes": [
       "**/src/**/*",
+      "apps/mobile/app/**/*",
       "**/.vscode/**/*",
       "**/index.html",
       "**/vite.config.ts",
+      "!**/.claude",
       "!**/src/routeTree.gen.ts",
       "!**/src/styles.css"
     ]

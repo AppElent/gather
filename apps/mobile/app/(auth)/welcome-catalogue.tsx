@@ -17,9 +17,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { CatalogueGrid } from '../../src/components/Catalogue'
 import { WelcomeActions } from '../../src/components/WelcomeActions'
-import { useHideSplash } from '../../src/useHideSplash'
-import { useTokens } from '../../src/theme/tokens'
 import { useI18n } from '../../src/i18n'
+import { useTokens } from '../../src/theme/tokens'
+import { useHideSplash } from '../../src/useHideSplash'
 
 export default function WelcomeCatalogue() {
   const tokens = useTokens()
@@ -78,7 +78,12 @@ const styles = StyleSheet.create({
   brand: { fontSize: 26, fontWeight: '800', letterSpacing: -0.7 },
   tagline: { fontSize: 14.5 },
   pitch: { gap: 6 },
-  title: { fontSize: 21, fontWeight: '700', lineHeight: 28, letterSpacing: -0.3 },
+  title: {
+    fontSize: 21,
+    fontWeight: '700',
+    lineHeight: 28,
+    letterSpacing: -0.3,
+  },
   subtitle: { fontSize: 14.5, lineHeight: 21 },
   actions: { paddingHorizontal: 24, paddingBottom: 12 },
 })

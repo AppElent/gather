@@ -12,8 +12,9 @@
  * screen (see `AuthScreen`), and a header title as well would be the same words
  * twice.
  */
-import { Redirect, Stack } from 'expo-router'
+
 import { useAuth } from '@clerk/expo'
+import { Redirect, Stack } from 'expo-router'
 
 import { pendingGroupLink } from '../../src/shell/pendingGroupLink'
 import { useTokens } from '../../src/theme/tokens'
@@ -38,10 +39,7 @@ export default function AuthLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="welcome-catalogue"
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="welcome-catalogue" options={{ headerShown: false }} />
     </Stack>
   )
 }

@@ -47,10 +47,81 @@ export const en = {
   shell: {
     tabs: {
       home: coreEn.shell.nav.home,
-      recipes: coreEn.modules.byId.recipes.label,
-      tasks: coreEn.modules.byId.tasks.label,
-      nutrition: coreEn.modules.byId.nutrition.label,
+      search: 'Search',
+      add: 'Add',
+      profile: 'Profile',
       all: coreEn.shell.nav.all,
+    },
+
+    add: {
+      title: 'Add to {group}',
+      workingOnly: 'Only actions that work today.',
+      close: 'Close',
+      back: 'Back to actions',
+      save: 'Save {noun}',
+      saved: 'Added: {items}',
+      sheetHint:
+        'Saving keeps you in {group}. The back arrow returns to the other actions.',
+      kinds: {
+        row: 'in the row',
+        sheet: 'in the sheet',
+        handoff: 'opens a form',
+      },
+      actions: {
+        'task-new': {
+          label: 'Add a task',
+          module: coreEn.modules.byId.tasks.label,
+          fields: ['What needs doing?'],
+          noun: 'task',
+        },
+        'recipe-import': {
+          label: 'Import from a link',
+          module: coreEn.modules.byId.recipes.label,
+          fields: ['Paste a recipe link'],
+          noun: 'import',
+        },
+        'meal-log': {
+          label: 'Log a meal',
+          module: coreEn.modules.byId.nutrition.label,
+          fields: ['Food', 'How much?'],
+          noun: 'meal',
+        },
+        'recipe-new': {
+          label: 'Write a recipe',
+          module: coreEn.modules.byId.recipes.label,
+          fields: [],
+          noun: 'recipe',
+        },
+        'food-scan': {
+          label: 'Scan a barcode',
+          module: coreEn.modules.byId.nutrition.label,
+          fields: [],
+          noun: 'food',
+        },
+      },
+      create: {
+        title: 'Create',
+        description:
+          'This is a temporary stand-in for the full Module form. It does not save anything.',
+        fields: ['Name', 'Notes', 'Tags'],
+        save: 'Save',
+        saved: 'Nothing was saved — this is a demo flow.',
+      },
+    },
+
+    search: {
+      title: 'Search',
+      deferred:
+        'Search is being designed around the records it will safely find.',
+    },
+
+    profile: {
+      group: 'In {group}',
+      destinations: {
+        account: { label: 'Account', detail: 'Name, email, sign out' },
+        groups: { label: 'Groups', detail: 'Households you are in' },
+        settings: { label: 'Settings', detail: 'Appearance and language' },
+      },
     },
 
     /**
