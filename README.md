@@ -15,12 +15,18 @@ Packages registry; add a `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}`
 line to your **user-level** `~/.npmrc` (never the committed one) with a
 `read:packages` token before installing.
 
-Copy `.env.example` to `.env.local` and fill in the values, then:
+Then:
 
 ```bash
 pnpm install
+pnpm run env:apply local   # writes .env.local and .dev.vars from env/
 pnpm dev
 ```
+
+Don't create `.env.local` by hand — it is generated. Public values are already
+committed in `env/local.public.env`; put anything secret in
+`env/local.secret.env` (git-ignored) and re-run `env:apply`. To find out what is
+still missing, run `pnpm run env:check local`. See "Environment variables" below.
 
 `pnpm dev` starts only the Vite frontend. Use `pnpm dev:watch` to run Convex
 and Vite together (needed for anything that touches the backend).
@@ -51,13 +57,28 @@ pnpm run check
 
 ## Deploy to Cloudflare Workers
 
-This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) and `wrangler.jsonc`. The worker is named `gather` in production and `gather-dev` for the dev environment.
+This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) and `wrangler.jsonc`. The worker is named `gather` in production and `gather-stg` for staging.
+
+**CI is the normal path** — see `.github/workflows/deploy.yml`:
+
+- **staging** — every merge to `main` deploys automatically.
+- **production** — **Actions → Deploy → Run workflow** on `main`. The click is the gate; there is no separate approval step.
+
+Both run `check` / `typecheck` / `test` first, then `convex deploy`, then `convex run seed:seedCatalog`, then `wrangler deploy`. Both build with `pnpm build`: staging runs the same production bundle prod does, and differs only in env vars (sample data and the test-login button are on for staging, absent from prod). Credentials live in the `stg` and `production` GitHub Environments (see the "CI / deploys / PR previews" section of `CLAUDE.md` for the secret layout).
+
+**Dev is local.** There is no deployed dev environment — dev is `pnpm dev` against your own `convex dev` deployment. The `gather-dev` Worker and `deploy:dev` script below still work, but nothing automated touches them.
+
+Deploying by hand is still possible and is what the npm scripts are for:
 
 1. Authenticate: `pnpm exec wrangler login`
-2. Deploy to prod: `pnpm run deploy:prod` (runs `convex deploy && vite build && wrangler deploy`)
-3. Deploy to dev: `pnpm run deploy:dev` (runs `convex dev --once && vite build --mode development && wrangler deploy --env dev`)
+2. Deploy to prod: `pnpm run deploy:prod` (runs `convex deploy && convex run seed:seedCatalog --prod && pnpm run build && wrangler deploy`)
+3. Deploy to dev: `pnpm run deploy:dev` (runs `convex dev --once && convex run seed:seedCatalog && pnpm run build:development && wrangler deploy --env dev`)
 
-For production env vars, run `wrangler secret put MY_VAR` for each secret listed in `.env.example`. Public (non-secret) vars go in `wrangler.jsonc` under `vars`. Convex-side vars (e.g. `CLERK_JWT_ISSUER_DOMAIN`) are set separately with `pnpm exec convex env set`.
+Both read `VITE_*` from your `.env.local`, and `deploy:dev` needs an interactive Convex login — which is why CI reimplements the pipeline instead of calling these.
+
+There is deliberately no `deploy:stg` script, for the same reason: it would build against whatever `VITE_CONVEX_URL` your `.env.local` happens to hold. To reach staging by hand, export the staging `CONVEX_DEPLOY_KEY` and run the same steps `deploy.yml` does — `convex deploy --cmd-url-env-var-name CONVEX_URL --cmd '…pnpm build'`, then `wrangler deploy --env stg`.
+
+Don't set Worker secrets or Convex env vars by hand — `pnpm run env:apply <environment>` writes both, along with the GitHub secrets and variables, from `env.manifest.ts`. `wrangler.jsonc` has no `vars` block: everything the client needs is a `VITE_*` var inlined into the bundle at build time, so a Worker runtime binding would never be read.
 
 KV, D1, R2, and Durable Object bindings are configured in `wrangler.jsonc` — see https://developers.cloudflare.com/workers/wrangler/configuration/.
 
@@ -83,19 +104,45 @@ shows a "Dev: log in as test user" button on the sign-in screen.
 
 ## Setting up Convex
 
-- Set the `VITE_CONVEX_URL` and `CONVEX_DEPLOYMENT` environment variables in your `.env.local`. (Or run `pnpm exec convex init` to set them automatically.)
+- Every developer has their own Convex dev deployment. Set `CONVEX_DEPLOYMENT` and `CONVEX_URL` in `env/local.public.env` to yours, then `pnpm run env:apply local`.
 - Run `pnpm exec convex dev` to start the Convex server (or `pnpm dev:watch` to run Convex and Vite together).
 - Backend functions live in `convex/` (`recipes.ts`, `groups.ts`, `users.ts`, `lib/sharing.ts`); schema is in `convex/schema.ts`.
 
-## Typed environment variables
+## Environment variables
 
-`src/env.ts` uses [`@t3-oss/env-core`](https://env.t3.gg/) to validate environment variables. Add new vars to its `server`/`client` schemas, then use them via:
+`env.manifest.ts` is the single source of truth. An entry declares **who reads**
+a value — the Vite build, a Worker server function, a Convex function, the
+workflow — and which environments need it; a table in that file derives *where*
+it has to be written. Nothing else lists variable names: `src/env.ts` derives its
+schemas from the manifest and `.env.example` is generated from it.
+
+```bash
+pnpm run env:check                 # manifest consistency + .env.example freshness
+pnpm run env:check local           # what's missing, and where
+pnpm run env:apply local           # write it everywhere it belongs
+pnpm run env:generate              # regenerate .env.example
+```
+
+Values live in `env/<environment>.public.env` (committed — a Clerk publishable
+key and a Convex URL are not secrets) and `env/<environment>.secret.env` (never
+committed). `apply` never writes an empty value and never deletes anything
+without `--prune`, so running it on a machine that lacks some secrets is safe:
+it applies what it has and tells you the rest.
+
+Adding a variable means adding it to the manifest — there is nowhere else. Two
+mistakes the types refuse: marking a value the Vite build reads as `secret`
+(the build inlines it into a public bundle), and giving it a name without the
+`VITE_` prefix (Vite would never deliver it).
+
+Read `env.ts` values as usual:
 
 ```ts
 import { env } from '../env'
 
-console.log(env.VITE_APP_TITLE)
+console.log(env.VITE_CONVEX_URL)
 ```
+
+See [ADR 0014](./docs/adr/0014-a-variable-declares-its-consumer-not-its-destination.md).
 
 ## Routing
 

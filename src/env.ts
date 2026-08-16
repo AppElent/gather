@@ -1,13 +1,39 @@
 import { createEnv } from '@t3-oss/env-core'
 import { z } from 'zod'
+import { ENTRIES, type Entry } from '../env.manifest.ts'
+
+/**
+ * Runtime validation for the variables this app's own code reads.
+ *
+ * The list is *derived* from `env.manifest.ts` rather than restated here. A
+ * second hand-maintained list of variable names is exactly the drift this
+ * repo's env work exists to remove — `README.md` described a `wrangler.jsonc`
+ * `vars` block that never existed, and this file used to declare a `SERVER_URL`
+ * and a `VITE_APP_TITLE` that nothing read.
+ *
+ * Only two consumers belong here. `vite-build` values are inlined into the
+ * client bundle, and `worker-runtime` values are read by server functions.
+ * `convex-functions` variables live on a Convex deployment and are read by
+ * `convex/`, which cannot import this file; `workflow` and `local-tooling` ones
+ * are never read by application code at all.
+ */
+function schemaFor<T extends string>(
+  consumer: 'vite-build' | 'worker-runtime',
+) {
+  const shape: Record<string, z.ZodType> = {}
+  for (const entry of ENTRIES as readonly Entry[]) {
+    const landing = entry.lands[consumer]
+    if (!landing) continue
+    // Everything is optional at the type level: which variables are *required*
+    // is a per-environment question the manifest answers and `pnpm run env:check`
+    // enforces, with a far better error than a blank page on boot.
+    shape[landing.name] = z.string().min(1).optional()
+  }
+  return shape as Record<T, z.ZodType>
+}
 
 export const env = createEnv({
-  server: {
-    SERVER_URL: z.string().url().optional(),
-    GITHUB_ISSUES_TOKEN: z.string().min(1).optional(),
-    GITHUB_REPOSITORY_OWNER: z.string().min(1).optional(),
-    GITHUB_REPOSITORY_NAME: z.string().min(1).optional(),
-  },
+  server: schemaFor('worker-runtime'),
 
   /**
    * The prefix that client-side variables must have. This is enforced both at
@@ -15,9 +41,10 @@ export const env = createEnv({
    */
   clientPrefix: 'VITE_',
 
-  client: {
-    VITE_APP_TITLE: z.string().min(1).optional(),
-  },
+  // The manifest's type already guarantees every `vite-build` name starts with
+  // VITE_, which is the invariant this parameter checks; the annotation just
+  // carries that guarantee across the dynamic construction above.
+  client: schemaFor<`VITE_${string}`>('vite-build'),
 
   /**
    * What object holds the environment variables at runtime. This is usually
@@ -26,17 +53,8 @@ export const env = createEnv({
   runtimeEnv: import.meta.env,
 
   /**
-   * By default, this library will feed the environment variables directly to
-   * the Zod validator.
-   *
-   * This means that if you have an empty string for a value that is supposed
-   * to be a number (e.g. `PORT=` in a ".env" file), Zod will incorrectly flag
-   * it as a type mismatch violation. Additionally, if you have an empty string
-   * for a value that is supposed to be a string with a default value (e.g.
-   * `DOMAIN=` in an ".env" file), the default value will never be applied.
-   *
-   * In order to solve these issues, we recommend that all new projects
-   * explicitly specify this option as true.
+   * Treat `FOO=` as absent rather than as an empty string, so an unset optional
+   * variable does not read as a present-but-blank one.
    */
   emptyStringAsUndefined: true,
 })

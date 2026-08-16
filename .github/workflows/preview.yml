@@ -43,15 +43,36 @@ jobs:
       packages: read
     env:
       WORKER_NAME: gather-pr-${{ github.event.pull_request.number }}
-      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
-      VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.PREVIEW_CLERK_PUBLISHABLE_KEY }}
-      # Enables @appelent/auth's dev test-login button on the preview so the PR
-      # deployment can be signed into with one click. Only takes effect when the
-      # Clerk key is a `pk_test_...` instance. Note: Vite inlines VITE_* into the
-      # client bundle, so these creds are readable by anyone with the preview URL
-      # — keep this test user scoped to the Clerk test instance only.
-      VITE_TEST_USER_EMAIL: ${{ secrets.VITE_TEST_USER_EMAIL }}
-      VITE_TEST_USER_PASSWORD: ${{ secrets.VITE_TEST_USER_PASSWORD }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      # This job declares no `environment:`, so every name here resolves at repo
+      # scope. Repo-scoped names carry the PREVIEW_ prefix (env.manifest.ts's
+      # REPO_SCOPE_PREFIX) precisely so they cannot be the same names the `stg`
+      # and `production` Environments hold: an environment secret shadows a repo
+      # secret of the same name, and identical names would make a missing
+      # production value fall back to preview's rather than fail.
+      #
+      # The `|| secrets.<old name>` fallbacks are a transition shim. Renaming a
+      # GitHub secret needs a repo-settings change no pull request can make, so
+      # without them this PR's own preview cannot build — and every *other* open
+      # PR's preview would break the moment this merges, before anyone had a
+      # chance to add the new names.
+      #
+      # Retire them once `pnpm run env:check preview` reports no missing values,
+      # which is precisely when the new names exist. Delete the four `||`
+      # clauses and the four old repo secrets together; leaving the old secrets
+      # in place is what would let a fallback silently mask a missing new value.
+      CONVEX_DEPLOY_KEY: ${{ secrets.PREVIEW_CONVEX_DEPLOY_KEY || secrets.CONVEX_DEPLOY_KEY }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.PREVIEW_SENTRY_AUTH_TOKEN }}
+      # Published, not secret: Vite inlines every VITE_* into a bundle served at
+      # a public preview URL, so calling these confidential would be a false
+      # claim. The test user must therefore exist only on the Clerk test
+      # instance — that, not secrecy, is what contains the blast radius.
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.PREVIEW_VITE_CLERK_PUBLISHABLE_KEY || secrets.PREVIEW_CLERK_PUBLISHABLE_KEY }}
+      VITE_TEST_USER_EMAIL: ${{ vars.PREVIEW_VITE_TEST_USER_EMAIL || secrets.VITE_TEST_USER_EMAIL }}
+      VITE_TEST_USER_PASSWORD: ${{ vars.PREVIEW_VITE_TEST_USER_PASSWORD || secrets.VITE_TEST_USER_PASSWORD }}
+      VITE_SENTRY_DSN: ${{ vars.PREVIEW_VITE_SENTRY_DSN }}
+      VITE_SENTRY_ORG: ${{ vars.PREVIEW_VITE_SENTRY_ORG }}
+      VITE_SENTRY_PROJECT: ${{ vars.PREVIEW_VITE_SENTRY_PROJECT }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -80,13 +101,19 @@ jobs:
       # test user, so clicking test-login on the preview lands in a populated
       # household instead of an empty app. It is ignored on production deploys
       # by design, so this line can never fire against prod.
+      # Every VITE_* is already on the job env and Vite reads prefixed vars from
+      # process.env, so --cmd only has to bridge the one value the deploy itself
+      # produces. It used to re-list four of them, which meant adding a variable
+      # required editing this string as well as the job env.
       - name: Convex preview deploy + build
+        env:
+          VITE_ENABLE_SAMPLE_DATA: 'true'
         run: |
           pnpm exec convex deploy \
             --preview-create pr-${{ github.event.pull_request.number }} \
             --preview-run seed:seedPreview \
             --cmd-url-env-var-name CONVEX_URL \
-            --cmd 'VITE_CONVEX_URL=$CONVEX_URL VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY VITE_TEST_USER_EMAIL="$VITE_TEST_USER_EMAIL" VITE_TEST_USER_PASSWORD="$VITE_TEST_USER_PASSWORD" VITE_ENABLE_SAMPLE_DATA=true pnpm build'
+            --cmd 'VITE_CONVEX_URL=$CONVEX_URL pnpm build'
 
       - name: Deploy Worker (per-PR)
         id: deploy
@@ -95,16 +122,33 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
-          # --var overrides the runtime bindings so the per-PR Worker matches
-          # the per-PR bundle — otherwise wrangler.jsonc's top-level `vars`
-          # bakes production Clerk/Convex values onto the preview Worker.
+          # No --var here. There used to be two, justified by a comment about
+          # wrangler.jsonc's top-level `vars` baking production values onto the
+          # preview Worker — but wrangler.jsonc has no `vars` block, and nothing
+          # in src/ reads a Worker binding for a VITE_* name: all three reads go
+          # through import.meta.env, i.e. inlined at build time. The flag set a
+          # binding nobody read, to counteract a mechanism that did not exist.
           pnpm exec wrangler deploy \
             --name "$WORKER_NAME" \
-            --var "VITE_CLERK_PUBLISHABLE_KEY:$VITE_CLERK_PUBLISHABLE_KEY" \
-            --var "environment_name:preview" \
             2>&1 | tee /tmp/wrangler-deploy.log
           URL=$(grep -oE 'https://[^ ]+workers\.dev' /tmp/wrangler-deploy.log | head -1)
           echo "url=$URL" >> $GITHUB_OUTPUT
+
+      # A per-PR Worker starts with no secrets, so until now every preview
+      # answered "GitHub issue reporter is not configured." Nothing declared that
+      # the preview Worker needed those three values, so nothing noticed. The
+      # manifest declares it; this step is what makes the declaration true.
+      #
+      # Runs after the deploy because a Worker must exist before it can hold a
+      # secret. `env:apply` skips anything it has no value for, so a repo without
+      # PREVIEW_GITHUB_ISSUES_TOKEN configured still deploys — the reporter just
+      # stays off, and `env:check preview` says so.
+      - name: Apply Worker secrets (per-PR)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GITHUB_ISSUES_TOKEN: ${{ secrets.PREVIEW_GITHUB_ISSUES_TOKEN }}
+        run: node scripts/env.mjs apply preview --only worker --pr "$PR_NUMBER"
 
       - name: Upsert PR comment
         uses: actions/github-script@v7
