@@ -34,8 +34,11 @@
  */
 import { Redirect, Stack } from 'expo-router'
 import { useAuth } from '@clerk/expo'
+import { View } from 'react-native'
 
 import { useSignOut } from '../../src/auth/useSignOut'
+// PROTOTYPE — throwaway. See `src/prototype/tabLayout/README.md`.
+import { PrototypeSwitcher } from '../../src/prototype/tabLayout/PrototypeSwitcher'
 import { GroupPending } from '../../src/components/GroupPending'
 import { NoGroup } from '../../src/components/NoGroup'
 import { useEnsureUser } from '../../src/convex/useEnsureUser'
@@ -62,12 +65,15 @@ export default function AppLayout() {
       pending={<GroupPending />}
       none={<NoGroup onSignOut={signOut} />}
     >
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: tokens.bg },
-        }}
-      >
+      {/* PROTOTYPE — the wrapper exists only so the switcher can float over
+          the whole signed-in shell. Both go with the prototype. */}
+      <View style={{ flex: 1 }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: tokens.bg },
+          }}
+        >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="deep-link" />
         {/* A sheet with an address, so the back gesture and the swipe down
@@ -93,7 +99,10 @@ export default function AppLayout() {
           name="groups"
           options={{ headerShown: true, title: t.shell.groups.title }}
         />
-      </Stack>
+        </Stack>
+        {/* After the Stack so it paints over it on every platform. */}
+        <PrototypeSwitcher />
+      </View>
     </GroupProvider>
   )
 }
