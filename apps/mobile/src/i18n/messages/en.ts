@@ -49,7 +49,7 @@ export const en = {
       home: coreEn.shell.nav.home,
       search: 'Search',
       add: 'Add',
-      profile: 'Profile',
+      settings: coreEn.shell.nav.settings,
       all: coreEn.shell.nav.all,
     },
 
@@ -115,15 +115,6 @@ export const en = {
         'Search is being designed around the records it will safely find.',
     },
 
-    profile: {
-      group: 'In {group}',
-      destinations: {
-        account: { label: 'Account', detail: 'Name, email, sign out' },
-        groups: { label: 'Groups', detail: 'Households you are in' },
-        settings: { label: 'Settings', detail: 'Appearance and language' },
-      },
-    },
-
     /**
      * Home names the current Group and is the way out of it, in one control
      * (ADR-0015). There is no Group line anywhere else in the shell.
@@ -170,8 +161,10 @@ export const en = {
   },
 
   /**
-   * Settings, which on the phone is where every preference that is about *you*
-   * rather than about a Group lives, plus the way on to Account and Groups.
+   * Settings, which on the phone is the fourth tab: a grouped list of every
+   * preference that is about *you* rather than about a Group, plus the way on
+   * to Account and Groups. The profile is not a destination of its own — it is
+   * the card at the top of that list.
    *
    * Language is the web's own words: the sentence explaining that Gather's
    * chrome is translated and your content is not is the same promise on both
@@ -208,6 +201,30 @@ export const en = {
     /** The rows out of Settings, each named for where it lands. */
     account: coreEn.shell.routes.account.title,
     groups: coreEn.shell.groups.title,
+
+    /**
+     * The two groups the list is drawn in. "On this phone" is a claim rather
+     * than a heading: those are the settings that are written here and do not
+     * follow you to another device.
+     */
+    sections: {
+      account: coreEn.shell.routes.account.title,
+      phone: 'On this phone',
+    },
+
+    /**
+     * The field above the list. It is the way through for somebody who knows
+     * the word and not the group, so its own words have to be the plainest
+     * ones available.
+     */
+    search: {
+      placeholder: 'Search settings',
+      /** `{query}` is what they typed, quoted back at them. */
+      empty: 'Nothing called “{query}”.',
+    },
+
+    /** The card at the top of the list; `{name}` is a name or an email. */
+    identity: 'Account: {name}',
   },
 
   /**

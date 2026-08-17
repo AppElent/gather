@@ -34,8 +34,11 @@ import ListChecks from 'lucide-react-native/icons/list-checks'
 import NotebookPen from 'lucide-react-native/icons/notebook-pen'
 import Receipt from 'lucide-react-native/icons/receipt'
 import Refrigerator from 'lucide-react-native/icons/refrigerator'
+import Search from 'lucide-react-native/icons/search'
 import Settings from 'lucide-react-native/icons/settings'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
+import Smartphone from 'lucide-react-native/icons/smartphone'
+import User from 'lucide-react-native/icons/user'
 import Wallet from 'lucide-react-native/icons/wallet'
 import Wine from 'lucide-react-native/icons/wine'
 import X from 'lucide-react-native/icons/x'
@@ -69,6 +72,10 @@ export const UI_ICONS = {
   CircleAlert,
   Eye,
   EyeOff,
+  Search,
   Settings,
+  /** The two Settings groups: what follows you, and what stays on this phone. */
+  Smartphone,
+  User,
   X,
 } satisfies Record<string, LucideIcon>
