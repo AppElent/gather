@@ -1,0 +1,39 @@
+{
+  "projectId": "2d268820-ac67-40fd-93c4-e9d8c052aa8c",
+  "projectName": "Gather — Mobile Design System",
+  "shape": "custom",
+  "pkg": "apps/mobile",
+  "globalName": "GatherMobile",
+  "readmeHeader": ".design-sync/conventions.md",
+  "generator": "apps/mobile/.ds-sync/build.mjs",
+  "generatorCwd": "apps/mobile",
+  "outDir": "apps/mobile/ds-bundle",
+  "note": "Off-script by necessity: apps/mobile is an Expo/React Native app with no Storybook and no compiled dist/, so neither converter shape applies. Components are rendered for the browser through react-native-web (see build.mjs and .ds-sync/shims/).",
+  "esbuild": {
+    "resolveExtensions": [
+      ".web.tsx",
+      ".web.ts",
+      ".web.jsx",
+      ".web.js",
+      ".tsx",
+      ".ts",
+      ".jsx",
+      ".js",
+      ".mjs",
+      ".json"
+    ],
+    "mainFields": ["module", "browser", "main"],
+    "define": {
+      "__DEV__": "false",
+      "process.env.NODE_ENV": "\"production\""
+    },
+    "aliasNote": "Paths below are relative to generatorCwd (apps/mobile) — esbuild resolves aliases from the working directory, and the shims must resolve react-native-web etc. out of apps/mobile/node_modules.",
+    "alias": {
+      "react-native": "./.ds-sync/shims/react-native.js",
+      "expo-router": "./.ds-sync/shims/expo-router.jsx",
+      "expo-localization": "./.ds-sync/shims/expo-localization.js",
+      "expo-sqlite/kv-store": "./.ds-sync/shims/expo-sqlite-kv.js",
+      "convex/react": "./.ds-sync/shims/convex-react.jsx"
+    }
+  }
+}
