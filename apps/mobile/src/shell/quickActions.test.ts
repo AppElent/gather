@@ -9,7 +9,7 @@ describe('mobile app destinations', () => {
       'home',
       'search',
       'add',
-      'profile',
+      'settings',
       'all',
     ])
   })

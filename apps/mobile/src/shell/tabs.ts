@@ -45,7 +45,7 @@ type MaterialSymbolName = Exclude<MaterialIcon['md'], object>
 
 export interface ShellTab {
   /** The route segment under `app/(app)/(tabs)/`. */
-  name: 'home' | 'search' | 'add' | 'profile' | 'all'
+  name: 'home' | 'search' | 'add' | 'settings' | 'all'
   /** iOS. `selected` gives the filled variant the platform expects. */
   sf: { default: SFSymbolName; selected: SFSymbolName }
   /** Android. */
@@ -73,13 +73,15 @@ export const SHELL_TABS = [
     label: (t) => t.shell.tabs.add,
   },
   {
-    name: 'profile',
-    sf: {
-      default: 'person.crop.circle',
-      selected: 'person.crop.circle.fill',
-    },
-    md: 'person',
-    label: (t) => t.shell.tabs.profile,
+    /**
+     * Settings, not Profile. The profile is one thing a person changes about
+     * Gather and there are going to be many more, so the tab is named for the
+     * whole of them and the identity sits at the top of its list.
+     */
+    name: 'settings',
+    sf: { default: 'gearshape', selected: 'gearshape.fill' },
+    md: 'settings',
+    label: (t) => t.shell.tabs.settings,
   },
   {
     name: 'all',

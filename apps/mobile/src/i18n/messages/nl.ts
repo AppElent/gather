@@ -34,7 +34,7 @@ export const nl = {
       home: coreNl.shell.nav.home,
       search: 'Zoeken',
       add: 'Toevoegen',
-      profile: 'Profiel',
+      settings: coreNl.shell.nav.settings,
       all: coreNl.shell.nav.all,
     },
 
@@ -100,15 +100,6 @@ export const nl = {
         'Zoeken wordt ontworpen rond de gegevens die het veilig kan vinden.',
     },
 
-    profile: {
-      group: 'In {group}',
-      destinations: {
-        account: { label: 'Account', detail: 'Naam, e-mailadres, uitloggen' },
-        groups: { label: 'Groepen', detail: 'Huishoudens waar je in zit' },
-        settings: { label: 'Instellingen', detail: 'Weergave en taal' },
-      },
-    },
-
     home: {
       switchFrom: 'Groep: {group}. {action}',
       personalSubtitle: coreNl.shell.home.personalSubtitle,
@@ -159,6 +150,18 @@ export const nl = {
 
     account: coreNl.shell.routes.account.title,
     groups: coreNl.shell.groups.title,
+
+    sections: {
+      account: coreNl.shell.routes.account.title,
+      phone: 'Op deze telefoon',
+    },
+
+    search: {
+      placeholder: 'Instellingen zoeken',
+      empty: 'Niets dat “{query}” heet.',
+    },
+
+    identity: 'Account: {name}',
   },
 
   account: {
