@@ -41,3 +41,8 @@ app-example
 # generated native folders
 /ios
 /android
+
+# agent-device evidence: auto-named in the working directory by `record` and
+# gesture capture. Keep a run's artifacts only by copying them somewhere named.
+recording-*.gesture-telemetry.json
+recording-*.mp4
