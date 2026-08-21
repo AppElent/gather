@@ -166,53 +166,6 @@ export default function Settings() {
               </View>
             )
           })}
-
-          {/*
-           * The sheet lab is not a setting, which is why it is not in
-           * `sections.ts`: it compares the five ways the Add launcher could be
-           * presented, and it goes away with the decision it exists to settle.
-           * Keeping it out of that file keeps it out of the search field too,
-           * where a row nobody outside a dev build can reach would be noise.
-           */}
-          {__DEV__ ? (
-            <View style={styles.group}>
-              <View
-                style={[
-                  styles.card,
-                  {
-                    backgroundColor: tokens.surface,
-                    borderColor: tokens.border,
-                  },
-                ]}
-              >
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Open the sheet lab"
-                  onPress={() => router.push('/lab/sheets')}
-                  style={({ pressed }) => [
-                    styles.row,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <View style={styles.rowText}>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.rowLabel, { color: tokens.fg }]}
-                    >
-                      Open the sheet lab
-                    </Text>
-                  </View>
-                  <UI_ICONS.ChevronRight
-                    size={18}
-                    color={tokens.muted}
-                    strokeWidth={1.8}
-                    accessibilityElementsHidden
-                    importantForAccessibility="no"
-                  />
-                </Pressable>
-              </View>
-            </View>
-          ) : null}
         </>
       )}
     </ScrollView>

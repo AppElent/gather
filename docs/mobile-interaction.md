@@ -186,6 +186,15 @@ parent when opened cold.
 addition: **a `handoff` returns you where you started.** You pressed Add from
 the Baby module; saving a recipe should not leave you standing in Recipes.
 
+**Sheet mechanism: decided, `@expo/ui`'s `BottomSheetModal`.** Felt on the
+phone across five mechanisms (hand-built `Modal`, `formSheet` at three detent
+configurations, `@expo/ui`) and four content shapes — `@expo/ui` won on drag
+feel, keyboard handling, and matching the system's own sheet chrome for free.
+`src/components/Sheet.tsx` — the hand-built JS sheet every sheet in the app
+currently shares — is the thing that retires onto it; its own header already
+called this out as not the end state. That swap is tracked as follow-up work,
+not done in the same change as this decision.
+
 **Forms.** First field autofocused. `returnKeyType` chains `next` → `next` →
 `done`. The last field submits. The primary button is disabled until valid, and
 submitting twice does not save twice. `QuickActionSheet` already does all of
@@ -216,18 +225,6 @@ correctly with glass.
 ---
 
 ## Open questions
-
-**How the Add launcher is built.** Two candidates: `@expo/ui`'s `BottomSheet`,
-which opens over the current screen and has no address, or an `expo-router`
-`formSheet`, which is a route with detents and a grabber for free. ADR-0018
-requires that pressing Add never navigates, and whether a `formSheet` presented
-from the tab press counts as navigating is a question about behaviour, not about
-documentation. **Decided on the phone, both built, before either is written
-down.** Watch for [expo/expo#47831](https://github.com/expo/expo/issues/47831),
-where a sheet containing further navigation renders the wrong background on
-iOS 26 — which is the launcher's exact shape.
-
-Either way, the hand-built `Modal` in `QuickActionSheet` retires.
 
 **Archive.** It does not exist: no flag on any table, nothing hidden-but-kept.
 Adding it means a column, a filter on every query that reads those rows, a place
