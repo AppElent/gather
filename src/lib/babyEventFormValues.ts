@@ -113,6 +113,8 @@ export function initialEventValues(
       return { name: seedString(event, 'name') }
     case 'note':
       return { milestone: fromData(event, 'milestone') === true }
+    case 'memory':
+      return { what: seedString(event, 'what') }
   }
 }
 
@@ -214,6 +216,13 @@ export function buildEventInput(
       return {
         data: { milestone: values.milestone === true ? true : undefined },
       }
+    case 'memory': {
+      const what = str(values.what).trim()
+      // A key, not a sentence: the form that renders the complaint is the one
+      // that knows the reader's language (ADR-0011).
+      if (!what) return { data: {}, error: 'enterMemoryWhat' }
+      return { data: { what } }
+    }
   }
 }
 

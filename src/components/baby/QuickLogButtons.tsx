@@ -1,8 +1,8 @@
+import { type BabyBarSlot, offeredEventTypes } from '@gather/core/domain'
 import { Layers } from 'lucide-react'
 import { useState } from 'react'
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { BabyEventType } from '../../../convex/lib/babyEvents'
-import { BABY_EVENT_TYPES } from '../../../convex/lib/babyEvents'
 import { useMessages } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { EventForm } from './EventForm'
@@ -13,12 +13,25 @@ interface QuickLogButtonsProps {
   babyId: Id<'babies'>
   /** The Group the entry is being logged in — every write is authorised by it. */
   groupSlug: string
+  /**
+   * What this Child's log *refuses* (ADR-0022). Absent means nothing has been
+   * turned off, so everything in the catalogue is offered.
+   */
+  untrackedTypes?: readonly BabyEventType[]
+  /** The household's own arrangement, so both clients offer the same order. */
+  barOrder?: readonly BabyBarSlot[]
 }
 
-export function QuickLogButtons({ babyId, groupSlug }: QuickLogButtonsProps) {
+export function QuickLogButtons({
+  babyId,
+  groupSlug,
+  untrackedTypes,
+  barOrder,
+}: QuickLogButtonsProps) {
   const [active, setActive] = useState<BabyEventType | 'multi' | null>(null)
   const messages = useMessages()
   const { quickLog } = messages.baby.log
+  const offered = offeredEventTypes(untrackedTypes, barOrder)
 
   return (
     <SurfaceCard>
@@ -39,6 +52,8 @@ export function QuickLogButtons({ babyId, groupSlug }: QuickLogButtonsProps) {
         <MultiEventForm
           babyId={babyId}
           groupSlug={groupSlug}
+          untrackedTypes={untrackedTypes}
+          barOrder={barOrder}
           onDone={() => setActive(null)}
           onCancel={() => setActive(null)}
         />
@@ -52,7 +67,7 @@ export function QuickLogButtons({ babyId, groupSlug }: QuickLogButtonsProps) {
         />
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {BABY_EVENT_TYPES.map((type) => (
+          {offered.map((type) => (
             <button
               key={type}
               type="button"

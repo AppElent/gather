@@ -37,4 +37,5 @@ export const EVENT_TYPE_ICONS: Record<string, string> = {
   medication: 'Pill',
   vaccination: 'Syringe',
   note: 'NotebookPen',
+  memory: 'Sparkles',
 }

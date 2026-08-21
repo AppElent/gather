@@ -171,7 +171,12 @@ export function BabyDetailPage({
         />
       )}
 
-      <QuickLogButtons babyId={id} groupSlug={groupSlug} />
+      <QuickLogButtons
+        babyId={id}
+        groupSlug={groupSlug}
+        untrackedTypes={baby.untrackedTypes}
+        barOrder={baby.barOrder}
+      />
 
       {(temperaturePoints.length > 0 || weightPoints.length > 0) && (
         <div className="grid gap-3 sm:grid-cols-2">

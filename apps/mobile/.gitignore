@@ -51,3 +51,6 @@ app-example
 # gesture capture. Keep a run's artifacts only by copying them somewhere named.
 recording-*.gesture-telemetry.json
 recording-*.mp4
+# The same tool's scratch directory: build and Metro logs, screenshots taken
+# while driving the app. Same rule — keep one by copying it somewhere named.
+.agent-device/

@@ -16,6 +16,19 @@ export const babyEventTypeValidator = v.union(
   v.literal('medication'),
   v.literal('vaccination'),
   v.literal('note'),
+  v.literal('memory'),
+)
+
+/**
+ * One button on a Child's log bar: an event type, or one of the two shortcuts
+ * that are not events at all. See `babyBarSlots` in `@gather/core/domain` for
+ * why this is a second field beside `untrackedTypes` rather than a widening of
+ * it.
+ */
+export const babyBarSlotValidator = v.union(
+  babyEventTypeValidator,
+  v.literal('todo'),
+  v.literal('question'),
 )
 
 // The event-type *names* used to live here. They are read by a person, so they
@@ -65,6 +78,12 @@ export const temperatureDataValidator = v.object({
   method: v.optional(temperatureMethodValidator),
 })
 
+// One unit per method, and never more than one on an entry: a breastfeed is
+// measured in minutes per side, a bottle in millilitres, solid food in grams.
+// They are separate optional fields rather than an `amount` + `unit` pair so
+// that a query for "how much milk" cannot accidentally sum grams of pear into
+// it.
+//
 // leftMin/rightMin: per-side breastfeed duration in minutes. `side` stays as
 // the coarse record (and is what pre-duration entries have); it is derived
 // from whichever sides have minutes when they're given.
@@ -72,6 +91,7 @@ export const feedingDataValidator = v.object({
   method: feedingMethodValidator,
   side: v.optional(feedingSideValidator),
   amountMl: v.optional(v.number()),
+  amountG: v.optional(v.number()),
   leftMin: v.optional(v.number()),
   rightMin: v.optional(v.number()),
 })
@@ -102,6 +122,20 @@ export const noteDataValidator = v.object({
   milestone: v.optional(v.boolean()),
 })
 
+/**
+ * A memory is one sentence about what happened — "first laugh", "first steps
+ * across the kitchen" — and nothing else.
+ *
+ * Free text rather than a closed set, because the set is not closed: every
+ * household's list of firsts is its own, and a picker of forty milestones is
+ * a thing to scroll past on the way to typing what you meant. The photo does
+ * not live here; it is `photoId` on the event itself, so a rash photo on a
+ * Note can use the same field without another migration.
+ */
+export const memoryDataValidator = v.object({
+  what: v.string(),
+})
+
 export const babyEventDataValidator = v.union(
   temperatureDataValidator,
   feedingDataValidator,
@@ -111,6 +145,7 @@ export const babyEventDataValidator = v.union(
   medicationDataValidator,
   vaccinationDataValidator,
   noteDataValidator,
+  memoryDataValidator,
 )
 
 export type BabyEventData = Record<string, unknown>
@@ -155,6 +190,8 @@ export function isValidEventData(
       return typeof data.name === 'string' && data.name.trim().length > 0
     case 'note':
       return true
+    case 'memory':
+      return typeof data.what === 'string' && data.what.trim().length > 0
     default:
       return false
   }

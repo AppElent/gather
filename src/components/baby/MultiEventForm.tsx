@@ -1,3 +1,4 @@
+import { type BabyBarSlot, offeredEventTypes } from '@gather/core/domain'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -28,21 +29,37 @@ interface MultiEventFormProps {
   groupSlug: string
   onDone: () => void
   onCancel: () => void
+  /** What this Child's log refuses (ADR-0022). Absent means nothing. */
+  untrackedTypes?: readonly BabyEventType[]
+  /** The household's own arrangement, so both clients offer the same order. */
+  barOrder?: readonly BabyBarSlot[]
 }
 
 const LAST_USED_KEY = 'multiLogTypes'
 // The common round: check the diaper, take the temperature, then feed.
 const DEFAULT_SELECTION: BabyEventType[] = ['diaper', 'temperature', 'feeding']
 
-function initialSelection(): BabyEventType[] {
+/**
+ * What starts checked, never offering a type this Child does not track.
+ *
+ * The remembered choice and the default round are both intersected with the
+ * offer, so a Child who stopped tracking temperature does not open this form
+ * with temperature ticked. Falling back to the first offered type rather than
+ * to nothing keeps the form usable for a Child tracking only one thing.
+ */
+function initialSelection(offered: readonly BabyEventType[]): BabyEventType[] {
   const stored = readLastUsed(LAST_USED_KEY)
-  if (!stored) return DEFAULT_SELECTION
   const parsed = stored
-    .split(',')
-    .filter((t): t is BabyEventType =>
-      (BABY_EVENT_TYPES as readonly string[]).includes(t),
-    )
-  return parsed.length > 0 ? parsed : DEFAULT_SELECTION
+    ? stored
+        .split(',')
+        .filter((t): t is BabyEventType =>
+          (BABY_EVENT_TYPES as readonly string[]).includes(t),
+        )
+        .filter((t) => offered.includes(t))
+    : []
+  if (parsed.length > 0) return parsed
+  const fallback = DEFAULT_SELECTION.filter((t) => offered.includes(t))
+  return fallback.length > 0 ? fallback : offered.slice(0, 1)
 }
 
 /** Logs several entries at one shared timestamp — one separate babyEvents row
@@ -53,16 +70,21 @@ export function MultiEventForm({
   groupSlug,
   onDone,
   onCancel,
+  untrackedTypes,
+  barOrder,
 }: MultiEventFormProps) {
   const add = useMutation(api.babyEvents.add)
+  const offered = offeredEventTypes(untrackedTypes, barOrder)
 
   const [timestampMs, setTimestampMs] = useState(() => Date.now())
-  const [selected, setSelected] = useState<BabyEventType[]>(initialSelection)
+  const [selected, setSelected] = useState<BabyEventType[]>(() =>
+    initialSelection(offered),
+  )
   const [valuesByType, setValuesByType] = useState<
     Partial<Record<BabyEventType, EventValues>>
   >(() => {
     const initial: Partial<Record<BabyEventType, EventValues>> = {}
-    for (const type of initialSelection()) {
+    for (const type of initialSelection(offered)) {
       initial[type] = initialEventValues(type)
     }
     return initial
@@ -90,7 +112,7 @@ export function MultiEventForm({
 
   // Rendered in the canonical type order rather than the order they were
   // checked, so the form doesn't reshuffle as boxes are ticked.
-  const activeTypes = BABY_EVENT_TYPES.filter((t) => selected.includes(t))
+  const activeTypes = offered.filter((t) => selected.includes(t))
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -180,7 +202,7 @@ export function MultiEventForm({
       <fieldset className="m-0 border-0 p-0">
         <legend className="mb-1 text-sm font-medium">{multi.include}</legend>
         <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
-          {BABY_EVENT_TYPES.map((type) => (
+          {offered.map((type) => (
             <label key={type} className="flex items-center gap-1.5 text-sm">
               <input
                 type="checkbox"

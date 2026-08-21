@@ -601,6 +601,40 @@ export const SAMPLE_BABY = {
   /** Roughly five months old at seed time. */
   ageInDays: 152,
   sex: 'female' as const,
+  /**
+   * What Juno's log offers (ADR-0022). Set explicitly rather than left absent,
+   * so a preview shows a Child that has been through setup — a seeded Child
+   * with no stored offer would look like one nobody had configured, which is
+   * the opposite of what a preview is for.
+   *
+   * Six of the nine: what a five-month-old's household actually reaches for.
+   * `growth` is in because the weigh-in below needs somewhere to be logged,
+   * and `memory` because a preview of a baby log with no firsts in it shows
+   * the machinery and not the reason anybody keeps one.
+   */
+  trackedTypes: [
+    'feeding',
+    'diaper',
+    'sleep',
+    'temperature',
+    'growth',
+    'note',
+    'memory',
+  ] as BabyEventType[],
+
+  /**
+   * The two lists every Child gets, with something already in them. An empty
+   * checklist in a preview shows the control but not the point of it.
+   */
+  todos: [
+    'Book the six-month check-up',
+    'Order size 3 diapers',
+    'Move the cot to the lower setting',
+  ],
+  questions: [
+    'Is waking twice a night still normal at five months?',
+    'When should we start a second solid meal?',
+  ],
 }
 
 export interface SampleBabyEvent {
@@ -668,6 +702,18 @@ export const SAMPLE_BABY_EVENTS: SampleBabyEvent[] = [
     loggedBy: 'sam',
     data: { milestone: true },
   },
+  {
+    // No photo: seeding one would mean putting bytes in the deployment's
+    // storage on every reset, and a memory is its sentence — the picture is
+    // the thing you add on the phone, where the camera is.
+    type: 'memory',
+    daysAgo: 0,
+    hour: 8,
+    minute: 15,
+    notes: 'Sam pulled a face and she went for it.',
+    loggedBy: 'nora',
+    data: { what: 'First proper laugh' },
+  },
   // Yesterday
   {
     type: 'feeding',
@@ -701,7 +747,7 @@ export const SAMPLE_BABY_EVENTS: SampleBabyEvent[] = [
     hour: 17,
     minute: 30,
     loggedBy: 'owner',
-    data: { method: 'solid', amountMl: 60 },
+    data: { method: 'solid', amountG: 60 },
   },
   {
     type: 'diaper',

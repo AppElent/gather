@@ -9,13 +9,17 @@
  * A named import off the barrel would be no better than the star: the barrel is
  * still one module that imports all 9,131. The deep path is the whole point.
  *
- * `MODULE_ICONS` is checked with `satisfies Record<ModuleIconName, LucideIcon>`,
- * so a Module declared with a name that is not in the union fails the build
+ * Each entry is a `glyph(lucide, sfSymbol)` pair rather than the lucide icon
+ * on its own: Android draws the SVG, iOS draws the symbol, and the call sites
+ * do not know which (see `theme/glyph.tsx`). `null` where the SF catalogue has
+ * no honest equivalent.
+ *
+ * `MODULE_ICONS` is checked with `satisfies Record<ModuleIconName, Glyph>`, so
+ * a Module declared with a name that is not in the union fails the build
  * instead of rendering an empty square.
  */
 
 import type { ModuleIconName } from '@gather/core/modules'
-import type { LucideIcon } from 'lucide-react-native'
 import Apple from 'lucide-react-native/icons/apple'
 import Baby from 'lucide-react-native/icons/baby'
 import Calendar from 'lucide-react-native/icons/calendar'
@@ -26,19 +30,27 @@ import ChefHat from 'lucide-react-native/icons/chef-hat'
 import ChevronDown from 'lucide-react-native/icons/chevron-down'
 import ChevronLeft from 'lucide-react-native/icons/chevron-left'
 import ChevronRight from 'lucide-react-native/icons/chevron-right'
+import ChevronUp from 'lucide-react-native/icons/chevron-up'
 import CircleAlert from 'lucide-react-native/icons/circle-alert'
 import Eye from 'lucide-react-native/icons/eye'
 import EyeOff from 'lucide-react-native/icons/eye-off'
 import Grape from 'lucide-react-native/icons/grape'
+import Grid from 'lucide-react-native/icons/layout-grid'
 import ListChecks from 'lucide-react-native/icons/list-checks'
 import NotebookPen from 'lucide-react-native/icons/notebook-pen'
+import Pencil from 'lucide-react-native/icons/pencil'
 import Receipt from 'lucide-react-native/icons/receipt'
 import Refrigerator from 'lucide-react-native/icons/refrigerator'
+import Search from 'lucide-react-native/icons/search'
 import Settings from 'lucide-react-native/icons/settings'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
+import Smartphone from 'lucide-react-native/icons/smartphone'
+import User from 'lucide-react-native/icons/user'
 import Wallet from 'lucide-react-native/icons/wallet'
 import Wine from 'lucide-react-native/icons/wine'
 import X from 'lucide-react-native/icons/x'
+
+import { type Glyph, glyph } from './glyph'
 
 /**
  * ADR-0017's narrowing of `ModuleDef.icon` from `string`. The names are the
@@ -46,29 +58,42 @@ import X from 'lucide-react-native/icons/x'
  * which client is asking.
  */
 export const MODULE_ICONS = {
-  Apple,
-  Baby,
-  Calendar,
-  CalendarHeart,
-  ChefHat,
-  Grape,
-  ListChecks,
-  NotebookPen,
-  Receipt,
-  Refrigerator,
-  ShoppingCart,
-  Wallet,
-  Wine,
-} satisfies Record<ModuleIconName, LucideIcon>
+  Apple: glyph(Apple, 'carrot'),
+  Baby: glyph(Baby, 'figure.and.child.holdinghands'),
+  Calendar: glyph(Calendar, 'calendar'),
+  CalendarHeart: glyph(CalendarHeart, 'menucard'),
+  ChefHat: glyph(ChefHat, 'fork.knife'),
+  // Cheeses. There is no SF Symbol that means cheese, and reaching for one
+  // that means "grapes" or "a basket" would be worse than keeping the lucide
+  // glyph, which at least means what it draws.
+  Grape: glyph(Grape, null),
+  ListChecks: glyph(ListChecks, 'checklist'),
+  NotebookPen: glyph(NotebookPen, 'square.and.pencil'),
+  Receipt: glyph(Receipt, 'doc.text'),
+  Refrigerator: glyph(Refrigerator, 'refrigerator'),
+  ShoppingCart: glyph(ShoppingCart, 'cart'),
+  Wallet: glyph(Wallet, 'creditcard'),
+  Wine: glyph(Wine, 'wineglass'),
+} satisfies Record<ModuleIconName, Glyph>
 
 export const UI_ICONS = {
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  CircleAlert,
-  Eye,
-  EyeOff,
-  Settings,
-  X,
-} satisfies Record<string, LucideIcon>
+  Check: glyph(Check, 'checkmark'),
+  ChevronDown: glyph(ChevronDown, 'chevron.down'),
+  ChevronLeft: glyph(ChevronLeft, 'chevron.left'),
+  ChevronRight: glyph(ChevronRight, 'chevron.right'),
+  /** Rearranging an ordered list, one row at a time. */
+  ChevronUp: glyph(ChevronUp, 'chevron.up'),
+  CircleAlert: glyph(CircleAlert, 'exclamationmark.circle'),
+  /** The Settings tab's Modules group. */
+  Grid: glyph(Grid, 'square.grid.2x2'),
+  Eye: glyph(Eye, 'eye'),
+  EyeOff: glyph(EyeOff, 'eye.slash'),
+  /** Edit, where a row already does something else when pressed. */
+  Pencil: glyph(Pencil, 'pencil'),
+  Search: glyph(Search, 'magnifyingglass'),
+  Settings: glyph(Settings, 'gearshape'),
+  /** The two Settings groups: what follows you, and what stays on this phone. */
+  Smartphone: glyph(Smartphone, 'iphone'),
+  User: glyph(User, 'person.crop.circle'),
+  X: glyph(X, 'xmark'),
+} satisfies Record<string, Glyph>

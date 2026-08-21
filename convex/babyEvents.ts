@@ -5,6 +5,7 @@ import {
   babyEventTypeValidator,
   isValidEventData,
 } from './lib/babyEvents'
+import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
@@ -44,7 +45,19 @@ export const listByBaby = query({
         (args.from === undefined || r.timestamp >= args.from) &&
         (args.to === undefined || r.timestamp <= args.to),
     )
-    return filtered.sort(byTimestampDesc)
+    // Resolved here rather than by the client, because a `_storage` id is not
+    // something a client can turn into an image on its own. The URL is public
+    // but unguessable — the same bargain the child's own photo already makes,
+    // and the reason a photo in this log is a keepsake and not a medical
+    // record you would mind being reachable by whoever holds the link.
+    return await Promise.all(
+      filtered.sort(byTimestampDesc).map(async (event) => ({
+        ...event,
+        photoUrl: event.photoId
+          ? await ctx.storage.getUrl(event.photoId)
+          : null,
+      })),
+    )
   },
 })
 
@@ -67,6 +80,10 @@ export const add = mutation({
     timestamp: v.number(),
     endTimestamp: v.optional(v.number()),
     notes: v.optional(v.string()),
+    // Uploaded before this call, through `babies.generateUploadUrl`: the bytes
+    // are already in storage by the time the entry exists, so a save that gets
+    // this far has its picture.
+    photoId: v.optional(v.id('_storage')),
     data: babyEventDataValidator,
   },
   handler: async (ctx, args) => {
@@ -82,6 +99,7 @@ export const add = mutation({
       timestamp: args.timestamp,
       endTimestamp: args.endTimestamp,
       notes: args.notes,
+      photoId: args.photoId,
       loggedBy: user._id,
       data: args.data,
     })
@@ -95,6 +113,8 @@ export const update = mutation({
     timestamp: v.number(),
     endTimestamp: v.optional(v.union(v.number(), v.null())),
     notes: v.optional(v.union(v.string(), v.null())),
+    // Absent leaves the picture alone; `null` removes it.
+    photoId: v.optional(v.union(v.id('_storage'), v.null())),
     data: babyEventDataValidator,
   },
   handler: async (ctx, args) => {
@@ -108,15 +128,22 @@ export const update = mutation({
         ? { endTimestamp: args.endTimestamp ?? undefined }
         : {}),
       ...(args.notes !== undefined ? { notes: args.notes ?? undefined } : {}),
+      ...(args.photoId !== undefined
+        ? { photoId: args.photoId ?? undefined }
+        : {}),
       data: args.data,
     })
+    // After the patch, so the row is no longer found holding the id it just
+    // dropped.
+    await replaceStoredFile(ctx, event.photoId, args.photoId)
   },
 })
 
 export const remove = mutation({
   args: { eventId: v.id('babyEvents'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    await requireEditableEvent(ctx, args.groupSlug, args.eventId)
+    const event = await requireEditableEvent(ctx, args.groupSlug, args.eventId)
     await ctx.db.delete(args.eventId)
+    await deleteStoredFile(ctx, event.photoId)
   },
 })
