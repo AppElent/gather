@@ -3,6 +3,13 @@
 Gather mobile is the native, connected-only companion to the Gather household
 app. It shares the same Clerk account and Convex service as the web app.
 
+## How this app behaves
+
+Interaction rules — press-and-hold, swipe, haptics, sheets, undo, loading,
+empty states — live in [`docs/mobile-interaction.md`](../../docs/mobile-interaction.md).
+Read it before adding a screen. The research behind it is in
+[`docs/research/mobile-interaction-vocabulary.md`](../../docs/research/mobile-interaction-vocabulary.md).
+
 ## Run locally
 
 1. Copy `.env.example` to `.env.local` and provide the Clerk and Convex values.

@@ -76,6 +76,18 @@ Selector note: the UI is translated, so `text` selectors are locale-dependent
 (`Recepten`, not `Recipes`). Prefer `id` selectors; `testID` maps to Android's
 `resource-id`. Apple targets do not work from Windows.
 
+## How the phone behaves
+
+`docs/mobile-interaction.md` is the decided interaction vocabulary for
+`apps/mobile` — press-and-hold, swipe, haptics, sheets, undo-vs-confirm,
+loading, empty states, pull-to-refresh. It is short and prescriptive; the
+research and the rejected alternatives are in
+`docs/research/mobile-interaction-vocabulary.md`.
+
+**A new mobile screen follows it, and a rule that turns out wrong is changed
+there rather than excepted in a component.** The rule underneath all of it:
+don't draw what the platform can draw.
+
 ## Seed data
 
 Two mechanisms with deliberately opposite rules, kept as two plain functions in
