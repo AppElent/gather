@@ -41,7 +41,7 @@ export function SheetBody({
       <Text style={[styles.watch, { color: tokens.muted }]}>
         {CONTENT_LABELS[kind]} — {CONTENT_WATCH[kind]}
       </Text>
-      <SheetContent kind={kind} />
+      <SheetContent kind={kind} fill={fill} />
     </View>
   )
 }

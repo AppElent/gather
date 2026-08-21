@@ -55,11 +55,18 @@ const ACTIONS = [
   'Scan a barcode',
 ]
 
-export function SheetContent({ kind }: { kind: ContentKind }) {
+export function SheetContent({
+  kind,
+  fill,
+}: {
+  kind: ContentKind
+  /** `false` in a fit-to-contents sheet, where a `flex: 1` list would measure as zero. */
+  fill: boolean
+}) {
   if (kind === 'rows') return <Rows />
   if (kind === 'inline') return <Inline />
   if (kind === 'form') return <Form />
-  return <LongList />
+  return <LongList fill={fill} />
 }
 
 function Rows() {
@@ -156,11 +163,11 @@ function Form() {
   )
 }
 
-function LongList() {
+function LongList({ fill }: { fill: boolean }) {
   const tokens = useTokens()
 
   return (
-    <ScrollView style={styles.long}>
+    <ScrollView style={fill ? styles.longFill : styles.longCapped}>
       {Array.from({ length: 30 }, (_, index) => (
         <View key={index} style={styles.row}>
           <View style={[styles.dot, { backgroundColor: tokens.tile }]} />
@@ -197,5 +204,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveLabel: { fontSize: 15, fontWeight: '700' },
-  long: { maxHeight: 520 },
+  /** A fixed-height sheet: take the room it has, so the drag test is real. */
+  longFill: { flex: 1 },
+  /** A fit-to-contents sheet has no height of its own to fill, so cap it. */
+  longCapped: { maxHeight: 520 },
 })

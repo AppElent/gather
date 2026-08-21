@@ -16,6 +16,7 @@ import {
 } from '@expo/ui/community/bottom-sheet'
 import { useEffect, useRef } from 'react'
 
+import { useTokens } from '../theme/tokens'
 import { SheetBody } from './SheetBody'
 import type { ContentKind } from './sheetContent'
 import { VARIANTS } from './sheetVariants'
@@ -30,6 +31,7 @@ export function ExpoUiSheet({
   onClose: () => void
 }) {
   const ref = useRef<BottomSheetMethods>(null)
+  const tokens = useTokens()
   const info = VARIANTS['expo-ui']
 
   useEffect(() => {
@@ -42,15 +44,11 @@ export function ExpoUiSheet({
       ref={ref}
       snapPoints={['50%', '90%']}
       enablePanDownToClose
+      backgroundStyle={{ backgroundColor: tokens.surface }}
       onClose={onClose}
     >
-      <BottomSheetView>
-        <SheetBody
-          kind={kind}
-          title={info.label}
-          watch={info.watch}
-          fill={false}
-        />
+      <BottomSheetView style={{ flex: 1 }}>
+        <SheetBody kind={kind} title={info.label} watch={info.watch} />
       </BottomSheetView>
     </BottomSheetModal>
   )
