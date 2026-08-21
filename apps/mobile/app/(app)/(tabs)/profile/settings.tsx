@@ -72,6 +72,17 @@ export default function Settings() {
           onPress={() => router.push('/profile/groups')}
         />
       </SettingsCard>
+      {__DEV__ ? (
+        <SettingsCard
+          title="Sheet lab"
+          description="Development only. Compares the five ways the Add launcher could be presented; goes away with the decision it exists to settle."
+        >
+          <SettingsRow
+            label="Open the sheet lab"
+            onPress={() => router.push('/lab/sheets')}
+          />
+        </SettingsCard>
+      ) : null}
     </ScrollView>
   )
 }
