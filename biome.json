@@ -10,10 +10,15 @@
     "includes": [
       "**/src/**/*",
       "apps/mobile/app/**/*",
+      "convex/**/*",
+      "scripts/**/*",
+      "*.{ts,tsx,js,mjs,cjs}",
       "**/.vscode/**/*",
       "**/index.html",
       "**/vite.config.ts",
       "!**/.claude",
+      "!convex/_generated",
+      "!worker-configuration.d.ts",
       "!**/src/routeTree.gen.ts",
       "!**/src/styles.css"
     ]

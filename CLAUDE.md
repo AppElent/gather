@@ -280,7 +280,7 @@ still exists anywhere. So each one says, where it lives, what would retire it:
 
 Outstanding right now: `convex/migrations.ts` → `declineByOmission`, which is
 waiting on a production run before it and the `babies.trackedTypes` column can
-go (`docs/migrations/0001-baby-tracked-types-become-declines.md`). Run it with
+go (`docs/migrations/0007-baby-tracked-types-become-declines.md`). Run it with
 `npx convex run migrations:declineByOmission --prod`.
 
 `src/lib/legacyPaths.ts` was the cautionary case: excellent about why it existed,

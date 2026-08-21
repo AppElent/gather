@@ -1,5 +1,5 @@
-import type { MealName } from '../consumption'
 import type { BabyEventType } from '../babyEvents'
+import type { MealName } from '../consumption'
 import type { NutritionFacts } from '../nutrition'
 
 /**
@@ -589,8 +589,18 @@ export const SAMPLE_TASK_LISTS: SampleTaskList[] = [
         priority: 2,
         author: 'nora',
       },
-      { title: 'Take the recycling out', done: false, dueInDays: 1, author: 'owner' },
-      { title: 'Return the library books', done: false, dueInDays: 3, author: 'sam' },
+      {
+        title: 'Take the recycling out',
+        done: false,
+        dueInDays: 1,
+        author: 'owner',
+      },
+      {
+        title: 'Return the library books',
+        done: false,
+        dueInDays: 3,
+        author: 'sam',
+      },
       { title: 'Fix the shed door', done: false, author: 'sam' },
     ],
   },
@@ -840,7 +850,12 @@ export type SampleDiaryEntry = {
   meal: MealName
   label: string
 } & (
-  | { kind: 'food'; seedKey: string; quantity: number; unit: 'g' | 'ml' | 'piece' }
+  | {
+      kind: 'food'
+      seedKey: string
+      quantity: number
+      unit: 'g' | 'ml' | 'piece'
+    }
   | { kind: 'recipe'; recipeKey: string; servings: number }
 )
 
@@ -872,7 +887,12 @@ export const SAMPLE_COMBOS: SampleCombo[] = [
   {
     name: 'Usual breakfast',
     items: [
-      { label: 'Porridge oats', quantity: 60, unit: 'g', seedKey: 'oats-rolled' },
+      {
+        label: 'Porridge oats',
+        quantity: 60,
+        unit: 'g',
+        seedKey: 'oats-rolled',
+      },
       {
         label: 'Semi-skimmed milk',
         quantity: 200,
@@ -885,7 +905,12 @@ export const SAMPLE_COMBOS: SampleCombo[] = [
   {
     name: 'Desk lunch',
     items: [
-      { label: 'Greek salad', quantity: 1, unit: 'serving', recipeKey: 'greek-salad' },
+      {
+        label: 'Greek salad',
+        quantity: 1,
+        unit: 'serving',
+        recipeKey: 'greek-salad',
+      },
       {
         label: 'Wholemeal bread',
         quantity: 80,
@@ -904,34 +929,197 @@ export const SAMPLE_COMBOS: SampleCombo[] = [
 
 export const SAMPLE_DIARY: SampleDiaryEntry[] = [
   // Today
-  { daysAgo: 0, meal: 'breakfast', label: 'Overnight oats', kind: 'recipe', recipeKey: 'overnight-oats', servings: 1 },
-  { daysAgo: 0, meal: 'snack', label: 'Banana', kind: 'food', seedKey: 'banana', quantity: 1, unit: 'piece' },
-  { daysAgo: 0, meal: 'lunch', label: 'Greek salad', kind: 'recipe', recipeKey: 'greek-salad', servings: 1 },
+  {
+    daysAgo: 0,
+    meal: 'breakfast',
+    label: 'Overnight oats',
+    kind: 'recipe',
+    recipeKey: 'overnight-oats',
+    servings: 1,
+  },
+  {
+    daysAgo: 0,
+    meal: 'snack',
+    label: 'Banana',
+    kind: 'food',
+    seedKey: 'banana',
+    quantity: 1,
+    unit: 'piece',
+  },
+  {
+    daysAgo: 0,
+    meal: 'lunch',
+    label: 'Greek salad',
+    kind: 'recipe',
+    recipeKey: 'greek-salad',
+    servings: 1,
+  },
   // Yesterday
-  { daysAgo: 1, meal: 'breakfast', label: 'Porridge oats', kind: 'food', seedKey: 'oats-rolled', quantity: 60, unit: 'g' },
-  { daysAgo: 1, meal: 'breakfast', label: 'Semi-skimmed milk', kind: 'food', seedKey: 'milk-semi-skimmed', quantity: 200, unit: 'ml' },
-  { daysAgo: 1, meal: 'lunch', label: 'Pasta puttanesca', kind: 'recipe', recipeKey: 'pasta-puttanesca', servings: 1 },
-  { daysAgo: 1, meal: 'dinner', label: 'Chickpea and spinach curry', kind: 'recipe', recipeKey: 'chickpea-curry', servings: 1.5 },
-  { daysAgo: 1, meal: 'snack', label: 'Greek yoghurt', kind: 'food', seedKey: 'yoghurt-greek-natural', quantity: 150, unit: 'g' },
+  {
+    daysAgo: 1,
+    meal: 'breakfast',
+    label: 'Porridge oats',
+    kind: 'food',
+    seedKey: 'oats-rolled',
+    quantity: 60,
+    unit: 'g',
+  },
+  {
+    daysAgo: 1,
+    meal: 'breakfast',
+    label: 'Semi-skimmed milk',
+    kind: 'food',
+    seedKey: 'milk-semi-skimmed',
+    quantity: 200,
+    unit: 'ml',
+  },
+  {
+    daysAgo: 1,
+    meal: 'lunch',
+    label: 'Pasta puttanesca',
+    kind: 'recipe',
+    recipeKey: 'pasta-puttanesca',
+    servings: 1,
+  },
+  {
+    daysAgo: 1,
+    meal: 'dinner',
+    label: 'Chickpea and spinach curry',
+    kind: 'recipe',
+    recipeKey: 'chickpea-curry',
+    servings: 1.5,
+  },
+  {
+    daysAgo: 1,
+    meal: 'snack',
+    label: 'Greek yoghurt',
+    kind: 'food',
+    seedKey: 'yoghurt-greek-natural',
+    quantity: 150,
+    unit: 'g',
+  },
   // Two days ago
-  { daysAgo: 2, meal: 'breakfast', label: 'Wholemeal toast', kind: 'food', seedKey: 'bread-wholemeal', quantity: 2, unit: 'piece' },
-  { daysAgo: 2, meal: 'breakfast', label: 'Peanut butter', kind: 'food', seedKey: 'peanut-butter', quantity: 20, unit: 'g' },
-  { daysAgo: 2, meal: 'dinner', label: 'Salmon and rice bowl', kind: 'recipe', recipeKey: 'salmon-rice-bowl', servings: 1 },
-  { daysAgo: 2, meal: 'snack', label: 'Apple', kind: 'food', seedKey: 'apple', quantity: 1, unit: 'piece' },
+  {
+    daysAgo: 2,
+    meal: 'breakfast',
+    label: 'Wholemeal toast',
+    kind: 'food',
+    seedKey: 'bread-wholemeal',
+    quantity: 2,
+    unit: 'piece',
+  },
+  {
+    daysAgo: 2,
+    meal: 'breakfast',
+    label: 'Peanut butter',
+    kind: 'food',
+    seedKey: 'peanut-butter',
+    quantity: 20,
+    unit: 'g',
+  },
+  {
+    daysAgo: 2,
+    meal: 'dinner',
+    label: 'Salmon and rice bowl',
+    kind: 'recipe',
+    recipeKey: 'salmon-rice-bowl',
+    servings: 1,
+  },
+  {
+    daysAgo: 2,
+    meal: 'snack',
+    label: 'Apple',
+    kind: 'food',
+    seedKey: 'apple',
+    quantity: 1,
+    unit: 'piece',
+  },
   // Three days ago
-  { daysAgo: 3, meal: 'breakfast', label: 'Banana oat pancakes', kind: 'recipe', recipeKey: 'banana-oat-pancakes', servings: 1 },
-  { daysAgo: 3, meal: 'lunch', label: 'Minestrone', kind: 'recipe', recipeKey: 'minestrone', servings: 1.5 },
-  { daysAgo: 3, meal: 'dinner', label: 'Lasagne alla bolognese', kind: 'recipe', recipeKey: 'lasagne', servings: 1 },
+  {
+    daysAgo: 3,
+    meal: 'breakfast',
+    label: 'Banana oat pancakes',
+    kind: 'recipe',
+    recipeKey: 'banana-oat-pancakes',
+    servings: 1,
+  },
+  {
+    daysAgo: 3,
+    meal: 'lunch',
+    label: 'Minestrone',
+    kind: 'recipe',
+    recipeKey: 'minestrone',
+    servings: 1.5,
+  },
+  {
+    daysAgo: 3,
+    meal: 'dinner',
+    label: 'Lasagne alla bolognese',
+    kind: 'recipe',
+    recipeKey: 'lasagne',
+    servings: 1,
+  },
   // Four days ago
-  { daysAgo: 4, meal: 'breakfast', label: 'Overnight oats', kind: 'recipe', recipeKey: 'overnight-oats', servings: 1 },
-  { daysAgo: 4, meal: 'dinner', label: 'Shakshuka', kind: 'recipe', recipeKey: 'shakshuka', servings: 1.5 },
-  { daysAgo: 4, meal: 'snack', label: 'Cheddar', kind: 'food', seedKey: 'cheese-cheddar', quantity: 30, unit: 'g' },
+  {
+    daysAgo: 4,
+    meal: 'breakfast',
+    label: 'Overnight oats',
+    kind: 'recipe',
+    recipeKey: 'overnight-oats',
+    servings: 1,
+  },
+  {
+    daysAgo: 4,
+    meal: 'dinner',
+    label: 'Shakshuka',
+    kind: 'recipe',
+    recipeKey: 'shakshuka',
+    servings: 1.5,
+  },
+  {
+    daysAgo: 4,
+    meal: 'snack',
+    label: 'Cheddar',
+    kind: 'food',
+    seedKey: 'cheese-cheddar',
+    quantity: 30,
+    unit: 'g',
+  },
   // Five days ago
-  { daysAgo: 5, meal: 'lunch', label: 'Tarka dal', kind: 'recipe', recipeKey: 'tarka-dal', servings: 1 },
-  { daysAgo: 5, meal: 'dinner', label: 'Chicken and potato traybake', kind: 'recipe', recipeKey: 'chicken-traybake', servings: 1 },
+  {
+    daysAgo: 5,
+    meal: 'lunch',
+    label: 'Tarka dal',
+    kind: 'recipe',
+    recipeKey: 'tarka-dal',
+    servings: 1,
+  },
+  {
+    daysAgo: 5,
+    meal: 'dinner',
+    label: 'Chicken and potato traybake',
+    kind: 'recipe',
+    recipeKey: 'chicken-traybake',
+    servings: 1,
+  },
   // Six days ago
-  { daysAgo: 6, meal: 'breakfast', label: 'Wholemeal toast', kind: 'food', seedKey: 'bread-wholemeal', quantity: 2, unit: 'piece' },
-  { daysAgo: 6, meal: 'dinner', label: 'Spinach and feta filo pie', kind: 'recipe', recipeKey: 'spinach-feta-pie', servings: 1 },
+  {
+    daysAgo: 6,
+    meal: 'breakfast',
+    label: 'Wholemeal toast',
+    kind: 'food',
+    seedKey: 'bread-wholemeal',
+    quantity: 2,
+    unit: 'piece',
+  },
+  {
+    daysAgo: 6,
+    meal: 'dinner',
+    label: 'Spinach and feta filo pie',
+    kind: 'recipe',
+    recipeKey: 'spinach-feta-pie',
+    servings: 1,
+  },
 ]
 
 /**

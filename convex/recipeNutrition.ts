@@ -23,7 +23,9 @@ export const estimateNutrition = action({
       apiKey,
     )
     if (!nutrition) {
-      throw new ConvexError("Couldn't estimate nutrition — try entering it manually.")
+      throw new ConvexError(
+        "Couldn't estimate nutrition — try entering it manually.",
+      )
     }
     return nutrition
   },

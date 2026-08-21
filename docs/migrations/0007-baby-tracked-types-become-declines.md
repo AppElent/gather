@@ -1,4 +1,4 @@
-# 0001 — A Child's tracked types become declines
+# 0007 — A Child's tracked types become declines
 
 **Status:** run on dev; production outstanding
 **Code:** `convex/migrations.ts` → `declineByOmission`, plus the
@@ -13,10 +13,8 @@ list, and a list of acceptances cannot tell *"they turned this off"* apart from
 *"this did not exist when they were asked"*.
 
 Memory made it concrete. It shipped, and every existing Child on the deployment
-went on not offering it — the answer to "why can't I see the thing you just
-shipped" was "go and find it in settings", forever, for every event type we
-ever add. So the field now holds the **refusals**: anything nobody has said no
-to is offered, and a new type arrives switched on.
+went on not offering it. The field now holds the **refusals**: anything nobody
+has said no to is offered, and a new type arrives switched on.
 
 ## What it does
 
@@ -26,13 +24,9 @@ For every `babies` row that has a `trackedTypes` and no `untrackedTypes`:
     trackedTypes   = undefined
 
 `OFFERED_BEFORE_MEMORY` is the eight-type catalogue as it stood *when those
-choices were made*, and it is frozen inside the migration rather than read from
-`BABY_EVENT_TYPES`. Subtracting from today's catalogue would record Memory as
-refused by everybody — the exact bug this is fixing.
-
-A row with no `trackedTypes` never made a choice and is left alone: absent still
-means "everything is offered". A row that already has `untrackedTypes` is left
-alone too, so running it twice is safe.
+choices were made*, frozen inside the migration rather than read from
+`BABY_EVENT_TYPES`. A row with no `trackedTypes`, or one already holding
+`untrackedTypes`, is left alone, so rerunning is safe.
 
 ## Running it
 
@@ -42,17 +36,15 @@ npx convex run migrations:declineByOmission --prod   # production
 ```
 
 It returns `{ total, migrated, skipped }`. Preview deployments seed their own
-household from `convex/lib/seed/` and never hold pre-migration rows, so they do
-not need it.
+household and do not need it.
 
 ## Retiring it
 
-When the table below says every deployment has run it, delete
-`convex/migrations.ts`'s `declineByOmission` and `OFFERED_BEFORE_MEMORY`, and
-delete the `trackedTypes` column from `convex/schema.ts`. Nothing reads that
-column but this migration.
+When the table below records a successful production run, delete
+`declineByOmission`, `OFFERED_BEFORE_MEMORY`, the `trackedTypes` schema column,
+and their tests. Archive this record with the result and removal commit.
 
 | Deployment | Run on | Result |
 | ---------- | ------ | ------ |
-| dev        | 2026-08-21 | `{ total: 2, migrated: 2, skipped: 0 }` |
-| production |        |        |
+| dev | 2026-08-21 | `{ total: 2, migrated: 2, skipped: 0 }` |
+| production | | |

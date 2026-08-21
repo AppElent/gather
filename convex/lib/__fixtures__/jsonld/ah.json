@@ -22,9 +22,7 @@
   "recipeYield": "4",
   "recipeCategory": "hoofdgerecht",
   "recipeCuisine": "",
-  "suitableForDiet": [
-    "LowLactoseDiet"
-  ],
+  "suitableForDiet": ["LowLactoseDiet"],
   "nutrition": {
     "@type": "NutritionInformation",
     "calories": "565 kcal energie",

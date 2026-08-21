@@ -56,9 +56,9 @@ describe('mapNotionPage', () => {
     expect(mapNotionPage(statusPage('Completed'), minimalMapping).done).toBe(
       true,
     )
-    expect(
-      mapNotionPage(statusPage('In progress'), minimalMapping).done,
-    ).toBe(false)
+    expect(mapNotionPage(statusPage('In progress'), minimalMapping).done).toBe(
+      false,
+    )
   })
 
   test('leaves unmapped optional fields undefined and defaults empty titles', () => {

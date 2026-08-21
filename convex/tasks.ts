@@ -1,7 +1,7 @@
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
-import { internalQuery, mutation, query } from './_generated/server'
 import type { MutationCtx } from './_generated/server'
+import { internalQuery, mutation, query } from './_generated/server'
 import { requireGroupBySlug } from './lib/groupAccess'
 import { findListInGroup, requireListAccess } from './lib/taskAccess'
 
@@ -168,8 +168,7 @@ export const move = mutation({
         .collect()
     ).sort(byOpenThenOrder)
     const index = siblings.findIndex((t) => t._id === args.taskId)
-    const neighbor =
-      siblings[args.direction === 'up' ? index - 1 : index + 1]
+    const neighbor = siblings[args.direction === 'up' ? index - 1 : index + 1]
     if (!neighbor || neighbor.done !== task.done) return
     await ctx.db.patch(task._id, { order: neighbor.order })
     await ctx.db.patch(neighbor._id, { order: task.order })

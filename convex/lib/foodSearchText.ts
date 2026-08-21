@@ -11,10 +11,7 @@
  * its own tokenising, lower-casing and stemming, and a second normalisation on
  * the way in would only make the stored value diverge from what a reader sees.
  */
-export function foodSearchText(food: {
-  name: string
-  brand?: string
-}): string {
+export function foodSearchText(food: { name: string; brand?: string }): string {
   return [food.name, food.brand]
     .map((part) => part?.trim())
     .filter((part): part is string => !!part)

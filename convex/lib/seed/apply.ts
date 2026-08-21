@@ -188,7 +188,10 @@ export async function resetSample(ctx: MutationCtx) {
   let orphaned = 0
 
   for (const membership of await ctx.db.query('memberships').collect()) {
-    if (!(await alive(membership.groupId)) || !(await alive(membership.userId))) {
+    if (
+      !(await alive(membership.groupId)) ||
+      !(await alive(membership.userId))
+    ) {
       await ctx.db.delete(membership._id)
       orphaned++
     }
@@ -551,7 +554,9 @@ export async function applySample(
       const recipeId = recipeIds.get(entry.recipeKey)
       const recipe = SAMPLE_RECIPES.find((r) => r.key === entry.recipeKey)
       if (!recipeId || !recipe) {
-        throw new Error(`Sample diary references unknown recipe ${entry.recipeKey}`)
+        throw new Error(
+          `Sample diary references unknown recipe ${entry.recipeKey}`,
+        )
       }
       rec.track(
         await ctx.db.insert('consumptionEntries', {
@@ -562,7 +567,10 @@ export async function applySample(
           label: entry.label,
           quantity: entry.servings,
           quantityUnit: 'serving',
-          nutrition: computeRecipeEntryNutrition(recipe.nutrition, entry.servings),
+          nutrition: computeRecipeEntryNutrition(
+            recipe.nutrition,
+            entry.servings,
+          ),
         }),
       )
     } else {
@@ -581,7 +589,11 @@ export async function applySample(
           label: entry.label,
           quantity: entry.quantity,
           quantityUnit: entry.unit,
-          nutrition: computeFoodEntryNutrition(food, entry.quantity, entry.unit),
+          nutrition: computeFoodEntryNutrition(
+            food,
+            entry.quantity,
+            entry.unit,
+          ),
         }),
       )
     }
@@ -607,7 +619,9 @@ export async function applySample(
           `Sample combo references unknown Catalog food ${item.seedKey}`,
         )
       }
-      const recipeId = item.recipeKey ? recipeIds.get(item.recipeKey) : undefined
+      const recipeId = item.recipeKey
+        ? recipeIds.get(item.recipeKey)
+        : undefined
       if (item.recipeKey && !recipeId) {
         throw new Error(
           `Sample combo references unknown recipe ${item.recipeKey}`,

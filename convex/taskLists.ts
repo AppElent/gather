@@ -1,13 +1,10 @@
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { action, internalQuery, mutation, query } from './_generated/server'
-import { getAdapter } from './lib/taskProviders'
-import {
-  ProviderAuthError,
-  type UnifiedTask,
-} from './lib/taskProviders/types'
 import { requireGroupBySlug } from './lib/groupAccess'
 import { requireListAccess } from './lib/taskAccess'
+import { getAdapter } from './lib/taskProviders'
+import { ProviderAuthError, type UnifiedTask } from './lib/taskProviders/types'
 
 const providerConfigValidator = v.object({
   connectionId: v.id('integrationConnections'),
@@ -82,7 +79,11 @@ export const create = mutation({
         throw new ConvexError('Notion lists need a property mapping')
       }
       const conn = await ctx.db.get(args.providerConfig.connectionId)
-      if (!conn || conn.groupId !== groupId || conn.provider !== args.provider) {
+      if (
+        !conn ||
+        conn.groupId !== groupId ||
+        conn.provider !== args.provider
+      ) {
         throw new ConvexError('That connection does not belong to this group')
       }
     }

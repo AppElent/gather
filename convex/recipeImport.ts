@@ -3,8 +3,8 @@
 import { ConvexError, v } from 'convex/values'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
-import { action } from './_generated/server'
 import type { ActionCtx } from './_generated/server'
+import { action } from './_generated/server'
 import { GROUP_REFUSAL_MESSAGES } from './lib/groupAccess'
 import { extractRecipeWithAi } from './lib/recipeAiExtract'
 import { extractJsonLdRecipe, htmlToText } from './lib/recipeParsing'
@@ -45,7 +45,11 @@ export function isUrlSafeToFetch(url: string): boolean {
     if (host.includes('::ffff:')) return false
     // IPv6 loopback, unique-local (fc00::/7), and link-local (fe80::/10)
     if (host === '::1' || host === '::') return false
-    if (host.startsWith('fe80:') || host.startsWith('fc') || host.startsWith('fd')) {
+    if (
+      host.startsWith('fe80:') ||
+      host.startsWith('fc') ||
+      host.startsWith('fd')
+    ) {
       return false
     }
     return true
@@ -111,7 +115,9 @@ export const importFromUrl = action({
     // An action has no `ctx.db` and so cannot call `requireGroupBySlug` itself.
     // `groups.bySlug` is that same resolver behind a query, and refuses for the
     // same three reasons in the same words.
-    const group = await ctx.runQuery(api.groups.bySlug, { slug: args.groupSlug })
+    const group = await ctx.runQuery(api.groups.bySlug, {
+      slug: args.groupSlug,
+    })
     if (!group.ok) throw new ConvexError(GROUP_REFUSAL_MESSAGES[group.reason])
 
     if (!isUrlSafeToFetch(args.url)) throw new ConvexError(BLOCKED_MESSAGE)
@@ -129,11 +135,14 @@ export const importFromUrl = action({
     }
 
     let parsed = extractJsonLdRecipe(html)
-    let nutritionSource: 'imported' | 'ai' | undefined =
-      parsed?.nutrition ? 'imported' : undefined
+    let nutritionSource: 'imported' | 'ai' | undefined = parsed?.nutrition
+      ? 'imported'
+      : undefined
     if (!parsed) {
       const apiKey = process.env.ANTHROPIC_API_KEY
-      parsed = apiKey ? await extractRecipeWithAi(htmlToText(html), apiKey) : null
+      parsed = apiKey
+        ? await extractRecipeWithAi(htmlToText(html), apiKey)
+        : null
       if (parsed?.nutrition) nutritionSource = 'ai'
     }
     if (!parsed) throw new ConvexError(NOT_FOUND_MESSAGE)

@@ -1,5 +1,5 @@
-import { configDefaults, defineConfig } from 'vitest/config'
 import viteReact from '@vitejs/plugin-react'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 const alias = {
   '@': new URL('./src', import.meta.url).pathname,

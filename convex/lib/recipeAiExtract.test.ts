@@ -121,7 +121,12 @@ describe('extractRecipeWithAi', () => {
           {
             type: 'tool_use',
             name: 'extract_recipe',
-            input: { found: true, title: 'Toast', ingredients: ['bread'], steps: ['Toast.'] },
+            input: {
+              found: true,
+              title: 'Toast',
+              ingredients: ['bread'],
+              steps: ['Toast.'],
+            },
           },
         ],
       }),

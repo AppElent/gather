@@ -52,6 +52,7 @@ import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { ChildSwitcher } from './ChildSwitcher'
+import { useMinuteClock } from './clock'
 import { FirstRun } from './FirstRun'
 import { BABY_UI_ICONS, EVENT_ICONS } from './icons'
 import { LogBar } from './LogBar'
@@ -80,7 +81,7 @@ export function ChildScreen({ base }: ChildScreenProps) {
   const [logging, setLogging] = useState<BabyEventType | null>(null)
   const [listing, setListing] = useState<QuickListKind | null>(null)
 
-  const now = Date.now()
+  const now = useMinuteClock()
   const events = useMemo(() => log.events ?? [], [log.events])
   const tiles = useMemo(
     () => tileTypes(log.tracked, events),
@@ -194,184 +195,183 @@ export function ChildScreen({ base }: ChildScreenProps) {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: moduleLabel }} />
-      <View style={{ flex: 1, backgroundColor: tokens.bg }}>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
+      {/* First view in the screen, deliberately: UIKit only honours
+        `contentInsetAdjustmentBehavior="automatic"` — and so only collapses the
+        large title against a scroll view — when that scroll view is the *first*
+        subview of the screen's root. Wrapping this in a flex `View` to sit the
+        `LogBar` under it is what left this title stuck big while the Timeline's
+        collapsed. `LogBar` paints its own background, so the wrapper bought
+        nothing. */}
+      <ScrollView
+        style={[styles.fill, { backgroundColor: tokens.bg }]}
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.baby.log.child.switch}
+          onPress={() => setSwitching(true)}
+          style={({ pressed }) => [styles.identity, pressed && styles.pressed]}
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.baby.log.child.switch}
-            onPress={() => setSwitching(true)}
-            style={({ pressed }) => [
-              styles.identity,
-              pressed && styles.pressed,
-            ]}
-          >
-            {child.photoUrl ? (
-              <Image
-                source={{ uri: child.photoUrl }}
-                style={styles.avatar}
-                contentFit="cover"
-                accessibilityIgnoresInvertColors
-              />
-            ) : (
-              <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
-                <BABY_UI_ICONS.Baby
-                  size={27}
-                  color={tint.fg}
-                  strokeWidth={1.7}
-                />
-              </View>
-            )}
-            <View style={styles.identityText}>
-              <View style={styles.nameRow}>
-                <Text style={[styles.name, { color: tokens.fg }]}>
-                  {child.name}
-                </Text>
-                <UI_ICONS.ChevronDown
-                  size={19}
-                  color={tokens.muted}
-                  strokeWidth={2.4}
-                />
-              </View>
-              <Text style={[styles.age, { color: tokens.muted }]}>{age}</Text>
+          {child.photoUrl ? (
+            <Image
+              source={{ uri: child.photoUrl }}
+              style={styles.avatar}
+              contentFit="cover"
+              accessibilityIgnoresInvertColors
+            />
+          ) : (
+            <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
+              <BABY_UI_ICONS.Baby size={27} color={tint.fg} strokeWidth={1.7} />
             </View>
-          </Pressable>
-
-          <Text style={[styles.sectionTitle, { color: tokens.muted }]}>
-            {t.baby.log.status.today.toUpperCase()}
-          </Text>
-
-          <View style={styles.tiles}>
-            {tiles.map((type) => {
-              const status = tileStatus(type, events, now, statusMessages)
-              const Icon = EVENT_ICONS[type]
-              return (
-                <Pressable
-                  key={type}
-                  accessibilityRole="button"
-                  accessibilityLabel={fmt(t.baby.log.entry.logTitle, {
-                    type: t.baby.eventTypes[type],
-                  })}
-                  onPress={() => openLog(type)}
-                  style={({ pressed }) => [
-                    styles.tile,
-                    {
-                      backgroundColor: tokens.surface,
-                      borderColor: tokens.border,
-                    },
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <View style={styles.tileHead}>
-                    <Icon size={17} color={tint.fg} strokeWidth={1.9} />
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.tileLabel, { color: tokens.muted }]}
-                    >
-                      {t.baby.eventTypes[type].toUpperCase()}
-                    </Text>
-                  </View>
-                  <Text style={[styles.tileValue, { color: tokens.fg }]}>
-                    {status.headline ?? '—'}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={[styles.tileDetail, { color: tokens.muted }]}
-                  >
-                    {status.detail ?? ''}
-                  </Text>
-                </Pressable>
-              )
-            })}
+          )}
+          <View style={styles.identityText}>
+            <View style={styles.nameRow}>
+              <Text style={[styles.name, { color: tokens.fg }]}>
+                {child.name}
+              </Text>
+              <UI_ICONS.ChevronDown
+                size={19}
+                color={tokens.muted}
+                strokeWidth={2.4}
+              />
+            </View>
+            <Text style={[styles.age, { color: tokens.muted }]}>{age}</Text>
           </View>
+        </Pressable>
 
-          <TrendCard
-            events={events}
-            title={t.baby.log.status.weight}
-            onOpenAll={() =>
-              router.push(babyHref(base, '/trends', { childId: child._id }))
-            }
-          />
+        <Text style={[styles.sectionTitle, { color: tokens.muted }]}>
+          {t.baby.log.status.today.toUpperCase()}
+        </Text>
 
-          <Text style={[styles.sectionTitle, { color: tokens.muted }]}>
-            {t.baby.log.lists.title.toUpperCase()}
-          </Text>
-
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: tokens.surface, borderColor: tokens.border },
-            ]}
-          >
-            {(
-              [
-                ['todos', t.baby.log.lists.todos, BABY_UI_ICONS.ListChecks],
-                [
-                  'questions',
-                  t.baby.log.lists.questions,
-                  BABY_UI_ICONS.CircleQuestionMark,
-                ],
-              ] as const
-            ).map(([list, label, Icon], index) => (
+        <View style={styles.tiles}>
+          {tiles.map((type) => {
+            const status = tileStatus(type, events, now, statusMessages)
+            const Icon = EVENT_ICONS[type]
+            return (
               <Pressable
-                key={list}
+                key={type}
                 accessibilityRole="button"
-                accessibilityLabel={label}
-                onPress={() =>
-                  router.push(
-                    babyHref(base, '/lists', { childId: child._id, list }),
-                  )
-                }
+                accessibilityLabel={fmt(t.baby.log.entry.logTitle, {
+                  type: t.baby.eventTypes[type],
+                })}
+                onPress={() => openLog(type)}
                 style={({ pressed }) => [
-                  styles.row,
-                  index > 0 && {
-                    borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: tokens.border,
+                  styles.tile,
+                  {
+                    backgroundColor: tokens.surface,
+                    borderColor: tokens.border,
                   },
                   pressed && styles.pressed,
                 ]}
               >
-                <Icon size={18} color={tint.fg} strokeWidth={1.9} />
-                <Text style={[styles.rowLabel, { color: tokens.fg }]}>
-                  {label}
+                <View style={styles.tileHead}>
+                  <Icon size={17} color={tint.fg} strokeWidth={1.9} />
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.tileLabel, { color: tokens.muted }]}
+                  >
+                    {t.baby.eventTypes[type].toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={[styles.tileValue, { color: tokens.fg }]}>
+                  {status.headline ?? '—'}
                 </Text>
-                <UI_ICONS.ChevronRight
-                  size={18}
-                  color={tokens.muted}
-                  strokeWidth={2.2}
-                />
+                <Text
+                  numberOfLines={1}
+                  style={[styles.tileDetail, { color: tokens.muted }]}
+                >
+                  {status.detail ?? ''}
+                </Text>
               </Pressable>
-            ))}
-          </View>
-
-          <Pressable
-            accessibilityRole="button"
-            onPress={() =>
-              router.push(babyHref(base, '/timeline', { childId: child._id }))
-            }
-            style={({ pressed }) => [styles.seeAll, pressed && styles.pressed]}
-          >
-            <Text style={[styles.seeAllText, { color: tint.fg }]}>
-              {fmt(t.baby.log.status.seeAll, { count: events.length })}
-            </Text>
-          </Pressable>
-        </ScrollView>
-
-        <LogBar
-          slots={log.slots}
-          onPick={pick}
-          onReorder={reorder}
-          onHide={(slot) => saveSlots(hideSlot(log.slots, slot))}
-          onShowAll={() =>
-            saveSlots(
-              showAllSlots(log.slots, BABY_EVENT_TYPES, BABY_BAR_SHORTCUTS),
             )
+          })}
+        </View>
+
+        <TrendCard
+          events={events}
+          title={t.baby.log.status.weight}
+          onOpenAll={() =>
+            router.push(babyHref(base, '/trends', { childId: child._id }))
           }
         />
-      </View>
+
+        <Text style={[styles.sectionTitle, { color: tokens.muted }]}>
+          {t.baby.log.lists.title.toUpperCase()}
+        </Text>
+
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: tokens.surface, borderColor: tokens.border },
+          ]}
+        >
+          {(
+            [
+              ['todos', t.baby.log.lists.todos, BABY_UI_ICONS.ListChecks],
+              [
+                'questions',
+                t.baby.log.lists.questions,
+                BABY_UI_ICONS.CircleQuestionMark,
+              ],
+            ] as const
+          ).map(([list, label, Icon], index) => (
+            <Pressable
+              key={list}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              onPress={() =>
+                router.push(
+                  babyHref(base, '/lists', { childId: child._id, list }),
+                )
+              }
+              style={({ pressed }) => [
+                styles.row,
+                index > 0 && {
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: tokens.border,
+                },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Icon size={18} color={tint.fg} strokeWidth={1.9} />
+              <Text style={[styles.rowLabel, { color: tokens.fg }]}>
+                {label}
+              </Text>
+              <UI_ICONS.ChevronRight
+                size={18}
+                color={tokens.muted}
+                strokeWidth={2.2}
+              />
+            </Pressable>
+          ))}
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() =>
+            router.push(babyHref(base, '/timeline', { childId: child._id }))
+          }
+          style={({ pressed }) => [styles.seeAll, pressed && styles.pressed]}
+        >
+          <Text style={[styles.seeAllText, { color: tint.fg }]}>
+            {fmt(t.baby.log.status.seeAll, { count: events.length })}
+          </Text>
+        </Pressable>
+      </ScrollView>
+
+      <LogBar
+        slots={log.slots}
+        onPick={pick}
+        onReorder={reorder}
+        onHide={(slot) => saveSlots(hideSlot(log.slots, slot))}
+        onShowAll={() =>
+          saveSlots(
+            showAllSlots(log.slots, BABY_EVENT_TYPES, BABY_BAR_SHORTCUTS),
+          )
+        }
+      />
 
       {switching ? (
         <ChildSwitcher
@@ -428,6 +428,7 @@ export function ChildScreen({ base }: ChildScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20, gap: 9 },
   identity: {
     flexDirection: 'row',

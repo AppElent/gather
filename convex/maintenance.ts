@@ -317,7 +317,8 @@ export const backfillFoodServings = internalMutation({
           ? food.servings
           : [
               {
-                label: servingLabel?.trim() || `${servingSize} ${food.baseUnit}`,
+                label:
+                  servingLabel?.trim() || `${servingSize} ${food.baseUnit}`,
                 amount: servingSize,
               },
             ]

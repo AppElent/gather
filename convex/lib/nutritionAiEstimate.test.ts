@@ -13,7 +13,13 @@ describe('estimateNutritionWithAi', () => {
           {
             type: 'tool_use',
             name: 'estimate_nutrition',
-            input: { found: true, calories: 420, protein: 18, bogus: 9, fat: -2 },
+            input: {
+              found: true,
+              calories: 420,
+              protein: 18,
+              bogus: 9,
+              fat: -2,
+            },
           },
         ],
       }),
@@ -55,7 +61,11 @@ describe('estimateNutritionWithAi', () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       mockResponse({
         content: [
-          { type: 'tool_use', name: 'estimate_nutrition', input: { found: false } },
+          {
+            type: 'tool_use',
+            name: 'estimate_nutrition',
+            input: { found: false },
+          },
         ],
       }),
     )

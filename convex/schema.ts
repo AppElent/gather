@@ -292,7 +292,7 @@ export default defineSchema({
     // not be able to hide a record somebody is showing a doctor.
     untrackedTypes: v.optional(v.array(babyEventTypeValidator)),
     // The acceptances this replaced. Read only by `migrations.declineByOmission`
-    // and written by nothing; it goes when docs/migrations/0001 records that
+    // and written by nothing; it goes when docs/migrations/0007 records that
     // the migration has run on every deployment.
     trackedTypes: v.optional(v.array(babyEventTypeValidator)),
     // Where each of those buttons sits on the log bar, and whether the two

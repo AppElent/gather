@@ -45,8 +45,9 @@ export function NativeSheet({
   const layout = nativeSheetLayout(Platform.OS)
 
   useEffect(() => {
-    ref.current?.present()
-    return () => ref.current?.dismiss()
+    const modal = ref.current
+    modal?.present()
+    return () => modal?.dismiss()
   }, [])
 
   const dismiss = () => ref.current?.dismiss()

@@ -64,7 +64,11 @@ describe('isUrlSafeToFetch', () => {
 describe('safeFetch', () => {
   test('returns the response directly when there is no redirect', async () => {
     const fetchImpl = vi.fn(async () => new Response('ok', { status: 200 }))
-    const res = await safeFetch('https://example.com/page', undefined, fetchImpl)
+    const res = await safeFetch(
+      'https://example.com/page',
+      undefined,
+      fetchImpl,
+    )
     expect(res?.status).toBe(200)
     expect(fetchImpl).toHaveBeenCalledTimes(1)
   })
@@ -79,7 +83,11 @@ describe('safeFetch', () => {
         }),
       )
       .mockResolvedValueOnce(new Response('ok', { status: 200 }))
-    const res = await safeFetch('https://example.com/page', undefined, fetchImpl)
+    const res = await safeFetch(
+      'https://example.com/page',
+      undefined,
+      fetchImpl,
+    )
     expect(res?.status).toBe(200)
     expect(fetchImpl).toHaveBeenCalledTimes(2)
     expect(fetchImpl).toHaveBeenNthCalledWith(
@@ -99,7 +107,11 @@ describe('safeFetch', () => {
         headers: { location: 'http://169.254.169.254/latest/meta-data' },
       }),
     )
-    const res = await safeFetch('https://example.com/page', undefined, fetchImpl)
+    const res = await safeFetch(
+      'https://example.com/page',
+      undefined,
+      fetchImpl,
+    )
     expect(res).toBeUndefined()
     expect(fetchImpl).toHaveBeenCalledTimes(1)
   })
@@ -111,7 +123,11 @@ describe('safeFetch', () => {
         headers: { location: '//localhost:1/internal' },
       }),
     )
-    const res = await safeFetch('https://example.com/page', undefined, fetchImpl)
+    const res = await safeFetch(
+      'https://example.com/page',
+      undefined,
+      fetchImpl,
+    )
     expect(res).toBeUndefined()
     expect(fetchImpl).toHaveBeenCalledTimes(1)
   })
@@ -124,7 +140,11 @@ describe('safeFetch', () => {
           headers: { location: 'https://example.com/next' },
         }),
     )
-    const res = await safeFetch('https://example.com/page', undefined, fetchImpl)
+    const res = await safeFetch(
+      'https://example.com/page',
+      undefined,
+      fetchImpl,
+    )
     expect(res).toBeUndefined()
     expect(fetchImpl.mock.calls.length).toBeGreaterThan(1)
     expect(fetchImpl.mock.calls.length).toBeLessThan(10)
@@ -132,7 +152,11 @@ describe('safeFetch', () => {
 
   test('returns undefined when a redirect has no Location header', async () => {
     const fetchImpl = vi.fn(async () => new Response(null, { status: 302 }))
-    const res = await safeFetch('https://example.com/page', undefined, fetchImpl)
+    const res = await safeFetch(
+      'https://example.com/page',
+      undefined,
+      fetchImpl,
+    )
     expect(res).toBeUndefined()
   })
 })

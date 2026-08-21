@@ -75,9 +75,9 @@ test('a component stepped up counts its own serving again', () => {
 })
 
 test('stepping a component to zero is how it is dropped', () => {
-  expect(
-    comboEntries(lunch, { 'item-coffee': 0 }).map((e) => e.label),
-  ).toEqual(['Wholemeal bread', 'Nora’s granola'])
+  expect(comboEntries(lunch, { 'item-coffee': 0 }).map((e) => e.label)).toEqual(
+    ['Wholemeal bread', 'Nora’s granola'],
+  )
 })
 
 test('a one-off scales from its own saved figures', () => {
@@ -101,10 +101,9 @@ test('a component nobody can reach any more logs nothing, and the rest still log
     recipe: undefined,
     available: false,
   }
-  expect(comboEntries([bread, lostRecipe, coffee]).map((e) => e.label)).toEqual([
-    'Wholemeal bread',
-    'Flat white from the corner',
-  ])
+  expect(comboEntries([bread, lostRecipe, coffee]).map((e) => e.label)).toEqual(
+    ['Wholemeal bread', 'Flat white from the corner'],
+  )
 })
 
 test('a component with nothing behind it and no figures of its own is not logged', () => {

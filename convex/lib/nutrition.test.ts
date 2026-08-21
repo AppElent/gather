@@ -129,13 +129,16 @@ describe('nextNutritionStale', () => {
   })
   test('false (clears) when nutrition is removed', () => {
     expect(
-      nextNutritionStale({ ...base, nutritionStale: true }, { ...base, nutrition: undefined }),
+      nextNutritionStale(
+        { ...base, nutritionStale: true },
+        { ...base, nutrition: undefined },
+      ),
     ).toBe(false)
   })
   test('stays true while stale and nutrition untouched', () => {
-    expect(nextNutritionStale({ ...base, nutritionStale: true }, { ...base })).toBe(
-      true,
-    )
+    expect(
+      nextNutritionStale({ ...base, nutritionStale: true }, { ...base }),
+    ).toBe(true)
   })
 })
 
@@ -164,9 +167,9 @@ describe('nextNutritionSource', () => {
   })
 
   test('changing a figure makes them manual, whatever they were', () => {
-    expect(nextNutritionSource(figures, { ...figures, sugars: 55 }, 'imported')).toBe(
-      'manual',
-    )
+    expect(
+      nextNutritionSource(figures, { ...figures, sugars: 55 }, 'imported'),
+    ).toBe('manual')
     // The correction that must stop calling itself an estimate (#86, story 21).
     expect(nextNutritionSource(figures, { ...figures, sugars: 55 }, 'ai')).toBe(
       'manual',
@@ -184,7 +187,11 @@ describe('nextNutritionSource', () => {
 
   test('an absent nutrient is not a zero', () => {
     expect(
-      nextNutritionSource({ calories: 539 }, { calories: 539, salt: 0 }, 'imported'),
+      nextNutritionSource(
+        { calories: 539 },
+        { calories: 539, salt: 0 },
+        'imported',
+      ),
     ).toBe('manual')
   })
 

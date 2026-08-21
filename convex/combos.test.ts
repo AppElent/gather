@@ -14,7 +14,11 @@ import { comboEntries } from './lib/combos'
  * changed Combo never changes the Combo.
  */
 
-const asAlice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
+const asAlice = {
+  subject: 'clerk_alice',
+  name: 'Alice',
+  email: 'a@example.com',
+}
 const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
 
 const DAY = '2026-07-30'
@@ -105,7 +109,9 @@ async function entryIdsFor(
   const entries = await t
     .withIdentity(asAlice)
     .query(api.consumption.listForDay, { date })
-  return entries.filter((entry) => entry.meal === meal).map((entry) => entry._id)
+  return entries
+    .filter((entry) => entry.meal === meal)
+    .map((entry) => entry._id)
 }
 
 async function saveBreakfast() {
@@ -314,9 +320,7 @@ describe('saving a selection replaces exactly what was chosen', () => {
     // was not logged by a Combo and must not claim it was.
     expect(stamped).toHaveLength(2)
     expect(stamped.every((e) => e.comboLabel === 'Bread and coffee')).toBe(true)
-    expect(
-      after.filter((entry) => entry.comboId === undefined),
-    ).toHaveLength(1)
+    expect(after.filter((entry) => entry.comboId === undefined)).toHaveLength(1)
   })
 
   test('renaming the Combo afterwards does not rewrite the day it was logged on', async () => {
@@ -772,8 +776,7 @@ describe('logging a Combo', () => {
         label: entry.label,
         quantity: entry.quantity,
         quantityUnit: entry.quantityUnit,
-        nutrition:
-          entry.foodId || entry.recipeId ? undefined : entry.nutrition,
+        nutrition: entry.foodId || entry.recipeId ? undefined : entry.nutrition,
         icon: entry.foodId || entry.recipeId ? undefined : entry.icon,
       })),
     })
@@ -877,9 +880,7 @@ describe('keeping the library tidy', () => {
       t.withIdentity(asAlice).mutation(api.combos.remove, { id: comboId }),
     ).rejects.toThrow('Combo not found')
     await expect(
-      t
-        .withIdentity(asBob)
-        .mutation(api.combos.remove, { id: comboId }),
+      t.withIdentity(asBob).mutation(api.combos.remove, { id: comboId }),
     ).rejects.toThrow('Combo not found')
   })
 })

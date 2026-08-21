@@ -11,7 +11,11 @@ import { api } from './_generated/api'
  * have narrowed anything. Signing in is the only bar.
  */
 
-const asAlice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
+const asAlice = {
+  subject: 'clerk_alice',
+  name: 'Alice',
+  email: 'a@example.com',
+}
 const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
 
 async function seed() {
@@ -175,7 +179,9 @@ describe('searching by brand', () => {
     })
 
     expect(
-      await t.withIdentity(asAlice).query(api.foods.search, { term: 'campina' }),
+      await t
+        .withIdentity(asAlice)
+        .query(api.foods.search, { term: 'campina' }),
     ).toEqual([])
     expect(
       (
@@ -643,7 +649,9 @@ describe('reviewing an import before it is saved', () => {
       'fetch',
       vi
         .fn()
-        .mockResolvedValue(new Response(JSON.stringify(product), { status: 200 })),
+        .mockResolvedValue(
+          new Response(JSON.stringify(product), { status: 200 }),
+        ),
     )
 
     try {

@@ -188,7 +188,9 @@ describe("a Group's collection is the Group's, not the caller's", () => {
     const { t } = await seed()
 
     await expect(
-      t.withIdentity(asCarol).query(api.recipes.list, { groupSlug: 'household' }),
+      t
+        .withIdentity(asCarol)
+        .query(api.recipes.list, { groupSlug: 'household' }),
     ).rejects.toThrow()
   })
 })
@@ -256,12 +258,10 @@ describe('recipes.get', () => {
 
   test('a Member of a Group it is shared into can read it', async () => {
     const { t, ids } = await seed()
-    const recipe = await t
-      .withIdentity(asCarol)
-      .query(api.recipes.get, {
-        id: ids.sharedWithClub,
-        groupSlug: 'cooking-club',
-      })
+    const recipe = await t.withIdentity(asCarol).query(api.recipes.get, {
+      id: ids.sharedWithClub,
+      groupSlug: 'cooking-club',
+    })
     expect(recipe?.title).toBe('Pasta for a crowd')
   })
 
@@ -309,23 +309,19 @@ describe('recipes.get', () => {
 
   test('a Group it was shared into reads it and cannot change it', async () => {
     const { t, ids } = await seed()
-    const recipe = await t
-      .withIdentity(asCarol)
-      .query(api.recipes.get, {
-        id: ids.sharedWithClub,
-        groupSlug: 'cooking-club',
-      })
+    const recipe = await t.withIdentity(asCarol).query(api.recipes.get, {
+      id: ids.sharedWithClub,
+      groupSlug: 'cooking-club',
+    })
     expect(recipe?.canEdit).toBe(false)
   })
 
   test('says which Group it lives in', async () => {
     const { t, ids } = await seed()
-    const recipe = await t
-      .withIdentity(asCarol)
-      .query(api.recipes.get, {
-        id: ids.sharedWithClub,
-        groupSlug: 'cooking-club',
-      })
+    const recipe = await t.withIdentity(asCarol).query(api.recipes.get, {
+      id: ids.sharedWithClub,
+      groupSlug: 'cooking-club',
+    })
     expect(recipe?.homeGroupName).toBe('Household')
     expect(recipe?.homeGroupSlug).toBe('household')
   })
@@ -333,20 +329,16 @@ describe('recipes.get', () => {
   test('tells the home Group which Groups it is shared with, and tells a guest Group nothing', async () => {
     const { t, ids } = await seed()
 
-    const atHome = await t
-      .withIdentity(asBob)
-      .query(api.recipes.get, {
-        id: ids.sharedWithClub,
-        groupSlug: 'household',
-      })
+    const atHome = await t.withIdentity(asBob).query(api.recipes.get, {
+      id: ids.sharedWithClub,
+      groupSlug: 'household',
+    })
     expect(atHome?.sharedGroups.map((g) => g.slug)).toEqual(['cooking-club'])
 
-    const asGuest = await t
-      .withIdentity(asCarol)
-      .query(api.recipes.get, {
-        id: ids.sharedWithClub,
-        groupSlug: 'cooking-club',
-      })
+    const asGuest = await t.withIdentity(asCarol).query(api.recipes.get, {
+      id: ids.sharedWithClub,
+      groupSlug: 'cooking-club',
+    })
     expect(asGuest?.sharedGroups).toEqual([])
   })
 })
@@ -404,7 +396,9 @@ describe('attribution grants nothing', () => {
   test('a recipe outside your Groups cannot be deleted', async () => {
     const { t, ids } = await seed()
 
-    await t.withIdentity(asCarol).mutation(api.recipes.remove, { id: ids.roast })
+    await t
+      .withIdentity(asCarol)
+      .mutation(api.recipes.remove, { id: ids.roast })
 
     const survives = await t
       .withIdentity(asBob)
@@ -990,7 +984,9 @@ describe("a recipe's picture does not outlive the row that held it", () => {
     const image = await storeImage(t)
     await attachImage(t, ids.roast, image)
 
-    await t.withIdentity(asAlice).mutation(api.recipes.remove, { id: ids.roast })
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.recipes.remove, { id: ids.roast })
 
     expect(await imageExists(t, image)).toBe(false)
   })
@@ -1031,7 +1027,9 @@ describe("a recipe's picture does not outlive the row that held it", () => {
       ...roastFields,
       imageId: null,
     })
-    await t.withIdentity(asAlice).mutation(api.recipes.remove, { id: ids.roast })
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.recipes.remove, { id: ids.roast })
 
     const survives = await t.run(async (ctx) => await ctx.db.get(ids.roast))
     expect(survives).toBeNull()
@@ -1062,7 +1060,9 @@ describe("a recipe's picture does not outlive the row that held it", () => {
 
     // `remove` refuses by returning, so the picture surviving is the whole of
     // what there is to assert.
-    await t.withIdentity(asCarol).mutation(api.recipes.remove, { id: ids.roast })
+    await t
+      .withIdentity(asCarol)
+      .mutation(api.recipes.remove, { id: ids.roast })
 
     expect(await imageExists(t, image)).toBe(true)
     const survives = await t.run(async (ctx) => await ctx.db.get(ids.roast))
@@ -1082,7 +1082,9 @@ describe("a recipe's picture does not outlive the row that held it", () => {
       ...roastFields,
       imageId: null,
     })
-    await t.withIdentity(asAlice).mutation(api.recipes.remove, { id: ids.roast })
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.recipes.remove, { id: ids.roast })
 
     const survives = await t.run(async (ctx) => await ctx.db.get(ids.roast))
     expect(survives).toBeNull()
@@ -1105,22 +1107,27 @@ describe('a picture two rows point at survives the first of them going', () => {
 
     // Carol reads the shared recipe — the id comes back with it — and puts that
     // id on a recipe of her own, in the one Group she can write.
-    const seen = await t
-      .withIdentity(asCarol)
-      .query(api.recipes.get, { id: ids.sharedWithClub, groupSlug: 'cooking-club' })
-    const borrowed = await t.withIdentity(asCarol).mutation(api.recipes.create, {
+    const seen = await t.withIdentity(asCarol).query(api.recipes.get, {
+      id: ids.sharedWithClub,
       groupSlug: 'cooking-club',
-      title: 'Not mine',
-      ingredients: [],
-      steps: [],
-      tags: [],
-      imageId: seen?.imageId,
     })
+    const borrowed = await t
+      .withIdentity(asCarol)
+      .mutation(api.recipes.create, {
+        groupSlug: 'cooking-club',
+        title: 'Not mine',
+        ingredients: [],
+        steps: [],
+        tags: [],
+        imageId: seen?.imageId,
+      })
 
     await t.withIdentity(asCarol).mutation(api.recipes.remove, { id: borrowed })
 
     expect(await imageExists(t, image)).toBe(true)
-    const original = await t.run(async (ctx) => await ctx.db.get(ids.sharedWithClub))
+    const original = await t.run(
+      async (ctx) => await ctx.db.get(ids.sharedWithClub),
+    )
     expect(original?.imageId).toBe(image)
   })
 
@@ -1129,14 +1136,16 @@ describe('a picture two rows point at survives the first of them going', () => {
     const image = await storeImage(t)
     await attachImage(t, ids.sharedWithClub, image)
 
-    const borrowed = await t.withIdentity(asCarol).mutation(api.recipes.create, {
-      groupSlug: 'cooking-club',
-      title: 'Not mine',
-      ingredients: [],
-      steps: [],
-      tags: [],
-      imageId: image,
-    })
+    const borrowed = await t
+      .withIdentity(asCarol)
+      .mutation(api.recipes.create, {
+        groupSlug: 'cooking-club',
+        title: 'Not mine',
+        ingredients: [],
+        steps: [],
+        tags: [],
+        imageId: image,
+      })
     await t.withIdentity(asCarol).mutation(api.recipes.update, {
       id: borrowed,
       title: 'Not mine',
@@ -1154,14 +1163,16 @@ describe('a picture two rows point at survives the first of them going', () => {
     const { t, ids } = await seed()
     const image = await storeImage(t)
     await attachImage(t, ids.sharedWithClub, image)
-    const borrowed = await t.withIdentity(asCarol).mutation(api.recipes.create, {
-      groupSlug: 'cooking-club',
-      title: 'Not mine',
-      ingredients: [],
-      steps: [],
-      tags: [],
-      imageId: image,
-    })
+    const borrowed = await t
+      .withIdentity(asCarol)
+      .mutation(api.recipes.create, {
+        groupSlug: 'cooking-club',
+        title: 'Not mine',
+        ingredients: [],
+        steps: [],
+        tags: [],
+        imageId: image,
+      })
 
     await t.withIdentity(asCarol).mutation(api.recipes.remove, { id: borrowed })
     await t

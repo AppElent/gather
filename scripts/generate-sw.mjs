@@ -8,19 +8,21 @@
 //
 // Precaches the static app shell only — never Convex/API traffic, since
 // this app depends on Convex's real-time websocket sync for live data.
-import { generateSW } from "workbox-build";
+import { generateSW } from 'workbox-build'
 
 const { count, size, warnings } = await generateSW({
-	globDirectory: "dist/client",
-	globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
-	swDest: "dist/client/sw.js",
-	navigateFallback: undefined,
-	navigateFallbackDenylist: [/^\/api\//, /^\/convex\//],
-	skipWaiting: true,
-	clientsClaim: true,
-});
+  globDirectory: 'dist/client',
+  globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+  swDest: 'dist/client/sw.js',
+  navigateFallback: undefined,
+  navigateFallbackDenylist: [/^\/api\//, /^\/convex\//],
+  skipWaiting: true,
+  clientsClaim: true,
+})
 
 for (const warning of warnings) {
-	console.warn(warning);
+  console.warn(warning)
 }
-console.log(`generate-sw: precached ${count} files, ${(size / 1024).toFixed(1)} KB`);
+console.log(
+  `generate-sw: precached ${count} files, ${(size / 1024).toFixed(1)} KB`,
+)

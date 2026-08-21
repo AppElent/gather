@@ -1,5 +1,6 @@
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
+import type { ActionCtx } from './_generated/server'
 import {
   action,
   internalMutation,
@@ -7,7 +8,7 @@ import {
   mutation,
   query,
 } from './_generated/server'
-import type { ActionCtx } from './_generated/server'
+import { requireGroupBySlug } from './lib/groupAccess'
 import { getAdapter } from './lib/taskProviders'
 import {
   type ExternalProviderId,
@@ -15,7 +16,6 @@ import {
   type ProviderSource,
   type SourceProperty,
 } from './lib/taskProviders/types'
-import { requireGroupBySlug } from './lib/groupAccess'
 
 const externalProvider = v.union(v.literal('notion'), v.literal('todoist'))
 

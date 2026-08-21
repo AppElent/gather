@@ -1,8 +1,5 @@
+import { BABY_EVENT_TYPES, type BabyEventType } from '@gather/core/domain'
 import { v } from 'convex/values'
-import {
-  BABY_EVENT_TYPES,
-  type BabyEventType,
-} from '@gather/core/domain'
 
 export { BABY_EVENT_TYPES }
 export type { BabyEventType }
@@ -175,7 +172,9 @@ export function isValidEventData(
         isValidMinutes(data.rightMin)
       )
     case 'diaper':
-      return data.kind === 'wet' || data.kind === 'dirty' || data.kind === 'both'
+      return (
+        data.kind === 'wet' || data.kind === 'dirty' || data.kind === 'both'
+      )
     case 'sleep':
       return true
     case 'growth':

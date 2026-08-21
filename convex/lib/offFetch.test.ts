@@ -13,7 +13,15 @@ describe('barcodeTerm', () => {
   test('a number still being typed is not a barcode', () => {
     // The point of the floor: the digits of a barcode arrive one at a time, and
     // each prefix has to stay an ordinary search rather than a failed lookup.
-    for (const partial of ['8', '87', '871', '8712', '87123', '871234', '8712345']) {
+    for (const partial of [
+      '8',
+      '87',
+      '871',
+      '8712',
+      '87123',
+      '871234',
+      '8712345',
+    ]) {
       expect(barcodeTerm(partial)).toBeNull()
     }
   })
@@ -71,9 +79,11 @@ describe('fetchOffProduct', () => {
   })
 
   test('returns the parsed JSON on success', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(
-      mockResponse({ status: 1, product: { product_name: 'Test' } }),
-    )
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(
+        mockResponse({ status: 1, product: { product_name: 'Test' } }),
+      )
     expect(await fetchOffProduct('3017620422003', fetchImpl)).toEqual({
       status: 1,
       product: { product_name: 'Test' },

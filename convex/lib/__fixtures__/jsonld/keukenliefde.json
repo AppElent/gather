@@ -91,10 +91,7 @@
       "inLanguage": "nl-NL"
     },
     {
-      "@type": [
-        "Person",
-        "Organization"
-      ],
+      "@type": ["Person", "Organization"],
       "@id": "https://www.keukenliefde.nl/#/schema/person/fc3c395603ed9b19eafdfa58d70cdbad",
       "name": "Annemiek Verweij",
       "image": {
@@ -111,10 +108,7 @@
         "@id": "https://www.keukenliefde.nl/#/schema/person/image/"
       },
       "description": "Hoi! dit ben ik - Annemiek. Al vanaf 2012 ben ik dagelijks druk bezig met mijn grootste hobby Keukenliefde. Doordeweeks ben ik dol op makkelijke maaltijden die snel op tafel staan maar in het weekend pak ik graag uit!",
-      "sameAs": [
-        "http://www.keukenliefde.nl",
-        "https://x.com/Keukenliefde"
-      ]
+      "sameAs": ["http://www.keukenliefde.nl", "https://x.com/Keukenliefde"]
     },
     {
       "@type": "Recipe",
@@ -133,10 +127,7 @@
       "dateModified": "2026-03-05T13:32:51+01:00",
       "totalTime": "PT15M",
       "recipeYield": "2",
-      "recipeCategory": [
-        "Hoofdgerecht",
-        "Appetizer"
-      ],
+      "recipeCategory": ["Hoofdgerecht", "Appetizer"],
       "recipeCuisine": "Italiaans",
       "recipeIngredient": [
         "200 g pasta",

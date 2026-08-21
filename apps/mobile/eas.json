@@ -17,7 +17,6 @@
       }
     },
     "preview": {
-      "distribution": "internal",
       "autoIncrement": true,
       "environment": "preview",
       "env": {
@@ -30,6 +29,14 @@
       "env": {
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
       }
+    }
+  },
+  "submit": {
+    "preview": {
+      "ios": {}
+    },
+    "production": {
+      "ios": {}
     }
   }
 }

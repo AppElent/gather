@@ -99,9 +99,7 @@ export const list = query({
             name: combo.name,
             order: combo.order,
             components: await Promise.all(
-              items.map((item) =>
-                resolveComponent(ctx, item, viewerGroupIds),
-              ),
+              items.map((item) => resolveComponent(ctx, item, viewerGroupIds)),
             ),
           }
         }),
@@ -200,8 +198,7 @@ export const saveFromMeal = mutation({
         quantityUnit: entry.quantityUnit,
         // Figures are kept only where there is nothing to read them from
         // later. A food or a Recipe is re-read on every log, deliberately.
-        nutrition:
-          entry.foodId || entry.recipeId ? undefined : entry.nutrition,
+        nutrition: entry.foodId || entry.recipeId ? undefined : entry.nutrition,
         // Same rule for the icon (#94): a food's travels with the food, so
         // changing it there changes every future log. A one-off's has nowhere
         // else to live, and without this a Combo would quietly drop it.

@@ -23,12 +23,7 @@
         "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/#primaryimage"
       },
       "thumbnailUrl": "https://www.lekkerensimpel.com/wp-content/uploads/2021/01/IMG_9161.jpg",
-      "keywords": [
-        "ei",
-        "Rijst",
-        "Prei",
-        "ui"
-      ],
+      "keywords": ["ei", "Rijst", "Prei", "ui"],
       "articleSection": [
         "Aziatische recepten",
         "Recepten met ei",
@@ -73,9 +68,7 @@
       "potentialAction": [
         {
           "@type": "ReadAction",
-          "target": [
-            "https://www.lekkerensimpel.com/nasi-goreng-recept/"
-          ]
+          "target": ["https://www.lekkerensimpel.com/nasi-goreng-recept/"]
         }
       ]
     },
@@ -182,10 +175,7 @@
         "https://www.lekkerensimpel.com/wp-content/uploads/2021/01/IMG_9161.jpg-1-500x375.webp",
         "https://www.lekkerensimpel.com/wp-content/uploads/2021/01/IMG_9161.jpg-1-480x270.webp"
       ],
-      "recipeYield": [
-        "2",
-        "2 personen"
-      ],
+      "recipeYield": ["2", "2 personen"],
       "cookTime": "PT25M",
       "recipeIngredient": [
         "200 gr rijst (basmati- of witte rijst)",
@@ -258,12 +248,8 @@
         "ratingValue": "4.57",
         "ratingCount": "32"
       },
-      "recipeCategory": [
-        "Hoofdgerecht"
-      ],
-      "recipeCuisine": [
-        "Aziatische keuken"
-      ],
+      "recipeCategory": ["Hoofdgerecht"],
+      "recipeCuisine": ["Aziatische keuken"],
       "keywords": "rijst, paprika, prei",
       "@id": "https://www.lekkerensimpel.com/nasi-goreng-recept/#recipe",
       "isPartOf": {

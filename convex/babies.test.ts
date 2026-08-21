@@ -88,7 +88,9 @@ type Harness = Awaited<ReturnType<typeof seed>>['t']
 
 /** A photo in storage, as an upload from the form would leave one. */
 async function storePhoto(t: Harness) {
-  return await t.run(async (ctx) => await ctx.storage.store(new Blob(['photo'])))
+  return await t.run(
+    async (ctx) => await ctx.storage.store(new Blob(['photo'])),
+  )
 }
 
 /** Give a child that photo, as `babies.create`/`update` would. */
@@ -247,9 +249,10 @@ describe('editing a child under the wrong Group', () => {
     const { t, sam } = await seed()
 
     await expect(
-      t
-        .withIdentity(alice)
-        .mutation(api.babies.remove, { id: sam, groupSlug: 'jansen-household' }),
+      t.withIdentity(alice).mutation(api.babies.remove, {
+        id: sam,
+        groupSlug: 'jansen-household',
+      }),
     ).rejects.toThrow(/Baby not found/)
 
     const still = await t
@@ -398,9 +401,10 @@ describe("a child's photo does not outlive the row that held it", () => {
     await attachPhoto(t, sam, photo)
 
     await expect(
-      t
-        .withIdentity(alice)
-        .mutation(api.babies.remove, { id: sam, groupSlug: 'jansen-household' }),
+      t.withIdentity(alice).mutation(api.babies.remove, {
+        id: sam,
+        groupSlug: 'jansen-household',
+      }),
     ).rejects.toThrow(/Baby not found/)
 
     expect(await photoExists(t, photo)).toBe(true)

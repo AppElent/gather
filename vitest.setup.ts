@@ -1,7 +1,7 @@
 import '@testing-library/dom'
 import '@testing-library/jest-dom/vitest'
-import { afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
+import { afterEach } from 'vitest'
 
 // Node 22+ ships an experimental, inert `globalThis.localStorage` (it throws
 // or returns undefined unless run with --localstorage-file). vitest's jsdom
@@ -21,6 +21,15 @@ if (jsdomWindow) {
     configurable: true,
   })
 }
+
+// jsdom deliberately leaves scrolling unimplemented. Components may still
+// request it to restore a list position, so make it a harmless browser-like
+// no-op instead of printing the same warning for every affected test.
+Object.defineProperty(window, 'scrollTo', {
+  value: () => undefined,
+  writable: true,
+  configurable: true,
+})
 
 afterEach(() => {
   cleanup()

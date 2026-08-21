@@ -51,7 +51,9 @@ test('summing the meals gives the same figure as summing the day (#98)', () => {
 })
 
 test('computeRecipeEntryNutrition scales per-serving nutrition by quantity in servings', () => {
-  expect(computeRecipeEntryNutrition({ calories: 400, protein: 20 }, 2)).toEqual({
+  expect(
+    computeRecipeEntryNutrition({ calories: 400, protein: 20 }, 2),
+  ).toEqual({
     calories: 800,
     protein: 40,
   })

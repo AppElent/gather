@@ -1,4 +1,6 @@
 import { v } from 'convex/values'
+import type { Doc, Id } from './_generated/dataModel'
+import type { MutationCtx, QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import {
   computeFoodEntryNutrition,
@@ -8,11 +10,13 @@ import {
   scaleFacts,
 } from './lib/consumption'
 import { isVisibleToGroups } from './lib/groupAccess'
-import { NUTRIENT_KEYS, type NutritionFacts, nutritionValidator } from './lib/nutrition'
+import {
+  NUTRIENT_KEYS,
+  type NutritionFacts,
+  nutritionValidator,
+} from './lib/nutrition'
 import { rankLoggedAmounts } from './lib/servings'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
-import type { Doc, Id } from './_generated/dataModel'
-import type { MutationCtx, QueryCtx } from './_generated/server'
 
 function assertValidNutrition(nutrition: NutritionFacts) {
   for (const key of NUTRIENT_KEYS) {

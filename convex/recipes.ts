@@ -63,7 +63,9 @@ export const list = query({
       (r) => r.groupId !== group._id && r.sharedGroupIds.includes(group._id),
     )
 
-    return await Promise.all([...own, ...sharedIn].map((r) => withImageUrl(ctx, r)))
+    return await Promise.all(
+      [...own, ...sharedIn].map((r) => withImageUrl(ctx, r)),
+    )
   },
 })
 
@@ -120,7 +122,8 @@ export const get = query({
     // the shared list, so a Member of the home Group may change the recipe from
     // whichever of their Groups they are reading it in, and a Group that was
     // only shared it may not change it from anywhere.
-    const canEdit = (await getMembership(ctx, recipe.groupId, user._id)) !== null
+    const canEdit =
+      (await getMembership(ctx, recipe.groupId, user._id)) !== null
     const homeGroup = await ctx.db.get(recipe.groupId)
     // "Who can see this?" is answered for the Members of the Group it lives in,
     // because they are the people who can change that answer. A Group that was
@@ -237,7 +240,8 @@ export const update = mutation({
       nutritionSource,
       ...rest
     } = args
-    const nextServings = servings === null ? undefined : (servings ?? recipe.servings)
+    const nextServings =
+      servings === null ? undefined : (servings ?? recipe.servings)
     const nextNutrition =
       nutrition === null ? undefined : (nutrition ?? recipe.nutrition)
     const stale = nextNutritionStale(recipe, {

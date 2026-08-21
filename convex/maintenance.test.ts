@@ -1,6 +1,6 @@
-import { convexTest } from 'convex-test'
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
+import { convexTest } from 'convex-test'
 import { describe, expect, test } from 'vitest'
 import { modules, testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
@@ -46,7 +46,11 @@ function legacyConvex() {
 
 type Harness = ReturnType<typeof legacyConvex>
 
-const asAlice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
+const asAlice = {
+  subject: 'clerk_alice',
+  name: 'Alice',
+  email: 'a@example.com',
+}
 const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
 
 const backfill = internal.maintenance.backfillGroupSlugsAndPersonalGroups
@@ -155,7 +159,12 @@ describe('backfillGroupSlugsAndPersonalGroups', () => {
     expect(after.groups).toEqual(
       expect.arrayContaining([
         // A Personal group's slug reads from the person, not from "Home".
-        { name: 'Home', slug: 'me-alice', isPersonal: true, hasTypeField: false },
+        {
+          name: 'Home',
+          slug: 'me-alice',
+          isPersonal: true,
+          hasTypeField: false,
+        },
         {
           name: 'Jansen Household',
           slug: 'jansen-household',
@@ -233,9 +242,8 @@ describe('backfillGroupSlugsAndPersonalGroups', () => {
 
     await t.mutation(backfill, { apply: true })
 
-    const slugs = await t.run(
-      async (ctx) =>
-        (await ctx.db.query('groups').collect()).map((g) => g.slug ?? ''),
+    const slugs = await t.run(async (ctx) =>
+      (await ctx.db.query('groups').collect()).map((g) => g.slug ?? ''),
     )
     expect(slugs.sort()).toEqual(['wine-club', 'wine-club-2', 'wine-club-3'])
   })
@@ -616,7 +624,9 @@ describe('verifyBabyLogScope', () => {
 
     await t.run(async (ctx) => {
       const [event] = await ctx.db.query('babyEvents').take(1)
-      await ctx.db.patch(event._id, { data: { method: 'bottle', amountMl: 91 } })
+      await ctx.db.patch(event._id, {
+        data: { method: 'bottle', amountMl: 91 },
+      })
     })
 
     expect(await t.query(verify, {})).not.toEqual(before)
@@ -820,10 +830,12 @@ describe('after the move, the household shares the log', () => {
       apply: true,
     })
 
-    const events = await t.withIdentity(asBob).query(api.babyEvents.listByBaby, {
-      babyId: noor,
-      groupSlug: 'jansen-household',
-    })
+    const events = await t
+      .withIdentity(asBob)
+      .query(api.babyEvents.listByBaby, {
+        babyId: noor,
+        groupSlug: 'jansen-household',
+      })
     expect(events).toHaveLength(3)
 
     await t.withIdentity(asBob).mutation(api.babyEvents.add, {

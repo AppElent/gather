@@ -1,7 +1,7 @@
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
-import { mutation, query } from './_generated/server'
 import type { MutationCtx, QueryCtx } from './_generated/server'
+import { mutation, query } from './_generated/server'
 import {
   getMembership,
   requireGroupBySlug,
@@ -272,7 +272,8 @@ export const leaveGroup = mutation({
   handler: async (ctx, args) => {
     const { group, membership } = await requireMembership(ctx, args.groupId)
     // Everyone keeps somewhere private, always.
-    if (group.isPersonal) throw new Error('You cannot leave your personal group')
+    if (group.isPersonal)
+      throw new Error('You cannot leave your personal group')
 
     // A Group whose last admin walks out cannot be renamed or deleted by
     // anyone left in it, and nothing short of database repair can put that

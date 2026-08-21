@@ -67,7 +67,9 @@ describe('the Sample household', () => {
     const roles = await t.run(async (ctx) => {
       const memberships = await ctx.db
         .query('memberships')
-        .withIndex('by_group', (q) => q.eq('groupId', group?._id ?? ('' as never)))
+        .withIndex('by_group', (q) =>
+          q.eq('groupId', group?._id ?? ('' as never)),
+        )
         .collect()
       return memberships.map((m) => ({
         isOwner: m.userId === ownerId,
@@ -76,9 +78,9 @@ describe('the Sample household', () => {
     })
 
     expect(roles.find((r) => r.isOwner)?.role).toBe('admin')
-    expect(roles.filter((r) => !r.isOwner).every((r) => r.role === 'member')).toBe(
-      true,
-    )
+    expect(
+      roles.filter((r) => !r.isOwner).every((r) => r.role === 'member'),
+    ).toBe(true)
     // The whole point of the housemates: somebody else's name in the stream.
     expect(roles.length).toBeGreaterThan(1)
   })
@@ -94,13 +96,17 @@ describe('the Sample household', () => {
     await buildSample(t)
     const group = await sampleGroup(t)
 
-    const recipes = await t.run(async (ctx) => ctx.db.query('recipes').collect())
+    const recipes = await t.run(async (ctx) =>
+      ctx.db.query('recipes').collect(),
+    )
 
     expect(recipes.length).toBeGreaterThan(0)
     expect(recipes.every((r) => r.groupId === group?._id)).toBe(true)
     // Shared *into* nowhere else: it already lives where it belongs.
     expect(recipes.every((r) => r.sharedGroupIds.length === 0)).toBe(true)
-    expect(new Set(recipes.map((r) => r.createdByUserId)).size).toBeGreaterThan(1)
+    expect(new Set(recipes.map((r) => r.createdByUserId)).size).toBeGreaterThan(
+      1,
+    )
   })
 
   test('takes its recipes with it when it is reset', async () => {

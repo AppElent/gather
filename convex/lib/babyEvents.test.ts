@@ -4,25 +4,29 @@ import { isValidEventData } from './babyEvents'
 describe('isValidEventData', () => {
   test('temperature requires a numeric celsius', () => {
     expect(isValidEventData('temperature', { celsius: 37.5 })).toBe(true)
-    expect(isValidEventData('temperature', { celsius: 37.5, method: 'ear' })).toBe(
-      true,
-    )
+    expect(
+      isValidEventData('temperature', { celsius: 37.5, method: 'ear' }),
+    ).toBe(true)
     expect(isValidEventData('temperature', {})).toBe(false)
     expect(isValidEventData('temperature', { celsius: '37.5' })).toBe(false)
   })
 
   test('feeding requires a known method', () => {
     expect(isValidEventData('feeding', { method: 'breast' })).toBe(true)
-    expect(isValidEventData('feeding', { method: 'bottle', amountMl: 120 })).toBe(
-      true,
-    )
+    expect(
+      isValidEventData('feeding', { method: 'bottle', amountMl: 120 }),
+    ).toBe(true)
     expect(isValidEventData('feeding', { method: 'formula' })).toBe(false)
     expect(isValidEventData('feeding', {})).toBe(false)
   })
 
   test('feeding accepts per-side minutes but rejects impossible ones', () => {
     expect(
-      isValidEventData('feeding', { method: 'breast', leftMin: 10, rightMin: 8 }),
+      isValidEventData('feeding', {
+        method: 'breast',
+        leftMin: 10,
+        rightMin: 8,
+      }),
     ).toBe(true)
     expect(isValidEventData('feeding', { method: 'breast', leftMin: 0 })).toBe(
       true,

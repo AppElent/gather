@@ -14,7 +14,6 @@
 
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
-import { useMemo } from 'react'
 import {
   Alert,
   Pressable,
@@ -49,6 +48,7 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
   const router = useRouter()
   const { t, locale } = useI18n()
   const log = useBabyLog()
+  const events = log.events
   const tint = tokens.tintOf('home')
   const remove = useMutation(api.babyEvents.remove)
 
@@ -73,14 +73,14 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
     )
   }
 
-  const sections = useMemo(() => {
+  const sections = (() => {
     const byDay = new Map<
       string,
       typeof log.events extends undefined
         ? never
         : NonNullable<typeof log.events>
     >()
-    for (const event of log.events ?? []) {
+    for (const event of events ?? []) {
       const key = new Date(event.timestamp).toDateString()
       const bucket = byDay.get(key)
       if (bucket) bucket.push(event)
@@ -96,7 +96,7 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
         }),
         data: [...data].sort((a, b) => b.timestamp - a.timestamp),
       }))
-  }, [log.events, locale])
+  })()
 
   return (
     <>

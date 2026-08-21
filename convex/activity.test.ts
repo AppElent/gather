@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
-import { GROUP_REFUSAL_MESSAGES } from './lib/groupAccess'
 import { type GroupActivityEntry, mergeActivity } from './activity'
+import { GROUP_REFUSAL_MESSAGES } from './lib/groupAccess'
 
 /**
  * What a Group's Home says has been happening in it.
@@ -105,13 +105,11 @@ async function addRecipe(
 }
 
 async function addList(t: Harness, identity: typeof alice, groupSlug: string) {
-  return await t
-    .withIdentity(identity)
-    .mutation(api.taskLists.create, {
-      groupSlug,
-      name: 'Shopping',
-      provider: 'local',
-    })
+  return await t.withIdentity(identity).mutation(api.taskLists.create, {
+    groupSlug,
+    name: 'Shopping',
+    provider: 'local',
+  })
 }
 
 async function addChild(t: Harness, groupId: string, name: string) {
@@ -273,7 +271,9 @@ describe('a Personal record is in no Group', () => {
 
     await addRecipe(t, alice, ME_ALICE, 'Just for me')
 
-    expect(titles(await activityIn(t, alice, ME_ALICE))).toEqual(['Just for me'])
+    expect(titles(await activityIn(t, alice, ME_ALICE))).toEqual([
+      'Just for me',
+    ])
   })
 })
 
@@ -283,13 +283,11 @@ describe('the stream says who did it', () => {
 
     await addRecipe(t, bob, JANSEN, 'Bob’s roast')
     const list = await addList(t, alice, JANSEN)
-    await t
-      .withIdentity(bob)
-      .mutation(api.tasks.add, {
-        listId: list,
-        groupSlug: JANSEN,
-        title: 'Buy nappies',
-      })
+    await t.withIdentity(bob).mutation(api.tasks.add, {
+      listId: list,
+      groupSlug: JANSEN,
+      title: 'Buy nappies',
+    })
 
     // Alice is reading; Bob did both.
     const stream = await activityIn(t, alice, JANSEN)

@@ -219,7 +219,9 @@ export const update = mutation({
     if (!food) throw new Error('Food not found')
     assertNotCatalog(food)
     if (food.createdBy !== user._id) {
-      throw new ConvexError('Only the person who created this food can edit it.')
+      throw new ConvexError(
+        'Only the person who created this food can edit it.',
+      )
     }
     await ctx.db.patch(id, {
       ...rest,

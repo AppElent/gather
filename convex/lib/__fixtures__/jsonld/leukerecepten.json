@@ -43,10 +43,7 @@
   "prepTime": "PT0H15M",
   "cookTime": "PT0H10M",
   "totalTime": "PT0H25M",
-  "recipeYield": [
-    "2",
-    "2 personen "
-  ],
+  "recipeYield": ["2", "2 personen "],
   "recipeCategory": "Hoofdgerechten",
   "recipeCuisine": "",
   "recipeInstructions": [

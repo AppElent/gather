@@ -121,7 +121,10 @@ function extractSteps(value: unknown): string[] {
   }
   if (typeof value === 'object' && value !== null) {
     const node = value as { '@type'?: unknown; itemListElement?: unknown }
-    if (node['@type'] === 'HowToSection' && Array.isArray(node.itemListElement)) {
+    if (
+      node['@type'] === 'HowToSection' &&
+      Array.isArray(node.itemListElement)
+    ) {
       return extractSteps(node.itemListElement)
     }
     const text = textOf(value)

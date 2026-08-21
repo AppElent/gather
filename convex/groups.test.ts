@@ -14,9 +14,17 @@ import { RESERVED_SLUGS } from './lib/slugs'
 
 type Harness = ReturnType<typeof testConvex>
 
-const asAlice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
+const asAlice = {
+  subject: 'clerk_alice',
+  name: 'Alice',
+  email: 'a@example.com',
+}
 const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
-const asCarol = { subject: 'clerk_carol', name: 'Carol', email: 'c@example.com' }
+const asCarol = {
+  subject: 'clerk_carol',
+  name: 'Carol',
+  email: 'c@example.com',
+}
 
 /** Sign a person up exactly as the app does on first mount. */
 async function signUp(t: Harness, identity: typeof asAlice) {
@@ -212,7 +220,6 @@ async function household(t: Harness) {
 }
 
 describe('an ordinary Group', () => {
-
   test('can be renamed by an admin, and the slug follows', async () => {
     const t = testConvex()
     const groupId = await household(t)
@@ -335,7 +342,9 @@ describe('an ordinary Group', () => {
     await t.withIdentity(asBob).mutation(api.groups.leaveGroup, { groupId })
     await t.withIdentity(asAlice).mutation(api.groups.leaveGroup, { groupId })
 
-    expect((await groupsOf(t, asAlice)).map((g) => g._id)).not.toContain(groupId)
+    expect((await groupsOf(t, asAlice)).map((g) => g._id)).not.toContain(
+      groupId,
+    )
   })
 
   test('can be left by its only admin once somebody else is one too', async () => {
@@ -350,7 +359,9 @@ describe('an ordinary Group', () => {
     })
     await t.withIdentity(asAlice).mutation(api.groups.leaveGroup, { groupId })
 
-    expect((await groupsOf(t, asAlice)).map((g) => g._id)).not.toContain(groupId)
+    expect((await groupsOf(t, asAlice)).map((g) => g._id)).not.toContain(
+      groupId,
+    )
     expect((await groupsOf(t, asBob)).map((g) => g._id)).toContain(groupId)
   })
 
@@ -373,17 +384,21 @@ describe('an ordinary Group', () => {
     const bob = await t.withIdentity(asBob).query(api.users.me, {})
     const bobId = bob?._id ?? ('' as never)
 
-    await t
-      .withIdentity(asAlice)
-      .mutation(api.groups.setMemberRole, { groupId, userId: bobId, role: 'admin' })
+    await t.withIdentity(asAlice).mutation(api.groups.setMemberRole, {
+      groupId,
+      userId: bobId,
+      role: 'admin',
+    })
     // Bob can now do an admin's work, which is the whole point of the handover.
     await t
       .withIdentity(asBob)
       .mutation(api.groups.renameGroup, { groupId, name: 'Bob club' })
 
-    await t
-      .withIdentity(asBob)
-      .mutation(api.groups.setMemberRole, { groupId, userId: bobId, role: 'member' })
+    await t.withIdentity(asBob).mutation(api.groups.setMemberRole, {
+      groupId,
+      userId: bobId,
+      role: 'member',
+    })
     await expect(
       t
         .withIdentity(asBob)
@@ -435,7 +450,9 @@ describe('an ordinary Group', () => {
 
     await t.withIdentity(asAlice).mutation(api.groups.deleteGroup, { groupId })
 
-    expect((await groupsOf(t, asAlice)).map((g) => g._id)).not.toContain(groupId)
+    expect((await groupsOf(t, asAlice)).map((g) => g._id)).not.toContain(
+      groupId,
+    )
   })
 
   test('cannot be deleted by a plain member', async () => {
@@ -550,7 +567,9 @@ describe('resolving a Group by slug', () => {
 
     // Bob has a Personal group of his own; asking for Alice's must not quietly
     // fall back to it, or the URL stops meaning what it says.
-    const result = await t.withIdentity(asBob).query(api.groups.bySlug, { slug })
+    const result = await t
+      .withIdentity(asBob)
+      .query(api.groups.bySlug, { slug })
 
     expect(result.ok).toBe(false)
     expect(JSON.stringify(result)).not.toContain('me-bob')

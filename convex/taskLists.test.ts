@@ -174,12 +174,10 @@ describe('reaching one list', () => {
   test('a Member of both Groups still cannot read it at the other address', async () => {
     const { t, jansenList } = await seed()
 
-    const here = await t
-      .withIdentity(alice)
-      .query(api.tasks.listByList, {
-        listId: jansenList,
-        groupSlug: JANSEN,
-      })
+    const here = await t.withIdentity(alice).query(api.tasks.listByList, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+    })
     expect(here.map((task) => task.title)).toEqual(['Take the bins out'])
 
     await expect(
@@ -264,12 +262,10 @@ describe('reaching one list', () => {
   test('a local list loads through the unified action, at its own address only', async () => {
     const { t, jansenList } = await seed()
 
-    const result = await t
-      .withIdentity(alice)
-      .action(api.taskLists.getTasks, {
-        listId: jansenList,
-        groupSlug: JANSEN,
-      })
+    const result = await t.withIdentity(alice).action(api.taskLists.getTasks, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+    })
     expect(result).toEqual({
       status: 'ok',
       tasks: [

@@ -115,5 +115,5 @@ side effect:
 
 `convex/migrations.ts` converts the stored acceptances, subtracting them from
 the catalogue *as it stood before Memory* rather than from today's — see
-`docs/migrations/0001-baby-tracked-types-become-declines.md`, which is also
+`docs/migrations/0007-baby-tracked-types-become-declines.md`, which is also
 what retires that code.

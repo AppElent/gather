@@ -18,7 +18,11 @@ import { MAX_PINNED_MODULES } from './users'
 
 type Harness = ReturnType<typeof testConvex>
 
-const asAlice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
+const asAlice = {
+  subject: 'clerk_alice',
+  name: 'Alice',
+  email: 'a@example.com',
+}
 const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
 
 async function signUp(t: Harness, identity: typeof asAlice) {
@@ -63,11 +67,7 @@ async function setPins(
     .mutation(api.users.setPins, { groupSlug, moduleIds })
 }
 
-async function pinsOf(
-  t: Harness,
-  identity: typeof asAlice,
-  groupSlug: string,
-) {
+async function pinsOf(t: Harness, identity: typeof asAlice, groupSlug: string) {
   return await t.withIdentity(identity).query(api.users.myPins, { groupSlug })
 }
 
@@ -225,14 +225,12 @@ describe('my Pins across Groups', () => {
 
     await expect(pinsOf(t, asBob, slug)).rejects.toThrow()
     // Rejoining is a fresh membership, and a fresh choice to make.
-    await t
-      .withIdentity(asBob)
-      .mutation(api.groups.joinByInvite, {
-        inviteCode: await t.run(async (ctx) => {
-          const g = await ctx.db.get(groupId)
-          return g?.inviteCode ?? ''
-        }),
-      })
+    await t.withIdentity(asBob).mutation(api.groups.joinByInvite, {
+      inviteCode: await t.run(async (ctx) => {
+        const g = await ctx.db.get(groupId)
+        return g?.inviteCode ?? ''
+      }),
+    })
     expect(await pinsOf(t, asBob, slug)).toBeNull()
   })
 })
@@ -244,7 +242,10 @@ describe('Pins I have no business setting', () => {
     const slug = await personalSlug(t, asAlice)
 
     await expect(
-      t.mutation(api.users.setPins, { groupSlug: slug, moduleIds: ['recipes'] }),
+      t.mutation(api.users.setPins, {
+        groupSlug: slug,
+        moduleIds: ['recipes'],
+      }),
     ).rejects.toThrow()
   })
 
@@ -254,9 +255,7 @@ describe('Pins I have no business setting', () => {
     await signUp(t, asBob)
     const mine = await personalSlug(t, asAlice)
 
-    await expect(
-      setPins(t, asBob, mine, ['recipes']),
-    ).rejects.toThrow()
+    await expect(setPins(t, asBob, mine, ['recipes'])).rejects.toThrow()
   })
 
   test('cannot be read from a Group I am not in', async () => {

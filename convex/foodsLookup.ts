@@ -2,9 +2,9 @@
 
 import { ConvexError, v } from 'convex/values'
 import { api } from './_generated/api'
+import type { Id } from './_generated/dataModel'
 import type { ActionCtx } from './_generated/server'
 import { action } from './_generated/server'
-import type { Id } from './_generated/dataModel'
 import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
 import { fetchOffProduct, searchOffProducts } from './lib/offFetch'
 import { mapOffProduct, mapOffSearchResults } from './lib/offMapping'
@@ -35,7 +35,8 @@ export function isOffImageUrl(url: string): boolean {
     const { protocol, hostname } = new URL(url)
     return (
       protocol === 'https:' &&
-      (hostname === 'openfoodfacts.org' || hostname.endsWith('.openfoodfacts.org'))
+      (hostname === 'openfoodfacts.org' ||
+        hostname.endsWith('.openfoodfacts.org'))
     )
   } catch {
     return false
@@ -71,7 +72,9 @@ export const refreshFromOff = action({
     }
     const raw = await fetchOffProduct(food.barcode)
     if (!raw) {
-      throw new ConvexError('Could not reach Open Food Facts — try again later.')
+      throw new ConvexError(
+        'Could not reach Open Food Facts — try again later.',
+      )
     }
     const mapped = mapOffProduct(raw)
     if (!mapped) {
@@ -118,7 +121,8 @@ async function fetchAndStoreOffImage(
       return undefined
     }
     const declared = Number(response.headers.get('content-length'))
-    if (Number.isFinite(declared) && declared > MAX_IMAGE_BYTES) return undefined
+    if (Number.isFinite(declared) && declared > MAX_IMAGE_BYTES)
+      return undefined
     const blob = await response.blob()
     if (blob.size > MAX_IMAGE_BYTES) return undefined
     return await ctx.storage.store(blob)
@@ -163,7 +167,10 @@ export const importFromOff = action({
     // The mutation decides whether this blob is used at all — an existing row
     // somebody has edited keeps what it has — and deletes it if not, so a
     // refused import leaves nothing behind in storage.
-    return await ctx.runMutation(api.foods.upsertFromOff, { ...fields, imageId })
+    return await ctx.runMutation(api.foods.upsertFromOff, {
+      ...fields,
+      imageId,
+    })
   },
 })
 

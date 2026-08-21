@@ -1,8 +1,8 @@
 import { v } from 'convex/values'
-import { requireGroupBySlug } from './lib/groupAccess'
 import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { query } from './_generated/server'
+import { requireGroupBySlug } from './lib/groupAccess'
 
 /**
  * What has been happening in a Group.
@@ -121,7 +121,11 @@ export function mergeActivity(
   const newestFirst = [...candidates].sort(byNewest)
   const taken: GroupActivityEntry[] = []
   const spare: GroupActivityEntry[] = []
-  const used: Record<ActivityKind, number> = { recipe: 0, task: 0, babyEvent: 0 }
+  const used: Record<ActivityKind, number> = {
+    recipe: 0,
+    task: 0,
+    babyEvent: 0,
+  }
 
   for (const entry of newestFirst) {
     if (taken.length < limit && used[entry.kind] < quota) {

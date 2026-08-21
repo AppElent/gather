@@ -218,8 +218,7 @@ export function mapOffSearchResults(raw: unknown): OffSearchResult[] {
   for (const entry of response.hits) {
     if (typeof entry !== 'object' || entry === null) continue
     const product = entry as OffProduct
-    const barcode =
-      typeof product.code === 'string' ? product.code.trim() : ''
+    const barcode = typeof product.code === 'string' ? product.code.trim() : ''
     if (!barcode) continue
     const mapped = mapOffRawProduct(product)
     if (!mapped.name) continue

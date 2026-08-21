@@ -42,7 +42,7 @@
  * `barOrder` array.
  */
 import { type BabyBarSlot, isBabyBarShortcut } from '@gather/core/domain'
-import { useEffect, useRef, useState } from 'react'
+import { createElement, useCallback, useMemo, useState } from 'react'
 import {
   Animated,
   type LayoutChangeEvent,
@@ -98,6 +98,42 @@ export function slotLabel(slot: BabyBarSlot, t: Messages): string {
   return t.baby.eventTypes[slot]
 }
 
+function createArrangePanResponder(handlers: {
+  onGrant: () => void
+  onMove: (_event: unknown, gesture: { dx: number }) => void
+  onRelease: () => void
+  onTerminate: () => void
+}) {
+  return PanResponder.create({
+    onStartShouldSetPanResponderCapture: () => true,
+    onMoveShouldSetPanResponderCapture: () => true,
+    onPanResponderGrant: handlers.onGrant,
+    onPanResponderMove: handlers.onMove,
+    onPanResponderRelease: handlers.onRelease,
+    onPanResponderTerminate: handlers.onTerminate,
+  })
+}
+
+/** Mutable interaction state that never participates in rendering. */
+class DragSession {
+  from: { index: number; order: readonly BabyBarSlot[] } = {
+    index: 0,
+    order: [],
+  }
+  settled = 0
+
+  begin(index: number, order: readonly BabyBarSlot[]) {
+    this.from = { index, order }
+    this.settled = index
+  }
+
+  hasMovedTo(index: number) {
+    if (index === this.settled) return false
+    this.settled = index
+    return true
+  }
+}
+
 export interface LogBarProps {
   slots: readonly BabyBarSlot[]
   onPick: (slot: BabyBarSlot) => void
@@ -128,14 +164,6 @@ export function LogBar({
   const [order, setOrder] = useState<readonly BabyBarSlot[]>(slots)
   const [held, setHeld] = useState<BabyBarSlot | null>(null)
   const [width, setWidth] = useState(0)
-
-  if (!arranging && order !== slots) setOrder(slots)
-
-  useEffect(() => {
-    if (!reorderOnMount) return
-    setOrder(slots)
-    setArranging(true)
-  }, [reorderOnMount, slots])
 
   function beginArranging() {
     setOrder(slots)
@@ -226,7 +254,6 @@ export function LogBar({
         contentContainerStyle={styles.row}
       >
         {slots.map((slot) => {
-          const Icon = slotIcon(slot)
           const label = slotLabel(slot, t)
           const shortcut = isBabyBarShortcut(slot)
           return (
@@ -264,11 +291,11 @@ export function LogBar({
                       : { backgroundColor: tint.bg },
                   ]}
                 >
-                  <Icon
-                    size={21}
-                    color={shortcut ? tokens.muted : tint.fg}
-                    strokeWidth={1.9}
-                  />
+                  {createElement(slotIcon(slot), {
+                    size: 21,
+                    color: shortcut ? tokens.muted : tint.fg,
+                    strokeWidth: 1.9,
+                  })}
                 </View>
                 <Text
                   numberOfLines={1}
@@ -313,81 +340,76 @@ function ArrangeItem({
   const tokens = useTokens('home')
   const { t } = useI18n()
   const tint = tokens.tintOf('home')
-  const Icon = slotIcon(slot)
   const shortcut = isBabyBarShortcut(slot)
 
-  const offset = useRef(new Animated.Value(0)).current
+  const [offset] = useState(() => new Animated.Value(0))
   // The lift. iOS scales a dragged item up a little rather than outlining it,
   // and that is most of what makes one read as picked up rather than selected.
-  const lift = useRef(new Animated.Value(1)).current
-
-  // The responder is created once, so everything it needs that changes between
-  // renders is read through a ref rather than captured.
-  const live = useRef({ index, width, order, onOrder, onHold })
-  live.current = { index, width, order, onOrder, onHold }
+  const [lift] = useState(() => new Animated.Value(1))
 
   // Where this drag began. Both are frozen at grant, because `gesture.dx` is
   // measured from the start of the gesture and so must be resolved against the
   // start of the gesture. Reading the *live* index each move compounds: the
   // button has already moved two slots, so the same dx moves it two more.
-  const from = useRef({ index: 0, order: order })
+  /** Interaction-only drag session; changing it must not rerender the row. */
+  const drag = useMemo(() => new DragSession(), [])
 
-  /** The slot the last move reported, so a haptic fires once per crossing. */
-  const settled = useRef(0)
+  const onGrant = useCallback(() => {
+    drag.begin(index, order)
+    onHold()
+    Animated.spring(lift, {
+      toValue: 1.12,
+      useNativeDriver: true,
+      bounciness: 6,
+    }).start()
+  }, [drag, index, lift, onHold, order])
 
-  const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
-      onPanResponderGrant: () => {
-        from.current = { index: live.current.index, order: live.current.order }
-        settled.current = live.current.index
-        live.current.onHold()
-        Animated.spring(lift, {
-          toValue: 1.12,
-          useNativeDriver: true,
-          bounciness: 6,
-        }).start()
-      },
-      onPanResponderMove: (_event, gesture) => {
-        const itemWidth = live.current.width
-        const start = from.current
-        const to = dragTarget(
-          start.order.length,
-          start.index,
-          gesture.dx,
-          itemWidth,
-        )
-        // One notch per slot crossed, not per move event: `dragTarget` is a
-        // rounded division, so it reports the same slot for most of a drag and
-        // this fires only when the arrangement actually changed.
-        if (to !== settled.current) {
-          settled.current = to
-          haptics.selectionChanged()
-        }
-        live.current.onOrder(movedTo(start.order, start.index, to))
-        offset.setValue(residualOffset(gesture.dx, start.index, to, itemWidth))
-      },
-      onPanResponderRelease: () => {
-        Animated.parallel([
-          Animated.spring(offset, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 0,
-          }),
-          Animated.spring(lift, {
-            toValue: 1,
-            useNativeDriver: true,
-            bounciness: 0,
-          }),
-        ]).start()
-      },
-      onPanResponderTerminate: () => {
-        offset.setValue(0)
-        lift.setValue(1)
-      },
-    }),
-  ).current
+  const onMove = useCallback(
+    (_event: unknown, gesture: { dx: number }) => {
+      const start = drag.from
+      const to = dragTarget(start.order.length, start.index, gesture.dx, width)
+      // One notch per slot crossed, not per move event: `dragTarget` is a
+      // rounded division, so it reports the same slot for most of a drag and
+      // this fires only when the arrangement actually changed.
+      if (drag.hasMovedTo(to)) {
+        haptics.selectionChanged()
+      }
+      onOrder(movedTo(start.order, start.index, to))
+      offset.setValue(residualOffset(gesture.dx, start.index, to, width))
+    },
+    [drag, offset, onOrder, width],
+  )
+
+  const onRelease = useCallback(() => {
+    Animated.parallel([
+      Animated.spring(offset, {
+        toValue: 0,
+        useNativeDriver: true,
+        bounciness: 0,
+      }),
+      Animated.spring(lift, {
+        toValue: 1,
+        useNativeDriver: true,
+        bounciness: 0,
+      }),
+    ]).start()
+  }, [lift, offset])
+
+  const onTerminate = useCallback(() => {
+    offset.setValue(0)
+    lift.setValue(1)
+  }, [lift, offset])
+
+  const pan = useMemo(
+    () =>
+      createArrangePanResponder({
+        onGrant,
+        onMove,
+        onRelease,
+        onTerminate,
+      }),
+    [onGrant, onMove, onRelease, onTerminate],
+  )
 
   return (
     <Animated.View
@@ -415,11 +437,11 @@ function ArrangeItem({
           lifted && { borderColor: tokens.accent, borderWidth: 2 },
         ]}
       >
-        <Icon
-          size={21}
-          color={shortcut ? tokens.muted : tint.fg}
-          strokeWidth={1.9}
-        />
+        {createElement(slotIcon(slot), {
+          size: 21,
+          color: shortcut ? tokens.muted : tint.fg,
+          strokeWidth: 1.9,
+        })}
       </View>
     </Animated.View>
   )

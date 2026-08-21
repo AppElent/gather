@@ -1,9 +1,9 @@
-import { v } from 'convex/values'
 import {
   NUTRIENT_KEYS,
   type NutrientKey,
   type NutritionSource,
 } from '@gather/core/domain'
+import { v } from 'convex/values'
 
 export { NUTRIENT_KEYS }
 export type { NutrientKey, NutritionSource }
@@ -125,7 +125,9 @@ function nutritionEqual(a?: NutritionFacts, b?: NutritionFacts): boolean {
  * it. Different question, and it belongs to whoever needs it.
  */
 export function hasNutritionFigures(facts?: NutritionFacts): boolean {
-  return facts !== undefined && NUTRIENT_KEYS.some((key) => facts[key] !== undefined)
+  return (
+    facts !== undefined && NUTRIENT_KEYS.some((key) => facts[key] !== undefined)
+  )
 }
 
 /**

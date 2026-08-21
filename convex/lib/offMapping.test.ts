@@ -170,9 +170,7 @@ describe('mapOffSearchResults', () => {
 
   test('drops entries with no usable name', () => {
     const results = mapOffSearchResults({
-      hits: [
-        { code: '111', nutriments: { 'energy-kcal_100g': 100 } },
-      ],
+      hits: [{ code: '111', nutriments: { 'energy-kcal_100g': 100 } }],
     })
     expect(results).toEqual([])
   })

@@ -122,9 +122,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 3.2,
       salt: 0.02,
     },
-    servings: [
-      { label: '1 portion', amount: 100 },
-    ],
+    servings: [{ label: '1 portion', amount: 100 }],
   },
   {
     seedKey: 'lentils-dry',
@@ -141,9 +139,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 30.5,
       salt: 0.01,
     },
-    servings: [
-      { label: '1 portion', amount: 80 },
-    ],
+    servings: [{ label: '1 portion', amount: 80 }],
   },
   {
     seedKey: 'chickpeas-tinned',
@@ -406,9 +402,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 0.15,
     },
-    servings: [
-      { label: '1 breast', amount: 150 },
-    ],
+    servings: [{ label: '1 breast', amount: 150 }],
   },
   {
     seedKey: 'beef-mince-5',
@@ -445,9 +439,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 0,
       salt: 0.12,
     },
-    servings: [
-      { label: '1 fillet', amount: 130 },
-    ],
+    servings: [{ label: '1 fillet', amount: 130 }],
   },
 
   // Fruit and vegetables
@@ -506,9 +498,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 2.1,
       salt: 0.04,
     },
-    servings: [
-      { label: '1 clove', amount: 5 },
-    ],
+    servings: [{ label: '1 clove', amount: 5 }],
   },
   {
     seedKey: 'tomato',
@@ -545,9 +535,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 2.8,
       salt: 0.17,
     },
-    servings: [
-      { label: '1 medium carrot', amount: 70 },
-    ],
+    servings: [{ label: '1 medium carrot', amount: 70 }],
   },
   {
     seedKey: 'bell-pepper-red',
@@ -624,9 +612,7 @@ export const CATALOG_FOODS: CatalogFood[] = [
       fiber: 2.4,
       salt: 0,
     },
-    servings: [
-      { label: '1 medium apple', amount: 150 },
-    ],
+    servings: [{ label: '1 medium apple', amount: 150 }],
   },
 
   // Bakery

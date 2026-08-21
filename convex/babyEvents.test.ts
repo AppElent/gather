@@ -101,20 +101,16 @@ describe('both parents keep one log for one child', () => {
   test('each logs an entry and each entry records who logged it', async () => {
     const { t, noor, aliceId, bobId } = await seed()
 
-    await t
-      .withIdentity(alice)
-      .mutation(api.babyEvents.add, {
-        babyId: noor,
-        groupSlug: JANSEN,
-        ...feed(1_760_000_000_000),
-      })
-    await t
-      .withIdentity(bob)
-      .mutation(api.babyEvents.add, {
-        babyId: noor,
-        groupSlug: JANSEN,
-        ...feed(1_760_003_600_000),
-      })
+    await t.withIdentity(alice).mutation(api.babyEvents.add, {
+      babyId: noor,
+      groupSlug: JANSEN,
+      ...feed(1_760_000_000_000),
+    })
+    await t.withIdentity(bob).mutation(api.babyEvents.add, {
+      babyId: noor,
+      groupSlug: JANSEN,
+      ...feed(1_760_003_600_000),
+    })
 
     // Either parent sees both entries — the log belongs to the Group, not to
     // whoever typed each one in.
@@ -128,13 +124,11 @@ describe('both parents keep one log for one child', () => {
 
   test('one parent may edit and delete what the other logged', async () => {
     const { t, noor, aliceId } = await seed()
-    const eventId = await t
-      .withIdentity(alice)
-      .mutation(api.babyEvents.add, {
-        babyId: noor,
-        groupSlug: JANSEN,
-        ...feed(1_760_000_000_000),
-      })
+    const eventId = await t.withIdentity(alice).mutation(api.babyEvents.add, {
+      babyId: noor,
+      groupSlug: JANSEN,
+      ...feed(1_760_000_000_000),
+    })
 
     await t.withIdentity(bob).mutation(api.babyEvents.update, {
       eventId,
@@ -164,13 +158,11 @@ describe('both parents keep one log for one child', () => {
 describe('someone in another Group reaches none of it', () => {
   test('every entry point refuses', async () => {
     const { t, noor } = await seed()
-    const eventId = await t
-      .withIdentity(alice)
-      .mutation(api.babyEvents.add, {
-        babyId: noor,
-        groupSlug: JANSEN,
-        ...feed(1_760_000_000_000),
-      })
+    const eventId = await t.withIdentity(alice).mutation(api.babyEvents.add, {
+      babyId: noor,
+      groupSlug: JANSEN,
+      ...feed(1_760_000_000_000),
+    })
     const outsider = t.withIdentity(carla)
 
     // The Group in the address is not hers, so all five say so.
@@ -234,13 +226,11 @@ describe('someone in another Group reaches none of it', () => {
 describe('a Member of the child Group asking under a different slug', () => {
   test('is refused for reads and for writes alike', async () => {
     const { t, noor } = await seed()
-    const eventId = await t
-      .withIdentity(alice)
-      .mutation(api.babyEvents.add, {
-        babyId: noor,
-        groupSlug: JANSEN,
-        ...feed(1_760_000_000_000),
-      })
+    const eventId = await t.withIdentity(alice).mutation(api.babyEvents.add, {
+      babyId: noor,
+      groupSlug: JANSEN,
+      ...feed(1_760_000_000_000),
+    })
     const misaddressed = t.withIdentity(alice)
 
     expect(

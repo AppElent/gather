@@ -44,10 +44,7 @@
         "kaneel",
         "om te bestuiven"
       ],
-      "recipeCategory": [
-        "Nagerecht",
-        "Snack"
-      ],
+      "recipeCategory": ["Nagerecht", "Snack"],
       "author": {
         "@type": "Organization",
         "@id": "https://www.24kitchen.nl",

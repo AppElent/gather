@@ -102,9 +102,7 @@
         "https://uitpaulineskeuken.nl/wp-content/smush-webp/2026/06/Ovenschotel-courgette-500x375.jpg.webp",
         "https://uitpaulineskeuken.nl/wp-content/smush-webp/2026/06/Ovenschotel-courgette-480x270.jpg.webp"
       ],
-      "recipeYield": [
-        "4"
-      ],
+      "recipeYield": ["4"],
       "prepTime": "PT30M",
       "cookTime": "PT25M",
       "totalTime": "PT55M",
@@ -197,12 +195,8 @@
           "datePublished": "2026-06-10"
         }
       ],
-      "recipeCategory": [
-        "Hoofdgerecht"
-      ],
-      "recipeCuisine": [
-        "Italiaanse recepten"
-      ],
+      "recipeCategory": ["Hoofdgerecht"],
+      "recipeCuisine": ["Italiaanse recepten"],
       "keywords": "courgette ovenschotel",
       "nutrition": {
         "@type": "NutritionInformation",

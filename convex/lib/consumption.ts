@@ -1,10 +1,10 @@
-import { v } from 'convex/values'
 import {
   MEAL_NAMES,
-  QUANTITY_UNITS,
   type MealName,
+  QUANTITY_UNITS,
   type QuantityUnit,
 } from '@gather/core/domain'
+import { v } from 'convex/values'
 import { NUTRIENT_KEYS, type NutritionFacts } from './nutrition'
 
 export { MEAL_NAMES, QUANTITY_UNITS }
@@ -31,7 +31,10 @@ export const quantityUnitValidator = v.union(
 
 // Multiplies every present nutrient by `factor`, rounded to 2 decimals to
 // avoid floating-point noise in stored snapshots.
-export function scaleFacts(facts: NutritionFacts, factor: number): NutritionFacts {
+export function scaleFacts(
+  facts: NutritionFacts,
+  factor: number,
+): NutritionFacts {
   const out: NutritionFacts = {}
   for (const key of NUTRIENT_KEYS) {
     const value = facts[key]

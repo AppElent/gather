@@ -43,7 +43,7 @@ const OFFERED_BEFORE_MEMORY = [
  *
  * **Retire this** — the mutation, `OFFERED_BEFORE_MEMORY`, and the
  * `trackedTypes` column in `convex/schema.ts` — once
- * `docs/migrations/0001-baby-tracked-types-become-declines.md` records that it
+ * `docs/migrations/0007-baby-tracked-types-become-declines.md` records that it
  * has run on dev and on production.
  */
 export const declineByOmission = internalMutation({
@@ -54,7 +54,10 @@ export const declineByOmission = internalMutation({
     let skipped = 0
 
     for (const baby of babies) {
-      if (baby.untrackedTypes !== undefined || baby.trackedTypes === undefined) {
+      if (
+        baby.untrackedTypes !== undefined ||
+        baby.trackedTypes === undefined
+      ) {
         skipped += 1
         continue
       }

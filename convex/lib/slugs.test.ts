@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import {
   MAX_SLUG_LENGTH,
-  nthSlugCandidate,
   normaliseSlug,
+  nthSlugCandidate,
   personalSlugBase,
   RESERVED_SLUGS,
   sharedSlugBase,

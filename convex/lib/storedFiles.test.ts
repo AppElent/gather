@@ -17,9 +17,13 @@ const t = () => testConvex()
 /** A blob in storage, plus the answer to "is it still there?". */
 async function storedBlob() {
   const harness = t()
-  const id = await harness.run(async (ctx) => ctx.storage.store(new Blob(['x'])))
+  const id = await harness.run(async (ctx) =>
+    ctx.storage.store(new Blob(['x'])),
+  )
   const exists = async (fileId: Id<'_storage'>) =>
-    await harness.run(async (ctx) => (await ctx.storage.getUrl(fileId)) !== null)
+    await harness.run(
+      async (ctx) => (await ctx.storage.getUrl(fileId)) !== null,
+    )
   return { harness, id, exists }
 }
 

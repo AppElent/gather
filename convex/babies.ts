@@ -1,13 +1,13 @@
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
+import type { MutationCtx } from './_generated/server'
+import { mutation, query } from './_generated/server'
 import { findBabyInGroup, requireBabyAccess } from './lib/babyAccess'
 import { babyBarSlotValidator, babyEventTypeValidator } from './lib/babyEvents'
 import { requireGroupBySlug } from './lib/groupAccess'
-import { requireListAccess } from './lib/taskAccess'
 import { getCurrentUser } from './lib/sharing'
 import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
-import type { MutationCtx } from './_generated/server'
-import { mutation, query } from './_generated/server'
+import { requireListAccess } from './lib/taskAccess'
 
 /**
  * The children in one household's log.
@@ -52,7 +52,9 @@ export const get = query({
     const found = await findBabyInGroup(ctx, args.groupSlug, args.id)
     if (!found) return null
     const { baby } = found
-    const photoUrl = baby.photoId ? await ctx.storage.getUrl(baby.photoId) : null
+    const photoUrl = baby.photoId
+      ? await ctx.storage.getUrl(baby.photoId)
+      : null
     return { ...baby, photoUrl }
   },
 })
@@ -227,7 +229,11 @@ export const ensureQuestionsList = mutation({
 export const ensureAuxLists = mutation({
   args: { id: v.id('babies'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const { baby, group } = await requireBabyAccess(ctx, args.groupSlug, args.id)
+    const { baby, group } = await requireBabyAccess(
+      ctx,
+      args.groupSlug,
+      args.id,
+    )
     if (baby.taskListId && baby.questionsListId) {
       return {
         taskListId: baby.taskListId,
@@ -303,9 +309,7 @@ export const update = mutation({
       // child used to hold stops being the child's to delete. It is left
       // standing rather than cleaned up: a list holds somebody's tasks, and
       // unlike a stored photo it is a thing in its own right in Tasks.
-      ...(taskListId !== undefined
-        ? { taskListId, taskListChosen: true }
-        : {}),
+      ...(taskListId !== undefined ? { taskListId, taskListChosen: true } : {}),
       ...(questionsListId !== undefined
         ? { questionsListId, questionsListChosen: true }
         : {}),
@@ -351,11 +355,7 @@ export const remove = mutation({
     // Memory's photo is reachable from nowhere else once its entry is deleted.
     for (const event of events) await deleteStoredFile(ctx, event.photoId)
     await deleteAuxTaskList(ctx, baby.taskListId, baby.taskListChosen)
-    await deleteAuxTaskList(
-      ctx,
-      baby.questionsListId,
-      baby.questionsListChosen,
-    )
+    await deleteAuxTaskList(ctx, baby.questionsListId, baby.questionsListChosen)
     await ctx.db.delete(args.id)
     // After the row is gone, so that the child being deleted is not itself
     // counted as still holding the photo.
