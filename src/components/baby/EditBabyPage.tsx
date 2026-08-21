@@ -133,6 +133,11 @@ function EditBabyForm({
           name: baby.name,
           birthDate: baby.birthDate,
           sex: baby.sex,
+          // Absent on every Child that has never turned a type off, and the
+          // form reads that the same way the log does.
+          untrackedTypes: baby.untrackedTypes
+            ? [...baby.untrackedTypes]
+            : undefined,
         }}
         onSubmit={async (values) => {
           setSubmitting(true)

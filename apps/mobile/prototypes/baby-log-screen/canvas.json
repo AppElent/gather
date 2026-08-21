@@ -1,0 +1,59 @@
+{
+  "artboards": [
+    { "file": "Combined.dc.html", "title": "THE MIX — A's log bar + B's visuals + C's chart", "x": 0, "y": 0, "w": 390, "h": 844 },
+
+    { "file": "Main.dc.html", "title": "A — Stream", "x": 0, "y": 1200, "w": 390, "h": 844 },
+    { "file": "Dashboard.dc.html", "title": "B — Day dashboard", "x": 470, "y": 1200, "w": 390, "h": 844 },
+    { "file": "Sections.dc.html", "title": "C — Segmented", "x": 940, "y": 1200, "w": 390, "h": 844 },
+
+    { "file": "FirstRun.dc.html", "title": "Empty Baby log", "x": 0, "y": 2600, "w": 390, "h": 844 },
+    { "file": "CreateChild.dc.html", "title": "Step 1 — About Emma", "x": 470, "y": 2600, "w": 390, "h": 844 },
+    { "file": "TrackedTypes.dc.html", "title": "Step 2 — What to track", "x": 940, "y": 2600, "w": 390, "h": 844 },
+    { "file": "TaskLists.dc.html", "title": "Step 3 — Lists", "x": 1410, "y": 2600, "w": 390, "h": 844 }
+  ],
+  "annotations": [
+    {
+      "id": "mix",
+      "x": 470,
+      "y": 0,
+      "w": 430,
+      "text": "THE MIX — what you picked, put together.\n\nFrom A: the six-button log bar pinned above the tab bar, thumb-height, always there.\nFrom B: the identity header and the four TODAY tiles — status readable in one look.\nFrom C: the chart as a real full-width card rather than a sparkline in a tile.\n\nSETTLED — the tiles and the bar are not in conflict, they are two different jobs. The tiles are the last-used actions: they show today's status and clicking one logs it again. The bar is everything this child tracks, whether or not it has been used lately.\n\nSo the bar sizes to the tracked types, not to four. Items are a fixed 61px and the bar scrolls horizontally once it outgrows the screen — Emma tracks 5, which plus Several fills the width exactly. A child tracking all eight would scroll rather than shrink below the 44px hit target.\n\nThe fold lands mid-Lists, which is intended: everything below the chart is a scroll away.\n\nThe three directions it came from are below, and the setup flow below those."
+    },
+    {
+      "id": "brief",
+      "x": 0,
+      "y": 1000,
+      "w": 700,
+      "text": "THE THREE DIRECTIONS — what is this screen FOR, first? Three answers, not three skins.\n\nFixed in all three: the child's name in the header is the switcher; tracked types decide which quick-log buttons exist (Emma tracks 5 of 8); tapping one opens a sheet pre-filled with now + last-used values; the tab bar stays visible because Modules live inside the tab stacks.\n\nTap any quick-log button in any variant — the sheet is live, and the chips inside it select."
+    },
+    {
+      "id": "note-a",
+      "x": 0,
+      "y": 2090,
+      "w": 390,
+      "text": "A — Stream\n\nClaim: the child log is a feed. The timeline IS the screen; logging is a thumb-height bar pinned above the tab bar.\n\nFor: fastest possible log at 3am, and history is right there.\n\nAgainst: no status at a glance — \"when did she last feed?\" is a line of small grey text, not the answer."
+    },
+    {
+      "id": "note-b",
+      "x": 470,
+      "y": 2090,
+      "w": 390,
+      "text": "B — Day dashboard\n\nClaim: a parent opens this for STATUS, not history. Each tile answers one question and doubles as its log button.\n\nFor: the four things you actually want are readable in one look.\n\nAgainst: the timeline is reduced to two rows behind a link."
+    },
+    {
+      "id": "note-c",
+      "x": 940,
+      "y": 2090,
+      "w": 390,
+      "text": "C — Segmented\n\nClaim: this screen holds four different jobs and should admit it. Tinted hero, then Log / Trends / Lists.\n\nFor: everything in scope gets real room — the charts and both checklists are first-class. Segments are live, try them.\n\nAgainst: two of the three jobs are always hidden, and the hero costs 200px before anything useful starts."
+    },
+    {
+      "id": "setup-brief",
+      "x": 0,
+      "y": 2400,
+      "w": 760,
+      "text": "FIRST RUN AND SETUP — creating the first child IS the Module's setup.\n\nEmpty Baby log invites one action. The create flow is three steps: who, what to track, which lists. Steps 2 and 3 are live — flip the switches, and tap \"Choose an existing list\" on step 3 to see the picker.\n\nStep 3 shows the ADR-0021 consequence in the flesh: the picker offers any list in the Group, and choosing the Notion one turns the slot red with the reason. Pick \"Care notes\" to see it.\n\nOpen question I did not decide for you: three steps, or one scrolling form? A wizard suits a one-time act and lets step 2 explain itself; one form is fewer taps and shows the whole commitment at once."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

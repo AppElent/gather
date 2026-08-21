@@ -32,6 +32,7 @@ export function ModulePlaceholder({
         <Stack.Screen options={{ headerShown: true, title: text.label }} />
       ) : null}
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.bg }}
         contentContainerStyle={[
           styles.content,

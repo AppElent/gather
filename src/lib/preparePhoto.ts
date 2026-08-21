@@ -13,8 +13,8 @@
  * the data to say which rows came through which door.
  */
 
+import type { PhotoPreset } from '@gather/core/photo-presets'
 import type { CropRect, Size } from './cropFrame'
-import type { PhotoPreset } from './photoPresets'
 
 /**
  * The only output format.

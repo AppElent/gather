@@ -39,8 +39,13 @@ export function summarizeEvent(
               data.method as keyof typeof options.feedingMethod
             ] ?? data.method)
           : ''
+      // One unit per method, so at most one of these is ever present.
       const amount =
-        typeof data.amountMl === 'number' ? ` · ${data.amountMl} ml` : ''
+        typeof data.amountMl === 'number'
+          ? ` · ${data.amountMl} ml`
+          : typeof data.amountG === 'number'
+            ? ` · ${data.amountG} g`
+            : ''
       // Per-side minutes supersede the coarse side label when present —
       // "Left 10m · Right 8m" already says which side(s).
       const sides: string[] = []
@@ -108,6 +113,12 @@ export function summarizeEvent(
       return typeof data.name === 'string' ? data.name : summary.vaccination
     case 'note':
       return data.milestone === true ? summary.milestone : summary.note
+    case 'memory':
+      // The whole of a memory is what it says happened, so the summary is
+      // that sentence rather than a word about it.
+      return typeof data.what === 'string' && data.what.trim()
+        ? data.what
+        : summary.memory
     default:
       return ''
   }

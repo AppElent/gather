@@ -1,3 +1,4 @@
+import { declinedEventTypes } from '@gather/core/domain'
 import type { Id, TableNames } from '../../_generated/dataModel'
 import type { MutationCtx } from '../../_generated/server'
 import {
@@ -452,15 +453,58 @@ export async function applySample(
   }
 
   // --- Baby ----------------------------------------------------------------
+  // The two lists the app gives every Child are made here rather than left to
+  // `babies.ensureAuxLists`: the seed writes straight to the table, so a
+  // sample child without them would be the one child in the app that starts
+  // out unlike every child a person creates — and a preview is only worth
+  // having if it shows what the Module actually looks like.
+  const babyTaskListId = rec.track(
+    await ctx.db.insert('taskLists', {
+      groupId,
+      name: `${SAMPLE_BABY.name} to-dos`,
+      provider: 'local',
+      order: listOrder++,
+    }),
+  )
+  const babyQuestionsListId = rec.track(
+    await ctx.db.insert('taskLists', {
+      groupId,
+      name: `${SAMPLE_BABY.name} questions`,
+      provider: 'local',
+      order: listOrder++,
+    }),
+  )
   const babyId = rec.track(
     await ctx.db.insert('babies', {
       groupId,
       name: SAMPLE_BABY.name,
       birthDate: isoDate(now, SAMPLE_BABY.ageInDays),
       sex: SAMPLE_BABY.sex,
+      // The fixture says what she tracks, because that is what reads; the
+      // record holds what she does not (ADR-0022).
+      untrackedTypes: declinedEventTypes(SAMPLE_BABY.trackedTypes),
+      taskListId: babyTaskListId,
+      questionsListId: babyQuestionsListId,
       order: 0,
     }),
   )
+  for (const [listId, titles] of [
+    [babyTaskListId, SAMPLE_BABY.todos],
+    [babyQuestionsListId, SAMPLE_BABY.questions],
+  ] as const) {
+    let order = 0
+    for (const title of titles) {
+      rec.track(
+        await ctx.db.insert('tasks', {
+          listId,
+          title,
+          done: false,
+          createdBy: authors.owner,
+          order: order++,
+        }),
+      )
+    }
+  }
   for (const event of SAMPLE_BABY_EVENTS) {
     const timestamp = timestampAt(now, event.daysAgo, event.hour, event.minute)
     rec.track(
@@ -598,6 +642,7 @@ export async function applySample(
     recipes: SAMPLE_RECIPES.length,
     taskLists: SAMPLE_TASK_LISTS.length,
     tasks: SAMPLE_TASK_LISTS.reduce((n, l) => n + l.tasks.length, 0),
+    babyTasks: SAMPLE_BABY.todos.length + SAMPLE_BABY.questions.length,
     babyEvents: SAMPLE_BABY_EVENTS.length,
     diaryEntries,
     combos,
@@ -616,6 +661,8 @@ export async function applySample(
     counts.taskLists +
     counts.tasks +
     1 + // baby
+    2 + // the baby's own two lists
+    counts.babyTasks +
     counts.babyEvents +
     counts.userFoods +
     counts.diaryEntries +

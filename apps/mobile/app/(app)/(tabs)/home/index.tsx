@@ -39,6 +39,7 @@ import { api } from '../../../../../../convex/_generated/api'
 import { useAvailability } from '../../../../src/availability/AvailabilityProvider'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
+import { moduleDestination } from '../../../../src/modules/moduleDestination'
 import { MODULE_ICONS, UI_ICONS } from '../../../../src/theme/icons'
 import { RADIUS, useTokens } from '../../../../src/theme/tokens'
 import { useHideSplash } from '../../../../src/useHideSplash'
@@ -130,10 +131,7 @@ export default function Home() {
                   accessibilityRole="button"
                   accessibilityLabel={text.label}
                   onPress={() =>
-                    router.push({
-                      pathname: '/home/[moduleId]',
-                      params: { moduleId: module.id },
-                    })
+                    router.push(moduleDestination('home', module.id))
                   }
                   style={({ pressed }) => [
                     styles.pin,

@@ -19,7 +19,12 @@ interface TimelineProps {
   babyId: Id<'babies'>
   /** The Group the log is being read in — editing and deleting go through it. */
   groupSlug: string
-  events: Doc<'babyEvents'>[]
+  /**
+   * As `babyEvents.listByBaby` returns them: the row, plus the photo's URL
+   * resolved server-side. A `_storage` id is not something a browser can turn
+   * into an image on its own.
+   */
+  events: (Doc<'babyEvents'> & { photoUrl?: string | null })[]
 }
 
 export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
@@ -41,7 +46,7 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
     )
   }
 
-  const groups = new Map<string, Doc<'babyEvents'>[]>()
+  const groups = new Map<string, TimelineProps['events']>()
   for (const event of events) {
     const key = dayKey(event.timestamp)
     const list = groups.get(key) ?? []
@@ -96,6 +101,19 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
                           <p className="m-0 mt-0.5 text-[var(--app-muted)]">
                             {event.notes}
                           </p>
+                        )}
+                        {/* Shown, never edited. A photo is added from the
+                            phone, where the camera is; the web's job is that
+                            the memory is not half-missing when you open it on
+                            a laptop. */}
+                        {event.photoUrl && (
+                          <img
+                            src={event.photoUrl}
+                            alt={fmt(log.entry.photoOf, {
+                              type: eventTypes[event.type],
+                            })}
+                            className="mt-2 max-h-64 w-auto max-w-full rounded-[var(--app-radius)] border border-[var(--app-border)]"
+                          />
                         )}
                       </div>
                       <ChevronRight

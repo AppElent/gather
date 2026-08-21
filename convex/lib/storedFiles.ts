@@ -71,6 +71,7 @@ type FileHolder = {
  */
 const FILE_HOLDERS: { [T in FileHolder]: StoredFileField<T> } = {
   babies: 'photoId',
+  babyEvents: 'photoId',
   recipes: 'imageId',
   foods: 'imageId',
 }

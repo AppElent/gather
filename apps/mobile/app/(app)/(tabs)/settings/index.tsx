@@ -16,7 +16,6 @@
  */
 import { useUser } from '@clerk/expo'
 import { router } from 'expo-router'
-import type { LucideIcon } from 'lucide-react-native'
 import { useState } from 'react'
 import {
   Pressable,
@@ -28,6 +27,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
 import {
   type SettingsEntry,
@@ -36,6 +36,7 @@ import {
   settingsSections,
 } from '../../../../src/settings/sections'
 import { useAppearance } from '../../../../src/theme/appearance'
+import type { Glyph } from '../../../../src/theme/glyph'
 import { UI_ICONS } from '../../../../src/theme/icons'
 import { RADIUS, useTokens } from '../../../../src/theme/tokens'
 
@@ -43,7 +44,8 @@ import { RADIUS, useTokens } from '../../../../src/theme/tokens'
 const SECTION_ICONS = {
   account: UI_ICONS.User,
   phone: UI_ICONS.Smartphone,
-} satisfies Record<SettingsSectionId, LucideIcon>
+  modules: UI_ICONS.Grid,
+} satisfies Record<SettingsSectionId, Glyph>
 
 export default function Settings() {
   const tokens = useTokens()
@@ -52,7 +54,12 @@ export default function Settings() {
   const { preference } = useAppearance()
   const [query, setQuery] = useState('')
 
-  const sections = settingsSections(t, { appearance: preference, locale })
+  const { group } = useGroup()
+  const sections = settingsSections(t, {
+    appearance: preference,
+    locale,
+    groupName: group.name,
+  })
   const searching = query.trim().length > 0
   const hits = searchSettings(sections, query)
   const Search = UI_ICONS.Search

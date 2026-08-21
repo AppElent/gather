@@ -1,7 +1,7 @@
+import type { PhotoPresetName } from '@gather/core/photo-presets'
 import { useEffect, useRef, useState } from 'react'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useMessages } from '../../lib/i18n'
-import type { PhotoPresetName } from '../../lib/photoPresets'
 import type { PreparedPhoto } from '../../lib/preparePhoto'
 import { PREPARED_PHOTO_TYPE } from '../../lib/preparePhoto'
 import { PhotoPrepareDialog } from './PhotoPrepareDialog'

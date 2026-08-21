@@ -52,3 +52,33 @@ describe('summarizeEvent — feeding', () => {
     ).toBe('Bottle · 120 ml')
   })
 })
+
+describe('summarizeEvent — memory', () => {
+  test('the summary is what happened, not the word "memory"', () => {
+    expect(
+      summarizeEvent(
+        {
+          ...({} as Doc<'babyEvents'>),
+          type: 'memory',
+          timestamp: 0,
+          data: { what: 'First laugh' },
+        },
+        en.baby.log,
+      ),
+    ).toBe('First laugh')
+  })
+
+  test('an entry with nothing to say falls back to the type', () => {
+    expect(
+      summarizeEvent(
+        {
+          ...({} as Doc<'babyEvents'>),
+          type: 'memory',
+          timestamp: 0,
+          data: { what: '   ' },
+        },
+        en.baby.log,
+      ),
+    ).toBe('Memory')
+  })
+})

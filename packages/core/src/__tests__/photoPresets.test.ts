@@ -1,16 +1,17 @@
 import { describe, expect, test } from 'vitest'
-import { PHOTO_PRESETS, photoPreset } from './photoPresets'
+import { PHOTO_PRESETS, photoPreset } from '../photoPresets'
 
 /**
  * The preset table is the only place a dimension or a quality is allowed to be
  * written down (ADR-0010), so these tests are about the shape of the table
- * rather than about arithmetic: two presets, the child's frame locked square,
- * the recipe's frame free.
+ * rather than about arithmetic: three presets, the child's frame locked
+ * square, the other two free.
  */
 describe('photo presets', () => {
-  test('there are exactly two, named for where the photo is shown', () => {
+  test('each is named for where the photo is shown', () => {
     expect(Object.keys(PHOTO_PRESETS).sort()).toEqual([
       'childPhoto',
+      'memoryPhoto',
       'recipePhoto',
     ])
   })
@@ -19,6 +20,14 @@ describe('photo presets', () => {
     expect(photoPreset('childPhoto')).toEqual({
       aspect: 1,
       maxEdge: 512,
+      quality: 0.82,
+    })
+  })
+
+  test('a memory photo is freely framed, no larger than 1600px', () => {
+    expect(photoPreset('memoryPhoto')).toEqual({
+      aspect: null,
+      maxEdge: 1600,
       quality: 0.82,
     })
   })

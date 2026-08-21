@@ -29,6 +29,8 @@ export const nl = {
 
   modules: coreNl.modules,
 
+  baby: coreNl.baby,
+
   shell: {
     tabs: {
       home: coreNl.shell.nav.home,
@@ -154,6 +156,7 @@ export const nl = {
     sections: {
       account: coreNl.shell.routes.account.title,
       phone: 'Op deze telefoon',
+      modules: 'Modules',
     },
 
     search: {
@@ -192,6 +195,12 @@ export const nl = {
     continue: 'Doorgaan',
     back: 'Terug',
     resend: 'Stuur opnieuw',
+    save: 'Opslaan',
+    close: 'Sluiten',
+    cancel: 'Annuleren',
+    delete: 'Verwijderen',
+    edit: 'Bewerken',
+    done: 'Klaar',
   },
 
   signIn: {

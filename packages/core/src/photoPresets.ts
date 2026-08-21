@@ -14,8 +14,9 @@
  * four upload sites from drifting into four answers, and it is why adding a
  * fifth is a change here rather than a change there.
  *
- * There are two, and a third arrives when a Module genuinely needs one — not
- * before.
+ * It lives in `@gather/core` rather than in the web app because the phone
+ * prepares photos too, and two clients answering "how big is a memory photo"
+ * separately is the drift this table exists to prevent (ADR-0016).
  */
 
 export interface PhotoPreset {
@@ -34,6 +35,19 @@ export interface PhotoPreset {
 export const PHOTO_PRESETS = {
   childPhoto: { aspect: 1, maxEdge: 512, quality: 0.82 },
   recipePhoto: { aspect: null, maxEdge: 1600, quality: 0.82 },
+  /**
+   * The photo on a Memory in the Baby log — the third preset ADR-0010 said
+   * would arrive when a Module genuinely needed one.
+   *
+   * Free-framed, and unlike the other two it is not cropped at all before
+   * upload. The framing step exists because a stored photo is the only copy
+   * and a child's avatar is a circle somebody had better choose the middle
+   * of. A memory is the opposite case: the whole picture is the point, it was
+   * framed by whoever took it, and `expo-image-picker`'s editor forces a
+   * square on iOS — so offering "framing" there would silently make every
+   * memory square. It is resized and re-encoded, and nothing else.
+   */
+  memoryPhoto: { aspect: null, maxEdge: 1600, quality: 0.82 },
 } as const satisfies Record<string, PhotoPreset>
 
 export type PhotoPresetName = keyof typeof PHOTO_PRESETS
