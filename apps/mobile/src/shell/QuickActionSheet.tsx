@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
@@ -77,8 +78,12 @@ function SheetBody({
   const save = (action: QuickAction) => {
     const fields = actionText(action).fields
     const first = draft[fields[0]]?.trim()
-    if (!first) return
+    if (!first) {
+      haptics.actionFailed()
+      return
+    }
 
+    haptics.itemSaved()
     setAdded((items) => [...items, `${first} — ${actionText(action).noun}`])
     setDraft({})
     setOpenId(null)

@@ -29,6 +29,7 @@
  */
 import type {
   MaterialIcon,
+  NativeTabsTabBarItemRole,
   SFSymbolIcon,
 } from 'expo-router/unstable-native-tabs'
 
@@ -50,10 +51,17 @@ export interface ShellTab {
   sf: { default: SFSymbolName; selected: SFSymbolName }
   /** Android. */
   md: MaterialSymbolName
+  /**
+   * iOS only, and only where the platform has a stronger idea of the slot than
+   * "one of five". `search` makes iOS 26 draw its own capsule beside the bar
+   * rather than a fifth equal item — the platform drawing the thing ADR-0018
+   * described, which is the whole reason the bar is native.
+   */
+  role?: NativeTabsTabBarItemRole
   label: (messages: Messages) => string
 }
 
-export const SHELL_TABS = [
+export const SHELL_TABS: readonly ShellTab[] = [
   {
     name: 'home',
     sf: { default: 'house', selected: 'house.fill' },
@@ -64,6 +72,7 @@ export const SHELL_TABS = [
     name: 'search',
     sf: { default: 'magnifyingglass', selected: 'magnifyingglass' },
     md: 'search',
+    role: 'search',
     label: (t) => t.shell.tabs.search,
   },
   {
@@ -87,4 +96,4 @@ export const SHELL_TABS = [
     md: 'apps',
     label: (t) => t.shell.tabs.all,
   },
-] as const satisfies readonly ShellTab[]
+] as const
