@@ -11,7 +11,7 @@
     "devbuild:android": "expo run:android",
     "devbuild:android:clean": "expo prebuild --platform android --clean && expo run:android",
     "devbuild:android:eas": "eas build --platform android --profile development",
-    "deploy:development": "eas build --platform ios --profile development",
+    "devbuild:ios:eas": "eas build --platform ios --profile development",
     "deploy:preview": "eas build --platform ios --profile preview",
     "deploy:prod": "eas build --platform ios --profile production",
     "lint": "expo lint",
