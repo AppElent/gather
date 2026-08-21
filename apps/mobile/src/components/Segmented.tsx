@@ -15,6 +15,7 @@
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
+import { haptics } from '../feedback/haptics'
 import { RADIUS, useTokens } from '../theme/tokens'
 
 export interface SegmentedOption<Value extends string> {
@@ -45,7 +46,10 @@ export function Segmented<Value extends string>({
             accessibilityRole="button"
             accessibilityState={{ selected: isOn }}
             accessibilityLabel={option.accessibilityLabel ?? option.label}
-            onPress={() => onChange(option.value)}
+            onPress={() => {
+              if (!isOn) haptics.selectionChanged()
+              onChange(option.value)
+            }}
             style={({ pressed }) => [
               styles.option,
               {

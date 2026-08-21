@@ -30,11 +30,12 @@ export default function TabsLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <NativeTabs labelVisibilityMode="labeled">
+      <NativeTabs labelVisibilityMode="labeled" minimizeBehavior="onScrollDown">
         {SHELL_TABS.map((tab) => (
           <NativeTabs.Trigger
             key={tab.name}
             name={tab.name}
+            role={tab.role}
             disabled={tab.name === 'add'}
             listeners={
               tab.name === 'add'
