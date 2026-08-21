@@ -30,3 +30,4 @@ docs/.generated
 .env.dev
 .env.preview
 .env.prod
+apps/mobile/.metro.log
