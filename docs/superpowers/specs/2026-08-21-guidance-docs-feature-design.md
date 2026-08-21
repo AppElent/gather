@@ -212,4 +212,3 @@ mechanism behaves as designed:
   `appelent.json` records `guidance` correctly.
 - A second, no-op `apply guidance --step 1` run on gather changes nothing
   (idempotency, matching baseline's own "merge, don't clobber" guarantee).
-
