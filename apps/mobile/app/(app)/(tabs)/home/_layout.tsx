@@ -51,7 +51,7 @@ export default function HomeStackLayout() {
             // `UISheetPresentationController` on iOS and the equivalent on
             // Android, so the rubber-band drag, the detents, the grabber, the
             // scrim and the keyboard are all native behaviour we do not write.
-            presentation: 'formSheet',
+            presentation: 'card',
             sheetGrabberVisible: true,
             // `fitToContents` rather than a fixed fraction, and that is the
             // fix for "dragging under the top scrolls the form instead of

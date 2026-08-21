@@ -1,8 +1,8 @@
 /**
  * The signed-in root stack.
  *
- * The tab bar stays fixed across Groups (ADR-0015). The Group switcher and
- * full Module create forms live above it, while Profile owns Settings, Account
+ * The tab bar stays fixed across Groups (ADR-0015). Full Module create forms
+ * live above it, while Profile owns Settings, Account
  * and Groups inside its tab stack (ADR-0018), so a permanent destination keeps
  * the bar available.
  */
@@ -40,14 +40,6 @@ export default function AppLayout() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="deep-link" />
-        <Stack.Screen
-          name="switch-group"
-          options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.55, 1],
-            sheetGrabberVisible: true,
-          }}
-        />
       </Stack>
     </GroupProvider>
   )

@@ -34,6 +34,7 @@ import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -44,8 +45,8 @@ import {
 
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
-import { Sheet } from '../../components/Sheet'
-import { haptics } from '../../haptics'
+import { NativeSheet } from '../../components/NativeSheet'
+import { haptics } from '../../feedback/haptics'
 import { fmt, plural, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
@@ -188,11 +189,11 @@ export function QuickLogSheet({
     }
 
     if (failed.length === 0) {
-      haptics.saved()
+      haptics.itemSaved()
       onClose()
       return
     }
-    haptics.failed()
+    haptics.actionFailed()
     // Stays open holding only what did not land, and says so. Closing on a
     // partial save would hide the half that is missing; keeping the half that
     // saved would write it twice on the next press.
@@ -211,10 +212,12 @@ export function QuickLogSheet({
   }
 
   return (
-    <Sheet
+    <NativeSheet
       title={several ? t.baby.log.multi.heading : t.baby.eventTypes[type]}
       subtitle={childName}
       onClose={onClose}
+      maxHeight={Platform.OS === 'ios' ? 0.92 : undefined}
+      fill={Platform.OS === 'ios'}
       footer={
         <Pressable
           accessibilityRole="button"
@@ -246,7 +249,10 @@ export function QuickLogSheet({
       }
     >
       <ScrollView
+        automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        style={styles.scroll}
         contentContainerStyle={styles.body}
       >
         <DateTimeField
@@ -405,11 +411,12 @@ export function QuickLogSheet({
           </Text>
         ) : null}
       </ScrollView>
-    </Sheet>
+    </NativeSheet>
   )
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   body: { gap: 14, paddingBottom: 14 },
   field: { gap: 7 },
   fieldLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },

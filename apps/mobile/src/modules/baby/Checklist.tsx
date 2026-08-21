@@ -18,9 +18,11 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
+import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
+import { taskSections, toggledTask } from './checklistState'
 import { BABY_UI_ICONS } from './icons'
 
 export interface ChecklistProps {
@@ -48,8 +50,23 @@ export function Checklist({
 
   const tasks = useQuery(api.tasks.listByList, { listId, groupSlug })
   const add_ = useMutation(api.tasks.add)
-  const toggleDone = useMutation(api.tasks.toggleDone)
+  const toggleDone = useMutation(api.tasks.toggleDone).withOptimisticUpdate(
+    (store, args) => {
+      const current = store.getQuery(api.tasks.listByList, {
+        listId,
+        groupSlug,
+      })
+      if (!current) return
+      store.setQuery(
+        api.tasks.listByList,
+        { listId, groupSlug },
+        toggledTask(current, args.taskId),
+      )
+    },
+  )
   const [draft, setDraft] = useState('')
+  const [completedOpen, setCompletedOpen] = useState(false)
+  const [toggleFailed, setToggleFailed] = useState(false)
 
   async function add() {
     const title = draft.trim()
@@ -59,6 +76,19 @@ export function Checklist({
     setDraft('')
     await add_({ listId, groupSlug, title })
   }
+
+  async function toggle(task: { _id: Id<'tasks'>; done: boolean }) {
+    setToggleFailed(false)
+    try {
+      await toggleDone({ taskId: task._id, groupSlug })
+      if (!task.done) haptics.itemCompleted()
+    } catch {
+      haptics.actionFailed()
+      setToggleFailed(true)
+    }
+  }
+
+  const { active, completed } = taskSections(tasks ?? [])
 
   return (
     <View style={styles.wrap}>
@@ -72,14 +102,14 @@ export function Checklist({
           { backgroundColor: tokens.surface, borderColor: tokens.border },
         ]}
       >
-        {(tasks ?? []).map((task) => (
+        {active.map((task) => (
           <Pressable
             key={task._id}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: task.done, disabled: !writable }}
             accessibilityLabel={task.title}
             disabled={!writable}
-            onPress={() => toggleDone({ taskId: task._id, groupSlug })}
+            onPress={() => toggle(task)}
             style={({ pressed }) => [
               styles.row,
               { borderBottomColor: tokens.border },
@@ -117,6 +147,74 @@ export function Checklist({
           </Pressable>
         ))}
 
+        {completed.length > 0 ? (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: completedOpen }}
+              accessibilityLabel={
+                completedOpen
+                  ? t.actions.hideCompleted
+                  : t.actions.showCompleted
+              }
+              onPress={() => setCompletedOpen((open) => !open)}
+              style={({ pressed }) => [
+                styles.completedToggle,
+                { borderTopColor: tokens.border },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.completedLabel, { color: tokens.muted }]}>
+                {fmt(t.actions.completed, { count: completed.length })}
+              </Text>
+              <View style={completedOpen ? styles.chevronUp : undefined}>
+                <UI_ICONS.ChevronDown size={18} color={tokens.muted} />
+              </View>
+            </Pressable>
+            {completedOpen
+              ? completed.map((task) => (
+                  <Pressable
+                    key={task._id}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: true, disabled: !writable }}
+                    accessibilityLabel={task.title}
+                    disabled={!writable}
+                    onPress={() => toggle(task)}
+                    style={({ pressed }) => [
+                      styles.row,
+                      { borderBottomColor: tokens.border },
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.box,
+                        { borderColor: tint.fg, backgroundColor: tint.fg },
+                      ]}
+                    >
+                      <UI_ICONS.Check
+                        size={14}
+                        color={tokens.surface}
+                        strokeWidth={3}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.taskText,
+                        {
+                          color: tokens.muted,
+                          textDecorationLine: 'line-through',
+                        },
+                      ]}
+                    >
+                      {task.title}
+                    </Text>
+                  </Pressable>
+                ))
+              : null}
+          </>
+        ) : null}
+
         {writable ? (
           <View style={styles.row}>
             <BABY_UI_ICONS.Plus size={17} color={tint.fg} strokeWidth={2.2} />
@@ -138,6 +236,12 @@ export function Checklist({
           </View>
         )}
       </View>
+
+      {toggleFailed ? (
+        <Text style={[styles.error, { color: tokens.danger }]}>
+          {t.actions.taskUpdateFailed}
+        </Text>
+      ) : null}
 
       {tasks === undefined ? null : tasks.length === 0 && writable ? (
         <Text style={[styles.empty, { color: tokens.muted }]}>
@@ -186,5 +290,15 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 15.5, paddingVertical: 12 },
   readOnly: { flex: 1, fontSize: 13, lineHeight: 19, paddingVertical: 10 },
   empty: { fontSize: 14, paddingHorizontal: 2 },
+  error: { fontSize: 14, paddingHorizontal: 2 },
+  completedToggle: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  completedLabel: { fontSize: 15, fontWeight: '600' },
+  chevronUp: { transform: [{ rotate: '180deg' }] },
   pressed: { opacity: 0.6 },
 })

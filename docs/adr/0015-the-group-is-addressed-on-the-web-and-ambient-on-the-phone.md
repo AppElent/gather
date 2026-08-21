@@ -74,10 +74,9 @@ something that matters on a handful of them. The name is also more legible than
 the slug ever was, which is the one place the phone comes out ahead.
 
 Naming the Group and switching it stay one control, as `GroupSwitcher`'s comment
-already argued for the web: the Group name on Home pushes
-`app/(app)/switch-group.tsx` as a `formSheet`. A route, not a modal component —
-`groupPaths.ts`'s own recorded instinct, *"Adding food is a place, not a dialog:
-the sheet has an address so the back gesture closes it."*
+already argued for the web: the Group name on Home opens an ephemeral native sheet.
+It is not a route: switching Group is ambient shell state rather than a place,
+and dismissal leaves the current valid destination in place.
 
 ## ADR-0007's rule survives verbatim
 

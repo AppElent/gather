@@ -25,7 +25,6 @@ import {
   babyBarSlots,
   declinedEventTypes,
   isBabyBarShortcut,
-  moveBarSlot,
   trackedEventTypes,
 } from '@gather/core/domain'
 import { useMutation, useQuery } from 'convex/react'
@@ -50,7 +49,7 @@ import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { ListPicker, type PickedList } from './ListPicker'
-import { slotIcon, slotLabel } from './LogBar'
+import { LogBar, slotIcon, slotLabel } from './LogBar'
 
 export function ChildSettings({ childId }: { childId: string }) {
   const tokens = useTokens('home')
@@ -87,6 +86,7 @@ export function ChildSettings({ childId }: { childId: string }) {
   // switch in the card re-renders, so every switch does it. Holding the
   // intended list locally means the re-render already agrees with the finger.
   const [intended, setIntended] = useState<BabyBarSlot[] | null>(null)
+  const [reordering, setReordering] = useState(false)
 
   if (child === undefined) {
     return <View style={{ flex: 1, backgroundColor: tokens.bg }} />
@@ -210,6 +210,28 @@ export function ChildSettings({ childId }: { childId: string }) {
     } finally {
       setBusy(false)
     }
+  }
+
+  if (reordering) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: tokens.bg,
+          justifyContent: 'flex-end',
+        }}
+      >
+        <LogBar
+          slots={slots}
+          onPick={() => {}}
+          onReorder={setSlots}
+          onHide={() => {}}
+          onShowAll={() => {}}
+          reorderOnMount
+          onDone={() => setReordering(false)}
+        />
+      </View>
+    )
   }
 
   async function repoint(
@@ -390,13 +412,28 @@ export function ChildSettings({ childId }: { childId: string }) {
       <Text style={[styles.sectionTitle, { color: tokens.muted }]}>
         {t.baby.log.tracked.title.toUpperCase()}
       </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.actions.reorder}
+        onPress={() => setReordering(true)}
+        style={({ pressed }) => [
+          styles.reorder,
+          { backgroundColor: tokens.tile },
+          pressed && styles.pressed,
+        ]}
+      >
+        <UI_ICONS.GripVertical size={18} color={tokens.muted} />
+        <Text style={[styles.reorderText, { color: tokens.fg }]}>
+          {t.actions.reorder}
+        </Text>
+      </Pressable>
       <View
         style={[
           styles.card,
           { backgroundColor: tokens.surface, borderColor: tokens.border },
         ]}
       >
-        {slots.map((slot, index) => {
+        {slots.map((slot) => {
           const Icon = slotIcon(slot)
           const label = slotLabel(slot, t)
           const shortcut = isBabyBarShortcut(slot)
@@ -405,48 +442,7 @@ export function ChildSettings({ childId }: { childId: string }) {
               key={slot}
               style={[styles.row, { borderBottomColor: tokens.border }]}
             >
-              <View style={styles.arrows}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={fmt(t.baby.log.tracked.moveUp, {
-                    type: label,
-                  })}
-                  disabled={index === 0}
-                  onPress={() => setSlots(moveBarSlot(slots, slot, -1))}
-                  hitSlop={4}
-                  style={({ pressed }) => [
-                    styles.arrow,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <UI_ICONS.ChevronUp
-                    size={17}
-                    strokeWidth={2.4}
-                    color={index === 0 ? tokens.border : tokens.muted}
-                  />
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={fmt(t.baby.log.tracked.moveDown, {
-                    type: label,
-                  })}
-                  disabled={index === slots.length - 1}
-                  onPress={() => setSlots(moveBarSlot(slots, slot, 1))}
-                  hitSlop={4}
-                  style={({ pressed }) => [
-                    styles.arrow,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <UI_ICONS.ChevronDown
-                    size={17}
-                    strokeWidth={2.4}
-                    color={
-                      index === slots.length - 1 ? tokens.border : tokens.muted
-                    }
-                  />
-                </Pressable>
-              </View>
+              <UI_ICONS.GripVertical size={18} color={tokens.muted} />
               <Icon
                 size={20}
                 color={shortcut ? tokens.muted : tint.fg}
@@ -475,8 +471,7 @@ export function ChildSettings({ childId }: { childId: string }) {
               key={slot}
               style={[styles.row, { borderBottomColor: tokens.border }]}
             >
-              {/* No arrows: something that is not on the bar has no place. */}
-              <View style={styles.arrows} />
+              <View style={styles.gripSpace} />
               <Icon size={20} color={tokens.muted} strokeWidth={1.9} />
               <Text style={[styles.rowLabel, { color: tokens.muted }]}>
                 {label}
@@ -611,8 +606,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   rowLabel: { flex: 1, fontSize: 16 },
-  arrows: { width: 26, alignItems: 'center' },
-  arrow: { height: 24, justifyContent: 'center' },
+  gripSpace: { width: 18 },
+  reorder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderRadius: RADIUS.control,
+  },
+  reorderText: { fontSize: 15, fontWeight: '600' },
   orderHint: { fontSize: 13, lineHeight: 19, paddingHorizontal: 2 },
   fieldRow: {
     flexDirection: 'row',

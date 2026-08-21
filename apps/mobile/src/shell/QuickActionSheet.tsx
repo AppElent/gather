@@ -18,7 +18,7 @@ import {
   View,
 } from 'react-native'
 
-import { Sheet } from '../components/Sheet'
+import { NativeSheet } from '../components/NativeSheet'
 import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
@@ -142,7 +142,7 @@ function SheetBody({
   }
 
   return (
-    <Sheet
+    <NativeSheet
       title={
         inSheetCapture && openAction
           ? actionText(openAction).label
@@ -223,7 +223,7 @@ function SheetBody({
           </View>
         )}
       </ScrollView>
-    </Sheet>
+    </NativeSheet>
   )
 }
 

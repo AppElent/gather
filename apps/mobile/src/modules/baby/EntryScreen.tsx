@@ -2,24 +2,10 @@
  * One entry, opened from the timeline: what was recorded, and the two things
  * you can do about it.
  *
- * ## Why this is a route and not another `Sheet`
+ * ## Why this is a route rather than a sheet
  *
- * Every other sheet in this Module is `src/components/Sheet` — a `Modal` with a
- * hand-written drag, a hand-written scrim and hand-written keyboard
- * arithmetic. It has needed a pass per round of review, and each pass has been
- * spent reimplementing something the platform already ships:
- * `UISheetPresentationController` on iOS since 15, and
- * `react-native-screens`' `formSheet` on both platforms since 4.0.
- *
- * So this one is presented by the navigator instead (see the `baby-log/entry`
- * entry in each tab stack's layout), and gets, for no code at all: the real
- * rubber-band drag with its detents, a scrim that dims in place rather than
- * sliding up the screen, the system's own corner radius and grabber, the back
- * swipe, and UIKit's answer to the keyboard rather than ours.
- *
- * It is deliberately the *only* one for now. If it feels right on a real
- * device, the rest follow and most of `Sheet` is deleted; if it does not, one
- * screen goes back rather than four.
+ * An entry has a stable address and can be opened cold. Fast in-context flows
+ * use the shared native `BottomSheetModal`; this screen remains a destination.
  *
  * ## Why editing happens here rather than reopening the log sheet
  *
@@ -52,7 +38,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
-import { haptics } from '../../haptics'
+import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { DateTimeField } from './DateTimeField'
@@ -157,10 +143,10 @@ export function EntryScreen() {
         photoId: photoId as Id<'_storage'> | null | undefined,
         data: buildSheetData(type, draft) as never,
       })
-      haptics.saved()
+      haptics.itemSaved()
       setEditing(false)
     } catch {
-      haptics.failed()
+      haptics.actionFailed()
       setFailure(t.baby.log.entry.saveFailed)
     }
     setBusy(false)
@@ -183,10 +169,9 @@ export function EntryScreen() {
                 eventId: entry._id as Id<'babyEvents'>,
                 groupSlug: log.groupSlug,
               })
-              haptics.removed()
               router.back()
             } catch {
-              haptics.failed()
+              haptics.actionFailed()
               setFailure(t.baby.log.timeline.deleteFailed)
               setBusy(false)
             }

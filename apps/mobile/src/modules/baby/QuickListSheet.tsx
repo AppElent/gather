@@ -28,7 +28,7 @@ import {
 
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
-import { Sheet } from '../../components/Sheet'
+import { NativeSheet } from '../../components/NativeSheet'
 import { useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 
@@ -86,7 +86,7 @@ export function QuickListSheet({
   }
 
   return (
-    <Sheet
+    <NativeSheet
       title={heading}
       subtitle={childName}
       onClose={onClose}
@@ -142,7 +142,7 @@ export function QuickListSheet({
           </Text>
         ) : null}
       </View>
-    </Sheet>
+    </NativeSheet>
   )
 }
 

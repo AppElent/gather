@@ -201,6 +201,15 @@ export const nl = {
     delete: 'Verwijderen',
     edit: 'Bewerken',
     done: 'Klaar',
+    completed: 'Voltooid ({count})',
+    showCompleted: 'Voltooide taken tonen',
+    hideCompleted: 'Voltooide taken verbergen',
+    taskUpdateFailed:
+      'Die taak kon niet worden bijgewerkt. Probeer het opnieuw.',
+    reorder: 'Volgorde wijzigen',
+    hide: 'Verbergen',
+    showAll: 'Alles tonen',
+    loading: 'Laden',
   },
 
   signIn: {

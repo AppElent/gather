@@ -38,12 +38,11 @@
  * with scrolling off and nothing else competing — a pan responder that can
  * claim every touch it receives.
  *
- * Settings can arrange these too, with arrows, and both write the same ordered
- * `barOrder` array. This is the one you find; that is the one you can use with
- * a screen reader.
+ * Settings enters this same explicit mode, so both doors write one ordered
+ * `barOrder` array.
  */
 import { type BabyBarSlot, isBabyBarShortcut } from '@gather/core/domain'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Animated,
   type LayoutChangeEvent,
@@ -56,8 +55,8 @@ import {
 } from 'react-native'
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
-import { haptics } from '../../haptics'
+import { NativeContextMenu } from '../../components/NativeContextMenu'
+import { haptics } from '../../feedback/haptics'
 import { fmt, type Messages, useI18n } from '../../i18n'
 import type { Glyph } from '../../theme/glyph'
 import { RADIUS, useTokens } from '../../theme/tokens'
@@ -104,29 +103,44 @@ export interface LogBarProps {
   onPick: (slot: BabyBarSlot) => void
   /** The whole new arrangement, ready for `babies.update`. */
   onReorder: (next: BabyBarSlot[]) => void
+  onHide: (slot: BabyBarSlot) => void
+  onShowAll: () => void
+  /** Lets Child Settings enter this same explicit mode without a second reorder UI. */
+  reorderOnMount?: boolean
+  onDone?: () => void
 }
 
-export function LogBar({ slots, onPick, onReorder }: LogBarProps) {
+export function LogBar({
+  slots,
+  onPick,
+  onReorder,
+  onHide,
+  onShowAll,
+  reorderOnMount = false,
+  onDone,
+}: LogBarProps) {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
   const { t } = useI18n()
   const tint = tokens.tintOf('home')
 
-  const [arranging, setArranging] = useState(false)
+  const [arranging, setArranging] = useState(reorderOnMount)
   const [order, setOrder] = useState<readonly BabyBarSlot[]>(slots)
   const [held, setHeld] = useState<BabyBarSlot | null>(null)
   const [width, setWidth] = useState(0)
 
   if (!arranging && order !== slots) setOrder(slots)
 
-  function beginArranging(slot: BabyBarSlot) {
-    // The one moment in this Module that most wants a haptic: nothing has
-    // moved yet, so the tap is the only signal that the hold was long enough
-    // and the button is now yours to drag.
-    haptics.lifted()
+  useEffect(() => {
+    if (!reorderOnMount) return
     setOrder(slots)
     setArranging(true)
-    setHeld(slot)
+  }, [reorderOnMount, slots])
+
+  function beginArranging() {
+    setOrder(slots)
+    setArranging(true)
+    setHeld(null)
   }
 
   function finish() {
@@ -138,6 +152,7 @@ export function LogBar({ slots, onPick, onReorder }: LogBarProps) {
       order.length !== slots.length ||
       order.some((each, index) => each !== slots[index])
     if (changed) onReorder([...order])
+    onDone?.()
   }
 
   const measure = (event: LayoutChangeEvent) =>
@@ -215,41 +230,54 @@ export function LogBar({ slots, onPick, onReorder }: LogBarProps) {
           const label = slotLabel(slot, t)
           const shortcut = isBabyBarShortcut(slot)
           return (
-            <Pressable
+            <NativeContextMenu
               key={slot}
-              accessibilityRole="button"
-              accessibilityLabel={
-                shortcut
-                  ? label
-                  : fmt(t.baby.log.entry.logTitle, { type: label })
-              }
-              accessibilityHint={t.baby.log.tracked.arrangeHold}
-              onPress={() => onPick(slot)}
-              onLongPress={() => beginArranging(slot)}
-              delayLongPress={350}
-              style={({ pressed }) => [styles.item, pressed && styles.pressed]}
+              actions={[
+                { id: 'reorder', title: t.actions.reorder },
+                { id: 'hide', title: t.actions.hide },
+                { id: 'show-all', title: t.actions.showAll },
+              ]}
+              onAction={(action) => {
+                if (action === 'reorder') beginArranging()
+                if (action === 'hide') onHide(slot)
+                if (action === 'show-all') onShowAll()
+              }}
             >
-              <View
-                style={[
-                  styles.circle,
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
                   shortcut
-                    ? [styles.circleDashed, { borderColor: tokens.border }]
-                    : { backgroundColor: tint.bg },
+                    ? label
+                    : fmt(t.baby.log.entry.logTitle, { type: label })
+                }
+                onPress={() => onPick(slot)}
+                style={({ pressed }) => [
+                  styles.item,
+                  pressed && styles.pressed,
                 ]}
               >
-                <Icon
-                  size={21}
-                  color={shortcut ? tokens.muted : tint.fg}
-                  strokeWidth={1.9}
-                />
-              </View>
-              <Text
-                numberOfLines={1}
-                style={[styles.label, { color: tokens.muted }]}
-              >
-                {label}
-              </Text>
-            </Pressable>
+                <View
+                  style={[
+                    styles.circle,
+                    shortcut
+                      ? [styles.circleDashed, { borderColor: tokens.border }]
+                      : { backgroundColor: tint.bg },
+                  ]}
+                >
+                  <Icon
+                    size={21}
+                    color={shortcut ? tokens.muted : tint.fg}
+                    strokeWidth={1.9}
+                  />
+                </View>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.label, { color: tokens.muted }]}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            </NativeContextMenu>
           )
         })}
       </ScrollView>
@@ -335,7 +363,7 @@ function ArrangeItem({
         // this fires only when the arrangement actually changed.
         if (to !== settled.current) {
           settled.current = to
-          haptics.selected()
+          haptics.selectionChanged()
         }
         live.current.onOrder(movedTo(start.order, start.index, to))
         offset.setValue(residualOffset(gesture.dx, start.index, to, itemWidth))

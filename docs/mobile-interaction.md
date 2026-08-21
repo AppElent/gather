@@ -190,10 +190,9 @@ the Baby module; saving a recipe should not leave you standing in Recipes.
 phone across five mechanisms (hand-built `Modal`, `formSheet` at three detent
 configurations, `@expo/ui`) and four content shapes — `@expo/ui` won on drag
 feel, keyboard handling, and matching the system's own sheet chrome for free.
-`src/components/Sheet.tsx` — the hand-built JS sheet every sheet in the app
-currently shares — is the thing that retires onto it; its own header already
-called this out as not the end state. That swap is tracked as follow-up work,
-not done in the same change as this decision.
+`src/components/NativeSheet.tsx` is the shared content convention around the
+native modal. The hand-built `Sheet` has been retired: presentation, drag,
+keyboard handling, backdrop, and dismissal are all platform-owned.
 
 **Forms.** First field autofocused. `returnKeyType` chains `next` → `next` →
 `done`. The last field submits. The primary button is disabled until valid, and

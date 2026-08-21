@@ -5,8 +5,8 @@
  * line in chrome — a native header has room for *this screen's* title and
  * nothing else — so ambient orientation is Home's job, and naming the Group and
  * switching it stay one control, exactly as `GroupSwitcher` argued for the web.
- * Tapping the name pushes `switch-group`, which is a route rather than a modal
- * component so that the back gesture closes it.
+ * Tapping the name opens an ephemeral native sheet; it does not change the
+ * current destination.
  *
  * Home is deliberately not the catalogue. The Group's shared surface — the
  * Pins strip and the activity it has seen — is #163's; what is here now is the
@@ -25,6 +25,7 @@ import { moduleText } from '@gather/core/modules'
 import { pinnedModules } from '@gather/core/pins'
 import { useQuery } from 'convex/react'
 import { router } from 'expo-router'
+import { useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -40,6 +41,7 @@ import { useAvailability } from '../../../../src/availability/AvailabilityProvid
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
 import { moduleDestination } from '../../../../src/modules/moduleDestination'
+import { GroupSwitcherSheet } from '../../../../src/shell/GroupSwitcherSheet'
 import { MODULE_ICONS, UI_ICONS } from '../../../../src/theme/icons'
 import { RADIUS, useTokens } from '../../../../src/theme/tokens'
 import { useHideSplash } from '../../../../src/useHideSplash'
@@ -53,6 +55,7 @@ export default function Home() {
   const onLayout = useHideSplash()
   const pins = useQuery(api.users.myPins, { groupSlug: group.slug })
   const pinned = pins === undefined ? null : pinnedModules(pins ?? undefined)
+  const [switching, setSwitching] = useState(false)
 
   const ChevronDown = UI_ICONS.ChevronDown
   const SettingsIcon = UI_ICONS.Settings
@@ -73,7 +76,7 @@ export default function Home() {
             group: group.name,
             action: t.shell.switcher.action,
           })}
-          onPress={() => router.push('/switch-group')}
+          onPress={() => setSwitching(true)}
           disabled={!serviceActionsEnabled}
           accessibilityState={{ disabled: !serviceActionsEnabled }}
           hitSlop={8}
@@ -149,6 +152,9 @@ export default function Home() {
           </View>
         )}
       </View>
+      {switching ? (
+        <GroupSwitcherSheet onClose={() => setSwitching(false)} />
+      ) : null}
     </ScrollView>
   )
 }

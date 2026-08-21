@@ -23,16 +23,31 @@
  */
 
 import { formatAge } from '@gather/core/baby-age'
-import type { BabyBarSlot, BabyEventType } from '@gather/core/domain'
+import {
+  BABY_BAR_SHORTCUTS,
+  BABY_EVENT_TYPES,
+  type BabyBarSlot,
+  type BabyEventType,
+  declinedEventTypes,
+  isBabyBarShortcut,
+} from '@gather/core/domain'
 import { moduleById, moduleText } from '@gather/core/modules'
 import { useMutation } from 'convex/react'
 import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
+import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
@@ -40,6 +55,7 @@ import { ChildSwitcher } from './ChildSwitcher'
 import { FirstRun } from './FirstRun'
 import { BABY_UI_ICONS, EVENT_ICONS } from './icons'
 import { LogBar } from './LogBar'
+import { hideSlot, showAllSlots } from './logBarState'
 import { type BabyBase, babyHref } from './paths'
 import { type QuickListKind, QuickListSheet } from './QuickListSheet'
 import { QuickLogSheet } from './QuickLogSheet'
@@ -59,6 +75,7 @@ export function ChildScreen({ base }: ChildScreenProps) {
   const router = useRouter()
   const log = useBabyLog()
   const updateChild = useMutation(api.babies.update)
+  const removeChild = useMutation(api.babies.remove)
   const [switching, setSwitching] = useState(false)
   const [logging, setLogging] = useState<BabyEventType | null>(null)
   const [listing, setListing] = useState<QuickListKind | null>(null)
@@ -71,7 +88,11 @@ export function ChildScreen({ base }: ChildScreenProps) {
   )
 
   if (log.loading)
-    return <View style={{ flex: 1, backgroundColor: tokens.bg }} />
+    return (
+      <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <LoadingSkeleton rows={5} label={t.actions.loading} />
+      </View>
+    )
   if (!log.child) return <FirstRun base={base} groupName={log.groupName} />
 
   const child = log.child
@@ -118,6 +139,19 @@ export function ChildScreen({ base }: ChildScreenProps) {
     })
   }
 
+  function saveSlots(next: BabyBarSlot[]) {
+    updateChild({
+      id: child._id as Id<'babies'>,
+      groupSlug: log.groupSlug,
+      name: child.name,
+      birthDate: child.birthDate,
+      untrackedTypes: declinedEventTypes(
+        next.filter((slot): slot is BabyEventType => !isBabyBarShortcut(slot)),
+      ),
+      barOrder: next,
+    })
+  }
+
   /**
    * One way to log, whatever the type: the sheet asks with chips where there is
    * a closed set and with a text box where there is not, so nothing falls
@@ -125,6 +159,27 @@ export function ChildScreen({ base }: ChildScreenProps) {
    */
   function openLog(type: BabyEventType) {
     if (sheetHandles(type)) setLogging(type)
+  }
+
+  function confirmChildDelete(childToDelete: { _id: string; name: string }) {
+    Alert.alert(
+      fmt(t.baby.log.form.deleteTitle, { name: childToDelete.name }),
+      t.baby.log.form.deleteBody,
+      [
+        { text: t.actions.cancel, style: 'cancel' },
+        {
+          text: fmt(t.baby.log.form.deleteConfirm, {
+            name: childToDelete.name,
+          }),
+          style: 'destructive',
+          onPress: () =>
+            removeChild({
+              id: childToDelete._id as Id<'babies'>,
+              groupSlug: log.groupSlug,
+            }),
+        },
+      ],
+    )
   }
 
   /** A press on the bar, whichever kind of button it was. */
@@ -305,7 +360,17 @@ export function ChildScreen({ base }: ChildScreenProps) {
           </Pressable>
         </ScrollView>
 
-        <LogBar slots={log.slots} onPick={pick} onReorder={reorder} />
+        <LogBar
+          slots={log.slots}
+          onPick={pick}
+          onReorder={reorder}
+          onHide={(slot) => saveSlots(hideSlot(log.slots, slot))}
+          onShowAll={() =>
+            saveSlots(
+              showAllSlots(log.slots, BABY_EVENT_TYPES, BABY_BAR_SHORTCUTS),
+            )
+          }
+        />
       </View>
 
       {switching ? (
@@ -319,6 +384,10 @@ export function ChildScreen({ base }: ChildScreenProps) {
           onEdit={(id) => {
             setSwitching(false)
             router.push(babyHref(base, '/settings', { childId: id }))
+          }}
+          onDelete={(id) => {
+            const childToDelete = log.children?.find((item) => item._id === id)
+            if (childToDelete) confirmChildDelete(childToDelete)
           }}
           onAdd={() => {
             setSwitching(false)

@@ -15,7 +15,7 @@
  */
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
-import { haptics } from '../../haptics'
+import { haptics } from '../../feedback/haptics'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { type SheetField, stepValue } from './sheetFields'
 
@@ -88,7 +88,7 @@ export function NumberField({
           accessibilityRole="button"
           accessibilityLabel={decreaseLabel}
           onPress={() => {
-            haptics.selected()
+            haptics.selectionChanged()
             onChange(stepValue(field, value, -1))
           }}
           style={({ pressed }) => [styles.step, pressed && styles.pressed]}
@@ -116,7 +116,7 @@ export function NumberField({
           accessibilityRole="button"
           accessibilityLabel={increaseLabel}
           onPress={() => {
-            haptics.selected()
+            haptics.selectionChanged()
             onChange(stepValue(field, value, 1))
           }}
           style={({ pressed }) => [styles.step, pressed && styles.pressed]}

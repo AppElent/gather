@@ -27,10 +27,12 @@
 
 import { ClerkProvider } from '@clerk/expo'
 import { tokenCache } from '@clerk/expo/token-cache'
+import { BottomSheetModalProvider } from '@expo/ui/community/bottom-sheet'
 import Constants, { ExecutionEnvironment } from 'expo-constants'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { LogBox, StyleSheet, View } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { publishableKey } from '../src/auth/config'
 import {
@@ -81,9 +83,13 @@ export default function RootLayout() {
           <AppConvexProvider>
             <AvailabilityProvider>
               <SafeAreaProvider>
-                <NativeChrome>
-                  <RootNavigator />
-                </NativeChrome>
+                <GestureHandlerRootView style={styles.root}>
+                  <BottomSheetModalProvider>
+                    <NativeChrome>
+                      <RootNavigator />
+                    </NativeChrome>
+                  </BottomSheetModalProvider>
+                </GestureHandlerRootView>
               </SafeAreaProvider>
             </AvailabilityProvider>
           </AppConvexProvider>

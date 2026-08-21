@@ -11,10 +11,24 @@
  * opens that something: the whole entry, with its notes, and the two things you
  * can do about it (`EntryScreen`).
  */
+
+import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useMemo } from 'react'
-import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native'
+import {
+  Alert,
+  Pressable,
+  SectionList,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { api } from '../../../../../convex/_generated/api'
+import type { Id } from '../../../../../convex/_generated/dataModel'
+import { NativeContextMenu } from '../../components/NativeContextMenu'
+import { SwipeableRow } from '../../components/SwipeableRow'
+import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { useTokens } from '../../theme/tokens'
@@ -36,6 +50,28 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
   const { t, locale } = useI18n()
   const log = useBabyLog()
   const tint = tokens.tintOf('home')
+  const remove = useMutation(api.babyEvents.remove)
+
+  function confirmDelete(item: NonNullable<typeof log.events>[number]) {
+    Alert.alert(
+      t.baby.log.timeline.deleteTitle,
+      fmt(t.baby.log.timeline.deleteEntry, {
+        type: t.baby.eventTypes[item.type],
+      }),
+      [
+        { text: t.actions.cancel, style: 'cancel' },
+        {
+          text: t.baby.log.timeline.deleteConfirm,
+          style: 'destructive',
+          onPress: () =>
+            remove({
+              eventId: item._id as Id<'babyEvents'>,
+              groupSlug: log.groupSlug,
+            }).catch(() => haptics.actionFailed()),
+        },
+      ],
+    )
+  }
 
   const sections = useMemo(() => {
     const byDay = new Map<
@@ -90,43 +126,64 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
         renderItem={({ item }) => {
           const Icon = EVENT_ICONS[item.type]
           return (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={fmt(t.baby.log.timeline.openEntry, {
-                type: t.baby.eventTypes[item.type],
-              })}
-              onPress={() =>
-                router.push(babyHref(base, '/entry', { entryId: item._id }))
-              }
-              style={({ pressed }) => [
-                styles.row,
-                { borderBottomColor: tokens.border },
-                pressed && styles.pressed,
-              ]}
+            <SwipeableRow
+              deleteLabel={t.actions.delete}
+              onDelete={() => confirmDelete(item)}
             >
-              <Text style={[styles.time, { color: tokens.muted }]}>
-                {new Date(item.timestamp).toLocaleTimeString(locale, {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </Text>
-              <View style={[styles.glyph, { backgroundColor: tint.bg }]}>
-                <Icon size={17} color={tint.fg} strokeWidth={1.9} />
-              </View>
-              <View style={styles.text}>
-                <Text style={[styles.title, { color: tokens.fg }]}>
-                  {t.baby.eventTypes[item.type]}
-                </Text>
-                <Text style={[styles.detail, { color: tokens.muted }]}>
-                  {summarize(item, t.baby.log.summary, t.baby.log.options)}
-                </Text>
-              </View>
-              <UI_ICONS.ChevronRight
-                size={17}
-                color={tokens.muted}
-                strokeWidth={2.2}
-              />
-            </Pressable>
+              <NativeContextMenu
+                actions={[
+                  { id: 'edit', title: t.actions.edit },
+                  {
+                    id: 'delete',
+                    title: t.actions.delete,
+                    attributes: { destructive: true },
+                  },
+                ]}
+                onAction={(action) => {
+                  if (action === 'edit')
+                    router.push(babyHref(base, '/entry', { entryId: item._id }))
+                  if (action === 'delete') confirmDelete(item)
+                }}
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={fmt(t.baby.log.timeline.openEntry, {
+                    type: t.baby.eventTypes[item.type],
+                  })}
+                  onPress={() =>
+                    router.push(babyHref(base, '/entry', { entryId: item._id }))
+                  }
+                  style={({ pressed }) => [
+                    styles.row,
+                    { borderBottomColor: tokens.border },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Text style={[styles.time, { color: tokens.muted }]}>
+                    {new Date(item.timestamp).toLocaleTimeString(locale, {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                  <View style={[styles.glyph, { backgroundColor: tint.bg }]}>
+                    <Icon size={17} color={tint.fg} strokeWidth={1.9} />
+                  </View>
+                  <View style={styles.text}>
+                    <Text style={[styles.title, { color: tokens.fg }]}>
+                      {t.baby.eventTypes[item.type]}
+                    </Text>
+                    <Text style={[styles.detail, { color: tokens.muted }]}>
+                      {summarize(item, t.baby.log.summary, t.baby.log.options)}
+                    </Text>
+                  </View>
+                  <UI_ICONS.ChevronRight
+                    size={17}
+                    color={tokens.muted}
+                    strokeWidth={2.2}
+                  />
+                </Pressable>
+              </NativeContextMenu>
+            </SwipeableRow>
           )
         }}
       />

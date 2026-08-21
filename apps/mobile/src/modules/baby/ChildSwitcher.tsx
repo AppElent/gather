@@ -16,8 +16,8 @@
  * The frame - drag-to-dismiss, close button, scrim - is `Sheet`'s.
  */
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-
-import { Sheet } from '../../components/Sheet'
+import { NativeContextMenu } from '../../components/NativeContextMenu'
+import { NativeSheet } from '../../components/NativeSheet'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { useTokens } from '../../theme/tokens'
@@ -34,6 +34,7 @@ export interface ChildSwitcherProps {
   selectedId: string
   onSelect: (childId: string) => void
   onEdit: (childId: string) => void
+  onDelete: (childId: string) => void
   onAdd: () => void
   onClose: () => void
 }
@@ -43,6 +44,7 @@ export function ChildSwitcher({
   selectedId,
   onSelect,
   onEdit,
+  onDelete,
   onAdd,
   onClose,
 }: ChildSwitcherProps) {
@@ -51,58 +53,79 @@ export function ChildSwitcher({
   const tint = tokens.tintOf('home')
 
   return (
-    <Sheet title={t.baby.log.child.switch} onClose={onClose} maxHeight={0.72}>
+    <NativeSheet
+      title={t.baby.log.child.switch}
+      onClose={onClose}
+      maxHeight={0.72}
+    >
       <ScrollView contentContainerStyle={styles.list}>
         {items.map((item) => {
           const selected = item._id === selectedId
           return (
-            <View
+            <NativeContextMenu
               key={item._id}
-              style={[styles.row, { borderBottomColor: tokens.border }]}
+              actions={[
+                { id: 'edit', title: t.actions.edit },
+                {
+                  id: 'delete',
+                  title: t.actions.delete,
+                  attributes: { destructive: true },
+                },
+              ]}
+              onAction={(action) => {
+                if (action === 'edit') onEdit(item._id)
+                if (action === 'delete') onDelete(item._id)
+              }}
             >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                onPress={() => onSelect(item._id)}
-                style={({ pressed }) => [
-                  styles.rowMain,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
-                  <BABY_UI_ICONS.Baby
-                    size={19}
-                    color={tint.fg}
-                    strokeWidth={1.8}
+              <View style={[styles.row, { borderBottomColor: tokens.border }]}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() => onSelect(item._id)}
+                  style={({ pressed }) => [
+                    styles.rowMain,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
+                    <BABY_UI_ICONS.Baby
+                      size={19}
+                      color={tint.fg}
+                      strokeWidth={1.8}
+                    />
+                  </View>
+                  <Text style={[styles.name, { color: tokens.fg }]}>
+                    {item.name}
+                  </Text>
+                  {selected ? (
+                    <UI_ICONS.Check
+                      size={20}
+                      color={tint.fg}
+                      strokeWidth={2.4}
+                    />
+                  ) : null}
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={fmt(t.baby.log.child.edit, {
+                    name: item.name,
+                  })}
+                  onPress={() => onEdit(item._id)}
+                  hitSlop={8}
+                  style={({ pressed }) => [
+                    styles.edit,
+                    { backgroundColor: tokens.tile },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <UI_ICONS.Pencil
+                    size={17}
+                    color={tokens.muted}
+                    strokeWidth={1.9}
                   />
-                </View>
-                <Text style={[styles.name, { color: tokens.fg }]}>
-                  {item.name}
-                </Text>
-                {selected ? (
-                  <UI_ICONS.Check size={20} color={tint.fg} strokeWidth={2.4} />
-                ) : null}
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={fmt(t.baby.log.child.edit, {
-                  name: item.name,
-                })}
-                onPress={() => onEdit(item._id)}
-                hitSlop={8}
-                style={({ pressed }) => [
-                  styles.edit,
-                  { backgroundColor: tokens.tile },
-                  pressed && styles.pressed,
-                ]}
-              >
-                <UI_ICONS.Pencil
-                  size={17}
-                  color={tokens.muted}
-                  strokeWidth={1.9}
-                />
-              </Pressable>
-            </View>
+                </Pressable>
+              </View>
+            </NativeContextMenu>
           )
         })}
 
@@ -129,7 +152,7 @@ export function ChildSwitcher({
           </Text>
         </Pressable>
       </ScrollView>
-    </Sheet>
+    </NativeSheet>
   )
 }
 

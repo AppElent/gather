@@ -35,6 +35,7 @@ import CircleAlert from 'lucide-react-native/icons/circle-alert'
 import Eye from 'lucide-react-native/icons/eye'
 import EyeOff from 'lucide-react-native/icons/eye-off'
 import Grape from 'lucide-react-native/icons/grape'
+import GripVertical from 'lucide-react-native/icons/grip-vertical'
 import Grid from 'lucide-react-native/icons/layout-grid'
 import ListChecks from 'lucide-react-native/icons/list-checks'
 import NotebookPen from 'lucide-react-native/icons/notebook-pen'
@@ -86,6 +87,7 @@ export const UI_ICONS = {
   CircleAlert: glyph(CircleAlert, 'exclamationmark.circle'),
   /** The Settings tab's Modules group. */
   Grid: glyph(Grid, 'square.grid.2x2'),
+  GripVertical: glyph(GripVertical, 'line.3.horizontal'),
   Eye: glyph(Eye, 'eye'),
   EyeOff: glyph(EyeOff, 'eye.slash'),
   /** Edit, where a row already does something else when pressed. */

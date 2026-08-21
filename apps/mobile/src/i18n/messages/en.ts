@@ -286,6 +286,14 @@ export const en = {
     delete: 'Delete',
     edit: 'Edit',
     done: 'Done',
+    completed: 'Completed ({count})',
+    showCompleted: 'Show completed tasks',
+    hideCompleted: 'Hide completed tasks',
+    taskUpdateFailed: 'That task could not be updated. Please try again.',
+    reorder: 'Reorder',
+    hide: 'Hide',
+    showAll: 'Show all',
+    loading: 'Loading',
   },
 
   signIn: {
