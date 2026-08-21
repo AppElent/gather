@@ -1,4 +1,5 @@
 import type { Messages } from '@gather/core/messages'
+import { type PhotoPresetName, photoPreset } from '@gather/core/photo-presets'
 import {
   type PointerEvent as ReactPointerEvent,
   useCallback,
@@ -17,7 +18,6 @@ import {
 } from '../../lib/cropFrame'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
-import { type PhotoPresetName, photoPreset } from '../../lib/photoPresets'
 import {
   type DecodedPhoto,
   decodePhoto,

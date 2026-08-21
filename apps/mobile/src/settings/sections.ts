@@ -19,9 +19,14 @@ import type { Locale } from '@gather/core/i18n'
 
 import type { Messages } from '../i18n'
 
-export type SettingsSectionId = 'account' | 'phone'
+export type SettingsSectionId = 'account' | 'phone' | 'modules'
 
-export type SettingsEntryId = 'account' | 'groups' | 'appearance' | 'language'
+export type SettingsEntryId =
+  | 'account'
+  | 'groups'
+  | 'appearance'
+  | 'language'
+  | 'baby-log'
 
 /** The screens below the tab's index. Typed so a dead link fails the build. */
 export type SettingsHref =
@@ -29,6 +34,7 @@ export type SettingsHref =
   | '/settings/groups'
   | '/settings/appearance'
   | '/settings/language'
+  | '/settings/baby-log'
 
 export interface SettingsEntry {
   id: SettingsEntryId
@@ -51,6 +57,12 @@ export interface SettingsSection {
 export interface SettingsValues {
   appearance: AppearancePreference
   locale: Locale
+  /**
+   * The ambient Group's name. A Module's settings belong to a Group, and this
+   * screen draws no Group chrome of its own — so the row's value column is the
+   * only place that says which household is about to be edited.
+   */
+  groupName: string
 }
 
 /**
@@ -78,6 +90,23 @@ export function settingsSections(
           id: 'groups',
           label: t.settings.groups,
           href: '/settings/groups',
+        },
+      ],
+    },
+    {
+      /**
+       * A Module's own preferences live *inside* Settings and never beside it
+       * (ADR-0018). The rows are per Group, which is why each carries the
+       * Group's name as its value.
+       */
+      id: 'modules',
+      title: t.settings.sections.modules,
+      entries: [
+        {
+          id: 'baby-log',
+          label: t.modules.byId['baby-log'].label,
+          value: values.groupName,
+          href: '/settings/baby-log',
         },
       ],
     },

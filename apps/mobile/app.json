@@ -32,6 +32,13 @@
       "expo-font",
       "expo-web-browser",
       "expo-image",
+    [
+      "expo-image-picker",
+      {
+        "photosPermission": "Gather uses your photos so you can keep one with a memory in the baby log.",
+        "cameraPermission": "Gather uses the camera so you can take a photo for a memory in the baby log."
+      }
+    ],
       [
         "expo-splash-screen",
         {

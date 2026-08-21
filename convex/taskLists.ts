@@ -34,7 +34,21 @@ export const list = query({
       .collect()
     return lists
       .sort((a, b) => a.order - b.order)
-      .map((l) => ({ _id: l._id, name: l.name, provider: l.provider }))
+      .map((l) => ({
+        _id: l._id,
+        name: l.name,
+        provider: l.provider,
+        // Whether this list can be added to from Gather. A local list always
+        // can; an external one answers with its provider's capability, and
+        // Gather never emulates a write the provider will not take (ADR-0021).
+        // Callers that offer a list as somewhere to write — the baby log's
+        // checklist cards, for one — need this before the person picks, not
+        // after they try.
+        writable:
+          l.provider === 'local'
+            ? true
+            : getAdapter(l.provider).capabilities.write,
+      }))
   },
 })
 

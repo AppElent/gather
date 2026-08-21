@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8a6a33; text-decoration: none; }
+    a:hover { color: #6d5327; }
+    .ic { flex: none; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none;"></div>
+
+  <div style="flex: none; display: flex; align-items: center; height: 52px; padding: 0 16px;">
+    <div style="flex: 1; font-size: 17px; color: #8a6a33; cursor: pointer;">Cancel</div>
+    <div style="font-size: 17px; font-weight: 700; letter-spacing: -0.3px;">Add a child</div>
+    <div style="flex: 1; font-size: 15px; color: #79807b; text-align: right;">1 of 3</div>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow: hidden; padding: 18px 16px 0; display: flex; flex-direction: column; gap: 24px;">
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 9px;">
+      <div style="width: 92px; height: 92px; border-radius: 46px; background: #ffffff; border: 1.5px dashed #d8d6d0; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg class="ic" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+      </div>
+      <span style="font-size: 13.5px; color: #79807b;">Add a photo</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b; padding-left: 2px;">NAME</div>
+      <div style="display: flex; align-items: center; min-height: 48px; padding: 0 14px; background: #ffffff; border: 1px solid #e8e7e3; border-radius: 12px; font-size: 17px; font-weight: 600;">Emma</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b; padding-left: 2px;">DATE OF BIRTH</div>
+      <div style="display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 14px; background: #ffffff; border: 1px solid #e8e7e3; border-radius: 12px; cursor: pointer;">
+        <span style="font-size: 17px; font-weight: 600;">19 April 2026</span>
+        <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+      </div>
+      <div style="font-size: 13px; color: #79807b; padding-left: 2px;">4 months · 3 days old</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: baseline; gap: 6px; padding-left: 2px;">
+        <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b;">SEX</span>
+        <span style="font-size: 12px; color: #a9aeaa;">optional</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <div onClick="{{ pickGirl }}" style="{{ segGirl }}">Girl</div>
+        <div onClick="{{ pickBoy }}" style="{{ segBoy }}">Boy</div>
+        <div onClick="{{ pickNone }}" style="{{ segNone }}">Not saying</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="flex: none; padding: 16px;">
+    <div style="min-height: 52px; border-radius: 12px; background: #8a6a33; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16.5px; font-weight: 700; cursor: pointer;">Next</div>
+  </div>
+
+  <div style="height: 34px; flex: none;"></div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sex: 'girl' };
+  }
+
+  renderVals() {
+    const ON = 'flex:1;min-height:46px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#f2ece0;border:1px solid #8a6a33;color:#8a6a33;font-size:15px;font-weight:700;cursor:pointer;';
+    const OFF = 'flex:1;min-height:46px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#ffffff;border:1px solid #e8e7e3;color:#1f2421;font-size:15px;font-weight:500;cursor:pointer;';
+    const sex = this.state.sex;
+    return {
+      segGirl: sex === 'girl' ? ON : OFF,
+      segBoy: sex === 'boy' ? ON : OFF,
+      segNone: sex === 'none' ? ON : OFF,
+      pickGirl: () => this.setState({ sex: 'girl' }),
+      pickBoy: () => this.setState({ sex: 'boy' }),
+      pickNone: () => this.setState({ sex: 'none' })
+    };
+  }
+}
+</script>
+</body>
+</html>

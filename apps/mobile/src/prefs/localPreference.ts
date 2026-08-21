@@ -37,8 +37,21 @@ export const PREFERENCE_KEYS = {
   locale: 'gather:locale',
 } as const
 
+/**
+ * The Child a Group's Baby log opens on — one key per Group, because a Member
+ * of two households has a different Child in mind in each (ADR-0022).
+ *
+ * A function rather than a fourth constant: the key depends on which Group is
+ * being asked about, and inventing a second store for the one preference that
+ * is parameterised would cost exactly what having one store buys.
+ */
+export function babyChildKey(groupSlug: string) {
+  return `gather:baby:child:${groupSlug}` as const
+}
+
 export type PreferenceKey =
-  (typeof PREFERENCE_KEYS)[keyof typeof PREFERENCE_KEYS]
+  | (typeof PREFERENCE_KEYS)[keyof typeof PREFERENCE_KEYS]
+  | ReturnType<typeof babyChildKey>
 
 /** What was stored under this key, or null if nothing readable was. */
 export function readPreference(key: PreferenceKey): string | null {

@@ -38,6 +38,7 @@ export default function Create() {
         behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
           style={{ backgroundColor: tokens.bg }}
           contentContainerStyle={[
             styles.content,

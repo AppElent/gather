@@ -35,6 +35,13 @@ export const en = {
   modules: coreEn.modules,
 
   /**
+   * The Baby log's words, taken whole from the shared tree rather than
+   * retyped: the phone owns its look and shares its words (ADR-0017), and a
+   * second English for "Diaper" is the failure that rule names.
+   */
+  baby: coreEn.baby,
+
+  /**
    * The signed-in shell: the five fixed tabs, the Group switcher sheet, and
    * the seat a tab keeps until its Module is built for the phone.
    *
@@ -210,6 +217,7 @@ export const en = {
     sections: {
       account: coreEn.shell.routes.account.title,
       phone: 'On this phone',
+      modules: 'Modules',
     },
 
     /**
@@ -272,6 +280,12 @@ export const en = {
     continue: 'Continue',
     back: 'Back',
     resend: 'Send it again',
+    save: 'Save',
+    close: 'Close',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    edit: 'Edit',
+    done: 'Done',
   },
 
   signIn: {

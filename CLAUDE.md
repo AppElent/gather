@@ -140,6 +140,37 @@ on dev and as a preview-type default (`convex env default set --type preview`);
 deployment URL from writing a fake household into the real database. The
 internal `seedCatalog` / `seedPreview` entrypoints do not consult it.
 
+## Photos
+
+Every stored photo is **prepared, never stored as chosen** (ADR-0010), and the
+only place a dimension or a JPEG quality may be written down is
+`packages/core/src/photoPresets.ts` — one table, shared by the web and the
+phone, so two clients cannot answer "how big is a memory photo" differently.
+Call sites name a preset and pass nothing else. **Adding a fourth is a change
+there, not a new number at a call site.**
+
+Two rules the Memory upload established:
+
+- **A stored file is registered in `convex/lib/storedFiles.ts`.** `FILE_HOLDERS`
+  is typed off the schema, so a new `_storage` column fails to compile until it
+  is listed — which is what stops a blob being deleted out from under the one
+  table nobody registered. Every path that orphans a file calls
+  `deleteStoredFile` / `replaceStoredFile` *after* the write that let go.
+- **The bytes go up before the row exists.** Convex's upload is a handshake
+  that only ends in an id, so the id is passed *into* the mutation and never
+  patched on afterwards. A save whose upload failed never became a row. The
+  photo is always optional, so "save without it" is the fallback rather than a
+  retry queue.
+- **On the phone, a local file is read with `expo-file-system`, never with
+  `fetch`.** React Native does not implement the `file://` scheme: `fetch(uri)`
+  answers a 14-byte body reading "File not found", which then uploads as a
+  perfectly valid corrupt image. `File(uri).upload()` also sets the exact
+  `Content-Type` Convex insists on — an empty one is a `BadHeader` 400.
+
+`ctx.storage.getUrl` returns an unguessable but unauthenticated URL that does
+not expire. That is accepted for avatars, headers and keepsakes; it would not
+be for anything a household would mind being readable by whoever holds a link.
+
 ## Internationalization
 
 **Current portable-core layout:** `@gather/core` owns the English and Dutch
@@ -234,6 +265,11 @@ still exists anywhere. So each one says, where it lives, what would retire it:
 - **A compatibility shim** names the date or the event after which it goes.
 - Code with no end condition does not get to be one-shot code. It is just code,
   and it will be maintained forever.
+
+Outstanding right now: `convex/migrations.ts` → `declineByOmission`, which is
+waiting on a production run before it and the `babies.trackedTypes` column can
+go (`docs/migrations/0001-baby-tracked-types-become-declines.md`). Run it with
+`npx convex run migrations:declineByOmission --prod`.
 
 `src/lib/legacyPaths.ts` was the cautionary case: excellent about why it existed,
 silent about when it stopped, and on course to outlive every link it served.

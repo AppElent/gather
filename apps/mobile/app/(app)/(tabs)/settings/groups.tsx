@@ -17,6 +17,7 @@ export default function Groups() {
 
   return (
     <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: tokens.bg }}
       contentContainerStyle={[
         styles.content,

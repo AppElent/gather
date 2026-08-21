@@ -64,7 +64,9 @@ creator can change it.
 
 **Module**:
 A feature area — Recipes, Tasks, Baby log, Nutrition. Every live Module is
-available in every Group; a Group never enables or disables one.
+available in every Group; a Group never enables or disables one. A Module with
+nothing in it is not *off* — it is **empty**, and an empty Module invites you to
+make its first thing rather than offering a switch (ADR-0022).
 _Avoid_: Feature, App, Section, Widget
 
 **Pin**:
@@ -137,6 +139,27 @@ protein) that would actively mislead here. **Meal** — that word already names
 the breakfast/lunch/dinner/snack slot throughout the schema, and taking it would
 force a rename with nothing gained. Also avoid: Preset, Bundle, Template.
 
+**Child**:
+The person a Baby log is kept for. One Child belongs to one Group, and every
+Member of that Group reads and writes the same log. The word a person reads is
+always *child*; **Baby log** names the Module, and `babies` is only what the
+table is called.
+_Avoid_: Baby (for the person), Kid, Infant
+
+**Tracked types**:
+The event types a Child's log **offers** — which quick-log buttons exist and
+what the event-type picker contains. Chosen per Child, because a newborn and a
+three-year-old do not keep the same log. Turning one off shrinks what you are
+offered and nothing else: entries already logged stay, stay visible and stay
+editable, so this is never a filter on the log and never a way to delete
+(ADR-0022).
+
+A Child tracks every type **except** the ones somebody has turned off, and the
+record stores those refusals rather than the acceptances. A type nobody has
+refused is offered — which is what lets a type added to the catalogue reach
+households that made their choice before it existed.
+_Avoid_: Enabled types, Active types, Visible types
+
 **Sample household**:
 A complete, fake Group — members, recipes, tasks, a baby's log, a food diary —
 that exists so a test or preview environment can be looked at. Never present in
@@ -187,6 +210,9 @@ _Avoid_: Signed out, Offline mode
 - A page below a Module's index carries its own trail, and its way back is the
   parent's **address** rather than the browser's history — the same answer
   however somebody arrived, and the Group travels with it (ADR-0013).
+- A Module is configured by its content and never by a switch. Nothing turns a
+  Module on, and what a Module needs configured belongs to one of its records —
+  so an empty Module's invitation and its setup are the same screen (ADR-0022).
 - Every client names things the same way and looks however suits it. The words a
   person reads — a Group, a Pin, a Module and what it is for — are one answer
   wherever they are read; the palette, the type and the layout are each client's

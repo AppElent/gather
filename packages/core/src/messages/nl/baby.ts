@@ -13,6 +13,7 @@ export const eventTypes = {
   medication: 'Medicatie',
   vaccination: 'Vaccinatie',
   note: 'Notitie',
+  memory: 'Herinnering',
 } satisfies typeof enEventTypes
 
 export const log = {
@@ -36,6 +37,8 @@ export const log = {
     },
     notFound: 'Kind niet gevonden.',
     switch: 'Ander kind kiezen',
+    edit: '{name} bewerken',
+    settings: 'Instellingen van het kind',
     todo: 'Te doen',
     todoPlaceholder: 'Luiers kopen, consultatiebureau bellen…',
     questions: 'Vragen',
@@ -57,6 +60,7 @@ export const log = {
     sexFemale: 'Meisje',
     sexMale: 'Jongen',
     saveFailed: 'Kon dat kind niet opslaan',
+    detailsTitle: 'Gegevens',
     createTitle: 'Een kind toevoegen',
     editTitle: '{name} bewerken',
     deleteTitle: '{name} verwijderen?',
@@ -68,7 +72,87 @@ export const log = {
 
   quickLog: {
     heading: 'Iets noteren',
+    addTodo: 'Taak',
+    addQuestion: 'Vraag',
+    todoPlaceholder: 'Wat moet er gebeuren?',
+    questionPlaceholder: 'Wat wil je vragen?',
+    addFailed: 'Kon dat niet toevoegen',
     several: 'Meerdere noteren',
+  },
+
+  status: {
+    today: 'Vandaag',
+    ago: '{duration} geleden',
+    countToday: '{count} vandaag',
+    never: 'Nog niets genoteerd',
+    at: 'om {time}',
+    seeAll: 'Alle {count} items bekijken',
+    weight: 'Gewicht',
+    height: 'Lengte',
+    head: 'Hoofdomtrek',
+    temperature: 'Temperatuur',
+    allTrends: 'Alle grafieken',
+    sinceBirth: 'sinds de geboorte',
+    measurements: '{count} metingen',
+    noTrend: 'Er zijn twee items nodig voordat er een lijn te tekenen valt.',
+  },
+
+  tracked: {
+    title: 'Wat op de logbalk staat',
+    subtitle: 'Kies wat het logboek van {name} aanbiedt, en in welke volgorde.',
+    settingsHint:
+      'Je past het altijd aan via Instellingen → Modules → Babylogboek.',
+    keepsEntries:
+      'Iets uitzetten verandert alleen wat je krijgt aangeboden. Wat al genoteerd is, blijft staan en wordt niet verborgen of verwijderd.',
+    none: 'Er wordt nog niets bijgehouden voor {name}.',
+    countOf: '{count} van {total}',
+    moveUp: '{type} omhoog',
+    moveDown: '{type} omlaag',
+    orderHint:
+      'Deze volgorde is de volgorde waarin het logboek ze aanbiedt. Zet wat je het meest gebruikt bovenaan.',
+    arrangeHold: 'Houd vast om te ordenen',
+    arrangeHint: 'Sleep om te ordenen',
+  },
+
+  firstRun: {
+    title: 'Babylogboek',
+    body: 'Voedingen, slaap, luiers, groei en de vragen die je steeds wilt stellen aan de arts — voor één kind, en gedeeld met iedereen in het huishouden.',
+    action: 'Kind toevoegen',
+    goesIn: 'Komt in {group}',
+  },
+
+  create: {
+    step: 'Stap {current} van {total}',
+    next: 'Volgende',
+    back: 'Terug',
+    cancel: 'Annuleren',
+    finish: '{name} toevoegen',
+    aboutTitle: 'Over het kind',
+    addPhoto: 'Foto toevoegen',
+    ageHint: '{age}',
+    nameRequired: 'Vul een naam in',
+    failed: 'Kon dat kind niet toevoegen',
+  },
+
+  lists: {
+    title: 'Lijsten',
+    subtitle:
+      'Bij {name} horen twee lijsten — dingen om te doen, en de vragen die je bij het volgende consult wilt stellen. Het zijn allebei gewone takenlijsten.',
+    todos: 'Te doen',
+    questions: 'Vragen',
+    newList: 'Nieuwe lijst',
+    newListHint: 'Aangemaakt voor {name}, alleen in Gather',
+    choose: 'Kies een bestaande lijst',
+    pickTodos: 'Lijst met taken',
+    pickQuestions: 'Lijst met vragen',
+    anyListIn: 'Elke lijst in {group}, waar die ook op draait.',
+    readOnly: '{provider} · alleen lezen',
+    readOnlyBody:
+      'Lijsten van {provider} zijn in Gather alleen-lezen. Je ziet deze lijst hier wel, maar je kunt er niets aan toevoegen.',
+    openCount: { one: '{count} open', other: '{count} open' },
+    addTodo: 'Taak toevoegen',
+    addQuestion: 'Vraag toevoegen',
+    done: 'Klaar',
   },
 
   entry: {
@@ -78,6 +162,32 @@ export const log = {
     start: 'Begin',
     notes: 'Notities',
     saveFailed: 'Kon deze notitie niet opslaan',
+
+    photo: 'Foto',
+    addPhoto: 'Foto toevoegen',
+    takePhoto: 'Foto maken',
+    choosePhoto: 'Kies uit bibliotheek',
+    replacePhoto: 'Foto vervangen',
+    removePhoto: 'Foto verwijderen',
+    photoOf: 'Foto bij deze {type}',
+    photoUploading: 'Foto uploaden…',
+    photoFailed: 'Kon die foto niet toevoegen',
+    photoDenied: 'Gather heeft daar toestemming voor nodig',
+
+    editWhen: 'Wijzig',
+    today: 'Vandaag',
+    yesterday: 'Gisteren',
+    date: 'Datum',
+    hour: 'Uur',
+    minute: 'Min',
+    earlierDay: 'Dag eerder',
+    laterDay: 'Dag later',
+    earlierHour: 'Een uur eerder',
+    laterHour: 'Een uur later',
+    earlierMinute: 'Vijf minuten eerder',
+    laterMinute: 'Vijf minuten later',
+    less: 'Minder {field}',
+    more: 'Meer {field}',
   },
 
   multi: {
@@ -93,7 +203,10 @@ export const log = {
   },
 
   timeline: {
+    title: 'Alle notities',
     empty: 'Nog niets genoteerd — noteer hierboven het eerste.',
+    openEntry: '{type} openen',
+    gone: 'Deze notitie bestaat niet meer.',
     deleteEntry: '{type} verwijderen',
     deleteTitle: 'Deze notitie verwijderen?',
     deleteConfirm: 'Verwijderen',
@@ -107,6 +220,9 @@ export const log = {
     leftMin: 'Links (min)',
     rightMin: 'Rechts (min)',
     amountMl: 'Hoeveelheid (ml)',
+    amountG: 'Hoeveelheid (g)',
+    durationHours: 'Uren',
+    durationMinutes: 'Minuten',
     end: 'Einde (optioneel)',
     kind: 'Soort',
     weightKg: 'Gewicht (kg)',
@@ -118,6 +234,8 @@ export const log = {
     doseUnitPlaceholder: 'ml, mg…',
     vaccineName: 'Naam van het vaccin',
     milestone: 'Markeren als mijlpaal',
+    what: 'Wat er gebeurde',
+    whatPlaceholder: 'Eerste lach, eerste stapjes…',
   },
 
   options: {
@@ -151,6 +269,8 @@ export const log = {
     enterMeasurement: 'Vul minstens één meting in',
     enterMedicationName: 'Vul een naam van het medicijn in',
     enterVaccineName: 'Vul een naam van het vaccin in',
+    enterMemoryWhat: 'Vertel wat er gebeurde',
+    outOfRange: '{field} moet tussen {min} en {max} liggen',
   },
 
   summary: {
@@ -170,6 +290,7 @@ export const log = {
     vaccination: 'Vaccinatie',
     milestone: 'Mijlpaal',
     note: 'Notitie',
+    memory: 'Herinnering',
   },
 
   pdf: {

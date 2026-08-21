@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8a6a33; text-decoration: none; }
+    a:hover { color: #6d5327; }
+    .ic { flex: none; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none;"></div>
+
+  <div style="flex: none; display: flex; align-items: center; height: 52px; padding: 0 16px 0 8px;">
+    <div style="flex: 1; display: flex; align-items: center; gap: 1px; color: #8a6a33; cursor: pointer;">
+      <svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+      <span style="font-size: 17px;">Back</span>
+    </div>
+    <div style="font-size: 17px; font-weight: 700; letter-spacing: -0.3px;">Lists</div>
+    <div style="flex: 1; font-size: 15px; color: #79807b; text-align: right;">3 of 3</div>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow: hidden; padding: 14px 16px 0; display: flex; flex-direction: column; gap: 22px;">
+
+    <div style="font-size: 14.5px; line-height: 21px; color: #79807b; text-wrap: pretty;">Two lists come with Emma — things to do, and the questions you want to ask at the next appointment. Both are ordinary task lists.</div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b; padding-left: 2px;">TO-DOS</div>
+      <div style="background: #ffffff; border: 1px solid #e8e7e3; border-radius: 16px; padding: 0 14px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 11px; min-height: 54px; border-bottom: 1px solid #e8e7e3;">
+          <svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 5 2 2 3-3"></path><path d="m3 13 2 2 3-3"></path><path d="M13 6h8"></path><path d="M13 15h8"></path></svg>
+          <span style="flex: 1; font-size: 16.5px; font-weight: 600;">{{ todosName }}</span>
+          <span style="{{ todosBadge }}">{{ todosProvider }}</span>
+        </div>
+        <div onClick="{{ openTodosPicker }}" style="display: flex; align-items: center; gap: 11px; min-height: 48px; cursor: pointer;">
+          <span style="flex: 1; font-size: 15.5px; color: #8a6a33;">Choose an existing list</span>
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+        </div>
+      </div>
+      <sc-if value="{{ todosWarn }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; gap: 9px; padding: 10px 12px; background: #f7ecea; border-radius: 12px;">
+          <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a4372c" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 1px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+          <span style="flex: 1; font-size: 13px; line-height: 19px; color: #a4372c;">Notion lists are read-only in Gather. You will see this list here, but you will not be able to add to it.</span>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b; padding-left: 2px;">QUESTIONS</div>
+      <div style="background: #ffffff; border: 1px solid #e8e7e3; border-radius: 16px; padding: 0 14px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 11px; min-height: 54px; border-bottom: 1px solid #e8e7e3;">
+          <svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.4c-.7.3-1 .9-1 1.6"></path><path d="M12 17h.01"></path></svg>
+          <span style="flex: 1; font-size: 16.5px; font-weight: 600;">{{ questionsName }}</span>
+          <span style="{{ questionsBadge }}">{{ questionsProvider }}</span>
+        </div>
+        <div onClick="{{ openQuestionsPicker }}" style="display: flex; align-items: center; gap: 11px; min-height: 48px; cursor: pointer;">
+          <span style="flex: 1; font-size: 15.5px; color: #8a6a33;">Choose an existing list</span>
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+        </div>
+      </div>
+      <sc-if value="{{ questionsWarn }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; gap: 9px; padding: 10px 12px; background: #f7ecea; border-radius: 12px;">
+          <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a4372c" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 1px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+          <span style="flex: 1; font-size: 13px; line-height: 19px; color: #a4372c;">Notion lists are read-only in Gather. You will see this list here, but you will not be able to add to it.</span>
+        </div>
+      </sc-if>
+    </div>
+
+  </div>
+
+  <div style="flex: none; padding: 16px;">
+    <div style="min-height: 52px; border-radius: 12px; background: #8a6a33; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16.5px; font-weight: 700; cursor: pointer;">Add Emma</div>
+  </div>
+
+  <div style="height: 34px; flex: none;"></div>
+
+  <sc-if value="{{ pickerOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePicker }}" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(31, 36, 33, 0.34);"></div>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #ffffff; border-radius: 20px 20px 0 0; padding: 12px 16px 30px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="width: 38px; height: 4px; border-radius: 2px; background: #e8e7e3; align-self: center;"></div>
+      <div style="font-size: 21px; font-weight: 700; letter-spacing: -0.4px;">{{ pickerTitle }}</div>
+      <div style="font-size: 13.5px; line-height: 20px; color: #79807b;">Any list in Huize Jansen, whatever it runs on.</div>
+      <div style="display: flex; flex-direction: column;">
+        <sc-for list="{{ options }}" as="opt" hint-placeholder-count="4">
+          <div onClick="{{ opt.pick }}" style="display: flex; align-items: center; gap: 11px; min-height: 56px; border-bottom: 1px solid #e8e7e3; cursor: pointer;">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-size: 16px; font-weight: 600;">{{ opt.name }}</span>
+              <span style="{{ opt.metaStyle }}">{{ opt.meta }}</span>
+            </div>
+            <div style="{{ opt.checkStyle }}">
+              <svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div onClick="{{ closePicker }}" style="min-height: 50px; border-radius: 12px; background: #f1f2f0; color: #1f2421; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 4px;">Done</div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { todos: 'new', questions: 'new', picker: null };
+  }
+
+  lists() {
+    return [
+      { id: 'new', provider: 'New list', writable: true },
+      { id: 'household', name: 'Household to-dos', provider: 'Local', writable: true },
+      { id: 'babystuff', name: 'Baby stuff', provider: 'Todoist', writable: true },
+      { id: 'carenotes', name: 'Care notes', provider: 'Notion', writable: false }
+    ];
+  }
+
+  defaultName(slot) {
+    return slot === 'todos' ? 'Emma to-dos' : 'Emma questions';
+  }
+
+  entry(slot) {
+    const id = this.state[slot];
+    const found = this.lists().filter((list) => list.id === id)[0];
+    return {
+      name: found.id === 'new' ? this.defaultName(slot) : found.name,
+      provider: found.provider,
+      writable: found.writable
+    };
+  }
+
+  renderVals() {
+    const BADGE = 'font-size:11.5px;font-weight:700;letter-spacing:0.3px;color:#8a6a33;background:#f2ece0;border-radius:8px;padding:4px 8px;';
+    const BADGE_WARN = 'font-size:11.5px;font-weight:700;letter-spacing:0.3px;color:#a4372c;background:#f7ecea;border-radius:8px;padding:4px 8px;';
+    const META = 'font-size:12.5px;color:#79807b;';
+    const META_WARN = 'font-size:12.5px;color:#a4372c;';
+    const CHECK_ON = 'width:22px;height:22px;display:flex;align-items:center;justify-content:center;';
+    const CHECK_OFF = 'width:22px;height:22px;display:flex;align-items:center;justify-content:center;opacity:0;';
+
+    const todos = this.entry('todos');
+    const questions = this.entry('questions');
+    const slot = this.state.picker;
+
+    const options = this.lists().map((list) => {
+      const selected = slot ? this.state[slot] === list.id : false;
+      return {
+        name: list.id === 'new' ? this.defaultName(slot || 'todos') : list.name,
+        meta: list.id === 'new' ? 'Created for Emma, local to Gather' : (list.writable ? list.provider : list.provider + ' · read-only'),
+        metaStyle: list.writable ? META : META_WARN,
+        checkStyle: selected ? CHECK_ON : CHECK_OFF,
+        pick: () => {
+          const next = {};
+          next[slot] = list.id;
+          this.setState(next);
+        }
+      };
+    });
+
+    return {
+      todosName: todos.name,
+      todosProvider: todos.provider,
+      todosBadge: todos.writable ? BADGE : BADGE_WARN,
+      todosWarn: !todos.writable,
+      questionsName: questions.name,
+      questionsProvider: questions.provider,
+      questionsBadge: questions.writable ? BADGE : BADGE_WARN,
+      questionsWarn: !questions.writable,
+      pickerOpen: !!slot,
+      pickerTitle: slot === 'questions' ? 'Questions list' : 'To-do list',
+      options: options,
+      openTodosPicker: () => this.setState({ picker: 'todos' }),
+      openQuestionsPicker: () => this.setState({ picker: 'questions' }),
+      closePicker: () => this.setState({ picker: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

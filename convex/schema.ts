@@ -1,6 +1,10 @@
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
-import { babyEventDataValidator, babyEventTypeValidator } from './lib/babyEvents'
+import {
+  babyBarSlotValidator,
+  babyEventDataValidator,
+  babyEventTypeValidator,
+} from './lib/babyEvents'
 import { mealValidator, quantityUnitValidator } from './lib/consumption'
 import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
 import { servingValidator } from './lib/servings'
@@ -274,17 +278,56 @@ export default defineSchema({
       v.union(v.literal('female'), v.literal('male'), v.literal('unspecified')),
     ),
     photoId: v.optional(v.id('_storage')),
-    // Lazily created by babies.ensureTodoList / ensureQuestionsList — the
-    // to-do and questions cards on the baby detail page are just local
-    // taskLists, reusing the Tasks module instead of parallel concepts.
+    // Which event types this child's log *refuses* — everything else is
+    // offered by the quick-log buttons and the type picker (ADR-0022). Absent
+    // or empty means nothing has been turned off.
+    //
+    // The refusals and not the acceptances, because a list of acceptances
+    // cannot distinguish "they said no" from "this did not exist when they
+    // were asked", and so silently withholds every type added after a
+    // household made its choice. See `trackedEventTypes` in @gather/core.
+    //
+    // Never a filter on what is read. Turning a type off shrinks the offer and
+    // leaves every logged event visible and editable, because a preference must
+    // not be able to hide a record somebody is showing a doctor.
+    untrackedTypes: v.optional(v.array(babyEventTypeValidator)),
+    // The acceptances this replaced. Read only by `migrations.declineByOmission`
+    // and written by nothing; it goes when docs/migrations/0001 records that
+    // the migration has run on every deployment.
+    trackedTypes: v.optional(v.array(babyEventTypeValidator)),
+    // Where each of those buttons sits on the log bar, and whether the two
+    // shortcuts that are not events — a to-do, a question — are on it at all.
+    // Never a second copy of `untrackedTypes`: an entry here that is no longer
+    // tracked is dropped on read and a tracked type missing from here is
+    // appended, so the two cannot disagree. Absent means the arrangement
+    // nobody has changed yet, which is why this needs no backfill either.
+    barOrder: v.optional(v.array(babyBarSlotValidator)),
+    // The to-do and questions cards are just local taskLists, reusing the Tasks
+    // module instead of parallel concepts. `babies.create` resolves both — a
+    // list the caller picked, or a new one named after the child — and
+    // ensureTodoList / ensureQuestionsList still fill them in for children
+    // created before it did.
     taskListId: v.optional(v.id('taskLists')),
     questionsListId: v.optional(v.id('taskLists')),
+    // Whether the card points at a list that has a life of its own. A list the
+    // child was given dies with the child; a list somebody *chose* survives it,
+    // the same way a shared recipe is un-shared rather than deleted. Absent
+    // means the child was given the list, which is true of every row created
+    // before anyone could choose.
+    taskListChosen: v.optional(v.boolean()),
+    questionsListChosen: v.optional(v.boolean()),
     order: v.number(),
   }).index('by_group', ['groupId']),
 
   babyEvents: defineTable({
     babyId: v.id('babies'),
     type: babyEventTypeValidator,
+    // One photo, on the event rather than inside `data`: a Memory is the type
+    // that needs it today, but a rash on a Note and a red book page on a
+    // Growth are the same field, and putting it in the per-type payload would
+    // mean adding it three times. Registered in `lib/storedFiles.ts` so the
+    // blob goes when the last row lets go of it.
+    photoId: v.optional(v.id('_storage')),
     timestamp: v.number(), // epoch ms, when the event occurred
     endTimestamp: v.optional(v.number()), // sleep/feeding session duration
     notes: v.optional(v.string()),

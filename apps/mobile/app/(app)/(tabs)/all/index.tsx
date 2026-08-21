@@ -3,8 +3,8 @@ import { MODULE_GROUPS, modulesByGroup, moduleText } from '@gather/core/modules'
 import { router } from 'expo-router'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
 import { useI18n } from '../../../../src/i18n'
+import { moduleDestination } from '../../../../src/modules/moduleDestination'
 import { MODULE_ICONS } from '../../../../src/theme/icons'
 import { RADIUS, useTokens } from '../../../../src/theme/tokens'
 
@@ -51,10 +51,7 @@ export default function AllTab() {
                     accessibilityRole="button"
                     accessibilityLabel={text.label}
                     onPress={() =>
-                      router.push({
-                        pathname: '/all/[moduleId]',
-                        params: { moduleId: module.id },
-                      })
+                      router.push(moduleDestination('all', module.id))
                     }
                     style={({ pressed }) => [
                       styles.entry,

@@ -4,7 +4,11 @@ import { en } from '../i18n/messages/en'
 import { nl } from '../i18n/messages/nl'
 import { searchSettings, settingsSections } from './sections'
 
-const sections = settingsSections(en, { appearance: 'dark', locale: 'en' })
+const sections = settingsSections(en, {
+  appearance: 'dark',
+  locale: 'en',
+  groupName: 'Huize Jansen',
+})
 
 const idsFor = (query: string) =>
   searchSettings(sections, query).map(({ entry }) => entry.id)
@@ -15,12 +19,13 @@ describe('the Settings list', () => {
       sections.map(({ id, entries }) => [id, entries.map((e) => e.id)]),
     ).toEqual([
       ['account', ['account', 'groups']],
+      ['modules', ['baby-log']],
       ['phone', ['appearance', 'language']],
     ])
   })
 
   test('shows what the phone-local settings are currently set to', () => {
-    const phone = sections[1].entries
+    const phone = sections[2].entries
     expect(phone.map(({ label, value }) => [label, value])).toEqual([
       ['Appearance', 'Dark'],
       [en.settings.language.title, 'English'],
@@ -31,6 +36,16 @@ describe('the Settings list', () => {
     expect(sections[0].entries.every(({ value }) => value === undefined)).toBe(
       true,
     )
+  })
+
+  test("a Module's row names the Group it edits, since nothing else on the screen does", () => {
+    expect(sections[1].entries.map(({ value }) => value)).toEqual([
+      'Huize Jansen',
+    ])
+  })
+
+  test('a Group name is searchable, which is what putting it in the value buys', () => {
+    expect(idsFor('huize')).toEqual(['baby-log'])
   })
 })
 
@@ -57,10 +72,14 @@ describe('searching the Settings list', () => {
   })
 
   test('searches the reader’s language, not English', () => {
-    const dutch = settingsSections(nl, { appearance: 'dark', locale: 'nl' })
-    expect(searchSettings(dutch, 'donker').map(({ entry }) => entry.id)).toEqual(
-      ['appearance'],
-    )
+    const dutch = settingsSections(nl, {
+      appearance: 'dark',
+      locale: 'nl',
+      groupName: 'Huize Jansen',
+    })
+    expect(
+      searchSettings(dutch, 'donker').map(({ entry }) => entry.id),
+    ).toEqual(['appearance'])
     expect(searchSettings(dutch, 'dark')).toEqual([])
   })
 })

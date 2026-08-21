@@ -299,5 +299,19 @@ export function EventTypeFields({
           <span className="font-medium">{fields.milestone}</span>
         </label>
       )
+
+    case 'memory':
+      return (
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium">{fields.what}</span>
+          <input
+            className={inputClass}
+            placeholder={fields.whatPlaceholder}
+            value={str('what')}
+            onChange={(e) => onChange({ what: e.target.value })}
+            required
+          />
+        </label>
+      )
   }
 }

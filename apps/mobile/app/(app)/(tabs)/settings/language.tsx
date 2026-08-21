@@ -18,6 +18,7 @@ export default function Language() {
 
   return (
     <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: tokens.bg }}
       contentContainerStyle={[
         styles.content,

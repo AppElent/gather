@@ -1,16 +1,24 @@
+/**
+ * The add tab's launcher.
+ *
+ * It draws nothing of its own frame any more. Every sheet in the app is the
+ * same `Sheet` — one drag gesture, one scrim, one answer to the keyboard — so a
+ * fix to any of those is a fix to all four rather than to whichever copy
+ * somebody happened to be looking at. This one only needs a Back button in the
+ * heading, which is what `leading` is for.
+ */
 import { router } from 'expo-router'
 import { useState } from 'react'
 import {
-  KeyboardAvoidingView,
-  Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { Sheet } from '../components/Sheet'
 import { fmt, useI18n } from '../i18n'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
@@ -29,16 +37,8 @@ export function QuickActionSheet({
   groupName: string
   onClose: () => void
 }) {
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      {visible ? <SheetBody groupName={groupName} onClose={onClose} /> : null}
-    </Modal>
-  )
+  if (!visible) return null
+  return <SheetBody groupName={groupName} onClose={onClose} />
 }
 
 function SheetBody({
@@ -49,13 +49,11 @@ function SheetBody({
   onClose: () => void
 }) {
   const tokens = useTokens()
-  const insets = useSafeAreaInsets()
   const { t } = useI18n()
   const [openId, setOpenId] = useState<QuickActionId | null>(null)
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [added, setAdded] = useState<string[]>([])
   const text = t.shell.add
-  const Close = UI_ICONS.X
   const Back = UI_ICONS.ChevronLeft
   const Chevron = UI_ICONS.ChevronRight
   const openAction = QUICK_ACTIONS.find((action) => action.id === openId)
@@ -139,56 +137,24 @@ function SheetBody({
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.host}
-      behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
-    >
-      <Pressable style={styles.scrim} onPress={onClose} />
-      <View
-        style={[
-          styles.sheet,
-          {
-            backgroundColor: tokens.surface,
-            paddingBottom: insets.bottom + 16,
-          },
-        ]}
-      >
-        <View style={styles.grabber} />
-        <View style={styles.head}>
-          {inSheetCapture ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={text.back}
-              onPress={() => setOpenId(null)}
-              hitSlop={12}
-              style={({ pressed }) => [
-                styles.close,
-                { backgroundColor: tokens.tile },
-                pressed && styles.pressed,
-              ]}
-            >
-              <Back size={18} color={tokens.muted} />
-            </Pressable>
-          ) : null}
-          <View style={styles.headText}>
-            <Text
-              accessibilityRole="header"
-              style={[styles.title, { color: tokens.fg }]}
-            >
-              {inSheetCapture && openAction
-                ? actionText(openAction).label
-                : fmt(text.title, { group: groupName })}
-            </Text>
-            <Text style={[styles.subtitle, { color: tokens.muted }]}>
-              {added.length
-                ? fmt(text.saved, { items: added.join(', ') })
-                : text.workingOnly}
-            </Text>
-          </View>
+    <Sheet
+      title={
+        inSheetCapture && openAction
+          ? actionText(openAction).label
+          : fmt(text.title, { group: groupName })
+      }
+      subtitle={
+        added.length
+          ? fmt(text.saved, { items: added.join(', ') })
+          : text.workingOnly
+      }
+      onClose={onClose}
+      leading={
+        inSheetCapture ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={text.close}
-            onPress={onClose}
+            accessibilityLabel={text.back}
+            onPress={() => setOpenId(null)}
             hitSlop={12}
             style={({ pressed }) => [
               styles.close,
@@ -196,10 +162,12 @@ function SheetBody({
               pressed && styles.pressed,
             ]}
           >
-            <Close size={18} color={tokens.muted} />
+            <Back size={18} color={tokens.muted} />
           </Pressable>
-        </View>
-
+        ) : null
+      }
+    >
+      <ScrollView keyboardShouldPersistTaps="handled">
         {inSheetCapture && openAction ? (
           <View style={styles.sheetCapture}>
             {capture(openAction)}
@@ -249,32 +217,12 @@ function SheetBody({
             })}
           </View>
         )}
-      </View>
-    </KeyboardAvoidingView>
+      </ScrollView>
+    </Sheet>
   )
 }
 
 const styles = StyleSheet.create({
-  host: { flex: 1 },
-  scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
-  sheet: {
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    gap: 12,
-  },
-  grabber: {
-    alignSelf: 'center',
-    width: 38,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(128,128,128,0.45)',
-  },
-  head: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  headText: { flex: 1, gap: 3 },
-  title: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
-  subtitle: { fontSize: 13, lineHeight: 18 },
   close: {
     width: 30,
     height: 30,

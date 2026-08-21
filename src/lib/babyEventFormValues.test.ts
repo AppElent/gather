@@ -178,6 +178,15 @@ describe('buildEventInput — other types', () => {
     expect(buildEventInput('vaccination', { name: '' }, START).error).toBe(
       'enterVaccineName',
     )
+    expect(buildEventInput('memory', { what: '  ' }, START).error).toBe(
+      'enterMemoryWhat',
+    )
+  })
+
+  test('a memory is the trimmed sentence and nothing else', () => {
+    const built = buildEventInput('memory', { what: '  First laugh ' }, START)
+    expect(built.error).toBeUndefined()
+    expect(built.data).toEqual({ what: 'First laugh' })
   })
 
   test('a note is only a milestone when ticked', () => {
