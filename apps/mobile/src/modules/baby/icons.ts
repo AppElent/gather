@@ -13,10 +13,8 @@
 import type { BabyEventType } from '@gather/core/domain'
 import Baby from 'lucide-react-native/icons/baby'
 import CalendarClock from 'lucide-react-native/icons/calendar-clock'
-import Camera from 'lucide-react-native/icons/camera'
 import CircleQuestionMark from 'lucide-react-native/icons/circle-question-mark'
 import FileDown from 'lucide-react-native/icons/file-down'
-import ImagePlus from 'lucide-react-native/icons/image-plus'
 import ListChecks from 'lucide-react-native/icons/list-checks'
 import Milk from 'lucide-react-native/icons/milk'
 import Moon from 'lucide-react-native/icons/moon'
@@ -47,9 +45,7 @@ export const EVENT_ICONS = {
 export const BABY_UI_ICONS = {
   Baby: glyph(Baby, 'figure.and.child.holdinghands'),
   CalendarClock: glyph(CalendarClock, 'calendar.badge.clock'),
-  Camera: glyph(Camera, 'camera'),
   CircleQuestionMark: glyph(CircleQuestionMark, 'questionmark.circle'),
-  ImagePlus: glyph(ImagePlus, 'photo.badge.plus'),
   FileDown: glyph(FileDown, 'square.and.arrow.down'),
   ListChecks: glyph(ListChecks, 'checklist'),
   Plus: glyph(Plus, 'plus'),

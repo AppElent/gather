@@ -240,9 +240,23 @@ launcher without navigating rather than a sixth screen.
 
 **Quick actions.** Kinds are ADR-0018's: `row` grows a field in the
 launcher, `sheet` swaps the launcher's body, `handoff` pushes the Module's
-own screen. One addition: **a `handoff` returns you where you started.**
-You pressed Add from the Baby module; saving a recipe should not leave you
-standing in Recipes.
+own screen.
+
+Two additions, and which one applies depends on what the handoff is for:
+
+- **A quick capture returns you where you started.** You pressed Add from
+  the Baby module; saving a task should not leave you standing in Tasks.
+- **A review-and-save lands you on what you made.** Where the screen exists
+  so that somebody can *check* something before it is written down — a
+  recipe import, which arrives partly parsed and partly guessed — the
+  finished thing is what you want next, to fix whatever the import got
+  wrong. The screen changing is the confirmation, and here it has somewhere
+  to change to. Use `replace`, not `push`: the form has done its job and
+  Back must not return to something that would save a second copy.
+
+The first rule was the only one until Recipes needed the second. It is
+written down here rather than excepted in a component, which is what the
+last line of this document asks for.
 
 **Getting out.** [ADR-0013](adr/0013-a-nested-page-carries-its-own-trail.md)
 is the web rule the generic block's "even if the web app uses them" refers

@@ -8,6 +8,13 @@ export const recipes = {
     emptyBody:
       'Voeg het eerste recept toe om deze module bruikbaar te maken voor de Groep.',
     emptyAction: 'Voeg je eerste recept toe',
+
+    search: 'Recepten zoeken',
+    clearSearch: 'Zoekopdracht wissen',
+    noResultsTitle: 'Niets gevonden',
+    noResultsBody: 'Geen recept hier komt overeen met "{query}".',
+    livesIn: 'Van {group}',
+    openRecipe: '{title} openen',
   },
 
   viewMode: {
@@ -44,7 +51,23 @@ export const recipes = {
     estimating: 'Schatten…',
     estimateFailed: 'Kon de voedingswaarde niet schatten',
     save: 'Recept opslaan',
+    saving: 'Opslaan…',
     saveFailed: 'Kon het recept niet opslaan',
+
+    titleRequired: 'Een recept heeft een titel nodig.',
+
+    destination: 'Wordt opgeslagen in {group}.',
+
+    photo: 'Foto',
+    takePhoto: 'Foto maken',
+    choosePhoto: 'Foto kiezen',
+    replacePhoto: 'Foto vervangen',
+    removePhoto: 'Foto verwijderen',
+    photoOf: 'Foto van {title}',
+    photoUploading: 'Foto toevoegen…',
+    photoDenied:
+      'Gather heeft daar geen toegang toe gekregen. Je kunt nog steeds opslaan zonder foto.',
+    photoFailed: 'Die foto kon niet worden toegevoegd.',
   },
 
   create: {
@@ -55,6 +78,14 @@ export const recipes = {
     importing: 'Importeren…',
     imported: 'Geïmporteerd — controleer hieronder de gegevens en sla dan op.',
     importFailed: 'Kon dat recept niet importeren',
+
+    chooseTitle: 'Recept toevoegen',
+    chooseImport: 'Importeren vanaf een link',
+    chooseImportBody: 'Plak een link en de gegevens worden voor je ingevuld.',
+    chooseBlank: 'Zelf schrijven',
+    chooseBlankBody: 'Een leeg recept om uit te typen.',
+    linkLabel: 'Receptlink',
+    review: 'Controleer wat er terugkwam en sla dan op.',
   },
 
   edit: {
@@ -73,6 +104,14 @@ export const recipes = {
     perServing: 'per portie',
     perServingOf: 'per portie · {count} porties',
     nutrition: 'Voedingswaarde',
+
+    rate: '{title} beoordelen',
+    rateFailed: 'Die beoordeling kon niet worden opgeslagen.',
+    clearRating: 'Beoordeling wissen',
+    readOnly: 'Hoort bij {group}, dus hier alleen te lezen.',
+    deleteTitle: 'Recept verwijderen?',
+    deleteBody: '"{title}" verwijderen? Dit kan niet ongedaan worden gemaakt.',
+    openSource: 'Origineel openen',
   },
 
   sharing: {

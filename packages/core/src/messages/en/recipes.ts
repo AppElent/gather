@@ -12,6 +12,20 @@ export const recipes = {
     emptyTitle: 'No recipes yet',
     emptyBody: 'Add the first recipe to make this module useful for the group.',
     emptyAction: 'Add your first recipe',
+
+    /**
+     * The phone's collection screen. It filters what it already has rather
+     * than asking the server again, so "nothing found" is about the words
+     * somebody typed and never about the connection.
+     */
+    search: 'Search recipes',
+    clearSearch: 'Clear search',
+    noResultsTitle: 'Nothing found',
+    noResultsBody: 'No recipe here matches "{query}".',
+    /** The badge on a row that lives in another Group and was shared into this one. */
+    livesIn: 'From {group}',
+    /** The accessible name of a row; `{title}` is the recipe's own words. */
+    openRecipe: 'Open {title}',
   },
 
   viewMode: {
@@ -52,7 +66,40 @@ export const recipes = {
     estimating: 'Estimating…',
     estimateFailed: 'Could not estimate nutrition',
     save: 'Save recipe',
+    saving: 'Saving…',
     saveFailed: 'Could not save recipe',
+
+    /**
+     * Why a title is missing rather than what to do about it. The form holds
+     * the key and resolves it at render, so a validator never carries an
+     * English sentence around with it (ADR-0011).
+     */
+    titleRequired: 'A recipe needs a title.',
+
+    /**
+     * The phone's destination notice. The web splits its own around a bolded
+     * Group name because it can style the halves; one sentence with the name
+     * in it does the same job in a place with no fallback Group to explain
+     * — the Group on a phone is ambient and always chosen (ADR-0015).
+     */
+    destination: 'Saving to {group}.',
+
+    /**
+     * The photo row. Only the phone draws these — the web's recipe form has
+     * no photo control at all — and they live here for the reason the Baby
+     * log's do: a Module's words are the Module's, whichever client renders
+     * them (ADR-0017).
+     */
+    photo: 'Photo',
+    takePhoto: 'Take a photo',
+    choosePhoto: 'Choose a photo',
+    replacePhoto: 'Replace photo',
+    removePhoto: 'Remove photo',
+    photoOf: 'Photo of {title}',
+    photoUploading: 'Adding photo…',
+    photoDenied:
+      'Gather has not been given access to that. You can still save without a photo.',
+    photoFailed: 'That photo could not be added.',
   },
 
   create: {
@@ -63,6 +110,21 @@ export const recipes = {
     importing: 'Importing…',
     imported: 'Imported — review the details below, then save.',
     importFailed: 'Could not import that recipe',
+
+    /**
+     * The sheet behind the collection's add control. Importing is the phone's
+     * reason to exist here, so it is first and the Add tab offers only it;
+     * writing one out by hand is reachable from this sheet and advertised
+     * nowhere.
+     */
+    chooseTitle: 'Add a recipe',
+    chooseImport: 'Import from a link',
+    chooseImportBody: 'Paste a link and the details are filled in for you.',
+    chooseBlank: 'Write it yourself',
+    chooseBlankBody: 'A blank recipe to type out.',
+    /** The address bar on the import screen. */
+    linkLabel: 'Recipe link',
+    review: 'Review what came back, then save.',
   },
 
   edit: {
@@ -81,6 +143,19 @@ export const recipes = {
     perServing: 'per serving',
     perServingOf: 'per serving · {count} servings',
     nutrition: 'Nutrition',
+
+    /**
+     * Phone-only. The web puts Edit and Delete in a row of buttons and the
+     * Group in the URL; here the stars are the control, the menu holds the
+     * verbs, and a recipe you may only read has to say why.
+     */
+    rate: 'Rate {title}',
+    rateFailed: 'That rating could not be saved.',
+    clearRating: 'Clear rating',
+    readOnly: 'Lives in {group}, so it is read-only here.',
+    deleteTitle: 'Delete recipe?',
+    deleteBody: 'Delete "{title}"? This cannot be undone.',
+    openSource: 'Open the original',
   },
 
   sharing: {

@@ -24,6 +24,7 @@ import Apple from 'lucide-react-native/icons/apple'
 import Baby from 'lucide-react-native/icons/baby'
 import Calendar from 'lucide-react-native/icons/calendar'
 import CalendarHeart from 'lucide-react-native/icons/calendar-heart'
+import Camera from 'lucide-react-native/icons/camera'
 // Chrome. Not Modules, so deliberately kept out of the union below.
 import Check from 'lucide-react-native/icons/check'
 import ChefHat from 'lucide-react-native/icons/chef-hat'
@@ -36,6 +37,7 @@ import Eye from 'lucide-react-native/icons/eye'
 import EyeOff from 'lucide-react-native/icons/eye-off'
 import Grape from 'lucide-react-native/icons/grape'
 import GripVertical from 'lucide-react-native/icons/grip-vertical'
+import ImagePlus from 'lucide-react-native/icons/image-plus'
 import Grid from 'lucide-react-native/icons/layout-grid'
 import ListChecks from 'lucide-react-native/icons/list-checks'
 import NotebookPen from 'lucide-react-native/icons/notebook-pen'
@@ -78,6 +80,9 @@ export const MODULE_ICONS = {
 } satisfies Record<ModuleIconName, Glyph>
 
 export const UI_ICONS = {
+  /** The shared photo row's two answers: take one, or pick one. */
+  Camera: glyph(Camera, 'camera'),
+  ImagePlus: glyph(ImagePlus, 'photo.badge.plus'),
   Check: glyph(Check, 'checkmark'),
   ChevronDown: glyph(ChevronDown, 'chevron.down'),
   ChevronLeft: glyph(ChevronLeft, 'chevron.left'),

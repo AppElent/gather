@@ -31,6 +31,10 @@ export const nl = {
 
   baby: coreNl.baby,
 
+  recipes: coreNl.recipes,
+
+  nutrients: coreNl.nutrients,
+
   shell: {
     tabs: {
       home: coreNl.shell.nav.home,
@@ -64,7 +68,7 @@ export const nl = {
         'recipe-import': {
           label: 'Importeren vanaf een link',
           module: coreNl.modules.byId.recipes.label,
-          fields: ['Plak een receptlink'],
+          fields: [],
           noun: 'import',
         },
         'meal-log': {
@@ -72,12 +76,6 @@ export const nl = {
           module: coreNl.modules.byId.nutrition.label,
           fields: ['Voedingsmiddel', 'Hoeveel?'],
           noun: 'maaltijd',
-        },
-        'recipe-new': {
-          label: 'Recept schrijven',
-          module: coreNl.modules.byId.recipes.label,
-          fields: [],
-          noun: 'recept',
         },
         'food-scan': {
           label: 'Barcode scannen',

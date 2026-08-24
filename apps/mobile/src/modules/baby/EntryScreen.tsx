@@ -38,13 +38,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
+import { PhotoField } from '../../components/PhotoField'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { DateTimeField } from './DateTimeField'
 import { EntryFields, fieldLabel, optionText } from './EntryFields'
 import { EVENT_ICONS } from './icons'
-import { PhotoField } from './PhotoField'
 import {
   buildSheetData,
   editPicks,
@@ -309,7 +309,20 @@ export function EntryScreen() {
                 value={photoId}
                 onChange={setPhotoId}
                 generateUploadUrl={generateUploadUrl}
-                typeLabel={t.baby.eventTypes[type]}
+                labels={{
+                  heading: t.baby.log.entry.photo,
+                  take: t.baby.log.entry.takePhoto,
+                  choose: t.baby.log.entry.choosePhoto,
+                  replace: t.baby.log.entry.replacePhoto,
+                  remove: t.baby.log.entry.removePhoto,
+                  uploading: t.baby.log.entry.photoUploading,
+                  denied: t.baby.log.entry.photoDenied,
+                  failed: t.baby.log.entry.photoFailed,
+                  alt: fmt(t.baby.log.entry.photoOf, {
+                    type: t.baby.eventTypes[type],
+                  }),
+                }}
+                preset="memoryPhoto"
                 disabled={busy}
               />
             ) : null}

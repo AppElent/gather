@@ -42,6 +42,17 @@ export const en = {
   baby: coreEn.baby,
 
   /**
+   * Recipes, for the same reason and on the same terms as the Baby log above.
+   * Some of what comes across the phone never draws — the three view modes,
+   * the sharing panel — and some of it the *web* never draws, like the photo
+   * row. A Module's words are one tree either way (ADR-0017).
+   */
+  recipes: coreEn.recipes,
+
+  /** Shared by Recipes' nutrition panel and by the food diary when it lands. */
+  nutrients: coreEn.nutrients,
+
+  /**
    * The signed-in shell: the five fixed tabs, the Group switcher sheet, and
    * the seat a tab keeps until its Module is built for the phone.
    *
@@ -84,7 +95,7 @@ export const en = {
         'recipe-import': {
           label: 'Import from a link',
           module: coreEn.modules.byId.recipes.label,
-          fields: ['Paste a recipe link'],
+          fields: [],
           noun: 'import',
         },
         'meal-log': {
@@ -92,12 +103,6 @@ export const en = {
           module: coreEn.modules.byId.nutrition.label,
           fields: ['Food', 'How much?'],
           noun: 'meal',
-        },
-        'recipe-new': {
-          label: 'Write a recipe',
-          module: coreEn.modules.byId.recipes.label,
-          fields: [],
-          noun: 'recipe',
         },
         'food-scan': {
           label: 'Scan a barcode',
