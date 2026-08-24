@@ -1,0 +1,118 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Capture" },
+    { "id": "page-2", "name": "Library" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "title": "THE MIX — Add → subject in the sheet → composer on a screen", "page": "page-1", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "DirectionA.dc.html", "title": "A — Everything in the sheet", "page": "page-1", "x": 0, "y": 1240, "w": 390, "h": 844 },
+    { "file": "DirectionB.dc.html", "title": "B — The launcher is a doorway", "page": "page-1", "x": 470, "y": 1240, "w": 390, "h": 844 },
+    { "file": "DirectionC.dc.html", "title": "C — Score now, describe later", "page": "page-1", "x": 940, "y": 1240, "w": 390, "h": 844 },
+
+    { "file": "SubjectIndex.dc.html", "title": "Module index — one screen, three Kinds", "page": "page-2", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "Empty.dc.html", "title": "Nothing yet", "page": "page-2", "x": 470, "y": 0, "w": 390, "h": 844 },
+    { "file": "CheeseSubject.dc.html", "title": "Subject with a photo — Detail chrome", "page": "page-2", "x": 940, "y": 0, "w": 390, "h": 844 },
+    { "file": "WineSubject.dc.html", "title": "Subject with no photo — Pushed chrome", "page": "page-2", "x": 1410, "y": 0, "w": 390, "h": 844 },
+    { "file": "Composer.dc.html", "title": "The composer, unrolled — the renderer IS the Kind spec", "page": "page-2", "x": 0, "y": 1220, "w": 390, "h": 1480 },
+    { "file": "Manage.dc.html", "title": "Hold menus, and the delete that names its count", "page": "page-2", "x": 470, "y": 1220, "w": 390, "h": 844 }
+  ],
+  "annotations": [
+    {
+      "id": "mix",
+      "page": "page-1",
+      "x": 470,
+      "y": 0,
+      "w": 440,
+      "text": "THE MIX — the leading candidate, and it is live. Press Add in the tab bar, pick Cheese tasting, type or pick a subject, rate it.\n\nWhat it takes from each direction:\n\nFrom A — the launcher gets one row per tasting Module, and choosing WHICH THING you tasted happens inside the sheet. That step is a search, a list and a create row: it needs a keyboard and no room, which is exactly what a sheet is good at. Type \"Rio\" or \"Com\" in the field to watch the two halves of the list filter together, and \"Gou\" to see the duplicate warning (story 5) — a warning, never a refusal, because two Barolos from two producers are two subjects.\n\nFrom B — once the subject is settled, the tasting itself is a PUSHED SCREEN, not a deeper sheet. Score, date, scales, aromas and notes do not fit above a keyboard, and the composer is the one place a member spends real time. It is pushed inside the current tab's stack, so the tab bar stays (ADR-0023) and Cancel returns you where you started (the handoff rule in docs/mobile-interaction.md).\n\nFrom C — the score is the FIRST field and everything under it is optional. Save is live from the moment a subject and a score exist.\n\nWhat the mix rejects from C: a second act. A tasting saved with no descriptors is allowed, but the app never asks you to come back and finish it.\n\nThree rows, not one \"Tasting\" row plus a kind step: the launcher is a flat list of verbs, and a kind chooser costs everyone a tap to save three rows nobody minds.\n\nOne thing left open on purpose: whether the subject step also offers \"Take a photo\" before the composer. Today the photo lives on the subject page (see Library)."
+    },
+    {
+      "id": "capture-brief",
+      "page": "page-1",
+      "x": 0,
+      "y": 1010,
+      "w": 780,
+      "text": "THE OPEN QUESTION — \"how do you log a tasting from the Add tab\" is the one thing the issue's amendment calls a design question rather than a port. Three answers below, each a different claim about what capture IS.\n\nFixed in all three, and not up for grabs: Add is the launcher, never a sixth tab (ADR-0018); tasting screens live inside the Home and All stacks (ADR-0023); the Group is ambient, not in a URL (ADR-0015); the score is 1–5 in half steps for every Kind; the tasted date is explicit and defaults to today; saving returns you where you started.\n\nAll three are live. Tap the stars, the scale rows and the aroma chips."
+    },
+    {
+      "id": "note-a",
+      "page": "page-1",
+      "x": 0,
+      "y": 2130,
+      "w": 390,
+      "text": "A — Everything in the sheet\n\nClaim: Add is a verb, so the whole act happens without navigating. Kind, subject and composer are three steps of one sheet. Shown at step 3.\n\nFor: you never lose your place, and dismissing is one swipe down from anywhere in the flow.\n\nAgainst: the tallest a sheet can honestly be is about this, and half of it is gone the moment the keyboard opens. Saltiness is already greyed out below the fold; aromas, notes and a photo are further down again. A form this size in a sheet is the shape the web dialog had — the amendment says the phone is not a port of it."
+    },
+    {
+      "id": "note-b",
+      "page": "page-1",
+      "x": 470,
+      "y": 2130,
+      "w": 390,
+      "text": "B — The launcher is a doorway\n\nClaim: three rows in the launcher, each a handoff that pushes one full capture screen. Subject search at the top of that same screen; pick one and the form takes its place. Tap a row to see the swap.\n\nFor: room. The photo tile, every field and the notes fit without a fold, and native back plus edge-swipe do the getting out.\n\nAgainst: a screen change for a twenty-second act, and it puts a search list on a screen whose keyboard then covers it. It also spends the launcher's whole advantage — you pressed Add to stay put, and you did not."
+    },
+    {
+      "id": "note-c",
+      "page": "page-1",
+      "x": 940,
+      "y": 2130,
+      "w": 390,
+      "text": "C — Score now, describe later\n\nClaim: at a table with a glass in your hand you will record a number and nothing else. So the launcher row expands in place — subject, five stars, Save — and the descriptors are invited afterwards from the subject page. Save it and follow the confirmation through.\n\nFor: genuinely two taps, and it matches what a tasting is on the night.\n\nAgainst: it splits one act in two and the second half will not happen, which quietly makes the Kind spec — the reason there are three Modules and not one — invisible at the moment of capture. The prompt on the subject page is also the app nagging, which docs/mobile-interaction.md rules out for anything else."
+    },
+    {
+      "id": "library-brief",
+      "page": "page-2",
+      "x": 0,
+      "y": -210,
+      "w": 820,
+      "text": "THE LIBRARY — settled, not a set of options. These are the screens the capture flow lands in: the Module index, the subject, the composer unrolled, and the destructive paths.\n\nOne screen serves all three Modules. Use the Kind chip above the index and above the composer to switch between cheese, wine and beer: nothing in the layout is per-Kind, only the data the spec declares. That is the rule the implementation has to keep — the renderer has five field components and never learns what a wine is."
+    },
+    {
+      "id": "note-index",
+      "page": "page-2",
+      "x": 0,
+      "y": 920,
+      "w": 390,
+      "text": "Module index — an Index title (large, collapsing), the search field the platform draws under it, and a + in the header that opens the same capture flow as Add.\n\nA row is the subject, its facts, the household average and how many tastings it rests on — the average never appears without its count, because 5.0 from one person is not 5.0 from four.\n\nSwitch the Kind chip: the same rows, the same layout, different facts line. Rows with no photo keep the 48px tile rather than reflowing, so the list does not comb."
+    },
+    {
+      "id": "note-empty",
+      "page": "page-2",
+      "x": 470,
+      "y": 920,
+      "w": 390,
+      "text": "Nothing yet — the first of the three empty kinds in docs/mobile-interaction.md: one button that adds the first thing.\n\nDeliberately not \"switch this Module on\". A Group that never opens Cheeses stores nothing (ADR-0024), and this screen is what that costs: an invitation, not a setup step."
+    },
+    {
+      "id": "note-detail",
+      "page": "page-2",
+      "x": 940,
+      "y": 920,
+      "w": 390,
+      "text": "A subject WITH a photo is a Detail screen: no title in the bar, the photo and the name pinned, only the tastings scrolling. You recognise this record by its picture, which is the whole test.\n\nThe pinned block also carries the average and the one button worth having here. Every tasting shows who, when, the descriptors and the scales as pips — attribution is on the row, not behind a tap."
+    },
+    {
+      "id": "note-wine",
+      "page": "page-2",
+      "x": 1410,
+      "y": 920,
+      "w": 390,
+      "text": "The SAME subject screen with no photo is Pushed, not Detail: title in the bar, everything scrolls, and the empty photo tile sits in the body as an ordinary invitation.\n\nThat is one screen with two chromes, decided by whether a photo exists. Worth saying out loud, because it is the one place the design branches on content rather than on Kind.\n\nThe facts grid is the Kind spec's subject fields, read-only here and editable from the ⋯ menu."
+    },
+    {
+      "id": "note-composer",
+      "page": "page-2",
+      "x": 940,
+      "y": 1220,
+      "w": 400,
+      "text": "THE COMPOSER, shown unrolled — on the phone this scrolls; the frame is tall so the whole spec is visible at once.\n\nSwitch the Kind chip. Every control here is generated from the spec, and the five field types are all present:\n\n· select, short vocabulary → a chip row (Milk, Style)\n· select, long vocabulary → a row that opens a picker (Country, Region, Beer style)\n· text → one line for a fact, a box for notes\n· number → a right-aligned value with its unit\n· scale → five 44pt cells, 1 to 5, never half steps\n· tags → chips plus \"Add your own\", because the vocabulary is a prompt and not a permission list (story 11)\n\nThe grey type label above each field is scaffolding for this canvas, not shipping UI.\n\nTwo decisions worth naming. First: a subject is CREATED HERE, in the same screen as the first tasting — facts above the rule, impressions below it. There is no separate \"add a cheese\" screen, because a subject only exists because somebody tasted it. Choosing a catalog entry prefills the facts block and the rest is identical. Second: the score is one control above everything, before any Kind-specific field, so it reads as the answer to \"was it good\" rather than as another attribute."
+    },
+    {
+      "id": "note-manage",
+      "page": "page-2",
+      "x": 470,
+      "y": 2100,
+      "w": 390,
+      "text": "Hold a tasting row. Your own offers Edit and Delete; Nora's offers Delete only — the permission rule, drawn rather than explained. Nobody edits words that appear under someone else's name; anybody tidies.\n\nThe ⋯ in the header is the subject's own menu, and its Delete opens an alert that names the count and whose tastings go with it. gather deletes permanently — no archive, no undo — so this is the confirm side of the confirm-or-undo rule, never both.\n\nA menu is never the only way to reach any of this: Edit and Delete are also on the tasting's own edit screen, which this canvas does not draw because it is the composer with a Delete row at the bottom."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

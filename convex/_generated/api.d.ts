@@ -33,6 +33,7 @@ import type * as lib_recipeParsing from "../lib/recipeParsing.js";
 import type * as lib_seed_apply from "../lib/seed/apply.js";
 import type * as lib_seed_catalogFoods from "../lib/seed/catalogFoods.js";
 import type * as lib_seed_sampleHousehold from "../lib/seed/sampleHousehold.js";
+import type * as lib_seed_tastingCatalog from "../lib/seed/tastingCatalog.js";
 import type * as lib_servings from "../lib/servings.js";
 import type * as lib_sharing from "../lib/sharing.js";
 import type * as lib_slugs from "../lib/slugs.js";
@@ -43,6 +44,7 @@ import type * as lib_taskProviders_index from "../lib/taskProviders/index.js";
 import type * as lib_taskProviders_notion from "../lib/taskProviders/notion.js";
 import type * as lib_taskProviders_todoist from "../lib/taskProviders/todoist.js";
 import type * as lib_taskProviders_types from "../lib/taskProviders/types.js";
+import type * as lib_tastings from "../lib/tastings.js";
 import type * as maintenance from "../maintenance.js";
 import type * as migrations from "../migrations.js";
 import type * as recipeImport from "../recipeImport.js";
@@ -51,6 +53,7 @@ import type * as recipes from "../recipes.js";
 import type * as seed from "../seed.js";
 import type * as taskLists from "../taskLists.js";
 import type * as tasks from "../tasks.js";
+import type * as tastings from "../tastings.js";
 import type * as users from "../users.js";
 
 import type {
@@ -85,6 +88,7 @@ declare const fullApi: ApiFromModules<{
   "lib/seed/apply": typeof lib_seed_apply;
   "lib/seed/catalogFoods": typeof lib_seed_catalogFoods;
   "lib/seed/sampleHousehold": typeof lib_seed_sampleHousehold;
+  "lib/seed/tastingCatalog": typeof lib_seed_tastingCatalog;
   "lib/servings": typeof lib_servings;
   "lib/sharing": typeof lib_sharing;
   "lib/slugs": typeof lib_slugs;
@@ -95,6 +99,7 @@ declare const fullApi: ApiFromModules<{
   "lib/taskProviders/notion": typeof lib_taskProviders_notion;
   "lib/taskProviders/todoist": typeof lib_taskProviders_todoist;
   "lib/taskProviders/types": typeof lib_taskProviders_types;
+  "lib/tastings": typeof lib_tastings;
   maintenance: typeof maintenance;
   migrations: typeof migrations;
   recipeImport: typeof recipeImport;
@@ -103,6 +108,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   taskLists: typeof taskLists;
   tasks: typeof tasks;
+  tastings: typeof tastings;
   users: typeof users;
 }>;
 

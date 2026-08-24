@@ -18,9 +18,11 @@ import {
   SAMPLE_HOUSEMATES,
   SAMPLE_RECIPES,
   SAMPLE_TASK_LISTS,
+  SAMPLE_TASTING_SUBJECTS,
   SAMPLE_USER_FOODS,
   type SampleAuthor,
 } from './sampleHousehold'
+import { TASTING_CATALOG } from './tastingCatalog'
 
 /** The one `seedRuns.label` in use. A second kind of run would add its own. */
 export const SAMPLE_LABEL = 'sample'
@@ -141,6 +143,73 @@ export async function applyCatalog(ctx: MutationCtx) {
   return { inserted, updated, retired, deduped, catalogRows }
 }
 
+/**
+ * Reconcile the `tastingCatalog` against `TASTING_CATALOG` (#199).
+ *
+ * Same ADR-0004 rules as the food Catalog — the seed always wins, retired
+ * fixtures go, a duplicated `seedKey` collapses rather than failing a deploy —
+ * and deliberately a separate function rather than a generalisation of it.
+ * The two catalogs mean opposite things (a fact versus a suggestion,
+ * ADR-0024), and an abstraction over both would be an invitation to give them
+ * the same rules next time somebody touches it.
+ *
+ * Retiring an entry here is safe in a way retiring a food is not: nothing in a
+ * Group ever points at one of these rows. A household that materialised it
+ * keeps its own copy, `catalogKey` and all.
+ */
+export async function applyTastingCatalog(ctx: MutationCtx) {
+  const wanted = new Set(TASTING_CATALOG.map((entry) => entry.seedKey))
+  let inserted = 0
+  let updated = 0
+  let deduped = 0
+
+  for (const entry of TASTING_CATALOG) {
+    const matches = await ctx.db
+      .query('tastingCatalog')
+      .withIndex('by_seedKey', (q) => q.eq('seedKey', entry.seedKey))
+      .collect()
+
+    const fields = {
+      seedKey: entry.seedKey,
+      kind: entry.kind,
+      name: entry.name,
+      attributes: entry.attributes,
+    }
+
+    const [keep, ...extras] = matches
+    for (const extra of extras) {
+      await ctx.db.delete(extra._id)
+      deduped++
+    }
+
+    if (keep) {
+      await ctx.db.replace(keep._id, fields)
+      updated++
+    } else {
+      await ctx.db.insert('tastingCatalog', fields)
+      inserted++
+    }
+  }
+
+  const all = await ctx.db.query('tastingCatalog').collect()
+  let retired = 0
+  for (const row of all) {
+    if (!wanted.has(row.seedKey)) {
+      await ctx.db.delete(row._id)
+      retired++
+    }
+  }
+
+  const rows = (await ctx.db.query('tastingCatalog').collect()).length
+  if (rows !== TASTING_CATALOG.length) {
+    throw new Error(
+      `Tasting catalog seed self-check failed: ${rows} rows for ${TASTING_CATALOG.length} fixtures`,
+    )
+  }
+
+  return { inserted, updated, retired, deduped, rows }
+}
+
 // ---------------------------------------------------------------------------
 // Sample household — dev and preview only
 // ---------------------------------------------------------------------------
@@ -225,6 +294,22 @@ export async function resetSample(ctx: MutationCtx) {
   for (const event of await ctx.db.query('babyEvents').collect()) {
     if (!(await alive(event.babyId))) {
       await ctx.db.delete(event._id)
+      orphaned++
+    }
+  }
+  // A subject belongs to its Group and a Tasting to its subject, so both
+  // follow containment exactly as a baby and its events do — including a
+  // subject somebody added through the app to the seeded household, which the
+  // run never recorded and would otherwise leave unreachable.
+  for (const subject of await ctx.db.query('tastingSubjects').collect()) {
+    if (!(await alive(subject.groupId))) {
+      await ctx.db.delete(subject._id)
+      orphaned++
+    }
+  }
+  for (const tasting of await ctx.db.query('tastings').collect()) {
+    if (!(await alive(tasting.subjectId))) {
+      await ctx.db.delete(tasting._id)
       orphaned++
     }
   }
@@ -540,6 +625,40 @@ export async function applySample(
     )
   }
 
+  // --- Tastings ------------------------------------------------------------
+  // Written straight to the tables rather than through `logTasting`, like
+  // every other fixture here — but in the same order the mutation writes them
+  // (subject first, then its Tastings), so a preview cannot contain a shape
+  // the app itself could not produce.
+  let tastings = 0
+  for (const fixture of SAMPLE_TASTING_SUBJECTS) {
+    const subjectId = rec.track(
+      await ctx.db.insert('tastingSubjects', {
+        groupId,
+        kind: fixture.kind,
+        name: fixture.name,
+        attributes: fixture.attributes,
+        catalogKey: fixture.catalogKey,
+        // Whoever logged the first Tasting is who brought the subject into
+        // being, which is what the app does too.
+        createdByUserId: authors[fixture.tastings[0].by],
+      }),
+    )
+    for (const tasting of fixture.tastings) {
+      rec.track(
+        await ctx.db.insert('tastings', {
+          subjectId,
+          groupId,
+          rating: tasting.rating,
+          tastedAt: isoDate(now, tasting.daysAgo),
+          attributes: tasting.attributes,
+          createdByUserId: authors[tasting.by],
+        }),
+      )
+      tastings++
+    }
+  }
+
   // --- Food diary ----------------------------------------------------------
   const catalogByKey = new Map(
     (await ctx.db.query('foods').collect())
@@ -662,6 +781,8 @@ export async function applySample(
     combos,
     housemates: SAMPLE_HOUSEMATES.length,
     userFoods: SAMPLE_USER_FOODS.length,
+    tastingSubjects: SAMPLE_TASTING_SUBJECTS.length,
+    tastings,
   }
 
   // Self-check: the run recorded every row it created. Anything missing here
@@ -679,6 +800,8 @@ export async function applySample(
     counts.babyTasks +
     counts.babyEvents +
     counts.userFoods +
+    counts.tastingSubjects +
+    counts.tastings +
     counts.diaryEntries +
     counts.combos +
     SAMPLE_COMBOS.reduce((n, combo) => n + combo.items.length, 0)

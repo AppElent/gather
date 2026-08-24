@@ -9,6 +9,7 @@ import { recipes } from './recipes'
 import { settings } from './settings'
 import { shell } from './shell'
 import { tasks } from './tasks'
+import { tastings } from './tastings'
 
 export const nl = {
   common,
@@ -20,5 +21,6 @@ export const nl = {
   foods,
   tasks,
   baby,
+  tastings,
   settings,
 } satisfies Messages

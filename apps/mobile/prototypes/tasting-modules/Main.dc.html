@@ -1,0 +1,474 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #7d3f5f; text-decoration: none; }
+    a:hover { color: #5f2f47; }
+    .ic { flex: none; }
+    input { font-family: inherit; }
+    input:focus { outline: none; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <sc-if value="{{ atCompose }}" hint-placeholder-val="{{ false }}">
+
+    <div style="height: 47px; flex: none; background: #ffffff;"></div>
+
+    <div style="flex: none; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+      <div onClick="{{ cancel }}" style="min-width: 62px; min-height: 44px; display: flex; align-items: center; font-size: 17px; color: #7d3f5f; cursor: pointer;">Cancel</div>
+      <div style="flex: 1; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -0.2px;">New tasting</div>
+      <div onClick="{{ save }}" style="min-width: 62px; min-height: 44px; display: flex; align-items: center; justify-content: flex-end; font-size: 17px; font-weight: 700; color: #7d3f5f; cursor: pointer;">Save</div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 17px; padding: 14px 16px 0;">
+
+      <div onClick="{{ backToSubject }}" style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 12px; background: #ffffff; border: 1px solid #e8e7e3; border-radius: 16px; cursor: pointer;">
+        <div style="width: 40px; height: 40px; flex: none; border-radius: 13px; background: #f0e6ec; display: flex; align-items: center; justify-content: center;">
+          <svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7d3f5f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 5V2l-5.89 5.89"></path><circle cx="16.6" cy="15.89" r="3"></circle><circle cx="8.11" cy="7.4" r="3"></circle><circle cx="12.35" cy="11.65" r="3"></circle><circle cx="13.91" cy="5.85" r="3"></circle><circle cx="18.15" cy="10.09" r="3"></circle><circle cx="6.56" cy="13.2" r="3"></circle><circle cx="10.8" cy="17.44" r="3"></circle><circle cx="5" cy="19" r="3"></circle></svg>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 16px; font-weight: 600;">{{ chosen.name }}</div>
+          <div style="font-size: 13px; color: #79807b;">{{ chosen.facts }}</div>
+        </div>
+        <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b;">SCORE</div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="display: flex; gap: 4px;">
+            <sc-for list="{{ stars }}" as="st" hint-placeholder-count="5">
+              <div style="position: relative; width: 34px; height: 34px;">
+                <svg class="ic" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#d8d6d0" stroke-width="1.5" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path></svg>
+                <div style="position: absolute; left: 0; top: 0; height: 34px; overflow: hidden; width: {{ st.w }};">
+                  <svg class="ic" width="34" height="34" viewBox="0 0 24 24" fill="#7d3f5f" stroke="#7d3f5f" stroke-width="1.5" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path></svg>
+                </div>
+                <div onClick="{{ st.half }}" style="position: absolute; left: 0; top: -5px; width: 17px; height: 44px; cursor: pointer;"></div>
+                <div onClick="{{ st.full }}" style="position: absolute; left: 17px; top: -5px; width: 17px; height: 44px; cursor: pointer;"></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size: 22px; font-weight: 700; letter-spacing: -0.5px; font-variant-numeric: tabular-nums;">{{ ratingLabel }}</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 14px; background: #ffffff; border: 1px solid #e8e7e3; border-radius: 12px;">
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 15px; color: #79807b;">
+          <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+          Tasted
+        </span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 16px; font-weight: 600;">Today
+          <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+        </span>
+      </div>
+
+      <sc-for list="{{ scales }}" as="sc" hint-placeholder-count="2">
+        <div style="display: flex; flex-direction: column; gap: 7px;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between;">
+            <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b;">{{ sc.label }}</div>
+            <div style="font-size: 12px; color: #a9aeaa;">{{ sc.ends }}</div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <sc-for list="{{ sc.steps }}" as="step" hint-placeholder-count="5">
+              <div onClick="{{ step.pick }}" style="{{ step.style }}">{{ step.n }}</div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b;">AROMAS</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 7px;">
+          <sc-for list="{{ aromas }}" as="a" hint-placeholder-count="6">
+            <div onClick="{{ a.toggle }}" style="{{ a.style }}">{{ a.text }}</div>
+          </sc-for>
+          <div style="display: flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px dashed #d8d6d0; color: #79807b; font-size: 13px; cursor: pointer;">
+            <svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+            Add your own
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: flex-start; min-height: 58px; padding: 13px 14px; background: #ffffff; border: 1px solid #e8e7e3; border-radius: 12px; font-size: 15px; color: #a9aeaa;">Notes</div>
+
+    </div>
+
+    <div style="flex: none; display: flex; height: 49px; background: #ffffff; border-top: 1px solid #e8e7e3;">
+      <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="5">
+        <div style="{{ tab.style }}">
+          <div style="display: flex;"><sc-if value="{{ tab.isHome }}" hint-placeholder-val="{{ true }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 10v10h14V10"></path></svg></sc-if><sc-if value="{{ tab.isSearch }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.34-4.34"></path></svg></sc-if><sc-if value="{{ tab.isAdd }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path><path d="M12 8v8"></path></svg></sc-if><sc-if value="{{ tab.isSettings }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m4.9 4.9 2.1 2.1"></path><path d="m17 17 2.1 2.1"></path><path d="M19.1 4.9 17 7"></path><path d="M7 17l-2.1 2.1"></path></svg></sc-if><sc-if value="{{ tab.isAll }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"></rect><rect x="14" y="3" width="7" height="7" rx="1.6"></rect><rect x="3" y="14" width="7" height="7" rx="1.6"></rect><rect x="14" y="14" width="7" height="7" rx="1.6"></rect></svg></sc-if></div>
+          <span style="font-size: 10px;">{{ tab.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="height: 34px; flex: none; background: #ffffff;"></div>
+
+  </sc-if>
+
+  <sc-if value="{{ atShell }}" hint-placeholder-val="{{ true }}">
+
+    <div style="height: 47px; flex: none;"></div>
+
+    <div style="flex: none; padding: 4px 16px 10px;">
+      <div style="font-size: 32px; font-weight: 700; letter-spacing: -0.8px;">Home</div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 13px; padding: 4px 16px 0;">
+
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <sc-for list="{{ pinned }}" as="p" hint-placeholder-count="6">
+          <div style="{{ p.style }}">
+            <div style="{{ p.iconStyle }}"><sc-if value="{{ p.isCheese }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 5V2l-5.89 5.89"></path><circle cx="16.6" cy="15.89" r="3"></circle><circle cx="8.11" cy="7.4" r="3"></circle><circle cx="12.35" cy="11.65" r="3"></circle><circle cx="13.91" cy="5.85" r="3"></circle><circle cx="18.15" cy="10.09" r="3"></circle><circle cx="6.56" cy="13.2" r="3"></circle><circle cx="10.8" cy="17.44" r="3"></circle><circle cx="5" cy="19" r="3"></circle></svg></sc-if><sc-if value="{{ p.isWine }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22h8"></path><path d="M7 10h10"></path><path d="M12 15v7"></path><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"></path></svg></sc-if><sc-if value="{{ p.isBeer }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11h1a3 3 0 0 1 0 6h-1"></path><path d="M9 12v6"></path><path d="M13 12v6"></path><path d="M14 7.5c-1 0-1.44.5-3 .5s-2-.5-3-.5-1.72.5-2.5.5a2.5 2.5 0 0 1 0-5c.78 0 1.57.5 2.5.5S9.44 2 11 2s2 1.5 3 1.5 1.72-.5 2.5-.5a2.5 2.5 0 0 1 0 5c-.78 0-1.5-.5-2.5-.5Z"></path><path d="M5 8v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8"></path></svg></sc-if><sc-if value="{{ p.isRecipes }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"></path><path d="M6 17h12"></path></svg></sc-if><sc-if value="{{ p.isTasks }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m3 5 2 2 3-3"></path><path d="m3 13 2 2 3-3"></path><path d="M13 6h8"></path><path d="M13 15h8"></path></svg></sc-if><sc-if value="{{ p.isGroceries }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg></sc-if></div>
+            <span style="{{ p.labelStyle }}">{{ p.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b; padding-top: 2px;">ACTIVITY</div>
+
+      <div style="display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: center; gap: 11px; min-height: 54px; border-bottom: 1px solid #e8e7e3;">
+          <div style="width: 30px; height: 30px; flex: none; border-radius: 15px; background: #f0e6ec; display: flex; align-items: center; justify-content: center;">
+            <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7d3f5f" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22h8"></path><path d="M7 10h10"></path><path d="M12 15v7"></path><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"></path></svg>
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 1px;">
+            <div style="font-size: 15px;">Nora rated <span style="font-weight: 600;">Vajra Barolo 2019</span></div>
+            <div style="font-size: 13px; color: #79807b;">4.5 · yesterday</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 11px; min-height: 54px; border-bottom: 1px solid #e8e7e3;">
+          <div style="width: 30px; height: 30px; flex: none; border-radius: 15px; background: #e2f2f0; display: flex; align-items: center; justify-content: center;">
+            <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2b7f86" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"></path><path d="M6 17h12"></path></svg>
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 1px;">
+            <div style="font-size: 15px;">Sam added <span style="font-weight: 600;">Pompoensoep</span></div>
+            <div style="font-size: 13px; color: #79807b;">Tuesday</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="flex: none; display: flex; height: 49px; background: #ffffff; border-top: 1px solid #e8e7e3;">
+      <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="5">
+        <div onClick="{{ tab.press }}" style="{{ tab.style }}">
+          <div style="display: flex;"><sc-if value="{{ tab.isHome }}" hint-placeholder-val="{{ true }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 10v10h14V10"></path></svg></sc-if><sc-if value="{{ tab.isSearch }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.34-4.34"></path></svg></sc-if><sc-if value="{{ tab.isAdd }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path><path d="M12 8v8"></path></svg></sc-if><sc-if value="{{ tab.isSettings }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m4.9 4.9 2.1 2.1"></path><path d="m17 17 2.1 2.1"></path><path d="M19.1 4.9 17 7"></path><path d="M7 17l-2.1 2.1"></path></svg></sc-if><sc-if value="{{ tab.isAll }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"></rect><rect x="14" y="3" width="7" height="7" rx="1.6"></rect><rect x="3" y="14" width="7" height="7" rx="1.6"></rect><rect x="14" y="14" width="7" height="7" rx="1.6"></rect></svg></sc-if></div>
+          <span style="font-size: 10px;">{{ tab.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="height: 34px; flex: none; background: #ffffff;"></div>
+
+    <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ true }}">
+      <div onClick="{{ closeSheet }}" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(31, 36, 33, 0.34);"></div>
+      <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #ffffff; border-radius: 20px 20px 0 0; padding: 12px 16px 30px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="width: 38px; height: 4px; border-radius: 2px; background: #e8e7e3; align-self: center;"></div>
+
+        <div style="display: flex; align-items: flex-start; gap: 10px;">
+          <sc-if value="{{ atSubject }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ backToRoot }}" style="width: 30px; height: 30px; flex: none; border-radius: 15px; background: #f1f2f0; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+              <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+            </div>
+          </sc-if>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-size: 21px; font-weight: 700; letter-spacing: -0.4px;">{{ sheetTitle }}</div>
+            <div style="font-size: 13px; color: #79807b;">{{ sheetSubtitle }}</div>
+          </div>
+          <div onClick="{{ closeSheet }}" style="width: 32px; height: 32px; flex: none; border-radius: 16px; background: #f1f2f0; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          </div>
+        </div>
+
+        <sc-if value="{{ atRoot }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <sc-for list="{{ actions }}" as="act" hint-placeholder-count="5">
+              <div onClick="{{ act.press }}" style="display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer;">
+                <div style="{{ act.iconStyle }}">
+                  <sc-if value="{{ act.isCheese }}" hint-placeholder-val="{{ true }}"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 5V2l-5.89 5.89"></path><circle cx="16.6" cy="15.89" r="3"></circle><circle cx="8.11" cy="7.4" r="3"></circle><circle cx="12.35" cy="11.65" r="3"></circle><circle cx="13.91" cy="5.85" r="3"></circle><circle cx="18.15" cy="10.09" r="3"></circle><circle cx="6.56" cy="13.2" r="3"></circle><circle cx="10.8" cy="17.44" r="3"></circle><circle cx="5" cy="19" r="3"></circle></svg></sc-if>
+                  <sc-if value="{{ act.isWine }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22h8"></path><path d="M7 10h10"></path><path d="M12 15v7"></path><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"></path></svg></sc-if>
+                  <sc-if value="{{ act.isBeer }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11h1a3 3 0 0 1 0 6h-1"></path><path d="M9 12v6"></path><path d="M13 12v6"></path><path d="M14 7.5c-1 0-1.44.5-3 .5s-2-.5-3-.5-1.72.5-2.5.5a2.5 2.5 0 0 1 0-5c.78 0 1.57.5 2.5.5S9.44 2 11 2s2 1.5 3 1.5 1.72-.5 2.5-.5a2.5 2.5 0 0 1 0 5c-.78 0-1.5-.5-2.5-.5Z"></path><path d="M5 8v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8"></path></svg></sc-if>
+                  <sc-if value="{{ act.isTask }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 5 2 2 3-3"></path><path d="m3 13 2 2 3-3"></path><path d="M13 6h8"></path><path d="M13 15h8"></path></svg></sc-if>
+                  <sc-if value="{{ act.isRecipe }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"></path><path d="M6 17h12"></path></svg></sc-if>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 1px;">
+                  <div style="font-size: 16px; font-weight: 600;">{{ act.label }}</div>
+                  <div style="font-size: 13px; color: #79807b;">{{ act.sub }}</div>
+                </div>
+                <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ atSubject }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 9px; min-height: 46px; padding: 0 13px; background: #faf9f7; border: 1px solid #e8e7e3; border-radius: 12px;">
+              <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.34-4.34"></path></svg>
+              <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Search or type a name" style="flex: 1; border: none; background: transparent; font-size: 16px; color: #1f2421;" />
+            </div>
+
+            <sc-if value="{{ hasMine }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b;">IN HOME</div>
+                <sc-for list="{{ mine }}" as="m" hint-placeholder-count="3">
+                  <div onClick="{{ m.press }}" style="display: flex; align-items: center; gap: 11px; min-height: 50px; border-bottom: 1px solid #e8e7e3; cursor: pointer;">
+                    <div style="width: 34px; height: 34px; flex: none; border-radius: 10px; background: #f0e6ec;"></div>
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 1px;">
+                      <div style="font-size: 16px;">{{ m.name }}</div>
+                      <div style="font-size: 13px; color: #79807b;">{{ m.facts }}</div>
+                    </div>
+                    <div style="font-size: 13px; color: #79807b;">{{ m.score }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ hasCatalog }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b;">WELL-KNOWN CHEESES</div>
+                <sc-for list="{{ catalog }}" as="c" hint-placeholder-count="3">
+                  <div onClick="{{ c.press }}" style="display: flex; align-items: center; gap: 11px; min-height: 50px; border-bottom: 1px solid #e8e7e3; cursor: pointer;">
+                    <div style="width: 34px; height: 34px; flex: none; border-radius: 10px; background: #f1f2f0; display: flex; align-items: center; justify-content: center;">
+                      <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 5V2l-5.89 5.89"></path><circle cx="16.6" cy="15.89" r="3"></circle><circle cx="8.11" cy="7.4" r="3"></circle><circle cx="12.35" cy="11.65" r="3"></circle><circle cx="6.56" cy="13.2" r="3"></circle></svg>
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 1px;">
+                      <div style="font-size: 16px;">{{ c.name }}</div>
+                      <div style="font-size: 13px; color: #79807b;">{{ c.facts }}</div>
+                    </div>
+                    <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showCreate }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ createNew }}" style="display: flex; align-items: center; gap: 11px; min-height: 52px; padding: 0 13px; border: 1px dashed #d8d6d0; border-radius: 12px; cursor: pointer;">
+                <svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7d3f5f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 1px;">
+                  <div style="font-size: 16px; font-weight: 600; color: #7d3f5f;">{{ createLabel }}</div>
+                  <div style="font-size: 13px; color: #79807b;">A cheese of your own, with your own facts</div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ warn }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; gap: 9px; padding: 11px 13px; background: #fbf3ef; border: 1px solid #e6d3c6; border-radius: 12px;">
+                <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a4372c" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+                <div style="flex: 1; font-size: 13px; line-height: 18px;">You already have <span style="font-weight: 600;">{{ warnName }}</span>. Tap it to add another tasting, or carry on and make a second one.</div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+      </div>
+    </sc-if>
+
+  </sc-if>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      step: 'root',
+      query: '',
+      chosen: null,
+      rating: 4.5,
+      scale: { firmness: 4, saltiness: 3 },
+      aromas: { nutty: true, hay: true }
+    };
+  }
+
+  mineFor() {
+    return [
+      { name: 'Comte 24 months', facts: 'Cow · France · Hard', score: '4.5 · 4' },
+      { name: 'Roquefort Papillon', facts: 'Sheep · France · Blue', score: '4.0 · 2' },
+      { name: 'Boerenkaas Remeker', facts: 'Cow · Netherlands · Hard', score: '3.5 · 1' }
+    ];
+  }
+
+  catalogFor() {
+    return [
+      { name: 'Gouda', facts: 'Cow · Netherlands' },
+      { name: 'Brie de Meaux', facts: 'Cow · France' },
+      { name: 'Manchego', facts: 'Sheep · Spain' }
+    ];
+  }
+
+  renderVals() {
+    const step = this.state.step;
+    const q = this.state.query.trim();
+    const lower = q.toLowerCase();
+
+    const TAB_ON = 'flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #1f2421; cursor: pointer;';
+    const TAB_OFF = 'flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b; cursor: pointer;';
+    const tabDefs = ['Home', 'Search', 'Add', 'Settings', 'All'];
+    const tabs = tabDefs.map((key) => ({
+      label: key,
+      isHome: key === 'Home',
+      isSearch: key === 'Search',
+      isAdd: key === 'Add',
+      isSettings: key === 'Settings',
+      isAll: key === 'All',
+      style: key === 'Home' ? TAB_ON : TAB_OFF,
+      press: key === 'Add' ? () => this.setState({ step: 'root' }) : () => {}
+    }));
+
+    const TILE = 'width: 110px; height: 92px; border-radius: 13px; padding: 11px; display: flex; flex-direction: column; justify-content: space-between; ';
+    const pinDefs = [
+      { key: 'Recipes', label: 'Recipes', bg: '#e2f2f0', fg: '#2b7f86' },
+      { key: 'Tasks', label: 'Tasks', bg: '#f2ece0', fg: '#8a6a33' },
+      { key: 'Groceries', label: 'Groceries', bg: '#e2f2f0', fg: '#2b7f86' },
+      { key: 'Cheese', label: 'Cheeses', bg: '#f0e6ec', fg: '#7d3f5f' },
+      { key: 'Wine', label: 'Wines', bg: '#f0e6ec', fg: '#7d3f5f' },
+      { key: 'Beer', label: 'Beers', bg: '#f0e6ec', fg: '#7d3f5f' }
+    ];
+    const pinned = pinDefs.map((tile) => ({
+      label: tile.label,
+      isCheese: tile.key === 'Cheese',
+      isWine: tile.key === 'Wine',
+      isBeer: tile.key === 'Beer',
+      isRecipes: tile.key === 'Recipes',
+      isTasks: tile.key === 'Tasks',
+      isGroceries: tile.key === 'Groceries',
+      style: TILE + 'background: ' + tile.bg + ';',
+      iconStyle: 'color: ' + tile.fg + '; display: flex;',
+      labelStyle: 'font-size: 12.5px; font-weight: 600; color: ' + tile.fg + ';'
+    }));
+
+    const ROW_ICON = 'width: 40px; height: 40px; flex: none; border-radius: 13px; display: flex; align-items: center; justify-content: center; ';
+    const actionDefs = [
+      { key: 'Cheese', label: 'Cheese tasting', sub: 'Cheeses · pick, then rate', bg: '#f0e6ec', fg: '#7d3f5f' },
+      { key: 'Wine', label: 'Wine tasting', sub: 'Wines · pick, then rate', bg: '#f0e6ec', fg: '#7d3f5f' },
+      { key: 'Beer', label: 'Beer tasting', sub: 'Beers · pick, then rate', bg: '#f0e6ec', fg: '#7d3f5f' },
+      { key: 'Task', label: 'New task', sub: 'Tasks · in the row', bg: '#f2ece0', fg: '#8a6a33' },
+      { key: 'Recipe', label: 'Import a recipe', sub: 'Recipes · in the sheet', bg: '#e2f2f0', fg: '#2b7f86' }
+    ];
+    const actions = actionDefs.map((action) => ({
+      label: action.label,
+      sub: action.sub,
+      isCheese: action.key === 'Cheese',
+      isWine: action.key === 'Wine',
+      isBeer: action.key === 'Beer',
+      isTask: action.key === 'Task',
+      isRecipe: action.key === 'Recipe',
+      iconStyle: ROW_ICON + 'background: ' + action.bg + '; color: ' + action.fg + ';',
+      press: (action.key === 'Cheese' || action.key === 'Wine' || action.key === 'Beer')
+        ? () => this.setState({ step: 'subject', query: '' })
+        : () => {}
+    }));
+
+    const mine = this.mineFor()
+      .filter((row) => !lower || row.name.toLowerCase().indexOf(lower) >= 0)
+      .map((row) => ({
+        name: row.name,
+        facts: row.facts,
+        score: row.score,
+        press: () => this.setState({ step: 'compose', chosen: { name: row.name, facts: row.facts } })
+      }));
+
+    const catalog = this.catalogFor()
+      .filter((row) => !lower || row.name.toLowerCase().indexOf(lower) >= 0)
+      .map((row) => ({
+        name: row.name,
+        facts: row.facts,
+        press: () => this.setState({
+          step: 'compose',
+          chosen: { name: row.name, facts: row.facts + ' · from the list' }
+        })
+      }));
+
+    const clash = q ? this.mineFor().filter((row) => row.name.toLowerCase().indexOf(lower) === 0)[0] : null;
+
+    const chosen = this.state.chosen || { name: 'Comte 24 months', facts: 'Cow · France · Hard' };
+
+    const stars = [1, 2, 3, 4, 5].map((n) => {
+      const filled = this.state.rating - (n - 1);
+      return {
+        w: filled >= 1 ? '34px' : (filled >= 0.5 ? '17px' : '0px'),
+        half: () => this.setState({ rating: n - 0.5 }),
+        full: () => this.setState({ rating: n })
+      };
+    });
+
+    const SEL = 'flex: 1; min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #f0e6ec; border: 1px solid #7d3f5f; color: #7d3f5f; font-size: 15px; font-weight: 700; cursor: pointer;';
+    const OFF = 'flex: 1; min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #ffffff; border: 1px solid #e8e7e3; color: #1f2421; font-size: 15px; font-weight: 500; cursor: pointer;';
+    const scaleDefs = [
+      { key: 'firmness', label: 'FIRMNESS', ends: 'soft to hard' },
+      { key: 'saltiness', label: 'SALTINESS', ends: 'mild to salty' }
+    ];
+    const scales = scaleDefs.map((row) => ({
+      label: row.label,
+      ends: row.ends,
+      steps: [1, 2, 3, 4, 5].map((n) => {
+        const next = Object.assign({}, this.state.scale);
+        next[row.key] = n;
+        return {
+          n: String(n),
+          style: this.state.scale[row.key] === n ? SEL : OFF,
+          pick: () => this.setState({ scale: next })
+        };
+      })
+    }));
+
+    const CHIP_ON = 'display: flex; align-items: center; min-height: 34px; padding: 0 13px; border-radius: 999px; background: #f0e6ec; border: 1px solid #7d3f5f; color: #7d3f5f; font-size: 13px; font-weight: 700; cursor: pointer;';
+    const CHIP_OFF = 'display: flex; align-items: center; min-height: 34px; padding: 0 13px; border-radius: 999px; background: #ffffff; border: 1px solid #e8e7e3; color: #1f2421; font-size: 13px; cursor: pointer;';
+    const aromas = ['nutty', 'hay', 'caramel', 'mushroom', 'butter', 'barnyard'].map((word) => {
+      const next = Object.assign({}, this.state.aromas);
+      next[word] = !next[word];
+      return {
+        text: word,
+        style: this.state.aromas[word] ? CHIP_ON : CHIP_OFF,
+        toggle: () => this.setState({ aromas: next })
+      };
+    });
+
+    return {
+      atCompose: step === 'compose',
+      atShell: step !== 'compose',
+      sheetOpen: step === 'root' || step === 'subject',
+      atRoot: step === 'root',
+      atSubject: step === 'subject',
+      sheetTitle: step === 'subject' ? 'Cheese tasting' : 'Add to Home',
+      sheetSubtitle: step === 'subject' ? 'Which cheese?' : 'Everything you can log here.',
+      tabs: tabs,
+      pinned: pinned,
+      actions: actions,
+      query: this.state.query,
+      onQuery: (event) => this.setState({ query: event.target.value }),
+      mine: mine,
+      hasMine: mine.length > 0,
+      catalog: catalog,
+      hasCatalog: catalog.length > 0,
+      showCreate: q.length > 0,
+      createLabel: 'Add "' + q + '"',
+      warn: !!clash,
+      warnName: clash ? clash.name : '',
+      createNew: () => this.setState({ step: 'compose', chosen: { name: q, facts: 'Yours · no facts yet' } }),
+      chosen: chosen,
+      stars: stars,
+      ratingLabel: this.state.rating.toFixed(1),
+      scales: scales,
+      aromas: aromas,
+      backToRoot: () => this.setState({ step: 'root' }),
+      backToSubject: () => this.setState({ step: 'subject' }),
+      closeSheet: () => this.setState({ step: 'closed' }),
+      cancel: () => this.setState({ step: 'closed' }),
+      save: () => this.setState({ step: 'closed' })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -146,7 +146,7 @@ function ActivityRow({
   return (
     <li className="grid grid-cols-[28px_minmax(0,1fr)] gap-2 border-t border-[var(--app-border)] py-2 first:border-t-0 first:pt-0">
       <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
-        <Icon name={activityModuleIcon(entry.kind)} className="h-4 w-4" />
+        <Icon name={activityModuleIcon(entry)} className="h-4 w-4" />
       </span>
       <div className="min-w-0">
         {/* `minmax(0,1fr)` above and `wrap-anywhere` here, and no fixed width
@@ -164,7 +164,7 @@ function ActivityRow({
             : null}
         </p>
         <p className="m-0 flex flex-wrap gap-x-2 text-xs text-[var(--app-muted)]">
-          <span>{activityModuleLabel(entry.kind, messages)}</span>
+          <span>{activityModuleLabel(entry, messages)}</span>
           <time dateTime={new Date(entry.at).toISOString()}>
             {formatActivityTime(entry.at, messages, locale)}
           </time>

@@ -1213,3 +1213,280 @@ export const SAMPLE_USER_FOODS = [
     nutritionSource: 'ai' as const,
   },
 ]
+
+// ---------------------------------------------------------------------------
+// Tasting subjects and Tastings (#199)
+// ---------------------------------------------------------------------------
+
+/**
+ * What Willow Street has tasted, and what each of them thought.
+ *
+ * Three Kinds, because a preview that only showed cheese would not show that
+ * the Kind spec is data — the whole reason there are three Modules and not
+ * one. Every subject has at least one Tasting, because a subject exists
+ * *because* somebody logged against it; a preview containing a subject nobody
+ * tasted would show a state the app cannot otherwise reach.
+ *
+ * Two of them carry a `catalogKey`, so a preview shows what a materialised
+ * catalog entry looks like beside a hand-typed one (`Boerenkaas Remeker` and
+ * every wine and beer). None of them carries a photo: the seed writes straight
+ * to the table and has no bytes to upload, and an empty photo tile is the
+ * honest state rather than a missing one.
+ */
+export interface SampleTastingSubject {
+  key: string
+  kind: 'cheese' | 'wine' | 'beer'
+  name: string
+  /** Absent where the household typed the name themselves. */
+  catalogKey?: string
+  attributes: Record<string, string | number | string[]>
+  tastings: SampleTasting[]
+}
+
+export interface SampleTasting {
+  by: SampleAuthor
+  rating: number
+  /** Offset from the run, so Saturday's dinner stays recent. */
+  daysAgo: number
+  attributes: Record<string, string | number | string[]>
+}
+
+export const SAMPLE_TASTING_SUBJECTS: SampleTastingSubject[] = [
+  {
+    key: 'comte',
+    kind: 'cheese',
+    name: 'Comté 24 months',
+    catalogKey: 'cheese-comte',
+    attributes: {
+      milk: 'cow',
+      country: 'france',
+      style: 'hard',
+      producer: 'Marcel Petite',
+      age: 24,
+    },
+    tastings: [
+      {
+        by: 'owner',
+        rating: 4.5,
+        daysAgo: 2,
+        attributes: {
+          firmness: 4,
+          saltiness: 3,
+          aromas: ['nutty', 'caramel', 'hay'],
+          notes:
+            'The crystals are back in this batch. Buy the same wheel again.',
+        },
+      },
+      {
+        by: 'nora',
+        rating: 4.5,
+        daysAgo: 16,
+        attributes: {
+          firmness: 5,
+          saltiness: 3,
+          aromas: ['nutty', 'crystalline'],
+        },
+      },
+      {
+        by: 'sam',
+        rating: 4,
+        daysAgo: 58,
+        attributes: {
+          firmness: 4,
+          saltiness: 2,
+          aromas: ['hay', 'butter'],
+          notes: 'Younger wheel, softer. Fine but not the one.',
+        },
+      },
+    ],
+  },
+  {
+    key: 'roquefort',
+    kind: 'cheese',
+    name: 'Roquefort Papillon',
+    catalogKey: 'cheese-roquefort',
+    attributes: {
+      milk: 'sheep',
+      country: 'france',
+      style: 'blue',
+      producer: 'Papillon',
+    },
+    tastings: [
+      {
+        by: 'nora',
+        rating: 4,
+        daysAgo: 9,
+        attributes: {
+          firmness: 2,
+          saltiness: 5,
+          aromas: ['sharp', 'butter'],
+          notes: 'Too salty on its own, excellent with the pear.',
+        },
+      },
+    ],
+  },
+  {
+    key: 'remeker',
+    kind: 'cheese',
+    // Typed by hand: a local cheese is as first-class as a famous one
+    // (story 4), and it has no catalog key to carry.
+    name: 'Boerenkaas Remeker',
+    attributes: {
+      milk: 'cow',
+      country: 'netherlands',
+      style: 'hard',
+      producer: 'Remeker',
+      age: 12,
+    },
+    tastings: [
+      {
+        by: 'owner',
+        rating: 3.5,
+        daysAgo: 5,
+        attributes: {
+          firmness: 4,
+          saltiness: 2,
+          aromas: ['grassy', 'butter'],
+        },
+      },
+    ],
+  },
+  {
+    key: 'barolo',
+    kind: 'wine',
+    name: 'Vajra Barolo 2019',
+    attributes: {
+      producer: 'G.D. Vajra',
+      vintage: 2019,
+      grapes: ['nebbiolo'],
+      region: 'piedmont',
+      style: 'red',
+      abv: 14.5,
+    },
+    tastings: [
+      {
+        by: 'nora',
+        rating: 4.5,
+        daysAgo: 1,
+        attributes: {
+          sweetness: 1,
+          acidity: 4,
+          tannin: 5,
+          body: 4,
+          aromas: ['cherry', 'leather', 'violet', 'tar'],
+          notes:
+            'Still tight. Worth keeping the second bottle another three years.',
+        },
+      },
+      {
+        by: 'owner',
+        rating: 4.5,
+        daysAgo: 1,
+        attributes: {
+          sweetness: 1,
+          acidity: 4,
+          tannin: 4,
+          body: 5,
+          aromas: ['cherry', 'tobacco'],
+        },
+      },
+    ],
+  },
+  {
+    key: 'chablis',
+    kind: 'wine',
+    name: 'Laroche Chablis 2022',
+    attributes: {
+      producer: 'Domaine Laroche',
+      vintage: 2022,
+      grapes: ['chardonnay'],
+      region: 'burgundy',
+      style: 'white',
+      abv: 12.5,
+    },
+    tastings: [
+      {
+        by: 'owner',
+        rating: 4,
+        daysAgo: 12,
+        attributes: {
+          sweetness: 1,
+          acidity: 5,
+          body: 2,
+          aromas: ['citrus', 'apple', 'mineral'],
+          notes: 'Bought two more.',
+        },
+      },
+    ],
+  },
+  {
+    key: 'vinho-verde',
+    kind: 'wine',
+    name: 'Vinho Verde, house',
+    attributes: {
+      grapes: ['loureiro'],
+      region: 'minho',
+      style: 'white',
+      abv: 10,
+    },
+    tastings: [
+      {
+        by: 'sam',
+        rating: 2.5,
+        daysAgo: 21,
+        attributes: {
+          sweetness: 2,
+          acidity: 4,
+          body: 1,
+          aromas: ['citrus'],
+          notes: 'Fine on a terrace, forgettable at the table.',
+        },
+      },
+    ],
+  },
+  {
+    key: 'westmalle',
+    kind: 'beer',
+    name: 'Westmalle Tripel',
+    attributes: { brewery: 'Westmalle', style: 'tripel', abv: 9.5 },
+    tastings: [
+      {
+        by: 'owner',
+        rating: 4.5,
+        daysAgo: 3,
+        attributes: {
+          bitterness: 3,
+          body: 4,
+          aromas: ['banana', 'clove', 'honey'],
+          notes: 'The one to keep in the house.',
+        },
+      },
+      {
+        by: 'nora',
+        rating: 4,
+        daysAgo: 30,
+        attributes: { bitterness: 3, body: 4, aromas: ['clove', 'bread'] },
+      },
+    ],
+  },
+  {
+    key: 'jopen',
+    kind: 'beer',
+    name: 'Jopen Hoppenbier',
+    attributes: { brewery: 'Jopen', style: 'amberAle', abv: 6.8 },
+    tastings: [
+      {
+        by: 'sam',
+        rating: 3.5,
+        daysAgo: 7,
+        attributes: {
+          bitterness: 4,
+          body: 3,
+          // A descriptor the shipped vocabulary does not have (story 11) —
+          // so a preview proves the chips are a prompt and not a gate.
+          aromas: ['citrus', 'pine', 'orange peel'],
+        },
+      },
+    ],
+  },
+]

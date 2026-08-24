@@ -54,3 +54,8 @@ recording-*.mp4
 # The same tool's scratch directory: build and Metro logs, screenshots taken
 # while driving the app. Same rule — keep one by copying it somewhere named.
 .agent-device/
+
+# Design canvases: the artboards are the source and are committed; the
+# published single-file bundle is a 2.4 MB build artifact the artifact URL
+# already serves.
+prototypes/**/*-phone.html

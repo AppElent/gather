@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #7d3f5f; text-decoration: none; }
+    a:hover { color: #5f2f47; }
+    .ic { flex: none; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none; background: #ffffff;"></div>
+
+  <div style="flex: none; display: flex; align-items: center; height: 44px; padding: 0 12px 0 6px; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+    <div style="display: flex; align-items: center; gap: 2px; min-height: 44px; padding-right: 6px; color: #7d3f5f; cursor: pointer;">
+      <svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+      <span style="font-size: 17px;">Cheeses</span>
+    </div>
+    <div style="flex: 1; text-align: center; font-size: 17px; font-weight: 600;">Comte 24 months</div>
+    <div onClick="{{ openSubjectMenu }}" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: flex-end; color: #7d3f5f; cursor: pointer;">
+      <svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="19" cy="12" r="1.7"></circle></svg>
+    </div>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 0;">
+    <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b;">TASTINGS · HOLD A ROW</div>
+
+    <sc-for list="{{ rows }}" as="row" hint-placeholder-count="3">
+      <div onClick="{{ row.hold }}" style="{{ row.style }}">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="{{ row.avatarStyle }}">{{ row.initial }}</div>
+          <span style="font-size: 15px; font-weight: 600;">{{ row.who }}</span>
+          <span style="font-size: 13px; color: #79807b;">{{ row.when }}</span>
+          <span style="flex: 1;"></span>
+          <span style="font-size: 16px; font-weight: 700; color: #7d3f5f; font-variant-numeric: tabular-nums;">{{ row.score }}</span>
+        </div>
+        <div style="font-size: 13.5px; color: #79807b;">{{ row.tags }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="flex: none; display: flex; height: 49px; background: #ffffff; border-top: 1px solid #e8e7e3;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;">
+      <svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 10v10h14V10"></path></svg>
+      <span style="font-size: 10px;">Home</span>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;">
+      <svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.34-4.34"></path></svg>
+      <span style="font-size: 10px;">Search</span>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;">
+      <svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
+      <span style="font-size: 10px;">Add</span>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;">
+      <svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m4.9 4.9 2.1 2.1"></path><path d="m17 17 2.1 2.1"></path><path d="M19.1 4.9 17 7"></path><path d="M7 17l-2.1 2.1"></path></svg>
+      <span style="font-size: 10px;">Settings</span>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #1f2421;">
+      <svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"></rect><rect x="14" y="3" width="7" height="7" rx="1.6"></rect><rect x="3" y="14" width="7" height="7" rx="1.6"></rect><rect x="14" y="14" width="7" height="7" rx="1.6"></rect></svg>
+      <span style="font-size: 10px; font-weight: 600;">All</span>
+    </div>
+  </div>
+  <div style="height: 34px; flex: none; background: #ffffff;"></div>
+
+  <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ true }}">
+    <div onClick="{{ close }}" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(31, 36, 33, 0.22); backdrop-filter: blur(9px);"></div>
+    <div style="{{ menuAnchorStyle }}">
+      <div style="{{ liftStyle }}">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="{{ lift.avatarStyle }}">{{ lift.initial }}</div>
+          <span style="font-size: 15px; font-weight: 600;">{{ lift.who }}</span>
+          <span style="font-size: 13px; color: #79807b;">{{ lift.when }}</span>
+          <span style="flex: 1;"></span>
+          <span style="font-size: 16px; font-weight: 700; color: #7d3f5f;">{{ lift.score }}</span>
+        </div>
+        <div style="font-size: 13.5px; color: #79807b;">{{ lift.tags }}</div>
+      </div>
+      <div style="width: 250px; border-radius: 14px; background: rgba(252, 252, 251, 0.96); overflow: hidden; box-shadow: 0 18px 40px rgba(31, 36, 33, 0.24);">
+        <sc-for list="{{ menuItems }}" as="item" hint-placeholder-count="2">
+          <div onClick="{{ item.press }}" style="{{ item.style }}">
+            <span style="flex: 1;">{{ item.label }}</span>
+            <sc-if value="{{ item.isEdit }}" hint-placeholder-val="{{ true }}"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg></sc-if>
+            <sc-if value="{{ item.isPhoto }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"></path><circle cx="12" cy="13" r="3"></circle></svg></sc-if>
+            <sc-if value="{{ item.isDelete }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ showAuthorNote }}" hint-placeholder-val="{{ false }}">
+        <div style="width: 250px; font-size: 12px; line-height: 17px; color: #faf9f7; text-shadow: 0 1px 3px rgba(31,36,33,0.5);">Nora wrote this one, so there is no Edit. Anybody in Home may delete it.</div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ alertOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(31, 36, 33, 0.32);"></div>
+    <div style="position: absolute; left: 50%; top: 50%; width: 272px; margin-left: -136px; margin-top: -100px; border-radius: 14px; background: rgba(250, 249, 247, 0.98); overflow: hidden; box-shadow: 0 20px 50px rgba(31, 36, 33, 0.3);">
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 19px 17px 16px; text-align: center;">
+        <div style="font-size: 17px; font-weight: 700;">Delete Comte 24 months?</div>
+        <div style="font-size: 13px; line-height: 18px; color: #4b524d; text-wrap: pretty;">This deletes 3 tastings with it, including Nora&#39;s and Sam&#39;s. It cannot be undone.</div>
+      </div>
+      <div style="height: 1px; background: #d8d6d0;"></div>
+      <div style="display: flex;">
+        <div onClick="{{ close }}" style="flex: 1; min-height: 44px; display: flex; align-items: center; justify-content: center; font-size: 17px; color: #1f2421; cursor: pointer;">Cancel</div>
+        <div style="width: 1px; background: #d8d6d0;"></div>
+        <div onClick="{{ close }}" style="flex: 1; min-height: 44px; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; color: #a4372c; cursor: pointer;">Delete</div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { view: 'mine' };
+  }
+
+  data() {
+    return [
+      { key: 'mine', who: 'You', initial: 'E', when: 'today', score: '4.5', tags: 'nutty · caramel · hay', tone: '#f0e6ec', ink: '#7d3f5f', top: 148 },
+      { key: 'nora', who: 'Nora', initial: 'N', when: '2 weeks ago', score: '4.5', tags: 'nutty · crystalline', tone: '#e2f2f0', ink: '#2b7f86', top: 236 },
+      { key: 'sam', who: 'Sam', initial: 'S', when: 'in June', score: '4.0', tags: 'hay · butter', tone: '#f2ece0', ink: '#8a6a33', top: 324 }
+    ];
+  }
+
+  renderVals() {
+    const view = this.state.view;
+    const rows = this.data();
+
+    const ROW = 'display: flex; flex-direction: column; gap: 5px; padding: 13px 0; border-bottom: 1px solid #e8e7e3; cursor: pointer;';
+
+    const ITEM = 'display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 15px; font-size: 16px; color: #1f2421; border-bottom: 1px solid #e2e0dc; cursor: pointer;';
+    const ITEM_LAST = 'display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 15px; font-size: 16px; color: #a4372c; font-weight: 600; cursor: pointer;';
+
+    const lift = rows.filter((row) => row.key === view)[0] || rows[0];
+
+    let menuItems = [];
+    if (view === 'mine') {
+      menuItems = [
+        { label: 'Edit my tasting', style: ITEM, isEdit: true, isPhoto: false, isDelete: false, press: () => this.setState({ view: 'none' }) },
+        { label: 'Delete', style: ITEM_LAST, isEdit: false, isPhoto: false, isDelete: true, press: () => this.setState({ view: 'none' }) }
+      ];
+    } else if (view === 'nora' || view === 'sam') {
+      menuItems = [
+        { label: 'Delete', style: ITEM_LAST, isEdit: false, isPhoto: false, isDelete: true, press: () => this.setState({ view: 'none' }) }
+      ];
+    } else if (view === 'subject') {
+      menuItems = [
+        { label: 'Edit the cheese', style: ITEM, isEdit: true, isPhoto: false, isDelete: false, press: () => this.setState({ view: 'none' }) },
+        { label: 'Change photo', style: ITEM, isEdit: false, isPhoto: true, isDelete: false, press: () => this.setState({ view: 'none' }) },
+        { label: 'Delete the cheese', style: ITEM_LAST, isEdit: false, isPhoto: false, isDelete: true, press: () => this.setState({ view: 'alert' }) }
+      ];
+    }
+
+    const anchorTop = view === 'subject' ? 96 : lift.top;
+    const menuAnchorStyle = 'position: absolute; left: 16px; right: 16px; top: ' + anchorTop + 'px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px;';
+    const liftStyle = 'width: 100%; display: flex; flex-direction: column; gap: 5px; padding: 12px 14px; border-radius: 14px; background: #ffffff; box-shadow: 0 14px 34px rgba(31, 36, 33, 0.22); ' + (view === 'subject' ? 'display: none;' : '');
+
+    return {
+      rows: rows.map((row) => ({
+        who: row.who,
+        initial: row.initial,
+        when: row.when,
+        score: row.score,
+        tags: row.tags,
+        style: ROW,
+        avatarStyle: 'width: 24px; height: 24px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 700; background: ' + row.tone + '; color: ' + row.ink + ';',
+        hold: () => this.setState({ view: row.key })
+      })),
+      menuOpen: view === 'mine' || view === 'nora' || view === 'sam' || view === 'subject',
+      alertOpen: view === 'alert',
+      menuItems: menuItems,
+      menuAnchorStyle: menuAnchorStyle,
+      liftStyle: liftStyle,
+      lift: {
+        who: lift.who,
+        initial: lift.initial,
+        when: lift.when,
+        score: lift.score,
+        tags: lift.tags,
+        avatarStyle: 'width: 24px; height: 24px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 700; background: ' + lift.tone + '; color: ' + lift.ink + ';'
+      },
+      showAuthorNote: view === 'nora' || view === 'sam',
+      openSubjectMenu: () => this.setState({ view: 'subject' }),
+      close: () => this.setState({ view: 'none' })
+    };
+  }
+}
+</script>
+</body>
+</html>

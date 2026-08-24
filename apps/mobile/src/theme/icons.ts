@@ -22,6 +22,7 @@
 import type { ModuleIconName } from '@gather/core/modules'
 import Apple from 'lucide-react-native/icons/apple'
 import Baby from 'lucide-react-native/icons/baby'
+import Beer from 'lucide-react-native/icons/beer'
 import Calendar from 'lucide-react-native/icons/calendar'
 import CalendarHeart from 'lucide-react-native/icons/calendar-heart'
 // Chrome. Not Modules, so deliberately kept out of the union below.
@@ -61,6 +62,10 @@ import { type Glyph, glyph } from './glyph'
 export const MODULE_ICONS = {
   Apple: glyph(Apple, 'carrot'),
   Baby: glyph(Baby, 'figure.and.child.holdinghands'),
+  // Beers. `mug.fill` is the nearest the SF catalogue has and it means a mug
+  // of something hot, so this keeps the lucide glyph for `Grape`'s reason:
+  // a symbol that draws the wrong drink is worse than one that draws the SVG.
+  Beer: glyph(Beer, null),
   Calendar: glyph(Calendar, 'calendar'),
   CalendarHeart: glyph(CalendarHeart, 'menucard'),
   ChefHat: glyph(ChefHat, 'fork.knife'),

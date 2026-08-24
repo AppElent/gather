@@ -8,6 +8,7 @@ import { recipes } from './recipes'
 import { settings } from './settings'
 import { shell } from './shell'
 import { tasks } from './tasks'
+import { tastings } from './tastings'
 
 /**
  * One area per surface, plus two that cut across them.
@@ -28,6 +29,7 @@ export const en = {
   foods,
   tasks,
   baby,
+  tastings,
   settings,
 }
 

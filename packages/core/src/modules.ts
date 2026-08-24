@@ -7,6 +7,7 @@ export type ModuleGroup = (typeof MODULE_GROUPS)[number]
 export type ModuleIconName =
   | 'Apple'
   | 'Baby'
+  | 'Beer'
   | 'Calendar'
   | 'CalendarHeart'
   | 'ChefHat'
@@ -105,6 +106,14 @@ export const MODULES = [
     status: 'placeholder',
     scope: 'group',
   },
+  /**
+   * The three tasting Modules (#199, ADR-0024). They share one backend and
+   * one Kind spec (`tastings.ts`), and they are `placeholder` here because
+   * `status` answers *the web's* question — `ModulePlaceholder` on the phone
+   * already says a Module being live on one client is no evidence about the
+   * other. The native screens exist; the web companion does not yet, so the
+   * web still renders an honest placeholder and this flips with it.
+   */
   {
     id: 'cheeses',
     icon: 'Grape',
@@ -115,6 +124,18 @@ export const MODULES = [
   {
     id: 'wines',
     icon: 'Wine',
+    group: 'tasting',
+    status: 'placeholder',
+    scope: 'group',
+  },
+  /**
+   * Beer is in at launch on purpose (#199). Two Kinds would let a per-Kind
+   * special case hide in a two-element union; three is what proves the Kind
+   * spec in `tastings.ts` is really data.
+   */
+  {
+    id: 'beers',
+    icon: 'Beer',
     group: 'tasting',
     status: 'placeholder',
     scope: 'group',

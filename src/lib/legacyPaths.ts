@@ -50,6 +50,7 @@ type PlainSurface =
   | 'notes'
   | 'cheeses'
   | 'wines'
+  | 'beers'
 
 function plain(surface: PlainSurface): LegacyTarget {
   return { surface, link: (groupSlug) => groupLink(surface, groupSlug) }
@@ -131,6 +132,7 @@ const FLAT_MODULES: Record<string, PlainSurface> = {
   notes: 'notes',
   cheeses: 'cheeses',
   wines: 'wines',
+  beers: 'beers',
 }
 
 /** A record id that arrived percent-encoded, or the segment as it stands. */

@@ -57,6 +57,10 @@ export const byId = {
     label: 'Wijnen',
     description: 'Beoordeel de wijnen die je proeft.',
   },
+  beers: {
+    label: 'Bieren',
+    description: 'Beoordeel de bieren die je proeft.',
+  },
 } satisfies typeof enById
 
 export const groups = {

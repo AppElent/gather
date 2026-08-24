@@ -29,9 +29,24 @@ describe('every kind of entry names a real Module', () => {
   })
 
   test('and is labelled the way the rest of the app labels it', () => {
-    expect(activityModuleLabel('recipe', en)).toBe('Recipes')
-    expect(activityModuleLabel('task', en)).toBe('Tasks')
-    expect(activityModuleLabel('babyEvent', en)).toBe('Baby log')
+    expect(activityModuleLabel({ kind: 'recipe' }, en)).toBe('Recipes')
+    expect(activityModuleLabel({ kind: 'task' }, en)).toBe('Tasks')
+    expect(activityModuleLabel({ kind: 'babyEvent' }, en)).toBe('Baby log')
+  })
+
+  /**
+   * The one kind that spans three Modules. The server says which, because
+   * `kind` genuinely cannot — and the fallback exists so a row that somehow
+   * arrives without one still names a Module rather than nothing.
+   */
+  test('a tasting is labelled by the Module the entry itself names', () => {
+    expect(
+      activityModuleLabel({ kind: 'tasting', moduleId: 'wines' }, en),
+    ).toBe('Wines')
+    expect(
+      activityModuleLabel({ kind: 'tasting', moduleId: 'beers' }, en),
+    ).toBe('Beers')
+    expect(activityModuleLabel({ kind: 'tasting' }, en)).toBe('Cheeses')
   })
 
   test('every kind has a sentence to sit in', () => {

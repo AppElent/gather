@@ -13,7 +13,8 @@
     "./module-tints": "./src/moduleTints.ts",
     "./modules": "./src/modules.ts",
     "./photo-presets": "./src/photoPresets.ts",
-    "./pins": "./src/pins.ts"
+    "./pins": "./src/pins.ts",
+    "./tastings": "./src/tastings.ts"
   },
   "dependencies": {},
   "scripts": {
