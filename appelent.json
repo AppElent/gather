@@ -3,6 +3,6 @@
     "baseline": { "version": 5, "steps": [6, 9, 14, 15] },
     "auth": { "version": 1 },
     "i18n": { "version": 1, "options": { "locales": ["en", "nl"] } },
-    "guidance": { "version": 1, "steps": [1] }
+    "guidance": { "version": 2, "steps": [1] }
   }
 }

@@ -180,8 +180,65 @@ signal.
 scroll, and `role="search"` on a Search tab so iOS 26 draws it as its own
 glass capsule. Badges only when something genuinely needs counting.
 
-**Titles.** Large titles on top-level index screens; small inline titles
-on anything you push into.
+**Titles.** Every screen gets a native title and lets the platform decide
+what it does, based on which of three things the screen is:
+
+- **Index** — the root of a tab. `headerLargeTitle`: starts big and
+  shrinks into the bar as content scrolls under it; a screen whose
+  content fits simply keeps it big, which costs nothing because there is
+  no scrolling to get out of the way of.
+- **Pushed** — the default for anything you navigate into: a list, a
+  form, a settings sub-page. Back button, small inline title.
+- **Detail** — a screen about one record recognized by its picture (a
+  photo, a video): no title text in the bar at all. The header, the
+  media, and — if the record has them — a local tab strip stay pinned;
+  only the body beneath scrolls. The record's real name lives in that
+  pinned content, not in the bar.
+
+**Which of the three is decided by content, not by nesting depth.**
+Default to Pushed. Promote to Detail only when what's on screen is a
+record you'd recognize by its picture — a Recipe with a photo, not a
+Food item with none, and not a list of either. There is no other
+per-screen judgment to make: once you know which of the three a screen
+is, everything else below follows.
+
+Opt out only with a stated reason: a header that has to hold a control
+the native one has no slot for, or a sheet, which has no header at all.
+
+A heading drawn as a `<Text>` inside the scroll view is not a title —
+normally. It scrolls away and the screen stops saying what it is. **The
+one exception is Detail**, where the pinned header keeps the screen
+self-identifying regardless of scroll position, so the real title is
+free to live in the scrolling body as ordinary content instead of in the
+bar.
+
+**Every screen keeps a `title` set on its header, even a Detail screen
+that draws nothing from it.** It costs one line, and it's the only thing
+VoiceOver and the app-switcher have to name a screen with no visible
+title.
+
+**Wiring an Index title takes three things, and then a precondition.**
+`headerLargeTitle` on the stack; `headerShown: true` with a `title` on
+the screen, if the stack defaults it off; and
+`contentInsetAdjustmentBehavior="automatic"` on the scroll view, which is
+what names the scroll view the title collapses against. Miss the third
+and the title sits big forever.
+
+Then the precondition, which is the one that costs an afternoon: **the
+scroll view must be the screen's first subview.** UIKit only honours
+`automatic` there. Nested one level down — inside a `<View style={{flex: 1}}>`
+wrapping a scroll view and a pinned bar, say — it silently degrades to
+`scrollableAxes`, which still adjusts insets, so the screen looks correct
+and only the collapse is missing. No warning, nothing to grep for. Make
+the scroll view and the pinned bar siblings; `collapsable={false}` on the
+wrapper is the escape hatch when you genuinely cannot flatten it.
+
+**Wiring a Detail screen is a fixed region, not a collapse.** The
+header, the media, and the optional tab strip are laid out as ordinary
+pinned views above a `ScrollView` that holds only the body — nothing in
+the pinned region ever moves, so none of the Index screen's scroll-linked
+machinery applies. Which component draws the tab strip is deliberately
+left open here.
 
 **Getting out.** The native back button and the swipe-from-edge gesture.
 No breadcrumbs on the phone, even if the web app uses them — a
@@ -257,6 +314,13 @@ Two additions, and which one applies depends on what the handoff is for:
 The first rule was the only one until Recipes needed the second. It is
 written down here rather than excepted in a component, which is what the
 last line of this document asks for.
+
+**Titles.** The All tab and the baby log's main screen both drew their own
+headings until 2026-08-21; both are native titles now, and `ChildScreen`'s
+`LogBar` is a sibling of its scroll view rather than sharing a wrapper with
+it, which is what was suppressing its collapse. `settings/index.tsx` is the
+one screen still drawing its own heading — a bigger job than the others,
+because its search field would become `headerSearchBarOptions`.
 
 **Getting out.** [ADR-0013](adr/0013-a-nested-page-carries-its-own-trail.md)
 is the web rule the generic block's "even if the web app uses them" refers

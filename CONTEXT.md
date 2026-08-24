@@ -51,7 +51,7 @@ but they are *about* a Group and are kept per Group (ADR-0005).
 
 **Catalog**:
 Reference data owned by nobody and readable by everybody — the foods that ship
-with Gather. Neither Group-scoped nor Personal. A Catalog entry has no author
+with Gather, and the well-known cheeses (see **Tasting catalog**). Neither Group-scoped nor Personal. A Catalog entry has no author
 and nobody may edit it; it changes only when a new version of Gather ships a
 different one.
 _Avoid_: Global data, Public data
@@ -176,6 +176,55 @@ refused is offered — which is what lets a type added to the catalogue reach
 households that made their choice before it existed.
 _Avoid_: Enabled types, Active types, Visible types
 
+**Tasting**:
+One person's record of having tasted something on a day — a score out of five,
+what they tasted in it, and their notes. Group-scoped and carrying
+**Attribution**, so two Members of a wine club each keep their own Tasting of
+the same bottle rather than overwriting one figure. It is the thing a person
+*makes*: a Tasting subject comes into being because somebody logged a Tasting
+against it, never as a separate first step (ADR-0024). It carries the day it
+happened, which is not the day it was written down.
+_Avoid_: Rating, Review, Note, Entry (the Baby log and the food diary already
+have entries)
+
+**Tasting subject**:
+The thing tasted — a cheese, a wine, a beer. Group-scoped, and the thing the
+household accumulates a relationship with: the photo of the label, the note that
+you buy the aged one, every Tasting anybody has made of it. It holds the facts
+that do not change between tastings (producer, vintage, milk type); what you
+thought on the night belongs to the Tasting.
+
+The shared word appears only where the Kind genuinely is not known. A person
+never reads "subject" or "item" — they read *cheese*, *wine*, *beer*.
+_Avoid_: Item, Product, Bottle (per-Kind words for the shared concept), Entry
+
+**Kind**:
+Which of cheese, wine or beer a Tasting subject is. A Kind is *data*, not code:
+it declares the fields its subjects and their Tastings have, the vocabularies
+those fields draw on, and whether a Tasting catalog ships for it. Adding a
+fourth Kind is an entry in that table plus its messages — not a new Module
+backend. The Kind is fixed by the address a page is at, so the Wines Module can
+never show a cheese.
+_Avoid_: Type, Category, Class
+
+**Tasting catalog**:
+The list of well-known subjects Gather ships for a Kind — the cheeses everybody
+has heard of. Catalog in the established sense: owned by nobody, read-only,
+reconciled by `seedKey`, present in every environment. A Kind may have none, and
+wine and beer deliberately have none: the set of wines is unbounded and every
+vintage differs.
+
+It is a **picker and not a store**. Nothing in a Group ever points at a catalog
+row: choosing one creates that Group's own Tasting subject, prefilled from it,
+which is thereafter ordinary Group content — editable, photographable, and the
+only thing every list and query sees (ADR-0024).
+
+Distinct from a Kind's **vocabularies** — the grape varieties, regions, styles
+and aroma descriptors its fields offer. Those ship too, but they are field
+options rather than subjects, and every Kind has them even when it has no
+catalog.
+_Avoid_: Presets, Templates, Library
+
 **Sample household**:
 A complete, fake Group — members, recipes, tasks, a baby's log, a food diary —
 that exists so a test or preview environment can be looked at. Never present in
@@ -229,6 +278,11 @@ _Avoid_: Signed out, Offline mode
 - A Module is configured by its content and never by a switch. Nothing turns a
   Module on, and what a Module needs configured belongs to one of its records —
   so an empty Module's invitation and its setup are the same screen (ADR-0022).
+- A Catalog entry is a fact or a suggestion, and which one decides whether
+  anything may point at it. A Food is a fact, so a diary entry references the
+  Catalog row and the row stays read-only forever. A **Tasting catalog** entry
+  is a suggestion, so nothing references it: tasting it makes a copy that is
+  yours, and the shipped row is never seen again (ADR-0024).
 - Every client names things the same way and looks however suits it. The words a
   person reads — a Group, a Pin, a Module and what it is for — are one answer
   wherever they are read; the palette, the type and the layout are each client's
