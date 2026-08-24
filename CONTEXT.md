@@ -56,6 +56,111 @@ and nobody may edit it; it changes only when a new version of Gather ships a
 different one.
 _Avoid_: Global data, Public data
 
+**Finance calculator**:
+A Group tool that estimates an outcome from values a Member enters. Its result
+is disposable unless a Member explicitly saves it as a Group scenario; it is
+not a financial record.
+_Avoid_: Ledger, Account statement
+
+**Saved scenario**:
+An immutable Group snapshot of the inputs and result of a Finance calculator.
+Members change a scenario by duplicating it, so a comparison always retains the
+assumptions it was made from.
+_Avoid_: Editable draft, Live calculation
+
+**Bill**:
+A recurring financial commitment of a Group, such as rent, utilities,
+insurance, or a subscription. A Bill is not a one-off invoice, reimbursement,
+or a payment between Members.
+_Avoid_: Expense, Invoice, Reimbursement
+
+**Mortgage scenario**:
+A Finance calculator's estimate of a mortgage's payment or repayment path,
+including extra repayments and a fixed-rate-expiry comparison. It is not a loan
+record. It supports annuity and linear mortgages, and shows the result for
+interest-rate assumptions a Member enters. It may model an existing or
+hypothetical loan, one-off or recurring extra repayments, and an optional
+Member-entered early-repayment charge.
+_Avoid_: Mortgage account
+
+**Recurring costs**:
+A Finance calculator that turns manually entered repeating costs into monthly
+and annual totals. It is not a payment tracker or a due-date reminder.
+_Avoid_: Bills module, Subscription ledger
+
+**Subscription comparison**:
+A Finance calculator that compares manually entered subscription plans by their
+monthly and annual cost, including a hypothetical price rise. It does not manage
+cancellation or renewal dates.
+_Avoid_: Subscription manager, Renewal reminder
+
+**Savings goal**:
+A Group target with a desired amount, date, and manually entered saved amount.
+It estimates the monthly amount required and the expected completion date; it
+does not derive progress from transactions.
+_Avoid_: Savings account, Budget envelope
+
+**Home-buying costs**:
+A Netherlands-specific Finance calculator for the cash needed to buy a home and
+an estimated monthly mortgage payment. It does not assess what a Group can
+afford or recommend a loan.
+_Avoid_: Affordability assessment, Mortgage advice
+
+**Net worth snapshot**:
+A dated Group record of manually entered current asset and liability values,
+plus the calculated current value of its Portfolio overview. A Member saves it
+explicitly to compare over time; it is not a bank-connected account view.
+_Avoid_: Account aggregation, Financial statement
+
+**Payment split**:
+A Finance calculator's division of one event's costs among current Group
+Members, equally or by custom amount. It may collect several payments that
+different Members made, then shows who should contribute; it does not retain
+debts, balances, or settlements.
+_Avoid_: Bill, Expense claim, Settlement
+
+**Portfolio overview**:
+A Group-owned, information-only view of its listed-stock and ETF holdings. It
+uses delayed or end-of-day market prices with their timestamp and never makes
+investment recommendations or predictions.
+_Avoid_: Brokerage, Investment adviser, Market research
+
+**Investment holding**:
+A Group's position in one listed stock or ETF. A Member may establish it from a
+current quantity and average purchase price on a date, or from a history of
+investment transactions; later transactions build on that dated opening
+position. Its trading currency may differ from the Group's home currency.
+_Avoid_: Account, Security
+
+**Investment transaction**:
+A recorded buy, sale, dividend, or fee used to establish an Investment
+holding's position and informational performance. It is not required when a
+Member starts from a current position, and it is never a tax record.
+_Avoid_: Bank transaction, Tax record
+
+**Average cost**:
+The informational cost basis of an Investment holding: the total acquisition
+cost divided across its current units. Gather uses it for realized and
+unrealized performance, not tax reporting.
+_Avoid_: FIFO, Tax basis
+
+**Manual adjustment**:
+A Member-entered correction to an Investment holding for a stock split, merger,
+or ETF change. It is used instead of silently applying a provider's corporate
+action.
+_Avoid_: Automatic corporate action
+
+**Stale valuation**:
+A Portfolio overview value based on the last known price or exchange rate after
+fresh data could not be retrieved. Its timestamp and age remain visible.
+_Avoid_: Current price, Missing value
+
+**Group home currency**:
+The currency a Group selects for combined money totals. A Portfolio overview
+preserves each holding's trading currency and translates the total using an
+exchange rate whose timestamp is shown.
+_Avoid_: Base currency, Default currency
+
 A food *a person added themselves* is not Catalog. It sits alongside the
 Catalog and looks the same when you search, but it has Attribution and its
 creator can change it.
