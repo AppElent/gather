@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
+import { useRecordRecent } from '../../search/recentRecords'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { TASK_ICONS } from '../tasks/icons'
 import { taskActions, useTaskState } from '../tasks/store'
@@ -46,6 +47,21 @@ export function Note({ noteId }: { noteId: string }) {
   const state = useTaskState()
 
   const note = state.notes.find((each) => each.id === noteId)
+
+  useRecordRecent(
+    note
+      ? {
+          id: note.id,
+          type: 'note',
+          title: note.title,
+          detail:
+            note.body
+              .split('\n')
+              .find((line) => line.trim())
+              ?.trim() ?? '',
+        }
+      : null,
+  )
 
   // A note is the longest thing anybody types in this app, so it is the one
   // that would cost the most in per-keystroke writes â€” see `useDebouncedText`.

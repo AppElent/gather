@@ -68,6 +68,24 @@ export const en = {
    */
   finances: coreEn.finances,
 
+  search: {
+    placeholder: 'Search this Group',
+    minimum: 'Type at least two characters to search.',
+    recent: 'Recent',
+    recentBadge: 'Recent',
+    loading: 'Searching…',
+    noResults: 'Nothing found.',
+    clear: 'Clear search',
+    types: {
+      recipe: 'Recipe',
+      task: 'Task',
+      note: 'Note',
+      tasting: 'Tasting',
+      calendarEvent: 'Event',
+    },
+    kinds: { cheese: 'Cheese', wine: 'Wine', beer: 'Beer' },
+  },
+
   /**
    * The signed-in shell: the five fixed tabs, the Group switcher sheet, and
    * the seat a tab keeps until its Module is built for the phone.

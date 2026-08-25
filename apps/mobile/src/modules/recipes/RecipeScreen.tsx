@@ -52,6 +52,7 @@ import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
+import { useRecordRecent } from '../../search/recentRecords'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { RECIPE_UI_ICONS } from './icons'
@@ -115,6 +116,17 @@ export function RecipeScreen({ base }: RecipeScreenProps) {
 
   const [problem, setProblem] = useState<string | null>(null)
   const [estimating, setEstimating] = useState(false)
+
+  useRecordRecent(
+    recipe && recipe !== null
+      ? {
+          id: recipe._id,
+          type: 'recipe',
+          title: recipe.title,
+          detail: recipe.tags.join(', '),
+        }
+      : null,
+  )
 
   const text = t.recipes
 

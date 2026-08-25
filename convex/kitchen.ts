@@ -362,6 +362,39 @@ export const addCalendarEvent = mutation({
   },
 })
 
+/** One event's own destination, including when Search opened it cold. */
+export const getCalendarEvent = query({
+  args: { groupSlug: v.string(), id: v.id('calendarEvents') },
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.id('calendarEvents'),
+      title: v.string(),
+      date: v.string(),
+      startMinutes: v.optional(v.number()),
+      endMinutes: v.optional(v.number()),
+      calendarName: v.string(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const event = await ctx.db.get(args.id)
+    if (!event) return null
+    const { calendar } = await calendarInGroup(
+      ctx,
+      args.groupSlug,
+      event.calendarId,
+    )
+    return {
+      _id: event._id,
+      title: event.title,
+      date: event.date,
+      startMinutes: event.startMinutes,
+      endMinutes: event.endMinutes,
+      calendarName: calendar.name,
+    }
+  },
+})
+
 export const removeCalendarEvent = mutation({
   args: { groupSlug: v.string(), id: v.id('calendarEvents') },
   handler: async (ctx, args) => {

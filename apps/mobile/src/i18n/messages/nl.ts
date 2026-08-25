@@ -39,6 +39,24 @@ export const nl = {
 
   finances: coreNl.finances,
 
+  search: {
+    placeholder: 'Deze Groep doorzoeken',
+    minimum: 'Typ minstens twee tekens om te zoeken.',
+    recent: 'Recent',
+    recentBadge: 'Recent',
+    loading: 'Zoeken…',
+    noResults: 'Niets gevonden.',
+    clear: 'Zoeken wissen',
+    types: {
+      recipe: 'Recept',
+      task: 'Taak',
+      note: 'Notitie',
+      tasting: 'Proeverij',
+      calendarEvent: 'Afspraak',
+    },
+    kinds: { cheese: 'Kaas', wine: 'Wijn', beer: 'Bier' },
+  },
+
   shell: {
     tabs: {
       home: coreNl.shell.nav.home,

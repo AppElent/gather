@@ -685,6 +685,7 @@ export default defineSchema({
     /** Attribution only. Confers no ownership and no access (CONTEXT.md). */
     createdByUserId: v.id('users'),
   })
+    .index('by_group', ['groupId'])
     .index('by_group_kind', ['groupId', 'kind'])
     // Materialising a catalog entry asks exactly this question, on every log.
     .index('by_group_kind_catalogKey', ['groupId', 'kind', 'catalogKey']),

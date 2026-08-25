@@ -35,6 +35,7 @@ export const PREFERENCE_KEYS = {
   group: 'gather:group:retained',
   appearance: 'gather:appearance',
   locale: 'gather:locale',
+  recentRecords: 'gather:search:recent-records',
 } as const
 
 /**

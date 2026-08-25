@@ -3,7 +3,7 @@ import {
   randomDinner,
 } from '@gather/core/meal-planner'
 import { useMutation, useQuery } from 'convex/react'
-import { Stack } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import {
   Alert,
@@ -682,6 +682,7 @@ export function CalendarScreen() {
   const { group } = useGroup()
   const { t } = useI18n()
   const tokens = useTokens('home')
+  const router = useRouter()
   const [month, setMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   )
@@ -935,7 +936,15 @@ export function CalendarScreen() {
                 })
               }
             >
-              <View
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={row.title}
+                onPress={() =>
+                  router.push({
+                    pathname: '/all/calendar/[eventId]',
+                    params: { eventId: row._id },
+                  })
+                }
                 style={[
                   styles.row,
                   {
@@ -952,7 +961,7 @@ export function CalendarScreen() {
                     ? ''
                     : `${minutesToTime(row.startMinutes)}–${minutesToTime(row.endMinutes)}`}
                 </Text>
-              </View>
+              </Pressable>
             </SwipeableRow>
           </NativeContextMenu>
         ))

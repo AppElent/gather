@@ -58,6 +58,7 @@ import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
 import { pickPhoto, uploadPhoto } from '../../photo/pickPhoto'
+import { useRecordRecent } from '../../search/recentRecords'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { TASTING_UI_ICONS } from './icons'
 import type { TastingBase } from './paths'
@@ -96,6 +97,17 @@ export function SubjectScreen({
     id: subjectId as Id<'tastingSubjects'>,
     kind,
   })
+
+  useRecordRecent(
+    page && page !== null
+      ? {
+          id: page.subject._id,
+          type: 'tasting',
+          title: page.subject.name,
+          detail: page.subject.kind,
+        }
+      : null,
+  )
 
   const words = kindWords(t.tastings, kind)
   const copy = t.tastings.subject

@@ -30,6 +30,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
+import { useRecordRecent } from '../../search/recentRecords'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { Card, Checkbox, Chip } from './components'
@@ -57,6 +58,17 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
   const task = state.tasks.find((each) => each.id === taskId)
   const list = state.lists.find((each) => each.id === task?.listId)
+
+  useRecordRecent(
+    task
+      ? {
+          id: task.id,
+          type: 'task',
+          title: task.title,
+          detail: [list?.name, task.dueDate].filter(Boolean).join(' · '),
+        }
+      : null,
+  )
 
   // Both fields write on a pause, not on a keystroke â€” see `useDebouncedText`.
   const title = useDebouncedText(task?.title ?? '', (next) => {

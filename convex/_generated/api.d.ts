@@ -59,6 +59,7 @@ import type * as recipeNutrition from "../recipeNutrition.js";
 import type * as recipes from "../recipes.js";
 import type * as recurringCosts from "../recurringCosts.js";
 import type * as savingsGoals from "../savingsGoals.js";
+import type * as search from "../search.js";
 import type * as seed from "../seed.js";
 import type * as splitScenarios from "../splitScenarios.js";
 import type * as taskLists from "../taskLists.js";
@@ -124,6 +125,7 @@ declare const fullApi: ApiFromModules<{
   recipes: typeof recipes;
   recurringCosts: typeof recurringCosts;
   savingsGoals: typeof savingsGoals;
+  search: typeof search;
   seed: typeof seed;
   splitScenarios: typeof splitScenarios;
   taskLists: typeof taskLists;
