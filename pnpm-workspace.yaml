@@ -45,3 +45,14 @@ overrides:
   # 2.11.0 (published within the minimumReleaseAge cooldown). Pin to 2.10.0
   # (published 2026-06-24, outside the cooldown) instead of weakening the policy.
   "@google/genai": "2.10.0"
+
+# pnpm truncates the names of directories inside node_modules/.pnpm, and the
+# default length is platform-dependent: 60 on Windows (MAX_PATH), 120 on Linux
+# and macOS. Those directory names are hashed into `expo-updates`' fingerprint
+# runtime version (ADR 0028) — 311 of the mobile app's 316 fingerprint sources
+# are paths under .pnpm — so the same commit produced one runtime version on
+# this Windows machine and a different one on the EAS Linux builder, and the
+# build refused to configure EAS Update. Pinning the length makes the two
+# agree. 60 rather than 120 because Windows cannot go higher.
+# Retire this when @expo/fingerprint stops hashing virtual-store paths.
+virtualStoreDirMaxLength: 60

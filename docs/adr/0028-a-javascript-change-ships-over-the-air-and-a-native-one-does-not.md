@@ -38,6 +38,13 @@ native dependency set, the config plugins and the app config, so an incompatible
 update cannot be published to an older build even by someone who has never read
 this file. `eas fingerprint:compare` reports why a fingerprint moved.
 
+The fingerprint is mostly paths, not contents — almost all of its sources are
+files under `node_modules/.pnpm/`, whose directory names pnpm truncates to a
+platform-dependent length. `virtualStoreDirMaxLength` is therefore pinned in
+`pnpm-workspace.yaml`: without it a Windows checkout and the Linux builder
+resolve different runtime versions from one commit, and the build fails rather
+than shipping something unreachable.
+
 The `--environment` pairing is enforced by only ever publishing through the
 `update:preview` / `update:prod` scripts in `apps/mobile/package.json`, which
 carry both flags.

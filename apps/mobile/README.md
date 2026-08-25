@@ -90,6 +90,14 @@ pnpm exec expo-updates runtimeversion:resolve --platform android
 pnpm exec eas fingerprint:compare
 ```
 
+A fingerprint is mostly *paths*: 311 of this app's 316 fingerprint sources are
+files under `node_modules/.pnpm/`. pnpm truncates those directory names to 60
+characters on Windows and 120 on Linux, so the same commit used to resolve one
+runtime version here and another on the EAS builder, and the build refused to
+configure EAS Update. `virtualStoreDirMaxLength: 60` in `pnpm-workspace.yaml`
+is what keeps the two honest. If a fingerprint ever splits between machines
+again, suspect a path before you suspect a dependency.
+
 ### Watching a rollout
 
 ```
