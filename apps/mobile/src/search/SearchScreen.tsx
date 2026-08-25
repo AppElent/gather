@@ -1,6 +1,6 @@
 import { useQuery } from 'convex/react'
-import { useRouter } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { usePathname, useRouter } from 'expo-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -58,6 +58,8 @@ export function SearchScreen() {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const pathname = usePathname()
+  const inputRef = useRef<TextInput>(null)
   const [text, setText] = useState('')
   const [recents, setRecents] = useState(readRecentRecords)
   const debounced = useDebouncedQuery(text)
@@ -72,6 +74,13 @@ export function SearchScreen() {
     () => recordsForGroup(recents, group.slug),
     [group.slug, recents],
   )
+
+  useEffect(() => {
+    if (pathname === '/search') {
+      const frame = requestAnimationFrame(() => inputRef.current?.focus())
+      return () => cancelAnimationFrame(frame)
+    }
+  }, [pathname])
 
   const detailOf = (result: Result) => {
     if ('detail' in result) return result.detail
@@ -211,6 +220,7 @@ export function SearchScreen() {
         ]}
       >
         <TextInput
+          ref={inputRef}
           testID="group-search-input"
           value={text}
           onChangeText={setText}
