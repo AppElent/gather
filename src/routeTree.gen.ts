@@ -34,6 +34,7 @@ import { Route as AppGGroupSlugFinancesRouteImport } from './routes/_app/g/$grou
 import { Route as AppGGroupSlugCombosRouteImport } from './routes/_app/g/$groupSlug/combos'
 import { Route as AppGGroupSlugCheesesRouteImport } from './routes/_app/g/$groupSlug/cheeses'
 import { Route as AppGGroupSlugCalendarRouteImport } from './routes/_app/g/$groupSlug/calendar'
+import { Route as AppGGroupSlugBeersRouteImport } from './routes/_app/g/$groupSlug/beers'
 import { Route as AppGGroupSlugAllRouteImport } from './routes/_app/g/$groupSlug/all'
 import { Route as AppGGroupSlugRecipesIndexRouteImport } from './routes/_app/g/$groupSlug/recipes/index'
 import { Route as AppGGroupSlugNutritionIndexRouteImport } from './routes/_app/g/$groupSlug/nutrition/index'
@@ -175,6 +176,11 @@ const AppGGroupSlugCalendarRoute = AppGGroupSlugCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AppGGroupSlugRoute,
 } as any)
+const AppGGroupSlugBeersRoute = AppGGroupSlugBeersRouteImport.update({
+  id: '/beers',
+  path: '/beers',
+  getParentRoute: () => AppGGroupSlugRoute,
+} as any)
 const AppGGroupSlugAllRoute = AppGGroupSlugAllRouteImport.update({
   id: '/all',
   path: '/all',
@@ -273,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/g/$groupSlug': typeof AppGGroupSlugRouteWithChildren
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/g/$groupSlug/all': typeof AppGGroupSlugAllRoute
+  '/g/$groupSlug/beers': typeof AppGGroupSlugBeersRoute
   '/g/$groupSlug/calendar': typeof AppGGroupSlugCalendarRoute
   '/g/$groupSlug/cheeses': typeof AppGGroupSlugCheesesRoute
   '/g/$groupSlug/combos': typeof AppGGroupSlugCombosRoute
@@ -313,6 +320,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/g/$groupSlug/all': typeof AppGGroupSlugAllRoute
+  '/g/$groupSlug/beers': typeof AppGGroupSlugBeersRoute
   '/g/$groupSlug/calendar': typeof AppGGroupSlugCalendarRoute
   '/g/$groupSlug/cheeses': typeof AppGGroupSlugCheesesRoute
   '/g/$groupSlug/combos': typeof AppGGroupSlugCombosRoute
@@ -355,6 +363,7 @@ export interface FileRoutesById {
   '/_app/g/$groupSlug': typeof AppGGroupSlugRouteWithChildren
   '/_app/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/_app/g/$groupSlug/all': typeof AppGGroupSlugAllRoute
+  '/_app/g/$groupSlug/beers': typeof AppGGroupSlugBeersRoute
   '/_app/g/$groupSlug/calendar': typeof AppGGroupSlugCalendarRoute
   '/_app/g/$groupSlug/cheeses': typeof AppGGroupSlugCheesesRoute
   '/_app/g/$groupSlug/combos': typeof AppGGroupSlugCombosRoute
@@ -398,6 +407,7 @@ export interface FileRouteTypes {
     | '/g/$groupSlug'
     | '/integrations/callback'
     | '/g/$groupSlug/all'
+    | '/g/$groupSlug/beers'
     | '/g/$groupSlug/calendar'
     | '/g/$groupSlug/cheeses'
     | '/g/$groupSlug/combos'
@@ -438,6 +448,7 @@ export interface FileRouteTypes {
     | '/'
     | '/integrations/callback'
     | '/g/$groupSlug/all'
+    | '/g/$groupSlug/beers'
     | '/g/$groupSlug/calendar'
     | '/g/$groupSlug/cheeses'
     | '/g/$groupSlug/combos'
@@ -479,6 +490,7 @@ export interface FileRouteTypes {
     | '/_app/g/$groupSlug'
     | '/_app/integrations/callback'
     | '/_app/g/$groupSlug/all'
+    | '/_app/g/$groupSlug/beers'
     | '/_app/g/$groupSlug/calendar'
     | '/_app/g/$groupSlug/cheeses'
     | '/_app/g/$groupSlug/combos'
@@ -693,6 +705,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGGroupSlugCalendarRouteImport
       parentRoute: typeof AppGGroupSlugRoute
     }
+    '/_app/g/$groupSlug/beers': {
+      id: '/_app/g/$groupSlug/beers'
+      path: '/beers'
+      fullPath: '/g/$groupSlug/beers'
+      preLoaderRoute: typeof AppGGroupSlugBeersRouteImport
+      parentRoute: typeof AppGGroupSlugRoute
+    }
     '/_app/g/$groupSlug/all': {
       id: '/_app/g/$groupSlug/all'
       path: '/all'
@@ -819,6 +838,7 @@ const AppGGroupSlugNutritionRouteWithChildren =
 
 interface AppGGroupSlugRouteChildren {
   AppGGroupSlugAllRoute: typeof AppGGroupSlugAllRoute
+  AppGGroupSlugBeersRoute: typeof AppGGroupSlugBeersRoute
   AppGGroupSlugCalendarRoute: typeof AppGGroupSlugCalendarRoute
   AppGGroupSlugCheesesRoute: typeof AppGGroupSlugCheesesRoute
   AppGGroupSlugCombosRoute: typeof AppGGroupSlugCombosRoute
@@ -848,6 +868,7 @@ interface AppGGroupSlugRouteChildren {
 
 const AppGGroupSlugRouteChildren: AppGGroupSlugRouteChildren = {
   AppGGroupSlugAllRoute: AppGGroupSlugAllRoute,
+  AppGGroupSlugBeersRoute: AppGGroupSlugBeersRoute,
   AppGGroupSlugCalendarRoute: AppGGroupSlugCalendarRoute,
   AppGGroupSlugCheesesRoute: AppGGroupSlugCheesesRoute,
   AppGGroupSlugCombosRoute: AppGGroupSlugCombosRoute,

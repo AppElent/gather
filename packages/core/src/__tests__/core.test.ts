@@ -34,7 +34,7 @@ function placeholders(text: string): string[] {
 
 describe('the portable Gather catalogue', () => {
   test('keeps the complete catalogue and its message join in one contract', () => {
-    expect(MODULES).toHaveLength(12)
+    expect(MODULES).toHaveLength(13)
     expect(MODULE_GROUPS).toEqual(['kitchen', 'money', 'home', 'tasting'])
     expect(moduleText(MODULES[0], en).label).toBe('Recipes')
     expect(moduleText(MODULES[0], nl).label).toBe('Recepten')

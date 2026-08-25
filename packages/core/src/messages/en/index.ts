@@ -3,12 +3,14 @@ import { common } from './common'
 import { finances } from './finances'
 import { foods } from './foods'
 import { modules } from './modules'
+import { notes } from './notes'
 import { nutrients } from './nutrients'
 import { nutrition } from './nutrition'
 import { recipes } from './recipes'
 import { settings } from './settings'
 import { shell } from './shell'
 import { tasks } from './tasks'
+import { tastings } from './tastings'
 
 /**
  * One area per surface, plus two that cut across them.
@@ -23,6 +25,7 @@ export const en = {
   common,
   shell,
   modules,
+  notes,
   nutrients,
   recipes,
   nutrition,
@@ -30,6 +33,7 @@ export const en = {
   finances,
   tasks,
   baby,
+  tastings,
   settings,
 }
 

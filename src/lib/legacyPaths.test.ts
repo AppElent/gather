@@ -32,6 +32,7 @@ const INDEXES: Array<[string, string]> = [
   ['/notes', 'notes'],
   ['/cheeses', 'cheeses'],
   ['/wines', 'wines'],
+  ['/beers', 'beers'],
 ]
 
 describe('an old address with a Group-scoped equivalent', () => {

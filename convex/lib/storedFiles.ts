@@ -74,6 +74,7 @@ const FILE_HOLDERS: { [T in FileHolder]: StoredFileField<T> } = {
   babyEvents: 'photoId',
   recipes: 'imageId',
   foods: 'imageId',
+  tastingSubjects: 'photoId',
 }
 
 /** Is any row — in any table — still pointing at this file? */

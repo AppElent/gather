@@ -1,3 +1,4 @@
+import { tastingKindSpec } from '@gather/core/tastings'
 import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
@@ -25,6 +26,10 @@ import { requireGroupBySlug } from './lib/groupAccess'
  *   `createdBy`.
  * - `babyEvents` — reached through the Group's `babies`, attributed by
  *   `loggedBy`.
+ * - `tastings` — lives in a Group (`groupId`), attributed by
+ *   `createdByUserId`. **The Tasting testifies and the subject does not**
+ *   (ADR-0008, #199 story 28): creating a cheese produces no entry of its own,
+ *   because one act of logging must produce one line.
  *
  * Deliberately absent:
  *
@@ -45,7 +50,7 @@ import { requireGroupBySlug } from './lib/groupAccess'
  */
 
 /** Which Module a stream entry came out of, from the reader's point of view. */
-export type ActivityKind = 'recipe' | 'task' | 'babyEvent'
+export type ActivityKind = 'recipe' | 'task' | 'babyEvent' | 'tasting'
 
 export interface GroupActivityEntry {
   /** The source row's id — unique across tables, so it keys the list. */
@@ -72,6 +77,19 @@ export interface GroupActivityEntry {
   title: string
   /** Where it sits: the list a task is in, the child a log entry is about. */
   context: string | null
+  /**
+   * Which Module the entry belongs to, where `kind` alone cannot say.
+   *
+   * Almost every kind maps to exactly one Module and the client resolves it
+   * from that. `tasting` is the exception: Cheeses, Wines and Beers are three
+   * Modules over one pair of tables, so the entry has to carry which. Absent
+   * everywhere else, and read as a fallback rather than a replacement.
+   *
+   * A Module id and never a path — the id comes from the shared catalogue
+   * both clients already hold (`@gather/core`), which is a different thing
+   * from the route tree this file still must not know about.
+   */
+  moduleId?: string
   /**
    * The row a link can point at, for the client to build a URL from through
    * `groupPaths.ts`. Never a path: assembling one here would put a route in a
@@ -125,6 +143,7 @@ export function mergeActivity(
     recipe: 0,
     task: 0,
     babyEvent: 0,
+    tasting: 0,
   }
 
   for (const entry of newestFirst) {
@@ -223,6 +242,30 @@ async function recentBabyEvents(ctx: QueryCtx, groupId: Id<'groups'>) {
 }
 
 /**
+ * The Group's Tastings, newest first, bounded.
+ *
+ * Ordered and dated by `_creationTime` rather than by `tastedAt`: the stream
+ * answers "what has been happening", and somebody writing up Saturday's dinner
+ * on Monday happened on Monday. The day it was *tasted* is on the Tasting and
+ * is what the subject's own page orders by.
+ */
+async function recentTastings(ctx: QueryCtx, groupId: Id<'groups'>) {
+  const tastings = await ctx.db
+    .query('tastings')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .order('desc')
+    .take(ACTIVITY_LIMIT)
+  // One read per distinct subject, not per Tasting: a wine club rating the
+  // same bottle four times is one read.
+  const subjects = new Map<string, Doc<'tastingSubjects'>>()
+  for (const id of new Set(tastings.map((t) => t.subjectId))) {
+    const subject = await ctx.db.get(id)
+    if (subject) subjects.set(subject._id, subject)
+  }
+  return { tastings, subjects }
+}
+
+/**
  * One ordered stream of what has happened in the Group the URL names.
  *
  * Authorised through `requireGroupBySlug` like every other Group-scoped query:
@@ -239,16 +282,18 @@ export const forGroup = query({
   handler: async (ctx, args): Promise<GroupActivityEntry[]> => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
 
-    const [recipes, taskLists, babies] = await Promise.all([
+    const [recipes, taskLists, babies, tastings] = await Promise.all([
       recentRecipes(ctx, group._id),
       recentTasks(ctx, group._id),
       recentBabyEvents(ctx, group._id),
+      recentTastings(ctx, group._id),
     ])
 
     const actorIds: Id<'users'>[] = [
       ...recipes.map((r) => r.createdByUserId),
       ...taskLists.flatMap(({ tasks }) => tasks.map((t) => t.createdBy)),
       ...babies.flatMap(({ events }) => events.map((e) => e.loggedBy)),
+      ...tastings.tastings.map((t) => t.createdByUserId),
     ]
     const names = await displayNames(ctx, actorIds)
     const nameOf = (id: Id<'users'>) => names.get(id) ?? null
@@ -296,6 +341,29 @@ export const forGroup = query({
           }),
         ),
       ),
+      ...tastings.tastings.flatMap((tasting): GroupActivityEntry[] => {
+        const subject = tastings.subjects.get(tasting.subjectId)
+        // A Tasting whose subject has gone was deleted with it in the same
+        // transaction, so this only fires on a read racing that delete.
+        if (!subject) return []
+        return [
+          {
+            id: tasting._id,
+            kind: 'tasting',
+            at: tasting._creationTime,
+            byName: nameOf(tasting.createdByUserId),
+            // The subject's name — content, shown as somebody typed it, and
+            // never translated (story 30). Which Kind of thing it was is the
+            // `context` below, and that one *is* a key.
+            title: subject.name,
+            moduleId: tastingKindSpec(subject.kind).moduleId,
+            // Nothing hangs off the sentence: the Module's own name already
+            // says it was a cheese, and repeating it would read as a place.
+            context: null,
+            targetId: subject._id,
+          },
+        ]
+      }),
     ]
 
     return mergeActivity(candidates)

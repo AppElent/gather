@@ -285,6 +285,7 @@ export const shell = {
       recipe: 'added the recipe',
       task: 'added the task',
       babyEvent: 'logged',
+      tasting: 'rated',
     },
     connectors: {
       task: 'to',

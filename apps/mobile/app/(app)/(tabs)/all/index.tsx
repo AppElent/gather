@@ -51,9 +51,7 @@ export default function AllTab() {
                       key={module.id}
                       accessibilityRole="button"
                       accessibilityLabel={text.label}
-                      onPress={() =>
-                        router.push(moduleDestination('all', module.id))
-                      }
+                      onPress={() => router.push(moduleDestination(module.id))}
                       style={({ pressed }) => [
                         styles.entry,
                         { backgroundColor: tint.bg },

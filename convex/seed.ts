@@ -3,6 +3,7 @@ import { internalMutation, mutation } from './_generated/server'
 import {
   applyCatalog,
   applySample,
+  applyTastingCatalog,
   ensureSeedUser,
   resetSample,
 } from './lib/seed/apply'
@@ -51,6 +52,21 @@ export const seedCatalog = internalMutation({
 })
 
 /**
+ * Reconcile the tasting Catalog — the well-known cheeses the subject picker
+ * offers (#199, ADR-0024). Production too, and for the same reason: it is
+ * reference data the Module needs to work, and it is a step in `deploy:dev` /
+ * `deploy:prod` beside `seedCatalog`.
+ *
+ * A second entrypoint rather than a line inside `seedCatalog`, because the two
+ * catalogs are different kinds of thing and a deploy should be able to say
+ * which one it just reconciled.
+ */
+export const seedTastingCatalog = internalMutation({
+  args: {},
+  handler: async (ctx) => await applyTastingCatalog(ctx),
+})
+
+/**
  * The preview entrypoint, named in `--preview-run`. Reconciles the Catalog,
  * then rebuilds the Sample household against the shared test user so that
  * clicking test-login on a PR preview lands in a populated household.
@@ -59,6 +75,7 @@ export const seedPreview = internalMutation({
   args: {},
   handler: async (ctx) => {
     const catalog = await applyCatalog(ctx)
+    const tastingCatalog = await applyTastingCatalog(ctx)
     const reset = await resetSample(ctx)
     const ownerId = await ensureSeedUser(
       ctx,
@@ -67,7 +84,7 @@ export const seedPreview = internalMutation({
       PREVIEW_TEST_USER.email,
     )
     const sample = await applySample(ctx, ownerId, Date.now())
-    return { catalog, reset, sample }
+    return { catalog, tastingCatalog, reset, sample }
   },
 })
 
@@ -98,9 +115,10 @@ export const loadSampleData = mutation({
     const user = await getCurrentUser(ctx)
     if (!user) throw new ConvexError('Not authenticated')
     const catalog = await applyCatalog(ctx)
+    const tastingCatalog = await applyTastingCatalog(ctx)
     const reset = await resetSample(ctx)
     const sample = await applySample(ctx, user._id, Date.now())
-    return { catalog, reset, sample }
+    return { catalog, tastingCatalog, reset, sample }
   },
 })
 

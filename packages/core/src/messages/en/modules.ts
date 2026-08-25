@@ -61,6 +61,10 @@ export const byId = {
     label: 'Wines',
     description: 'Rate the wines you try.',
   },
+  beers: {
+    label: 'Beers',
+    description: 'Rate the beers you try.',
+  },
 } satisfies Record<ModuleId, { label: string; description: string }>
 
 /** The headings All groups the catalog under. */

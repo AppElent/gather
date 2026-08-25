@@ -250,6 +250,7 @@ export const shell = {
       recipe: 'voegde een recept toe:',
       task: 'voegde een taak toe:',
       babyEvent: 'noteerde',
+      tasting: 'beoordeelde',
     },
     connectors: {
       task: 'aan de lijst',

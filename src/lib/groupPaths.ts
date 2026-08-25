@@ -78,6 +78,7 @@ const GROUP_ROUTES = {
   notes: `${GROUP_PREFIX}/notes`,
   cheeses: `${GROUP_PREFIX}/cheeses`,
   wines: `${GROUP_PREFIX}/wines`,
+  beers: `${GROUP_PREFIX}/beers`,
 } as const satisfies Record<string, LinkProps['to']>
 
 /** A page that exists inside a Group. */
@@ -153,6 +154,7 @@ const GROUP_MODULE_INDEXES = [
   'notes',
   'cheeses',
   'wines',
+  'beers',
 ] as const satisfies readonly GroupSurface[]
 
 export type GroupModuleIndex = (typeof GROUP_MODULE_INDEXES)[number]
@@ -280,6 +282,7 @@ const MODULE_INDEX_SURFACES: Record<string, GroupModuleIndex> = {
   notes: 'notes',
   cheeses: 'cheeses',
   wines: 'wines',
+  beers: 'beers',
 }
 
 export function groupSurfaceForModule(

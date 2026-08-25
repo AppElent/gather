@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8a6a33; text-decoration: none; }
+    a:hover { color: #6d5327; }
+    .ic { flex: none; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none;"></div>
+  <div style="flex: none; display: flex; align-items: center; height: 52px; padding: 0 16px 0 8px; gap: 8px;">
+    <div style="flex: 1; display: flex; align-items: center; gap: 1px; color: #8a6a33; cursor: pointer;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg><span style="font-size: 17px;">Notes</span></div>
+    <div style="display: flex; align-items: center; gap: 17px;"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"></path><path d="M9.5 2.5h5l-1 6.5 3 3.2V15H7.5v-2.8l3-3.2z"></path></svg><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg></div>
+  </div>
+  <div style="flex: 1; min-height: 0; overflow: hidden; padding: 4px 18px 0; display: flex; flex-direction: column; gap: 14px;">
+    <div style="font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: #79807b;">Holiday</div>
+    <div style="display: flex; flex-direction: column; gap: 3px;">
+      <sc-for list="{{ items }}" as="i" hint-placeholder-count="5">
+        <div onClick="{{ i.toggle }}" style="display: flex; align-items: flex-start; gap: 11px; min-height: 40px; cursor: pointer;">
+          <div style="{{ i.boxStyle }}"><sc-if value="{{ i.done }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></div>
+          <span style="{{ i.textStyle }}">{{ i.text }}</span>
+        </div>
+      </sc-for>
+      <div style="display: flex; align-items: center; gap: 11px; min-height: 40px;">
+        <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg><span style="font-size: 15.5px; color: #79807b;">List item</span>
+      </div>
+    </div>
+    <div style="font-size: 12.5px; color: #79807b;">Edited 2 hours ago by Anne</div>
+  </div>
+  <div style="flex: none; display: flex; align-items: center; gap: 12px; padding: 0 18px; height: 52px; border-top: 1px solid #e8e7e3; background: #ffffff;">
+    <sc-for list="{{ colours }}" as="c" hint-placeholder-count="5">
+      <div onClick="{{ c.pick }}" style="{{ c.style }}"></div>
+    </sc-for>
+    <div style="flex: 1;"></div>
+    <svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1f2421" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"></rect><circle cx="8.5" cy="9.5" r="1.6"></circle><path d="m4 18 5-5 4 4 3-3 4 4"></path></svg>
+    <svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a4372c" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"></path><path d="M9.5 6.5V4h5v2.5"></path><path d="m6.5 6.5 1 13.5h9l1-13.5"></path></svg>
+  </div>
+  <div style="flex: none; display: flex; height: 49px; background: #ffffff; border-top: 1px solid #e8e7e3;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 10v10h14V10"></path></svg><span style="font-size: 10px;">Home</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span style="font-size: 10px;">Search</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg><span style="font-size: 10px;">Add</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m4.9 4.9 2.1 2.1"></path><path d="m17 17 2.1 2.1"></path><path d="M19.1 4.9 17 7"></path><path d="M7 17l-2.1 2.1"></path></svg><span style="font-size: 10px;">Settings</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #8a6a33;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"></rect><rect x="14" y="3" width="7" height="7" rx="1.6"></rect><rect x="3" y="14" width="7" height="7" rx="1.6"></rect><rect x="14" y="14" width="7" height="7" rx="1.6"></rect></svg><span style="font-size: 10px; font-weight: 600;">All</span></div>
+  </div>
+  <div style="height: 34px; flex: none; background: #ffffff;"></div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { done: { post: true }, colour: 'money' };
+  }
+
+  renderVals() {
+    const items = [
+      { id: 'post', text: 'Stop the post' },
+      { id: 'plants', text: 'Water the plants' },
+      { id: 'ehic', text: 'EHIC cards for all three of us' },
+      { id: 'veg', text: 'Cancel the veg box' },
+      { id: 'keys', text: 'Keys to number 14' }
+    ];
+    const swatches = [
+      { id: 'plain', bg: '#ffffff' },
+      { id: 'home', bg: '#f2ece0' },
+      { id: 'money', bg: '#e4efe6' },
+      { id: 'kitchen', bg: '#e2f2f0' },
+      { id: 'tasting', bg: '#f0e6ec' }
+    ];
+    return {
+      items: items.map((item) => {
+        const on = !!this.state.done[item.id];
+        return {
+          text: item.text,
+          done: on,
+          boxStyle: 'margin-top:2px;flex:none;width:19px;height:19px;border-radius:5px;display:flex;align-items:center;justify-content:center;border:1.6px solid ' + (on ? '#8a6a33' : '#c3c8c4') + ';background:' + (on ? '#8a6a33' : 'transparent') + ';',
+          textStyle: 'flex:1;font-size:16px;line-height:23px;' + (on ? 'color:#79807b;text-decoration:line-through;' : 'color:#1f2421;'),
+          toggle: () => {
+            const next = Object.assign({}, this.state.done);
+            next[item.id] = !next[item.id];
+            this.setState({ done: next });
+          }
+        };
+      }),
+      colours: swatches.map((s) => ({
+        style: 'width:26px;height:26px;border-radius:13px;cursor:pointer;background:' + s.bg + ';border:' + (this.state.colour === s.id ? '2.5px solid #1f2421' : '1px solid #e8e7e3') + ';',
+        pick: () => this.setState({ colour: s.id })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

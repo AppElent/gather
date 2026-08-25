@@ -31,6 +31,12 @@ export const nl = {
 
   baby: coreNl.baby,
 
+  recipes: coreNl.recipes,
+
+  nutrients: coreNl.nutrients,
+
+  tastings: coreNl.tastings,
+
   finances: coreNl.finances,
 
   shell: {
@@ -55,8 +61,27 @@ export const nl = {
         row: 'in de rij',
         sheet: 'in het blad',
         handoff: 'opent een formulier',
+        compose: 'kies en beoordeel',
       },
       actions: {
+        'cheese-tasting': {
+          label: coreNl.tastings.kinds.cheese.launcher,
+          module: coreNl.modules.byId.cheeses.label,
+          fields: [],
+          noun: coreNl.tastings.kinds.cheese.one,
+        },
+        'wine-tasting': {
+          label: coreNl.tastings.kinds.wine.launcher,
+          module: coreNl.modules.byId.wines.label,
+          fields: [],
+          noun: coreNl.tastings.kinds.wine.one,
+        },
+        'beer-tasting': {
+          label: coreNl.tastings.kinds.beer.launcher,
+          module: coreNl.modules.byId.beers.label,
+          fields: [],
+          noun: coreNl.tastings.kinds.beer.one,
+        },
         'task-new': {
           label: 'Taak toevoegen',
           module: coreNl.modules.byId.tasks.label,
@@ -66,7 +91,7 @@ export const nl = {
         'recipe-import': {
           label: 'Importeren vanaf een link',
           module: coreNl.modules.byId.recipes.label,
-          fields: ['Plak een receptlink'],
+          fields: [],
           noun: 'import',
         },
         'meal-log': {
@@ -74,12 +99,6 @@ export const nl = {
           module: coreNl.modules.byId.nutrition.label,
           fields: ['Voedingsmiddel', 'Hoeveel?'],
           noun: 'maaltijd',
-        },
-        'recipe-new': {
-          label: 'Recept schrijven',
-          module: coreNl.modules.byId.recipes.label,
-          fields: [],
-          noun: 'recept',
         },
         'food-scan': {
           label: 'Barcode scannen',
@@ -298,5 +317,132 @@ export const nl = {
     codeExpired: 'Die code is verlopen. Vraag een nieuwe aan.',
     required: 'Dit mag niet leeg zijn.',
     tooManyRequests: 'Te veel pogingen. Wacht even en probeer het opnieuw.',
+  },
+
+  // "Labs" blijft onvertaald: het is de naam van de sectie, niet een woord.
+  labs: {
+    title: 'Labs',
+    description:
+      'Prototypes van schermen waarover nog beslist wordt. Alleen in ontwikkelbuilds.',
+    banner:
+      'Prototype. De gegevens zijn verzonnen en blijven alleen in deze sessie.',
+    reset: 'Opnieuw beginnen met verse gegevens',
+
+    entries: {
+      tasks: 'Taken — lijsten, één lijst, een taak',
+      editModes: 'Een taak bewerken — drie manieren',
+      notes: 'Notities',
+    },
+
+    tasks: {
+      title: 'Taken',
+      today: 'Vandaag',
+      todayEmpty: 'Niets wat vandaag af moet.',
+      lists: 'Lijsten',
+      open: '{count} open',
+      openOne: '1 open',
+      allDone: 'Alles af',
+      linked: 'Gekoppeld',
+      inList: 'in {list}',
+    },
+
+    list: {
+      addTask: 'Taak toevoegen…',
+      empty: 'Nog niets op deze lijst.',
+      display: 'Op elke regel tonen',
+      dueDates: 'Einddatums',
+      priority: 'Prioriteit',
+      labels: 'Labels',
+      rename: 'Lijst hernoemen',
+      deleteList: 'Lijst verwijderen',
+      reorderHint:
+        'Sleep om te ordenen. Afvinken, bewerken en vegen staan uit tot je op Klaar tikt.',
+      reorderCompleted: 'Afgeronde taken zijn verborgen terwijl je ordent.',
+      readOnly:
+        'Deze lijst staat in {provider}. Gather kan hem lezen, maar er niet in schrijven — dus hier is geen invoerregel.',
+      refreshed: 'Zojuist gesynchroniseerd',
+      complete: 'Afvinken',
+      uncomplete: 'Weer openzetten',
+      renameTask: 'Hernoemen',
+      dueDate: 'Einddatum',
+      moveToList: 'Naar lijst verplaatsen…',
+      deleteTitle: '“{title}” verwijderen?',
+      deleteBody: 'Dit kan niet ongedaan worden gemaakt.',
+    },
+
+    task: {
+      untitled: 'Nieuwe taak',
+      titlePlaceholder: 'Wat moet er gebeuren?',
+      due: 'Einddatum',
+      priority: 'Prioriteit',
+      labels: 'Labels',
+      list: 'Lijst',
+      notes: 'Notities',
+      notesPlaceholder: 'Alles wat het opschrijven waard is',
+      unset: 'Geen',
+      autosaved: 'Wijzigingen worden meteen bewaard. Terug is klaar.',
+      delete: 'Taak verwijderen',
+      today: 'Vandaag',
+      tomorrow: 'Morgen',
+      weekend: 'Dit weekend',
+      clear: 'Geen datum',
+      priorities: {
+        1: 'Dringend',
+        2: 'Hoog',
+        3: 'Normaal',
+        4: 'Laag',
+      },
+      addLabel: 'Label toevoegen',
+      labelsOnTask: 'Op deze taak',
+      labelsInGroup: 'Gebruikt in dit huishouden',
+      labelsNone: 'Nog geen labels.',
+      removeLabel: '{label} verwijderen',
+      renameLabelEverywhere: 'Overal hernoemen',
+      removeLabelEverywhere: 'Van elke taak verwijderen',
+      renamingLabel: '{label} hernoemen naar',
+      renameLabelSave: 'Hernoemen',
+      renameLabelCancel: 'Annuleren',
+      labelCount: '{count} labels',
+      previousMonth: 'Vorige maand',
+      nextMonth: 'Volgende maand',
+      overdue: 'Te laat',
+    },
+
+    editModes: {
+      title: 'Een taak bewerken',
+      intro:
+        'Dezelfde taak, op drie manieren bewerkt. Probeer ze en zeg welke de Module moet krijgen.',
+      detail: 'Een eigen scherm',
+      detailWhy:
+        'Alle eigenschappen op één scherm verderop. De meeste tikken om er te komen, de meeste ruimte als je er bent, en de enige die verder reikt dan vier eigenschappen.',
+      inline: 'In de regel zelf',
+      inlineWhy:
+        'Tik op de titel en typ. Het snelst voor een typefout, en het kan nooit meer dan de titel bewerken.',
+      sheet: 'Een venster over de lijst',
+      sheetWhy:
+        'Houd de regel vast, bewerk in een venster, blijf in de lijst. Je houdt je plek, maar het venster krijgt een scrollbalk zodra er eigenschappen bij komen.',
+      subject: 'De taak',
+      open: 'Probeer het',
+    },
+
+    notes: {
+      title: 'Notities',
+      search: 'Notities zoeken',
+      pinned: 'Vastgezet',
+      recent: 'Recent',
+      empty: 'Nog geen notities.',
+      noMatches: 'Niets dat “{query}” heet.',
+      newNote: 'Nieuwe notitie',
+      untitled: 'Notitie zonder titel',
+      titlePlaceholder: 'Titel',
+      bodyPlaceholder: 'Begin met schrijven…',
+      editedBy: 'Bewerkt {when} door {name}',
+      pin: 'Vastzetten',
+      unpin: 'Losmaken',
+      delete: 'Notitie verwijderen',
+      deleteTitle: '“{title}” verwijderen?',
+      formatting:
+        'De opmaakbalk is getekend, niet aangesloten: dit prototype gaat over de vorm.',
+    },
   },
 } satisfies typeof en

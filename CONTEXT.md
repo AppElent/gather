@@ -247,11 +247,27 @@ recipe, and no other Module is like that, so Copy is not a verb of the boundary
 the way Share and Move are (ADR-0007).
 _Avoid_: Clone, Duplicate, Fork
 
+**Import**:
+Making a recipe out of a page on the web. What arrives is a **reading** of that
+page — partly parsed from structured data the page published, partly guessed by
+a model from its prose — so it is never a recipe until a person has looked at
+it and saved it. That review is the point of the verb and not a step in front
+of it: an import nobody confirmed is not something the Group has. Recipes only,
+today.
+_Avoid_: Scrape, Sync, Fetch. (**Copy** is a different verb — that one starts
+from a recipe already in Gather.)
+
 **Provenance**:
-A reference back to the content something was created from — a diary entry
-recording which recipe it came from, a copied recipe recording the one it was
-taken from. Provenance never grants access: it is checked on read, and it may
-point at something the reader can no longer see.
+A reference back to what something was created from — a diary entry recording
+which recipe it came from, a copied recipe recording the one it was taken from,
+an imported recipe recording the address it was read off. Provenance never
+grants access: it is checked on read, and it may point at something the reader
+can no longer see.
+
+It may also point **outside Gather**, at a page nobody here controls, which may
+change under it or stop existing. That is not a weaker kind of provenance and
+does not need repairing: it records where this came from, which stays true
+whatever happens to the page.
 _Avoid_: Link, Source
 
 **Prepare**:

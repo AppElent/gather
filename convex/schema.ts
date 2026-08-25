@@ -22,6 +22,10 @@ import {
 } from './lib/finance'
 import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
 import { servingValidator } from './lib/servings'
+import {
+  tastingAttributesValidator,
+  tastingKindValidator,
+} from './lib/tastings'
 
 export default defineSchema({
   users: defineTable({
@@ -126,6 +130,13 @@ export default defineSchema({
       }),
     ),
     order: v.number(),
+    display: v.optional(
+      v.object({
+        due: v.boolean(),
+        priority: v.boolean(),
+        labels: v.boolean(),
+      }),
+    ),
   }).index('by_group', ['groupId']),
 
   // Rows exist only for provider === 'local' lists.
@@ -138,9 +149,19 @@ export default defineSchema({
       v.union(v.literal(1), v.literal(2), v.literal(3), v.literal(4)),
     ),
     labels: v.optional(v.array(v.string())),
+    notes: v.optional(v.string()),
     createdBy: v.id('users'),
     order: v.number(),
   }).index('by_list', ['listId']),
+
+  notes: defineTable({
+    groupId: v.id('groups'),
+    title: v.string(),
+    body: v.string(),
+    pinned: v.optional(v.boolean()),
+    createdBy: v.id('users'),
+    updatedAt: v.number(),
+  }).index('by_group', ['groupId']),
 
   integrationConnections: defineTable({
     groupId: v.id('groups'),
@@ -576,6 +597,109 @@ export default defineSchema({
     liabilitiesCents: v.number(),
     netCents: v.number(),
   }).index('by_group', ['groupId']),
+  /**
+   * A thing a household has tasted — a cheese, a bottle, a beer (ADR-0024).
+   *
+   * **Group-scoped and one table for three Kinds.** `kind` is the
+   * discriminator and `attributes` holds whatever that Kind's spec declares
+   * (`@gather/core/tastings`), so a fourth Kind is a row in that table rather
+   * than a fourth pair of tables here. The schema deliberately does not know
+   * what a wine is; `checkedAttributes` enforces the spec on every write.
+   *
+   * **A subject comes into being because somebody logged against it**, never
+   * as a separate first step — which is why there is no "add a cheese" screen
+   * and why a subject with no Tastings only exists between two writes of one
+   * transaction.
+   *
+   * No `sharedGroupIds`, unlike a recipe: a subject without its Tastings is a
+   * name anybody could type, and with them it would carry other people's
+   * Attribution across a boundary (#199, No Share, no Move).
+   */
+  tastingSubjects: defineTable({
+    groupId: v.id('groups'),
+    kind: tastingKindValidator,
+    /** Content. Never translated — Comté is Comté (ADR-0011, story 30). */
+    name: v.string(),
+    /** The Kind spec's `subjectFields`. Facts, which do not change per tasting. */
+    attributes: tastingAttributesValidator,
+    /** The label, so you can recognise the bottle in a shop. Optional always. */
+    photoId: v.optional(v.id('_storage')),
+    /**
+     * Provenance: which `tastingCatalog` entry this was materialised from.
+     *
+     * Nothing in a Group ever *points at* a catalog row — choosing one copies
+     * it (ADR-0024). This is what makes materialising idempotent, so tasting
+     * Gouda twice yields one Gouda, and it is why a hand-typed "Gouda" (which
+     * carries no key) can sit beside the catalog's one without either being
+     * a duplicate of the other.
+     */
+    catalogKey: v.optional(v.string()),
+    /** Attribution only. Confers no ownership and no access (CONTEXT.md). */
+    createdByUserId: v.id('users'),
+  })
+    .index('by_group_kind', ['groupId', 'kind'])
+    // Materialising a catalog entry asks exactly this question, on every log.
+    .index('by_group_kind_catalogKey', ['groupId', 'kind', 'catalogKey']),
+
+  /**
+   * One person's tasting of one subject, on one day.
+   *
+   * Tasting the same thing again **adds a row** rather than overwriting the
+   * last one, and two Members of a wine club genuinely disagree — which is the
+   * whole reason this is not a `rating` column on the subject.
+   *
+   * `groupId` is denormalized off the subject so the Group's activity stream
+   * can read its Tastings in one indexed query instead of fanning out over
+   * every subject. The two can never disagree: a Tasting is only ever created
+   * against a subject already resolved in that Group, and nothing moves either.
+   */
+  tastings: defineTable({
+    subjectId: v.id('tastingSubjects'),
+    groupId: v.id('groups'),
+    /** 1–5 in half steps, one scale for every Kind. See `TASTING_RATING`. */
+    rating: v.number(),
+    /**
+     * The day it was tasted, `YYYY-MM-DD`, defaulting to today — deliberately
+     * distinct from `_creationTime`, so logging Saturday's dinner on Monday
+     * records Saturday (story 12). The activity stream orders by when it was
+     * *logged*, which is the other one.
+     */
+    tastedAt: v.string(),
+    /** The Kind spec's `tastingFields`. Impressions, and the notes. */
+    attributes: tastingAttributesValidator,
+    /**
+     * Whose opinion this is. Unlike everywhere else in the schema, this one
+     * *does* confer something: only the author may edit their own Tasting,
+     * because editing somebody's score puts words in their mouth under their
+     * name. Deleting is ordinary tidying and anyone in the Group may do it.
+     */
+    createdByUserId: v.id('users'),
+  })
+    .index('by_subject', ['subjectId'])
+    .index('by_group', ['groupId']),
+
+  /**
+   * The shipped list of well-known things, as a **picker** (ADR-0024).
+   *
+   * This is the opposite of the foods Catalog and a reader who knows that one
+   * will guess wrong, so: a `tastingCatalog` row is a *suggestion*. Choosing
+   * one copies it into the Group as that Group's own subject and the catalog
+   * row is then irrelevant to it forever — retiring an entry cannot orphan
+   * anything, and a household editing "its" Comté is editing its own row.
+   * The foods Catalog is the other kind: a *fact*, referenced and read-only.
+   *
+   * Reconciled by `seedKey` under ADR-0004 like every other seeded table, and
+   * read-only through every public function. Cheese ships entries; wine and
+   * beer deliberately ship none.
+   */
+  tastingCatalog: defineTable({
+    seedKey: v.string(),
+    kind: tastingKindValidator,
+    name: v.string(),
+    attributes: tastingAttributesValidator,
+  })
+    .index('by_kind', ['kind'])
+    .index('by_seedKey', ['seedKey']),
 
   // Bookkeeping for the Sample household seed, which wipes and recreates on
   // every run: one row per run, listing exactly the documents that run

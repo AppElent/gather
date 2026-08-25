@@ -1,0 +1,345 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #7d3f5f; text-decoration: none; }
+    a:hover { color: #5f2f47; }
+    .ic { flex: none; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 1480px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none; background: #ffffff;"></div>
+
+  <div style="flex: none; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+    <div style="min-width: 62px; min-height: 44px; display: flex; align-items: center; font-size: 17px; color: #7d3f5f; cursor: pointer;">Cancel</div>
+    <div style="flex: 1; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -0.2px;">{{ title }}</div>
+    <div style="min-width: 62px; min-height: 44px; display: flex; align-items: center; justify-content: flex-end; font-size: 17px; font-weight: 700; color: #7d3f5f; cursor: pointer;">Save</div>
+  </div>
+
+  <div style="flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 16px 16px 24px;">
+
+    <div style="display: flex; align-items: center; gap: 11px; min-height: 56px; padding: 0 13px; background: #ffffff; border: 1px solid #e8e7e3; border-radius: 16px;">
+      <div style="width: 36px; height: 36px; flex: none; border-radius: 11px; background: #f0e6ec;"></div>
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 1px;">
+        <div style="font-size: 16px; font-weight: 600;">{{ subjectName }}</div>
+        <div style="font-size: 13px; color: #79807b;">{{ subjectNote }}</div>
+      </div>
+    </div>
+
+    <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b;">{{ factsHeading }}</div>
+
+    <sc-for list="{{ facts }}" as="f" hint-placeholder-count="4">
+      <div style="display: flex; flex-direction: column; gap: 7px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b;">{{ f.label }}</div>
+          <div style="font-size: 11.5px; color: #c4c8c5; font-variant-numeric: tabular-nums;">{{ f.type }}</div>
+        </div>
+
+        <sc-if value="{{ f.isChips }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-wrap: wrap; gap: 7px;">
+            <sc-for list="{{ f.options }}" as="opt" hint-placeholder-count="4">
+              <div onClick="{{ opt.pick }}" style="{{ opt.style }}">{{ opt.text }}</div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ f.isPicker }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 14px; background: #ffffff; border: 1px solid #e8e7e3; border-radius: 12px; cursor: pointer;">
+            <span style="font-size: 16px;">{{ f.value }}</span>
+            <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ f.isField }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; align-items: center; min-height: 48px; padding: 0 14px; background: #ffffff; border: 1px solid #e8e7e3; border-radius: 12px;">
+            <span style="{{ f.valueStyle }}">{{ f.value }}</span>
+            <span style="flex: 1;"></span>
+            <span style="font-size: 15px; color: #a9aeaa;">{{ f.unit }}</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ f.isTags }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-wrap: wrap; gap: 7px;">
+            <sc-for list="{{ f.options }}" as="opt" hint-placeholder-count="5">
+              <div onClick="{{ opt.pick }}" style="{{ opt.style }}">{{ opt.text }}</div>
+            </sc-for>
+            <div style="display: flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px dashed #d8d6d0; color: #79807b; font-size: 13px; cursor: pointer;">
+              <svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+              Add your own
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+
+    <div style="height: 1px; background: #e8e7e3; margin: 4px 0;"></div>
+
+    <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b;">MY TASTING</div>
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="display: flex; gap: 4px;">
+        <sc-for list="{{ stars }}" as="st" hint-placeholder-count="5">
+          <div style="position: relative; width: 34px; height: 34px;">
+            <svg class="ic" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#d8d6d0" stroke-width="1.5" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path></svg>
+            <div style="position: absolute; left: 0; top: 0; height: 34px; overflow: hidden; width: {{ st.w }};">
+              <svg class="ic" width="34" height="34" viewBox="0 0 24 24" fill="#7d3f5f" stroke="#7d3f5f" stroke-width="1.5" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path></svg>
+            </div>
+            <div onClick="{{ st.half }}" style="position: absolute; left: 0; top: -5px; width: 17px; height: 44px; cursor: pointer;"></div>
+            <div onClick="{{ st.full }}" style="position: absolute; left: 17px; top: -5px; width: 17px; height: 44px; cursor: pointer;"></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size: 22px; font-weight: 700; letter-spacing: -0.5px; font-variant-numeric: tabular-nums;">{{ ratingLabel }}</div>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 14px; background: #ffffff; border: 1px solid #e8e7e3; border-radius: 12px;">
+      <span style="display: flex; align-items: center; gap: 8px; font-size: 15px; color: #79807b;">
+        <svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+        Tasted
+      </span>
+      <span style="display: flex; align-items: center; gap: 5px; font-size: 16px; font-weight: 600;">Sat 22 Aug
+        <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+      </span>
+    </div>
+
+    <sc-for list="{{ impressions }}" as="f" hint-placeholder-count="3">
+      <div style="display: flex; flex-direction: column; gap: 7px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b;">{{ f.label }}</div>
+          <div style="font-size: 11.5px; color: #c4c8c5;">{{ f.type }}</div>
+        </div>
+
+        <sc-if value="{{ f.isScale }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; gap: 6px;">
+            <sc-for list="{{ f.options }}" as="opt" hint-placeholder-count="5">
+              <div onClick="{{ opt.pick }}" style="{{ opt.style }}">{{ opt.text }}</div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ f.isTags }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-wrap: wrap; gap: 7px;">
+            <sc-for list="{{ f.options }}" as="opt" hint-placeholder-count="6">
+              <div onClick="{{ opt.pick }}" style="{{ opt.style }}">{{ opt.text }}</div>
+            </sc-for>
+            <div style="display: flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px dashed #d8d6d0; color: #79807b; font-size: 13px; cursor: pointer;">
+              <svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+              Add your own
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ f.isText }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; align-items: flex-start; min-height: 74px; padding: 13px 14px; background: #ffffff; border: 1px solid #e8e7e3; border-radius: 12px; font-size: 15px; color: #a9aeaa;">{{ f.value }}</div>
+        </sc-if>
+      </div>
+    </sc-for>
+
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"kind":{"editor":"enum","options":["cheese","wine","beer"],"default":"wine"},"$preview":{"width":390,"height":1480}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { rating: 4.5, pick: {}, tags: {} };
+  }
+
+  spec() {
+    return {
+      cheese: {
+        title: 'New cheese tasting',
+        subjectName: 'Boerenkaas Remeker',
+        subjectNote: 'New in Home · you typed this name',
+        factsHeading: 'ABOUT THE CHEESE',
+        facts: [
+          { key: 'milk', label: 'MILK', type: 'select', options: ['Cow', 'Goat', 'Sheep', 'Buffalo', 'Mixed'], def: 'Cow' },
+          { key: 'country', label: 'COUNTRY', type: 'select', picker: true, def: 'Netherlands' },
+          { key: 'texture', label: 'STYLE', type: 'select', options: ['Fresh', 'Soft', 'Semi-hard', 'Hard', 'Blue'], def: 'Hard' },
+          { key: 'producer', label: 'PRODUCER', type: 'text', def: 'Remeker', unit: '' },
+          { key: 'age', label: 'AGE', type: 'number', def: '12', unit: 'months' }
+        ],
+        impressions: [
+          { key: 'firmness', label: 'FIRMNESS', type: 'scale', def: 4 },
+          { key: 'saltiness', label: 'SALTINESS', type: 'scale', def: 3 },
+          { key: 'aromas', label: 'AROMAS', type: 'tags', options: ['nutty', 'hay', 'caramel', 'mushroom', 'butter', 'barnyard'], on: ['nutty'] },
+          { key: 'notes', label: 'NOTES', type: 'text', value: 'What did it taste of?' }
+        ]
+      },
+      wine: {
+        title: 'New wine tasting',
+        subjectName: 'Vajra Barolo 2019',
+        subjectNote: 'New in Home · no catalog for wine',
+        factsHeading: 'ABOUT THE BOTTLE',
+        facts: [
+          { key: 'producer', label: 'PRODUCER', type: 'text', def: 'G.D. Vajra', unit: '' },
+          { key: 'vintage', label: 'VINTAGE', type: 'number', def: '2019', unit: '' },
+          { key: 'grapes', label: 'GRAPES', type: 'tags', options: ['Nebbiolo', 'Barbera', 'Dolcetto', 'Chardonnay'], on: ['Nebbiolo'] },
+          { key: 'region', label: 'REGION', type: 'select', picker: true, def: 'Piedmont' },
+          { key: 'style', label: 'STYLE', type: 'select', options: ['Red', 'White', 'Rose', 'Sparkling', 'Sweet'], def: 'Red' },
+          { key: 'abv', label: 'ABV', type: 'number', def: '14.5', unit: '%' }
+        ],
+        impressions: [
+          { key: 'sweetness', label: 'SWEETNESS', type: 'scale', def: 1 },
+          { key: 'acidity', label: 'ACIDITY', type: 'scale', def: 4 },
+          { key: 'tannin', label: 'TANNIN', type: 'scale', def: 5 },
+          { key: 'body', label: 'BODY', type: 'scale', def: 4 },
+          { key: 'aromas', label: 'AROMAS', type: 'tags', options: ['cherry', 'violet', 'leather', 'tar', 'tobacco', 'vanilla'], on: ['cherry', 'leather'] },
+          { key: 'notes', label: 'NOTES', type: 'text', value: 'What did it taste of?' }
+        ]
+      },
+      beer: {
+        title: 'New beer tasting',
+        subjectName: 'Westmalle Tripel',
+        subjectNote: 'New in Home · no catalog for beer',
+        factsHeading: 'ABOUT THE BEER',
+        facts: [
+          { key: 'brewery', label: 'BREWERY', type: 'text', def: 'Westmalle', unit: '' },
+          { key: 'style', label: 'STYLE', type: 'select', picker: true, def: 'Trappist tripel' },
+          { key: 'abv', label: 'ABV', type: 'number', def: '9.5', unit: '%' }
+        ],
+        impressions: [
+          { key: 'bitterness', label: 'BITTERNESS', type: 'scale', def: 3 },
+          { key: 'body', label: 'BODY', type: 'scale', def: 4 },
+          { key: 'aromas', label: 'AROMAS', type: 'tags', options: ['banana', 'clove', 'citrus', 'honey', 'bread'], on: ['banana', 'clove'] },
+          { key: 'notes', label: 'NOTES', type: 'text', value: 'What did it taste of?' }
+        ]
+      }
+    };
+  }
+
+  chipStyles() {
+    return {
+      on: 'display: flex; align-items: center; min-height: 40px; padding: 0 15px; border-radius: 999px; background: #f0e6ec; border: 1px solid #7d3f5f; color: #7d3f5f; font-size: 14px; font-weight: 700; cursor: pointer;',
+      off: 'display: flex; align-items: center; min-height: 40px; padding: 0 15px; border-radius: 999px; background: #ffffff; border: 1px solid #e8e7e3; color: #1f2421; font-size: 14px; cursor: pointer;'
+    };
+  }
+
+  buildField(field, prefix) {
+    const chip = this.chipStyles();
+    const stateKey = prefix + ':' + field.key;
+    const base = {
+      label: field.label,
+      type: field.type,
+      isChips: false,
+      isPicker: false,
+      isField: false,
+      isTags: false,
+      isScale: false,
+      isText: false,
+      value: '',
+      unit: field.unit || '',
+      valueStyle: 'font-size: 16px;',
+      options: []
+    };
+
+    if (field.type === 'select' && field.picker) {
+      base.isPicker = true;
+      base.value = field.def;
+      return base;
+    }
+
+    if (field.type === 'select') {
+      base.isChips = true;
+      const current = this.state.pick[stateKey] === undefined ? field.def : this.state.pick[stateKey];
+      base.options = field.options.map((option) => {
+        const next = Object.assign({}, this.state.pick);
+        next[stateKey] = option;
+        return {
+          text: option,
+          style: current === option ? chip.on : chip.off,
+          pick: () => this.setState({ pick: next })
+        };
+      });
+      return base;
+    }
+
+    if (field.type === 'text' && prefix === 'facts') {
+      base.isField = true;
+      base.value = field.def;
+      return base;
+    }
+
+    if (field.type === 'text') {
+      base.isText = true;
+      base.value = field.value;
+      return base;
+    }
+
+    if (field.type === 'number') {
+      base.isField = true;
+      base.value = field.def;
+      base.valueStyle = 'font-size: 16px; font-variant-numeric: tabular-nums;';
+      return base;
+    }
+
+    if (field.type === 'tags') {
+      base.isTags = true;
+      base.options = field.options.map((option) => {
+        const key = stateKey + ':' + option;
+        const seeded = field.on.indexOf(option) >= 0;
+        const current = this.state.tags[key] === undefined ? seeded : this.state.tags[key];
+        const next = Object.assign({}, this.state.tags);
+        next[key] = !current;
+        return {
+          text: option,
+          style: current ? chip.on : chip.off,
+          pick: () => this.setState({ tags: next })
+        };
+      });
+      return base;
+    }
+
+    base.isScale = true;
+    const SEL = 'flex: 1; min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #f0e6ec; border: 1px solid #7d3f5f; color: #7d3f5f; font-size: 15px; font-weight: 700; cursor: pointer;';
+    const OFF = 'flex: 1; min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #ffffff; border: 1px solid #e8e7e3; color: #1f2421; font-size: 15px; cursor: pointer;';
+    const current = this.state.pick[stateKey] === undefined ? field.def : this.state.pick[stateKey];
+    base.options = [1, 2, 3, 4, 5].map((n) => {
+      const next = Object.assign({}, this.state.pick);
+      next[stateKey] = n;
+      return {
+        text: String(n),
+        style: current === n ? SEL : OFF,
+        pick: () => this.setState({ pick: next })
+      };
+    });
+    return base;
+  }
+
+  renderVals() {
+    const set = this.spec()[this.props.kind ?? 'wine'];
+
+    const stars = [1, 2, 3, 4, 5].map((n) => {
+      const filled = this.state.rating - (n - 1);
+      return {
+        w: filled >= 1 ? '34px' : (filled >= 0.5 ? '17px' : '0px'),
+        half: () => this.setState({ rating: n - 0.5 }),
+        full: () => this.setState({ rating: n })
+      };
+    });
+
+    return {
+      title: set.title,
+      subjectName: set.subjectName,
+      subjectNote: set.subjectNote,
+      factsHeading: set.factsHeading,
+      facts: set.facts.map((field) => this.buildField(field, 'facts')),
+      impressions: set.impressions.map((field) => this.buildField(field, 'tasting')),
+      stars: stars,
+      ratingLabel: this.state.rating.toFixed(1)
+    };
+  }
+}
+</script>
+</body>
+</html>

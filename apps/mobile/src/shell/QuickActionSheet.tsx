@@ -21,6 +21,8 @@ import {
 import { NativeSheet } from '../components/NativeSheet'
 import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
+import { TASTING_BASES, tastingHref } from '../modules/tasting/paths'
+import { SubjectPickerSheet } from '../modules/tasting/SubjectPickerSheet'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
 import {
@@ -52,6 +54,16 @@ function SheetBody({
   const tokens = useTokens()
   const { t } = useI18n()
   const [openId, setOpenId] = useState<QuickActionId | null>(null)
+  /**
+   * Which tab stack a handoff is pushed into: **the one you are looking at**.
+   *
+   * The launcher floats over whichever tab is focused, and pushing into a
+   * different tab's stack is not merely disorienting — expo-router tears the
+   * unfocused stack down under you and the app goes with it. It is also the
+   * handoff rule (`docs/mobile-interaction.md`): you pressed Add from All, so
+   * saving has to put you back in All.
+   */
+  const base = TASTING_BASES.all
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [added, setAdded] = useState<string[]>([])
   const text = t.shell.add
@@ -59,11 +71,21 @@ function SheetBody({
   const Chevron = UI_ICONS.ChevronRight
   const openAction = QUICK_ACTIONS.find((action) => action.id === openId)
   const inSheetCapture = openAction?.kind === 'sheet'
+  // The tasting Modules' first step lives in the launcher and their second
+  // does not: this swaps the whole sheet for the subject picker, which then
+  // pushes the composer. See `QuickActionKind`'s `compose`.
+  const composing =
+    openAction?.kind === 'compose' ? openAction.tastingKind : undefined
 
   const choose = (action: QuickAction) => {
     if (action.kind === 'handoff') {
       onClose()
-      router.push({ pathname: '/create', params: { action: action.id } })
+      // The Module's own screen where there is one; the shared demo form
+      // where there is not. The launcher does not know which Module it is
+      // handing to, and must not start to.
+      router.push(
+        action.href ?? { pathname: '/create', params: { action: action.id } },
+      )
       return
     }
 
@@ -141,6 +163,46 @@ function SheetBody({
     )
   }
 
+  if (composing) {
+    return (
+      <SubjectPickerSheet
+        kind={composing}
+        onClose={onClose}
+        onChoose={(choice) => {
+          onClose()
+          router.push(
+            tastingHref(base, composing, '/compose', {
+              mode: 'new',
+              ...('subjectId' in choice
+                ? { subjectId: choice.subjectId }
+                : {
+                    name: choice.name,
+                    ...(choice.catalogKey
+                      ? { catalogKey: choice.catalogKey }
+                      : {}),
+                  }),
+            }),
+          )
+        }}
+        leading={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={text.back}
+            onPress={() => setOpenId(null)}
+            hitSlop={12}
+            style={({ pressed }) => [
+              styles.close,
+              { backgroundColor: tokens.tile },
+              pressed && styles.pressed,
+            ]}
+          >
+            <Back size={18} color={tokens.muted} />
+          </Pressable>
+        }
+      />
+    )
+  }
+
   return (
     <NativeSheet
       title={
@@ -212,7 +274,7 @@ function SheetBody({
                         {copy.module} · {text.kinds[action.kind]}
                       </Text>
                     </View>
-                    {action.kind === 'handoff' ? (
+                    {action.kind === 'handoff' || action.kind === 'compose' ? (
                       <Chevron size={18} color={tokens.muted} />
                     ) : null}
                   </Pressable>
