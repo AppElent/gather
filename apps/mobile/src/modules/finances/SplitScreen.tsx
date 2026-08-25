@@ -11,7 +11,7 @@
  * itself after somebody leaves the Group.
  */
 
-import { splitEvent, toCents } from '@gather/core/finance'
+import { customCoversTotal, splitEvent, toCents } from '@gather/core/finance'
 import { useMutation, useQuery } from 'convex/react'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
@@ -58,6 +58,11 @@ export function SplitScreen({ base: _base }: { base: FinanceBase }) {
   const [payments, setPayments] = useState<Payment[]>([])
   const [participants, setParticipants] = useState<string[]>([])
   const [mode, setMode] = useState<'equal' | 'custom'>('equal')
+  // Only consulted in `custom` mode, and keyed by Member id. Kept as the
+  // typed strings rather than cents so a half-typed amount does not
+  // repeatedly reformat itself under the cursor.
+  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({})
+  const [allocating, setAllocating] = useState(false)
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
   const [payer, setPayer] = useState<string | null>(null)
@@ -87,14 +92,20 @@ export function SplitScreen({ base: _base }: { base: FinanceBase }) {
   const nameOf = (userId: string) =>
     roster.find((member) => member.userId === userId)?.name ?? ''
 
-  const result = splitEvent({
-    payments,
-    participantIds:
-      participants.length > 0
-        ? participants
-        : members.map((member) => member.userId),
-    mode,
-  })
+  const participantIds =
+    participants.length > 0 ? participants : roster.map((row) => row.userId)
+
+  const customCents = Object.fromEntries(
+    Object.entries(customAmounts).map(([id, value]) => [
+      id,
+      toCents(Number(value.replace(',', '.')) || 0),
+    ]),
+  )
+  const input = { payments, participantIds, mode, customCents }
+  const result = splitEvent(input)
+  // A custom allocation that does not hand out what was paid would invent or
+  // lose money, so the screen says so rather than drawing transfers from it.
+  const allocationBalances = customCoversTotal(input)
 
   function addPayment() {
     const cents = toCents(Number(amount.replace(',', '.')))
@@ -112,10 +123,8 @@ export function SplitScreen({ base: _base }: { base: FinanceBase }) {
   function save() {
     const trimmed = name.trim() || what.trim()
     if (!trimmed || payments.length === 0) return
-    const ids =
-      participants.length > 0
-        ? participants
-        : roster.map((member) => member.userId)
+    if (!allocationBalances) return
+    const ids = participantIds
     saveScenario({
       groupSlug,
       name: trimmed,
@@ -153,6 +162,8 @@ export function SplitScreen({ base: _base }: { base: FinanceBase }) {
     setName('')
   }
 
+  // "Each" is only a fair word for an equal split. A custom one has no single
+  // per-person figure, so the bar shows the total instead of picking one.
   const each =
     result.owedCents.size > 0
       ? (result.owedCents.values().next().value ?? 0)
@@ -235,13 +246,49 @@ export function SplitScreen({ base: _base }: { base: FinanceBase }) {
                   { value: 'custom', label: text.split.custom },
                 ]}
                 value={mode}
-                onChange={setMode}
+                onChange={(next) => {
+                  setMode(next)
+                  // Seeding the custom amounts from the equal split means
+                  // switching to Custom starts from a usable allocation
+                  // rather than from everybody owing nothing.
+                  if (next === 'custom') {
+                    setCustomAmounts(
+                      Object.fromEntries(
+                        participantIds.map((id) => [
+                          id,
+                          String((result.owedCents.get(id) ?? 0) / 100),
+                        ]),
+                      ),
+                    )
+                    setAllocating(true)
+                  }
+                }}
               />
             </View>
+            {mode === 'custom' ? (
+              <Card>
+                {participantIds.map((id, index) => (
+                  <Row
+                    key={id}
+                    label={nameOf(id)}
+                    value={format.money(result.owedCents.get(id) ?? 0)}
+                    emphasis
+                    chevron
+                    last={index === participantIds.length - 1}
+                    onPress={() => setAllocating(true)}
+                  />
+                ))}
+              </Card>
+            ) : null}
+            {allocationBalances ? null : (
+              <Notice>{text.errors.customTotal}</Notice>
+            )}
 
             <Section title={text.split.toSettle} />
             <Card>
-              {result.transfers.length === 0 ? (
+              {!allocationBalances ? (
+                <Row label={text.errors.customTotal} last />
+              ) : result.transfers.length === 0 ? (
                 <Row label={text.split.settled} last />
               ) : (
                 result.transfers.map((transfer, index) => (
@@ -293,8 +340,8 @@ export function SplitScreen({ base: _base }: { base: FinanceBase }) {
 
       {payments.length > 0 ? (
         <AnswerBar
-          amount={format.money(each)}
-          unit={text.split.barEach}
+          amount={format.money(mode === 'equal' ? each : result.totalCents)}
+          unit={mode === 'equal' ? text.split.barEach : undefined}
           sub={fmt(text.split.barSub, {
             total: format.money(result.totalCents),
             count: result.owedCents.size,
@@ -302,6 +349,7 @@ export function SplitScreen({ base: _base }: { base: FinanceBase }) {
           action={
             <PrimaryButton
               label={text.split.saveThis}
+              disabled={!allocationBalances}
               onPress={() => {
                 setName(what)
                 setSaving(true)
@@ -345,6 +393,33 @@ export function SplitScreen({ base: _base }: { base: FinanceBase }) {
             value={label}
             onChangeText={setLabel}
           />
+        </NativeSheet>
+      ) : null}
+
+      {allocating ? (
+        <NativeSheet
+          title={text.split.custom}
+          subtitle={text.errors.customTotal}
+          onClose={() => setAllocating(false)}
+          footer={
+            <PrimaryButton
+              label={text.actions.done}
+              onPress={() => setAllocating(false)}
+              disabled={!allocationBalances}
+            />
+          }
+        >
+          {participantIds.map((id) => (
+            <Field
+              key={id}
+              label={nameOf(id)}
+              value={customAmounts[id] ?? '0'}
+              onChangeText={(next) =>
+                setCustomAmounts((current) => ({ ...current, [id]: next }))
+              }
+              keyboardType="decimal-pad"
+            />
+          ))}
         </NativeSheet>
       ) : null}
 

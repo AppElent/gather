@@ -16,6 +16,7 @@
  * arrives — it reads the price and its age off the same two fields either way.
  */
 
+import { holdingPosition } from '@gather/core/finance'
 import { useMutation, useQuery } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
@@ -170,12 +171,22 @@ export function PortfolioScreen({ base }: { base: FinanceBase }) {
                 const value = totals.values.find(
                   (row) => row.id === holding._id,
                 )
+                // The units held now, not the ones the position opened with:
+                // a sale the household recorded has to move this figure.
+                const position = holdingPosition(
+                  {
+                    date: holding.openingDate,
+                    units: holding.openingUnits,
+                    averageCostCents: holding.openingAverageCostCents,
+                  },
+                  holding.transactions,
+                )
                 return (
                   <Row
                     key={holding._id}
                     label={holding.symbol}
                     sub={fmt(text.portfolio.unitsAt, {
-                      units: holding.openingUnits,
+                      units: position.units,
                       price:
                         holding.lastPriceCents === undefined
                           ? '—'
@@ -252,8 +263,8 @@ export function PortfolioScreen({ base }: { base: FinanceBase }) {
           <View style={styles.segment}>
             <Segmented<'stock' | 'etf'>
               options={[
-                { value: 'etf', label: 'ETF' },
-                { value: 'stock', label: text.portfolio.holding.symbol },
+                { value: 'etf', label: text.holdingKinds.etf },
+                { value: 'stock', label: text.holdingKinds.stock },
               ]}
               value={kind}
               onChange={setKind}

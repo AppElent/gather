@@ -89,10 +89,7 @@ export function HouseScreen({
   }
 
   const buyingCosts = house.buyingCosts
-    ? homeBuyingCosts({
-        ...house.buyingCosts,
-        lines: house.buyingCosts.lines,
-      })
+    ? homeBuyingCosts(house.buyingCosts)
     : null
   const first = house.calculations[0]
   const totals = first ? calculationTotals(toLoanParts(first.parts)) : null

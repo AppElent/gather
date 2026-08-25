@@ -55,6 +55,11 @@ export const finances = {
     buyingAgent: 'Aankoopmakelaar',
   },
 
+  holdingKinds: {
+    stock: 'Aandeel',
+    etf: 'ETF',
+  },
+
   transactionKinds: {
     buy: 'Aankoop',
     sell: 'Verkoop',

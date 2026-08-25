@@ -2,6 +2,7 @@ import type {
   BuyingCostLine,
   CostCategory,
   CostFrequency,
+  HoldingKind,
   LoanPartKind,
   NetWorthSource,
   TransactionKind,
@@ -68,6 +69,11 @@ export const buyingCostLines = {
   buyingAgent: 'Aankoopmakelaar',
 } satisfies Record<BuyingCostLine, string>
 
+export const holdingKinds = {
+  stock: 'Share',
+  etf: 'ETF',
+} satisfies Record<HoldingKind, string>
+
 export const transactionKinds = {
   buy: 'Buy',
   sell: 'Sale',
@@ -83,6 +89,7 @@ export const finances = {
   loanPartKinds,
   transferTaxBands,
   buyingCostLines,
+  holdingKinds,
   transactionKinds,
 
   /** The line every result ends on. */
