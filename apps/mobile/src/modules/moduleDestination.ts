@@ -19,6 +19,7 @@ import type { Href } from 'expo-router'
 /** Modules with real screens in the phone's route tree. */
 export const NATIVE_MODULES = [
   'baby-log',
+  'recipes',
   'cheeses',
   'wines',
   'beers',

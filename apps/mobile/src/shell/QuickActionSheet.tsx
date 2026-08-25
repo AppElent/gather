@@ -81,7 +81,12 @@ function SheetBody({
   const choose = (action: QuickAction) => {
     if (action.kind === 'handoff') {
       onClose()
-      router.push({ pathname: '/create', params: { action: action.id } })
+      // The Module's own screen where there is one; the shared demo form
+      // where there is not. The launcher does not know which Module it is
+      // handing to, and must not start to.
+      router.push(
+        action.href ?? { pathname: '/create', params: { action: action.id } },
+      )
       return
     }
 

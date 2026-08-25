@@ -57,7 +57,7 @@ import { NativeSheet } from '../../components/NativeSheet'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
-import { pickPhoto, uploadPhoto } from '../../media/photo'
+import { pickPhoto, uploadPhoto } from '../../photo/pickPhoto'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { TASTING_UI_ICONS } from './icons'
 import type { TastingBase } from './paths'
@@ -187,7 +187,7 @@ export function SubjectScreen({
    */
   async function addPhoto() {
     setPhotoProblem(null)
-    const picked = await pickPhoto('recipePhoto', 'library').catch(
+    const picked = await pickPhoto('library', 'recipePhoto').catch(
       () => 'failed' as const,
     )
     if (picked === null) return

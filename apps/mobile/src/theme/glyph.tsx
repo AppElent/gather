@@ -49,6 +49,15 @@ export type GlyphProps = AccessibilityProps & {
   size?: number
   color?: string
   strokeWidth?: number
+  /**
+   * Paints the glyph's interior rather than only its outline — a rated star
+   * against an unrated one.
+   *
+   * SF Symbols express the same thing as a *different symbol* (`star.fill`),
+   * so on iOS this reaches only the lucide fallback and the pair is declared
+   * as two entries in the icon map. Android has one icon and this prop.
+   */
+  fill?: string
 }
 
 export type Glyph = ComponentType<GlyphProps>
@@ -65,6 +74,7 @@ export function glyph(fallback: LucideIcon, symbol: SymbolName | null): Glyph {
     size = 24,
     color,
     strokeWidth,
+    fill,
     ...rest
   }: GlyphProps) {
     return (
@@ -77,7 +87,12 @@ export function glyph(fallback: LucideIcon, symbol: SymbolName | null): Glyph {
         resizeMode="scaleAspectFit"
         style={{ width: size, height: size }}
         fallback={
-          <Fallback size={size} color={color} strokeWidth={strokeWidth} />
+          <Fallback
+            size={size}
+            color={color}
+            strokeWidth={strokeWidth}
+            fill={fill}
+          />
         }
       />
     )

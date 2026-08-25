@@ -219,6 +219,179 @@ describe('recipes.list', () => {
 })
 
 /**
+ * Where a listed recipe lives, for a reader with no Group in their address bar.
+ *
+ * The web puts the Group in the URL, so a page it drew is already an answer to
+ * "whose collection is this". The phone's Group is ambient (ADR-0015), which
+ * takes that cue away and leaves the row to carry it — so the row says whose it
+ * is, and only when the answer is somebody else's.
+ */
+describe("a listed recipe says whose collection it came from, when it isn't this one", () => {
+  test('a recipe shared in from elsewhere names the Group it lives in', async () => {
+    const { t } = await seed()
+
+    const rows = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+    const sharedIn = rows.find((r) => r.title === 'Pasta for a crowd')
+
+    expect(sharedIn?.homeGroupName).toBe('Household')
+  })
+
+  test("the Group's own recipes name nothing", async () => {
+    const { t } = await seed()
+
+    const rows = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+    const own = rows.find((r) => r.title === 'Club sourdough')
+
+    expect(own?.homeGroupName).toBeNull()
+  })
+
+  test('a Group that was only shared it may not change it', async () => {
+    const { t } = await seed()
+
+    const rows = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+
+    expect(rows.find((r) => r.title === 'Pasta for a crowd')?.canEdit).toBe(
+      false,
+    )
+    expect(rows.find((r) => r.title === 'Club sourdough')?.canEdit).toBe(true)
+  })
+
+  test('being in both Groups makes a shared-in recipe someone else’s and still yours', async () => {
+    const { t } = await seedWithAliceInBothGroups()
+
+    const rows = await t
+      .withIdentity(asAlice)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+    const sharedIn = rows.find((r) => r.title === 'Pasta for a crowd')
+
+    // The badge and the buttons answer different questions, and here they
+    // disagree: it lives in Alice's household, and Alice may change it.
+    expect(sharedIn?.homeGroupName).toBe('Household')
+    expect(sharedIn?.canEdit).toBe(true)
+  })
+
+  test('two Members of one Group read the same names', async () => {
+    const { t, ids } = await seedWithAliceInBothGroups()
+    // Bob is only in the household, so give the club a second Member who can
+    // be compared against Carol without changing anyone else's memberships.
+    await t.run(async (ctx) => {
+      await ctx.db.insert('memberships', {
+        groupId: ids.cookingClub,
+        userId: ids.bob,
+        role: 'member',
+      })
+    })
+
+    const named = (rows: Array<{ title: string; homeGroupName: unknown }>) =>
+      rows.map((r) => `${r.title}: ${String(r.homeGroupName)}`).sort()
+
+    const carols = await t
+      .withIdentity(asCarol)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+    const bobs = await t
+      .withIdentity(asBob)
+      .query(api.recipes.list, { groupSlug: 'cooking-club' })
+
+    expect(named(carols)).toEqual(named(bobs))
+  })
+})
+
+/**
+ * Rating from a reading screen.
+ *
+ * The point of the separate mutation is what it *doesn't* send: the last test
+ * here is the one that would fail if a star tap ever went back through
+ * `update`, whose validator would demand the ingredients and whose handler
+ * would then re-decide whether the nutrition had gone stale.
+ */
+describe('recipes.rate', () => {
+  test('a Member of the Group it lives in rates it', async () => {
+    const { t, ids } = await seed()
+
+    await t
+      .withIdentity(asBob)
+      .mutation(api.recipes.rate, { id: ids.roast, rating: 4 })
+
+    const recipe = await t
+      .withIdentity(asBob)
+      .query(api.recipes.get, { id: ids.roast, groupSlug: 'household' })
+    expect(recipe?.rating).toBe(4)
+  })
+
+  test('a rating can be taken off again', async () => {
+    const { t, ids } = await seed()
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.recipes.rate, { id: ids.roast, rating: 4 })
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.recipes.rate, { id: ids.roast, rating: null })
+
+    const recipe = await t
+      .withIdentity(asAlice)
+      .query(api.recipes.get, { id: ids.roast, groupSlug: 'household' })
+    expect(recipe?.rating).toBeUndefined()
+  })
+
+  test('a Group it was only shared into cannot rate it', async () => {
+    const { t, ids } = await seed()
+
+    await expect(
+      t
+        .withIdentity(asCarol)
+        .mutation(api.recipes.rate, { id: ids.sharedWithClub, rating: 5 }),
+    ).rejects.toThrow(/recipe not found/i)
+  })
+
+  test('a recipe outside your Groups says only "not found"', async () => {
+    const { t, ids } = await seed()
+
+    await expect(
+      t
+        .withIdentity(asCarol)
+        .mutation(api.recipes.rate, { id: ids.roast, rating: 5 }),
+    ).rejects.toThrow(/recipe not found/i)
+  })
+
+  test('it changes the rating and nothing else', async () => {
+    const { t, ids } = await seed()
+    await t.run(async (ctx) => {
+      await ctx.db.patch(ids.roast, {
+        ingredients: ['500 g beef', 'a potato'],
+        steps: ['Roast it.'],
+        tags: ['sunday'],
+        servings: 4,
+        nutrition: { calories: 700 },
+        nutritionSource: 'manual',
+      })
+    })
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.recipes.rate, { id: ids.roast, rating: 5 })
+
+    const after = await t.run(async (ctx) => await ctx.db.get(ids.roast))
+    expect(after?.rating).toBe(5)
+    expect(after?.ingredients).toEqual(['500 g beef', 'a potato'])
+    expect(after?.steps).toEqual(['Roast it.'])
+    expect(after?.tags).toEqual(['sunday'])
+    expect(after?.servings).toBe(4)
+    expect(after?.nutrition).toEqual({ calories: 700 })
+    expect(after?.nutritionSource).toBe('manual')
+    // The staleness flag is a comparison `update` runs; rating never touches
+    // the fields it compares, so it must not be able to set one.
+    expect(after?.nutritionStale).toBeUndefined()
+  })
+})
+
+/**
  * The diary's recipe picker, which is Personal and so reads across every Group
  * (ADR-0003). This is the one caller-wide list left, and it is not a Group's.
  */

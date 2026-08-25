@@ -42,7 +42,7 @@ async function withImageUrl<T extends { imageId?: Id<'_storage'> }>(
 export const list = query({
   args: { groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const { user, group } = await requireGroupBySlug(ctx, args.groupSlug)
 
     // The Group's own recipes come off `by_group` exactly. The ones shared
     // *into* it cannot: `sharedGroupIds` is an array, and a Convex index keys
@@ -63,9 +63,48 @@ export const list = query({
       (r) => r.groupId !== group._id && r.sharedGroupIds.includes(group._id),
     )
 
-    return await Promise.all(
-      [...own, ...sharedIn].map((r) => withImageUrl(ctx, r)),
-    )
+    // Where a shared-in recipe actually lives, and whether the caller may
+    // change it — resolved here rather than left for the client to work out.
+    //
+    // The phone has no Group in its address bar (ADR-0015), so "this one is a
+    // friend's" has to be carried by the row itself, and the test of it is *a
+    // name is present* rather than a comparison a client performs against a
+    // Group id it would otherwise have no reason to know. The Group's own
+    // recipes carry nothing, so nothing renders.
+    //
+    // `canEdit` is the same question `get` answers and it is not the same
+    // question as the name: Alice, a Member of both the household and the club,
+    // reads the household's recipe in the club as somebody else's *and* as hers
+    // to change. Without it a list would have to offer Delete on every row and
+    // find out on tap, which is the "action that can only fail" this codebase
+    // refuses everywhere else.
+    const homeGroups = new Map<
+      Id<'groups'>,
+      { name: string | null; member: boolean }
+    >()
+    for (const recipe of sharedIn) {
+      if (homeGroups.has(recipe.groupId)) continue
+      const home = await ctx.db.get(recipe.groupId)
+      homeGroups.set(recipe.groupId, {
+        name: home?.name ?? null,
+        member: (await getMembership(ctx, recipe.groupId, user._id)) !== null,
+      })
+    }
+
+    return await Promise.all([
+      // A recipe living in the Group that was asked for belongs to whoever
+      // could ask: `requireGroupBySlug` has already refused a non-Member.
+      ...own.map(async (r) => ({
+        ...(await withImageUrl(ctx, r)),
+        homeGroupName: null as string | null,
+        canEdit: true,
+      })),
+      ...sharedIn.map(async (r) => ({
+        ...(await withImageUrl(ctx, r)),
+        homeGroupName: homeGroups.get(r.groupId)?.name ?? null,
+        canEdit: homeGroups.get(r.groupId)?.member ?? false,
+      })),
+    ])
   },
 })
 
@@ -265,6 +304,33 @@ export const update = mutation({
     // Behind the access check, and only once the row has stopped pointing at
     // the old picture: nothing else in the app can reach it after this.
     await replaceStoredFile(ctx, recipe.imageId, imageId)
+  },
+})
+
+/**
+ * A rating, on its own.
+ *
+ * `update` could carry one, but only by carrying everything else with it: its
+ * validator requires the title, the ingredients, the steps and the tags, so a
+ * star tapped on a reading screen would echo the whole document back — racing
+ * whoever is editing it in another window, and re-running the
+ * nutrition-staleness comparison over ingredients sent for no reason but to
+ * satisfy a validator. A tap is one field, so this takes one field.
+ *
+ * `null` clears the rating, for the same reason `update` accepts one: a rating
+ * chosen by mistake has to be removable, and the field is optional in the
+ * schema.
+ *
+ * Who may: exactly who may edit. `writableRecipe` is the whole access rule, so
+ * a Group that was only shared the recipe rates nothing, and hears the same
+ * "not found" every other write gives (ADR-0009).
+ */
+export const rate = mutation({
+  args: { id: v.id('recipes'), rating: v.union(v.number(), v.null()) },
+  handler: async (ctx, args) => {
+    const recipe = await writableRecipe(ctx, args.id)
+    if (!recipe) throw new Error('Recipe not found')
+    await ctx.db.patch(args.id, { rating: args.rating ?? undefined })
   },
 })
 

@@ -1,29 +1,36 @@
 /**
  * The photo row: add one, look at it, replace it, take it off.
  *
- * Shared by the quick-log sheet and the entry screen for the same reason
- * `EntryFields` is — creating a Memory and correcting one must not be able to
- * drift into two different controls.
+ * Shared by the Baby log's quick-log sheet and entry screen, and by the recipe
+ * form, for the reason it was shared by the first two: creating a thing with a
+ * photo and correcting one must not be able to drift into two different
+ * controls. Recipes is the second Module to want it, which is the bar ADR-0022
+ * set for pulling a component out of the Module that happened to need it first.
  *
- * ## Why the state lives here and the id lives above
+ * ## What the caller owns, and what this does
  *
- * The parent owns one thing: the `_storage` id (or `null`, meaning "no
- * photo", which on an edit means "remove the one that is there"). Everything
- * else — the local preview, the spinner, the permission refusal — is this
- * component's, because none of it survives a save and none of it belongs in
- * the payload.
+ * The caller owns one thing: the `_storage` id (or `null`, meaning "no photo",
+ * which on an edit means "remove the one that is there"). Everything else —
+ * the local preview, the spinner, the permission refusal — is this component's,
+ * because none of it survives a save and none of it belongs in the payload.
+ *
+ * The caller also owns every word. `labels` arrives already resolved and
+ * already interpolated, so the Module's own tree names the thing being
+ * photographed ("Photo of Sunday roast", "Photo of memory") without this
+ * component ever reaching into one (ADR-0011).
  *
  * The preview is the *local* file, not the uploaded one: it is on the phone
  * already, so showing it is instant and costs no round trip. `photoUrl` is
- * what an entry that was saved earlier comes back with, and it is only used
- * when there is no local file to prefer.
+ * what a row that was saved earlier comes back with, and it is only used when
+ * there is no local file to prefer.
  *
  * ## Two buttons, not a menu
  *
- * Camera and Library are the only two answers, and a menu that holds two
- * items is a tap in front of a tap. When there is a photo they become
- * Replace and Remove, which are also two.
+ * Camera and Library are the only two answers, and a menu that holds two items
+ * is a tap in front of a tap. When there is a photo they become Replace and
+ * Remove, which are also two.
  */
+import type { PhotoPresetName } from '@gather/core/photo-presets'
 import { Image } from 'expo-image'
 import { useState } from 'react'
 import {
@@ -34,13 +41,28 @@ import {
   View,
 } from 'react-native'
 
-import { fmt, useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
-import { BABY_UI_ICONS } from './icons'
-import { type PhotoSource, pickPhoto, uploadPhoto } from './photo'
+import { type PhotoSource, pickPhoto, uploadPhoto } from '../photo/pickPhoto'
+import { UI_ICONS } from '../theme/icons'
+import { type ModuleGroup, RADIUS, useTokens } from '../theme/tokens'
+
+/** Every word this row can show, resolved by whichever Module is drawing it. */
+export interface PhotoFieldLabels {
+  /** The row's heading, shown upper-cased. */
+  heading: string
+  take: string
+  choose: string
+  replace: string
+  remove: string
+  uploading: string
+  /** Said when a permission was refused — an answer, not a failure. */
+  denied: string
+  failed: string
+  /** The image's accessible name, already naming its subject. */
+  alt: string
+}
 
 export interface PhotoFieldProps {
-  /** The URL of a photo already on this entry, if it has one. */
+  /** The URL of a photo already on this row, if it has one. */
   photoUrl?: string | null
   /**
    * `undefined` while nothing has changed, a storage id once one is picked,
@@ -48,11 +70,16 @@ export interface PhotoFieldProps {
    */
   value: string | null | undefined
   onChange: (storageId: string | null) => void
-  /** `babies.generateUploadUrl` — the Baby module's upload door. */
+  /** The Module's own upload door — `recipes.generateUploadUrl` and friends. */
   generateUploadUrl: () => Promise<string>
-  /** For the image's alt text: which kind of entry this is. */
-  typeLabel: string
+  /** How the photo is prepared, from the one table allowed to say (ADR-0010). */
+  preset: PhotoPresetName
+  labels: PhotoFieldLabels
+  /** The Module's tint, so the row belongs to the screen it is on (ADR-0017). */
+  group?: ModuleGroup
   disabled?: boolean
+  /** Prefix for the controls' `testID`s, so a verification run can reach them. */
+  testID?: string
 }
 
 export function PhotoField({
@@ -60,12 +87,13 @@ export function PhotoField({
   value,
   onChange,
   generateUploadUrl,
-  typeLabel,
+  preset,
+  labels,
+  group = 'home',
   disabled,
+  testID,
 }: PhotoFieldProps) {
-  const tokens = useTokens('home')
-  const { t } = useI18n()
-  const text = t.baby.log.entry
+  const tokens = useTokens(group)
 
   const [preview, setPreview] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -76,14 +104,16 @@ export function PhotoField({
 
   async function choose(source: PhotoSource) {
     setProblem(null)
-    const picked = await pickPhoto(source).catch(() => 'failed' as const)
+    const picked = await pickPhoto(source, preset).catch(
+      () => 'failed' as const,
+    )
     if (picked === null) return
     if (picked === 'denied') {
-      setProblem(text.photoDenied)
+      setProblem(labels.denied)
       return
     }
     if (picked === 'failed') {
-      setProblem(text.photoFailed)
+      setProblem(labels.failed)
       return
     }
 
@@ -96,7 +126,7 @@ export function PhotoField({
       onChange(storageId)
     } catch {
       setPreview(null)
-      setProblem(text.photoFailed)
+      setProblem(labels.failed)
     } finally {
       setBusy(false)
     }
@@ -111,7 +141,7 @@ export function PhotoField({
   return (
     <View style={styles.field}>
       <Text style={[styles.label, { color: tokens.muted }]}>
-        {text.photo.toUpperCase()}
+        {labels.heading.toUpperCase()}
       </Text>
 
       {shown ? (
@@ -119,7 +149,7 @@ export function PhotoField({
           source={{ uri: shown }}
           style={[styles.preview, { backgroundColor: tokens.tile }]}
           contentFit="cover"
-          accessibilityLabel={fmt(text.photoOf, { type: typeLabel })}
+          accessibilityLabel={labels.alt}
           accessibilityIgnoresInvertColors
         />
       ) : null}
@@ -128,13 +158,17 @@ export function PhotoField({
         {shown ? (
           <>
             <PhotoButton
-              label={text.replacePhoto}
+              label={labels.replace}
+              group={group}
+              testID={testID && `${testID}-replace`}
               disabled={disabled || busy}
               onPress={() => choose('library')}
             />
             <PhotoButton
-              label={text.removePhoto}
+              label={labels.remove}
               tone="danger"
+              group={group}
+              testID={testID && `${testID}-remove`}
               disabled={disabled || busy}
               onPress={remove}
             />
@@ -142,14 +176,18 @@ export function PhotoField({
         ) : (
           <>
             <PhotoButton
-              label={text.takePhoto}
+              label={labels.take}
               icon="Camera"
+              group={group}
+              testID={testID && `${testID}-camera`}
               disabled={disabled || busy}
               onPress={() => choose('camera')}
             />
             <PhotoButton
-              label={text.choosePhoto}
+              label={labels.choose}
               icon="ImagePlus"
+              group={group}
+              testID={testID && `${testID}-library`}
               disabled={disabled || busy}
               onPress={() => choose('library')}
             />
@@ -161,7 +199,7 @@ export function PhotoField({
         <View style={styles.status}>
           <ActivityIndicator color={tokens.muted} size="small" />
           <Text style={[styles.statusText, { color: tokens.muted }]}>
-            {text.photoUploading}
+            {labels.uploading}
           </Text>
         </View>
       ) : null}
@@ -179,23 +217,28 @@ function PhotoButton({
   label,
   icon,
   tone,
+  group,
   disabled,
+  testID,
   onPress,
 }: {
   label: string
   icon?: 'Camera' | 'ImagePlus'
   tone?: 'danger'
+  group: ModuleGroup
   disabled?: boolean
+  testID?: string
   onPress: () => void
 }) {
-  const tokens = useTokens('home')
-  const Icon = icon ? BABY_UI_ICONS[icon] : null
+  const tokens = useTokens(group)
+  const Icon = icon ? UI_ICONS[icon] : null
   const color = tone === 'danger' ? tokens.danger : tokens.fg
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      testID={testID}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
