@@ -13,7 +13,6 @@ export type ModuleIconName =
   | 'Grape'
   | 'ListChecks'
   | 'NotebookPen'
-  | 'Receipt'
   | 'Refrigerator'
   | 'ShoppingCart'
   | 'Wallet'
@@ -67,14 +66,7 @@ export const MODULES = [
     id: 'finances',
     icon: 'Wallet',
     group: 'money',
-    status: 'placeholder',
-    scope: 'group',
-  },
-  {
-    id: 'bills',
-    icon: 'Receipt',
-    group: 'money',
-    status: 'placeholder',
+    status: 'live',
     scope: 'group',
   },
   {

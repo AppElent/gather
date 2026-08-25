@@ -37,10 +37,6 @@ export const byId = {
     label: 'Finances',
     description: 'Budgets and spending overview.',
   },
-  bills: {
-    label: 'Bills & subscriptions',
-    description: 'Recurring bills and subscriptions.',
-  },
   tasks: {
     label: 'Tasks',
     description: 'Shared to-do lists.',

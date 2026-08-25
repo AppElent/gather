@@ -15,7 +15,6 @@ const MODULE_BY_GROUP_SEGMENT = {
   groceries: 'groceries',
   pantry: 'pantry',
   finances: 'finances',
-  bills: 'bills',
   baby: 'baby-log',
   calendar: 'calendar',
   notes: 'notes',

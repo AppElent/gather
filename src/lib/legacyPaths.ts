@@ -45,7 +45,6 @@ type PlainSurface =
   | 'groceries'
   | 'pantry'
   | 'finances'
-  | 'bills'
   | 'calendar'
   | 'notes'
   | 'cheeses'
@@ -126,7 +125,9 @@ const FLAT_MODULES: Record<string, PlainSurface> = {
   groceries: 'groceries',
   pantry: 'pantry',
   finances: 'finances',
-  bills: 'bills',
+  // Bills & subscriptions folded into Finances as Recurring costs (ADR-0025).
+  // The old address keeps working and lands where its content went.
+  bills: 'finances',
   calendar: 'calendar',
   notes: 'notes',
   cheeses: 'cheeses',

@@ -6,6 +6,20 @@ import {
   babyEventTypeValidator,
 } from './lib/babyEvents'
 import { mealValidator, quantityUnitValidator } from './lib/consumption'
+import {
+  buyingCostLinesValidator,
+  chargeValidator,
+  costCategoryValidator,
+  costFrequencyValidator,
+  holdingKindValidator,
+  loanPartKindValidator,
+  netWorthRowValidator,
+  repaymentValidator,
+  splitPartyValidator,
+  splitShareValidator,
+  transactionKindValidator,
+  transferTaxBandValidator,
+} from './lib/finance'
 import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
 import { servingValidator } from './lib/servings'
 
@@ -336,6 +350,232 @@ export default defineSchema({
   })
     .index('by_baby', ['babyId'])
     .index('by_baby_type', ['babyId', 'type']),
+
+  // -- Finances -----------------------------------------------------------
+  //
+  // Every figure below is one a Member typed (ADR-0025). Nothing here is read
+  // from a bank, a property register or a broker, and money is always a whole
+  // number of cents.
+  //
+  // Finance content is Group-scoped and never shared into a second Group, so
+  // these tables carry `groupId` alone rather than the `sharedGroupIds` pair
+  // Recipes needs (ADR-0003).
+
+  // The container for what a home costs. Entered by hand, and it may be one
+  // the Group is only considering rather than one they own.
+  houses: defineTable({
+    groupId: v.id('groups'),
+    createdByUserId: v.id('users'),
+    name: v.string(),
+    // What the Group last said it is worth, and when they said it. Both
+    // optional: adding a house asks for a name and nothing else.
+    valueCents: v.optional(v.number()),
+    valueAsOf: v.optional(v.string()), // YYYY-MM-DD
+    boughtOn: v.optional(v.string()), // YYYY-MM-DD
+    order: v.number(),
+  }).index('by_group', ['groupId']),
+
+  // One or more per House. A record the Group edits in place; asking "what if"
+  // duplicates it rather than changing it (ADR-0025).
+  mortgageCalculations: defineTable({
+    groupId: v.id('groups'),
+    houseId: v.id('houses'),
+    createdByUserId: v.id('users'),
+    updatedByUserId: v.id('users'),
+    updatedAt: v.number(),
+    name: v.string(),
+    order: v.number(),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_house', ['houseId']),
+
+  // A mortgage is not one loan. Each part is priced on its own and the
+  // calculation's totals are their sum; extra repayments and the optional
+  // early-repayment charge belong to the part whose interest they change.
+  loanParts: defineTable({
+    groupId: v.id('groups'),
+    calculationId: v.id('mortgageCalculations'),
+    kind: loanPartKindValidator,
+    principalCents: v.number(),
+    annualRatePercent: v.number(),
+    termMonths: v.number(),
+    // The date the fix ends, rather than a count of months: a stored count
+    // would quietly mean something different every month it was not opened.
+    fixedUntil: v.optional(v.string()), // YYYY-MM-DD
+    // What the Member says the rate becomes then, and the other figures they
+    // wanted to compare against. Gather forecasts nothing.
+    expiryRatePercent: v.optional(v.number()),
+    expiryRateOptions: v.optional(v.array(v.number())),
+    repayments: v.optional(v.array(repaymentValidator)),
+    charge: v.optional(chargeValidator),
+    order: v.number(),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_calculation', ['calculationId']),
+
+  // One per House. A purchase nobody has made yet is simply a House the Group
+  // does not own.
+  homeBuyingCosts: defineTable({
+    groupId: v.id('groups'),
+    houseId: v.id('houses'),
+    updatedByUserId: v.id('users'),
+    purchasePriceCents: v.number(),
+    ownMoneyCents: v.number(),
+    mortgageCents: v.number(),
+    mortgageRatePercent: v.number(),
+    mortgageTermMonths: v.number(),
+    transferTaxBand: transferTaxBandValidator,
+    // Stored beside the band because rates change by act of parliament: the
+    // band is what the Member chose, the percent is what applied when they did.
+    transferTaxPercent: v.number(),
+    lines: v.optional(buyingCostLinesValidator),
+    nhgPercent: v.optional(v.number()),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_house', ['houseId']),
+
+  // What the household pays over and over. No due dates, no payment status and
+  // no renewals: the totals are the product.
+  recurringCosts: defineTable({
+    groupId: v.id('groups'),
+    createdByUserId: v.id('users'),
+    name: v.string(),
+    amountCents: v.number(),
+    frequency: costFrequencyValidator,
+    category: costCategoryValidator,
+    note: v.optional(v.string()),
+    // How the Group divides it. A ratio, never a debt - nothing accrues and
+    // nothing settles. Absent or empty means the cost is not divided.
+    split: v.optional(v.array(splitShareValidator)),
+    order: v.number(),
+  }).index('by_group', ['groupId']),
+
+  savingsGoals: defineTable({
+    groupId: v.id('groups'),
+    createdByUserId: v.id('users'),
+    name: v.string(),
+    targetCents: v.number(),
+    targetDate: v.string(), // YYYY-MM-DD
+    // Entered by hand; there is no account to read it from.
+    savedCents: v.number(),
+    monthlyCents: v.optional(v.number()),
+    updatedByUserId: v.id('users'),
+    updatedAt: v.number(),
+    order: v.number(),
+  }).index('by_group', ['groupId']),
+
+  // A Shared costs result somebody chose to keep. Immutable: changing one
+  // duplicates it instead.
+  splitScenarios: defineTable({
+    groupId: v.id('groups'),
+    createdByUserId: v.id('users'),
+    createdAt: v.number(),
+    name: v.string(),
+    // Members are snapshotted by name as well as by id, so a saved split still
+    // reads correctly after somebody leaves the Group.
+    payments: v.array(
+      v.object({
+        party: splitPartyValidator,
+        amountCents: v.number(),
+        label: v.optional(v.string()),
+      }),
+    ),
+    participants: v.array(splitPartyValidator),
+    mode: v.union(v.literal('equal'), v.literal('custom')),
+    // Frozen results rather than inputs to recompute: the Members and their
+    // ids may be gone, and a scenario that recalculated would stop being the
+    // thing that was saved.
+    owed: v.array(
+      v.object({ party: splitPartyValidator, amountCents: v.number() }),
+    ),
+    transfers: v.array(
+      v.object({
+        from: splitPartyValidator,
+        to: splitPartyValidator,
+        amountCents: v.number(),
+      }),
+    ),
+    totalCents: v.number(),
+  }).index('by_group', ['groupId']),
+
+  // Listed stocks and ETFs only (ADR-0026).
+  holdings: defineTable({
+    groupId: v.id('groups'),
+    createdByUserId: v.id('users'),
+    kind: holdingKindValidator,
+    // Enough to name one instrument rather than one ticker: the same symbol
+    // trades in two currencies on two exchanges, and a Portfolio that cannot
+    // tell them apart is one that adds dollars to euros.
+    symbol: v.string(),
+    name: v.string(),
+    exchange: v.optional(v.string()),
+    currency: v.string(),
+    // The dated position everything else is built on.
+    openingDate: v.string(), // YYYY-MM-DD
+    openingUnits: v.number(),
+    openingAverageCostCents: v.number(),
+    // The last price anybody has, and the moment it is as at. There is no
+    // price without one, and a refresh that fails leaves both alone so the
+    // screen can say how old the figure is instead of blanking it.
+    lastPriceCents: v.optional(v.number()),
+    lastPriceAt: v.optional(v.number()),
+    order: v.number(),
+  }).index('by_group', ['groupId']),
+
+  holdingTransactions: defineTable({
+    groupId: v.id('groups'),
+    holdingId: v.id('holdings'),
+    createdByUserId: v.id('users'),
+    kind: transactionKindValidator,
+    date: v.string(), // YYYY-MM-DD
+    units: v.optional(v.number()),
+    pricePerUnitCents: v.optional(v.number()),
+    perUnitCents: v.optional(v.number()),
+    feeCents: v.optional(v.number()),
+    note: v.optional(v.string()),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_holding', ['holdingId']),
+
+  // The Group's home currency, and the conversions a Member entered for the
+  // currencies their holdings trade in.
+  financeSettings: defineTable({
+    groupId: v.id('groups'),
+    homeCurrency: v.string(),
+    rates: v.optional(
+      v.array(
+        v.object({
+          currency: v.string(),
+          // Home-currency units per one unit of `currency`.
+          rate: v.number(),
+          asOf: v.number(),
+        }),
+      ),
+    ),
+  }).index('by_group', ['groupId']),
+
+  // What the household owns and owes, apart from the rows Net worth derives.
+  netWorthEntries: defineTable({
+    groupId: v.id('groups'),
+    createdByUserId: v.id('users'),
+    kind: v.union(v.literal('asset'), v.literal('liability')),
+    label: v.string(),
+    amountCents: v.number(),
+    order: v.number(),
+  }).index('by_group', ['groupId']),
+
+  // Only ever explicit, and never edited afterwards. A snapshot freezes the
+  // derived rows too, including the moment the prices came from.
+  netWorthSnapshots: defineTable({
+    groupId: v.id('groups'),
+    takenByUserId: v.id('users'),
+    takenOn: v.string(), // YYYY-MM-DD
+    takenAt: v.number(),
+    rows: v.array(netWorthRowValidator),
+    assetsCents: v.number(),
+    liabilitiesCents: v.number(),
+    netCents: v.number(),
+  }).index('by_group', ['groupId']),
 
   // Bookkeeping for the Sample household seed, which wipes and recreates on
   // every run: one row per run, listing exactly the documents that run

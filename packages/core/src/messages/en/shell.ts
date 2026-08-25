@@ -198,7 +198,7 @@ export const shell = {
     subtitle:
       'Gather keeps shared recipes, plans, lists, tasks, notes, and tasting logs in one place, for the people who share a household.',
     modules:
-      'Recipes and Nutrition are live today, and the surrounding modules are staged so a group can grow into meal planning, groceries, pantry tracking, finances, bills, tasks, calendar, notes, cheeses, and wines without changing products.',
+      'Recipes and Nutrition are live today, and the surrounding modules are staged so a group can grow into meal planning, groceries, pantry tracking, finances, tasks, calendar, notes, cheeses, and wines without changing products.',
     pins: "Every module is available in every group. You pin the ones you use to your own navigation, and the rest stay one click away — your choices are yours alone and never move anybody else's.",
   },
 

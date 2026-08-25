@@ -11,9 +11,21 @@ describe('module registry', () => {
     for (const m of MODULES) expect(MODULE_GROUPS).toContain(m.group)
   })
 
-  test('recipes, nutrition, tasks, and baby-log are the live modules', () => {
+  test('recipes, nutrition, finances, tasks and baby-log are live', () => {
     const live = MODULES.filter((m) => m.status === 'live').map((m) => m.id)
-    expect(live).toEqual(['recipes', 'nutrition', 'tasks', 'baby-log'])
+    expect(live).toEqual([
+      'recipes',
+      'nutrition',
+      'finances',
+      'tasks',
+      'baby-log',
+    ])
+  })
+
+  // Bills & subscriptions folded into Finances as Recurring costs (ADR-0025).
+  // A Module the catalogue no longer names is one nothing can navigate to.
+  test('no longer offers a Bills module', () => {
+    expect(MODULES.map((m) => m.id)).not.toContain('bills')
   })
 
   test('modulesByGroup buckets every module', () => {

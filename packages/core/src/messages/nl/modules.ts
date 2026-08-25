@@ -29,10 +29,6 @@ export const byId = {
     label: 'Financiën',
     description: 'Budgetten en een overzicht van je uitgaven.',
   },
-  bills: {
-    label: 'Rekeningen & abonnementen',
-    description: 'Terugkerende rekeningen en abonnementen.',
-  },
   tasks: {
     label: 'Taken',
     description: 'Gedeelde takenlijsten.',

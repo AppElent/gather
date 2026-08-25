@@ -174,7 +174,7 @@ export const shell = {
     subtitle:
       'Gather houdt gedeelde recepten, plannen, lijsten, taken, notities en proefnotities op één plek, voor de mensen die een huishouden delen.',
     modules:
-      'Recepten en Voeding werken vandaag al, en de modules eromheen staan klaar zodat een Groep kan doorgroeien naar maaltijdplanning, boodschappen, voorraad, financiën, rekeningen, taken, agenda, notities, kazen en wijnen zonder van app te wisselen.',
+      'Recepten en Voeding werken vandaag al, en de modules eromheen staan klaar zodat een Groep kan doorgroeien naar maaltijdplanning, boodschappen, voorraad, financiën, taken, agenda, notities, kazen en wijnen zonder van app te wisselen.',
     pins: 'Elke module is in elke Groep beschikbaar. Je zet de modules die je gebruikt vast in je eigen navigatie, de rest blijft één klik weg — je keuzes zijn alleen van jou en verplaatsen die van niemand anders.',
   },
 

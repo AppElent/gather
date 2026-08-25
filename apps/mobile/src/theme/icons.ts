@@ -40,7 +40,6 @@ import Grid from 'lucide-react-native/icons/layout-grid'
 import ListChecks from 'lucide-react-native/icons/list-checks'
 import NotebookPen from 'lucide-react-native/icons/notebook-pen'
 import Pencil from 'lucide-react-native/icons/pencil'
-import Receipt from 'lucide-react-native/icons/receipt'
 import Refrigerator from 'lucide-react-native/icons/refrigerator'
 import Search from 'lucide-react-native/icons/search'
 import Settings from 'lucide-react-native/icons/settings'
@@ -70,7 +69,6 @@ export const MODULE_ICONS = {
   Grape: glyph(Grape, null),
   ListChecks: glyph(ListChecks, 'checklist'),
   NotebookPen: glyph(NotebookPen, 'square.and.pencil'),
-  Receipt: glyph(Receipt, 'doc.text'),
   Refrigerator: glyph(Refrigerator, 'refrigerator'),
   ShoppingCart: glyph(ShoppingCart, 'cart'),
   Wallet: glyph(Wallet, 'creditcard'),

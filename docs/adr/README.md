@@ -26,3 +26,5 @@
 | 0022 | A Module is configured by its content, not by a switch | decided | mobile modules | `apps/mobile/src/modules/baby/` |
 | 0023 | Modules live inside the tab stacks | decided | mobile navigation | `apps/mobile/app/(app)/(tabs)/`, `apps/mobile/src/modules/` |
 | 0024 | A Tasting catalog is a picker, and tasting it makes it yours | decided | tasting | `convex/tastings.ts`, `packages/core/src/tastingKinds.ts` |
+| 0025 | Money is shared and entered by hand | decided | finances | `CONTEXT.md`, `docs/adr/0026-portfolio-overviews-are-information-not-advice.md` |
+| 0026 | Portfolio overviews are information, not advice | decided | finances | `CONTEXT.md` |

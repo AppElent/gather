@@ -27,7 +27,7 @@ const INDEXES: Array<[string, string]> = [
   ['/groceries', 'groceries'],
   ['/pantry', 'pantry'],
   ['/finances', 'finances'],
-  ['/bills', 'bills'],
+  ['/bills', 'finances'],
   ['/calendar', 'calendar'],
   ['/notes', 'notes'],
   ['/cheeses', 'cheeses'],

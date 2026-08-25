@@ -56,43 +56,71 @@ and nobody may edit it; it changes only when a new version of Gather ships a
 different one.
 _Avoid_: Global data, Public data
 
+**Finance record**:
+Group content in Finances that Members edit in place — a House, a Mortgage
+calculation, a Recurring cost, a Savings goal, an Investment holding. Every
+figure in one was typed by a Member: Gather connects to no bank, imports no
+file, and looks nothing up.
+_Avoid_: Account, Statement, Ledger
+
 **Finance calculator**:
-A Group tool that estimates an outcome from values a Member enters. Its result
-is disposable unless a Member explicitly saves it as a Group scenario; it is
-not a financial record.
+A Group tool that estimates an outcome from values a Member enters and keeps
+nothing unless asked. **Payment split** is the only one; everything else in
+Finances is a Finance record.
 _Avoid_: Ledger, Account statement
 
 **Saved scenario**:
-An immutable Group snapshot of the inputs and result of a Finance calculator.
+An immutable Group snapshot of the inputs and result of a **Payment split**.
 Members change a scenario by duplicating it, so a comparison always retains the
-assumptions it was made from.
+assumptions it was made from. A Mortgage calculation is not a scenario: it is a
+record, and duplicating one is how a Member asks what if.
 _Avoid_: Editable draft, Live calculation
 
-**Bill**:
-A recurring financial commitment of a Group, such as rent, utilities,
-insurance, or a subscription. A Bill is not a one-off invoice, reimbursement,
-or a payment between Members.
-_Avoid_: Expense, Invoice, Reimbursement
+**House**:
+A home a Group entered by hand — the one they live in, or one they are only
+considering. Gather looks nothing up: there is no property register and no
+automatic valuation, so a House is worth whatever a Member last said it was. It
+is the container for what a home costs, holding one **Home-buying costs** and
+one or more **Mortgage calculations**. Adding one asks for a name and nothing
+else.
+_Avoid_: Property, Address, Home (the word Home already names a Group's shared
+surface)
 
-**Mortgage scenario**:
-A Finance calculator's estimate of a mortgage's payment or repayment path,
-including extra repayments and a fixed-rate-expiry comparison. It is not a loan
-record. It supports annuity and linear mortgages, and shows the result for
-interest-rate assumptions a Member enters. It may model an existing or
-hypothetical loan, one-off or recurring extra repayments, and an optional
-Member-entered early-repayment charge.
-_Avoid_: Mortgage account
+**Mortgage calculation**:
+A named estimate of what a House's mortgage costs, belonging to that House,
+which a Group may have several of. It is a record Members edit in place rather
+than a disposable result, and a Member asks what if by **duplicating** it. It is
+not a loan account: Gather holds no balance a lender would recognise. Its
+figures are the sum of its **Loan parts**, and because each part's fix ends on
+its own date, its fixed-rate-expiry answer is a series of dated steps rather
+than one figure.
+_Avoid_: Mortgage account, Mortgage scenario
 
-**Recurring costs**:
-A Finance calculator that turns manually entered repeating costs into monthly
-and annual totals. It is not a payment tracker or a due-date reminder.
-_Avoid_: Bills module, Subscription ledger
+**Loan part**:
+One piece of a Mortgage calculation, with its own amount, structure (annuity,
+linear, or interest-only), interest rate, fixed-rate end date, and remaining
+term. A mortgage is a combination of parts rather than one loan, so a part is
+priced on its own and the calculation's totals are their sum. Extra repayments
+and an optional Member-entered early-repayment charge belong to the part whose
+interest they change.
+_Avoid_: Tranche, Sub-loan, Line
 
-**Subscription comparison**:
-A Finance calculator that compares manually entered subscription plans by their
-monthly and annual cost, including a hypothetical price rise. It does not manage
-cancellation or renewal dates.
-_Avoid_: Subscription manager, Renewal reminder
+**Recurring cost**:
+A repeating financial commitment of a Group that a Member entered — rent,
+utilities, insurance, a subscription. It carries an amount, how often it
+repeats, a **category** from a fixed set, and a **split ratio**; together they
+produce the Group's monthly and annual totals and each Member's share. It has
+its own screen, which is where comparing what it could be bought for will
+eventually live. It is not a one-off invoice, a reimbursement, a payment between
+Members, a payment tracker, or a due-date reminder.
+_Avoid_: Bill, Expense, Invoice, Reimbursement, Subscription ledger
+
+**Split ratio**:
+How a Recurring cost is divided between current Group Members, as shares that
+total the whole. It says who bears what and nothing else: no debt accrues from
+it and nothing is ever settled, which is what separates it from a **Payment
+split**.
+_Avoid_: Debt share, Owed amount
 
 **Savings goal**:
 A Group target with a desired amount, date, and manually entered saved amount.
@@ -101,15 +129,21 @@ does not derive progress from transactions.
 _Avoid_: Savings account, Budget envelope
 
 **Home-buying costs**:
-A Netherlands-specific Finance calculator for the cash needed to buy a home and
-an estimated monthly mortgage payment. It does not assess what a Group can
-afford or recommend a loan.
+A Netherlands-specific estimate of the cash needed to buy a home and the
+monthly mortgage payment that follows, belonging to one **House** — a purchase
+not yet made is simply a House the Group does not own. Every rate and fee in it
+is one a Member entered, and Gather never claims one is current. It does not
+assess what a Group can afford or recommend a loan.
 _Avoid_: Affordability assessment, Mortgage advice
 
 **Net worth snapshot**:
 A dated Group record of manually entered current asset and liability values,
-plus the calculated current value of its Portfolio overview. A Member saves it
-explicitly to compare over time; it is not a bank-connected account view.
+plus three **derived** figures the Group has already modelled elsewhere: a
+House's value, that House's mortgage balance, and the calculated current value
+of the Portfolio overview. A Member saves a snapshot explicitly to compare over
+time; a saved one freezes the derived figures too, including the moment the
+prices came from, and is never edited afterwards. It is not a bank-connected
+account view.
 _Avoid_: Account aggregation, Financial statement
 
 **Payment split**:
@@ -367,6 +401,11 @@ _Avoid_: Signed out, Offline mode
 - A Module is configured by its content and never by a switch. Nothing turns a
   Module on, and what a Module needs configured belongs to one of its records —
   so an empty Module's invitation and its setup are the same screen (ADR-0022).
+- Every figure in Finances is one a Member typed, and what a home costs hangs
+  off a **House**: its buying costs, and its mortgage calculations, which are
+  made of **Loan parts** rather than of one loan. A Member asks what if by
+  duplicating a calculation rather than editing one, and a **Payment split** is
+  the only result Gather throws away (ADR-0025).
 - A Catalog entry is a fact or a suggestion, and which one decides whether
   anything may point at it. A Food is a fact, so a diary entry references the
   Catalog row and the row stays read-only forever. A **Tasting catalog** entry

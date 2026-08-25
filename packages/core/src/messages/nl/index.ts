@@ -1,6 +1,7 @@
 import type { Messages } from '../en'
 import { baby } from './baby'
 import { common } from './common'
+import { finances } from './finances'
 import { foods } from './foods'
 import { modules } from './modules'
 import { nutrients } from './nutrients'
@@ -18,6 +19,7 @@ export const nl = {
   recipes,
   nutrition,
   foods,
+  finances,
   tasks,
   baby,
   settings,
