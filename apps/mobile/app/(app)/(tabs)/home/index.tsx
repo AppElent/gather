@@ -133,9 +133,7 @@ export default function Home() {
                   key={module.id}
                   accessibilityRole="button"
                   accessibilityLabel={text.label}
-                  onPress={() =>
-                    router.push(moduleDestination('home', module.id))
-                  }
+                  onPress={() => router.push(moduleDestination(module.id))}
                   style={({ pressed }) => [
                     styles.pin,
                     { backgroundColor: tint.bg },

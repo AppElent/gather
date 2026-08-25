@@ -15,7 +15,7 @@
 import type { Href } from 'expo-router'
 
 /** The tab stacks this Module is mounted in. */
-export type BabyBase = '/home/baby-log' | '/all/baby-log'
+export type BabyBase = '/all/baby-log'
 
 export type BabyScreen =
   | ''

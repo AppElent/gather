@@ -1,59 +1,31 @@
-# Modules live inside the tab stacks
+# Modules live inside the All tab stack
 
-Status: decided (2026-08-19), not yet implemented
+Status: decided (2026-08-24), implemented
 
-Baby log is the first Module on the phone to need a stack. Until now a Module has
-been a leaf — `home/[moduleId].tsx` and `all/[moduleId].tsx`, two thin files both
-rendering `ModuleRoute`, with nothing to push into. A child log has a child, a
-child has settings, and both are pages below the Module's root.
+Modules with native screens live once, inside the All tab's stack. Home Pins
+switch to All before pushing the Module. This keeps the tab bar and Add action
+available while avoiding duplicate route trees.
 
-That raises where those pages live, and the attractive answer is wrong.
+## Why the earlier decision changed
 
-**The attractive answer:** give every Module one top-level address —
-`/module/[moduleId]`, or `/baby` — and reduce All and Home to link lists. One
-address per Module, no Module reachable two ways, and `groupLink.ts` retargets
-once. It also *sounds* like what
-[ADR-0018](0018-mobile-tabs-are-app-destinations-and-one-of-them-is-a-verb.md)
-wants, since that ADR says the bar names app-level capabilities and never
-Modules — so a Module might seem to belong outside the bar entirely.
+The earlier decision put each Module in both the Home and All stacks as thin
+route files. That preserved a separate back stack per tab, but it created two
+addresses for every screen. `groupLink.ts` already resolves supported deep links
+to `/all/...`, so the Home copies had no incoming address that the All copies did
+not also serve.
 
-**We rejected it. A Module's screens live inside each tab's stack**, as thin
-files re-exporting shared screens from `src/modules/baby/` — the convention
-`ModuleRoute` already set, extended rather than replaced.
+The reversal is intentionally limited to route ownership: shared Module screens
+remain under `src/modules/<module>/`, while the route files are declared only in
+the All stack. Home remains the Group's shared surface and its Pins are links
+into the All stack.
 
-## What a top-level route actually costs
+## Costs accepted
 
-A route outside the `(tabs)` group is pushed full-screen over the bar. Every cost
-below lands on the tab bar, and they are not small:
+- Tapping a Pin changes the selected tab to All.
+- Back from a Module opened by a Pin lands on All's index rather than Home.
+- A Module has one address, so its stack position is the All stack's position.
 
-| Cost | Why it matters here |
-| --- | --- |
-| **The bar disappears while you are in a Module** | Add is the quick-log launcher. Losing it *inside* the Module that most needs quick logging is the decisive one |
-| **No selected tab** | Keeping the bar visible over a route belonging to no tab means drawing it in JavaScript — the exact fallback ADR-0018 rejected for the Add slot |
-| **Per-tab position is gone** | Today All remembers where you were. With no tab holding your place, leaving a Module means leaving it |
-| **A cold-start deep link has nothing beneath it** | Back exits the app unless `/home` is seeded under the push. A tab-nested route gets its tab root for free |
-
-Android hardware back is fine either way as long as the route is pushed rather
-than replaced, and
-[ADR-0013](0013-a-nested-page-carries-its-own-trail.md)'s trail rule is satisfied
-either way. Those are not the reasons.
-
-## The price we are paying instead
-
-**A Module is reachable at two addresses** — under Home and under All — and its
-screens exist as two thin route files each. That is the cost, stated plainly so
-nobody discovers it and assumes it was an oversight. It buys a bar that is always
-there, a native back stack per tab, and Add one tap away from anywhere inside a
-Module.
-
-The duplication stays thin on purpose: the route files are two-line re-exports
-and every screen lives once, under `src/modules/<module>/`. If a Module's route
-files ever grow logic, that is the smell to fix — not the two addresses.
-
-## What would reopen this
-
-A way to keep the native bar visible **and** coherently selected over a route
-that belongs to no tab. The decision is about what `NativeTabs` can express, not
-about what a Module deserves — so if the platform grows that state, the
-attractive answer becomes available and this ADR should be re-argued rather than
-cited.
+These costs are preferable to a Module being reachable at two addresses, and
+they match the existing deep-link behavior. If Home later needs a distinct
+Module workflow, that is a new route decision rather than a reason to restore
+duplicate screens.

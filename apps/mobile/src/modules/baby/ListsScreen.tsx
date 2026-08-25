@@ -30,7 +30,7 @@ import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 import { fmt, useI18n } from '../../i18n'
 import { useTokens } from '../../theme/tokens'
-import { Checklist } from './Checklist'
+import { Checklist } from '../tasks/Checklist'
 import { useBabyLog } from './useBabyLog'
 
 export function ListsScreen() {

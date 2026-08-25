@@ -16,6 +16,7 @@ import {
   SAMPLE_DIARY,
   SAMPLE_GROUP_NAME,
   SAMPLE_HOUSEMATES,
+  SAMPLE_NOTES,
   SAMPLE_RECIPES,
   SAMPLE_TASK_LISTS,
   SAMPLE_USER_FOODS,
@@ -455,6 +456,20 @@ export async function applySample(
     }
   }
 
+  // --- Notes ----------------------------------------------------------------
+  for (const note of SAMPLE_NOTES) {
+    rec.track(
+      await ctx.db.insert('notes', {
+        groupId,
+        title: note.title,
+        body: note.body,
+        pinned: note.pinned,
+        createdBy: authors[note.author],
+        updatedAt: now - note.daysAgo * DAY_MS,
+      }),
+    )
+  }
+
   // --- Baby ----------------------------------------------------------------
   // The two lists the app gives every Child are made here rather than left to
   // `babies.ensureAuxLists`: the seed writes straight to the table, so a
@@ -656,6 +671,7 @@ export async function applySample(
     recipes: SAMPLE_RECIPES.length,
     taskLists: SAMPLE_TASK_LISTS.length,
     tasks: SAMPLE_TASK_LISTS.reduce((n, l) => n + l.tasks.length, 0),
+    notes: SAMPLE_NOTES.length,
     babyTasks: SAMPLE_BABY.todos.length + SAMPLE_BABY.questions.length,
     babyEvents: SAMPLE_BABY_EVENTS.length,
     diaryEntries,
@@ -674,6 +690,7 @@ export async function applySample(
     counts.recipes +
     counts.taskLists +
     counts.tasks +
+    counts.notes +
     1 + // baby
     2 + // the baby's own two lists
     counts.babyTasks +

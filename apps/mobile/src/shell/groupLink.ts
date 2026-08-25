@@ -41,9 +41,11 @@ export function nativeDestinationForGroupLink(
       case 'all':
         return '/all'
       case 'recipes':
-      case 'tasks':
       case 'nutrition':
         return { pathname: '/all/[moduleId]', params: { moduleId: first } }
+      case 'tasks':
+      case 'notes':
+        return `/all/${first}` as Href
       default: {
         const moduleId = moduleForGroupSegment(first)
         return moduleId

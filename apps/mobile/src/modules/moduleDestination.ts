@@ -18,6 +18,8 @@ import type { Href } from 'expo-router'
 /** Modules with real screens in the phone's route tree. */
 export const NATIVE_MODULES = [
   'baby-log',
+  'tasks',
+  'notes',
 ] as const satisfies readonly ModuleId[]
 
 export type NativeModuleId = (typeof NATIVE_MODULES)[number]
@@ -27,22 +29,21 @@ export function isNativeModule(id: string): id is NativeModuleId {
 }
 
 /**
- * The href for a Module inside one tab's stack.
+ * The href for a Module inside the All stack.
  *
  * The cast is confined here for the reason `modules/baby/paths.ts` gives: typed
  * routes cannot check a template string, and one place assembling paths by hand
  * beats every call site doing it.
  */
 export function moduleDestination(
-  tab: 'home' | 'all',
   // A plain string rather than `ModuleId`: the callers hold a Module's own
   // `id`, which the catalogue types loosely at the call site, and narrowing
   // here would push a cast into both tabs to save one.
   moduleId: string,
 ): Href {
-  if (isNativeModule(moduleId)) return `/${tab}/${moduleId}` as Href
+  if (isNativeModule(moduleId)) return `/all/${moduleId}` as Href
   return {
-    pathname: tab === 'home' ? '/home/[moduleId]' : '/all/[moduleId]',
+    pathname: '/all/[moduleId]',
     params: { moduleId },
   } as Href
 }

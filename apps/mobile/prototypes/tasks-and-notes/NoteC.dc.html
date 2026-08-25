@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8a6a33; text-decoration: none; }
+    a:hover { color: #6d5327; }
+    .ic { flex: none; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none;"></div>
+  <div style="flex: none; display: flex; align-items: center; height: 52px; padding: 0 16px 0 8px; gap: 8px;">
+    <div style="flex: 1; display: flex; align-items: center; gap: 1px; color: #8a6a33; cursor: pointer; min-width: 0;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg><span style="font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Notes</span></div>
+    <div style="font-size: 17px; font-weight: 700; letter-spacing: -0.3px; white-space: nowrap;"></div>
+    <div style="flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 17px;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg></div>
+  </div>
+  <div style="flex: none; padding: 0 18px 12px; display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-size: 24px; font-weight: 800; letter-spacing: -0.6px;">Notes on Household</div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #8a6a33; background: #f2ece0; border-radius: 999px; padding: 5px 11px;"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 5 2 2 3-3"></path><path d="m3 13 2 2 3-3"></path><path d="M13 6h8"></path><path d="M13 15h8"></path></svg>Task list</span>
+      <span style="font-size: 12.5px; color: #79807b;">4 notes · everyone in the household</span>
+    </div>
+  </div>
+  <div style="flex: 1; min-height: 0; overflow: hidden; padding: 0 18px; display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; gap: 11px; padding-bottom: 16px; border-bottom: 1px solid #e8e7e3;">
+        <div style="width: 30px; height: 30px; border-radius: 15px; background: #f2ece0; color: #8a6a33; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex: none;">E</div>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: baseline; gap: 7px;"><span style="font-size: 14px; font-weight: 700;">Eric</span><span style="font-size: 12px; color: #79807b;">2 hours ago</span></div>
+          <div style="font-size: 15.5px; line-height: 23px; text-wrap: pretty;">Plumber wants the landing radiator off the wall first, so don’t start the painting until that’s done.</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 11px; padding-bottom: 16px; border-bottom: 1px solid #e8e7e3;">
+        <div style="width: 30px; height: 30px; border-radius: 15px; background: #f2ece0; color: #8a6a33; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex: none;">A</div>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: baseline; gap: 7px;"><span style="font-size: 14px; font-weight: 700;">Anne</span><span style="font-size: 12px; color: #79807b;">Yesterday</span></div>
+          <div style="font-size: 15.5px; line-height: 23px; text-wrap: pretty;">He also said the valve is seized, and quoted €180 for the pair. I said yes.</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 11px; padding-bottom: 16px; border-bottom: 1px solid #e8e7e3;">
+        <div style="width: 30px; height: 30px; border-radius: 15px; background: #f2ece0; color: #8a6a33; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex: none;">E</div>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: baseline; gap: 7px;"><span style="font-size: 14px; font-weight: 700;">Eric</span><span style="font-size: 12px; color: #79807b;">Tuesday</span></div>
+          <div style="font-size: 15.5px; line-height: 23px; text-wrap: pretty;">Reminder that the stopcock is behind the boiler cupboard, not under the sink.</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 11px;">
+        <div style="width: 30px; height: 30px; border-radius: 15px; background: #f2ece0; color: #8a6a33; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex: none;">A</div>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: baseline; gap: 7px;"><span style="font-size: 14px; font-weight: 700;">Anne</span><span style="font-size: 12px; color: #79807b;">12 Aug</span></div>
+          <div style="font-size: 15.5px; line-height: 23px; text-wrap: pretty;">Bin day moves to Wednesday for the bank holiday week.</div>
+        </div>
+      </div>
+  </div>
+  <div style="flex: none; padding: 10px 16px 12px; border-top: 1px solid #e8e7e3; background: #ffffff;">
+    <div style="display: flex; align-items: center; gap: 11px; background: #f1f2f0; border-radius: 999px; padding: 0 16px; min-height: 44px;">
+      <span style="flex: 1; font-size: 15.5px; color: #79807b;">Add to this note…</span>
+      <svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+    </div>
+  </div>
+  <div style="flex: none; display: flex; height: 49px; background: #ffffff; border-top: 1px solid #e8e7e3;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 10v10h14V10"></path></svg><span style="font-size: 10px;">Home</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span style="font-size: 10px;">Search</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg><span style="font-size: 10px;">Add</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m4.9 4.9 2.1 2.1"></path><path d="m17 17 2.1 2.1"></path><path d="M19.1 4.9 17 7"></path><path d="M7 17l-2.1 2.1"></path></svg><span style="font-size: 10px;">Settings</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #8a6a33;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"></rect><rect x="14" y="3" width="7" height="7" rx="1.6"></rect><rect x="3" y="14" width="7" height="7" rx="1.6"></rect><rect x="14" y="14" width="7" height="7" rx="1.6"></rect></svg><span style="font-size: 10px; font-weight: 600;">All</span></div>
+  </div>
+  <div style="height: 34px; flex: none; background: #ffffff;"></div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
