@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { en, nl } from '../messages'
 import { moduleById } from '../modules'
 import {
+  FACTS_LINE_PARTS,
   isValidTastingRating,
   normalizeTastingAttributes,
   SELECT_PICKER_THRESHOLD,
@@ -290,15 +291,11 @@ describe('validating against the spec', () => {
 })
 
 describe('the facts line a row shows', () => {
-  const term = (vocabulary: 'milkType' | 'cheeseCountry' | 'cheeseStyle') =>
-    vocabulary
-  const words = (
-    vocabulary: Parameters<typeof term>[0] | string,
-    key: string,
-  ) =>
+  const words = (vocabulary: string, key: string) =>
     (en.tastings.vocabularies as Record<string, Record<string, string>>)[
-      vocabulary as string
+      vocabulary
     ]?.[key] ?? key
+  const units = (unit: 'percent' | 'months') => en.tastings.units[unit]
 
   test('reads the Kind’s selects in declaration order', () => {
     expect(
@@ -306,17 +303,72 @@ describe('the facts line a row shows', () => {
         'cheese',
         { milk: 'cow', country: 'france', style: 'hard', producer: 'Petite' },
         words,
+        units,
       ),
     ).toBe('Cow · France · Hard')
   })
 
-  test('falls back to a text fact rather than reading blank', () => {
-    expect(tastingFactsLine('beer', { brewery: 'Westmalle' }, words)).toBe(
-      'Westmalle',
+  test('a cheese with three selects does not also show its age', () => {
+    expect(
+      tastingFactsLine(
+        'cheese',
+        { milk: 'cow', country: 'france', style: 'hard', age: 24 },
+        words,
+        units,
+      ),
+    ).toBe('Cow · France · Hard')
+  })
+
+  /**
+   * The rule that makes the line worth having on every Kind rather than on the
+   * one somebody tuned it for: beer declares a single select, so its ABV tops
+   * the line up instead of the row reading "Tripel" and stopping.
+   */
+  test('a Kind with few selects tops the line up with its numbers', () => {
+    expect(
+      tastingFactsLine(
+        'beer',
+        { brewery: 'Westmalle', style: 'tripel', abv: 9.5 },
+        words,
+        units,
+      ),
+    ).toBe('Tripel · 9.5%')
+  })
+
+  test('a tag counts as one part, and only its first entry', () => {
+    expect(
+      tastingFactsLine(
+        'wine',
+        { grapes: ['nebbiolo', 'barbera'], region: 'piedmont', style: 'red' },
+        words,
+        units,
+      ),
+    ).toBe('Nebbiolo · Piedmont · Red')
+  })
+
+  test('never runs past three parts, whatever is filled in', () => {
+    const line = tastingFactsLine(
+      'wine',
+      {
+        grapes: ['nebbiolo'],
+        region: 'piedmont',
+        style: 'red',
+        vintage: 2019,
+        abv: 14.5,
+      },
+      words,
+      units,
     )
+    expect(line.split(' · ')).toHaveLength(FACTS_LINE_PARTS)
+  })
+
+  test('falls back to a text fact rather than reading blank', () => {
+    expect(
+      tastingFactsLine('beer', { brewery: 'Westmalle' }, words, units),
+    ).toBe('Westmalle')
   })
 
   test('is empty when there are no facts at all', () => {
-    expect(tastingFactsLine('wine', {}, words)).toBe('')
+    expect(tastingFactsLine('wine', {}, words, units)).toBe('')
   })
 })

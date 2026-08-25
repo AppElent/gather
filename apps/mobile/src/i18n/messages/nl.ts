@@ -31,6 +31,8 @@ export const nl = {
 
   baby: coreNl.baby,
 
+  tastings: coreNl.tastings,
+
   shell: {
     tabs: {
       home: coreNl.shell.nav.home,
@@ -53,8 +55,27 @@ export const nl = {
         row: 'in de rij',
         sheet: 'in het blad',
         handoff: 'opent een formulier',
+        compose: 'kies en beoordeel',
       },
       actions: {
+        'cheese-tasting': {
+          label: coreNl.tastings.kinds.cheese.launcher,
+          module: coreNl.modules.byId.cheeses.label,
+          fields: [],
+          noun: coreNl.tastings.kinds.cheese.one,
+        },
+        'wine-tasting': {
+          label: coreNl.tastings.kinds.wine.launcher,
+          module: coreNl.modules.byId.wines.label,
+          fields: [],
+          noun: coreNl.tastings.kinds.wine.one,
+        },
+        'beer-tasting': {
+          label: coreNl.tastings.kinds.beer.launcher,
+          module: coreNl.modules.byId.beers.label,
+          fields: [],
+          noun: coreNl.tastings.kinds.beer.one,
+        },
         'task-new': {
           label: 'Taak toevoegen',
           module: coreNl.modules.byId.tasks.label,

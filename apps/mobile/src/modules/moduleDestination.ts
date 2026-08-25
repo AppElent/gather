@@ -13,11 +13,15 @@
  * failure is silent: a finished Module that still shows "planned".
  */
 import type { ModuleId } from '@gather/core/modules'
+import { tastingKindForModule } from '@gather/core/tastings'
 import type { Href } from 'expo-router'
 
 /** Modules with real screens in the phone's route tree. */
 export const NATIVE_MODULES = [
   'baby-log',
+  'cheeses',
+  'wines',
+  'beers',
 ] as const satisfies readonly ModuleId[]
 
 export type NativeModuleId = (typeof NATIVE_MODULES)[number]
@@ -40,6 +44,12 @@ export function moduleDestination(
   // here would push a cast into both tabs to save one.
   moduleId: string,
 ): Href {
+  // The three tasting Modules are one implementation behind a `[kind]`
+  // segment, so their segment is the Kind rather than the Module id — the one
+  // place a Module's route is not named after it, and the reason this map
+  // exists at all rather than the tabs assembling a path.
+  const kind = tastingKindForModule(moduleId)
+  if (kind) return `/${tab}/tasting/${kind}` as Href
   if (isNativeModule(moduleId)) return `/${tab}/${moduleId}` as Href
   return {
     pathname: tab === 'home' ? '/home/[moduleId]' : '/all/[moduleId]',

@@ -279,6 +279,8 @@ export const index = {
   add: 'Log a tasting',
   /** The average, read aloud. `{score}` is 4.3, `{count}` the number behind it. */
   averageOf: '{score} from {count}',
+  /** Beside the stars, where the score itself is already drawn. */
+  fromCount: 'from {count}',
   noScore: 'Not rated yet',
 }
 
@@ -313,6 +315,8 @@ export const picker = {
 /** The composer: a subject's facts above the rule, one person's tasting below. */
 export const composer = {
   myTasting: 'My tasting',
+  /** The subject's own name — the one field the composer always draws. */
+  name: 'Name',
   score: 'Score',
   /** VoiceOver's name for one star. `{value}` is 0.5 – 5. */
   scoreValue: '{value} out of 5',

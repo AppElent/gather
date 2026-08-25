@@ -42,6 +42,14 @@ export const en = {
   baby: coreEn.baby,
 
   /**
+   * The tasting Modules' words, taken whole from the shared tree for the same
+   * reason the Baby log's are: the phone owns its look and shares its words
+   * (ADR-0017), and a second English for "Semi-hard" is the failure that rule
+   * names. The later web companion reads the same tree.
+   */
+  tastings: coreEn.tastings,
+
+  /**
    * The signed-in shell: the five fixed tabs, the Group switcher sheet, and
    * the seat a tab keeps until its Module is built for the phone.
    *
@@ -73,8 +81,27 @@ export const en = {
         row: 'in the row',
         sheet: 'in the sheet',
         handoff: 'opens a form',
+        compose: 'pick, then rate',
       },
       actions: {
+        'cheese-tasting': {
+          label: coreEn.tastings.kinds.cheese.launcher,
+          module: coreEn.modules.byId.cheeses.label,
+          fields: [],
+          noun: coreEn.tastings.kinds.cheese.one,
+        },
+        'wine-tasting': {
+          label: coreEn.tastings.kinds.wine.launcher,
+          module: coreEn.modules.byId.wines.label,
+          fields: [],
+          noun: coreEn.tastings.kinds.wine.one,
+        },
+        'beer-tasting': {
+          label: coreEn.tastings.kinds.beer.launcher,
+          module: coreEn.modules.byId.beers.label,
+          fields: [],
+          noun: coreEn.tastings.kinds.beer.one,
+        },
         'task-new': {
           label: 'Add a task',
           module: coreEn.modules.byId.tasks.label,

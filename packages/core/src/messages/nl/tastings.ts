@@ -256,6 +256,7 @@ export const index = {
   clearSearch: 'Zoekopdracht wissen',
   add: 'Proeverij vastleggen',
   averageOf: '{score} uit {count}',
+  fromCount: 'uit {count}',
   noScore: 'Nog niet beoordeeld',
 } satisfies typeof enIndex
 
@@ -278,6 +279,7 @@ export const picker = {
 
 export const composer = {
   myTasting: 'Mijn proeverij',
+  name: 'Naam',
   score: 'Cijfer',
   scoreValue: '{value} van 5',
   tastedAt: 'Geproefd',

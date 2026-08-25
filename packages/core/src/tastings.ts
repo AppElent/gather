@@ -619,25 +619,37 @@ function fieldProblem(
 
 /**
  * The one-line summary of a subject's facts a list row shows —
- * "Cow · France · Hard".
+ * "Cow · France · Hard", "Tripel · 9.5%".
  *
- * Built from the spec's `select` fields in declaration order, because those are
- * the ones with a short shared word for them; a producer's name and an age in
- * months belong on the subject's own page, not in a row that has to stay one
- * line. Falls back to the first `text` field when a Kind has no selects
- * answered, so a row is never blank where the subject has facts.
+ * Built from the spec's `select` and `tags` fields first, in declaration
+ * order: those are the ones with a short shared word for them. A Kind that
+ * answers fewer than `FACTS_LINE_PARTS` that way tops the line up with its
+ * numbers — which is what puts an ABV on a beer, whose only select is its
+ * style, and keeps an age off a cheese, which already has three.
+ *
+ * A rule rather than a per-Kind list, so a fourth Kind gets a sensible row
+ * without anybody choosing its fields; and a cap rather than everything,
+ * because the row has to stay one line on a phone. A producer's name and the
+ * rest belong on the subject's own page.
  *
  * Takes the resolved words rather than the message tree, for the reason every
  * pure helper in this package does (ADR-0011).
  */
+export const FACTS_LINE_PARTS = 3
+
 export function tastingFactsLine(
   kind: TastingKind,
   attributes: Readonly<Record<string, unknown>>,
   term: (vocabulary: TastingVocabularyId, key: string) => string,
+  unit: (unit: TastingUnit) => string = () => '',
 ): string {
   const parts: string[] = []
+  const numbers: string[] = []
+
   for (const field of tastingFields(kind, 'subject')) {
     const value = attributes[field.key]
+    if (value === undefined) continue
+
     if (field.type === 'select' && typeof value === 'string') {
       parts.push(field.vocabulary ? term(field.vocabulary, value) : value)
     }
@@ -647,9 +659,23 @@ export function tastingFactsLine(
         parts.push(field.vocabulary ? term(field.vocabulary, first) : first)
       }
     }
+    if (field.type === 'number' && typeof value === 'number') {
+      const suffix = field.unit ? unit(field.unit) : ''
+      numbers.push(
+        suffix
+          ? `${value}${suffix === '%' ? '' : ' '}${suffix}`
+          : String(value),
+      )
+    }
   }
-  if (parts.length > 0) return parts.join(' · ')
 
+  while (parts.length < FACTS_LINE_PARTS && numbers.length > 0) {
+    parts.push(numbers.shift() as string)
+  }
+  if (parts.length > 0) return parts.slice(0, FACTS_LINE_PARTS).join(' · ')
+
+  // Nothing categorical and nothing measured: fall back to a text fact rather
+  // than leaving the row blank where the subject plainly has one.
   for (const field of tastingFields(kind, 'subject')) {
     const value = attributes[field.key]
     if (field.type === 'text' && typeof value === 'string' && value) {
