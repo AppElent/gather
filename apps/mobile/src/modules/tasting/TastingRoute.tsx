@@ -43,7 +43,7 @@ export function TastingRoute({
 
   const kind = tastingKindFromRoute(params.kind)
   const base = TASTING_BASES[tab]
-  if (!kind) return <Redirect href={tab === 'home' ? '/home' : '/all'} />
+  if (!kind) return <Redirect href="/all" />
 
   if (screen === 'index') return <IndexScreen base={base} kind={kind} />
 

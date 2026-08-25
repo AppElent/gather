@@ -47,6 +47,10 @@ describe('the Settings list', () => {
   test('a Group name is searchable, which is what putting it in the value buys', () => {
     expect(idsFor('huize')).toEqual(['baby-log'])
   })
+
+  test('keeps Labs out of a build that was not told it has one', () => {
+    expect(sections.map(({ id }) => id)).not.toContain('labs')
+  })
 })
 
 describe('searching the Settings list', () => {

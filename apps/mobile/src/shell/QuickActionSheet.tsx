@@ -7,7 +7,7 @@
  * somebody happened to be looking at. This one only needs a Back button in the
  * heading, which is what `leading` is for.
  */
-import { router, useSegments } from 'expo-router'
+import { router } from 'expo-router'
 import { useState } from 'react'
 import {
   Pressable,
@@ -63,8 +63,7 @@ function SheetBody({
    * handoff rule (`docs/mobile-interaction.md`): you pressed Add from All, so
    * saving has to put you back in All.
    */
-  const segments = useSegments() as string[]
-  const base = segments.includes('all') ? TASTING_BASES.all : TASTING_BASES.home
+  const base = TASTING_BASES.all
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [added, setAdded] = useState<string[]>([])
   const text = t.shell.add

@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8a6a33; text-decoration: none; }
+    a:hover { color: #6d5327; }
+    .ic { flex: none; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none;"></div>
+  <div style="flex: none; display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 16px 0 6px;">
+    <div style="display: flex; align-items: center; gap: 2px; color: #8a6a33; cursor: pointer;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg><span style="font-size: 17px;">All</span></div>
+    <div style="display: flex; align-items: center; gap: 18px;"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg></div>
+  </div>
+  <div style="flex: none; padding: 2px 16px 12px;">
+    <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.9px;">Tasks</div>
+    <div style="font-size: 13.5px; color: #79807b; margin-top: 3px;">Huize Jansen · 6 lists</div>
+  </div>
+  <div style="flex: 1; min-height: 0; overflow: hidden; padding: 12px 16px 0; display: flex; flex-direction: column; gap: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b; padding-left: 2px;">TODAY</div>
+      <div style="background: #ffffff; border: 1px solid #e8e7e3; border-radius: 16px; padding: 0 14px; overflow: hidden;"><sc-for list="{{ today }}" as="t" hint-placeholder-count="2">
+        <div onClick="{{ t.toggle }}" style="{{ t.rowStyle }}">
+          <sc-if value="{{ t.on }}" hint-placeholder-val="{{ false }}"><div style="width: 21px; height: 21px; border-radius: 6px; border: 1.6px solid #8a6a33; background: #8a6a33; display: flex; align-items: center; justify-content: center; flex: none;"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div></sc-if>
+          <sc-if value="{{ t.off }}" hint-placeholder-val="{{ true }}"><div style="width: 21px; height: 21px; border-radius: 6px; border: 1.6px solid #e8e7e3; flex: none;"></div></sc-if>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px;">
+            <span style="{{ t.titleStyle }}">{{ t.title }}</span>
+            <span style="font-size: 12.5px; color: #79807b;">{{ t.list }}</span>
+          </div>
+          <span style="{{ t.dueStyle }}">{{ t.due }}</span>
+        </div>
+      </sc-for></div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b; padding-left: 2px;">YOUR LISTS</div>
+      <div style="background: #ffffff; border: 1px solid #e8e7e3; border-radius: 16px; padding: 0 14px; overflow: hidden;"><div style="display: flex; align-items: center; gap: 11px; min-height: 56px; border-bottom: 1px solid #e8e7e3;"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 5 2 2 3-3"></path><path d="m3 13 2 2 3-3"></path><path d="M13 6h8"></path><path d="M13 15h8"></path></svg><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px;"><span style="font-size: 16.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Household</span></div><span style="font-size: 15px; color: #79807b;">{{ householdOpen }}</span><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></div>
+        <div style="display: flex; align-items: center; gap: 11px; min-height: 56px; border-bottom: 1px solid #e8e7e3;"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 5 2 2 3-3"></path><path d="m3 13 2 2 3-3"></path><path d="M13 6h8"></path><path d="M13 15h8"></path></svg><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px;"><span style="font-size: 16.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Shopping</span></div><span style="font-size: 15px; color: #79807b;">3</span><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></div>
+        <div style="display: flex; align-items: center; gap: 11px; min-height: 56px; border-bottom: 1px solid #e8e7e3;"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 5 2 2 3-3"></path><path d="m3 13 2 2 3-3"></path><path d="M13 6h8"></path><path d="M13 15h8"></path></svg><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px;"><span style="font-size: 16.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Work</span><span style="font-size: 11.5px; font-weight: 700; letter-spacing: 0.3px; color: #79807b; background: #f1f2f0; border-radius: 8px; padding: 4px 8px; white-space: nowrap;">Todoist</span></div><span style="font-size: 15px; color: #79807b;">12</span><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></div>
+        <div style="display: flex; align-items: center; gap: 11px; min-height: 56px; border-bottom: 1px solid #e8e7e3;"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 5 2 2 3-3"></path><path d="m3 13 2 2 3-3"></path><path d="M13 6h8"></path><path d="M13 15h8"></path></svg><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px;"><span style="font-size: 16.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Emma to-dos</span></div><span style="font-size: 15px; color: #79807b;">2</span><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></div>
+        <div style="display: flex; align-items: center; gap: 11px; min-height: 56px; border-bottom: 1px solid #e8e7e3;"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 5 2 2 3-3"></path><path d="m3 13 2 2 3-3"></path><path d="M13 6h8"></path><path d="M13 15h8"></path></svg><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px;"><span style="font-size: 16.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Emma questions</span></div><span style="font-size: 15px; color: #79807b;">1</span><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></div>
+        <div style="display: flex; align-items: center; gap: 11px; min-height: 56px; border-bottom: 1px solid #e8e7e3;"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 5 2 2 3-3"></path><path d="m3 13 2 2 3-3"></path><path d="M13 6h8"></path><path d="M13 15h8"></path></svg><div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px;"><span style="font-size: 16.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Care notes</span><span style="font-size: 11.5px; font-weight: 700; letter-spacing: 0.3px; color: #79807b; background: #f1f2f0; border-radius: 8px; padding: 4px 8px; white-space: nowrap;">Notion</span></div><span style="font-size: 15px; color: #79807b;">4</span><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a9aeaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></div>
+        <div style="display: flex; align-items: center; gap: 11px; min-height: 52px;"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg><span style="flex: 1; font-size: 16px; color: #8a6a33;">New list</span></div></div>
+    </div>
+  </div>
+  <div style="flex: none; display: flex; height: 49px; background: #ffffff; border-top: 1px solid #e8e7e3;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 10v10h14V10"></path></svg><span style="font-size: 10px;">Home</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span style="font-size: 10px;">Search</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg><span style="font-size: 10px;">Add</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m4.9 4.9 2.1 2.1"></path><path d="m17 17 2.1 2.1"></path><path d="M19.1 4.9 17 7"></path><path d="M7 17l-2.1 2.1"></path></svg><span style="font-size: 10px;">Settings</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #8a6a33;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"></rect><rect x="14" y="3" width="7" height="7" rx="1.6"></rect><rect x="3" y="14" width="7" height="7" rx="1.6"></rect><rect x="14" y="14" width="7" height="7" rx="1.6"></rect></svg><span style="font-size: 10px; font-weight: 600;">All</span></div>
+  </div>
+  <div style="height: 34px; flex: none; background: #ffffff;"></div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { done: {} };
+  }
+
+  renderVals() {
+    const items = [
+      { id: 'parcel', title: 'Pick up the parcel from the DHL point', list: 'Household', due: 'Today' },
+      { id: 'bread', title: 'Bread and something for Thursday', list: 'Shopping', due: 'Today' }
+    ];
+    const done = this.state.done;
+    const ROW = 'display:flex;align-items:center;gap:11px;min-height:56px;cursor:pointer;';
+    return {
+      householdOpen: done.parcel ? '6' : '7',
+      today: items.map((item, i) => {
+        const on = !!done[item.id];
+        return {
+          title: item.title,
+          list: item.list,
+          due: on ? 'Done' : item.due,
+          rowStyle: ROW + (i === 0 ? 'border-bottom:1px solid #e8e7e3;' : ''),
+          titleStyle: 'font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (on ? 'color:#79807b;text-decoration:line-through;' : 'color:#1f2421;'),
+          dueStyle: 'font-size:12.5px;font-weight:700;white-space:nowrap;' + (on ? 'color:#79807b;' : 'color:#8a6a33;'),
+          on: on,
+          off: !on,
+          toggle: () => {
+            const next = Object.assign({}, this.state.done);
+            next[item.id] = !next[item.id];
+            this.setState({ done: next });
+          }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

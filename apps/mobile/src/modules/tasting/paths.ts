@@ -24,11 +24,10 @@ import {
 import type { Href } from 'expo-router'
 
 /** The tab stacks these Modules are mounted in. */
-export type TastingTab = 'home' | 'all'
-export type TastingBase = '/home/tasting' | '/all/tasting'
+export type TastingTab = 'all'
+export type TastingBase = '/all/tasting'
 
 export const TASTING_BASES: Record<TastingTab, TastingBase> = {
-  home: '/home/tasting',
   all: '/all/tasting',
 }
 
@@ -45,8 +44,8 @@ export function tastingHref(
 }
 
 /** The tab a `base` belongs to, for a screen that has to hand one on. */
-export function tabOf(base: TastingBase): TastingTab {
-  return base === '/home/tasting' ? 'home' : 'all'
+export function tabOf(_base: TastingBase): TastingTab {
+  return 'all'
 }
 
 /**

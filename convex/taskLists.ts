@@ -35,6 +35,8 @@ export const list = query({
         _id: l._id,
         name: l.name,
         provider: l.provider,
+        order: l.order,
+        display: l.display ?? { due: false, priority: false, labels: false },
         // Whether this list can be added to from Gather. A local list always
         // can; an external one answers with its provider's capability, and
         // Gather never emulates a write the provider will not take (ADR-0021).
@@ -115,6 +117,22 @@ export const rename = mutation({
   handler: async (ctx, args) => {
     await requireListAccess(ctx, args.groupSlug, args.listId)
     await ctx.db.patch(args.listId, { name: args.name })
+  },
+})
+
+export const updateDisplay = mutation({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    display: v.object({
+      due: v.boolean(),
+      priority: v.boolean(),
+      labels: v.boolean(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await requireListAccess(ctx, args.groupSlug, args.listId)
+    await ctx.db.patch(args.listId, { display: args.display })
   },
 })
 

@@ -23,6 +23,8 @@ export const NATIVE_MODULES = [
   'cheeses',
   'wines',
   'beers',
+  'tasks',
+  'notes',
 ] as const satisfies readonly ModuleId[]
 
 export type NativeModuleId = (typeof NATIVE_MODULES)[number]
@@ -32,14 +34,13 @@ export function isNativeModule(id: string): id is NativeModuleId {
 }
 
 /**
- * The href for a Module inside one tab's stack.
+ * The href for a Module inside the All stack.
  *
  * The cast is confined here for the reason `modules/baby/paths.ts` gives: typed
  * routes cannot check a template string, and one place assembling paths by hand
  * beats every call site doing it.
  */
 export function moduleDestination(
-  tab: 'home' | 'all',
   // A plain string rather than `ModuleId`: the callers hold a Module's own
   // `id`, which the catalogue types loosely at the call site, and narrowing
   // here would push a cast into both tabs to save one.
@@ -50,10 +51,10 @@ export function moduleDestination(
   // place a Module's route is not named after it, and the reason this map
   // exists at all rather than the tabs assembling a path.
   const kind = tastingKindForModule(moduleId)
-  if (kind) return `/${tab}/tasting/${kind}` as Href
-  if (isNativeModule(moduleId)) return `/${tab}/${moduleId}` as Href
+  if (kind) return `/all/tasting/${kind}` as Href
+  if (isNativeModule(moduleId)) return `/all/${moduleId}` as Href
   return {
-    pathname: tab === 'home' ? '/home/[moduleId]' : '/all/[moduleId]',
+    pathname: '/all/[moduleId]',
     params: { moduleId },
   } as Href
 }

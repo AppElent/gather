@@ -126,20 +126,22 @@ export const update = mutation({
   args: {
     taskId: v.id('tasks'),
     groupSlug: v.string(),
-    title: v.string(),
+    title: v.optional(v.string()),
     // null clears the field (same pattern as recipes.update)
     dueDate: v.optional(v.union(v.string(), v.null())),
     priority: v.optional(v.union(priorityValidator, v.null())),
     labels: v.optional(v.union(v.array(v.string()), v.null())),
+    notes: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
     await requireEditableTask(ctx, args.groupSlug, args.taskId)
-    const { taskId, title, dueDate, priority, labels } = args
+    const { taskId, title, dueDate, priority, labels, notes } = args
     await ctx.db.patch(taskId, {
-      title,
+      ...(title !== undefined ? { title } : {}),
       ...(dueDate !== undefined ? { dueDate: dueDate ?? undefined } : {}),
       ...(priority !== undefined ? { priority: priority ?? undefined } : {}),
       ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
+      ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
     })
   },
 })
@@ -149,6 +151,108 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     await requireEditableTask(ctx, args.groupSlug, args.taskId)
     await ctx.db.delete(args.taskId)
+  },
+})
+
+export const reorder = mutation({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    ids: v.array(v.id('tasks')),
+  },
+  handler: async (ctx, args) => {
+    const { list } = await requireListAccess(ctx, args.groupSlug, args.listId)
+    if (list.provider !== 'local')
+      throw new ConvexError('This list is read-only')
+    const rows = await ctx.db
+      .query('tasks')
+      .withIndex('by_list', (q) => q.eq('listId', args.listId))
+      .collect()
+    const open = rows
+      .filter((task) => !task.done)
+      .sort((a, b) => a.order - b.order)
+    const expected = new Set(open.map((task) => task._id))
+    if (
+      args.ids.length !== open.length ||
+      args.ids.some((id) => !expected.has(id))
+    ) {
+      throw new ConvexError('Reorder must contain every open task exactly once')
+    }
+    const seen = new Set<string>()
+    for (const id of args.ids) {
+      if (seen.has(id))
+        throw new ConvexError(
+          'Reorder must contain every open task exactly once',
+        )
+      seen.add(id)
+    }
+    await Promise.all(args.ids.map((id, order) => ctx.db.patch(id, { order })))
+  },
+})
+
+export const renameLabel = mutation({
+  args: { groupSlug: v.string(), from: v.string(), to: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const lists = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const rows = (
+      await Promise.all(
+        lists.map((list) =>
+          ctx.db
+            .query('tasks')
+            .withIndex('by_list', (q) => q.eq('listId', list._id))
+            .collect(),
+        ),
+      )
+    ).flat()
+    await Promise.all(
+      rows
+        .filter((task) => task.labels?.includes(args.from))
+        .map((task) =>
+          ctx.db.patch(task._id, {
+            labels: Array.from(
+              new Set(
+                (task.labels ?? []).map((label) =>
+                  label === args.from ? args.to : label,
+                ),
+              ),
+            ),
+          }),
+        ),
+    )
+  },
+})
+
+export const removeLabel = mutation({
+  args: { groupSlug: v.string(), label: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const lists = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const rows = (
+      await Promise.all(
+        lists.map((list) =>
+          ctx.db
+            .query('tasks')
+            .withIndex('by_list', (q) => q.eq('listId', list._id))
+            .collect(),
+        ),
+      )
+    ).flat()
+    await Promise.all(
+      rows
+        .filter((task) => task.labels?.includes(args.label))
+        .map((task) =>
+          ctx.db.patch(task._id, {
+            labels: (task.labels ?? []).filter((label) => label !== args.label),
+          }),
+        ),
+    )
   },
 })
 

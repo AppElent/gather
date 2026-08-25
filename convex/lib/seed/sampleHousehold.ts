@@ -606,6 +606,38 @@ export const SAMPLE_TASK_LISTS: SampleTaskList[] = [
   },
 ]
 
+export interface SampleNote {
+  title: string
+  body: string
+  pinned: boolean
+  author: SampleAuthor
+  daysAgo: number
+}
+
+export const SAMPLE_NOTES: SampleNote[] = [
+  {
+    title: 'Wifi and door codes',
+    body: 'Wifi: WillowStreet-5G\nPassword: on the fridge, under the magnet\n\nFront door: 4821',
+    pinned: true,
+    author: 'owner',
+    daysAgo: 1,
+  },
+  {
+    title: 'Boiler service',
+    body: 'Pressure should sit between 1 and 1.5 bar when cold. Next service is due in April.',
+    pinned: true,
+    author: 'nora',
+    daysAgo: 4,
+  },
+  {
+    title: 'Holiday packing',
+    body: 'Passports, EHIC cards, adapters, and Emma’s bear.',
+    pinned: false,
+    author: 'sam',
+    daysAgo: 11,
+  },
+]
+
 export const SAMPLE_BABY = {
   name: 'Juno',
   /** Roughly five months old at seed time. */

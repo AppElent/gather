@@ -21,7 +21,7 @@
 import type { Href } from 'expo-router'
 
 /** The tab stacks this Module is mounted in. */
-export type RecipeBase = '/home/recipes' | '/all/recipes'
+export type RecipeBase = '/all/recipes'
 
 export type RecipeScreen = '' | '/recipe' | '/import' | '/new' | '/edit'
 
@@ -43,4 +43,4 @@ export function recipeHref(
  * pushed screen can go back to. Home is the guaranteed-present tab root, so
  * back from the recipe you just made always lands somewhere real.
  */
-export const ADD_TAB_BASE: RecipeBase = '/home/recipes'
+export const ADD_TAB_BASE: RecipeBase = '/all/recipes'

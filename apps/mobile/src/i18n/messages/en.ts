@@ -432,4 +432,174 @@ export const en = {
     required: 'This cannot be empty.',
     tooManyRequests: 'Too many attempts. Wait a moment and try again.',
   },
+
+  /**
+   * Settings → Labs: the Tasks and Notes prototypes.
+   *
+   * These are dev-only screens driven by fixtures — nothing under `labs` ever
+   * reaches a release build, because `settingsSections` is only handed
+   * `labs: true` on `__DEV__`. They are still translated, for the reason
+   * ADR-0011 gives: an English literal in `src/` is a habit, and the one place
+   * it would be excused is the place the next screen gets copied from.
+   *
+   * Fixture *content* — task titles, note bodies, list names — is deliberately
+   * not here. Content is never translated (ADR-0011), and made-up content is
+   * still content.
+   */
+  labs: {
+    title: 'Labs',
+    /** Under the heading, saying what the whole section is. */
+    description:
+      'Prototypes of screens that are still being decided. Development builds only.',
+    /** The strip every prototype screen carries, so nobody mistakes it for the app. */
+    banner: 'Prototype. The data is made up and only lives in this session.',
+    reset: 'Start over with fresh data',
+
+    entries: {
+      tasks: 'Tasks — lists, one list, a task',
+      editModes: 'Editing a task — three ways',
+      notes: 'Notes',
+    },
+
+    tasks: {
+      title: 'Tasks',
+      today: 'Today',
+      todayEmpty: 'Nothing due today.',
+      lists: 'Lists',
+      /** The count on the right of a list's row. */
+      open: '{count} open',
+      openOne: '1 open',
+      allDone: 'All done',
+      /** The badge on a list Gather did not create. */
+      linked: 'Linked',
+      /** Which list a task on the Today strip came from. */
+      inList: 'in {list}',
+    },
+
+    list: {
+      addTask: 'Add a task…',
+      empty: 'Nothing on this list yet.',
+      /** The ⋯ menu's first group: which of a task's properties the rows show. */
+      display: 'Show on each row',
+      dueDates: 'Due dates',
+      priority: 'Priority',
+      labels: 'Labels',
+      rename: 'Rename list',
+      deleteList: 'Delete list',
+      /** The banner across the top of reorder mode. */
+      reorderHint:
+        'Drag to rearrange. Completing, editing and swiping are off until you tap Done.',
+      /** Completed rows have no order anyone arranges, so the mode hides them. */
+      reorderCompleted: 'Completed tasks are hidden while you rearrange.',
+      /** A list Gather may read and not write (ADR-0021). */
+      readOnly:
+        'This list lives in {provider}. Gather can read it, but not write to it — so there is no composer here.',
+      /** Only a provider-backed list has anything to pull for. */
+      refreshed: 'Synced just now',
+      /** The row's hold menu. */
+      complete: 'Complete',
+      uncomplete: 'Mark as not done',
+      renameTask: 'Rename',
+      dueDate: 'Due date',
+      moveToList: 'Move to list…',
+      /** The alert before a delete, which is permanent in Gather today. */
+      deleteTitle: 'Delete “{title}”?',
+      deleteBody: 'This cannot be undone.',
+    },
+
+    task: {
+      /** The detail screen's own title, when the task has no title yet. */
+      untitled: 'New task',
+      titlePlaceholder: 'What needs doing?',
+      due: 'Due date',
+      priority: 'Priority',
+      labels: 'Labels',
+      list: 'List',
+      notes: 'Notes',
+      notesPlaceholder: 'Anything worth writing down',
+      /** The value shown on a row nobody has set. */
+      unset: 'None',
+      /** Back is done — the screen says so once, rather than growing a button. */
+      autosaved: 'Changes are kept as you make them. Back is done.',
+      delete: 'Delete task',
+      /** The shortcuts above the month grid. */
+      today: 'Today',
+      tomorrow: 'Tomorrow',
+      weekend: 'This weekend',
+      clear: 'No date',
+      /** Keyed by the schema's 1–4, so a fifth priority is a type error. */
+      priorities: {
+        1: 'Urgent',
+        2: 'High',
+        3: 'Normal',
+        4: 'Low',
+      },
+      /** The label editor's field. */
+      addLabel: 'Add a label',
+      /**
+       * The label sheet's two groups. There is no label table behind them: a
+       * label exists because a task carries the word, so "used in this Group"
+       * is a query over the tasks and empties itself when the last one lets go.
+       */
+      labelsOnTask: 'On this task',
+      labelsInGroup: 'Used in this Group',
+      labelsNone: 'No labels yet.',
+      /** Read out on the cross inside a label that is on the task. */
+      removeLabel: 'Remove {label}',
+      /** The hold menu on a label nobody has put on this task yet. */
+      renameLabelEverywhere: 'Rename everywhere',
+      removeLabelEverywhere: 'Remove from every task',
+      /** The field, while it is renaming a label rather than adding one. */
+      renamingLabel: 'Rename {label} to',
+      renameLabelSave: 'Rename',
+      renameLabelCancel: 'Cancel',
+      /** Read on the row when a task carries more than one. */
+      labelCount: '{count} labels',
+      /** Announced on the calendar's month arrows. */
+      previousMonth: 'Previous month',
+      nextMonth: 'Next month',
+      overdue: 'Overdue',
+    },
+
+    editModes: {
+      title: 'Editing a task',
+      intro:
+        'The same task, edited three ways. Try each and say which one you want the Module to have.',
+      detail: 'A screen of its own',
+      detailWhy:
+        'Every property on one pushed screen. Most taps to reach, most room once you are there, and the only one that scales past four properties.',
+      inline: 'In the row, where it sits',
+      inlineWhy:
+        'Tap the title and type. Fastest for fixing a typo, and it can only ever edit the title.',
+      sheet: 'A sheet over the list',
+      sheetWhy:
+        'Hold the row, edit in a sheet, stay in the list. Keeps your place, but the sheet grows a scrollbar as properties are added.',
+      /** The one task all three modes edit, so the comparison is honest. */
+      subject: 'The task',
+      open: 'Try it',
+    },
+
+    notes: {
+      title: 'Notes',
+      search: 'Search notes',
+      pinned: 'Pinned',
+      recent: 'Recent',
+      empty: 'No notes yet.',
+      /** Nothing matched the field — never an add button (mobile-interaction). */
+      noMatches: 'Nothing called “{query}”.',
+      newNote: 'New note',
+      untitled: 'Untitled note',
+      titlePlaceholder: 'Title',
+      bodyPlaceholder: 'Start writing…',
+      /** The meta line under a note's title. */
+      editedBy: 'Edited {when} by {name}',
+      pin: 'Pin',
+      unpin: 'Unpin',
+      delete: 'Delete note',
+      deleteTitle: 'Delete “{title}”?',
+      /** The formatting bar above the keyboard. Drawn, not wired — see the screen. */
+      formatting:
+        'Formatting is drawn, not wired: this prototype is about the shape.',
+    },
+  },
 }

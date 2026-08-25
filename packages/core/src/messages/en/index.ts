@@ -2,6 +2,7 @@ import { baby } from './baby'
 import { common } from './common'
 import { foods } from './foods'
 import { modules } from './modules'
+import { notes } from './notes'
 import { nutrients } from './nutrients'
 import { nutrition } from './nutrition'
 import { recipes } from './recipes'
@@ -23,6 +24,7 @@ export const en = {
   common,
   shell,
   modules,
+  notes,
   nutrients,
   recipes,
   nutrition,

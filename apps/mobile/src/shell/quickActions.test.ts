@@ -51,7 +51,7 @@ describe('mobile app destinations', () => {
   test('a handoff into a built Module names its own screen', () => {
     const action = QUICK_ACTIONS.find(({ id }) => id === 'recipe-import')
     expect(action && 'href' in action ? action.href : null).toBe(
-      '/home/recipes/import',
+      '/all/recipes/import',
     )
   })
 

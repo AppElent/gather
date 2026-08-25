@@ -36,35 +36,32 @@ describe('the Kind a route names', () => {
 })
 
 describe('where a screen sends you', () => {
-  test('an index is the bare Kind under the tab it is mounted in', () => {
-    expect(tastingHref(TASTING_BASES.home, 'wine', '')).toBe(
-      '/home/tasting/wine',
-    )
+  test('an index is the bare Kind in All', () => {
+    expect(tastingHref(TASTING_BASES.all, 'wine', '')).toBe('/all/tasting/wine')
     expect(tastingHref(TASTING_BASES.all, 'beer', '')).toBe('/all/tasting/beer')
   })
 
   test('params ride as an object, because a path cannot carry them', () => {
     expect(
-      tastingHref(TASTING_BASES.home, 'cheese', '/subject', { subjectId: 'x' }),
+      tastingHref(TASTING_BASES.all, 'cheese', '/subject', { subjectId: 'x' }),
     ).toEqual({
-      pathname: '/home/tasting/cheese/subject',
+      pathname: '/all/tasting/cheese/subject',
       params: { subjectId: 'x' },
     })
   })
 
-  test('a base knows which tab it belongs to', () => {
-    expect(tabOf(TASTING_BASES.home)).toBe('home')
+  test('the base belongs to All', () => {
     expect(tabOf(TASTING_BASES.all)).toBe('all')
   })
 })
 
-describe('opening a tasting Module from Home or All', () => {
+describe('opening a tasting Module', () => {
   test('lands on the Kind segment, not on the Module id', () => {
     // The one place a Module's route is not named after it — `cheeses` the
     // Module is `cheese` the Kind in the path.
-    expect(moduleDestination('home', 'cheeses')).toBe('/home/tasting/cheese')
-    expect(moduleDestination('all', 'wines')).toBe('/all/tasting/wine')
-    expect(moduleDestination('all', 'beers')).toBe('/all/tasting/beer')
+    expect(moduleDestination('cheeses')).toBe('/all/tasting/cheese')
+    expect(moduleDestination('wines')).toBe('/all/tasting/wine')
+    expect(moduleDestination('beers')).toBe('/all/tasting/beer')
   })
 
   test('every tasting Module is declared native, or it would show a placeholder', () => {
@@ -74,8 +71,8 @@ describe('opening a tasting Module from Home or All', () => {
   })
 
   test('a Module with no native screens still goes to the placeholder', () => {
-    expect(moduleDestination('home', 'groceries')).toEqual({
-      pathname: '/home/[moduleId]',
+    expect(moduleDestination('groceries')).toEqual({
+      pathname: '/all/[moduleId]',
       params: { moduleId: 'groceries' },
     })
   })

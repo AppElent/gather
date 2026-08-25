@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8a6a33; text-decoration: none; }
+    a:hover { color: #6d5327; }
+    .ic { flex: none; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none;"></div>
+  <div style="flex: none; display: flex; align-items: center; height: 52px; padding: 0 16px 0 8px; gap: 8px;">
+    <div style="flex: 1; display: flex; align-items: center; gap: 1px; color: #8a6a33; cursor: pointer;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg><span style="font-size: 17px;">Tasks</span></div>
+    <div style="font-size: 17px; font-weight: 700; letter-spacing: -0.3px;">Household</div>
+    <div onClick="{{ toggleMenu }}" style="flex: 1; display: flex; justify-content: flex-end; cursor: pointer;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg></div>
+  </div>
+  <div style="flex: 1; min-height: 0; overflow: hidden; padding: 12px 16px 0; display: flex; flex-direction: column; gap: 20px;">
+    <div style="background: #ffffff; border: 1px solid #e8e7e3; border-radius: 16px; padding: 0 14px; overflow: hidden;">
+      <sc-for list="{{ active }}" as="t" hint-placeholder-count="6">
+        <div onClick="{{ t.toggle }}" style="{{ t.rowStyle }}">
+          <div style="{{ t.barStyle }}"></div>
+          <div style="width: 21px; height: 21px; border-radius: 6px; border: 1.6px solid #e8e7e3; flex: none;"></div>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px;">
+            <span style="font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ t.title }}</span>
+            <sc-if value="{{ t.hasMeta }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <sc-if value="{{ t.showDue }}" hint-placeholder-val="{{ true }}"><span style="{{ t.dueStyle }}">{{ t.due }}</span></sc-if>
+                <sc-if value="{{ t.showPri }}" hint-placeholder-val="{{ true }}"><span style="{{ t.priStyle }}">{{ t.pri }}</span></sc-if>
+                <sc-if value="{{ t.showTags }}" hint-placeholder-val="{{ true }}"><span style="font-size: 11px; font-weight: 700; color: #79807b; background: #f1f2f0; border-radius: 6px; padding: 3px 7px;">{{ t.tags }}</span></sc-if>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+
+      <div onClick="{{ toggleCompleted }}" style="display: flex; align-items: center; justify-content: space-between; min-height: 48px; border-top: 1px solid #e8e7e3; cursor: pointer;">
+        <span style="font-size: 15px; font-weight: 600; color: #79807b;">{{ completedLabel }}</span>
+        <div style="{{ chevronStyle }}"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></div>
+      </div>
+
+      <sc-if value="{{ completedOpen }}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{ completed }}" as="c" hint-placeholder-count="2">
+          <div onClick="{{ c.toggle }}" style="display: flex; align-items: center; gap: 11px; min-height: 52px; border-bottom: 1px solid #e8e7e3; cursor: pointer;">
+            <div style="width: 21px; height: 21px; border-radius: 6px; border: 1.6px solid #8a6a33; background: #8a6a33; display: flex; align-items: center; justify-content: center; flex: none;"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div>
+            <span style="flex: 1; font-size: 15.5px; color: #79807b; text-decoration: line-through; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ c.title }}</span>
+          </div>
+        </sc-for>
+      </sc-if>
+
+      <div style="display: flex; align-items: center; gap: 11px; min-height: 50px;"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg><span style="flex: 1; font-size: 15.5px; color: #79807b;">Add a task…</span></div>
+    </div>
+  </div>
+  <div style="flex: none; display: flex; height: 49px; background: #ffffff; border-top: 1px solid #e8e7e3;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 10v10h14V10"></path></svg><span style="font-size: 10px;">Home</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span style="font-size: 10px;">Search</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg><span style="font-size: 10px;">Add</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m4.9 4.9 2.1 2.1"></path><path d="m17 17 2.1 2.1"></path><path d="M19.1 4.9 17 7"></path><path d="M7 17l-2.1 2.1"></path></svg><span style="font-size: 10px;">Settings</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #8a6a33;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"></rect><rect x="14" y="3" width="7" height="7" rx="1.6"></rect><rect x="3" y="14" width="7" height="7" rx="1.6"></rect><rect x="14" y="14" width="7" height="7" rx="1.6"></rect></svg><span style="font-size: 10px; font-weight: 600;">All</span></div>
+  </div>
+  <div style="height: 34px; flex: none; background: #ffffff;"></div>
+
+  <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ true }}">
+    <div onClick="{{ toggleMenu }}" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></div>
+    <div style="position: absolute; right: 12px; top: 96px; width: 252px; background: rgba(255,255,255,0.98); border-radius: 14px; overflow: hidden; box-shadow: 0 12px 30px rgba(31,36,33,0.22);">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.7px; color: #79807b; padding: 12px 14px 6px;">SHOW ON EACH TASK</div>
+      <sc-for list="{{ switches }}" as="s" hint-placeholder-count="3">
+        <div onClick="{{ s.toggle }}" style="display: flex; align-items: center; gap: 10px; padding: 0 14px; min-height: 44px; cursor: pointer;">
+          <span style="flex: 1; font-size: 15.5px;">{{ s.name }}</span>
+          <div style="{{ s.trackStyle }}"><div style="{{ s.knobStyle }}"></div></div>
+        </div>
+      </sc-for>
+      <div style="height: 1px; background: #e8e7e3; margin: 6px 0;"></div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 14px; min-height: 44px;"><span style="font-size: 15.5px;">Reorder</span><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1f2421" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="6" r="1.4"></circle><circle cx="15" cy="6" r="1.4"></circle><circle cx="9" cy="12" r="1.4"></circle><circle cx="15" cy="12" r="1.4"></circle><circle cx="9" cy="18" r="1.4"></circle><circle cx="15" cy="18" r="1.4"></circle></svg></div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 14px; min-height: 44px;"><span style="font-size: 15.5px;">Rename list</span><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1f2421" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3.5a2.1 2.1 0 0 1 3 3L7.5 19 3 20.5 4.5 16z"></path></svg></div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 14px; min-height: 44px;"><span style="font-size: 15.5px; color: #a4372c;">Delete list</span><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a4372c" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"></path><path d="M9.5 6.5V4h5v2.5"></path><path d="m6.5 6.5 1 13.5h9l1-13.5"></path></svg></div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      done: { bins: true, water: true },
+      open: false,
+      menu: true,
+      show: { due: true, pri: true, tags: true }
+    };
+  }
+
+  data() {
+    return [
+      { id: 'plumber', title: 'Call the plumber about the radiator', due: 'Tue', overdue: true, p: 1, tags: 'house' },
+      { id: 'parcel', title: 'Pick up the parcel from the DHL point', due: 'Today', p: 0, tags: '' },
+      { id: 'passport', title: 'Renew Emma’s passport', due: '4 Sep', p: 2, tags: 'admin' },
+      { id: 'mot', title: 'Book the MOT', due: '', p: 0, tags: 'car' },
+      { id: 'plants', title: 'Water the plants on the landing', due: '', p: 0, tags: '' },
+      { id: 'fence', title: 'Ask the neighbours about the fence', due: '', p: 4, tags: '' },
+      { id: 'bins', title: 'Take the bins out', due: '', p: 0, tags: '' },
+      { id: 'water', title: 'Pay the water bill', due: '', p: 0, tags: '' }
+    ];
+  }
+
+  toggle(id) {
+    const next = Object.assign({}, this.state.done);
+    next[id] = !next[id];
+    this.setState({ done: next });
+  }
+
+  renderVals() {
+    const all = this.data();
+    const done = this.state.done;
+    const show = this.state.show;
+    const active = all.filter((t) => !done[t.id]);
+    const completed = all.filter((t) => done[t.id]);
+
+    return {
+      active: active.map((t) => {
+        const showDue = show.due && !!t.due;
+        const showPri = show.pri && t.p > 0;
+        const showTags = show.tags && !!t.tags;
+        const hasMeta = showDue || showPri || showTags;
+        const barColour = t.p === 1 ? '#a4372c' : (t.p === 2 ? '#e0c48a' : 'transparent');
+        return {
+          title: t.title,
+          due: t.due,
+          pri: 'P' + t.p,
+          tags: t.tags,
+          showDue: showDue,
+          showPri: showPri,
+          showTags: showTags,
+          hasMeta: hasMeta,
+          rowStyle: 'display:flex;align-items:center;gap:11px;border-bottom:1px solid #e8e7e3;cursor:pointer;min-height:' + (hasMeta ? '66' : '52') + 'px;',
+          barStyle: show.pri
+            ? 'flex:none;width:3px;border-radius:2px;align-self:stretch;margin:12px -5px 12px 0;background:' + barColour + ';'
+            : 'display:none;',
+          dueStyle: 'font-size:12px;font-weight:700;white-space:nowrap;color:' + (t.overdue ? '#a4372c' : '#79807b') + ';',
+          priStyle: 'font-size:11.5px;font-weight:800;white-space:nowrap;color:' + (t.p === 1 ? '#a4372c' : (t.p === 2 ? '#b4791f' : '#79807b')) + ';',
+          toggle: () => this.toggle(t.id)
+        };
+      }),
+      completed: completed.map((t) => ({ title: t.title, toggle: () => this.toggle(t.id) })),
+      completedLabel: 'Completed (' + completed.length + ')',
+      completedOpen: this.state.open,
+      chevronStyle: this.state.open ? 'transform: rotate(180deg);' : '',
+      toggleCompleted: () => this.setState({ open: !this.state.open }),
+      menuOpen: this.state.menu,
+      toggleMenu: () => this.setState({ menu: !this.state.menu }),
+      switches: [
+        { key: 'due', name: 'Due dates' },
+        { key: 'pri', name: 'Priority' },
+        { key: 'tags', name: 'Labels' }
+      ].map((s) => {
+        const on = show[s.key];
+        return {
+          name: s.name,
+          trackStyle: 'flex:none;width:44px;height:26px;border-radius:13px;padding:2px;display:flex;justify-content:' + (on ? 'flex-end' : 'flex-start') + ';background:' + (on ? '#8a6a33' : '#d5d9d6') + ';',
+          knobStyle: 'width:22px;height:22px;border-radius:11px;background:#ffffff;box-shadow:0 1px 3px rgba(31,36,33,0.25);',
+          toggle: () => {
+            const next = Object.assign({}, this.state.show);
+            next[s.key] = !next[s.key];
+            this.setState({ show: next });
+          }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

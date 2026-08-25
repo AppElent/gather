@@ -116,6 +116,13 @@ export default defineSchema({
       }),
     ),
     order: v.number(),
+    display: v.optional(
+      v.object({
+        due: v.boolean(),
+        priority: v.boolean(),
+        labels: v.boolean(),
+      }),
+    ),
   }).index('by_group', ['groupId']),
 
   // Rows exist only for provider === 'local' lists.
@@ -128,9 +135,19 @@ export default defineSchema({
       v.union(v.literal(1), v.literal(2), v.literal(3), v.literal(4)),
     ),
     labels: v.optional(v.array(v.string())),
+    notes: v.optional(v.string()),
     createdBy: v.id('users'),
     order: v.number(),
   }).index('by_list', ['listId']),
+
+  notes: defineTable({
+    groupId: v.id('groups'),
+    title: v.string(),
+    body: v.string(),
+    pinned: v.optional(v.boolean()),
+    createdBy: v.id('users'),
+    updatedAt: v.number(),
+  }).index('by_group', ['groupId']),
 
   integrationConnections: defineTable({
     groupId: v.id('groups'),
