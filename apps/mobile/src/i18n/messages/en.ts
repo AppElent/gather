@@ -169,10 +169,9 @@ export const en = {
     home: {
       /** The accessible name of the Group button; `{group}` is its name. */
       switchFrom: 'Group: {group}. {action}',
+      intro: 'Welcome to Gather. Find every module for this group in All.',
       personalSubtitle: coreEn.shell.home.personalSubtitle,
       sharedSubtitle: coreEn.shell.home.sharedSubtitle,
-      pins: coreEn.shell.allModules.yourPins,
-      nothingPinned: 'Nothing pinned in this Group yet.',
     },
 
     all: coreEn.shell.allModules,
@@ -301,6 +300,14 @@ export const en = {
     chooseList: 'Choose grocery list',
     noGroceryList: 'Choose a task list for groceries.',
     quick: 'Quick under {minutes} minutes',
+    previousWeek: 'Previous week',
+    nextWeek: 'Next week',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
+    randomizeWeek: 'Randomize unplanned week',
+    mealLibrary: 'Quick meals',
+    chooseDinner: 'Choose dinner',
+    changeList: 'Change or clear list',
     random: 'Random dinner',
     clearDinner: 'Clear dinner',
     deleteTitle: 'Delete â€œ{title}â€?',

@@ -606,6 +606,39 @@ export const SAMPLE_TASK_LISTS: SampleTaskList[] = [
   },
 ]
 
+/** Kitchen fixtures exercise every connected household module on the phone. */
+export const SAMPLE_KITCHEN = {
+  groceryList: 'Groceries',
+  meals: [
+    { title: 'Penne carbonara', prepMinutes: 20, author: 'nora' as const },
+    { title: 'Tomato soup', prepMinutes: 10, author: 'sam' as const },
+  ],
+  dinners: [
+    { recipe: 'shakshuka', daysAhead: 0 },
+    { meal: 'Penne carbonara', daysAhead: 1, quickLimit: 20 as const },
+  ],
+  pantry: [
+    { title: 'Basmati rice', quantity: '1 kg', author: 'owner' as const },
+    { title: 'Tinned tomatoes', quantity: '4 tins', author: 'nora' as const },
+  ],
+  calendars: [
+    {
+      name: 'Family',
+      author: 'owner' as const,
+      events: [
+        {
+          title: 'Dentist',
+          daysAhead: 0,
+          startMinutes: 9 * 60,
+          endMinutes: 9 * 60 + 30,
+          author: 'owner' as const,
+        },
+        { title: 'Pick up groceries', daysAhead: 1, author: 'sam' as const },
+      ],
+    },
+  ],
+}
+
 export interface SampleNote {
   title: string
   body: string

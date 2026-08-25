@@ -74,11 +74,29 @@ export const overview = query({
     return {
       groceryListId: group.groceryListId ?? null,
       mealEntries,
-      dinners: dinners.filter(
-        (dinner) =>
-          (!args.from || dinner.date >= args.from) &&
-          (!args.to || dinner.date <= args.to),
-      ),
+      dinners: dinners
+        .filter(
+          (dinner) =>
+            (!args.from || dinner.date >= args.from) &&
+            (!args.to || dinner.date <= args.to),
+        )
+        // A live Recipe is the source of truth while it remains visible. The
+        // stored fields are deliberately a fallback for a deleted/unshared
+        // Recipe, so a past plan remains readable (ADR-0027).
+        .map((dinner) => {
+          const recipe = dinner.recipeId
+            ? visibleRecipes.find(
+                (candidate) => candidate._id === dinner.recipeId,
+              )
+            : undefined
+          return recipe
+            ? {
+                ...dinner,
+                title: recipe.title,
+                prepMinutes: recipe.prepMinutes,
+              }
+            : dinner
+        }),
       pantry: pantry.sort((a, b) => a.title.localeCompare(b.title)),
       recipes: visibleRecipes.map((recipe) => ({
         _id: recipe._id,
@@ -120,6 +138,25 @@ export const removeMealEntry = mutation({
   },
 })
 
+export const updateMealEntry = mutation({
+  args: {
+    groupSlug: v.string(),
+    id: v.id('mealEntries'),
+    title: v.string(),
+    prepMinutes: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const entry = await ctx.db.get(args.id)
+    if (!entry || entry.groupId !== group._id)
+      throw new ConvexError('Meal not found')
+    await ctx.db.patch(args.id, {
+      title: args.title.trim(),
+      prepMinutes: args.prepMinutes,
+    })
+  },
+})
+
 export const setDinner = mutation({
   args: {
     groupSlug: v.string(),
@@ -132,6 +169,30 @@ export const setDinner = mutation({
   },
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    if (
+      Number(Boolean(args.recipeId)) + Number(Boolean(args.mealEntryId)) !==
+      1
+    )
+      throw new ConvexError('A dinner needs exactly one candidate')
+    let title = args.title
+    let prepMinutes = args.prepMinutes
+    if (args.mealEntryId) {
+      const meal = await ctx.db.get(args.mealEntryId)
+      if (!meal || meal.groupId !== group._id)
+        throw new ConvexError('Meal not found')
+      title = meal.title
+      prepMinutes = meal.prepMinutes
+    } else if (args.recipeId) {
+      const recipe = await ctx.db.get(args.recipeId)
+      if (
+        !recipe ||
+        (recipe.groupId !== group._id &&
+          !recipe.sharedGroupIds.includes(group._id))
+      )
+        throw new ConvexError('Recipe not found')
+      title = recipe.title
+      prepMinutes = recipe.prepMinutes
+    }
     const existing = await ctx.db
       .query('plannedDinners')
       .withIndex('by_group_date', (q) =>
@@ -141,8 +202,8 @@ export const setDinner = mutation({
     const row = {
       recipeId: args.recipeId,
       mealEntryId: args.mealEntryId,
-      title: args.title,
-      prepMinutes: args.prepMinutes,
+      title,
+      prepMinutes,
       quickLimit: args.quickLimit,
     }
     if (existing) await ctx.db.patch(existing._id, row)
@@ -197,6 +258,25 @@ export const removePantryEntry = mutation({
   },
 })
 
+export const updatePantryEntry = mutation({
+  args: {
+    groupSlug: v.string(),
+    id: v.id('pantryEntries'),
+    title: v.string(),
+    quantity: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const entry = await ctx.db.get(args.id)
+    if (!entry || entry.groupId !== group._id)
+      throw new ConvexError('Pantry entry not found')
+    await ctx.db.patch(args.id, {
+      title: args.title.trim(),
+      quantity: args.quantity?.trim() || undefined,
+    })
+  },
+})
+
 export const setGroceryList = mutation({
   args: { groupSlug: v.string(), listId: v.union(v.id('taskLists'), v.null()) },
   handler: async (ctx, args) => {
@@ -233,6 +313,19 @@ export const removeCalendar = mutation({
       .collect()
     await Promise.all(events.map((event) => ctx.db.delete(event._id)))
     await ctx.db.delete(calendar._id)
+    const memberships = await ctx.db
+      .query('memberships')
+      .withIndex('by_group', (q) => q.eq('groupId', calendar.groupId))
+      .collect()
+    await Promise.all(
+      memberships.map((membership) =>
+        ctx.db.patch(membership._id, {
+          hiddenCalendarIds: (membership.hiddenCalendarIds ?? []).filter(
+            (id) => id !== calendar._id,
+          ),
+        }),
+      ),
+    )
   },
 })
 
@@ -266,6 +359,16 @@ export const addCalendarEvent = mutation({
       endMinutes: args.endMinutes,
       createdBy: user._id,
     })
+  },
+})
+
+export const removeCalendarEvent = mutation({
+  args: { groupSlug: v.string(), id: v.id('calendarEvents') },
+  handler: async (ctx, args) => {
+    const event = await ctx.db.get(args.id)
+    if (!event) throw new ConvexError('Calendar event not found')
+    await calendarInGroup(ctx, args.groupSlug, event.calendarId)
+    await ctx.db.delete(args.id)
   },
 })
 

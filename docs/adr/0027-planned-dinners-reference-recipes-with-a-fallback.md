@@ -1,6 +1,6 @@
 # Planned dinners reference Recipes, with a fallback
 
-Status: decided (2026-08-25), not yet implemented
+Status: implemented (2026-08-25)
 
 A planner needs both the Recipes a Group can cook and quick dinners that will
 never deserve a Recipe. We will not manufacture a second Meal row for every

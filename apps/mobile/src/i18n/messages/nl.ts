@@ -125,10 +125,10 @@ export const nl = {
 
     home: {
       switchFrom: 'Groep: {group}. {action}',
+      intro:
+        'Welkom bij Gather. Je vindt alle modules voor deze Groep bij Alles.',
       personalSubtitle: coreNl.shell.home.personalSubtitle,
       sharedSubtitle: coreNl.shell.home.sharedSubtitle,
-      pins: coreNl.shell.allModules.yourPins,
-      nothingPinned: 'Nog niets vastgezet in deze Groep.',
     },
 
     all: coreNl.shell.allModules,
@@ -207,6 +207,14 @@ export const nl = {
     chooseList: 'Boodschappenlijst kiezen',
     noGroceryList: 'Kies een takenlijst voor boodschappen.',
     quick: 'Snel onder {minutes} minuten',
+    previousWeek: 'Vorige week',
+    nextWeek: 'Volgende week',
+    previousMonth: 'Vorige maand',
+    nextMonth: 'Volgende maand',
+    randomizeWeek: 'Niet geplande week invullen',
+    mealLibrary: 'Snelle maaltijden',
+    chooseDinner: 'Avondeten kiezen',
+    changeList: 'Lijst wijzigen of wissen',
     random: 'Willekeurige maaltijd',
     clearDinner: 'Maaltijd wissen',
     deleteTitle: 'â€œ{title}â€ verwijderen?',

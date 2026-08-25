@@ -20,7 +20,7 @@
  */
 import { MenuView } from '@expo/ui/community/menu'
 import { Stack, useRouter } from 'expo-router'
-import { useRef, useState } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import {
   Alert,
   Pressable,
@@ -54,7 +54,14 @@ import { dueLabel, isOverdue } from './taskDates'
 import { taskMenuActions, useTaskSheets } from './taskMenu'
 import type { List, ListDisplay, Task } from './types'
 
-export function TaskList({ listId }: { listId: string }) {
+export function TaskList({
+  listId,
+  headerLeft,
+}: {
+  listId: string
+  /** An owning module may add its own way back to its collection. */
+  headerLeft?: () => ReactNode
+}) {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
   const { t } = useI18n()
@@ -132,6 +139,7 @@ export function TaskList({ listId }: { listId: string }) {
         options={{
           headerShown: true,
           title: list.name,
+          headerLeft,
           headerRight: () =>
             reordering ? (
               <Pressable

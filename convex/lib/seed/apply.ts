@@ -20,6 +20,7 @@ import {
   SAMPLE_HOLDINGS,
   SAMPLE_HOUSE,
   SAMPLE_HOUSEMATES,
+  SAMPLE_KITCHEN,
   SAMPLE_MORTGAGES,
   SAMPLE_NET_WORTH_ENTRIES,
   SAMPLE_NOTES,
@@ -314,6 +315,36 @@ export async function resetSample(ctx: MutationCtx) {
       orphaned++
     }
   }
+  for (const dinner of await ctx.db.query('plannedDinners').collect()) {
+    if (!(await alive(dinner.groupId))) {
+      await ctx.db.delete(dinner._id)
+      orphaned++
+    }
+  }
+  for (const entry of await ctx.db.query('mealEntries').collect()) {
+    if (!(await alive(entry.groupId))) {
+      await ctx.db.delete(entry._id)
+      orphaned++
+    }
+  }
+  for (const entry of await ctx.db.query('pantryEntries').collect()) {
+    if (!(await alive(entry.groupId))) {
+      await ctx.db.delete(entry._id)
+      orphaned++
+    }
+  }
+  for (const calendar of await ctx.db.query('calendars').collect()) {
+    if (!(await alive(calendar.groupId))) {
+      await ctx.db.delete(calendar._id)
+      orphaned++
+    }
+  }
+  for (const event of await ctx.db.query('calendarEvents').collect()) {
+    if (!(await alive(event.calendarId))) {
+      await ctx.db.delete(event._id)
+      orphaned++
+    }
+  }
   for (const event of await ctx.db.query('babyEvents').collect()) {
     if (!(await alive(event.babyId))) {
       await ctx.db.delete(event._id)
@@ -561,6 +592,79 @@ export async function applySample(
         }),
       )
     }
+  }
+
+  // --- Kitchen -------------------------------------------------------------
+  // These modules are all Group-scoped, so they belong beside the Group's
+  // task lists and recipes rather than in a second, private sample fixture.
+  const groceryList = await ctx.db
+    .query('taskLists')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .filter((q) => q.eq(q.field('name'), SAMPLE_KITCHEN.groceryList))
+    .unique()
+  if (groceryList)
+    await ctx.db.patch(groupId, { groceryListId: groceryList._id })
+  const mealIds = new Map<string, Id<'mealEntries'>>()
+  for (const meal of SAMPLE_KITCHEN.meals) {
+    const id = rec.track(
+      await ctx.db.insert('mealEntries', {
+        groupId,
+        title: meal.title,
+        prepMinutes: meal.prepMinutes,
+        createdBy: authors[meal.author],
+      }),
+    )
+    mealIds.set(meal.title, id)
+  }
+  for (const dinner of SAMPLE_KITCHEN.dinners) {
+    const recipeId = dinner.recipe ? recipeIds.get(dinner.recipe) : undefined
+    const mealEntryId = dinner.meal ? mealIds.get(dinner.meal) : undefined
+    const source = recipeId
+      ? SAMPLE_RECIPES.find((recipe) => recipe.key === dinner.recipe)
+      : SAMPLE_KITCHEN.meals.find((meal) => meal.title === dinner.meal)
+    if (!source || (!recipeId && !mealEntryId))
+      throw new Error('Sample dinner source missing')
+    rec.track(
+      await ctx.db.insert('plannedDinners', {
+        groupId,
+        date: isoDate(now, -dinner.daysAhead),
+        recipeId,
+        mealEntryId,
+        title: source.title,
+        prepMinutes: source.prepMinutes,
+        quickLimit: dinner.quickLimit,
+      }),
+    )
+  }
+  for (const entry of SAMPLE_KITCHEN.pantry)
+    rec.track(
+      await ctx.db.insert('pantryEntries', {
+        groupId,
+        title: entry.title,
+        quantity: entry.quantity,
+        createdBy: authors[entry.author],
+      }),
+    )
+  for (const fixture of SAMPLE_KITCHEN.calendars) {
+    const calendarId = rec.track(
+      await ctx.db.insert('calendars', {
+        groupId,
+        name: fixture.name,
+        source: 'local',
+        createdBy: authors[fixture.author],
+      }),
+    )
+    for (const event of fixture.events)
+      rec.track(
+        await ctx.db.insert('calendarEvents', {
+          calendarId,
+          title: event.title,
+          date: isoDate(now, -event.daysAhead),
+          startMinutes: event.startMinutes,
+          endMinutes: event.endMinutes,
+          createdBy: authors[event.author],
+        }),
+      )
   }
 
   // --- Notes ----------------------------------------------------------------
@@ -977,6 +1081,14 @@ export async function applySample(
     taskLists: SAMPLE_TASK_LISTS.length,
     tasks: SAMPLE_TASK_LISTS.reduce((n, l) => n + l.tasks.length, 0),
     notes: SAMPLE_NOTES.length,
+    mealEntries: SAMPLE_KITCHEN.meals.length,
+    dinners: SAMPLE_KITCHEN.dinners.length,
+    pantryEntries: SAMPLE_KITCHEN.pantry.length,
+    calendars: SAMPLE_KITCHEN.calendars.length,
+    calendarEvents: SAMPLE_KITCHEN.calendars.reduce(
+      (count, calendar) => count + calendar.events.length,
+      0,
+    ),
     babyTasks: SAMPLE_BABY.todos.length + SAMPLE_BABY.questions.length,
     babyEvents: SAMPLE_BABY_EVENTS.length,
     diaryEntries,
@@ -1004,6 +1116,11 @@ export async function applySample(
     counts.recipes +
     counts.taskLists +
     counts.tasks +
+    counts.mealEntries +
+    counts.dinners +
+    counts.pantryEntries +
+    counts.calendars +
+    counts.calendarEvents +
     counts.notes +
     1 + // baby
     2 + // the baby's own two lists
