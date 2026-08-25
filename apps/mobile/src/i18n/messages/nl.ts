@@ -123,10 +123,10 @@ export const nl = {
 
     home: {
       switchFrom: 'Groep: {group}. {action}',
+      intro:
+        'Welkom bij Gather. Je vindt alle modules voor deze Groep bij Alles.',
       personalSubtitle: coreNl.shell.home.personalSubtitle,
       sharedSubtitle: coreNl.shell.home.sharedSubtitle,
-      pins: coreNl.shell.allModules.yourPins,
-      nothingPinned: 'Nog niets vastgezet in deze Groep.',
     },
 
     all: coreNl.shell.allModules,

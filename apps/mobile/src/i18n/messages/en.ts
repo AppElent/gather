@@ -161,10 +161,9 @@ export const en = {
     home: {
       /** The accessible name of the Group button; `{group}` is its name. */
       switchFrom: 'Group: {group}. {action}',
+      intro: 'Welcome to Gather. Find every module for this group in All.',
       personalSubtitle: coreEn.shell.home.personalSubtitle,
       sharedSubtitle: coreEn.shell.home.sharedSubtitle,
-      pins: coreEn.shell.allModules.yourPins,
-      nothingPinned: 'Nothing pinned in this Group yet.',
     },
 
     all: coreEn.shell.allModules,

@@ -1,5 +1,5 @@
 /**
- * Home: the one screen that names the Group, and the way out of it.
+ * Home: the one screen that names the Group and welcomes people to Gather.
  *
  * ADR-0015 pays for the missing address bar here. There is no persistent Group
  * line in chrome — a native header has room for *this screen's* title and
@@ -8,9 +8,9 @@
  * Tapping the name opens an ephemeral native sheet; it does not change the
  * current destination.
  *
- * Home is deliberately not the catalogue. The Group's shared surface — the
- * Pins strip and the activity it has seen — is #163's; what is here now is the
- * orientation the Group switch needs to be observable.
+ * Home is deliberately not the catalogue. All is the single entrance to every
+ * Module; Home only gives people their bearings and makes the Group switch
+ * observable.
  *
  * Beside the Group's name is the one way into everything that is not a Module
  * and not a Group: Settings, and through it Account and Groups (#164). One
@@ -21,29 +21,17 @@
  * It also hides the splash: on a cold start with a retained session this is the
  * first screen mounted.
  */
-import { moduleText } from '@gather/core/modules'
-import { pinnedModules } from '@gather/core/pins'
-import { useQuery } from 'convex/react'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { api } from '../../../../../../convex/_generated/api'
 import { useAvailability } from '../../../../src/availability/AvailabilityProvider'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
-import { moduleDestination } from '../../../../src/modules/moduleDestination'
 import { GroupSwitcherSheet } from '../../../../src/shell/GroupSwitcherSheet'
-import { MODULE_ICONS, UI_ICONS } from '../../../../src/theme/icons'
-import { RADIUS, useTokens } from '../../../../src/theme/tokens'
+import { UI_ICONS } from '../../../../src/theme/icons'
+import { useTokens } from '../../../../src/theme/tokens'
 import { useHideSplash } from '../../../../src/useHideSplash'
 
 export default function Home() {
@@ -53,8 +41,6 @@ export default function Home() {
   const { group } = useGroup()
   const { serviceActionsEnabled } = useAvailability()
   const onLayout = useHideSplash()
-  const pins = useQuery(api.users.myPins, { groupSlug: group.slug })
-  const pinned = pins === undefined ? null : pinnedModules(pins ?? undefined)
   const [switching, setSwitching] = useState(false)
 
   const ChevronDown = UI_ICONS.ChevronDown
@@ -107,49 +93,8 @@ export default function Home() {
       </View>
 
       <Text style={[styles.subtitle, { color: tokens.muted }]}>
-        {group.isPersonal
-          ? t.shell.home.personalSubtitle
-          : t.shell.home.sharedSubtitle}
+        {t.shell.home.intro}
       </Text>
-
-      <View style={styles.pins}>
-        <Text style={[styles.pinsTitle, { color: tokens.fg }]}>
-          {t.shell.home.pins}
-        </Text>
-        {pinned === null ? (
-          <ActivityIndicator color={tokens.muted} />
-        ) : pinned.length === 0 ? (
-          <Text style={[styles.emptyPins, { color: tokens.muted }]}>
-            {t.shell.home.nothingPinned}
-          </Text>
-        ) : (
-          <View style={styles.pinList}>
-            {pinned.map((module) => {
-              const text = moduleText(module, t)
-              const tint = tokens.tintOf(module.group)
-              const Icon = MODULE_ICONS[module.icon]
-              return (
-                <Pressable
-                  key={module.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={text.label}
-                  onPress={() => router.push(moduleDestination(module.id))}
-                  style={({ pressed }) => [
-                    styles.pin,
-                    { backgroundColor: tint.bg },
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Icon size={20} color={tint.fg} strokeWidth={1.8} />
-                  <Text style={[styles.pinLabel, { color: tint.fg }]}>
-                    {text.label}
-                  </Text>
-                </Pressable>
-              )
-            })}
-          </View>
-        )}
-      </View>
       {switching ? (
         <GroupSwitcherSheet onClose={() => setSwitching(false)} />
       ) : null}
@@ -172,17 +117,4 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subtitle: { fontSize: 15, lineHeight: 22 },
-  pins: { marginTop: 26, gap: 10 },
-  pinsTitle: { fontSize: 18, fontWeight: '700' },
-  emptyPins: { fontSize: 15, lineHeight: 22 },
-  pinList: { gap: 8 },
-  pin: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: RADIUS.card,
-    paddingVertical: 14,
-    paddingHorizontal: 15,
-  },
-  pinLabel: { fontSize: 16, fontWeight: '700' },
 })
