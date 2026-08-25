@@ -53,6 +53,15 @@ export const get = query({
   },
 })
 
+/** One loan part, for the screen that is only about that part. */
+export const getPart = query({
+  args: { id: v.id('loanParts'), groupSlug: v.string() },
+  handler: async (ctx, args) => {
+    const found = await findInGroup(ctx, args.groupSlug, args.id)
+    return found ? found.doc : null
+  },
+})
+
 export const create = mutation({
   args: {
     houseId: v.id('houses'),

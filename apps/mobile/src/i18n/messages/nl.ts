@@ -31,6 +31,8 @@ export const nl = {
 
   baby: coreNl.baby,
 
+  finances: coreNl.finances,
+
   shell: {
     tabs: {
       home: coreNl.shell.nav.home,

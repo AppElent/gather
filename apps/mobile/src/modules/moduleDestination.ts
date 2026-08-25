@@ -18,6 +18,7 @@ import type { Href } from 'expo-router'
 /** Modules with real screens in the phone's route tree. */
 export const NATIVE_MODULES = [
   'baby-log',
+  'finances',
 ] as const satisfies readonly ModuleId[]
 
 export type NativeModuleId = (typeof NATIVE_MODULES)[number]

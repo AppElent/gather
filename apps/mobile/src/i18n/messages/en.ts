@@ -42,6 +42,14 @@ export const en = {
   baby: coreEn.baby,
 
   /**
+   * The Finances Module's words, taken whole from the shared tree for the
+   * same reason the Baby log's are: the phone owns its look and shares its
+   * words (ADR-0017), and a second English for "Loan part" is the failure
+   * that rule names.
+   */
+  finances: coreEn.finances,
+
+  /**
    * The signed-in shell: the five fixed tabs, the Group switcher sheet, and
    * the seat a tab keeps until its Module is built for the phone.
    *

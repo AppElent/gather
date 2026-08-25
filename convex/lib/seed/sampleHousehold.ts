@@ -1213,3 +1213,377 @@ export const SAMPLE_USER_FOODS = [
     nutritionSource: 'ai' as const,
   },
 ]
+
+// ---------------------------------------------------------------------------
+// Finances
+// ---------------------------------------------------------------------------
+
+/**
+ * The Finances Module's sample content.
+ *
+ * A House with a real three-part mortgage is the fixture that matters: the
+ * Module's central claim is that a mortgage is not one loan (ADR-0025), and a
+ * preview showing a single annuity would quietly contradict it. One part is
+ * fixed with a rate the household entered for when it expires, one is linear,
+ * one is interest-only and ends first — so the timeline has steps in it.
+ *
+ * Every date is an offset from the run, like everything else here.
+ */
+export const SAMPLE_HOUSE = {
+  name: 'Willowstraat 21',
+  /** What the household last said it is worth, and how long ago they said it. */
+  valueCents: 452_000_00,
+  valuedDaysAgo: 55,
+  boughtDaysAgo: 1_880,
+}
+
+export interface SampleLoanPart {
+  kind: 'annuity' | 'linear' | 'interestOnly'
+  principalCents: number
+  annualRatePercent: number
+  termMonths: number
+  /** Months from the run until the fix ends. Absent means variable. */
+  fixedInMonths?: number
+  expiryRatePercent?: number
+  expiryRateOptions?: number[]
+  repayments?: {
+    kind: 'once' | 'monthly'
+    amountCents: number
+    /** Months from the run. */
+    inMonths: number
+  }[]
+  charge?: { freeAnnualPercent: number; chargePercent: number }
+}
+
+export interface SampleMortgage {
+  name: string
+  author: SampleAuthor
+  parts: SampleLoanPart[]
+}
+
+export const SAMPLE_MORTGAGES: SampleMortgage[] = [
+  {
+    name: 'What we pay now',
+    author: 'owner',
+    parts: [
+      {
+        kind: 'annuity',
+        principalCents: 180_000_00,
+        annualRatePercent: 3.9,
+        termMonths: 264,
+        fixedInMonths: 58,
+        expiryRatePercent: 5,
+        expiryRateOptions: [3.9, 5, 6.5],
+        charge: { freeAnnualPercent: 10, chargePercent: 1.5 },
+      },
+      {
+        kind: 'linear',
+        principalCents: 95_000_00,
+        annualRatePercent: 2.15,
+        termMonths: 168,
+        fixedInMonths: 91,
+        expiryRatePercent: 4,
+      },
+      {
+        kind: 'interestOnly',
+        principalCents: 70_000_00,
+        annualRatePercent: 4.4,
+        termMonths: 114,
+      },
+    ],
+  },
+  {
+    name: 'If we overpay €300 a month',
+    author: 'nora',
+    parts: [
+      {
+        kind: 'annuity',
+        principalCents: 180_000_00,
+        annualRatePercent: 3.9,
+        termMonths: 264,
+        fixedInMonths: 58,
+        expiryRatePercent: 5,
+        repayments: [{ kind: 'monthly', amountCents: 300_00, inMonths: 2 }],
+        charge: { freeAnnualPercent: 10, chargePercent: 1.5 },
+      },
+      {
+        kind: 'linear',
+        principalCents: 95_000_00,
+        annualRatePercent: 2.15,
+        termMonths: 168,
+        fixedInMonths: 91,
+        expiryRatePercent: 4,
+      },
+      {
+        kind: 'interestOnly',
+        principalCents: 70_000_00,
+        annualRatePercent: 4.4,
+        termMonths: 114,
+      },
+    ],
+  },
+]
+
+/** Netherlands-specific, and every figure is one the household entered. */
+export const SAMPLE_BUYING_COSTS = {
+  purchasePriceCents: 425_000_00,
+  ownMoneyCents: 45_000_00,
+  mortgageCents: 380_000_00,
+  mortgageRatePercent: 3.9,
+  mortgageTermMonths: 360,
+  transferTaxBand: 'ownHome' as const,
+  transferTaxPercent: 2,
+  lines: {
+    notary: 1_650_00,
+    valuation: 650_00,
+    mortgageAdvice: 2_700_00,
+    structuralSurvey: 450_00,
+    buyingAgent: 3_900_00,
+  },
+}
+
+export interface SampleRecurringCost {
+  name: string
+  amountCents: number
+  frequency: 'weekly' | 'monthly' | 'quarterly' | 'halfYearly' | 'yearly'
+  category:
+    | 'housing'
+    | 'utilities'
+    | 'insurance'
+    | 'transport'
+    | 'health'
+    | 'media'
+    | 'other'
+  note?: string
+  /** Percent per housemate. Absent means the cost is not divided. */
+  split?: { author: SampleAuthor; percent: number }[]
+  author: SampleAuthor
+}
+
+export const SAMPLE_RECURRING_COSTS: SampleRecurringCost[] = [
+  {
+    name: 'Mortgage payment',
+    amountCents: 2_140_00,
+    frequency: 'monthly',
+    category: 'housing',
+    split: [
+      { author: 'owner', percent: 55 },
+      { author: 'nora', percent: 45 },
+    ],
+    author: 'owner',
+  },
+  {
+    name: 'Home insurance',
+    amountCents: 222_00,
+    frequency: 'yearly',
+    category: 'housing',
+    split: [
+      { author: 'owner', percent: 50 },
+      { author: 'nora', percent: 50 },
+    ],
+    author: 'nora',
+  },
+  {
+    name: 'Energy',
+    amountCents: 186_00,
+    frequency: 'monthly',
+    category: 'utilities',
+    split: [
+      { author: 'owner', percent: 55 },
+      { author: 'nora', percent: 45 },
+    ],
+    author: 'owner',
+  },
+  {
+    name: 'Water',
+    amountCents: 96_00,
+    frequency: 'quarterly',
+    category: 'utilities',
+    split: [
+      { author: 'owner', percent: 55 },
+      { author: 'nora', percent: 45 },
+    ],
+    author: 'sam',
+  },
+  {
+    name: 'Internet',
+    amountCents: 44_00,
+    frequency: 'monthly',
+    category: 'utilities',
+    split: [
+      { author: 'owner', percent: 50 },
+      { author: 'nora', percent: 50 },
+    ],
+    author: 'nora',
+  },
+  {
+    name: 'Health insurance',
+    amountCents: 148_00,
+    frequency: 'monthly',
+    category: 'health',
+    note: 'Two people, own risk €385',
+    split: [
+      { author: 'owner', percent: 50 },
+      { author: 'nora', percent: 50 },
+    ],
+    author: 'owner',
+  },
+  {
+    name: 'Car insurance',
+    amountCents: 624_00,
+    frequency: 'yearly',
+    category: 'transport',
+    note: 'Renews in March — WA + casco',
+    split: [{ author: 'nora', percent: 100 }],
+    author: 'nora',
+  },
+  {
+    name: 'Streaming',
+    amountCents: 15_99,
+    frequency: 'monthly',
+    category: 'media',
+    author: 'sam',
+  },
+]
+
+export interface SampleSavingsGoal {
+  name: string
+  targetCents: number
+  savedCents: number
+  monthlyCents?: number
+  /** Months from the run. */
+  targetInMonths: number
+  author: SampleAuthor
+}
+
+export const SAMPLE_SAVINGS_GOALS: SampleSavingsGoal[] = [
+  {
+    name: 'New kitchen',
+    targetCents: 15_000_00,
+    savedCents: 6_400_00,
+    monthlyCents: 300_00,
+    targetInMonths: 19,
+    author: 'owner',
+  },
+  {
+    name: 'Trip to Japan',
+    targetCents: 6_000_00,
+    savedCents: 5_450_00,
+    monthlyCents: 250_00,
+    targetInMonths: 5,
+    author: 'nora',
+  },
+]
+
+export interface SampleHoldingTransaction {
+  kind: 'buy' | 'sell' | 'dividend' | 'fee' | 'adjustment'
+  daysAgo: number
+  units?: number
+  pricePerUnitCents?: number
+  perUnitCents?: number
+  feeCents?: number
+  note?: string
+}
+
+export interface SampleHolding {
+  kind: 'stock' | 'etf'
+  symbol: string
+  name: string
+  exchange: string
+  currency: string
+  openingDaysAgo: number
+  openingUnits: number
+  openingAverageCostCents: number
+  lastPriceCents: number
+  /** Hours before the run the price is as at. */
+  pricedHoursAgo: number
+  transactions: SampleHoldingTransaction[]
+  author: SampleAuthor
+}
+
+export const SAMPLE_HOLDINGS: SampleHolding[] = [
+  {
+    kind: 'etf',
+    symbol: 'IWDA',
+    name: 'iShares Core MSCI World',
+    exchange: 'AMS',
+    currency: 'EUR',
+    openingDaysAgo: 600,
+    openingUnits: 184,
+    openingAverageCostCents: 9_750,
+    lastPriceCents: 10_842,
+    pricedHoursAgo: 3,
+    transactions: [
+      {
+        kind: 'buy',
+        daysAgo: 210,
+        units: 20,
+        pricePerUnitCents: 10_150,
+        feeCents: 250,
+      },
+      { kind: 'dividend', daysAgo: 95, perUnitCents: 42 },
+    ],
+    author: 'owner',
+  },
+  {
+    kind: 'stock',
+    symbol: 'ASML',
+    name: 'ASML Holding NV',
+    exchange: 'AMS',
+    currency: 'EUR',
+    openingDaysAgo: 420,
+    openingUnits: 12,
+    openingAverageCostCents: 61_240,
+    lastPriceCents: 65_100,
+    pricedHoursAgo: 3,
+    transactions: [
+      {
+        kind: 'buy',
+        daysAgo: 160,
+        units: 3,
+        pricePerUnitCents: 64_000,
+        feeCents: 250,
+      },
+      { kind: 'sell', daysAgo: 60, units: 3, pricePerUnitCents: 66_800 },
+    ],
+    author: 'nora',
+  },
+  {
+    // A foreign holding, so the preview shows a conversion and its own age.
+    kind: 'stock',
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
+    exchange: 'NASDAQ',
+    currency: 'USD',
+    openingDaysAgo: 300,
+    openingUnits: 9,
+    openingAverageCostCents: 25_000,
+    lastPriceCents: 27_310,
+    pricedHoursAgo: 5,
+    transactions: [
+      {
+        kind: 'adjustment',
+        daysAgo: 84,
+        units: 9,
+        pricePerUnitCents: 25_000,
+        note: 'Broker corrected the opening lot',
+      },
+    ],
+    author: 'sam',
+  },
+]
+
+/** The Group counts in euros, and one manual conversion for the dollar holding. */
+export const SAMPLE_FINANCE_SETTINGS = {
+  homeCurrency: 'EUR',
+  rates: [{ currency: 'USD', rate: 0.873, hoursAgo: 8 }],
+}
+
+export const SAMPLE_NET_WORTH_ENTRIES: {
+  kind: 'asset' | 'liability'
+  label: string
+  amountCents: number
+}[] = [
+  { kind: 'asset', label: 'Savings account', amountCents: 21_400_00 },
+  { kind: 'liability', label: 'Student loan', amountCents: 6_550_00 },
+]

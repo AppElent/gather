@@ -12,11 +12,19 @@ import { CATALOG_FOODS } from './catalogFoods'
 import {
   SAMPLE_BABY,
   SAMPLE_BABY_EVENTS,
+  SAMPLE_BUYING_COSTS,
   SAMPLE_COMBOS,
   SAMPLE_DIARY,
+  SAMPLE_FINANCE_SETTINGS,
   SAMPLE_GROUP_NAME,
+  SAMPLE_HOLDINGS,
+  SAMPLE_HOUSE,
   SAMPLE_HOUSEMATES,
+  SAMPLE_MORTGAGES,
+  SAMPLE_NET_WORTH_ENTRIES,
   SAMPLE_RECIPES,
+  SAMPLE_RECURRING_COSTS,
+  SAMPLE_SAVINGS_GOALS,
   SAMPLE_TASK_LISTS,
   SAMPLE_USER_FOODS,
   type SampleAuthor,
@@ -31,6 +39,20 @@ const DAY_MS = 24 * 60 * 60 * 1000
  * local timezone, and the app stores plain date strings. */
 function isoDate(now: number, daysAgo: number): string {
   return new Date(now - daysAgo * DAY_MS).toISOString().slice(0, 10)
+}
+
+/** `YYYY-MM-DD`, `months` whole months after `now`. Finance dates are months
+ * out rather than days: a fixed rate ends in a month, not on a Tuesday. */
+function isoMonthsAhead(now: number, months: number): string {
+  const day = new Date(now)
+  const shifted = new Date(
+    Date.UTC(day.getUTCFullYear(), day.getUTCMonth() + months, 1),
+  )
+  const last = new Date(
+    Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth() + 1, 0),
+  ).getUTCDate()
+  shifted.setUTCDate(Math.min(day.getUTCDate(), last))
+  return shifted.toISOString().slice(0, 10)
 }
 
 /** Epoch ms at a given hour/minute on the day `daysAgo` before `now`. */
@@ -642,6 +664,170 @@ export async function applySample(
     combos++
   }
 
+  // --- Finances -------------------------------------------------------------
+  // The House is the container for what a home costs (ADR-0025), so it is
+  // seeded first and everything about the mortgage hangs off it.
+  const houseId = rec.track(
+    await ctx.db.insert('houses', {
+      groupId,
+      createdByUserId: authors.owner,
+      name: SAMPLE_HOUSE.name,
+      valueCents: SAMPLE_HOUSE.valueCents,
+      valueAsOf: isoDate(now, SAMPLE_HOUSE.valuedDaysAgo),
+      boughtOn: isoDate(now, SAMPLE_HOUSE.boughtDaysAgo),
+      order: 0,
+    }),
+  )
+
+  let loanParts = 0
+  for (const [order, mortgage] of SAMPLE_MORTGAGES.entries()) {
+    const calculationId = rec.track(
+      await ctx.db.insert('mortgageCalculations', {
+        groupId,
+        houseId,
+        createdByUserId: authors[mortgage.author],
+        updatedByUserId: authors[mortgage.author],
+        updatedAt: now,
+        name: mortgage.name,
+        order,
+      }),
+    )
+    for (const [partOrder, part] of mortgage.parts.entries()) {
+      rec.track(
+        await ctx.db.insert('loanParts', {
+          groupId,
+          calculationId,
+          kind: part.kind,
+          principalCents: part.principalCents,
+          annualRatePercent: part.annualRatePercent,
+          termMonths: part.termMonths,
+          fixedUntil:
+            part.fixedInMonths === undefined
+              ? undefined
+              : isoMonthsAhead(now, part.fixedInMonths),
+          expiryRatePercent: part.expiryRatePercent,
+          expiryRateOptions: part.expiryRateOptions,
+          repayments: part.repayments?.map((repayment) => ({
+            kind: repayment.kind,
+            amountCents: repayment.amountCents,
+            date: isoMonthsAhead(now, repayment.inMonths),
+          })),
+          charge: part.charge,
+          order: partOrder,
+        }),
+      )
+      loanParts++
+    }
+  }
+
+  rec.track(
+    await ctx.db.insert('homeBuyingCosts', {
+      groupId,
+      houseId,
+      updatedByUserId: authors.owner,
+      ...SAMPLE_BUYING_COSTS,
+    }),
+  )
+
+  for (const [order, cost] of SAMPLE_RECURRING_COSTS.entries()) {
+    rec.track(
+      await ctx.db.insert('recurringCosts', {
+        groupId,
+        createdByUserId: authors[cost.author],
+        name: cost.name,
+        amountCents: cost.amountCents,
+        frequency: cost.frequency,
+        category: cost.category,
+        note: cost.note,
+        split: cost.split?.map((share) => ({
+          userId: authors[share.author],
+          percent: share.percent,
+        })),
+        order,
+      }),
+    )
+  }
+
+  for (const [order, goal] of SAMPLE_SAVINGS_GOALS.entries()) {
+    rec.track(
+      await ctx.db.insert('savingsGoals', {
+        groupId,
+        createdByUserId: authors[goal.author],
+        name: goal.name,
+        targetCents: goal.targetCents,
+        targetDate: isoMonthsAhead(now, goal.targetInMonths),
+        savedCents: goal.savedCents,
+        monthlyCents: goal.monthlyCents,
+        updatedByUserId: authors[goal.author],
+        updatedAt: now,
+        order,
+      }),
+    )
+  }
+
+  rec.track(
+    await ctx.db.insert('financeSettings', {
+      groupId,
+      homeCurrency: SAMPLE_FINANCE_SETTINGS.homeCurrency,
+      rates: SAMPLE_FINANCE_SETTINGS.rates.map((rate) => ({
+        currency: rate.currency,
+        rate: rate.rate,
+        asOf: now - rate.hoursAgo * 60 * 60 * 1000,
+      })),
+    }),
+  )
+
+  let holdingTransactions = 0
+  for (const [order, holding] of SAMPLE_HOLDINGS.entries()) {
+    const holdingId = rec.track(
+      await ctx.db.insert('holdings', {
+        groupId,
+        createdByUserId: authors[holding.author],
+        kind: holding.kind,
+        symbol: holding.symbol,
+        name: holding.name,
+        exchange: holding.exchange,
+        currency: holding.currency,
+        openingDate: isoDate(now, holding.openingDaysAgo),
+        openingUnits: holding.openingUnits,
+        openingAverageCostCents: holding.openingAverageCostCents,
+        lastPriceCents: holding.lastPriceCents,
+        lastPriceAt: now - holding.pricedHoursAgo * 60 * 60 * 1000,
+        order,
+      }),
+    )
+    for (const entry of holding.transactions) {
+      rec.track(
+        await ctx.db.insert('holdingTransactions', {
+          groupId,
+          holdingId,
+          createdByUserId: authors[holding.author],
+          kind: entry.kind,
+          date: isoDate(now, entry.daysAgo),
+          units: entry.units,
+          pricePerUnitCents: entry.pricePerUnitCents,
+          perUnitCents: entry.perUnitCents,
+          feeCents: entry.feeCents,
+          note: entry.note,
+        }),
+      )
+      holdingTransactions++
+    }
+  }
+
+  for (const [order, entry] of SAMPLE_NET_WORTH_ENTRIES.entries()) {
+    rec.track(
+      await ctx.db.insert('netWorthEntries', {
+        groupId,
+        createdByUserId: authors.owner,
+        kind: entry.kind,
+        label: entry.label,
+        amountCents: entry.amountCents,
+        order,
+      }),
+    )
+  }
+
   await ctx.db.insert('seedRuns', {
     label: SAMPLE_LABEL,
     createdAt: now,
@@ -662,6 +848,13 @@ export async function applySample(
     combos,
     housemates: SAMPLE_HOUSEMATES.length,
     userFoods: SAMPLE_USER_FOODS.length,
+    mortgages: SAMPLE_MORTGAGES.length,
+    loanParts,
+    recurringCosts: SAMPLE_RECURRING_COSTS.length,
+    savingsGoals: SAMPLE_SAVINGS_GOALS.length,
+    holdings: SAMPLE_HOLDINGS.length,
+    holdingTransactions,
+    netWorthEntries: SAMPLE_NET_WORTH_ENTRIES.length,
   }
 
   // Self-check: the run recorded every row it created. Anything missing here
@@ -681,7 +874,17 @@ export async function applySample(
     counts.userFoods +
     counts.diaryEntries +
     counts.combos +
-    SAMPLE_COMBOS.reduce((n, combo) => n + combo.items.length, 0)
+    SAMPLE_COMBOS.reduce((n, combo) => n + combo.items.length, 0) +
+    1 + // the house
+    counts.mortgages +
+    counts.loanParts +
+    1 + // its home-buying costs
+    counts.recurringCosts +
+    counts.savingsGoals +
+    1 + // the Group's finance settings
+    counts.holdings +
+    counts.holdingTransactions +
+    counts.netWorthEntries
   if (rec.ids.length !== expectedTracked) {
     throw new Error(
       `Sample seed self-check failed: recorded ${rec.ids.length} rows, expected ${expectedTracked}`,
