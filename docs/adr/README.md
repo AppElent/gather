@@ -29,3 +29,4 @@
 | 0025 | Money is shared and entered by hand | decided | finances | `CONTEXT.md`, `docs/adr/0026-portfolio-overviews-are-information-not-advice.md` |
 | 0026 | Portfolio overviews are information, not advice | decided | finances | `CONTEXT.md` |
 | 0027 | Planned dinners reference Recipes, with a fallback | decided | meal planning | `CONTEXT.md` |
+| 0028 | A Drop is nothing until a person names its destination | decided | mobile sharing | `apps/mobile/src/drop/`, `packages/core/src/dropRules.ts` |

@@ -319,6 +319,22 @@ today.
 _Avoid_: Scrape, Sync, Fetch. (**Copy** is a different verb — that one starts
 from a recipe already in Gather.)
 
+**Drop**:
+What another app hands to Gather through the phone's share sheet — a link, some
+text, a photo — before it is anything in Gather. A Drop has no Group and no
+Module until a person names them, and an abandoned Drop leaves nothing behind.
+It is one payload at a time, not a queue: a second Drop replaces the first
+(ADR-0028).
+_Avoid_: Share (that word already means making Group content visible to a
+second Group), Import (a Drop aimed at Recipes *becomes* one), Attachment.
+
+**Drop target**:
+A destination a Drop can be aimed at — a new recipe, a note, a line on the
+grocery list, a photo on a tasting subject. A target either **creates** a thing
+from the Drop or **appends** it to one that exists, and the appending ones ask
+which. Every Module declares its targets, including the ones that declare none.
+_Avoid_: Handler, Receiver, Intent
+
 **Provenance**:
 A reference back to what something was created from — a diary entry recording
 which recipe it came from, a copied recipe recording the one it was taken from,

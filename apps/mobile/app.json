@@ -52,6 +52,20 @@
           }
         }
       ],
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
+            "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
+            "NSExtensionActivationSupportsText": true,
+            "NSExtensionActivationSupportsImageWithMaxCount": 1
+          },
+          "iosAppGroupIdentifier": "group.com.appelent.gather",
+          "androidIntentFilters": ["text/*", "image/*"],
+          "disableAndroidBrowserActivity": true
+        }
+      ],
       "@clerk/expo",
       "expo-secure-store",
       "expo-localization",

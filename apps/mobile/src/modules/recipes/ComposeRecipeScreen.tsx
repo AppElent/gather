@@ -39,8 +39,8 @@
  */
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
-import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useEffect, useRef, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Pressable,
@@ -81,6 +81,20 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
   const router = useRouter()
   const { t } = useI18n()
   const { groupSlug, groupName } = useRecipes()
+  /**
+   * What a Drop handed this screen (ADR-0028).
+   *
+   * A Drop aimed at Recipes *is* an Import — same action, same review — so it
+   * arrives as a prefilled link rather than as a second code path. A photo Drop
+   * arrives already uploaded, because the bytes go up before the row exists
+   * (ADR-0010) and this form has no row yet; `photoUri` is the local file it
+   * was prepared from, carried only so the field can draw something.
+   */
+  const dropped = useLocalSearchParams<{
+    link?: string
+    photoId?: string
+    photoUri?: string
+  }>()
 
   const create = useMutation(api.recipes.create)
   const generateUploadUrl = useMutation(api.recipes.generateUploadUrl)
@@ -89,13 +103,17 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
 
   const [values, setValues] = useState(blankRecipeForm)
-  const [photoId, setPhotoId] = useState<string | null | undefined>()
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photoId, setPhotoId] = useState<string | null | undefined>(
+    dropped.photoId,
+  )
+  const [photoUrl, setPhotoUrl] = useState<string | null>(
+    dropped.photoUri ?? null,
+  )
   // Kept beside the form rather than in it: it is provenance, not something
   // anybody types, and a failed re-import must be able to drop it on its own.
   const [sourceUrl, setSourceUrl] = useState<string | null>(null)
 
-  const [link, setLink] = useState('')
+  const [link, setLink] = useState(dropped.link ?? '')
   const [importing, setImporting] = useState(false)
   const [importProblem, setImportProblem] = useState<string | null>(null)
   const [imported, setImported] = useState(false)
@@ -105,6 +123,25 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
 
   const problem = recipeFormProblem(values)
   const text = t.recipes
+
+  /**
+   * A Drop has already been confirmed, so its import runs on arrival.
+   *
+   * The rule that nothing expensive happens before somebody commits is kept on
+   * the chooser, where the commitment is made; by the time this screen exists
+   * the person has chosen Recipes and is waiting to see what the page said.
+   * Making them press Import again would be asking the same question twice.
+   */
+  const autoImported = useRef(false)
+  // `runImport` is rebuilt on every keystroke in the link field, and this must
+  // fire exactly once for the link a Drop arrived with. The ref is the guard;
+  // depending on it would re-import the page while somebody edits the URL.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
+  useEffect(() => {
+    if (autoImported.current || !dropped.link) return
+    autoImported.current = true
+    void runImport()
+  }, [dropped.link])
 
   async function runImport() {
     const url = link.trim()
@@ -194,7 +231,10 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
                 <TextInput
                   value={link}
                   onChangeText={setLink}
-                  autoFocus
+                  // A Drop brought its own link. Opening the keyboard over an
+                  // import that is already running would be answering a
+                  // question nobody asked.
+                  autoFocus={!dropped.link}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="url"

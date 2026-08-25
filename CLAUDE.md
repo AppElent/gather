@@ -88,6 +88,32 @@ research and the rejected alternatives are in
 there rather than excepted in a component.** The rule underneath all of it:
 don't draw what the platform can draw.
 
+## Sharing into the app
+
+Gather takes one row in the phone's share sheet and opens on a chooser. What
+arrives is a **Drop** — a link, some text, a photo, with no Group and no Module
+until a person names them (ADR-0028, glossary in `CONTEXT.md`). *Share* is not
+the word for it: that already means making Group content visible to a second
+Group.
+
+`apps/mobile/src/drop/dropTargets.ts` is where a Module says what it accepts,
+and it is the one registry in this repo that **cannot be forgotten**: it is an
+exhaustive record keyed by `ModuleId`, so a Module that takes nothing declares
+an empty list and a new Module fails `pnpm typecheck` until somebody answers the
+question. Contrast the four that fail silently — `moduleDestination.ts`, the
+seed contributions, the breadcrumb trails, `quickActions.ts` — each of which is
+kept honest only by a line in this file.
+
+Two rules that will bite:
+
+- **Host rules preselect and never restrict.** `packages/core/src/dropRules.ts`
+  may put a destination on top; it may never take one off the sheet. A stale
+  rule is then one extra tap rather than a dead end.
+- **A Drop is native surface.** `expo-share-intent` is a config plugin, so
+  touching it moves the fingerprint and the change cannot ship over the air
+  (ADR-0028). The share sheet also cannot be driven by `agent-device`, so
+  verifying any of it goes through the `gather://` Drop harness.
+
 ## Seed data
 
 Two mechanisms with deliberately opposite rules, kept as two plain functions in

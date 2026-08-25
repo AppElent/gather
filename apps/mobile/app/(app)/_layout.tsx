@@ -13,6 +13,7 @@ import { useSignOut } from '../../src/auth/useSignOut'
 import { GroupPending } from '../../src/components/GroupPending'
 import { NoGroup } from '../../src/components/NoGroup'
 import { useEnsureUser } from '../../src/convex/useEnsureUser'
+import { DropGate } from '../../src/drop/DropGate'
 import { GroupProvider } from '../../src/group/GroupProvider'
 import { useTokens } from '../../src/theme/tokens'
 
@@ -32,6 +33,9 @@ export default function AppLayout() {
       pending={<GroupPending />}
       none={<NoGroup onSignOut={signOut} />}
     >
+      {/* Inside both gates, because the chooser needs the Group and needs this
+          stack to be pushed onto. The Drop itself was captured further up. */}
+      <DropGate />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -40,6 +44,7 @@ export default function AppLayout() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="deep-link" />
+        <Stack.Screen name="drop" />
       </Stack>
     </GroupProvider>
   )

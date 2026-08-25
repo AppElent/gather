@@ -42,6 +42,7 @@ import {
 import { AuthUnavailable } from '../src/components/AuthUnavailable'
 import { ConnectionLostBanner } from '../src/components/ConnectionLostBanner'
 import { AppConvexProvider } from '../src/convex/provider'
+import { DropProvider } from '../src/drop/DropProvider'
 import { LocaleProvider } from '../src/i18n'
 import { AppearanceProvider } from '../src/theme/appearance'
 import { NativeChrome } from '../src/theme/NativeChrome'
@@ -75,25 +76,35 @@ export default function RootLayout() {
     // inside one without something below it breaking first.
     <AppearanceProvider>
       <LocaleProvider>
-        <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-          {/* Above the router, like Clerk itself: the client holds one websocket
+        {/* Above Clerk and above the Group, because a share can arrive at an
+            app that is signed out or still asking which Groups exist. Holding
+            the payload one layer above both gates is what makes "share, sign
+            in, and it is still there" fall out rather than be built
+            (ADR-0028). */}
+        <DropProvider>
+          <ClerkProvider
+            publishableKey={publishableKey}
+            tokenCache={tokenCache}
+          >
+            {/* Above the router, like Clerk itself: the client holds one websocket
               and its authentication follows the session, so it must not be torn
               down and rebuilt as screens come and go. Signed-out screens simply
               never query. */}
-          <AppConvexProvider>
-            <AvailabilityProvider>
-              <SafeAreaProvider>
-                <GestureHandlerRootView style={styles.root}>
-                  <BottomSheetModalProvider>
-                    <NativeChrome>
-                      <RootNavigator />
-                    </NativeChrome>
-                  </BottomSheetModalProvider>
-                </GestureHandlerRootView>
-              </SafeAreaProvider>
-            </AvailabilityProvider>
-          </AppConvexProvider>
-        </ClerkProvider>
+            <AppConvexProvider>
+              <AvailabilityProvider>
+                <SafeAreaProvider>
+                  <GestureHandlerRootView style={styles.root}>
+                    <BottomSheetModalProvider>
+                      <NativeChrome>
+                        <RootNavigator />
+                      </NativeChrome>
+                    </BottomSheetModalProvider>
+                  </GestureHandlerRootView>
+                </SafeAreaProvider>
+              </AvailabilityProvider>
+            </AppConvexProvider>
+          </ClerkProvider>
+        </DropProvider>
       </LocaleProvider>
     </AppearanceProvider>
   )

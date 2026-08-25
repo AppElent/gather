@@ -116,6 +116,29 @@ export async function pickPhoto(
 }
 
 /**
+ * Prepare a photo that arrived rather than one somebody picked.
+ *
+ * A Drop hands over a local file the OS wrote into a shared container, with no
+ * picker and therefore no permission step and no dimensions worth trusting — a
+ * share intent reports them as null often enough that believing one would
+ * sometimes skip the resize entirely. Rendering once to measure costs a decode
+ * and removes the guess.
+ *
+ * Everything after that is the same as a picked photo, deliberately: ADR-0010
+ * says a stored photo is prepared and never stored as chosen, and a photo that
+ * arrived through the share sheet is no more "as chosen" than one off the
+ * camera roll. Same preset table, same cap, same JPEG.
+ */
+export async function preparePhoto(
+  uri: string,
+  preset: PhotoPresetName,
+): Promise<PickedPhoto> {
+  const { maxEdge, quality } = photoPreset(preset)
+  const { width, height } = await ImageManipulator.manipulate(uri).renderAsync()
+  return await downscale(uri, width, height, { maxEdge, quality })
+}
+
+/**
  * Cap the long edge, re-encode as JPEG.
  *
  * Only the long edge is given, so the other is computed from the ratio and a

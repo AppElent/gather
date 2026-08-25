@@ -85,3 +85,27 @@ whatever locale is active (`Recepten`, not `Recipes`) — prefer `id` selectors 
 add `testID` on screens you test often, since React Native maps `testID` to
 Android's `resource-id`. And Apple targets are unavailable on Windows; iOS
 verification needs a Mac or EAS's hosted simulators.
+
+### Verifying a Drop
+
+The share sheet cannot be automated. `agent-device` drives Gather, not Safari,
+and the OS sheet belongs to neither — so the Drop flow (ADR-0028) is verified
+through a deep link that produces the same Drop the share sheet would:
+
+```
+agent-device deeplink "gather://drop?url=https://www.leukerecepten.nl/recepten/pasta/"
+agent-device deeplink "gather://drop?text=Buy%20stroopwafels"
+```
+
+Both land on the chooser, over the same `DropProvider`, with the same ranking.
+A photo Drop has no harness — a route param cannot carry a file — so the image
+destinations are verified by sharing a photo by hand from the gallery app.
+
+Two things this harness cannot tell you, and a real share can:
+
+- **Whether Gather is in the sheet at all.** That is the config plugin, and it
+  only exists after a build (`devbuild:android`). It is a native change, so it
+  never arrives over the air (ADR-0028).
+- **Whether an iOS image Drop is readable.** Shared files land in an App Group
+  container the app must be entitled to read; get it wrong and the URI looks
+  perfectly valid and reads as nothing.

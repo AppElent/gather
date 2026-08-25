@@ -334,6 +334,33 @@ export const rate = mutation({
   },
 })
 
+/**
+ * Put a picture on a recipe that already exists, and nothing else.
+ *
+ * `update` cannot do this: it takes the whole recipe — title, ingredients,
+ * steps, tags — so a caller that only holds a storage id would have to read the
+ * recipe back and write it out again to change one field. A Drop aimed at a
+ * recipe holds exactly a storage id, so this is the narrow mutation that case
+ * needs, alongside `rate` and `setNutrition` which exist for the same reason.
+ *
+ * The bytes are in storage before this is called (ADR-0010), and the blob the
+ * recipe lets go of is deleted after the write that let go of it — the rule
+ * `convex/lib/storedFiles.ts` states, and the same order `update` uses.
+ *
+ * Who may: exactly who may edit, so a Group that was only shared the recipe
+ * changes nothing and hears the same "not found" every other write gives
+ * (ADR-0009).
+ */
+export const setPhoto = mutation({
+  args: { id: v.id('recipes'), imageId: v.union(v.id('_storage'), v.null()) },
+  handler: async (ctx, args) => {
+    const recipe = await writableRecipe(ctx, args.id)
+    if (!recipe) throw new Error('Recipe not found')
+    await ctx.db.patch(args.id, { imageId: args.imageId ?? undefined })
+    await replaceStoredFile(ctx, recipe.imageId, args.imageId)
+  },
+})
+
 export const setNutrition = mutation({
   args: {
     id: v.id('recipes'),

@@ -372,6 +372,89 @@ export const nl = {
   },
 
   // "Labs" blijft onvertaald: het is de naam van de sectie, niet een woord.
+  /** Zie `en.ts` voor waarom elke tekst hier staat. */
+  drop: {
+    title: 'Waar hoort dit?',
+    savingTo: 'Opslaan in {group}',
+    changeGroup: 'Wijzig',
+    kinds: {
+      url: 'Link',
+      text: 'Tekst',
+      image: 'Foto',
+    },
+    confirm: 'Opslaan',
+    continue: 'Verder',
+    cancel: 'Nu niet',
+    targets: {
+      'recipe-import': {
+        label: 'Importeren als recept',
+        detail: 'Gather leest de pagina en laat zien wat het vond',
+      },
+      'recipe-new-photo': {
+        label: 'Recept beginnen met deze foto',
+        detail: 'Een nieuw recept, met de foto er al op',
+      },
+      'recipe-photo': {
+        label: 'Foto op een recept zetten',
+        detail: 'Kies welk recept',
+      },
+      'note-new': {
+        label: 'Bewaren als notitie',
+        detail: 'Een nieuwe notitie',
+      },
+      'note-append': {
+        label: 'Toevoegen aan een notitie',
+        detail: 'Kies welke notitie',
+      },
+      'task-new': {
+        label: 'Er een taak van maken',
+        detail: 'Kies welke lijst',
+      },
+      'grocery-line': {
+        label: 'Op de boodschappenlijst',
+        detail: 'Direct op de boodschappenlijst van dit huishouden',
+      },
+      'baby-memory': {
+        label: 'Bewaren als herinnering',
+        detail: 'In het babylogboek',
+      },
+      'cheese-photo': {
+        label: 'Foto op een kaas zetten',
+        detail: 'Kies welke kaas',
+      },
+      'wine-photo': {
+        label: 'Foto op een wijn zetten',
+        detail: 'Kies welke wijn',
+      },
+      'beer-photo': {
+        label: 'Foto op een bier zetten',
+        detail: 'Kies welk bier',
+      },
+    },
+    pick: {
+      note: 'Welke notitie?',
+      'task-list': 'Welke lijst?',
+      recipe: 'Welk recept?',
+      'tasting-subject': 'Welke?',
+      search: 'Zoeken',
+      empty: 'Hier staat nog niets.',
+      noMatches: 'Niets met de naam “{query}”.',
+      gone: 'Die deling wacht niet meer.',
+      readOnly: 'Hier alleen-lezen',
+    },
+    replaceTitle: 'Foto op “{name}” vervangen?',
+    replaceBody: 'De foto die er nu op staat wordt verwijderd.',
+    replace: 'Vervangen',
+    problems: {
+      'no-child':
+        'Voeg eerst een kind toe aan het babylogboek, dan kan dit daarheen.',
+      'no-grocery-list':
+        'Dit huishouden heeft nog geen boodschappenlijst gekozen. Kies er eerst een bij Boodschappen.',
+    },
+    failed:
+      'Dat kon niet worden opgeslagen. Probeer opnieuw of kies iets anders.',
+  },
+
   labs: {
     title: 'Labs',
     description:

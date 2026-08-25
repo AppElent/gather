@@ -504,6 +504,111 @@ export const en = {
    * not here. Content is never translated (ADR-0011), and made-up content is
    * still content.
    */
+  /**
+   * The share sheet's chooser (ADR-0028).
+   *
+   * A Drop is what another app hands to Gather — a link, some text, a photo —
+   * before it is anything in Gather. It has no Group and no Module until a
+   * person names one, and every word below is part of the asking.
+   *
+   * The destination names are written from the reader's side rather than the
+   * app's: "Save as a recipe", not "Recipes". The Module is named underneath,
+   * where it belongs to somebody deciding which of two notes-shaped things this
+   * is.
+   */
+  drop: {
+    title: 'Where does this go?',
+    /** The Group the Drop will be saved into, named before anything is written. */
+    savingTo: 'Saving to {group}',
+    changeGroup: 'Change',
+    /** The chooser's own name for what arrived, above the destinations. */
+    kinds: {
+      url: 'Link',
+      text: 'Text',
+      image: 'Photo',
+    },
+    confirm: 'Save',
+    /** Confirm, for a destination that still has to ask which one. */
+    continue: 'Continue',
+    cancel: 'Not now',
+    targets: {
+      'recipe-import': {
+        label: 'Import as a recipe',
+        detail: 'Gather reads the page and shows you what it found',
+      },
+      'recipe-new-photo': {
+        label: 'Start a recipe with this photo',
+        detail: 'A new recipe, with the picture already on it',
+      },
+      'recipe-photo': {
+        label: 'Put the photo on a recipe',
+        detail: 'Choose which recipe',
+      },
+      'note-new': { label: 'Keep as a note', detail: 'A new note' },
+      'note-append': {
+        label: 'Add to a note',
+        detail: 'Choose which note',
+      },
+      'task-new': { label: 'Make it a task', detail: 'Choose which list' },
+      'grocery-line': {
+        label: 'Add to the groceries',
+        detail: 'Straight onto this household’s grocery list',
+      },
+      'baby-memory': {
+        label: 'Keep as a memory',
+        detail: 'In the baby log',
+      },
+      'cheese-photo': {
+        label: 'Put the photo on a cheese',
+        detail: 'Choose which cheese',
+      },
+      'wine-photo': {
+        label: 'Put the photo on a wine',
+        detail: 'Choose which wine',
+      },
+      'beer-photo': {
+        label: 'Put the photo on a beer',
+        detail: 'Choose which beer',
+      },
+    },
+    /** Stage two: which record the Drop joins. */
+    pick: {
+      note: 'Which note?',
+      'task-list': 'Which list?',
+      recipe: 'Which recipe?',
+      'tasting-subject': 'Which one?',
+      search: 'Search',
+      /**
+       * An empty Module is still offered (ADR-0022), so stage two has to be
+       * able to say there is nothing here yet without it reading as a refusal.
+       */
+      empty: 'Nothing here yet.',
+      noMatches: 'Nothing called “{query}”.',
+      /** A list Gather may read but not write to (ADR-0021). */
+      /** A stale address, or a Drop that was answered somewhere else. */
+      gone: 'That share is no longer waiting.',
+      readOnly: 'Read-only here',
+    },
+    /**
+     * Replacing a photo is permanent, so it asks first and names the item
+     * (`docs/mobile-interaction.md`).
+     */
+    replaceTitle: 'Replace the photo on “{name}”?',
+    replaceBody: 'The picture that is there now is deleted.',
+    replace: 'Replace',
+    /**
+     * Something the household has not set up yet. Said on the chooser, with the
+     * Drop still pending, so nothing shared is lost by finding out late.
+     */
+    problems: {
+      'no-child': 'Add a child to the baby log first, and this can go there.',
+      'no-grocery-list':
+        'This household has not chosen a grocery list yet. Pick one in Groceries first.',
+    },
+    /** An uncaused failure — the only kind of message the vocabulary allows. */
+    failed: 'That could not be saved. Try again, or pick somewhere else.',
+  },
+
   labs: {
     title: 'Labs',
     /** Under the heading, saying what the whole section is. */
