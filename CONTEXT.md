@@ -174,6 +174,18 @@ nothing in it is not *off* — it is **empty**, and an empty Module invites you 
 make its first thing rather than offering a switch (ADR-0022).
 _Avoid_: Feature, App, Section, Widget
 
+**Group search**:
+One place to find selected kinds of records across the Group a Member is
+currently in. It is not a collection filter and never reaches into another
+Group.
+_Avoid_: Global search, Universal search, Module search
+
+**Recent records**:
+A Member's personal, Group-specific record of searchable things they opened.
+It is persisted only on their device, helps them return to a record, and is not
+shared activity or a Group history.
+_Avoid_: Search history, Recent activity
+
 **Grocery list**:
 The zero-or-one ordinary Task list a Group selects as the list it uses while
 shopping. It may be local or externally sourced and retains that list's available
