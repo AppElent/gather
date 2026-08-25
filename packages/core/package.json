@@ -10,6 +10,7 @@
     "./finance": "./src/finance/index.ts",
     "./groups": "./src/groups.ts",
     "./i18n": "./src/i18n.ts",
+    "./meal-planner": "./src/mealPlanner.ts",
     "./messages": "./src/messages.ts",
     "./module-tints": "./src/moduleTints.ts",
     "./modules": "./src/modules.ts",

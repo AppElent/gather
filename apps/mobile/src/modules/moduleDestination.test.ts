@@ -8,12 +8,9 @@ describe('moduleDestination', () => {
     expect(moduleDestination('baby-log')).toBe('/all/baby-log')
     expect(moduleDestination('recipes')).toBe('/all/recipes')
     expect(moduleDestination('cheeses')).toBe('/all/tasting/cheese')
-  })
-
-  test('keeps placeholders on the All dynamic route', () => {
-    expect(moduleDestination('calendar')).toEqual({
-      pathname: '/all/[moduleId]',
-      params: { moduleId: 'calendar' },
-    })
+    expect(moduleDestination('meal-planner')).toBe('/all/meal-planner')
+    expect(moduleDestination('groceries')).toBe('/all/groceries')
+    expect(moduleDestination('pantry')).toBe('/all/pantry')
+    expect(moduleDestination('calendar')).toBe('/all/calendar')
   })
 })

@@ -28,3 +28,4 @@
 | 0024 | A Tasting catalog is a picker, and tasting it makes it yours | decided | tasting | `convex/tastings.ts`, `packages/core/src/tastingKinds.ts` |
 | 0025 | Money is shared and entered by hand | decided | finances | `CONTEXT.md`, `docs/adr/0026-portfolio-overviews-are-information-not-advice.md` |
 | 0026 | Portfolio overviews are information, not advice | decided | finances | `CONTEXT.md` |
+| 0027 | Planned dinners reference Recipes, with a fallback | decided | meal planning | `CONTEXT.md` |

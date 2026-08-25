@@ -19,6 +19,7 @@ import type * as groups from "../groups.js";
 import type * as holdings from "../holdings.js";
 import type * as houses from "../houses.js";
 import type * as integrations from "../integrations.js";
+import type * as kitchen from "../kitchen.js";
 import type * as lib_babyAccess from "../lib/babyAccess.js";
 import type * as lib_babyEvents from "../lib/babyEvents.js";
 import type * as lib_combos from "../lib/combos.js";
@@ -83,6 +84,7 @@ declare const fullApi: ApiFromModules<{
   holdings: typeof holdings;
   houses: typeof houses;
   integrations: typeof integrations;
+  kitchen: typeof kitchen;
   "lib/babyAccess": typeof lib_babyAccess;
   "lib/babyEvents": typeof lib_babyEvents;
   "lib/combos": typeof lib_combos;

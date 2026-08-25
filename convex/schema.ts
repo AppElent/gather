@@ -54,6 +54,7 @@ export default defineSchema({
     slug: v.string(),
     // A Personal group has one Member and cannot be left, renamed or deleted.
     isPersonal: v.boolean(),
+    groceryListId: v.optional(v.id('taskLists')),
   })
     .index('by_inviteCode', ['inviteCode'])
     .index('by_slug', ['slug']),
@@ -77,6 +78,7 @@ export default defineSchema({
     // Group", which falls back to the person's pre-ADR-0005 list and then to
     // the default defined in code; an empty array means "chose to keep none".
     pinnedModuleIds: v.optional(v.array(v.string())),
+    hiddenCalendarIds: v.optional(v.array(v.id('calendars'))),
   })
     .index('by_user', ['userId'])
     .index('by_group', ['groupId']),
@@ -162,6 +164,52 @@ export default defineSchema({
     createdBy: v.id('users'),
     updatedAt: v.number(),
   }).index('by_group', ['groupId']),
+
+  mealEntries: defineTable({
+    groupId: v.id('groups'),
+    title: v.string(),
+    prepMinutes: v.optional(v.number()),
+    createdBy: v.id('users'),
+  }).index('by_group', ['groupId']),
+
+  plannedDinners: defineTable({
+    groupId: v.id('groups'),
+    date: v.string(),
+    recipeId: v.optional(v.id('recipes')),
+    mealEntryId: v.optional(v.id('mealEntries')),
+    title: v.string(),
+    prepMinutes: v.optional(v.number()),
+    quickLimit: v.optional(
+      v.union(v.literal(10), v.literal(20), v.literal(30)),
+    ),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_group_date', ['groupId', 'date']),
+
+  pantryEntries: defineTable({
+    groupId: v.id('groups'),
+    title: v.string(),
+    quantity: v.optional(v.string()),
+    createdBy: v.id('users'),
+  }).index('by_group', ['groupId']),
+
+  calendars: defineTable({
+    groupId: v.id('groups'),
+    name: v.string(),
+    source: v.literal('local'),
+    createdBy: v.id('users'),
+  }).index('by_group', ['groupId']),
+
+  calendarEvents: defineTable({
+    calendarId: v.id('calendars'),
+    title: v.string(),
+    date: v.string(),
+    startMinutes: v.optional(v.number()),
+    endMinutes: v.optional(v.number()),
+    createdBy: v.id('users'),
+  })
+    .index('by_calendar', ['calendarId'])
+    .index('by_calendar_date', ['calendarId', 'date']),
 
   integrationConnections: defineTable({
     groupId: v.id('groups'),

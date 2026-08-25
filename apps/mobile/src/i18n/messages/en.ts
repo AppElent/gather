@@ -289,6 +289,31 @@ export const en = {
       'Your name, email address and password are managed in Gather on the web.',
   },
 
+  kitchen: {
+    add: 'Add',
+    name: 'Name',
+    quantity: 'Quantity (optional)',
+    prepMinutes: 'Preparation time in minutes',
+    noMeals: 'No meals yet. Add a quick meal or use a recipe.',
+    noPantry: 'Nothing in the pantry yet.',
+    noCalendars: 'No calendars yet.',
+    noEvents: 'No events this month.',
+    chooseList: 'Choose grocery list',
+    noGroceryList: 'Choose a task list for groceries.',
+    quick: 'Quick under {minutes} minutes',
+    random: 'Random dinner',
+    clearDinner: 'Clear dinner',
+    deleteTitle: 'Delete â€œ{title}â€?',
+    deleteBody: 'This cannot be undone.',
+    newCalendar: 'New calendar',
+    newEvent: 'New event',
+    eventDate: 'Date (YYYY-MM-DD)',
+    startTime: 'Start (HH:MM)',
+    endTime: 'End (HH:MM)',
+    visible: 'Show calendar',
+    hidden: 'Hide calendar',
+  },
+
   /**
    * Social sign-in, announced before it exists.
    *
