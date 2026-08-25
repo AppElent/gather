@@ -7,6 +7,14 @@
     "scheme": "gather",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/images/icon.png",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3d074dbc-2ee6-42bf-9383-55ef4085f5a7",
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.appelent.gather",
@@ -32,13 +40,13 @@
       "expo-font",
       "expo-web-browser",
       "expo-image",
-    [
-      "expo-image-picker",
-      {
-        "photosPermission": "Gather uses your photos so you can keep one with a memory in the baby log.",
-        "cameraPermission": "Gather uses the camera so you can take a photo for a memory in the baby log."
-      }
-    ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Gather uses your photos so you can keep one with a memory in the baby log.",
+          "cameraPermission": "Gather uses the camera so you can take a photo for a memory in the baby log."
+        }
+      ],
       [
         "expo-splash-screen",
         {

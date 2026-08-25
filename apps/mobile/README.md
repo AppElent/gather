@@ -24,10 +24,10 @@ native rebuild is required after changing `app.json` or anything in
 
 ## Development build
 
-The app runs in Expo Go today, which is fine until it isn't: Expo Go ships a
-fixed set of native modules and ignores config plugins, so the first native
-dependency that isn't already in it (barcode scanning, for one) ends the
-arrangement. A development build removes that ceiling.
+The app runs on a development build, not on Expo Go. Expo Go ships a fixed set
+of native modules and ignores config plugins, so it could never have run this
+app's native surface — Clerk, SQLite, secure storage, image picking, and now
+`expo-updates`. A development build removes that ceiling.
 
 Build it once, from this directory:
 
@@ -54,6 +54,80 @@ Gradle toolchain (`eas build --local` is not an option on Windows).
 
 The dev build also makes `gather://` deep links real, so a screen can be opened
 directly instead of tapped through.
+
+## Shipping a change
+
+A change reaches installed builds one of two ways, and which one is not a
+judgement call — `expo-updates` decides it mechanically. See
+[ADR 0028](../../docs/adr/0028-a-javascript-change-ships-over-the-air-and-a-native-one-does-not.md).
+
+**Over the air** — anything that is only JavaScript, TypeScript, or a bundled
+asset: a screen, a string, a Convex query, an image in `assets/`. Publish it:
+
+```
+pnpm update:preview --message "what changed"
+pnpm update:prod    --message "what changed"
+```
+
+Each script pairs `--channel` with `--environment`. **Never drop the
+`--environment` flag.** `EXPO_PUBLIC_*` values are textually inlined into the
+bundle by Metro at publish time (see `src/auth/config.ts`), so a publish without
+it bakes in whatever `.env.local` the publishing machine happens to hold — which
+would point production phones at the dev Convex deployment and the Clerk test
+instance.
+
+**A new build** — anything that changes the native surface: a new native
+dependency, an `app.json` or config-plugin change, an Expo SDK bump. You do not
+have to notice this yourself. The runtime version is a `fingerprint` hash of
+exactly those inputs, so a native change produces a different fingerprint and
+installed builds simply never see the update. They stay on the bundle they
+shipped with rather than loading one their native code cannot run.
+
+To see the current fingerprint, or why it moved:
+
+```
+pnpm exec expo-updates runtimeversion:resolve --platform android
+pnpm exec eas fingerprint:compare
+```
+
+### Watching a rollout
+
+```
+pnpm exec eas update:list --branch preview
+pnpm exec eas branch:view preview
+```
+
+An update is downloaded in the background on the launch after it is published,
+and runs on the launch after that. There is no prompt and no spinner: the app
+has no update UI, by decision — `docs/mobile-interaction.md` asks for silence,
+and the cold-start window in `app/_layout.tsx` is already spoken for.
+
+### When a bad update is out
+
+Two panic buttons, in order of preference:
+
+```
+pnpm exec eas update:republish --branch preview --group <known-good-group-id>
+pnpm exec eas update:roll-back-to-embedded --branch preview
+```
+
+`update:republish` puts a known-good update back on top of the branch and is
+the right answer when a good one exists. `roll-back-to-embedded` sends every
+build on the branch back to the bundle it was compiled with, and is the answer
+when none does. Both take effect on the next launch, like any other update —
+neither reaches out and fixes a phone that is sitting in someone's pocket.
+
+### Channels
+
+| Channel | Fed by | Built by |
+| --- | --- | --- |
+| `development` | `eas update --channel development` | `devbuild:android:eas` |
+| `preview` | `pnpm update:preview` | `deploy:preview` (iOS, store), `build:preview:android` (APK) |
+| `production` | `pnpm update:prod` | `deploy:prod` |
+
+A channel is baked into a binary at build time and cannot be changed
+afterwards. A build made without one — every gather binary produced before this
+was set up — can never receive an update at all.
 
 ## Driving the app (agent-device)
 

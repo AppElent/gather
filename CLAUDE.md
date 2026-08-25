@@ -76,6 +76,20 @@ Selector note: the UI is translated, so `text` selectors are locale-dependent
 (`Recepten`, not `Recipes`). Prefer `id` selectors; `testID` maps to Android's
 `resource-id`. Apple targets do not work from Windows.
 
+**A JavaScript change ships over the air; a native one needs a build, and says
+so itself.** `expo-updates` runs the `fingerprint` runtime-version policy, so
+Expo hashes the native dependency set, the config plugins and `app.json` — a
+native change moves the hash and installed builds simply never see the update.
+Publish with `pnpm --filter @gather/mobile update:preview` / `update:prod`, both
+of which pair `--channel` with `--environment`. **Never publish without
+`--environment`**: `EXPO_PUBLIC_*` values are inlined into the bundle at publish
+time, so a bare `eas update` bakes in the publishing machine's `.env.local` and
+points production phones at the dev backends. The app has no update UI by
+decision, and nothing under `apps/mobile/src/` imports `expo-updates` — an
+update applies silently on the next launch. `expo-updates` is inert in a debug
+build, so the dev client cannot verify any of this; a release APK from
+`build:preview:android` can. See ADR 0028 and `apps/mobile/README.md`.
+
 ## How the phone behaves
 
 `docs/mobile-interaction.md` is the decided interaction vocabulary for
@@ -132,6 +146,17 @@ Clerk key is `pk_test_...`), `CONVEX_DEPLOYMENT`, `VITE_CONVEX_URL`,
 `VITE_ENABLE_SAMPLE_DATA` (shows the Sample data panel in `/settings`; implied
 by `import.meta.env.DEV`, set explicitly for previews in `preview.yml`, never
 set for a production build).
+
+Phone (`apps/mobile/.env.local` for local runs; EAS environments named
+`development` / `preview` / `production` for builds and over-the-air publishes):
+`EXPO_PUBLIC_CONVEX_URL`, `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` (both required —
+`src/auth/config.ts` and `src/convex/provider.tsx` throw at import without
+them), `EXPO_PUBLIC_TEST_USER_EMAIL` / `EXPO_PUBLIC_TEST_USER_PASSWORD`
+(optional, the dev-only test-login shortcut; set in no EAS environment, so it
+does not appear on cloud builds). Metro **inlines** these at bundle time by
+textually substituting `process.env.EXPO_PUBLIC_NAME`, which is why static dot
+access is load-bearing at every call site and why `eas update` must always be
+given `--environment`.
 
 Convex deployment (server-side, set via `convex env set` / `convex env default set`,
 never in a committed file): `CLERK_JWT_ISSUER_DOMAIN` — set on dev, prod, and as the
