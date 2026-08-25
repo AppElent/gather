@@ -192,6 +192,32 @@ export const nl = {
       'Je naam, e-mailadres en wachtwoord beheer je in Gather op het web.',
   },
 
+  kitchen: {
+    add: 'Toevoegen',
+    name: 'Naam',
+    quantity: 'Hoeveelheid (optioneel)',
+    prepMinutes: 'Bereidingstijd in minuten',
+    noMeals:
+      'Nog geen maaltijden. Voeg een snelle maaltijd toe of gebruik een recept.',
+    noPantry: 'Nog niets in de voorraadkast.',
+    noCalendars: 'Nog geen agendaâ€™s.',
+    noEvents: 'Geen afspraken deze maand.',
+    chooseList: 'Boodschappenlijst kiezen',
+    noGroceryList: 'Kies een takenlijst voor boodschappen.',
+    quick: 'Snel onder {minutes} minuten',
+    random: 'Willekeurige maaltijd',
+    clearDinner: 'Maaltijd wissen',
+    deleteTitle: 'â€œ{title}â€ verwijderen?',
+    deleteBody: 'Dit kan niet ongedaan worden gemaakt.',
+    newCalendar: 'Nieuwe agenda',
+    newEvent: 'Nieuwe afspraak',
+    eventDate: 'Datum (JJJJ-MM-DD)',
+    startTime: 'Begin (UU:MM)',
+    endTime: 'Einde (UU:MM)',
+    visible: 'Agenda tonen',
+    hidden: 'Agenda verbergen',
+  },
+
   social: {
     heading: 'Of ga verder met',
     soon: 'Binnenkort',

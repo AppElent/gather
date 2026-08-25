@@ -70,10 +70,7 @@ describe('opening a tasting Module', () => {
     }
   })
 
-  test('a Module with no native screens still goes to the placeholder', () => {
-    expect(moduleDestination('groceries')).toEqual({
-      pathname: '/all/[moduleId]',
-      params: { moduleId: 'groceries' },
-    })
+  test('a non-tasting Module with native screens goes to its own route', () => {
+    expect(moduleDestination('groceries')).toBe('/all/groceries')
   })
 })

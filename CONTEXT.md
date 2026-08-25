@@ -174,6 +174,56 @@ nothing in it is not *off* — it is **empty**, and an empty Module invites you 
 make its first thing rather than offering a switch (ADR-0022).
 _Avoid_: Feature, App, Section, Widget
 
+**Grocery list**:
+The zero-or-one ordinary Task list a Group selects as the list it uses while
+shopping. It may be local or externally sourced and retains that list's available
+capabilities; the selection gives it a purpose without creating a second
+checklist model.
+_Avoid_: Grocery item list, Shopping-list module
+
+**Meal library**:
+A Group-owned, editable collection of dinners from which its Meal planner
+chooses. A library meal may be a quick name rather than a Recipe; Recipes are
+also direct candidates for planning and are not duplicated as library meals.
+_Avoid_: Meal catalog, Recipe catalog
+
+**Quick dinner**:
+A planned dinner day with a maximum preparation time of 10, 20, or 30 minutes.
+Random planning considers only candidates with a recorded time no greater than
+that maximum; an ordinary dinner day may use any candidate.
+_Avoid_: Easy dinner, Fast meal
+
+**Planned dinner**:
+The one dinner a Group has assigned to one date in a Monday–Sunday planner week.
+It refers directly to any Recipe visible in the Group or carries a free-text
+meal; when a referenced Recipe disappears, its last known title and time remain
+as the dinner's snapshot.
+_Avoid_: Meal slot, Recipe copy
+
+**Pantry entry**:
+A Group's record that an item is in stock at home, with an optional quantity and
+free-text quantity/value. Its name is free text; it is an inventory reminder,
+not a purchase history or a food diary entry.
+_Avoid_: Stock movement, Inventory transaction
+
+**Calendar**:
+A named, Group-scoped collection of events. A Group may have none, one, or many;
+a member chooses which calendars are shown in the Calendar Module.
+_Avoid_: The calendar, Schedule (when referring to the collection)
+
+**Calendar event**:
+A manually created, Group-scoped event in a Calendar, with a title, calendar day,
+and either no time or a start-and-end time range. It is neither a recurring
+appointment nor an event mirrored from another calendar in v1; a timed range
+ends later on the same calendar day. Its date and times are the household's local
+calendar values, not timezone-converted instants.
+_Avoid_: Synced event, Recurring event
+
+**Calendar visibility**:
+One Member's choice of which shared Calendars to show in one Group. It changes
+only that Member's view; it never changes a Calendar or its events.
+_Avoid_: Hide calendar (when it suggests a shared change)
+
 **Pin**:
 One person's choice to keep a Module in their own sidebar **in one Group**. A
 Pin is always one person's — never a Group's, and never visible to the rest of
