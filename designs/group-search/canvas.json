@@ -1,0 +1,77 @@
+{
+  "artboards": [
+    { "file": "Recents.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "Recents" },
+    { "file": "Main.dc.html", "x": 470, "y": 0, "w": 390, "h": 844, "title": "Results" },
+    { "file": "Loading.dc.html", "x": 940, "y": 0, "w": 390, "h": 844, "title": "Loading" },
+    { "file": "NoResults.dc.html", "x": 1410, "y": 0, "w": 390, "h": 844, "title": "No results" },
+    { "file": "Unavailable.dc.html", "x": 1880, "y": 0, "w": 390, "h": 844, "title": "Unavailable" },
+    { "file": "ResultsDark.dc.html", "x": 0, "y": 984, "w": 390, "h": 844, "title": "Results — dark" },
+    { "file": "Anatomy.dc.html", "x": 520, "y": 984, "w": 1040, "h": 1140, "title": "Row anatomy and rules" }
+  ],
+  "annotations": [
+    {
+      "id": "note-chrome",
+      "x": 0,
+      "y": -320,
+      "w": 770,
+      "text": "The field is the tab bar.\n\nOn iOS 26 the Search tab's capsule expands in place: the bar becomes a full-width field and the capsule becomes the close button. There is no header search and no Cancel. The keyboard rides above the field — undrawn here, so every artboard shows the moment it has been dismissed and the field has settled back to the bottom."
+    },
+    {
+      "id": "note-recents",
+      "x": 0,
+      "y": -140,
+      "w": 300,
+      "text": "Before a query, Search shows Recent records.\n\nKept on this phone, for this Group only — never synchronised, and never a shared activity feed."
+    },
+    {
+      "id": "note-results",
+      "x": 470,
+      "y": -140,
+      "w": 300,
+      "text": "The query fires at two non-whitespace characters, on a 200 ms trailing debounce. Clearing and closing apply at once.\n\nNo scope pill: the spec rules out type filters, so there is nothing at the top of the list."
+    },
+    {
+      "id": "note-loading",
+      "x": 940,
+      "y": -140,
+      "w": 300,
+      "text": "A query in flight never shows the previous query's results. Skeleton rows in the shape of the real ones — no spinner over content."
+    },
+    {
+      "id": "note-noresults",
+      "x": 1410,
+      "y": -140,
+      "w": 300,
+      "text": "Nothing found offers a way back, never a way to create. Focus stays in the field so the next keystroke corrects the query.\n\nWorth deciding: the field's own ⊗ already clears. The separate Clear button is here because the spec asks for one, but this is the one place the platform already does the job."
+    },
+    {
+      "id": "note-unavailable",
+      "x": 1880,
+      "y": -140,
+      "w": 300,
+      "text": "Gather's existing Unavailable state, reused word for word from the connection gate, with Retry."
+    },
+    {
+      "id": "note-dark",
+      "x": 0,
+      "y": 1868,
+      "w": 300,
+      "text": "Dark is not a second design: it is the phone's own tokens, and each Module tint already has a dark pair."
+    },
+    {
+      "id": "note-tasting",
+      "x": 1620,
+      "y": 984,
+      "w": 320,
+      "text": "Open question for you.\n\nThe spec says a tasting row's context is its Kind — but the badge already says \"Cheese\", so it would repeat itself. Drawn here as title + badge, no context line.\n\nSay the word if you'd rather the badge read \"Tasting\" and the Kind move into the context line."
+    },
+    {
+      "id": "note-scale",
+      "x": 1620,
+      "y": 1270,
+      "w": 320,
+      "text": "No thumbnails, even for Recipes.\n\nOne type in five has a picture; giving it a 56px thumb makes an even rhythm impossible for the other four. The tint carries type recognition instead."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}
