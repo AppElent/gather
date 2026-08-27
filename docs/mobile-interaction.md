@@ -9,13 +9,12 @@ This file is the short version, and it is the one to obey. **When you add a
 screen, it follows these rules; when a rule turns out to be wrong, change it
 here rather than making an exception in a component.**
 
-The block below is shared with every AppElent app that has a mobile client —
-it comes from the `guidance` catalog feature
-(`skills/guidance/content/mobile-interaction.md` in
-[`AppElent/appelent-packages`](https://github.com/AppElent/appelent-packages))
-and is kept in sync via `/appelent:feature apply guidance --step 1`. Gather's
-own specifics live in "How this maps to gather" below it, which sync never
-touches.
+The block below started as the shared `guidance` catalog feature in
+`AppElent/appelent-packages`. That feature was retired in 0.3.0 — it stamped
+docs into apps and versioned them per app, which never fit a catalog whose
+contract is "ready-made modules you add to an app", and no app ever adopted
+it. This copy is gather's own now: edit it here, there is nothing left to sync
+against. Gather's specifics live in "How this maps to gather" below it.
 
 <!-- appelent-managed:start -->
 ## The one idea underneath all of it
