@@ -30,3 +30,4 @@
 | 0026 | Portfolio overviews are information, not advice | decided | finances | `CONTEXT.md` |
 | 0027 | Planned dinners reference Recipes, with a fallback | decided | meal planning | `CONTEXT.md` |
 | 0028 | A Drop is nothing until a person names its destination | decided | mobile sharing | `apps/mobile/src/drop/`, `packages/core/src/dropRules.ts` |
+| 0029 | A JavaScript change ships over the air, and a native one does not | decided | mobile release | `apps/mobile/app.json`, `apps/mobile/eas.json` |

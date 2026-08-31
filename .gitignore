@@ -31,3 +31,4 @@ docs/.generated
 .env.preview
 .env.prod
 apps/mobile/.metro.log
+apps/mobile/.expo-*.log
