@@ -19,20 +19,13 @@
  */
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { NativeContextMenu } from '../../components/NativeContextMenu'
+import { SearchField } from '../../components/SearchField'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
-import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { Card, SectionLabel } from '../tasks/components'
 import { TASK_ICONS } from '../tasks/icons'
@@ -203,32 +196,13 @@ export function Notes() {
           { paddingBottom: insets.bottom + 24 },
         ]}
       >
-        <View
-          style={[
-            styles.search,
-            { backgroundColor: tokens.surface, borderColor: tokens.border },
-          ]}
-        >
-          <UI_ICONS.Search
-            size={18}
-            color={tokens.muted}
-            strokeWidth={2}
-            accessibilityElementsHidden
-            importantForAccessibility="no"
-          />
-          <TextInput
-            testID="notes-search"
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t.labs.notes.search}
-            placeholderTextColor={tokens.muted}
-            autoCorrect={false}
-            autoCapitalize="none"
-            clearButtonMode="while-editing"
-            accessibilityLabel={t.labs.notes.search}
-            style={[styles.searchInput, { color: tokens.fg }]}
-          />
-        </View>
+        <SearchField
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t.labs.notes.search}
+          clearAccessibilityLabel={t.search.clear}
+          testID="notes-search"
+        />
 
         {state.notes.length === 0 ? (
           <Text style={[styles.empty, { color: tokens.muted }]}>
@@ -279,16 +253,6 @@ export function Notes() {
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 16 },
   headerButton: { paddingHorizontal: 6, paddingVertical: 6 },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
-    minHeight: 44,
-  },
-  searchInput: { flex: 1, fontSize: 16, paddingVertical: 9 },
   group: { gap: 8 },
   row: {
     flexDirection: 'row',

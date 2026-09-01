@@ -40,7 +40,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -49,6 +48,7 @@ import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
+import { SearchField } from '../../components/SearchField'
 import { SwipeableRow } from '../../components/SwipeableRow'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
@@ -170,48 +170,14 @@ export function CollectionScreen({ base }: CollectionScreenProps) {
           // is a control that cannot do anything, and the empty state below
           // already says what to do instead.
           collectionIsEmpty ? null : (
-            <View
-              style={[
-                styles.search,
-                { backgroundColor: tokens.surface, borderColor: tokens.border },
-              ]}
-            >
-              <UI_ICONS.Search
-                size={17}
-                color={tokens.muted}
-                strokeWidth={2}
-                accessibilityElementsHidden
-                importantForAccessibility="no"
-              />
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                placeholder={text.search}
-                placeholderTextColor={tokens.muted}
-                accessibilityLabel={text.search}
-                testID="recipes-search"
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="search"
-                clearButtonMode="while-editing"
-                style={[styles.searchInput, { color: tokens.fg }]}
-              />
-              {query ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={text.clearSearch}
-                  testID="recipes-search-clear"
-                  hitSlop={10}
-                  onPress={() => setQuery('')}
-                >
-                  <UI_ICONS.X
-                    size={17}
-                    color={tokens.muted}
-                    strokeWidth={2.2}
-                  />
-                </Pressable>
-              ) : null}
-            </View>
+            <SearchField
+              value={query}
+              onChangeText={setQuery}
+              placeholder={text.search}
+              clearAccessibilityLabel={text.clearSearch}
+              testID="recipes-search"
+              style={styles.search}
+            />
           )
         }
         ListEmptyComponent={
@@ -420,18 +386,7 @@ function RecipeRow({
 const styles = StyleSheet.create({
   content: { paddingTop: 8 },
   headerButton: { padding: 6 },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginHorizontal: 16,
-    marginBottom: 6,
-    paddingHorizontal: 12,
-    minHeight: 44,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
-  },
-  searchInput: { flex: 1, fontSize: 16, paddingVertical: 10 },
+  search: { marginHorizontal: 16, marginBottom: 6 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

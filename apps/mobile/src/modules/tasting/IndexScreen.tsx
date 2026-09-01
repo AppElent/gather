@@ -22,21 +22,14 @@ import { useQuery } from 'convex/react'
 import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { api } from '../../../../../convex/_generated/api'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
+import { SearchField } from '../../components/SearchField'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
-import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { CaptureFlow, useCapture } from './CaptureFlow'
 import { KIND_ICONS, TASTING_UI_ICONS } from './icons'
@@ -61,7 +54,6 @@ export function IndexScreen({
   const capture = useCapture(base, kind)
 
   const words = kindWords(t.tastings, kind)
-  const Search = UI_ICONS.Search
   const Plus = TASTING_UI_ICONS.Plus
   const Photo = TASTING_UI_ICONS.Image
   const KindIcon = KIND_ICONS[kind]
@@ -180,22 +172,12 @@ export function IndexScreen({
           { paddingBottom: insets.bottom + 32 },
         ]}
       >
-        <View
-          style={[
-            styles.search,
-            { backgroundColor: tokens.tile, borderColor: tokens.border },
-          ]}
-        >
-          <Search size={17} color={tokens.muted} strokeWidth={2} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t.tastings.index.search}
-            placeholderTextColor={tokens.muted}
-            accessibilityLabel={t.tastings.index.search}
-            style={[styles.searchInput, { color: tokens.fg }]}
-          />
-        </View>
+        <SearchField
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t.tastings.index.search}
+          clearAccessibilityLabel={t.tastings.index.clearSearch}
+        />
 
         <Text style={[styles.summary, { color: tokens.muted }]}>
           {indexSummary(t, locale, subjects.length, totalTastings)}
@@ -284,16 +266,6 @@ export function IndexScreen({
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 8, gap: 10 },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    minHeight: 40,
-    paddingHorizontal: 12,
-    borderRadius: 11,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  searchInput: { flex: 1, fontSize: 16 },
   summary: { fontSize: 13 },
   noResults: { gap: 6, paddingVertical: 12 },
   clear: { fontSize: 15, fontWeight: '600' },

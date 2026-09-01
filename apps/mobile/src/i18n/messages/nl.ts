@@ -40,12 +40,13 @@ export const nl = {
   finances: coreNl.finances,
 
   search: {
+    title: 'Zoeken',
     placeholder: 'Deze Groep doorzoeken',
-    minimum: 'Typ minstens twee tekens om te zoeken.',
     recent: 'Recent',
-    recentBadge: 'Recent',
-    loading: 'Zoeken…',
+    clearRecent: 'Wissen',
+    empty: 'Onlangs geopende items verschijnen hier.',
     noResults: 'Niets gevonden.',
+    failed: 'Zoeken is nu niet beschikbaar.',
     clear: 'Zoeken wissen',
     types: {
       recipe: 'Recept',
@@ -282,6 +283,8 @@ export const nl = {
     reorder: 'Volgorde wijzigen',
     hide: 'Verbergen',
     showAll: 'Alles tonen',
+    showLess: 'Minder tonen',
+    retry: 'Opnieuw proberen',
     loading: 'Laden',
   },
 

@@ -7,7 +7,7 @@ import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'
-import { useRecordRecent } from '../../search/recentRecords'
+import { useRecordRecent } from '../../search/recentRecordsStore'
 import { RADIUS, useTokens } from '../../theme/tokens'
 
 function time(value?: number) {

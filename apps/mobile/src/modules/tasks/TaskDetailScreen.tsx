@@ -30,7 +30,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
-import { useRecordRecent } from '../../search/recentRecords'
+import { useRecordRecent } from '../../search/recentRecordsStore'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { Card, Checkbox, Chip } from './components'
