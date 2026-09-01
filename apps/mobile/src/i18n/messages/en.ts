@@ -69,12 +69,14 @@ export const en = {
   finances: coreEn.finances,
 
   search: {
+    title: 'Search',
     placeholder: 'Search this Group',
-    minimum: 'Type at least two characters to search.',
     recent: 'Recent',
-    recentBadge: 'Recent',
-    loading: 'Searching…',
+    /** The Recent section's own control, beside the expand chevron. */
+    clearRecent: 'Clear',
+    empty: 'Recently opened items appear here.',
     noResults: 'Nothing found.',
+    failed: 'Search is unavailable right now.',
     clear: 'Clear search',
     types: {
       recipe: 'Recipe',
@@ -383,6 +385,8 @@ export const en = {
     reorder: 'Reorder',
     hide: 'Hide',
     showAll: 'Show all',
+    showLess: 'Show less',
+    retry: 'Try again',
     loading: 'Loading',
   },
 

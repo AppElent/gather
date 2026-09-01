@@ -17,16 +17,10 @@
 import { useUser } from '@clerk/expo'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { SearchField } from '../../../../src/components/SearchField'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
 import {
@@ -62,7 +56,6 @@ export default function Settings() {
   })
   const searching = query.trim().length > 0
   const hits = searchSettings(sections, query)
-  const Search = UI_ICONS.Search
 
   return (
     <ScrollView
@@ -83,31 +76,13 @@ export default function Settings() {
         {t.settings.title}
       </Text>
 
-      <View
-        style={[
-          styles.search,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
-        ]}
-      >
-        <Search
-          size={18}
-          color={tokens.muted}
-          strokeWidth={2}
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-        />
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t.settings.search.placeholder}
-          placeholderTextColor={tokens.muted}
-          autoCorrect={false}
-          autoCapitalize="none"
-          clearButtonMode="while-editing"
-          accessibilityLabel={t.settings.search.placeholder}
-          style={[styles.searchInput, { color: tokens.fg }]}
-        />
-      </View>
+      <SearchField
+        value={query}
+        onChangeText={setQuery}
+        placeholder={t.settings.search.placeholder}
+        clearAccessibilityLabel={t.search.clear}
+        style={styles.search}
+      />
 
       {searching ? (
         hits.length === 0 ? (
@@ -303,17 +278,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.8,
     marginBottom: 14,
   },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
-    minHeight: 44,
-  },
-  searchInput: { flex: 1, fontSize: 16, paddingVertical: 9 },
+  search: { marginBottom: 16 },
   identity: {
     flexDirection: 'row',
     alignItems: 'center',

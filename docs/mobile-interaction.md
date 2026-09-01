@@ -179,6 +179,20 @@ signal.
 scroll, and `role="search"` on a Search tab so iOS 26 draws it as its own
 glass capsule. Badges only when something genuinely needs counting.
 
+**Search.** A screen whose whole job is search gets `Stack.SearchBar`, never
+a hand-rolled field. It is UIKit's `UISearchController`, so it pairs with the
+`role="search"` capsule above: on iOS 26 the field docks above the keyboard
+with its own cancel capsule beside it, and the same declaration renders the
+top search bar Android expects. Leave `placement` and `allowToolbarIntegration`
+at their defaults — that is what picks bottom or top per platform, and what
+degrades correctly below iOS 26. Cancel (leaves search) and clear (empties the
+field) are two different controls and the platform draws both.
+
+A field that filters a list already on screen is the other case, and it is
+`src/components/SearchField.tsx` — one component, because `clearButtonMode`
+is iOS-only and five copies of it left Android with no way to empty a query
+that found something.
+
 **Titles.** Every screen gets a native title and lets the platform decide
 what it does, based on which of three things the screen is:
 
@@ -319,7 +333,10 @@ headings until 2026-08-21; both are native titles now, and `ChildScreen`'s
 `LogBar` is a sibling of its scroll view rather than sharing a wrapper with
 it, which is what was suppressing its collapse. `settings/index.tsx` is the
 one screen still drawing its own heading — a bigger job than the others,
-because its search field would become `headerSearchBarOptions`.
+because its search field would become `headerSearchBarOptions`. Search was
+the same job and was done on 2026-08-31: it grew a `search/_layout.tsx` so it
+had a header for `Stack.SearchBar` to live in, which is also what got it
+`TabSafeArea`.
 
 **Getting out.** [ADR-0013](adr/0013-a-nested-page-carries-its-own-trail.md)
 is the web rule the generic block's "even if the web app uses them" refers

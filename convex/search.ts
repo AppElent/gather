@@ -51,13 +51,6 @@ function normalized(value: string) {
   return value.trim().toLocaleLowerCase()
 }
 
-function _eventDetail(date: string, start?: number, end?: number) {
-  if (start === undefined || end === undefined) return date
-  const time = (value: number) =>
-    `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`
-  return `${date} · ${time(start)}–${time(end)}`
-}
-
 function matchRank(title: string, supportingText: string[], needle: string) {
   const primary = normalized(title)
   if (primary === needle) return 0

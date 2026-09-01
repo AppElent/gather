@@ -39,7 +39,7 @@ export function NativeSheet({
 }: NativeSheetProps) {
   const ref = useRef<BottomSheetModal>(null)
   const closed = useRef(false)
-  const tokens = useTokens('home')
+  const tokens = useTokens()
   const { t } = useI18n()
   const Close = UI_ICONS.X
   const layout = nativeSheetLayout(Platform.OS)

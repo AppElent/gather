@@ -10,7 +10,7 @@ export function LoadingSkeleton({
   rows?: number
   label: string
 }) {
-  const tokens = useTokens('home')
+  const tokens = useTokens()
   return (
     <View accessibilityLabel={label} style={styles.wrap}>
       <View style={[styles.heading, { backgroundColor: tokens.tile }]} />

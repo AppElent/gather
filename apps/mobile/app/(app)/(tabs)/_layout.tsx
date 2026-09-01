@@ -14,12 +14,15 @@
  * That is what lets a switch preserve the navigator: only its Group-keyed
  * stacks remount at their roots.
  */
+import { usePathname } from 'expo-router'
 import { NativeTabs } from 'expo-router/unstable-native-tabs'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { View } from 'react-native'
 
 import { useGroup } from '../../../src/group/GroupProvider'
 import { useI18n } from '../../../src/i18n'
+import { requestSearchFocus } from '../../../src/search/searchFocus'
+import { rememberSearchOrigin } from '../../../src/search/searchOrigin'
 import { QuickActionSheet } from '../../../src/shell/QuickActionSheet'
 import { SHELL_TABS } from '../../../src/shell/tabs'
 
@@ -40,7 +43,12 @@ export default function TabsLayout() {
             listeners={
               tab.name === 'add'
                 ? { tabPress: () => setLauncherOpen(true) }
-                : undefined
+                : // Selecting Search means asking to type. The screen's own
+                  // trigger is the pathname changing, which on Android cannot
+                  // fire when you are already on Search with the field closed.
+                  tab.name === 'search'
+                  ? { tabPress: () => requestSearchFocus() }
+                  : undefined
             }
           >
             <NativeTabs.Trigger.Icon sf={tab.sf} md={tab.md} />
@@ -48,6 +56,7 @@ export default function TabsLayout() {
           </NativeTabs.Trigger>
         ))}
       </NativeTabs>
+      <SearchOriginTracker />
       <QuickActionSheet
         visible={launcherOpen}
         groupName={group.name}
@@ -55,4 +64,22 @@ export default function TabsLayout() {
       />
     </View>
   )
+}
+
+/**
+ * Draws nothing; remembers which tab you are on so dismissing search can put you
+ * back there (`src/search/searchOrigin.ts`).
+ *
+ * A leaf of its own rather than a `usePathname()` in `TabsLayout`, so a
+ * navigation does not re-render the five triggers and their native children.
+ *
+ * It watches the pathname rather than hanging off each trigger's `tabPress`,
+ * because opening a search result is a `router.push` into the All tab — a tab
+ * change with no press behind it, which a press-only recorder would miss and
+ * then send you back one tab too far.
+ */
+function SearchOriginTracker() {
+  const pathname = usePathname()
+  useEffect(() => rememberSearchOrigin(pathname), [pathname])
+  return null
 }

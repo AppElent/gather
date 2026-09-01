@@ -30,17 +30,11 @@
 import type { TastingKind } from '@gather/core/tastings'
 import { useQuery } from 'convex/react'
 import { useMemo, useState } from 'react'
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { api } from '../../../../../convex/_generated/api'
 import { NativeSheet } from '../../components/NativeSheet'
+import { SearchField } from '../../components/SearchField'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
@@ -72,7 +66,6 @@ export function SubjectPickerSheet({
   const [query, setQuery] = useState('')
 
   const words = kindWords(t.tastings, kind)
-  const Search = UI_ICONS.Search
   const Chevron = UI_ICONS.ChevronRight
   const Alert = UI_ICONS.CircleAlert
   const Plus = TASTING_UI_ICONS.Plus
@@ -130,24 +123,14 @@ export function SubjectPickerSheet({
       maxHeight={0.8}
       fill
     >
-      <View
-        style={[
-          styles.search,
-          { backgroundColor: tokens.bg, borderColor: tokens.border },
-        ]}
-      >
-        <Search size={18} color={tokens.muted} strokeWidth={2} />
-        <TextInput
-          autoFocus
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t.tastings.picker.search}
-          placeholderTextColor={tokens.muted}
-          accessibilityLabel={t.tastings.picker.search}
-          returnKeyType="done"
-          style={[styles.searchInput, { color: tokens.fg }]}
-        />
-      </View>
+      <SearchField
+        autoFocus
+        tone="inset"
+        value={query}
+        onChangeText={setQuery}
+        placeholder={t.tastings.picker.search}
+        clearAccessibilityLabel={t.tastings.index.clearSearch}
+      />
 
       <ScrollView keyboardShouldPersistTaps="handled" style={styles.list}>
         {mine.length > 0 ? (
@@ -283,16 +266,6 @@ export function SubjectPickerSheet({
 }
 
 const styles = StyleSheet.create({
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    minHeight: 46,
-    paddingHorizontal: 13,
-    borderRadius: RADIUS.control,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  searchInput: { flex: 1, fontSize: 16 },
   list: { marginTop: 12 },
   heading: {
     fontSize: 12,

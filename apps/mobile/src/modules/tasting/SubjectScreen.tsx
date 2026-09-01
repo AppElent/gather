@@ -58,7 +58,7 @@ import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
 import { pickPhoto, uploadPhoto } from '../../photo/pickPhoto'
-import { useRecordRecent } from '../../search/recentRecords'
+import { useRecordRecent } from '../../search/recentRecordsStore'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { TASTING_UI_ICONS } from './icons'
 import type { TastingBase } from './paths'
@@ -104,7 +104,8 @@ export function SubjectScreen({
           id: page.subject._id,
           type: 'tasting',
           title: page.subject.name,
-          detail: page.subject.kind,
+          detail: t.search.kinds[kind],
+          kind,
         }
       : null,
   )
