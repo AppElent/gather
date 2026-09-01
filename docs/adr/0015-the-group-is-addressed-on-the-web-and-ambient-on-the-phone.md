@@ -1,6 +1,9 @@
 # The Group is addressed on the web and ambient on the phone
 
-Status: decided, not yet implemented (2026-08-13)
+Status: superseded by [ADR-0031](0031-the-current-group-is-ambient-on-web-and-mobile.md)
+
+This decision applied to the former split between URL-addressed web Groups and
+ambient mobile Groups and is retained as historical context only.
 
 ## Decision
 

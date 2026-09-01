@@ -9,15 +9,19 @@ its members share.
 ### Boundaries
 
 **Group**:
-The sharing boundary. Shared content belongs to exactly one Group, and every
-Member of that Group can see it.
+The ownership boundary. Group content belongs to exactly one Group, and every
+Member of that Group can see it; some content may later be marked **Public** so
+authenticated Members of other Groups can read it too.
 _Avoid_: Space, Organization, Team, Household, Workspace
 
-**Personal group**:
-A Group with a single Member, created for every person when they sign up. Where
-private content lives. An ordinary Group in every respect — it simply has one
-Member.
-_Avoid_: Private space, Personal workspace, Inbox
+**Group appearance**:
+The visual identity a Group presents to its Members: an optional prepared
+picture or a chosen icon, with a stable fallback when neither is set. It helps
+a person recognize whether they are in their household, hockey club, or another
+Group; the name and appearance they choose are important user-facing identity.
+It does not change membership, privacy, permissions, or which Modules are
+available.
+_Avoid_: Group type, Group mode, Enabled features
 
 **Member**:
 A person within a Group. Any Member may let somebody in; **admins** may
@@ -34,8 +38,17 @@ somebody is removed, because a code that outlives a removal undoes it.
 _Avoid_: Invite link, Token, Join key
 
 **Slug**:
-The short, readable, globally unique name identifying a Group in a URL. Readable
-by design: it is how someone notices which Group they are acting in.
+Legacy short, readable identifier used by the old Group-addressed web URLs. It
+is not part of the new ambient Group model and is not user-facing Group
+identity. Group identity is the database identity; recognition comes from the
+Group name and **Group appearance**.
+
+**Current Group**:
+The Group a person is currently using in the app. It is selected explicitly by
+the person, retained by the client, and validated against their memberships;
+it is not a hidden default that changes ownership or access. A person with no
+Current Group is outside the Group-scoped product until they join or create a
+Group.
 
 ### Scope
 
@@ -44,10 +57,11 @@ Content owned by a Group and visible to its Members — recipes, tasks, a baby's
 log, integration connections.
 
 **Personal**:
-Records *about a person* rather than content they authored — their food diary,
-their nutrition targets. These follow the person across every Group and belong
-to no Group. Pins were listed here and are not any more: they are one person's,
-but they are *about* a Group and are kept per Group (ADR-0005).
+Legacy scope for records *about a person* rather than content they authored.
+Personal records follow the person across every Group and belong to no Group;
+Nutrition currently uses this scope. The target model removes this scope from
+Gather, with Nutrition being deprecated separately. Pins are not Personal:
+they are one person's, but are about a Group and are kept per Group (ADR-0005).
 
 **Catalog**:
 Reference data owned by nobody and readable by everybody — the foods that ship
@@ -291,12 +305,23 @@ The person who created a piece of Group-scoped content. Attribution records
 content carries it (ADR-0008).
 _Avoid_: Owner, Author
 
+**Public**:
+A visibility choice for Group-scoped content that makes it readable from other
+Groups. Public means readable by authenticated Gather users, not by signed-out
+visitors. Public content remains owned by its home Group; public visibility does
+not grant other Groups the right to edit or delete it.
+_Avoid_: Shared into, Cross-posted
+
+**Private**:
+A visibility choice for Group-scoped content that limits it to Members of its
+home Group. Privacy comes from the Group boundary rather than from a personal
+owner or private flag on an individual person.
+
 **Share**:
-Making Group-scoped content visible to an additional Group without changing
-where it lives. The Group it is shared into may read it and no more: writing
-follows the home Group.
-_Avoid_: Publish, Cross-post. (**Copy** is a different verb — see below — and
-not a synonym for this one.)
+Legacy term for making Group-scoped content visible to an additional Group.
+Gather is retiring this Group-to-Group visibility model in favor of **Public**
+and **Private**. (**Copy** is a different verb — see below — and not a synonym
+for this one.)
 
 **Move**:
 Changing which Group a piece of content lives in.
@@ -469,15 +494,17 @@ _Avoid_: Signed out, Offline mode
   exception and says why: it is a shortcut for what will happen rather than a
   record of what did, so it holds references and reads their current figures
   (ADR-0012).
-- Content in a Group is visible to that Group. Privacy comes from *which Group*
-  something lives in, never from a flag on the content.
+- Group-scoped content is either **Private** to its home Group or **Public** to
+  other Groups. Privacy comes from Group membership; a person does not own a
+  private subset inside a Group.
 - The Catalog is read-only and always reflects the shipped version. A person
   who needs a different entry creates their own alongside it.
-- The Group you are in is in the URL. Nothing stores which one you are in, and
-  nothing falls back to a Group you happen to belong to.
-- Whether you may change something follows its home Group from anywhere. *Where*
-  you change it is the address: a write happens where the URL names the Group
-  that is about to change.
+- The Current Group is selected by the person and validated against their
+  memberships. Web and mobile use the same ambient selection model; no hidden
+  default determines ownership or access.
+- Whether you may change something follows its home Group from anywhere. The
+  current Group is the destination for ordinary writes, and authorization still
+  checks that the person is a Member of it.
 - A photo a person chooses is stored as prepared and never as chosen, so one
   that cannot be prepared is not stored at all. An image Gather fetches for
   itself is neither chosen nor prepared (ADR-0010).

@@ -88,7 +88,7 @@ points production phones at the dev backends. The app has no update UI by
 decision, and nothing under `apps/mobile/src/` imports `expo-updates` — an
 update applies silently on the next launch. `expo-updates` is inert in a debug
 build, so the dev client cannot verify any of this; a release APK from
-`build:preview:android` can. See ADR 0028 and `apps/mobile/README.md`.
+`build:preview:android` can. See ADR 0029 and `apps/mobile/README.md`.
 
 ## How the phone behaves
 

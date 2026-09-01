@@ -3,8 +3,8 @@
 | ID | Decision | Status | Domain | Key implementation references |
 | --- | --- | --- | --- | --- |
 | 0001 | Groups are not backed by Clerk Organizations | accepted | identity | `convex/groups.ts`, `convex/users.ts` |
-| 0002 | The Group is explicit in the URL | accepted | web navigation | `src/lib/groupPaths.ts`, `src/routes/_app/g/$groupSlug/` |
-| 0003 | Three scopes: Group, Personal, Catalog | accepted | data ownership | `convex/schema.ts`, `CONTEXT.md` |
+| 0002 | The Group is explicit in the URL | superseded | web navigation | `src/lib/groupPaths.ts`, `src/routes/_app/g/$groupSlug/` |
+| 0003 | Three scopes: Group, Personal, Catalog | superseded | data ownership | `convex/schema.ts`, `CONTEXT.md` |
 | 0004 | Catalog entries are read-only and the seed always wins | accepted | catalog | `convex/seed.ts`, `convex/lib/seed/` |
 | 0005 | Pins belong to a person in a Group | accepted | navigation | `convex/memberships.ts`, `packages/core/src/pins.ts` |
 | 0006 | Any Member invites; only an admin removes | accepted | authorization | `convex/groups.ts` |
@@ -16,7 +16,7 @@
 | 0012 | A Combo is a Personal shortcut, and not a kind of Recipe | accepted | nutrition | `convex/combos.ts` |
 | 0013 | A nested page carries its own trail, and back is an address | accepted | web navigation | `src/components/app/Breadcrumbs.tsx` |
 | 0014 | The phone is a Clerk generation ahead of the web | accepted | mobile auth | `apps/mobile/src/auth/` |
-| 0015 | The Group is addressed on the web and ambient on the phone | decided | mobile navigation | `apps/mobile/src/group/GroupProvider.tsx`, `apps/mobile/app/g/` |
+| 0015 | The Group is addressed on the web and ambient on the phone | superseded | mobile navigation | `apps/mobile/src/group/GroupProvider.tsx`, `apps/mobile/app/g/` |
 | 0016 | Shared code crosses as a package with no dependencies | decided | workspace boundary | `packages/core/package.json`, `packages/core/tsconfig.json` |
 | 0017 | The phone owns its look and shares its words | accepted | mobile design | `apps/mobile/src/theme/`, `packages/core/src/moduleTints.ts` |
 | 0018 | Mobile tabs are app destinations, and one of them is a verb | decided | mobile navigation | `apps/mobile/app/(app)/(tabs)/`, `apps/mobile/src/components/QuickActionSheet.tsx` |
@@ -31,3 +31,5 @@
 | 0027 | Planned dinners reference Recipes, with a fallback | decided | meal planning | `CONTEXT.md` |
 | 0028 | A Drop is nothing until a person names its destination | decided | mobile sharing | `apps/mobile/src/drop/`, `packages/core/src/dropRules.ts` |
 | 0029 | A JavaScript change ships over the air, and a native one does not | decided | mobile release | `apps/mobile/app.json`, `apps/mobile/eas.json` |
+| 0030 | Groups are the only user-owned scope | decided | data ownership | `convex/schema.ts`, `convex/groups.ts`, `CONTEXT.md` |
+| 0031 | The Current Group is ambient on web and mobile | decided | navigation | `packages/core/src/groups.ts`, `CONTEXT.md` |

@@ -78,7 +78,7 @@ falling through to the model fallback and failing several seconds and one paid
 call later.
 
 This is a config-plugin change, so under
-[ADR-0028](0028-a-javascript-change-ships-over-the-air-and-a-native-one-does-not.md)
+[ADR-0029](0029-a-javascript-change-ships-over-the-air-and-a-native-one-does-not.md)
 it moves the fingerprint and **cannot ship over the air**. Installs that do not
 take a new build never see it.
 

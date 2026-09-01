@@ -59,7 +59,7 @@ directly instead of tapped through.
 
 A change reaches installed builds one of two ways, and which one is not a
 judgement call — `expo-updates` decides it mechanically. See
-[ADR 0028](../../docs/adr/0028-a-javascript-change-ships-over-the-air-and-a-native-one-does-not.md).
+[ADR 0029](../../docs/adr/0029-a-javascript-change-ships-over-the-air-and-a-native-one-does-not.md).
 
 **Over the air** — anything that is only JavaScript, TypeScript, or a bundled
 asset: a screen, a string, a Convex query, an image in `assets/`. Publish it:
@@ -187,7 +187,7 @@ Two things this harness cannot tell you, and a real share can:
 
 - **Whether Gather is in the sheet at all.** That is the config plugin, and it
   only exists after a build (`devbuild:android`). It is a native change, so it
-  never arrives over the air (ADR-0028).
+  never arrives over the air (ADR-0029).
 - **Whether an iOS image Drop is readable.** Shared files land in an App Group
   container the app must be entitled to read; get it wrong and the URI looks
   perfectly valid and reads as nothing.

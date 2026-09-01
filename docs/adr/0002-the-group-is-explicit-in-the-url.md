@@ -1,6 +1,9 @@
 # The Group is explicit in the URL
 
-Status: accepted (2026-07-28)
+Status: superseded by [ADR-0031](0031-the-current-group-is-ambient-on-web-and-mobile.md)
+
+This decision applied to the former URL-addressed Group model and is retained
+as historical context only.
 
 Every Group-scoped route is addressed as `/g/<slug>/…`. Previously the active
 Group was implicit — a stored default on the user — so `/recipes` rendered

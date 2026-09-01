@@ -1,6 +1,9 @@
 # Three scopes: Group, Personal, Catalog
 
-Status: accepted (2026-07-28); amended by
+Status: superseded by [ADR-0030](0030-groups-are-the-only-user-owned-scope.md).
+
+This decision applied to the former Personal Group and Personal-record model
+and is retained as historical context only. It was amended by
 [ADR-0005](0005-pins-belong-to-a-person-in-a-group.md) (2026-08-02), which moves
 Pins out of **Personal**. The three scopes stand; Pins were the wrong example of
 one. Everything below reads as written except that "pins" is no longer among the
