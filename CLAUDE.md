@@ -234,6 +234,31 @@ Two rules the Memory upload established:
 not expire. That is accepted for avatars, headers and keepsakes; it would not
 be for anything a household would mind being readable by whoever holds a link.
 
+## Deleting a Group, and deleting an account
+
+`convex/lib/groupCascade.ts` is the second registry that **cannot be
+forgotten**: its table set is derived from the schema — every table with a
+`groupId` — so a new Module's table fails `pnpm typecheck` until somebody says
+how its rows are reached. It is the same trick as `FILE_HOLDERS`, for the same
+reason, and it is what `groups.deleteGroup` and account deletion both run.
+Three child tables are hand-listed inside their parent's entry because they
+hang off a parent id rather than a Group: `tasks`, `calendarEvents`,
+`babyEvents`.
+
+Deleting an account (`convex/accounts.ts`, `convex/cascade.ts`) is **Convex
+first, Clerk second**, in scheduled steps, one Group per step. Three rules that
+will bite:
+
+- **A solo Group dies with the person; a shared Group they only leave.** What
+  they added to a household stays with the household (ADR-0032, ADR-0030).
+- **`users.deletedAt` is what stops `ensureUser` re-provisioning the account
+  mid-purge**, and the `users` row is deleted last for that reason.
+- **`deleteSelfEnabled` is checked before anything is called.** Purging a
+  household for an account Clerk then refuses to delete is the worst outcome
+  available, so the button is withheld rather than allowed to fail. That flag
+  is a Clerk Dashboard setting ("Delete self"), not something the app can turn
+  on.
+
 ## Internationalization
 
 **Current portable-core layout:** `@gather/core` owns the English and Dutch

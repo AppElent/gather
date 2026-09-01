@@ -1,4 +1,5 @@
 import { ConvexError, v } from 'convex/values'
+import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
@@ -7,6 +8,7 @@ import {
   requireGroupBySlug,
   resolveGroupBySlug,
 } from './lib/groupAccess'
+import { deleteGroupContent } from './lib/groupCascade'
 import { allocateGroupSlug } from './lib/groupSlugs'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
 
@@ -320,7 +322,14 @@ export const deleteGroup = mutation({
       throw new Error('Remove the other members before deleting this group')
     }
 
-    await ctx.db.delete(membership._id)
-    await ctx.db.delete(group._id)
+    // The membership goes with everything else the Group contained — this
+    // used to delete the two rows and leave every recipe, list, baby and
+    // holding in it unreachable, with their photos leaked in storage.
+    const files = await deleteGroupContent(ctx, group._id)
+    if (files.length) {
+      await ctx.scheduler.runAfter(0, internal.cascade.releaseFiles, {
+        storageIds: files,
+      })
+    }
   },
 })

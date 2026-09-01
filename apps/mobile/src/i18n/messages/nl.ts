@@ -209,8 +209,86 @@ export const nl = {
 
   account: {
     title: coreNl.shell.routes.account.title,
-    managedOnWeb:
-      'Je naam, e-mailadres en wachtwoord beheer je in Gather op het web.',
+    name: 'Naam',
+    password: 'Wachtwoord',
+    email: 'E-mail',
+    devices: 'Apparaten',
+    photo: 'Foto',
+
+    editName: {
+      title: 'Naam',
+      description: 'Wat andere leden van je Groepen zien.',
+      first: 'Voornaam',
+      last: 'Achternaam',
+      saved: 'Naam bijgewerkt',
+    },
+
+    changePassword: {
+      title: 'Wachtwoord',
+      description:
+        'Als je het wijzigt, word je overal elders uitgelogd, op elke andere telefoon en browser.',
+      current: 'Huidig wachtwoord',
+      next: 'Nieuw wachtwoord',
+      submit: 'Wachtwoord wijzigen',
+      saved: 'Wachtwoord gewijzigd',
+      noPassword:
+        'Je logt in zonder wachtwoord, dus er is er hier geen te wijzigen.',
+    },
+
+    emails: {
+      title: 'E-mail',
+      description: 'De adressen waarmee je kunt inloggen.',
+      primary: 'Primair',
+      unverified: 'Niet geverifieerd',
+      addOnWeb:
+        'Een adres toevoegen of verwijderen doe je in Gather op het web.',
+    },
+
+    sessions: {
+      title: 'Apparaten',
+      description: 'Waar je bent ingelogd.',
+      thisDevice: 'Dit apparaat',
+      lastActive: 'Laatst actief {when}',
+      unknownDevice: 'Onbekend apparaat',
+      signOutOf: 'Uitloggen',
+      revokeTitle: 'Uitloggen op {device}?',
+      revokeBody: 'Dat apparaat moet opnieuw inloggen.',
+      empty: 'Geen andere apparaten.',
+    },
+
+    picture: {
+      change: 'Foto wijzigen',
+      take: 'Foto maken',
+      choose: 'Foto kiezen',
+      remove: 'Foto verwijderen',
+      denied: 'Gather heeft toestemming nodig voor de camera of je foto’s.',
+      failed: 'Die foto kon niet worden opgeslagen.',
+    },
+
+    deleteAccount: {
+      title: 'Account verwijderen',
+      lead: 'Dit kan niet ongedaan worden gemaakt.',
+      goesHeading: 'Verdwijnt met je account',
+      goesBody:
+        'Je bent het enige lid van deze Groepen, dus die verdwijnen, en alles erin verdwijnt mee.',
+      keptHeading: 'Verlaten, niet verwijderd',
+      keptBody:
+        'Deze Groepen hebben andere leden. Jij ziet ze niet meer, en wat jij hebt toegevoegd blijft bij het huishouden.',
+      noGroups: 'Je zit in geen enkele Groep.',
+      submit: 'Verwijder mijn account',
+      confirmTitle: '{email} verwijderen?',
+      confirmBody:
+        'Je account en alles wat alleen jij kon zien wordt definitief verwijderd.',
+      confirm: 'Verwijderen',
+      failed: 'Je account kon niet worden verwijderd. Er is niets verwijderd.',
+      partlyFailed:
+        'Je gegevens zijn verwijderd, maar het account zelf niet. Neem contact op met support.',
+      unavailable:
+        'Dit account kan niet vanuit de app worden verwijderd. Neem contact op met support.',
+    },
+
+    testAccount:
+      'Dit is het gedeelde testaccount, dus het kan niet worden gewijzigd.',
   },
 
   kitchen: {

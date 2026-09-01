@@ -104,3 +104,29 @@ export function pickError<TFields extends object>(
 ): string | null {
   return readErrors(errors, t) ?? readError(returned, t)
 }
+
+/**
+ * The same words, from a call that *threw* rather than resolving with an error.
+ *
+ * Core 3's sign-in and sign-up hooks hand errors back as values, but the
+ * resource methods on `user` — `update`, `updatePassword`, `setProfileImage`,
+ * `delete` — are the older shape and throw a `ClerkAPIResponseError`, whose
+ * codes live one level down in `errors[0]`. Without this, every one of them
+ * would come out as "Something went wrong."
+ */
+export function readThrown(cause: unknown, t: Messages): string {
+  const coded = codeOf(cause)
+  return (coded && readError(coded, t)) ?? t.errors.generic
+}
+
+function codeOf(cause: unknown): CodedError | null {
+  if (typeof cause !== 'object' || cause === null) return null
+  const { errors, code } = cause as {
+    errors?: unknown
+    code?: unknown
+  }
+  const first = Array.isArray(errors) ? errors[0] : null
+  if (first && typeof first.code === 'string') return first as CodedError
+  if (typeof code === 'string') return { code }
+  return null
+}

@@ -112,10 +112,19 @@ built for it. Offline reading is a decision to reopen that, not a toggle.
 
 ### Account, beyond what exists
 
+Account is a hub now, not a card: Name, Password, Email, Devices and Delete
+account each have their own screen under `settings/account/`, and the picture
+is the avatar at the top. They are indexed as `children` of the Account row in
+`sections.ts`, so the field finds them even though the list never draws them.
+
+Deleting an account was never on this list and should have been — it is an App
+Store requirement for any app that can create one (5.1.1(v)). See ADR-0032.
+
+What is still open:
+
 | Setting | What it would mean |
 | --- | --- |
-| Photo | The picture other members see |
-| Sign out | Already on the Account screen; a candidate for the list itself |
+| Add an email address | A verification round trip; read-only today, and says so |
 | Opens in | The Group Gather starts in |
 | Invites | Codes you have sent and received |
 | Members and roles | Who can change what |

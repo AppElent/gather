@@ -39,8 +39,10 @@ import EyeOff from 'lucide-react-native/icons/eye-off'
 import Grape from 'lucide-react-native/icons/grape'
 import GripVertical from 'lucide-react-native/icons/grip-vertical'
 import ImagePlus from 'lucide-react-native/icons/image-plus'
+import KeyRound from 'lucide-react-native/icons/key-round'
 import Grid from 'lucide-react-native/icons/layout-grid'
 import ListChecks from 'lucide-react-native/icons/list-checks'
+import Mail from 'lucide-react-native/icons/mail'
 import NotebookPen from 'lucide-react-native/icons/notebook-pen'
 import Pencil from 'lucide-react-native/icons/pencil'
 import Refrigerator from 'lucide-react-native/icons/refrigerator'
@@ -48,6 +50,7 @@ import Search from 'lucide-react-native/icons/search'
 import Settings from 'lucide-react-native/icons/settings'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
 import Smartphone from 'lucide-react-native/icons/smartphone'
+import Trash2 from 'lucide-react-native/icons/trash-2'
 import User from 'lucide-react-native/icons/user'
 import Wallet from 'lucide-react-native/icons/wallet'
 import Wine from 'lucide-react-native/icons/wine'
@@ -98,12 +101,18 @@ export const UI_ICONS = {
   GripVertical: glyph(GripVertical, 'line.3.horizontal'),
   Eye: glyph(Eye, 'eye'),
   EyeOff: glyph(EyeOff, 'eye.slash'),
+  /** Changing a password. */
+  KeyRound: glyph(KeyRound, 'key'),
+  /** The email addresses on an account. */
+  Mail: glyph(Mail, 'envelope'),
   /** Edit, where a row already does something else when pressed. */
   Pencil: glyph(Pencil, 'pencil'),
   Search: glyph(Search, 'magnifyingglass'),
   Settings: glyph(Settings, 'gearshape'),
   /** The two Settings groups: what follows you, and what stays on this phone. */
   Smartphone: glyph(Smartphone, 'iphone'),
+  /** Destroying something for good — deleting an account, and nothing else. */
+  Trash2: glyph(Trash2, 'trash'),
   User: glyph(User, 'person.crop.circle'),
   X: glyph(X, 'xmark'),
 } satisfies Record<string, Glyph>

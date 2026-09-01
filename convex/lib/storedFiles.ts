@@ -131,3 +131,20 @@ export async function replaceStoredFile(
   if (!previous || next === previous) return
   await deleteStoredFile(ctx, previous)
 }
+
+/**
+ * The stored file one row holds, if its table holds files at all.
+ *
+ * The registry above is the only thing that knows which column that is, so
+ * anything enumerating rows in order to delete them — a Group cascade, an
+ * account purge — asks here rather than reaching for `imageId ?? photoId` and
+ * quietly missing the sixth table the day it arrives.
+ */
+export function storedFileIdOf<T extends TableNames>(
+  table: T,
+  row: Doc<T>,
+): Id<'_storage'> | undefined {
+  const field = (FILE_HOLDERS as Record<string, string | undefined>)[table]
+  if (!field) return undefined
+  return (row as Record<string, unknown>)[field] as Id<'_storage'> | undefined
+}

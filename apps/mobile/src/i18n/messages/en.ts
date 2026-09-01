@@ -295,17 +295,126 @@ export const en = {
   },
 
   /**
-   * Who you are, and the way out.
+   * Who you are, what can be changed about it, and the two ways out.
    *
-   * Deliberately read-only. Clerk can change a name or a password from the
-   * phone, but a native profile editor is not this shell's job (#159 keeps v1
-   * to the shell), and an editable-looking field that does nothing would be
-   * worse than saying where it can be done.
+   * It used to say all of this was managed on the web, which stopped being
+   * true the moment the phone could create an account: an app that signs
+   * people up has to let them leave from the same place (App Store guideline
+   * 5.1.1(v)).
+   *
+   * The hub is a list, like Settings itself, and each thing you can change is
+   * its own screen. Only `email` is read-only, and it says so rather than
+   * offering a field that does nothing.
    */
   account: {
     title: coreEn.shell.routes.account.title,
-    managedOnWeb:
-      'Your name, email address and password are managed in Gather on the web.',
+    /** The rows on the hub. */
+    name: 'Name',
+    password: 'Password',
+    email: 'Email',
+    devices: 'Devices',
+    photo: 'Photo',
+
+    /** Changing the name Clerk holds. Both halves, because Clerk stores both. */
+    editName: {
+      title: 'Name',
+      description: 'What other members of your Groups see.',
+      first: 'First name',
+      last: 'Last name',
+      saved: 'Name updated',
+    },
+
+    changePassword: {
+      title: 'Password',
+      description:
+        'Changing it signs you out everywhere else, on every other phone and browser.',
+      current: 'Current password',
+      next: 'New password',
+      submit: 'Change password',
+      saved: 'Password changed',
+      noPassword:
+        'You sign in without a password, so there is none to change here.',
+    },
+
+    /**
+     * Read-only on purpose: adding an address is a verification flow of its
+     * own, and a field that looks editable and is not would be worse than a
+     * sentence saying where it can be done.
+     */
+    emails: {
+      title: 'Email',
+      description: 'The addresses you can sign in with.',
+      primary: 'Primary',
+      unverified: 'Not verified',
+      addOnWeb: 'Adding or removing an address is done in Gather on the web.',
+    },
+
+    /**
+     * Clerk's sessions, named by what they were last seen on. The one you are
+     * holding cannot be revoked from itself — that is what Sign out is.
+     */
+    sessions: {
+      title: 'Devices',
+      description: 'Where you are signed in.',
+      thisDevice: 'This device',
+      lastActive: 'Last active {when}',
+      unknownDevice: 'Unknown device',
+      signOutOf: 'Sign out',
+      revokeTitle: 'Sign out of {device}?',
+      revokeBody: 'That device has to sign in again.',
+      empty: 'No other devices.',
+    },
+
+    /** Changing the picture. It is Clerk's, not the household's storage. */
+    picture: {
+      change: 'Change photo',
+      take: 'Take a photo',
+      choose: 'Choose a photo',
+      remove: 'Remove photo',
+      denied: 'Gather needs permission to use the camera or your photos.',
+      failed: 'That photo could not be saved.',
+    },
+
+    /**
+     * The end of the account, and the one screen in the app that has to say
+     * what it is about to destroy *before* the confirmation rather than inside
+     * it. An alert is the wrong place to read a list of households.
+     */
+    deleteAccount: {
+      title: 'Delete account',
+      lead: 'This cannot be undone.',
+      goesHeading: 'Deleted with your account',
+      goesBody:
+        'You are the only member of these Groups, so they go, and everything in them goes with them.',
+      keptHeading: 'Left, not deleted',
+      keptBody:
+        'These Groups have other members. You stop seeing them, and anything you added stays with the household.',
+      noGroups: 'You are not in any Groups.',
+      submit: 'Delete my account',
+      confirmTitle: 'Delete {email}?',
+      confirmBody:
+        'Your account and everything only you could see is deleted for good.',
+      confirm: 'Delete',
+      failed: 'Your account could not be deleted. Nothing has been removed.',
+      /**
+       * The half-way failure, which is real: Convex is purged before Clerk,
+       * because the purge needs a signed-in caller and there is none once the
+       * Clerk user is gone (ADR-0032). Saying "nothing has been removed" here
+       * would be a lie.
+       */
+      partlyFailed:
+        'Your data was deleted, but the account itself could not be. Please contact support.',
+      /** Clerk refuses self-deletion unless the instance allows it. */
+      unavailable:
+        'This account cannot be deleted from the app. Please contact support.',
+    },
+
+    /**
+     * Shown on every control that would change the shared test account. It is
+     * signed into by every preview and every CI run, so one rename breaks them
+     * all — see `auth/config.ts`.
+     */
+    testAccount: 'This is the shared test account, so it cannot be changed.',
   },
 
   kitchen: {

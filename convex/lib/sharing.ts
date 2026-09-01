@@ -52,3 +52,13 @@ export async function getMyGroupIds(
     .collect()
   return memberships.map((m) => m.groupId)
 }
+
+/**
+ * What `ensureUser` throws at an account that is on its way out.
+ *
+ * Deleting an account runs in scheduled steps, and `ensureUser` runs on every
+ * app mount, so there is a window in which a mount would cheerfully build the
+ * person a brand new household. The client recognises this string and signs
+ * out instead.
+ */
+export const ACCOUNT_DELETED = 'Account deleted'

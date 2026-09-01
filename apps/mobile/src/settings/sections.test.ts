@@ -8,6 +8,8 @@ const sections = settingsSections(en, {
   appearance: 'dark',
   locale: 'en',
   groupName: 'Huize Jansen',
+  accountName: 'Eric Jansen',
+  accountEmail: 'eric@example.com',
 })
 
 const idsFor = (query: string) =>
@@ -36,6 +38,18 @@ describe('the Settings list', () => {
     expect(sections[0].entries.every(({ value }) => value === undefined)).toBe(
       true,
     )
+  })
+
+  test('keeps Account’s own settings off the index and inside the row', () => {
+    const account = sections[0].entries[0]
+    expect(account.id).toBe('account')
+    expect(account.children?.map(({ id }) => id)).toEqual([
+      'account-name',
+      'account-password',
+      'account-email',
+      'account-devices',
+      'account-delete',
+    ])
   })
 
   test("a Module's row names the Group it edits, since nothing else on the screen does", () => {
@@ -75,11 +89,22 @@ describe('searching the Settings list', () => {
     expect(idsFor('bluetooth')).toEqual([])
   })
 
+  test('reaches the settings one level inside Account, which the list never draws', () => {
+    expect(idsFor('password')).toEqual(['account-password'])
+    expect(idsFor('delete')).toEqual(['account-delete'])
+  })
+
+  test('finds the account by the address it is signed in as', () => {
+    expect(idsFor('eric@example.com')).toEqual(['account-email'])
+  })
+
   test('searches the reader’s language, not English', () => {
     const dutch = settingsSections(nl, {
       appearance: 'dark',
       locale: 'nl',
       groupName: 'Huize Jansen',
+      accountName: 'Eric Jansen',
+      accountEmail: 'eric@example.com',
     })
     expect(
       searchSettings(dutch, 'donker').map(({ entry }) => entry.id),

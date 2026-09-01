@@ -26,8 +26,28 @@ export default function SettingsLayout() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen
-        name="account"
+        name="account/index"
         options={{ headerShown: true, title: t.account.title }}
+      />
+      <Stack.Screen
+        name="account/name"
+        options={{ headerShown: true, title: t.account.editName.title }}
+      />
+      <Stack.Screen
+        name="account/password"
+        options={{ headerShown: true, title: t.account.changePassword.title }}
+      />
+      <Stack.Screen
+        name="account/email"
+        options={{ headerShown: true, title: t.account.emails.title }}
+      />
+      <Stack.Screen
+        name="account/devices"
+        options={{ headerShown: true, title: t.account.sessions.title }}
+      />
+      <Stack.Screen
+        name="account/delete"
+        options={{ headerShown: true, title: t.account.deleteAccount.title }}
       />
       <Stack.Screen
         name="groups"

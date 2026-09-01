@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { SearchField } from '../../../../src/components/SearchField'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
+import { identityInitial } from '../../../../src/settings/identity'
 import {
   type SettingsEntry,
   type SettingsSectionId,
@@ -49,10 +50,14 @@ export default function Settings() {
   const [query, setQuery] = useState('')
 
   const { group } = useGroup()
+  const { user } = useUser()
+  const email = user?.primaryEmailAddress?.emailAddress ?? ''
   const sections = settingsSections(t, {
     appearance: preference,
     locale,
     groupName: group.name,
+    accountName: user?.fullName?.trim() ?? '',
+    accountEmail: email,
   })
   const searching = query.trim().length > 0
   const hits = searchSettings(sections, query)
@@ -156,12 +161,13 @@ export default function Settings() {
  */
 function Identity() {
   const tokens = useTokens()
-  const { user } = useUser()
+  const { isLoaded, user } = useUser()
   const { t } = useI18n()
   const email = user?.primaryEmailAddress?.emailAddress ?? ''
   const name = user?.fullName?.trim() ?? email
-  const initials = name.slice(0, 1).toUpperCase()
+  const initial = identityInitial(isLoaded, name, email)
   const ChevronRight = UI_ICONS.ChevronRight
+  const User = UI_ICONS.User
 
   return (
     <Pressable
@@ -175,7 +181,17 @@ function Identity() {
       ]}
     >
       <View style={[styles.avatar, { backgroundColor: tokens.tile }]}>
-        <Text style={[styles.initials, { color: tokens.fg }]}>{initials}</Text>
+        {initial ? (
+          <Text style={[styles.initials, { color: tokens.fg }]}>{initial}</Text>
+        ) : (
+          <User
+            size={20}
+            color={tokens.muted}
+            strokeWidth={1.8}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+        )}
       </View>
       <View style={styles.identityText}>
         <Text

@@ -8,9 +8,11 @@
  * @module
  */
 
+import type * as accounts from "../accounts.js";
 import type * as activity from "../activity.js";
 import type * as babies from "../babies.js";
 import type * as babyEvents from "../babyEvents.js";
+import type * as cascade from "../cascade.js";
 import type * as combos from "../combos.js";
 import type * as consumption from "../consumption.js";
 import type * as foods from "../foods.js";
@@ -27,6 +29,7 @@ import type * as lib_consumption from "../lib/consumption.js";
 import type * as lib_finance from "../lib/finance.js";
 import type * as lib_foodSearchText from "../lib/foodSearchText.js";
 import type * as lib_groupAccess from "../lib/groupAccess.js";
+import type * as lib_groupCascade from "../lib/groupCascade.js";
 import type * as lib_groupSlugs from "../lib/groupSlugs.js";
 import type * as lib_nutrition from "../lib/nutrition.js";
 import type * as lib_nutritionAiEstimate from "../lib/nutritionAiEstimate.js";
@@ -74,9 +77,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  accounts: typeof accounts;
   activity: typeof activity;
   babies: typeof babies;
   babyEvents: typeof babyEvents;
+  cascade: typeof cascade;
   combos: typeof combos;
   consumption: typeof consumption;
   foods: typeof foods;
@@ -93,6 +98,7 @@ declare const fullApi: ApiFromModules<{
   "lib/finance": typeof lib_finance;
   "lib/foodSearchText": typeof lib_foodSearchText;
   "lib/groupAccess": typeof lib_groupAccess;
+  "lib/groupCascade": typeof lib_groupCascade;
   "lib/groupSlugs": typeof lib_groupSlugs;
   "lib/nutrition": typeof lib_nutrition;
   "lib/nutritionAiEstimate": typeof lib_nutritionAiEstimate;

@@ -35,3 +35,20 @@ export const devLogin: { email: string; password: string } | null =
   TEST_USER_PASSWORD
     ? { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD }
     : null
+
+/**
+ * Is this the shared test account?
+ *
+ * Every PR preview and every CI run signs in as it, so renaming it, changing
+ * its password or — worst — deleting it would break them all, silently and for
+ * everybody. Account disables its own mutating controls rather than trusting
+ * whoever is holding the phone to remember that.
+ *
+ * `devLogin` is null wherever the credentials are absent, which is every EAS
+ * environment, so this answers `false` on a real build and costs a real person
+ * nothing.
+ */
+export function isTestAccount(email: string | null | undefined): boolean {
+  if (!devLogin || !email) return false
+  return email.toLowerCase() === devLogin.email.toLowerCase()
+}

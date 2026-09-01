@@ -34,6 +34,12 @@ export default defineSchema({
     email: v.string(),
     imageUrl: v.optional(v.string()),
     defaultGroupId: v.optional(v.id('groups')),
+    // Set the moment somebody asks for their account to be deleted, and only
+    // ever cleared by the row itself going. The purge runs across several
+    // scheduled steps, so for a few seconds this row still exists while
+    // nothing it owns does — and `ensureUser` runs on every app mount and
+    // would otherwise hand the account straight back. This is what stops it.
+    deletedAt: v.optional(v.number()),
     nutritionTargets: v.optional(nutritionValidator),
     // Where Pins used to live, back when one person had one set of them for
     // every Group at once. They are per Group now and live on the membership

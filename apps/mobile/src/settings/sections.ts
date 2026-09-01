@@ -23,6 +23,11 @@ export type SettingsSectionId = 'account' | 'phone' | 'modules'
 
 export type SettingsEntryId =
   | 'account'
+  | 'account-name'
+  | 'account-password'
+  | 'account-email'
+  | 'account-devices'
+  | 'account-delete'
   | 'groups'
   | 'appearance'
   | 'language'
@@ -31,6 +36,11 @@ export type SettingsEntryId =
 /** The screens below the tab's index. Typed so a dead link fails the build. */
 export type SettingsHref =
   | '/settings/account'
+  | '/settings/account/name'
+  | '/settings/account/password'
+  | '/settings/account/email'
+  | '/settings/account/devices'
+  | '/settings/account/delete'
   | '/settings/groups'
   | '/settings/appearance'
   | '/settings/language'
@@ -45,6 +55,17 @@ export interface SettingsEntry {
    */
   value?: string
   href: SettingsHref
+  /**
+   * The settings that live one level further in, on a screen this row opens.
+   *
+   * Account is the only row with any: it is a hub rather than a single choice,
+   * and its contents are as much a setting as Language is. The index does not
+   * draw them — a list that unfolded two levels would stop being the
+   * platform's own shape — but the field *searches* them, because a setting
+   * that is rendered somewhere and indexed nowhere is a setting nobody can
+   * find, which is the thing this file exists to prevent.
+   */
+  children?: SettingsEntry[]
 }
 
 export interface SettingsSection {
@@ -63,6 +84,9 @@ export interface SettingsValues {
    * only place that says which household is about to be edited.
    */
   groupName: string
+  /** What Clerk currently holds, shown beside the two rows that change it. */
+  accountName: string
+  accountEmail: string
 }
 
 /**
@@ -85,6 +109,35 @@ export function settingsSections(
           id: 'account',
           label: t.settings.account,
           href: '/settings/account',
+          children: [
+            {
+              id: 'account-name',
+              label: t.account.name,
+              value: values.accountName,
+              href: '/settings/account/name',
+            },
+            {
+              id: 'account-password',
+              label: t.account.password,
+              href: '/settings/account/password',
+            },
+            {
+              id: 'account-email',
+              label: t.account.email,
+              value: values.accountEmail,
+              href: '/settings/account/email',
+            },
+            {
+              id: 'account-devices',
+              label: t.account.devices,
+              href: '/settings/account/devices',
+            },
+            {
+              id: 'account-delete',
+              label: t.account.deleteAccount.title,
+              href: '/settings/account/delete',
+            },
+          ],
         },
         {
           id: 'groups',
@@ -156,6 +209,7 @@ export function searchSettings(
 
   return sections.flatMap((section) =>
     section.entries
+      .flatMap((entry) => [entry, ...(entry.children ?? [])])
       .filter((entry) =>
         [entry.label, entry.value, section.title].some((field) =>
           field?.toLowerCase().includes(needle),

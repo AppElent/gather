@@ -48,6 +48,19 @@ export const PHOTO_PRESETS = {
    * memory square. It is resized and re-encoded, and nothing else.
    */
   memoryPhoto: { aspect: null, maxEdge: 1600, quality: 0.82 },
+  /**
+   * The picture on a person's own account.
+   *
+   * It is never drawn larger than a 46px circle and it is stored by Clerk
+   * rather than in Convex, but the numbers belong here for the reason the
+   * other three do: a call site that picked its own would be a second answer
+   * to "how big is a photo in Gather", and this table exists so there is only
+   * ever one.
+   *
+   * Square, because every place it appears is a circle — the phone's Settings
+   * card, and the member list a Group draws.
+   */
+  profilePhoto: { aspect: 1, maxEdge: 512, quality: 0.82 },
 } as const satisfies Record<string, PhotoPreset>
 
 export type PhotoPresetName = keyof typeof PHOTO_PRESETS

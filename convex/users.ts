@@ -1,11 +1,15 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import { requireGroupBySlug } from './lib/groupAccess'
 import { allocateGroupSlug } from './lib/groupSlugs'
 import { nutritionValidator } from './lib/nutrition'
-import { getCurrentUser, getUserByClerkId } from './lib/sharing'
+import {
+  ACCOUNT_DELETED,
+  getCurrentUser,
+  getUserByClerkId,
+} from './lib/sharing'
 
 /** Returns the current gather user row, or null if not signed in / not yet provisioned. */
 export const me = query({
@@ -59,6 +63,10 @@ export const ensureUser = mutation({
     // already has one. Resolving through getUserByClerkId keeps that true
     // even when the table is already dirty.
     const existing = await getUserByClerkId(ctx, identity.subject)
+
+    // Their account is mid-purge. Handing it back a Group here is the one way
+    // account deletion can quietly undo itself (`convex/accounts.ts`).
+    if (existing?.deletedAt) throw new ConvexError(ACCOUNT_DELETED)
 
     if (existing) {
       const patch: Record<string, string> = {}

@@ -1,5 +1,5 @@
 /**
- * The three weights of action the front door needs.
+ * The weights of action the front door — and now Account — needs.
  *
  * `primary` is ink, because the front door belongs to no Module and ADR-0017's
  * accent rule says the accent is ink where you are looking at everything. That
@@ -8,6 +8,11 @@
  *
  * `busy` keeps the label in place and swaps in a spinner beside it rather than
  * replacing the text — the button must not change width mid-tap.
+ *
+ * `danger` is the fourth, and it exists for exactly one action: deleting your
+ * account. It is filled rather than outlined because it is the last thing on
+ * that screen and it must not read as the quiet way out; it is also the only
+ * button in the app that takes the accent away from ink on purpose.
  */
 import {
   ActivityIndicator,
@@ -24,10 +29,12 @@ import { RADIUS, useTokens } from '../theme/tokens'
 interface AuthButtonProps {
   label: string
   onPress: () => void
-  variant?: 'primary' | 'secondary' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   busy?: boolean
   disabled?: boolean
   style?: StyleProp<ViewStyle>
+  /** So a verification run can reach the button without matching its words. */
+  testID?: string
 }
 
 export function AuthButton({
@@ -37,6 +44,7 @@ export function AuthButton({
   busy = false,
   disabled = false,
   style,
+  testID,
 }: AuthButtonProps) {
   const tokens = useTokens()
   const inert = disabled || busy
@@ -44,18 +52,22 @@ export function AuthButton({
   const surface =
     variant === 'primary'
       ? { backgroundColor: tokens.accent }
-      : variant === 'secondary'
-        ? {
-            backgroundColor: 'transparent',
-            borderWidth: 1,
-            borderColor: tokens.border,
-          }
-        : { backgroundColor: 'transparent' }
+      : variant === 'danger'
+        ? { backgroundColor: tokens.danger }
+        : variant === 'secondary'
+          ? {
+              backgroundColor: 'transparent',
+              borderWidth: 1,
+              borderColor: tokens.border,
+            }
+          : { backgroundColor: 'transparent' }
 
-  const color = variant === 'primary' ? tokens.onAccent : tokens.fg
+  const color =
+    variant === 'primary' || variant === 'danger' ? tokens.onAccent : tokens.fg
 
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       disabled={inert}
       accessibilityRole="button"

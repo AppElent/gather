@@ -17,6 +17,11 @@
  *
  * The mutation is idempotent, so a re-run after a reconnect costs a round trip
  * and nothing else.
+ *
+ * It has exactly one refusal: an account that is mid-deletion, which the
+ * backend rejects rather than re-provisioning (ADR-0032). There is nothing to
+ * say about it here — the screen that asked for the deletion is already signing
+ * out — so it is swallowed rather than surfaced.
  */
 import { useConvexAuth, useMutation } from 'convex/react'
 import { useEffect } from 'react'
@@ -28,6 +33,6 @@ export function useEnsureUser() {
   const ensureUser = useMutation(api.users.ensureUser)
 
   useEffect(() => {
-    if (isAuthenticated) void ensureUser({})
+    if (isAuthenticated) void ensureUser({}).catch(() => {})
   }, [isAuthenticated, ensureUser])
 }

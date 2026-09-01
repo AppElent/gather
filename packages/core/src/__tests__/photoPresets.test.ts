@@ -4,20 +4,29 @@ import { PHOTO_PRESETS, photoPreset } from '../photoPresets'
 /**
  * The preset table is the only place a dimension or a quality is allowed to be
  * written down (ADR-0010), so these tests are about the shape of the table
- * rather than about arithmetic: three presets, the child's frame locked
- * square, the other two free.
+ * rather than about arithmetic: four presets, the child's and the person's own
+ * frames locked square, the other two free.
  */
 describe('photo presets', () => {
   test('each is named for where the photo is shown', () => {
     expect(Object.keys(PHOTO_PRESETS).sort()).toEqual([
       'childPhoto',
       'memoryPhoto',
+      'profilePhoto',
       'recipePhoto',
     ])
   })
 
   test("a child's photo is a square no larger than 512px", () => {
     expect(photoPreset('childPhoto')).toEqual({
+      aspect: 1,
+      maxEdge: 512,
+      quality: 0.82,
+    })
+  })
+
+  test('a profile photo is a square no larger than 512px', () => {
+    expect(photoPreset('profilePhoto')).toEqual({
       aspect: 1,
       maxEdge: 512,
       quality: 0.82,

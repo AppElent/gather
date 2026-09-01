@@ -33,3 +33,4 @@
 | 0029 | A JavaScript change ships over the air, and a native one does not | decided | mobile release | `apps/mobile/app.json`, `apps/mobile/eas.json` |
 | 0030 | Groups are the only user-owned scope | decided | data ownership | `convex/schema.ts`, `convex/groups.ts`, `CONTEXT.md` |
 | 0031 | The Current Group is ambient on web and mobile | decided | navigation | `packages/core/src/groups.ts`, `CONTEXT.md` |
+| 0032 | An account is deleted in the app, and takes its solo Groups with it | decided | account lifecycle | `convex/accounts.ts`, `convex/cascade.ts`, `convex/lib/groupCascade.ts` |
