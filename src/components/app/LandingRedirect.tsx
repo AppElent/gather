@@ -1,4 +1,4 @@
-import { landingGroupSlug } from '@gather/core/groups'
+import { landingGroupId } from '@gather/core/groups'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { useEffect, useMemo, useRef } from 'react'
@@ -55,8 +55,9 @@ export function LandingRedirect() {
     // showing the wrong Group's Home in between.
     if (groups === undefined) return
 
-    const groupSlug = landingGroupSlug(groups)
-    if (groupSlug === null) {
+    const groupId = landingGroupId(groups)
+    const group = groups.find((candidate) => candidate._id === groupId)
+    if (!group) {
       // An empty list usually means "not yet" rather than "none": `ensureUser`
       // creates everybody's Personal group on the same mount that renders this,
       // so on a first-ever visit the answer arrives empty and fills in a
@@ -78,7 +79,9 @@ export function LandingRedirect() {
 
     sent.current = true
 
-    const link = target ? target.link(groupSlug) : groupLink('home', groupSlug)
+    const link = target
+      ? target.link(group.slug)
+      : groupLink('home', group.slug)
     void navigate({
       ...link,
       search,

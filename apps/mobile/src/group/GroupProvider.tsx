@@ -47,7 +47,6 @@ import { readRetainedGroup, writeRetainedGroup } from './retainedGroup'
  * arriving. Long enough for `ensureUser` to insert a Personal group and for the
  * query to push the new answer back; short enough that a genuinely group-less
  * account is not left watching a spinner. */
-const EMPTY_GRACE_MS = 5000
 
 /** A Group as the phone needs it: enough to name it, switch to it, and scope a
  * query by it. */
@@ -72,7 +71,7 @@ export interface GroupContextValue {
    * here: each nested tab stack is keyed by the slug, so changing it remounts
    * every visited stack at its root while the fixed tab navigator stays put.
    */
-  setGroup: (slug: string) => void
+  setGroup: (groupId: string) => void
 }
 
 const GroupContext = createContext<GroupContextValue | null>(null)
@@ -103,7 +102,6 @@ export function GroupProvider({ children, pending, none }: GroupProviderProps) {
   // Read once, synchronously, before the first paint. An awaited read would
   // mean a frame in the wrong Group on every cold start.
   const [retained, setRetained] = useState(readRetainedGroup)
-  const [graceElapsed, setGraceElapsed] = useState(false)
 
   // Skipped until Convex has the token, and this is not the redirect trap:
   // nothing here navigates on `isAuthenticated`. It is `groups.myGroups`
@@ -139,13 +137,7 @@ export function GroupProvider({ children, pending, none }: GroupProviderProps) {
   // leaving your last Group with the app open spends five seconds on the
   // pending screen before the honest one; the alternative is a new account
   // being told it has no household in the gap before it has one.
-  useEffect(() => {
-    if (selection.status !== 'none') return
-    const settle = setTimeout(() => setGraceElapsed(true), EMPTY_GRACE_MS)
-    return () => clearTimeout(settle)
-  }, [selection.status])
-
-  const slug = selection.status === 'ready' ? selection.slug : null
+  const groupId = selection.status === 'ready' ? selection.groupId : null
 
   // A fallback replaces what was retained, in memory as well as on disk. Not
   // doing so leaves a slug that is not where anybody is: a Member removed from
@@ -157,28 +149,28 @@ export function GroupProvider({ children, pending, none }: GroupProviderProps) {
   // Adjusting state during render rather than in an effect is React's own
   // pattern for this, and it converges in one pass: a slug that resolves to
   // itself produces no further update.
-  if (slug !== null && slug !== retained) setRetained(slug)
+  if (groupId !== null && groupId !== retained) setRetained(groupId)
 
   useEffect(() => {
-    if (slug) writeRetainedGroup(slug)
-  }, [slug])
+    if (groupId) writeRetainedGroup(groupId)
+  }, [groupId])
 
   const setGroup = useCallback(
     (next: string) => {
-      if (!visibleGroups?.some((candidate) => candidate.slug === next)) return
+      if (!visibleGroups?.some((candidate) => candidate._id === next)) return
       setRetained(next)
     },
     [visibleGroups],
   )
 
   const value = useMemo<GroupContextValue | null>(() => {
-    if (!visibleGroups || !slug) return null
-    const group = visibleGroups.find((candidate) => candidate.slug === slug)
+    if (!visibleGroups || !groupId) return null
+    const group = visibleGroups.find((candidate) => candidate._id === groupId)
     return group ? { group, groups: visibleGroups, setGroup } : null
-  }, [visibleGroups, slug, setGroup])
+  }, [visibleGroups, groupId, setGroup])
 
   if (!value) {
-    return selection.status === 'none' && graceElapsed ? none : pending
+    return selection.status === 'none' ? none : pending
   }
 
   return <GroupContext value={value}>{children}</GroupContext>

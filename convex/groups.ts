@@ -174,9 +174,6 @@ export const renameGroup = mutation({
     if (!isAdmin(membership)) {
       throw new Error('Only an admin can rename a group')
     }
-    if (group.isPersonal) {
-      throw new Error('A personal group cannot be renamed')
-    }
     // The slug follows the name, so the URL keeps telling you which Group you
     // are in. Existing links to the old slug break — accepted in ADR-0002.
     const slug = await allocateGroupSlug(ctx, {
@@ -235,9 +232,6 @@ export const setMemberRole = mutation({
     if (!isAdmin(membership)) {
       throw new ConvexError('Only an admin can change roles')
     }
-    if (group.isPersonal) {
-      throw new ConvexError('A personal group has only you in it')
-    }
 
     const target = await getMembership(ctx, group._id, args.userId)
     if (!target) throw new ConvexError('That person is not in this group')
@@ -271,10 +265,6 @@ export const leaveGroup = mutation({
   args: { groupId: v.id('groups') },
   handler: async (ctx, args) => {
     const { group, membership } = await requireMembership(ctx, args.groupId)
-    // Everyone keeps somewhere private, always.
-    if (group.isPersonal)
-      throw new Error('You cannot leave your personal group')
-
     // A Group whose last admin walks out cannot be renamed or deleted by
     // anyone left in it, and nothing short of database repair can put that
     // right — there is no self-service way back into a room nobody administers.
@@ -304,9 +294,6 @@ export const deleteGroup = mutation({
     const { group, membership } = await requireMembership(ctx, args.groupId)
     if (!isAdmin(membership)) {
       throw new Error('Only an admin can delete a group')
-    }
-    if (group.isPersonal) {
-      throw new Error('You cannot delete your personal group')
     }
 
     const memberships = await ctx.db

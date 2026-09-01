@@ -15,8 +15,8 @@ export function GroupSwitcherSheet({ onClose }: { onClose: () => void }) {
   const { serviceActionsEnabled } = useAvailability()
   const Check = UI_ICONS.Check
 
-  function choose(slug: string) {
-    if (slug !== current.slug) setGroup(slug)
+  function choose(groupId: string) {
+    if (groupId !== current._id) setGroup(groupId)
     onClose()
   }
 
@@ -28,17 +28,17 @@ export function GroupSwitcherSheet({ onClose }: { onClose: () => void }) {
     >
       <ScrollView contentContainerStyle={styles.content}>
         {groups.map((group) => {
-          const isCurrent = group.slug === current.slug
+          const isCurrent = group._id === current._id
           return (
             <Pressable
-              key={group.slug}
+              key={group._id}
               accessibilityRole="button"
               accessibilityState={{
                 selected: isCurrent,
                 disabled: !serviceActionsEnabled,
               }}
               disabled={!serviceActionsEnabled}
-              onPress={() => choose(group.slug)}
+              onPress={() => choose(group._id)}
               style={({ pressed }) => [
                 styles.row,
                 { backgroundColor: tokens.surface, borderColor: tokens.border },
@@ -53,11 +53,7 @@ export function GroupSwitcherSheet({ onClose }: { onClose: () => void }) {
                   {group.name}
                 </Text>
                 <Text style={[styles.meta, { color: tokens.muted }]}>
-                  {isCurrent
-                    ? t.shell.switcher.current
-                    : group.isPersonal
-                      ? t.shell.switcher.personal
-                      : t.shell.switcher.shared}
+                  {isCurrent ? t.shell.switcher.current : t.shell.switcher.shared}
                 </Text>
               </View>
               {isCurrent ? <Check size={20} color={tokens.fg} /> : null}

@@ -6,7 +6,6 @@ import { foodSearchText } from './lib/foodSearchText'
 import { allocateGroupSlug } from './lib/groupSlugs'
 import { pickCanonicalUser } from './lib/sharing'
 import { stableDigest } from './lib/stableDigest'
-import { createPersonalGroup } from './users'
 
 /**
  * One-off cleanup for `users` documents carrying stray fields left over from
@@ -207,12 +206,7 @@ export const backfillGroupSlugsAndPersonalGroups = internalMutation({
         continue
       }
       personalGroupsCreated++
-      const slug = await allocateGroupSlug(ctx, {
-        name: user.name,
-        isPersonal: true,
-        taken,
-      })
-      if (apply) await createPersonalGroup(ctx, user, slug)
+      if (apply) await ctx.db.patch(user._id, { defaultGroupId: undefined })
     }
 
     return {

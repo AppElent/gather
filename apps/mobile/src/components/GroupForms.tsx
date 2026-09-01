@@ -33,6 +33,7 @@ import { useI18n } from '../i18n'
 import { RADIUS, useTokens } from '../theme/tokens'
 import { AuthButton } from './AuthButton'
 import { AuthField } from './AuthField'
+import { writeRetainedGroup } from '../group/retainedGroup'
 
 type Form = 'create' | 'join'
 
@@ -61,7 +62,11 @@ export function GroupForms() {
     setBusy(which)
     setFailed(null)
     void call()
-      .then(() => {
+      .then((groupId) => {
+        // The provider cannot offer `setGroup` while this no-Group surface is
+        // showing. Persisting the successful mutation's id here makes its next
+        // membership query open exactly the Group the person chose.
+        writeRetainedGroup(groupId as string)
         // Cleared on success only. A code that was refused stays in the field
         // so it can be corrected rather than retyped.
         if (which === 'create') setName('')

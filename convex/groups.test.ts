@@ -39,87 +39,13 @@ async function groupsOf(t: Harness, identity: typeof asAlice) {
   return await t.withIdentity(identity).query(api.groups.myGroups, {})
 }
 
-async function personalGroupOf(t: Harness, identity: typeof asAlice) {
-  const personal = (await groupsOf(t, identity)).filter((g) => g.isPersonal)
-  expect(personal).toHaveLength(1)
-  return personal[0]
-}
-
-describe('the Personal group', () => {
-  test('exists for a person as soon as they sign up', async () => {
-    const t = testConvex()
-    await signUp(t, asAlice)
-
-    const personal = await personalGroupOf(t, asAlice)
-    expect(personal.name).toBe("Alice's things")
-    expect(personal.slug).toBe('me-alice')
-  })
-
-  test('is not created a second time when signing in again', async () => {
+describe('a new user', () => {
+  test('has no Group until they create or join one', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
     await signUp(t, asAlice)
 
-    expect(await groupsOf(t, asAlice)).toHaveLength(1)
-  })
-
-  test('is one per person, and each person gets their own', async () => {
-    const t = testConvex()
-    await signUp(t, asAlice)
-    await signUp(t, asBob)
-
-    const alice = await personalGroupOf(t, asAlice)
-    const bob = await personalGroupOf(t, asBob)
-    expect(alice._id).not.toBe(bob._id)
-    expect(bob.slug).toBe('me-bob')
-  })
-
-  test('is what defaultGroupId points at', async () => {
-    const t = testConvex()
-    await signUp(t, asAlice)
-
-    const personal = await personalGroupOf(t, asAlice)
-    const user = await t.withIdentity(asAlice).query(api.users.me, {})
-    expect(user?.defaultGroupId).toBe(personal._id)
-  })
-
-  test('cannot be left', async () => {
-    const t = testConvex()
-    await signUp(t, asAlice)
-    const personal = await personalGroupOf(t, asAlice)
-
-    await expect(
-      t
-        .withIdentity(asAlice)
-        .mutation(api.groups.leaveGroup, { groupId: personal._id }),
-    ).rejects.toThrow(/personal group/i)
-    expect(await groupsOf(t, asAlice)).toHaveLength(1)
-  })
-
-  test('cannot be deleted', async () => {
-    const t = testConvex()
-    await signUp(t, asAlice)
-    const personal = await personalGroupOf(t, asAlice)
-
-    await expect(
-      t
-        .withIdentity(asAlice)
-        .mutation(api.groups.deleteGroup, { groupId: personal._id }),
-    ).rejects.toThrow(/personal group/i)
-    expect(await groupsOf(t, asAlice)).toHaveLength(1)
-  })
-
-  test('cannot be renamed', async () => {
-    const t = testConvex()
-    await signUp(t, asAlice)
-    const personal = await personalGroupOf(t, asAlice)
-
-    await expect(
-      t.withIdentity(asAlice).mutation(api.groups.renameGroup, {
-        groupId: personal._id,
-        name: 'Something else',
-      }),
-    ).rejects.toThrow(/personal group/i)
+    expect(await groupsOf(t, asAlice)).toEqual([])
   })
 })
 
@@ -139,7 +65,7 @@ describe('slugs', () => {
       .mutation(api.groups.createGroup, { name: 'Wine club' })
 
     const slugs = (await allGroups(t)).map((g) => g.slug)
-    expect(slugs).toHaveLength(5)
+    expect(slugs).toHaveLength(3)
     expect(slugs.every((s) => typeof s === 'string' && s.length > 0)).toBe(true)
     expect(new Set(slugs).size).toBe(slugs.length)
   })
@@ -176,31 +102,28 @@ describe('slugs', () => {
     }
   })
 
-  test('keeps a shared Group out of the Personal namespace', async () => {
+  test('allows ordinary names without a Personal namespace', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
     await t
       .withIdentity(asAlice)
       .mutation(api.groups.createGroup, { name: 'Me and Bob' })
 
-    const shared = (await groupsOf(t, asAlice)).filter((g) => !g.isPersonal)
-    expect(shared).toHaveLength(1)
-    expect(shared[0].slug).toBe('g-me-and-bob')
+    expect((await groupsOf(t, asAlice))[0].slug).toBe('g-me-and-bob')
   })
 
-  test('a household named after someone cannot take their Personal slug', async () => {
+  test('does not reserve a name for a later account', async () => {
     const t = testConvex()
     await signUp(t, asBob)
     await t
       .withIdentity(asBob)
       .mutation(api.groups.createGroup, { name: 'Alice' })
 
-    // Alice signs up second, into a world where "Alice" is already a household.
     await signUp(t, asAlice)
 
-    const household = (await groupsOf(t, asBob)).find((g) => !g.isPersonal)
+    const household = (await groupsOf(t, asBob))[0]
     expect(household?.slug).toBe('alice')
-    expect((await personalGroupOf(t, asAlice)).slug).toBe('me-alice')
+    expect(await groupsOf(t, asAlice)).toEqual([])
   })
 })
 
@@ -501,17 +424,20 @@ describe('resolving a Group by slug', () => {
     expect(asPlainMember).toMatchObject({ ok: true, role: 'member' })
   })
 
-  test('resolves a Personal group like any other', async () => {
+  test('resolves a single-member Group like any other', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.createGroup, { name: 'Alice' })
 
     const result = await t
       .withIdentity(asAlice)
-      .query(api.groups.bySlug, { slug: 'me-alice' })
+      .query(api.groups.bySlug, { slug: 'alice' })
 
     expect(result).toMatchObject({
       ok: true,
-      group: { slug: 'me-alice', isPersonal: true },
+      group: { slug: 'alice', isPersonal: false },
       role: 'admin',
     })
   })
@@ -565,25 +491,26 @@ describe('resolving a Group by slug', () => {
     const t = testConvex()
     const slug = await aliceOnlyHousehold(t)
 
-    // Bob has a Personal group of his own; asking for Alice's must not quietly
-    // fall back to it, or the URL stops meaning what it says.
+    // Asking for Alice's must not quietly fall back to another Group.
     const result = await t
       .withIdentity(asBob)
       .query(api.groups.bySlug, { slug })
 
     expect(result.ok).toBe(false)
-    expect(JSON.stringify(result)).not.toContain('me-bob')
+    expect(JSON.stringify(result)).not.toContain('jansen-household')
   })
 
   test('the throwing form refuses each case with its own message', async () => {
     const t = testConvex()
     const slug = await aliceOnlyHousehold(t)
     const bob = t.withIdentity(asBob)
+    await signUp(t, asBob)
+    await bob.mutation(api.groups.createGroup, { name: 'Bob' })
 
     const resolved = await bob.query(async (ctx) =>
-      requireGroupBySlug(ctx, 'me-bob'),
+      requireGroupBySlug(ctx, 'bob'),
     )
-    expect(resolved.group.slug).toBe('me-bob')
+    expect(resolved.group.slug).toBe('bob')
     expect(resolved.role).toBe('admin')
 
     const refusal = await bob
