@@ -40,6 +40,7 @@ const SECTION_ICONS = {
   account: UI_ICONS.User,
   phone: UI_ICONS.Smartphone,
   modules: UI_ICONS.Grid,
+  labs: UI_ICONS.FlaskConical,
 } satisfies Record<SettingsSectionId, Glyph>
 
 export default function Settings() {
@@ -52,13 +53,20 @@ export default function Settings() {
   const { group } = useGroup()
   const { user } = useUser()
   const email = user?.primaryEmailAddress?.emailAddress ?? ''
-  const sections = settingsSections(t, {
-    appearance: preference,
-    locale,
-    groupName: group.name,
-    accountName: user?.fullName?.trim() ?? '',
-    accountEmail: email,
-  })
+  const sections = settingsSections(
+    t,
+    {
+      appearance: preference,
+      locale,
+      groupName: group.name,
+      accountName: user?.fullName?.trim() ?? '',
+      accountEmail: email,
+    },
+    // The one place that decides a production build has no prototypes to link
+    // to. `settingsSections` takes it as a parameter so the list stays testable
+    // both ways from a plain Node runtime.
+    __DEV__,
+  )
   const searching = query.trim().length > 0
   const hits = searchSettings(sections, query)
 

@@ -21,6 +21,7 @@
 
 import type { ModuleIconName } from '@gather/core/modules'
 import Apple from 'lucide-react-native/icons/apple'
+import ArrowUp from 'lucide-react-native/icons/arrow-up'
 import Baby from 'lucide-react-native/icons/baby'
 import Beer from 'lucide-react-native/icons/beer'
 import Calendar from 'lucide-react-native/icons/calendar'
@@ -34,8 +35,11 @@ import ChevronLeft from 'lucide-react-native/icons/chevron-left'
 import ChevronRight from 'lucide-react-native/icons/chevron-right'
 import ChevronUp from 'lucide-react-native/icons/chevron-up'
 import CircleAlert from 'lucide-react-native/icons/circle-alert'
+import CircleEllipsis from 'lucide-react-native/icons/circle-ellipsis'
+import Clock from 'lucide-react-native/icons/clock'
 import Eye from 'lucide-react-native/icons/eye'
 import EyeOff from 'lucide-react-native/icons/eye-off'
+import FlaskConical from 'lucide-react-native/icons/flask-conical'
 import Grape from 'lucide-react-native/icons/grape'
 import GripVertical from 'lucide-react-native/icons/grip-vertical'
 import ImagePlus from 'lucide-react-native/icons/image-plus'
@@ -43,8 +47,10 @@ import KeyRound from 'lucide-react-native/icons/key-round'
 import Grid from 'lucide-react-native/icons/layout-grid'
 import ListChecks from 'lucide-react-native/icons/list-checks'
 import Mail from 'lucide-react-native/icons/mail'
+import MapPin from 'lucide-react-native/icons/map-pin'
 import NotebookPen from 'lucide-react-native/icons/notebook-pen'
 import Pencil from 'lucide-react-native/icons/pencil'
+import Plus from 'lucide-react-native/icons/plus'
 import Refrigerator from 'lucide-react-native/icons/refrigerator'
 import Search from 'lucide-react-native/icons/search'
 import Settings from 'lucide-react-native/icons/settings'
@@ -52,6 +58,7 @@ import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
 import Smartphone from 'lucide-react-native/icons/smartphone'
 import Trash2 from 'lucide-react-native/icons/trash-2'
 import User from 'lucide-react-native/icons/user'
+import Users from 'lucide-react-native/icons/users'
 import Wallet from 'lucide-react-native/icons/wallet'
 import Wine from 'lucide-react-native/icons/wine'
 import X from 'lucide-react-native/icons/x'
@@ -86,6 +93,8 @@ export const MODULE_ICONS = {
 } satisfies Record<ModuleIconName, Glyph>
 
 export const UI_ICONS = {
+  /** Committing a composer, where the control is a button and not a word. */
+  ArrowUp: glyph(ArrowUp, 'arrow.up'),
   /** The shared photo row's two answers: take one, or pick one. */
   Camera: glyph(Camera, 'camera'),
   ImagePlus: glyph(ImagePlus, 'photo.badge.plus'),
@@ -96,6 +105,22 @@ export const UI_ICONS = {
   /** Rearranging an ordered list, one row at a time. */
   ChevronUp: glyph(ChevronUp, 'chevron.up'),
   CircleAlert: glyph(CircleAlert, 'exclamationmark.circle'),
+  /**
+   * A navigation-bar overflow. iOS spells "how should this be displayed" as an
+   * `ellipsis.circle` and nothing else, which is why this is not the plain
+   * three dots.
+   */
+  CircleEllipsis: glyph(CircleEllipsis, 'ellipsis.circle'),
+  /** A time on a form, never a duration. */
+  Clock: glyph(Clock, 'clock'),
+  /** Settings' Labs group: prototypes, in development builds only. */
+  FlaskConical: glyph(FlaskConical, 'flask'),
+  /** A place on a form. */
+  MapPin: glyph(MapPin, 'mappin'),
+  /** Adding one of something, where the row is not itself the add. */
+  Plus: glyph(Plus, 'plus'),
+  /** More than one member — never one, which is `User`. */
+  Users: glyph(Users, 'person.2'),
   /** The Settings tab's Modules group. */
   Grid: glyph(Grid, 'square.grid.2x2'),
   GripVertical: glyph(GripVertical, 'line.3.horizontal'),

@@ -19,7 +19,7 @@ import type { Locale } from '@gather/core/i18n'
 
 import type { Messages } from '../i18n'
 
-export type SettingsSectionId = 'account' | 'phone' | 'modules'
+export type SettingsSectionId = 'account' | 'phone' | 'modules' | 'labs'
 
 export type SettingsEntryId =
   | 'account'
@@ -32,6 +32,7 @@ export type SettingsEntryId =
   | 'appearance'
   | 'language'
   | 'baby-log'
+  | 'labs'
 
 /** The screens below the tab's index. Typed so a dead link fails the build. */
 export type SettingsHref =
@@ -44,6 +45,8 @@ export type SettingsHref =
   | '/settings/groups'
   | '/settings/appearance'
   | '/settings/language'
+  | '/settings/labs'
+  | '/settings/labs/calendar'
   | '/settings/baby-log'
 
 export interface SettingsEntry {
@@ -99,6 +102,13 @@ export interface SettingsValues {
 export function settingsSections(
   t: Messages,
   values: SettingsValues,
+  /**
+   * Whether this build carries prototypes. Passed rather than read from
+   * `__DEV__` here so the list can be tested both ways from a plain Node
+   * runtime — and so exactly one call site, the Settings screen, decides that
+   * a production build has no Labs to link to.
+   */
+  labs = false,
 ): SettingsSection[] {
   return [
     {
@@ -181,6 +191,29 @@ export function settingsSections(
         },
       ],
     },
+    /**
+     * Prototypes, last, and only where there are any.
+     *
+     * It is a section rather than a row inside another one because it is not a
+     * setting: nothing under it changes how the app behaves for anybody. The
+     * heading is what says so, and the empty array is what keeps a production
+     * build from carrying a heading with nothing under it.
+     */
+    ...(labs
+      ? [
+          {
+            id: 'labs' as const,
+            title: t.labs.title,
+            entries: [
+              {
+                id: 'labs' as const,
+                label: t.labs.title,
+                href: '/settings/labs' as const,
+              },
+            ],
+          },
+        ]
+      : []),
   ]
 }
 
