@@ -20,6 +20,7 @@ export default function SearchStackLayout() {
         key={group.slug}
         screenOptions={{
           headerShown: false,
+          headerBackButtonDisplayMode: 'minimal',
           headerLargeTitle: true,
         }}
       >

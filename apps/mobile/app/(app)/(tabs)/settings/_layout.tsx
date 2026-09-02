@@ -18,6 +18,7 @@ export default function SettingsLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
+        headerBackButtonDisplayMode: 'minimal',
         // See the note in home/_layout.tsx: iOS-only, and paired with
         // `contentInsetAdjustmentBehavior="automatic"` on each screen.
         headerLargeTitle: true,

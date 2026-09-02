@@ -15,6 +15,7 @@ export default function DropLayout() {
     <Stack
       screenOptions={{
         headerShown: true,
+        headerBackButtonDisplayMode: 'minimal',
         contentStyle: { backgroundColor: tokens.bg },
       }}
     />

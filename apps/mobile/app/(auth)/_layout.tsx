@@ -32,6 +32,7 @@ export default function AuthLayout() {
       screenOptions={{
         headerTitle: '',
         headerBackTitle: '',
+        headerBackButtonDisplayMode: 'minimal',
         headerShadowVisible: false,
         headerStyle: { backgroundColor: tokens.bg },
         headerTintColor: tokens.fg,

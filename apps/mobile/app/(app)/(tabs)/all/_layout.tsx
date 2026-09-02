@@ -16,6 +16,7 @@ export default function AllStackLayout() {
         key={group.slug}
         screenOptions={{
           headerShown: false,
+          headerBackButtonDisplayMode: 'minimal',
           headerLargeTitle: true,
         }}
       >

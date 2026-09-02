@@ -39,6 +39,7 @@ export default function AppLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
+          headerBackButtonDisplayMode: 'minimal',
           contentStyle: { backgroundColor: tokens.bg },
         }}
       >
