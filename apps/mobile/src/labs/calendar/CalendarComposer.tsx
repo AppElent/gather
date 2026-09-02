@@ -21,9 +21,8 @@
  * - **Nothing is written anywhere.** `onChange` mutates a `useState` array on
  *   the screen above and that is the entire persistence story.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
-  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -59,6 +58,8 @@ import { LAB_CALENDARS, LAB_MEMBERS } from './fixtures'
  * What is being composed. `mode` is the whole difference between the two jobs
  * the one card does: a create needs a commit, an edit does not.
  */
+export type RepeatRule = 'never' | 'daily' | 'weekly' | 'monthly'
+
 export interface Draft {
   mode: 'create' | 'edit'
   id?: string
@@ -69,6 +70,9 @@ export interface Draft {
   allDay: boolean
   start?: string
   end?: string
+  where?: string
+  notes?: string
+  repeats?: RepeatRule
 }
 
 export interface CalendarComposerProps {
@@ -81,6 +85,7 @@ export interface CalendarComposerProps {
   onChange: (draft: Draft) => void
   onClose: () => void
   onDelete: (id: string) => void
+  onDuplicate: (draft: Draft) => void
   /** The inline variant has no trigger of its own; it *is* the trigger. */
   onOpen: () => void
   bottomInset: number
@@ -95,8 +100,14 @@ export function CalendarComposer(props: CalendarComposerProps) {
 
 /* ══ the card ═══════════════════════════════════════════════════════════ */
 
-/** What the `[+]` hides: the long tail, including where recurrence lands. */
-type Pane = 'none' | 'date' | 'more'
+/**
+ * What the `[+]` hides: the long tail, including where recurrence lands.
+ *
+ * Every one of these is a real pane. A chip that answers a tap with a haptic
+ * and nothing else is worse than no chip — it teaches the reader that the row
+ * is decoration, and then they stop trying the ones that work.
+ */
+type Pane = 'none' | 'date' | 'more' | 'time' | 'where' | 'notes'
 
 function CardComposer({
   draft,
@@ -105,6 +116,7 @@ function CardComposer({
   onChange,
   onClose,
   onDelete,
+  onDuplicate,
   bottomInset,
 }: CalendarComposerProps) {
   const tokens = useTokens('home')
@@ -123,7 +135,32 @@ function CardComposer({
    */
   const keyboard = useAnimatedKeyboard()
 
-  const dropped = pane === 'date'
+  /**
+   * The card gives the keyboard up to show the date grid and takes it straight
+   * back afterwards. Without this the card is left sitting on the home bar with
+   * the caret gone — you picked a date and the composer read as finished, which
+   * is the opposite of what a create is.
+   */
+  const nameRef = useRef<TextInput>(null)
+  /**
+   * `blur()`, not `Keyboard.dismiss()`: dismiss hides the keyboard and leaves
+   * the field focused, and a `focus()` on an already-focused field is a no-op —
+   * so the keyboard never came back and the card stayed on the home bar.
+   */
+  const openPane = (next: Pane) => {
+    nameRef.current?.blur()
+    setPane(next)
+  }
+  const openDatePane = () => openPane('date')
+  const resume = () => {
+    setPane('none')
+    // One frame, so the field is focused after the pane has gone rather than
+    // while the card is still the taller of the two.
+    requestAnimationFrame(() => nameRef.current?.focus())
+  }
+
+  /** A pane that needed the keyboard's room is a card that sits on the bar. */
+  const dropped = pane === 'date' || pane === 'time'
   const cardStyle = useAnimatedStyle(() => ({
     // `translateY`, not `bottom`: the card is anchored at the bottom edge and
     // lifted, so the keyboard does not cost a layout pass a frame.
@@ -168,15 +205,12 @@ function CardComposer({
       />
       <Animated.View
         testID="composer-card"
-        style={[
-          styles.card,
-          { backgroundColor: tokens.surface, shadowColor: '#000' },
-          cardStyle,
-        ]}
+        style={[styles.card, { backgroundColor: tokens.surface }, cardStyle]}
       >
         <View style={styles.cardTitleRow}>
           <TextInput
             testID="composer-name"
+            ref={nameRef}
             autoFocus
             value={local.title}
             onChangeText={(title) => edit({ title })}
@@ -199,6 +233,11 @@ function CardComposer({
                 },
               ]}
               onAction={(action) => {
+                if (action === 'duplicate') {
+                  onDuplicate(local)
+                  onClose()
+                  return
+                }
                 if (action !== 'delete' || !local.id) return
                 onDelete(local.id)
                 onClose()
@@ -228,28 +267,72 @@ function CardComposer({
             onMonth={setMonth}
             onPick={(date) => {
               edit({ date })
-              setPane('none')
+              resume()
             }}
-            onDone={() => setPane('none')}
+            onDone={resume}
+          />
+        ) : null}
+
+        {pane === 'time' ? (
+          <TimePane
+            start={local.start}
+            end={local.end}
+            onPick={(start, end) => edit({ start, end, allDay: false })}
+          />
+        ) : null}
+
+        {pane === 'where' || pane === 'notes' ? (
+          <TextPane
+            key={pane}
+            value={(pane === 'where' ? local.where : local.notes) ?? ''}
+            placeholder={
+              pane === 'where'
+                ? t.labs.calendar.wherePlaceholder
+                : t.labs.calendar.notesPlaceholder
+            }
+            multiline={pane === 'notes'}
+            testID={`composer-field-${pane}`}
+            onChange={(value) =>
+              edit(pane === 'where' ? { where: value } : { notes: value })
+            }
           />
         ) : null}
 
         {pane === 'more' ? (
           <View style={styles.moreRow}>
-            {(['allDay', 'where', 'notes', 'repeats'] as const).map((id) => (
-              <Chip
-                key={id}
-                testID={`composer-chip-${id}`}
-                label={t.labs.calendar.chips[id]}
-                dashed
-                set={id === 'allDay' && local.allDay}
-                onPress={() =>
-                  id === 'allDay'
-                    ? edit({ allDay: !local.allDay })
-                    : haptics.selectionChanged()
-                }
-              />
-            ))}
+            <Chip
+              testID="composer-chip-allDay"
+              label={t.labs.calendar.chips.allDay}
+              dashed={!local.allDay}
+              set={local.allDay}
+              onPress={() =>
+                edit({
+                  allDay: !local.allDay,
+                  start: undefined,
+                  end: undefined,
+                })
+              }
+            />
+            <Chip
+              testID="composer-chip-where"
+              label={local.where?.trim() || t.labs.calendar.chips.where}
+              icon="MapPin"
+              dashed={!local.where}
+              set={Boolean(local.where)}
+              active={false}
+              onPress={() => setPane('where')}
+            />
+            <Chip
+              testID="composer-chip-notes"
+              label={local.notes?.trim() || t.labs.calendar.chips.notes}
+              dashed={!local.notes}
+              set={Boolean(local.notes)}
+              onPress={() => setPane('notes')}
+            />
+            <RepeatChip
+              value={local.repeats ?? 'never'}
+              onPick={(repeats) => edit({ repeats })}
+            />
           </View>
         ) : null}
 
@@ -284,10 +367,7 @@ function CardComposer({
               })}
               set
               active={pane === 'date'}
-              onPress={() => {
-                if (pane !== 'date') Keyboard.dismiss()
-                setPane(pane === 'date' ? 'none' : 'date')
-              }}
+              onPress={() => (pane === 'date' ? resume() : openDatePane())}
             />
 
             <Chip
@@ -302,7 +382,8 @@ function CardComposer({
               icon="Clock"
               dashed={!local.start && !local.allDay}
               set={Boolean(local.start) || local.allDay}
-              onPress={() => edit({ allDay: !local.allDay, start: undefined })}
+              active={pane === 'time'}
+              onPress={() => (pane === 'time' ? resume() : openPane('time'))}
             />
 
             <WhoChip who={local.who} onChange={(who) => edit({ who })} />
@@ -809,6 +890,190 @@ function Chip({
   )
 }
 
+/**
+ * A time, picked from the ones a household actually uses.
+ *
+ * Not a wheel: `DateTimePicker` on Android is a modal dialog, which would take
+ * the card off screen to answer a question the card is asking. Sixteen half
+ * hours in a scroller is a worse instrument and a better control here — and it
+ * is a prototype's job to find that out before a wheel is wired in.
+ */
+function TimePane({
+  start,
+  end,
+  onPick,
+}: {
+  start?: string
+  end?: string
+  onPick: (start: string, end: string) => void
+}) {
+  const tokens = useTokens('home')
+  const tint = tokens.tintOf('home')
+  const { t } = useI18n()
+
+  const times = Array.from({ length: 32 }, (_, index) => {
+    const minutes = 7 * 60 + index * 30
+    return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${
+      minutes % 60 === 0 ? '00' : '30'
+    }`
+  })
+
+  const durations = [
+    { id: 'm30' as const, minutes: 30 },
+    { id: 'h1' as const, minutes: 60 },
+    { id: 'h2' as const, minutes: 120 },
+  ]
+
+  const plus = (from: string, minutes: number) => {
+    const [hour, minute] = from.split(':').map(Number)
+    const total = (hour * 60 + minute + minutes) % (24 * 60)
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(
+      total % 60,
+    ).padStart(2, '0')}`
+  }
+
+  const current = start ?? '09:00'
+  const span =
+    start && end
+      ? Number(end.slice(0, 2)) * 60 +
+        Number(end.slice(3)) -
+        (Number(start.slice(0, 2)) * 60 + Number(start.slice(3)))
+      : 60
+
+  return (
+    <View testID="composer-time-pane" style={styles.pane}>
+      <Text style={[styles.paneLabel, { color: tokens.muted }]}>
+        {t.labs.calendar.startsAt}
+      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="always"
+        contentContainerStyle={styles.chips}
+      >
+        {times.map((time) => (
+          <Chip
+            key={time}
+            testID={`composer-time-${time}`}
+            label={time}
+            set={time === start}
+            onPress={() => onPick(time, plus(time, span))}
+          />
+        ))}
+      </ScrollView>
+
+      <Text style={[styles.paneLabel, { color: tokens.muted }]}>
+        {t.labs.calendar.lasts}
+      </Text>
+      <View style={styles.moreRow}>
+        {durations.map((duration) => (
+          <Chip
+            key={duration.id}
+            testID={`composer-duration-${duration.id}`}
+            label={t.labs.calendar.durations[duration.id]}
+            set={span === duration.minutes && Boolean(start)}
+            onPress={() => onPick(current, plus(current, duration.minutes))}
+          />
+        ))}
+      </View>
+      <View style={[styles.paneRule, { backgroundColor: tint.bg }]} />
+    </View>
+  )
+}
+
+/** Where, and Notes: one field each, inside the card rather than after it. */
+function TextPane({
+  value,
+  placeholder,
+  multiline,
+  testID,
+  onChange,
+}: {
+  value: string
+  placeholder: string
+  multiline: boolean
+  testID: string
+  onChange: (value: string) => void
+}) {
+  const tokens = useTokens('home')
+  const tint = tokens.tintOf('home')
+
+  return (
+    <View style={styles.pane}>
+      <TextInput
+        testID={testID}
+        autoFocus
+        value={value}
+        onChangeText={onChange}
+        placeholder={placeholder}
+        placeholderTextColor={tokens.muted}
+        selectionColor={tint.fg}
+        multiline={multiline}
+        style={[
+          styles.paneField,
+          {
+            color: tokens.fg,
+            backgroundColor: tokens.tile,
+            minHeight: multiline ? 66 : 42,
+          },
+        ]}
+      />
+    </View>
+  )
+}
+
+/** Recurrence, as far as a prototype takes it: it is stored and it is shown. */
+function RepeatChip({
+  value,
+  onPick,
+}: {
+  value: RepeatRule
+  onPick: (next: RepeatRule) => void
+}) {
+  const tokens = useTokens('home')
+  const tint = tokens.tintOf('home')
+  const { t } = useI18n()
+  const rules: RepeatRule[] = ['never', 'daily', 'weekly', 'monthly']
+  const set = value !== 'never'
+
+  return (
+    <NativeContextMenu
+      trigger="press"
+      actions={rules.map((rule) => ({
+        id: rule,
+        title: t.labs.calendar.repeatRules[rule],
+        state: rule === value ? ('on' as const) : ('off' as const),
+      }))}
+      onAction={(id) => {
+        haptics.selectionChanged()
+        onPick(id as RepeatRule)
+      }}
+    >
+      <View
+        testID="composer-chip-repeats"
+        accessibilityRole="button"
+        accessibilityLabel={t.labs.calendar.chips.repeats}
+        style={[
+          styles.chip,
+          {
+            backgroundColor: set ? tint.bg : tokens.surface,
+            borderColor: set ? 'transparent' : tokens.border,
+            borderStyle: set ? 'solid' : 'dashed',
+          },
+        ]}
+      >
+        <Text
+          style={[styles.chipLabel, { color: set ? tint.fg : tokens.muted }]}
+        >
+          {set
+            ? t.labs.calendar.repeatRules[value]
+            : t.labs.calendar.chips.repeats}
+        </Text>
+      </View>
+    </NativeContextMenu>
+  )
+}
+
 /** Colour is the calendar. The swatch is the whole control. */
 function CalendarChip({
   calendarId,
@@ -967,6 +1232,22 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
   },
+  pane: { paddingHorizontal: 4, paddingBottom: 6, gap: 6 },
+  paneLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    paddingHorizontal: 8,
+    textTransform: 'uppercase',
+  },
+  paneField: {
+    fontSize: 16,
+    borderRadius: RADIUS.tile,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    textAlignVertical: 'top',
+  },
+  paneRule: { height: 1, marginTop: 4, borderRadius: 1 },
   chipLabel: { fontSize: 15, fontWeight: '600' },
   swatch: { width: 11, height: 11, borderRadius: 3 },
   roundChip: {

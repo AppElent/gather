@@ -798,6 +798,13 @@ export const en = {
       show: 'Show',
       hide: 'Hide',
       /** The composer. The name is the field everything else hangs off. */
+      /**
+       * Settled on a device on 2 September 2026. The three axes stay in the
+       * code — a winner does not delete the alternatives — but this is what
+       * the real Module is built from.
+       */
+      verdict:
+        'The view menu wins, and it gained a swipe: sideways pages the month, up and down is week↔month. A cell shows one initial and a count, never a row of them. The composer is the card. Still open: whether the drag-only header (nav=fluid) is worth keeping at all.',
       namePlaceholder: 'Event name',
       /** The chips beneath it, in the order they sit in the strip. */
       chips: {
@@ -810,6 +817,23 @@ export const en = {
         where: 'Where',
         notes: 'Notes',
         repeats: 'Repeats…',
+      },
+      /** The panes those chips open, which used to be dead ends. */
+      wherePlaceholder: 'Where',
+      notesPlaceholder: 'Notes',
+      startsAt: 'Starts at',
+      lasts: 'Lasts',
+      durations: {
+        m30: '30 min',
+        h1: '1 hour',
+        h2: '2 hours',
+      },
+      /** How often it comes round. Prototype only: nothing is expanded. */
+      repeatRules: {
+        never: 'Never',
+        daily: 'Every day',
+        weekly: 'Every week',
+        monthly: 'Every month',
       },
       /** The round button: commits a new event, dismisses an edit. */
       commit: 'Add event',

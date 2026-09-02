@@ -90,16 +90,24 @@ describe('sorting a day', () => {
 })
 
 describe('the marks on a cell', () => {
-  test('is an initial per person, tinted by the event’s calendar', () => {
+  test('is an initial, tinted by the event’s calendar', () => {
     const { marks, overflow } = cellMarks(
-      [event({ who: ['eric', 'sanne'], calendarId: 'school' })],
+      [event({ who: ['eric'], calendarId: 'school' })],
       LAB_MEMBERS,
     )
     expect(overflow).toBe(0)
     expect(marks).toEqual([
       { kind: 'person', key: 'x-eric', initial: 'E', calendarId: 'school' },
-      { kind: 'person', key: 'x-sanne', initial: 'S', calendarId: 'school' },
     ])
+  })
+
+  test('draws one and counts the rest — a cell is not a row of confetti', () => {
+    const { marks, overflow } = cellMarks(
+      [event({ who: ['eric', 'sanne'], calendarId: 'school' })],
+      LAB_MEMBERS,
+    )
+    expect(marks).toHaveLength(1)
+    expect(overflow).toBe(1)
   })
 
   test('is a dot when nobody is on the event — the common case, not an edge one', () => {
@@ -118,10 +126,10 @@ describe('the marks on a cell', () => {
       ],
       LAB_MEMBERS,
     )
-    expect(marks).toHaveLength(3)
-    // Five marks in total, three drawn: an overflow counted in events would
-    // have said +1 here and been wrong by one.
-    expect(overflow).toBe(2)
+    expect(marks).toHaveLength(1)
+    // Five marks in total, one drawn: an overflow counted in events would have
+    // said +2 here and been wrong by two.
+    expect(overflow).toBe(4)
   })
 
   test('keeps counting past the ceiling rather than counting what it drew', () => {
@@ -132,7 +140,7 @@ describe('the marks on a cell', () => {
       ],
       LAB_MEMBERS,
     )
-    expect(overflow).toBe(1)
+    expect(overflow).toBe(3)
   })
 
   test('draws a member it cannot name rather than nothing', () => {

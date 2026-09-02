@@ -4,11 +4,12 @@
  * Two of the canvas's three decisions are arithmetic rather than drawing, and
  * this is where they live so a test can ask about them:
  *
- * - **A cell says WHO.** Up to three marks: an initial in a circle tinted by
- *   its calendar for each person on an event, and — for an event nobody is on —
- *   a dot in the calendar's colour. Overflow is counted in *marks*, not events,
- *   because a two-person event is two marks and calling that one is what makes
- *   a `+n` wrong.
+ * - **A cell says WHO.** One mark: an initial in a circle tinted by its
+ *   calendar, or — for an event nobody is on — a dot in the calendar's colour.
+ *   Anything beyond it is a `+n`. Three initials in a 44-point cell is a row of
+ *   confetti you cannot read at a glance; one initial and "+2" is a sentence.
+ *   Overflow is counted in *marks*, not events, because a two-person event is
+ *   two marks and calling that one is what makes a `+n` wrong.
  * - **An agenda skips empty days and keeps empty weeks.** A day with nothing on
  *   it is not a row; a whole week with nothing on it is a fact about the month
  *   and gets said, or the reader is left wondering whether the list is broken.
@@ -18,8 +19,8 @@
 import { addDays, daysBetween, parseDay } from '../../modules/tasks/taskDates'
 import type { LabEvent, LabMember } from './fixtures'
 
-/** The ceiling the canvas set. Three marks, then a count. */
-export const MAX_MARKS = 3
+/** One mark, then a count. Settled on the device: three did not read. */
+export const MAX_MARKS = 1
 
 export type Mark =
   | { kind: 'person'; key: string; initial: string; calendarId: string }

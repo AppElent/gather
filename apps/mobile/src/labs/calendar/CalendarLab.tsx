@@ -22,13 +22,16 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
   interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { Segmented } from '../../components/Segmented'
+import { SwipeableRow } from '../../components/SwipeableRow'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import {
@@ -137,6 +140,11 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
     setView(next)
   }
 
+  const pageMonth = (by: 1 | -1) => {
+    haptics.selectionChanged()
+    setMonth((current) => shiftMonth(current, by))
+  }
+
   const toggleCalendar = (id: string) =>
     setHidden((current) =>
       current.includes(id)
@@ -144,10 +152,10 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
         : [...current, id],
     )
 
-  const openNew = () =>
+  const openNew = (date = selected) =>
     setDraft({
       mode: 'create',
-      date: selected,
+      date,
       title: '',
       calendarId: LAB_CALENDARS[0].id,
       who: [],
@@ -210,8 +218,17 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
     setSelected(next.date)
   }
 
-  const deleteEvent = (id: string) =>
+  const deleteEvent = (id: string) => {
     setEvents((current) => current.filter((event) => event.id !== id))
+  }
+
+  const duplicateEvent = (event: LabEvent) => {
+    haptics.itemSaved()
+    setEvents((current) => [
+      ...current,
+      { ...event, id: `copy-${event.id}-${current.length}` },
+    ])
+  }
 
   const monthName = grid.first.toLocaleDateString(locale, { month: 'long' })
   const yearName = grid.first.toLocaleDateString(locale, { year: 'numeric' })
@@ -231,7 +248,45 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
     weeks.findIndex((week) => week.includes(selected)),
   )
 
+  /**
+   * The month, swiped. Sideways pages it; up and down is the same week↔month
+   * move the menu makes, because "swipe to see more of the month" is the one
+   * calendar gesture every phone already taught its owner.
+   *
+   * `runOnJS` rather than a shared value: this snaps to a state instead of
+   * following the finger, which is what a menu-driven view can do without the
+   * two disagreeing about where the header is.
+   */
+  const swipeMonth = Gesture.Pan()
+    .activeOffsetX([-24, 24])
+    .activeOffsetY([-24, 24])
+    .onEnd((event) => {
+      const sideways =
+        Math.abs(event.translationX) > Math.abs(event.translationY)
+      if (sideways) {
+        if (Math.abs(event.translationX) < 56) return
+        runOnJS(pageMonth)(event.translationX > 0 ? -1 : 1)
+        return
+      }
+      if (Math.abs(event.translationY) < 40) return
+      runOnJS(changeView)(event.translationY > 0 ? 'month' : 'week')
+    })
+
   const pan = Gesture.Pan()
+    .onBegin(() => {
+      dragFrom.value = openness.value
+    })
+    .onUpdate((event) => {
+      const next = dragFrom.value + event.translationY / FLUID_RANGE
+      openness.value = Math.min(1, Math.max(0, next))
+    })
+    .onEnd((event) => {
+      const settled = openness.value + event.velocityY / 2400 > 0.5 ? 1 : 0
+      openness.value = withSpring(settled, SPRING)
+    })
+
+  /** The same drag, mounted twice — RNGH will not share one gesture object. */
+  const grabPan = Gesture.Pan()
     .onBegin(() => {
       dragFrom.value = openness.value
     })
@@ -285,6 +340,7 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
             variant={cell}
             locale={locale}
             onPress={pickDay}
+            onHold={openNew}
           />
         ),
       )}
@@ -297,6 +353,8 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
       today={today}
       events={shown}
       onOpen={openEdit}
+      onDuplicate={duplicateEvent}
+      onDelete={deleteEvent}
       locale={locale}
     />
   )
@@ -309,21 +367,43 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
         options={{
           headerShown: true,
           title: t.labs.calendar.title,
-          headerRight:
-            nav === 'menu'
-              ? () => (
-                  <ViewMenu
-                    view={view}
-                    onView={changeView}
-                    calendars={LAB_CALENDARS.map((calendar) => ({
-                      id: calendar.id,
-                      name: calendar.name,
-                      shown: !hidden.includes(calendar.id),
-                    }))}
-                    onToggleCalendar={toggleCalendar}
-                  />
-                )
-              : undefined,
+          // Settings sets `headerLargeTitle` for its own list screens. A large
+          // title is a scroll-view affordance: it floats over the content and
+          // collapses as that content scrolls under it. This screen's root is
+          // not a scroll view, so on iOS the title simply sat on top of the
+          // banner, the month row and the first grid row — and ate 60 points
+          // doing it. A calendar names its own month; it does not need the bar
+          // to say it twice.
+          headerLargeTitle: false,
+          // Add lives in the nav bar, which is where iOS puts it in every
+          // first-party app that has one. A `+` floating in the content was a
+          // toolbar this screen had drawn for itself next to a real one.
+          headerRight: () => (
+            <View style={styles.headerRight}>
+              {nav === 'menu' ? (
+                <ViewMenu
+                  view={view}
+                  onView={changeView}
+                  calendars={LAB_CALENDARS.map((calendar) => ({
+                    id: calendar.id,
+                    name: calendar.name,
+                    shown: !hidden.includes(calendar.id),
+                  }))}
+                  onToggleCalendar={toggleCalendar}
+                />
+              ) : null}
+              <Pressable
+                testID="calendar-new"
+                accessibilityRole="button"
+                accessibilityLabel={t.labs.calendar.newEvent}
+                hitSlop={10}
+                onPress={() => openNew()}
+                style={styles.headerButton}
+              >
+                <UI_ICONS.Plus size={23} color={tint.fg} strokeWidth={2.3} />
+              </Pressable>
+            </View>
+          ),
         }}
       />
 
@@ -350,15 +430,6 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
             <Text style={[styles.todayLink, { color: tint.fg }]}>
               {t.labs.calendar.today}
             </Text>
-          </Pressable>
-          <Pressable
-            testID="calendar-new"
-            accessibilityRole="button"
-            accessibilityLabel={t.labs.calendar.newEvent}
-            hitSlop={10}
-            onPress={openNew}
-          >
-            <UI_ICONS.Plus size={23} color={tint.fg} strokeWidth={2.3} />
           </Pressable>
         </View>
 
@@ -402,59 +473,72 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
                 agendaSlide,
               ]}
             >
-              <View
-                style={[styles.grabRow, { backgroundColor: tokens.bg }]}
-                pointerEvents="none"
-              >
+              {/* The collapsed header is one week tall and the agenda covers
+                  the rest of it, so dragging *the header* meant aiming at a
+                  58-point strip. This handle is the other half of the same
+                  gesture and it is where the finger already is. */}
+              <GestureDetector gesture={grabPan}>
                 <View
-                  style={[styles.grabber, { backgroundColor: tokens.border }]}
-                />
-              </View>
+                  testID="calendar-grab"
+                  accessibilityLabel={t.labs.calendar.dragHint}
+                  style={[styles.grabRow, { backgroundColor: tokens.bg }]}
+                >
+                  <View
+                    style={[styles.grabber, { backgroundColor: tokens.border }]}
+                  />
+                </View>
+              </GestureDetector>
               {agenda}
             </Animated.View>
           </View>
         ) : (
           <View style={styles.fill}>
             {view !== 'agenda' ? (
-              <View
-                style={[styles.header, { backgroundColor: tokens.surface }]}
-              >
-                <WeekdayHeader locale={locale} />
-                {view === 'month'
-                  ? weeks.map((week, index) => monthCells(week, `w${index}`))
-                  : monthCells(selectedWeek, 'selected')}
-                <View style={styles.monthNav}>
-                  <Pressable
-                    testID="calendar-previous-month"
-                    accessibilityRole="button"
-                    accessibilityLabel={t.labs.calendar.previousMonth}
-                    hitSlop={12}
-                    onPress={() => setMonth(shiftMonth(month, -1))}
-                  >
-                    <UI_ICONS.ChevronLeft
-                      size={19}
-                      color={tokens.muted}
-                      strokeWidth={2.2}
+              <GestureDetector gesture={swipeMonth}>
+                <View
+                  testID="calendar-month-header"
+                  style={[styles.header, { backgroundColor: tokens.surface }]}
+                >
+                  <WeekdayHeader locale={locale} />
+                  {view === 'month'
+                    ? weeks.map((week, index) => monthCells(week, `w${index}`))
+                    : monthCells(selectedWeek, 'selected')}
+                  <View style={styles.monthNav}>
+                    <Pressable
+                      testID="calendar-previous-month"
+                      accessibilityRole="button"
+                      accessibilityLabel={t.labs.calendar.previousMonth}
+                      hitSlop={12}
+                      onPress={() => setMonth(shiftMonth(month, -1))}
+                    >
+                      <UI_ICONS.ChevronLeft
+                        size={19}
+                        color={tokens.muted}
+                        strokeWidth={2.2}
+                      />
+                    </Pressable>
+                    <View
+                      style={[
+                        styles.grabber,
+                        { backgroundColor: tokens.border },
+                      ]}
                     />
-                  </Pressable>
-                  <View
-                    style={[styles.grabber, { backgroundColor: tokens.border }]}
-                  />
-                  <Pressable
-                    testID="calendar-next-month"
-                    accessibilityRole="button"
-                    accessibilityLabel={t.labs.calendar.nextMonth}
-                    hitSlop={12}
-                    onPress={() => setMonth(shiftMonth(month, 1))}
-                  >
-                    <UI_ICONS.ChevronRight
-                      size={19}
-                      color={tokens.muted}
-                      strokeWidth={2.2}
-                    />
-                  </Pressable>
+                    <Pressable
+                      testID="calendar-next-month"
+                      accessibilityRole="button"
+                      accessibilityLabel={t.labs.calendar.nextMonth}
+                      hitSlop={12}
+                      onPress={() => setMonth(shiftMonth(month, 1))}
+                    >
+                      <UI_ICONS.ChevronRight
+                        size={19}
+                        color={tokens.muted}
+                        strokeWidth={2.2}
+                      />
+                    </Pressable>
+                  </View>
                 </View>
-              </View>
+              </GestureDetector>
             ) : null}
             {/* Month shows the day you picked; week and agenda show what is
                 coming. That is the only difference between the three bodies. */}
@@ -464,6 +548,8 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
                 today={today}
                 events={eventsOn(shown, selected)}
                 onOpen={openEdit}
+                onDuplicate={duplicateEvent}
+                onDelete={deleteEvent}
                 locale={locale}
               />
             ) : (
@@ -481,6 +567,18 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
           onChange={applyDraft}
           onClose={() => setDraft(null)}
           onDelete={deleteEvent}
+          onDuplicate={(next) =>
+            duplicateEvent({
+              id: next.id ?? 'draft',
+              title: next.title,
+              date: next.date,
+              calendarId: next.calendarId,
+              who: next.who,
+              allDay: next.allDay,
+              start: next.start,
+              end: next.end,
+            })
+          }
           onOpen={openNew}
           bottomInset={insets.bottom}
         />
@@ -598,6 +696,7 @@ function DayCell({
   variant,
   locale,
   onPress,
+  onHold,
 }: {
   iso: string
   today: string
@@ -606,6 +705,7 @@ function DayCell({
   variant: CellVariant
   locale: string
   onPress: (iso: string) => void
+  onHold: (iso: string) => void
 }) {
   const tokens = useTokens('home')
   const tint = tokens.tintOf('home')
@@ -634,6 +734,13 @@ function DayCell({
       accessibilityState={{ selected: isSelected }}
       accessibilityLabel={spoken}
       onPress={() => onPress(iso)}
+      // Hold a day and you are adding to *that* day. Without it, adding to a
+      // day is: tap the day, then reach the nav bar — which is a tap too many
+      // for the single most common thing anybody does on a calendar.
+      onLongPress={() => {
+        haptics.menuOpened()
+        onHold(iso)
+      }}
       style={[
         styles.cell,
         isSelected && { backgroundColor: tokens.tile, borderColor: tint.fg },
@@ -710,12 +817,16 @@ function DayList({
   today,
   events,
   onOpen,
+  onDuplicate,
+  onDelete,
   locale,
 }: {
   iso: string
   today: string
   events: LabEvent[]
   onOpen: (event: LabEvent) => void
+  onDuplicate: (event: LabEvent) => void
+  onDelete: (id: string) => void
   locale: string
 }) {
   const tokens = useTokens()
@@ -736,7 +847,13 @@ function DayList({
         </Text>
       ) : (
         events.map((event) => (
-          <EventRow key={event.id} event={event} onOpen={onOpen} />
+          <EventRow
+            key={event.id}
+            event={event}
+            onOpen={onOpen}
+            onDuplicate={onDuplicate}
+            onDelete={onDelete}
+          />
         ))
       )}
     </ScrollView>
@@ -752,12 +869,16 @@ function Agenda({
   today,
   events,
   onOpen,
+  onDuplicate,
+  onDelete,
   locale,
 }: {
   from: string
   today: string
   events: LabEvent[]
   onOpen: (event: LabEvent) => void
+  onDuplicate: (event: LabEvent) => void
+  onDelete: (id: string) => void
   locale: string
 }) {
   const tokens = useTokens()
@@ -792,7 +913,13 @@ function Agenda({
               })}
             </Text>
             {row.events.map((event) => (
-              <EventRow key={event.id} event={event} onOpen={onOpen} />
+              <EventRow
+                key={event.id}
+                event={event}
+                onOpen={onOpen}
+                onDuplicate={onDuplicate}
+                onDelete={onDelete}
+              />
             ))}
           </View>
         ),
@@ -801,12 +928,26 @@ function Agenda({
   )
 }
 
+/**
+ * One event, with the two gestures `docs/mobile-interaction.md` says every row
+ * in this app has: **hold opens the system menu**, and **swipe left reveals a
+ * Delete you still have to tap**. Neither is invented here — the menu is
+ * `NativeContextMenu` and the swipe is `SwipeableRow`, both already carrying
+ * Tasks, Recipes and the Baby log.
+ *
+ * There is no swipe-right: an event has no one main verb the way a task has
+ * "complete", and the house rule is that a made-up action is worse than none.
+ */
 function EventRow({
   event,
   onOpen,
+  onDuplicate,
+  onDelete,
 }: {
   event: LabEvent
   onOpen: (event: LabEvent) => void
+  onDuplicate: (event: LabEvent) => void
+  onDelete: (id: string) => void
 }) {
   const tokens = useTokens()
   const { t } = useI18n()
@@ -814,12 +955,15 @@ function EventRow({
   const colours = tokens.tintOf(calendar?.tint ?? 'home')
   const when = timeLabel(event, t.labs.calendar.chips.allDay)
 
-  return (
+  const row = (
     <Pressable
       testID={`calendar-event-${event.id}`}
       accessibilityRole="button"
       accessibilityLabel={`${event.title}, ${when}`}
       onPress={() => onOpen(event)}
+      // A no-op hold, purely so Android's Pressable stops turning a long press
+      // into a press on release and opening the row behind its own menu.
+      onLongPress={() => {}}
       style={({ pressed }) => [
         styles.eventRow,
         { borderBottomColor: tokens.border },
@@ -827,7 +971,18 @@ function EventRow({
       ]}
     >
       <View style={[styles.eventBar, { backgroundColor: colours.fg }]} />
-      <Text style={[styles.eventTime, { color: tokens.muted }]}>{when}</Text>
+      {/* Two lines, deliberately, rather than letting a 52-point column wrap a
+          range wherever it likes — "14:30–1 / 5:15" is what that produced. */}
+      <View style={styles.eventTime}>
+        {when.split('–').map((part) => (
+          <Text
+            key={part}
+            style={[styles.eventTimeText, { color: tokens.muted }]}
+          >
+            {part}
+          </Text>
+        ))}
+      </View>
       <Text numberOfLines={2} style={[styles.eventTitle, { color: tokens.fg }]}>
         {event.title}
       </Text>
@@ -847,6 +1002,35 @@ function EventRow({
         })}
       </View>
     </Pressable>
+  )
+
+  // Menu outside, swipe inside — the same nesting `TaskListScreen` uses. The
+  // other way round, the swipeable's pan handler wins the long press and the
+  // hold silently opens the row instead of its menu.
+  return (
+    <NativeContextMenu
+      actions={[
+        { id: 'edit', title: t.actions.edit },
+        { id: 'duplicate', title: t.labs.calendar.duplicate },
+        {
+          id: 'delete',
+          title: t.labs.calendar.deleteEvent,
+          attributes: { destructive: true },
+        },
+      ]}
+      onAction={(action) => {
+        if (action === 'edit') onOpen(event)
+        if (action === 'duplicate') onDuplicate(event)
+        if (action === 'delete') onDelete(event.id)
+      }}
+    >
+      <SwipeableRow
+        deleteLabel={t.actions.delete}
+        onDelete={() => onDelete(event.id)}
+      >
+        {row}
+      </SwipeableRow>
+    </NativeContextMenu>
   )
 }
 
@@ -923,7 +1107,10 @@ const styles = StyleSheet.create({
     height: 26,
   },
   grabber: { width: 38, height: 4, borderRadius: 2 },
-  grabRow: { height: 14, alignItems: 'center', justifyContent: 'center' },
+  // 32, not 14: this is a gesture target, and a 14-point one is the reason
+  // the drag felt like it needed aiming.
+  grabRow: { height: 32, alignItems: 'center', justifyContent: 'center' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   /**
    * Tall enough that the agenda never runs out of background as it slides, and
    * anchored off the bottom for the same reason. A `height: '100%'` here would
@@ -956,7 +1143,8 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     borderRadius: 2,
   },
-  eventTime: { width: 52, fontSize: 12.5, fontWeight: '600' },
+  eventTime: { width: 52 },
+  eventTimeText: { fontSize: 12.5, fontWeight: '600' },
   eventTitle: { flex: 1, fontSize: 15.5, paddingVertical: 8 },
   eventWho: { flexDirection: 'row', gap: 3 },
   whoRing: {

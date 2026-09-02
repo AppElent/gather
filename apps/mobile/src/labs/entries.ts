@@ -32,10 +32,14 @@ export interface LabsEntry {
    */
   links: LabsLink[]
   /**
-   * What was decided, once something was. `null` while the prototype is still
-   * being lived with — which is not the same as nobody having looked at it.
+   * Whether a verdict exists. `null` while the prototype is still being lived
+   * with — which is not the same as nobody having looked at it.
+   *
+   * A flag rather than the sentence, because the sentence is user-visible and
+   * user-visible strings live in the message tree in both locales (ADR-0011).
+   * `t.labs[entry.id].verdict` is where the words are.
    */
-  verdict: string | null
+  verdict: 'settled' | null
 }
 
 export const LABS_ENTRIES: LabsEntry[] = [
@@ -49,6 +53,6 @@ export const LABS_ENTRIES: LabsEntry[] = [
       { params: { nav: 'segmented', cell: 'bars', composer: 'sheet' } },
       { params: { nav: 'menu', cell: 'bars', composer: 'inline' } },
     ],
-    verdict: null,
+    verdict: 'settled',
   },
 ]

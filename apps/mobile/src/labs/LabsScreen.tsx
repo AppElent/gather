@@ -63,7 +63,9 @@ export function LabsScreen() {
             {t.labs.entry.verdict.toUpperCase()}
           </Text>
           <Text style={[styles.body, { color: tokens.muted }]}>
-            {entry.verdict ?? t.labs.entry.undecided}
+            {entry.verdict === null
+              ? t.labs.entry.undecided
+              : t.labs[entry.id].verdict}
           </Text>
 
           <Text style={[styles.sectionLabel, { color: tokens.muted }]}>

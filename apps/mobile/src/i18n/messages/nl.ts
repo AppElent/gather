@@ -587,6 +587,13 @@ export const nl = {
       hidden: 'Verborgen',
       show: 'Tonen',
       hide: 'Verbergen',
+      /**
+       * Settled on a device on 2 September 2026. The three axes stay in the
+       * code — a winner does not delete the alternatives — but this is what
+       * the real Module is built from.
+       */
+      verdict:
+        'Het weergavemenu wint, met een veeg erbij: opzij bladert door de maanden, omhoog en omlaag wisselt tussen week en maand. Een dagcel toont één initiaal en een telling, nooit een rij. De composer is de kaart. Nog open: of de sleepbare koptekst (nav=fluid) het waard is om te houden.',
       namePlaceholder: 'Naam van de afspraak',
       chips: {
         more: 'Meer',
@@ -598,6 +605,23 @@ export const nl = {
         where: 'Waar',
         notes: 'Notities',
         repeats: 'Herhaalt…',
+      },
+      /** The panes those chips open, which used to be dead ends. */
+      wherePlaceholder: 'Waar',
+      notesPlaceholder: 'Notities',
+      startsAt: 'Begint om',
+      lasts: 'Duurt',
+      durations: {
+        m30: '30 min',
+        h1: '1 uur',
+        h2: '2 uur',
+      },
+      /** How often it comes round. Prototype only: nothing is expanded. */
+      repeatRules: {
+        never: 'Nooit',
+        daily: 'Elke dag',
+        weekly: 'Elke week',
+        monthly: 'Elke maand',
       },
       commit: 'Afspraak toevoegen',
       dismiss: 'Klaar',
