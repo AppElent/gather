@@ -49,6 +49,44 @@ describe('a new user', () => {
   })
 })
 
+describe('Group appearance', () => {
+  test('an admin can save an icon', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+    const groupId = await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.createGroup, { name: 'Jansen Household' })
+
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.updateAppearance, { groupId, icon: 'House' })
+
+    expect(await groupsOf(t, asAlice)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ _id: groupId, icon: 'House' })]),
+    )
+  })
+
+  test('a member cannot change the Group appearance', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+    await signUp(t, asBob)
+    const groupId = await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.createGroup, { name: 'Jansen Household' })
+    const group = await t.run(async (ctx) => await ctx.db.get(groupId))
+    if (!group) throw new Error('group was not created')
+    await t
+      .withIdentity(asBob)
+      .mutation(api.groups.joinByInvite, { inviteCode: group.inviteCode })
+
+    await expect(
+      t
+        .withIdentity(asBob)
+        .mutation(api.groups.updateAppearance, { groupId, icon: 'Heart' }),
+    ).rejects.toThrow(/admin/i)
+  })
+})
+
 describe('slugs', () => {
   test('every Group has one, and no two Groups share it', async () => {
     const t = testConvex()
@@ -418,7 +456,7 @@ describe('resolving a Group by slug', () => {
 
     expect(asAdmin).toMatchObject({
       ok: true,
-      group: { _id: groupId, name: 'Jansen Household', isPersonal: false },
+      group: { _id: groupId, name: 'Jansen Household' },
       role: 'admin',
     })
     expect(asPlainMember).toMatchObject({ ok: true, role: 'member' })
@@ -437,7 +475,7 @@ describe('resolving a Group by slug', () => {
 
     expect(result).toMatchObject({
       ok: true,
-      group: { slug: 'alice', isPersonal: false },
+      group: { slug: 'alice' },
       role: 'admin',
     })
   })

@@ -324,7 +324,7 @@ test('the persistent add menu keeps a barcode out of one-offs', async () => {
   })
   expect(addToLibrary[0]).toHaveAttribute(
     'href',
-    '/g/jansen-household/foods/new?barcode=9999999999999&returnDate=2026-07-18&returnMeal=breakfast',
+    '/foods/new?barcode=9999999999999&returnDate=2026-07-18&returnMeal=breakfast',
   )
 })
 
@@ -368,8 +368,8 @@ test('choosing an Open Food Facts result imports it and returns ready to log', a
   ])
   expect(navigated.value).toEqual([
     {
-      to: '/g/$groupSlug/nutrition/add',
-      params: { groupSlug: 'jansen-household' },
+      to: '/nutrition/add',
+      params: {},
       search: { date: '2026-07-18', meal: 'breakfast', food: 'food9' },
     },
   ])
@@ -389,7 +389,7 @@ test('checking an Open Food Facts result first still opens review without import
   const review = screen.getByText('Check first')
   expect(review).toHaveAttribute(
     'href',
-    '/g/jansen-household/foods/new?barcode=8712345678901&returnDate=2026-07-18&returnMeal=breakfast',
+    '/foods/new?barcode=8712345678901&returnDate=2026-07-18&returnMeal=breakfast',
   )
   expect(calls.value).toEqual([])
 })
@@ -458,7 +458,7 @@ test('a scanned product nobody has imports and returns ready to log', async () =
     },
   ])
   expect(navigated.value[0]).toMatchObject({
-    to: '/g/$groupSlug/nutrition/add',
+    to: '/nutrition/add',
     search: {
       date: '2026-07-18',
       meal: 'breakfast',
@@ -498,7 +498,7 @@ test('a scanned product with no name is asked about rather than imported as ""',
 
   await waitFor(() => expect(navigated.value).toHaveLength(1))
   expect(navigated.value[0]).toMatchObject({
-    to: '/g/$groupSlug/foods/new',
+    to: '/foods/new',
     search: { barcode: '8712345678901' },
   })
   expect(calls.value).toEqual([])
@@ -695,7 +695,7 @@ test('scan and add stay reachable, and add carries the current term into either 
   expect(screen.getByText('Log “melk” as a one-off')).toBeDefined()
   expect(screen.getByText('Add “melk” to my foods')).toHaveAttribute(
     'href',
-    '/g/jansen-household/foods/new?name=melk&returnDate=2026-07-18&returnMeal=breakfast',
+    '/foods/new?name=melk&returnDate=2026-07-18&returnMeal=breakfast',
   )
 })
 
@@ -896,7 +896,7 @@ test('a search matching nothing also offers adding it as a food', async () => {
   const addFood = screen.getByText('Add “hagelslag” to my foods')
   expect(addFood).toHaveAttribute(
     'href',
-    '/g/jansen-household/foods/new?name=hagelslag&returnDate=2026-07-18&returnMeal=breakfast',
+    '/foods/new?name=hagelslag&returnDate=2026-07-18&returnMeal=breakfast',
   )
   // Offering it is not taking it: nothing is written by looking at the choice.
   expect(calls.value).toEqual([])

@@ -41,7 +41,11 @@ import {
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
 import { groupsForSurface } from './groupsForSurface'
-import { readRetainedGroup, writeRetainedGroup } from './retainedGroup'
+import {
+  clearRetainedGroup,
+  readRetainedGroup,
+  writeRetainedGroup,
+} from './retainedGroup'
 
 /** How long an empty list of Groups is treated as one that has not finished
  * arriving. Long enough for `ensureUser` to insert a Personal group and for the
@@ -54,7 +58,6 @@ export interface AmbientGroup {
   _id: Id<'groups'>
   name: string
   slug: string
-  isPersonal: boolean
 }
 
 export interface GroupContextValue {
@@ -114,11 +117,10 @@ export function GroupProvider({ children, pending, none }: GroupProviderProps) {
   const myGroups = useQuery(api.groups.myGroups, isAuthenticated ? {} : 'skip')
   const groups = useMemo<AmbientGroup[] | undefined>(
     () =>
-      myGroups?.map(({ _id, name, slug, isPersonal }) => ({
+      myGroups?.map(({ _id, name, slug }) => ({
         _id,
         name,
         slug,
-        isPersonal,
       })),
     [myGroups],
   )
@@ -131,6 +133,10 @@ export function GroupProvider({ children, pending, none }: GroupProviderProps) {
   const visibleGroups = groupsForSurface(groups, lastGroups)
 
   const selection = selectGroup(retained, visibleGroups)
+
+  useEffect(() => {
+    if (selection.status === 'none') clearRetainedGroup()
+  }, [selection.status])
 
   // Runs out once and stays run out — it is only ever consulted while the
   // answer is `none`, so there is nothing to reset it for. The cost is that

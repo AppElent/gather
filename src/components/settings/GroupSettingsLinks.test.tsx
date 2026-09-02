@@ -19,6 +19,9 @@ vi.mock('convex/react', () => ({ useQuery: () => groups.value }))
 vi.mock('../../../convex/_generated/api', () => ({
   api: { groups: { myGroups: 'groups:myGroups' } },
 }))
+vi.mock('../app/useCurrentGroup', () => ({
+  useCurrentGroup: () => ({ setCurrentGroup: vi.fn() }),
+}))
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({
@@ -59,10 +62,10 @@ describe('the signpost to each Group’s settings', () => {
       screen
         .getByRole('link', { name: /Jansen Household/ })
         .getAttribute('href'),
-    ).toBe('/g/jansen-household/settings')
+    ).toBe('/group-settings')
     expect(
       screen.getByRole('link', { name: /Cooking club/ }).getAttribute('href'),
-    ).toBe('/g/cooking-club/settings')
+    ).toBe('/group-settings')
   })
 
   test('offers nothing at all until the answer has arrived', () => {

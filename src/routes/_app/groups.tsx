@@ -1,9 +1,11 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import { Pill, SurfaceCard } from '../../components/app/ShellPrimitives'
+import { SurfaceCard } from '../../components/app/ShellPrimitives'
+import { useCurrentGroup } from '../../components/app/useCurrentGroup'
+import { Icon } from '../../components/app/Icon'
 import { errorMessage } from '../../lib/errorMessage'
 import { groupLink } from '../../lib/groupPaths'
 import { useMessages } from '../../lib/i18n'
@@ -36,6 +38,8 @@ function GroupsPage() {
   const groups = useQuery(api.groups.myGroups)
   const createGroup = useMutation(api.groups.createGroup)
   const joinByInvite = useMutation(api.groups.joinByInvite)
+  const navigate = useNavigate()
+  const { setCurrentGroup } = useCurrentGroup()
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -73,13 +77,30 @@ function GroupsPage() {
                     not click. */}
                 <Link
                   {...groupLink('settings', g.slug)}
+                  onClick={() => setCurrentGroup(g._id)}
                   className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-[var(--app-radius)] px-2 py-2 text-sm font-semibold text-[var(--app-fg)] no-underline hover:bg-[var(--app-surface-muted)]"
                 >
                   {/* A Group's name is somebody else's input and can be one long
                       word; `minmax(0,1fr)` above is what lets it truncate
                       instead of widening the page. */}
-                  <span className="truncate">{g.name}</span>
-                  {g.isPersonal ? <Pill>{text.personal}</Pill> : null}
+                  <span className="flex min-w-0 items-center gap-2">
+                    {g.imageUrl ? (
+                      <img
+                        src={g.imageUrl}
+                        alt=""
+                        className="h-7 w-7 shrink-0 rounded-[7px] object-cover"
+                      />
+                    ) : (
+                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px] bg-[var(--app-surface-muted)]">
+                        {g.icon ? (
+                          <Icon name={g.icon} className="h-4 w-4" />
+                        ) : (
+                          g.name.slice(0, 1).toUpperCase()
+                        )}
+                      </span>
+                    )}
+                    <span className="truncate">{g.name}</span>
+                  </span>
                   <ChevronRight
                     className="h-4 w-4 shrink-0 text-[var(--app-muted)]"
                     aria-hidden="true"
@@ -100,7 +121,11 @@ function GroupsPage() {
               setError(null)
               if (name.trim())
                 void createGroup({ name: name.trim() })
-                  .then(() => setName(''))
+                  .then((groupId) => {
+                    setCurrentGroup(groupId)
+                    setName('')
+                    return navigate({ to: '/home' })
+                  })
                   .catch((err) =>
                     setError(errorMessage(err, text.createFailed)),
                   )
@@ -133,7 +158,11 @@ function GroupsPage() {
               setError(null)
               if (code.trim())
                 void joinByInvite({ inviteCode: code.trim() })
-                  .then(() => setCode(''))
+                  .then((groupId) => {
+                    setCurrentGroup(groupId)
+                    setCode('')
+                    return navigate({ to: '/home' })
+                  })
                   .catch((err) => setError(errorMessage(err, text.joinFailed)))
             }}
           >

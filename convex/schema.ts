@@ -52,8 +52,11 @@ export default defineSchema({
     // Globally unique, and readable so that the Group you are acting in is
     // visible in the URL (ADR-0002).
     slug: v.string(),
-    // A Personal group has one Member and cannot be left, renamed or deleted.
-    isPersonal: v.boolean(),
+    // Legacy only. New writes omit this; `removePersonalGroupSemantics`
+    // removes it from existing rows before the next schema tightening.
+    isPersonal: v.optional(v.boolean()),
+    icon: v.optional(v.string()),
+    imageId: v.optional(v.id('_storage')),
     groceryListId: v.optional(v.id('taskLists')),
   })
     .index('by_inviteCode', ['inviteCode'])

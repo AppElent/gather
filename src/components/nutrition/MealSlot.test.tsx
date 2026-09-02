@@ -93,7 +93,7 @@ test('renders entries, and + Add goes to the add sheet for this day and meal', (
   expect(screen.getByText('Oatmeal')).toBeDefined()
   expect(screen.getByRole('link', { name: '+ Add' })).toHaveAttribute(
     'href',
-    '/g/jansen-household/nutrition/add?date=2026-07-18&meal=breakfast',
+    '/nutrition/add?date=2026-07-18&meal=breakfast',
   )
 })
 

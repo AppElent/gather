@@ -494,7 +494,6 @@ export async function applySample(
       // slug here would be the one Group whose URL could collide.
       slug: await allocateGroupSlug(ctx, {
         name: SAMPLE_GROUP_NAME,
-        isPersonal: false,
       }),
       isPersonal: false,
     }),

@@ -14,14 +14,14 @@ import { groupSurfaceForModule, moduleSegment } from './groupPaths'
  * asserted here, along with the route file being on disk at all.
  */
 describe('every Module inside a Group', () => {
-  const base = join(process.cwd(), 'src/routes/_app/g/$groupSlug')
+  const base = join(process.cwd(), 'src/routes/_app')
 
   for (const module of MODULES) {
     test(`${module.id} claims a Group surface`, () => {
       expect(groupSurfaceForModule(module.id)).not.toBeNull()
     })
 
-    test(`${module.id} has a route file under /g/$groupSlug`, () => {
+    test(`${module.id} has a route file under `, () => {
       const segment = moduleSegment(module.id)
       expect(segment).not.toBe('')
       const candidates = [

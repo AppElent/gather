@@ -12,21 +12,21 @@ import { groupNutritionNav } from './nutritionNav'
 
 test('the Foods catalog keeps the Group that was open', () => {
   expect(groupNutritionNav('jansen-household').foods).toEqual({
-    to: '/g/$groupSlug/foods',
-    params: { groupSlug: 'jansen-household' },
+    to: '/foods',
+    params: {},
   })
 })
 
 test('the Combos library keeps it too, though a Combo belongs to no Group', () => {
   expect(groupNutritionNav('me-alice').combos).toEqual({
-    to: '/g/$groupSlug/combos',
-    params: { groupSlug: 'me-alice' },
+    to: '/combos',
+    params: {},
   })
 })
 
 test('the diary is what the Combos library comes back to', () => {
   expect(groupNutritionNav('me-alice').diary).toEqual({
-    to: '/g/$groupSlug/nutrition',
-    params: { groupSlug: 'me-alice' },
+    to: '/nutrition',
+    params: {},
   })
 })

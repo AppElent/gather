@@ -61,7 +61,6 @@ vi.mock('@tanstack/react-router', () => ({
 const HOUSEHOLD = {
   groupSlug: 'jansen-household',
   groupName: 'Jansen Household',
-  isPersonal: false,
 }
 
 const MEMBERS = [
@@ -116,29 +115,26 @@ describe('the very first visit, before anything has happened', () => {
     renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
     const recipes = screen.getByRole('link', { name: 'Recipes' })
-    expect(recipes.getAttribute('href')).toBe('/g/jansen-household/recipes')
+    expect(recipes.getAttribute('href')).toBe('/recipes')
   })
 
-  test('a Personal group says it is private, and points at Groups to share', () => {
+  test('a Group points to its management page', () => {
     members.value = [{ userId: 'u_alice', name: 'Alice', role: 'admin' }]
     renderWithI18n(
       <GroupHome
         groupSlug="me-alice"
         groupName="Alice's things"
-        isPersonal={true}
       />,
     )
 
     const who = screen.getByRole('region', { name: 'Who is here' })
-    expect(within(who).getByText(/yours alone/i).textContent).toContain(
-      "Alice's things",
-    )
+    expect(within(who).getByRole('link', { name: /groups/i })).toBeDefined()
     // Inviting lives on /groups. The invite code is a capability and Home
     // never shows one.
     expect(
       within(who).getByRole('link', { name: 'Groups' }).getAttribute('href'),
     ).toBe('/groups')
-    expect(screen.getByText(/only you will ever see it/i)).toBeDefined()
+    expect(within(who).getByText(/everyone here sees everything/i)).toBeDefined()
   })
 
   test('a shared group says everyone here sees everything', () => {
@@ -194,7 +190,7 @@ describe('the stream', () => {
 
     expect(
       screen.getByRole('link', { name: 'Roast chicken' }).getAttribute('href'),
-    ).toBe('/g/jansen-household/recipes/recipe_1')
+    ).toBe('/recipes/recipe_1')
   })
 
   test('links a log entry to the child it is about', () => {
@@ -212,7 +208,7 @@ describe('the stream', () => {
 
     expect(
       screen.getByRole('link', { name: 'Feeding' }).getAttribute('href'),
-    ).toBe('/g/jansen-household/baby/baby_1')
+    ).toBe('/baby/baby_1')
     expect(screen.getByText(/for Noor/)).toBeDefined()
     expect(screen.getByText('Baby log')).toBeDefined()
   })
@@ -231,7 +227,7 @@ describe('the stream', () => {
 
     expect(
       screen.getByRole('link', { name: 'Buy nappies' }).getAttribute('href'),
-    ).toBe('/g/jansen-household/tasks')
+    ).toBe('/tasks')
     expect(screen.getByText(/to Shopping/)).toBeDefined()
   })
 
@@ -314,7 +310,6 @@ describe('what a phone has to survive', () => {
       <GroupHome
         groupSlug="jansen-household"
         groupName="Vandenbergenhuishoudenoverdewintermaanden"
-        isPersonal={false}
       />,
     )
 

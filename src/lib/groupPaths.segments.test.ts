@@ -52,7 +52,7 @@ describe('Group-scoped routes', () => {
   // destination they can produce must be a route file that exists.
   for (const surface of GROUP_SURFACES) {
     test(`${surface} (${groupHref(surface, 'slug')}) resolves to a route file`, () => {
-      const base = join(process.cwd(), 'src/routes/_app/g/$groupSlug')
+      const base = join(process.cwd(), 'src/routes/_app')
       const segment = groupSurfaceSegment(surface)
       const candidates =
         segment === ''

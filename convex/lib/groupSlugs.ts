@@ -1,12 +1,10 @@
 import type { Id } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
-import { nthSlugCandidate, personalSlugBase, sharedSlugBase } from './slugs'
+import { nthSlugCandidate, sharedSlugBase } from './slugs'
 
 interface AllocateArgs {
   /** The Group's name, as a person typed it. */
   name: string
-  /** Personal groups take the reserved `me-` namespace; shared Groups cannot. */
-  isPersonal: boolean
   /** A Group renaming itself does not collide with its own current slug. */
   excludeGroupId?: Id<'groups'>
   /**
@@ -25,9 +23,9 @@ interface AllocateArgs {
  */
 export async function allocateGroupSlug(
   ctx: MutationCtx,
-  { name, isPersonal, excludeGroupId, taken }: AllocateArgs,
+  { name, excludeGroupId, taken }: AllocateArgs,
 ): Promise<string> {
-  const base = isPersonal ? personalSlugBase(name) : sharedSlugBase(name)
+  const base = sharedSlugBase(name)
 
   for (let n = 1; ; n++) {
     const candidate = nthSlugCandidate(base, n)

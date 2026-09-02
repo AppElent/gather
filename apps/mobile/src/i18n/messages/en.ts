@@ -464,7 +464,7 @@ export const en = {
     loading: coreEn.common.errors.loading,
     noneTitle: 'You are not in a group yet',
     noneBody:
-      'Gather makes you a personal group the first time you sign in. If this stays here, start one below or join somebody else’s with their invite code.',
+      'Start a group below or join somebody else’s with their invite code.',
   },
 
   /**

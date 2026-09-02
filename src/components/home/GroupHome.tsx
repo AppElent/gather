@@ -32,7 +32,6 @@ import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 export interface GroupHomeProps {
   groupSlug: string
   groupName: string
-  isPersonal: boolean
 }
 
 /**
@@ -45,11 +44,11 @@ const STARTERS = MODULES.filter(
   (module) => module.status === 'live' && module.scope === 'group',
 )
 
-function MemberList({ groupSlug, groupName, isPersonal }: GroupHomeProps) {
+function MemberList({ groupSlug, groupName }: GroupHomeProps) {
   const members = useQuery(api.groups.members, { slug: groupSlug })
   const messages = useMessages()
   const { home } = messages.shell
-  const note = isPersonal ? home.personalNote : home.sharedNote
+  const note = home.sharedNote
 
   return (
     <SurfaceCard ariaLabel={home.whoIsHere}>
@@ -181,7 +180,7 @@ function ActivityRow({
  * the card above, and this says what to do next — so the first visit is worth
  * making even for a household that has just been created.
  */
-function NothingYet({ groupSlug, groupName, isPersonal }: GroupHomeProps) {
+function NothingYet({ groupSlug, groupName }: GroupHomeProps) {
   const messages = useMessages()
   const { home } = messages.shell
 
@@ -189,7 +188,7 @@ function NothingYet({ groupSlug, groupName, isPersonal }: GroupHomeProps) {
     <div className="grid gap-3">
       <p className="m-0 text-sm leading-6 text-[var(--app-muted)]">
         {fmt(home.nothingYet, { group: groupName })}{' '}
-        {isPersonal ? home.nothingYetPersonal : home.nothingYetShared}
+        {home.nothingYetShared}
       </p>
       <div className="flex flex-wrap gap-2">
         {STARTERS.map((module) => (
@@ -212,7 +211,6 @@ function NothingYet({ groupSlug, groupName, isPersonal }: GroupHomeProps) {
 export function GroupHome({
   groupSlug,
   groupName,
-  isPersonal,
 }: GroupHomeProps) {
   const activity = useQuery(api.activity.forGroup, { groupSlug })
   const messages = useMessages()
@@ -235,14 +233,13 @@ export function GroupHome({
           {groupName}
         </h1>
         <p className="mt-1 mb-0 text-sm leading-6 text-[var(--app-muted)]">
-          {isPersonal ? home.personalSubtitle : home.sharedSubtitle}
+          {home.sharedSubtitle}
         </p>
       </header>
 
       <MemberList
         groupSlug={groupSlug}
         groupName={groupName}
-        isPersonal={isPersonal}
       />
 
       <SurfaceCard ariaLabel={home.recentActivity}>
@@ -257,7 +254,6 @@ export function GroupHome({
           <NothingYet
             groupSlug={groupSlug}
             groupName={groupName}
-            isPersonal={isPersonal}
           />
         ) : (
           <ol className="m-0 grid list-none p-0">

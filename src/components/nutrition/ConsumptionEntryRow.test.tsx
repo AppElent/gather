@@ -175,7 +175,7 @@ test('shows a View recipe link when recipeId is set', () => {
   const link = screen.getByText('View recipe')
   expect(link.closest('a')).toHaveAttribute(
     'href',
-    '/g/jansen-household/recipes/recipe1',
+    '/recipes/recipe1',
   )
 })
 
@@ -191,7 +191,7 @@ test('shows a View food link when foodId is set', () => {
   const link = screen.getByText('View food')
   expect(link.closest('a')).toHaveAttribute(
     'href',
-    '/g/jansen-household/foods/food1',
+    '/foods/food1',
   )
 })
 

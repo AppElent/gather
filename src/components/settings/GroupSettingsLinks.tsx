@@ -4,6 +4,7 @@ import { api } from '../../../convex/_generated/api'
 import { groupLink } from '../../lib/groupPaths'
 import { useMessages } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
+import { useCurrentGroup } from '../app/useCurrentGroup'
 
 /**
  * Where the connections went.
@@ -18,6 +19,7 @@ export function GroupSettingsLinks() {
   const groups = useQuery(api.groups.myGroups)
   const messages = useMessages()
   const { groupSettings } = messages.settings
+  const { setCurrentGroup } = useCurrentGroup()
 
   return (
     <SurfaceCard>
@@ -37,6 +39,7 @@ export function GroupSettingsLinks() {
             <li key={group._id}>
               <Link
                 {...groupLink('settings', group.slug)}
+                onClick={() => setCurrentGroup(group._id)}
                 className="flex min-h-9 items-center justify-between gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2 text-sm font-semibold no-underline"
               >
                 {group.name}

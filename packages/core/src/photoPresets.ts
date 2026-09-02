@@ -33,6 +33,7 @@ export interface PhotoPreset {
 }
 
 export const PHOTO_PRESETS = {
+  groupPhoto: { aspect: 1, maxEdge: 512, quality: 0.82 },
   childPhoto: { aspect: 1, maxEdge: 512, quality: 0.82 },
   recipePhoto: { aspect: null, maxEdge: 1600, quality: 0.82 },
   /**

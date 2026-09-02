@@ -1,8 +1,8 @@
-import { useLocation, useNavigate } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { jumpTargets } from '../../lib/appNavigation'
-import { groupSlugOf } from '../../lib/groupPaths'
 import { useMessages } from '../../lib/i18n'
+import { useCurrentGroup } from './useCurrentGroup'
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
@@ -11,7 +11,8 @@ export function CommandPalette() {
   const messages = useMessages()
   // Jumping from inside a Group keeps you in it, exactly as the sidebar and the
   // dock do — the palette is on screen under both route trees too.
-  const groupSlug = groupSlugOf(useLocation().pathname)
+  const { current } = useCurrentGroup()
+  const groupSlug = current?.slug ?? null
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

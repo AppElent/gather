@@ -39,6 +39,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'new',
   'all',
   'home',
+  'group-settings',
   'me',
   'admin',
   'groups',

@@ -98,12 +98,12 @@ describe('the trail a nested page shows', () => {
     // would move somebody to another Group's Foods without saying so.
     expect(
       within(list).getByRole('link', { name: 'Foods' }).getAttribute('href'),
-    ).toBe('/g/jansen-household/foods')
+    ).toBe('/foods')
     expect(
       within(list)
         .getByRole('link', { name: 'Hagelslag' })
         .getAttribute('href'),
-    ).toBe('/g/jansen-household/foods/food_1')
+    ).toBe('/foods/food_1')
   })
 
   test('is nothing at all when there is no trail to draw', () => {
@@ -119,7 +119,7 @@ describe('the back action a phone gets', () => {
 
     // Not the root: from Foods → Hagelslag → Edit, back is the food.
     const back = screen.getByRole('link', { name: 'Back to Hagelslag' })
-    expect(back.getAttribute('href')).toBe('/g/jansen-household/foods/food_1')
+    expect(back.getAttribute('href')).toBe('/foods/food_1')
   })
 
   test('meets the touch-target size the app holds itself to', () => {
@@ -136,7 +136,7 @@ describe('the back action a phone gets', () => {
 
     expect(
       screen.getByRole('link', { name: 'Back to Foods' }).getAttribute('href'),
-    ).toBe('/g/jansen-household/foods')
+    ).toBe('/foods')
   })
 
   test('is left out when nothing in the trail is somewhere to go', () => {

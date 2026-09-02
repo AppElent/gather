@@ -17,7 +17,7 @@ import { ShellGroupProvider } from './ShellGroup'
 import { IconButton } from './ShellPrimitives'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
-import { useCurrentGroup } from './useCurrentGroup'
+import { CurrentGroupProvider, useCurrentGroup } from './useCurrentGroup'
 import { useNavigation } from './useNavigation'
 
 const FOCUSABLE_SELECTOR =
@@ -34,9 +34,11 @@ function getFocusableElements(container: HTMLElement) {
  */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <ShellGroupProvider>
-      <AppShellBody>{children}</AppShellBody>
-    </ShellGroupProvider>
+    <CurrentGroupProvider>
+      <ShellGroupProvider>
+        <AppShellBody>{children}</AppShellBody>
+      </ShellGroupProvider>
+    </CurrentGroupProvider>
   )
 }
 

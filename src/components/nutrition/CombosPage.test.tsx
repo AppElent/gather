@@ -107,7 +107,7 @@ test('says what a combo is and how one is made when there are none yet', () => {
   expect(screen.getByText(/save as combo/i)).toBeDefined()
   expect(screen.getByRole('link', { name: /diary/i })).toHaveAttribute(
     'href',
-    '/g/jansen-household/nutrition',
+    '/nutrition',
   )
 })
 
@@ -147,6 +147,6 @@ test('keeps the Group that was open in the way back to the diary', () => {
 
   expect(screen.getByRole('link', { name: /diary/i })).toHaveAttribute(
     'href',
-    '/g/wine-club/nutrition',
+    '/nutrition',
   )
 })

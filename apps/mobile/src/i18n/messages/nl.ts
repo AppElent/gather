@@ -348,7 +348,7 @@ export const nl = {
     loading: coreNl.common.errors.loading,
     noneTitle: 'Je zit nog niet in een Groep',
     noneBody:
-      'Gather maakt bij je eerste keer inloggen een persoonlijke Groep voor je. Blijft dit staan, begin er dan hieronder een of doe mee met die van iemand anders met hun uitnodigingscode.',
+      'Maak hieronder een Groep aan of doe met een uitnodigingscode mee met die van iemand anders.',
   },
 
   signedIn: {

@@ -20,13 +20,13 @@ describe('the OAuth round trip', () => {
     const state = newOAuthState(
       'notion',
       'jansen-household',
-      '/g/jansen-household/tasks',
+      '/tasks',
     )
 
     expect(consumeOAuthState(state)).toEqual({
       provider: 'notion',
       groupSlug: 'jansen-household',
-      returnTo: '/g/jansen-household/tasks',
+      returnTo: '/tasks',
     })
   })
 

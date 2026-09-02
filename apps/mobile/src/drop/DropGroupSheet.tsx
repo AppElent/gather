@@ -66,9 +66,7 @@ export function DropGroupSheet({
                   {group.name}
                 </Text>
                 <Text style={[styles.meta, { color: tokens.muted }]}>
-                  {group.isPersonal
-                    ? t.shell.switcher.personal
-                    : t.shell.switcher.shared}
+                  {t.shell.switcher.shared}
                 </Text>
               </View>
               {isSelected ? <Check size={20} color={tokens.fg} /> : null}

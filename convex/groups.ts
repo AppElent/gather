@@ -8,7 +8,8 @@ import {
   resolveGroupBySlug,
 } from './lib/groupAccess'
 import { allocateGroupSlug } from './lib/groupSlugs'
-import { getCurrentUser, getMyGroupIds } from './lib/sharing'
+import { getCurrentUser } from './lib/sharing'
+import { replaceStoredFile } from './lib/storedFiles'
 
 /**
  * Resolve the caller and their standing in a Group, or refuse.
@@ -47,11 +48,33 @@ export const myGroups = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx)
     if (!user) return []
-    const ids = await getMyGroupIds(ctx, user._id)
-    const groups = await Promise.all(ids.map((id) => ctx.db.get(id)))
-    return groups
-      .filter((g): g is NonNullable<typeof g> => g !== null)
-      .map((g) => ({ ...g, isPersonal: g.isPersonal === true }))
+    const memberships = await ctx.db
+      .query('memberships')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .collect()
+    const groups = await Promise.all(
+      memberships.map(async (membership) => ({
+        group: await ctx.db.get(membership.groupId),
+        role: (membership.role as string) === 'owner' ? 'admin' : membership.role,
+      })),
+    )
+    const visible = await Promise.all(
+      groups
+      .filter(
+        (row): row is { group: NonNullable<typeof row.group>; role: 'admin' | 'member' } =>
+          row.group !== null,
+      )
+      .map(async ({ group, role }) => ({
+        ...group,
+        imageUrl: group.imageId ? await ctx.storage.getUrl(group.imageId) : null,
+        role,
+      })),
+    )
+    return visible
+      .sort(
+        (a, b) =>
+          a._creationTime - b._creationTime || a._id.localeCompare(b._id),
+      )
   },
 })
 
@@ -78,7 +101,6 @@ export const bySlug = query({
         _id: group._id,
         name: group.name,
         slug: group.slug,
-        isPersonal: group.isPersonal,
       },
       role,
     }
@@ -153,9 +175,7 @@ export const createGroup = mutation({
       name: args.name,
       slug: await allocateGroupSlug(ctx, {
         name: args.name,
-        isPersonal: false,
       }),
-      isPersonal: false,
       inviteCode: crypto.randomUUID().slice(0, 8),
     })
     await ctx.db.insert('memberships', {
@@ -178,7 +198,6 @@ export const renameGroup = mutation({
     // are in. Existing links to the old slug break — accepted in ADR-0002.
     const slug = await allocateGroupSlug(ctx, {
       name: args.name,
-      isPersonal: false,
       excludeGroupId: group._id,
     })
     await ctx.db.patch(group._id, { name: args.name, slug })
@@ -186,6 +205,32 @@ export const renameGroup = mutation({
     // has just made that address stop existing. It cannot work the new slug out
     // for itself — `allocateGroupSlug` resolves collisions — so it is told.
     return slug
+  },
+})
+
+export const generateImageUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    if (!(await getCurrentUser(ctx))) throw new Error('Not authenticated')
+    return await ctx.storage.generateUploadUrl()
+  },
+})
+
+export const updateAppearance = mutation({
+  args: {
+    groupId: v.id('groups'),
+    icon: v.optional(v.union(v.string(), v.null())),
+    imageId: v.optional(v.union(v.id('_storage'), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const { group, membership } = await requireMembership(ctx, args.groupId)
+    if (!isAdmin(membership)) throw new Error('Only an admin can edit a group')
+    const imageId = args.imageId
+    await ctx.db.patch(group._id, {
+      ...(args.icon === undefined ? {} : { icon: args.icon ?? undefined }),
+      ...(imageId === undefined ? {} : { imageId: imageId ?? undefined }),
+    })
+    await replaceStoredFile(ctx, group.imageId, imageId)
   },
 })
 
