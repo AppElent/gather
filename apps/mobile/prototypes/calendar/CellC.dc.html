@@ -1,0 +1,186 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8a6a33; text-decoration: none; }
+    a:hover { color: #6d5327; }
+    .ic { flex: none; }
+    input.f { font: inherit; border: 0; outline: 0; background: transparent; color: #1f2421; width: 100%; padding: 0; }
+    input.f::placeholder { color: #79807b; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none;"></div>
+  <div style="flex: none; display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 16px 0 6px;">
+    <div style="display: flex; align-items: center; gap: 2px; color: #8a6a33; cursor: pointer;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg><span style="font-size: 17px;">All</span></div>
+    <div style="display: flex; align-items: center; gap: 18px;"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></div>
+  </div>
+  <div style="flex: none; display: flex; align-items: center; height: 44px; padding: 0 16px;">
+    <span style="font-size: 24px; font-weight: 800; letter-spacing: -0.6px;">September</span>
+    <span style="font-size: 24px; font-weight: 400; letter-spacing: -0.6px; color: #79807b; margin-left: 5px;">2026</span>
+    <div style="flex: 1;"></div>
+    <span style="font-size: 15.5px; font-weight: 600; color: #8a6a33; cursor: pointer;">Today</span>
+  </div>
+  <div style="flex: none; display: flex; align-items: center; gap: 14px; padding: 2px 16px 10px;">
+    <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #79807b;"><span style="width: 8px; height: 8px; border-radius: 999px; background: #8a6a33;"></span>Household</span>
+    <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #79807b;"><span style="width: 8px; height: 8px; border-radius: 999px; background: #2b7f86;"></span>School</span>
+    <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #79807b;"><span style="width: 8px; height: 8px; border-radius: 999px; background: #7d3f5f;"></span>Work</span>
+  </div>
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 0 10px; flex: none;"><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">M</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">W</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">F</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">S</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">S</div></div>
+  <div style="flex: none; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; padding: 0 10px;">
+    <sc-for list="{{ cells }}" as="c" hint-placeholder-count="35">
+      <div onClick="{{ c.pick }}" style="{{ c.style }}">
+        <div style="{{ c.numStyle }}">{{ c.num }}</div>
+        <div style="{{ c.wrap }}">
+          <sc-for list="{{ c.marks }}" as="m" hint-placeholder-count="2">
+            <span style="{{ m.style }}">{{ m.text }}</span>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex: none; display: flex; gap: 3px; margin: 14px 16px 0; padding: 3px; background: #f1f2f0; border-radius: 11px;">
+    <div onClick="{{ real }}" style="{{ realStyle }}">A quiet month</div>
+    <div onClick="{{ dense }}" style="{{ busyStyle }}">A month they use</div>
+  </div>
+  <div style="flex: 1; min-height: 0; overflow: hidden; margin-top: 12px; border-top: 1px solid #e8e7e3; background: #ffffff;">
+    <div style="padding: 12px 16px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.7px; color: #79807b;">{{ dayLabel }}</div>
+    <div style="padding: 0 16px;">
+      <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size: 15px; color: #79807b; padding: 6px 0 14px;">Nothing on.</div>
+      </sc-if>
+      <sc-for list="{{ events }}" as="e" hint-placeholder-count="2">
+        <div style="display: flex; align-items: center; gap: 11px; min-height: 52px; border-bottom: 1px solid #e8e7e3;">
+          <span style="{{ e.bar }}"></span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ e.title }}</div>
+            <div style="font-size: 12.5px; color: #79807b; margin-top: 1px;">{{ e.meta }}</div>
+          </div>
+          <span style="display: inline-flex; gap: 3px; flex: none;">
+            <sc-for list="{{ e.who }}" as="w" hint-placeholder-count="2">
+              <span style="{{ w.style }}">{{ w.text }}</span>
+            </sc-for>
+          </span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="flex: none; display: flex; height: 49px; background: #ffffff; border-top: 1px solid #e8e7e3;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 10v10h14V10"></path></svg><span style="font-size: 10px;">Home</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span style="font-size: 10px;">Search</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg><span style="font-size: 10px;">Add</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m4.9 4.9 2.1 2.1"></path><path d="m17 17 2.1 2.1"></path><path d="M19.1 4.9 17 7"></path><path d="M7 17l-2.1 2.1"></path></svg><span style="font-size: 10px;">Settings</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #8a6a33;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"></rect><rect x="14" y="3" width="7" height="7" rx="1.6"></rect><rect x="3" y="14" width="7" height="7" rx="1.6"></rect><rect x="14" y="14" width="7" height="7" rx="1.6"></rect></svg><span style="font-size: 10px; font-weight: 600;">All</span></div>
+  </div>
+  <div style="height: 34px; flex: none; background: #ffffff;"></div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const EVENTS = [{"date":"2026-09-01","title":"First day of school","cal":"school","allDay":true,"who":["M"]},{"date":"2026-09-02","title":"Dentist — Mila","cal":"house","start":"14:30","end":"15:15","who":["S","M"]},{"date":"2026-09-03","title":"Parents’ evening","cal":"school","start":"19:30","end":"21:00","who":["E","S"]},{"date":"2026-09-04","title":"Bins out","cal":"house","allDay":true,"who":["E"]},{"date":"2026-09-04","title":"Swimming lesson","cal":"school","start":"16:00","end":"16:45","who":["M"]},{"date":"2026-09-14","title":"Sanne away — Berlin","cal":"house","allDay":true,"who":["S"]},{"date":"2026-09-19","title":"Grandad’s birthday","cal":"house","start":"15:00","who":["E","S","M"]},{"date":"2026-09-23","title":"Report meeting","cal":"school","start":"17:00","end":"17:20","who":["E"]},{"date":"2026-09-26","title":"Big shop","cal":"house","allDay":true,"who":["E"]}];
+const BUSY = [{"date":"2026-09-01","title":"First day of school","cal":"school","allDay":true,"who":["M"]},{"date":"2026-09-02","title":"Dentist — Mila","cal":"house","start":"14:30","end":"15:15","who":["S","M"]},{"date":"2026-09-03","title":"Parents’ evening","cal":"school","start":"19:30","end":"21:00","who":["E","S"]},{"date":"2026-09-04","title":"Bins out","cal":"house","allDay":true,"who":["E"]},{"date":"2026-09-04","title":"Swimming lesson","cal":"school","start":"16:00","end":"16:45","who":["M"]},{"date":"2026-09-14","title":"Sanne away — Berlin","cal":"house","allDay":true,"who":["S"]},{"date":"2026-09-19","title":"Grandad’s birthday","cal":"house","start":"15:00","who":["E","S","M"]},{"date":"2026-09-23","title":"Report meeting","cal":"school","start":"17:00","end":"17:20","who":["E"]},{"date":"2026-09-26","title":"Big shop","cal":"house","allDay":true,"who":["E"]},{"date":"2026-09-01","title":"Standup","cal":"work","start":"09:30","end":"09:45","who":["E"]},{"date":"2026-09-02","title":"Physio","cal":"work","start":"08:00","end":"08:45","who":["S"]},{"date":"2026-09-02","title":"Football training","cal":"school","start":"18:00","end":"19:30","who":["M"]},{"date":"2026-09-03","title":"Bins out","cal":"house","allDay":true,"who":["E"]},{"date":"2026-09-07","title":"Sprint planning","cal":"work","start":"10:00","end":"11:30","who":["E"]},{"date":"2026-09-08","title":"Swimming lesson","cal":"school","start":"16:00","end":"16:45","who":["M"]},{"date":"2026-09-09","title":"Book club","cal":"work","start":"20:00","who":["S"]},{"date":"2026-09-10","title":"Boiler service","cal":"house","start":"11:00","end":"13:00","who":["S"]},{"date":"2026-09-11","title":"Cinema","cal":"house","start":"19:45","who":["E","S"]},{"date":"2026-09-15","title":"Swimming lesson","cal":"school","start":"16:00","end":"16:45","who":["M"]},{"date":"2026-09-16","title":"Dentist — Eric","cal":"house","start":"09:15","end":"09:45","who":["E"]},{"date":"2026-09-17","title":"Team offsite","cal":"work","allDay":true,"who":["E"]},{"date":"2026-09-18","title":"School photos","cal":"school","allDay":true,"who":["M"]},{"date":"2026-09-22","title":"Swimming lesson","cal":"school","start":"16:00","end":"16:45","who":["M"]},{"date":"2026-09-24","title":"Bins out","cal":"house","allDay":true,"who":["S"]},{"date":"2026-09-25","title":"Drinks with Joris","cal":"work","start":"18:30","who":["E"]},{"date":"2026-09-29","title":"Swimming lesson","cal":"school","start":"16:00","end":"16:45","who":["M"]},{"date":"2026-09-30","title":"Quarter review","cal":"work","start":"13:00","end":"15:00","who":["E"]}];
+const CAL = {"house":{"name":"Household","fg":"#8a6a33","bg":"#f2ece0"},"school":{"name":"School","fg":"#2b7f86","bg":"#e2f2f0"},"work":{"name":"Work","fg":"#7d3f5f","bg":"#f0e6ec"}};
+const WEEKS = [[null,"2026-09-01","2026-09-02","2026-09-03","2026-09-04","2026-09-05","2026-09-06"],["2026-09-07","2026-09-08","2026-09-09","2026-09-10","2026-09-11","2026-09-12","2026-09-13"],["2026-09-14","2026-09-15","2026-09-16","2026-09-17","2026-09-18","2026-09-19","2026-09-20"],["2026-09-21","2026-09-22","2026-09-23","2026-09-24","2026-09-25","2026-09-26","2026-09-27"],["2026-09-28","2026-09-29","2026-09-30",null,null,null,null]];
+const TODAY = '2026-09-02';
+const MODE = 'people';
+const CELL_H = 56;
+const num = (iso) => Number(iso.slice(8));
+const timeOf = (e) => (e.allDay ? 'all-day' : e.end ? e.start + '\u2013' + e.end : e.start);
+const longDate = (iso) => new Date(Number(iso.slice(0,4)), Number(iso.slice(5,7)) - 1, num(iso))
+  .toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { busy: false, sel: TODAY };
+  }
+  renderVals() {
+    const set = this.state.busy ? BUSY : EVENTS;
+    const sel = this.state.sel;
+    const on = (iso) => set.filter((e) => e.date === iso);
+
+    const cells = WEEKS.flat().map((iso, i) => {
+      if (iso === null) {
+        return { key: 'e' + i, num: '', style: 'height: ' + CELL_H + 'px;', numStyle: 'display: none;', wrap: 'display: none;', marks: [], pick: () => {} };
+      }
+      const isSel = iso === sel;
+      const isToday = iso === TODAY;
+      const evs = on(iso);
+      let numStyle;
+      let wrap;
+      let marks = [];
+
+      if (MODE === 'dots') {
+        numStyle = 'font-size: 16.5px; letter-spacing: -0.2px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px;'
+          + (isToday ? ' background: #8a6a33; color: #ffffff; font-weight: 700;' : ' color: #1f2421;');
+        wrap = 'display: flex; gap: 3px; height: 6px; align-items: center; justify-content: center;';
+        marks = evs.slice(0, 3).map((e, j) => ({
+          key: j, text: '',
+          style: 'width: 6px; height: 6px; border-radius: 999px; flex: none; background: ' + CAL[e.cal].fg + ';',
+        }));
+      } else if (MODE === 'bars') {
+        numStyle = 'font-size: 12.5px; font-weight: 600; letter-spacing: -0.1px; padding: 3px 0 2px; text-align: center;'
+          + (isToday ? ' color: #8a6a33;' : ' color: #79807b;');
+        wrap = 'display: flex; flex-direction: column; gap: 2px; padding: 0 2px;';
+        marks = evs.slice(0, 2).map((e, j) => ({
+          key: j, text: e.title,
+          style: 'display: block; font-size: 9px; font-weight: 600; line-height: 13px; height: 13px; border-radius: 3px; padding: 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: ' + CAL[e.cal].bg + '; color: ' + CAL[e.cal].fg + ';',
+        }));
+        if (evs.length > 2) marks.push({ key: 'more', text: '+' + (evs.length - 2), style: 'display: block; font-size: 9px; font-weight: 700; line-height: 13px; height: 13px; padding: 0 3px; color: #79807b;' });
+      } else {
+        const seen = [];
+        for (const e of evs) for (const k of e.who) if (!seen.some((s) => s.k === k)) seen.push({ k: k, cal: e.cal });
+        numStyle = 'font-size: 12.5px; font-weight: 600; letter-spacing: -0.1px; padding: 3px 0 3px; text-align: center;'
+          + (isToday ? ' color: #8a6a33;' : ' color: #79807b;');
+        wrap = 'display: flex; gap: 3px; align-items: center; justify-content: center; flex-wrap: wrap;';
+        marks = seen.slice(0, 3).map((s, j) => ({
+          key: j, text: s.k,
+          style: 'width: 19px; height: 19px; border-radius: 999px; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none; background: ' + CAL[s.cal].bg + '; color: ' + CAL[s.cal].fg + ';',
+        }));
+        if (seen.length > 3) marks.push({ key: 'more', text: '+' + (seen.length - 3), style: 'font-size: 10px; font-weight: 700; color: #79807b;' });
+      }
+
+      return {
+        key: iso,
+        num: String(num(iso)),
+        style: 'height: ' + CELL_H + 'px; display: flex; flex-direction: column; align-items: stretch; justify-content: ' + (MODE === 'dots' ? 'center' : 'flex-start') + '; gap: ' + (MODE === 'dots' ? 5 : 3) + 'px; cursor: pointer; border-radius: 10px; overflow: hidden;'
+          + (isSel ? ' background: #f1f2f0; box-shadow: inset 0 0 0 1.6px #8a6a33;' : ''),
+        numStyle,
+        wrap,
+        marks,
+        pick: () => this.setState({ sel: iso }),
+      };
+    });
+
+    const evs = on(sel);
+    return {
+      cells,
+      busy: this.state.busy,
+      realStyle: 'flex: 1; text-align: center; font-size: 13.5px; font-weight: 600; padding: 7px 0; border-radius: 8px; cursor: pointer;' + (this.state.busy ? ' color: #79807b;' : ' background: #ffffff; color: #1f2421; box-shadow: 0 1px 2px rgba(31,36,33,0.10);'),
+      busyStyle: 'flex: 1; text-align: center; font-size: 13.5px; font-weight: 600; padding: 7px 0; border-radius: 8px; cursor: pointer;' + (this.state.busy ? ' background: #ffffff; color: #1f2421; box-shadow: 0 1px 2px rgba(31,36,33,0.10);' : ' color: #79807b;'),
+      dayLabel: longDate(sel).toUpperCase(),
+      empty: evs.length === 0,
+      events: evs.map((e, i) => ({
+        key: i,
+        title: e.title,
+        meta: timeOf(e) + ' \u00b7 ' + CAL[e.cal].name,
+        bar: 'width: 3px; align-self: stretch; margin: 9px 0; border-radius: 2px; flex: none; background: ' + CAL[e.cal].fg + ';',
+        who: e.who.map((k) => ({ key: k, text: k, style: 'width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid ' + CAL[e.cal].fg + '; color: ' + CAL[e.cal].fg + '; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;' })),
+      })),
+      real: () => this.setState({ busy: false }),
+      dense: () => this.setState({ busy: true }),
+    };
+  }
+}
+</script>
+</body>
+</html>

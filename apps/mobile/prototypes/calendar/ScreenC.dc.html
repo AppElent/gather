@@ -1,0 +1,309 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8a6a33; text-decoration: none; }
+    a:hover { color: #6d5327; }
+    .ic { flex: none; }
+    input.f { font: inherit; border: 0; outline: 0; background: transparent; color: #1f2421; width: 100%; padding: 0; }
+    input.f::placeholder { color: #79807b; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none;"></div>
+  <div style="flex: none; display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 16px 0 6px;">
+    <div style="display: flex; align-items: center; gap: 2px; color: #8a6a33; cursor: pointer;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg><span style="font-size: 17px;">All</span></div>
+    <div style="display: flex; align-items: center; gap: 18px;"><div onClick="{{ open }}" style="cursor: pointer;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"></rect><path d="M16 2v4"></path><path d="M8 2v4"></path><path d="M3 10h18"></path></svg></div><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></div>
+  </div>
+  <div style="flex: none; padding: 2px 16px 10px;">
+    <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.9px;">Calendar</div>
+    <div style="font-size: 13.5px; color: #79807b; margin-top: 3px;">Huize Jansen</div>
+  </div>
+  <div style="flex: 1; min-height: 0; overflow: hidden;">
+    <div style="padding: 4px 16px 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b;">SEPTEMBER 2026</div>
+    <div style="display: flex; gap: 12px; padding: 0 16px; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+      <div style="width: 42px; flex: none; padding: 13px 0 13px; text-align: center;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b;">TUE</div>
+        <div style="font-size: 21px; font-weight: 700; letter-spacing: -0.4px; margin-top: 1px; color: #1f2421; ">1</div>
+      </div>
+      <div style="flex: 1; min-width: 0; padding: 8px 0;">
+        <div style="display: flex; align-items: center; gap: 10px; min-height: 44px;">
+          <span style="width: 3px; align-self: stretch; margin: 8px 0; border-radius: 2px; background: #2b7f86; flex: none;"></span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">First day of school</div>
+            <div style="font-size: 12.5px; color: #79807b; margin-top: 1px;">all-day · School</div>
+          </div>
+          <span style="display: inline-flex; align-items: center; gap: 3px; flex: none;"><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #2b7f86; color: #2b7f86; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">M</span></span>
+        </div>
+      </div>
+    </div><div style="display: flex; gap: 12px; padding: 0 16px; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+      <div style="width: 42px; flex: none; padding: 13px 0 13px; text-align: center;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #8a6a33;">WED</div>
+        <div style="font-size: 21px; font-weight: 700; letter-spacing: -0.4px; margin-top: 1px; color: #ffffff; background: #8a6a33; border-radius: 999px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; margin: 2px auto 0;">2</div>
+      </div>
+      <div style="flex: 1; min-width: 0; padding: 8px 0;">
+        <div style="display: flex; align-items: center; gap: 10px; min-height: 44px;">
+          <span style="width: 3px; align-self: stretch; margin: 8px 0; border-radius: 2px; background: #8a6a33; flex: none;"></span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Dentist — Mila</div>
+            <div style="font-size: 12.5px; color: #79807b; margin-top: 1px;">14:30–15:15 · Household</div>
+          </div>
+          <span style="display: inline-flex; align-items: center; gap: 3px; flex: none;"><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #8a6a33; color: #8a6a33; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">S</span><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #8a6a33; color: #8a6a33; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">M</span></span>
+        </div>
+      </div>
+    </div><div style="display: flex; gap: 12px; padding: 0 16px; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+      <div style="width: 42px; flex: none; padding: 13px 0 13px; text-align: center;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b;">THU</div>
+        <div style="font-size: 21px; font-weight: 700; letter-spacing: -0.4px; margin-top: 1px; color: #1f2421; ">3</div>
+      </div>
+      <div style="flex: 1; min-width: 0; padding: 8px 0;">
+        <div style="display: flex; align-items: center; gap: 10px; min-height: 44px;">
+          <span style="width: 3px; align-self: stretch; margin: 8px 0; border-radius: 2px; background: #2b7f86; flex: none;"></span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Parents’ evening</div>
+            <div style="font-size: 12.5px; color: #79807b; margin-top: 1px;">19:30–21:00 · School</div>
+          </div>
+          <span style="display: inline-flex; align-items: center; gap: 3px; flex: none;"><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #2b7f86; color: #2b7f86; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">E</span><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #2b7f86; color: #2b7f86; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">S</span></span>
+        </div>
+      </div>
+    </div><div style="display: flex; gap: 12px; padding: 0 16px; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+      <div style="width: 42px; flex: none; padding: 13px 0 13px; text-align: center;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b;">FRI</div>
+        <div style="font-size: 21px; font-weight: 700; letter-spacing: -0.4px; margin-top: 1px; color: #1f2421; ">4</div>
+      </div>
+      <div style="flex: 1; min-width: 0; padding: 8px 0;">
+        <div style="display: flex; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid #e8e7e3;">
+          <span style="width: 3px; align-self: stretch; margin: 8px 0; border-radius: 2px; background: #8a6a33; flex: none;"></span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Bins out</div>
+            <div style="font-size: 12.5px; color: #79807b; margin-top: 1px;">all-day · Household</div>
+          </div>
+          <span style="display: inline-flex; align-items: center; gap: 3px; flex: none;"><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #8a6a33; color: #8a6a33; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">E</span></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; min-height: 44px;">
+          <span style="width: 3px; align-self: stretch; margin: 8px 0; border-radius: 2px; background: #2b7f86; flex: none;"></span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Swimming lesson</div>
+            <div style="font-size: 12.5px; color: #79807b; margin-top: 1px;">16:00–16:45 · School</div>
+          </div>
+          <span style="display: inline-flex; align-items: center; gap: 3px; flex: none;"><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #2b7f86; color: #2b7f86; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">M</span></span>
+        </div>
+      </div>
+    </div><div style="display: flex; align-items: center; gap: 12px; padding: 13px 16px; background: #faf9f7;">
+      <span style="flex: 1; height: 1px; background: #e8e7e3;"></span>
+      <span style="font-size: 12.5px; color: #79807b; white-space: nowrap;">5–13 September · nothing on</span>
+      <span style="flex: 1; height: 1px; background: #e8e7e3;"></span>
+    </div><div style="display: flex; gap: 12px; padding: 0 16px; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+      <div style="width: 42px; flex: none; padding: 13px 0 13px; text-align: center;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b;">MON</div>
+        <div style="font-size: 21px; font-weight: 700; letter-spacing: -0.4px; margin-top: 1px; color: #1f2421; ">14</div>
+      </div>
+      <div style="flex: 1; min-width: 0; padding: 8px 0;">
+        <div style="display: flex; align-items: center; gap: 10px; min-height: 44px;">
+          <span style="width: 3px; align-self: stretch; margin: 8px 0; border-radius: 2px; background: #8a6a33; flex: none;"></span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Sanne away — Berlin</div>
+            <div style="font-size: 12.5px; color: #79807b; margin-top: 1px;">all-day · Household</div>
+          </div>
+          <span style="display: inline-flex; align-items: center; gap: 3px; flex: none;"><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #8a6a33; color: #8a6a33; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">S</span></span>
+        </div>
+      </div>
+    </div><div style="display: flex; align-items: center; gap: 12px; padding: 13px 16px; background: #faf9f7;">
+      <span style="flex: 1; height: 1px; background: #e8e7e3;"></span>
+      <span style="font-size: 12.5px; color: #79807b; white-space: nowrap;">15–18 September · nothing on</span>
+      <span style="flex: 1; height: 1px; background: #e8e7e3;"></span>
+    </div><div style="display: flex; gap: 12px; padding: 0 16px; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+      <div style="width: 42px; flex: none; padding: 13px 0 13px; text-align: center;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b;">SAT</div>
+        <div style="font-size: 21px; font-weight: 700; letter-spacing: -0.4px; margin-top: 1px; color: #1f2421; ">19</div>
+      </div>
+      <div style="flex: 1; min-width: 0; padding: 8px 0;">
+        <div style="display: flex; align-items: center; gap: 10px; min-height: 44px;">
+          <span style="width: 3px; align-self: stretch; margin: 8px 0; border-radius: 2px; background: #8a6a33; flex: none;"></span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Grandad’s birthday</div>
+            <div style="font-size: 12.5px; color: #79807b; margin-top: 1px;">15:00 · Household</div>
+          </div>
+          <span style="display: inline-flex; align-items: center; gap: 3px; flex: none;"><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #8a6a33; color: #8a6a33; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">E</span><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #8a6a33; color: #8a6a33; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">S</span><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #8a6a33; color: #8a6a33; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">M</span></span>
+        </div>
+      </div>
+    </div><div style="display: flex; align-items: center; gap: 12px; padding: 13px 16px; background: #faf9f7;">
+      <span style="flex: 1; height: 1px; background: #e8e7e3;"></span>
+      <span style="font-size: 12.5px; color: #79807b; white-space: nowrap;">20–22 September · nothing on</span>
+      <span style="flex: 1; height: 1px; background: #e8e7e3;"></span>
+    </div><div style="display: flex; gap: 12px; padding: 0 16px; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+      <div style="width: 42px; flex: none; padding: 13px 0 13px; text-align: center;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b;">WED</div>
+        <div style="font-size: 21px; font-weight: 700; letter-spacing: -0.4px; margin-top: 1px; color: #1f2421; ">23</div>
+      </div>
+      <div style="flex: 1; min-width: 0; padding: 8px 0;">
+        <div style="display: flex; align-items: center; gap: 10px; min-height: 44px;">
+          <span style="width: 3px; align-self: stretch; margin: 8px 0; border-radius: 2px; background: #2b7f86; flex: none;"></span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Report meeting</div>
+            <div style="font-size: 12.5px; color: #79807b; margin-top: 1px;">17:00–17:20 · School</div>
+          </div>
+          <span style="display: inline-flex; align-items: center; gap: 3px; flex: none;"><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #2b7f86; color: #2b7f86; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">E</span></span>
+        </div>
+      </div>
+    </div><div style="display: flex; gap: 12px; padding: 0 16px; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+      <div style="width: 42px; flex: none; padding: 13px 0 13px; text-align: center;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b;">SAT</div>
+        <div style="font-size: 21px; font-weight: 700; letter-spacing: -0.4px; margin-top: 1px; color: #1f2421; ">26</div>
+      </div>
+      <div style="flex: 1; min-width: 0; padding: 8px 0;">
+        <div style="display: flex; align-items: center; gap: 10px; min-height: 44px;">
+          <span style="width: 3px; align-self: stretch; margin: 8px 0; border-radius: 2px; background: #8a6a33; flex: none;"></span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Big shop</div>
+            <div style="font-size: 12.5px; color: #79807b; margin-top: 1px;">all-day · Household</div>
+          </div>
+          <span style="display: inline-flex; align-items: center; gap: 3px; flex: none;"><span style="width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid #8a6a33; color: #8a6a33; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">E</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="flex: none; display: flex; height: 49px; background: #ffffff; border-top: 1px solid #e8e7e3;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 10v10h14V10"></path></svg><span style="font-size: 10px;">Home</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span style="font-size: 10px;">Search</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg><span style="font-size: 10px;">Add</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m4.9 4.9 2.1 2.1"></path><path d="m17 17 2.1 2.1"></path><path d="M19.1 4.9 17 7"></path><path d="M7 17l-2.1 2.1"></path></svg><span style="font-size: 10px;">Settings</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #8a6a33;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"></rect><rect x="14" y="3" width="7" height="7" rx="1.6"></rect><rect x="3" y="14" width="7" height="7" rx="1.6"></rect><rect x="14" y="14" width="7" height="7" rx="1.6"></rect></svg><span style="font-size: 10px; font-weight: 600;">All</span></div>
+  </div>
+  <div style="height: 34px; flex: none; background: #ffffff;"></div>
+  <sc-if value="{{ picker }}" hint-placeholder-val="{{ false }}">
+    <div>
+    <div onClick="{{ close }}" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(31, 36, 33, 0.34);"></div>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #ffffff; border-radius: 20px 20px 0 0; padding: 12px 16px 30px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="width: 38px; height: 4px; border-radius: 2px; background: #e8e7e3; align-self: center;"></div>
+      <div style="display: flex; align-items: center; padding-bottom: 2px;">
+        <div style="flex: 1; font-size: 17px; font-weight: 700;">September 2026</div>
+        <div style="display: flex; gap: 18px;">
+          <span style="cursor: pointer;"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></span>
+          <span style="cursor: pointer;"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));"><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">M</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">W</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">F</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">S</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">S</div></div>
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px;"><div style="height: 42px;"></div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">1</span>
+          <span style="display: flex; gap: 3px; height: 5px;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #2b7f86;"></span></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: #8a6a33; color: #ffffff; font-weight: 700;">2</span>
+          <span style="display: flex; gap: 3px; height: 5px;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #8a6a33;"></span></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">3</span>
+          <span style="display: flex; gap: 3px; height: 5px;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #2b7f86;"></span></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">4</span>
+          <span style="display: flex; gap: 3px; height: 5px;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #8a6a33;"></span><span style="width: 5px; height: 5px; border-radius: 999px; background: #2b7f86;"></span></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">5</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">6</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">7</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">8</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">9</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">10</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">11</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">12</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">13</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">14</span>
+          <span style="display: flex; gap: 3px; height: 5px;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #8a6a33;"></span></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">15</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">16</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">17</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">18</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">19</span>
+          <span style="display: flex; gap: 3px; height: 5px;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #8a6a33;"></span></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">20</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">21</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">22</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">23</span>
+          <span style="display: flex; gap: 3px; height: 5px;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #2b7f86;"></span></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">24</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">25</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">26</span>
+          <span style="display: flex; gap: 3px; height: 5px;"><span style="width: 5px; height: 5px; border-radius: 999px; background: #8a6a33;"></span></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">27</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">28</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">29</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <span style="font-size: 16px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">30</span>
+          <span style="display: flex; gap: 3px; height: 5px;"></span>
+        </div><div style="height: 42px;"></div><div style="height: 42px;"></div><div style="height: 42px;"></div><div style="height: 42px;"></div></div>
+    </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { picker: false };
+  }
+  renderVals() {
+    return {
+      picker: this.state.picker,
+      open: () => this.setState({ picker: true }),
+      close: () => this.setState({ picker: false }),
+    };
+  }
+}
+</script>
+</body>
+</html>

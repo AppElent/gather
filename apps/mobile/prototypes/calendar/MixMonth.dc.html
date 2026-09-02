@@ -1,0 +1,299 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8a6a33; text-decoration: none; }
+    a:hover { color: #6d5327; }
+    .ic { flex: none; }
+    input.f { font: inherit; border: 0; outline: 0; background: transparent; color: #1f2421; width: 100%; padding: 0; }
+    input.f::placeholder { color: #79807b; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none;"></div>
+  <div style="flex: none; display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 16px 0 6px;">
+    <div style="display: flex; align-items: center; gap: 2px; color: #8a6a33; cursor: pointer;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg><span style="font-size: 17px;">All</span></div>
+    <div style="display: flex; align-items: center; gap: 18px;"><div onClick="{{ openMenu }}" style="cursor: pointer;"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.2"></circle><circle cx="7.6" cy="12" r="1.15" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"></circle><circle cx="16.4" cy="12" r="1.15" fill="currentColor" stroke="none"></circle></svg></div><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></div>
+  </div>
+  <div style="flex: none; display: flex; align-items: baseline; height: 44px; padding: 0 16px;">
+    <span style="font-size: 26px; font-weight: 800; letter-spacing: -0.7px;">September</span>
+    <span style="font-size: 26px; font-weight: 400; letter-spacing: -0.7px; color: #79807b; margin-left: 6px;">2026</span>
+    <div style="flex: 1;"></div>
+    <span style="font-size: 15.5px; font-weight: 600; color: #8a6a33; cursor: pointer;">Today</span>
+  </div>
+
+  <sc-if value="{{ month }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: none; background: #ffffff; border-bottom: 1px solid #e8e7e3; padding-bottom: 6px;">
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 0 10px; flex: none;"><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">M</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">W</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">F</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">S</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">S</div></div>
+    <div style="flex: none; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; padding: 0 10px;">
+      <sc-for list="{{ monthCells }}" as="c" hint-placeholder-count="7">
+        <div onClick="{{ c.pick }}" style="{{ c.style }}">
+          <div style="{{ c.numStyle }}">{{ c.num }}</div>
+          <div style="display: flex; gap: 3px; align-items: center; justify-content: center; flex-wrap: wrap;">
+            <sc-for list="{{ c.marks }}" as="m" hint-placeholder-count="2">
+              <span style="{{ m.style }}">{{ m.text }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ week }}" hint-placeholder-val="{{ true }}">
+    <div style="flex: none; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 0 10px; flex: none;"><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">M</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">W</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">F</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">S</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">S</div></div>
+    <div style="flex: none; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; padding: 0 10px;">
+      <sc-for list="{{ weekCells }}" as="c" hint-placeholder-count="7">
+        <div onClick="{{ c.pick }}" style="{{ c.style }}">
+          <div style="{{ c.numStyle }}">{{ c.num }}</div>
+          <div style="display: flex; gap: 3px; align-items: center; justify-content: center; flex-wrap: wrap;">
+            <sc-for list="{{ c.marks }}" as="m" hint-placeholder-count="2">
+              <span style="{{ m.style }}">{{ m.text }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+      <div style="height: 14px; display: flex; align-items: center; justify-content: center;">
+        <span style="width: 36px; height: 4px; border-radius: 2px; background: #e8e7e3;"></span>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="flex: 1; min-height: 0; overflow: hidden;">
+    <sc-if value="{{ month }}" hint-placeholder-val="{{ false }}">
+      <div style="background: #ffffff; height: 100%;">
+        <div style="padding: 13px 16px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.7px; color: #79807b;">{{ dayLabel }}</div>
+        <div style="padding: 0 16px;">
+          <sc-if value="{{ dayEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size: 15px; color: #79807b; padding: 6px 0 14px;">Nothing on.</div>
+          </sc-if>
+          <sc-for list="{{ dayEvents }}" as="e" hint-placeholder-count="1">
+            <div style="display: flex; align-items: center; gap: 11px; min-height: 52px; border-bottom: 1px solid #e8e7e3;">
+              <span style="{{ e.bar }}"></span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ e.title }}</div>
+                <div style="font-size: 12.5px; color: #79807b; margin-top: 1px;">{{ e.meta }}</div>
+              </div>
+              <span style="display: inline-flex; gap: 3px; flex: none;">
+                <sc-for list="{{ e.who }}" as="w" hint-placeholder-count="2">
+                  <span style="{{ w.style }}">{{ w.text }}</span>
+                </sc-for>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ week }}" hint-placeholder-val="{{ true }}">
+      <div>
+      <sc-for list="{{ days }}" as="d" hint-placeholder-count="4">
+        <div>
+          <div style="{{ d.labelStyle }}">{{ d.label }}</div>
+          <div style="padding: 0 16px;">
+            <sc-for list="{{ d.events }}" as="e" hint-placeholder-count="1">
+              <div style="display: flex; align-items: center; gap: 11px; min-height: 54px; border-bottom: 1px solid #e8e7e3;">
+                <span style="{{ e.bar }}"></span>
+                <span style="width: 50px; flex: none; font-size: 12.5px; font-weight: 600; color: #79807b;">{{ e.time }}</span>
+                <span style="flex: 1; font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ e.title }}</span>
+                <span style="display: inline-flex; gap: 3px; flex: none;">
+                  <sc-for list="{{ e.who }}" as="w" hint-placeholder-count="2">
+                    <span style="{{ w.style }}">{{ w.text }}</span>
+                  </sc-for>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ agenda }}" hint-placeholder-val="{{ false }}">
+      <div>
+      <sc-for list="{{ days }}" as="d" hint-placeholder-count="4">
+        <div>
+          <div style="{{ d.labelStyle }}">{{ d.label }}</div>
+          <div style="padding: 0 16px;">
+            <sc-for list="{{ d.events }}" as="e" hint-placeholder-count="1">
+              <div style="display: flex; align-items: center; gap: 11px; min-height: 54px; border-bottom: 1px solid #e8e7e3;">
+                <span style="{{ e.bar }}"></span>
+                <span style="width: 50px; flex: none; font-size: 12.5px; font-weight: 600; color: #79807b;">{{ e.time }}</span>
+                <span style="flex: 1; font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ e.title }}</span>
+                <span style="display: inline-flex; gap: 3px; flex: none;">
+                  <sc-for list="{{ e.who }}" as="w" hint-placeholder-count="2">
+                    <span style="{{ w.style }}">{{ w.text }}</span>
+                  </sc-for>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      </div>
+    </sc-if>
+  </div>
+  <div style="flex: none; display: flex; height: 49px; background: #ffffff; border-top: 1px solid #e8e7e3;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 10v10h14V10"></path></svg><span style="font-size: 10px;">Home</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span style="font-size: 10px;">Search</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg><span style="font-size: 10px;">Add</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #79807b;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3"></path><path d="M12 19v3"></path><path d="M2 12h3"></path><path d="M19 12h3"></path><path d="m4.9 4.9 2.1 2.1"></path><path d="m17 17 2.1 2.1"></path><path d="M19.1 4.9 17 7"></path><path d="M7 17l-2.1 2.1"></path></svg><span style="font-size: 10px;">Settings</span></div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #8a6a33;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"></rect><rect x="14" y="3" width="7" height="7" rx="1.6"></rect><rect x="3" y="14" width="7" height="7" rx="1.6"></rect><rect x="14" y="14" width="7" height="7" rx="1.6"></rect></svg><span style="font-size: 10px; font-weight: 600;">All</span></div>
+  </div>
+  <div style="height: 34px; flex: none; background: #ffffff;"></div>
+
+  <sc-if value="{{ menu }}" hint-placeholder-val="{{ false }}">
+    <div>
+      <div onClick="{{ closeMenu }}" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"></div>
+      <div style="position: absolute; right: 12px; top: 84px; width: 252px; border-radius: 14px; overflow: hidden; background: rgba(250, 249, 247, 0.93); backdrop-filter: blur(22px); box-shadow: 0 10px 34px rgba(31, 36, 33, 0.22);">
+        <div onClick="{{ rowMonth.pick }}" style="{{ rowMonth.style }}">
+          <span style="width: 18px; flex: none; display: flex; align-items: center;">
+            <sc-if value="{{ rowMonth.on }}" hint-placeholder-val="{{ true }}"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+          </span>
+          <span style="flex: 1; font-size: 16px; color: #1f2421;">Month</span>
+          <svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1f2421" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"></rect><rect x="14" y="3" width="7" height="7" rx="1.6"></rect><rect x="3" y="14" width="7" height="7" rx="1.6"></rect><rect x="14" y="14" width="7" height="7" rx="1.6"></rect></svg>
+        </div>
+        <div onClick="{{ rowWeek.pick }}" style="{{ rowWeek.style }}">
+          <span style="width: 18px; flex: none; display: flex; align-items: center;">
+            <sc-if value="{{ rowWeek.on }}" hint-placeholder-val="{{ true }}"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+          </span>
+          <span style="flex: 1; font-size: 16px; color: #1f2421;">Week</span>
+          <svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1f2421" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"></rect><path d="M3 10h18"></path><path d="M8 2v4"></path><path d="M16 2v4"></path><rect x="5.5" y="12.5" width="4" height="5" rx="1" fill="currentColor" stroke="none"></rect></svg>
+        </div>
+        <div onClick="{{ rowAgenda.pick }}" style="{{ rowAgenda.style }}">
+          <span style="width: 18px; flex: none; display: flex; align-items: center;">
+            <sc-if value="{{ rowAgenda.on }}" hint-placeholder-val="{{ true }}"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+          </span>
+          <span style="flex: 1; font-size: 16px; color: #1f2421;">Agenda</span>
+          <svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1f2421" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><circle cx="3.6" cy="6" r="1.3"></circle><circle cx="3.6" cy="12" r="1.3"></circle><circle cx="3.6" cy="18" r="1.3"></circle></svg>
+        </div>
+        <div style="height: 7px; background: rgba(31,36,33,0.07);"></div>
+        <div style="display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; cursor: pointer;">
+          <span style="width: 18px; flex: none;"></span>
+          <span style="flex: 1; font-size: 16px; color: #1f2421;">Calendars…</span>
+          <svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1f2421" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const EVENTS = [{"date":"2026-09-01","title":"First day of school","cal":"school","allDay":true,"who":["M"]},{"date":"2026-09-02","title":"Dentist — Mila","cal":"house","start":"14:30","end":"15:15","who":["S","M"]},{"date":"2026-09-03","title":"Parents’ evening","cal":"school","start":"19:30","end":"21:00","who":["E","S"]},{"date":"2026-09-04","title":"Bins out","cal":"house","allDay":true,"who":[]},{"date":"2026-09-04","title":"Swimming lesson","cal":"school","start":"16:00","end":"16:45","who":["M"]},{"date":"2026-09-14","title":"Sanne away — Berlin","cal":"house","allDay":true,"who":["S"]},{"date":"2026-09-19","title":"Grandad’s birthday","cal":"house","start":"15:00","who":["E","S","M"]},{"date":"2026-09-23","title":"Report meeting","cal":"school","start":"17:00","end":"17:20","who":["E"]},{"date":"2026-09-26","title":"Big shop","cal":"house","allDay":true,"who":[]}];
+const CAL = {"house":{"name":"Household","fg":"#8a6a33","bg":"#f2ece0"},"school":{"name":"School","fg":"#2b7f86","bg":"#e2f2f0"},"work":{"name":"Work","fg":"#7d3f5f","bg":"#f0e6ec"}};
+const WEEKS = [[null,"2026-09-01","2026-09-02","2026-09-03","2026-09-04","2026-09-05","2026-09-06"],["2026-09-07","2026-09-08","2026-09-09","2026-09-10","2026-09-11","2026-09-12","2026-09-13"],["2026-09-14","2026-09-15","2026-09-16","2026-09-17","2026-09-18","2026-09-19","2026-09-20"],["2026-09-21","2026-09-22","2026-09-23","2026-09-24","2026-09-25","2026-09-26","2026-09-27"],["2026-09-28","2026-09-29","2026-09-30",null,null,null,null]];
+const TODAY = '2026-09-02';
+const num = (iso) => Number(iso.slice(8));
+const on = (iso) => EVENTS.filter((e) => e.date === iso);
+const timeOf = (e) => (e.allDay ? 'all-day' : e.end ? e.start + '\u2013' + e.end : e.start);
+const fmt = (iso, o) => new Date(Number(iso.slice(0,4)), Number(iso.slice(5,7)) - 1, num(iso)).toLocaleDateString('en-GB', o);
+const longDate = (iso) => fmt(iso, { weekday: 'long', day: 'numeric', month: 'long' });
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { view: 'month', menu: false, sel: TODAY };
+  }
+
+  /* One cell. Colour is the calendar; an initial is the person; a dot is an
+     event nobody has been put on yet — which today is all of them. */
+  cell(iso, i, h) {
+    if (iso === null) {
+      return { key: 'e' + i, num: '', style: 'height: ' + h + 'px;', numStyle: 'display: none;', marks: [], pick: () => {} };
+    }
+    const isSel = iso === this.state.sel;
+    const isToday = iso === TODAY;
+    const evs = on(iso);
+    const marks = [];
+    for (const e of evs) {
+      if (marks.length === 3) break;
+      if (e.who.length === 0) {
+        marks.push({ key: marks.length, text: '', style: 'width: 8px; height: 8px; border-radius: 999px; flex: none; background: ' + CAL[e.cal].fg + ';' });
+      } else {
+        for (const k of e.who) {
+          if (marks.length === 3) break;
+          marks.push({ key: marks.length, text: k, style: 'width: 19px; height: 19px; border-radius: 999px; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none; background: ' + CAL[e.cal].bg + '; color: ' + CAL[e.cal].fg + ';' });
+        }
+      }
+    }
+    const total = evs.reduce((n, e) => n + Math.max(1, e.who.length), 0);
+    if (total > 3) marks.push({ key: 'n', text: '+' + (total - 3), style: 'font-size: 10px; font-weight: 700; color: #79807b;' });
+    return {
+      key: iso,
+      num: String(num(iso)),
+      style: 'height: ' + h + 'px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 5px; cursor: pointer; border-radius: 10px;'
+        + (isSel ? ' background: #f1f2f0; box-shadow: inset 0 0 0 1.6px #8a6a33;' : ''),
+      numStyle: 'font-size: 12.5px; font-weight: 600; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 999px; flex: none;'
+        + (isToday ? ' background: #8a6a33; color: #ffffff;' : ' color: #79807b;'),
+      marks,
+      pick: () => this.setState({ sel: iso }),
+    };
+  }
+
+  agendaDays(from) {
+    const out = [];
+    for (const iso of WEEKS.flat()) {
+      if (iso === null || iso < from) continue;
+      const evs = on(iso);
+      if (evs.length === 0) continue;
+      out.push({
+        key: iso,
+        label: (iso === TODAY ? 'TODAY \u00b7 ' : '') + longDate(iso).toUpperCase(),
+        labelStyle: 'padding: 15px 16px 5px; font-size: 12px; font-weight: 700; letter-spacing: 0.7px; color: ' + (iso === TODAY ? '#8a6a33' : '#79807b') + ';',
+        events: evs.map((e, i) => ({
+          key: i,
+          title: e.title,
+          time: e.allDay ? 'all-day' : e.start,
+          bar: 'width: 3px; align-self: stretch; margin: 10px 0; border-radius: 2px; flex: none; background: ' + CAL[e.cal].fg + ';',
+          who: e.who.map((k) => ({ key: k, text: k, style: 'width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid ' + CAL[e.cal].fg + '; color: ' + CAL[e.cal].fg + '; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;' })),
+        })),
+      });
+    }
+    return out;
+  }
+
+  renderVals() {
+    const v = this.state.view;
+    const selWeek = WEEKS.find((w) => w.includes(this.state.sel)) || WEEKS[0];
+    const menuRow = (id) => ({
+      style: 'display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; cursor: pointer;' + (id === 'calendars' ? '' : ' border-bottom: 1px solid rgba(31,36,33,0.10);'),
+      on: v === id,
+      pick: () => this.setState({ view: id, menu: false }),
+    });
+    return {
+      month: v === 'month',
+      week: v === 'week',
+      agenda: v === 'agenda',
+      menu: this.state.menu,
+      monthCells: WEEKS.flat().map((iso, i) => this.cell(iso, i, 56)),
+      weekCells: selWeek.map((iso, i) => this.cell(iso, i, 56)),
+      days: this.agendaDays(v === 'agenda' ? WEEKS.flat().find(Boolean) : this.state.sel),
+      dayLabel: longDate(this.state.sel).toUpperCase(),
+      dayEmpty: on(this.state.sel).length === 0,
+      dayEvents: on(this.state.sel).map((e, i) => ({
+        key: i,
+        title: e.title,
+        meta: timeOf(e) + ' \u00b7 ' + CAL[e.cal].name,
+        bar: 'width: 3px; align-self: stretch; margin: 9px 0; border-radius: 2px; flex: none; background: ' + CAL[e.cal].fg + ';',
+        who: e.who.map((k) => ({ key: k, text: k, style: 'width: 21px; height: 21px; border-radius: 999px; background: #ffffff; border: 1.4px solid ' + CAL[e.cal].fg + '; color: ' + CAL[e.cal].fg + '; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;' })),
+      })),
+      rowMonth: menuRow('month'),
+      rowWeek: menuRow('week'),
+      rowAgenda: menuRow('agenda'),
+      openMenu: () => this.setState({ menu: !this.state.menu }),
+      closeMenu: () => this.setState({ menu: false }),
+    };
+  }
+}
+</script>
+</body>
+</html>
