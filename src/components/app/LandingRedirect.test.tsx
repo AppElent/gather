@@ -2,179 +2,38 @@ import { render, screen } from '@testing-library/react'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { LandingRedirect } from './LandingRedirect'
 
-/**
- * The half of the redirect that is not a pure function: which Group the reader
- * is actually in, and what they see while that is still being asked.
- *
- * Where each old path goes is settled in `legacyPaths.test.ts`. What is left
- * here is the wiring — that the answer is not acted on early, that it replaces
- * the address rather than stacking on it, and that somebody in no Group is sent
- * somewhere they can do something about it.
- */
-
-const location = vi.hoisted(() => ({
-  pathname: '/tasks',
-  hash: '',
-  search: {} as Record<string, unknown>,
-}))
-const navigateMock = vi.hoisted(() => vi.fn())
-const groups = vi.hoisted(() => ({ value: undefined as unknown }))
-
-vi.mock('@tanstack/react-router', () => ({
-  useLocation: () => location,
-  useNavigate: () => navigateMock,
+const navigate = vi.hoisted(() => vi.fn())
+const currentGroup = vi.hoisted(() => ({
+  value: { current: null, groups: undefined } as {
+    current: { _id: string } | null
+    groups: unknown[] | undefined
+  },
 }))
 
-vi.mock('convex/react', () => ({ useQuery: () => groups.value }))
-
-vi.mock('../../../convex/_generated/api', () => ({
-  api: { groups: { myGroups: 'groups:myGroups' } },
+vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigate }))
+vi.mock('./useCurrentGroup', () => ({
+  useCurrentGroup: () => currentGroup.value,
 }))
-
-const PERSONAL = { slug: 'me-alice', isPersonal: true }
-const SHARED = { slug: 'jansen-household', isPersonal: false }
 
 beforeEach(() => {
-  location.pathname = '/tasks'
-  location.hash = ''
-  location.search = {}
-  groups.value = [SHARED, PERSONAL]
-  navigateMock.mockClear()
+  navigate.mockClear()
+  currentGroup.value = { current: null, groups: undefined }
 })
 
-test('says what it is doing while it is still finding out', () => {
-  groups.value = undefined
-
+test('waits for the membership list', () => {
   render(<LandingRedirect />)
-
   expect(screen.getByText(/taking you there/i)).toBeDefined()
-  expect(navigateMock).not.toHaveBeenCalled()
+  expect(navigate).not.toHaveBeenCalled()
 })
 
-test('lands an old address in a Group the reader is really in', () => {
+test('opens ambient Home when a Current Group exists', () => {
+  currentGroup.value = { current: { _id: 'g1' }, groups: [{}] }
   render(<LandingRedirect />)
-
-  expect(navigateMock).toHaveBeenCalledWith({
-    to: '/g/$groupSlug/tasks',
-    params: { groupSlug: 'me-alice' },
-    search: {},
-    hash: undefined,
-    replace: true,
-  })
+  expect(navigate).toHaveBeenCalledWith({ to: '/home', replace: true })
 })
 
-test('carries the record an old address named', () => {
-  location.pathname = '/recipes/r1/edit'
-
+test('opens onboarding when there are no memberships', () => {
+  currentGroup.value = { current: null, groups: [] }
   render(<LandingRedirect />)
-
-  expect(navigateMock).toHaveBeenCalledWith(
-    expect.objectContaining({
-      to: '/g/$groupSlug/recipes/$recipeId/edit',
-      params: { groupSlug: 'me-alice', recipeId: 'r1' },
-    }),
-  )
-})
-
-test('keeps the fragment the reader was pointed at', () => {
-  location.hash = 'today'
-
-  render(<LandingRedirect />)
-
-  expect(navigateMock).toHaveBeenCalledWith(
-    expect.objectContaining({
-      to: '/g/$groupSlug/tasks',
-      hash: 'today',
-    }),
-  )
-})
-
-test('lands an address with no equivalent on Home rather than erroring', () => {
-  location.pathname = '/some/page/that/never/existed'
-
-  render(<LandingRedirect />)
-
-  expect(navigateMock).toHaveBeenCalledWith(
-    expect.objectContaining({ to: '/g/$groupSlug' }),
-  )
-})
-
-test('takes the Group from the reader, not from the address', () => {
-  groups.value = [SHARED]
-
-  render(<LandingRedirect />)
-
-  expect(navigateMock).toHaveBeenCalledWith(
-    expect.objectContaining({ params: { groupSlug: 'jansen-household' } }),
-  )
-})
-
-/**
- * A first-ever visit answers this query before `ensureUser` has finished
- * creating the Personal group, so "no Groups" and "no Groups yet" arrive
- * looking identical. Live, that greeted every new arrival with the Groups list
- * instead of their own Home.
- */
-test('waits out an empty list rather than greeting a new arrival with it', () => {
-  vi.useFakeTimers()
-  groups.value = []
-
-  const view = render(<LandingRedirect />)
-  expect(navigateMock).not.toHaveBeenCalled()
-
-  // `ensureUser` lands and the query pushes the Group back.
-  groups.value = [PERSONAL]
-  view.rerender(<LandingRedirect />)
-
-  expect(navigateMock).toHaveBeenCalledWith(
-    expect.objectContaining({ params: { groupSlug: 'me-alice' } }),
-  )
-  vi.useRealTimers()
-})
-
-test('sends someone in no Group somewhere they can join one', () => {
-  vi.useFakeTimers()
-  groups.value = []
-
-  render(<LandingRedirect />)
-
-  // Nothing arrives, so the list was telling the truth after all.
-  vi.advanceTimersByTime(5000)
-
-  expect(navigateMock).toHaveBeenCalledWith({ to: '/groups', replace: true })
-  vi.useRealTimers()
-})
-
-/**
- * The one the mocks above nearly hid, and the preview caught.
- *
- * `useLocation` subscribes to the router rather than to this route, so once the
- * redirect starts, the pathname read here is already the destination while the
- * component is still mounted. The destination is not a legacy path, so a second
- * pass resolves nothing and falls back to Home — overwriting the page the
- * reader actually asked for. Live, every legacy path landed on Home; only the
- * ones whose equivalent is Home looked right.
- */
-test('does not talk itself out of the destination it just chose', () => {
-  const view = render(<LandingRedirect />)
-
-  expect(navigateMock).toHaveBeenCalledTimes(1)
-
-  // What the router does next: the address becomes the destination, and this
-  // component renders once more before it is replaced.
-  location.pathname = '/g/me-alice/tasks'
-  view.rerender(<LandingRedirect />)
-
-  expect(navigateMock).toHaveBeenCalledTimes(1)
-  expect(navigateMock).toHaveBeenCalledWith(
-    expect.objectContaining({ to: '/g/$groupSlug/tasks' }),
-  )
-})
-
-// Going back from where you land should leave the app, not bounce off this
-// page and be sent forward again.
-test('replaces the address instead of stacking on it', () => {
-  render(<LandingRedirect />)
-
-  expect(navigateMock.mock.calls[0][0].replace).toBe(true)
+  expect(navigate).toHaveBeenCalledWith({ to: '/groups', replace: true })
 })

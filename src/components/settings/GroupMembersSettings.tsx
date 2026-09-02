@@ -3,14 +3,14 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
-import type { ActiveGroup } from '../app/GroupGate'
+import type { ShellGroup } from '../app/useCurrentGroup'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold disabled:opacity-60'
 
 export interface GroupMembersSettingsProps {
-  group: ActiveGroup
+  group: ShellGroup
 }
 
 /**
@@ -34,8 +34,6 @@ export function GroupMembersSettings({ group }: GroupMembersSettingsProps) {
   const [error, setError] = useState<string | null>(null)
   const { members: membersText } = useMessages().settings
   const [busyUserId, setBusyUserId] = useState<string | null>(null)
-
-  if (group.isPersonal) return null
 
   const isAdmin = group.role === 'admin'
   const adminCount = members?.filter((m) => m.role === 'admin').length ?? 0

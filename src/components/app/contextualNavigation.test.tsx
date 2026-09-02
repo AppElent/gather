@@ -108,7 +108,7 @@ describe('Foods', () => {
     renderWithI18n(<FoodDetailPage foodId="food_1" nav={foodNav} />)
 
     expect(trailSteps()).toEqual(['Foods', 'Hagelslag'])
-    expect(backHref('Back to Foods')).toBe('/g/jansen-household/foods')
+    expect(backHref('Back to Foods')).toBe('/foods')
   })
 
   test('editing one sits under the food itself', () => {
@@ -124,7 +124,7 @@ describe('Foods', () => {
     expect(trailSteps()).toEqual(['Foods', 'Hagelslag', 'Edit'])
     // One step up, not all the way out — and still in this Group.
     expect(backHref('Back to Hagelslag')).toBe(
-      '/g/jansen-household/foods/food_1',
+      '/foods/food_1',
     )
   })
 
@@ -132,7 +132,7 @@ describe('Foods', () => {
     docs.value['foods:get'] = null
     renderWithI18n(<FoodDetailPage foodId="food_1" nav={foodNav} />)
 
-    expect(backHref('Back to Foods')).toBe('/g/jansen-household/foods')
+    expect(backHref('Back to Foods')).toBe('/foods')
   })
 })
 
@@ -157,7 +157,7 @@ describe('Recipes', () => {
     )
 
     expect(trailSteps()).toEqual(['Recipes', 'Boeuf bourguignon'])
-    expect(backHref('Back to Recipes')).toBe('/g/jansen-household/recipes')
+    expect(backHref('Back to Recipes')).toBe('/recipes')
   })
 
   test('editing one sits under the recipe itself', () => {
@@ -168,7 +168,7 @@ describe('Recipes', () => {
 
     expect(trailSteps()).toEqual(['Recipes', 'Boeuf bourguignon', 'Edit'])
     expect(backHref('Back to Boeuf bourguignon')).toBe(
-      '/g/jansen-household/recipes/recipe_1',
+      '/recipes/recipe_1',
     )
   })
 
@@ -185,7 +185,7 @@ describe('Recipes', () => {
     )
 
     expect(trailSteps()).toEqual(['Recipes', 'New recipe'])
-    expect(backHref('Back to Recipes')).toBe('/g/jansen-household/recipes')
+    expect(backHref('Back to Recipes')).toBe('/recipes')
   })
 })
 
@@ -206,7 +206,7 @@ describe('Baby log', () => {
     )
 
     expect(trailSteps()).toEqual(['Baby log', 'Fien'])
-    expect(backHref('Back to Baby log')).toBe('/g/jansen-household/baby')
+    expect(backHref('Back to Baby log')).toBe('/baby')
   })
 
   test('editing one sits under the child', () => {
@@ -216,7 +216,7 @@ describe('Baby log', () => {
     )
 
     expect(trailSteps()).toEqual(['Baby log', 'Fien', 'Edit'])
-    expect(backHref('Back to Fien')).toBe('/g/jansen-household/baby/baby_1')
+    expect(backHref('Back to Fien')).toBe('/baby/baby_1')
   })
 
   test('adding one sits under the log, in the reader’s language', () => {
@@ -231,6 +231,6 @@ describe('Baby log', () => {
       'Babylogboek',
       'Een kind toevoegen',
     ])
-    expect(backHref('Terug naar Babylogboek')).toBe('/g/jansen-household/baby')
+    expect(backHref('Terug naar Babylogboek')).toBe('/baby')
   })
 })

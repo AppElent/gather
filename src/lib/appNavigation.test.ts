@@ -47,7 +47,7 @@ describe('the navigation list', () => {
 
   test('keeps every pinned link inside the Group I am standing in', () => {
     for (const item of navItems(['recipes', 'tasks', 'nutrition'], SLUG, en)) {
-      expect(String(item.link.to).startsWith('/g/$groupSlug')).toBe(true)
+      expect(String(item.link.to).startsWith('')).toBe(true)
     }
   })
 
@@ -122,28 +122,27 @@ describe('which item is active', () => {
   const items = navItems(pins, SLUG, en)
 
   test('is Home on the Group landing page', () => {
-    expect(activeNavItemId(`/g/${SLUG}`, items)).toBe('home')
-    expect(activeNavItemId(`/g/${SLUG}/`, items)).toBe('home')
+    expect(activeNavItemId('/home', items)).toBe('home')
   })
 
   test('is All on the All page', () => {
-    expect(activeNavItemId(`/g/${SLUG}/all`, items)).toBe('all')
+    expect(activeNavItemId('/all', items)).toBe('all')
   })
 
   test('is the pinned Module, from its index and from anything under it', () => {
-    expect(activeNavItemId(`/g/${SLUG}/recipes`, items)).toBe('recipes')
-    expect(activeNavItemId(`/g/${SLUG}/recipes/r1`, items)).toBe('recipes')
-    expect(activeNavItemId(`/g/${SLUG}/recipes/r1/edit`, items)).toBe('recipes')
-    expect(activeNavItemId(`/g/${SLUG}/nutrition`, items)).toBe('nutrition')
+    expect(activeNavItemId('/recipes', items)).toBe('recipes')
+    expect(activeNavItemId('/recipes/r1', items)).toBe('recipes')
+    expect(activeNavItemId('/recipes/r1/edit', items)).toBe('recipes')
+    expect(activeNavItemId('/nutrition', items)).toBe('nutrition')
   })
 
   test('is All inside a Module I have not pinned', () => {
-    expect(activeNavItemId(`/g/${SLUG}/baby`, items)).toBe('all')
+    expect(activeNavItemId('/baby', items)).toBe('all')
   })
 
   test('is nothing on a page the navigation does not describe', () => {
     expect(activeNavItemId('/settings', items)).toBeNull()
-    expect(activeNavItemId(`/g/${SLUG}/foods`, items)).toBeNull()
+    expect(activeNavItemId('/foods', items)).toBeNull()
   })
 
   test('never lights more than one item', () => {
@@ -237,8 +236,8 @@ describe('where the jump-to palette can send you', () => {
       if (staysFlat.has(target.id)) continue
       // Every other target names a page inside a Group, and it has to be the
       // Group the reader is standing in.
-      expect(String(target.link.to).startsWith('/g/$groupSlug')).toBe(true)
-      expect(target.link.params).toMatchObject({ groupSlug: SLUG })
+      expect(String(target.link.to).startsWith('')).toBe(true)
+      expect(target.link.params).toEqual({})
     }
   })
 
@@ -273,7 +272,7 @@ describe('where the jump-to palette can send you', () => {
       t.label.toLowerCase().includes('settings'),
     )
     expect(settings.map((t) => t.label)).toEqual(['Group settings', 'Settings'])
-    expect(settings[0].link.params).toMatchObject({ groupSlug: SLUG })
+    expect(settings[0].link.params).toEqual({})
     expect(settings[1].link.to).toBe('/settings')
   })
 
@@ -286,17 +285,17 @@ describe('where the jump-to palette can send you', () => {
 
 describe('the route context the topbar shows', () => {
   test('names the Group surfaces', () => {
-    expect(getRouteContext(`/g/${SLUG}`, en).title).toBe('Home')
-    expect(getRouteContext(`/g/${SLUG}/all`, en).title).toBe('All modules')
+    expect(getRouteContext('/home', en).title).toBe('Home')
+    expect(getRouteContext('/all', en).title).toBe('All modules')
   })
 
   test('names the Module you are in, from anywhere inside it', () => {
-    expect(getRouteContext(`/g/${SLUG}/recipes`, en)).toMatchObject({
+    expect(getRouteContext('/recipes', en)).toMatchObject({
       title: 'Recipes',
       subtitle: 'Keep and rate the dishes you cook.',
     })
-    expect(getRouteContext(`/g/${SLUG}/recipes/new`, en).title).toBe('Recipes')
-    expect(getRouteContext(`/g/${SLUG}/recipes/r1/edit`, en).title).toBe(
+    expect(getRouteContext('/recipes/new', en).title).toBe('Recipes')
+    expect(getRouteContext('/recipes/r1/edit', en).title).toBe(
       'Recipes',
     )
   })

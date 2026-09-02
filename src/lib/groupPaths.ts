@@ -16,9 +16,6 @@
 import type { LinkProps } from '@tanstack/react-router'
 import type { AppLink } from './appLink'
 
-/** The `/g/<slug>` prefix every Group-scoped route shares. */
-const GROUP_PREFIX = '/g/$groupSlug'
-
 /**
  * The Group-scoped destinations that exist. `home` is the Group's landing page;
  * every other key is somewhere inside a Module.
@@ -28,57 +25,57 @@ const GROUP_PREFIX = '/g/$groupSlug'
  * exactly the part a hand-built path gets wrong.
  */
 const GROUP_ROUTES = {
-  home: GROUP_PREFIX,
+  home: '/home',
   // Every Module in the Group, pinned or not. A real page rather than a
   // collapsed sidebar section, so the mobile dock's last slot has somewhere to
   // go and both surfaces can be the same shape.
-  all: `${GROUP_PREFIX}/all`,
+  all: '/all',
   // The Group's own settings, as against `/settings`, which is yours. What
   // belongs here is whatever a Group owns and its Members share — today, the
   // connections to Notion and Todoist that its linked task lists read through.
-  settings: `${GROUP_PREFIX}/settings`,
-  nutrition: `${GROUP_PREFIX}/nutrition`,
+  settings: '/group-settings',
+  nutrition: '/nutrition',
   // Adding food is a place, not a dialog: the sheet has an address so the back
   // gesture closes it and a reload does not lose it. Which day and which meal
   // ride in the search, not the path — they are what is being added *to*.
-  addFood: `${GROUP_PREFIX}/nutrition/add`,
+  addFood: '/nutrition/add',
   // The Combos library. A sibling of the diary rather than a page beneath it:
   // `/nutrition` is a layout that renders the diary itself so the add sheet can
   // sit over a page that never went away, and a library nested under it would
   // open below the whole day. Foods is next to Nutrition for the same reason
   // and reached from the same place, so the two match.
-  combos: `${GROUP_PREFIX}/combos`,
+  combos: '/combos',
 
-  recipes: `${GROUP_PREFIX}/recipes`,
-  newRecipe: `${GROUP_PREFIX}/recipes/new`,
-  recipe: `${GROUP_PREFIX}/recipes/$recipeId`,
-  editRecipe: `${GROUP_PREFIX}/recipes/$recipeId/edit`,
+  recipes: '/recipes',
+  newRecipe: '/recipes/new',
+  recipe: '/recipes/$recipeId',
+  editRecipe: '/recipes/$recipeId/edit',
 
-  foods: `${GROUP_PREFIX}/foods`,
-  newFood: `${GROUP_PREFIX}/foods/new`,
-  food: `${GROUP_PREFIX}/foods/$foodId`,
-  editFood: `${GROUP_PREFIX}/foods/$foodId/edit`,
+  foods: '/foods',
+  newFood: '/foods/new',
+  food: '/foods/$foodId',
+  editFood: '/foods/$foodId/edit',
 
-  baby: `${GROUP_PREFIX}/baby`,
-  newChild: `${GROUP_PREFIX}/baby/new`,
-  child: `${GROUP_PREFIX}/baby/$babyId`,
-  editChild: `${GROUP_PREFIX}/baby/$babyId/edit`,
+  baby: '/baby',
+  newChild: '/baby/new',
+  child: '/baby/$babyId',
+  editChild: '/baby/$babyId/edit',
 
-  tasks: `${GROUP_PREFIX}/tasks`,
+  tasks: '/tasks',
 
   // The Modules that are declared but not built yet. They live under the Group
   // like every other Module rather than at a flat path of their own, so that
   // "which Group am I in?" has the same answer on a placeholder as it does on
   // Recipes — and so that nothing has to move when one of them grows a page.
-  mealPlanner: `${GROUP_PREFIX}/meal-planner`,
-  groceries: `${GROUP_PREFIX}/groceries`,
-  pantry: `${GROUP_PREFIX}/pantry`,
-  finances: `${GROUP_PREFIX}/finances`,
-  calendar: `${GROUP_PREFIX}/calendar`,
-  notes: `${GROUP_PREFIX}/notes`,
-  cheeses: `${GROUP_PREFIX}/cheeses`,
-  wines: `${GROUP_PREFIX}/wines`,
-  beers: `${GROUP_PREFIX}/beers`,
+  mealPlanner: '/meal-planner',
+  groceries: '/groceries',
+  pantry: '/pantry',
+  finances: '/finances',
+  calendar: '/calendar',
+  notes: '/notes',
+  cheeses: '/cheeses',
+  wines: '/wines',
+  beers: '/beers',
 } as const satisfies Record<string, LinkProps['to']>
 
 /** A page that exists inside a Group. */
@@ -100,13 +97,13 @@ type PathParams<T extends string> =
       ? { [K in P]: string }
       : Record<never, string>
 
-/** Every param a surface needs, `groupSlug` included. */
+/** Every path parameter a surface needs. */
 export type GroupParams<S extends GroupSurface> = PathParams<
   (typeof GROUP_ROUTES)[S]
 >
 
 /** What a surface needs beyond the Group itself — a recipe id, a baby id, … */
-type ExtraParams<S extends GroupSurface> = Omit<GroupParams<S>, 'groupSlug'>
+type ExtraParams<S extends GroupSurface> = GroupParams<S>
 
 /**
  * The builders' third argument: required for a surface that takes a param of
@@ -178,7 +175,7 @@ export interface GroupLinkOptions<S extends GroupSurface = GroupSurface> {
 
 export function groupLink<S extends GroupSurface>(
   surface: S,
-  groupSlug: string,
+  _groupSlug: string,
   ...rest: ExtraArgs<S>
 ): GroupLinkOptions<S> {
   return {
@@ -186,7 +183,7 @@ export function groupLink<S extends GroupSurface>(
     // The surface fixes exactly which params exist and `ExtraArgs` makes the
     // caller supply them; TypeScript cannot see that through the generic, which
     // is why the assertion lives here and at no call site.
-    params: { ...extraOf(rest), groupSlug } as GroupParams<S>,
+    params: extraOf(rest) as GroupParams<S>,
   }
 }
 
@@ -197,10 +194,10 @@ export function groupLink<S extends GroupSurface>(
  */
 export function groupHref<S extends GroupSurface>(
   surface: S,
-  groupSlug: string,
+  _groupSlug: string,
   ...rest: ExtraArgs<S>
 ): string {
-  const params: Record<string, string> = { ...extraOf(rest), groupSlug }
+  const params: Record<string, string> = { ...extraOf(rest) }
   return GROUP_ROUTES[surface].replace(/\$(\w+)/g, (whole, name: string) =>
     name in params ? encodeURIComponent(params[name]) : whole,
   )
@@ -213,37 +210,16 @@ function extraOf<S extends GroupSurface>(
   return extra ?? {}
 }
 
-/** Whatever a surface adds after `/g/<slug>`; the empty string for the landing page. */
-function suffixOf(surface: GroupSurface): string {
-  return GROUP_ROUTES[surface].slice(GROUP_PREFIX.length)
-}
-
 /**
  * The first path segment a surface occupies under `/g/<slug>/`, or the empty
  * string for the landing page. This is the segment that has to stay clear of
  * every other Group-level route — see `groupPaths.segments.test.ts`.
  */
 export function groupSurfaceSegment(surface: GroupSurface): string {
-  return suffixOf(surface).split('/').filter(Boolean)[0] ?? ''
-}
-
-/** `/g/<slug>` and whatever follows it, or null when a path is not Group-scoped. */
-function splitGroupPath(
-  pathname: string,
-): { groupSlug: string; rest: string } | null {
-  const match = /^\/g\/([^/]+)(\/.*)?$/.exec(pathname)
-  if (!match) return null
-  return {
-    groupSlug: decodeURIComponent(match[1]),
-    rest: (match[2] ?? '').replace(/\/+$/, ''),
-  }
+  return GROUP_ROUTES[surface].split('/').filter(Boolean)[0] ?? ''
 }
 
 /** The Group a path addresses, or null when the path is not Group-scoped. */
-export function groupSlugOf(pathname: string): string | null {
-  return splitGroupPath(pathname)?.groupSlug ?? null
-}
-
 /**
  * The Module index a Group-scoped path sits under, ignoring which Group it is
  * in — what the switcher needs to land you on the same Module in a different
@@ -255,11 +231,13 @@ export function groupSlugOf(pathname: string): string | null {
  * rather than carrying an id across the boundary it is meaningless outside of.
  */
 export function groupIndexSurfaceOf(pathname: string): GroupModuleIndex | null {
-  const split = splitGroupPath(pathname)
-  if (!split) return null
-  const segment = split.rest.split('/').filter(Boolean)[0] ?? ''
-  const wanted = segment === '' ? '' : `/${segment}`
-  return GROUP_MODULE_INDEXES.find((s) => suffixOf(s) === wanted) ?? null
+  const path = pathname.replace(/\/+$/, '') || '/'
+  return (
+    GROUP_MODULE_INDEXES.find((surface) => {
+      const route = GROUP_ROUTES[surface]
+      return path === route || path.startsWith(`${route}/`)
+    }) ?? null
+  )
 }
 
 /**

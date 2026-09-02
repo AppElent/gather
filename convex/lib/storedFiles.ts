@@ -74,6 +74,7 @@ const FILE_HOLDERS: { [T in FileHolder]: StoredFileField<T> } = {
   babyEvents: 'photoId',
   recipes: 'imageId',
   foods: 'imageId',
+  groups: 'imageId',
   tastingSubjects: 'photoId',
 }
 

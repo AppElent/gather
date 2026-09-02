@@ -11,6 +11,7 @@ describe('photo presets', () => {
   test('each is named for where the photo is shown', () => {
     expect(Object.keys(PHOTO_PRESETS).sort()).toEqual([
       'childPhoto',
+      'groupPhoto',
       'memoryPhoto',
       'profilePhoto',
       'recipePhoto',

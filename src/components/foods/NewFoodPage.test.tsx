@@ -81,8 +81,7 @@ const nav = groupFoodNav('jansen-household')
 
 /** Where the add sheet for breakfast on the 18th sends somebody, and expects them back. */
 const returnsToBreakfast = (foodId: string) => ({
-  to: '/g/$groupSlug/nutrition/add' as const,
-  params: { groupSlug: 'jansen-household' },
+  to: '/nutrition/add' as const,
   search: { date: '2026-07-18', meal: 'breakfast' as const, food: foodId },
 })
 
@@ -102,7 +101,7 @@ test('says where the form sits, and offers the way back out of it', () => {
   // that would drop them out of it (ADR-0002).
   expect(
     screen.getByRole('link', { name: 'Back to Foods' }).getAttribute('href'),
-  ).toBe('/g/jansen-household/foods')
+  ).toBe('/foods')
 })
 
 test('the words a search found nothing for arrive as the name', async () => {

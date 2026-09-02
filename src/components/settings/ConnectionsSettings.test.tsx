@@ -135,7 +135,7 @@ describe('what the panel does', () => {
       )
     })
     expect(sessionStorage.getItem('gather.oauth.returnTo')).toBe(
-      '/g/jansen-household/settings',
+      '/group-settings',
     )
   })
 })

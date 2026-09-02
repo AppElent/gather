@@ -29,12 +29,16 @@ async function signUp(t: Harness, identity: typeof asAlice) {
   await t.withIdentity(identity).mutation(api.users.ensureUser, {})
 }
 
-/** The slug of the Personal group `ensureUser` guarantees everybody has. */
-async function personalSlug(t: Harness, identity: typeof asAlice) {
+/** A Group the test explicitly creates for a member with none. */
+async function initialGroupSlug(t: Harness, identity: typeof asAlice) {
   const groups = await t.withIdentity(identity).query(api.groups.myGroups, {})
-  const personal = groups.find((g) => g.isPersonal)
-  if (!personal) throw new Error('no personal group')
-  return personal.slug
+  if (groups[0]) return groups[0].slug
+  const id = await t
+    .withIdentity(identity)
+    .mutation(api.groups.createGroup, { name: `${identity.name}'s group` })
+  const group = await t.run(async (ctx) => await ctx.db.get(id))
+  if (!group) throw new Error('group was not created')
+  return group.slug
 }
 
 /**
@@ -76,13 +80,13 @@ describe('my Pins in one Group', () => {
     const t = testConvex()
     await signUp(t, asAlice)
 
-    expect(await pinsOf(t, asAlice, await personalSlug(t, asAlice))).toBeNull()
+    expect(await pinsOf(t, asAlice, await initialGroupSlug(t, asAlice))).toBeNull()
   })
 
   test('read back in the order I set them', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
-    const slug = await personalSlug(t, asAlice)
+    const slug = await initialGroupSlug(t, asAlice)
 
     await setPins(t, asAlice, slug, ['tasks', 'recipes', 'nutrition'])
     expect(await pinsOf(t, asAlice, slug)).toEqual([
@@ -98,7 +102,7 @@ describe('my Pins in one Group', () => {
   test('can be emptied, which is not the same as never having chosen', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
-    const slug = await personalSlug(t, asAlice)
+    const slug = await initialGroupSlug(t, asAlice)
 
     await setPins(t, asAlice, slug, [])
     expect(await pinsOf(t, asAlice, slug)).toEqual([])
@@ -120,7 +124,7 @@ describe('my Pins in one Group', () => {
   test('keep the first of a repeated id and no more', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
-    const slug = await personalSlug(t, asAlice)
+    const slug = await initialGroupSlug(t, asAlice)
 
     await setPins(t, asAlice, slug, ['recipes', 'tasks', 'recipes'])
     expect(await pinsOf(t, asAlice, slug)).toEqual(['recipes', 'tasks'])
@@ -129,7 +133,7 @@ describe('my Pins in one Group', () => {
   test('stop at the cap rather than growing without bound', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
-    const slug = await personalSlug(t, asAlice)
+    const slug = await initialGroupSlug(t, asAlice)
 
     const many = Array.from(
       { length: MAX_PINNED_MODULES + 5 },
@@ -148,7 +152,14 @@ describe('my Pins across Groups', () => {
     const t = testConvex()
     await signUp(t, asAlice)
     const home = await household(t)
-    const mine = await personalSlug(t, asAlice)
+    const mineId = await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.createGroup, { name: 'Wine club' })
+    const mine = await t.run(async (ctx) => {
+      const group = await ctx.db.get(mineId)
+      if (!group) throw new Error('group was not created')
+      return group.slug
+    })
 
     await setPins(t, asAlice, home, ['recipes', 'tasks'])
     await setPins(t, asAlice, mine, ['nutrition'])
@@ -166,7 +177,7 @@ describe('my Pins across Groups', () => {
   test('a Group I have not chosen in opens with the ones I had before', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
-    const slug = await personalSlug(t, asAlice)
+    const slug = await initialGroupSlug(t, asAlice)
 
     await t.run(async (ctx) => {
       const user = await ctx.db
@@ -183,7 +194,7 @@ describe('my Pins across Groups', () => {
   test('and stops falling back the moment I choose there', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
-    const mine = await personalSlug(t, asAlice)
+    const mine = await initialGroupSlug(t, asAlice)
     const home = await household(t)
 
     await t.run(async (ctx) => {
@@ -239,7 +250,7 @@ describe('Pins I have no business setting', () => {
   test('cannot be set by someone who is not signed in', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
-    const slug = await personalSlug(t, asAlice)
+    const slug = await initialGroupSlug(t, asAlice)
 
     await expect(
       t.mutation(api.users.setPins, {
@@ -253,7 +264,7 @@ describe('Pins I have no business setting', () => {
     const t = testConvex()
     await signUp(t, asAlice)
     await signUp(t, asBob)
-    const mine = await personalSlug(t, asAlice)
+    const mine = await initialGroupSlug(t, asAlice)
 
     await expect(setPins(t, asBob, mine, ['recipes'])).rejects.toThrow()
   })
@@ -262,7 +273,7 @@ describe('Pins I have no business setting', () => {
     const t = testConvex()
     await signUp(t, asAlice)
     await signUp(t, asBob)
-    const mine = await personalSlug(t, asAlice)
+    const mine = await initialGroupSlug(t, asAlice)
 
     await setPins(t, asAlice, mine, ['recipes'])
 

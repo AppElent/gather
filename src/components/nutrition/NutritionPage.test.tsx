@@ -73,7 +73,7 @@ test('offers the Foods catalog without anybody having to know its address', () =
 
   expect(screen.getByRole('link', { name: /foods/i })).toHaveAttribute(
     'href',
-    '/g/jansen-household/foods',
+    '/foods',
   )
 })
 
@@ -82,7 +82,7 @@ test('keeps the Group that was open in the Foods address', () => {
 
   expect(screen.getByRole('link', { name: /foods/i })).toHaveAttribute(
     'href',
-    '/g/wine-club/foods',
+    '/foods',
   )
 })
 
@@ -91,6 +91,6 @@ test('offers the Combos library beside it', () => {
 
   expect(screen.getByRole('link', { name: /combos/i })).toHaveAttribute(
     'href',
-    '/g/jansen-household/combos',
+    '/combos',
   )
 })

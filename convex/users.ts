@@ -1,9 +1,6 @@
 import { ConvexError, v } from 'convex/values'
-import type { Id } from './_generated/dataModel'
-import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import { requireGroupBySlug } from './lib/groupAccess'
-import { allocateGroupSlug } from './lib/groupSlugs'
 import { nutritionValidator } from './lib/nutrition'
 import {
   ACCOUNT_DELETED,
@@ -18,39 +15,8 @@ export const me = query({
 })
 
 /**
- * Create a person's Personal group: an ordinary Group with a single Member,
- * where their private content lives (ADR-0003). Because it always exists,
- * signing in always has somewhere to land and there is no "create your first
- * Group" wall.
- *
- * Its slug takes the reserved `me-` namespace, so a household naming itself
- * after someone can never take it.
- */
-export async function createPersonalGroup(
-  ctx: MutationCtx,
-  user: { _id: Id<'users'>; name: string },
-  // Allocated by the caller so the backfill can walk the same ladder without
-  // writing anything on a dry run.
-  slug: string,
-): Promise<Id<'groups'>> {
-  const groupId = await ctx.db.insert('groups', {
-    name: `${user.name}'s things`,
-    slug,
-    isPersonal: true,
-    inviteCode: crypto.randomUUID().slice(0, 8),
-  })
-  await ctx.db.insert('memberships', {
-    groupId,
-    userId: user._id,
-    role: 'admin',
-  })
-  await ctx.db.patch(user._id, { defaultGroupId: groupId })
-  return groupId
-}
-
-/**
- * Idempotently provision the signed-in Clerk user as a gather user, with the
- * Personal group every person has exactly one of.
+ * Idempotently provision the signed-in Clerk user. A new user has no Group
+ * until they explicitly create one or confirm an invite.
  */
 export const ensureUser = mutation({
   args: {},
@@ -89,8 +55,6 @@ export const ensureUser = mutation({
       imageUrl: identity.pictureUrl ?? undefined,
     })
 
-    const slug = await allocateGroupSlug(ctx, { name, isPersonal: true })
-    await createPersonalGroup(ctx, { _id: userId, name }, slug)
     return userId
   },
 })

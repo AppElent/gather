@@ -12,8 +12,7 @@
 
 /** Enough of a Group to choose one and address it. */
 export interface LandingGroup {
-  slug: string
-  isPersonal: boolean
+  _id: string
 }
 
 /**
@@ -32,11 +31,10 @@ export interface LandingGroup {
  * Groups, and the URL is still the only thing that says which one you are
  * reading (ADR-0002).
  */
-export function landingGroupSlug(
+export function landingGroupId(
   groups: readonly LandingGroup[],
 ): string | null {
-  const landing = groups.find((group) => group.isPersonal) ?? groups[0]
-  return landing?.slug ?? null
+  return groups[0]?._id ?? null
 }
 
 /**
@@ -63,7 +61,7 @@ export function landingGroupSlug(
 export type GroupSelection =
   | { status: 'pending' }
   | { status: 'none' }
-  | { status: 'ready'; slug: string; source: 'retained' | 'landing' }
+  | { status: 'ready'; groupId: string; source: 'retained' | 'landing' }
 
 export function selectGroup(
   retained: string | null | undefined,
@@ -71,13 +69,13 @@ export function selectGroup(
 ): GroupSelection {
   if (groups === undefined) return { status: 'pending' }
 
-  const slug = retained?.trim()
-  if (slug && groups.some((group) => group.slug === slug)) {
-    return { status: 'ready', slug, source: 'retained' }
+  const groupId = retained?.trim()
+  if (groupId && groups.some((group) => group._id === groupId)) {
+    return { status: 'ready', groupId, source: 'retained' }
   }
 
-  const landing = landingGroupSlug(groups)
+  const landing = landingGroupId(groups)
   if (landing === null) return { status: 'none' }
 
-  return { status: 'ready', slug: landing, source: 'landing' }
+  return { status: 'ready', groupId: landing, source: 'landing' }
 }

@@ -23,8 +23,8 @@ export function readRetainedGroup(): string | null {
   return readPreference(PREFERENCE_KEYS.group)
 }
 
-export function writeRetainedGroup(slug: string) {
-  writePreference(PREFERENCE_KEYS.group, slug)
+export function writeRetainedGroup(groupId: string) {
+  writePreference(PREFERENCE_KEYS.group, groupId)
 }
 
 /**

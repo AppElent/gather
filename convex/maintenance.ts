@@ -6,7 +6,6 @@ import { foodSearchText } from './lib/foodSearchText'
 import { allocateGroupSlug } from './lib/groupSlugs'
 import { pickCanonicalUser } from './lib/sharing'
 import { stableDigest } from './lib/stableDigest'
-import { createPersonalGroup } from './users'
 
 /**
  * One-off cleanup for `users` documents carrying stray fields left over from
@@ -31,6 +30,37 @@ export const cleanUserDocuments = internalMutation({
       cleaned++
     }
     return { cleaned }
+  },
+})
+
+/**
+ * Removes the former Personal-group marker without creating, deleting, or
+ * reparenting anything. Each Group remains the same row, with the same name,
+ * members, content and invite code.
+ *
+ * Run with `{ apply: true }` once in every deployment, verify that
+ * `converted` is zero on a second run, then make `groups.isPersonal`
+ * disappear from the schema and delete this operation.
+ */
+export const removePersonalGroupSemantics = internalMutation({
+  args: { apply: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const groups = await ctx.db.query('groups').collect()
+    const legacy = groups.filter((group) => group.isPersonal !== undefined)
+    if (apply) {
+      for (const group of legacy) {
+        await ctx.db.replace(group._id, {
+          name: group.name,
+          inviteCode: group.inviteCode,
+          slug: group.slug,
+          icon: group.icon,
+          imageId: group.imageId,
+          groceryListId: group.groceryListId,
+        })
+      }
+    }
+    return { apply, converted: legacy.length }
   },
 })
 
@@ -174,7 +204,7 @@ export const backfillGroupSlugsAndPersonalGroups = internalMutation({
         // A Personal group's slug reads better from the person than from the
         // group's name, which for every backfilled one is the literal "Home".
         const from = (isPersonal ? soleMember?.name : undefined) ?? group.name
-        slug = await allocateGroupSlug(ctx, { name: from, isPersonal, taken })
+        slug = await allocateGroupSlug(ctx, { name: from, taken })
         slugsAssigned++
       }
 
@@ -207,12 +237,7 @@ export const backfillGroupSlugsAndPersonalGroups = internalMutation({
         continue
       }
       personalGroupsCreated++
-      const slug = await allocateGroupSlug(ctx, {
-        name: user.name,
-        isPersonal: true,
-        taken,
-      })
-      if (apply) await createPersonalGroup(ctx, user, slug)
+      if (apply) await ctx.db.patch(user._id, { defaultGroupId: undefined })
     }
 
     return {

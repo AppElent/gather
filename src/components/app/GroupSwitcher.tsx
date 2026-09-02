@@ -4,7 +4,7 @@ import { groupIndexSurfaceOf, groupLink } from '../../lib/groupPaths'
 import { useMessages } from '../../lib/i18n'
 import { Icon } from './Icon'
 import { useShellGroup } from './ShellGroup'
-import { Pill } from './ShellPrimitives'
+import { useCurrentGroup } from './useCurrentGroup'
 
 export interface GroupSwitcherProps {
   onNavigate?: () => void
@@ -43,9 +43,8 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
   const {
     group: current,
     groups,
-    slug: currentSlug,
-    addressed,
   } = useShellGroup()
+  const { setCurrentGroup } = useCurrentGroup()
   const surface = groupIndexSurfaceOf(location.pathname) ?? 'home'
 
   const [open, setOpen] = useState(false)
@@ -80,8 +79,14 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
         aria-label={groupSwitcher.label}
         className="grid w-full grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1.5 text-left"
       >
-        <span className="grid h-8 w-8 place-items-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-sm font-bold text-[var(--app-fg)]">
-          G
+        <span className="grid h-8 w-8 place-items-center overflow-hidden rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-sm font-bold text-[var(--app-fg)]">
+          {current?.imageUrl ? (
+            <img src={current.imageUrl} alt="" className="h-full w-full object-cover" />
+          ) : current?.icon ? (
+            <Icon name={current.icon} className="h-4 w-4" />
+          ) : (
+            current?.name.slice(0, 1).toUpperCase() ?? 'G'
+          )}
         </span>
         <span className="min-w-0">
           <strong className="block truncate text-sm text-[var(--app-fg)]">
@@ -91,16 +96,7 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
               (groups === undefined ? loading : groupSwitcher.none)}
           </strong>
           <span className="block truncate text-xs text-[var(--app-muted)]">
-            {current
-              ? // Off a Group route the name above is where you were, not where
-                // you are, and the line that would otherwise describe the Group
-                // says so instead.
-                !addressed
-                ? groupSwitcher.elsewhere
-                : current.isPersonal
-                  ? groupSwitcher.personal
-                  : groupSwitcher.shared
-              : groupSwitcher.pick}
+            {current ? groupSwitcher.shared : groupSwitcher.pick}
           </span>
         </span>
         <Icon
@@ -116,16 +112,14 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
               key={group._id}
               {...groupLink(surface, group.slug)}
               onClick={() => {
+                setCurrentGroup(group._id)
                 setOpen(false)
                 onNavigate?.()
               }}
-              aria-current={group.slug === currentSlug ? 'true' : undefined}
+              aria-current={group._id === current?._id ? 'true' : undefined}
               className="grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[7px] px-2 text-sm font-semibold text-[var(--app-fg)] no-underline aria-[current]:bg-[var(--app-surface-muted)]"
             >
               <span className="truncate">{group.name}</span>
-              {group.isPersonal ? (
-                <Pill>{groupSwitcher.personalPill}</Pill>
-              ) : null}
             </Link>
           ))}
           <Link

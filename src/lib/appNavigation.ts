@@ -221,15 +221,9 @@ export function dockNavItems(
  */
 function navTargetOf(pathname: string): string | null {
   const path = normalizePath(pathname)
-  const group = /^\/g\/[^/]+(\/.*)?$/.exec(path)
-  // Every page the navigation describes is inside a Group. Settings, Account
-  // and the Groups list are outside one on purpose, and the navigation says so
-  // by lighting nothing.
-  if (!group) return null
-
-  const segment = (group[1] ?? '').split('/').filter(Boolean)[0] ?? ''
-  if (segment === '') return HOME
-  if (segment === ALL) return ALL
+  const segment = path.split('/').filter(Boolean)[0] ?? ''
+  if (path === '/home') return HOME
+  if (path === '/all') return ALL
   if (segment === GROUP_SETTINGS_SEGMENT) return GROUP_SETTINGS
   return MODULES.find((m) => moduleSegment(m.id) === segment)?.id ?? null
 }

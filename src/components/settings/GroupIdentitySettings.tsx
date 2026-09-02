@@ -2,11 +2,13 @@ import { useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
+import type { Id } from '../../../convex/_generated/dataModel'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
-import type { ActiveGroup } from '../app/GroupGate'
+import type { ShellGroup } from '../app/useCurrentGroup'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
+import { ImageUploadField } from '../app/ImageUploadField'
 
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold'
@@ -15,7 +17,7 @@ const inputClass =
   'min-h-9 w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-3 text-sm'
 
 export interface GroupIdentitySettingsProps {
-  group: ActiveGroup
+  group: ShellGroup
 }
 
 /**
@@ -37,6 +39,8 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
   const navigate = useNavigate()
   const rename = useMutation(api.groups.renameGroup)
   const leave = useMutation(api.groups.leaveGroup)
+  const updateAppearance = useMutation(api.groups.updateAppearance)
+  const generateImageUploadUrl = useMutation(api.groups.generateImageUploadUrl)
   const { confirm, dialog } = useConfirmAction()
   const messages = useMessages()
   const group_ = messages.settings.group
@@ -44,8 +48,12 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
   const [name, setName] = useState(group.name)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [icon, setIcon] = useState(group.icon ?? 'Users')
+  const [imageId, setImageId] = useState<Id<'_storage'> | undefined>(
+    group.imageId,
+  )
 
-  const canRename = group.role === 'admin' && !group.isPersonal
+  const canRename = group.role === 'admin'
 
   async function submitRename(e: React.FormEvent) {
     e.preventDefault()
@@ -57,11 +65,22 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
       // The slug follows the name, so the address this page is on stops
       // existing the moment the rename lands. Going to the new one is part of
       // the same action, not something to leave a reader stranded by.
-      const slug = await rename({ groupId: group._id, name: trimmed })
+      await rename({ groupId: group._id, name: trimmed })
       await navigate({
-        to: '/g/$groupSlug/settings',
-        params: { groupSlug: slug },
+        to: '/group-settings',
       })
+    } catch (err) {
+      setError(errorMessage(err, group_.renameFailed))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function saveAppearance() {
+    setSaving(true)
+    setError(null)
+    try {
+      await updateAppearance({ groupId: group._id, icon, imageId: imageId ?? null })
     } catch (err) {
       setError(errorMessage(err, group_.renameFailed))
     } finally {
@@ -73,7 +92,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
     <SurfaceCard>
       <h2 className="m-0 mb-1 text-base font-semibold">{group_.title}</h2>
       <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
-        {group.isPersonal ? group_.personalNote : group_.sharedNote}
+        {group_.sharedNote}
       </p>
 
       {error && (
@@ -109,10 +128,47 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
           </form>
         ) : null}
 
-        {group.isPersonal ? null : <InviteCode slug={group.slug} />}
-
-        {group.isPersonal ? null : (
+        {canRename ? (
           <div className="grid gap-2">
+            <label htmlFor="group-icon" className="text-sm font-semibold">
+              Icon
+            </label>
+            <select
+              id="group-icon"
+              value={icon}
+              onChange={(event) => setIcon(event.target.value)}
+              className={inputClass}
+            >
+              <option value="Users">People</option>
+              <option value="House">Home</option>
+              <option value="Heart">Heart</option>
+              <option value="Utensils">Food</option>
+              <option value="Wine">Wine</option>
+            </select>
+            <ImageUploadField
+              imageUrl={group.imageUrl ?? null}
+              onChange={setImageId}
+              generateUploadUrl={generateImageUploadUrl}
+              preset="groupPhoto"
+              label="Group picture"
+              fieldId="group-image"
+            />
+            <div>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void saveAppearance()}
+                className={buttonClass}
+              >
+                {saving ? actions.saving : 'Save appearance'}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        <InviteCode slug={group.slug} />
+
+        <div className="grid gap-2">
             <span className="text-sm font-semibold">{group_.leave}</span>
             <div>
               <button
@@ -137,8 +193,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
                 {group_.leaveButton}
               </button>
             </div>
-          </div>
-        )}
+        </div>
       </div>
 
       {dialog}

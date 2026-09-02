@@ -57,7 +57,7 @@ describe('links built for a Group', () => {
   test.each(MODULES)('every $module destination carries it', ({ group }) => {
     expect(group.length).toBeGreaterThan(0)
     for (const link of group) {
-      expect(String(link.to).startsWith('/g/$groupSlug/')).toBe(true)
+      expect(String(link.to).startsWith('/')).toBe(true)
       expect(paramsOf(link).groupSlug).toBe(SLUG)
     }
   })

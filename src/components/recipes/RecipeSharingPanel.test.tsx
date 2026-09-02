@@ -156,8 +156,8 @@ describe('what the panel does', () => {
     await waitFor(() => {
       expect(navigations.value).toEqual([
         {
-          to: '/g/$groupSlug/recipes/$recipeId',
-          params: { recipeId: RECIPE_ID, groupSlug: 'cooking-club' },
+          to: '/recipes/$recipeId',
+          params: { recipeId: RECIPE_ID },
         },
       ])
     })
