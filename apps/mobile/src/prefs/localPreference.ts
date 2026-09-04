@@ -36,6 +36,7 @@ export const PREFERENCE_KEYS = {
   appearance: 'gather:appearance',
   locale: 'gather:locale',
   recentRecords: 'gather:search:recent-records',
+  allView: 'gather:all:view',
 } as const
 
 /**
@@ -50,9 +51,27 @@ export function babyChildKey(groupSlug: string) {
   return `gather:baby:child:${groupSlug}` as const
 }
 
+/**
+ * How one person has arranged the All screen, in one Group.
+ *
+ * Per Group for the same reason `babyChildKey` is: a Pin answers "what do I
+ * reach for first *here*" (ADR-0005), and a Member of two households reaches
+ * for different things in each. One key holding one JSON blob rather than four
+ * keys, so a rearrangement is a single atomic write and a single read on the
+ * frame that draws the screen.
+ *
+ * The view - list or grid - is deliberately *not* in here. It is a property of
+ * this phone rather than of a household, so it lives in `allView` above and is
+ * the same in every Group.
+ */
+export function allArrangementKey(groupSlug: string) {
+  return `gather:all:arrangement:${groupSlug}` as const
+}
+
 export type PreferenceKey =
   | (typeof PREFERENCE_KEYS)[keyof typeof PREFERENCE_KEYS]
   | ReturnType<typeof babyChildKey>
+  | ReturnType<typeof allArrangementKey>
 
 /** What was stored under this key, or null if nothing readable was. */
 export function readPreference(key: PreferenceKey): string | null {

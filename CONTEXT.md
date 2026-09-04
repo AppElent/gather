@@ -290,7 +290,21 @@ Pin is always one person's — never a Group's, and never visible to the rest of
 it — but it is kept per Group, because what you reach for first in a wine club
 is not what you reach for first at home (ADR-0005). Pinning never enables a
 Module: every Module is available in every Group either way.
+
+The web keeps a Member's Pins on their membership row; the phone keeps its own
+list on the handset, and the two do not sync (ADR-0033).
 _Avoid_: Favourite, Shortcut, Bookmark, Enabled module
+
+**Hidden Module**:
+One person's choice to keep a Module off their own All screen, on one phone, in
+one Group. Nobody else sees it, and it does not travel to their other devices
+(ADR-0033). Hiding is a display choice and nothing more: a hidden Module is
+still available, still reachable from Search, from Home and from every deep
+link, and it is still listed under Hidden at the bottom of the screen that hid
+it. It is never a switch that turns a Module off, because there is no such
+switch (ADR-0022). Hiding a Module also takes it off the top, since a shortcut
+to something deliberately out of sight is a contradiction.
+_Avoid_: Disabled, Removed, Turned off, Archived, Deactivated
 
 **Home**:
 A Group's shared surface — what a Member sees on opening it. It carries a

@@ -194,7 +194,47 @@ export const en = {
       sharedSubtitle: coreEn.shell.home.sharedSubtitle,
     },
 
-    all: coreEn.shell.allModules,
+    /**
+     * The All screen. The shared vocabulary comes straight from the web -
+     * `pin`, `unpin`, `pinModule`, `unpinModule` are one word on both clients
+     * (ADR-0017) even though the phone keeps its own list (ADR-0033).
+     *
+     * Everything spread on top is chrome the web has no equivalent of: the
+     * phone collapses its sections, hides Modules, arranges them in a mode,
+     * and draws them as rows or as tiles. The web's `moveUp` / `moveDown`
+     * survive in the alias unused - they name two buttons that only exist
+     * where there is no drag.
+     */
+    all: {
+      ...coreEn.shell.allModules,
+      /** The shortcut section at the top. The word is Pin, never Favourite. */
+      /** The compact list in Edit mode that reorders the sections themselves. */
+      categories: 'Categories',
+      pinned: 'Pinned',
+      /** The section at the bottom holding what this phone has been told to put away. */
+      hidden: 'Hidden',
+      hiddenCount: 'Hidden ({count})',
+      hide: 'Hide',
+      show: 'Show',
+      hideModule: 'Hide {module}',
+      showModule: 'Show {module}',
+      /** Enters and leaves the arranging mode. */
+      edit: 'Edit modules',
+      done: 'Done',
+      /** The nav-bar menu, and the two things it can draw. */
+      options: 'View options',
+      view: 'View',
+      viewList: 'List',
+      viewGrid: 'Grid',
+      /** Names a section for a reader who cannot see the chevron. */
+      collapse: 'Collapse {section}',
+      expand: 'Expand {section}',
+      /** Sits above the list in Edit mode and says what the grips are for. */
+      reorderHint:
+        'Drag a handle to rearrange. A module stays in its own category.',
+      dragModule: 'Reorder {module}',
+      dragSection: 'Reorder {section}',
+    },
 
     placeholder: coreEn.shell.placeholder,
 

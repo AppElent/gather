@@ -1,12 +1,17 @@
 /**
  * Where a dragged row lands, in one dimension and in pixels.
  *
- * The vertical twin of `modules/baby/logBarArrange.ts`, which does the same job
- * for a horizontal bar. They are not shared yet: two call sites is not a
- * pattern, and the day the Tasks Module ships is the day to decide whether one
- * `arrange.ts` serves both.
+ * Shared, as of the All screen. It was written for the Tasks Module and said
+ * so: *"two call sites is not a pattern, and the day the Tasks Module ships is
+ * the day to decide whether one `arrange.ts` serves both."* The All screen's
+ * Edit mode is the third, and it wants exactly these three functions, so this
+ * is that day.
  *
- * The clamping is the part worth a test â€” dragging the first row further up,
+ * The horizontal twin, `modules/baby/logBarArrange.ts`, stays where it is. It
+ * is a different axis with a different clamp, and folding it in here would
+ * produce one function with a direction flag rather than one idea.
+ *
+ * The clamping is the part worth a test - dragging the first row further up,
  * or the last one further down, must do nothing rather than wrap around to the
  * other end of the list.
  */

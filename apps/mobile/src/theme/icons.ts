@@ -34,6 +34,9 @@ import ChevronLeft from 'lucide-react-native/icons/chevron-left'
 import ChevronRight from 'lucide-react-native/icons/chevron-right'
 import ChevronUp from 'lucide-react-native/icons/chevron-up'
 import CircleAlert from 'lucide-react-native/icons/circle-alert'
+import CircleMinus from 'lucide-react-native/icons/circle-minus'
+import CirclePlus from 'lucide-react-native/icons/circle-plus'
+import Ellipsis from 'lucide-react-native/icons/ellipsis'
 import Eye from 'lucide-react-native/icons/eye'
 import EyeOff from 'lucide-react-native/icons/eye-off'
 import Grape from 'lucide-react-native/icons/grape'
@@ -41,10 +44,13 @@ import GripVertical from 'lucide-react-native/icons/grip-vertical'
 import ImagePlus from 'lucide-react-native/icons/image-plus'
 import KeyRound from 'lucide-react-native/icons/key-round'
 import Grid from 'lucide-react-native/icons/layout-grid'
+import List from 'lucide-react-native/icons/list'
 import ListChecks from 'lucide-react-native/icons/list-checks'
 import Mail from 'lucide-react-native/icons/mail'
 import NotebookPen from 'lucide-react-native/icons/notebook-pen'
 import Pencil from 'lucide-react-native/icons/pencil'
+import Pin from 'lucide-react-native/icons/pin'
+import PinOff from 'lucide-react-native/icons/pin-off'
 import Refrigerator from 'lucide-react-native/icons/refrigerator'
 import Search from 'lucide-react-native/icons/search'
 import Settings from 'lucide-react-native/icons/settings'
@@ -96,13 +102,41 @@ export const UI_ICONS = {
   /** Rearranging an ordered list, one row at a time. */
   ChevronUp: glyph(ChevronUp, 'chevron.up'),
   CircleAlert: glyph(CircleAlert, 'exclamationmark.circle'),
-  /** The Settings tab's Modules group. */
+  /**
+   * Edit mode's two verbs, drawn the way iOS draws them in an editing list:
+   * filled circles, red to take away and green to put back, so the pair reads
+   * at a glance without either one being a word.
+   */
+  CircleMinus: glyph(CircleMinus, 'minus.circle.fill'),
+  CirclePlus: glyph(CirclePlus, 'plus.circle.fill'),
+  /**
+   * The All screen's nav-bar menu: view, and the way into Edit.
+   *
+   * Bare `ellipsis`, not `ellipsis.circle`. iOS 26 draws a nav-bar button on
+   * its own glass circle, so the circled symbol lands a ring inside a ring -
+   * Mail and Files both put three plain dots in that button.
+   */
+  Ellipsis: glyph(Ellipsis, 'ellipsis'),
+  /** The Settings tab's Modules group, and All's two ways to draw itself. */
   Grid: glyph(Grid, 'square.grid.2x2'),
+  List: glyph(List, 'list.bullet'),
   GripVertical: glyph(GripVertical, 'line.3.horizontal'),
   Eye: glyph(Eye, 'eye'),
   EyeOff: glyph(EyeOff, 'eye.slash'),
   /** Changing a password. */
   KeyRound: glyph(KeyRound, 'key'),
+  /**
+   * A Pin, which is what this app calls the thing other apps call a favourite
+   * (CONTEXT.md). Never a heart.
+   */
+  Pin: glyph(Pin, 'pin'),
+  /**
+   * The same Pin, stuck in. SF Symbols say "on" with a different symbol rather
+   * than a `fill` prop, so the pair is two entries here and lucide's one icon
+   * takes `fill` at the call site (see `glyph`).
+   */
+  PinFill: glyph(Pin, 'pin.fill'),
+  PinOff: glyph(PinOff, 'pin.slash'),
   /** The email addresses on an account. */
   Mail: glyph(Mail, 'envelope'),
   /** Edit, where a row already does something else when pressed. */

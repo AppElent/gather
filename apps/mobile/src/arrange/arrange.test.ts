@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { dropIndex, movedTo, shiftFor } from './reorder'
+import { dropIndex, movedTo, shiftFor } from './arrange'
 
 describe('task reorder helpers', () => {
   test('clamps a drag to the open rows', () => {

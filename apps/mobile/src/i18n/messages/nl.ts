@@ -150,7 +150,29 @@ export const nl = {
       sharedSubtitle: coreNl.shell.home.sharedSubtitle,
     },
 
-    all: coreNl.shell.allModules,
+    all: {
+      ...coreNl.shell.allModules,
+      categories: 'Categorieen',
+      pinned: 'Vastgezet',
+      hidden: 'Verborgen',
+      hiddenCount: 'Verborgen ({count})',
+      hide: 'Verbergen',
+      show: 'Tonen',
+      hideModule: '{module} verbergen',
+      showModule: '{module} tonen',
+      edit: 'Modules bewerken',
+      done: 'Klaar',
+      options: 'Weergaveopties',
+      view: 'Weergave',
+      viewList: 'Lijst',
+      viewGrid: 'Tegels',
+      collapse: '{section} inklappen',
+      expand: '{section} uitklappen',
+      reorderHint:
+        'Sleep aan een greep om te herschikken. Een module blijft in zijn eigen categorie.',
+      dragModule: '{module} herschikken',
+      dragSection: '{section} herschikken',
+    },
 
     placeholder: coreNl.shell.placeholder,
 
