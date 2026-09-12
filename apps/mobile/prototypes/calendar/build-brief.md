@@ -1,5 +1,7 @@
 # Calendar, on the phone — the build brief
 
+> Superseded for production implementation by [`docs/plans/2026-09-12-mobile-calendar.md`](../../../docs/plans/2026-09-12-mobile-calendar.md). This historical prototype preserves the design exploration; the approved plan changes editing to explicit Save, adds continuous dates and filters, and defers recurrence and sync.
+
 **Canvas:** https://claude.ai/code/artifact/e9cd5258-d2ad-4ddc-9380-e606deb76c35
 **Decided:** 2 September 2026. **Scope:** `apps/mobile`, local calendars only.
 

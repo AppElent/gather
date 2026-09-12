@@ -271,6 +271,13 @@ valid, and submitting twice does not save twice. A validator returns a
 message key, not a sentence, resolved into the reader's language at the
 point it is displayed.
 
+**Calendar editing.** Calendar events use a compact card above the keyboard and
+an expanded native sheet, both backed by one draft. Editing is not live: typing,
+picker changes, expansion and dismissal write nothing. The checkmark, the
+sheet's Save button, or the title field's Done submits one complete event only
+after validation; a failed save keeps the draft visible. Dismissing a dirty
+draft retains it for Resume draft, while Discard asks before clearing it.
+
 ---
 
 ## Dependencies
