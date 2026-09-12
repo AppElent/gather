@@ -116,7 +116,7 @@ export function addCalendarMonths(value: string, amount: number): string {
   if (!parsed) return value
   const target = parsed.year * 12 + parsed.month - 1 + Math.trunc(amount)
   const year = Math.floor(target / 12)
-  const month = ((target % 12) + 12) % 12 + 1
+  const month = (((target % 12) + 12) % 12) + 1
   return iso(year, month, Math.min(parsed.day, daysInMonth(year, month)))
 }
 
@@ -136,7 +136,9 @@ export function monthStart(value: string): string {
 export function mondayStart(value: string): string {
   const parsed = parts(value)
   if (!parsed) return value
-  const weekday = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day)).getUTCDay()
+  const weekday = new Date(
+    Date.UTC(parsed.year, parsed.month - 1, parsed.day),
+  ).getUTCDay()
   return addCalendarDays(value, -((weekday + 6) % 7))
 }
 
@@ -150,18 +152,31 @@ export function calendarMonthGrid(value: string): (string | null)[][] {
   const parsed = parts(first)
   if (!parsed) return []
   const start = mondayStart(first)
-  const last = iso(parsed.year, parsed.month, daysInMonth(parsed.year, parsed.month))
-  const cells = Array.from({ length: 42 }, (_, index) => addCalendarDays(start, index))
+  const last = iso(
+    parsed.year,
+    parsed.month,
+    daysInMonth(parsed.year, parsed.month),
+  )
+  const cells = Array.from({ length: 42 }, (_, index) =>
+    addCalendarDays(start, index),
+  )
   return Array.from({ length: 6 }, (_, row) =>
     cells.slice(row * 7, row * 7 + 7).map((day) => {
-      if (compareCalendarDates(day, first) < 0 || compareCalendarDates(day, last) > 0) return null
+      if (
+        compareCalendarDates(day, first) < 0 ||
+        compareCalendarDates(day, last) > 0
+      )
+        return null
       return day
     }),
   )
 }
 
-export function normalizeCalendarEvent(input: CalendarEventInput): CalendarEvent {
-  const hasTime = input.startMinutes !== undefined && input.endMinutes !== undefined
+export function normalizeCalendarEvent(
+  input: CalendarEventInput,
+): CalendarEvent {
+  const hasTime =
+    input.startMinutes !== undefined && input.endMinutes !== undefined
   return {
     ...input,
     allDay: input.allDay ?? !hasTime,
@@ -173,14 +188,17 @@ export function normalizeCalendarEvent(input: CalendarEventInput): CalendarEvent
   }
 }
 
-export function validateCalendarFields(values: CalendarFieldValues): CalendarFieldErrors {
+export function validateCalendarFields(
+  values: CalendarFieldValues,
+): CalendarFieldErrors {
   const errors: CalendarFieldErrors = {}
   if (!values.calendarId) errors.calendarId = 'calendarRequired'
   if (!values.title.trim()) errors.title = 'titleRequired'
   else if (values.title.trim().length > 200) errors.title = 'titleTooLong'
   if (!isValidCivilDate(values.date)) errors.date = 'invalidDate'
   if (!values.allDay) {
-    if (values.startMinutes == null || values.endMinutes == null) errors.time = 'timeRequired'
+    if (values.startMinutes == null || values.endMinutes == null)
+      errors.time = 'timeRequired'
     else if (
       !Number.isInteger(values.startMinutes) ||
       !Number.isInteger(values.endMinutes) ||
@@ -222,11 +240,15 @@ export function filterCalendarEvents(
 ): CalendarEvent[] {
   const hidden = new Set(hiddenCalendarIds)
   return events.filter(
-    (event) => !hidden.has(event.calendarId) && eventMatchesPeopleFilter(event, peopleFilter),
+    (event) =>
+      !hidden.has(event.calendarId) &&
+      eventMatchesPeopleFilter(event, peopleFilter),
   )
 }
 
-export function orderCalendarEvents(events: readonly CalendarEvent[]): CalendarEvent[] {
+export function orderCalendarEvents(
+  events: readonly CalendarEvent[],
+): CalendarEvent[] {
   return [...events].sort((a, b) => {
     const date = compareCalendarDates(a.date, b.date)
     if (date !== 0) return date
@@ -247,7 +269,9 @@ export interface CalendarMark {
   color: CalendarColor
 }
 
-export function initialsForPeople(people: readonly CalendarPerson[]): Map<string, string> {
+export function initialsForPeople(
+  people: readonly CalendarPerson[],
+): Map<string, string> {
   const firstCounts = new Map<string, number>()
   for (const person of people) {
     const first = [...person.name.trim()][0]?.toLocaleUpperCase() ?? '?'
@@ -257,9 +281,10 @@ export function initialsForPeople(people: readonly CalendarPerson[]): Map<string
     people.map((person) => {
       const letters = [...person.name.trim()]
       const first = letters[0]?.toLocaleUpperCase() ?? '?'
-      const value = (firstCounts.get(first) ?? 0) > 1
-        ? letters.slice(0, 2).join('').toLocaleUpperCase()
-        : first
+      const value =
+        (firstCounts.get(first) ?? 0) > 1
+          ? letters.slice(0, 2).join('').toLocaleUpperCase()
+          : first
       return [person.id, value]
     }),
   )
@@ -279,7 +304,8 @@ export function marksForDate(
         result.push({
           key: `${event.id}:${id}`,
           kind: 'person',
-          label: people.find((person) => person.id === id)?.name ?? 'Former member',
+          label:
+            people.find((person) => person.id === id)?.name ?? 'Former member',
           initial: initials.get(id) ?? '?',
           color: event.color,
         })
@@ -303,34 +329,65 @@ export function visibleMarksForDate(
   limit = 3,
 ) {
   const marks = marksForDate(date, events, people)
-  return { marks: marks.slice(0, limit), overflow: Math.max(0, marks.length - limit), total: marks.length }
+  return {
+    marks: marks.slice(0, limit),
+    overflow: Math.max(0, marks.length - limit),
+    total: marks.length,
+  }
 }
 
 export type AgendaRow =
   | { kind: 'day'; key: string; date: string; events: CalendarEvent[] }
-  | { kind: 'gap'; key: string; from: string; to: string; dates: string[]; selected: boolean }
+  | {
+      kind: 'gap'
+      key: string
+      from: string
+      to: string
+      dates: string[]
+      selected: boolean
+    }
 
 export function agendaRows(
   events: readonly CalendarEvent[],
   from: string,
   toExclusive: string,
   selectedDate?: string,
+  expandedDates: readonly string[] = [],
 ): AgendaRow[] {
   const ordered = orderCalendarEvents(events)
   const dates = []
-  for (let date = from; compareCalendarDates(date, toExclusive) < 0; date = addCalendarDays(date, 1)) dates.push(date)
+  for (
+    let date = from;
+    compareCalendarDates(date, toExclusive) < 0;
+    date = addCalendarDays(date, 1)
+  )
+    dates.push(date)
   const byDate = new Map<string, CalendarEvent[]>()
   for (const event of ordered) {
-    if (compareCalendarDates(event.date, from) >= 0 && compareCalendarDates(event.date, toExclusive) < 0) {
+    if (
+      compareCalendarDates(event.date, from) >= 0 &&
+      compareCalendarDates(event.date, toExclusive) < 0
+    ) {
       byDate.set(event.date, [...(byDate.get(event.date) ?? []), event])
     }
   }
   const rows: AgendaRow[] = []
+  const expanded = new Set(expandedDates)
   let index = 0
   while (index < dates.length) {
     const date = dates[index]
-    if (byDate.has(date) || date === selectedDate || date === todayCalendarDate()) {
-      rows.push({ kind: 'day', key: `day:${date}`, date, events: byDate.get(date) ?? [] })
+    if (
+      byDate.has(date) ||
+      expanded.has(date) ||
+      date === selectedDate ||
+      date === todayCalendarDate()
+    ) {
+      rows.push({
+        kind: 'day',
+        key: `day:${date}`,
+        date,
+        events: byDate.get(date) ?? [],
+      })
       index++
       continue
     }
@@ -338,12 +395,20 @@ export function agendaRows(
     while (
       index < dates.length &&
       !byDate.has(dates[index]) &&
+      !expanded.has(dates[index]) &&
       dates[index] !== selectedDate &&
       dates[index] !== todayCalendarDate()
-    ) index++
+    )
+      index++
     const gapDates = dates.slice(start, index)
     if (gapDates.length <= 6) {
-      for (const gapDate of gapDates) rows.push({ kind: 'day', key: `day:${gapDate}`, date: gapDate, events: [] })
+      for (const gapDate of gapDates)
+        rows.push({
+          kind: 'day',
+          key: `day:${gapDate}`,
+          date: gapDate,
+          events: [],
+        })
     } else {
       rows.push({
         kind: 'gap',

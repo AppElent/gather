@@ -68,6 +68,20 @@ export function LabsScreen() {
               : t.labs[entry.id].verdict}
           </Text>
 
+          <Link
+            href={{
+              pathname: '/settings/labs/calendar',
+              params: { production: 'true' },
+            }}
+            accessibilityLabel={t.labs.calendar.productionPreview}
+            style={[
+              styles.link,
+              { borderColor: tokens.border, color: tokens.fg },
+            ]}
+          >
+            {t.labs.calendar.productionPreview}
+          </Link>
+
           <Text style={[styles.sectionLabel, { color: tokens.muted }]}>
             {t.labs.entry.variants.toUpperCase()}
           </Text>

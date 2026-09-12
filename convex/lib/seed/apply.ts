@@ -649,6 +649,7 @@ export async function applySample(
       await ctx.db.insert('calendars', {
         groupId,
         name: fixture.name,
+        color: fixture.color,
         source: 'local',
         createdBy: authors[fixture.author],
       }),
@@ -659,8 +660,13 @@ export async function applySample(
           calendarId,
           title: event.title,
           date: isoDate(now, -event.daysAhead),
-          startMinutes: event.startMinutes,
-          endMinutes: event.endMinutes,
+          startMinutes:
+            'startMinutes' in event ? event.startMinutes : undefined,
+          endMinutes: 'endMinutes' in event ? event.endMinutes : undefined,
+          allDay: 'allDay' in event ? event.allDay : undefined,
+          assigneeIds: event.assignees?.map((author) => authors[author]),
+          location: 'location' in event ? event.location : undefined,
+          notes: 'notes' in event ? event.notes : undefined,
           createdBy: authors[event.author],
         }),
       )

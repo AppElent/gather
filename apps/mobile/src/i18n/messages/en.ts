@@ -772,6 +772,7 @@ export const en = {
 
     calendar: {
       title: 'Calendar',
+      productionPreview: 'Open the production calendar',
       /** The one-line question, shown on the Labs row. */
       question:
         'Does one screen with three layouts read as a preference, and does the composer clear the keyboard?',

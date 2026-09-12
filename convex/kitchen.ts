@@ -1,6 +1,5 @@
 import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
-import { requireGroupBySlug } from './lib/groupAccess'
 import {
   calendarColorValidator,
   calendarInGroup,
@@ -8,6 +7,7 @@ import {
   validateAssignees,
   validateEventFields,
 } from './lib/calendar'
+import { requireGroupBySlug } from './lib/groupAccess'
 
 const quickLimit = v.union(v.literal(10), v.literal(20), v.literal(30))
 
@@ -285,18 +285,37 @@ export const setGroceryList = mutation({
 })
 
 export const addCalendar = mutation({
-  args: { groupSlug: v.string(), name: v.string(), color: v.optional(calendarColorValidator) },
+  args: {
+    groupSlug: v.string(),
+    name: v.string(),
+    color: v.optional(calendarColorValidator),
+  },
   returns: v.id('calendars'),
   handler: async (ctx, args) => {
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
     const name = args.name.trim()
     if (!name) throw new ConvexError('Calendar name required')
+    const colors = ['home', 'kitchen', 'money', 'tasting'] as const
+    const existing = await ctx.db
+      .query('calendars')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const counts = new Map(colors.map((color) => [color, 0]))
+    for (const calendar of existing) {
+      const color = calendar.color ?? 'home'
+      counts.set(color, (counts.get(color) ?? 0) + 1)
+    }
+    const defaultColor = colors.reduce(
+      (chosen, color) =>
+        counts.get(color)! < counts.get(chosen)! ? color : chosen,
+      colors[0],
+    )
     return await ctx.db.insert('calendars', {
       groupId: group._id,
       name,
       source: 'local',
       createdBy: user._id,
-      color: args.color,
+      color: args.color ?? defaultColor,
     })
   },
 })
@@ -346,7 +365,9 @@ export const addCalendarEvent = mutation({
       args.groupSlug,
       args.calendarId,
     )
-    const allDay = args.allDay ?? (args.startMinutes === undefined && args.endMinutes === undefined)
+    const allDay =
+      args.allDay ??
+      (args.startMinutes === undefined && args.endMinutes === undefined)
     const assigneeIds = args.assigneeIds ?? []
     validateEventFields({
       calendarId: calendar._id,
@@ -428,7 +449,7 @@ export const setCalendarVisibility = mutation({
     visible: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const { group, user, calendar, membership } = await calendarInGroup(
+    const { calendar, membership } = await calendarInGroup(
       ctx,
       args.groupSlug,
       args.calendarId,

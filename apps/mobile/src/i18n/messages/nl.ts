@@ -571,6 +571,7 @@ export const nl = {
 
     calendar: {
       title: 'Agenda',
+      productionPreview: 'Productie-agenda openen',
       question:
         'Leest één scherm met drie indelingen als een voorkeur, en houdt de invoerkaart het toetsenbord vrij?',
       today: 'Vandaag',

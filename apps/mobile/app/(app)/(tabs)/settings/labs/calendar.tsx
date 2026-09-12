@@ -17,8 +17,14 @@ import {
   navAxis,
 } from '../../../../../src/labs/calendar/axes'
 import { CalendarLab } from '../../../../../src/labs/calendar/CalendarLab'
+import {
+  LAB_CALENDARS,
+  LAB_MEMBERS,
+  labEvents,
+} from '../../../../../src/labs/calendar/fixtures'
 import { VariantBar } from '../../../../../src/labs/VariantBar'
 import { readAxis } from '../../../../../src/labs/variants'
+import { CalendarScreen } from '../../../../../src/modules/calendar/CalendarScreen'
 
 export default function CalendarLabRoute() {
   const { t } = useI18n()
@@ -26,7 +32,47 @@ export default function CalendarLabRoute() {
     nav?: string
     cell?: string
     composer?: string
+    production?: string
   }>()
+
+  if (params.production === 'true') {
+    const today = new Date().toISOString().slice(0, 10)
+    const events = labEvents(today).map((event) => ({
+      id: event.id,
+      calendarId: event.calendarId,
+      title: event.title,
+      date: event.date,
+      allDay: event.allDay,
+      startMinutes: event.start
+        ? Number(event.start.slice(0, 2)) * 60 + Number(event.start.slice(3))
+        : undefined,
+      endMinutes: event.end
+        ? Number(event.end.slice(0, 2)) * 60 + Number(event.end.slice(3))
+        : undefined,
+      assigneeIds: event.who,
+      location: event.location ?? '',
+      notes: '',
+      revision: 0,
+      color:
+        LAB_CALENDARS.find((calendar) => calendar.id === event.calendarId)
+          ?.tint ?? 'home',
+    }))
+    return (
+      <CalendarScreen
+        today={today}
+        data={{
+          calendars: LAB_CALENDARS.map(({ id, name, tint }) => ({
+            id,
+            name,
+            color: tint,
+          })),
+          people: LAB_MEMBERS,
+          hiddenCalendarIds: ['work'],
+          events,
+        }}
+      />
+    )
+  }
 
   const nav = navAxis(t)
   const cell = cellAxis(t)

@@ -24,6 +24,8 @@ export const calendar = {
   titlePlaceholder: 'Wat gebeurt er?',
   date: 'Datum',
   time: 'Tijd',
+  startTime: 'Begintijd',
+  endTime: 'Eindtijd',
   allDay: 'Hele dag',
   who: 'Wie',
   calendar: 'Agenda',
@@ -42,6 +44,7 @@ export const calendar = {
   unsavedChanges: 'Je hebt niet-bewaarde wijzigingen.',
   keepDraft: 'Concept bewaren en wisselen',
   stay: 'Blijven',
+  continueAnyway: 'Verwijderen en doorgaan',
   duplicate: 'Dupliceren',
   edit: 'Bewerken',
   deleteEvent: 'Afspraak verwijderen',
@@ -70,7 +73,9 @@ export const calendar = {
     save: 'Deze afspraak kon niet worden bewaard. Probeer het opnieuw.',
     load: 'De agenda kon niet worden geladen.',
     conflict: 'Deze afspraak is gewijzigd. Je concept staat nog klaar.',
-    deleted: 'Deze afspraak is verwijderd. Bewaar hem als nieuw of verwijder het concept.',
+    deleted:
+      'Deze afspraak is verwijderd. Bewaar hem als nieuw of verwijder het concept.',
+    storage: 'Je concept kon niet lokaal worden opgeslagen.',
   },
   accessibility: {
     headerHandle: 'Wissel tussen maand- en weekweergave',
