@@ -30,6 +30,7 @@ export const nl = {
   modules: coreNl.modules,
 
   baby: coreNl.baby,
+  calendar: coreNl.calendar,
 
   recipes: coreNl.recipes,
 

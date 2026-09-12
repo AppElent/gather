@@ -6,6 +6,7 @@
   "exports": {
     "./appearance": "./src/appearance.ts",
     "./baby-age": "./src/babyAge.ts",
+    "./calendar": "./src/calendar.ts",
     "./domain": "./src/domain.ts",
     "./drop-rules": "./src/dropRules.ts",
     "./finance": "./src/finance/index.ts",

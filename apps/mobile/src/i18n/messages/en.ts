@@ -40,6 +40,7 @@ export const en = {
    * second English for "Diaper" is the failure that rule names.
    */
   baby: coreEn.baby,
+  calendar: coreEn.calendar,
 
   /**
    * Recipes, for the same reason and on the same terms as the Baby log above.

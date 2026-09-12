@@ -1,5 +1,6 @@
 import type { Messages } from '../en'
 import { baby } from './baby'
+import { calendar } from './calendar'
 import { common } from './common'
 import { finances } from './finances'
 import { foods } from './foods'
@@ -25,6 +26,7 @@ export const nl = {
   finances,
   tasks,
   baby,
+  calendar,
   tastings,
   settings,
 } satisfies Messages
