@@ -197,6 +197,7 @@ export function ConnectedCalendarScreen() {
               visible,
             })
           }}
+          onCreated={(id) => editor.changeField('calendarId', id)}
           onClose={() => setManagement(false)}
         />
       ) : null}
@@ -205,6 +206,7 @@ export function ConnectedCalendarScreen() {
           controller={editor}
           people={data.people}
           calendars={data.calendars}
+          onCreateCalendar={() => setManagement(true)}
           onClose={() => setEditorVisible(false)}
         />
       ) : null}

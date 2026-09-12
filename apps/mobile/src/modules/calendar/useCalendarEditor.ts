@@ -4,9 +4,9 @@ import { haptics } from '../../feedback/haptics'
 import {
   type CalendarDraft,
   type CalendarDraftState,
+  calendarSaveBlocker,
   createCalendarDraft,
   type DraftAction,
-  draftCanSave,
   draftPayload,
   editCalendarDraft,
   isDraftDirty,
@@ -81,8 +81,13 @@ export function useCalendarEditor({
 
   const send = useCallback(async () => {
     const draft = state.draft
-    if (!draft || !draftCanSave(draft, connected, submitting.current))
+    if (!draft) return false
+    const blocker = calendarSaveBlocker(draft, connected, submitting.current)
+    if (blocker) {
+      if (blocker === 'calendar:offline')
+        dispatch({ type: 'saveFailure', error: blocker })
       return false
+    }
     submitting.current = true
     dispatch({ type: 'saveStart' })
     try {

@@ -71,6 +71,7 @@ export const calendar = {
   },
   errors: {
     save: 'Could not save this event. Try again.',
+    offline: 'Gather is still connecting. Try Save again in a moment.',
     load: 'Could not load the calendar.',
     conflict: 'This event changed. Your draft is still here.',
     deleted: 'This event was deleted. Save it as new or discard it.',

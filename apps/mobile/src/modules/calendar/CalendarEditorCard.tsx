@@ -33,6 +33,7 @@ export interface CalendarEditorProps {
   onCollapse?: () => void
   onDuplicate?: () => void
   onDelete?: () => void
+  onCreateCalendar?: () => void
   saving?: boolean
   overlay?: boolean
   full?: boolean
@@ -71,6 +72,7 @@ export function CalendarEditorCard({
   onCollapse,
   onDuplicate,
   onDelete,
+  onCreateCalendar,
   saving,
   overlay = true,
   full = false,
@@ -88,9 +90,17 @@ export function CalendarEditorCard({
         ? t.calendar.errors.deleted
         : draft.error === 'storage'
           ? t.calendar.errors.storage
-          : draft.error === 'save'
-            ? t.calendar.errors.save
-            : draft.error
+          : draft.error === 'calendar:offline'
+            ? t.calendar.errors.offline
+            : draft.error?.startsWith('calendar:')
+              ? (t.calendar.validation[
+                  draft.error.slice(
+                    'calendar:'.length,
+                  ) as keyof typeof t.calendar.validation
+                ] ?? draft.error)
+              : draft.error === 'save'
+                ? t.calendar.errors.save
+                : draft.error
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -251,6 +261,17 @@ export function CalendarEditorCard({
                 </Pressable>
               ))}
             </View>
+            {calendars.length === 0 && onCreateCalendar ? (
+              <Pressable
+                testID="calendar-add-calendar"
+                onPress={onCreateCalendar}
+                style={styles.addCalendar}
+              >
+                <Text style={{ color: tokens.accent }}>
+                  {t.calendar.addCalendar}
+                </Text>
+              </Pressable>
+            ) : null}
           </Field>
           {full ? (
             <>
@@ -390,6 +411,7 @@ const styles = StyleSheet.create({
   },
   helper: { fontSize: 12 },
   more: { paddingVertical: 8 },
+  addCalendar: { minHeight: 44, justifyContent: 'center' },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',

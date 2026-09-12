@@ -27,11 +27,13 @@ export function CalendarEditor({
   people,
   calendars,
   onClose,
+  onCreateCalendar,
 }: {
   controller: CalendarEditorController
   people: CalendarPerson[]
   calendars: { id: string; name: string }[]
   onClose: () => void
+  onCreateCalendar?: () => void
 }) {
   const { t } = useI18n()
   const draft = controller.draft
@@ -64,6 +66,7 @@ export function CalendarEditor({
         ],
       ),
     saving: draft.status === 'saving',
+    onCreateCalendar,
   }
   return controller.presentation === 'sheet' ? (
     <CalendarEditorSheet {...shared} />

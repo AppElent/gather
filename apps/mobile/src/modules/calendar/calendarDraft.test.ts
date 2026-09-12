@@ -2,6 +2,7 @@ import { normalizeCalendarEvent } from '@gather/core/calendar'
 import { describe, expect, test } from 'vitest'
 import {
   type CalendarDraftState,
+  calendarSaveBlocker,
   createCalendarDraft,
   draftCanSave,
   draftPayload,
@@ -80,6 +81,22 @@ describe('calendar drafts', () => {
       startMinutes: null,
       endMinutes: null,
     })
+  })
+
+  test('reports connection loss instead of silently refusing a dirty save', () => {
+    const draft = createCalendarDraft(
+      'user',
+      'group',
+      '2026-09-12',
+      'calendar-1',
+    )
+    const dirty = reduceCalendarDraft(
+      { draft, presentation: 'card', storageError: null },
+      { type: 'change', field: 'title', value: 'Party' },
+    ).draft!
+
+    expect(calendarSaveBlocker(dirty, false, false)).toBe('calendar:offline')
+    expect(calendarSaveBlocker(dirty, true, false)).toBeNull()
   })
 
   test('guards one in-flight submit and preserves failed/conflict states', () => {

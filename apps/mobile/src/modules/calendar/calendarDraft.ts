@@ -252,13 +252,24 @@ export function draftCanSave(
   connected: boolean,
   submitting: boolean,
 ): boolean {
-  return (
-    connected &&
-    !submitting &&
-    draft.status !== 'saving' &&
-    isDraftDirty(draft) &&
-    !hasCalendarErrors(validateDraft(draft))
-  )
+  return calendarSaveBlocker(draft, connected, submitting) === null
+}
+
+/** Keep a native button press from becoming a silent no-op. */
+export function calendarSaveBlocker(
+  draft: CalendarDraft,
+  connected: boolean,
+  submitting: boolean,
+): string | null {
+  if (submitting || draft.status === 'saving') return 'saving'
+  if (!isDraftDirty(draft)) return 'unchanged'
+  const errors = validateDraft(draft)
+  if (hasCalendarErrors(errors)) {
+    const firstError = Object.values(errors).find(Boolean)
+    return firstError ? `calendar:${firstError}` : 'calendar:invalid'
+  }
+  if (!connected) return 'calendar:offline'
+  return null
 }
 
 export function draftPayload(draft: CalendarDraft) {

@@ -21,12 +21,14 @@ export function CalendarManagementSheet({
   calendars,
   hiddenCalendarIds,
   onVisibility,
+  onCreated,
   onClose,
 }: {
   groupSlug: string
   calendars: { id: string; name: string; color?: CalendarEvent['color'] }[]
   hiddenCalendarIds: readonly string[]
   onVisibility: (id: string, visible: boolean) => void
+  onCreated?: (id: string) => void
   onClose: () => void
 }) {
   const { t } = useI18n()
@@ -126,7 +128,10 @@ export function CalendarManagementSheet({
           <Pressable
             disabled={!serviceActionsEnabled || !name.trim()}
             onPress={() => {
-              void add({ groupSlug, name: name.trim() }).then(() => setName(''))
+              void add({ groupSlug, name: name.trim() }).then((id) => {
+                onCreated?.(id)
+                setName('')
+              })
             }}
           >
             <Text style={{ color: tokens.accent }}>

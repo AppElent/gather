@@ -71,6 +71,7 @@ export const calendar = {
   },
   errors: {
     save: 'Deze afspraak kon niet worden bewaard. Probeer het opnieuw.',
+    offline: 'Gather maakt nog verbinding. Probeer het zo opnieuw op te slaan.',
     load: 'De agenda kon niet worden geladen.',
     conflict: 'Deze afspraak is gewijzigd. Je concept staat nog klaar.',
     deleted:
