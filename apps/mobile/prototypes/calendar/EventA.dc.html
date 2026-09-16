@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8a6a33; text-decoration: none; }
+    a:hover { color: #6d5327; }
+    .ic { flex: none; }
+    input.f { font: inherit; border: 0; outline: 0; background: transparent; color: #1f2421; width: 100%; padding: 0; }
+    input.f::placeholder { color: #79807b; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none;"></div>
+  <div style="flex: none; display: flex; align-items: center; height: 52px; padding: 0 16px;">
+    <div style="flex: 1; font-size: 17px; color: #8a6a33; cursor: pointer;">Cancel</div>
+    <div style="font-size: 17px; font-weight: 700; letter-spacing: -0.3px;">New event</div>
+    <div style="flex: 1; text-align: right;"><span style="{{ saveStyle }}">Save</span></div>
+  </div>
+  <div style="flex: 1; min-height: 0; overflow: hidden; padding: 8px 16px 0; display: flex; flex-direction: column; gap: 18px;">
+    <div style="background: #ffffff; border: 1px solid #e8e7e3; border-radius: 16px; padding: 0 14px; overflow: hidden;"><div style="display: flex; align-items: center; gap: 11px; min-height: 58px; border-bottom: 1px solid #e8e7e3;"><input class="f" onInput="{{ onTitle }}" placeholder="Title" style="font-size: 17px;"></div>
+      <div style="display: flex; align-items: center; gap: 11px; min-height: 54px;"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z"></path><circle cx="12" cy="10" r="2.6"></circle></svg><input class="f" placeholder="Location" style="font-size: 16px;"></div></div>
+    <div style="background: #ffffff; border: 1px solid #e8e7e3; border-radius: 16px; padding: 0 14px; overflow: hidden;"><div style="display: flex; align-items: center; gap: 11px; min-height: 54px; border-bottom: 1px solid #e8e7e3;"><span style="font-size: 16px; color: #1f2421;">Calendar</span><div style="flex: 1;"></div><span style="width: 12px; height: 12px; border-radius: 4px; background: #8a6a33; flex: none;"></span><span style="font-size: 16px; color: #79807b;">Household</span><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></div>
+      <div style="display: flex; align-items: center; gap: 11px; min-height: 54px; border-bottom: 1px solid #e8e7e3;"><span style="font-size: 16px; color: #1f2421;">All-day</span><div style="flex: 1;"></div><div onClick="{{ flip }}" style="{{ knob }}"><span style="{{ knobDot }}"></span></div></div>
+      <sc-if value="{{ timed }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <div style="display: flex; align-items: center; gap: 11px; min-height: 54px; border-bottom: 1px solid #e8e7e3;"><span style="font-size: 16px; color: #1f2421;">Starts</span><div style="flex: 1;"></div><span style="font-size: 16px; color: #79807b;">Wed 2 Sep</span><span style="font-size: 16px; color: #1f2421;">14:30</span></div>
+          <div style="display: flex; align-items: center; gap: 11px; min-height: 54px;"><span style="font-size: 16px; color: #1f2421;">Ends</span><div style="flex: 1;"></div><span style="font-size: 16px; color: #79807b;">Wed 2 Sep</span><span style="font-size: 16px; color: #1f2421;">15:15</span></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ allDay }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; align-items: center; gap: 11px; min-height: 54px;"><span style="font-size: 16px; color: #1f2421;">Date</span><div style="flex: 1;"></div><span style="font-size: 16px; color: #1f2421;">Wed 2 Sep</span></div>
+      </sc-if></div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.8px; color: #79807b; padding-left: 2px;">WHO HAS TO BE THERE</div>
+      <div style="background: #ffffff; border: 1px solid #e8e7e3; border-radius: 16px; padding: 0 14px; overflow: hidden;"><div style="display: flex; gap: 22px; padding: 14px 2px;">
+          <sc-for list="{{ people }}" as="p" hint-placeholder-count="3">
+            <div onClick="{{ p.pick }}" style="{{ p.style }}">
+              <div style="{{ p.circle }}">{{ p.text }}</div>
+              <div style="{{ p.nameStyle }}">{{ p.name }}</div>
+            </div>
+          </sc-for>
+        </div></div>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #e8e7e3; border-radius: 16px; padding: 0 14px; overflow: hidden;"><div style="padding: 14px 0; min-height: 62px;"><input class="f" placeholder="Notes" style="font-size: 16px;"></div></div>
+  </div>
+  <div style="height: 34px; flex: none; background: transparent;"></div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { title: '', allDay: false, who: ['M'] };
+  }
+  renderVals() {
+    const has = this.state.title.trim().length > 0;
+    const toggle = (k) => () => {
+      const w = this.state.who.includes(k)
+        ? this.state.who.filter((x) => x !== k)
+        : this.state.who.concat(k);
+      this.setState({ who: w });
+    };
+    return {
+      saveStyle: 'font-size: 17px; font-weight: 700;' + (has ? ' color: #8a6a33; cursor: pointer;' : ' color: #79807b; opacity: 0.5;'),
+      timed: !this.state.allDay,
+      allDay: this.state.allDay,
+      knob: 'width: 51px; height: 31px; border-radius: 999px; flex: none; display: flex; align-items: center; padding: 2px; cursor: pointer; transition: background 120ms; background: ' + (this.state.allDay ? '#8a6a33' : '#d9dbd7') + ';',
+      knobDot: 'width: 27px; height: 27px; border-radius: 999px; background: #ffffff; box-shadow: 0 1px 3px rgba(31,36,33,0.28); transition: margin 120ms; margin-left: ' + (this.state.allDay ? '20px' : '0') + ';',
+      people: ["E","S","M"].map((k) => {
+        const isOn = this.state.who.includes(k);
+        return {
+          key: k, text: k, name: {"E":"Eric","S":"Sanne","M":"Mila"}[k],
+          style: 'display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;',
+          circle: 'width: 44px; height: 44px; border-radius: 999px; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center;'
+            + (isOn ? ' background: #8a6a33; color: #ffffff;' : ' background: #f1f2f0; color: #79807b;'),
+          nameStyle: 'font-size: 11.5px;' + (isOn ? ' color: #1f2421; font-weight: 600;' : ' color: #79807b;'),
+          pick: toggle(k),
+        };
+      }),
+      onTitle: (e) => this.setState({ title: e.target.value }),
+      flip: () => this.setState({ allDay: !this.state.allDay }),
+    };
+  }
+}
+</script>
+</body>
+</html>

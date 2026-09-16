@@ -607,6 +607,25 @@ export const SAMPLE_TASK_LISTS: SampleTaskList[] = [
 ]
 
 /** Kitchen fixtures exercise every connected household module on the phone. */
+interface SampleCalendarEvent {
+  title: string
+  daysAhead: number
+  author: SampleAuthor
+  startMinutes?: number
+  endMinutes?: number
+  allDay?: boolean
+  assignees?: readonly SampleAuthor[]
+  location?: string
+  notes?: string
+}
+
+interface SampleCalendarFixture {
+  name: string
+  color: 'home' | 'kitchen' | 'money' | 'tasting'
+  author: SampleAuthor
+  events: SampleCalendarEvent[]
+}
+
 export const SAMPLE_KITCHEN = {
   groceryList: 'Groceries',
   meals: [
@@ -624,6 +643,7 @@ export const SAMPLE_KITCHEN = {
   calendars: [
     {
       name: 'Family',
+      color: 'home' as const,
       author: 'owner' as const,
       events: [
         {
@@ -631,12 +651,70 @@ export const SAMPLE_KITCHEN = {
           daysAhead: 0,
           startMinutes: 9 * 60,
           endMinutes: 9 * 60 + 30,
+          assignees: ['owner', 'nora'] as const,
+          location: 'Willow Street Dental',
+          notes: 'Bring the insurance card.',
           author: 'owner' as const,
         },
-        { title: 'Pick up groceries', daysAhead: 1, author: 'sam' as const },
+        {
+          title: 'Pick up groceries',
+          daysAhead: 1,
+          allDay: true,
+          assignees: ['sam'] as const,
+          author: 'sam' as const,
+        },
       ],
     },
-  ],
+    {
+      name: 'Home projects',
+      color: 'kitchen' as const,
+      author: 'nora' as const,
+      events: [
+        {
+          title: 'Repair the shed door before winter visitors arrive',
+          daysAhead: -14,
+          allDay: true,
+          assignees: ['owner', 'sam'] as const,
+          location: 'Back garden',
+          notes: 'Check the hinges and bring the spare screws.',
+          author: 'nora' as const,
+        },
+        {
+          title: 'Bin collection',
+          daysAhead: -2,
+          allDay: true,
+          author: 'owner' as const,
+        },
+      ],
+    },
+    {
+      name: 'Money',
+      color: 'money' as const,
+      author: 'owner' as const,
+      events: [
+        {
+          title: 'Submit energy meter reading',
+          daysAhead: 20,
+          startMinutes: 18 * 60,
+          endMinutes: 18 * 60 + 15,
+          assignees: ['owner'] as const,
+          author: 'owner' as const,
+        },
+      ],
+    },
+    {
+      name: 'Trips',
+      color: 'tasting' as const,
+      author: 'sam' as const,
+      events: [],
+    },
+    {
+      name: 'Shared',
+      color: 'home' as const,
+      author: 'nora' as const,
+      events: [],
+    },
+  ] satisfies SampleCalendarFixture[],
 }
 
 export interface SampleNote {

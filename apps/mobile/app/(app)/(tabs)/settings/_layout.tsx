@@ -62,6 +62,20 @@ export default function SettingsLayout() {
         name="language"
         options={{ headerShown: true, title: t.settings.language.title }}
       />
+      {/*
+        Labs is declared unconditionally and *reached* only from a row the list
+        emits in a development build. A conditional `Stack.Screen` would change
+        the navigator's children between renders, which is a different and worse
+        bug than a route nothing links to.
+      */}
+      <Stack.Screen
+        name="labs/index"
+        options={{ headerShown: true, title: t.labs.title }}
+      />
+      <Stack.Screen
+        name="labs/calendar"
+        options={{ headerShown: true, title: t.labs.calendar.title }}
+      />
     </Stack>
   )
 }

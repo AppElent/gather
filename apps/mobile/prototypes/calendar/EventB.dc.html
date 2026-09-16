@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8a6a33; text-decoration: none; }
+    a:hover { color: #6d5327; }
+    .ic { flex: none; }
+    input.f { font: inherit; border: 0; outline: 0; background: transparent; color: #1f2421; width: 100%; padding: 0; }
+    input.f::placeholder { color: #79807b; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none;"></div>
+  <div style="flex: none; display: flex; align-items: center; height: 44px; padding: 0 16px;">
+    <span style="font-size: 26px; font-weight: 800; letter-spacing: -0.7px;">September</span>
+    <span style="font-size: 26px; font-weight: 400; letter-spacing: -0.7px; color: #79807b; margin-left: 6px;">2026</span>
+  </div>
+  <div style="flex: none; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 4px 10px 0;"><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">M</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">W</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">F</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">S</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">S</div></div>
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; padding: 0 10px 10px;"><div style="height: 46px;"></div><div style="height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;"><span style="font-size: 16.5px; width: 29px; height: 29px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">1</span></div><div style="height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;"><span style="font-size: 16.5px; width: 29px; height: 29px; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: #8a6a33; color: #ffffff; font-weight: 700;">2</span></div><div style="height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;"><span style="font-size: 16.5px; width: 29px; height: 29px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">3</span></div><div style="height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;"><span style="font-size: 16.5px; width: 29px; height: 29px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">4</span></div><div style="height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;"><span style="font-size: 16.5px; width: 29px; height: 29px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">5</span></div><div style="height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;"><span style="font-size: 16.5px; width: 29px; height: 29px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">6</span></div></div>
+  </div>
+  <div style="flex: 1;"></div>
+  <div style="height: 34px; flex: none; background: transparent;"></div>
+    <div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(31, 36, 33, 0.34);"></div>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #ffffff; border-radius: 20px 20px 0 0; padding: 12px 16px 30px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="width: 38px; height: 4px; border-radius: 2px; background: #e8e7e3; align-self: center;"></div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <input class="f" value="Dentist — Mila" style="font-size: 20px; font-weight: 700; letter-spacing: -0.4px; flex: 1;">
+        <span style="cursor: pointer; flex: none;"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></span>
+      </div>
+      <sc-if value="{{ chips }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; padding: 8px 13px; border-radius: 999px; background: #f2ece0; color: #8a6a33; cursor: pointer;"><span style="width: 10px; height: 10px; border-radius: 4px; background: #8a6a33; flex: none;"></span>Household</span>
+          <span onClick="{{ openDate }}" style="{{ dateChip }}">Wed 2 Sep</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; padding: 8px 13px; border-radius: 999px; background: #ffffff; color: #1f2421; border: 1px solid #e8e7e3; cursor: pointer;">14:30 – 15:15</span>
+          <span onClick="{{ openWho }}" style="{{ whoChip }}">S · M</span>
+          <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; font-weight: 600; padding: 8px 13px; border-radius: 999px; background: #ffffff; color: #79807b; border: 1px dashed #e8e7e3; cursor: pointer;"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Where</span>
+          <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; font-weight: 600; padding: 8px 13px; border-radius: 999px; background: #ffffff; color: #79807b; border: 1px dashed #e8e7e3; cursor: pointer;"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Notes</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 9px; border-top: 1px solid #e8e7e3; padding-top: 12px; cursor: pointer;">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a4372c" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h6"></path><path d="M2 6h2"></path><path d="M2 10h2"></path><path d="M2 14h2"></path><path d="M2 18h2"></path><path d="M21.4 9.6a2 2 0 0 1 0 2.8l-6.3 6.3-3.5.7.7-3.5 6.3-6.3a2 2 0 0 1 2.8 0z"></path></svg><span style="font-size: 15.5px; color: #a4372c;">Delete event</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ date }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="display: flex; gap: 8px; padding-bottom: 12px;">
+            <span style="flex: 1; text-align: center; font-size: 13.5px; font-weight: 600; padding: 9px 0; border-radius: 12px; border: 1px solid #e8e7e3; cursor: pointer;">Today</span>
+            <span style="flex: 1; text-align: center; font-size: 13.5px; font-weight: 600; padding: 9px 0; border-radius: 12px; border: 1px solid #e8e7e3; cursor: pointer;">Tomorrow</span>
+            <span style="flex: 1; text-align: center; font-size: 13.5px; font-weight: 600; padding: 9px 0; border-radius: 12px; border: 1px solid #e8e7e3; cursor: pointer;">Weekend</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px;">
+            <span style="cursor: pointer;"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1f2421" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></span>
+            <span style="font-size: 16px; font-weight: 600;">September 2026</span>
+            <span style="cursor: pointer;"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1f2421" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));"><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">M</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">W</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">F</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">S</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding-bottom: 4px;">S</div></div>
+          <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px;"><div style="height: 40px;"></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">1</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: #8a6a33; color: #ffffff; font-weight: 700;">2</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">3</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">4</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">5</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">6</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">7</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">8</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">9</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">10</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">11</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">12</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">13</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">14</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">15</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">16</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">17</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">18</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">19</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">20</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">21</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">22</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">23</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">24</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">25</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">26</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">27</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">28</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">29</span></div><div style="height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span style="font-size: 16px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #1f2421;">30</span></div><div style="height: 40px;"></div><div style="height: 40px;"></div><div style="height: 40px;"></div><div style="height: 40px;"></div></div>
+          <div onClick="{{ back }}" style="text-align: center; font-size: 15.5px; font-weight: 600; color: #8a6a33; padding: 12px 0 0; cursor: pointer;">Done</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ people }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="display: flex; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #e8e7e3; cursor: pointer;">
+            <span style="width: 32px; height: 32px; border-radius: 999px; background: #f1f2f0; color: #79807b; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">E</span>
+            <span style="flex: 1; font-size: 16px;">Eric</span>
+            
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; min-height: 54px; border-bottom: 1px solid #e8e7e3; cursor: pointer;">
+            <span style="width: 32px; height: 32px; border-radius: 999px; background: #8a6a33; color: #ffffff; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">S</span>
+            <span style="flex: 1; font-size: 16px;">Sanne</span>
+            <svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; min-height: 54px; cursor: pointer;">
+            <span style="width: 32px; height: 32px; border-radius: 999px; background: #8a6a33; color: #ffffff; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none;">M</span>
+            <span style="flex: 1; font-size: 16px;">Mila</span>
+            <svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8a6a33" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+          </div>
+          <div onClick="{{ back }}" style="text-align: center; font-size: 15.5px; font-weight: 600; color: #8a6a33; padding: 14px 0 0; cursor: pointer;">Done</div>
+        </div>
+      </sc-if>
+    </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { pane: 'chips' };
+  }
+  renderVals() {
+    const p = this.state.pane;
+    const chipStyle = (isOn) => 'display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; padding: 8px 13px; border-radius: 999px; white-space: nowrap; cursor: pointer;'
+      + (isOn ? ' background: #8a6a33; color: #ffffff;' : ' background: #ffffff; color: #1f2421; border: 1px solid #e8e7e3;');
+    return {
+      chips: p === 'chips',
+      date: p === 'date',
+      people: p === 'people',
+      dateChip: chipStyle(p === 'date'),
+      whoChip: chipStyle(p === 'people'),
+      open: (pane) => () => this.setState({ pane: pane }),
+      openDate: () => this.setState({ pane: this.state.pane === 'date' ? 'chips' : 'date' }),
+      openWho: () => this.setState({ pane: this.state.pane === 'people' ? 'chips' : 'people' }),
+      back: () => this.setState({ pane: 'chips' }),
+    };
+  }
+}
+</script>
+</body>
+</html>

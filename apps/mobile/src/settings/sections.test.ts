@@ -65,6 +65,49 @@ describe('the Settings list', () => {
   test('keeps Labs out of a build that was not told it has one', () => {
     expect(sections.map(({ id }) => id)).not.toContain('labs')
   })
+
+  test('adds Labs last in a build that was', () => {
+    const withLabs = settingsSections(
+      en,
+      {
+        appearance: 'dark',
+        locale: 'en',
+        groupName: 'Huize Jansen',
+        accountName: 'Eric Jansen',
+        accountEmail: 'eric@example.com',
+      },
+      true,
+    )
+    expect(withLabs.map(({ id }) => id)).toEqual([
+      'account',
+      'modules',
+      'phone',
+      'labs',
+    ])
+    // A place rather than a choice, like Account and Groups: nothing under it
+    // changes how the app behaves, so there is no value to show on the right.
+    expect(withLabs[3].entries).toEqual([
+      { id: 'labs', label: 'Labs', href: '/settings/labs' },
+    ])
+  })
+
+  test('makes Labs findable by name once it is there', () => {
+    const withLabs = settingsSections(
+      en,
+      {
+        appearance: 'dark',
+        locale: 'en',
+        groupName: 'Huize Jansen',
+        accountName: 'Eric Jansen',
+        accountEmail: 'eric@example.com',
+      },
+      true,
+    )
+    expect(
+      searchSettings(withLabs, 'labs').map(({ entry }) => entry.id),
+    ).toEqual(['labs'])
+    expect(idsFor('labs')).toEqual([])
+  })
 })
 
 describe('searching the Settings list', () => {

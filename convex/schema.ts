@@ -26,6 +26,11 @@ import {
   tastingAttributesValidator,
   tastingKindValidator,
 } from './lib/tastings'
+import {
+  calendarColorValidator,
+  calendarPeopleFilterValidator,
+  calendarViewValidator,
+} from './lib/calendar'
 
 export default defineSchema({
   users: defineTable({
@@ -88,6 +93,8 @@ export default defineSchema({
     // the default defined in code; an empty array means "chose to keep none".
     pinnedModuleIds: v.optional(v.array(v.string())),
     hiddenCalendarIds: v.optional(v.array(v.id('calendars'))),
+    calendarView: v.optional(calendarViewValidator),
+    calendarPeopleFilter: v.optional(calendarPeopleFilterValidator),
   })
     .index('by_user', ['userId'])
     .index('by_group', ['groupId']),
@@ -207,6 +214,7 @@ export default defineSchema({
     name: v.string(),
     source: v.literal('local'),
     createdBy: v.id('users'),
+    color: v.optional(calendarColorValidator),
   }).index('by_group', ['groupId']),
 
   calendarEvents: defineTable({
@@ -216,6 +224,11 @@ export default defineSchema({
     startMinutes: v.optional(v.number()),
     endMinutes: v.optional(v.number()),
     createdBy: v.id('users'),
+    allDay: v.optional(v.boolean()),
+    assigneeIds: v.optional(v.array(v.id('users'))),
+    location: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    revision: v.optional(v.number()),
   })
     .index('by_calendar', ['calendarId'])
     .index('by_calendar_date', ['calendarId', 'date']),

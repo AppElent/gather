@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8a6a33; text-decoration: none; }
+    a:hover { color: #6d5327; }
+    .ic { flex: none; }
+    input.f { font: inherit; border: 0; outline: 0; background: transparent; color: #1f2421; width: 100%; padding: 0; }
+    input.f::placeholder { color: #79807b; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #faf9f7; color: #1f2421; display: flex; flex-direction: column;">
+
+  <div style="height: 47px; flex: none;"></div>
+  <div style="flex: none; display: flex; align-items: baseline; height: 44px; padding: 0 16px;">
+    <span style="font-size: 26px; font-weight: 800; letter-spacing: -0.7px;">September</span>
+    <span style="font-size: 26px; font-weight: 400; letter-spacing: -0.7px; color: #79807b; margin-left: 6px;">2026</span>
+  </div>
+  <div style="flex: none; background: #ffffff; border-bottom: 1px solid #e8e7e3;">
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 4px 10px 0;"><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">M</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">W</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">T</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">F</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">S</div><div style="text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: #79807b; padding: 4px 0 6px;">S</div></div>
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; padding: 0 10px 12px;"><div style="height: 46px;"></div><div style="height: 46px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 5px;"><span style="font-size: 12.5px; font-weight: 600; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #79807b;">1</span></div><div style="height: 46px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 5px;"><span style="font-size: 12.5px; font-weight: 600; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: #8a6a33; color: #ffffff;">2</span></div><div style="height: 46px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 5px;"><span style="font-size: 12.5px; font-weight: 600; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #79807b;">3</span></div><div style="height: 46px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 5px;"><span style="font-size: 12.5px; font-weight: 600; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #79807b;">4</span></div><div style="height: 46px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 5px;"><span style="font-size: 12.5px; font-weight: 600; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #79807b;">5</span></div><div style="height: 46px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 5px;"><span style="font-size: 12.5px; font-weight: 600; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 999px; color: #79807b;">6</span></div></div>
+  </div>
+  <div style="flex: 1;"></div>
+  <div style="height: 34px; flex: none; background: transparent;"></div>
+  <div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(31, 36, 33, 0.28);"></div>
+  <div style="position: absolute; left: 10px; right: 10px; background: #ffffff; border-radius: 26px; box-shadow: 0 8px 30px rgba(31, 36, 33, 0.20); padding: 20px 18px 16px; display: flex; flex-direction: column; gap: 16px; bottom: 346px">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <input class="f" value="Dentist — Mila" style="font-size: 21px; font-weight: 600; letter-spacing: -0.3px; caret-color: #8a6a33; flex: 1;">
+      <span onClick="{{ openMenu }}" style="cursor: pointer; flex: none;"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.2"></circle><circle cx="7.6" cy="12" r="1.15" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"></circle><circle cx="16.4" cy="12" r="1.15" fill="currentColor" stroke="none"></circle></svg></span>
+    </div>
+    <sc-if value="{{ menu }}" hint-placeholder-val="{{ false }}">
+      <div style="border: 1px solid #e8e7e3; border-radius: 14px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border-bottom: 1px solid #e8e7e3; cursor: pointer;">
+          <span style="flex: 1; font-size: 16px;">Duplicate</span><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1f2421" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; cursor: pointer;">
+          <span style="flex: 1; font-size: 16px; color: #a4372c;">Delete event</span><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a4372c" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"></path><path d="M9.5 6.5V4h5v2.5"></path><path d="m6.5 6.5 1 13.5h9l1-13.5"></path></svg>
+        </div>
+      </div>
+    </sc-if>
+    <div style="position: relative;">
+      <div style="display: flex; gap: 8px; overflow: hidden; padding-right: 56px;">
+        <span style="width: 44px; height: 44px; border-radius: 999px; background: #f1f2f0; display: flex; align-items: center; justify-content: center; flex: none; cursor: pointer;"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#79807b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 15px; border-radius: 999px; font-size: 15px; font-weight: 600; white-space: nowrap; flex: none; cursor: pointer; background: #f2ece0; color: #8a6a33; border: 1px solid transparent;"><span style="width: 11px; height: 11px; border-radius: 3px; background: #8a6a33; flex: none;"></span>Household</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 15px; border-radius: 999px; font-size: 15px; font-weight: 600; white-space: nowrap; flex: none; cursor: pointer; background: #f2ece0; color: #8a6a33; border: 1px solid transparent;">Wed 2 Sep</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 15px; border-radius: 999px; font-size: 15px; font-weight: 600; white-space: nowrap; flex: none; cursor: pointer; background: #f2ece0; color: #8a6a33; border: 1px solid transparent;">14:30 – 15:15</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 15px; border-radius: 999px; font-size: 15px; font-weight: 600; white-space: nowrap; flex: none; cursor: pointer; background: #f2ece0; color: #8a6a33; border: 1px solid transparent;"><span style="display: inline-flex; gap: 3px;"><span style="width: 22px; height: 22px; border-radius: 999px; background: #8a6a33; color: #ffffff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">S</span><span style="width: 22px; height: 22px; border-radius: 999px; background: #8a6a33; color: #ffffff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">M</span></span></span>
+      </div>
+      <div style="position: absolute; right: 44px; top: 0; bottom: 0; width: 26px; background: linear-gradient(90deg, rgba(255,255,255,0), #ffffff);"></div>
+      <div style="position: absolute; right: 0; top: 0;"><div style="width: 44px; height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex: none; background: #8a6a33;"><svg class="ic" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div></div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { menu: false };
+  }
+  renderVals() {
+    return {
+      menu: this.state.menu,
+      openMenu: () => this.setState({ menu: !this.state.menu }),
+    };
+  }
+}
+</script>
+</body>
+</html>

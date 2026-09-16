@@ -15,6 +15,7 @@
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
+import { MonthGridView, WeekdayStrip } from '../../components/MonthGridView'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { NativeSheet } from '../../components/NativeSheet'
 import { haptics } from '../../feedback/haptics'
@@ -28,7 +29,6 @@ import {
   addDays,
   monthGrid,
   monthOf,
-  parseDay,
   shiftMonth,
   weekendFrom,
 } from './taskDates'
@@ -79,13 +79,6 @@ export function DueDateSheet({
     haptics.selectionChanged()
     onClose()
   }
-
-  // A Monday, so the weekday strip starts where the grid does.
-  const mondayNames = Array.from({ length: 7 }, (_, index) =>
-    new Date(2024, 0, 1 + index).toLocaleDateString(locale, {
-      weekday: 'narrow',
-    }),
-  )
 
   const shortcuts: { id: string; label: string; iso: string | undefined }[] = [
     { id: 'today', label: t.labs.task.today, iso: state.today },
@@ -156,73 +149,17 @@ export function DueDateSheet({
         </Pressable>
       </View>
 
-      <View style={styles.weekdays}>
-        {mondayNames.map((name, index) => (
-          <Text
-            // Narrow weekday names repeat (T, T / S, S), so the index is the key.
-            key={index}
-            style={[styles.weekday, { color: tokens.muted }]}
-          >
-            {name.toUpperCase()}
-          </Text>
-        ))}
-      </View>
+      <WeekdayStrip locale={locale} />
 
-      {grid.weeks.map((week, index) => (
-        <View key={index} style={styles.week}>
-          {week.map((iso, column) =>
-            iso === null ? (
-              <View key={column} style={styles.day} />
-            ) : (
-              <Pressable
-                key={column}
-                testID={`due-day-${iso}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: iso === selected }}
-                accessibilityLabel={parseDay(iso).toLocaleDateString(locale, {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                })}
-                onPress={() => pick(iso)}
-                style={styles.day}
-              >
-                <View
-                  style={[
-                    styles.dayInner,
-                    iso === selected && { backgroundColor: tint.fg },
-                    iso === state.today &&
-                      iso !== selected && {
-                        borderWidth: 1.4,
-                        borderColor: tint.fg,
-                      },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.dayText,
-                      {
-                        color:
-                          iso === selected
-                            ? tokens.surface
-                            : iso === state.today
-                              ? tint.fg
-                              : tokens.fg,
-                        fontWeight:
-                          iso === selected || iso === state.today
-                            ? '700'
-                            : '400',
-                      },
-                    ]}
-                  >
-                    {parseDay(iso).getDate()}
-                  </Text>
-                </View>
-              </Pressable>
-            ),
-          )}
-        </View>
-      ))}
+      <MonthGridView
+        grid={grid}
+        locale={locale}
+        selected={selected}
+        today={state.today}
+        tint={tint.fg}
+        onPick={pick}
+        testIDPrefix="due-day"
+      />
     </NativeSheet>
   )
 }
@@ -644,18 +581,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   monthName: { fontSize: 16, fontWeight: '700' },
-  weekdays: { flexDirection: 'row', paddingBottom: 4 },
-  weekday: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700' },
-  week: { flexDirection: 'row' },
-  day: { flex: 1, alignItems: 'center', paddingVertical: 2 },
-  dayInner: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayText: { fontSize: 15 },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',

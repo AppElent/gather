@@ -1,21 +1,15 @@
 import { ConvexError, v } from 'convex/values'
-import type { Id } from './_generated/dataModel'
 import { mutation, query } from './_generated/server'
+import {
+  calendarColorValidator,
+  calendarInGroup,
+  normalizedEvent,
+  validateAssignees,
+  validateEventFields,
+} from './lib/calendar'
 import { requireGroupBySlug } from './lib/groupAccess'
 
 const quickLimit = v.union(v.literal(10), v.literal(20), v.literal(30))
-
-async function calendarInGroup(
-  ctx: Parameters<typeof requireGroupBySlug>[0],
-  groupSlug: string,
-  calendarId: Id<'calendars'>,
-) {
-  const { group, user } = await requireGroupBySlug(ctx, groupSlug)
-  const calendar = await ctx.db.get(calendarId)
-  if (!calendar || calendar.groupId !== group._id)
-    throw new ConvexError('Calendar not found')
-  return { group, user, calendar }
-}
 
 export const overview = query({
   args: {
@@ -291,14 +285,37 @@ export const setGroceryList = mutation({
 })
 
 export const addCalendar = mutation({
-  args: { groupSlug: v.string(), name: v.string() },
+  args: {
+    groupSlug: v.string(),
+    name: v.string(),
+    color: v.optional(calendarColorValidator),
+  },
+  returns: v.id('calendars'),
   handler: async (ctx, args) => {
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
+    const name = args.name.trim()
+    if (!name) throw new ConvexError('Calendar name required')
+    const colors = ['home', 'kitchen', 'money', 'tasting'] as const
+    const existing = await ctx.db
+      .query('calendars')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const counts = new Map(colors.map((color) => [color, 0]))
+    for (const calendar of existing) {
+      const color = calendar.color ?? 'home'
+      counts.set(color, (counts.get(color) ?? 0) + 1)
+    }
+    const defaultColor = colors.reduce(
+      (chosen, color) =>
+        counts.get(color)! < counts.get(chosen)! ? color : chosen,
+      colors[0],
+    )
     return await ctx.db.insert('calendars', {
       groupId: group._id,
-      name: args.name.trim(),
+      name,
       source: 'local',
       createdBy: user._id,
+      color: args.color ?? defaultColor,
     })
   },
 })
@@ -337,6 +354,10 @@ export const addCalendarEvent = mutation({
     date: v.string(),
     startMinutes: v.optional(v.number()),
     endMinutes: v.optional(v.number()),
+    allDay: v.optional(v.boolean()),
+    assigneeIds: v.optional(v.array(v.id('users'))),
+    location: v.optional(v.string()),
+    notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { calendar, user } = await calendarInGroup(
@@ -344,19 +365,33 @@ export const addCalendarEvent = mutation({
       args.groupSlug,
       args.calendarId,
     )
-    if (
-      (args.startMinutes === undefined) !== (args.endMinutes === undefined) ||
-      (args.startMinutes !== undefined &&
-        args.endMinutes !== undefined &&
-        args.endMinutes <= args.startMinutes)
-    )
-      throw new ConvexError('Invalid event time')
+    const allDay =
+      args.allDay ??
+      (args.startMinutes === undefined && args.endMinutes === undefined)
+    const assigneeIds = args.assigneeIds ?? []
+    validateEventFields({
+      calendarId: calendar._id,
+      title: args.title,
+      date: args.date,
+      allDay,
+      startMinutes: args.startMinutes ?? null,
+      endMinutes: args.endMinutes ?? null,
+      assigneeIds,
+      location: args.location ?? null,
+      notes: args.notes ?? null,
+    })
+    await validateAssignees(ctx, calendar.groupId, assigneeIds)
     return await ctx.db.insert('calendarEvents', {
       calendarId: calendar._id,
       title: args.title.trim(),
       date: args.date,
-      startMinutes: args.startMinutes,
-      endMinutes: args.endMinutes,
+      allDay,
+      startMinutes: allDay ? undefined : args.startMinutes,
+      endMinutes: allDay ? undefined : args.endMinutes,
+      assigneeIds,
+      location: args.location?.trim() || undefined,
+      notes: args.notes?.trim() || undefined,
+      revision: 0,
       createdBy: user._id,
     })
   },
@@ -369,14 +404,23 @@ export const getCalendarEvent = query({
     v.null(),
     v.object({
       _id: v.id('calendarEvents'),
+      id: v.string(),
+      calendarId: v.id('calendars'),
       title: v.string(),
       date: v.string(),
+      allDay: v.boolean(),
       startMinutes: v.optional(v.number()),
       endMinutes: v.optional(v.number()),
+      assigneeIds: v.array(v.id('users')),
+      location: v.string(),
+      notes: v.string(),
+      revision: v.number(),
       calendarName: v.string(),
+      color: calendarColorValidator,
     }),
   ),
   handler: async (ctx, args) => {
+    await requireGroupBySlug(ctx, args.groupSlug)
     const event = await ctx.db.get(args.id)
     if (!event) return null
     const { calendar } = await calendarInGroup(
@@ -384,14 +428,7 @@ export const getCalendarEvent = query({
       args.groupSlug,
       event.calendarId,
     )
-    return {
-      _id: event._id,
-      title: event.title,
-      date: event.date,
-      startMinutes: event.startMinutes,
-      endMinutes: event.endMinutes,
-      calendarName: calendar.name,
-    }
+    return normalizedEvent(event, calendar)
   },
 })
 
@@ -412,17 +449,11 @@ export const setCalendarVisibility = mutation({
     visible: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const { group, user, calendar } = await calendarInGroup(
+    const { calendar, membership } = await calendarInGroup(
       ctx,
       args.groupSlug,
       args.calendarId,
     )
-    const membership = await ctx.db
-      .query('memberships')
-      .withIndex('by_group', (q) => q.eq('groupId', group._id))
-      .filter((q) => q.eq(q.field('userId'), user._id))
-      .unique()
-    if (!membership) throw new ConvexError('Membership not found')
     const hidden = new Set(membership.hiddenCalendarIds ?? [])
     if (args.visible) hidden.delete(calendar._id)
     else hidden.add(calendar._id)

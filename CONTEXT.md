@@ -276,7 +276,11 @@ A manually created, Group-scoped event in a Calendar, with a title, calendar day
 and either no time or a start-and-end time range. It is neither a recurring
 appointment nor an event mirrored from another calendar in v1; a timed range
 ends later on the same calendar day. Its date and times are the household's local
-calendar values, not timezone-converted instants.
+calendar values, not timezone-converted instants. It may involve zero or more
+current Members, and can carry a location and notes; those fields are part of
+the event but are not shown in compact agenda rows. Calendar colors are reused
+from the four Module tints, and a Member's view, hidden Calendars and people
+filter are private preferences on their membership.
 _Avoid_: Synced event, Recurring event
 
 **Calendar visibility**:

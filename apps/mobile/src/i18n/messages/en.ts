@@ -40,6 +40,7 @@ export const en = {
    * second English for "Diaper" is the failure that rule names.
    */
   baby: coreEn.baby,
+  calendar: coreEn.calendar,
 
   /**
    * Recipes, for the same reason and on the same terms as the Baby log above.
@@ -775,6 +776,142 @@ export const en = {
       tasks: 'Tasks — lists, one list, a task',
       editModes: 'Editing a task — three ways',
       notes: 'Notes',
+      calendar: 'Calendar — the month, the cell and the composer',
+    },
+
+    /**
+     * What a Labs row says about the prototype it links to. The question and
+     * the verdict are the two halves that keep the section readable as it
+     * accumulates: a prototype nobody can remember the point of is noise.
+     */
+    entry: {
+      /** Above the one-line question the prototype was built to answer. */
+      question: 'The question',
+      built: 'Built {date}',
+      verdict: 'Verdict',
+      /** A prototype still being lived with. */
+      undecided: 'Still being decided.',
+      open: 'Open',
+      /** The `?…=` combinations a row links straight to. */
+      variants: 'Variants',
+    },
+
+    /**
+     * The variant switcher every Labs screen carries. It is chrome, not
+     * design — three independent axes, so a person can mix an answer rather
+     * than pick a whole screen.
+     */
+    variants: {
+      title: 'Variants',
+      show: 'Show the variant switcher',
+      hide: 'Hide the variant switcher',
+      reset: 'Back to the canvas verdict',
+      /** Marks the option the design canvas already argued for. */
+      chosen: 'Canvas verdict',
+    },
+
+    calendar: {
+      title: 'Calendar',
+      productionPreview: 'Open the production calendar',
+      /** The one-line question, shown on the Labs row. */
+      question:
+        'Does one screen with three layouts read as a preference, and does the composer clear the keyboard?',
+      /** Jumps the grid and the agenda back to today. */
+      today: 'Today',
+      /** The three layouts, named in the switcher and in the view menu. */
+      views: {
+        month: 'Month',
+        week: 'Week',
+        agenda: 'Agenda',
+      },
+      /** The view menu's second section — visibility, not layout. */
+      calendars: 'Calendars…',
+      /** Read on the ellipsis that opens the view menu. */
+      viewMenu: 'Change the view',
+      newEvent: 'New event',
+      /** The selected day has nothing on it. */
+      nothingOn: 'Nothing on.',
+      /** The agenda has run out of days with anything on them. */
+      nothingAhead: 'Nothing else this month.',
+      /** An empty week in the agenda, so a gap reads as a gap and not a bug. */
+      quietWeek: 'A quiet week.',
+      /** Under a calendar the person has switched off. */
+      hidden: 'Hidden',
+      show: 'Show',
+      hide: 'Hide',
+      /** The composer. The name is the field everything else hangs off. */
+      /**
+       * Settled on a device on 2 September 2026. The three axes stay in the
+       * code — a winner does not delete the alternatives — but this is what
+       * the real Module is built from.
+       */
+      verdict:
+        'The view menu wins, and it gained a swipe: sideways pages the month, up and down is week↔month. A cell shows one initial and a count, never a row of them. The composer is the card. Still open: whether the drag-only header (nav=fluid) is worth keeping at all.',
+      namePlaceholder: 'Event name',
+      /** The chips beneath it, in the order they sit in the strip. */
+      chips: {
+        more: 'More',
+        calendar: 'Calendar',
+        date: 'Date',
+        time: 'Time',
+        who: 'Who',
+        allDay: 'All-day',
+        where: 'Where',
+        notes: 'Notes',
+        repeats: 'Repeats…',
+      },
+      /** The panes those chips open, which used to be dead ends. */
+      wherePlaceholder: 'Where',
+      notesPlaceholder: 'Notes',
+      startsAt: 'Starts at',
+      lasts: 'Lasts',
+      durations: {
+        m30: '30 min',
+        h1: '1 hour',
+        h2: '2 hours',
+      },
+      /** How often it comes round. Prototype only: nothing is expanded. */
+      repeatRules: {
+        never: 'Never',
+        daily: 'Every day',
+        weekly: 'Every week',
+        monthly: 'Every month',
+      },
+      /** The round button: commits a new event, dismisses an edit. */
+      commit: 'Add event',
+      dismiss: 'Done',
+      /** The edit card's own overflow. */
+      duplicate: 'Duplicate',
+      deleteEvent: 'Delete event',
+      /** The inline composer's one line, which names the day it will land on. */
+      addOn: 'Add an event on {day}…',
+      /** Said once under the fluid header, because a gesture has no label. */
+      dragHint: 'Drag the calendar down for the month.',
+      /** Read on the picker's month arrows and on a day. */
+      previousMonth: 'Previous month',
+      nextMonth: 'Next month',
+      /** The date picker's shortcuts, above the grid. */
+      todayShort: 'Today',
+      tomorrow: 'Tomorrow',
+      weekend: 'Weekend',
+      /** Spoken on a cell, after the date: who is on it, or what is. */
+      marksNobody: 'nobody assigned',
+      /** The three axes the switcher offers, and their options. */
+      axes: {
+        nav: 'Changing the view',
+        navMenu: 'View menu',
+        navSegmented: 'Segmented',
+        navFluid: 'Drag to open',
+        cell: 'A month cell',
+        cellMarks: 'Who',
+        cellBars: 'Bars',
+        composer: 'Adding an event',
+        composerCard: 'Card',
+        composerSheet: 'Sheet',
+        composerInline: 'One line',
+      },
+      /** The prototype writes nothing, and says so where a save would be. */
+      notSaved: 'Nothing here is saved.',
     },
 
     tasks: {
