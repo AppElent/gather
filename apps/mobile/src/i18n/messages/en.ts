@@ -1,5 +1,6 @@
 import type { AppearancePreference } from '@gather/core/appearance'
 import { en as coreEn } from '@gather/core/messages'
+import { tasksPrototypeEn } from './tasks-prototype.en'
 
 /**
  * English is the source language (ADR-0011). Every string a signed-out person
@@ -18,6 +19,7 @@ import { en as coreEn } from '@gather/core/messages'
  *   so the two clients make the same promise in the same words.
  */
 export const en = {
+  tasksPrototype: tasksPrototypeEn,
   brand: coreEn.shell.publicFrame.brand,
 
   welcome: {

@@ -22,6 +22,7 @@
 import { Stack, useRouter } from 'expo-router'
 import { useRef } from 'react'
 import {
+  Button,
   Platform,
   Pressable,
   ScrollView,
@@ -69,7 +70,18 @@ export function TaskLists() {
   return (
     <>
       <Stack.Screen
-        options={{ headerShown: true, title: t.labs.tasks.title }}
+        options={{
+          headerShown: true,
+          title: t.labs.tasks.title,
+          headerRight: __DEV__
+            ? () => (
+                <Button
+                  title={t.tasksPrototype.open}
+                  onPress={() => router.push('/all/tasks-prototype')}
+                />
+              )
+            : undefined,
+        }}
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"

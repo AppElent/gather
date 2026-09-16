@@ -12,8 +12,10 @@
 
 import { nl as coreNl } from '@gather/core/messages'
 import type { en } from './en'
+import { tasksPrototypeNl } from './tasks-prototype.nl'
 
 export const nl = {
+  tasksPrototype: tasksPrototypeNl,
   brand: coreNl.shell.publicFrame.brand,
 
   welcome: {

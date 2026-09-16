@@ -6,6 +6,7 @@
     "#/*": "./src/*"
   },
   "scripts": {
+    "prototype:tasks": "node apps/mobile/prototypes/tasks-redesign/server.mjs",
     "dev": "vite dev --host",
     "dev:all": "pnpm exec convex dev --once && pnpm dev",
     "dev:watch": "concurrently -n convex,vite -c blue,green \"pnpm exec convex dev\" \"pnpm dev\"",
