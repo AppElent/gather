@@ -266,22 +266,31 @@ free-text quantity/value. Its name is free text; it is an inventory reminder,
 not a purchase history or a food diary entry.
 _Avoid_: Stock movement, Inventory transaction
 
+**Task list**:
+A Group-owned collection of Tasks, kept in Gather or supplied by an external
+provider. Other Modules may use an ordinary Task list for a specific purpose,
+as Grocery list does.
+
+**Task**:
+Something a Group needs done, with at most one responsible current Member and
+an explicit completion state. It may be unassigned or repeat on a fixed schedule
+or after an interval measured from completion.
+
+**Note**:
+A Group-owned document of information its Members want to keep. Checkboxes in
+its contents belong to the document; they are not Tasks with assignments,
+due dates or reminders.
+
 **Calendar**:
 A named, Group-scoped collection of events. A Group may have none, one, or many;
 a member chooses which calendars are shown in the Calendar Module.
 _Avoid_: The calendar, Schedule (when referring to the collection)
 
 **Calendar event**:
-A manually created, Group-scoped event in a Calendar, with a title, calendar day,
-and either no time or a start-and-end time range. It is neither a recurring
-appointment nor an event mirrored from another calendar in v1; a timed range
-ends later on the same calendar day. Its date and times are the household's local
-calendar values, not timezone-converted instants. It may involve zero or more
-current Members, and can carry a location and notes; those fields are part of
-the event but are not shown in compact agenda rows. Calendar colors are reused
-from the four Module tints, and a Member's view, hidden Calendars and people
-filter are private preferences on their membership.
-_Avoid_: Synced event, Recurring event
+A Group-scoped occurrence in a Calendar, either all-day or timed, which may
+span several days, cross midnight, or repeat. It may involve zero or more current
+Members and carry a location and notes; an event from an external subscription
+is read-only in Gather.
 
 **Calendar visibility**:
 One Member's choice of which shared Calendars to show in one Group. It changes
