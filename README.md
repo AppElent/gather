@@ -19,14 +19,15 @@ Then:
 
 ```bash
 pnpm install
-pnpm run env:apply local   # writes .env.local and .dev.vars from env/
+infisical login              # select EU Cloud (first use only)
+pnpm run env:apply local     # writes web/mobile local files and .dev.vars
 pnpm dev
 ```
 
-Don't create `.env.local` by hand — it is generated. Public values are already
-committed in `env/local.public.env`; put anything secret in
-`env/local.secret.env` (git-ignored) and re-run `env:apply`. To find out what is
-still missing, run `pnpm run env:check local`. See "Environment variables" below.
+`.env.local`, `apps/mobile/.env.local`, and `.dev.vars` are generated. Edit values
+in the Infisical project selected by the committed `.infisical.json`, then rerun
+`env:apply`. To find missing source or destination values, run
+`pnpm run env:check local`. See "Environment variables" below.
 
 `pnpm dev` starts only the Vite frontend. Use `pnpm dev:watch` to run Convex
 and Vite together (needed for anything that touches the backend).
@@ -91,10 +92,8 @@ package (`src/routes/sign-in.tsx`, `sign-up.tsx`, `forgot-password.tsx`,
 wraps the app in a plain `<ClerkProvider>`.
 
 1. Sign up at [clerk.com](https://clerk.com) and create an application
-2. Copy the **Publishable Key** from the Clerk dashboard and set it in `.env.local`:
-   ```bash
-   VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
-   ```
+2. Store the publishable key as `clerk-publishable-key` in Infisical root and run
+   `pnpm run env:apply local`.
 3. Visit `/sign-in` once `pnpm dev` is running
 
 Routes under `src/routes/_app/*` are protected: `src/routes/_app.tsx` redirects
@@ -104,7 +103,7 @@ shows a "Dev: log in as test user" button on the sign-in screen.
 
 ## Setting up Convex
 
-- Every developer has their own Convex dev deployment. Set `CONVEX_DEPLOYMENT` and `CONVEX_URL` in `env/local.public.env` to yours, then `pnpm run env:apply local`.
+- Every developer has their own Convex dev deployment. Store its identifiers as `convex-deployment` and `convex-url` under Infisical `/gather`, then run `pnpm run env:apply local`.
 - Run `pnpm exec convex dev` to start the Convex server (or `pnpm dev:watch` to run Convex and Vite together).
 - Backend functions live in `convex/` (`recipes.ts`, `groups.ts`, `users.ts`, `lib/sharing.ts`); schema is in `convex/schema.ts`.
 
@@ -123,11 +122,11 @@ pnpm run env:apply local           # write it everywhere it belongs
 pnpm run env:generate              # regenerate .env.example
 ```
 
-Values live in `env/<environment>.public.env` (committed — a Clerk publishable
-key and a Convex URL are not secrets) and `env/<environment>.secret.env` (never
-committed). `apply` never writes an empty value and never deletes anything
-without `--prune`, so running it on a machine that lacks some secrets is safe:
-it applies what it has and tells you the rest.
+Values live in the Infisical project linked by `.infisical.json`. Shared values
+are in project root; Gather-specific values are under `/gather` and override a
+same-named root value. `local` reads Infisical `dev`, `preview` and `stg` read
+`staging`, and `production` reads `prod`. `apply` never writes an empty value
+and never deletes without `--prune`.
 
 Adding a variable means adding it to the manifest — there is nowhere else. Two
 mistakes the types refuse: marking a value the Vite build reads as `secret`

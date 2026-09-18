@@ -164,6 +164,15 @@ a household nobody can sign into.
 
 ## Env vars
 
+`env.manifest.ts` is the routing contract; Infisical is the value source. The
+committed `.infisical.json` points at the project and contains no credentials.
+Shared values live at Infisical root and `/gather` overrides a same-named root
+value. Targets map `local` → `dev`, `preview`/`stg` → `staging`, and
+`production` → `prod`. Run `pnpm run env:check <target>` before
+`pnpm run env:apply <target>`; apply writes no empty values and prunes only with
+an explicit `--prune`. Local apply generates `.env.local`, `.dev.vars`, and
+`apps/mobile/.env.local`; remote apply routes to GitHub, Convex, Workers, and
+EAS from the manifest.
 Client (`.env.local`, see `.env.example` for the full documented list):
 `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_TEST_USER_EMAIL`, `VITE_TEST_USER_PASSWORD`
 (the latter two enable `@appelent/auth`'s dev-only test-login button when the

@@ -24,11 +24,6 @@ docs/.generated
 .playwright-mcp/
 
 .dev.vars*
-!.dev.vars.example
 
-# Per-environment local build vars (supply VITE_* at deploy time)
-.env.dev
-.env.preview
-.env.prod
 apps/mobile/.metro.log
 apps/mobile/.expo-*.log

@@ -192,3 +192,52 @@ describe('the issue reporter', () => {
     ).toEqual({ kind: 'worker', worker: 'gather-pr-7' })
   })
 })
+
+describe('Infisical and Expo declarations', () => {
+  it('gives every logical value one unique canonical Infisical key', () => {
+    const keys = entries.map((entry) => entry.infisicalKey)
+    expect(keys.every(Boolean)).toBe(true)
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+
+  it('routes mobile values to a local file and EAS environments', () => {
+    expect(destinationFor('expo-build', 'local')).toEqual({
+      kind: 'eas',
+      environment: 'development',
+    })
+    expect(destinationFor('expo-local', 'local')).toEqual({
+      kind: 'file',
+      path: 'apps/mobile/.env.local',
+    })
+    expect(destinationFor('expo-build', 'preview')).toEqual({
+      kind: 'eas',
+      environment: 'preview',
+    })
+    expect(destinationFor('expo-build', 'stg')).toEqual({
+      kind: 'eas',
+      environment: 'preview',
+    })
+    expect(destinationFor('expo-build', 'production')).toEqual({
+      kind: 'eas',
+      environment: 'production',
+    })
+    expect(destinationFor('eas-tooling', 'production')).toEqual({
+      kind: 'eas',
+      environment: 'production',
+    })
+  })
+
+  it('uses static Expo public aliases for the shared Clerk and Convex values', () => {
+    const localNames = placementsFor('local')
+      .filter(
+        (placement) =>
+          placement.consumer === 'expo-build' ||
+          placement.consumer === 'expo-local',
+      )
+      .map((placement) => placement.name)
+    expect(localNames).toContain('EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY')
+    expect(localNames).toContain('EXPO_PUBLIC_CONVEX_URL')
+    expect(localNames).toContain('EXPO_PUBLIC_TEST_USER_EMAIL')
+    expect(localNames).toContain('EXPO_PUBLIC_TEST_USER_PASSWORD')
+  })
+})

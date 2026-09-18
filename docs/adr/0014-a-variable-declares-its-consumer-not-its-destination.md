@@ -4,7 +4,7 @@ Status: accepted (2026-08-09)
 
 `env.manifest.ts` lists every environment variable gather needs. An entry says
 **who reads the value** — the Vite build, a Worker server function, a Convex
-function, the workflow itself — and the environments it is needed in. It does
+function, the workflow itself, or the Expo build — and the environments it is needed in. It does
 *not* say where the value must be written. A single table derives that from
 (consumer, environment):
 
@@ -16,6 +16,9 @@ function, the workflow itself — and the environments it is needed in. It does
 | `worker-runtime` | `.dev.vars` | `gather-pr-<N>` | `gather-stg` | `gather` |
 | `convex-functions` | your `convex dev` | `--type preview` default | convex `staging` | convex prod |
 | `workflow` | — | GitHub repo | GitHub env `stg` | GitHub env `production` |
+| `expo-build` | EAS `development` | EAS `preview` | EAS `preview` | EAS `production` |
+| `eas-tooling` | EAS `development` | EAS `preview` | EAS `preview` | EAS `production` |
+| `expo-local` | `apps/mobile/.env.local` | — | — | — |
 
 `scripts/env.mjs check` compares that with reality; `apply` writes it.
 
@@ -78,7 +81,7 @@ one thing it must not do".
 
 ## Why secrecy is declared and type-enforced
 
-A value the Vite build reads cannot be secret: the build inlines it into a bundle
+A value the Vite or Expo build reads cannot be secret: the build inlines it into a bundle
 anyone can download, and this repository is public. The type makes `secret: true`
 alongside a `vite-build` landing a compile error.
 
@@ -98,17 +101,15 @@ prefix.
 
 ## Where values live
 
-Committed `env/<environment>.public.env`, ignored `env/<environment>.secret.env`.
+Infisical owns every value, including published configuration. The committed
+`.infisical.json` is the project pointer written by `infisical init`; it contains
+no credentials. Shared values live at project root, and `/gather` overrides a
+same-named root value. Root may contain keys for other apps, while an undeclared
+`/gather` key is reported as drift.
 
-Committing the public half publishes it to a public repo, deliberately. None of
-it is confidential — a Clerk publishable key is designed to be published, a
-Convex URL ships in every bundle — and `.cta.json` had already committed two of
-these values by accident. A fresh clone plus `pnpm run env:apply local` then
-needs only the secrets, and `env:check` names exactly which.
-
-The alternative, one mixed file per environment, means handing a new machine four
-whole files most of whose contents were never confidential — which in practice
-means pasting them into a chat, making them *less* private than committing.
+Manifest environments map to Infisical slugs: `local` → `dev`, `preview` and
+`stg` → `staging`, and `production` → `prod`. Values are exported to memory and
+routed immediately; no intermediate source file is written.
 
 ## Why apply never deletes
 
@@ -130,7 +131,7 @@ that never held the production secrets, from blanking production.
 
 `.env.local` and `.dev.vars` are generated, not hand-edited; `apply` refuses to
 overwrite either if it did not write it, since a hand-maintained one may hold
-values `env/` does not have yet. `.env.example` is generated too, and `env:check`
+values not yet recorded in Infisical. `.env.example` is generated too, and `env:check`
 fails when it is stale.
 
 Repo-scoped GitHub names carry a `PREVIEW_` prefix. This is a safety rule, not a
@@ -140,7 +141,7 @@ ADR 0013 flagged that shadowing as a trap invisible in the file; different names
 make it impossible rather than merely detectable.
 
 Public values are GitHub **variables** and secrets are GitHub **secrets**. That
-is what lets `check` value-diff the public half against the committed file —
+is what lets `check` value-diff public destination values against Infisical —
 the only diff a secret store can never support, since the API returns names
 alone. For secrets, `check` proves presence and nothing more. It cannot catch
 "the right name holding the wrong value", and no amount of work here would

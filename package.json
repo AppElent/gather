@@ -26,7 +26,10 @@
     "deploy": "pnpm run deploy:prod",
     "deploy:dev": "pnpm exec convex dev --once && pnpm exec convex run seed:seedCatalog && pnpm exec convex run seed:seedTastingCatalog && pnpm run build:development && wrangler deploy --env dev",
     "deploy:prod": "pnpm exec convex deploy && pnpm exec convex run seed:seedCatalog --prod && pnpm exec convex run seed:seedTastingCatalog --prod && pnpm run build && wrangler deploy",
-    "start": "node --import ./dist/server/instrument.server.mjs dist/server/index.mjs"
+    "start": "node --import ./dist/server/instrument.server.mjs dist/server/index.mjs",
+    "env:check": "node scripts/env.mjs check",
+    "env:apply": "node scripts/env.mjs apply",
+    "env:generate": "node scripts/env.mjs generate"
   },
   "dependencies": {
     "@gather/core": "workspace:*",

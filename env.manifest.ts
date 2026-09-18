@@ -29,6 +29,9 @@ export const CONSUMERS = [
   'worker-runtime',
   'convex-functions',
   'workflow',
+  'expo-build',
+  'eas-tooling',
+  'expo-local',
 ] as const
 export type Consumer = (typeof CONSUMERS)[number]
 
@@ -40,6 +43,7 @@ export type Destination =
     }
   | { kind: 'worker'; worker: string }
   | { kind: 'github'; scope: 'repo' | 'stg' | 'production' }
+  | { kind: 'eas'; environment: 'development' | 'preview' | 'production' }
 
 /**
  * A repo-scoped GitHub name is prefixed, an environment-scoped one is not.
@@ -134,6 +138,28 @@ export function destinationFor(
         case 'production':
           return { kind: 'github', scope: 'production' }
       }
+      break
+
+    // Expo inlines EXPO_PUBLIC_* at bundle/update time. EAS development is a
+    // real cloud environment even though it uses the same source as local dev.
+    case 'expo-build':
+    case 'eas-tooling':
+      switch (environment) {
+        case 'local':
+          return { kind: 'eas', environment: 'development' }
+        case 'preview':
+        case 'stg':
+          return { kind: 'eas', environment: 'preview' }
+        case 'production':
+          return { kind: 'eas', environment: 'production' }
+      }
+      break
+
+    // Metro reads a file and only exists for local development.
+    case 'expo-local':
+      return environment === 'local'
+        ? { kind: 'file', path: 'apps/mobile/.env.local' }
+        : null
   }
   return null
 }
@@ -158,14 +184,21 @@ type Landing = {
  * error, and lets `src/env.ts` derive its client schema without a cast.
  */
 type ViteLanding = Landing & { name: `VITE_${string}` }
+type ExpoLanding = Landing & { name: `EXPO_PUBLIC_${string}` }
 
-type Lands = Partial<Record<Exclude<Consumer, 'vite-build'>, Landing>> & {
+type Lands = Partial<
+  Record<Exclude<Consumer, 'vite-build' | 'expo-build' | 'expo-local'>, Landing>
+> & {
   'vite-build'?: ViteLanding
+  'expo-build'?: ExpoLanding
+  'expo-local'?: ExpoLanding
 }
 
 type BaseEntry = {
   /** Stable identity of the logical value, independent of any variable name. */
   key: string
+  /** Canonical key in Infisical's / or /gather folder. */
+  infisicalKey: string
   description: string
   /** `check` reports a missing optional value without failing. */
   optional?: true
@@ -183,13 +216,18 @@ export type Entry =
   | (BaseEntry & { secret: false })
   | (BaseEntry & {
       secret: true
-      lands: Omit<Lands, 'vite-build'> & { 'vite-build'?: never }
+      lands: Omit<Lands, 'vite-build' | 'expo-build' | 'expo-local'> & {
+        'vite-build'?: never
+        'expo-build'?: never
+        'expo-local'?: never
+      }
     })
 
 export const ENTRIES = [
   // ---------- Clerk ----------
   {
     key: 'clerkPublishableKey',
+    infisicalKey: 'clerk-publishable-key',
     description:
       'Clerk publishable key. Published by design; `pk_test_…` everywhere but production.',
     secret: false,
@@ -198,10 +236,19 @@ export const ENTRIES = [
         name: 'VITE_CLERK_PUBLISHABLE_KEY',
         environments: ['local', 'preview', 'stg', 'production'],
       },
+      'expo-build': {
+        name: 'EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY',
+        environments: ['local', 'preview', 'stg', 'production'],
+      },
+      'expo-local': {
+        name: 'EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY',
+        environments: ['local'],
+      },
     },
   },
   {
     key: 'clerkJwtIssuerDomain',
+    infisicalKey: 'clerk-jwt-issuer-domain',
     description:
       'Clerk JWT issuer domain, the Clerk↔Convex auth bridge. A Convex deployment without it refuses every authenticated call.',
     secret: false,
@@ -216,6 +263,7 @@ export const ENTRIES = [
   // ---------- Convex ----------
   {
     key: 'convexUrl',
+    infisicalKey: 'convex-url',
     description: 'Convex deployment URL the client connects to.',
     secret: false,
     lands: {
@@ -232,10 +280,19 @@ export const ENTRIES = [
           production: 'convex deploy --cmd-url-env-var-name CONVEX_URL',
         },
       },
+      'expo-build': {
+        name: 'EXPO_PUBLIC_CONVEX_URL',
+        environments: ['local', 'preview', 'stg', 'production'],
+      },
+      'expo-local': {
+        name: 'EXPO_PUBLIC_CONVEX_URL',
+        environments: ['local'],
+      },
     },
   },
   {
     key: 'convexDeployment',
+    infisicalKey: 'convex-deployment',
     description:
       'Which Convex deployment the local CLI talks to. Written by `convex dev`; differs per developer.',
     secret: false,
@@ -245,6 +302,7 @@ export const ENTRIES = [
   },
   {
     key: 'convexDeployKey',
+    infisicalKey: 'convex-deploy-key',
     description:
       'Deploy key scoping every `convex` command in CI to one deployment. Its prefix (`preview:` / `prod:`) picks the target.',
     secret: true,
@@ -259,6 +317,7 @@ export const ENTRIES = [
   // ---------- Sample household ----------
   {
     key: 'sampleDataEnabled',
+    infisicalKey: 'enable-sample-data',
     description:
       'Whether the Sample household can be loaded. Two names, one decision: the Convex copy gates the mutation, the Vite copy shows the panel. Never production — its absence there is what keeps fake households out of real data.',
     secret: false,
@@ -275,6 +334,7 @@ export const ENTRIES = [
   },
   {
     key: 'testUserEmail',
+    infisicalKey: 'test-user-email',
     description:
       "Shared Clerk test-instance user for @appelent/auth's one-click login. Published, not secret: the build inlines it into a bundle served at a public URL.",
     optional: true,
@@ -284,10 +344,15 @@ export const ENTRIES = [
         name: 'VITE_TEST_USER_EMAIL',
         environments: ['local', 'preview', 'stg'],
       },
+      'expo-local': {
+        name: 'EXPO_PUBLIC_TEST_USER_EMAIL',
+        environments: ['local'],
+      },
     },
   },
   {
     key: 'testUserPassword',
+    infisicalKey: 'test-user-password',
     description:
       'Password for that test user. Published for the same reason, which is why the account must never exist outside the Clerk test instance.',
     optional: true,
@@ -297,12 +362,17 @@ export const ENTRIES = [
         name: 'VITE_TEST_USER_PASSWORD',
         environments: ['local', 'preview', 'stg'],
       },
+      'expo-local': {
+        name: 'EXPO_PUBLIC_TEST_USER_PASSWORD',
+        environments: ['local'],
+      },
     },
   },
 
   // ---------- Sentry ----------
   {
     key: 'sentryDsn',
+    infisicalKey: 'sentry-dsn',
     description:
       'Sentry DSN. A DSN is public by design — it only accepts events.',
     optional: true,
@@ -316,6 +386,7 @@ export const ENTRIES = [
   },
   {
     key: 'sentryOrg',
+    infisicalKey: 'sentry-org',
     description: 'Sentry organisation slug, for source-map upload.',
     optional: true,
     secret: false,
@@ -328,6 +399,7 @@ export const ENTRIES = [
   },
   {
     key: 'sentryProject',
+    infisicalKey: 'sentry-project',
     description: 'Sentry project slug, for source-map upload.',
     optional: true,
     secret: false,
@@ -340,6 +412,7 @@ export const ENTRIES = [
   },
   {
     key: 'sentryAuthToken',
+    infisicalKey: 'sentry-auth-token',
     description:
       'Uploads source maps at build time. Build-time but never inlined — it has no VITE_ prefix, which is the whole reason `build-tooling` exists as a separate consumer.',
     optional: true,
@@ -355,6 +428,7 @@ export const ENTRIES = [
   // ---------- Recipe import ----------
   {
     key: 'anthropicApiKey',
+    infisicalKey: 'anthropic-api-key',
     description:
       "The recipe URL-import action's AI fallback. Optional: JSON-LD imports work without it, and a page with no matching JSON-LD simply fails to import.",
     optional: true,
@@ -370,6 +444,7 @@ export const ENTRIES = [
   // ---------- Task providers ----------
   {
     key: 'notionClientId',
+    infisicalKey: 'notion-client-id',
     description:
       'Notion OAuth client ID. Public — it travels in the authorize URL.',
     optional: true,
@@ -383,6 +458,7 @@ export const ENTRIES = [
   },
   {
     key: 'notionClientSecret',
+    infisicalKey: 'notion-client-secret',
     description: 'Notion OAuth client secret.',
     optional: true,
     secret: true,
@@ -395,6 +471,7 @@ export const ENTRIES = [
   },
   {
     key: 'todoistClientId',
+    infisicalKey: 'todoist-client-id',
     description:
       'Todoist OAuth client ID. Public — it travels in the authorize URL.',
     optional: true,
@@ -408,6 +485,7 @@ export const ENTRIES = [
   },
   {
     key: 'todoistClientSecret',
+    infisicalKey: 'todoist-client-secret',
     description: 'Todoist OAuth client secret.',
     optional: true,
     secret: true,
@@ -425,6 +503,7 @@ export const ENTRIES = [
   // configured" everywhere else, and no test could notice.
   {
     key: 'githubIssuesToken',
+    infisicalKey: 'github-issues-token',
     description:
       'Fine-grained token with Issues: read and write, for the in-app issue reporter.',
     optional: true,
@@ -438,6 +517,7 @@ export const ENTRIES = [
   },
   {
     key: 'githubRepositoryOwner',
+    infisicalKey: 'github-repo-owner',
     description: 'Owner of the repo the issue reporter files into.',
     optional: true,
     secret: false,
@@ -450,6 +530,7 @@ export const ENTRIES = [
   },
   {
     key: 'githubRepositoryName',
+    infisicalKey: 'github-repo-name',
     description: 'Name of the repo the issue reporter files into.',
     optional: true,
     secret: false,
@@ -464,6 +545,7 @@ export const ENTRIES = [
   // ---------- CI credentials ----------
   {
     key: 'cloudflareApiToken',
+    infisicalKey: 'cloudflare-api-token',
     description:
       'Cloudflare API token used by wrangler to deploy and to set Worker secrets.',
     secret: true,
@@ -476,6 +558,7 @@ export const ENTRIES = [
   },
   {
     key: 'cloudflareAccountId',
+    infisicalKey: 'cloudflare-account-id',
     description:
       'Cloudflare account ID. An identifier rather than a credential, but kept secret so it stays out of the public workflow logs this repo produces.',
     secret: true,
@@ -488,6 +571,7 @@ export const ENTRIES = [
   },
   {
     key: 'nodeAuthToken',
+    infisicalKey: 'node-auth-token',
     description:
       'read:packages token for the private @appelent/* GitHub Packages scope. Optional: the workflows fall back to GITHUB_TOKEN.',
     optional: true,
@@ -496,6 +580,10 @@ export const ENTRIES = [
       workflow: {
         name: 'NODE_AUTH_TOKEN',
         environments: ['preview', 'stg', 'production'],
+      },
+      'eas-tooling': {
+        name: 'NODE_AUTH_TOKEN',
+        environments: ['local', 'preview', 'stg', 'production'],
       },
     },
   },
