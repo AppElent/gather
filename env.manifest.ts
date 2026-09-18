@@ -545,7 +545,7 @@ export const ENTRIES = [
   // ---------- CI credentials ----------
   {
     key: 'cloudflareApiToken',
-    infisicalKey: 'cloudflare-api-token',
+    infisicalKey: 'cloudflare-account-token',
     description:
       'Cloudflare API token used by wrangler to deploy and to set Worker secrets.',
     secret: true,
