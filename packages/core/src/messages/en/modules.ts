@@ -33,9 +33,17 @@ export const byId = {
     label: 'Pantry',
     description: 'Track what’s in stock at home.',
   },
-  finances: {
-    label: 'Finances',
-    description: 'Budgets and spending overview.',
+  'recurring-costs': {
+    label: 'Recurring costs',
+    description: 'Track repeating costs and each Member’s share.',
+  },
+  'shared-costs': {
+    label: 'Shared costs',
+    description: 'Split one event’s costs between Group Members.',
+  },
+  'savings-goals': {
+    label: 'Savings goals',
+    description: 'Set targets and track progress by hand.',
   },
   tasks: {
     label: 'Tasks',

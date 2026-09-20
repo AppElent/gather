@@ -16,6 +16,9 @@ describe('nativeDestinationForGroupLink', () => {
   test.each([
     'tasks',
     'notes',
+    'recurring-costs',
+    'shared-costs',
+    'savings-goals',
   ] as const)('opens native %s links at their real route', (moduleId) => {
     expect(nativeDestinationForGroupLink([moduleId])).toBe(`/all/${moduleId}`)
   })

@@ -27,6 +27,7 @@ import {
   SAMPLE_RECIPES,
   SAMPLE_RECURRING_COSTS,
   SAMPLE_SAVINGS_GOALS,
+  SAMPLE_SPLIT_SCENARIOS,
   SAMPLE_TASK_LISTS,
   SAMPLE_TASTING_SUBJECTS,
   SAMPLE_USER_FOODS,
@@ -1008,6 +1009,45 @@ export async function applySample(
     )
   }
 
+  const ownerName = (await ctx.db.get(ownerUserId))?.name ?? 'Sample owner'
+  const authorNames = {
+    owner: ownerName,
+    ...Object.fromEntries(
+      SAMPLE_HOUSEMATES.map((mate) => [mate.key, mate.name]),
+    ),
+  } as Record<SampleAuthor, string>
+  const splitParty = (author: SampleAuthor) => ({
+    userId: authors[author],
+    name: authorNames[author],
+  })
+  for (const scenario of SAMPLE_SPLIT_SCENARIOS) {
+    rec.track(
+      await ctx.db.insert('splitScenarios', {
+        groupId,
+        createdByUserId: authors[scenario.author],
+        createdAt: now - scenario.daysAgo * DAY_MS,
+        name: scenario.name,
+        payments: scenario.payments.map((payment) => ({
+          party: splitParty(payment.author),
+          amountCents: payment.amountCents,
+          label: payment.label,
+        })),
+        participants: scenario.participants.map(splitParty),
+        mode: scenario.mode,
+        owed: scenario.owed.map((share) => ({
+          party: splitParty(share.author),
+          amountCents: share.amountCents,
+        })),
+        transfers: scenario.transfers.map((transfer) => ({
+          from: splitParty(transfer.from),
+          to: splitParty(transfer.to),
+          amountCents: transfer.amountCents,
+        })),
+        totalCents: scenario.totalCents,
+      }),
+    )
+  }
+
   rec.track(
     await ctx.db.insert('financeSettings', {
       groupId,
@@ -1104,6 +1144,7 @@ export async function applySample(
     loanParts,
     recurringCosts: SAMPLE_RECURRING_COSTS.length,
     savingsGoals: SAMPLE_SAVINGS_GOALS.length,
+    splitScenarios: SAMPLE_SPLIT_SCENARIOS.length,
     holdings: SAMPLE_HOLDINGS.length,
     holdingTransactions,
     netWorthEntries: SAMPLE_NET_WORTH_ENTRIES.length,
@@ -1143,6 +1184,7 @@ export async function applySample(
     1 + // its home-buying costs
     counts.recurringCosts +
     counts.savingsGoals +
+    counts.splitScenarios +
     1 + // the Group's finance settings
     counts.holdings +
     counts.holdingTransactions +

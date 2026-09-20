@@ -128,7 +128,9 @@ describe('the registry itself', () => {
   })
 
   test('a Module that takes nothing declares an empty list', () => {
-    expect(DROP_TARGETS.finances).toEqual([])
+    expect(DROP_TARGETS['recurring-costs']).toEqual([])
+    expect(DROP_TARGETS['shared-costs']).toEqual([])
+    expect(DROP_TARGETS['savings-goals']).toEqual([])
     expect(DROP_TARGETS.pantry).toEqual([])
   })
 

@@ -1,8 +1,9 @@
 # gather
 
-A household-management app (Recipes, Tasks, groups, and a growing set of placeholder
-modules — meal planner, groceries, pantry, finances, bills, calendar, notes,
-cheeses, wines) built on the standard AppElent stack:
+A household-management app (Recipes, Tasks, groups, and a growing set of
+modules — meal planner, groceries, pantry, recurring costs, shared costs,
+savings goals, calendar, notes, cheeses, wines) built on the standard AppElent
+stack:
 
 - **TanStack React Start + Router** (file-based routing, `tsr generate`), SSR, Vite.
 - **Convex** backend (`convex/`) — functions: `recipes.ts`, `groups.ts`, `users.ts`,

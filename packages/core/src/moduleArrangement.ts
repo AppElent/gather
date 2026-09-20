@@ -26,6 +26,7 @@ import {
   moduleById,
 } from './modules'
 import { pinnedModuleIds } from './pins'
+import { expandRetiredModuleIds } from './retiredModules'
 
 /** What a client has written down. Every field is optional and validated here. */
 export interface StoredArrangement {
@@ -51,6 +52,18 @@ export interface Arrangement {
   groups: ArrangedGroup[]
   /** What was refused, in canonical order — the order it was refused in says nothing. */
   hidden: ModuleDef[]
+}
+
+/** Replace retired ids before a client lets a person edit stored choices. */
+export function migrateStoredArrangement<T extends StoredArrangement>(
+  stored: T,
+): T {
+  return {
+    ...stored,
+    pinned: expandRetiredModuleIds(stored.pinned),
+    hidden: expandRetiredModuleIds(stored.hidden),
+    order: expandRetiredModuleIds(stored.order),
+  }
 }
 
 /**
@@ -97,15 +110,16 @@ export function reconcileOrder<T extends string>(
 }
 
 export function arrangeModules(stored: StoredArrangement = {}): Arrangement {
+  const migrated = migrateStoredArrangement(stored)
   const hiddenIds = new Set<string>()
-  for (const id of stored.hidden ?? []) {
+  for (const id of migrated.hidden ?? []) {
     if (moduleById(id)) hiddenIds.add(id)
   }
 
   // Hiding a Module unpins it: a shortcut to something deliberately out of
   // sight is a contradiction, and the alternative is a Pinned section holding
   // a row the reader cannot find anywhere else on the screen.
-  const pinned = pinnedModuleIds(stored.pinned)
+  const pinned = pinnedModuleIds(migrated.pinned)
     .filter((id) => !hiddenIds.has(id))
     .flatMap((id) => {
       const module = moduleById(id)
@@ -117,7 +131,7 @@ export function arrangeModules(stored: StoredArrangement = {}): Arrangement {
       const canonical = MODULES.filter((module) => module.group === group).map(
         (module) => module.id,
       )
-      const modules = reconcileOrder(canonical, stored.order)
+      const modules = reconcileOrder(canonical, migrated.order)
         .filter((id) => !hiddenIds.has(id))
         .flatMap((id) => {
           const module = moduleById(id)

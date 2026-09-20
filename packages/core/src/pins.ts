@@ -1,9 +1,10 @@
 import { type ModuleDef, moduleById } from './modules'
+import { expandRetiredModuleIds } from './retiredModules'
 
 export const DEFAULT_PINS: readonly string[] = ['recipes', 'tasks', 'nutrition']
 
 export function pinnedModuleIds(stored?: readonly string[]): string[] {
-  const source = stored ?? DEFAULT_PINS
+  const source = expandRetiredModuleIds(stored) ?? DEFAULT_PINS
   const ids: string[] = []
   for (const id of source) {
     if (ids.includes(id) || !moduleById(id)) continue

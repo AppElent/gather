@@ -12,5 +12,8 @@ describe('moduleDestination', () => {
     expect(moduleDestination('groceries')).toBe('/all/groceries')
     expect(moduleDestination('pantry')).toBe('/all/pantry')
     expect(moduleDestination('calendar')).toBe('/all/calendar')
+    expect(moduleDestination('recurring-costs')).toBe('/all/recurring-costs')
+    expect(moduleDestination('shared-costs')).toBe('/all/shared-costs')
+    expect(moduleDestination('savings-goals')).toBe('/all/savings-goals')
   })
 })

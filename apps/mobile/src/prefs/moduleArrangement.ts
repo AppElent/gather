@@ -20,6 +20,7 @@ import {
   type Arrangement,
   arrangeModules,
   flattenModuleOrder,
+  migrateStoredArrangement,
   type StoredArrangement,
   toggleHidden,
 } from '@gather/core/module-arrangement'
@@ -75,13 +76,13 @@ function readStored(groupSlug: string): StoredAll {
     // Field by field rather than a cast: a blob written by an older build, or
     // hand-edited in a debugger, must degrade to "never chosen" per field
     // instead of throwing on the frame that draws the screen.
-    return {
+    return migrateStoredArrangement({
       pinned: stringArray(record.pinned),
       hidden: stringArray(record.hidden),
       order: stringArray(record.order),
       groupOrder: stringArray(record.groupOrder),
       collapsed: stringArray(record.collapsed),
-    }
+    })
   } catch {
     return {}
   }

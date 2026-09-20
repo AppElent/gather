@@ -62,7 +62,7 @@ export const en = {
   tastings: coreEn.tastings,
 
   /**
-   * The Finances Module's words, taken whole from the shared tree for the
+   * The Money Modules' words, taken whole from the shared tree for the
    * same reason the Baby log's are: the phone owns its look and shares its
    * words (ADR-0017), and a second English for "Loan part" is the failure
    * that rule names.
@@ -808,6 +808,13 @@ export const en = {
       reset: 'Back to the canvas verdict',
       /** Marks the option the design canvas already argued for. */
       chosen: 'Canvas verdict',
+    },
+
+    finance: {
+      title: 'Finance lab',
+      description:
+        'Houses and mortgages, Portfolio, and Net worth. Development builds only.',
+      open: 'Open Finance lab',
     },
 
     calendar: {

@@ -25,9 +25,17 @@ export const byId = {
     label: 'Voorraadkast',
     description: 'Houd bij wat er thuis in voorraad is.',
   },
-  finances: {
-    label: 'Financiën',
-    description: 'Budgetten en een overzicht van je uitgaven.',
+  'recurring-costs': {
+    label: 'Vaste lasten',
+    description: 'Houd terugkerende kosten en ieders aandeel bij.',
+  },
+  'shared-costs': {
+    label: 'Kosten delen',
+    description: 'Verdeel de kosten van één gebeurtenis over groepsleden.',
+  },
+  'savings-goals': {
+    label: 'Spaardoelen',
+    description: 'Stel doelen en houd de voortgang handmatig bij.',
   },
   tasks: {
     label: 'Taken',

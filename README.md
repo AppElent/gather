@@ -1,8 +1,8 @@
 # gather
 
 A household-management app — recipes and groups today, with a growing set of
-placeholder modules (meal planner, groceries, pantry, finances, bills, tasks,
-calendar, notes, cheeses, wines) waiting to be built out.
+modules for meal planning, groceries, pantry, recurring costs, shared costs,
+savings goals, tasks, calendar, notes, cheeses, and wines.
 
 Built on TanStack React Start + Router, Convex, Clerk, and Cloudflare Workers.
 See [CLAUDE.md](./CLAUDE.md) for the full architecture and conventions.

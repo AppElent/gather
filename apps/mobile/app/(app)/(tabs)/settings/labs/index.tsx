@@ -1,3 +1,5 @@
 import { LabsScreen } from '../../../../../src/labs/LabsScreen'
 
-export default LabsScreen
+export default function Labs() {
+  return <LabsScreen showFinanceLab={__DEV__} />
+}

@@ -15,8 +15,10 @@ export type ModuleIconName =
   | 'ListChecks'
   | 'NotebookPen'
   | 'Refrigerator'
+  | 'Repeat'
   | 'ShoppingCart'
-  | 'Wallet'
+  | 'Target'
+  | 'Users'
   | 'Wine'
 
 export interface ModuleDef {
@@ -64,10 +66,24 @@ export const MODULES = [
     scope: 'group',
   },
   {
-    id: 'finances',
-    icon: 'Wallet',
+    id: 'recurring-costs',
+    icon: 'Repeat',
     group: 'money',
-    status: 'live',
+    status: 'placeholder',
+    scope: 'group',
+  },
+  {
+    id: 'shared-costs',
+    icon: 'Users',
+    group: 'money',
+    status: 'placeholder',
+    scope: 'group',
+  },
+  {
+    id: 'savings-goals',
+    icon: 'Target',
+    group: 'money',
+    status: 'placeholder',
     scope: 'group',
   },
   {

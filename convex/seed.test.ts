@@ -179,4 +179,19 @@ describe('the Sample household', () => {
     )
     expect(left).toEqual([])
   })
+
+  test('contains a representative immutable Shared costs scenario', async () => {
+    const t = testConvex()
+    await buildSample(t)
+
+    const scenarios = await t.run(async (ctx) =>
+      ctx.db.query('splitScenarios').collect(),
+    )
+
+    expect(scenarios).toHaveLength(1)
+    expect(scenarios[0].payments).toHaveLength(2)
+    expect(scenarios[0].participants).toHaveLength(3)
+    expect(scenarios[0].transfers).toHaveLength(2)
+    expect(scenarios[0].totalCents).toBe(450_00)
+  })
 })

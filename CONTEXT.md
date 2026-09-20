@@ -71,16 +71,31 @@ different one.
 _Avoid_: Global data, Public data
 
 **Finance record**:
-Group content in Finances that Members edit in place — a House, a Mortgage
+Group content about its money that Members edit in place — a House, a Mortgage
 calculation, a Recurring cost, a Savings goal, an Investment holding. Every
 figure in one was typed by a Member: Gather connects to no bank, imports no
 file, and looks nothing up.
 _Avoid_: Account, Statement, Ledger
 
+**Recurring costs**:
+The Money Module containing a Group's repeating financial commitments and their
+monthly and annual totals.
+_Avoid_: Fixed costs, Fixed cost overview, Bills
+
+**Shared costs**:
+The Money Module containing the **Payment split** calculator and the Group's
+immutable **Saved scenarios**.
+_Avoid_: Temporary costs, Temporary cost overview, Expense ledger
+
+**Savings goals**:
+The Money Module containing a Group's **Savings goals** and their manually
+entered progress.
+_Avoid_: Saving goals, Savings accounts
+
 **Finance calculator**:
-A Group tool that estimates an outcome from values a Member enters and keeps
-nothing unless asked. **Payment split** is the only one; everything else in
-Finances is a Finance record.
+A Group money tool that estimates an outcome from values a Member enters and
+keeps nothing unless asked. **Payment split** is the only one; every other
+money tool stores Finance records.
 _Avoid_: Ledger, Account statement
 
 **Saved scenario**:
@@ -161,7 +176,7 @@ account view.
 _Avoid_: Account aggregation, Financial statement
 
 **Payment split**:
-A Finance calculator's division of one event's costs among current Group
+A Finance calculator in **Shared costs** that divides one event's costs among current Group
 Members, equally or by custom amount. It may collect several payments that
 different Members made, then shows who should contribute; it does not retain
 debts, balances, or settlements.
