@@ -11,7 +11,7 @@ describe('module registry', () => {
     for (const m of MODULES) expect(MODULE_GROUPS).toContain(m.group)
   })
 
-  test('recipes, nutrition, finances, tasks and baby-log are live', () => {
+  test('the built web modules are live', () => {
     const live = MODULES.filter((m) => m.status === 'live').map((m) => m.id)
     expect(live).toEqual([
       'recipes',
@@ -19,6 +19,9 @@ describe('module registry', () => {
       'finances',
       'tasks',
       'baby-log',
+      'cheeses',
+      'wines',
+      'beers',
     ])
   })
 

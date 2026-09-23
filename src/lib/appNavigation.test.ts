@@ -67,8 +67,8 @@ describe('the navigation list', () => {
   })
 
   test('marks a Module that is not built yet', () => {
-    const items = navItems(['recipes', 'wines'], SLUG, en)
-    expect(items.find((i) => i.id === 'wines')?.placeholder).toBe(true)
+    const items = navItems(['recipes', 'notes'], SLUG, en)
+    expect(items.find((i) => i.id === 'notes')?.placeholder).toBe(true)
     expect(items.find((i) => i.id === 'recipes')?.placeholder).toBe(false)
   })
 
@@ -295,9 +295,7 @@ describe('the route context the topbar shows', () => {
       subtitle: 'Keep and rate the dishes you cook.',
     })
     expect(getRouteContext('/recipes/new', en).title).toBe('Recipes')
-    expect(getRouteContext('/recipes/r1/edit', en).title).toBe(
-      'Recipes',
-    )
+    expect(getRouteContext('/recipes/r1/edit', en).title).toBe('Recipes')
   })
 
   test('names the shell pages', () => {

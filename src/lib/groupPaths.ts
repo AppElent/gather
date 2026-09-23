@@ -74,8 +74,14 @@ const GROUP_ROUTES = {
   calendar: '/calendar',
   notes: '/notes',
   cheeses: '/cheeses',
+  cheese: '/cheeses/$subjectId',
+  editCheese: '/cheeses/$subjectId/edit',
   wines: '/wines',
+  wine: '/wines/$subjectId',
+  editWine: '/wines/$subjectId/edit',
   beers: '/beers',
+  beer: '/beers/$subjectId',
+  editBeer: '/beers/$subjectId/edit',
 } as const satisfies Record<string, LinkProps['to']>
 
 /** A page that exists inside a Group. */

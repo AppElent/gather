@@ -36,6 +36,8 @@ import { Route as AppTasksRouteImport } from './routes/_app/tasks'
 import { Route as AppWinesRouteImport } from './routes/_app/wines'
 import { Route as AppBabyIndexRouteImport } from './routes/_app/baby/index'
 import { Route as AppBabyNewRouteImport } from './routes/_app/baby/new'
+import { Route as AppBeersIndexRouteImport } from './routes/_app/beers/index'
+import { Route as AppCheesesIndexRouteImport } from './routes/_app/cheeses/index'
 import { Route as AppFoodsIndexRouteImport } from './routes/_app/foods/index'
 import { Route as AppFoodsNewRouteImport } from './routes/_app/foods/new'
 import { Route as AppIntegrationsCallbackRouteImport } from './routes/_app/integrations.callback'
@@ -43,12 +45,19 @@ import { Route as AppNutritionIndexRouteImport } from './routes/_app/nutrition/i
 import { Route as AppNutritionAddRouteImport } from './routes/_app/nutrition/add'
 import { Route as AppRecipesIndexRouteImport } from './routes/_app/recipes/index'
 import { Route as AppRecipesNewRouteImport } from './routes/_app/recipes/new'
+import { Route as AppWinesIndexRouteImport } from './routes/_app/wines/index'
 import { Route as AppBabyBabyIdIndexRouteImport } from './routes/_app/baby/$babyId.index'
 import { Route as AppBabyBabyIdEditRouteImport } from './routes/_app/baby/$babyId.edit'
+import { Route as AppBeersSubjectIdIndexRouteImport } from './routes/_app/beers/$subjectId.index'
+import { Route as AppBeersSubjectIdEditRouteImport } from './routes/_app/beers/$subjectId.edit'
+import { Route as AppCheesesSubjectIdIndexRouteImport } from './routes/_app/cheeses/$subjectId.index'
+import { Route as AppCheesesSubjectIdEditRouteImport } from './routes/_app/cheeses/$subjectId.edit'
 import { Route as AppFoodsFoodIdIndexRouteImport } from './routes/_app/foods/$foodId.index'
 import { Route as AppFoodsFoodIdEditRouteImport } from './routes/_app/foods/$foodId.edit'
 import { Route as AppRecipesRecipeIdIndexRouteImport } from './routes/_app/recipes/$recipeId.index'
 import { Route as AppRecipesRecipeIdEditRouteImport } from './routes/_app/recipes/$recipeId.edit'
+import { Route as AppWinesSubjectIdIndexRouteImport } from './routes/_app/wines/$subjectId.index'
+import { Route as AppWinesSubjectIdEditRouteImport } from './routes/_app/wines/$subjectId.edit'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -184,6 +193,16 @@ const AppBabyNewRoute = AppBabyNewRouteImport.update({
   path: '/baby/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBeersIndexRoute = AppBeersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppBeersRoute,
+} as any)
+const AppCheesesIndexRoute = AppCheesesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppCheesesRoute,
+} as any)
 const AppFoodsIndexRoute = AppFoodsIndexRouteImport.update({
   id: '/foods/',
   path: '/foods/',
@@ -219,6 +238,11 @@ const AppRecipesNewRoute = AppRecipesNewRouteImport.update({
   path: '/recipes/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppWinesIndexRoute = AppWinesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppWinesRoute,
+} as any)
 const AppBabyBabyIdIndexRoute = AppBabyBabyIdIndexRouteImport.update({
   id: '/baby/$babyId/',
   path: '/baby/$babyId/',
@@ -228,6 +252,27 @@ const AppBabyBabyIdEditRoute = AppBabyBabyIdEditRouteImport.update({
   id: '/baby/$babyId/edit',
   path: '/baby/$babyId/edit',
   getParentRoute: () => AppRoute,
+} as any)
+const AppBeersSubjectIdIndexRoute = AppBeersSubjectIdIndexRouteImport.update({
+  id: '/$subjectId/',
+  path: '/$subjectId/',
+  getParentRoute: () => AppBeersRoute,
+} as any)
+const AppBeersSubjectIdEditRoute = AppBeersSubjectIdEditRouteImport.update({
+  id: '/$subjectId/edit',
+  path: '/$subjectId/edit',
+  getParentRoute: () => AppBeersRoute,
+} as any)
+const AppCheesesSubjectIdIndexRoute =
+  AppCheesesSubjectIdIndexRouteImport.update({
+    id: '/$subjectId/',
+    path: '/$subjectId/',
+    getParentRoute: () => AppCheesesRoute,
+  } as any)
+const AppCheesesSubjectIdEditRoute = AppCheesesSubjectIdEditRouteImport.update({
+  id: '/$subjectId/edit',
+  path: '/$subjectId/edit',
+  getParentRoute: () => AppCheesesRoute,
 } as any)
 const AppFoodsFoodIdIndexRoute = AppFoodsFoodIdIndexRouteImport.update({
   id: '/foods/$foodId/',
@@ -249,6 +294,16 @@ const AppRecipesRecipeIdEditRoute = AppRecipesRecipeIdEditRouteImport.update({
   path: '/recipes/$recipeId/edit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppWinesSubjectIdIndexRoute = AppWinesSubjectIdIndexRouteImport.update({
+  id: '/$subjectId/',
+  path: '/$subjectId/',
+  getParentRoute: () => AppWinesRoute,
+} as any)
+const AppWinesSubjectIdEditRoute = AppWinesSubjectIdEditRouteImport.update({
+  id: '/$subjectId/edit',
+  path: '/$subjectId/edit',
+  getParentRoute: () => AppWinesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -259,9 +314,9 @@ export interface FileRoutesByFullPath {
   '/$': typeof AppSplatRoute
   '/account': typeof AppAccountRoute
   '/all': typeof AppAllRoute
-  '/beers': typeof AppBeersRoute
+  '/beers': typeof AppBeersRouteWithChildren
   '/calendar': typeof AppCalendarRoute
-  '/cheeses': typeof AppCheesesRoute
+  '/cheeses': typeof AppCheesesRouteWithChildren
   '/combos': typeof AppCombosRoute
   '/finances': typeof AppFinancesRoute
   '/groceries': typeof AppGroceriesRoute
@@ -274,22 +329,31 @@ export interface FileRoutesByFullPath {
   '/pantry': typeof AppPantryRoute
   '/settings': typeof AppSettingsRoute
   '/tasks': typeof AppTasksRoute
-  '/wines': typeof AppWinesRoute
+  '/wines': typeof AppWinesRouteWithChildren
   '/baby/new': typeof AppBabyNewRoute
   '/foods/new': typeof AppFoodsNewRoute
   '/integrations/callback': typeof AppIntegrationsCallbackRoute
   '/nutrition/add': typeof AppNutritionAddRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/baby/': typeof AppBabyIndexRoute
+  '/beers/': typeof AppBeersIndexRoute
+  '/cheeses/': typeof AppCheesesIndexRoute
   '/foods/': typeof AppFoodsIndexRoute
   '/nutrition/': typeof AppNutritionIndexRoute
   '/recipes/': typeof AppRecipesIndexRoute
+  '/wines/': typeof AppWinesIndexRoute
   '/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
+  '/beers/$subjectId/edit': typeof AppBeersSubjectIdEditRoute
+  '/cheeses/$subjectId/edit': typeof AppCheesesSubjectIdEditRoute
   '/foods/$foodId/edit': typeof AppFoodsFoodIdEditRoute
   '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
+  '/wines/$subjectId/edit': typeof AppWinesSubjectIdEditRoute
   '/baby/$babyId/': typeof AppBabyBabyIdIndexRoute
+  '/beers/$subjectId/': typeof AppBeersSubjectIdIndexRoute
+  '/cheeses/$subjectId/': typeof AppCheesesSubjectIdIndexRoute
   '/foods/$foodId/': typeof AppFoodsFoodIdIndexRoute
   '/recipes/$recipeId/': typeof AppRecipesRecipeIdIndexRoute
+  '/wines/$subjectId/': typeof AppWinesSubjectIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/about': typeof AboutRoute
@@ -299,9 +363,7 @@ export interface FileRoutesByTo {
   '/$': typeof AppSplatRoute
   '/account': typeof AppAccountRoute
   '/all': typeof AppAllRoute
-  '/beers': typeof AppBeersRoute
   '/calendar': typeof AppCalendarRoute
-  '/cheeses': typeof AppCheesesRoute
   '/combos': typeof AppCombosRoute
   '/finances': typeof AppFinancesRoute
   '/groceries': typeof AppGroceriesRoute
@@ -313,7 +375,6 @@ export interface FileRoutesByTo {
   '/pantry': typeof AppPantryRoute
   '/settings': typeof AppSettingsRoute
   '/tasks': typeof AppTasksRoute
-  '/wines': typeof AppWinesRoute
   '/': typeof AppIndexRoute
   '/baby/new': typeof AppBabyNewRoute
   '/foods/new': typeof AppFoodsNewRoute
@@ -321,15 +382,24 @@ export interface FileRoutesByTo {
   '/nutrition/add': typeof AppNutritionAddRoute
   '/recipes/new': typeof AppRecipesNewRoute
   '/baby': typeof AppBabyIndexRoute
+  '/beers': typeof AppBeersIndexRoute
+  '/cheeses': typeof AppCheesesIndexRoute
   '/foods': typeof AppFoodsIndexRoute
   '/nutrition': typeof AppNutritionIndexRoute
   '/recipes': typeof AppRecipesIndexRoute
+  '/wines': typeof AppWinesIndexRoute
   '/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
+  '/beers/$subjectId/edit': typeof AppBeersSubjectIdEditRoute
+  '/cheeses/$subjectId/edit': typeof AppCheesesSubjectIdEditRoute
   '/foods/$foodId/edit': typeof AppFoodsFoodIdEditRoute
   '/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
+  '/wines/$subjectId/edit': typeof AppWinesSubjectIdEditRoute
   '/baby/$babyId': typeof AppBabyBabyIdIndexRoute
+  '/beers/$subjectId': typeof AppBeersSubjectIdIndexRoute
+  '/cheeses/$subjectId': typeof AppCheesesSubjectIdIndexRoute
   '/foods/$foodId': typeof AppFoodsFoodIdIndexRoute
   '/recipes/$recipeId': typeof AppRecipesRecipeIdIndexRoute
+  '/wines/$subjectId': typeof AppWinesSubjectIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -341,9 +411,9 @@ export interface FileRoutesById {
   '/_app/$': typeof AppSplatRoute
   '/_app/account': typeof AppAccountRoute
   '/_app/all': typeof AppAllRoute
-  '/_app/beers': typeof AppBeersRoute
+  '/_app/beers': typeof AppBeersRouteWithChildren
   '/_app/calendar': typeof AppCalendarRoute
-  '/_app/cheeses': typeof AppCheesesRoute
+  '/_app/cheeses': typeof AppCheesesRouteWithChildren
   '/_app/combos': typeof AppCombosRoute
   '/_app/finances': typeof AppFinancesRoute
   '/_app/groceries': typeof AppGroceriesRoute
@@ -356,7 +426,7 @@ export interface FileRoutesById {
   '/_app/pantry': typeof AppPantryRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/tasks': typeof AppTasksRoute
-  '/_app/wines': typeof AppWinesRoute
+  '/_app/wines': typeof AppWinesRouteWithChildren
   '/_app/': typeof AppIndexRoute
   '/_app/baby/new': typeof AppBabyNewRoute
   '/_app/foods/new': typeof AppFoodsNewRoute
@@ -364,15 +434,24 @@ export interface FileRoutesById {
   '/_app/nutrition/add': typeof AppNutritionAddRoute
   '/_app/recipes/new': typeof AppRecipesNewRoute
   '/_app/baby/': typeof AppBabyIndexRoute
+  '/_app/beers/': typeof AppBeersIndexRoute
+  '/_app/cheeses/': typeof AppCheesesIndexRoute
   '/_app/foods/': typeof AppFoodsIndexRoute
   '/_app/nutrition/': typeof AppNutritionIndexRoute
   '/_app/recipes/': typeof AppRecipesIndexRoute
+  '/_app/wines/': typeof AppWinesIndexRoute
   '/_app/baby/$babyId/edit': typeof AppBabyBabyIdEditRoute
+  '/_app/beers/$subjectId/edit': typeof AppBeersSubjectIdEditRoute
+  '/_app/cheeses/$subjectId/edit': typeof AppCheesesSubjectIdEditRoute
   '/_app/foods/$foodId/edit': typeof AppFoodsFoodIdEditRoute
   '/_app/recipes/$recipeId/edit': typeof AppRecipesRecipeIdEditRoute
+  '/_app/wines/$subjectId/edit': typeof AppWinesSubjectIdEditRoute
   '/_app/baby/$babyId/': typeof AppBabyBabyIdIndexRoute
+  '/_app/beers/$subjectId/': typeof AppBeersSubjectIdIndexRoute
+  '/_app/cheeses/$subjectId/': typeof AppCheesesSubjectIdIndexRoute
   '/_app/foods/$foodId/': typeof AppFoodsFoodIdIndexRoute
   '/_app/recipes/$recipeId/': typeof AppRecipesRecipeIdIndexRoute
+  '/_app/wines/$subjectId/': typeof AppWinesSubjectIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -407,15 +486,24 @@ export interface FileRouteTypes {
     | '/nutrition/add'
     | '/recipes/new'
     | '/baby/'
+    | '/beers/'
+    | '/cheeses/'
     | '/foods/'
     | '/nutrition/'
     | '/recipes/'
+    | '/wines/'
     | '/baby/$babyId/edit'
+    | '/beers/$subjectId/edit'
+    | '/cheeses/$subjectId/edit'
     | '/foods/$foodId/edit'
     | '/recipes/$recipeId/edit'
+    | '/wines/$subjectId/edit'
     | '/baby/$babyId/'
+    | '/beers/$subjectId/'
+    | '/cheeses/$subjectId/'
     | '/foods/$foodId/'
     | '/recipes/$recipeId/'
+    | '/wines/$subjectId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/about'
@@ -425,9 +513,7 @@ export interface FileRouteTypes {
     | '/$'
     | '/account'
     | '/all'
-    | '/beers'
     | '/calendar'
-    | '/cheeses'
     | '/combos'
     | '/finances'
     | '/groceries'
@@ -439,7 +525,6 @@ export interface FileRouteTypes {
     | '/pantry'
     | '/settings'
     | '/tasks'
-    | '/wines'
     | '/'
     | '/baby/new'
     | '/foods/new'
@@ -447,15 +532,24 @@ export interface FileRouteTypes {
     | '/nutrition/add'
     | '/recipes/new'
     | '/baby'
+    | '/beers'
+    | '/cheeses'
     | '/foods'
     | '/nutrition'
     | '/recipes'
+    | '/wines'
     | '/baby/$babyId/edit'
+    | '/beers/$subjectId/edit'
+    | '/cheeses/$subjectId/edit'
     | '/foods/$foodId/edit'
     | '/recipes/$recipeId/edit'
+    | '/wines/$subjectId/edit'
     | '/baby/$babyId'
+    | '/beers/$subjectId'
+    | '/cheeses/$subjectId'
     | '/foods/$foodId'
     | '/recipes/$recipeId'
+    | '/wines/$subjectId'
   id:
     | '__root__'
     | '/_app'
@@ -489,15 +583,24 @@ export interface FileRouteTypes {
     | '/_app/nutrition/add'
     | '/_app/recipes/new'
     | '/_app/baby/'
+    | '/_app/beers/'
+    | '/_app/cheeses/'
     | '/_app/foods/'
     | '/_app/nutrition/'
     | '/_app/recipes/'
+    | '/_app/wines/'
     | '/_app/baby/$babyId/edit'
+    | '/_app/beers/$subjectId/edit'
+    | '/_app/cheeses/$subjectId/edit'
     | '/_app/foods/$foodId/edit'
     | '/_app/recipes/$recipeId/edit'
+    | '/_app/wines/$subjectId/edit'
     | '/_app/baby/$babyId/'
+    | '/_app/beers/$subjectId/'
+    | '/_app/cheeses/$subjectId/'
     | '/_app/foods/$foodId/'
     | '/_app/recipes/$recipeId/'
+    | '/_app/wines/$subjectId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -699,6 +802,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBabyNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/beers/': {
+      id: '/_app/beers/'
+      path: '/'
+      fullPath: '/beers/'
+      preLoaderRoute: typeof AppBeersIndexRouteImport
+      parentRoute: typeof AppBeersRoute
+    }
+    '/_app/cheeses/': {
+      id: '/_app/cheeses/'
+      path: '/'
+      fullPath: '/cheeses/'
+      preLoaderRoute: typeof AppCheesesIndexRouteImport
+      parentRoute: typeof AppCheesesRoute
+    }
     '/_app/foods/': {
       id: '/_app/foods/'
       path: '/foods'
@@ -748,6 +865,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRecipesNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/wines/': {
+      id: '/_app/wines/'
+      path: '/'
+      fullPath: '/wines/'
+      preLoaderRoute: typeof AppWinesIndexRouteImport
+      parentRoute: typeof AppWinesRoute
+    }
     '/_app/baby/$babyId/': {
       id: '/_app/baby/$babyId/'
       path: '/baby/$babyId'
@@ -761,6 +885,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/baby/$babyId/edit'
       preLoaderRoute: typeof AppBabyBabyIdEditRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/beers/$subjectId/': {
+      id: '/_app/beers/$subjectId/'
+      path: '/$subjectId'
+      fullPath: '/beers/$subjectId/'
+      preLoaderRoute: typeof AppBeersSubjectIdIndexRouteImport
+      parentRoute: typeof AppBeersRoute
+    }
+    '/_app/beers/$subjectId/edit': {
+      id: '/_app/beers/$subjectId/edit'
+      path: '/$subjectId/edit'
+      fullPath: '/beers/$subjectId/edit'
+      preLoaderRoute: typeof AppBeersSubjectIdEditRouteImport
+      parentRoute: typeof AppBeersRoute
+    }
+    '/_app/cheeses/$subjectId/': {
+      id: '/_app/cheeses/$subjectId/'
+      path: '/$subjectId'
+      fullPath: '/cheeses/$subjectId/'
+      preLoaderRoute: typeof AppCheesesSubjectIdIndexRouteImport
+      parentRoute: typeof AppCheesesRoute
+    }
+    '/_app/cheeses/$subjectId/edit': {
+      id: '/_app/cheeses/$subjectId/edit'
+      path: '/$subjectId/edit'
+      fullPath: '/cheeses/$subjectId/edit'
+      preLoaderRoute: typeof AppCheesesSubjectIdEditRouteImport
+      parentRoute: typeof AppCheesesRoute
     }
     '/_app/foods/$foodId/': {
       id: '/_app/foods/$foodId/'
@@ -790,8 +942,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRecipesRecipeIdEditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/wines/$subjectId/': {
+      id: '/_app/wines/$subjectId/'
+      path: '/$subjectId'
+      fullPath: '/wines/$subjectId/'
+      preLoaderRoute: typeof AppWinesSubjectIdIndexRouteImport
+      parentRoute: typeof AppWinesRoute
+    }
+    '/_app/wines/$subjectId/edit': {
+      id: '/_app/wines/$subjectId/edit'
+      path: '/$subjectId/edit'
+      fullPath: '/wines/$subjectId/edit'
+      preLoaderRoute: typeof AppWinesSubjectIdEditRouteImport
+      parentRoute: typeof AppWinesRoute
+    }
   }
 }
+
+interface AppBeersRouteChildren {
+  AppBeersIndexRoute: typeof AppBeersIndexRoute
+  AppBeersSubjectIdEditRoute: typeof AppBeersSubjectIdEditRoute
+  AppBeersSubjectIdIndexRoute: typeof AppBeersSubjectIdIndexRoute
+}
+
+const AppBeersRouteChildren: AppBeersRouteChildren = {
+  AppBeersIndexRoute: AppBeersIndexRoute,
+  AppBeersSubjectIdEditRoute: AppBeersSubjectIdEditRoute,
+  AppBeersSubjectIdIndexRoute: AppBeersSubjectIdIndexRoute,
+}
+
+const AppBeersRouteWithChildren = AppBeersRoute._addFileChildren(
+  AppBeersRouteChildren,
+)
+
+interface AppCheesesRouteChildren {
+  AppCheesesIndexRoute: typeof AppCheesesIndexRoute
+  AppCheesesSubjectIdEditRoute: typeof AppCheesesSubjectIdEditRoute
+  AppCheesesSubjectIdIndexRoute: typeof AppCheesesSubjectIdIndexRoute
+}
+
+const AppCheesesRouteChildren: AppCheesesRouteChildren = {
+  AppCheesesIndexRoute: AppCheesesIndexRoute,
+  AppCheesesSubjectIdEditRoute: AppCheesesSubjectIdEditRoute,
+  AppCheesesSubjectIdIndexRoute: AppCheesesSubjectIdIndexRoute,
+}
+
+const AppCheesesRouteWithChildren = AppCheesesRoute._addFileChildren(
+  AppCheesesRouteChildren,
+)
 
 interface AppNutritionRouteChildren {
   AppNutritionAddRoute: typeof AppNutritionAddRoute
@@ -807,13 +1005,29 @@ const AppNutritionRouteWithChildren = AppNutritionRoute._addFileChildren(
   AppNutritionRouteChildren,
 )
 
+interface AppWinesRouteChildren {
+  AppWinesIndexRoute: typeof AppWinesIndexRoute
+  AppWinesSubjectIdEditRoute: typeof AppWinesSubjectIdEditRoute
+  AppWinesSubjectIdIndexRoute: typeof AppWinesSubjectIdIndexRoute
+}
+
+const AppWinesRouteChildren: AppWinesRouteChildren = {
+  AppWinesIndexRoute: AppWinesIndexRoute,
+  AppWinesSubjectIdEditRoute: AppWinesSubjectIdEditRoute,
+  AppWinesSubjectIdIndexRoute: AppWinesSubjectIdIndexRoute,
+}
+
+const AppWinesRouteWithChildren = AppWinesRoute._addFileChildren(
+  AppWinesRouteChildren,
+)
+
 interface AppRouteChildren {
   AppSplatRoute: typeof AppSplatRoute
   AppAccountRoute: typeof AppAccountRoute
   AppAllRoute: typeof AppAllRoute
-  AppBeersRoute: typeof AppBeersRoute
+  AppBeersRoute: typeof AppBeersRouteWithChildren
   AppCalendarRoute: typeof AppCalendarRoute
-  AppCheesesRoute: typeof AppCheesesRoute
+  AppCheesesRoute: typeof AppCheesesRouteWithChildren
   AppCombosRoute: typeof AppCombosRoute
   AppFinancesRoute: typeof AppFinancesRoute
   AppGroceriesRoute: typeof AppGroceriesRoute
@@ -826,7 +1040,7 @@ interface AppRouteChildren {
   AppPantryRoute: typeof AppPantryRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppTasksRoute: typeof AppTasksRoute
-  AppWinesRoute: typeof AppWinesRoute
+  AppWinesRoute: typeof AppWinesRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppBabyNewRoute: typeof AppBabyNewRoute
   AppFoodsNewRoute: typeof AppFoodsNewRoute
@@ -847,9 +1061,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppSplatRoute: AppSplatRoute,
   AppAccountRoute: AppAccountRoute,
   AppAllRoute: AppAllRoute,
-  AppBeersRoute: AppBeersRoute,
+  AppBeersRoute: AppBeersRouteWithChildren,
   AppCalendarRoute: AppCalendarRoute,
-  AppCheesesRoute: AppCheesesRoute,
+  AppCheesesRoute: AppCheesesRouteWithChildren,
   AppCombosRoute: AppCombosRoute,
   AppFinancesRoute: AppFinancesRoute,
   AppGroceriesRoute: AppGroceriesRoute,
@@ -862,7 +1076,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPantryRoute: AppPantryRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppTasksRoute: AppTasksRoute,
-  AppWinesRoute: AppWinesRoute,
+  AppWinesRoute: AppWinesRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppBabyNewRoute: AppBabyNewRoute,
   AppFoodsNewRoute: AppFoodsNewRoute,

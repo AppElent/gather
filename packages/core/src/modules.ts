@@ -99,25 +99,23 @@ export const MODULES = [
     scope: 'group',
   },
   /**
-   * The three tasting Modules (#199, ADR-0024). They share one backend and
-   * one Kind spec (`tastings.ts`), and they are `placeholder` here because
-   * `status` answers *the web's* question — `ModulePlaceholder` on the phone
-   * already says a Module being live on one client is no evidence about the
-   * other. The native screens exist; the web companion does not yet, so the
-   * web still renders an honest placeholder and this flips with it.
+   * The three tasting Modules (#199, #203, ADR-0024). They share one backend,
+   * one Kind spec (`tastings.ts`) and one parameterised implementation on each
+   * client. `status` answers the web's question, so these became live only
+   * when the web companion landed.
    */
   {
     id: 'cheeses',
     icon: 'Grape',
     group: 'tasting',
-    status: 'placeholder',
+    status: 'live',
     scope: 'group',
   },
   {
     id: 'wines',
     icon: 'Wine',
     group: 'tasting',
-    status: 'placeholder',
+    status: 'live',
     scope: 'group',
   },
   /**
@@ -129,7 +127,7 @@ export const MODULES = [
     id: 'beers',
     icon: 'Beer',
     group: 'tasting',
-    status: 'placeholder',
+    status: 'live',
     scope: 'group',
   },
 ] as const satisfies readonly ModuleDef[]
