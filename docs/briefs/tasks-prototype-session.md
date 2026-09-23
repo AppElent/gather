@@ -1,5 +1,7 @@
 # Tasks prototype session
 
+Session returned: see [Tasks prototype result](tasks-prototype-result.md). A/Today-first is preferred functionally; visual approval remains pending. The current Close rule below supersedes the original retained-draft scenario.
+
 ## Assignment
 
 Answer: how should a Member move between what needs doing today, their own responsibilities and reusable Task lists, while creating and editing through one explicit-Save form?
@@ -29,7 +31,7 @@ Make structure and primary actions materially different; preserve the same fixtu
 
 - Find an overdue task assigned to yourself and a task due today assigned to someone else; decide whether Mine includes unassigned work.
 - Add an ordinary grocery item without exposing chore-management controls unnecessarily.
-- Create a task, edit it, dismiss without Save, resume, and Save. Shared fixture state changes only at Save; direct completion changes immediately.
+- Create/edit with explicit Save. Unchanged forms close immediately; changed forms ask Keep editing or Discard. Verify Keep editing preserves input and Discard leaves no retained draft. Shared fixture state changes only at Save; direct completion changes immediately.
 - Complete a fixed-schedule overdue task and a completion-based task; show their different next dates and retained history. Demonstrate February for a monthly task on the 31st.
 - Complete a parent with unfinished subtasks; confirm the choice. Show parent repetition resetting children, while explicitly identifying unsettled child-date/undo rules.
 - Contrast a writable Todoist fixture with read-only Notion and a provider outage. Unsupported actions cannot appear to succeed locally.

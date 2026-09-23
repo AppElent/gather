@@ -29,7 +29,8 @@
     "start": "node --import ./dist/server/instrument.server.mjs dist/server/index.mjs",
     "env:check": "node scripts/env.mjs check",
     "env:apply": "node scripts/env.mjs apply",
-    "env:generate": "node scripts/env.mjs generate"
+    "env:generate": "node scripts/env.mjs generate",
+    "env:plan": "node scripts/env.mjs plan"
   },
   "dependencies": {
     "@gather/core": "workspace:*",
@@ -75,6 +76,7 @@
     "zxing-wasm": "^3.1.1"
   },
   "devDependencies": {
+    "@appelent/dev": "0.2.0",
     "@biomejs/biome": "2.4.5",
     "@edge-runtime/vm": "^5.0.0",
     "@tailwindcss/typography": "^0.5.16",

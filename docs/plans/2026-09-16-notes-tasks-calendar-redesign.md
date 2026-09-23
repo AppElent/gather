@@ -4,7 +4,9 @@ Accepted interview decisions as of 16 September 2026; design is ongoing, and thi
 
 ## Tasks
 
-- Creation and editing use the same form with explicit Save. Edits stay in a draft until Save; dismissal retains a recoverable draft. Direct completion in a list applies immediately. This corrects the earlier suggestion of immediate detail-form saves.
+- Creation and editing use the same form with explicit Save. Unchanged forms close immediately; closing a changed form asks Keep editing or Discard. Discard closes without retaining that draft. Direct completion in a list applies immediately. This supersedes the earlier draft-on-close rule; recovery after interruption/restart remains open.
+- Prototype A (Today-first) is the preferred functional direction. Visual design is not approved. Carry forward the Tasks/Taken title, native menus, full-swipe capability and a keyboard-anchored composer that expands upward with an obvious Save. Exact swipe action mapping and latest iOS spacing/native interaction details remain reviewable; see the [Tasks result](../briefs/tasks-prototype-result.md).
+- Task attachments and voice remain outside this redesign's scope.
 - Subtasks are full Tasks with their own assignee and date, initially one level deep. Completing a parent with unfinished subtasks asks whether to complete them too. Repeating a parent resets its subtasks; subtasks do not repeat independently.
 - Monthly Tasks scheduled for the 31st use the last available day in shorter months.
 - A due date alone creates no reminder; a reminder must be selected.
@@ -47,11 +49,19 @@ Mobile first, iOS focused; basic web functionality is required but dedicated web
 
 Keep this thread as the coordinating design session. Run fresh prototype sessions in order: [Tasks](../briefs/tasks-prototype-session.md), [Notes](../briefs/notes-prototype-session.md), then [Calendar](../briefs/calendar-prototype-session.md). Each returns its findings here before the final implementation spec and dependent tickets are produced. These briefs authorize bounded throwaway exploration when invoked; preparing them does not start sessions or authorize production implementation.
 
-The original feature-gap issues retain future proposals and deferred work. Accepted interview decisions here override older conflicting prototype defaults. Historical artifacts remain evidence, not automatic authority over newer decisions. No prototype winner has been selected in this redesign.
+The original feature-gap issues retain future proposals and deferred work. The latest explicit user decisions override older conflicting prototype defaults; see the supersession ledger below. Historical artifacts remain evidence, not automatic authority over newer decisions. Tasks has a functional preference, with visual approval pending. Notes and Calendar have no new verdict yet.
+
+## Supersession ledger
+
+| Earlier decision | Current decision | Authority and scope |
+| --- | --- | --- |
+| Tasks detail edits save immediately | Create/edit share an explicit Save form | User correction during interview; Tasks only |
+| Closing Tasks retains a resumable draft | Unchanged closes immediately; changed asks Keep editing or Discard | User prototype report-back; Tasks only. Calendar's retained-draft behavior is unchanged. |
+| No prototype direction selected | Tasks A/Today-first preferred functionally; visual approval pending | User prototype report-back; no production-readiness claim |
 
 ## Open decisions for the final spec
 
-- Tasks: Today/Mine inclusion of unassigned work; undoing recurring completion; early completion; child due dates on repetition; retained child completion history; provider capability mapping for assignment/recurrence/subtasks and outage reconciliation.
+- Tasks: Today/Mine inclusion of unassigned work; undoing recurring completion; early completion; child due dates on repetition; retained child completion history; provider capability mapping for assignment/recurrence/subtasks and outage reconciliation; recovery after interruption/restart and conflicts. Visual approval, exact swipe mappings and iOS interaction confirmation remain pending.
 - Notes: document representation and cross-client editor compatibility; conflict comparison/resolution; image limits and storage access; autosave failures, recovery and retention after loss of Group access.
 - Calendar: exact DST gap/fold behavior; timezone selection/change and migration of existing events; external timezone-less feed values; recurring-series exceptions after subsequent edits; feed removal and stale-data lifecycle.
 - Notifications: permission timing, supported delivery platforms, recipient consent, mute/disable semantics for queued reminders, cancellation/rescheduling and duplicate suppression. Prototype visible behavior; implementation details belong in the final spec.
@@ -68,3 +78,5 @@ Preserve existing Labs and historical prototypes. `apps/mobile/src/labs/entries.
 The repo instructions reference `docs/mobile-interaction.md`, which is missing in this checkout as of this handoff. Consult `docs/research/mobile-interaction-vocabulary.md` and current native wrappers for evidence, flagging any rule that cannot be recovered rather than silently inventing a replacement.
 
 Every session returns a result file next to its brief with: question answered; runnable artifact and variant references; user-selected elements and reasons; rejected options; unresolved questions; scenarios exercised and verification limits; proposed changes to accepted decisions; and prototype branch/commit pointer when archived. If the user has not selected a design, say pending. Return findings to this coordinating session; do not promote prototype code or mark an issue implementation-ready.
+
+Tasks session lessons for subsequent prototypes: move into the native app early for keyboard, sheets, menus and gestures; track functional preference separately from visual approval; settle Save/Close before expanding fields. Inspect wrapper lifecycle when a picker disappears, using actual keyboard, safe areas and floating navigation in verification. Browser/Android success cannot establish iOS correctness. Preserve explicit supersession records when the user changes a decision.
