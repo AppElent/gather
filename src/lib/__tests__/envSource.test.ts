@@ -19,22 +19,28 @@ describe('Infisical source configuration', () => {
     })
   })
 
-  it('requires an initialized repository project file', () => {
+  it('requires an initialized repository project file', async () => {
     const root = mkdtempSync(join(tmpdir(), 'gather-infisical-'))
-    expect(() => readInfisicalConfig(root)).toThrow('Missing .infisical.json')
+    await expect(readInfisicalConfig(root)).rejects.toThrow(
+      'Missing .infisical.json',
+    )
     writeFileSync(join(root, '.infisical.json'), '{}')
-    expect(() => readInfisicalConfig(root)).toThrow('workspaceId or projectId')
+    await expect(readInfisicalConfig(root)).rejects.toThrow(
+      'workspaceId or projectId',
+    )
     writeFileSync(join(root, '.infisical.json'), '{not json')
-    expect(() => readInfisicalConfig(root)).toThrow('Invalid .infisical.json')
+    await expect(readInfisicalConfig(root)).rejects.toThrow(
+      'Invalid .infisical.json',
+    )
   })
 
-  it('accepts the project pointer written by infisical init', () => {
+  it('accepts the project pointer written by infisical init', async () => {
     const root = mkdtempSync(join(tmpdir(), 'gather-infisical-'))
     writeFileSync(
       join(root, '.infisical.json'),
       JSON.stringify({ workspaceId: 'project-id' }),
     )
-    expect(readInfisicalConfig(root).workspaceId).toBe('project-id')
+    expect((await readInfisicalConfig(root)).workspaceId).toBe('project-id')
   })
 
   it('lets gather override root without mutating either input', () => {

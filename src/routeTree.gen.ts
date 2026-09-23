@@ -22,7 +22,6 @@ import { Route as AppBeersRouteImport } from './routes/_app/beers'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppCheesesRouteImport } from './routes/_app/cheeses'
 import { Route as AppCombosRouteImport } from './routes/_app/combos'
-import { Route as AppFinancesRouteImport } from './routes/_app/finances'
 import { Route as AppGroceriesRouteImport } from './routes/_app/groceries'
 import { Route as AppGroupSettingsRouteImport } from './routes/_app/group-settings'
 import { Route as AppGroupsRouteImport } from './routes/_app/groups'
@@ -31,7 +30,10 @@ import { Route as AppMealPlannerRouteImport } from './routes/_app/meal-planner'
 import { Route as AppNotesRouteImport } from './routes/_app/notes'
 import { Route as AppNutritionRouteImport } from './routes/_app/nutrition'
 import { Route as AppPantryRouteImport } from './routes/_app/pantry'
+import { Route as AppRecurringCostsRouteImport } from './routes/_app/recurring-costs'
+import { Route as AppSavingsGoalsRouteImport } from './routes/_app/savings-goals'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppSharedCostsRouteImport } from './routes/_app/shared-costs'
 import { Route as AppTasksRouteImport } from './routes/_app/tasks'
 import { Route as AppWinesRouteImport } from './routes/_app/wines'
 import { Route as AppBabyIndexRouteImport } from './routes/_app/baby/index'
@@ -123,11 +125,6 @@ const AppCombosRoute = AppCombosRouteImport.update({
   path: '/combos',
   getParentRoute: () => AppRoute,
 } as any)
-const AppFinancesRoute = AppFinancesRouteImport.update({
-  id: '/finances',
-  path: '/finances',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppGroceriesRoute = AppGroceriesRouteImport.update({
   id: '/groceries',
   path: '/groceries',
@@ -168,9 +165,24 @@ const AppPantryRoute = AppPantryRouteImport.update({
   path: '/pantry',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRecurringCostsRoute = AppRecurringCostsRouteImport.update({
+  id: '/recurring-costs',
+  path: '/recurring-costs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSavingsGoalsRoute = AppSavingsGoalsRouteImport.update({
+  id: '/savings-goals',
+  path: '/savings-goals',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSharedCostsRoute = AppSharedCostsRouteImport.update({
+  id: '/shared-costs',
+  path: '/shared-costs',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTasksRoute = AppTasksRouteImport.update({
@@ -318,7 +330,6 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof AppCalendarRoute
   '/cheeses': typeof AppCheesesRouteWithChildren
   '/combos': typeof AppCombosRoute
-  '/finances': typeof AppFinancesRoute
   '/groceries': typeof AppGroceriesRoute
   '/group-settings': typeof AppGroupSettingsRoute
   '/groups': typeof AppGroupsRoute
@@ -327,7 +338,10 @@ export interface FileRoutesByFullPath {
   '/notes': typeof AppNotesRoute
   '/nutrition': typeof AppNutritionRouteWithChildren
   '/pantry': typeof AppPantryRoute
+  '/recurring-costs': typeof AppRecurringCostsRoute
+  '/savings-goals': typeof AppSavingsGoalsRoute
   '/settings': typeof AppSettingsRoute
+  '/shared-costs': typeof AppSharedCostsRoute
   '/tasks': typeof AppTasksRoute
   '/wines': typeof AppWinesRouteWithChildren
   '/baby/new': typeof AppBabyNewRoute
@@ -365,7 +379,6 @@ export interface FileRoutesByTo {
   '/all': typeof AppAllRoute
   '/calendar': typeof AppCalendarRoute
   '/combos': typeof AppCombosRoute
-  '/finances': typeof AppFinancesRoute
   '/groceries': typeof AppGroceriesRoute
   '/group-settings': typeof AppGroupSettingsRoute
   '/groups': typeof AppGroupsRoute
@@ -373,7 +386,10 @@ export interface FileRoutesByTo {
   '/meal-planner': typeof AppMealPlannerRoute
   '/notes': typeof AppNotesRoute
   '/pantry': typeof AppPantryRoute
+  '/recurring-costs': typeof AppRecurringCostsRoute
+  '/savings-goals': typeof AppSavingsGoalsRoute
   '/settings': typeof AppSettingsRoute
+  '/shared-costs': typeof AppSharedCostsRoute
   '/tasks': typeof AppTasksRoute
   '/': typeof AppIndexRoute
   '/baby/new': typeof AppBabyNewRoute
@@ -415,7 +431,6 @@ export interface FileRoutesById {
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/cheeses': typeof AppCheesesRouteWithChildren
   '/_app/combos': typeof AppCombosRoute
-  '/_app/finances': typeof AppFinancesRoute
   '/_app/groceries': typeof AppGroceriesRoute
   '/_app/group-settings': typeof AppGroupSettingsRoute
   '/_app/groups': typeof AppGroupsRoute
@@ -424,7 +439,10 @@ export interface FileRoutesById {
   '/_app/notes': typeof AppNotesRoute
   '/_app/nutrition': typeof AppNutritionRouteWithChildren
   '/_app/pantry': typeof AppPantryRoute
+  '/_app/recurring-costs': typeof AppRecurringCostsRoute
+  '/_app/savings-goals': typeof AppSavingsGoalsRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/_app/shared-costs': typeof AppSharedCostsRoute
   '/_app/tasks': typeof AppTasksRoute
   '/_app/wines': typeof AppWinesRouteWithChildren
   '/_app/': typeof AppIndexRoute
@@ -468,7 +486,6 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/cheeses'
     | '/combos'
-    | '/finances'
     | '/groceries'
     | '/group-settings'
     | '/groups'
@@ -477,7 +494,10 @@ export interface FileRouteTypes {
     | '/notes'
     | '/nutrition'
     | '/pantry'
+    | '/recurring-costs'
+    | '/savings-goals'
     | '/settings'
+    | '/shared-costs'
     | '/tasks'
     | '/wines'
     | '/baby/new'
@@ -515,7 +535,6 @@ export interface FileRouteTypes {
     | '/all'
     | '/calendar'
     | '/combos'
-    | '/finances'
     | '/groceries'
     | '/group-settings'
     | '/groups'
@@ -523,7 +542,10 @@ export interface FileRouteTypes {
     | '/meal-planner'
     | '/notes'
     | '/pantry'
+    | '/recurring-costs'
+    | '/savings-goals'
     | '/settings'
+    | '/shared-costs'
     | '/tasks'
     | '/'
     | '/baby/new'
@@ -564,7 +586,6 @@ export interface FileRouteTypes {
     | '/_app/calendar'
     | '/_app/cheeses'
     | '/_app/combos'
-    | '/_app/finances'
     | '/_app/groceries'
     | '/_app/group-settings'
     | '/_app/groups'
@@ -573,7 +594,10 @@ export interface FileRouteTypes {
     | '/_app/notes'
     | '/_app/nutrition'
     | '/_app/pantry'
+    | '/_app/recurring-costs'
+    | '/_app/savings-goals'
     | '/_app/settings'
+    | '/_app/shared-costs'
     | '/_app/tasks'
     | '/_app/wines'
     | '/_app/'
@@ -704,13 +728,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCombosRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/finances': {
-      id: '/_app/finances'
-      path: '/finances'
-      fullPath: '/finances'
-      preLoaderRoute: typeof AppFinancesRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/groceries': {
       id: '/_app/groceries'
       path: '/groceries'
@@ -767,11 +784,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPantryRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/recurring-costs': {
+      id: '/_app/recurring-costs'
+      path: '/recurring-costs'
+      fullPath: '/recurring-costs'
+      preLoaderRoute: typeof AppRecurringCostsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/savings-goals': {
+      id: '/_app/savings-goals'
+      path: '/savings-goals'
+      fullPath: '/savings-goals'
+      preLoaderRoute: typeof AppSavingsGoalsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/shared-costs': {
+      id: '/_app/shared-costs'
+      path: '/shared-costs'
+      fullPath: '/shared-costs'
+      preLoaderRoute: typeof AppSharedCostsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/tasks': {
@@ -1029,7 +1067,6 @@ interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
   AppCheesesRoute: typeof AppCheesesRouteWithChildren
   AppCombosRoute: typeof AppCombosRoute
-  AppFinancesRoute: typeof AppFinancesRoute
   AppGroceriesRoute: typeof AppGroceriesRoute
   AppGroupSettingsRoute: typeof AppGroupSettingsRoute
   AppGroupsRoute: typeof AppGroupsRoute
@@ -1038,7 +1075,10 @@ interface AppRouteChildren {
   AppNotesRoute: typeof AppNotesRoute
   AppNutritionRoute: typeof AppNutritionRouteWithChildren
   AppPantryRoute: typeof AppPantryRoute
+  AppRecurringCostsRoute: typeof AppRecurringCostsRoute
+  AppSavingsGoalsRoute: typeof AppSavingsGoalsRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppSharedCostsRoute: typeof AppSharedCostsRoute
   AppTasksRoute: typeof AppTasksRoute
   AppWinesRoute: typeof AppWinesRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
@@ -1065,7 +1105,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
   AppCheesesRoute: AppCheesesRouteWithChildren,
   AppCombosRoute: AppCombosRoute,
-  AppFinancesRoute: AppFinancesRoute,
   AppGroceriesRoute: AppGroceriesRoute,
   AppGroupSettingsRoute: AppGroupSettingsRoute,
   AppGroupsRoute: AppGroupsRoute,
@@ -1074,7 +1113,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppNotesRoute: AppNotesRoute,
   AppNutritionRoute: AppNutritionRouteWithChildren,
   AppPantryRoute: AppPantryRoute,
+  AppRecurringCostsRoute: AppRecurringCostsRoute,
+  AppSavingsGoalsRoute: AppSavingsGoalsRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppSharedCostsRoute: AppSharedCostsRoute,
   AppTasksRoute: AppTasksRoute,
   AppWinesRoute: AppWinesRouteWithChildren,
   AppIndexRoute: AppIndexRoute,

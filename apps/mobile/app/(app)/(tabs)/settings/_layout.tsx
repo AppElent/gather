@@ -76,6 +76,7 @@ export default function SettingsLayout() {
         name="labs/calendar"
         options={{ headerShown: true, title: t.labs.calendar.title }}
       />
+      <Stack.Screen name="labs/finance" options={{ headerShown: false }} />
     </Stack>
   )
 }

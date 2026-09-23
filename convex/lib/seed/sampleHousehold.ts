@@ -1618,6 +1618,30 @@ export const SAMPLE_SAVINGS_GOALS: SampleSavingsGoal[] = [
   },
 ]
 
+export const SAMPLE_SPLIT_SCENARIOS = [
+  {
+    name: 'Weekend away',
+    author: 'nora' as const,
+    daysAgo: 12,
+    payments: [
+      { author: 'nora' as const, amountCents: 360_00, label: 'House' },
+      { author: 'owner' as const, amountCents: 90_00, label: 'Groceries' },
+    ],
+    participants: ['owner', 'nora', 'sam'] as const,
+    mode: 'equal' as const,
+    owed: [
+      { author: 'owner' as const, amountCents: 150_00 },
+      { author: 'nora' as const, amountCents: 150_00 },
+      { author: 'sam' as const, amountCents: 150_00 },
+    ],
+    transfers: [
+      { from: 'owner' as const, to: 'nora' as const, amountCents: 60_00 },
+      { from: 'sam' as const, to: 'nora' as const, amountCents: 150_00 },
+    ],
+    totalCents: 450_00,
+  },
+]
+
 export interface SampleHoldingTransaction {
   kind: 'buy' | 'sell' | 'dividend' | 'fee' | 'adjustment'
   daysAgo: number

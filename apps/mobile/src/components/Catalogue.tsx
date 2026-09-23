@@ -1,6 +1,6 @@
 /**
  * The catalogue, rendered two ways, because the front door's job is to say what
- * gather is and the catalogue is the most honest answer available: thirteen
+ * gather is and the catalogue is the most honest answer available: fifteen
  * Modules, every one of them in every Group.
  *
  * `CatalogueStrip` is the band under the pitch — the words lead, the tints

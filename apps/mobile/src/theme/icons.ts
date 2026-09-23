@@ -1,5 +1,5 @@
 /**
- * The thirteen Module glyphs, plus the handful the chrome needs (ADR-0017).
+ * The fifteen Module glyphs, plus the handful the chrome needs (ADR-0017).
  *
  * The web's `Icon.tsx` reaches lucide with `import * as Icons`. Doing that here
  * would hand Metro a 24.8 MB, 9,131-file package it does not tree-shake, so
@@ -35,11 +35,11 @@ import ChevronLeft from 'lucide-react-native/icons/chevron-left'
 import ChevronRight from 'lucide-react-native/icons/chevron-right'
 import ChevronUp from 'lucide-react-native/icons/chevron-up'
 import CircleAlert from 'lucide-react-native/icons/circle-alert'
+import CircleEllipsis from 'lucide-react-native/icons/circle-ellipsis'
 import CircleMinus from 'lucide-react-native/icons/circle-minus'
 import CirclePlus from 'lucide-react-native/icons/circle-plus'
-import Ellipsis from 'lucide-react-native/icons/ellipsis'
-import CircleEllipsis from 'lucide-react-native/icons/circle-ellipsis'
 import Clock from 'lucide-react-native/icons/clock'
+import Ellipsis from 'lucide-react-native/icons/ellipsis'
 import Eye from 'lucide-react-native/icons/eye'
 import EyeOff from 'lucide-react-native/icons/eye-off'
 import FlaskConical from 'lucide-react-native/icons/flask-conical'
@@ -58,14 +58,15 @@ import Pin from 'lucide-react-native/icons/pin'
 import PinOff from 'lucide-react-native/icons/pin-off'
 import Plus from 'lucide-react-native/icons/plus'
 import Refrigerator from 'lucide-react-native/icons/refrigerator'
+import Repeat from 'lucide-react-native/icons/repeat'
 import Search from 'lucide-react-native/icons/search'
 import Settings from 'lucide-react-native/icons/settings'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
 import Smartphone from 'lucide-react-native/icons/smartphone'
+import Target from 'lucide-react-native/icons/target'
 import Trash2 from 'lucide-react-native/icons/trash-2'
 import User from 'lucide-react-native/icons/user'
 import Users from 'lucide-react-native/icons/users'
-import Wallet from 'lucide-react-native/icons/wallet'
 import Wine from 'lucide-react-native/icons/wine'
 import X from 'lucide-react-native/icons/x'
 
@@ -93,8 +94,10 @@ export const MODULE_ICONS = {
   ListChecks: glyph(ListChecks, 'checklist'),
   NotebookPen: glyph(NotebookPen, 'square.and.pencil'),
   Refrigerator: glyph(Refrigerator, 'refrigerator'),
+  Repeat: glyph(Repeat, 'repeat'),
   ShoppingCart: glyph(ShoppingCart, 'cart'),
-  Wallet: glyph(Wallet, 'creditcard'),
+  Target: glyph(Target, 'target'),
+  Users: glyph(Users, 'person.2.fill'),
   Wine: glyph(Wine, 'wineglass'),
 } satisfies Record<ModuleIconName, Glyph>
 

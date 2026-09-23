@@ -11,12 +11,24 @@ describe('module registry', () => {
     for (const m of MODULES) expect(MODULE_GROUPS).toContain(m.group)
   })
 
-  test('the built web modules are live', () => {
+  test('offers the three Money Modules instead of a Finances umbrella', () => {
+    const money = MODULES.filter((m) => m.group === 'money').map((m) => ({
+      id: m.id,
+      status: m.status,
+    }))
+    expect(money).toEqual([
+      { id: 'recurring-costs', status: 'placeholder' },
+      { id: 'shared-costs', status: 'placeholder' },
+      { id: 'savings-goals', status: 'placeholder' },
+    ])
+    expect(MODULES.map((m) => m.id)).not.toContain('finances')
+  })
+
+  test('keeps the implemented web Modules live', () => {
     const live = MODULES.filter((m) => m.status === 'live').map((m) => m.id)
     expect(live).toEqual([
       'recipes',
       'nutrition',
-      'finances',
       'tasks',
       'baby-log',
       'cheeses',

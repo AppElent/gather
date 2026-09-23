@@ -1,18 +1,23 @@
 /**
  * Where a Finances screen can send you, given which tab it is mounted under.
  *
- * The same rule and the same cast as `modules/baby/paths.ts`: Modules live
- * inside the tab stacks (ADR-0023), so every screen here exists at two
- * addresses and each keeps its own back stack. A screen takes a `base` and
- * builds from it, which is what lets one component serve both route trees.
+ * The same rule and the same cast as `modules/baby/paths.ts`: released Modules
+ * live inside both tab stacks (ADR-0023), while unfinished tools live under
+ * Settings > Labs. A screen takes a `base` so one component can serve the
+ * relevant route trees without knowing which surface mounted it.
  *
  * Back points at the parent's address, never at history — a Loan part's back
  * is its calculation whether you arrived from the House or from a deep link.
  */
 import type { Href } from 'expo-router'
 
-/** The tab stacks this Module is mounted in. */
-export type FinanceBase = '/home/finances' | '/all/finances'
+/** The released Money Modules and local-development lab that own these screens. */
+export type FinanceBase =
+  | '/home/recurring-costs'
+  | '/all/recurring-costs'
+  | '/home/savings-goals'
+  | '/all/savings-goals'
+  | '/settings/labs/finance'
 
 export type FinanceScreen =
   | ''

@@ -1,8 +1,8 @@
 # gather
 
 A household-management app — recipes and groups today, with a growing set of
-placeholder modules (meal planner, groceries, pantry, finances, bills, tasks,
-calendar, notes, cheeses, wines) waiting to be built out.
+modules for meal planning, groceries, pantry, recurring costs, shared costs,
+savings goals, tasks, calendar, notes, cheeses, and wines.
 
 Built on TanStack React Start + Router, Convex, Clerk, and Cloudflare Workers.
 See [CLAUDE.md](./CLAUDE.md) for the full architecture and conventions.
@@ -118,6 +118,7 @@ schemas from the manifest and `.env.example` is generated from it.
 ```bash
 pnpm run env:check                 # manifest consistency + .env.example freshness
 pnpm run env:check local           # what's missing, and where
+pnpm run env:plan local --only file # inspect local file writes without applying
 pnpm run env:apply local           # write it everywhere it belongs
 pnpm run env:generate              # regenerate .env.example
 ```
@@ -127,6 +128,22 @@ are in project root; Gather-specific values are under `/gather` and override a
 same-named root value. `local` reads Infisical `dev`, `preview` and `stg` read
 `staging`, and `production` reads `prod`. `apply` never writes an empty value
 and never deletes without `--prune`.
+
+The commands delegate to pinned `@appelent/dev@0.2.0`. Gather owns the entries,
+source mapping, and routing in `env.manifest.ts`; the package owns source parsing,
+validation, planning, and destination writers. Infisical JSON is captured in
+memory; no Infisical-generated dotenv files or raw export files are created.
+Use `pnpm run env:apply local --only file` when shared EAS/GitHub settings must
+stay outside the operation. Required missing values fail before writes, and
+missing optional values preserve existing generated values.
+
+The writer accepts its own generated headers and Gather's previous env writer
+headers. Human-owned files require an explicit review and ownership adoption
+before applying; `apply` does not take them over automatically. Successful
+writes record names and destinations only in ignored `.appelent/env-state.json`.
+`--prune` removes only recorded retired keys, preserving active routes and other
+owners. Entirely retired destinations and untracked provider keys require manual
+retirement. Production pruning needs a typed confirmation or `--yes`.
 
 Adding a variable means adding it to the manifest — there is nowhere else. Two
 mistakes the types refuse: marking a value the Vite build reads as `secret`

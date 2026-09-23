@@ -10,6 +10,22 @@
  * See docs/adr/0014-a-variable-declares-its-consumer-not-its-destination.md
  */
 
+/** Shared engine settings; routing and app identities stay in this manifest. */
+export const ENV_CONFIG = {
+  appName: 'gather',
+  source: {
+    environments: {
+      local: 'dev',
+      preview: 'staging',
+      stg: 'staging',
+      production: 'prod',
+    },
+    paths: ['/', '/gather'],
+  },
+  mobile: { path: 'apps/mobile' },
+  github: { repository: 'AppElent/gather' },
+} as const
+
 export const ENVIRONMENTS = ['local', 'preview', 'stg', 'production'] as const
 export type Environment = (typeof ENVIRONMENTS)[number]
 

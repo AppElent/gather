@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import {
   arrangeModules,
   flattenModuleOrder,
+  migrateStoredArrangement,
   reconcileOrder,
   toggleHidden,
 } from '../moduleArrangement'
@@ -14,6 +15,13 @@ const kitchenOf = (stored: Parameters<typeof arrangeModules>[0]) =>
     arrangeModules(stored).groups.find((group) => group.group === 'kitchen')
       ?.modules ?? [],
   )
+const moneyOf = (stored: Parameters<typeof arrangeModules>[0]) =>
+  ids(
+    arrangeModules(stored).groups.find((group) => group.group === 'money')
+      ?.modules ?? [],
+  )
+
+const MONEY_MODULES = ['recurring-costs', 'shared-costs', 'savings-goals']
 
 describe('an arrangement nobody has touched', () => {
   test('is the catalogue, in the order the catalogue declares', () => {
@@ -120,6 +128,34 @@ describe('pins', () => {
 
   test('keep a Module in its own section as well as at the top', () => {
     expect(kitchenOf({ pinned: ['recipes'] })).toContain('recipes')
+  })
+
+  test('expand a retired Finances pin into the three Money Modules', () => {
+    expect(ids(arrangeModules({ pinned: ['finances'] }).pinned)).toEqual(
+      MONEY_MODULES,
+    )
+  })
+})
+
+describe('the retired Finances Module', () => {
+  test('expands one refusal into refusals of all three replacements', () => {
+    const arrangement = arrangeModules({ hidden: ['finances'] })
+    expect(moneyOf({ hidden: ['finances'] })).toEqual([])
+    expect(ids(arrangement.hidden)).toEqual(MONEY_MODULES)
+  })
+
+  test('expands its stored position in canonical Money order', () => {
+    expect(moneyOf({ order: ['tasks', 'finances', 'recipes'] })).toEqual(
+      MONEY_MODULES,
+    )
+  })
+
+  test('normalizes the stored refusal so one replacement can be shown again', () => {
+    const migrated = migrateStoredArrangement({ hidden: ['finances'] })
+    expect(toggleHidden(migrated.hidden ?? [], 'recurring-costs')).toEqual([
+      'shared-costs',
+      'savings-goals',
+    ])
   })
 })
 

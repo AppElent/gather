@@ -47,6 +47,7 @@ export type SettingsHref =
   | '/settings/language'
   | '/settings/labs'
   | '/settings/labs/calendar'
+  | '/settings/labs/finance'
   | '/settings/baby-log'
 
 export interface SettingsEntry {

@@ -19,7 +19,11 @@ import { RADIUS, useTokens } from '../theme/tokens'
 import { LABS_ENTRIES } from './entries'
 import { describeCombination } from './variants'
 
-export function LabsScreen() {
+export function LabsScreen({
+  showFinanceLab = false,
+}: {
+  showFinanceLab?: boolean
+}) {
   const tokens = useTokens()
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
@@ -36,6 +40,35 @@ export function LabsScreen() {
       <Text style={[styles.intro, { color: tokens.muted }]}>
         {t.labs.description}
       </Text>
+
+      {showFinanceLab ? (
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: tokens.surface, borderColor: tokens.border },
+          ]}
+        >
+          <Text
+            accessibilityRole="header"
+            style={[styles.name, { color: tokens.fg }]}
+          >
+            {t.labs.finance.title}
+          </Text>
+          <Text style={[styles.body, { color: tokens.muted }]}>
+            {t.labs.finance.description}
+          </Text>
+          <Link
+            href="/settings/labs/finance"
+            accessibilityLabel={t.labs.finance.open}
+            style={[
+              styles.link,
+              { borderColor: tokens.border, color: tokens.fg },
+            ]}
+          >
+            {t.labs.finance.open}
+          </Link>
+        </View>
+      ) : null}
 
       {LABS_ENTRIES.map((entry) => (
         <View

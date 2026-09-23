@@ -221,7 +221,9 @@ export const DROP_TARGETS = {
   // The pantry is a count of what is in the house. A link is not stock.
   pantry: [],
   // Money is shared and entered by hand on purpose (ADR-0025).
-  finances: [],
+  'recurring-costs': [],
+  'shared-costs': [],
+  'savings-goals': [],
   tasks: TASKS,
   'baby-log': BABY_LOG,
   // An event needs a date and a time, and no share sheet carries either.

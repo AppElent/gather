@@ -1,5 +1,9 @@
 # Money is shared and entered by hand
 
+The statement below that Finances is one Module was superseded by ADR-0035.
+The manual-first model and the boundaries between its records and calculator
+remain in force.
+
 Money is shared within a Group and every figure in it is one a Member typed.
 Gather connects to no bank, imports no file, looks up no property, and reads no
 statement; what it knows is what somebody entered, and what it produces is

@@ -26,8 +26,6 @@ const INDEXES: Array<[string, string]> = [
   ['/meal-planner', 'mealPlanner'],
   ['/groceries', 'groceries'],
   ['/pantry', 'pantry'],
-  ['/finances', 'finances'],
-  ['/bills', 'finances'],
   ['/calendar', 'calendar'],
   ['/notes', 'notes'],
   ['/cheeses', 'cheeses'],
@@ -44,11 +42,11 @@ describe('an old address with a Group-scoped equivalent', () => {
     expect(legacyTarget(`${path}/`)?.surface).toBe(surface)
   })
 
-  test('lands inside the Group it is given, and nowhere else', () => {
+  test('lands at the ambient Group route without encoding its identity', () => {
     for (const [path] of INDEXES) {
       const link = legacyTarget(path)?.link(SLUG)
-      expect(String(link?.to).startsWith('/g/$groupSlug')).toBe(true)
-      expect(link?.params).toMatchObject({ groupSlug: SLUG })
+      expect(String(link?.to).startsWith('/g/')).toBe(false)
+      expect(link?.params).not.toHaveProperty('groupSlug')
     }
   })
 
@@ -56,28 +54,28 @@ describe('an old address with a Group-scoped equivalent', () => {
   // redirect drops.
   test('carries a record id across with the Group', () => {
     expect(legacyTarget('/recipes/r1')?.link(SLUG)).toEqual({
-      to: '/g/$groupSlug/recipes/$recipeId',
-      params: { groupSlug: SLUG, recipeId: 'r1' },
+      to: '/recipes/$recipeId',
+      params: { recipeId: 'r1' },
     })
     expect(legacyTarget('/recipes/r1/edit')?.link(SLUG)).toEqual({
-      to: '/g/$groupSlug/recipes/$recipeId/edit',
-      params: { groupSlug: SLUG, recipeId: 'r1' },
+      to: '/recipes/$recipeId/edit',
+      params: { recipeId: 'r1' },
     })
     expect(legacyTarget('/foods/f1')?.link(SLUG)).toEqual({
-      to: '/g/$groupSlug/foods/$foodId',
-      params: { groupSlug: SLUG, foodId: 'f1' },
+      to: '/foods/$foodId',
+      params: { foodId: 'f1' },
     })
     expect(legacyTarget('/foods/f1/edit')?.link(SLUG)).toEqual({
-      to: '/g/$groupSlug/foods/$foodId/edit',
-      params: { groupSlug: SLUG, foodId: 'f1' },
+      to: '/foods/$foodId/edit',
+      params: { foodId: 'f1' },
     })
     expect(legacyTarget('/baby/b1')?.link(SLUG)).toEqual({
-      to: '/g/$groupSlug/baby/$babyId',
-      params: { groupSlug: SLUG, babyId: 'b1' },
+      to: '/baby/$babyId',
+      params: { babyId: 'b1' },
     })
     expect(legacyTarget('/baby/b1/edit')?.link(SLUG)).toEqual({
-      to: '/g/$groupSlug/baby/$babyId/edit',
-      params: { groupSlug: SLUG, babyId: 'b1' },
+      to: '/baby/$babyId/edit',
+      params: { babyId: 'b1' },
     })
   })
 
@@ -105,11 +103,17 @@ describe('an old address with a Group-scoped equivalent', () => {
    * behind". Every Module's front page had a flat address, and every one of
    * those addresses has to reach the same Module's Group surface.
    */
-  test('leaves no Module without a way back to it', () => {
+  test('leaves no pre-split Module without a way back to it', () => {
     const reached = new Set(
       INDEXES.map(([path]) => legacyTarget(path)?.surface),
     )
+    const addedWithoutLegacyAddresses = new Set([
+      'recurring-costs',
+      'shared-costs',
+      'savings-goals',
+    ])
     const missing = MODULES.filter((module) => {
+      if (addedWithoutLegacyAddresses.has(module.id)) return false
       const surface = groupSurfaceForModule(module.id)
       return surface === null || !reached.has(surface)
     })
@@ -130,6 +134,8 @@ describe('an old address with no equivalent', () => {
     '/dashboard/extra',
     '/nutrition/today',
     '/wines/w1',
+    '/finances',
+    '/bills',
   ])('%s has nothing to redirect to', (path) => {
     expect(legacyTarget(path)).toBeNull()
   })

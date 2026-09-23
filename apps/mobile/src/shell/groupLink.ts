@@ -14,7 +14,9 @@ const MODULE_BY_GROUP_SEGMENT = {
   'meal-planner': 'meal-planner',
   groceries: 'groceries',
   pantry: 'pantry',
-  finances: 'finances',
+  'recurring-costs': 'recurring-costs',
+  'shared-costs': 'shared-costs',
+  'savings-goals': 'savings-goals',
   baby: 'baby-log',
   calendar: 'calendar',
   notes: 'notes',
@@ -44,6 +46,9 @@ export function nativeDestinationForGroupLink(
         return { pathname: '/all/[moduleId]', params: { moduleId: first } }
       case 'tasks':
       case 'notes':
+      case 'recurring-costs':
+      case 'shared-costs':
+      case 'savings-goals':
         return `/all/${first}` as Href
       default: {
         const moduleId = moduleForGroupSegment(first)

@@ -29,7 +29,9 @@ export const NATIVE_MODULES = [
   'groceries',
   'pantry',
   'calendar',
-  'finances',
+  'recurring-costs',
+  'shared-costs',
+  'savings-goals',
 ] as const satisfies readonly ModuleId[]
 
 export type NativeModuleId = (typeof NATIVE_MODULES)[number]

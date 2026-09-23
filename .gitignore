@@ -27,3 +27,7 @@ docs/.generated
 
 apps/mobile/.metro.log
 apps/mobile/.expo-*.log
+
+# Local environment writer ownership and lock (no credential values)
+/.appelent/env-state.json
+/.appelent/env.lock/

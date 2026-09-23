@@ -35,3 +35,4 @@
 | 0031 | The Current Group is ambient on web and mobile | decided | navigation | `packages/core/src/groups.ts`, `CONTEXT.md` |
 | 0032 | An account is deleted in the app, and takes its solo Groups with it | decided | account lifecycle | `convex/accounts.ts`, `convex/cascade.ts`, `convex/lib/groupCascade.ts` |
 | 0033 | The phone's All screen is arranged on the device | decided | mobile navigation | `apps/mobile/src/prefs/moduleArrangement.ts`, `packages/core/src/moduleArrangement.ts` |
+| 0035 | Money tools are separate Modules | decided | money modules | `packages/core/src/modules.ts`, `apps/mobile/src/modules/finances/` |

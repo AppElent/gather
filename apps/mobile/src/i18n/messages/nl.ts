@@ -591,6 +591,13 @@ export const nl = {
       chosen: 'Keuze van het canvas',
     },
 
+    finance: {
+      title: 'Financieel lab',
+      description:
+        'Huizen en hypotheken, Portefeuille en Nettovermogen. Alleen in ontwikkelbuilds.',
+      open: 'Financieel lab openen',
+    },
+
     calendar: {
       title: 'Agenda',
       productionPreview: 'Productie-agenda openen',

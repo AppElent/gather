@@ -23,7 +23,6 @@ import { NativeSheet } from '../../components/NativeSheet'
 import { Segmented } from '../../components/Segmented'
 import { fmt } from '../../i18n'
 import { FINANCE_ICONS } from './icons'
-import type { FinanceBase } from './paths'
 import {
   AddRow,
   AnswerBar,
@@ -47,7 +46,7 @@ interface Payment {
   label?: string
 }
 
-export function SplitScreen({ base: _base }: { base: FinanceBase }) {
+export function SplitScreen() {
   const tokens = useMoneyTokens()
   const { groupSlug, format, text } = useFinances()
   const members = useQuery(api.groups.members, { slug: groupSlug })
