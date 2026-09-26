@@ -18,12 +18,28 @@ async function requireNoteAccess(
 export const list = query({
   args: { groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
     const notes = await ctx.db
       .query('notes')
       .withIndex('by_group', (q) => q.eq('groupId', group._id))
       .collect()
-    return notes.sort((a, b) => b.updatedAt - a.updatedAt)
+    // A note shows who last touched it, by name — never the id.
+    const names = new Map<Id<'users'>, string | null>()
+    const nameOf = async (id: Id<'users'>) => {
+      if (!names.has(id)) names.set(id, (await ctx.db.get(id))?.name ?? null)
+      return names.get(id) ?? null
+    }
+    const rows = await Promise.all(
+      notes.map(async (note) => {
+        const editor = note.updatedBy ?? note.createdBy
+        return {
+          ...note,
+          updatedByName: await nameOf(editor),
+          updatedByMe: editor === user._id,
+        }
+      }),
+    )
+    return rows.sort((a, b) => b.updatedAt - a.updatedAt)
   },
 })
 
@@ -56,11 +72,12 @@ export const update = mutation({
     pinned: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    await requireNoteAccess(ctx, args.groupSlug, args.noteId)
+    const { user } = await requireNoteAccess(ctx, args.groupSlug, args.noteId)
     await ctx.db.patch(args.noteId, {
       ...(args.title !== undefined ? { title: args.title } : {}),
       ...(args.body !== undefined ? { body: args.body } : {}),
       ...(args.pinned !== undefined ? { pinned: args.pinned } : {}),
+      updatedBy: user._id,
       updatedAt: Date.now(),
     })
   },

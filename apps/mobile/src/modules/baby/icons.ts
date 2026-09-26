@@ -14,6 +14,7 @@ import type { BabyEventType } from '@gather/core/domain'
 import Baby from 'lucide-react-native/icons/baby'
 import CalendarClock from 'lucide-react-native/icons/calendar-clock'
 import CircleQuestionMark from 'lucide-react-native/icons/circle-question-mark'
+import Droplet from 'lucide-react-native/icons/droplet'
 import FileDown from 'lucide-react-native/icons/file-down'
 import ListChecks from 'lucide-react-native/icons/list-checks'
 import Milk from 'lucide-react-native/icons/milk'
@@ -33,7 +34,9 @@ import { type Glyph, glyph } from '../../theme/glyph'
 export const EVENT_ICONS = {
   temperature: glyph(Thermometer, 'thermometer.medium'),
   feeding: glyph(Milk, 'cup.and.saucer'),
-  diaper: glyph(Baby, 'figure.and.child.holdinghands'),
+  // No symbol means diaper; a drop does, and the parent-and-child figure is
+  // already the whole Baby log's icon, so reusing it said nothing.
+  diaper: glyph(Droplet, 'drop'),
   sleep: glyph(Moon, 'moon.zzz'),
   growth: glyph(Ruler, 'ruler'),
   medication: glyph(Pill, 'pills'),

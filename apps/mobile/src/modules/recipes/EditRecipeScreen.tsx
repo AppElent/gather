@@ -119,7 +119,7 @@ export function EditRecipeScreen() {
     <>
       <Stack.Screen options={{ headerShown: true, title: text.edit.title }} />
       <KeyboardAvoidingView
-        style={styles.fill}
+        style={[styles.fill, { backgroundColor: tokens.bg }]}
         behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
@@ -130,6 +130,7 @@ export function EditRecipeScreen() {
             { paddingBottom: insets.bottom + 32 },
           ]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           <RecipeFields
             values={values}

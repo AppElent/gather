@@ -1,6 +1,6 @@
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
-import type { ReactNode } from 'react'
-import type { StyleProp, ViewStyle } from 'react-native'
+import { type ReactNode, useState } from 'react'
+import { type StyleProp, View, type ViewStyle } from 'react-native'
 
 import { haptics } from '../feedback/haptics'
 
@@ -16,12 +16,14 @@ import { haptics } from '../feedback/haptics'
  * Holding a `⋯` does nothing anybody would guess, and there is no competing
  * meaning for the tap to take away.
  *
- * **`style` is not optional decoration.** The trigger wrapper is a real view in
- * the layout, and it has no flex of its own: in a column it stretches like any
- * other child, but in a **row** it sizes to whatever is inside it. That is why
- * two menu-wrapped tiles side by side come out as wide as their labels instead
- * of as wide as their column, and why anything laid out along a row passes
- * `{ flex: 1 }` through here.
+ * **The row is as wide as the slot it sits in, not as wide as its text.** On
+ * iOS the menu is a SwiftUI host that sizes itself to its React Native
+ * children (`matchContents`), and those children have nothing wider to stretch
+ * against — so a row wrapped in a menu came out exactly as wide as its label.
+ * The outer view below takes the slot's width (stretched in a column, `style`
+ * in a row) and hands that measured width down to the children, mounting the
+ * menu only once it is known. Anything laid
+ * out along a row still passes `{ flex: 1 }` through `style`.
  */
 export function NativeContextMenu({
   actions,
@@ -36,15 +38,30 @@ export function NativeContextMenu({
   style?: StyleProp<ViewStyle>
   trigger?: 'hold' | 'press'
 }) {
-  return (
+  const [width, setWidth] = useState<number>()
+  const menu = (content: ReactNode, menuStyle?: StyleProp<ViewStyle>) => (
     <MenuView
-      style={style}
+      style={menuStyle}
       shouldOpenOnLongPress={trigger === 'hold'}
       actions={[...actions]}
       onOpenMenu={() => haptics.menuOpened()}
       onPressAction={(event) => onAction(event.nativeEvent.event)}
     >
-      {children}
+      {content}
     </MenuView>
+  )
+  // A button in a navigation bar keeps its own size.
+  if (trigger === 'press') return menu(children, style)
+  return (
+    <View
+      style={[{ alignSelf: 'stretch' }, style]}
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+    >
+      {/* The host keeps the size it measured on mount, so it only mounts once
+          there is a width to give it; the first frame is the bare row. */}
+      {width == null
+        ? children
+        : menu(<View style={{ width }}>{children}</View>)}
+    </View>
   )
 }

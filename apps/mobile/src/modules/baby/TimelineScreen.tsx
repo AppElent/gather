@@ -173,7 +173,14 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
                       {t.baby.eventTypes[item.type]}
                     </Text>
                     <Text style={[styles.detail, { color: tokens.muted }]}>
-                      {summarize(item, t.baby.log.summary, t.baby.log.options)}
+                      {summarize(
+                        item,
+                        {
+                          ...t.baby.log.summary,
+                          duration: t.baby.log.status.duration,
+                        },
+                        t.baby.log.options,
+                      )}
                     </Text>
                   </View>
                   <UI_ICONS.ChevronRight

@@ -21,6 +21,7 @@ import {
 import { NativeSheet } from '../components/NativeSheet'
 import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
+import { isNativeModule } from '../modules/moduleDestination'
 import { TASTING_BASES, tastingHref } from '../modules/tasting/paths'
 import { SubjectPickerSheet } from '../modules/tasting/SubjectPickerSheet'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
@@ -30,6 +31,26 @@ import {
   type QuickAction,
   type QuickActionId,
 } from './quickActions'
+
+/**
+ * A handoff or compose action opens its Module's screen; for a Module with no
+ * native screen yet that screen is the "planned" placeholder, which is a dead
+ * end to be sent to. In-sheet captures save without leaving, so they stay.
+ */
+const LAUNCHABLE = QUICK_ACTIONS.filter(
+  (action) =>
+    (action.kind !== 'handoff' && action.kind !== 'compose') ||
+    isNativeModule(action.module),
+)
+
+/**
+ * "{noun} opslaan" with a lowercase noun starts the button in lowercase; a
+ * button label starts with a capital in both languages.
+ */
+function saveLabel(template: string, noun: string) {
+  const label = fmt(template, { noun })
+  return label.charAt(0).toLocaleUpperCase() + label.slice(1)
+}
 
 export function QuickActionSheet({
   visible,
@@ -141,7 +162,7 @@ function SheetBody({
         ))}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={fmt(text.save, { noun: copy.noun })}
+          accessibilityLabel={saveLabel(text.save, copy.noun)}
           onPress={() => save(action)}
           disabled={!ready}
           style={({ pressed }) => [
@@ -156,7 +177,7 @@ function SheetBody({
               { color: ready ? tokens.bg : tokens.muted },
             ]}
           >
-            {fmt(text.save, { noun: copy.noun })}
+            {saveLabel(text.save, copy.noun)}
           </Text>
         </Pressable>
       </View>
@@ -213,7 +234,11 @@ function SheetBody({
       subtitle={
         added.length
           ? fmt(text.saved, { items: added.join(', ') })
-          : text.workingOnly
+          : // The launcher's own note; a form opened from it has nothing to
+            // add under its title.
+            inSheetCapture && openAction
+            ? undefined
+            : text.workingOnly
       }
       onClose={onClose}
       leading={
@@ -244,7 +269,7 @@ function SheetBody({
           </View>
         ) : (
           <View style={styles.rows}>
-            {QUICK_ACTIONS.map((action) => {
+            {LAUNCHABLE.map((action) => {
               const copy = actionText(action)
               const tint = tokens.tintOf(action.group)
               const Icon = MODULE_ICONS[action.icon]

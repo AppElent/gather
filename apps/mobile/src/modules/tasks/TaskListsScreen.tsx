@@ -16,7 +16,7 @@
  * - **A linked list is marked, not filed separately.** Notion and Todoist
  *   lists sit in the same card as local ones with a badge, because where a
  *   list is stored is a property of the list and not a category of list. What
- *   differs is what you may do to it â€” and that difference belongs on the list
+ *   differs is what you may do to it — and that difference belongs on the list
  *   itself (ADR-0021), which is where the next screen puts it.
  */
 import { Stack, useRouter } from 'expo-router'
@@ -157,7 +157,7 @@ export function TaskLists() {
                         <Text
                           style={[styles.badgeText, { color: tokens.muted }]}
                         >
-                          {t.labs.tasks.linked} Â· {list.provider}
+                          {t.labs.tasks.linked} · {list.provider}
                         </Text>
                       </View>
                     )}

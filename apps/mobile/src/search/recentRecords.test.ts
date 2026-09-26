@@ -83,7 +83,7 @@ describe('Where a record opens', () => {
         kind: 'cheese',
       }),
     ).toEqual({
-      pathname: '/all/tasting/[kind]/subject',
+      pathname: '/search/tasting/[kind]/subject',
       params: { kind: 'cheese', subjectId: 'subject-1' },
     })
   })
@@ -96,7 +96,7 @@ describe('Where a record opens', () => {
 
   test('every other type routes on its id', () => {
     expect(hrefFor(recipe)).toEqual({
-      pathname: '/all/recipes/recipe',
+      pathname: '/search/recipes/recipe',
       params: { recipeId: 'recipe-1' },
     })
   })

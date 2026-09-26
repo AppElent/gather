@@ -12,6 +12,7 @@
  * silently depended on the wall clock could not be tested at a fixed instant.
  */
 import type { BabyEventType } from '@gather/core/domain'
+import { fmt } from '@gather/core/i18n'
 
 export interface LoggedEvent {
   type: BabyEventType
@@ -35,21 +36,41 @@ export function startOfDay(now: number): number {
   return date.getTime()
 }
 
+/** How a language writes a short duration ("5h 10m", "5 u 10 min"). */
+export interface DurationUnits {
+  minutes: string
+  hours: string
+  hoursMinutes: string
+  days: string
+}
+
+const COMPACT: DurationUnits = {
+  minutes: '{minutes}m',
+  hours: '{hours}h',
+  hoursMinutes: '{hours}h {minutes}m',
+  days: '{days}d',
+}
+
 /**
- * "32m", "3h 10m", "2d".
+ * "32m", "3h 10m", "2d" — or the same in the reader's language.
  *
  * Coarse on purpose above an hour: a parent reading "3h 10m ago" is answering
  * "is she due?", and seconds of precision would be noise on the tile.
  */
-export function shortDuration(ms: number): string {
+export function shortDuration(
+  ms: number,
+  units: DurationUnits = COMPACT,
+): string {
   const minutes = Math.max(0, Math.floor(ms / 60_000))
-  if (minutes < 60) return `${minutes}m`
+  if (minutes < 60) return fmt(units.minutes, { minutes })
   const hours = Math.floor(minutes / 60)
   if (hours < 24) {
     const rest = minutes % 60
-    return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`
+    return rest === 0
+      ? fmt(units.hours, { hours })
+      : fmt(units.hoursMinutes, { hours, minutes: rest })
   }
-  return `${Math.floor(hours / 24)}d`
+  return fmt(units.days, { days: Math.floor(hours / 24) })
 }
 
 function todaysOf(
@@ -92,6 +113,8 @@ export function sleepTotalMs(
 
 export interface StatusMessages {
   ago: (duration: string) => string
+  /** Omitted in tests; the compact English form is the default. */
+  duration?: DurationUnits
   countToday: (count: number) => string
   never: string
   at: (time: string) => string
@@ -124,8 +147,8 @@ export function tileStatus(
       type,
       headline:
         total > 0
-          ? shortDuration(total)
-          : t.ago(shortDuration(now - latest.timestamp)),
+          ? shortDuration(total, t.duration)
+          : t.ago(shortDuration(now - latest.timestamp, t.duration)),
       detail: t.countToday(todayCount),
     }
   }
@@ -142,14 +165,14 @@ export function tileStatus(
   if (type === 'diaper' || type === 'feeding') {
     return {
       type,
-      headline: t.ago(shortDuration(now - latest.timestamp)),
+      headline: t.ago(shortDuration(now - latest.timestamp, t.duration)),
       detail: t.countToday(todayCount),
     }
   }
 
   return {
     type,
-    headline: t.ago(shortDuration(now - latest.timestamp)),
+    headline: t.ago(shortDuration(now - latest.timestamp, t.duration)),
     detail: t.at(t.formatTime(latest.timestamp)),
   }
 }

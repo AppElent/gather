@@ -14,7 +14,6 @@ import Beer from 'lucide-react-native/icons/beer'
 import Calendar from 'lucide-react-native/icons/calendar'
 import Camera from 'lucide-react-native/icons/camera'
 import Ellipsis from 'lucide-react-native/icons/ellipsis'
-import Grape from 'lucide-react-native/icons/grape'
 import Image from 'lucide-react-native/icons/image'
 import ImagePlus from 'lucide-react-native/icons/image-plus'
 import Plus from 'lucide-react-native/icons/plus'
@@ -22,13 +21,14 @@ import Star from 'lucide-react-native/icons/star'
 import Trash2 from 'lucide-react-native/icons/trash-2'
 import Wine from 'lucide-react-native/icons/wine'
 
+import { CheeseWedge } from '../../theme/CheeseWedge'
 import { type Glyph, glyph } from '../../theme/glyph'
 
 export const KIND_ICONS = {
   // No SF Symbol means cheese or beer, and reaching for one that means
   // "grapes" or "a mug of something hot" would be worse than keeping the
   // lucide glyph — the same call `theme/icons.ts` makes for these two.
-  cheese: glyph(Grape, null),
+  cheese: CheeseWedge,
   wine: glyph(Wine, 'wineglass'),
   beer: glyph(Beer, null),
 } satisfies Record<TastingKind, Glyph>

@@ -13,6 +13,8 @@
 import type { BabyEventType } from '@gather/core/domain'
 import { fmt } from '@gather/core/i18n'
 
+import { type DurationUnits, shortDuration } from './todayStatus'
+
 export interface SummaryEvent {
   type: BabyEventType
   timestamp: number
@@ -23,6 +25,8 @@ export interface SummaryEvent {
 
 type SummaryMessages = {
   celsiusWithMethod: string
+  /** How this language writes a duration; the compact English one if absent. */
+  duration?: DurationUnits
   celsius: string
   sideMinutes: string
   diaper: { wet: string; dirty: string; both: string }
@@ -42,10 +46,6 @@ type OptionMessages = {
   feedingMethod: Record<string, string>
   feedingSide: Record<string, string>
   diaperKind: Record<string, string>
-}
-
-function minutes(ms: number): string {
-  return `${Math.max(0, Math.round(ms / 60_000))}m`
 }
 
 export function summarize(
@@ -101,7 +101,10 @@ export function summarize(
     // counting up to now.
     return event.endTimestamp && event.endTimestamp > event.timestamp
       ? fmt(m.sleepFor, {
-          duration: minutes(event.endTimestamp - event.timestamp),
+          duration: shortDuration(
+            event.endTimestamp - event.timestamp,
+            m.duration,
+          ),
         })
       : m.sleep
   }

@@ -4,7 +4,7 @@
  * A due date is a **calendar day**, not a moment: the schema stores
  * `YYYY-MM-DD` and nobody means "23:59:59 in whichever timezone the server is
  * in". So everything here works on that string and on the phone's local
- * calendar, and the one thing it never does is `new Date('2026-08-22')` â€”
+ * calendar, and the one thing it never does is `new Date('2026-08-22')` —
  * which JavaScript parses as midnight *UTC* and which is therefore the
  * previous day for anybody west of Greenwich. `parseDay` exists to make that
  * mistake impossible to make twice.
@@ -33,7 +33,7 @@ export function addDays(iso: string, days: number): string {
 }
 
 /**
- * The coming Saturday â€” and today, if today *is* Saturday.
+ * The coming Saturday — and today, if today *is* Saturday.
  *
  * Sunday counts as still being the weekend rather than as six days early: a
  * person tapping "This weekend" on a Sunday means today, not next week.
@@ -59,7 +59,7 @@ export function isOverdue(due: string, today: string): boolean {
  *
  * Near dates get a word or a weekday, because "Thu" is something a person can
  * act on and "2026-08-27" is something they have to work out. Anything beyond
- * a week gets the actual date â€” by then the weekday has stopped being useful
+ * a week gets the actual date — by then the weekday has stopped being useful
  * and started being ambiguous about which Thursday it means.
  *
  * The locale is the *app's*, not the device's: this app has its own language

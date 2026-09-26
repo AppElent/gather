@@ -13,6 +13,7 @@ import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react'
 import {
   type FlatList,
   Platform,
+  Pressable,
   StatusBar,
   StyleSheet,
   Text,
@@ -148,7 +149,8 @@ export function CalendarScreen({
           onOpenCalendars={() => onOpenCalendars?.()}
           onOpenPeople={() => onOpenPeople?.()}
         />
-        <View style={styles.status} pointerEvents="none">
+        {/* box-none: the row itself never takes a touch, but the draft pill does. */}
+        <View style={styles.status} pointerEvents="box-none">
           {hidden.length > 0 ? (
             <Text style={[styles.filterStatus, { color: tokens.accent }]}>
               {t.calendar.filtersActive}
@@ -160,13 +162,21 @@ export function CalendarScreen({
             </Text>
           ) : null}
           {hasDraft ? (
-            <Text
+            <Pressable
               testID="calendar-resume-draft"
+              accessibilityRole="button"
               onPress={onResumeDraft}
-              style={[styles.filterStatus, { color: tokens.accent }]}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.draft,
+                { backgroundColor: tokens.tile },
+                pressed && { opacity: 0.6 },
+              ]}
             >
-              {t.calendar.resumeDraft}
-            </Text>
+              <Text style={[styles.draftText, { color: tokens.accent }]}>
+                {t.calendar.resumeDraft}
+              </Text>
+            </Pressable>
           ) : null}
         </View>
         {sourceNodes}
@@ -202,7 +212,21 @@ export function CalendarScreen({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  status: { minHeight: 18, paddingHorizontal: 16, alignItems: 'center' },
+  // Its own row below the week strip, not a line squeezed into the strip's
+  // bottom edge where the day initials already sit.
+  status: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 4,
+    alignItems: 'center',
+    gap: 6,
+  },
+  draft: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  draftText: { fontSize: 14, fontWeight: '600' },
   filterStatus: { fontSize: 11, fontWeight: '600' },
   loading: { fontSize: 12 },
   hiddenGroup: { position: 'absolute', width: 1, height: 1, opacity: 0 },

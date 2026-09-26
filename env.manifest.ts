@@ -10,6 +10,26 @@
  * See docs/adr/0014-a-variable-declares-its-consumer-not-its-destination.md
  */
 
+/**
+ * Source configuration for the shared `appelent env` CLI (`@appelent/dev`).
+ * Mirrors `INFISICAL_ENVIRONMENTS` in `scripts/env-source.mjs`; `/gather`
+ * overrides a same-named root value.
+ */
+export const ENV_CONFIG = {
+  appName: 'gather',
+  source: {
+    environments: {
+      local: 'dev',
+      preview: 'staging',
+      stg: 'staging',
+      production: 'prod',
+    },
+    paths: ['/', '/gather'],
+  },
+  mobile: { path: 'apps/mobile' },
+  github: { repository: 'AppElent/gather' },
+} as const
+
 export const ENVIRONMENTS = ['local', 'preview', 'stg', 'production'] as const
 export type Environment = (typeof ENVIRONMENTS)[number]
 

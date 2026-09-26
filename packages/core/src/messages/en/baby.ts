@@ -94,6 +94,12 @@ export const log = {
   status: {
     today: 'Today',
     ago: '{duration} ago',
+    duration: {
+      minutes: '{minutes}m',
+      hours: '{hours}h',
+      hoursMinutes: '{hours}h {minutes}m',
+      days: '{days}d',
+    },
     countToday: '{count} today',
     never: 'Nothing logged yet',
     at: 'at {time}',

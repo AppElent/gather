@@ -29,11 +29,11 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import { api } from '../../../../convex/_generated/api'
 import { useAvailability } from '../availability/AvailabilityProvider'
+import { writeRetainedGroup } from '../group/retainedGroup'
 import { useI18n } from '../i18n'
 import { RADIUS, useTokens } from '../theme/tokens'
 import { AuthButton } from './AuthButton'
 import { AuthField } from './AuthField'
-import { writeRetainedGroup } from '../group/retainedGroup'
 
 type Form = 'create' | 'join'
 
