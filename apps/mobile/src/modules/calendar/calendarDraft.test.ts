@@ -47,6 +47,12 @@ describe('calendar drafts', () => {
       status: 'dismissed',
       values: { title: 'New dentist', location: 'Town', notes: 'Bring card' },
     })
+    // Resuming has to make it editable again, or the editor stays hidden.
+    state = reduceCalendarDraft(state, { type: 'resume' })
+    expect(state.draft).toMatchObject({
+      status: 'editing',
+      values: { title: 'New dentist' },
+    })
   })
 
   test('only dirty valid connected drafts can save and all-day clears times', () => {

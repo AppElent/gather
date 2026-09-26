@@ -25,7 +25,7 @@
  * `blocksExternalGesture` does, and it is the same library the rows' own swipe
  * already goes through. The gesture is attached to the **grip alone** rather
  * than to the row, which is what leaves the rest of the row free to scroll a
- * list too long to see â€” the same division iOS's own reordering uses.
+ * list too long to see — the same division iOS's own reordering uses.
  */
 import { useMemo, useRef, useState } from 'react'
 import { Animated, StyleSheet, Text, View } from 'react-native'
@@ -34,13 +34,12 @@ import {
   GestureDetector,
   type ScrollView as GestureScrollView,
 } from 'react-native-gesture-handler'
-
+import { dropIndex, movedTo, shiftFor } from '../../arrange/arrange'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { Card } from './components'
-import { dropIndex, movedTo, shiftFor } from '../../arrange/arrange'
 import { priorityColor } from './sheets'
 import { dueLabel } from './taskDates'
 import type { ListDisplay, Task } from './types'
@@ -68,7 +67,7 @@ export function ReorderMode({
   display: ListDisplay
   today: string
   /**
-   * The screen's own `ScrollView`. The drag has to name it to out-rank it â€”
+   * The screen's own `ScrollView`. The drag has to name it to out-rank it —
    * without this the list scrolls and the row stays put.
    */
   scrollRef: React.RefObject<GestureScrollView | null>
@@ -166,11 +165,11 @@ export function ReorderMode({
               ? t.labs.task.priorities[task.priority]
               : null,
             display.labels && task.labels.length > 0
-              ? task.labels.join(' Â· ')
+              ? task.labels.join(' · ')
               : null,
           ]
             .filter(Boolean)
-            .join('  Â·  ')
+            .join('  ·  ')
 
           return (
             <Animated.View
@@ -246,7 +245,7 @@ export function ReorderMode({
  * `blocksExternalGesture` is what makes the `ScrollView` stand down for this
  * touch and only this touch, so a list longer than the screen still scrolls
  * everywhere else. `runOnJS` keeps the callbacks on the JS thread, where the
- * arrangement state lives â€” this list is short and its animation was never on
+ * arrangement state lives — this list is short and its animation was never on
  * the UI thread, so there is nothing to win by splitting them.
  */
 function Grip({

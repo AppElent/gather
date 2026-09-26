@@ -36,7 +36,9 @@ export interface Note {
   body: string
   pinned: boolean
   updatedAt: number
-  updatedBy: string
+  /** The last editor's name; null when that account no longer exists. */
+  updatedByName: string | null
+  updatedByMe: boolean
 }
 
 export interface TaskState {

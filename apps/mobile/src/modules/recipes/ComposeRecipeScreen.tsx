@@ -103,6 +103,9 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
 
   const [values, setValues] = useState(blankRecipeForm)
+  // Why Save is disabled is only worth saying once somebody has started; on a
+  // fresh form it reads as an error for something nobody did yet.
+  const [touched, setTouched] = useState(false)
   const [photoId, setPhotoId] = useState<string | null | undefined>(
     dropped.photoId,
   )
@@ -210,7 +213,8 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
         }}
       />
       <KeyboardAvoidingView
-        style={styles.fill}
+        // Solid, or the collection behind shows through above the keyboard.
+        style={[styles.fill, { backgroundColor: tokens.bg }]}
         behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
@@ -221,6 +225,7 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
             { paddingBottom: insets.bottom + 32 },
           ]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           {mode === 'import' ? (
             <View style={styles.field}>
@@ -295,7 +300,10 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
 
           <RecipeFields
             values={values}
-            onChange={setValues}
+            onChange={(next) => {
+              setTouched(true)
+              setValues(next)
+            }}
             photoUrl={photoUrl}
             photoId={photoId}
             onPhotoChange={(id) => {
@@ -319,7 +327,7 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
             {fmt(text.form.destination, { group: groupName })}
           </Text>
 
-          {problem ? (
+          {problem && touched ? (
             <Text style={[styles.problem, { color: tokens.muted }]}>
               {text.form[problem]}
             </Text>

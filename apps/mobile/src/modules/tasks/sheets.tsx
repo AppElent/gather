@@ -1,14 +1,14 @@
 /**
  * One sheet per property a task has.
  *
- * They live together because the same five are reached from two places â€” the
- * row's hold menu on the list, and the rows of the detail screen â€” and a
+ * They live together because the same five are reached from two places — the
+ * row's hold menu on the list, and the rows of the detail screen — and a
  * property that can be edited in two places must be edited by one component or
  * the two will drift.
  *
  * All of them are `NativeSheet`, which is `@expo/ui`'s real bottom sheet:
  * presentation, drag, detents, keyboard and dismissal are the platform's
- * (`docs/mobile-interaction.md`). None of them has a Save button â€” a sheet that
+ * (`docs/mobile-interaction.md`). None of them has a Save button — a sheet that
  * writes on selection and closes is one tap, and the sheet closing *is* the
  * confirmation.
  */
@@ -49,8 +49,8 @@ export function priorityColor(
 /**
  * Due date: shortcuts, then a month.
  *
- * The shortcuts are on top because they answer most of the taps â€” today,
- * tomorrow, the weekend â€” and the grid is underneath because the ones they do
+ * The shortcuts are on top because they answer most of the taps — today,
+ * tomorrow, the weekend — and the grid is underneath because the ones they do
  * not answer are exactly the ones where a person wants to *see* the month.
  * This is the sheet the canvas argued about: a stepper is fine for a time you
  * already know and useless for "the Tuesday after the bank holiday".
@@ -235,7 +235,7 @@ export function PrioritySheet({
 /**
  * Labels: the ones on the task, the ones the Group already uses, and a field.
  *
- * This one keeps its sheet open â€” labels are a set rather than a choice, and
+ * This one keeps its sheet open — labels are a set rather than a choice, and
  * closing after the first would make adding two an exercise in reopening.
  */
 /**
@@ -248,7 +248,7 @@ export function PrioritySheet({
  *
  * That leaves two jobs this sheet has to do that a picker would not. Taking a
  * label off *this* task is the cross on the chip. Fixing a word everywhere it
- * was typed is the hold menu on a suggestion â€” a rename that lands on a word
+ * was typed is the hold menu on a suggestion — a rename that lands on a word
  * already in use is a merge, and the store's Set is what makes those the same
  * operation.
  */

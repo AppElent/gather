@@ -77,7 +77,15 @@
       "@clerk/expo",
       "expo-secure-store",
       "expo-localization",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

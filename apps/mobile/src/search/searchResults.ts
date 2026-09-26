@@ -75,29 +75,35 @@ export function toRecent(result: QueryResult, t: Messages): RecentRecordInput {
  * Kind has no address, and says so, rather than guessing from its subtitle.
  */
 export function hrefFor(record: RecentRecordInput): Href | null {
+  // Under Search's own stack, not All's: pushing into another tab's stack
+  // switches tabs, and Back then lands on that tab's root instead of on the
+  // results the person came from.
   switch (record.type) {
     case 'recipe':
       return {
-        pathname: '/all/recipes/recipe',
+        pathname: '/search/recipes/recipe',
         params: { recipeId: record.id },
       }
     case 'task':
       return {
-        pathname: '/all/tasks/task/[taskId]',
+        pathname: '/search/tasks/task/[taskId]',
         params: { taskId: record.id },
       }
     case 'note':
-      return { pathname: '/all/notes/[noteId]', params: { noteId: record.id } }
+      return {
+        pathname: '/search/notes/[noteId]',
+        params: { noteId: record.id },
+      }
     case 'tasting':
       return record.kind
         ? {
-            pathname: '/all/tasting/[kind]/subject',
+            pathname: '/search/tasting/[kind]/subject',
             params: { kind: record.kind, subjectId: record.id },
           }
         : null
     default:
       return {
-        pathname: '/all/calendar/[eventId]',
+        pathname: '/search/calendar/[eventId]',
         params: { eventId: record.id },
       }
   }

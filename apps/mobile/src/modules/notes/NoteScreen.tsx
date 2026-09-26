@@ -7,8 +7,8 @@
  * Typing writes; leaving is done.
  *
  * The bar above the keyboard is drawn and not wired, and says so. Whether Notes
- * gets rich text at all is a question about the schema â€” a `body` column holds
- * a string, and Markdown, HTML and a block model are three different products â€”
+ * gets rich text at all is a question about the schema — a `body` column holds
+ * a string, and Markdown, HTML and a block model are three different products —
  * and the taskActions's job is to show what the bar costs in room, not to answer
  * it.
  */
@@ -37,7 +37,7 @@ import { noteWhen } from './NotesScreen'
 import { confirmDeleteNote } from './notesActions'
 
 /** Drawn, not wired. The letters are the affordance, not an icon set. */
-const FORMATS = ['B', 'I', 'H', 'â€¢', '1.', 'â˜‘'] as const
+const FORMATS = ['B', 'I', 'H', '•', '1.', '☑'] as const
 
 export function Note({ noteId }: { noteId: string }) {
   const tokens = useTokens('home')
@@ -64,7 +64,7 @@ export function Note({ noteId }: { noteId: string }) {
   )
 
   // A note is the longest thing anybody types in this app, so it is the one
-  // that would cost the most in per-keystroke writes â€” see `useDebouncedText`.
+  // that would cost the most in per-keystroke writes — see `useDebouncedText`.
   const title = useDebouncedText(note?.title ?? '', (next) => {
     if (note) taskActions.editNote(note.id, { title: next })
   })
@@ -150,10 +150,19 @@ export function Note({ noteId }: { noteId: string }) {
               />
             ) : null}
             <Text style={[styles.metaText, { color: tokens.muted }]}>
-              {fmt(t.labs.notes.editedBy, {
-                when: noteWhen(note.updatedAt, locale, t.labs.task.today),
-                name: note.updatedBy,
-              })}
+              {note.updatedByMe || note.updatedByName === null
+                ? fmt(
+                    note.updatedByMe
+                      ? t.labs.notes.editedByYou
+                      : t.labs.notes.edited,
+                    {
+                      when: noteWhen(note.updatedAt, locale, t.labs.task.today),
+                    },
+                  )
+                : fmt(t.labs.notes.editedBy, {
+                    when: noteWhen(note.updatedAt, locale, t.labs.task.today),
+                    name: note.updatedByName,
+                  })}
             </Text>
           </View>
 

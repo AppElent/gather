@@ -1,8 +1,8 @@
 /**
  * The handful of pieces every taskActions screen is made of.
  *
- * Geometry is lifted from `modules/baby/Checklist.tsx` on purpose â€” 16px card
- * radius, 14px inset, a 21px box with a 1.6 stroke, 15.5px row text â€” because
+ * Geometry is lifted from `modules/baby/Checklist.tsx` on purpose — 16px card
+ * radius, 14px inset, a 21px box with a 1.6 stroke, 15.5px row text — because
  * the Tasks Module is meant to *adopt* that component rather than replace it,
  * and a taskActions drawn at different sizes would be judging a different screen.
  *
@@ -68,7 +68,7 @@ export function Card({
  * A row inside a card, with the press feedback the platform actually uses.
  *
  * The divider is drawn on the bottom of every row but the last, and inset by
- * nothing â€” the card's own 14px padding is the inset, which is what makes a
+ * nothing — the card's own 14px padding is the inset, which is what makes a
  * run of rows read as one object rather than as stacked cards.
  */
 export function PressRow({
@@ -132,7 +132,7 @@ export function Checkbox({ checked }: { checked: boolean }) {
  * A label on a task, or a suggestion in the label sheet.
  *
  * `remove` draws the cross. A lit chip has always removed itself on tap, but
- * nothing said so â€” a filled pill reads as a state, not as a button, and the
+ * nothing said so — a filled pill reads as a state, not as a button, and the
  * first report back from the taskActions was that labels could only be added.
  * The cross is not a second target: the whole chip is still one press.
  */

@@ -143,6 +143,12 @@ export function CalendarAgenda({
     )
   }
 
+  const shortDay = (iso: string) =>
+    new Date(`${iso}T12:00:00`).toLocaleDateString(locale, {
+      day: 'numeric',
+      month: 'short',
+    })
+
   function renderRow({ item }: { item: AgendaRow }) {
     if (item.kind === 'gap') {
       return (
@@ -154,8 +160,8 @@ export function CalendarAgenda({
         >
           <Text style={[styles.gapText, { color: tokens.muted }]}>
             {t.calendar.noEventsRange
-              .replace('{from}', item.from)
-              .replace('{to}', item.to)}
+              .replace('{from}', shortDay(item.from))
+              .replace('{to}', shortDay(item.to))}
           </Text>
         </Pressable>
       )
@@ -174,19 +180,15 @@ export function CalendarAgenda({
           style={styles.dayHeading}
           accessibilityRole="header"
         >
-          <Text style={[styles.dayTitle, { color: tokens.fg }]}>
-            {item.date === today ? t.calendar.today : label}
-          </Text>
+          {/* The selected day takes the accent; the long label already says
+              which day it is, so there is no second, ISO copy of it. */}
           <Text
             style={[
-              styles.dayDate,
-              {
-                color:
-                  item.date === selectedDate ? tokens.accent : tokens.muted,
-              },
+              styles.dayTitle,
+              { color: item.date === selectedDate ? tokens.accent : tokens.fg },
             ]}
           >
-            {item.date}
+            {item.date === today ? `${t.calendar.today} · ${label}` : label}
           </Text>
         </Pressable>
         {item.events.length === 0 ? (
@@ -229,7 +231,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   dayTitle: { fontSize: 16, fontWeight: '700', textTransform: 'capitalize' },
-  dayDate: { fontSize: 12 },
   empty: { paddingHorizontal: 8, paddingBottom: 12, fontSize: 13 },
   event: {
     minHeight: 68,

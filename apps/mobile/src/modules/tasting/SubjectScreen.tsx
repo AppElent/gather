@@ -536,6 +536,8 @@ export function SubjectScreen({
           options={{ headerShown: true, title: subject.name, headerRight }}
         />
         <ScrollView
+          // Without it the body starts under the large title and draws over it.
+          contentInsetAdjustmentBehavior="automatic"
           style={{ backgroundColor: tokens.bg }}
           contentContainerStyle={[
             styles.content,

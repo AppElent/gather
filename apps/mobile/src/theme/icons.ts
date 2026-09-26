@@ -43,7 +43,6 @@ import Ellipsis from 'lucide-react-native/icons/ellipsis'
 import Eye from 'lucide-react-native/icons/eye'
 import EyeOff from 'lucide-react-native/icons/eye-off'
 import FlaskConical from 'lucide-react-native/icons/flask-conical'
-import Grape from 'lucide-react-native/icons/grape'
 import GripVertical from 'lucide-react-native/icons/grip-vertical'
 import ImagePlus from 'lucide-react-native/icons/image-plus'
 import KeyRound from 'lucide-react-native/icons/key-round'
@@ -70,6 +69,7 @@ import Users from 'lucide-react-native/icons/users'
 import Wine from 'lucide-react-native/icons/wine'
 import X from 'lucide-react-native/icons/x'
 
+import { CheeseWedge } from './CheeseWedge'
 import { type Glyph, glyph } from './glyph'
 
 /**
@@ -87,10 +87,9 @@ export const MODULE_ICONS = {
   Calendar: glyph(Calendar, 'calendar'),
   CalendarHeart: glyph(CalendarHeart, 'menucard'),
   ChefHat: glyph(ChefHat, 'fork.knife'),
-  // Cheeses. There is no SF Symbol that means cheese, and reaching for one
-  // that means "grapes" or "a basket" would be worse than keeping the lucide
-  // glyph, which at least means what it draws.
-  Grape: glyph(Grape, null),
+  // Cheeses. The key is the web's lucide name (`Grape`, until lucide draws a
+  // cheese); the phone draws a wedge, because a bunch of grapes reads as Wine.
+  Grape: CheeseWedge as Glyph,
   ListChecks: glyph(ListChecks, 'checklist'),
   NotebookPen: glyph(NotebookPen, 'square.and.pencil'),
   Refrigerator: glyph(Refrigerator, 'refrigerator'),

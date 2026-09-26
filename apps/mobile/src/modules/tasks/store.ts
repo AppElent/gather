@@ -238,7 +238,8 @@ export function useTaskState(): TaskState {
     body: note.body,
     pinned: note.pinned ?? false,
     updatedAt: note.updatedAt,
-    updatedBy: note.createdBy,
+    updatedByName: note.updatedByName,
+    updatedByMe: note.updatedByMe,
   }))
   return { today: toIso(new Date()), lists, tasks, notes }
 }

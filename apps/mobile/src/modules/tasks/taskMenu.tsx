@@ -1,14 +1,14 @@
 /**
  * What holding a task offers, and the sheets those offers open.
  *
- * A task appears on three screens â€” the Today strip, a list, the detail screen
- * â€” and holding it has to mean the same thing on each. It did not: Today's
+ * A task appears on three screens — the Today strip, a list, the detail screen
+ * — and holding it has to mean the same thing on each. It did not: Today's
  * rows were built as a digest and quietly grew up into rows, keeping the shape
  * of the list's rows without any of their gestures. Nothing catches that,
  * because a row with no menu renders perfectly well.
  *
  * So the action list and the sheets it opens live here, once. A screen decides
- * only what its own rows look like and whether Reorder is on the menu â€” that
+ * only what its own rows look like and whether Reorder is on the menu — that
  * being the one action a list has and a cross-list strip cannot.
  */
 import type { MenuAction } from '@expo/ui/community/menu'
@@ -78,7 +78,7 @@ type TaskSheet = 'due' | 'priority' | 'labels' | 'move' | 'rename'
  * Runs every action on the menu except Reorder, which the screen owns.
  *
  * Returns the sheets as an element the caller renders last, after its own
- * scroll view â€” a sheet inside one is a sheet that scrolls away.
+ * scroll view — a sheet inside one is a sheet that scrolls away.
  */
 export function useTaskSheets(onReorder?: () => void) {
   const { t } = useI18n()

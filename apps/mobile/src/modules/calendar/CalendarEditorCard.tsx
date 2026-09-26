@@ -3,6 +3,7 @@ import type {
   CalendarFieldErrors,
   CalendarPerson,
 } from '@gather/core/calendar'
+import { useState } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,9 +15,38 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+import { DateTimeChip, DateTimeWheel } from '../../components/DateTimeField'
 import { useI18n } from '../../i18n'
+import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import type { CalendarDraft } from './calendarDraft'
+
+/** The draft stores an ISO day; the picker wants a Date. Noon dodges DST edges. */
+function dayDate(iso: string) {
+  const date = new Date(`${iso}T12:00`)
+  return Number.isNaN(date.getTime()) ? new Date() : date
+}
+
+function isoDay(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/** The draft stores minutes since midnight; the picker wants a Date that day. */
+function timeDate(iso: string, minutes: number) {
+  const date = dayDate(iso)
+  date.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0)
+  return date
+}
+
+const minutesOf = (date: Date) => date.getHours() * 60 + date.getMinutes()
+
+/** A timed event with no time yet starts at nine and lasts an hour. */
+const DEFAULT_START = 9 * 60
+const DEFAULT_LENGTH = 60
+const LAST_MINUTE = 24 * 60 - 1
 
 export interface CalendarEditorProps {
   draft: CalendarDraft
@@ -78,6 +108,21 @@ export function CalendarEditorCard({
   full = false,
 }: CalendarEditorProps) {
   const { t } = useI18n()
+  // Inside a tab this includes the tab bar (`TabSafeArea`), which is drawn
+  // over the bottom of the screen the card is pinned to.
+  const insets = useSafeAreaInsets()
+  const [picking, setPicking] = useState<'date' | 'start' | 'end' | null>(null)
+  const toggle = (which: 'date' | 'start' | 'end') =>
+    setPicking((current) => (current === which ? null : which))
+  const startDate = timeDate(
+    draft.values.date,
+    draft.values.startMinutes ?? DEFAULT_START,
+  )
+  const endDate = timeDate(
+    draft.values.date,
+    draft.values.endMinutes ??
+      (draft.values.startMinutes ?? DEFAULT_START) + DEFAULT_LENGTH,
+  )
   const tokens = useTokens('home')
   const errorText = (key?: string) =>
     key
@@ -110,6 +155,7 @@ export function CalendarEditorCard({
         style={[
           styles.card,
           { backgroundColor: tokens.surface, borderColor: tokens.border },
+          overlay && { paddingBottom: insets.bottom + 12 },
         ]}
         testID="calendar-editor-card"
       >
@@ -117,8 +163,13 @@ export function CalendarEditorCard({
           <Text style={[styles.headingText, { color: tokens.fg }]}>
             {draft.mode === 'edit' ? t.calendar.edit : t.calendar.newEvent}
           </Text>
-          <Pressable onPress={onClose} accessibilityLabel={t.calendar.close}>
-            <Text style={[styles.close, { color: tokens.muted }]}>x</Text>
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel={t.calendar.close}
+            hitSlop={12}
+          >
+            <UI_ICONS.X size={22} color={tokens.muted} strokeWidth={2} />
           </Pressable>
         </View>
         <ScrollView
@@ -142,15 +193,22 @@ export function CalendarEditorCard({
             />
           </Field>
           <Field label={t.calendar.date} error={errorText(errors.date)}>
-            <TextInput
-              value={draft.values.date}
-              onChangeText={(value) => onChange('date', value)}
-              style={[
-                styles.input,
-                { color: tokens.fg, borderColor: tokens.border },
-              ]}
-              keyboardType="numbers-and-punctuation"
+            <DateTimeChip
+              testID="calendar-date"
+              mode="date"
+              value={dayDate(draft.values.date)}
+              open={picking === 'date'}
+              onPress={() => toggle('date')}
+              accessibilityLabel={t.calendar.date}
             />
+            {picking === 'date' ? (
+              <DateTimeWheel
+                mode="date"
+                value={dayDate(draft.values.date)}
+                onChange={(next) => onChange('date', isoDay(next))}
+                onClose={() => setPicking(null)}
+              />
+            ) : null}
           </Field>
           <View style={styles.switchRow}>
             <Text style={[styles.label, { color: tokens.muted }]}>
@@ -164,46 +222,52 @@ export function CalendarEditorCard({
           {!draft.values.allDay ? (
             <Field label={t.calendar.time} error={errorText(errors.time)}>
               <View style={styles.timeRow}>
-                <TextInput
+                <DateTimeChip
+                  testID="calendar-start"
+                  mode="time"
+                  value={startDate}
+                  open={picking === 'start'}
+                  onPress={() => toggle('start')}
                   accessibilityLabel={t.calendar.startTime}
-                  value={
-                    draft.values.startMinutes == null
-                      ? ''
-                      : String(draft.values.startMinutes)
-                  }
-                  onChangeText={(value) =>
-                    onChange('startMinutes', value ? Number(value) : null)
-                  }
-                  placeholder={t.calendar.startTime}
-                  placeholderTextColor={tokens.muted}
-                  keyboardType="number-pad"
-                  style={[
-                    styles.input,
-                    styles.timeInput,
-                    { color: tokens.fg, borderColor: tokens.border },
-                  ]}
                 />
-                <Text style={{ color: tokens.muted }}>-</Text>
-                <TextInput
+                <Text style={{ color: tokens.muted }}>–</Text>
+                <DateTimeChip
+                  testID="calendar-end"
+                  mode="time"
+                  value={endDate}
+                  open={picking === 'end'}
+                  onPress={() => toggle('end')}
                   accessibilityLabel={t.calendar.endTime}
-                  value={
-                    draft.values.endMinutes == null
-                      ? ''
-                      : String(draft.values.endMinutes)
-                  }
-                  onChangeText={(value) =>
-                    onChange('endMinutes', value ? Number(value) : null)
-                  }
-                  placeholder={t.calendar.endTime}
-                  placeholderTextColor={tokens.muted}
-                  keyboardType="number-pad"
-                  style={[
-                    styles.input,
-                    styles.timeInput,
-                    { color: tokens.fg, borderColor: tokens.border },
-                  ]}
                 />
               </View>
+              {picking === 'start' ? (
+                <DateTimeWheel
+                  mode="time"
+                  value={startDate}
+                  onChange={(next) => {
+                    const start = minutesOf(next)
+                    onChange('startMinutes', start)
+                    const end = draft.values.endMinutes
+                    // Moving the start past the end keeps an hour rather than
+                    // leaving an end that comes first.
+                    if (end == null || end <= start) {
+                      onChange(
+                        'endMinutes',
+                        Math.min(start + DEFAULT_LENGTH, LAST_MINUTE),
+                      )
+                    }
+                  }}
+                  onClose={() => setPicking(null)}
+                />
+              ) : null}
+              {picking === 'end' ? (
+                <DateTimeWheel
+                  mode="time"
+                  value={endDate}
+                  onChange={(next) => onChange('endMinutes', minutesOf(next))}
+                  onClose={() => setPicking(null)}
+                />
+              ) : null}
             </Field>
           ) : null}
           <Field label={t.calendar.who} error={errorText(errors.assigneeIds)}>
@@ -381,7 +445,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headingText: { fontSize: 20, fontWeight: '700' },
-  close: { fontSize: 28 },
   body: { gap: 12, paddingVertical: 12 },
   field: { gap: 5 },
   label: { fontSize: 13, fontWeight: '600' },
@@ -400,7 +463,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  timeInput: { flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   chip: {
     minHeight: 38,

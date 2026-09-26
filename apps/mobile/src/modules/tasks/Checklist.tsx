@@ -2,7 +2,7 @@
  * A task list, small enough to sit inside another Module.
  *
  * Baby log is the first Module on the phone, and it needs task lists before
- * Tasks itself exists here â€” the two checklist cards are ordinary `taskLists`,
+ * Tasks itself exists here — the two checklist cards are ordinary `taskLists`,
  * reusing the Tasks Module rather than inventing a parallel concept. So this is
  * written to be **adopted** by the Tasks Module when it lands, not replaced:
  * it takes a list id and nothing baby-shaped, and it honours provider
@@ -29,7 +29,7 @@ export interface ChecklistProps {
   listId: Id<'taskLists'>
   groupSlug: string
   title: string
-  /** Composer placeholder â€” "Add a to-do" reads differently from "Add a question". */
+  /** Composer placeholder — "Add a to-do" reads differently from "Add a question". */
   addLabel: string
   /** False for a provider Gather may only read (ADR-0021). */
   writable: boolean

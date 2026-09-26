@@ -11,7 +11,7 @@
  *   optional rather than load-bearing: everything the menu offers is also here,
  *   spelled out, in the order somebody would look for it.
  *
- * Delete is at the bottom, in red, and asks first â€” deleting in Gather is
+ * Delete is at the bottom, in red, and asks first — deleting in Gather is
  * permanent today (`docs/mobile-interaction.md`).
  */
 import { Stack, useRouter } from 'expo-router'
@@ -70,7 +70,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
       : null,
   )
 
-  // Both fields write on a pause, not on a keystroke â€” see `useDebouncedText`.
+  // Both fields write on a pause, not on a keystroke — see `useDebouncedText`.
   const title = useDebouncedText(task?.title ?? '', (next) => {
     if (task) taskActions.renameTask(task.id, next)
   })
@@ -111,7 +111,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         // The notes field is the last thing on a long screen, so an open
         // keyboard covers Delete and everything below it. iOS insets the
         // scroll view for the keyboard (Android's `adjustResize` already
-        // does), and dragging the list puts the keyboard away â€” the only
+        // does), and dragging the list puts the keyboard away — the only
         // dismissal either platform offers a multiline field, where Return
         // means a new line rather than done.
         automaticallyAdjustKeyboardInsets

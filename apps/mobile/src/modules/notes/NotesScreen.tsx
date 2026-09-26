@@ -2,14 +2,14 @@
  * Notes: a list of titled documents.
  *
  * The canvas settled what a note *is* before it settled what it looks like: not
- * a checklist item with a long body, and not a wall of stickies â€” a document
+ * a checklist item with a long body, and not a wall of stickies — a document
  * with a title, which is the thing a household actually keeps (the wifi code,
  * the boiler man's instructions, what to pack). That decides this screen. Rows
  * of title + first line + when, in two groups: the ones somebody pinned, and
  * the rest by recency.
  *
  * The field is the second way in, and it filters rather than navigates. An
- * empty result offers no add button, only a way back to everything â€” the
+ * empty result offers no add button, only a way back to everything — the
  * "nothing found" empty state, which is a different thing from "nothing yet"
  * (`docs/mobile-interaction.md`).
  *

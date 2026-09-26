@@ -106,6 +106,7 @@ export function ChildScreen({ base }: ChildScreenProps) {
 
   const statusMessages = {
     ago: (duration: string) => fmt(t.baby.log.status.ago, { duration }),
+    duration: t.baby.log.status.duration,
     countToday: (count: number) => fmt(t.baby.log.status.countToday, { count }),
     never: t.baby.log.status.never,
     at: (time: string) => fmt(t.baby.log.status.at, { time }),

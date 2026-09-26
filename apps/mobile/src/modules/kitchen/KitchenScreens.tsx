@@ -19,10 +19,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
+import { NativeSheet } from '../../components/NativeSheet'
+import { SearchField } from '../../components/SearchField'
 import { SwipeableRow } from '../../components/SwipeableRow'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
+import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { useTaskState } from '../tasks/store'
 import { TaskList } from '../tasks/TaskListScreen'
@@ -137,9 +140,25 @@ function ConfirmDelete(
   return null
 }
 
+/** Dutch writes "maandag 21 sep"; as a label it wants only its first capital. */
+const sentenceCase = (text: string) =>
+  text.charAt(0).toLocaleUpperCase() + text.slice(1)
+
+/** "21–27 sep", or "28 sep – 4 okt" across a month, in the app's language. */
+function weekRange(start: Date, locale: string) {
+  const end = addDays(start, 6)
+  const day = (date: Date) =>
+    date.toLocaleDateString(locale, { day: 'numeric' })
+  const dayMonth = (date: Date) =>
+    date.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+  return start.getMonth() === end.getMonth()
+    ? `${day(start)}–${dayMonth(end)}`
+    : `${dayMonth(start)} – ${dayMonth(end)}`
+}
+
 export function MealPlannerScreen() {
   const { group } = useGroup()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const tokens = useTokens('kitchen')
   const [weekStart, setWeekStart] = useState(() => monday(new Date()))
   const [pickerDate, setPickerDate] = useState<string | null>(null)
@@ -212,15 +231,44 @@ export function MealPlannerScreen() {
     candidates,
     pickerLimit ?? pickerDinner?.quickLimit,
   ) as (typeof candidates)[number][]
+  const [pickerQuery, setPickerQuery] = useState('')
+  const closePicker = () => {
+    setPickerDate(null)
+    setPickerLimit(undefined)
+    setPickerQuery('')
+  }
+  const query = pickerQuery.trim().toLocaleLowerCase(locale)
+  const shownCandidates = query
+    ? pickerCandidates.filter((candidate) =>
+        candidate.title.toLocaleLowerCase(locale).includes(query),
+      )
+    : pickerCandidates
   return (
     <KitchenShell title={t.modules.byId['meal-planner'].label}>
       <View style={styles.nav}>
-        <Pressable onPress={() => setWeekStart(addDays(weekStart, -7))}>
-          <Text style={{ color: tokens.accent }}>{t.kitchen.previousWeek}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.kitchen.previousWeek}
+          hitSlop={10}
+          onPress={() => setWeekStart(addDays(weekStart, -7))}
+          style={styles.navButton}
+        >
+          <UI_ICONS.ChevronLeft size={22} color={tokens.accent} />
         </Pressable>
-        <Text style={[styles.title, { color: tokens.fg }]}>{from}</Text>
-        <Pressable onPress={() => setWeekStart(addDays(weekStart, 7))}>
-          <Text style={{ color: tokens.accent }}>{t.kitchen.nextWeek}</Text>
+        <Text
+          accessibilityRole="header"
+          style={[styles.weekTitle, { color: tokens.fg }]}
+        >
+          {weekRange(weekStart, locale)}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.kitchen.nextWeek}
+          hitSlop={10}
+          onPress={() => setWeekStart(addDays(weekStart, 7))}
+          style={styles.navButton}
+        >
+          <UI_ICONS.ChevronRight size={22} color={tokens.accent} />
         </Pressable>
       </View>
       <Pressable
@@ -242,57 +290,102 @@ export function MealPlannerScreen() {
               { borderColor: tokens.border, backgroundColor: tokens.surface },
             ]}
           >
-            <Pressable style={{ flex: 1 }} onPress={() => setPickerDate(date)}>
-              <Text style={[styles.title, { color: tokens.fg }]}>
-                {new Date(`${date}T12:00`).toLocaleDateString(undefined, {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'short',
-                })}
+            <Pressable
+              accessibilityRole="button"
+              style={styles.dayMain}
+              onPress={() => setPickerDate(date)}
+            >
+              <Text style={[styles.dayName, { color: tokens.fg }]}>
+                {sentenceCase(
+                  new Date(`${date}T12:00`).toLocaleDateString(locale, {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'short',
+                  }),
+                )}
               </Text>
-              <Text style={{ color: tokens.muted }}>
-                {dinner?.title ?? t.kitchen.noMeals}
+              <Text
+                style={{
+                  color: dinner ? tokens.fg : tokens.muted,
+                  fontSize: 15,
+                }}
+              >
+                {dinner?.title ?? t.kitchen.nothingPlanned}
               </Text>
             </Pressable>
             <View style={styles.inline}>
-              {([10, 20, 30] as const).map((limit) => (
-                <Pressable
-                  key={limit}
-                  onPress={() => {
-                    if (!dinner) {
-                      setPickerLimit(limit)
-                      setPickerDate(date)
-                      return
-                    }
-                    return setDinner({
-                      groupSlug: group.slug,
-                      date,
-                      title: dinner?.title ?? '',
-                      prepMinutes: dinner?.prepMinutes,
-                      recipeId: dinner?.recipeId,
-                      mealEntryId: dinner?.mealEntryId,
-                      quickLimit:
-                        dinner.quickLimit === limit ? undefined : limit,
-                    })
-                  }}
+              {/* One labelled control instead of three bare numbers. With no
+                  dinner yet, a limit opens the picker already filtered. */}
+              <NativeContextMenu
+                trigger="press"
+                actions={[
+                  ...([10, 20, 30] as const).map((limit) => ({
+                    id: String(limit),
+                    title: fmt(t.kitchen.quick, { minutes: limit }),
+                    state:
+                      dinner?.quickLimit === limit
+                        ? ('on' as const)
+                        : ('off' as const),
+                  })),
+                  ...(dinner?.quickLimit
+                    ? [{ id: 'none', title: t.kitchen.noTimeLimit }]
+                    : []),
+                ]}
+                onAction={(action) => {
+                  const limit =
+                    action === 'none'
+                      ? undefined
+                      : (Number(action) as 10 | 20 | 30)
+                  if (!dinner) {
+                    setPickerLimit(limit)
+                    setPickerDate(date)
+                    return
+                  }
+                  setDinner({
+                    groupSlug: group.slug,
+                    date,
+                    title: dinner.title,
+                    prepMinutes: dinner.prepMinutes,
+                    recipeId: dinner.recipeId,
+                    mealEntryId: dinner.mealEntryId,
+                    quickLimit: limit,
+                  })
+                }}
+              >
+                <View
+                  accessibilityRole="button"
+                  accessibilityLabel={t.kitchen.timeLimit}
+                  style={[
+                    styles.limitChip,
+                    {
+                      backgroundColor: dinner?.quickLimit
+                        ? tokens.tile
+                        : 'transparent',
+                    },
+                  ]}
                 >
-                  <Text
-                    style={{
-                      color:
-                        dinner?.quickLimit === limit
-                          ? tokens.accent
-                          : tokens.muted,
-                    }}
-                  >
-                    {limit}
-                  </Text>
-                </Pressable>
-              ))}
+                  <UI_ICONS.Clock
+                    size={16}
+                    color={dinner?.quickLimit ? tokens.accent : tokens.muted}
+                  />
+                  {dinner?.quickLimit ? (
+                    <Text style={{ color: tokens.accent, fontSize: 13 }}>
+                      {fmt(t.kitchen.quickShort, {
+                        minutes: dinner.quickLimit,
+                      })}
+                    </Text>
+                  ) : null}
+                </View>
+              </NativeContextMenu>
               {dinner ? (
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.kitchen.clearDinner}
+                  hitSlop={8}
                   onPress={() => clearDinner({ groupSlug: group.slug, date })}
+                  style={styles.clear}
                 >
-                  <Text style={{ color: tokens.muted }}>×</Text>
+                  <UI_ICONS.X size={18} color={tokens.muted} />
                 </Pressable>
               ) : null}
             </View>
@@ -364,55 +457,70 @@ export function MealPlannerScreen() {
           </SwipeableRow>
         </NativeContextMenu>
       ))}
-      <Modal
-        visible={pickerDate !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => {
-          setPickerDate(null)
-          setPickerLimit(undefined)
-        }}
-      >
-        <View style={styles.modal}>
-          <View style={[styles.sheet, { backgroundColor: tokens.surface }]}>
-            <Text style={[styles.section, { color: tokens.fg }]}>
-              {t.kitchen.chooseDinner}
-            </Text>
-            {pickerCandidates.map((candidate) => (
+      {pickerDate !== null ? (
+        // The app's system sheet: drag to dismiss, a title, a close button.
+        <NativeSheet
+          title={t.kitchen.chooseDinner}
+          subtitle={
+            pickerLimit
+              ? fmt(t.kitchen.quick, { minutes: pickerLimit })
+              : undefined
+          }
+          onClose={closePicker}
+          maxHeight={0.8}
+          fill
+        >
+          <SearchField
+            tone="inset"
+            value={pickerQuery}
+            onChangeText={setPickerQuery}
+            placeholder={t.kitchen.searchDinners}
+            clearAccessibilityLabel={t.search.clear}
+          />
+          <ScrollView
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.pickerList}
+          >
+            {shownCandidates.length === 0 ? (
+              <Text style={[styles.pickerEmpty, { color: tokens.muted }]}>
+                {t.kitchen.noMatches}
+              </Text>
+            ) : null}
+            {shownCandidates.map((candidate) => (
               <Pressable
                 key={candidate.id}
+                accessibilityRole="button"
                 onPress={() => {
-                  if (pickerDate)
-                    choose(
-                      pickerDate,
-                      candidate,
-                      pickerLimit ?? pickerDinner?.quickLimit,
-                    )
-                  setPickerDate(null)
-                  setPickerLimit(undefined)
+                  choose(
+                    pickerDate,
+                    candidate,
+                    pickerLimit ?? pickerDinner?.quickLimit,
+                  )
+                  closePicker()
                   haptics.selectionChanged()
                 }}
-                style={styles.row}
+                style={({ pressed }) => [
+                  styles.pickerRow,
+                  { borderBottomColor: tokens.border },
+                  pressed && { backgroundColor: tokens.tile },
+                ]}
               >
                 <Text style={[styles.title, { color: tokens.fg }]}>
                   {candidate.title}
                 </Text>
-                <Text style={{ color: tokens.muted }}>
-                  {candidate.prepMinutes}
-                </Text>
+                {candidate.prepMinutes ? (
+                  <Text style={{ color: tokens.muted }}>
+                    {fmt(t.kitchen.minutes, {
+                      minutes: candidate.prepMinutes,
+                    })}
+                  </Text>
+                ) : null}
               </Pressable>
             ))}
-            <Pressable
-              onPress={() => {
-                setPickerDate(null)
-                setPickerLimit(undefined)
-              }}
-            >
-              <Text style={{ color: tokens.accent }}>{t.actions.cancel}</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+          </ScrollView>
+        </NativeSheet>
+      ) : null}
       <Modal
         visible={editing !== null}
         transparent
@@ -499,13 +607,17 @@ export function GroceriesScreen() {
     return (
       <TaskList
         listId={selected}
-        headerLeft={() => (
-          <Pressable
-            onPress={() => set({ groupSlug: group.slug, listId: null })}
-          >
-            <Text>{t.kitchen.changeList}</Text>
-          </Pressable>
-        )}
+        addPlaceholder={t.kitchen.addGroceryItem}
+        menuExtras={[
+          {
+            // Unlinking is not destructive — the list stays in Tasks — and it
+            // lands on the picker below, so it needs no confirmation.
+            id: 'change-grocery-list',
+            title: t.kitchen.changeList,
+            image: 'arrow.left.arrow.right',
+            onPress: () => set({ groupSlug: group.slug, listId: null }),
+          },
+        ]}
       />
     )
   return (
@@ -704,7 +816,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  inline: { flexDirection: 'row', gap: 8 },
+  inline: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  navButton: { padding: 8 },
+  weekTitle: { fontSize: 17, fontWeight: '600', textAlign: 'center', flex: 1 },
+  limitChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: RADIUS.control,
+  },
+  clear: { padding: 6 },
+  dayMain: { flex: 1, gap: 2, paddingVertical: 10 },
+  dayName: { fontSize: 13, fontWeight: '600' },
+  pickerList: { paddingBottom: 40 },
+  pickerEmpty: { padding: 24, textAlign: 'center' },
+  pickerRow: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   section: { fontSize: 17, fontWeight: '700', marginTop: 8 },
   modal: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000066' },
   sheet: {

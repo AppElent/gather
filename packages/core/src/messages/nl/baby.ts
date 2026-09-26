@@ -83,6 +83,12 @@ export const log = {
   status: {
     today: 'Vandaag',
     ago: '{duration} geleden',
+    duration: {
+      minutes: '{minutes} min',
+      hours: '{hours} u',
+      hoursMinutes: '{hours} u {minutes} min',
+      days: '{days} d',
+    },
     countToday: '{count} vandaag',
     never: 'Nog niets genoteerd',
     at: 'om {time}',
@@ -203,7 +209,7 @@ export const log = {
   },
 
   timeline: {
-    title: 'Alle notities',
+    title: 'Tijdlijn',
     empty: 'Nog niets genoteerd — noteer hierboven het eerste.',
     openEntry: '{type} openen',
     gone: 'Deze notitie bestaat niet meer.',
@@ -276,7 +282,7 @@ export const log = {
   summary: {
     celsiusWithMethod: '{celsius}°C ({method})',
     celsius: '{celsius}°C',
-    sideMinutes: '{side} {minutes}m',
+    sideMinutes: '{side} {minutes} min',
     diaper: {
       wet: 'Natte luier',
       dirty: 'Vieze luier',

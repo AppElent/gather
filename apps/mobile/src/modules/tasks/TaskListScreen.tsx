@@ -6,11 +6,11 @@
  *
  * - **Rich rows, with a switch.** A row can carry a priority bar, a due date
  *   and its labels. Which of those it draws is a per-list setting in the list's
- *   own â‹¯ menu, and with all three off the row collapses to exactly the plain
+ *   own ⋯ menu, and with all three off the row collapses to exactly the plain
  *   checklist `modules/baby/Checklist.tsx` draws. That is what makes "rich vs
  *   plain" a setting instead of an argument.
  * - **Reorder is a mode**, reachable from both the row's hold menu and the
- *   list's â‹¯ â€” see `ReorderMode.tsx`.
+ *   list's ⋯ — see `ReorderMode.tsx`.
  * - **A list Gather cannot write to says so and hides its composer**
  *   (ADR-0021). It is also the only list here with pull-to-refresh, because it
  *   is the only one Convex is not keeping live.
@@ -18,9 +18,9 @@
  * Every write goes to the fixture store; nothing here calls Convex. See
  * `fixtures.ts` for why.
  */
-import { MenuView } from '@expo/ui/community/menu'
+import { type MenuAction, MenuView } from '@expo/ui/community/menu'
 import { Stack, useRouter } from 'expo-router'
-import { type ReactNode, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Alert,
   Pressable,
@@ -54,13 +54,27 @@ import { dueLabel, isOverdue } from './taskDates'
 import { taskMenuActions, useTaskSheets } from './taskMenu'
 import type { List, ListDisplay, Task } from './types'
 
+/** A menu entry an owning module adds to the list's ⋯ menu. */
+export interface ListMenuExtra {
+  id: string
+  title: string
+  image: MenuAction['image']
+  onPress: () => void
+}
+
 export function TaskList({
   listId,
-  headerLeft,
+  menuExtras = [],
+  addPlaceholder,
 }: {
   listId: string
-  /** An owning module may add its own way back to its collection. */
-  headerLeft?: () => ReactNode
+  /**
+   * What an owning module adds to the list's own menu. Never the back button:
+   * the system Back is the one way out of a pushed screen.
+   */
+  menuExtras?: readonly ListMenuExtra[]
+  /** The composer's words, when the list is not a list of tasks. */
+  addPlaceholder?: string
 }) {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
@@ -125,6 +139,7 @@ export function TaskList({
     if (action === 'reorder') setReordering(true)
     if (action === 'rename') setRenamingList(true)
     if (action === 'delete') confirmDeleteList()
+    menuExtras.find((extra) => extra.id === action)?.onPress()
   }
 
   const openTask = (task: Task) =>
@@ -139,7 +154,6 @@ export function TaskList({
         options={{
           headerShown: true,
           title: list.name,
-          headerLeft,
           headerRight: () =>
             reordering ? (
               <Pressable
@@ -191,6 +205,11 @@ export function TaskList({
                     image: 'pencil',
                     attributes: { disabled: !list.writable },
                   },
+                  ...menuExtras.map(({ id, title, image }) => ({
+                    id,
+                    title,
+                    image,
+                  })),
                   {
                     id: 'delete',
                     title: t.labs.list.deleteList,
@@ -357,10 +376,10 @@ export function TaskList({
                     value={draft}
                     onChangeText={setDraft}
                     onSubmitEditing={addTask}
-                    placeholder={t.labs.list.addTask}
+                    placeholder={addPlaceholder ?? t.labs.list.addTask}
                     placeholderTextColor={tokens.muted}
                     returnKeyType="done"
-                    accessibilityLabel={t.labs.list.addTask}
+                    accessibilityLabel={addPlaceholder ?? t.labs.list.addTask}
                     style={[styles.composerInput, { color: tokens.fg }]}
                   />
                 </View>
@@ -387,7 +406,7 @@ export function TaskList({
  * One task.
  *
  * Three ways in, which is the point: tap opens it, swipe right completes it,
- * hold opens the menu. The menu is never the only way to anything â€” every item
+ * hold opens the menu. The menu is never the only way to anything — every item
  * in it is also a row on the detail screen.
  */
 function TaskRow({
@@ -524,7 +543,7 @@ function TaskRow({
   )
 
   /**
-   * The row, swipeable â€” with the hold menu wrapped around the *outside* of it.
+   * The row, swipeable — with the hold menu wrapped around the *outside* of it.
    *
    * The nesting is the whole point, and it was inside out the first time. With
    * the menu within the swipeable, iOS's context menu lifts a view Reanimated
@@ -533,7 +552,7 @@ function TaskRow({
    * outside, the menu's source is the swipeable's own untransformed container
    * and the lift is the ordinary one. Mail puts both on one row too.
    *
-   * A read-only list gets neither swipe â€” both of them are writes â€” but it
+   * A read-only list gets neither swipe — both of them are writes — but it
    * keeps the menu, whose writing actions are disabled one by one.
    */
   const swipeable = list.writable ? (
@@ -545,7 +564,7 @@ function TaskRow({
       overshootRight={false}
       onSwipeableWillOpen={(direction) => {
         // `SwipeDirection` names the way the FINGER went, not which panel
-        // opened â€” the library reports RIGHT when the *left* panel is what
+        // opened — the library reports RIGHT when the *left* panel is what
         // came out. Reading it as the panel is why this completed on a
         // left-swipe and did nothing on a right one.
         if (direction === SwipeDirection.RIGHT) {
@@ -614,7 +633,7 @@ const styles = StyleSheet.create({
   /**
    * A navigation-bar action, dressed the way the platform dresses one: 17pt
    * in the tint colour, semibold because this is the confirming action of a
-   * mode. Not `fg` â€” a bar button that is the same colour as the title does
+   * mode. Not `fg` — a bar button that is the same colour as the title does
    * not read as something you can press.
    *
    * iOS 26 draws its own glass capsule around any *custom* header view, which

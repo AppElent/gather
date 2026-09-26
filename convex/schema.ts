@@ -5,6 +5,11 @@ import {
   babyEventDataValidator,
   babyEventTypeValidator,
 } from './lib/babyEvents'
+import {
+  calendarColorValidator,
+  calendarPeopleFilterValidator,
+  calendarViewValidator,
+} from './lib/calendar'
 import { mealValidator, quantityUnitValidator } from './lib/consumption'
 import {
   buyingCostLinesValidator,
@@ -26,11 +31,6 @@ import {
   tastingAttributesValidator,
   tastingKindValidator,
 } from './lib/tastings'
-import {
-  calendarColorValidator,
-  calendarPeopleFilterValidator,
-  calendarViewValidator,
-} from './lib/calendar'
 
 export default defineSchema({
   users: defineTable({
@@ -178,6 +178,9 @@ export default defineSchema({
     body: v.string(),
     pinned: v.optional(v.boolean()),
     createdBy: v.id('users'),
+    // Who last changed it. Absent on notes nobody has edited since this was
+    // added; the creator is the last editor of those.
+    updatedBy: v.optional(v.id('users')),
     updatedAt: v.number(),
   }).index('by_group', ['groupId']),
 

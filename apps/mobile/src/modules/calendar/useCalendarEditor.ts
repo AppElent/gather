@@ -145,9 +145,7 @@ export function useCalendarEditor({
       if (state.draft) clearCalendarDraft(userId, groupId)
       act({ type: 'discard' })
     },
-    resume: () => {
-      if (state.draft) dispatch({ type: 'open', draft: state.draft })
-    },
+    resume: () => dispatch({ type: 'resume' }),
     save: send,
     duplicate: () =>
       act({ type: 'duplicate', draftId: `create:${Date.now()}` }),

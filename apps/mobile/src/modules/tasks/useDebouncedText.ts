@@ -3,9 +3,9 @@
  *
  * "No Save button" is a decision about the interface, not about the write
  * cadence, and the two got conflated in the first draft: `onChangeText` went
- * straight to the store, which on Convex is one mutation â€” one transaction,
+ * straight to the store, which on Convex is one mutation — one transaction,
  * one re-run of every subscribed query, one patch pushed to every phone
- * looking at that list â€” per character. Roughly ten a second while somebody
+ * looking at that list — per character. Roughly ten a second while somebody
  * types a sentence.
  *
  * So the draft lives here and the write is debounced, flushed on blur, and
@@ -13,7 +13,7 @@
  * they type, they leave, it is saved.
  *
  * The taskActions has no backend to spare, but it models the real cadence
- * deliberately â€” a taskActions that writes differently from the thing it is
+ * deliberately — a taskActions that writes differently from the thing it is
  * standing in for is answering a question nobody asked.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -43,8 +43,8 @@ export function useDebouncedText(
     if (next !== null) latest.current(next)
   }, [])
 
-  // Adopt a change that came from somewhere else â€” another screen, another
-  // phone â€” but never on top of a keystroke that has not been written yet, or
+  // Adopt a change that came from somewhere else — another screen, another
+  // phone — but never on top of a keystroke that has not been written yet, or
   // the field would fight the person typing in it.
   useEffect(() => {
     if (pending.current === null) setDraft(value)

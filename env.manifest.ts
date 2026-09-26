@@ -10,7 +10,11 @@
  * See docs/adr/0014-a-variable-declares-its-consumer-not-its-destination.md
  */
 
-/** Shared engine settings; routing and app identities stay in this manifest. */
+/**
+ * Source configuration for the shared `appelent env` CLI (`@appelent/dev`).
+ * Mirrors `INFISICAL_ENVIRONMENTS` in `scripts/env-source.mjs`; `/gather`
+ * overrides a same-named root value.
+ */
 export const ENV_CONFIG = {
   appName: 'gather',
   source: {

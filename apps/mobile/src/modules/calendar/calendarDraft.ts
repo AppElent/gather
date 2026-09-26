@@ -34,6 +34,7 @@ export type DraftAction =
   | { type: 'expand' }
   | { type: 'collapse' }
   | { type: 'dismiss' }
+  | { type: 'resume' }
   | { type: 'saveStart' }
   | { type: 'saveFailure'; error: string }
   | { type: 'conflict'; error: 'conflict' | 'deleted' }
@@ -169,6 +170,13 @@ export function reduceCalendarDraft(
       }
     case 'dismiss':
       return { ...state, draft: { ...draft, status: 'dismissed' } }
+    case 'resume':
+      // Back as it was left, but editable: a dismissed draft stays hidden.
+      return {
+        ...state,
+        draft: { ...draft, status: 'editing', error: null },
+        presentation: 'card',
+      }
     case 'saveStart':
       return { ...state, draft: { ...draft, status: 'saving', error: null } }
     case 'saveFailure':
