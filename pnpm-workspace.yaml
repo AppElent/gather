@@ -35,6 +35,7 @@ allowBuilds:
   bufferutil: false # optional native speed-up for `ws`; it falls back to JS without it
   utf-8-validate: false # ditto — optional native `ws` accelerator, not needed to run
   dtrace-provider: false # optional native tracing; EAS CLI runs without it
+  node-datachannel: true # installs the native WebRTC binary used by Expo Device Hub
 
 minimumReleaseAge: 4320 # 3 days — blocks the worm/account-takeover window
 minimumReleaseAgeExclude:
