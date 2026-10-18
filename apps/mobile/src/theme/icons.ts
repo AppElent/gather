@@ -160,7 +160,7 @@ export const UI_ICONS = {
   KeyRound: glyph(KeyRound, 'key'),
   /**
    * A Pin, which is what this app calls the thing other apps call a favourite
-   * (CONTEXT.md). Never a heart.
+   * (GLOSSARY.md). Never a heart.
    */
   Pin: glyph(Pin, 'pin'),
   /**

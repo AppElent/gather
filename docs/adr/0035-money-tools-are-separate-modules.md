@@ -1,3 +1,11 @@
+---
+type: decision
+description: Read before changing the Money Modules or splitting and merging them.
+version: 1.0.0
+status: accepted
+date: 2026-09-20
+---
+
 # Money tools are separate Modules
 
 Recurring costs, Shared costs, and Savings goals are separate Money Modules

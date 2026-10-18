@@ -1,9 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
-import {
-  MEAL_NAMES,
-  type MealName,
-} from '../../../../convex/lib/consumption'
+import { MEAL_NAMES, type MealName } from '../../../../convex/lib/consumption'
 import { AddSheet } from '../../../components/nutrition/AddSheet'
 import { todayLocal } from '../../../components/nutrition/NutritionPage'
 import { groupNutritionNav } from '../../../components/nutrition/nutritionNav'

@@ -17,7 +17,7 @@
  * password is not right" and "Something went wrong."
  *
  * Only `password` and `email_code` are enabled on the instance (see
- * `docs/research/mobile-clerk-expo.md`), so there is no second factor and no
+ * `docs/records/2026-08-12-mobile-clerk-expo.md`), so there is no second factor and no
  * Device Trust check to route to. Both are nonetheless *possible* statuses, and
  * #139's research is explicit that the right handling for a status we do not
  * implement is a branch that says so rather than silence — a sign-in that

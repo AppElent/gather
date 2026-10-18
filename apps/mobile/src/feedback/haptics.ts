@@ -1,5 +1,5 @@
 /**
- * The phone's haptic vocabulary, as decided in `docs/mobile-interaction.md`.
+ * The phone's haptic vocabulary, as decided in `apps/mobile/DESIGN_SYSTEM.md`.
  *
  * **Call sites name events, never intensities.** `haptics.itemCompleted()`, not
  * `impactAsync(Heavy)` — so that the question "how hard should completing a task

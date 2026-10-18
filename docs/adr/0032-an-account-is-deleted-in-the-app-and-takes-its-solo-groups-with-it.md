@@ -1,6 +1,12 @@
-# An account is deleted in the app, and takes its solo Groups with it
+---
+type: decision
+description: Read before changing account deletion or what happens to a person's Groups.
+version: 1.0.0
+status: accepted
+date: 2026-09-01
+---
 
-Status: decided (2026-09-01)
+# An account is deleted in the app, and takes its solo Groups with it
 
 ## Context
 

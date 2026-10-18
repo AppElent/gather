@@ -50,6 +50,8 @@ export const recipes = {
     estimate: 'Schatten met AI',
     estimating: 'Schatten…',
     estimateFailed: 'Kon de voedingswaarde niet schatten',
+    aiLimitReached:
+      'Je AI-aanvragen voor vandaag zijn op. Probeer het morgen opnieuw, of vul het zelf in.',
     save: 'Recept opslaan',
     saving: 'Opslaan…',
     saveFailed: 'Kon het recept niet opslaan',

@@ -1,6 +1,6 @@
 # Active migrations and maintenance tools
 
-Only unfinished work belongs in this index. A release owner records command output in the named migration record, then archives the completed record with its date, result, removed code, and related ADR/Git links.
+Only unfinished work belongs in this index. A release owner records command output in the named migration document. Once it has run everywhere, the document moves to `docs/records/` (dated, with its result, removed code, and related ADR/Git links) when a contract, ADR or code comment cites it, and is deleted otherwise; git keeps it.
 
 | ID | Status | Owner | Code | Required operation | Retirement condition |
 | --- | --- | --- | --- | --- | --- |
@@ -14,7 +14,6 @@ Only unfinished work belongs in this index. A release owner records command outp
 | --- | --- | --- | --- |
 | `cleanUserDocuments` | active operational repair | release owner | retain while schema-rejected user rows can exist; archive its run result before retirement |
 | `mergeDuplicateUsers` | active operational repair | account-data owner | retain while duplicate Clerk subjects require owner-directed repair; retire after an invariant check replaces it |
-| `backfillGroupSlugsAndPersonalGroups` | retired migration | release owner | remove only after its completed deployment record is archived |
 | `backfillFoodSearchText` | active migration 0005 | release owner | 0005 retirement condition |
 | `backfillFoodServings` | active migration 0006 | release owner | 0006 retirement condition |
 | `wipeRecipes` | retired migration | release owner | remove only after its completed deployment record is archived |

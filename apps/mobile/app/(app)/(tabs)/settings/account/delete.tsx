@@ -9,7 +9,7 @@
  * see which households it is talking about.
  *
  * The confirmation itself is still an alert, naming the account
- * (`docs/mobile-interaction.md`: permanent things ask first, and the ask names
+ * (`apps/mobile/DESIGN_SYSTEM.md`: permanent things ask first, and the ask names
  * the thing).
  *
  * ## The order, which is not the obvious one

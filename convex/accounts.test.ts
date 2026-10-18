@@ -236,9 +236,14 @@ describe('a Group nobody else is in', () => {
     expect(stillThere).toBe(false)
   })
 
-  test('includes the Personal group', async () => {
+  // There is no Personal group any more (ADR-0030); a Group made through the
+  // app, rather than inserted by a fixture, is the one this has to reach.
+  test('includes one made through the app', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.createGroup, { name: "Alice's things" })
 
     await deleteAccount(t, asAlice)
 
@@ -427,6 +432,38 @@ describe('what belongs to the person rather than a Group', () => {
     expect(left).toEqual({ combos: 0, comboItems: 0, entries: 1 })
   })
 
+  test('the AI usage counter goes, and only theirs', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+    await signUp(t, asBob)
+    const alice = await userId(t, asAlice)
+    const bob = await userId(t, asBob)
+    await t.run(async (ctx) => {
+      await ctx.db.insert('aiUsage', {
+        userId: alice,
+        day: '2026-09-01',
+        count: 3,
+      })
+      await ctx.db.insert('aiUsage', {
+        userId: alice,
+        day: '2026-09-02',
+        count: 1,
+      })
+      await ctx.db.insert('aiUsage', {
+        userId: bob,
+        day: '2026-09-02',
+        count: 2,
+      })
+    })
+
+    await deleteAccount(t, asAlice)
+
+    const left = await t.run(
+      async (ctx) => await ctx.db.query('aiUsage').collect(),
+    )
+    expect(left.map((row) => row.userId)).toEqual([bob])
+  })
+
   test('the user row goes last, and it does go', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
@@ -479,7 +516,7 @@ describe('the preview shown before the confirmation', () => {
       .query(api.accounts.deletionPreview, {})
 
     expect(preview?.email).toBe('alice@example.com')
-    expect(preview?.deleted.sort()).toEqual(["Alice's things", 'Allotment'])
+    expect(preview?.deleted.sort()).toEqual(['Allotment'])
     expect(preview?.kept).toEqual(['Household'])
   })
 })

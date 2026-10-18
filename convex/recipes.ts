@@ -403,7 +403,7 @@ export const remove = mutation({
 
 /**
  * Move, Share and Unshare — the three verbs that decide which Groups a recipe
- * is visible in (CONTEXT.md).
+ * is visible in (GLOSSARY.md).
  *
  * Who may use them: a Member of the recipe's home Group. The looser reading —
  * anyone who can already *see* it — includes seeing it through a Share, and a

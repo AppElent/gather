@@ -1,10 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
 import { EditRecipePage } from '../../../components/recipes/EditRecipePage'
 import { groupRecipeNav } from '../../../components/recipes/recipeNav'
 
-export const Route = createFileRoute(
-  '/_app/recipes/$recipeId/edit',
-)({
+export const Route = createFileRoute('/_app/recipes/$recipeId/edit')({
   component: GroupEditRecipe,
 })
 
@@ -20,4 +19,3 @@ function GroupEditRecipe() {
     />
   )
 }
-import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'

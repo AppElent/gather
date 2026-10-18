@@ -6,9 +6,9 @@ import type { Id } from '../../../convex/_generated/dataModel'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
-import type { ShellGroup } from '../app/useCurrentGroup'
-import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import { ImageUploadField } from '../app/ImageUploadField'
+import { Pill, SurfaceCard } from '../app/ShellPrimitives'
+import type { ShellGroup } from '../app/useCurrentGroup'
 
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold'
@@ -80,7 +80,11 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
     setSaving(true)
     setError(null)
     try {
-      await updateAppearance({ groupId: group._id, icon, imageId: imageId ?? null })
+      await updateAppearance({
+        groupId: group._id,
+        icon,
+        imageId: imageId ?? null,
+      })
     } catch (err) {
       setError(errorMessage(err, group_.renameFailed))
     } finally {
@@ -169,30 +173,30 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
         <InviteCode slug={group.slug} />
 
         <div className="grid gap-2">
-            <span className="text-sm font-semibold">{group_.leave}</span>
-            <div>
-              <button
-                type="button"
-                className={buttonClass}
-                onClick={() =>
-                  confirm({
-                    title: fmt(group_.leaveTitle, { group: group.name }),
-                    body: group_.leaveBody,
-                    confirmLabel: group_.leaveConfirm,
-                    // The one refusal a reader can act on is the last admin's,
-                    // and the server's message names the fix; Members below is
-                    // where it happens.
-                    errorFallback: group_.leaveFailed,
-                    run: async () => {
-                      await leave({ groupId: group._id })
-                      await navigate({ to: '/groups' })
-                    },
-                  })
-                }
-              >
-                {group_.leaveButton}
-              </button>
-            </div>
+          <span className="text-sm font-semibold">{group_.leave}</span>
+          <div>
+            <button
+              type="button"
+              className={buttonClass}
+              onClick={() =>
+                confirm({
+                  title: fmt(group_.leaveTitle, { group: group.name }),
+                  body: group_.leaveBody,
+                  confirmLabel: group_.leaveConfirm,
+                  // The one refusal a reader can act on is the last admin's,
+                  // and the server's message names the fix; Members below is
+                  // where it happens.
+                  errorFallback: group_.leaveFailed,
+                  run: async () => {
+                    await leave({ groupId: group._id })
+                    await navigate({ to: '/groups' })
+                  },
+                })
+              }
+            >
+              {group_.leaveButton}
+            </button>
+          </div>
         </div>
       </div>
 

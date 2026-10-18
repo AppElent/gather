@@ -17,6 +17,7 @@
  * the second is ADR-0015's: the Group is ambient, so the destination is a
  * sentence naming it and never a control that changes it.
  */
+import { isAiLimitReached } from '@gather/core/ai-limit'
 import type { NutrientKey, NutritionSource } from '@gather/core/domain'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
@@ -93,8 +94,10 @@ export function RecipeFields({
         nutrition: facts,
         nutritionSource: 'ai' satisfies NutritionSource,
       })
-    } catch {
-      setEstimateProblem(text.estimateFailed)
+    } catch (error) {
+      setEstimateProblem(
+        isAiLimitReached(error) ? text.aiLimitReached : text.estimateFailed,
+      )
     } finally {
       setEstimating(false)
     }

@@ -40,10 +40,7 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
   // The shell's Group rather than the URL's: on `/groups` or `/settings` this
   // keeps naming the Group you came from, which is the one the sidebar below is
   // still listing and the one you are most likely on your way back to.
-  const {
-    group: current,
-    groups,
-  } = useShellGroup()
+  const { group: current, groups } = useShellGroup()
   const { setCurrentGroup } = useCurrentGroup()
   const surface = groupIndexSurfaceOf(location.pathname) ?? 'home'
 
@@ -81,11 +78,15 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
       >
         <span className="grid h-8 w-8 place-items-center overflow-hidden rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-sm font-bold text-[var(--app-fg)]">
           {current?.imageUrl ? (
-            <img src={current.imageUrl} alt="" className="h-full w-full object-cover" />
+            <img
+              src={current.imageUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
           ) : current?.icon ? (
             <Icon name={current.icon} className="h-4 w-4" />
           ) : (
-            current?.name.slice(0, 1).toUpperCase() ?? 'G'
+            (current?.name.slice(0, 1).toUpperCase() ?? 'G')
           )}
         </span>
         <span className="min-w-0">

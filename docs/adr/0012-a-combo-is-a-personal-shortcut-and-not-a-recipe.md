@@ -1,6 +1,14 @@
+---
+type: decision
+description: Read before changing Combos or how they relate to Recipes and diary entries.
+version: 1.0.0
+status: accepted
+date: 2026-08-06
+---
+
 # A Combo is a Personal shortcut, and not a kind of Recipe
 
-Status: accepted (2026-08-06); amended in place (2026-08-10) by #99, which makes
+Amended in place (2026-08-10) by #99, which makes
 saving take a **selection** of a meal's entries, put the Combo in their place,
 and leave the entries it writes saying which Combo wrote them. Everything below
 reads as written except the section on how a Combo is created — which was

@@ -7,7 +7,7 @@
  * through `accessibilityState.expanded` and an action label, so a reader who
  * cannot see it is told both what it is and what pressing it will do.
  *
- * No haptic. `docs/mobile-interaction.md` gives ordinary taps nothing, and
+ * No haptic. `apps/mobile/DESIGN_SYSTEM.md` gives ordinary taps nothing, and
  * disclosure is an ordinary tap.
  */
 import { Platform, Pressable, StyleSheet, Text } from 'react-native'

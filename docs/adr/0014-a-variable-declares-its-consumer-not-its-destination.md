@@ -1,6 +1,12 @@
-# A variable declares its consumer, not its destination
+---
+type: decision
+description: Read before changing how an environment variable is declared and routed.
+version: 1.0.0
+status: accepted
+date: 2026-08-09
+---
 
-Status: accepted (2026-08-09)
+# A variable declares its consumer, not its destination
 
 `env.manifest.ts` lists every environment variable gather needs. An entry says
 **who reads the value** — the Vite build, a Worker server function, a Convex

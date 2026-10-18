@@ -8,7 +8,7 @@
  *
  * One thing here is deliberately not what the app does today: `PressRow`
  * highlights with a background fill and an Android ripple rather than
- * `opacity: 0.6`. `docs/mobile-interaction.md` calls the opacity default wrong
+ * `opacity: 0.6`. `apps/mobile/DESIGN_SYSTEM.md` calls the opacity default wrong
  * on both platforms, and a new screen is where that gets fixed rather than
  * inherited.
  */

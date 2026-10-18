@@ -234,6 +234,8 @@ export const shell = {
       question: 'Question',
     },
     placeholder: 'What happened, or what would you like to see?',
+    publicNotice:
+      "Reports are filed as public GitHub issues that anyone can read. Don't include personal details such as names, email addresses or passwords. Your account is not attached.",
     send: 'Send',
     sending: 'Sending…',
     filed: 'Thanks — your report was filed.',

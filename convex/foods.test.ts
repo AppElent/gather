@@ -3,7 +3,7 @@ import { testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 
 /**
- * The Catalog belongs to nobody and reads the same for everybody (CONTEXT.md).
+ * The Catalog belongs to nobody and reads the same for everybody (GLOSSARY.md).
  *
  * Foods is the one live Module with no Group-scoped rule to enforce, and this
  * says so as a fact rather than as a comment: two people who share no Group at
@@ -329,6 +329,10 @@ describe('a food’s picture', () => {
   test('a picture another row still holds survives the food letting go of it', async () => {
     const t = testConvex()
     await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    // Signing up no longer provisions a Group (ADR-0030); the recipe needs one.
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.createGroup, { name: 'Household' })
     const shared = await storedImage(t, 'shared')
     const replacement = await storedImage(t, 'replacement')
     const fields = {

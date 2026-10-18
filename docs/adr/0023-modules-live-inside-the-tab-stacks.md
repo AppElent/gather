@@ -1,6 +1,14 @@
+---
+type: decision
+description: Read before changing where Module screens live in the phone's navigation.
+version: 1.0.0
+status: accepted
+date: 2026-08-24
+---
+
 # Modules live inside the All tab stack
 
-Status: decided (2026-08-24), implemented
+Implemented when recorded.
 
 Modules with native screens live once, inside the All tab's stack. Home Pins
 switch to All before pushing the Module. This keeps the tab bar and Add action

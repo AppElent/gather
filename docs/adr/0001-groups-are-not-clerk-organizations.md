@@ -1,6 +1,12 @@
-# Groups are not backed by Clerk Organizations
+---
+type: decision
+description: Read before changing Group identity, membership storage, or any move toward Clerk Organizations.
+version: 1.0.0
+status: accepted
+date: 2026-07-28
+---
 
-Status: accepted (2026-07-28)
+# Groups are not backed by Clerk Organizations
 
 Gather already uses Clerk for authentication, so backing the Group boundary with
 Clerk Organizations — getting membership, roles, email invitations and a members

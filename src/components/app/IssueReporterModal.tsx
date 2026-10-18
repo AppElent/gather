@@ -44,13 +44,7 @@ export function IssueReporterModal() {
           type,
           text,
           url: window.location.href,
-          user: user
-            ? {
-                id: user.id,
-                email: user.primaryEmailAddress?.emailAddress,
-                name: user.fullName ?? undefined,
-              }
-            : undefined,
+          signedIn: Boolean(user),
         },
       })
       if (result.ok) {
@@ -111,6 +105,9 @@ export function IssueReporterModal() {
                 </option>
               ))}
             </select>
+            <p className="text-xs text-neutral-600 dark:text-neutral-400">
+              {issueReporter.publicNotice}
+            </p>
             <textarea
               autoFocus
               value={text}

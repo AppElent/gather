@@ -1,6 +1,12 @@
-# Public recipe collections are Group settings
+---
+type: decision
+description: Read before changing public recipe collections or Group visibility settings.
+version: 1.0.0
+status: accepted
+date: 2026-08-08
+---
 
-Status: accepted (2026-08-08)
+# Public recipe collections are Group settings
 
 A Group may make its Recipes Module public. The setting applies to the Group's
 recipe collection, not to individual recipes.

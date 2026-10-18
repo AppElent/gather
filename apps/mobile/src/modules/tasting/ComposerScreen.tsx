@@ -247,7 +247,7 @@ export function ComposerScreen({
         })
       }
       haptics.itemSaved()
-      // Back where you started — the handoff rule in docs/mobile-interaction.md.
+      // Back where you started — the handoff rule in apps/mobile/DESIGN_SYSTEM.md.
       router.back()
     } catch (error) {
       haptics.actionFailed()

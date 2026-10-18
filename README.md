@@ -5,7 +5,8 @@ modules for meal planning, groceries, pantry, recurring costs, shared costs,
 savings goals, tasks, calendar, notes, cheeses, and wines.
 
 Built on TanStack React Start + Router, Convex, Clerk, and Cloudflare Workers.
-See [CLAUDE.md](./CLAUDE.md) for the full architecture and conventions.
+Agent and contributor guidance starts at [AGENTS.md](./AGENTS.md); project rules
+are in [CODING_STANDARDS.md](./CODING_STANDARDS.md) and the [docs map](./docs/README.md).
 
 ## Getting Started
 
@@ -65,7 +66,7 @@ This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) an
 - **staging** — every merge to `main` deploys automatically.
 - **production** — **Actions → Deploy → Run workflow** on `main`. The click is the gate; there is no separate approval step.
 
-Both run `check` / `typecheck` / `test` first, then `convex deploy`, then `convex run seed:seedCatalog`, then `wrangler deploy`. Both build with `pnpm build`: staging runs the same production bundle prod does, and differs only in env vars (sample data and the test-login button are on for staging, absent from prod). Credentials live in the `stg` and `production` GitHub Environments (see the "CI / deploys / PR previews" section of `CLAUDE.md` for the secret layout).
+Both run `check` / `typecheck` / `test` first, then `convex deploy`, then `convex run seed:seedCatalog`, then `wrangler deploy`. Both build with `pnpm build`: staging runs the same production bundle prod does, and differs only in env vars (sample data and the test-login button are on for staging, absent from prod). Credentials live in the `stg` and `production` GitHub Environments (see [deploy](docs/runbooks/deploy.md)).
 
 **Dev is local.** There is no deployed dev environment — dev is `pnpm dev` against your own `convex dev` deployment. The `gather-dev` Worker and `deploy:dev` script below still work, but nothing automated touches them.
 
@@ -129,9 +130,10 @@ same-named root value. `local` reads Infisical `dev`, `preview` and `stg` read
 `staging`, and `production` reads `prod`. `apply` never writes an empty value
 and never deletes without `--prune`.
 
-The commands delegate to pinned `@appelent/dev@0.2.0`. Gather owns the entries,
-source mapping, and routing in `env.manifest.ts`; the package owns source parsing,
-validation, planning, and destination writers. Infisical JSON is captured in
+The commands run `scripts/env.mjs`, the engine vendored from developer-tools
+(`scripts/lib/env/`, refreshed by `node scripts/sync-devtools.mjs`). Gather owns the
+entries, source mapping, and routing in `env.manifest.ts`; the engine owns source
+parsing, validation, planning, and destination writers. Infisical JSON is captured in
 memory; no Infisical-generated dotenv files or raw export files are created.
 Use `pnpm run env:apply local --only file` when shared EAS/GitHub settings must
 stay outside the operation. Required missing values fail before writes, and

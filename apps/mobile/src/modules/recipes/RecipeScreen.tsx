@@ -18,7 +18,7 @@
  * ## Rating is a tap, and it is optimistic
  *
  * Small, frequent, reversible — the three conditions
- * `docs/mobile-interaction.md` sets for an optimistic write. The star fills
+ * `apps/mobile/DESIGN_SYSTEM.md` sets for an optimistic write. The star fills
  * immediately, and if the mutation is refused Convex rolls the local store back
  * and the star empties again. That rollback has to be *visible*, which is why
  * there is a failure haptic and a line of text beside it rather than a silent
@@ -31,6 +31,7 @@
  * the absence of the controls has a reason rather than looking like a bug
  * (ADR-0009's sibling: never offer an action that can only fail).
  */
+import { isAiLimitReached } from '@gather/core/ai-limit'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { Image } from 'expo-image'
 import { useKeepAwake } from 'expo-keep-awake'
@@ -195,9 +196,13 @@ export function RecipeScreen({ base }: RecipeScreenProps) {
         servings: recipe.servings,
       })
       await setNutrition({ id, nutrition, source: 'ai' })
-    } catch {
+    } catch (error) {
       haptics.actionFailed()
-      setProblem(text.form.estimateFailed)
+      setProblem(
+        isAiLimitReached(error)
+          ? text.form.aiLimitReached
+          : text.form.estimateFailed,
+      )
     } finally {
       setEstimating(false)
     }
@@ -497,7 +502,7 @@ function HeaderButton({
       accessibilityLabel={label}
       testID={testID}
       // The number `QuickActionSheet` settled on, and the reason
-      // `docs/mobile-interaction.md` names it as the example to copy.
+      // `apps/mobile/DESIGN_SYSTEM.md` names it as the example to copy.
       hitSlop={12}
       onPress={onPress}
       style={({ pressed }) => [styles.headerButton, pressed && styles.pressed]}

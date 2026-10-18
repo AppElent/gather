@@ -7,7 +7,7 @@ import { haptics } from '../feedback/haptics'
 /**
  * Platform menu with UI-only actions; callers retain their data ownership.
  *
- * **Hold is the default and stays the default** (`docs/mobile-interaction.md`):
+ * **Hold is the default and stays the default** (`apps/mobile/DESIGN_SYSTEM.md`):
  * holding any row opens its menu, everywhere, and the gesture never means
  * anything else.
  *

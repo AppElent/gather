@@ -3,8 +3,8 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
-import type { ShellGroup } from '../app/useCurrentGroup'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
+import type { ShellGroup } from '../app/useCurrentGroup'
 
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold disabled:opacity-60'

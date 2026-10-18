@@ -1,6 +1,14 @@
+---
+type: decision
+description: Read before changing what `@gather/core` may depend on or how shared code crosses workspaces.
+version: 1.0.0
+status: accepted
+date: 2026-08-13
+---
+
 # Shared code crosses as a package with no dependencies
 
-Status: decided, not yet implemented (2026-08-13)
+Not yet implemented when decided.
 
 ## Decision
 

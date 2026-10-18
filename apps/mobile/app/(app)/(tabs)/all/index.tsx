@@ -11,7 +11,7 @@
  * Two structural things that are easy to break:
  *
  * - **The `ScrollView` stays the screen's first subview.** The native large
- *   title collapses against it, and `docs/mobile-interaction.md` records that
+ *   title collapses against it, and `apps/mobile/DESIGN_SYSTEM.md` records that
  *   nesting it one level down silently degrades to `scrollableAxes` — the
  *   screen still looks right and the collapse is simply gone, with no warning.
  *   So Pinned goes *inside* the scroll view, never above it.

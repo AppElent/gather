@@ -84,9 +84,9 @@ export const purgeAccount = internalMutation({
 /**
  * Everything of theirs that is not a Group's, and then the row itself.
  *
- * The diary and its combos are personal by design (ADR-0003) and are reached
- * by index. What is left in the Groups they shared is deliberately *not*
- * deleted: `createdBy` and its siblings are attribution and never conferred
+ * The diary, its combos and the AI usage counter are personal by design
+ * (ADR-0003) and are reached by index. What is left in the Groups they shared
+ * is deliberately *not* deleted: `createdBy` and its siblings are attribution and never conferred
  * access, so a dangling one costs nothing and the household keeps what it was
  * given. The two exceptions are handled here because they are not attribution
  * — a cost split naming somebody who is gone would go on allocating a share to
@@ -108,6 +108,12 @@ async function finishAccount(
     for (const item of items) await ctx.db.delete(item._id)
     await ctx.db.delete(combo._id)
   }
+
+  const usage = await ctx.db
+    .query('aiUsage')
+    .withIndex('by_user_and_day', (q) => q.eq('userId', userId))
+    .collect()
+  for (const row of usage) await ctx.db.delete(row._id)
 
   const entries = await ctx.db
     .query('consumptionEntries')

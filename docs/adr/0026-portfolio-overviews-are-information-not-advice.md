@@ -1,3 +1,11 @@
+---
+type: decision
+description: Read before changing the Portfolio overview or anything that could read as financial advice.
+version: 1.0.0
+status: accepted
+date: 2026-08-24
+---
+
 # Portfolio overviews are information, not advice
 
 The Portfolio overview is Group-owned and tracks listed stocks and ETFs, using

@@ -59,7 +59,7 @@ export interface GroupActivityEntry {
   /** When it appeared in the Group. */
   at: number
   /**
-   * Attribution: who did it (CONTEXT.md). A display name and never a user id —
+   * Attribution: who did it (GLOSSARY.md). A display name and never a user id —
    * reading the stream must not turn into fanning out over the `users` table
    * from the client. Null when the row it named has gone.
    */
