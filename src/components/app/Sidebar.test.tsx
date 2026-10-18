@@ -92,12 +92,15 @@ vi.mock('../../../convex/_generated/api', () => ({
 
 vi.mock('./useCurrentGroup', () => ({
   useCurrentGroup: () => ({
-    current: (groups.value as Array<{
-      _id: string
-      name: string
-      slug: string
-      role?: 'admin' | 'member'
-    }>)[0] ?? null,
+    current:
+      (
+        groups.value as Array<{
+          _id: string
+          name: string
+          slug: string
+          role?: 'admin' | 'member'
+        }>
+      )[0] ?? null,
     groups: groups.value,
     setCurrentGroup: vi.fn(),
   }),

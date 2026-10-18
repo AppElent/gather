@@ -62,7 +62,9 @@ describe('Group appearance', () => {
       .mutation(api.groups.updateAppearance, { groupId, icon: 'House' })
 
     expect(await groupsOf(t, asAlice)).toEqual(
-      expect.arrayContaining([expect.objectContaining({ _id: groupId, icon: 'House' })]),
+      expect.arrayContaining([
+        expect.objectContaining({ _id: groupId, icon: 'House' }),
+      ]),
     )
   })
 

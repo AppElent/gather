@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
 import { CombosPage } from '../../components/nutrition/CombosPage'
 import { groupNutritionNav } from '../../components/nutrition/nutritionNav'
 
@@ -25,4 +26,3 @@ function GroupCombos() {
 
   return <CombosPage nav={groupNutritionNav(groupSlug)} />
 }
-import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'

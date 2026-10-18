@@ -16,10 +16,5 @@ export const Route = createFileRoute('/_app/home')({
 function GroupHomeRoute() {
   const group = useRequiredCurrentGroup()
 
-  return (
-    <GroupHome
-      groupSlug={group.slug}
-      groupName={group.name}
-    />
-  )
+  return <GroupHome groupSlug={group.slug} groupName={group.name} />
 }

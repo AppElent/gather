@@ -17,11 +17,7 @@ beforeEach(() => {
 
 describe('the OAuth round trip', () => {
   test('brings back the provider, the Group and where to return to', () => {
-    const state = newOAuthState(
-      'notion',
-      'jansen-household',
-      '/tasks',
-    )
+    const state = newOAuthState('notion', 'jansen-household', '/tasks')
 
     expect(consumeOAuthState(state)).toEqual({
       provider: 'notion',

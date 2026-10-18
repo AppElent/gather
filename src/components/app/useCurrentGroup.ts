@@ -52,7 +52,8 @@ export function CurrentGroupProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (groupId) window.localStorage.setItem(STORAGE_KEY, groupId)
-    else if (selection.status === 'none') window.localStorage.removeItem(STORAGE_KEY)
+    else if (selection.status === 'none')
+      window.localStorage.removeItem(STORAGE_KEY)
   }, [groupId, selection.status])
 
   if (groupId !== null && groupId !== retained) setRetained(groupId)
@@ -78,7 +79,8 @@ export function CurrentGroupProvider({ children }: { children: ReactNode }) {
 
 export function useCurrentGroup(): CurrentGroupValue {
   const value = use(CurrentGroupContext)
-  if (!value) throw new Error('useCurrentGroup must be used in CurrentGroupProvider')
+  if (!value)
+    throw new Error('useCurrentGroup must be used in CurrentGroupProvider')
   return value
 }
 
