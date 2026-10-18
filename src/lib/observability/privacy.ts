@@ -33,10 +33,24 @@ export function sanitizeText(value: string): string {
   )
 }
 
-/** Drops console output and input events; keeps only structural data. */
+/**
+ * Only these breadcrumb categories survive, and only structurally. Everything
+ * else is dropped, which covers `console` (can hold whole Convex arguments) and
+ * every `ui.*` DOM breadcrumb: the SDK serialises the clicked element with its
+ * `aria-label`, `title` and `alt`, and Gather puts household content there
+ * ("Delete task <title>").
+ */
+const BREADCRUMB_CATEGORIES = new Set([
+  'navigation',
+  'fetch',
+  'xhr',
+  'http',
+  'sentry.event',
+  'sentry.transaction',
+])
+
 export function sanitizeBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb | null {
-  // Console output can carry whole Convex arguments; input events carry text.
-  if (breadcrumb.category === 'console' || breadcrumb.category === 'ui.input') {
+  if (!breadcrumb.category || !BREADCRUMB_CATEGORIES.has(breadcrumb.category)) {
     return null
   }
   const data = breadcrumb.data
@@ -54,6 +68,25 @@ export function sanitizeBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb | null {
     message: breadcrumb.message ? sanitizeText(breadcrumb.message) : undefined,
     data,
   }
+}
+
+const EXCEPTION_VALUE_MAX = 500
+
+/**
+ * A Convex client error is `[CONVEX M(fn)] [Request ID: x] Server Error` followed
+ * by the server's message — and for a `ConvexError`, its serialised `data`,
+ * which is whatever the function put there. Keep the function and the error
+ * class, which are enough to find the throw site, and withhold the rest.
+ */
+function sanitizeExceptionValue(value: string): string {
+  if (value.startsWith('[CONVEX ')) {
+    const head =
+      value.match(/^\[CONVEX [^\]]+\](?: \[Request ID: [^\]]+\])?/)?.[0] ??
+      '[CONVEX]'
+    const name = value.match(/Uncaught (\w*Error)/)?.[1] ?? 'Error'
+    return `${head} Server Error: ${name} (message withheld)`
+  }
+  return sanitizeText(value).slice(0, EXCEPTION_VALUE_MAX)
 }
 
 /**
@@ -81,7 +114,9 @@ export function sanitizeEvent<T extends Event>(event: T): T {
   if (event.transaction)
     event.transaction = sanitizeText(stripUrl(event.transaction))
   for (const exception of event.exception?.values ?? []) {
-    if (exception.value) exception.value = sanitizeText(exception.value)
+    if (exception.value) {
+      exception.value = sanitizeExceptionValue(exception.value)
+    }
     for (const frame of exception.stacktrace?.frames ?? []) delete frame.vars
   }
   if (event.breadcrumbs) {

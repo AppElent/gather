@@ -26,16 +26,25 @@ The phone and Convex are **not covered** (see Coverage).
 
 Errors only. Tracing, replay, logs and profiling are off. `sendDefaultPii` is
 false, and the scrubber removes request bodies, headers, cookies, query strings
-and fragments, `extra`, stack-frame locals, console and input breadcrumbs,
-emails, Bearer tokens and JWTs, and the value Convex echoes in an
-`ArgumentValidationError`. No user is attached. Convex arguments are never
-captured. Adding a field to `BREADCRUMB_DATA_KEYS` or turning on replay is a
+and fragments, `extra`, stack-frame locals, emails, Bearer tokens and JWTs, and
+the value Convex echoes in an `ArgumentValidationError`. No user is attached.
+Convex arguments are never captured.
+
+| Surface | What remains |
+| --- | --- |
+| Breadcrumbs | Allowlisted categories only: `navigation`, `fetch`, `xhr`, `http`, `sentry.*`. Data keys limited to `url` (no query/fragment), `method`, `status_code`, `from`, `to`. **All `ui.*` and `console` breadcrumbs are dropped**: the SDK serialises a clicked element with its `aria-label`/`title`/`alt`, and Gather puts household content in labels ("Delete task <title>") |
+| Convex errors | `[CONVEX M(fn)] [Request ID: x] Server Error: <ErrorClass> (message withheld)`. The function and class find the throw site; the message and any `ConvexError` data are withheld |
+| Other errors | The thrown message, redacted and cut to 500 characters, plus the stack. **Never interpolate user content into an `Error` message** — a message authored in code is sent as written |
+| Request | Method and URL without query or fragment. URL paths can hold opaque ids (a recipe id), never names |
+| Tags / release | `app`, `environment`, release SHA, HTTP status on SSR 5xx | Adding a field to `BREADCRUMB_DATA_KEYS` or turning on replay is a
 privacy change: update this table and the privacy statement.
 
 ## Source maps
 
 `vite.config.ts` emits hidden maps and uploads them only when `SENTRY_AUTH_TOKEN`
-is set; the plugin deletes `dist/**/*.map` after upload. Without the token the
+is set (from the process environment, else `.env.local` — Vite reads dotenv files
+only after the config is evaluated, so the config loads just the four Sentry
+names itself; the process environment wins); the plugin deletes `dist/**/*.map` after upload. Without the token the
 build emits no maps at all. A failed upload is logged by the plugin and does not
 fail the build, so check the deploy log. `scripts/generate-sw.mjs` disables its
 own maps.

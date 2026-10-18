@@ -50,13 +50,36 @@ describe('stripUrl', () => {
 })
 
 describe('sanitizeBreadcrumb', () => {
-  it('drops console and input breadcrumbs', () => {
+  it('drops console breadcrumbs', () => {
     expect(
       sanitizeBreadcrumb({ category: 'console', message: 'args {"a":1}' }),
     ).toBeNull()
-    expect(
-      sanitizeBreadcrumb({ category: 'ui.input', message: 'typed text' }),
-    ).toBeNull()
+  })
+
+  it('drops every DOM breadcrumb, whose message carries aria-label text', () => {
+    const click: Breadcrumb = {
+      category: 'ui.click',
+      message:
+        'body > main > button[aria-label="Delete task Baby fever 39.4"][title="Dr. Jansen"]',
+    }
+    expect(sanitizeBreadcrumb(click)).toBeNull()
+    expect(sanitizeBreadcrumb({ ...click, category: 'ui.input' })).toBeNull()
+    expect(sanitizeBreadcrumb({ category: 'ui.scroll' })).toBeNull()
+    expect(sanitizeBreadcrumb({ message: 'no category' })).toBeNull()
+  })
+
+  it('drops a DOM breadcrumb nested in an event', () => {
+    const event = sanitizeEvent({
+      breadcrumbs: [
+        {
+          category: 'ui.click',
+          message: 'button[aria-label="Delete task Secret"]',
+        },
+        { category: 'navigation', data: { from: '/a', to: '/b' } },
+      ],
+    })
+    expect(JSON.stringify(event)).not.toContain('Secret')
+    expect(event.breadcrumbs).toHaveLength(1)
   })
 
   it('keeps structural fields only and strips query strings', () => {
@@ -143,6 +166,31 @@ describe('sanitizeEvent', () => {
         data: { from: '/a', to: '/b' },
       },
     ])
+  })
+
+  it('withholds the message of a Convex server error', () => {
+    const event = sanitizeEvent({
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value:
+              '[CONVEX M(babyEvents:update)] [Request ID: abc123] Server Error\nUncaught ConvexError: {"note":"fever 39.4 at night"}\n  at handler',
+          },
+        ],
+      },
+    })
+    const value = event.exception?.values?.[0]?.value
+    expect(value).toBe(
+      '[CONVEX M(babyEvents:update)] [Request ID: abc123] Server Error: ConvexError (message withheld)',
+    )
+  })
+
+  it('caps the length of an ordinary exception message', () => {
+    const event = sanitizeEvent({
+      exception: { values: [{ value: 'x'.repeat(2000) }] },
+    })
+    expect(event.exception?.values?.[0]?.value).toHaveLength(500)
   })
 
   it('leaves no sensitive string anywhere in the serialised event', () => {
