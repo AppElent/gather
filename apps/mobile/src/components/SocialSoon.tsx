@@ -16,6 +16,12 @@
  *
  * `soon` is the web's word (`shell.marks.soon` / "Binnenkort"), deliberately:
  * gather already has a vocabulary for "staged but not built" and this is it.
+ *
+ * **`__DEV__` only**, the same gate as Labs. A store build carrying disabled
+ * "Soon" rows is placeholder content, which App Review rejects (guideline
+ * 2.1(a)); the rows come back in every build with the ticket that makes them
+ * work (#139). The web has no counterpart to hide — its form is configured
+ * with `socialProviders: []` and draws nothing.
  */
 import { StyleSheet, Text, View } from 'react-native'
 import { fmt, useI18n } from '../i18n'
@@ -26,6 +32,8 @@ const PROVIDERS = ['apple', 'microsoft', 'google'] as const
 export function SocialSoon() {
   const tokens = useTokens()
   const { t } = useI18n()
+
+  if (!__DEV__) return null
 
   return (
     <View style={styles.wrap}>
