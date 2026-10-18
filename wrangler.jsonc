@@ -3,7 +3,7 @@
   "name": "gather",
   "compatibility_date": "2026-07-09",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
+  "main": "src/server.ts",
   // `stg` is what a merge to main deploys (see .github/workflows/deploy.yml).
   // `dev` is only ever reached by hand via `pnpm run deploy:dev` — dev proper is
   // local. Production is the top-level config, not an env block.
