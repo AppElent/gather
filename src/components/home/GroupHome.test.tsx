@@ -121,10 +121,7 @@ describe('the very first visit, before anything has happened', () => {
   test('a Group points to its management page', () => {
     members.value = [{ userId: 'u_alice', name: 'Alice', role: 'admin' }]
     renderWithI18n(
-      <GroupHome
-        groupSlug="me-alice"
-        groupName="Alice's things"
-      />,
+      <GroupHome groupSlug="me-alice" groupName="Alice's things" />,
     )
 
     const who = screen.getByRole('region', { name: 'Who is here' })
@@ -134,7 +131,9 @@ describe('the very first visit, before anything has happened', () => {
     expect(
       within(who).getByRole('link', { name: 'Groups' }).getAttribute('href'),
     ).toBe('/groups')
-    expect(within(who).getByText(/everyone here sees everything/i)).toBeDefined()
+    expect(
+      within(who).getByText(/everyone here sees everything/i),
+    ).toBeDefined()
   })
 
   test('a shared group says everyone here sees everything', () => {
