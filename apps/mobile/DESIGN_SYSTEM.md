@@ -1,5 +1,11 @@
 # Gather mobile design system
 
+Apply the shared [mobile design](../../docs/standards/mobile-design.md) and
+[iOS](../../docs/standards/ios-design.md) / [Android](../../docs/standards/android-design.md)
+standards, plus [actionable lists](../../docs/standards/lists.md) and
+[editors](../../docs/standards/editors.md) when building those interactions.
+The decisions below bind them for gather.
+
 The phone owns its look and shares its words ([ADR-0017](../../docs/adr/0017-the-phone-owns-its-look-and-shares-its-words.md)):
 `src/theme/` owns typography, neutrals, spacing, radii and glyphs; module tints
 and every user-visible word come from `@gather/core`.

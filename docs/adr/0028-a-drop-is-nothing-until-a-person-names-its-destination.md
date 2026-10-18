@@ -84,7 +84,7 @@ take a new build never see it.
 
 The share sheet cannot be driven by the device automation this project uses, so
 the Drop entry point needs a deep-link harness that simulates an arriving Drop
-before any of it can be verified the way `CLAUDE.md` requires.
+before any of it can be verified the way [`apps/mobile/CODING_STANDARDS.md`](../../apps/mobile/CODING_STANDARDS.md#bindings) requires.
 
 ## Enforcement
 
@@ -93,7 +93,7 @@ before any of it can be verified the way `CLAUDE.md` requires.
 **adding a Module is a compile error until someone answers the question**. This
 is deliberately unlike `moduleDestination.ts`, the seed contributions, the
 breadcrumb trails and the quick actions, all of which fail silently and are kept
-honest only by a line in `CLAUDE.md`.
+honest only by a line in [`docs/runbooks/add-a-module.md`](../runbooks/add-a-module.md).
 
 The ordering decision is a pure function tested in the `mobile` node project
 beside `quickActions.test.ts` and `moduleDestination.test.ts`. The
