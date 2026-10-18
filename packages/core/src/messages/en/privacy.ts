@@ -47,7 +47,7 @@ export const privacy = {
       reports:
         'Problem reports: the message you send with Report an issue in the web app, the address of the page you were on (without anything after the path), and whether you were signed in. Your name, email address and account ID are not included.',
       errors:
-        'Error reports: when something goes wrong in the web app, a technical report of the error, described under Service providers below.',
+        'Error reports: when something goes wrong in the web app or the phone app, a technical report of the error, described under Service providers below.',
       device:
         'On your device: preferences such as language and appearance, and caches. These stay on the device.',
     },
@@ -91,7 +91,7 @@ export const privacy = {
       github:
         'GitHub: problem reports from the web app are filed as issues in Gather’s public code repository, so the message and the page address are publicly visible there. Do not put personal details in a report.',
       sentry:
-        'We use Sentry (Functional Software, Inc.) as a processor for error reports from the web app and its server. A report contains the error message and stack trace (error messages from Gather’s backend are withheld), the page URL without its query string, browser/OS and app release, a short trail of the pages visited and network requests made just before the error (addresses without their query string, request methods and status codes only), and an anonymous event ID. It does not contain request bodies, cookies, headers, your name or email, or the content you enter, and session replay is not used.',
+        'We use Sentry (Functional Software, Inc.) as a processor for error reports from the web app, its server and the phone app, including reports of the phone app crashing. A report contains the error message and stack trace (error messages from Gather’s backend are withheld), the page URL without its query string, browser/OS and app release, a short trail of the pages visited and network requests made just before the error (addresses without their query string, request methods and status codes only), and an anonymous event ID. A report from the phone app also includes device and operating-system details (such as the device model, OS version, language setting and memory) and an identifier Sentry generates for that installation of the app. It does not contain request bodies, cookies, headers, your name or email, or the content you enter, and session replay is not used.',
       googleFonts:
         'Google Fonts: the web app loads its fonts from Google, which receives your IP address when a page loads.',
     },
