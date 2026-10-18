@@ -55,8 +55,29 @@ Order is the recommended execution order. W = workstream.
 | 16 | Expo SDK 58 — only after RN 0.88 final and `expo-share-intent` support confirmed | B 2.1 | later | agent | yes | L |
 | 17 | Data export (derive from `groupCascade.ts`), `run-mobile` Android driver, mobile Jest | B 1.10, 2.4, 2.2 | later | agent | no | M–L |
 
-Items 8 and 14 both move the fingerprint. Ship them in one native build if 14 is ready in
-time; otherwise 8 goes alone with the first store build.
+Items 8 and 14 both move the fingerprint. Do not hold the first store build for 14: ship 8
+on its own. Items 12–14 and 16–17 are not needed for an email-only first release.
+
+## Review corrections (Codex GPT-6-Sol, 2026-10-18)
+
+Spot checks confirmed the central claims, with these corrections and changes to the plan:
+
+- **Store prerequisites run alongside W1, not after W3.** Items 6–8 and 15, mobile CI (9) and
+  the review account start now; if the Play account is personal, its 14-day closed-test clock
+  starts as soon as an internal build exists.
+- **Deletion guard.** `delete.tsx:53–55` allows `deleteSelfEnabled === undefined`, while Convex
+  marks the purge before `user.delete()`. Guard on `=== true` (added to W4) and exercise
+  deletion on a production-configured review account before submission.
+- **Query retention (10) needs a Convex auth gate and backend-identity check first.**
+  `GroupProvider` keeps its last list when the query goes undefined and keeps rendering
+  children. Gate (B 1.6) moves ahead of 10; verify sign-out and account switch before retention.
+- **AI disclosure covers two paths**: recipe URL import and user-entered ingredients through
+  `recipeNutrition.estimateNutrition`. A consent sheet is not needed for a public page import;
+  consider disclosure at the ingredient action. Item 11 is scoped accordingly.
+- **S1 is 41 files, not 8**, including code comments. `SocialSoon` is mobile-only
+  (`apps/mobile/app/(auth)/sign-{in,up}.tsx`).
+- **AGENTS.md must route every former CLAUDE.md rule within one hop** and drop its current
+  "read CLAUDE.md" line, which would loop. W1b deletes selectively; no line-count target.
 
 ## Flows the other way (gather → foundry / developer-tools)
 

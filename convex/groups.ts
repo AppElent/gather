@@ -57,26 +57,31 @@ export const myGroups = query({
     const groups = await Promise.all(
       memberships.map(async (membership) => ({
         group: await ctx.db.get(membership.groupId),
-        role: (membership.role as string) === 'owner' ? 'admin' : membership.role,
+        role:
+          (membership.role as string) === 'owner' ? 'admin' : membership.role,
       })),
     )
     const visible = await Promise.all(
       groups
-      .filter(
-        (row): row is { group: NonNullable<typeof row.group>; role: 'admin' | 'member' } =>
-          row.group !== null,
-      )
-      .map(async ({ group, role }) => ({
-        ...group,
-        imageUrl: group.imageId ? await ctx.storage.getUrl(group.imageId) : null,
-        role,
-      })),
+        .filter(
+          (
+            row,
+          ): row is {
+            group: NonNullable<typeof row.group>
+            role: 'admin' | 'member'
+          } => row.group !== null,
+        )
+        .map(async ({ group, role }) => ({
+          ...group,
+          imageUrl: group.imageId
+            ? await ctx.storage.getUrl(group.imageId)
+            : null,
+          role,
+        })),
     )
-    return visible
-      .sort(
-        (a, b) =>
-          a._creationTime - b._creationTime || a._id.localeCompare(b._id),
-      )
+    return visible.sort(
+      (a, b) => a._creationTime - b._creationTime || a._id.localeCompare(b._id),
+    )
   },
 })
 

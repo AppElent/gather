@@ -329,6 +329,10 @@ describe('a food’s picture', () => {
   test('a picture another row still holds survives the food letting go of it', async () => {
     const t = testConvex()
     await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
+    // Signing up no longer provisions a Group (ADR-0030); the recipe needs one.
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.createGroup, { name: 'Household' })
     const shared = await storedImage(t, 'shared')
     const replacement = await storedImage(t, 'replacement')
     const fields = {
