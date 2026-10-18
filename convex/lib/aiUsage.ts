@@ -13,6 +13,8 @@
  * something whether or not it produced a recipe.
  */
 
+import { AI_LIMIT_KIND } from '@gather/core/ai-limit'
+import { ConvexError } from 'convex/values'
 import { internal } from '../_generated/api'
 import type { ActionCtx } from '../_generated/server'
 
@@ -20,15 +22,12 @@ import type { ActionCtx } from '../_generated/server'
 export const DAILY_AI_CALLS = 30
 
 /**
- * What an AI action returns instead of a result once the day's budget is
- * spent. A value, not a throw, so every client narrows on it rather than
- * parsing a message — the sentence is the client's, in the reader's language.
+ * What an AI action throws once the day's budget is spent. The success return
+ * of the action is untouched, so a client built before the cap reads it as a
+ * generic failure rather than a result (`@gather/core/ai-limit`).
  */
-export type AiLimitReached = { ok: false; reason: 'limitReached' }
-
-export const AI_LIMIT_REACHED: AiLimitReached = {
-  ok: false,
-  reason: 'limitReached',
+export function aiLimitReached(): never {
+  throw new ConvexError({ kind: AI_LIMIT_KIND })
 }
 
 /** `YYYY-MM-DD`, in UTC: the day a call is counted against. */
@@ -37,14 +36,14 @@ export function utcDay(now: number): string {
 }
 
 /**
- * Take one call from the signed-in person's budget for today.
- *
- * `false` means the budget is spent and the provider must not be called.
+ * Take one call from the signed-in person's budget for today, or throw
+ * `aiLimitReached` — so the provider is never reached over the limit.
  * `clerkId` is the identity subject the action already resolved.
  */
 export async function takeAiCall(
   ctx: ActionCtx,
   clerkId: string,
-): Promise<boolean> {
-  return await ctx.runMutation(internal.aiUsage.take, { clerkId })
+): Promise<void> {
+  const taken = await ctx.runMutation(internal.aiUsage.take, { clerkId })
+  if (!taken) aiLimitReached()
 }

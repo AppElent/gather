@@ -1,3 +1,4 @@
+import { isAiLimitReached } from '@gather/core/ai-limit'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
@@ -177,28 +178,26 @@ export function RecipeDetailPage({
                   setEstimating(true)
                   setError(null)
                   try {
-                    const estimate = await estimateNutrition({
+                    const nutrition = await estimateNutrition({
                       ingredients: recipe.ingredients,
                       servings: recipe.servings,
                     })
-                    if (!estimate.ok) {
-                      setError(form.aiLimitReached)
-                      return
-                    }
                     await setNutrition({
                       id: recipe._id,
-                      nutrition: estimate.nutrition,
+                      nutrition,
                       source: 'ai',
                     })
                   } catch (err) {
                     setError(
-                      err instanceof ConvexError
-                        ? typeof err.data === 'string'
-                          ? err.data
-                          : form.estimateFailed
-                        : err instanceof Error
-                          ? err.message
-                          : form.estimateFailed,
+                      isAiLimitReached(err)
+                        ? form.aiLimitReached
+                        : err instanceof ConvexError
+                          ? typeof err.data === 'string'
+                            ? err.data
+                            : form.estimateFailed
+                          : err instanceof Error
+                            ? err.message
+                            : form.estimateFailed,
                     )
                   } finally {
                     setEstimating(false)

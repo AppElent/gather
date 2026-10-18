@@ -1,6 +1,6 @@
+import { isAiLimitReached } from '@gather/core/ai-limit'
 import { ConvexError } from 'convex/values'
 import { useState } from 'react'
-import type { AiLimitReached } from '../../../convex/lib/aiUsage'
 import type {
   NutritionFacts,
   NutritionSource,
@@ -41,7 +41,7 @@ interface Props {
   onEstimate?: (args: {
     ingredients: string[]
     servings?: number
-  }) => Promise<{ ok: true; nutrition: NutritionFacts } | AiLimitReached>
+  }) => Promise<NutritionFacts>
 }
 
 const lines = (s: string) =>
@@ -189,25 +189,23 @@ export function RecipeForm({
                 setEstimating(true)
                 setEstimateError(null)
                 try {
-                  const result = await onEstimate({
+                  const facts = await onEstimate({
                     ingredients: lines(ingredients),
                     servings: parsePositiveInt(servings),
                   })
-                  if (!result.ok) {
-                    setEstimateError(form.aiLimitReached)
-                    return
-                  }
-                  setNutritionInputs(toNutrientInputs(result.nutrition))
+                  setNutritionInputs(toNutrientInputs(facts))
                   setNutritionSource('ai')
                 } catch (err) {
                   setEstimateError(
-                    err instanceof ConvexError
-                      ? typeof err.data === 'string'
-                        ? err.data
-                        : form.estimateFailed
-                      : err instanceof Error
-                        ? err.message
-                        : form.estimateFailed,
+                    isAiLimitReached(err)
+                      ? form.aiLimitReached
+                      : err instanceof ConvexError
+                        ? typeof err.data === 'string'
+                          ? err.data
+                          : form.estimateFailed
+                        : err instanceof Error
+                          ? err.message
+                          : form.estimateFailed,
                   )
                 } finally {
                   setEstimating(false)

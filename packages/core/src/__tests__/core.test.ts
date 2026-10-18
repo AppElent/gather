@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+import { isAiLimitReached } from '../aiLimit'
 import {
   BABY_BAR_SHORTCUTS,
   BABY_EVENT_TYPES,
@@ -235,5 +236,19 @@ describe('the log bar', () => {
 
   test('an empty arrangement is a bar with nothing on it', () => {
     expect(babyBarSlots([], [])).toEqual([])
+  })
+})
+
+describe('the daily AI cap on the wire', () => {
+  test('recognises the refusal by its data, not its class', () => {
+    expect(isAiLimitReached({ data: { kind: 'aiLimitReached' } })).toBe(true)
+  })
+
+  test('does not mistake any other failure for it', () => {
+    expect(isAiLimitReached(new Error('aiLimitReached'))).toBe(false)
+    expect(isAiLimitReached({ data: 'aiLimitReached' })).toBe(false)
+    expect(isAiLimitReached({ data: { kind: 'tastingAttribute' } })).toBe(false)
+    expect(isAiLimitReached(null)).toBe(false)
+    expect(isAiLimitReached(undefined)).toBe(false)
   })
 })

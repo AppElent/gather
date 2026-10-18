@@ -31,6 +31,7 @@
  * the absence of the controls has a reason rather than looking like a bug
  * (ADR-0009's sibling: never offer an action that can only fail).
  */
+import { isAiLimitReached } from '@gather/core/ai-limit'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { Image } from 'expo-image'
 import { useKeepAwake } from 'expo-keep-awake'
@@ -190,19 +191,18 @@ export function RecipeScreen({ base }: RecipeScreenProps) {
     setEstimating(true)
     setProblem(null)
     try {
-      const estimate = await estimateNutrition({
+      const nutrition = await estimateNutrition({
         ingredients: recipe.ingredients,
         servings: recipe.servings,
       })
-      if (!estimate.ok) {
-        haptics.actionFailed()
-        setProblem(text.form.aiLimitReached)
-        return
-      }
-      await setNutrition({ id, nutrition: estimate.nutrition, source: 'ai' })
-    } catch {
+      await setNutrition({ id, nutrition, source: 'ai' })
+    } catch (error) {
       haptics.actionFailed()
-      setProblem(text.form.estimateFailed)
+      setProblem(
+        isAiLimitReached(error)
+          ? text.form.aiLimitReached
+          : text.form.estimateFailed,
+      )
     } finally {
       setEstimating(false)
     }

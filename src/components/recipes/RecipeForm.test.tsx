@@ -113,10 +113,7 @@ test('keeps the imported source when prefilled nutrition is untouched', () => {
 
 test('estimate button fills nutrition and submits ai source', async () => {
   const onSubmit = vi.fn()
-  const onEstimate = vi.fn().mockResolvedValue({
-    ok: true,
-    nutrition: { calories: 300, fat: 10 },
-  })
+  const onEstimate = vi.fn().mockResolvedValue({ calories: 300, fat: 10 })
   renderWithI18n(
     <RecipeForm
       onSubmit={onSubmit}
@@ -182,7 +179,7 @@ test('says so when the daily AI limit is reached, and fills nothing', async () =
   const onSubmit = vi.fn()
   const onEstimate = vi
     .fn()
-    .mockResolvedValue({ ok: false, reason: 'limitReached' })
+    .mockRejectedValue(new ConvexError({ kind: 'aiLimitReached' }))
   renderWithI18n(
     <RecipeForm
       onSubmit={onSubmit}
@@ -202,13 +199,10 @@ test('says so when the daily AI limit is reached, and fills nothing', async () =
 
 test('disables nutrition inputs while an estimate is in flight', async () => {
   const onSubmit = vi.fn()
-  let resolveEstimate: (result: {
-    ok: true
-    nutrition: { calories: number }
-  }) => void
+  let resolveEstimate: (facts: { calories: number }) => void
   const onEstimate = vi.fn(
     () =>
-      new Promise<{ ok: true; nutrition: { calories: number } }>((resolve) => {
+      new Promise<{ calories: number }>((resolve) => {
         resolveEstimate = resolve
       }),
   )
@@ -229,7 +223,7 @@ test('disables nutrition inputs while an estimate is in flight', async () => {
   expect(screen.getByLabelText('Calories (kcal)')).toBeDisabled()
   expect(screen.getByRole('button', { name: /save/i })).toBeDisabled()
 
-  resolveEstimate!({ ok: true, nutrition: { calories: 300 } })
+  resolveEstimate!({ calories: 300 })
   await screen.findByDisplayValue('300')
 
   expect(screen.getByLabelText('Servings')).not.toBeDisabled()

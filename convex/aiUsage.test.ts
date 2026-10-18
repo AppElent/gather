@@ -1,3 +1,4 @@
+import { isAiLimitReached } from '@gather/core/ai-limit'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
@@ -118,25 +119,23 @@ describe('recipeNutrition.estimateNutrition', () => {
         ingredients: ['200g pasta'],
       })
 
-    expect(result).toMatchObject({ ok: true, nutrition: { calories: 400 } })
+    expect(result).toMatchObject({ calories: 400, protein: 20 })
     expect(fetchMock).toHaveBeenCalledOnce()
     expect(await usedToday(t)).toEqual([1])
   })
 
-  test('returns limitReached without reaching the provider', async () => {
+  test('throws aiLimitReached without reaching the provider', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'test-key')
     const fetchMock = vi.fn().mockResolvedValue(estimateReply)
     vi.stubGlobal('fetch', fetchMock)
     const t = await signUp(asAlice)
     await spend(t, 'clerk_alice', DAILY_AI_CALLS)
 
-    const result = await t
-      .withIdentity(asAlice)
-      .action(api.recipeNutrition.estimateNutrition, {
+    await expect(
+      t.withIdentity(asAlice).action(api.recipeNutrition.estimateNutrition, {
         ingredients: ['200g pasta'],
-      })
-
-    expect(result).toEqual({ ok: false, reason: 'limitReached' })
+      }),
+    ).rejects.toSatisfy(isAiLimitReached)
     expect(fetchMock).not.toHaveBeenCalled()
     expect(await usedToday(t)).toEqual([DAILY_AI_CALLS])
   })
@@ -182,11 +181,12 @@ describe('recipeImport.importFromUrl', () => {
         groupSlug: slug,
       })
 
-    expect(result).toMatchObject({ ok: true, title: 'Stamppot' })
+    expect(result).toMatchObject({ title: 'Stamppot' })
+    expect(result).not.toHaveProperty('ok')
     expect(await usedToday(t)).toEqual([DAILY_AI_CALLS])
   })
 
-  test('the AI fallback returns limitReached once the budget is spent', async () => {
+  test('the AI fallback throws aiLimitReached once the budget is spent', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'test-key')
     const fetchMock = vi
       .fn()
@@ -195,14 +195,12 @@ describe('recipeImport.importFromUrl', () => {
     const { t, slug } = await aliceAndSlug()
     await spend(t, 'clerk_alice', DAILY_AI_CALLS)
 
-    const result = await t
-      .withIdentity(asAlice)
-      .action(api.recipeImport.importFromUrl, {
+    await expect(
+      t.withIdentity(asAlice).action(api.recipeImport.importFromUrl, {
         url: 'https://example.com/nothing',
         groupSlug: slug,
-      })
-
-    expect(result).toEqual({ ok: false, reason: 'limitReached' })
+      }),
+    ).rejects.toSatisfy(isAiLimitReached)
     // The page itself was fetched; the provider was not.
     expect(fetchMock).toHaveBeenCalledOnce()
     expect(fetchMock.mock.calls[0]?.[0]).toBe('https://example.com/nothing')
@@ -243,7 +241,7 @@ describe('recipeImport.importFromUrl', () => {
         groupSlug: slug,
       })
 
-    expect(result).toMatchObject({ ok: true, title: 'Soup' })
+    expect(result).toMatchObject({ title: 'Soup' })
     expect(await usedToday(t)).toEqual([1])
   })
 })
