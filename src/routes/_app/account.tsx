@@ -1,5 +1,5 @@
-import { ProfilePanel } from '@appelent/auth'
 import { createFileRoute } from '@tanstack/react-router'
+import { ProfilePanel } from '../../lib/auth'
 
 export const Route = createFileRoute('/_app/account')({
   component: () => (

@@ -1,9 +1,3 @@
-import {
-  type AuthConfig,
-  AuthConfigProvider,
-  THEME_INIT_SCRIPT,
-  ThemeSync,
-} from '@appelent/auth'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import type { QueryClient } from '@tanstack/react-query'
 import {
@@ -18,6 +12,12 @@ import { PublicPageFrame } from '../components/app/PublicPageFrame'
 import ClerkProvider from '../integrations/clerk/provider'
 import ConvexProvider from '../integrations/convex/provider'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
+import {
+  type AuthConfig,
+  AuthConfigProvider,
+  THEME_INIT_SCRIPT,
+  ThemeSync,
+} from '../lib/auth'
 import {
   type Locale,
   LocaleProvider,
@@ -143,7 +143,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           media="(prefers-color-scheme: dark)"
           content="#0a1418"
         />
-        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: theme no-flash script must run before hydration; content is a static constant from @appelent/auth */}
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: theme no-flash script must run before hydration; content is a static constant from lib/auth/theme */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>

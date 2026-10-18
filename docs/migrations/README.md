@@ -16,6 +16,5 @@ Only unfinished work belongs in this index. A release owner records command outp
 | `mergeDuplicateUsers` | active operational repair | account-data owner | retain while duplicate Clerk subjects require owner-directed repair; retire after an invariant check replaces it |
 | `backfillFoodSearchText` | active migration 0005 | release owner | 0005 retirement condition |
 | `backfillFoodServings` | active migration 0006 | release owner | 0006 retirement condition |
-| `wipeRecipes` | retired migration | release owner | remove only after its completed deployment record is archived |
 | `verifyBabyLogScope` | active operational verification | baby-log owner | retain while owner-directed Group-scope moves are supported |
 | `moveBabyToGroup` | active operational repair | baby-log owner | retain while owner-directed Group-scope moves are supported |

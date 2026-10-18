@@ -32,8 +32,6 @@
     "env:plan": "node scripts/env.mjs plan"
   },
   "dependencies": {
-    "@appelent/auth": "^0.1.0",
-    "@appelent/i18n": "^0.1.0",
     "@clerk/clerk-react": "^5.61.3",
     "@cloudflare/vite-plugin": "^1.26.0",
     "@convex-dev/react-query": "0.1.0",
@@ -62,6 +60,7 @@
     "@tanstack/react-table": "^9.2.4",
     "@tanstack/router-plugin": "^1.132.0",
     "@tanstack/store": "^0.11.1",
+    "clsx": "^2.1.1",
     "convex": "^1.42.3",
     "dotenv-cli": "^11.0.0",
     "highlight.js": "^11.11.1",
@@ -71,12 +70,12 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "streamdown": "^2.3.0",
+    "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.1.18",
     "zod": "^4.3.6",
     "zxing-wasm": "^3.1.1"
   },
   "devDependencies": {
-    "@appelent/dev": "0.2.0",
     "@biomejs/biome": "2.4.5",
     "@edge-runtime/vm": "^5.0.0",
     "@sentry/vite-plugin": "5.3.0",

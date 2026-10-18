@@ -1,6 +1,6 @@
-import { ForgotPasswordForm, useAuthConfig } from '@appelent/auth'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PublicPageFrame } from '../components/app/PublicPageFrame'
+import { ForgotPasswordForm, useAuthConfig } from '../lib/auth'
 
 export const Route = createFileRoute('/forgot-password')({
   component: ForgotPasswordPage,
