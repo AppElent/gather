@@ -28,8 +28,8 @@ import { AuthScreen } from '../../../components/AuthScreen'
 import { haptics } from '../../../feedback/haptics'
 import { fmt, useI18n } from '../../../i18n'
 import { useTokens } from '../../../theme/tokens'
+import { useEmailCodeSignIn } from '../use-email-code-sign-in'
 import { useCooldown } from './use-cooldown'
-import { useEmailCodeSignIn } from './use-email-code-sign-in'
 
 const CODE_LENGTH = 6
 const RESEND_COOLDOWN_SECONDS = 30

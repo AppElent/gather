@@ -2,8 +2,8 @@
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { en } from '../../../i18n/messages/en'
-import { mount } from '../../../testing/dom'
+import { en } from '../../i18n/messages/en'
+import { mount } from '../../testing/dom'
 import {
   pickSecondFactor,
   type SecondFactorStep,
@@ -38,7 +38,7 @@ const clerk = vi.hoisted(() => ({
 vi.mock('@clerk/expo', () => ({
   useSignIn: () => ({ signIn: clerk.signIn, errors: clerk.errors }),
 }))
-vi.mock('../../../i18n', () => ({ useI18n: () => ({ t: en }) }))
+vi.mock('../../i18n', () => ({ useI18n: () => ({ t: en }) }))
 
 const ok = { error: null }
 

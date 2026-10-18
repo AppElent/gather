@@ -25,8 +25,8 @@
  */
 import { useSignIn } from '@clerk/expo'
 import { useCallback, useState } from 'react'
-import { type CodedError, pickError } from '../../../auth/clerkErrors'
-import { type Messages, useI18n } from '../../../i18n'
+import { type CodedError, pickError } from '../../auth/clerkErrors'
+import { type Messages, useI18n } from '../../i18n'
 
 type ErrorKey = keyof Messages['errors']
 
