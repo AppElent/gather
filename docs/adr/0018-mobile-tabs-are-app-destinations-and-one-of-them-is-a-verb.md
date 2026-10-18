@@ -12,7 +12,7 @@ Modules remain reachable from Home and All. Each quick action declares `row`, `s
 
 ## Enforcement
 
-`apps/mobile/app/(app)/(tabs)/` defines the fixed stacks and `QuickActionSheet` implements declared action kinds. Platform-owned tabs and sheets follow `docs/mobile-interaction.md`; module routes are governed by [ADR-0023](0023-modules-live-inside-the-tab-stacks.md).
+`apps/mobile/app/(app)/(tabs)/` defines the fixed stacks and `QuickActionSheet` implements declared action kinds. Platform-owned tabs and sheets follow [`apps/mobile/DESIGN_SYSTEM.md`](../../apps/mobile/DESIGN_SYSTEM.md#interaction-vocabulary); module routes are governed by [ADR-0023](0023-modules-live-inside-the-tab-stacks.md).
 
 ## Reopen when
 

@@ -7,7 +7,7 @@
  * question.
  *
  * Revoking is permanent and asks first, naming the device
- * (`docs/mobile-interaction.md`). The list is Clerk's and is fetched rather
+ * (`apps/mobile/DESIGN_SYSTEM.md`). The list is Clerk's and is fetched rather
  * than subscribed to, so it reloads after a revoke instead of hoping.
  */
 import { useSession, useUser } from '@clerk/expo'

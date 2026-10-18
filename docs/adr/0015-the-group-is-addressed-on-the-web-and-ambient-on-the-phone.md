@@ -17,7 +17,7 @@ The web keeps the Group in the URL as [ADR-0002](0002-the-group-is-explicit-in-t
 
 ## Enforcement
 
-`apps/mobile/src/group/GroupProvider.tsx` owns selection and validation. Mobile mutations receive the Group from that context; Convex authorization remains unchanged. See `docs/mobile-interaction.md` for the interaction rules around native navigation.
+`apps/mobile/src/group/GroupProvider.tsx` owns selection and validation. Mobile mutations receive the Group from that context; Convex authorization remains unchanged. See [`apps/mobile/DESIGN_SYSTEM.md`](../../apps/mobile/DESIGN_SYSTEM.md#interaction-vocabulary) for the interaction rules around native navigation.
 
 ## Reopen when
 

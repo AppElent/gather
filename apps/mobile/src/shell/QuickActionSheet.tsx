@@ -81,7 +81,7 @@ function SheetBody({
    * The launcher floats over whichever tab is focused, and pushing into a
    * different tab's stack is not merely disorienting — expo-router tears the
    * unfocused stack down under you and the app goes with it. It is also the
-   * handoff rule (`docs/mobile-interaction.md`): you pressed Add from All, so
+   * handoff rule (`apps/mobile/DESIGN_SYSTEM.md`): you pressed Add from All, so
    * saving has to put you back in All.
    */
   const base = TASTING_BASES.all

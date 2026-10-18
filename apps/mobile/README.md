@@ -6,7 +6,7 @@ app. It shares the same Clerk account and Convex service as the web app.
 ## How this app behaves
 
 Interaction rules — press-and-hold, swipe, haptics, sheets, undo, loading,
-empty states — live in [`docs/mobile-interaction.md`](../../docs/mobile-interaction.md).
+empty states — live in [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md#interaction-vocabulary).
 Read it before adding a screen. The research behind it is in
 [`docs/research/mobile-interaction-vocabulary.md`](../../docs/research/mobile-interaction-vocabulary.md).
 
@@ -107,7 +107,7 @@ pnpm exec eas branch:view preview
 
 An update is downloaded in the background on the launch after it is published,
 and runs on the launch after that. There is no prompt and no spinner: the app
-has no update UI, by decision — `docs/mobile-interaction.md` asks for silence,
+has no update UI, by decision — [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md#feedback) asks for silence,
 and the cold-start window in `app/_layout.tsx` is already spoken for.
 
 ### When a bad update is out

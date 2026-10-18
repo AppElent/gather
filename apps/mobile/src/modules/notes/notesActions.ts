@@ -2,7 +2,7 @@
  * The one thing both Notes screens do the same way.
  *
  * Deleting is permanent in Gather today, so it asks first and names the note it
- * is about to destroy (`docs/mobile-interaction.md`). Both the index's hold
+ * is about to destroy (`apps/mobile/DESIGN_SYSTEM.md`). Both the index's hold
  * menu and the note's own â‹¯ reach it, and an alert whose wording depended on
  * which one you used would be a bug nobody would ever notice.
  */

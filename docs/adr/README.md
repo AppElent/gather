@@ -1,5 +1,11 @@
 # Architecture decision index
 
+Two numbers are each held by two accepted ADRs: 0013 and 0014. They are left as
+they are — renumbering an accepted ADR would silently retarget every `ADR-0013`
+/ `ADR-0014` already written in code comments and docs — and are listed below
+with the filename that tells them apart. Cite either pair by filename, not by
+number alone. A new ADR takes the number after the highest (0036 next).
+
 | ID | Decision | Status | Domain | Key implementation references |
 | --- | --- | --- | --- | --- |
 | 0001 | Groups are not backed by Clerk Organizations | accepted | identity | `convex/groups.ts`, `convex/users.ts` |
@@ -14,8 +20,10 @@
 | 0010 | A photo is stored as prepared, never as chosen | accepted | files | `packages/core/src/photoPresets.ts`, `convex/lib/storedFiles.ts` |
 | 0011 | The UI is English at the source, and translations are typed dictionaries | accepted | i18n | `packages/core/src/messages/`, `src/lib/i18n/` |
 | 0012 | A Combo is a Personal shortcut, and not a kind of Recipe | accepted | nutrition | `convex/combos.ts` |
-| 0013 | A nested page carries its own trail, and back is an address | accepted | web navigation | `src/components/app/Breadcrumbs.tsx` |
-| 0014 | The phone is a Clerk generation ahead of the web | accepted | mobile auth | `apps/mobile/src/auth/` |
+| [0013](0013-staging-deploys-on-merge-production-deploys-on-a-click.md) | Staging deploys on merge, production deploys on a click | accepted | deployment | `.github/workflows/deploy.yml` |
+| [0013](0013-a-nested-page-carries-its-own-trail.md) | A nested page carries its own trail, and back is an address | accepted | web navigation | `src/components/app/Breadcrumbs.tsx` |
+| [0014](0014-a-variable-declares-its-consumer-not-its-destination.md) | A variable declares its consumer, not its destination | accepted | environment | `env.manifest.ts`, `scripts/env.mjs` |
+| [0014](0014-the-phone-is-a-clerk-generation-ahead-of-the-web.md) | The phone is a Clerk generation ahead of the web | accepted | mobile auth | `apps/mobile/src/auth/` |
 | 0015 | The Group is addressed on the web and ambient on the phone | superseded | mobile navigation | `apps/mobile/src/group/GroupProvider.tsx`, `apps/mobile/app/g/` |
 | 0016 | Shared code crosses as a package with no dependencies | decided | workspace boundary | `packages/core/package.json`, `packages/core/tsconfig.json` |
 | 0017 | The phone owns its look and shares its words | accepted | mobile design | `apps/mobile/src/theme/`, `packages/core/src/moduleTints.ts` |
@@ -35,4 +43,5 @@
 | 0031 | The Current Group is ambient on web and mobile | decided | navigation | `packages/core/src/groups.ts`, `CONTEXT.md` |
 | 0032 | An account is deleted in the app, and takes its solo Groups with it | decided | account lifecycle | `convex/accounts.ts`, `convex/cascade.ts`, `convex/lib/groupCascade.ts` |
 | 0033 | The phone's All screen is arranged on the device | decided | mobile navigation | `apps/mobile/src/prefs/moduleArrangement.ts`, `packages/core/src/moduleArrangement.ts` |
+| 0034 | Notes, Tasks and Calendar remain separate Modules | accepted | modules | `packages/core/src/modules.ts` |
 | 0035 | Money tools are separate Modules | decided | money modules | `packages/core/src/modules.ts`, `apps/mobile/src/modules/finances/` |

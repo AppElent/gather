@@ -75,7 +75,7 @@ Design for iOS first, include EN/NL and large-text/dark-state checks, and distin
 
 Preserve existing Labs and historical prototypes. `apps/mobile/src/labs/entries.ts` says to retain Labs prototypes, while the prototype skill archives new throwaway work outside main. For these sessions archive new alternatives on a prototype branch at closeout and leave existing Labs intact; flag any proposed change to that convention explicitly. No push or merge is implied by a local prototype branch.
 
-The repo instructions reference `docs/mobile-interaction.md`, which is missing in this checkout as of this handoff. Consult `docs/research/mobile-interaction-vocabulary.md` and current native wrappers for evidence, flagging any rule that cannot be recovered rather than silently inventing a replacement.
+The repo instructions reference `docs/mobile-interaction.md`, which was missing in this checkout as of this handoff (its rules now live in `apps/mobile/DESIGN_SYSTEM.md`). Consult `docs/research/mobile-interaction-vocabulary.md` and current native wrappers for evidence, flagging any rule that cannot be recovered rather than silently inventing a replacement.
 
 Every session returns a result file next to its brief with: question answered; runnable artifact and variant references; user-selected elements and reasons; rejected options; unresolved questions; scenarios exercised and verification limits; proposed changes to accepted decisions; and prototype branch/commit pointer when archived. If the user has not selected a design, say pending. Return findings to this coordinating session; do not promote prototype code or mark an issue implementation-ready.
 

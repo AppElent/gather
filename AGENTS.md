@@ -25,7 +25,7 @@ verification. Command table and the full loop are in `apps/mobile/README.md`.
 
 Selector note: the UI is translated, so `text` selectors are locale-dependent
 (`Recepten`, not `Recipes`). Prefer `id` selectors; `testID` maps to Android's
-`resource-id`. Apple targets do not work from Windows.
+`resource-id`.
 
 <!-- appelent-managed:start -->
 ## Appelent Managed Project

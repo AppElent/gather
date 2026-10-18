@@ -35,7 +35,7 @@ rule costs one tap, never a dead end.
 
 The chooser names the Drop's save location. Confirming switches the app's Group
 to it and lands the person on what they made — because
-`docs/mobile-interaction.md` says the confirmation *is* the screen changing, and
+[`apps/mobile/DESIGN_SYSTEM.md`](../../apps/mobile/DESIGN_SYSTEM.md#feedback) says the confirmation *is* the screen changing, and
 a write into a Group you are not standing in has no confirmation available to
 it. No per-write Group and no Group picker anywhere else: the Group remains a
 place rather than a field.

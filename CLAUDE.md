@@ -6,12 +6,9 @@ savings goals, calendar, notes, cheeses, wines) built on the standard AppElent
 stack:
 
 - **TanStack React Start + Router** (file-based routing, `tsr generate`), SSR, Vite.
-- **Convex** backend (`convex/`) — functions: `recipes.ts`, `groups.ts`, `users.ts`,
-  `recipeImport.ts`, `recipeNutrition.ts`, `foods.ts`, `foodsLookup.ts`, `consumption.ts`,
-  `taskLists.ts`, `tasks.ts`, `integrations.ts`, `lib/sharing.ts`, `lib/nutrition.ts`,
-  `lib/offMapping.ts`, `lib/offFetch.ts`, `lib/consumption.ts`, `lib/taskAccess.ts`, `lib/storedFiles.ts`,
-  `lib/taskProviders/` (adapter pattern for Notion/Todoist), `seed.ts` +
-  `lib/seed/` (see "Seed data" below). Schema in `convex/schema.ts`.
+- **Convex** backend (`convex/`); schema in `convex/schema.ts`, shared helpers in
+  `convex/lib/` (Notion/Todoist adapters in `lib/taskProviders/`, seed fixtures in
+  `lib/seed/` — see "Seed data" below).
 - **Clerk** auth (`@clerk/clerk-react`), JWT-bridged to Convex via `CLERK_JWT_ISSUER_DOMAIN`
   (Convex deployment env var, set with `convex env set` — not committed anywhere).
 - **Cloudflare Workers** deploy via `wrangler.jsonc` — worker name `gather`
@@ -19,8 +16,8 @@ stack:
 - **Biome** for lint/format (tab-free, 2-space, single quotes, semicolons as needed).
 - **Vitest** + jsdom + Testing Library.
 - **Tailwind v4**.
-- **`@t3-oss/env-core`** for typed env validation (`src/env.ts`, currently minimal —
-  not yet wired to the Clerk/Convex/Sentry vars actually in use).
+- **`@t3-oss/env-core`** for typed env validation (`src/env.ts`, whose schema is
+  derived from `env.manifest.ts`).
 - **Sentry** (`@sentry/tanstackstart-react`, wired via `instrument.server.mjs`).
 - **Package manager: pnpm, always.**
 
@@ -50,11 +47,11 @@ Standard baseline set (`pnpm run <script>`): `dev`, `dev:all` (Convex once + Vit
 `dev:watch` (Convex watch + Vite via `concurrently`), `generate-routes`, `build`,
 `build:development`, `preview`, `typecheck`, `test`, `format`, `lint`, `lint:fix`,
 `check`, `cf-typegen`, `deploy` (= `deploy:prod`), `deploy:dev`, `deploy:prod`,
-`seed` (Catalog only, safe anywhere), `seed:sample` (rebuilds the Sample
-household on the dev deployment around the shared Clerk test user).
+`seed` (Catalog and Tasting catalog only, safe anywhere), `seed:sample` (rebuilds
+the Sample household on the dev deployment around the shared Clerk test user).
 
-`deploy:dev` and `deploy:prod` both run `convex run seed:seedCatalog` between
-the Convex deploy and the build — Convex has no post-deploy hook outside
+`deploy:dev` and `deploy:prod` both run `convex run seed:seedCatalog` and
+`seed:seedTastingCatalog` between the Convex deploy and the build — Convex has no post-deploy hook outside
 previews, so that step is the only deterministic place for it.
 
 ## Running and verifying the mobile app
@@ -75,7 +72,7 @@ verification. Command table and the full loop are in `apps/mobile/README.md`.
 
 Selector note: the UI is translated, so `text` selectors are locale-dependent
 (`Recepten`, not `Recipes`). Prefer `id` selectors; `testID` maps to Android's
-`resource-id`. Apple targets do not work from Windows.
+`resource-id`.
 
 **A JavaScript change ships over the air; a native one needs a build, and says
 so itself.** `expo-updates` runs the `fingerprint` runtime-version policy, so
@@ -93,7 +90,7 @@ build, so the dev client cannot verify any of this; a release APK from
 
 ## How the phone behaves
 
-`docs/mobile-interaction.md` is the decided interaction vocabulary for
+`apps/mobile/DESIGN_SYSTEM.md` holds the decided interaction vocabulary for
 `apps/mobile` — press-and-hold, swipe, haptics, sheets, undo-vs-confirm,
 loading, empty states, pull-to-refresh. It is short and prescriptive; the
 research and the rejected alternatives are in
@@ -278,12 +275,13 @@ every new Module's metadata in `packages/core/src/modules.ts` and its names and
 descriptions in both core message trees; the Node-based core test verifies the
 locale trees stay complete and interpolation-compatible.
 
-`@appelent/i18n` supplies the engine; gather owns `src/lib/i18n/` — the
-`messages/{en,nl}/` trees, the root-route wiring, `LanguageToggle` (topbar) and
-`LanguageSettings` (`/settings`). **English is the source language**: a string is
-written in `messages/en/` first, and `messages/nl/` `satisfies` it, so a missing
-key fails `pnpm typecheck` and `src/lib/i18n/__tests__/messages.test.ts` catches
-what a type cannot (empty strings, drifted `{placeholder}` tokens). See
+`@appelent/i18n` supplies the engine; `src/lib/i18n/` holds the root-route wiring
+and test helper, with `LanguageToggle` (topbar) and `LanguageSettings`
+(`/settings`) in `src/components/`. **English is the source language**: a string
+is written in `packages/core/src/messages/en/` first, and `messages/nl/`
+`satisfies` it, so a missing key fails `pnpm typecheck` and
+`packages/core/src/__tests__/core.test.ts` catches what a type cannot (empty
+strings, drifted `{placeholder}` tokens). See
 `docs/adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md`
 for the chrome-vs-content boundary and the Dutch glossary.
 
@@ -364,10 +362,8 @@ still exists anywhere. So each one says, where it lives, what would retire it:
 - Code with no end condition does not get to be one-shot code. It is just code,
   and it will be maintained forever.
 
-Outstanding right now: `convex/migrations.ts` → `declineByOmission`, which is
-waiting on a production run before it and the `babies.trackedTypes` column can
-go (`docs/migrations/0007-baby-tracked-types-become-declines.md`). Run it with
-`npx convex run migrations:declineByOmission --prod`.
+The active migrations, their commands and their retirement conditions are
+listed in `docs/migrations/README.md` — the only place that list is kept.
 
 `src/lib/legacyPaths.ts` was the cautionary case: excellent about why it existed,
 silent about when it stopped, and on course to outlive every link it served.
@@ -385,19 +381,12 @@ silent about when it stopped, and on course to outlive every link it served.
 
 ## Claude Code workflow layer
 
-`.claude/skills/review-app` and `.claude/skills/review-session` are project-local
-copies of the `appelent` plugin's bundled `skills/review-app`/`skills/review-session`
-(catalog repo `D:\Dev\appelent-packages`, https://github.com/AppElent/appelent-packages)
-— **the plugin's copies are the source of truth**; refresh either with
-`/appelent:project sync-skills <name>`. `.claude/commands/upgrade-deps.md` and
-`.claude/commands/review-session.md` are still project-local copies of the global
-`~/.claude/commands/custom-upgrade-deps.md` / `custom-review-session.md` templates
-(no catalog equivalent for these two yet) — the global copies remain the source of
-truth for them. In all cases, a non-project-specific fix made locally should be
-ported back to whichever source copy it traces to, not left to drift.
-`.claude/skills/verify/SKILL.md` is the one exception: it's project-specific by
-design (gather's actual route→module map) and has no source-of-truth counterpart
-at all.
+`.claude/skills/verify/SKILL.md` is the only project-local skill; it is
+project-specific by design (gather's route→module map). `.claude/commands/`
+holds thin commands: `review-session.md` invokes the global
+`custom-review-session` skill, `upgrade-deps.md` is a copy of the global
+`custom-upgrade-deps.md` template, and `babysit.md` is gather's PR-babysitting
+policy. Review, upgrade and handoff workflows come from the shared skills.
 
 ## Agent skills
 

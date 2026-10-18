@@ -18,7 +18,7 @@
  * ## Rating is a tap, and it is optimistic
  *
  * Small, frequent, reversible — the three conditions
- * `docs/mobile-interaction.md` sets for an optimistic write. The star fills
+ * `apps/mobile/DESIGN_SYSTEM.md` sets for an optimistic write. The star fills
  * immediately, and if the mutation is refused Convex rolls the local store back
  * and the star empties again. That rollback has to be *visible*, which is why
  * there is a failure haptic and a line of text beside it rather than a silent
@@ -497,7 +497,7 @@ function HeaderButton({
       accessibilityLabel={label}
       testID={testID}
       // The number `QuickActionSheet` settled on, and the reason
-      // `docs/mobile-interaction.md` names it as the example to copy.
+      // `apps/mobile/DESIGN_SYSTEM.md` names it as the example to copy.
       hitSlop={12}
       onPress={onPress}
       style={({ pressed }) => [styles.headerButton, pressed && styles.pressed]}

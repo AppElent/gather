@@ -1,9 +1,8 @@
 # Interaction vocabulary for the gather mobile app
 
-*This document predates and is not synced by the `guidance` catalog
-feature — it's gather's own project-specific survey, not the generic
-research note that feature's `mobile-interaction` step would otherwise
-copy in. See `docs/mobile-interaction.md`'s intro for how the two relate.*
+*Gather's own survey. The rules decided from it live in
+[`apps/mobile/DESIGN_SYSTEM.md`](../../apps/mobile/DESIGN_SYSTEM.md#interaction-vocabulary);
+this file keeps the alternatives and the reasoning.*
 
 **This is a survey, not a decision.** It exists so that the decisions can be
 argued about one at a time instead of being made accidentally, one component at
