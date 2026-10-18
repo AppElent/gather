@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when publishing an over-the-air update, making a store or internal build, or rolling an update back.
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Mobile releases
@@ -24,12 +24,10 @@ pnpm update:preview --message "what changed"
 pnpm update:prod    --message "what changed"
 ```
 
-Each script pairs `--channel` with `--environment`. **Never drop the
-`--environment` flag.** `EXPO_PUBLIC_*` values are textually inlined into the
-bundle by Metro at publish time (see `src/auth/config.ts`), so a publish without
-it bakes in whatever `.env.local` the publishing machine happens to hold — which
-would point production phones at the dev Convex deployment and the Clerk test
-instance.
+Each script pairs `--channel` with `--environment`, as the
+[mobile baseline](../standards/mobile-baseline.md#build-and-release-boundaries)
+requires; publish only through them. Here a bare publish would point
+production phones at the dev Convex deployment and the Clerk test instance.
 
 **A new build** — anything that changes the native surface: a new native
 dependency, an `app.json` or config-plugin change, an Expo SDK bump. You do not

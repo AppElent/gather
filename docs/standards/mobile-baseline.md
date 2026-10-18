@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read when setting up or changing an Expo Router app, its native configuration, or release boundaries.
-version: 2.0.0
+version: 2.1.0
 applies_to: [mobile]
 ---
 
@@ -29,6 +29,8 @@ The development profile enables a development client and internal distribution; 
 For pnpm builds across Windows/macOS, keep the same virtual-store path-length policy: native autolinking paths can affect Expo fingerprints even with identical package versions.
 
 Native dependency, config-plugin, entitlement, or runtime changes require a compatible binary. The [OTA guard example](mobile-baseline/examples/ota-guard.ts) compares resolved runtime evidence, profile, environment, and channel. It does not query EAS and a fingerprint policy string is not a resolved runtime fingerprint. No update command is generated automatically. Store submission, signing, production rollout, and device acceptance remain separate tasks.
+
+Publish every over-the-air update with an explicit environment (`eas update --environment <name>`, paired with its channel). `EXPO_PUBLIC_*` values are inlined into the bundle at publish time by textual substitution of `process.env.EXPO_PUBLIC_NAME`, so a bare publish bakes in the publishing machine's local env file and points production devices at development backends. Static dot access at every call site is load-bearing: dynamic or destructured reads are not substituted.
 
 Run types, app tests, Expo dependency checks, and an actual dev/internal build. Verify cold/warm launch, login/logout, navigation, keyboard, safe areas, scaling, offline/error states, and device reachability. A missing provider credential or untested device path remains outstanding work.
 

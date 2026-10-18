@@ -1,16 +1,14 @@
 ---
 type: runbook
 description: Read when building, running, or verifying the phone app on a device or emulator, including a Drop.
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Mobile verification
 
-Binds the shared [verification](../standards/verification.md) standard to
-`apps/mobile`. **Verify a mobile change on the device, not with `typecheck`
-alone**: `open`, then `press`/`fill`/`scroll --settle` reading the UI diff each
-action returns, then `wait text "..."` to assert the end state. A screenshot on
-its own is not verification. Checks to run first: [verification](verification.md).
+Binds the shared [verification](../standards/verification.md) standard, and
+its device-automation loop, to `apps/mobile`. Checks to run first:
+[verification](verification.md).
 
 ## Development build
 
@@ -70,11 +68,10 @@ agent-device open com.appelent.gather --platform android --foreground
 agent-device close
 ```
 
-Two things that will bite: the UI is translated, so `text` selectors match
-whatever locale is active (`Recepten`, not `Recipes`) — prefer `id` selectors and
-add `testID` on screens you test often, since React Native maps `testID` to
-Android's `resource-id`. The facts above are Android's; an iOS simulator needs
-macOS with Xcode, and the bundle id is the same `com.appelent.gather`.
+The UI is Dutch by default on a Dutch device, so a `text` selector matches
+`Recepten`, not `Recipes`; add `testID` on screens you test often. The facts
+above are Android's; an iOS simulator needs macOS with Xcode, and the bundle id
+is the same `com.appelent.gather`.
 
 ## Verifying a Drop
 

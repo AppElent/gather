@@ -99,26 +99,16 @@ the source and `nl` `satisfies` it, so a missing key fails `pnpm typecheck` and
 new user-visible string goes in both locales. The chrome-vs-content boundary
 and the Dutch glossary are [ADR-0011](docs/adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md).
 
-- **Display strings never live in `convex/` or a plain `lib/` data file.** Key
-  them by the union the schema defines (`ModuleId`, `NutrientKey`, `MealName`,
-  `BabyEventType`) with `satisfies Record<…>`, and add the entries in the same
-  change as the new member.
-- **Non-React code takes messages as a trailing parameter** (`navItems`,
-  `getRouteContext`, `formatActivityTime`, `formatAge`, `summarizeEvent`).
-- **A validator returns a key, not a sentence** — `buildEventInput` reports
-  `'enterVaccineName'` and the form resolves it.
-- **Resolve messages at render.** Inside a `useEffect` whose deps should not
-  include the locale, hold a key in state instead; when Biome's
-  `useExhaustiveDependencies` asks for the messages, the key is the fix.
+The [i18n](docs/standards/i18n.md) rules on backend and data-file text,
+validators and effects apply as written. Gather's schema unions are `ModuleId`,
+`NutrientKey`, `MealName` and `BabyEventType`: add both locales' entries in the
+same change as a new member. Pure modules that take messages as a trailing
+parameter include `navItems`, `getRouteContext`, `formatActivityTime`,
+`formatAge` and `summarizeEvent`.
 
 ### One-shot code
 
-Migration mutations, backfills and compatibility shims are written to run
-against a data shape and then be dead, but they look exactly like live code and
-their tests keep passing. Each one states, where it lives, what retires it:
-
-- **Migration code** is deleted when its entry in `docs/migrations/` records
-  that it has run everywhere or was superseded. The active list, commands and
-  retirement conditions are in [`docs/migrations/README.md`](docs/migrations/README.md).
-- **A compatibility shim** names the date or event after which it goes.
-- Code with no end condition is ordinary code and is maintained as such.
+Binds [one-shot code](docs/standards/general-coding.md#one-shot-code). A
+migration's retirement record is its entry in `docs/migrations/`; the active
+list, commands and retirement conditions are in
+[`docs/migrations/README.md`](docs/migrations/README.md).
