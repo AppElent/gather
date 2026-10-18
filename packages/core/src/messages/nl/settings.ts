@@ -35,7 +35,7 @@ export const settings = {
     action: 'Exporteren',
     busy: 'Exporteren… {done} van {total}',
     failed: 'Je gegevens konden niet worden geëxporteerd. Probeer het opnieuw.',
-    saved: 'Opgeslagen als {file}.',
+    unavailable: 'Dit apparaat kan het bestand nergens heen delen.',
   },
 
   nutritionTargets: {
