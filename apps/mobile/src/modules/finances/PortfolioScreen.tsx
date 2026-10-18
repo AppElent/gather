@@ -17,15 +17,15 @@
  */
 
 import { holdingPosition } from '@gather/core/finance'
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-
 import { api } from '../../../../../convex/_generated/api'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
 import { Segmented } from '../../components/Segmented'
+import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
 import { FINANCE_ICONS } from './icons'
 import { type FinanceBase, financeHref } from './paths'

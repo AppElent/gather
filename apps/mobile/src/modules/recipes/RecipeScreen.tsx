@@ -32,7 +32,7 @@
  * (ADR-0009's sibling: never offer an action that can only fail).
  */
 import { isAiLimitReached } from '@gather/core/ai-limit'
-import { useAction, useMutation, useQuery } from 'convex/react'
+import { useAction, useMutation } from 'convex/react'
 import { Image } from 'expo-image'
 import { useKeepAwake } from 'expo-keep-awake'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
@@ -47,10 +47,10 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
+import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'

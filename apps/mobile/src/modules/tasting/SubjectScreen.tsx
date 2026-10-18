@@ -35,7 +35,7 @@
  */
 import type { TastingAttributeValue, TastingKind } from '@gather/core/tastings'
 import { tastingFields } from '@gather/core/tastings'
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation } from 'convex/react'
 import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
@@ -49,11 +49,11 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { NativeSheet } from '../../components/NativeSheet'
+import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'

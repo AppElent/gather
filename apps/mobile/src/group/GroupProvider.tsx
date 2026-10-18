@@ -28,7 +28,7 @@
  */
 import { useAuth } from '@clerk/expo'
 import { selectGroup } from '@gather/core/groups'
-import { useConvexAuth, useQuery } from 'convex/react'
+import { useConvexAuth } from 'convex/react'
 import {
   createContext,
   type ReactNode,
@@ -38,9 +38,9 @@ import {
   useMemo,
   useState,
 } from 'react'
-
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
+import { useQuery } from '../convex/queries'
 import {
   groupsForSurface,
   type RetainedGroups,

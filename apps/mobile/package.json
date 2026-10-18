@@ -27,6 +27,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@gather/core": "workspace:*",
     "convex": "^1.42.3",
+    "convex-helpers": "0.1.120",
     "expo": "~57.0.24",
     "expo-build-properties": "~57.0.21",
     "expo-constants": "~57.0.19",

@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when building, running, or verifying the phone app on a device or emulator, including a Drop.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Mobile verification
@@ -72,6 +72,16 @@ The UI is Dutch by default on a Dutch device, so a `text` selector matches
 `Recepten`, not `Recipes`; add `testID` on screens you test often. The facts
 above are Android's; an iOS simulator needs macOS with Xcode, and the bundle id
 is the same `com.appelent.gather`.
+
+## Watching query subscriptions
+
+Start Metro with `EXPO_PUBLIC_DEBUG_QUERIES=1 pnpm start:dev-client` and every
+query subscription the client opens or closes on the socket prints as
+`[convex-query] + recipes:list` / `- recipes:list` in the Metro log. It is read
+from the wire, so a screen that answers from retention prints nothing; a
+reconnect re-adds every live query at once. Development builds only, off by
+default. What the log should show for a tab return, backgrounding and
+sign-out: [mobile query retention](../records/2026-10-18-mobile-query-retention.md).
 
 ## Verifying a Drop
 

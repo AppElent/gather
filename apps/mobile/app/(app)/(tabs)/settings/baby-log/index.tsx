@@ -6,12 +6,12 @@
  * to the household — so this is a list that drills into the same Child screen
  * the Module itself reaches (ADR-0022).
  */
-import { useQuery } from 'convex/react'
+
 import { Stack, useRouter } from 'expo-router'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
 import { api } from '../../../../../../../convex/_generated/api'
+import { useQuery } from '../../../../../src/convex/queries'
 import { useGroup } from '../../../../../src/group/GroupProvider'
 import { useI18n } from '../../../../../src/i18n'
 import { UI_ICONS } from '../../../../../src/theme/icons'

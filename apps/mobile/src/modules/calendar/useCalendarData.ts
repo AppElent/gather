@@ -6,9 +6,9 @@ import {
   filterCalendarEvents,
   monthStart,
 } from '@gather/core/calendar'
-import { usePaginatedQuery, useQuery } from 'convex/react'
 import { useCallback, useMemo, useState } from 'react'
 import { api } from '../../../../../convex/_generated/api'
+import { usePaginatedQuery, useQuery } from '../../convex/queries'
 
 import type { CalendarScreenData } from './CalendarScreen'
 

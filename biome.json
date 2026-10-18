@@ -57,5 +57,37 @@
       "quoteStyle": "single",
       "semicolons": "asNeeded"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "apps/mobile/src/**",
+        "apps/mobile/app/**",
+        "!**/*.test.*",
+        "!apps/mobile/src/convex/queries.ts",
+        "!apps/mobile/src/auth/useViewer.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "convex/react": {
+                    "importNames": [
+                      "useQuery",
+                      "useQueries",
+                      "usePaginatedQuery"
+                    ],
+                    "message": "Import query hooks from apps/mobile/src/convex/queries (docs/standards/convex-query-caching.md)."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

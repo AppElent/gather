@@ -12,12 +12,12 @@
  * offering an input that fails on submit. Gather never emulates an external
  * write locally.
  */
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
+import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'

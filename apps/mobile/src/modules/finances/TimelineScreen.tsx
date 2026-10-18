@@ -12,13 +12,12 @@
  */
 
 import { mortgageSteps } from '@gather/core/finance'
-import { useQuery } from 'convex/react'
 import { Stack } from 'expo-router'
 import { View } from 'react-native'
-
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
+import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
 import { dateForMonth } from './format'
 import { toLoanParts } from './loanParts'

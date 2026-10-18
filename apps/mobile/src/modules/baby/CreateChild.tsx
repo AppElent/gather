@@ -15,7 +15,7 @@ import {
   type BabyEventType,
   declinedEventTypes,
 } from '@gather/core/domain'
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation } from 'convex/react'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -29,9 +29,9 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
+import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { babyChildKey, writePreference } from '../../prefs/localPreference'

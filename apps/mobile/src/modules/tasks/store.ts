@@ -1,8 +1,8 @@
-import { useAction, useMutation, useQueries, useQuery } from 'convex/react'
+import { useAction, useMutation } from 'convex/react'
 import { useEffect, useMemo, useState } from 'react'
-
 import { api } from '../../../../../convex/_generated/api'
 import type { Doc, Id } from '../../../../../convex/_generated/dataModel'
+import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { toIso } from './taskDates'
 import type {
