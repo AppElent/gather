@@ -9,7 +9,6 @@ import {
 const gaveUp = {
   signedIn: true,
   tokenFetchFailed: true,
-  convexLoading: false,
   convexAuthenticated: false,
   socketConnected: true,
 }
@@ -31,10 +30,7 @@ describe('needsReauthentication', () => {
     )
   })
 
-  test('leaves an attempt in flight, a working session, and a signed-out phone alone', () => {
-    expect(needsReauthentication({ ...gaveUp, convexLoading: true })).toBe(
-      false,
-    )
+  test('leaves a working session and a signed-out phone alone', () => {
     expect(
       needsReauthentication({ ...gaveUp, convexAuthenticated: true }),
     ).toBe(false)

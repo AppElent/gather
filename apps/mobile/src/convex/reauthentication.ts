@@ -13,7 +13,8 @@
  *
  * The only way back in is `client.setAuth` again, which `ConvexProviderWithAuth`
  * calls whenever the identity of `fetchAccessToken` changes. `ClerkConvexAuth`
- * changes it on demand; this file decides when to ask.
+ * changes it on demand; this file decides when to ask. It is best-effort: the
+ * guarantee of a way out is `ConvexSessionGate`'s timeout.
  */
 
 /** Waits before each successive attempt; the last one repeats. The first is
@@ -28,15 +29,12 @@ export interface ReauthInput {
   /** Clerk still holds a session. */
   signedIn: boolean
   /**
-   * Our `fetchAccessToken` came back empty for *this* Clerk session — the one
-   * thing that sends the client to `noAuth`. Convex's own flags cannot say
-   * it: straight after signing in it also reports "not loading, not
-   * authenticated" while the handshake is still running, and retrying then
-   * would only race it.
+   * A forced token fetch of the current generation came back empty — what
+   * sends the client to `noAuth`. Convex's own flags cannot say it: straight
+   * after signing in it also reports "not authenticated" while the handshake
+   * is still running, and retrying then would only race it.
    */
   tokenFetchFailed: boolean
-  /** `useConvexAuth()` — `isLoading` is true while a token is being tried. */
-  convexLoading: boolean
   convexAuthenticated: boolean
   /** The socket is up, so a token fetch has a chance and a retry is not a
    * guaranteed failure. */
@@ -52,15 +50,8 @@ export interface ReauthInput {
 export function needsReauthentication({
   signedIn,
   tokenFetchFailed,
-  convexLoading,
   convexAuthenticated,
   socketConnected,
 }: ReauthInput): boolean {
-  return (
-    signedIn &&
-    tokenFetchFailed &&
-    !convexLoading &&
-    !convexAuthenticated &&
-    socketConnected
-  )
+  return signedIn && tokenFetchFailed && !convexAuthenticated && socketConnected
 }

@@ -36,8 +36,6 @@ import { ACCOUNT_DELETED } from '../../../../convex/lib/sharing'
 export interface Provisioning {
   /** The last attempt was refused for a reason other than a deletion. */
   failed: boolean
-  /** Counts attempts, so a caller can restart a wait when one begins. */
-  attempt: number
   retry: () => void
 }
 
@@ -72,5 +70,5 @@ export function useEnsureUser(): Provisioning {
     setAttempt((count) => count + 1)
   }, [])
 
-  return { failed, attempt, retry }
+  return { failed, retry }
 }

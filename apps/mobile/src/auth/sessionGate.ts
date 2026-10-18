@@ -91,32 +91,32 @@ export function isSessionOpen(
  *
  * - **quiet** — a bare surface, for the first `PENDING_REVEAL_MS`.
  * - **pending** — the loading screen, once the wait has been noticeable.
- * - **recover** — try again or sign out. Reached when the account has no
- *   `users` row and provisioning has failed or has run past its bounded wait:
- *   nothing else would ever open the gate, and nothing else on screen would
- *   offer a way out. (`AvailabilityProvider` sees a healthy connection, so it
- *   shows no retry of its own.)
+ * - **recover** — try again or sign out. The escape hatch, and deliberately
+ *   blind to the cause: once the gate has stayed closed for `GATE_STUCK_MS`
+ *   while Clerk is signed in, something is wrong that nothing on screen would
+ *   otherwise offer a way out of — a token Convex rejects, provisioning that
+ *   never lands, a cause nobody has thought of yet. Automatic recovery
+ *   (`ConvexAuthRecovery`) is an optimisation on top; this is the guarantee.
+ *   A provisioning refusal is the one cause known early enough to skip the
+ *   wait.
  */
 export type ClosedGateView = 'quiet' | 'pending' | 'recover'
 
 export interface ClosedGateInput {
-  /** Convex is authenticated and `users.me` answered `null`. */
-  unprovisioned: boolean
-  provisioningFailed: boolean
-  /** `PROVISION_WAIT_MS` has passed since this attempt began. */
-  provisionWaitExpired: boolean
   /** `PENDING_REVEAL_MS` has passed since the gate closed. */
   revealed: boolean
+  /** `GATE_STUCK_MS` has passed since the gate closed or was last retried. */
+  stuck: boolean
+  /** Convex is authenticated, `users.me` answered `null`, and `ensureUser`
+   * was refused. */
+  provisioningRefused: boolean
 }
 
 export function closedGateView({
-  unprovisioned,
-  provisioningFailed,
-  provisionWaitExpired,
   revealed,
+  stuck,
+  provisioningRefused,
 }: ClosedGateInput): ClosedGateView {
-  if (unprovisioned && (provisioningFailed || provisionWaitExpired)) {
-    return 'recover'
-  }
+  if (stuck || provisioningRefused) return 'recover'
   return revealed ? 'pending' : 'quiet'
 }

@@ -46,10 +46,12 @@
  * `SessionError` — try again or sign out — rather than letting the throw reach
  * Expo Router's root error screen.
  *
- * The gate also owns provisioning (`useEnsureUser`), because a signed-in
- * account with no `users` row is held here until it has one. When that write
- * is refused, or has not landed within `PROVISION_WAIT_MS`, the same
- * `SessionError` offers to run it again or to sign out (`closedGateView`).
+ * And whatever keeps it closed — a token Convex rejects, provisioning that
+ * never lands, anything else — it never holds anybody for longer than
+ * `GATE_STUCK_MS`: after that the same `SessionError` offers Try again (ask
+ * Convex to authenticate afresh and re-run `ensureUser`) or Sign out
+ * (`closedGateView`). The gate owns provisioning for that reason: a signed-in
+ * account with no `users` row is held here until it has one.
  */
 import { useAuth } from '@clerk/expo'
 import { type RequestForQueries, useConvexAuth, useQueries } from 'convex/react'
@@ -76,10 +78,9 @@ import {
 /** How long the gate stays a bare surface before admitting it is waiting. */
 export const PENDING_REVEAL_MS = 600
 
-/** How long an account with no `users` row waits for `ensureUser` before the
- * gate offers to retry it. One round trip on a healthy connection; this is
- * several. */
-export const PROVISION_WAIT_MS = 10_000
+/** How long the gate may stay closed, for any reason, before it offers a way
+ * out. A healthy cold start or sign-in opens it in well under a second. */
+export const GATE_STUCK_MS = 10_000
 
 export interface ConvexSessionGateProps {
   children: ReactNode
@@ -103,7 +104,12 @@ export function ConvexSessionGate({
         <SessionError onRetry={retry} onSignOut={onSignOut} />
       )}
     >
-      <Gate {...props} provisioning={provisioning} onSignOut={onSignOut} />
+      <Gate
+        {...props}
+        provisioning={provisioning}
+        reauthenticate={reauthenticate}
+        onSignOut={onSignOut}
+      />
     </SessionIdentityBoundary>
   )
 }
@@ -126,8 +132,12 @@ function Gate({
   children,
   pending,
   provisioning,
+  reauthenticate,
   onSignOut,
-}: ConvexSessionGateProps & { provisioning: Provisioning }) {
+}: ConvexSessionGateProps & {
+  provisioning: Provisioning
+  reauthenticate: () => void
+}) {
   const { userId } = useAuth()
   const { isAuthenticated } = useConvexAuth()
   const tokens = useTokens()
@@ -151,28 +161,31 @@ function Gate({
     return () => clearTimeout(timeout)
   }, [open])
 
-  // Restarted by every provisioning attempt, including a retry.
-  const unprovisioned = isAuthenticated && viewer === null
-  const [expiredAttempt, setExpiredAttempt] = useState<number | null>(null)
+  // The escape hatch's clock: restarted whenever the gate closes again and by
+  // every Try again, cleared while open.
+  const [retries, setRetries] = useState(0)
+  const [stuckAt, setStuckAt] = useState<number | null>(null)
+  if (open && stuckAt !== null) setStuckAt(null)
   useEffect(() => {
-    if (!unprovisioned) return
-    const attempt = provisioning.attempt
-    const timeout = setTimeout(
-      () => setExpiredAttempt(attempt),
-      PROVISION_WAIT_MS,
-    )
+    if (open) return
+    const timeout = setTimeout(() => setStuckAt(retries), GATE_STUCK_MS)
     return () => clearTimeout(timeout)
-  }, [unprovisioned, provisioning.attempt])
+  }, [open, retries])
 
   if (!open) {
     const view = closedGateView({
-      unprovisioned,
-      provisioningFailed: provisioning.failed,
-      provisionWaitExpired: expiredAttempt === provisioning.attempt,
       revealed,
+      stuck: stuckAt === retries,
+      provisioningRefused:
+        isAuthenticated && viewer === null && provisioning.failed,
     })
     if (view === 'recover') {
-      return <SessionError onRetry={provisioning.retry} onSignOut={onSignOut} />
+      const retry = () => {
+        reauthenticate()
+        provisioning.retry()
+        setRetries((count) => count + 1)
+      }
+      return <SessionError onRetry={retry} onSignOut={onSignOut} />
     }
     return view === 'pending' ? (
       pending

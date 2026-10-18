@@ -8,9 +8,18 @@
  * `fetchAccessToken` also changes when `reauthenticate()` is called, which is
  * the supported way to make `ConvexProviderWithAuth` run `setAuth` once more.
  *
- * `ConvexAuthRecovery` calls it: when Clerk is signed in, our token fetch came
- * back empty for that session, Convex has given up, and the socket is up — on the reconnect, on returning to the foreground, and
- * then with backoff while the token still cannot be had.
+ * Each fetcher belongs to a **generation** — one Clerk session and one attempt
+ * — and a failure is recorded against the generation whose fetch failed, never
+ * cleared, only superseded. So a late answer from a session or attempt that
+ * has since been replaced cannot raise or hide the current one's failure; it
+ * is the same rule Convex applies to its own stale fetches (config versions).
+ * And only an empty *forced* fetch counts: Convex follows an empty cached
+ * lookup with a forced one, and only when that is empty too has it given up.
+ *
+ * `ConvexAuthRecovery` acts on it — on the reconnect, on returning to the
+ * foreground, then with backoff. It is best-effort: a token Convex *rejects*
+ * is not a fetch failure and is not seen here. `ConvexSessionGate`'s timeout
+ * is what guarantees a way out of every case.
  */
 import { useAuth } from '@clerk/expo'
 import {
@@ -33,33 +42,29 @@ import { AppState } from 'react-native'
 
 import { needsReauthentication, reauthDelay } from './reauthentication'
 
+/** One Clerk session and one re-auth attempt; compared by identity. */
+type Generation = object
+
 interface Reauth {
-  attempt: number
+  generation: Generation
   reauthenticate: () => void
-  /** The Clerk session whose last token fetch came back empty, if any. */
-  failedSession: string | null
-  recordTokenFetch: (sessionId: string | null, ok: boolean) => void
+  /** Whether Convex has given up on this generation. */
+  failed: boolean
+  markFailed: (generation: Generation) => void
 }
 
 const ReauthContext = createContext<Reauth>({
-  attempt: 0,
+  generation: {},
   reauthenticate: () => {},
-  failedSession: null,
-  recordTokenFetch: () => {},
+  failed: false,
+  markFailed: () => {},
 })
 
-/** Convex's own Clerk adapter, plus `attempt` in the token fetcher's identity. */
+/** Convex's own Clerk adapter, with the generation as the token fetcher's
+ * identity. */
 function useAuthFromClerk() {
-  const {
-    isLoaded,
-    isSignedIn,
-    getToken,
-    orgId,
-    orgRole,
-    sessionId,
-    sessionClaims,
-  } = useAuth()
-  const { attempt, recordTokenFetch } = use(ReauthContext)
+  const { isLoaded, isSignedIn, getToken, sessionClaims } = useAuth()
+  const { generation, markFailed } = use(ReauthContext)
   // Read through a ref, as Convex's adapter effectively does by leaving them
   // out of its deps: a new `getToken` must not mean a new authentication.
   const latest = useRef({ getToken, sessionClaims })
@@ -67,9 +72,8 @@ function useAuthFromClerk() {
     latest.current = { getToken, sessionClaims }
   }, [getToken, sessionClaims])
 
-  // Keyed like Convex's adapter (the session), plus the re-auth attempt. A new
-  // identity is the whole signal: it makes the provider call `setAuth` again.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: identity is the signal
+  // A new generation is a new identity, which is the whole signal: it makes the
+  // provider call `setAuth` again.
   const fetchAccessToken = useCallback(
     async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
       const { getToken, sessionClaims } = latest.current
@@ -86,11 +90,11 @@ function useAuthFromClerk() {
       } catch {
         token = null
       }
-      recordTokenFetch(sessionId ?? null, token !== null)
+      // Empty after a cached lookup is not given up: Convex asks again, forced.
+      if (token === null && forceRefreshToken) markFailed(generation)
       return token
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [orgId, orgRole, sessionId, attempt],
+    [generation, markFailed],
   )
 
   return useMemo(
@@ -106,17 +110,16 @@ function useAuthFromClerk() {
 /** Asks for authentication again while Convex has given up on a session Clerk
  * still holds. Renders nothing. */
 export function ConvexAuthRecovery() {
-  const { isSignedIn, sessionId } = useAuth()
-  const { isLoading, isAuthenticated } = useConvexAuth()
+  const { isSignedIn } = useAuth()
+  const { isAuthenticated } = useConvexAuth()
   const { isWebSocketConnected } = useConvexConnectionState()
-  const { reauthenticate, failedSession } = use(ReauthContext)
+  const { reauthenticate, failed } = use(ReauthContext)
   const failures = useRef(0)
   const [foregrounded, setForegrounded] = useState(0)
 
   const needed = needsReauthentication({
     signedIn: isSignedIn === true,
-    tokenFetchFailed: failedSession !== null && failedSession === sessionId,
-    convexLoading: isLoading,
+    tokenFetchFailed: failed,
     convexAuthenticated: isAuthenticated,
     socketConnected: isWebSocketConnected,
   })
@@ -156,17 +159,28 @@ export function ClerkConvexAuth({
   client: ConvexReactClient
   children: ReactNode
 }) {
+  const { sessionId, orgId, orgRole } = useAuth()
   const [attempt, setAttempt] = useState(0)
-  const [failedSession, setFailedSession] = useState<string | null>(null)
-  const reauthenticate = useCallback(() => setAttempt((n) => n + 1), [])
-  const recordTokenFetch = useCallback(
-    (sessionId: string | null, ok: boolean) =>
-      setFailedSession(ok ? null : sessionId),
-    [],
+  // A new object whenever the session, its organisation or the attempt
+  // changes — the same things Convex's adapter keys on, plus the attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the deps are what make a generation
+  const generation = useMemo<Generation>(
+    () => ({}),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sessionId, orgId, orgRole, attempt],
   )
+  const [failedGeneration, setFailedGeneration] = useState<Generation | null>(
+    null,
+  )
+  const reauthenticate = useCallback(() => setAttempt((n) => n + 1), [])
   const value = useMemo(
-    () => ({ attempt, reauthenticate, failedSession, recordTokenFetch }),
-    [attempt, reauthenticate, failedSession, recordTokenFetch],
+    () => ({
+      generation,
+      reauthenticate,
+      failed: failedGeneration === generation,
+      markFailed: setFailedGeneration,
+    }),
+    [generation, reauthenticate, failedGeneration],
   )
 
   return (

@@ -52,7 +52,6 @@ describe('useEnsureUser', () => {
     await settle()
     expect(backend.ensureUser).toHaveBeenCalledTimes(2)
     expect(result.current.failed).toBe(false)
-    expect(result.current.attempt).toBe(1)
   })
 
   test('does not report an account mid-deletion as a failure: that screen is already signing out', async () => {

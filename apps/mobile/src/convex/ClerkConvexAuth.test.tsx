@@ -7,13 +7,24 @@ import { mount, until } from '../testing/dom'
 import { ClerkConvexAuth } from './ClerkConvexAuth'
 import { REAUTH_BACKOFF_MS } from './reauthentication'
 
+type TokenRequest = { sessionId: string; skipCache: boolean }
+
 const harness = vi.hoisted(() => ({
-  clerk: { tokenAvailable: true, signedIn: true, tokenDelayMs: 0 },
+  clerk: {
+    tokenAvailable: true,
+    signedIn: true,
+    sessionId: 'sess_A',
+    tokenDelayMs: 0,
+  },
+  /** Replaces the default token answer for one test. */
+  fetch: null as null | ((request: TokenRequest) => Promise<string | null>),
   appState: null as ((state: string) => void) | null,
 }))
 
 vi.mock('@clerk/expo', () => {
-  const getToken = async () => {
+  const getToken = async ({ skipCache }: { skipCache: boolean }) => {
+    const request = { sessionId: harness.clerk.sessionId, skipCache }
+    if (harness.fetch) return harness.fetch(request)
     if (harness.clerk.tokenDelayMs) {
       await new Promise((resolve) =>
         setTimeout(resolve, harness.clerk.tokenDelayMs),
@@ -29,7 +40,7 @@ vi.mock('@clerk/expo', () => {
       getToken,
       orgId: null,
       orgRole: null,
-      sessionId: 'sess_1',
+      sessionId: harness.clerk.sessionId,
       sessionClaims: undefined,
     }),
   }
@@ -50,9 +61,10 @@ type FetchToken = (args: {
 
 /**
  * The parts of `ConvexReactClient` the provider touches, with the behaviour of
- * convex 1.42's `AuthenticationManager` that matters here: a failed refresh
- * reports `false` and forgets the token fetcher, and a reconnect does not
- * bring it back. Only `setAuth` does.
+ * convex 1.42's `AuthenticationManager` that matters here: `setAuth` tries a
+ * cached token and then a forced one; a failed refresh reports `false` and
+ * forgets the token fetcher; a reconnect does not bring it back. Only
+ * `setAuth` does, and answers for a replaced config are dropped.
  */
 class FakeClient {
   setAuthCalls = 0
@@ -67,9 +79,23 @@ class FakeClient {
     this.setAuthCalls += 1
     const config = { fetchToken, onChange }
     this.config = config
-    void fetchToken({ forceRefreshToken: false }).then((token) => {
-      if (this.config === config) config.onChange(token !== null)
-    })
+    // `setConfig`: a cached token if there is one, else a forced fetch, and
+    // only when that is empty too does it report failure and give up.
+    void (async () => {
+      let token = await fetchToken({ forceRefreshToken: false })
+      if (this.config !== config) return
+      if (token === null) {
+        token = await fetchToken({ forceRefreshToken: true })
+        if (this.config !== config) return
+      }
+      if (token === null) this.config = null
+      config.onChange(token !== null)
+    })()
+  }
+
+  /** A forced fetch from the current config, left to finish whenever. */
+  startForcedFetch() {
+    return this.config?.fetchToken({ forceRefreshToken: true })
   }
 
   clearAuth() {
@@ -142,7 +168,9 @@ describe('ClerkConvexAuth', () => {
   beforeEach(() => {
     harness.clerk.tokenAvailable = true
     harness.clerk.signedIn = true
+    harness.clerk.sessionId = 'sess_A'
     harness.clerk.tokenDelayMs = 0
+    harness.fetch = null
   })
   afterEach(() => {
     vi.useRealTimers()
@@ -221,6 +249,89 @@ describe('ClerkConvexAuth', () => {
     act(() => harness.appState?.('active'))
     await tick()
     expect(client.setAuthCalls).toBe(3)
+    expect(seen.authenticated).toBe(true)
+    view.unmount()
+  })
+
+  test('does not interrupt a slow sign-in whose cached lookup came back empty', async () => {
+    harness.clerk.signedIn = false
+    // No cached token, and the forced fetch takes a while: Convex is still
+    // working, not giving up.
+    harness.fetch = async ({ skipCache }) => {
+      if (!skipCache) return null
+      await new Promise((resolve) => setTimeout(resolve, 200))
+      return 'jwt'
+    }
+    const { client, seen, rerender, view } = renderWithClient()
+    harness.clerk.signedIn = true
+    rerender()
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    expect(client.setAuthCalls).toBe(1)
+    expect(seen.authenticated).toBe(false)
+    await until(() => seen.authenticated)
+    expect(client.setAuthCalls).toBe(1)
+    view.unmount()
+  })
+
+  test("a late answer from the previous account's session cannot hide the new one's failure", async () => {
+    const { client, seen, rerender, view } = renderWithClient()
+    await until(() => seen.authenticated)
+
+    // Account A has a forced fetch in flight that will not finish for a while.
+    let finishStale: (token: string | null) => void = () => {}
+    harness.fetch = ({ sessionId, skipCache }) =>
+      sessionId === 'sess_A' && skipCache
+        ? new Promise((resolve) => {
+            finishStale = resolve
+          })
+        : Promise.resolve(harness.clerk.tokenAvailable ? 'jwt' : null)
+    const stale = client.startForcedFetch()
+
+    // Account B signs in offline, and both of its fetches come back empty.
+    act(() => client.setConnected(false))
+    harness.clerk.tokenAvailable = false
+    harness.clerk.sessionId = 'sess_B'
+    rerender()
+    await until(() => client.setAuthCalls === 2)
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(seen.authenticated).toBe(false)
+
+    // A's fetch finally succeeds. It must not count as B recovering.
+    await act(async () => {
+      finishStale('jwt')
+      await stale
+    })
+
+    harness.clerk.tokenAvailable = true
+    act(() => client.setConnected(true))
+    await until(() => seen.authenticated)
+    expect(client.setAuthCalls).toBe(3)
+    view.unmount()
+  })
+
+  test("a late failure from the previous account's session does not send the new one round again", async () => {
+    const { client, seen, rerender, view } = renderWithClient()
+    await until(() => seen.authenticated)
+
+    let finishStale: (token: string | null) => void = () => {}
+    harness.fetch = ({ sessionId, skipCache }) =>
+      sessionId === 'sess_A' && skipCache
+        ? new Promise((resolve) => {
+            finishStale = resolve
+          })
+        : Promise.resolve('jwt')
+    const stale = client.startForcedFetch()
+
+    harness.clerk.sessionId = 'sess_B'
+    rerender()
+    await until(() => client.setAuthCalls === 2 && seen.authenticated)
+
+    await act(async () => {
+      finishStale(null)
+      await stale
+    })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(client.setAuthCalls).toBe(2)
     expect(seen.authenticated).toBe(true)
     view.unmount()
   })
