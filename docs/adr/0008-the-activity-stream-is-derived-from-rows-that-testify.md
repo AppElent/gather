@@ -37,7 +37,7 @@ bins out" is the most wanted line on a household's shared surface and a plain
 records its current state, not its history, and a household does not need to be
 told that somebody changed an oven temperature.
 
-It also settles which tables must carry Attribution, which `CONTEXT.md` defined
+It also settles which tables must carry Attribution, which `GLOSSARY.md` defined
 without saying who had to have it. **A table holding a Group's content records who
 created the row**, required rather than optional — an optional ownership field is
 a schema that has stopped saying who owns the row. `taskLists` and `babies` were

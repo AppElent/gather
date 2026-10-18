@@ -4,7 +4,7 @@
 
 Answer: how should the existing selected Calendar experience accommodate recurrence, subscriptions, multi-day events and reminders while completing the interactions already chosen?
 
-This is the third design session. Read the [accepted decisions and common prototype contract](../plans/2026-09-16-notes-tasks-calendar-redesign.md) in full, AGENTS.md, CLAUDE.md, CONTEXT.md, ADR-0034 and [issue 213 with scope comments](https://github.com/AppElent/gather/issues/213). Read prior Tasks/Notes result files if present. This session starts with reconciliation, not a blank-sheet redesign.
+This is the third design session. Read the [accepted decisions and common prototype contract](../plans/2026-09-16-notes-tasks-calendar-redesign.md) in full, AGENTS.md, CLAUDE.md, GLOSSARY.md, ADR-0034 and [issue 213 with scope comments](https://github.com/AppElent/gather/issues/213). Read prior Tasks/Notes result files if present. This session starts with reconciliation, not a blank-sheet redesign.
 
 ## Reconcile earlier selections
 

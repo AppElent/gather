@@ -112,6 +112,6 @@ it must preserve the interaction, state, and domain rules in this spec.
 
 ## Further Notes
 
-- The relevant vocabulary and durable boundaries are defined in `CONTEXT.md`, ADR-0025, and ADR-0026. They take precedence over synonymous names in future implementation discussions.
+- The relevant vocabulary and durable boundaries are defined in `GLOSSARY.md`, ADR-0025, and ADR-0026. They take precedence over synonymous names in future implementation discussions.
 - The supplied design attachment has not yet been created. Attach it to the published issue and update this spec only where necessary to make its agreed visual and interaction decisions explicit.
 - The scope is intentionally broad. Implement it as a series of independently shippable tool slices that share one calculation seam and the Finances index rather than as a single untestable release.

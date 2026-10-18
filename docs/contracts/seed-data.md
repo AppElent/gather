@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the Catalog, the tasting Catalog, the Sample household, or any seed entrypoint.
-version: 2.0.0
+version: 2.1.0
 status: current
 ---
 
@@ -14,6 +14,14 @@ callable functions, because every export under `convex/` is deployed API.
 
 ## Behavior
 
+- **A Catalog entry is a fact or a suggestion, and which one decides whether
+  anything may point at it.** A Food is a fact, so a diary entry references the
+  Catalog row and the row stays read-only forever. A **Tasting catalog** entry
+  is a suggestion, so nothing references it: tasting it makes a copy that is
+  yours, and the shipped row is never seen again
+  ([ADR-0024](../adr/0024-a-tasting-catalog-is-a-picker-and-tasting-it-makes-it-yours.md)).
+- **The Catalog is read-only and always reflects the shipped version.** A
+  person who needs a different entry creates their own alongside it.
 - **Food Catalog** (`seedCatalog`, `catalogFoods.ts`) is reference data the
   app needs in every environment, production included, and every diary entry
   references its rows directly ([ADR-0004](../adr/0004-catalog-entries-are-read-only-and-the-seed-always-wins.md)).

@@ -19,5 +19,5 @@ Not yet sorted into the types above, and read only when a document links them:
 `superpowers/`, `plans/`, `briefs/`, `research/`, `review-notes/`,
 `mobile-settings-backlog.md`.
 
-Vocabulary: [CONTEXT.md](../CONTEXT.md). Project rules:
+Vocabulary: [GLOSSARY.md](../GLOSSARY.md). Project rules:
 [CODING_STANDARDS.md](../CODING_STANDARDS.md), [DESIGN_SYSTEM.md](../DESIGN_SYSTEM.md).

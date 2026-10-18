@@ -76,5 +76,5 @@ no Group.
 
 ADR-0003's three scopes stand. Pins simply leave the **Personal** column: they
 are neither Group-scoped content nor a Personal record, but a person's own
-setting *about* a Group. CONTEXT.md's glossary says so directly rather than
+setting *about* a Group. GLOSSARY.md says so directly rather than
 filing them under a heading that no longer fits.

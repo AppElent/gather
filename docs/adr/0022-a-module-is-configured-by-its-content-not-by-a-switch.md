@@ -7,7 +7,7 @@ a **setup screen when it is not set up**. That sentence has two readings, and
 they produce different apps.
 
 The first reading is a switch: a Group turns Baby log on, and until it does the
-Module is inert everywhere. That overturns two entries in `CONTEXT.md` at once —
+Module is inert everywhere. That overturns two entries in `GLOSSARY.md` at once —
 *Module* ("every live Module is available in every Group; a Group never enables
 or disables one") and *Pin* ("pinning never enables a Module") — and
 [ADR-0005](0005-pins-belong-to-a-person-in-a-group.md) exists partly to keep

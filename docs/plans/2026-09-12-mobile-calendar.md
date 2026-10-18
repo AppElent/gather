@@ -12,7 +12,7 @@ for this handoff, not additional quotations from the user.
 
 ## How to execute
 
-Read the root `AGENTS.md`, `CLAUDE.md`, calendar entries in `CONTEXT.md`, and
+Read the root `AGENTS.md`, `CLAUDE.md`, calendar entries in `GLOSSARY.md`, and
 `apps/mobile/DESIGN_SYSTEM.md` first. Read the applicable Convex skill before backend
 edits, and agent-device instructions before device work. Use pnpm. Preserve
 unrelated changes. Check the Appelent catalog before extracting any cross-app

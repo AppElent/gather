@@ -10,7 +10,7 @@ number alone. A new ADR takes the number after the highest (0036 next).
 | --- | --- | --- | --- | --- |
 | 0001 | Groups are not backed by Clerk Organizations | accepted | identity | `convex/groups.ts`, `convex/users.ts` |
 | 0002 | The Group is explicit in the URL | superseded | web navigation | `src/lib/groupPaths.ts`, `src/routes/_app/g/$groupSlug/` |
-| 0003 | Three scopes: Group, Personal, Catalog | superseded | data ownership | `convex/schema.ts`, `CONTEXT.md` |
+| 0003 | Three scopes: Group, Personal, Catalog | superseded | data ownership | `convex/schema.ts`, `GLOSSARY.md` |
 | 0004 | Catalog entries are read-only and the seed always wins | accepted | catalog | `convex/seed.ts`, `convex/lib/seed/` |
 | 0005 | Pins belong to a person in a Group | accepted | navigation | `convex/memberships.ts`, `packages/core/src/pins.ts` |
 | 0006 | Any Member invites; only an admin removes | accepted | authorization | `convex/groups.ts` |
@@ -34,13 +34,13 @@ number alone. A new ADR takes the number after the highest (0036 next).
 | 0022 | A Module is configured by its content, not by a switch | decided | mobile modules | `apps/mobile/src/modules/baby/` |
 | 0023 | Modules live inside the tab stacks | decided | mobile navigation | `apps/mobile/app/(app)/(tabs)/`, `apps/mobile/src/modules/` |
 | 0024 | A Tasting catalog is a picker, and tasting it makes it yours | decided | tasting | `convex/tastings.ts`, `packages/core/src/tastingKinds.ts` |
-| 0025 | Money is shared and entered by hand | decided | finances | `CONTEXT.md`, `docs/adr/0026-portfolio-overviews-are-information-not-advice.md` |
-| 0026 | Portfolio overviews are information, not advice | decided | finances | `CONTEXT.md` |
-| 0027 | Planned dinners reference Recipes, with a fallback | decided | meal planning | `CONTEXT.md` |
+| 0025 | Money is shared and entered by hand | decided | finances | `GLOSSARY.md`, `docs/adr/0026-portfolio-overviews-are-information-not-advice.md` |
+| 0026 | Portfolio overviews are information, not advice | decided | finances | `GLOSSARY.md` |
+| 0027 | Planned dinners reference Recipes, with a fallback | decided | meal planning | `GLOSSARY.md` |
 | 0028 | A Drop is nothing until a person names its destination | decided | mobile sharing | `apps/mobile/src/drop/`, `packages/core/src/dropRules.ts` |
 | 0029 | A JavaScript change ships over the air, and a native one does not | decided | mobile release | `apps/mobile/app.json`, `apps/mobile/eas.json` |
-| 0030 | Groups are the only user-owned scope | decided | data ownership | `convex/schema.ts`, `convex/groups.ts`, `CONTEXT.md` |
-| 0031 | The Current Group is ambient on web and mobile | decided | navigation | `packages/core/src/groups.ts`, `CONTEXT.md` |
+| 0030 | Groups are the only user-owned scope | decided | data ownership | `convex/schema.ts`, `convex/groups.ts`, `GLOSSARY.md` |
+| 0031 | The Current Group is ambient on web and mobile | decided | navigation | `packages/core/src/groups.ts`, `GLOSSARY.md` |
 | 0032 | An account is deleted in the app, and takes its solo Groups with it | decided | account lifecycle | `convex/accounts.ts`, `convex/cascade.ts`, `convex/lib/groupCascade.ts` |
 | 0033 | The phone's All screen is arranged on the device | decided | mobile navigation | `apps/mobile/src/prefs/moduleArrangement.ts`, `packages/core/src/moduleArrangement.ts` |
 | 0034 | Notes, Tasks and Calendar remain separate Modules | accepted | modules | `packages/core/src/modules.ts` |

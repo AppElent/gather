@@ -6,7 +6,7 @@ Session returned: see [Tasks prototype result](tasks-prototype-result.md). A/Tod
 
 Answer: how should a Member move between what needs doing today, their own responsibilities and reusable Task lists, while creating and editing through one explicit-Save form?
 
-This is the first of three fresh design sessions, not a production build. Read the [accepted decisions and common prototype contract](../plans/2026-09-16-notes-tasks-calendar-redesign.md) in full, then AGENTS.md, CLAUDE.md, CONTEXT.md and ADR-0021/0034. Read [issue 211 and its scope comments](https://github.com/AppElent/gather/issues/211). Accepted decisions constrain the prototype; propose any changes explicitly and return them to the coordinating session.
+This is the first of three fresh design sessions, not a production build. Read the [accepted decisions and common prototype contract](../plans/2026-09-16-notes-tasks-calendar-redesign.md) in full, then AGENTS.md, CLAUDE.md, GLOSSARY.md and ADR-0021/0034. Read [issue 211 and its scope comments](https://github.com/AppElent/gather/issues/211). Accepted decisions constrain the prototype; propose any changes explicitly and return them to the coordinating session.
 
 ## Inspect first
 

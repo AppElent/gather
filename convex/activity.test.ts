@@ -260,7 +260,7 @@ describe('a Personal record is in no Group', () => {
     })
 
     // The case someone will later read as an exception. A Personal group is an
-    // ordinary Group with one Member (CONTEXT.md), and a Personal record
+    // ordinary Group with one Member (GLOSSARY.md), and a Personal record
     // belongs to no Group at all — so the rule is uniform and this is not a
     // special case that got missed.
     expect(await activityIn(t, alice, ME_ALICE)).toEqual([])

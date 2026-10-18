@@ -542,7 +542,7 @@ export async function applySample(
     const id = rec.track(
       await ctx.db.insert('recipes', {
         // The recipe belongs to the household, not to whoever typed it in;
-        // `createdByUserId` is attribution and confers nothing (CONTEXT.md).
+        // `createdByUserId` is attribution and confers nothing (GLOSSARY.md).
         // That is the whole point of the varied authors in the fixtures — the
         // activity stream has different names in it to look at.
         groupId,

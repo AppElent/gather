@@ -4,7 +4,7 @@
 
 Answer: how can a Group quickly capture, find and safely edit shared information without Notes becoming a task manager or knowledge-base application?
 
-This is the second design session. Read the [accepted decisions and common prototype contract](../plans/2026-09-16-notes-tasks-calendar-redesign.md) in full, AGENTS.md, CLAUDE.md, CONTEXT.md, ADR-0034 and [issue 212 with scope comments](https://github.com/AppElent/gather/issues/212). If `tasks-prototype-result.md` exists, read it for validated interaction vocabulary; do not infer a Tasks verdict if absent.
+This is the second design session. Read the [accepted decisions and common prototype contract](../plans/2026-09-16-notes-tasks-calendar-redesign.md) in full, AGENTS.md, CLAUDE.md, GLOSSARY.md, ADR-0034 and [issue 212 with scope comments](https://github.com/AppElent/gather/issues/212). If `tasks-prototype-result.md` exists, read it for validated interaction vocabulary; do not infer a Tasks verdict if absent.
 
 ## Inspect first
 

@@ -62,7 +62,7 @@ before the fix. Accepted deliberately: the alternative is a deploy editing
 records people wrote.
 
 **Two catalogs now exist with opposite rules**, and a reader who knows Foods
-will guess wrong about cheeses. That is what the standing rule in `CONTEXT.md`
+will guess wrong about cheeses. That is what the rule in the [seed data contract](../contracts/seed-data.md)
 is for: a Catalog entry is either a *fact* (referenced, read-only forever) or a
 *suggestion* (copied, then irrelevant), and which one it is has to be said out
 loud per catalog.

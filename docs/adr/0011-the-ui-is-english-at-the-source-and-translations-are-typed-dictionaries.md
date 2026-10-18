@@ -78,7 +78,7 @@ migration is mechanical.
 
 ## Dutch glossary
 
-Dutch keeps the capitalised proper nouns CONTEXT.md sets for the domain: Groep,
+Dutch keeps the capitalised proper nouns GLOSSARY.md sets for the domain: Groep,
 Lid, Module, Pin. Ordinary UI words are lowercase as Dutch normally writes them.
 
 | English | Dutch |
