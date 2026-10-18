@@ -8,7 +8,7 @@ app. It shares the same Clerk account and Convex service as the web app.
 Interaction rules — press-and-hold, swipe, haptics, sheets, undo, loading,
 empty states — live in [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md#interaction-vocabulary).
 Read it before adding a screen. The research behind it is in
-[`docs/research/mobile-interaction-vocabulary.md`](../../docs/research/mobile-interaction-vocabulary.md).
+[`docs/records/2026-08-20-mobile-interaction-vocabulary.md`](../../docs/records/2026-08-20-mobile-interaction-vocabulary.md).
 
 ## Run locally
 

@@ -1,3 +1,11 @@
+---
+type: record
+kind: research
+description: Read for the accepted Notes, Tasks and Calendar redesign decisions behind ADR-0034, as of 2026-09-16.
+version: 1.0.0
+date: 2026-09-16
+---
+
 # Notes, Tasks and Calendar redesign decisions
 
 Accepted interview decisions as of 16 September 2026; design is ongoing, and this is not an implementation-completion report. Scope and deferred work are recorded in GitHub issues [211](https://github.com/AppElent/gather/issues/211), [212](https://github.com/AppElent/gather/issues/212), [213](https://github.com/AppElent/gather/issues/213) and ADR-0034.
@@ -5,7 +13,7 @@ Accepted interview decisions as of 16 September 2026; design is ongoing, and thi
 ## Tasks
 
 - Creation and editing use the same form with explicit Save. Unchanged forms close immediately; closing a changed form asks Keep editing or Discard. Discard closes without retaining that draft. Direct completion in a list applies immediately. This supersedes the earlier draft-on-close rule; recovery after interruption/restart remains open.
-- Prototype A (Today-first) is the preferred functional direction. Visual design is not approved. Carry forward the Tasks/Taken title, native menus, full-swipe capability and a keyboard-anchored composer that expands upward with an obvious Save. Exact swipe action mapping and latest iOS spacing/native interaction details remain reviewable; see the [Tasks result](../briefs/tasks-prototype-result.md).
+- Prototype A (Today-first) is the preferred functional direction. Visual design is not approved. Carry forward the Tasks/Taken title, native menus, full-swipe capability and a keyboard-anchored composer that expands upward with an obvious Save. Exact swipe action mapping and latest iOS spacing/native interaction details remain reviewable; see the [Tasks result](https://github.com/AppElent/gather/blob/b4f778c/docs/briefs/tasks-prototype-result.md).
 - Task attachments and voice remain outside this redesign's scope.
 - Subtasks are full Tasks with their own assignee and date, initially one level deep. Completing a parent with unfinished subtasks asks whether to complete them too. Repeating a parent resets its subtasks; subtasks do not repeat independently.
 - Monthly Tasks scheduled for the 31st use the last available day in shorter months.
@@ -47,7 +55,7 @@ Mobile first, iOS focused; basic web functionality is required but dedicated web
 
 ## Session sequence and authority
 
-Keep this thread as the coordinating design session. Run fresh prototype sessions in order: [Tasks](../briefs/tasks-prototype-session.md), [Notes](../briefs/notes-prototype-session.md), then [Calendar](../briefs/calendar-prototype-session.md). Each returns its findings here before the final implementation spec and dependent tickets are produced. These briefs authorize bounded throwaway exploration when invoked; preparing them does not start sessions or authorize production implementation.
+Keep this thread as the coordinating design session. Run fresh prototype sessions in order: [Tasks](https://github.com/AppElent/gather/blob/b4f778c/docs/briefs/tasks-prototype-session.md), [Notes](https://github.com/AppElent/gather/blob/b4f778c/docs/briefs/notes-prototype-session.md), then [Calendar](https://github.com/AppElent/gather/blob/b4f778c/docs/briefs/calendar-prototype-session.md). Each returns its findings here before the final implementation spec and dependent tickets are produced. These briefs authorize bounded throwaway exploration when invoked; preparing them does not start sessions or authorize production implementation.
 
 The original feature-gap issues retain future proposals and deferred work. The latest explicit user decisions override older conflicting prototype defaults; see the supersession ledger below. Historical artifacts remain evidence, not automatic authority over newer decisions. Tasks has a functional preference, with visual approval pending. Notes and Calendar have no new verdict yet.
 
@@ -61,11 +69,7 @@ The original feature-gap issues retain future proposals and deferred work. The l
 
 ## Open decisions for the final spec
 
-- Tasks: Today/Mine inclusion of unassigned work; undoing recurring completion; early completion; child due dates on repetition; retained child completion history; provider capability mapping for assignment/recurrence/subtasks and outage reconciliation; recovery after interruption/restart and conflicts. Visual approval, exact swipe mappings and iOS interaction confirmation remain pending.
-- Notes: document representation and cross-client editor compatibility; conflict comparison/resolution; image limits and storage access; autosave failures, recovery and retention after loss of Group access.
-- Calendar: exact DST gap/fold behavior; timezone selection/change and migration of existing events; external timezone-less feed values; recurring-series exceptions after subsequent edits; feed removal and stale-data lifecycle.
-- Notifications: permission timing, supported delivery platforms, recipient consent, mute/disable semantics for queued reminders, cancellation/rescheduling and duplicate suppression. Prototype visible behavior; implementation details belong in the final spec.
-- Basic web functionality needs an explicit acceptance checklist per Module in the final spec. A deferred visual design session is not permission to leave web placeholders.
+Moved to [#227](https://github.com/AppElent/gather/issues/227) when this became a record.
 
 ## Common prototype contract
 
@@ -75,7 +79,7 @@ Design for iOS first, include EN/NL and large-text/dark-state checks, and distin
 
 Preserve existing Labs and historical prototypes. `apps/mobile/src/labs/entries.ts` says to retain Labs prototypes, while the prototype skill archives new throwaway work outside main. For these sessions archive new alternatives on a prototype branch at closeout and leave existing Labs intact; flag any proposed change to that convention explicitly. No push or merge is implied by a local prototype branch.
 
-The repo instructions reference `docs/mobile-interaction.md`, which was missing in this checkout as of this handoff (its rules now live in `apps/mobile/DESIGN_SYSTEM.md`). Consult `docs/research/mobile-interaction-vocabulary.md` and current native wrappers for evidence, flagging any rule that cannot be recovered rather than silently inventing a replacement.
+The repo instructions reference `docs/mobile-interaction.md`, which was missing in this checkout as of this handoff (its rules now live in `apps/mobile/DESIGN_SYSTEM.md`). Consult [the interaction vocabulary survey](2026-08-20-mobile-interaction-vocabulary.md) and current native wrappers for evidence, flagging any rule that cannot be recovered rather than silently inventing a replacement.
 
 Every session returns a result file next to its brief with: question answered; runnable artifact and variant references; user-selected elements and reasons; rejected options; unresolved questions; scenarios exercised and verification limits; proposed changes to accepted decisions; and prototype branch/commit pointer when archived. If the user has not selected a design, say pending. Return findings to this coordinating session; do not promote prototype code or mark an issue implementation-ready.
 

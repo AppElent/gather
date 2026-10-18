@@ -103,7 +103,7 @@ export default defineSchema({
     // A recipe belongs to a Group, not to whoever typed it in. `groupId` is the
     // home Group; `sharedGroupIds` are the further Groups it is visible in and
     // never contains `groupId`. `createdByUserId` is attribution — it records
-    // who added the recipe and confers no ownership and no access (CONTEXT.md).
+    // who added the recipe and confers no ownership and no access (GLOSSARY.md).
     // All three are required: an optional ownership field is a schema that has
     // stopped saying who owns the row.
     groupId: v.id('groups'),
@@ -275,7 +275,7 @@ export default defineSchema({
     nutritionSource: v.optional(nutritionSourceValidator),
     localEdited: v.optional(v.boolean()),
     // Absent on Catalog entries — seeded reference data is owned by nobody
-    // (CONTEXT.md, "Catalog"). Present on every row a person created.
+    // (GLOSSARY.md, "Catalog"). Present on every row a person created.
     createdBy: v.optional(v.id('users')),
     // Stable identity for a Catalog entry across re-seeds. Absent on
     // user-created rows, which the seed must never touch. See ADR 0004.
@@ -725,7 +725,7 @@ export default defineSchema({
      * a duplicate of the other.
      */
     catalogKey: v.optional(v.string()),
-    /** Attribution only. Confers no ownership and no access (CONTEXT.md). */
+    /** Attribution only. Confers no ownership and no access (GLOSSARY.md). */
     createdByUserId: v.id('users'),
   })
     .index('by_group', ['groupId'])

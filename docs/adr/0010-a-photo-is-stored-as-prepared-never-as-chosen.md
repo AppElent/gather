@@ -1,6 +1,12 @@
-# A photo is stored as prepared, never as chosen
+---
+type: decision
+description: Read before changing photo preparation, sizes, or stored-file lifetime.
+version: 1.0.0
+status: accepted
+date: 2026-08-03
+---
 
-Status: accepted (2026-08-03)
+# A photo is stored as prepared, never as chosen
 
 A photo chosen from a phone is a 4032×3024 original that no screen in Gather asks
 for. Between choosing it and storing it, the person frames it and Gather shrinks

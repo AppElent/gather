@@ -1,3 +1,11 @@
+---
+type: decision
+description: Read before changing money records, Houses, mortgage calculations, or Payment splits.
+version: 1.0.0
+status: accepted
+date: 2026-08-24
+---
+
 # Money is shared and entered by hand
 
 The statement below that Finances is one Module was superseded by ADR-0035.

@@ -1,6 +1,12 @@
-# The activity stream is derived from rows that testify
+---
+type: decision
+description: Read before changing the activity stream, Attribution, or which rows it is derived from.
+version: 1.0.0
+status: accepted
+date: 2026-08-03
+---
 
-Status: accepted (2026-08-03)
+# The activity stream is derived from rows that testify
 
 Home's stream is derived from the Group-scoped tables themselves rather than from
 an events table. A Module joins the stream by carrying an actor and a time — not
@@ -37,7 +43,7 @@ bins out" is the most wanted line on a household's shared surface and a plain
 records its current state, not its history, and a household does not need to be
 told that somebody changed an oven temperature.
 
-It also settles which tables must carry Attribution, which `CONTEXT.md` defined
+It also settles which tables must carry Attribution, which `GLOSSARY.md` defined
 without saying who had to have it. **A table holding a Group's content records who
 created the row**, required rather than optional — an optional ownership field is
 a schema that has stopped saying who owns the row. `taskLists` and `babies` were

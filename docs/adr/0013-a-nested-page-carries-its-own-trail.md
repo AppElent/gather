@@ -1,6 +1,12 @@
-# A nested page carries its own trail, and back is an address
+---
+type: decision
+description: Read before changing breadcrumbs, nested web routes, or back links.
+version: 1.0.0
+status: accepted
+date: 2026-08-11
+---
 
-Status: accepted (2026-08-11)
+# A nested page carries its own trail, and back is an address
 
 Every route below a Module's index renders a `Breadcrumbs` with the trail from
 that index down to itself. The shell keeps global navigation; the page owns the

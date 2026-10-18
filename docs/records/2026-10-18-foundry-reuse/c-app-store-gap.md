@@ -1,3 +1,11 @@
+---
+type: record
+kind: research
+description: Read when preparing gather for the App Store or Google Play; gap against foundry and store policy as of 2026-10-18.
+version: 1.0.0
+date: 2026-10-18
+---
+
 # C — App Store / Play Store gap: foundry vs gather
 
 Research date: **2026-10-18**. Read-only. Foundry was read at `/Users/ericjansen/Developer/workouts` at

@@ -1,6 +1,14 @@
+---
+type: decision
+description: Read before changing the phone's tab bar or its Add action.
+version: 1.0.0
+status: accepted
+date: 2026-08-16
+---
+
 # Mobile tabs are app destinations, and one of them is a verb
 
-Status: decided (2026-08-16), implemented, and amended on one slot (2026-08-17)
+Implemented, and amended on one slot (2026-08-17).
 
 ## Decision
 

@@ -1,3 +1,11 @@
+---
+type: record
+kind: research
+description: Read when deciding which foundry (workouts) changes gather should reuse; inventory as of 2026-10-18.
+version: 1.0.0
+date: 2026-10-18
+---
+
 # B — Foundry change inventory and what gather can reuse
 
 Read-only research, 2026-10-18. Foundry = `/Users/ericjansen/Developer/workouts`

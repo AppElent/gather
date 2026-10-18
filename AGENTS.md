@@ -13,6 +13,7 @@ Before the task, read the matching project doc:
 | When you are… | Read |
 | --- | --- |
 | Adding a Module, a nested web route, a Convex table with `groupId`, a `_storage` column, a photo size, or a message key | [Add a Module](docs/runbooks/add-a-module.md) — four registries fail silently |
+| Changing who owns, sees, or may write Group content, a refusal, or how the Current Group is chosen | [Ownership and access](docs/contracts/ownership-and-access.md) |
 | Changing seeds, the Catalog, or the Sample household | [Seed data](docs/contracts/seed-data.md) |
 | Storing, replacing, or deleting a photo or file | [Stored files](docs/contracts/stored-files.md) |
 | Deleting a Group, an account, or rows a Group owns | [Account deletion](docs/contracts/account-deletion.md) |
@@ -27,6 +28,6 @@ Before the task, read the matching project doc:
 | Deploying, or changing the deploy or preview workflows | [Deploy](docs/runbooks/deploy.md), [Previews](docs/runbooks/previews.md) |
 | Upgrading dependencies | [`upgrade-deps`](.claude/commands/upgrade-deps.md); never weaken or skip a test to make an upgrade pass — stop and report |
 
-Domain terms: [CONTEXT.md](CONTEXT.md). Decisions: [docs/adr/](docs/adr/README.md).
+Domain terms: [GLOSSARY.md](GLOSSARY.md). Decisions: [ADR index](docs/README.md#decisions).
 Adding, moving, or finding docs: [docs map](docs/README.md). Issues are GitHub
 Issues on `AppElent/gather`; engineering skills read [docs/agents/](docs/agents/issue-tracker.md).

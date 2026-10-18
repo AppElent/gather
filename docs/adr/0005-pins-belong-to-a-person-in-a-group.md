@@ -1,6 +1,12 @@
-# Pins belong to a person in a Group
+---
+type: decision
+description: Read before changing where Pins are stored or who they belong to.
+version: 1.0.0
+status: accepted
+date: 2026-08-02
+---
 
-Status: accepted (2026-08-02)
+# Pins belong to a person in a Group
 
 Supersedes the treatment of Pins in [ADR-0003](0003-three-scopes-personal-group-and-personal-records.md),
 which listed them alongside the food diary and nutrition targets as a **Personal**
@@ -76,5 +82,5 @@ no Group.
 
 ADR-0003's three scopes stand. Pins simply leave the **Personal** column: they
 are neither Group-scoped content nor a Personal record, but a person's own
-setting *about* a Group. CONTEXT.md's glossary says so directly rather than
+setting *about* a Group. GLOSSARY.md says so directly rather than
 filing them under a heading that no longer fits.

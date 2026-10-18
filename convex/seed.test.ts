@@ -87,7 +87,7 @@ describe('the Sample household', () => {
 
   /**
    * A recipe lives in a Group and records who added it; the two are different
-   * facts (CONTEXT.md). The fixtures give recipes varied authors precisely so
+   * facts (GLOSSARY.md). The fixtures give recipes varied authors precisely so
    * Home's activity stream has more than one name in it — which only works if
    * the attribution is kept while the Group does the owning.
    */

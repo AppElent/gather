@@ -3,7 +3,7 @@ import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
 import { GroupHome } from '../../components/home/GroupHome'
 
 /**
- * A Group's Home — what a Member sees on opening it (CONTEXT.md).
+ * A Group's Home — what a Member sees on opening it (GLOSSARY.md).
  *
  * The route does nothing but hand the Group over. The gate above it has
  * already resolved the slug and refused anyone who is not a Member, so the name

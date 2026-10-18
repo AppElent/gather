@@ -1,6 +1,12 @@
-# Staging deploys on merge, production deploys on a click
+---
+type: decision
+description: Read before changing the staging or production deploy trigger.
+version: 1.0.0
+status: accepted
+date: 2026-08-06
+---
 
-Status: accepted (2026-08-06)
+# Staging deploys on merge, production deploys on a click
 
 `main` deploys itself to **staging**. Production deploys from the same workflow,
 from the same branch, through the same steps — but only when somebody presses

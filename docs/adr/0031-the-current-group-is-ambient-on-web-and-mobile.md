@@ -1,6 +1,12 @@
-# The Current Group is ambient on web and mobile
+---
+type: decision
+description: Read before changing how the Current Group is chosen on web or phone.
+version: 1.0.0
+status: accepted
+date: 2026-09-01
+---
 
-Status: decided (2026-09-01)
+# The Current Group is ambient on web and mobile
 
 The web and mobile apps use the same ambient Current Group model. Group
 identity is selected in client context rather than encoded in ordinary routes.

@@ -1,3 +1,11 @@
+---
+type: record
+kind: research
+description: Read for the alternatives and reasoning behind the phone's interaction vocabulary in apps/mobile/DESIGN_SYSTEM.md.
+version: 1.0.0
+date: 2026-08-20
+---
+
 # Interaction vocabulary for the gather mobile app
 
 *Gather's own survey. The rules decided from it live in

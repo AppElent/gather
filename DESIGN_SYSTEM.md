@@ -33,17 +33,16 @@ file overrides `@appelent/auth`'s `--auth-*` tokens to that palette and supplies
 
 ### Responsive action controls
 
-Compact add, edit, delete and refresh controls show only their icon below
-Tailwind's `lg` breakpoint (1024px), tablets included, and the icon plus its
-translated visible label at `lg` and above (`hidden lg:inline` on the label).
-Every icon-only control keeps a translated `aria-label`. A control keeps its
-visible label at every width when the label carries essential state or
-workflow context, such as a form submission or a confirmation.
+Binds [responsive action controls](docs/standards/web-design.md#responsive-action-controls):
+the desktop breakpoint is Tailwind's `lg` (1024px), and the visible label
+carries `hidden lg:inline`.
 
 ### Breadcrumbs
 
-A page below a Module's index renders `<Breadcrumbs>` with its trail; the
-rules and the add-a-route checklist are in [navigation](docs/contracts/navigation.md).
+A page below a Module's index renders `<Breadcrumbs>` per
+[nested pages carry their own trail](docs/standards/web-design.md#nested-pages-carry-their-own-trail);
+gather's component, address helper and trail examples are in
+[navigation](docs/contracts/navigation.md).
 
 ## Native
 

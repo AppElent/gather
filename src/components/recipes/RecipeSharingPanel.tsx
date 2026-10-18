@@ -17,7 +17,7 @@ export interface RecipeSharingPanelProps {
 
 /**
  * Where a recipe lives, who else can see it, and the two verbs that change
- * either (CONTEXT.md's Move and Share).
+ * either (GLOSSARY.md's Move and Share).
  *
  * Rendered only where `recipes.get` says `canEdit` — a Group that was merely
  * shared the recipe reads it and no more, so offering it these controls would
