@@ -18,7 +18,8 @@
  * there is no authenticated caller once the Clerk user is gone. What that
  * risks is purging a household for an account Clerk then refuses to delete —
  * which is why `deleteSelfEnabled` is checked *before* anything is called, and
- * the button simply is not offered when Clerk would say no.
+ * the button simply is not offered unless Clerk has said yes
+ * (`settings/accountDeletion.ts`).
  */
 import { useUser } from '@clerk/expo'
 import { useMutation } from 'convex/react'
@@ -34,6 +35,7 @@ import { AuthError } from '../../../../../src/components/AuthError'
 import { LoadingSkeleton } from '../../../../../src/components/LoadingSkeleton'
 import { useQuery } from '../../../../../src/convex/queries'
 import { fmt, useI18n } from '../../../../../src/i18n'
+import { accountDeletion } from '../../../../../src/settings/accountDeletion'
 import { RADIUS, useTokens } from '../../../../../src/theme/tokens'
 
 export default function DeleteAccount() {
@@ -52,7 +54,8 @@ export default function DeleteAccount() {
 
   // Clerk refuses self-deletion unless the instance allows it, and a button
   // that purges the household and then fails is the worst outcome available.
-  const allowed = user?.deleteSelfEnabled !== false
+  const deletion = accountDeletion(user)
+  const allowed = deletion === 'allowed'
 
   /**
    * The two steps are caught separately because they fail differently. If the
@@ -62,7 +65,7 @@ export default function DeleteAccount() {
    * rather than repeating the first.
    */
   async function destroy() {
-    if (!user || busy) return
+    if (!user || busy || !allowed) return
     setBusy(true)
     setError(null)
 
@@ -142,7 +145,8 @@ export default function DeleteAccount() {
 
       <AuthError
         message={
-          error ?? (allowed ? null : t.account.deleteAccount.unavailable)
+          error ??
+          (deletion === 'withheld' ? t.account.deleteAccount.unavailable : null)
         }
       />
 

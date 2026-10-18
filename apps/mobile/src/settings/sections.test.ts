@@ -2,7 +2,11 @@ import { describe, expect, test } from 'vitest'
 
 import { en } from '../i18n/messages/en'
 import { nl } from '../i18n/messages/nl'
-import { searchSettings, settingsSections } from './sections'
+import {
+  PRIVACY_STATEMENT_URL,
+  searchSettings,
+  settingsSections,
+} from './sections'
 
 const sections = settingsSections(en, {
   appearance: 'dark',
@@ -23,7 +27,18 @@ describe('the Settings list', () => {
       ['account', ['account', 'groups']],
       ['modules', ['baby-log']],
       ['phone', ['appearance', 'language']],
+      ['about', ['privacy']],
     ])
+  })
+
+  test('the privacy statement is a web page, not a screen', () => {
+    const privacy = sections[3].entries[0]
+    expect(privacy).toMatchObject({
+      label: 'Privacy statement',
+      url: PRIVACY_STATEMENT_URL,
+    })
+    expect(privacy.href).toBeUndefined()
+    expect(idsFor('privacy')).toEqual(['privacy'])
   })
 
   test('shows what the phone-local settings are currently set to', () => {
@@ -82,11 +97,12 @@ describe('the Settings list', () => {
       'account',
       'modules',
       'phone',
+      'about',
       'labs',
     ])
     // A place rather than a choice, like Account and Groups: nothing under it
     // changes how the app behaves, so there is no value to show on the right.
-    expect(withLabs[3].entries).toEqual([
+    expect(withLabs[4].entries).toEqual([
       { id: 'labs', label: 'Labs', href: '/settings/labs' },
     ])
   })

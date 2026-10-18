@@ -318,7 +318,11 @@ export const en = {
       account: coreEn.shell.routes.account.title,
       phone: 'On this phone',
       modules: 'Modules',
+      about: coreEn.shell.about.eyebrow,
     },
+
+    /** Opens the web's statement in a browser; the words are the web's own. */
+    privacy: coreEn.privacy.title,
 
     /**
      * The field above the list. It is the way through for somebody who knows

@@ -16,6 +16,7 @@
  */
 import { useUser } from '@clerk/expo'
 import { router } from 'expo-router'
+import { openBrowserAsync } from 'expo-web-browser'
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -40,6 +41,7 @@ const SECTION_ICONS = {
   account: UI_ICONS.User,
   phone: UI_ICONS.Smartphone,
   modules: UI_ICONS.Grid,
+  about: UI_ICONS.Info,
   labs: UI_ICONS.FlaskConical,
 } satisfies Record<SettingsSectionId, Glyph>
 
@@ -244,15 +246,19 @@ function Row({
   within?: string
 }) {
   const tokens = useTokens()
-  const ChevronRight = UI_ICONS.ChevronRight
+  // A row that leaves for a web page says so instead of promising a screen.
+  const Trailing = entry.url ? UI_ICONS.ExternalLink : UI_ICONS.ChevronRight
 
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={entry.url ? 'link' : 'button'}
       accessibilityLabel={[entry.label, within, entry.value]
         .filter(Boolean)
         .join(', ')}
-      onPress={() => router.push(entry.href)}
+      onPress={() => {
+        if (entry.href) router.push(entry.href)
+        else openBrowserAsync(entry.url).catch(() => {})
+      }}
       style={({ pressed }) => [
         styles.row,
         !first && {
@@ -283,7 +289,7 @@ function Row({
           {entry.value}
         </Text>
       ) : null}
-      <ChevronRight
+      <Trailing
         size={18}
         color={tokens.muted}
         strokeWidth={1.8}

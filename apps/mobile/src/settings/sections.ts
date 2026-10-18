@@ -19,7 +19,12 @@ import type { Locale } from '@gather/core/i18n'
 
 import type { Messages } from '../i18n'
 
-export type SettingsSectionId = 'account' | 'phone' | 'modules' | 'labs'
+export type SettingsSectionId =
+  | 'account'
+  | 'phone'
+  | 'modules'
+  | 'about'
+  | 'labs'
 
 export type SettingsEntryId =
   | 'account'
@@ -32,6 +37,7 @@ export type SettingsEntryId =
   | 'appearance'
   | 'language'
   | 'baby-log'
+  | 'privacy'
   | 'labs'
 
 /** The screens below the tab's index. Typed so a dead link fails the build. */
@@ -50,7 +56,14 @@ export type SettingsHref =
   | '/settings/labs/finance'
   | '/settings/baby-log'
 
-export interface SettingsEntry {
+/**
+ * The web's privacy statement, which the stores link to as well. It lives on
+ * the web rather than in the app so there is one copy of a legal text, and
+ * opens in the in-app browser rather than leaving Gather.
+ */
+export const PRIVACY_STATEMENT_URL = 'https://gather.appelent.nl/privacy'
+
+interface SettingsEntryBase {
   id: SettingsEntryId
   label: string
   /**
@@ -58,7 +71,6 @@ export interface SettingsEntry {
    * is a place rather than a choice — Account has no value, it has contents.
    */
   value?: string
-  href: SettingsHref
   /**
    * The settings that live one level further in, on a screen this row opens.
    *
@@ -71,6 +83,13 @@ export interface SettingsEntry {
    */
   children?: SettingsEntry[]
 }
+
+/**
+ * Where a row goes: a screen inside Settings, or — for the one row that is a
+ * document rather than a setting — a web page.
+ */
+export type SettingsEntry = SettingsEntryBase &
+  ({ href: SettingsHref; url?: never } | { url: string; href?: never })
 
 export interface SettingsSection {
   id: SettingsSectionId
@@ -189,6 +208,22 @@ export function settingsSections(
           label: t.settings.language.title,
           value: t.settings.language.names[values.locale],
           href: '/settings/language',
+        },
+      ],
+    },
+    /**
+     * What the app tells you rather than lets you change. Below the settings,
+     * because nobody opens Settings for it — but it has to be reachable from
+     * inside the app, which is what the stores ask of a privacy statement.
+     */
+    {
+      id: 'about',
+      title: t.settings.sections.about,
+      entries: [
+        {
+          id: 'privacy',
+          label: t.settings.privacy,
+          url: PRIVACY_STATEMENT_URL,
         },
       ],
     },

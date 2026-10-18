@@ -3,6 +3,7 @@ import { expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../lib/i18n/testing'
 import { NotFoundPage } from './__root'
 import { AboutPage } from './about'
+import { PrivacyPage } from './privacy'
 
 vi.mock('@tanstack/react-router', async () => {
   const actual = await vi.importActual<typeof import('@tanstack/react-router')>(
@@ -76,4 +77,40 @@ test('not found page is styled and gives a recovery path', () => {
   expect(screen.getByRole('heading', { name: /page not found/i })).toBeDefined()
   expect(screen.getByRole('link', { name: /go to gather/i })).toBeDefined()
   expect(screen.getByRole('main').textContent?.trim()).not.toBe('Not Found')
+})
+
+test('the privacy statement explains deletion to somebody without the app', () => {
+  const { container } = renderWithI18n(<PrivacyPage />)
+
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Privacy statement' }),
+  ).toBeDefined()
+  // Google Play's deletion rule links straight to this section.
+  const deletion = container.querySelector('#delete-account')
+  expect(deletion?.querySelector('h2')?.textContent).toBe(
+    'Delete your Gather account',
+  )
+  expect(deletion?.textContent).toMatch(/Settings → Account → Delete account/)
+  expect(deletion?.textContent).toMatch(/privacy@appelent\.nl/)
+})
+
+test('the privacy statement is translated', () => {
+  renderWithI18n(<PrivacyPage />, { locale: 'nl' })
+
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Privacyverklaring' }),
+  ).toBeDefined()
+  expect(
+    screen.getByRole('heading', { name: 'Je Gather-account verwijderen' }),
+  ).toBeDefined()
+})
+
+test('every public page links the privacy statement', () => {
+  renderWithI18n(<AboutPage />)
+
+  expect(
+    screen
+      .getByRole('link', { name: 'Privacy statement' })
+      .getAttribute('href'),
+  ).toBe('/privacy')
 })
