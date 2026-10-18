@@ -1,6 +1,12 @@
-# A JavaScript change ships over the air, and a native one does not
+---
+type: decision
+description: Read before changing how a phone change ships: over the air or by build.
+version: 1.0.0
+status: accepted
+date: 2026-08-25
+---
 
-Status: decided (2026-08-25)
+# A JavaScript change ships over the air, and a native one does not
 
 ## Decision
 

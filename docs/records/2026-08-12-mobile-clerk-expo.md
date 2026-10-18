@@ -1,3 +1,11 @@
+---
+type: record
+kind: research
+description: Read for what Clerk on Expo requires and what the phone builds itself (evidence for ADR-0014), as of 2026-08-12.
+version: 1.0.0
+date: 2026-08-12
+---
+
 # Clerk on Expo: what it requires, and what the mobile app must build itself
 
 Research for [#139](https://github.com/AppElent/gather/issues/139), part of the mobile shell map ([#134](https://github.com/AppElent/gather/issues/134)).

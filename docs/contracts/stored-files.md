@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when uploading, preparing, replacing, or deleting a photo or any Convex stored file.
-version: 1.0.0
+version: 1.1.0
 status: current
 ---
 
@@ -21,9 +21,13 @@ no blob outlives the last row that points at it.
   typed off the schema, so a new `_storage` column fails to compile until it is
   listed. That registry is what stops a blob being deleted from under a table
   nobody registered.
-- **Every path that orphans a file** calls `deleteStoredFile` /
-  `replaceStoredFile` *after* the write that let go, behind the access check the
-  mutation already made. A blob goes when the last row lets go of it.
+- **A stored file lives exactly as long as some row points at it.** Every
+  path that orphans a file calls `deleteStoredFile` / `replaceStoredFile`
+  *after* the write that let go, behind the access check the mutation already
+  made, so a photo nobody can reach is not a thing storage holds — and a photo
+  two rows hold survives the first of them going.
+- **A chosen photo that cannot be prepared is not stored at all.** An image
+  Gather fetches for itself is neither chosen nor prepared.
 - **The bytes go up before the row exists.** Convex's upload ends in an id, so
   the id is passed into the mutation and never patched on afterwards. A save
   whose upload failed never became a row. The photo is always optional, so
@@ -35,6 +39,8 @@ no blob outlives the last row that points at it.
 
 ## Out of scope
 
+- A file uploaded before any row references it. It is the exception to the
+  lifetime rule and is not yet handled.
 - Private files. `ctx.storage.getUrl` returns an unguessable but
   unauthenticated URL that never expires: accepted for avatars, headers and
   keepsakes, not for anything a household would mind being readable by whoever

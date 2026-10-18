@@ -1,3 +1,11 @@
+---
+type: record
+kind: verification
+description: Read for how recipes became Group-owned and why existing recipes were wiped (cited by convex/maintenance.ts wipeRecipes).
+version: 1.0.0
+date: 2026-07-30
+---
+
 # 0002 — Recipes become Group-owned
 
 Moves `recipes` from `ownerId` + `sharedGroupIds` to a required `groupId`,

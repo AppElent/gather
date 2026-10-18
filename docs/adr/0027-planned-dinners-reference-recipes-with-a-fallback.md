@@ -1,6 +1,14 @@
+---
+type: decision
+description: Read before changing how planned dinners reference Recipes.
+version: 1.0.0
+status: accepted
+date: 2026-08-25
+---
+
 # Planned dinners reference Recipes, with a fallback
 
-Status: implemented (2026-08-25)
+Implemented when recorded.
 
 A planner needs both the Recipes a Group can cook and quick dinners that will
 never deserve a Recipe. We will not manufacture a second Meal row for every

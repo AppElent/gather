@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read before implementing or reviewing native mobile code.
-version: 1.1.0
+version: 1.2.0
 applies_to: [mobile]
 ---
 
@@ -25,6 +25,7 @@ Expo Router and React Native traps that fail silently or only on device:
 - **Header options identity:** a `Stack.Screen options={{…}}` literal is a new object every render; with `unstable_header*Items` it re-renders the screen and loops ("Maximum update depth exceeded"). Memoize the options object.
 - **Discard guards:** dispatching the blocked action from inside a `usePreventRemove` callback is blocked again. Lift the guard (state or ref) first, then dispatch.
 - **Hidden headers:** `headerShown: false` in a `_layout` hides any header the screen configures with `Stack.Screen`. Set `headerShown` per screen when screens draw their own.
+- **Local files:** React Native does not implement the `file://` scheme in `fetch`. `fetch(uri)` on a local file returns a tiny "File not found" body that then uploads as a valid but corrupt file. Read local files with `expo-file-system`; `File(uri).upload()` also sets the exact `Content-Type` an upload endpoint may demand, where an empty one is rejected.
 
 ## Verify
 

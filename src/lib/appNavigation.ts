@@ -112,7 +112,7 @@ export const NAV_ACTIVE_OPTIONS = { exact: true } as const
  * Where Home points: the landing page of the Group you are standing in.
  *
  * There is no answer without a Group. Home is *a Group's* shared surface
- * (CONTEXT.md), so a Home that belongs to no Group is not a page that was
+ * (GLOSSARY.md), so a Home that belongs to no Group is not a page that was
  * removed — it is a page that never meant anything.
  */
 export function homeDestination(groupSlug: string): NavDestination {

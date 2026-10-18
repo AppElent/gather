@@ -1,6 +1,12 @@
-# A refusal inside a Group never says which refusal it is
+---
+type: decision
+description: Read before changing what a refused read or write inside a Group reveals.
+version: 1.0.0
+status: accepted
+date: 2026-08-03
+---
 
-Status: accepted (2026-08-03)
+# A refusal inside a Group never says which refusal it is
 
 "No such record" and "that record is not in this Group" are the same answer, so
 neither can be used to discover the other. Refusing the **Group** is deliberately

@@ -1,13 +1,21 @@
+---
+type: decision
+description: Read before changing Module setup, enablement, or an empty Module's screen.
+version: 1.0.0
+status: accepted
+date: 2026-08-19
+---
+
 # A Module is configured by its content, not by a switch
 
-Status: decided (2026-08-19), not yet implemented
+Not yet implemented when decided.
 
 The mobile port of Baby log started from a request that every Module should show
 a **setup screen when it is not set up**. That sentence has two readings, and
 they produce different apps.
 
 The first reading is a switch: a Group turns Baby log on, and until it does the
-Module is inert everywhere. That overturns two entries in `CONTEXT.md` at once —
+Module is inert everywhere. That overturns two entries in `GLOSSARY.md` at once —
 *Module* ("every live Module is available in every Group; a Group never enables
 or disables one") and *Pin* ("pinning never enables a Module") — and
 [ADR-0005](0005-pins-belong-to-a-person-in-a-group.md) exists partly to keep

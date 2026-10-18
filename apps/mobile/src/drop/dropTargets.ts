@@ -95,7 +95,7 @@ export interface DropTarget {
 const RECIPES: DropTarget[] = [
   {
     // No new Convex function and no second reader: a Drop aimed at Recipes is
-    // an Import exactly as CONTEXT.md already defines one, and it opens the
+    // an Import exactly as GLOSSARY.md already defines one, and it opens the
     // importer with the link already in it.
     id: 'recipe-import',
     module: 'recipes',

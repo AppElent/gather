@@ -1,6 +1,12 @@
-# The phone's All screen is arranged on the device
+---
+type: decision
+description: Read before changing the phone's All screen arrangement.
+version: 1.0.0
+status: accepted
+date: 2026-09-02
+---
 
-Status: decided (2026-09-02)
+# The phone's All screen is arranged on the device
 
 The All tab lets a person pin, hide, reorder and collapse Modules, and choose
 whether the screen is drawn as rows or as tiles. All of it is kept on the

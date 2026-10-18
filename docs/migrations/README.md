@@ -1,6 +1,6 @@
 # Active migrations and maintenance tools
 
-Only unfinished work belongs in this index. A release owner records command output in the named migration record, then archives the completed record with its date, result, removed code, and related ADR/Git links.
+Only unfinished work belongs in this index. A release owner records command output in the named migration document. Once it has run everywhere, the document moves to `docs/records/` (dated, with its result, removed code, and related ADR/Git links) when a contract, ADR or code comment cites it, and is deleted otherwise; git keeps it.
 
 | ID | Status | Owner | Code | Required operation | Retirement condition |
 | --- | --- | --- | --- | --- | --- |

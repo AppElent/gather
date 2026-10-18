@@ -3,7 +3,7 @@ import { testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 
 /**
- * The Catalog belongs to nobody and reads the same for everybody (CONTEXT.md).
+ * The Catalog belongs to nobody and reads the same for everybody (GLOSSARY.md).
  *
  * Foods is the one live Module with no Group-scoped rule to enforce, and this
  * says so as a fact rather than as a comment: two people who share no Group at

@@ -1,6 +1,12 @@
-# A Drop is nothing until a person names its destination
+---
+type: decision
+description: Read before changing the share sheet, a Drop, or Drop destinations.
+version: 1.0.0
+status: accepted
+date: 2026-08-25
+---
 
-Status: decided (2026-08-25)
+# A Drop is nothing until a person names its destination
 
 ## Decision
 
@@ -54,7 +60,7 @@ switch, and three screens of navigation. The same door serves notes, tasks,
 grocery lines and photos, and a Module that wants to receive something declares
 it rather than building an entrance.
 
-**Import keeps its meaning.** A Drop into Recipe *is* an Import as `CONTEXT.md`
+**Import keeps its meaning.** A Drop into Recipe *is* an Import as `GLOSSARY.md`
 already defines it — a reading of a page, never a recipe until a person has
 looked at it. **Share keeps its meaning too**, which is why the new noun is not
 called one: Share is making Group content visible to a second Group, and the

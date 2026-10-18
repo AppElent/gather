@@ -2,7 +2,7 @@
  * Correcting a recipe the Group owns.
  *
  * Every Member of the Group a recipe lives in may edit it — a fellow Member's
- * recipe is the household's, not theirs (CONTEXT.md's **Attribution**: it
+ * recipe is the household's, not theirs (GLOSSARY.md's **Attribution**: it
  * records who, and confers nothing). A recipe reached through a Share comes
  * back with `canEdit` false and this screen never opens on it, because the
  * control that would open it is not drawn.

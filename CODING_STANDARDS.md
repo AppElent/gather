@@ -58,11 +58,12 @@ Run the [project checks](docs/runbooks/verification.md) for every affected targe
 
 ## Domain documentation
 
-[CONTEXT.md](CONTEXT.md) is the glossary for web, mobile and core: use its terms
-in code, hypotheses and issue titles, and record newly resolved terms there.
+[GLOSSARY.md](GLOSSARY.md) is the glossary for web, mobile and core: use its terms
+in code, hypotheses and issue titles, and record newly resolved terms there. A
+rule about behavior goes in a `docs/contracts/` contract, not the glossary.
 Read the ADRs in `docs/adr/` for the affected boundary and name any conflict
 with an accepted ADR before reopening it. Two ADR numbers are shared by two
-files each; cite those by filename ([index](docs/adr/README.md)).
+files each; cite those by filename ([index](docs/README.md#decisions)).
 
 ## Local bindings and exceptions
 
@@ -82,7 +83,7 @@ and EAS. These bindings deviate from or narrow the shared guidance:
 | Observability | `@sentry/tanstackstart-react` is installed and `VITE_SENTRY_*`/`SENTRY_AUTH_TOKEN` are routed, but nothing initialises Sentry: there is no `instrument.server.mjs` (the `start` script imports one) and nothing in `src/router.tsx`. Treat Sentry as absent until it is wired per [Sentry monitoring](docs/standards/sentry-monitoring.md). |
 | PWA | `scripts/generate-sw.mjs` (Workbox) runs after every `vite build`; it predates the [PWA](docs/standards/pwa.md) template. |
 | Mobile tests | Phone unit tests run in the root Vitest `mobile` project, not Jest with jest-expo as [mobile baseline](docs/standards/mobile-baseline.md) specifies. |
-| Documentation | **Exception** to [documentation](docs/standards/documentation.md) until the docs restructure: the glossary is `CONTEXT.md`, not `GLOSSARY.md`; ADRs carry a prose `Status:` line rather than frontmatter; `docs/migrations/` is the retirement ledger for one-shot code (see below); `docs/superpowers/`, `docs/plans/`, `docs/briefs/`, `docs/research/` and `docs/review-notes/` are unclassified history. |
+| Documentation | **Exception** to "one-off work is an issue and its PR" in [documentation](docs/standards/documentation.md): an unfinished data migration keeps a document in `docs/migrations/` until it has run everywhere, because code comments and the [one-shot code](#one-shot-code) rule point at it as the retirement ledger. A finished one becomes a `docs/records/` record when something cites it and is deleted otherwise. |
 | Agent workflow | `.claude/skills/verify` is the one project skill (route→Module map). `.claude/commands/` holds thin commands: `review-session` invokes the global `custom-review-session` skill, `upgrade-deps` copies the global `custom-upgrade-deps` template, `babysit` is gather's PR policy. A fix that is not gather-specific goes back to the global source. |
 
 ### Localization
@@ -99,26 +100,16 @@ the source and `nl` `satisfies` it, so a missing key fails `pnpm typecheck` and
 new user-visible string goes in both locales. The chrome-vs-content boundary
 and the Dutch glossary are [ADR-0011](docs/adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md).
 
-- **Display strings never live in `convex/` or a plain `lib/` data file.** Key
-  them by the union the schema defines (`ModuleId`, `NutrientKey`, `MealName`,
-  `BabyEventType`) with `satisfies Record<…>`, and add the entries in the same
-  change as the new member.
-- **Non-React code takes messages as a trailing parameter** (`navItems`,
-  `getRouteContext`, `formatActivityTime`, `formatAge`, `summarizeEvent`).
-- **A validator returns a key, not a sentence** — `buildEventInput` reports
-  `'enterVaccineName'` and the form resolves it.
-- **Resolve messages at render.** Inside a `useEffect` whose deps should not
-  include the locale, hold a key in state instead; when Biome's
-  `useExhaustiveDependencies` asks for the messages, the key is the fix.
+The [i18n](docs/standards/i18n.md) rules on backend and data-file text,
+validators and effects apply as written. Gather's schema unions are `ModuleId`,
+`NutrientKey`, `MealName` and `BabyEventType`: add both locales' entries in the
+same change as a new member. Pure modules that take messages as a trailing
+parameter include `navItems`, `getRouteContext`, `formatActivityTime`,
+`formatAge` and `summarizeEvent`.
 
 ### One-shot code
 
-Migration mutations, backfills and compatibility shims are written to run
-against a data shape and then be dead, but they look exactly like live code and
-their tests keep passing. Each one states, where it lives, what retires it:
-
-- **Migration code** is deleted when its entry in `docs/migrations/` records
-  that it has run everywhere or was superseded. The active list, commands and
-  retirement conditions are in [`docs/migrations/README.md`](docs/migrations/README.md).
-- **A compatibility shim** names the date or event after which it goes.
-- Code with no end condition is ordinary code and is maintained as such.
+Binds [one-shot code](docs/standards/general-coding.md#one-shot-code). A
+migration's retirement record is its entry in `docs/migrations/`; the active
+list, commands and retirement conditions are in
+[`docs/migrations/README.md`](docs/migrations/README.md).

@@ -1,6 +1,15 @@
+---
+type: decision
+description: Read before changing how the phone and web address a Group (historical; superseded).
+version: 1.0.0
+status: superseded
+date: 2026-08-13
+superseded_by: 0031-the-current-group-is-ambient-on-web-and-mobile.md
+---
+
 # The Group is addressed on the web and ambient on the phone
 
-Status: superseded by [ADR-0031](0031-the-current-group-is-ambient-on-web-and-mobile.md)
+Superseded by [ADR-0031](0031-the-current-group-is-ambient-on-web-and-mobile.md).
 
 This decision applied to the former split between URL-addressed web Groups and
 ambient mobile Groups and is retained as historical context only.

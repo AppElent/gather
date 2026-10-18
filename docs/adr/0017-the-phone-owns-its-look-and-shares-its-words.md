@@ -1,6 +1,12 @@
-# The phone owns its look and shares its words
+---
+type: decision
+description: Read before changing what the phone and web share in look and vocabulary.
+version: 1.0.0
+status: accepted
+date: 2026-08-13
+---
 
-Status: accepted (2026-08-13)
+# The phone owns its look and shares its words
 
 ## Decision
 

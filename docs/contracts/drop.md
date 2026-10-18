@@ -10,7 +10,7 @@ status: current
 Gather takes one row in the phone's share sheet and opens on a chooser. What
 arrives is a **Drop** — a link, some text, a photo — with no Group and no Module
 until a person names them ([ADR-0028](../adr/0028-a-drop-is-nothing-until-a-person-names-its-destination.md);
-glossary in [CONTEXT.md](../../CONTEXT.md)). *Share* is not the word for it:
+glossary in [GLOSSARY.md](../../GLOSSARY.md)). *Share* is not the word for it:
 that already means making Group content visible to a second Group.
 
 ## Behavior

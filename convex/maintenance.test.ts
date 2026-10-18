@@ -167,7 +167,7 @@ describe('wipeRecipes', () => {
  * re-enter, so the tests are written as the acceptance criteria are: every
  * baby and every event present afterwards, payloads and timestamps unchanged,
  * attribution intact, and a second run that neither duplicates nor corrupts
- * anything. See docs/migrations/0003-baby-log-onto-group-scope.md.
+ * anything. See docs/records/2026-08-01-migration-0003-baby-log-onto-group-scope.md.
  */
 const verify = internal.maintenance.verifyBabyLogScope
 const moveBaby = internal.maintenance.moveBabyToGroup

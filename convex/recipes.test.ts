@@ -666,7 +666,7 @@ describe('recipes.create', () => {
 
 /**
  * Move and Share, the two verbs that decide which Groups a recipe is visible in
- * (CONTEXT.md), asserted through both Groups' real lists rather than the row.
+ * (GLOSSARY.md), asserted through both Groups' real lists rather than the row.
  *
  * A move puts a recipe imported into the wrong Group right; a Share lets a
  * cooking club see a recipe that still belongs to the household. The difference

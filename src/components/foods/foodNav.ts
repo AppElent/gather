@@ -4,7 +4,7 @@ import { groupLink } from '../../lib/groupPaths'
 /**
  * Everywhere the Foods pages can send you.
  *
- * Foods are the Catalog — owned by nobody, readable by everybody (CONTEXT.md) —
+ * Foods are the Catalog — owned by nobody, readable by everybody (GLOSSARY.md) —
  * so which Group is in the URL changes nothing about *what* these pages show.
  * It still has to be carried, because leaving it out would silently drop
  * whoever followed the link out of the Group they were browsing.

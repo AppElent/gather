@@ -1,6 +1,12 @@
-# The phone is a Clerk generation ahead of the web
+---
+type: decision
+description: Read before changing the phone or web Clerk SDK generation.
+version: 1.0.0
+status: accepted
+date: 2026-08-13
+---
 
-Status: accepted (2026-08-13)
+# The phone is a Clerk generation ahead of the web
 
 gather's web app authenticates through `@clerk/clerk-react` ^5.61 — Clerk
 **Core 2**. `apps/mobile` authenticates through `@clerk/expo`, which depends on
@@ -45,7 +51,7 @@ Copying its control flow and renaming the calls produces code that does not
 compile, and worse, code that half-compiles.
 
 The full Core 2 → Core 3 delta is tabulated **once**, in
-[`docs/research/mobile-clerk-expo.md` §7](../research/mobile-clerk-expo.md) —
+[`docs/records/2026-08-12-mobile-clerk-expo.md` §7](../records/2026-08-12-mobile-clerk-expo.md) —
 seven rows, sourced from Clerk's own Expo documentation partials. It is not
 repeated here and must not be repeated anywhere else; a table that exists in
 three places disagrees with itself within a year.
