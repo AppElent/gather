@@ -1,0 +1,176 @@
+/**
+ * The code half of passwordless sign-in.
+ *
+ * `sign-in` already sent the code, so this screen never sends on mount — a
+ * remount would re-send, and Clerk rate-limits that. The address is a route
+ * param purely so the screen can say where the code went.
+ *
+ * An account with a second factor stays on this screen: a correct code swaps
+ * the form for the second factor's own (`useEmailCodeSignIn` decides which),
+ * rather than pushing a third screen for a state with no address of its own.
+ *
+ * `autoComplete="sms-otp"` (Android) and `textContentType="oneTimeCode"` (iOS)
+ * are what let the keyboard offer the code the moment the email arrives.
+ *
+ * Nothing navigates on success: `finalize()` flips `isSignedIn`, the `(auth)`
+ * layout redirects, and this screen unmounts — to the same place the password
+ * form lands, where `ConvexSessionGate` takes over.
+ */
+
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useEffect, useState } from 'react'
+import { StyleSheet, Text } from 'react-native'
+import { useCooldown } from '../../src/auth/useCooldown'
+import { useEmailCodeSignIn } from '../../src/auth/useEmailCodeSignIn'
+import { AuthButton } from '../../src/components/AuthButton'
+import { AuthError } from '../../src/components/AuthError'
+import { AuthField } from '../../src/components/AuthField'
+import { AuthLink } from '../../src/components/AuthLink'
+import { AuthScreen } from '../../src/components/AuthScreen'
+import { haptics } from '../../src/feedback/haptics'
+import { fmt, useI18n } from '../../src/i18n'
+import { useTokens } from '../../src/theme/tokens'
+
+const CODE_LENGTH = 6
+const RESEND_COOLDOWN_SECONDS = 30
+/** Backup codes are eight characters; anything else is a code of this length. */
+const BACKUP_CODE_MAX_LENGTH = 16
+
+export default function SignInCode() {
+  const { t } = useI18n()
+  const tokens = useTokens()
+  const router = useRouter()
+  const { email } = useLocalSearchParams<{ email?: string }>()
+  const {
+    verify,
+    verifySecondFactor,
+    resend,
+    resending,
+    startOver,
+    secondFactor,
+    busy,
+    error,
+  } = useEmailCodeSignIn()
+  const cooldown = useCooldown(RESEND_COOLDOWN_SECONDS)
+  const [code, setCode] = useState('')
+  const [notice, setNotice] = useState(false)
+
+  const { start: startCooldown } = cooldown
+  // The code was sent on the previous screen, so the clock starts as this one does.
+  useEffect(() => startCooldown(), [startCooldown])
+
+  const text = t.signIn.emailCode
+  const second = text.secondFactor
+  const isBackup = secondFactor?.strategy === 'backup_code'
+  const length = isBackup ? BACKUP_CODE_MAX_LENGTH : CODE_LENGTH
+  const ready = isBackup ? code.trim().length > 0 : code.length === CODE_LENGTH
+
+  async function submit() {
+    setNotice(false)
+    const ok = secondFactor
+      ? await verifySecondFactor(code)
+      : await verify(code)
+    if (!ok) haptics.actionFailed()
+    else setCode('')
+  }
+
+  async function onResend() {
+    setNotice(false)
+    if (await resend()) {
+      cooldown.start()
+      setNotice(true)
+    } else {
+      haptics.actionFailed()
+    }
+  }
+
+  async function leave() {
+    await startOver()
+    router.back()
+  }
+
+  const coolingDown = cooldown.remaining > 0
+
+  return (
+    <AuthScreen
+      heading={secondFactor ? second.heading : t.verify.heading}
+      subtitle={
+        secondFactor
+          ? secondFactor.strategy === 'totp'
+            ? second.totp
+            : secondFactor.strategy === 'backup_code'
+              ? second.backupCode
+              : fmt(second.sent, {
+                  contact: secondFactor.contact ?? second.sentFallback,
+                })
+          : fmt(text.sent, { email: email ?? '' })
+      }
+      footer={
+        secondFactor ? (
+          <AuthLink
+            testID="sign-in-code-back"
+            label={second.back}
+            onPress={leave}
+          />
+        ) : (
+          <>
+            <AuthLink
+              testID="sign-in-code-resend"
+              label={
+                coolingDown
+                  ? fmt(text.resendIn, { seconds: cooldown.remaining })
+                  : text.resend
+              }
+              onPress={onResend}
+              disabled={coolingDown || resending}
+            />
+            <AuthLink
+              testID="sign-in-code-change-email"
+              label={text.back}
+              onPress={leave}
+            />
+          </>
+        )
+      }
+    >
+      <AuthField
+        key={secondFactor?.strategy ?? 'code'}
+        testID="sign-in-code-input"
+        label={isBackup ? second.backupCodeLabel : t.fields.code}
+        value={code}
+        onChangeText={setCode}
+        keyboardType={isBackup ? 'default' : 'number-pad'}
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="sms-otp"
+        textContentType="oneTimeCode"
+        maxLength={length}
+        autoFocus
+        returnKeyType="go"
+        onSubmitEditing={() => ready && !busy && submit()}
+      />
+
+      <AuthError message={error} />
+      {notice ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[styles.notice, { color: tokens.muted }]}
+        >
+          {text.resent}
+        </Text>
+      ) : null}
+
+      <AuthButton
+        testID="sign-in-code-submit"
+        label={secondFactor ? second.verify : t.signIn.submit}
+        busy={busy}
+        disabled={!ready}
+        onPress={submit}
+      />
+    </AuthScreen>
+  )
+}
+
+const styles = StyleSheet.create({
+  notice: { fontSize: 14, lineHeight: 20 },
+})

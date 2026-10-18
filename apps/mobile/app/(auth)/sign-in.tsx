@@ -6,6 +6,11 @@
  * sign-up flow. Getting them wrong does not break anything visibly, which is
  * exactly why they are easy to leave out.
  *
+ * "Email me a code" is the passwordless way in: it sends the code from here,
+ * where the address is already typed, and only then opens `sign-in-code`. A
+ * failed send stays on this screen with its error. Password and code share the
+ * one error box, so `source` says which of the two the person last tried.
+ *
  * The submit does not navigate. `finalize()` flips `isSignedIn`, the `(auth)`
  * layout redirects, and this screen unmounts; see `usePasswordSignIn`.
  *
@@ -19,6 +24,7 @@
 import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import type { TextInput } from 'react-native'
+import { useEmailCodeSignIn } from '../../src/auth/useEmailCodeSignIn'
 import { usePasswordSignIn } from '../../src/auth/usePasswordSignIn'
 import { AuthButton } from '../../src/components/AuthButton'
 import { AuthError } from '../../src/components/AuthError'
@@ -26,17 +32,40 @@ import { AuthField } from '../../src/components/AuthField'
 import { AuthLink } from '../../src/components/AuthLink'
 import { AuthScreen } from '../../src/components/AuthScreen'
 import { SocialSoon } from '../../src/components/SocialSoon'
+import { haptics } from '../../src/feedback/haptics'
 import { useI18n } from '../../src/i18n'
 
 export default function SignIn() {
   const { t } = useI18n()
   const router = useRouter()
-  const { submit, busy, error } = usePasswordSignIn()
+  const passwordSignIn = usePasswordSignIn()
+  const emailCode = useEmailCodeSignIn()
+  const [source, setSource] = useState<'password' | 'code'>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const passwordRef = useRef<TextInput>(null)
 
-  const ready = email.trim().length > 0 && password.length > 0
+  const hasEmail = email.trim().length > 0
+  const ready = hasEmail && password.length > 0
+  const busy = passwordSignIn.busy || emailCode.busy
+  const error = source === 'code' ? emailCode.error : passwordSignIn.error
+
+  function signInWithPassword() {
+    setSource('password')
+    passwordSignIn.submit(email, password)
+  }
+
+  async function signInWithCode() {
+    setSource('code')
+    if (await emailCode.send(email)) {
+      router.push({
+        pathname: '/sign-in-code',
+        params: { email: email.trim() },
+      })
+    } else {
+      haptics.actionFailed()
+    }
+  }
 
   return (
     <AuthScreen
@@ -72,16 +101,25 @@ export default function SignIn() {
         autoComplete="current-password"
         textContentType="password"
         returnKeyType="go"
-        onSubmitEditing={() => ready && submit(email, password)}
+        onSubmitEditing={() => ready && !busy && signInWithPassword()}
       />
 
       <AuthError message={error} />
 
       <AuthButton
+        testID="sign-in-submit"
         label={t.signIn.submit}
-        busy={busy}
-        disabled={!ready}
-        onPress={() => submit(email, password)}
+        busy={passwordSignIn.busy}
+        disabled={!ready || emailCode.busy}
+        onPress={signInWithPassword}
+      />
+      <AuthButton
+        testID="sign-in-email-code"
+        variant="secondary"
+        label={t.signIn.emailCode.send}
+        busy={emailCode.busy}
+        disabled={!hasEmail || passwordSignIn.busy}
+        onPress={signInWithCode}
       />
       <AuthLink label={t.signIn.forgot} onPress={() => router.push('/reset')} />
 
