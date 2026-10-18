@@ -3,16 +3,16 @@ packages:
   - "packages/*"
 
 # pnpm 11 auto-installs before running any script when node_modules looks
-# stale. That is convenient locally and fatal on EAS Build: EAS authenticates
-# to our private @appelent scope from an `eas-build-pre-install` hook, and the
-# auto-install fires *before* the hook body, so the install that needs the
-# token runs without one. Under pnpm 11.8 the resulting 401 is then reported as
-# ERR_PNPM_TARBALL_URL_MISMATCH — it accuses the lockfile of tampering rather
-# than naming the auth failure (pnpm/pnpm#12489, fixed in 11.9).
-# Retire this when the pin reaches 11.9+ *and* EAS auth no longer depends on a
-# pre-install hook; until both hold, turning it off is what makes iOS builds
-# possible at all. The cost is that `pnpm run <script>` no longer installs for
-# you when dependencies are stale — run `pnpm install` yourself.
+# stale. That is convenient locally and was fatal on EAS Build: EAS used to
+# authenticate to the private @appelent scope from an `eas-build-pre-install`
+# hook, and the auto-install fired *before* the hook body, so the install that
+# needed the token ran without one. Under pnpm 11.8 the resulting 401 is then
+# reported as ERR_PNPM_TARBALL_URL_MISMATCH — it accuses the lockfile of
+# tampering rather than naming the auth failure (pnpm/pnpm#12489, fixed in 11.9).
+# The private scope and the hook are gone (October 2026), so that failure can no
+# longer happen. Retire this once one EAS iOS build has gone green with it
+# removed. Until then, `pnpm run <script>` does not install for you when
+# dependencies are stale — run `pnpm install` yourself.
 verifyDepsBeforeRun: false
 
 # pnpm 11 default-denies install/build lifecycle scripts (neutralizes the
@@ -38,8 +38,6 @@ allowBuilds:
   node-datachannel: true # installs the native WebRTC binary used by Expo Device Hub
 
 minimumReleaseAge: 4320 # 3 days — blocks the worm/account-takeover window
-minimumReleaseAgeExclude:
-  - "@appelent/*" # our own registry, always trusted
 
 overrides:
   # @tanstack/ai-gemini pulls in @google/genai@^2.8.0, which latest-resolved to
