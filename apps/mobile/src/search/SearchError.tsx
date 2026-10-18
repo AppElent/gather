@@ -5,14 +5,20 @@
  */
 import type { ErrorBoundaryProps } from 'expo-router'
 import { Stack } from 'expo-router'
+import { useEffect } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../i18n'
+import { reportError } from '../observability/report'
 import { RADIUS, useTokens } from '../theme/tokens'
 
 export function SearchError({ error, retry }: ErrorBoundaryProps) {
   const tokens = useTokens()
   const { t } = useI18n()
+
+  useEffect(() => {
+    reportError(error)
+  }, [error])
 
   return (
     <>

@@ -78,6 +78,7 @@
       "expo-secure-store",
       "expo-localization",
       "expo-sqlite",
+      "@sentry/react-native/expo",
       [
         "expo-build-properties",
         {

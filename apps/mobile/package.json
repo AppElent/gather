@@ -15,8 +15,8 @@
     "deploy:preview": "eas build --platform ios --profile preview --auto-submit",
     "deploy:prod": "eas build --platform ios --profile production",
     "build:preview:android": "eas build --platform android --profile preview-internal",
-    "update:preview": "eas update --channel preview --environment preview",
-    "update:prod": "eas update --channel production --environment production",
+    "update:preview": "node scripts/publish-update.mjs preview",
+    "update:prod": "node scripts/publish-update.mjs production",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit"
   },
@@ -26,6 +26,7 @@
     "@expo/ui": "^57.0.19",
     "@expo/vector-icons": "^15.0.3",
     "@gather/core": "workspace:*",
+    "@sentry/react-native": "~8.31.0",
     "convex": "^1.42.3",
     "convex-helpers": "0.1.120",
     "expo": "~57.0.24",
@@ -70,6 +71,13 @@
     "eslint-config-expo": "~57.0.2",
     "expo-device-hub": "^0.13.0",
     "typescript": "~6.0.3"
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "@sentry/react-native"
+      ]
+    }
   },
   "private": true
 }
