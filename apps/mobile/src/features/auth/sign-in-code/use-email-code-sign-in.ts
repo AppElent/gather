@@ -25,8 +25,8 @@
  */
 import { useSignIn } from '@clerk/expo'
 import { useCallback, useState } from 'react'
-import { type Messages, useI18n } from '../i18n'
-import { type CodedError, pickError } from './clerkErrors'
+import { type CodedError, pickError } from '../../../auth/clerkErrors'
+import { type Messages, useI18n } from '../../../i18n'
 
 type ErrorKey = keyof Messages['errors']
 
@@ -93,19 +93,34 @@ export function useEmailCodeSignIn() {
     [signIn, clear],
   )
 
-  /** Re-sends to the address of the sign-in already in progress. */
+  /** Asks Clerk to send the second factor's code, for the strategies that have one. */
+  const sendSecondFactor = useCallback(
+    (strategy: SecondFactorStrategy) =>
+      strategy === 'phone_code'
+        ? signIn.mfa.sendPhoneCode()
+        : signIn.mfa.sendEmailCode(),
+    [signIn],
+  )
+
+  /**
+   * Sends the code again: to the second factor once the sign-in has reached it
+   * (the first factor is already proved, so sending the email code again would
+   * be a step backwards), otherwise to the address of the sign-in in progress.
+   */
   const resend = useCallback(async (): Promise<boolean> => {
     if (resending) return false
     setResending(true)
     clear()
-    const sent = await signIn.emailCode.sendCode()
+    const sent = secondFactor
+      ? await sendSecondFactor(secondFactor.strategy)
+      : await signIn.emailCode.sendCode()
     setResending(false)
     if (sent.error) {
       setReturned(sent.error)
       return false
     }
     return true
-  }, [signIn, resending, clear])
+  }, [signIn, resending, secondFactor, sendSecondFactor, clear])
 
   /** Drops the attempt, so a corrected address or a password starts clean. */
   const startOver = useCallback(async () => {
@@ -131,25 +146,26 @@ export function useEmailCodeSignIn() {
       setOverride('noSecondFactor')
       return false
     }
-    if (factor.strategy === 'phone_code' || factor.strategy === 'email_code') {
-      const prepared =
-        factor.strategy === 'phone_code'
-          ? await signIn.mfa.sendPhoneCode()
-          : await signIn.mfa.sendEmailCode()
-      if (prepared.error) {
-        setReturned(prepared.error)
-        return false
-      }
-    }
+    const strategy = factor.strategy as SecondFactorStrategy
+    // The step is entered before anything is sent: the first factor is already
+    // proved, so a failed send must leave the person on the second-factor form
+    // with the error and a Resend that retries it, not back on the email code.
     setSecondFactor({
-      strategy: factor.strategy as SecondFactorStrategy,
+      strategy,
       contact:
         'safeIdentifier' in factor && typeof factor.safeIdentifier === 'string'
           ? factor.safeIdentifier
           : null,
     })
+    if (strategy === 'phone_code' || strategy === 'email_code') {
+      const prepared = await sendSecondFactor(strategy)
+      if (prepared.error) {
+        setReturned(prepared.error)
+        return false
+      }
+    }
     return true
-  }, [signIn])
+  }, [signIn, sendSecondFactor])
 
   /** `false` means the attempt failed and the screen should say so. */
   const verify = useCallback(

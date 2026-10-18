@@ -2,8 +2,8 @@
 import { act } from 'react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
-import { mount } from '../testing/dom'
-import { useCooldown } from './useCooldown'
+import { mount } from '../../../testing/dom'
+import { useCooldown } from './use-cooldown'
 
 function renderHook(seconds: number) {
   const result = {
