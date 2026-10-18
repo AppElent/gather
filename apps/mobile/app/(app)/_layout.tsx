@@ -11,7 +11,8 @@
  * Group decides what everything is scoped to.
  */
 import { useAuth } from '@clerk/expo'
-import { Redirect, Stack } from 'expo-router'
+import { Redirect, Stack, useNavigationContainerRef } from 'expo-router'
+import { useCallback } from 'react'
 
 import { ConvexSessionGate } from '../../src/auth/ConvexSessionGate'
 import { useSignOut } from '../../src/auth/useSignOut'
@@ -19,6 +20,7 @@ import { GroupPending } from '../../src/components/GroupPending'
 import { NoGroup } from '../../src/components/NoGroup'
 import { DropGate } from '../../src/drop/DropGate'
 import { GroupProvider } from '../../src/group/GroupProvider'
+import { groupUnwindActions, type NavState } from '../../src/group/groupUnwind'
 import { useTokens } from '../../src/theme/tokens'
 
 export const unstable_settings = { anchor: '(tabs)' }
@@ -27,6 +29,13 @@ export default function AppLayout() {
   const { isSignedIn } = useAuth()
   const tokens = useTokens()
   const signOut = useSignOut()
+  const navigation = useNavigationContainerRef()
+  // ADR-0015: a switch unwinds every Group-scoped tab stack. By resetting
+  // their state, not by re-keying them — that crashes Android (#235).
+  const unwindTabStacks = useCallback(() => {
+    const state = navigation.getRootState() as NavState | undefined
+    for (const action of groupUnwindActions(state)) navigation.dispatch(action)
+  }, [navigation])
 
   if (!isSignedIn) return <Redirect href="/" />
 
@@ -35,6 +44,7 @@ export default function AppLayout() {
       <GroupProvider
         pending={<GroupPending />}
         none={<NoGroup onSignOut={signOut} />}
+        onSwitch={unwindTabStacks}
       >
         {/* Inside both gates, because the chooser needs the Group and needs this
             stack to be pushed onto. The Drop itself was captured further up. */}

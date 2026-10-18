@@ -75,9 +75,9 @@ export interface GroupContextValue {
    * only way to obtain one is a stale list, and honouring it would put the app
    * in a Group the backend then refuses every query for.
    *
-   * ADR-0015 also requires a switch to unwind every tab stack. That is not done
-   * here: each nested tab stack is keyed by the slug, so changing it remounts
-   * every visited stack at its root while the fixed tab navigator stays put.
+   * ADR-0015 also requires a switch to unwind every tab stack. That is not
+   * done here, because this provider sits above the navigator: it calls
+   * `onSwitch` and the shell resets the stacks (`groupUnwind.ts`).
    */
   setGroup: (groupId: string) => void
 }
@@ -104,9 +104,20 @@ export interface GroupProviderProps {
   pending: ReactNode
   /** Drawn when the Member is in no Group at all. */
   none: ReactNode
+  /**
+   * Called on a real switch, in the same event as the state change, so React
+   * commits the new Group and whatever this does as one render — no screen
+   * left over from the old Group ever renders inside the new one.
+   */
+  onSwitch?: () => void
 }
 
-export function GroupProvider({ children, pending, none }: GroupProviderProps) {
+export function GroupProvider({
+  children,
+  pending,
+  none,
+  onSwitch,
+}: GroupProviderProps) {
   // Read once, synchronously, before the first paint. An awaited read would
   // mean a frame in the wrong Group on every cold start.
   const [retained, setRetained] = useState(readRetainedGroup)
@@ -175,9 +186,11 @@ export function GroupProvider({ children, pending, none }: GroupProviderProps) {
   const setGroup = useCallback(
     (next: string) => {
       if (!visibleGroups?.some((candidate) => candidate._id === next)) return
+      if (next === groupId) return
+      onSwitch?.()
       setRetained(next)
     },
-    [visibleGroups],
+    [visibleGroups, groupId, onSwitch],
   )
 
   const value = useMemo<GroupContextValue | null>(() => {

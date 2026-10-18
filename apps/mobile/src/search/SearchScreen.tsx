@@ -141,7 +141,7 @@ export function SearchScreen() {
    * collapses the view in place and leaves the pathname untouched, so the
    * effect above cannot fire and the field would stay shut for good. And **the
    * re-read**, because recents are written by `useRecordRecent` on detail
-   * screens in other tabs, and this stack is Group-keyed so it does not remount
+   * screens in other tabs, and this stack stays mounted, so it does not remount
    * on the way back — without it the list would only ever show what Search
    * itself opened. One synchronous `kv-store` read, which is what that store is
    * for.
