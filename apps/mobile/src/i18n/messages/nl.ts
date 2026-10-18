@@ -464,6 +464,11 @@ export const nl = {
       'Maak hieronder een Groep aan of doe met een uitnodigingscode mee met die van iemand anders.',
   },
 
+  session: {
+    title: 'We konden je account niet bevestigen',
+    body: 'Gather kon niet nagaan wie er is ingelogd. Probeer het opnieuw, of log uit en weer in.',
+  },
+
   signedIn: {
     as: 'Ingelogd als {email}',
     signOut: 'Uitloggen',

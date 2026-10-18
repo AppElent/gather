@@ -1,3 +1,4 @@
+import { auth } from './auth'
 import { baby } from './baby'
 import { calendar } from './calendar'
 import { common } from './common'
@@ -39,6 +40,7 @@ export const en = {
   tastings,
   settings,
   privacy,
+  auth,
 }
 
 /**
