@@ -69,6 +69,7 @@ beforeEach(() => {
 describe('exportMyData', () => {
   test('hands one JSON file to the system share sheet', async () => {
     sharing.isAvailableAsync.mockResolvedValue(true)
+    sharing.shareAsync.mockResolvedValue(undefined)
     cache.set('gather-export-2026-01-01.json', 'stale')
     const { client } = convexServing()
 
@@ -88,6 +89,16 @@ describe('exportMyData', () => {
     const file = JSON.parse([...cache.values()][0])
     expect(file.format).toBe('gather.data-export')
     expect(file.account.users).toEqual([{ id: 'u1' }])
+  })
+
+  test('fails when the sheet cannot open', async () => {
+    sharing.isAvailableAsync.mockResolvedValue(true)
+    sharing.shareAsync.mockRejectedValue(new Error('ERR_SHARING_MEM'))
+    const { client } = convexServing()
+
+    await expect(exportMyData(client, () => {})).rejects.toThrow(
+      'ERR_SHARING_MEM',
+    )
   })
 
   test('says sharing is unavailable before reading anything', async () => {
