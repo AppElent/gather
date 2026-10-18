@@ -26,6 +26,7 @@
  * round-trip later. Believing that immediately would greet a new arrival with a
  * screen about having no household moments before they have one.
  */
+import { useAuth } from '@clerk/expo'
 import { selectGroup } from '@gather/core/groups'
 import { useConvexAuth, useQuery } from 'convex/react'
 import {
@@ -40,7 +41,11 @@ import {
 
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
-import { groupsForSurface } from './groupsForSurface'
+import {
+  groupsForSurface,
+  type RetainedGroups,
+  retainGroups,
+} from './groupsForSurface'
 import {
   clearRetainedGroup,
   readRetainedGroup,
@@ -127,10 +132,16 @@ export function GroupProvider({ children, pending, none }: GroupProviderProps) {
   // Convex removes a query result while its auth token or socket is being
   // recovered. Keep the last resolved list so an in-shell connection loss
   // preserves the Group name and orientation instead of replacing the shell
-  // with a loading gate.
-  const [lastGroups, setLastGroups] = useState<AmbientGroup[] | undefined>()
-  if (groups !== undefined && groups !== lastGroups) setLastGroups(groups)
-  const visibleGroups = groupsForSurface(groups, lastGroups)
+  // with a loading gate — but only for the account it was resolved for. A
+  // sign-out or account switch drops it, so the previous account's Group can
+  // never stay on screen for the next one.
+  const { userId } = useAuth()
+  const [lastGroups, setLastGroups] = useState<
+    RetainedGroups<AmbientGroup> | undefined
+  >()
+  const nextRetained = retainGroups(lastGroups, groups, userId)
+  if (nextRetained !== lastGroups) setLastGroups(nextRetained)
+  const visibleGroups = groupsForSurface(groups, nextRetained, userId)
 
   const selection = selectGroup(retained, visibleGroups)
 
