@@ -26,6 +26,10 @@ jobs:
       # credentials, so it runs on every PR including one from a fork.
       - run: pnpm run env:check
       - run: pnpm run typecheck
+      # apps/mobile has its own tsconfig (React Native types, Expo Router); the
+      # root `tsc` run above does not use it. Its tests already run under the
+      # `mobile` project of the root vitest config, so `pnpm test` covers those.
+      - run: pnpm --filter @gather/mobile typecheck
       - run: pnpm test
       # Build catches bundling/plugin/SSR-compile breakage that typecheck + tests
       # miss. preview.yml builds too, but only when its secrets are present — this
