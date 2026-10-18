@@ -25,12 +25,17 @@
  * replaced automatically if Clerk turns up late.
  */
 
+// First, so a crash while the rest of the module graph loads is still reported.
+import '../src/observability/init'
+
 import { ClerkProvider } from '@clerk/expo'
 import { tokenCache } from '@clerk/expo/token-cache'
 import { BottomSheetModalProvider } from '@expo/ui/community/bottom-sheet'
 import Constants, { ExecutionEnvironment } from 'expo-constants'
-import { Stack } from 'expo-router'
+import type { ErrorBoundaryProps } from 'expo-router'
+import { ErrorBoundary as RouterErrorBoundary, Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
+import { useEffect } from 'react'
 import { LogBox, StyleSheet, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -44,6 +49,8 @@ import { ConnectionLostBanner } from '../src/components/ConnectionLostBanner'
 import { AppConvexProvider } from '../src/convex/provider'
 import { DropProvider } from '../src/drop/DropProvider'
 import { LocaleProvider } from '../src/i18n'
+import { useNavigationBreadcrumbs } from '../src/observability/navigation'
+import { reportError } from '../src/observability/report'
 import { AppearanceProvider } from '../src/theme/appearance'
 import { NativeChrome } from '../src/theme/NativeChrome'
 
@@ -63,6 +70,19 @@ SplashScreen.preventAutoHideAsync()
 // call is honoured. Remove it when the phone moves to a dev build.
 if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
   SplashScreen.setOptions({ duration: 220, fade: true })
+}
+
+/**
+ * Expo Router's own error screen, kept as it is, plus a report. Its boundary
+ * catches what would otherwise reach the global handler, so Sentry would never
+ * see it. The Search tab has its own boundary and reports the same way.
+ */
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  const { error } = props
+  useEffect(() => {
+    reportError(error)
+  }, [error])
+  return <RouterErrorBoundary {...props} />
 }
 
 export default function RootLayout() {
@@ -112,6 +132,7 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const { mode, retry, retrying } = useAvailability()
+  useNavigationBreadcrumbs()
 
   // Still behind the splash. Rendering nothing is the point.
   if (mode === 'splash') return null

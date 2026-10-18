@@ -24,10 +24,15 @@ pnpm update:preview --message "what changed"
 pnpm update:prod    --message "what changed"
 ```
 
-Each script pairs `--channel` with `--environment`, as the
+Each script runs `apps/mobile/scripts/publish-update.mjs`, which pairs
+`--channel` with `--environment`, as the
 [mobile baseline](../standards/mobile-baseline.md#build-and-release-boundaries)
 requires; publish only through them. Here a bare publish would point
 production phones at the dev Convex deployment and the Clerk test instance.
+
+The scripts also upload the update's source maps to Sentry. Production refuses
+to publish without `SENTRY_AUTH_TOKEN`; see [Sentry](sentry.md#phone-source-maps-and-symbols),
+including how to retry a failed upload with `--upload-only`.
 
 **A new build** — anything that changes the native surface: a new native
 dependency, an `app.json` or config-plugin change, an Expo SDK bump. You do not

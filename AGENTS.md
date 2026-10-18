@@ -26,7 +26,7 @@ Before the task, read the matching project doc:
 | Publishing an over-the-air update or a store build | [Mobile releases](docs/runbooks/mobile-releases.md) |
 | Adding or changing an environment variable or secret | [Environment](docs/runbooks/environment.md) |
 | Deploying, or changing the deploy or preview workflows | [Deploy](docs/runbooks/deploy.md), [Previews](docs/runbooks/previews.md) |
-| Changing error reporting, the privacy scrubber, source maps, or the `VITE_SENTRY_*` variables | [Sentry](docs/runbooks/sentry.md) |
+| Changing error reporting (web or phone), the privacy scrubber, source maps, or the `*_SENTRY_*` variables | [Sentry](docs/runbooks/sentry.md) |
 | Upgrading dependencies | [`upgrade-deps`](.claude/commands/upgrade-deps.md); never weaken or skip a test to make an upgrade pass — stop and report |
 
 Domain terms: [GLOSSARY.md](GLOSSARY.md). Decisions: [ADR index](docs/README.md#decisions).
