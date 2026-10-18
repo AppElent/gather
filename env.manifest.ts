@@ -402,6 +402,12 @@ export const ENTRIES = [
         name: 'VITE_SENTRY_DSN',
         environments: ['local', 'preview', 'stg', 'production'],
       },
+      // The phone initialises Sentry only in a release build, so the EAS
+      // development environment (a dev client) has no use for it.
+      'expo-build': {
+        name: 'EXPO_PUBLIC_SENTRY_DSN',
+        environments: ['preview', 'stg', 'production'],
+      },
     },
   },
   {
@@ -414,6 +420,12 @@ export const ENTRIES = [
       'vite-build': {
         name: 'VITE_SENTRY_ORG',
         environments: ['local', 'preview', 'stg', 'production'],
+      },
+      // Read by `@sentry/react-native`'s native build steps on EAS, which
+      // upload the debug symbols and bundle map for the binary being built.
+      'eas-tooling': {
+        name: 'SENTRY_ORG',
+        environments: ['preview', 'stg', 'production'],
       },
     },
   },
@@ -428,19 +440,31 @@ export const ENTRIES = [
         name: 'VITE_SENTRY_PROJECT',
         environments: ['local', 'preview', 'stg', 'production'],
       },
+      // Read by `@sentry/react-native`'s native build steps on EAS, which
+      // upload the debug symbols and bundle map for the binary being built.
+      'eas-tooling': {
+        name: 'SENTRY_PROJECT',
+        environments: ['preview', 'stg', 'production'],
+      },
     },
   },
   {
     key: 'sentryAuthToken',
     infisicalKey: 'sentry-auth-token',
     description:
-      'Uploads source maps at build time. Build-time but never inlined — it has no VITE_ prefix, which is the whole reason `build-tooling` exists as a separate consumer.',
+      'Uploads source maps and debug symbols at build time (web build, EAS native build) and when publishing a mobile update. Build-time but never inlined — it has no VITE_ prefix, which is the whole reason `build-tooling` exists as a separate consumer.',
     optional: true,
     secret: true,
     lands: {
       'build-tooling': {
         name: 'SENTRY_AUTH_TOKEN',
         environments: ['local', 'preview', 'stg', 'production'],
+      },
+      // The native build steps on EAS need it too. OTA publishes run on a
+      // developer machine and read the `build-tooling` copy above.
+      'eas-tooling': {
+        name: 'SENTRY_AUTH_TOKEN',
+        environments: ['preview', 'stg', 'production'],
       },
     },
   },

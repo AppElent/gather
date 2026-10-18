@@ -20,6 +20,7 @@
     "./modules": "./src/modules.ts",
     "./photo-presets": "./src/photoPresets.ts",
     "./pins": "./src/pins.ts",
+    "./sentry-privacy": "./src/sentryPrivacy.ts",
     "./tastings": "./src/tastings.ts"
   },
   "dependencies": {},

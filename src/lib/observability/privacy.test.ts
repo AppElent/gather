@@ -149,7 +149,9 @@ describe('sanitizeEvent', () => {
 
   it('keeps only the opaque user id', () => {
     expect(sanitizeEvent(build()).user).toEqual({ id: 'user_1' })
-    expect(sanitizeEvent({ user: { email: 'a@b.nl' } }).user).toBeUndefined()
+    expect(
+      sanitizeEvent({ user: { email: 'a@b.nl' } } as Event).user,
+    ).toBeUndefined()
   })
 
   it('scrubs text fields and breadcrumbs inside the event', () => {
