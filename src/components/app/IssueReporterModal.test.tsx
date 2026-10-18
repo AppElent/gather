@@ -34,7 +34,7 @@ test('is closed until the keyboard shortcut is pressed', () => {
   expect(screen.getByText('Report an issue')).toBeDefined()
 })
 
-test('submits the report with the current user and page url', async () => {
+test('submits the report with the page url and signed-in flag, never the user identity', async () => {
   reportIssueMock.mockResolvedValue({
     ok: true,
     issueUrl: 'https://github.com/o/r/issues/1',
@@ -54,13 +54,18 @@ test('submits the report with the current user and page url', async () => {
       type: 'bug',
       text: 'The recipe list is empty after saving',
       url: window.location.href,
-      user: {
-        id: 'user_123',
-        email: 'eric@example.com',
-        name: 'Eric Jansen',
-      },
+      signedIn: true,
     },
   })
+  expect(JSON.stringify(reportIssueMock.mock.calls)).not.toMatch(
+    /user_123|eric@example\.com|Eric Jansen/,
+  )
+})
+
+test('tells the reporter the report is public', () => {
+  renderWithI18n(<IssueReporterModal />)
+  openModal()
+  expect(screen.getByText(/public GitHub issues/i)).toBeDefined()
 })
 
 test('shows the server-reported error', async () => {

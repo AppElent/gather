@@ -208,6 +208,8 @@ export const shell = {
       question: 'Vraag',
     },
     placeholder: 'Wat ging er mis, of wat zou je graag willen zien?',
+    publicNotice:
+      'Meldingen worden als openbare GitHub-issues aangemaakt die iedereen kan lezen. Vermeld geen persoonlijke gegevens zoals namen, e-mailadressen of wachtwoorden. Je account wordt niet meegestuurd.',
     send: 'Versturen',
     sending: 'Versturen…',
     filed: 'Bedankt — je melding is aangemaakt.',
