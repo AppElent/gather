@@ -85,3 +85,38 @@ export function isSessionOpen(
     confirmation.confirmed === account
   )
 }
+
+/**
+ * What a closed gate draws.
+ *
+ * - **quiet** — a bare surface, for the first `PENDING_REVEAL_MS`.
+ * - **pending** — the loading screen, once the wait has been noticeable.
+ * - **recover** — try again or sign out. Reached when the account has no
+ *   `users` row and provisioning has failed or has run past its bounded wait:
+ *   nothing else would ever open the gate, and nothing else on screen would
+ *   offer a way out. (`AvailabilityProvider` sees a healthy connection, so it
+ *   shows no retry of its own.)
+ */
+export type ClosedGateView = 'quiet' | 'pending' | 'recover'
+
+export interface ClosedGateInput {
+  /** Convex is authenticated and `users.me` answered `null`. */
+  unprovisioned: boolean
+  provisioningFailed: boolean
+  /** `PROVISION_WAIT_MS` has passed since this attempt began. */
+  provisionWaitExpired: boolean
+  /** `PENDING_REVEAL_MS` has passed since the gate closed. */
+  revealed: boolean
+}
+
+export function closedGateView({
+  unprovisioned,
+  provisioningFailed,
+  provisionWaitExpired,
+  revealed,
+}: ClosedGateInput): ClosedGateView {
+  if (unprovisioned && (provisioningFailed || provisionWaitExpired)) {
+    return 'recover'
+  }
+  return revealed ? 'pending' : 'quiet'
+}

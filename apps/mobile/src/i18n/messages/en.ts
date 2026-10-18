@@ -626,6 +626,16 @@ export const en = {
   },
 
   /**
+   * The signed-in tree could not confirm who is signed in: `users.me` failed
+   * (`SessionIdentityBoundary`). The actions reuse `actions.retry` and
+   * `signedIn.signOut`.
+   */
+  session: {
+    title: 'We could not confirm your account',
+    body: 'Gather could not check who is signed in. Try again, or sign out and back in.',
+  },
+
+  /**
    * Who you are, and the way out. Both live on Account, above the tabs — they
    * sat on Home until #164 gave the shell somewhere for them.
    */

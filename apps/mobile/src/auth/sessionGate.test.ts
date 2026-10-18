@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  closedGateView,
   confirmSession,
   isSessionOpen,
   type SessionConfirmation,
@@ -112,5 +113,52 @@ describe('ConvexSessionGate decision', () => {
         viewer: undefined,
       }),
     ).toBe(UNCONFIRMED)
+  })
+})
+
+describe('closedGateView', () => {
+  const waiting = {
+    unprovisioned: false,
+    provisioningFailed: false,
+    provisionWaitExpired: false,
+    revealed: false,
+  }
+
+  test('stays quiet, then admits it is waiting', () => {
+    expect(closedGateView(waiting)).toBe('quiet')
+    expect(closedGateView({ ...waiting, revealed: true })).toBe('pending')
+  })
+
+  test('offers recovery when an account with no users row could not be provisioned', () => {
+    expect(
+      closedGateView({
+        ...waiting,
+        unprovisioned: true,
+        provisioningFailed: true,
+      }),
+    ).toBe('recover')
+  })
+
+  test('offers recovery when provisioning has outlasted its wait without an answer', () => {
+    expect(closedGateView({ ...waiting, unprovisioned: true })).toBe('quiet')
+    expect(
+      closedGateView({
+        ...waiting,
+        unprovisioned: true,
+        provisionWaitExpired: true,
+        revealed: true,
+      }),
+    ).toBe('recover')
+  })
+
+  test('does not blame provisioning while the users row is merely unanswered', () => {
+    expect(
+      closedGateView({
+        ...waiting,
+        provisioningFailed: true,
+        provisionWaitExpired: true,
+        revealed: true,
+      }),
+    ).toBe('pending')
   })
 })

@@ -17,7 +17,6 @@ import { ConvexSessionGate } from '../../src/auth/ConvexSessionGate'
 import { useSignOut } from '../../src/auth/useSignOut'
 import { GroupPending } from '../../src/components/GroupPending'
 import { NoGroup } from '../../src/components/NoGroup'
-import { useEnsureUser } from '../../src/convex/useEnsureUser'
 import { DropGate } from '../../src/drop/DropGate'
 import { GroupProvider } from '../../src/group/GroupProvider'
 import { useTokens } from '../../src/theme/tokens'
@@ -29,12 +28,10 @@ export default function AppLayout() {
   const tokens = useTokens()
   const signOut = useSignOut()
 
-  useEnsureUser()
-
   if (!isSignedIn) return <Redirect href="/" />
 
   return (
-    <ConvexSessionGate pending={<GroupPending />}>
+    <ConvexSessionGate pending={<GroupPending />} onSignOut={signOut}>
       <GroupProvider
         pending={<GroupPending />}
         none={<NoGroup onSignOut={signOut} />}
