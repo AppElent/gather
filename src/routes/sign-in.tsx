@@ -3,12 +3,14 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect } from 'react'
 import { PublicPageFrame } from '../components/app/PublicPageFrame'
 import { SignInForm, useAuthConfig } from '../lib/auth'
+import { useMessages } from '../lib/i18n'
 
 export const Route = createFileRoute('/sign-in')({ component: SignInPage })
 
 export function SignInPage() {
   const navigate = useNavigate()
   const { paths } = useAuthConfig()
+  const { signIn: text } = useMessages().auth
   const { isLoaded, isSignedIn } = useAuth()
   const onSuccess = useCallback(
     () => navigate({ to: paths.afterAuth }),
@@ -22,20 +24,22 @@ export function SignInPage() {
   if (isLoaded && isSignedIn) {
     return (
       <PublicPageFrame
-        eyebrow="Signed in"
-        title="Opening Gather"
-        subtitle="Taking you to your groups."
+        eyebrow={text.redirecting.eyebrow}
+        title={text.redirecting.title}
+        subtitle={text.redirecting.subtitle}
       >
-        <p className="m-0 text-sm text-[var(--app-muted)]">Redirecting...</p>
+        <p className="m-0 text-sm text-[var(--app-muted)]">
+          {text.redirecting.body}
+        </p>
       </PublicPageFrame>
     )
   }
 
   return (
     <PublicPageFrame
-      eyebrow="Sign in"
-      title="Welcome back"
-      subtitle="Use your Gather account to open your groups."
+      eyebrow={text.eyebrow}
+      title={text.title}
+      subtitle={text.subtitle}
     >
       <SignInForm onSuccess={onSuccess} />
     </PublicPageFrame>

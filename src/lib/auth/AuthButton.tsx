@@ -1,3 +1,4 @@
+import { useMessages } from '../i18n'
 import { cn } from './utils'
 
 export function AuthButton({
@@ -15,6 +16,7 @@ export function AuthButton({
   onClick?: () => void
   className?: string
 }) {
+  const { auth } = useMessages()
   return (
     <button
       type={type}
@@ -29,7 +31,7 @@ export function AuthButton({
         className,
       )}
     >
-      {loading ? 'Please wait…' : children}
+      {loading ? auth.wait : children}
     </button>
   )
 }

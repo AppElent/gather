@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const create = vi.fn()
@@ -7,6 +7,7 @@ vi.mock('@clerk/clerk-react', () => ({
   useSignIn: () => ({ isLoaded: true, signIn: { create }, setActive }),
 }))
 
+import { renderWithI18n } from '../i18n/testing'
 import { TestLoginButton } from './TestLoginButton'
 
 describe('TestLoginButton', () => {
@@ -19,7 +20,9 @@ describe('TestLoginButton', () => {
 
   it('renders nothing without a test instance + creds', () => {
     vi.stubEnv('VITE_CLERK_PUBLISHABLE_KEY', 'pk_live_x')
-    const { container } = render(<TestLoginButton onSuccess={() => {}} />)
+    const { container } = renderWithI18n(
+      <TestLoginButton onSuccess={() => {}} />,
+    )
     expect(container.firstChild).toBeNull()
   })
 
@@ -27,7 +30,9 @@ describe('TestLoginButton', () => {
     vi.stubEnv('VITE_CLERK_PUBLISHABLE_KEY', 'pk_test_x')
     vi.stubEnv('VITE_TEST_USER_EMAIL', '')
     vi.stubEnv('VITE_TEST_USER_PASSWORD', '')
-    const { container } = render(<TestLoginButton onSuccess={() => {}} />)
+    const { container } = renderWithI18n(
+      <TestLoginButton onSuccess={() => {}} />,
+    )
     expect(container.firstChild).toBeNull()
   })
 
@@ -41,7 +46,7 @@ describe('TestLoginButton', () => {
     })
     const onSuccess = vi.fn()
 
-    render(<TestLoginButton onSuccess={onSuccess} />)
+    renderWithI18n(<TestLoginButton onSuccess={onSuccess} />)
     screen.getByRole('button', { name: /test/i }).click()
     await vi.waitFor(() =>
       expect(setActive).toHaveBeenCalledWith({ session: 'sess_1' }),

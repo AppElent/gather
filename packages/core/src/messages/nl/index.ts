@@ -1,4 +1,5 @@
 import type { Messages } from '../en'
+import { auth } from './auth'
 import { baby } from './baby'
 import { calendar } from './calendar'
 import { common } from './common'
@@ -29,4 +30,5 @@ export const nl = {
   calendar,
   tastings,
   settings,
+  auth,
 } satisfies Messages

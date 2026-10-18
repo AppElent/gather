@@ -50,7 +50,8 @@ export function pickSecondFactor<T extends { strategy: string }>(
 }
 
 interface ClerkLikeError {
-  errors?: { longMessage?: string; message?: string }[]
+  status?: number
+  errors?: { code?: string; longMessage?: string; message?: string }[]
 }
 
 /** Extract a readable message from a thrown Clerk error (or any error). */
@@ -61,4 +62,30 @@ export function clerkErrorMessage(
   const e = err as ClerkLikeError
   const first = e?.errors?.[0]
   return first?.longMessage ?? first?.message ?? fallback
+}
+
+/** The failures of an email-code sign-in a person can act on. */
+export type EmailCodeErrorKey = 'codeIncorrect' | 'codeExpired' | 'rateLimited'
+
+/**
+ * Classify a thrown Clerk error from sending or checking an email code.
+ *
+ * Returns a key rather than a sentence (the form resolves it in the reader's
+ * language, since Clerk's own text is English); `undefined` means "nothing
+ * more specific than Clerk's message".
+ */
+export function emailCodeErrorKey(err: unknown): EmailCodeErrorKey | undefined {
+  const e = err as ClerkLikeError
+  if (e?.status === 429) return 'rateLimited'
+  switch (e?.errors?.[0]?.code) {
+    case 'too_many_requests':
+      return 'rateLimited'
+    case 'form_code_incorrect':
+      return 'codeIncorrect'
+    case 'verification_expired':
+    case 'verification_failed':
+      return 'codeExpired'
+    default:
+      return undefined
+  }
 }
