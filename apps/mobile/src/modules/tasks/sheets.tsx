@@ -8,7 +8,7 @@
  *
  * All of them are `NativeSheet`, which is `@expo/ui`'s real bottom sheet:
  * presentation, drag, detents, keyboard and dismissal are the platform's
- * (`docs/mobile-interaction.md`). None of them has a Save button — a sheet that
+ * (`apps/mobile/DESIGN_SYSTEM.md`). None of them has a Save button — a sheet that
  * writes on selection and closes is one tap, and the sheet closing *is* the
  * confirmation.
  */

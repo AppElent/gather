@@ -12,7 +12,7 @@
  *   spelled out, in the order somebody would look for it.
  *
  * Delete is at the bottom, in red, and asks first — deleting in Gather is
- * permanent today (`docs/mobile-interaction.md`).
+ * permanent today (`apps/mobile/DESIGN_SYSTEM.md`).
  */
 import { Stack, useRouter } from 'expo-router'
 import { type ReactNode, useState } from 'react'

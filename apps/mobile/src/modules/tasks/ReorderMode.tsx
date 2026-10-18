@@ -1,7 +1,7 @@
 /**
  * Rearranging a list, as a mode.
  *
- * `docs/mobile-interaction.md` is explicit that this is not a gesture: holding
+ * `apps/mobile/DESIGN_SYSTEM.md` is explicit that this is not a gesture: holding
  * a row means "open the menu" everywhere in the app, and continuing that same
  * touch into a drag would claim the gesture before anybody knows it is one.
  * So *Reorder* is an item in that menu and a line in the list's own menu, and

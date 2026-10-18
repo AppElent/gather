@@ -11,7 +11,7 @@
  * The field is the second way in, and it filters rather than navigates. An
  * empty result offers no add button, only a way back to everything — the
  * "nothing found" empty state, which is a different thing from "nothing yet"
- * (`docs/mobile-interaction.md`).
+ * (`apps/mobile/DESIGN_SYSTEM.md`).
  *
  * Open question the canvas did not close: whether a note belongs to the Group
  * or to the person who wrote it. Drawn as the Group's, because everything else

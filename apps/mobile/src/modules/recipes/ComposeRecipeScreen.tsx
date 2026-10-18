@@ -24,7 +24,7 @@
  *
  * ## Saving lands you on what you made
  *
- * `docs/mobile-interaction.md` says a `handoff` returns you where you started,
+ * `apps/mobile/DESIGN_SYSTEM.md` says a `handoff` returns you where you started,
  * and that rule is right for a quick capture: you pressed Add from the Baby
  * log, so saving a task should not strand you in Tasks. It is wrong for a
  * review-and-save, where the screen changing *is* the confirmation and the

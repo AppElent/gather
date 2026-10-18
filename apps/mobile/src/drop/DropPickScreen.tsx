@@ -14,7 +14,7 @@
  *
  * Search filters what has already arrived, exactly as the collections do it: no
  * second query, and no add button hiding behind an empty result
- * (`docs/mobile-interaction.md`).
+ * (`apps/mobile/DESIGN_SYSTEM.md`).
  *
  * The header title is set before anything else is decided, because a screen
  * reached with a stale address still has to say what it is rather than being a
@@ -89,7 +89,7 @@ export function DropPickScreen() {
     if (!asking || !drop || saving || candidate.readOnly) return
 
     // Replacing a photo destroys the one that is there, so it asks first and
-    // names the item (`docs/mobile-interaction.md`). Everything else here adds
+    // names the item (`apps/mobile/DESIGN_SYSTEM.md`). Everything else here adds
     // rather than replaces, and adding never asks.
     if (candidate.hasPhoto) {
       Alert.alert(

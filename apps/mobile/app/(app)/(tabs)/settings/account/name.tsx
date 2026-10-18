@@ -7,7 +7,7 @@
  * the households this app is for.
  *
  * Saving goes back rather than staying put with a tick. The screen changing is
- * the confirmation (`docs/mobile-interaction.md`); the previous screen already
+ * the confirmation (`apps/mobile/DESIGN_SYSTEM.md`); the previous screen already
  * draws the new name.
  */
 import { useUser } from '@clerk/expo'

@@ -753,7 +753,7 @@ export const en = {
     },
     /**
      * Replacing a photo is permanent, so it asks first and names the item
-     * (`docs/mobile-interaction.md`).
+     * (`apps/mobile/DESIGN_SYSTEM.md`).
      */
     replaceTitle: 'Replace the photo on “{name}”?',
     replaceBody: 'The picture that is there now is deleted.',

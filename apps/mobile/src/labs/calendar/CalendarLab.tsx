@@ -929,7 +929,7 @@ function Agenda({
 }
 
 /**
- * One event, with the two gestures `docs/mobile-interaction.md` says every row
+ * One event, with the two gestures `apps/mobile/DESIGN_SYSTEM.md` says every row
  * in this app has: **hold opens the system menu**, and **swipe left reveals a
  * Delete you still have to tap**. Neither is invented here — the menu is
  * `NativeContextMenu` and the swipe is `SwipeableRow`, both already carrying

@@ -8,7 +8,7 @@
  *
  * **Each star carries two 44pt targets, not one.** The left half sets `n - 0.5`
  * and the right sets `n`, and both are taller than the star so a thumb landing
- * slightly low still hits — `docs/mobile-interaction.md`'s rule about anything
+ * slightly low still hits — `apps/mobile/DESIGN_SYSTEM.md`'s rule about anything
  * under 44×44. That is also why the touch targets are absolutely positioned
  * rather than being the star itself.
  *

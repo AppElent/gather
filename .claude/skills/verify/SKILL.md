@@ -5,6 +5,9 @@ description: Verify that a code change actually does what it's supposed to by ex
 
 # Verify (gather)
 
+Checks, web runtime and backend identity: [verification runbook](../../../docs/runbooks/verification.md).
+Phone changes: [mobile verification](../../../docs/runbooks/mobile-verification.md).
+
 Local-first. On web (no dev server / no Convex+Clerk runtime creds), fall back to the
 static suite: `pnpm run typecheck`, `pnpm run check`, `pnpm test`, `pnpm build`.
 
@@ -12,7 +15,8 @@ static suite: `pnpm run typecheck`, `pnpm run check`, `pnpm test`, `pnpm build`.
 
 Routes live under `src/routes/` (file-based, TanStack Router). `src/routes/_app.tsx` is
 the authenticated shell; `src/routes/_app/*` are its child routes. Module metadata
-(label, group, status) lives in `src/lib/modules.ts`.
+(id, group, status) lives in `packages/core/src/modules.ts`; labels live in the
+core message trees.
 
 | Route | File | Module status |
 | --- | --- | --- |

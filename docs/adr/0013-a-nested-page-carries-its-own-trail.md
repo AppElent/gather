@@ -70,7 +70,7 @@ sheet already closes back to the diary because that is what its route does.
 
 **Every new nested route adds its trail in the same change.** There is no
 registry that would show a gap, and no test that fails for a page that quietly
-renders without one, so the rule lives in `CLAUDE.md` where the next person
+renders without one, so the rule lives in [`docs/runbooks/add-a-module.md`](../runbooks/add-a-module.md) where the next person
 adding a route will read it. A collection index does not get a trail; its
 children do.
 

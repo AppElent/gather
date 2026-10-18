@@ -13,7 +13,7 @@ for this handoff, not additional quotations from the user.
 ## How to execute
 
 Read the root `AGENTS.md`, `CLAUDE.md`, calendar entries in `CONTEXT.md`, and
-`docs/mobile-interaction.md` first. Read the applicable Convex skill before backend
+`apps/mobile/DESIGN_SYSTEM.md` first. Read the applicable Convex skill before backend
 edits, and agent-device instructions before device work. Use pnpm. Preserve
 unrelated changes. Check the Appelent catalog before extracting any cross-app
 capability; this plan calls for a Gather calendar, not a new shared package.
@@ -469,7 +469,7 @@ user IDs; retain seed tracking/cascade behavior. Do not reset shared sample data
 as an incidental test. Use isolated fixtures/dev test records for destructive QA.
 
 Update the calendar glossary and add the specific compact-card/explicit-save
-convention to `docs/mobile-interaction.md`. Link this plan from the old build
+convention to `apps/mobile/DESIGN_SYSTEM.md`. Link this plan from the old build
 brief with a short superseded notice; retain historical prototype decisions.
 
 Completion: ordinary navigation, Search, cold event route, Group switching and
