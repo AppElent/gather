@@ -23,6 +23,25 @@ export const settings = {
     },
   },
 
+  /**
+   * "Export your data" — on the web's Account page and the phone's Account
+   * screen. What it holds back is stated before the button, because it is
+   * the answer to "is my partner's diary in my file?"
+   */
+  dataExport: {
+    title: 'Export your data',
+    description:
+      'One JSON file with your account, your food diary, foods and combos, and everything in each group you are a member of.',
+    leftOut:
+      'Other members appear by name only: their diary, combos and choices stay theirs. Connection tokens and invite codes are left out.',
+    photos:
+      'Photos are included as links, not as files. Anyone you give the file to can open those links.',
+    action: 'Export',
+    busy: 'Exporting… {done} of {total}',
+    failed: 'Could not export your data. Try again.',
+    saved: 'Saved as {file}.',
+  },
+
   nutritionTargets: {
     title: 'Daily targets',
     description:

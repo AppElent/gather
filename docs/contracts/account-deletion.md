@@ -25,7 +25,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   person's combo and go with the account purge.
 - Personal tables (`userId`, no `groupId`: `combos`, `consumptionEntries`,
   `aiUsage`) are not in the cascade; `cascade.finishAccount` deletes them by
-  index, so a new one is added there by hand.
+  index, so a new one is added there by hand. [Data export](data-export.md)
+  reads the same tables, and its registry fails `pnpm typecheck` for a new one.
 - Storage ids are collected by the cascade and deleted by scheduled work, so a
   large Group survives the one-transaction limit ([stored files](stored-files.md)).
 - **Account deletion is Convex first, Clerk second**, in scheduled steps, one

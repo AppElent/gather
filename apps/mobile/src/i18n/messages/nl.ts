@@ -200,6 +200,8 @@ export const nl = {
     email: 'E-mail',
     devices: 'Apparaten',
 
+    dataExport: coreNl.settings.dataExport,
+
     editName: {
       title: 'Naam',
       description: 'Wat andere leden van je Groepen zien.',
