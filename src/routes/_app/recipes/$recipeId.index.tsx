@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
 import { RecipeDetailPage } from '../../../components/recipes/RecipeDetailPage'
 import { groupRecipeNav } from '../../../components/recipes/recipeNav'
 
@@ -18,4 +19,3 @@ function GroupRecipeDetail() {
     />
   )
 }
-import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'

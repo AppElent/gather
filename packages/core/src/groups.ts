@@ -31,9 +31,7 @@ export interface LandingGroup {
  * Groups, and the URL is still the only thing that says which one you are
  * reading (ADR-0002).
  */
-export function landingGroupId(
-  groups: readonly LandingGroup[],
-): string | null {
+export function landingGroupId(groups: readonly LandingGroup[]): string | null {
   return groups[0]?._id ?? null
 }
 

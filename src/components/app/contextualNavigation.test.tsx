@@ -123,9 +123,7 @@ describe('Foods', () => {
 
     expect(trailSteps()).toEqual(['Foods', 'Hagelslag', 'Edit'])
     // One step up, not all the way out — and still in this Group.
-    expect(backHref('Back to Hagelslag')).toBe(
-      '/foods/food_1',
-    )
+    expect(backHref('Back to Hagelslag')).toBe('/foods/food_1')
   })
 
   test('a food that is not there still has a way out', () => {
@@ -167,9 +165,7 @@ describe('Recipes', () => {
     )
 
     expect(trailSteps()).toEqual(['Recipes', 'Boeuf bourguignon', 'Edit'])
-    expect(backHref('Back to Boeuf bourguignon')).toBe(
-      '/recipes/recipe_1',
-    )
+    expect(backHref('Back to Boeuf bourguignon')).toBe('/recipes/recipe_1')
   })
 
   test('adding one sits under the list it will land in', () => {

@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
 import { groupBabyNav } from '../../../components/baby/babyNav'
 import { EditBabyPage } from '../../../components/baby/EditBabyPage'
 
@@ -18,4 +19,3 @@ function GroupEditBaby() {
     />
   )
 }
-import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'

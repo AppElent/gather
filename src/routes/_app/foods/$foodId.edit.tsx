@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
 import { EditFoodPage } from '../../../components/foods/EditFoodPage'
 import { groupFoodNav } from '../../../components/foods/foodNav'
 
@@ -12,4 +13,3 @@ function GroupEditFood() {
 
   return <EditFoodPage foodId={foodId} nav={groupFoodNav(groupSlug)} />
 }
-import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
