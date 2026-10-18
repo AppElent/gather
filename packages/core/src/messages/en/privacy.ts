@@ -45,7 +45,9 @@ export const privacy = {
       photos:
         'Photos you add to a Group, a recipe, a child, a baby-log entry or a tasting, and your profile photo.',
       reports:
-        'Problem reports: the message you send with Report an issue in the web app, the page you were on, and your name, email address and account ID.',
+        'Problem reports: the message you send with Report an issue in the web app, the address of the page you were on (without anything after the path), and whether you were signed in. Your name, email address and account ID are not included.',
+      errors:
+        'Error reports: when something goes wrong in the web app, a technical report of the error, described under Service providers below.',
       device:
         'On your device: preferences such as language and appearance, and caches. These stay on the device.',
     },
@@ -69,7 +71,7 @@ export const privacy = {
       health:
         'We process health data — the baby log and your nutrition — based on explicit consent, given by entering it. Health data about a child should be entered only by a parent or guardian. You can withdraw consent at any time by deleting that data.',
       reports:
-        'We use problem reports to find and fix errors, based on our legitimate interest in a reliable app.',
+        'We use problem reports and error reports to find and fix errors, based on our legitimate interest in a reliable app.',
       noAds:
         'We do not sell your data, show advertising, or use your data for marketing or profiling.',
     },
@@ -85,9 +87,11 @@ export const privacy = {
       cloudflare: 'Cloudflare: hosting of the web app.',
       expo: 'Expo: building the mobile app and delivering its updates.',
       anthropic:
-        'Anthropic: AI help with recipes, in two cases and only when you ask for it. When you import a recipe from a web address and the page does not describe the recipe in a standard format, the text of that public page is sent to recognise the recipe. When you ask Gather to estimate a recipe’s nutrition, its ingredient lines and number of servings are sent. Neither is sent with your name or email address, and Anthropic does not use it to train models.',
+        'Anthropic: AI help with recipes, in two cases and only when you ask for it. When you import a recipe from a web address and the page does not describe the recipe in a standard format, the text of that public page is sent to recognise the recipe. When you ask Gather to estimate a recipe’s nutrition, its ingredient lines and number of servings are sent. Neither is sent with your name or email address, and Anthropic does not use it to train models. Each person can make a limited number of these AI requests per day; to enforce that limit we keep a count of how many requests you made on each day, which is deleted with your account.',
       github:
-        'GitHub: problem reports from the web app are filed as issues in Gather’s public code repository, so the message, the page address and your name, email address and account ID are publicly visible there.',
+        'GitHub: problem reports from the web app are filed as issues in Gather’s public code repository, so the message and the page address are publicly visible there. Do not put personal details in a report.',
+      sentry:
+        'We use Sentry (Functional Software, Inc.) as a processor for error reports from the web app. A report contains the error message and stack trace, the page URL without its query string, browser/OS and app release, and an anonymous event ID. It does not contain request bodies, cookies, headers, your name or email, or the content you enter, and session replay is not used.',
       googleFonts:
         'Google Fonts: the web app loads its fonts from Google, which receives your IP address when a page loads.',
     },
