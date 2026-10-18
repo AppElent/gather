@@ -39,6 +39,7 @@ import CircleEllipsis from 'lucide-react-native/icons/circle-ellipsis'
 import CircleMinus from 'lucide-react-native/icons/circle-minus'
 import CirclePlus from 'lucide-react-native/icons/circle-plus'
 import Clock from 'lucide-react-native/icons/clock'
+import Download from 'lucide-react-native/icons/download'
 import Ellipsis from 'lucide-react-native/icons/ellipsis'
 import Eye from 'lucide-react-native/icons/eye'
 import EyeOff from 'lucide-react-native/icons/eye-off'
@@ -148,6 +149,8 @@ export const UI_ICONS = {
   Grid: glyph(Grid, 'square.grid.2x2'),
   List: glyph(List, 'list.bullet'),
   GripVertical: glyph(GripVertical, 'line.3.horizontal'),
+  /** Writing your data out to a file — Export your data. */
+  Download: glyph(Download, 'square.and.arrow.down'),
   Eye: glyph(Eye, 'eye'),
   EyeOff: glyph(EyeOff, 'eye.slash'),
   /** Changing a password. */

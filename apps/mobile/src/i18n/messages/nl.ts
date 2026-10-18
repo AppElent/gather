@@ -238,6 +238,8 @@ export const nl = {
     devices: 'Apparaten',
     photo: 'Foto',
 
+    dataExport: coreNl.settings.dataExport,
+
     editName: {
       title: 'Naam',
       description: 'Wat andere leden van je Groepen zien.',

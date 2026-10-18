@@ -44,7 +44,7 @@ import { storedFileIdOf } from './storedFiles'
  * Assignability runs row → shape: a table without the column simply does not
  * extend it, which is what makes the union exactly the group-scoped tables.
  */
-type GroupScopedTable = {
+export type GroupScopedTable = {
   [T in TableNames]: Doc<T> extends { groupId: Id<'groups'> } ? T : never
 }[TableNames]
 

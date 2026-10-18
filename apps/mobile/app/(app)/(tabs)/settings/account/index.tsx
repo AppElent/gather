@@ -103,6 +103,11 @@ export default function Account() {
           label={t.account.devices}
           href="/settings/account/devices"
         />
+        <Row
+          icon={UI_ICONS.Download}
+          label={t.account.dataExport.title}
+          href="/settings/account/export"
+        />
       </View>
 
       <AuthButton
