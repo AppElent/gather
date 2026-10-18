@@ -11,11 +11,10 @@
  * access check throw instead of the screen falling through to its empty state.
  */
 import { babyBarSlots, trackedEventTypes } from '@gather/core/domain'
-import { useQuery } from 'convex/react'
 import { useCallback, useMemo, useState } from 'react'
-
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
+import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import {
   babyChildKey,

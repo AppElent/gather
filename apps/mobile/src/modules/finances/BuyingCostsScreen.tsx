@@ -15,15 +15,15 @@ import {
   TRANSFER_TAX_BANDS,
   type TransferTaxBand,
 } from '@gather/core/finance'
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
 import { FINANCE_ICONS } from './icons'
 import { termWords } from './loanParts'

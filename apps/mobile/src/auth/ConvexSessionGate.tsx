@@ -20,7 +20,9 @@
  * does not: `pending` hides the splash and says something is happening.
  *
  * The children are keyed by the account, so nothing a previous account's
- * screens held in state can survive into the next one's.
+ * screens held in state can survive into the next one's — and they sit inside
+ * the query module's `QueryCacheProvider`, keyed the same way, so neither can
+ * a subscription it retained (`convex/QueryCacheProvider.tsx`).
  *
  * ## Losing Convex auth without changing account
  *
@@ -38,9 +40,10 @@
  * anything once the connection returns. A plain socket disconnect is not this
  * case: it leaves `isAuthenticated` true, and the tree stays.
  *
- * Revisit with the app-owned query module: it is the one place that could hold
+ * The query module (`convex/queries.ts`) is the one place that could hold
  * same-account results through an auth loss, because it sits in front of every
- * subscription.
+ * subscription. It does not: it is the `retention` flavor, mounted inside the
+ * open gate, so it goes with the tree.
  *
  * If `users.me` itself fails, `SessionIdentityBoundary` catches it and draws
  * `SessionError` — try again or sign out — rather than letting the throw reach
@@ -54,26 +57,23 @@
  * account with no `users` row is held here until it has one.
  */
 import { useAuth } from '@clerk/expo'
-import { type RequestForQueries, useConvexAuth, useQueries } from 'convex/react'
-import { Fragment, type ReactNode, useEffect, useMemo, useState } from 'react'
+import { useConvexAuth } from 'convex/react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { View } from 'react-native'
 
-import { api } from '../../../../convex/_generated/api'
-import type { Doc } from '../../../../convex/_generated/dataModel'
 import { SessionError } from '../components/SessionError'
 import { useReauthenticate } from '../convex/ClerkConvexAuth'
+import { QueryCacheProvider } from '../convex/QueryCacheProvider'
 import { type Provisioning, useEnsureUser } from '../convex/useEnsureUser'
 import { useTokens } from '../theme/tokens'
-import {
-  SessionIdentityBoundary,
-  SessionIdentityError,
-} from './SessionIdentityBoundary'
+import { SessionIdentityBoundary } from './SessionIdentityBoundary'
 import {
   closedGateView,
   confirmSession,
   isSessionOpen,
   UNCONFIRMED,
 } from './sessionGate'
+import { useViewer } from './useViewer'
 
 /** How long the gate stays a bare surface before admitting it is waiting. */
 export const PENDING_REVEAL_MS = 600
@@ -114,20 +114,6 @@ export function ConvexSessionGate({
   )
 }
 
-/** `users.me`, with a failure thrown as the error the boundary recovers from
- * rather than as whatever Convex threw. */
-function useViewer(enabled: boolean): Doc<'users'> | null | undefined {
-  // Memoised: `useQueries` keys its subscription on this object's identity,
-  // and a fresh one every render re-subscribes in a render loop.
-  const queries = useMemo((): RequestForQueries => {
-    if (!enabled) return {}
-    return { me: { query: api.users.me, args: {} } }
-  }, [enabled])
-  const { me } = useQueries(queries)
-  if (me instanceof Error) throw new SessionIdentityError(me)
-  return me as Doc<'users'> | null | undefined
-}
-
 function Gate({
   children,
   pending,
@@ -151,6 +137,7 @@ function Gate({
   if (next !== confirmation) setConfirmation(next)
 
   const open = isSessionOpen(input, next)
+  const quiet = <View style={{ flex: 1, backgroundColor: tokens.bg }} />
 
   // Re-armed every time the gate closes, so a later wait starts quiet again.
   const [revealed, setRevealed] = useState(false)
@@ -187,12 +174,22 @@ function Gate({
       }
       return <SessionError onRetry={retry} onSignOut={onSignOut} />
     }
-    return view === 'pending' ? (
-      pending
-    ) : (
-      <View style={{ flex: 1, backgroundColor: tokens.bg }} />
-    )
+    return view === 'pending' ? pending : quiet
   }
 
-  return <Fragment key={userId}>{children}</Fragment>
+  // `open` already means the backend vouched for `userId`; the provider checks
+  // the same match again because it is the standard's guard, not the gate's.
+  // `next.confirmed` rather than `viewer`: it is the backend's answer, held
+  // across the moments `users.me` goes briefly `undefined` while a socket
+  // recovers, which must not tear the tree down.
+  return (
+    <QueryCacheProvider
+      key={userId}
+      account={userId as string}
+      confirmedAccount={next.confirmed}
+      fallback={quiet}
+    >
+      {children}
+    </QueryCacheProvider>
+  )
 }

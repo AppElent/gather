@@ -4,9 +4,9 @@ import {
   monthStart,
   normalizeCalendarEvent,
 } from '@gather/core/calendar'
-import { usePaginatedQuery } from 'convex/react'
 import { useEffect } from 'react'
 import { api } from '../../../../../convex/_generated/api'
+import { usePaginatedQuery } from '../../convex/queries'
 
 export function CalendarEventSource({
   groupSlug,

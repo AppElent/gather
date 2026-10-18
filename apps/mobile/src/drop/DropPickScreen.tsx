@@ -20,7 +20,7 @@
  * reached with a stale address still has to say what it is rather than being a
  * blank page with no name and no way out.
  */
-import { useQuery } from 'convex/react'
+
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -33,9 +33,9 @@ import {
   TextInput,
   View,
 } from 'react-native'
-
 import { api } from '../../../../convex/_generated/api'
 import { LoadingSkeleton } from '../components/LoadingSkeleton'
+import { useQuery } from '../convex/queries'
 import { haptics } from '../feedback/haptics'
 import { useGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'

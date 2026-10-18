@@ -2,7 +2,7 @@ import {
   eligibleDinnerCandidates,
   randomDinner,
 } from '@gather/core/meal-planner'
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
 import { useMemo, useState } from 'react'
 import {
@@ -22,6 +22,7 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { NativeSheet } from '../../components/NativeSheet'
 import { SearchField } from '../../components/SearchField'
 import { SwipeableRow } from '../../components/SwipeableRow'
+import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'

@@ -8,10 +8,9 @@
  * that names its Group (ADR-0007).
  */
 import { todayIso } from '@gather/core/finance'
-import { useQuery } from 'convex/react'
 import { useMemo } from 'react'
-
 import { api } from '../../../../../convex/_generated/api'
+import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'
 import { formatters } from './format'

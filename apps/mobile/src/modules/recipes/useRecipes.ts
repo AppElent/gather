@@ -10,9 +10,9 @@
  * appears here without anyone reaching for a refresh, and the search field
  * filters what has already arrived rather than asking again.
  */
-import { useQuery } from 'convex/react'
 
 import { api } from '../../../../../convex/_generated/api'
+import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 
 export function useRecipes() {

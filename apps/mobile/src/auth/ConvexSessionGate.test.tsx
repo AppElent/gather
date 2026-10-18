@@ -38,6 +38,12 @@ vi.mock('../convex/useEnsureUser', () => ({
   }),
 }))
 
+// The retention provider is the query module's own suite (`QueryCacheProvider.test.tsx`);
+// here it only has to let an open gate's children through.
+vi.mock('../convex/QueryCacheProvider', () => ({
+  QueryCacheProvider: (props: { children: ReactNode }) => props.children,
+}))
+
 vi.mock('../convex/ClerkConvexAuth', () => ({
   useReauthenticate: () => harness.reauthenticate,
 }))

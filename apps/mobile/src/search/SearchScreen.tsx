@@ -6,7 +6,7 @@
  * fills the screen under it is ours; the field, the clear button, the cancel,
  * the keyboard dance and Dynamic Type are not.
  */
-import { useQuery } from 'convex/react'
+
 import { Stack, useNavigation, usePathname, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -18,9 +18,9 @@ import {
   View,
 } from 'react-native'
 import type { SearchBarCommands } from 'react-native-screens'
-
 import { api } from '../../../../convex/_generated/api'
 import { LoadingSkeleton } from '../components/LoadingSkeleton'
+import { useQuery } from '../convex/queries'
 import { useGroup } from '../group/GroupProvider'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'

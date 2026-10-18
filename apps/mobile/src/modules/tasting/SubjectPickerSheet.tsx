@@ -28,13 +28,12 @@
  * the Group has says so, offers the existing one, and lets you carry on.
  */
 import type { TastingKind } from '@gather/core/tastings'
-import { useQuery } from 'convex/react'
 import { useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-
 import { api } from '../../../../../convex/_generated/api'
 import { NativeSheet } from '../../components/NativeSheet'
 import { SearchField } from '../../components/SearchField'
+import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'

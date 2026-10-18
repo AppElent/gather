@@ -20,14 +20,14 @@
  * to see an empty screen with no way off it. Arriving here is need enough, so
  * the screen asks the server to fill them in once and then renders normally.
  */
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation } from 'convex/react'
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
+import { useQuery } from '../../convex/queries'
 import { fmt, useI18n } from '../../i18n'
 import { useTokens } from '../../theme/tokens'
 import { Checklist } from '../tasks/Checklist'

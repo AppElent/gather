@@ -20,6 +20,7 @@ import { ConvexReactClient } from 'convex/react'
 import type { ReactNode } from 'react'
 
 import { ClerkConvexAuth } from './ClerkConvexAuth'
+import { debugWebSocketConstructor } from './debugQueries'
 
 const CONVEX_URL = process.env.EXPO_PUBLIC_CONVEX_URL
 
@@ -35,6 +36,10 @@ if (!CONVEX_URL) {
 // explicitly rather than left to the environment sniff.
 const convex = new ConvexReactClient(CONVEX_URL, {
   unsavedChangesWarning: false,
+  // `[convex-query] +/- name` per subscription; see `debugQueries.ts`.
+  webSocketConstructor: debugWebSocketConstructor(
+    __DEV__ && process.env.EXPO_PUBLIC_DEBUG_QUERIES === '1',
+  ),
 })
 
 export function AppConvexProvider({ children }: { children: ReactNode }) {

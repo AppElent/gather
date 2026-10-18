@@ -21,11 +21,10 @@
  * the button simply is not offered when Clerk would say no.
  */
 import { useUser } from '@clerk/expo'
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
 import { api } from '../../../../../../../convex/_generated/api'
 import { readThrown } from '../../../../../src/auth/clerkErrors'
 import { useSignOut } from '../../../../../src/auth/useSignOut'
@@ -33,6 +32,7 @@ import { useAvailability } from '../../../../../src/availability/AvailabilityPro
 import { AuthButton } from '../../../../../src/components/AuthButton'
 import { AuthError } from '../../../../../src/components/AuthError'
 import { LoadingSkeleton } from '../../../../../src/components/LoadingSkeleton'
+import { useQuery } from '../../../../../src/convex/queries'
 import { fmt, useI18n } from '../../../../../src/i18n'
 import { RADIUS, useTokens } from '../../../../../src/theme/tokens'
 
