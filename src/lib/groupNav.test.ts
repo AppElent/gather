@@ -6,9 +6,9 @@ import { groupTaskNav, type TaskNav } from '../components/tasks/taskNav'
 import type { AppLink } from './appLink'
 
 /**
- * The regression these guard against: a link inside a page written without the
- * Group, so following it leaves the Group the reader opened — which, now that
- * the flat routes are gone, means leaving for an address that no longer exists.
+ * The regression these guard against: a link that still spells out a Group.
+ * The Current Group is ambient (ADR-0031) and `/g/<slug>/…` addresses 404, so
+ * a destination that names one leads nowhere.
  *
  * The pages take every destination as props, so the mistake can only be made in
  * a nav builder — which means it can be caught here, off the built link options,
@@ -54,11 +54,12 @@ function paramsOf(link: AppLink): Record<string, unknown> {
 }
 
 describe('links built for a Group', () => {
-  test.each(MODULES)('every $module destination carries it', ({ group }) => {
+  test.each(MODULES)('no $module destination names it', ({ group }) => {
     expect(group.length).toBeGreaterThan(0)
     for (const link of group) {
       expect(String(link.to).startsWith('/')).toBe(true)
-      expect(paramsOf(link).groupSlug).toBe(SLUG)
+      expect(String(link.to)).not.toContain('/g/')
+      expect(paramsOf(link)).not.toHaveProperty('groupSlug')
     }
   })
 
@@ -72,10 +73,10 @@ describe('links built for a Group', () => {
   })
 
   // The OAuth round-trip cannot carry link options through sessionStorage and
-  // a full page load, so Tasks hands out a plain path. It still has to name the
-  // Group, or connecting Notion lands the reader outside the Group they left.
-  test('the OAuth return path names the Group too', () => {
-    expect(groupTaskNav(SLUG).returnTo).toBe(`/g/${SLUG}/tasks`)
+  // a full page load, so Tasks hands out a plain path. The Group survives the
+  // round-trip in client storage, not in that path.
+  test('the OAuth return path is the ambient Tasks page', () => {
+    expect(groupTaskNav(SLUG).returnTo).toBe('/tasks')
   })
 
   test('a search param survives being given the Group treatment', () => {

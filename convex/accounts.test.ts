@@ -236,9 +236,14 @@ describe('a Group nobody else is in', () => {
     expect(stillThere).toBe(false)
   })
 
-  test('includes the Personal group', async () => {
+  // There is no Personal group any more (ADR-0030); a Group made through the
+  // app, rather than inserted by a fixture, is the one this has to reach.
+  test('includes one made through the app', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.createGroup, { name: "Alice's things" })
 
     await deleteAccount(t, asAlice)
 
@@ -479,7 +484,7 @@ describe('the preview shown before the confirmation', () => {
       .query(api.accounts.deletionPreview, {})
 
     expect(preview?.email).toBe('alice@example.com')
-    expect(preview?.deleted.sort()).toEqual(["Alice's things", 'Allotment'])
+    expect(preview?.deleted.sort()).toEqual(['Allotment'])
     expect(preview?.kept).toEqual(['Household'])
   })
 })

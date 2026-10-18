@@ -1,5 +1,15 @@
 # 0001 — Group slugs and Personal groups
 
+**Status: retired (2026-10-18), superseded.** `maintenance:backfillGroupSlugsAndPersonalGroups`
+and its tests were deleted. The tightening half shipped — `groups.slug` is
+required and the `owner` role is gone from the schema, so no deployment running
+current code can hold a row this backfill would repair. Its Personal-group half
+was superseded by ADR-0030 (Personal groups removed): a9b212d had already cut
+the provisioning out of it, and re-running it would re-mark Groups as
+`isPersonal`, undoing `maintenance:removePersonalGroupSemantics`. The steps
+below are historical; recover the code from git (e.g. `git show dc1df11^1:convex/maintenance.ts`)
+if a pre-0001 snapshot ever has to be restored.
+
 Backfills `groups.slug`, `groups.isPersonal`, everyone's Personal group, the
 `owner` → `admin` role rename, and the removal of `groups.type`. Refs #17.
 

@@ -187,8 +187,7 @@ function NothingYet({ groupSlug, groupName }: GroupHomeProps) {
   return (
     <div className="grid gap-3">
       <p className="m-0 text-sm leading-6 text-[var(--app-muted)]">
-        {fmt(home.nothingYet, { group: groupName })}{' '}
-        {home.nothingYetShared}
+        {fmt(home.nothingYet, { group: groupName })} {home.nothingYetShared}
       </p>
       <div className="flex flex-wrap gap-2">
         {STARTERS.map((module) => (
@@ -208,10 +207,7 @@ function NothingYet({ groupSlug, groupName }: GroupHomeProps) {
   )
 }
 
-export function GroupHome({
-  groupSlug,
-  groupName,
-}: GroupHomeProps) {
+export function GroupHome({ groupSlug, groupName }: GroupHomeProps) {
   const activity = useQuery(api.activity.forGroup, { groupSlug })
   const messages = useMessages()
   const { home } = messages.shell
@@ -237,10 +233,7 @@ export function GroupHome({
         </p>
       </header>
 
-      <MemberList
-        groupSlug={groupSlug}
-        groupName={groupName}
-      />
+      <MemberList groupSlug={groupSlug} groupName={groupName} />
 
       <SurfaceCard ariaLabel={home.recentActivity}>
         <h2 className="m-0 mb-2 text-sm font-semibold">
@@ -251,10 +244,7 @@ export function GroupHome({
             {messages.common.errors.loading}
           </p>
         ) : activity.length === 0 ? (
-          <NothingYet
-            groupSlug={groupSlug}
-            groupName={groupName}
-          />
+          <NothingYet groupSlug={groupSlug} groupName={groupName} />
         ) : (
           <ol className="m-0 grid list-none p-0">
             {activity.map((entry) => (

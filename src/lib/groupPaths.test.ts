@@ -16,7 +16,9 @@ describe('ambient Group routes', () => {
       to: '/recipes/$recipeId',
       params: { recipeId: 'r1' },
     })
-    expect(groupHref('recipe', 'ignored', { recipeId: 'r 1' })).toBe('/recipes/r%201')
+    expect(groupHref('recipe', 'ignored', { recipeId: 'r 1' })).toBe(
+      '/recipes/r%201',
+    )
   })
 
   test('finds the module index from an ambient detail route', () => {
@@ -34,6 +36,8 @@ describe('ambient Group routes', () => {
       to: '/recipes',
       params: {},
     })
-    expect(MODULES.filter((m) => groupSurfaceForModule(m.id) === null)).toEqual([])
+    expect(MODULES.filter((m) => groupSurfaceForModule(m.id) === null)).toEqual(
+      [],
+    )
   })
 })

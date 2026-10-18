@@ -1,11 +1,11 @@
-import { ConvexError, v } from 'convex/values'
 import {
+  type CalendarColor,
+  type CalendarEvent,
   hasCalendarErrors,
   normalizeCalendarEvent,
   validateCalendarFields,
-  type CalendarColor,
-  type CalendarEvent,
 } from '@gather/core/calendar'
+import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { getMembership, requireGroupBySlug } from './groupAccess'
@@ -54,15 +54,24 @@ export async function eventInGroup(
   return { ...result, event }
 }
 
-export async function currentGroupMembers(ctx: QueryCtx, groupId: Id<'groups'>) {
+export async function currentGroupMembers(
+  ctx: QueryCtx,
+  groupId: Id<'groups'>,
+) {
   const memberships = await ctx.db
     .query('memberships')
     .withIndex('by_group', (q) => q.eq('groupId', groupId))
     .collect()
   const rows = await Promise.all(
-    memberships.map(async (membership) => ({ membership, user: await ctx.db.get(membership.userId) })),
+    memberships.map(async (membership) => ({
+      membership,
+      user: await ctx.db.get(membership.userId),
+    })),
   )
-  return rows.filter((row): row is { membership: Doc<'memberships'>; user: Doc<'users'> } => row.user !== null)
+  return rows.filter(
+    (row): row is { membership: Doc<'memberships'>; user: Doc<'users'> } =>
+      row.user !== null,
+  )
 }
 
 export async function validateAssignees(
@@ -74,7 +83,9 @@ export async function validateAssignees(
   const members = await currentGroupMembers(ctx, groupId)
   const memberIds = new Set(members.map(({ user }) => user._id))
   const legacy = new Set(allowedLegacyIds)
-  for (const id of ids) if (!memberIds.has(id) && !legacy.has(id)) calendarError('assignee-not-member')
+  for (const id of ids)
+    if (!memberIds.has(id) && !legacy.has(id))
+      calendarError('assignee-not-member')
 }
 
 export function validateEventFields(args: {
@@ -124,7 +135,11 @@ export function normalizedEvent(
   }
 }
 
-export async function callerMembership(ctx: QueryCtx, groupId: Id<'groups'>, userId: Id<'users'>) {
+export async function callerMembership(
+  ctx: QueryCtx,
+  groupId: Id<'groups'>,
+  userId: Id<'users'>,
+) {
   const membership = await getMembership(ctx, groupId, userId)
   if (!membership) calendarError('not-member')
   return membership
