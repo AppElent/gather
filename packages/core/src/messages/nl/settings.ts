@@ -13,6 +13,17 @@ export const settings = {
     },
   },
 
+  appearance: {
+    title: 'Weergave',
+    description:
+      'Kies hoe Gather eruitziet. Automatisch volgt de instelling van je systeem.',
+    modes: {
+      light: 'Licht',
+      auto: 'Automatisch',
+      dark: 'Donker',
+    },
+  },
+
   nutritionTargets: {
     title: 'Dagdoelen',
     description:

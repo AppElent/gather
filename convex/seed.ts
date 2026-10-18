@@ -27,7 +27,7 @@ import { getCurrentUser } from './lib/sharing'
 
 /**
  * The Clerk subject of the shared test user on the Clerk *test* instance —
- * the account `@appelent/auth`'s test-login button signs into on previews.
+ * the account the web's test-login button signs into on previews.
  *
  * Hardcoded rather than configured: `--preview-run` takes a function name and
  * no arguments, so a preview seed can only read its configuration from the
