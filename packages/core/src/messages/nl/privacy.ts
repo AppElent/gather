@@ -33,7 +33,9 @@ export const privacy = {
       photos:
         'Foto’s die je toevoegt aan een Groep, een recept, een kind, een regel in het babylogboek of een proeverij, en je profielfoto.',
       reports:
-        'Probleemmeldingen: het bericht dat je in de webapp verstuurt via Probleem melden, de pagina waarop je was, en je naam, e-mailadres en account-ID.',
+        'Probleemmeldingen: het bericht dat je in de webapp verstuurt via Probleem melden, het adres van de pagina waarop je was (zonder wat er na het pad komt), en of je was ingelogd. Je naam, e-mailadres en account-ID gaan niet mee.',
+      errors:
+        'Foutrapporten: als er in de webapp iets misgaat, een technisch rapport van die fout, zoals beschreven onder Dienstverleners hieronder.',
       device:
         'Op je toestel: voorkeuren zoals taal en weergave, en caches. Deze blijven op het toestel.',
     },
@@ -57,7 +59,7 @@ export const privacy = {
       health:
         'We verwerken gezondheidsgegevens — het babylogboek en je voeding — op basis van uitdrukkelijke toestemming, die je geeft door ze in te voeren. Gezondheidsgegevens over een kind horen alleen door een ouder of verzorger te worden ingevoerd. Je kunt je toestemming altijd intrekken door die gegevens te verwijderen.',
       reports:
-        'We gebruiken probleemmeldingen om fouten te vinden en op te lossen, op basis van ons gerechtvaardigd belang bij een betrouwbare app.',
+        'We gebruiken probleemmeldingen en foutrapporten om fouten te vinden en op te lossen, op basis van ons gerechtvaardigd belang bij een betrouwbare app.',
       noAds:
         'We verkopen je gegevens niet, tonen geen advertenties en gebruiken je gegevens niet voor marketing of profilering.',
     },
@@ -73,9 +75,11 @@ export const privacy = {
       cloudflare: 'Cloudflare: hosting van de webapp.',
       expo: 'Expo: het bouwen van de mobiele app en het leveren van updates daarvoor.',
       anthropic:
-        'Anthropic: hulp met AI bij recepten, in twee gevallen en alleen als jij erom vraagt. Als je een recept importeert vanaf een webadres en de pagina het recept niet in een standaardformaat beschrijft, wordt de tekst van die openbare pagina verstuurd om het recept te herkennen. Als je Gather de voedingswaarde van een recept laat schatten, worden de ingrediëntregels en het aantal porties verstuurd. In geen van beide gevallen gaan je naam of e-mailadres mee, en Anthropic gebruikt het niet om modellen te trainen.',
+        'Anthropic: hulp met AI bij recepten, in twee gevallen en alleen als jij erom vraagt. Als je een recept importeert vanaf een webadres en de pagina het recept niet in een standaardformaat beschrijft, wordt de tekst van die openbare pagina verstuurd om het recept te herkennen. Als je Gather de voedingswaarde van een recept laat schatten, worden de ingrediëntregels en het aantal porties verstuurd. In geen van beide gevallen gaan je naam of e-mailadres mee, en Anthropic gebruikt het niet om modellen te trainen. Iedereen kan per dag een beperkt aantal van deze AI-verzoeken doen; om die limiet te handhaven houden we bij hoeveel verzoeken je op elke dag hebt gedaan. Die telling wordt met je account verwijderd.',
       github:
-        'GitHub: probleemmeldingen uit de webapp worden als issue vastgelegd in de openbare coderepository van Gather. Het bericht, het paginaadres en je naam, e-mailadres en account-ID zijn daar dus openbaar zichtbaar.',
+        'GitHub: probleemmeldingen uit de webapp worden als issue vastgelegd in de openbare coderepository van Gather. Het bericht en het paginaadres zijn daar dus openbaar zichtbaar. Zet geen persoonlijke gegevens in een melding.',
+      sentry:
+        'We gebruiken Sentry (Functional Software, Inc.) als verwerker voor foutrapporten uit de webapp. Een rapport bevat de foutmelding en stacktrace, de pagina-URL zonder querystring, browser/besturingssysteem en app-versie, en een anonieme gebeurtenis-ID. Het bevat geen request bodies, cookies, headers, je naam of e-mailadres, of de inhoud die je invoert, en sessie-opnames worden niet gebruikt.',
       googleFonts:
         'Google Fonts: de webapp laadt zijn lettertypen bij Google, dat je IP-adres ontvangt als een pagina laadt.',
     },
