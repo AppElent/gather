@@ -65,6 +65,8 @@ export const recipes = {
     estimate: 'Estimate with AI',
     estimating: 'Estimating…',
     estimateFailed: 'Could not estimate nutrition',
+    aiLimitReached:
+      'You’ve used today’s AI calls. Try again tomorrow, or enter it yourself.',
     save: 'Save recipe',
     saving: 'Saving…',
     saveFailed: 'Could not save recipe',

@@ -5,6 +5,7 @@ import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import type { ActionCtx } from './_generated/server'
 import { action } from './_generated/server'
+import { takeAiCall } from './lib/aiUsage'
 import { GROUP_REFUSAL_MESSAGES } from './lib/groupAccess'
 import { extractRecipeWithAi } from './lib/recipeAiExtract'
 import { extractJsonLdRecipe, htmlToText } from './lib/recipeParsing'
@@ -140,6 +141,9 @@ export const importFromUrl = action({
       : undefined
     if (!parsed) {
       const apiKey = process.env.ANTHROPIC_API_KEY
+      // Only the fallback spends a call: a page with JSON-LD is free, which is
+      // why the budget is taken here and not on entry.
+      if (apiKey) await takeAiCall(ctx, identity.subject)
       parsed = apiKey
         ? await extractRecipeWithAi(htmlToText(html), apiKey)
         : null

@@ -175,6 +175,28 @@ test('surfaces the ConvexError friendly data string on estimate failure', async 
   expect(screen.queryByText(/Uncaught ConvexError/i)).not.toBeInTheDocument()
 })
 
+test('says so when the daily AI limit is reached, and fills nothing', async () => {
+  const onSubmit = vi.fn()
+  const onEstimate = vi
+    .fn()
+    .mockRejectedValue(new ConvexError({ kind: 'aiLimitReached' }))
+  renderWithI18n(
+    <RecipeForm
+      onSubmit={onSubmit}
+      submitting={false}
+      onEstimate={onEstimate}
+    />,
+  )
+
+  fireEvent.change(screen.getByLabelText('Ingredients'), {
+    target: { value: 'water\nwortel' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: /estimate with ai/i }))
+
+  expect(await screen.findByText(/used today’s AI calls/i)).toBeInTheDocument()
+  expect(screen.queryByDisplayValue('300')).not.toBeInTheDocument()
+})
+
 test('disables nutrition inputs while an estimate is in flight', async () => {
   const onSubmit = vi.fn()
   let resolveEstimate: (facts: { calories: number }) => void

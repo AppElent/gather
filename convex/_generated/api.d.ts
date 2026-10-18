@@ -10,6 +10,7 @@
 
 import type * as accounts from "../accounts.js";
 import type * as activity from "../activity.js";
+import type * as aiUsage from "../aiUsage.js";
 import type * as babies from "../babies.js";
 import type * as babyEvents from "../babyEvents.js";
 import type * as calendar from "../calendar.js";
@@ -23,6 +24,7 @@ import type * as holdings from "../holdings.js";
 import type * as houses from "../houses.js";
 import type * as integrations from "../integrations.js";
 import type * as kitchen from "../kitchen.js";
+import type * as lib_aiUsage from "../lib/aiUsage.js";
 import type * as lib_babyAccess from "../lib/babyAccess.js";
 import type * as lib_babyEvents from "../lib/babyEvents.js";
 import type * as lib_calendar from "../lib/calendar.js";
@@ -81,6 +83,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   accounts: typeof accounts;
   activity: typeof activity;
+  aiUsage: typeof aiUsage;
   babies: typeof babies;
   babyEvents: typeof babyEvents;
   calendar: typeof calendar;
@@ -94,6 +97,7 @@ declare const fullApi: ApiFromModules<{
   houses: typeof houses;
   integrations: typeof integrations;
   kitchen: typeof kitchen;
+  "lib/aiUsage": typeof lib_aiUsage;
   "lib/babyAccess": typeof lib_babyAccess;
   "lib/babyEvents": typeof lib_babyEvents;
   "lib/calendar": typeof lib_calendar;

@@ -1,3 +1,4 @@
+import { isAiLimitReached } from '@gather/core/ai-limit'
 import { useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
@@ -109,13 +110,15 @@ export function NewRecipePage({
       setImageUrl(result.imageUrl)
     } catch (err) {
       setImportError(
-        err instanceof ConvexError
-          ? typeof err.data === 'string'
-            ? err.data
-            : createText.importFailed
-          : err instanceof Error
-            ? err.message
-            : createText.importFailed,
+        isAiLimitReached(err)
+          ? form.aiLimitReached
+          : err instanceof ConvexError
+            ? typeof err.data === 'string'
+              ? err.data
+              : createText.importFailed
+            : err instanceof Error
+              ? err.message
+              : createText.importFailed,
       )
     } finally {
       setImporting(false)

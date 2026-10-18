@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./ai-limit": "./src/aiLimit.ts",
     "./appearance": "./src/appearance.ts",
     "./baby-age": "./src/babyAge.ts",
     "./calendar": "./src/calendar.ts",
