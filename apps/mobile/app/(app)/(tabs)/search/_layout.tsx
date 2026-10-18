@@ -1,6 +1,6 @@
 /**
  * Search's stack, the same shape All and Home use, and reset on a Group switch
- * the same way (`src/group/groupUnwind.ts`).
+ * the same way (`src/group/groupUnwind.ts`, `GroupScoped`).
  *
  * The stack is not decoration: `Stack.SearchBar` on the screen below is the
  * native search bar, and it needs a native header to live in. `TabSafeArea` is
@@ -9,12 +9,14 @@
  */
 import { Stack } from 'expo-router'
 
+import { GroupScoped } from '../../../../src/group/GroupProvider'
 import { TabSafeArea } from '../../../../src/shell/TabSafeArea'
 
 export default function SearchStackLayout() {
   return (
     <TabSafeArea>
       <Stack
+        screenLayout={({ children }) => <GroupScoped>{children}</GroupScoped>}
         screenOptions={{
           headerShown: false,
           headerBackButtonDisplayMode: 'minimal',
