@@ -79,7 +79,7 @@ export const privacy = {
       github:
         'GitHub: probleemmeldingen uit de webapp worden als issue vastgelegd in de openbare coderepository van Gather. Het bericht en het paginaadres zijn daar dus openbaar zichtbaar. Zet geen persoonlijke gegevens in een melding.',
       sentry:
-        'We gebruiken Sentry (Functional Software, Inc.) als verwerker voor foutrapporten uit de webapp. Een rapport bevat de foutmelding en stacktrace, de pagina-URL zonder querystring, browser/besturingssysteem en app-versie, en een anonieme gebeurtenis-ID. Het bevat geen request bodies, cookies, headers, je naam of e-mailadres, of de inhoud die je invoert, en sessie-opnames worden niet gebruikt.',
+        'We gebruiken Sentry (Functional Software, Inc.) als verwerker voor foutrapporten uit de webapp en de bijbehorende server. Een rapport bevat de foutmelding en stacktrace (foutmeldingen van de backend van Gather worden weggelaten), de pagina-URL zonder querystring, browser/besturingssysteem en app-versie, een kort spoor van de pagina’s die je bezocht en de netwerkverzoeken die vlak voor de fout werden gedaan (alleen adressen zonder querystring, verzoekmethoden en statuscodes), en een anonieme gebeurtenis-ID. Het bevat geen request bodies, cookies, headers, je naam of e-mailadres, of de inhoud die je invoert, en sessie-opnames worden niet gebruikt.',
       googleFonts:
         'Google Fonts: de webapp laadt zijn lettertypen bij Google, dat je IP-adres ontvangt als een pagina laadt.',
     },

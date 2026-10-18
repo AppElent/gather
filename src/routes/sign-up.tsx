@@ -1,6 +1,6 @@
-import { SignUpForm, useAuthConfig } from '@appelent/auth'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PublicPageFrame } from '../components/app/PublicPageFrame'
+import { SignUpForm, useAuthConfig } from '../lib/auth'
 
 export const Route = createFileRoute('/sign-up')({ component: SignUpPage })
 

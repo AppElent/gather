@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when deploying gather, changing deploy.yml or the deploy scripts, or adding reference data a deploy must seed.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Deploy
@@ -33,10 +33,6 @@ in the scripts ([seed data](../contracts/seed-data.md)).
 
 Recorded as found on 2026-10-18; none is fixed yet.
 
-- **Sentry is not initialised.** The package is installed and its variables are
-  routed, but no code calls Sentry, and the `start` script imports
-  `dist/server/instrument.server.mjs`, which nothing builds
-  ([Observability binding](../../CODING_STANDARDS.md#local-bindings-and-exceptions)).
 - **`ci.yml` runs on pull requests only.** A push to `main` is checked only by
   `deploy.yml`'s `checks` job, which also gates the staging deploy.
 

@@ -91,7 +91,7 @@ export const privacy = {
       github:
         'GitHub: problem reports from the web app are filed as issues in Gather’s public code repository, so the message and the page address are publicly visible there. Do not put personal details in a report.',
       sentry:
-        'We use Sentry (Functional Software, Inc.) as a processor for error reports from the web app. A report contains the error message and stack trace, the page URL without its query string, browser/OS and app release, and an anonymous event ID. It does not contain request bodies, cookies, headers, your name or email, or the content you enter, and session replay is not used.',
+        'We use Sentry (Functional Software, Inc.) as a processor for error reports from the web app and its server. A report contains the error message and stack trace (error messages from Gather’s backend are withheld), the page URL without its query string, browser/OS and app release, a short trail of the pages visited and network requests made just before the error (addresses without their query string, request methods and status codes only), and an anonymous event ID. It does not contain request bodies, cookies, headers, your name or email, or the content you enter, and session replay is not used.',
       googleFonts:
         'Google Fonts: the web app loads its fonts from Google, which receives your IP address when a page loads.',
     },

@@ -26,7 +26,7 @@
  * status that needs a screen building.
  *
  * Clerk **Core 3** (ADR-0014). The phone is a Clerk generation ahead of the
- * web, which is Core 2 via `@appelent/auth` — so that package's form logic
+ * web, which is Core 2 in `src/lib/auth` — so the web's form logic
  * reads like a reference implementation and is not one. Same hook names,
  * different returns: `{ error }` instead of `throw`, `finalize()` instead of
  * `setActive()`, per-field errors on the hook's `errors` signal.

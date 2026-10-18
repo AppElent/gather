@@ -60,14 +60,13 @@ Convex backend functions: `convex/recipes.ts`, `convex/groups.ts`, `convex/users
 
 ## Auth note
 
-The sign-in screen's "▶ Dev: log in as test user" button comes from `@appelent/auth`'s
-`TestLoginButton` and appears only when `VITE_CLERK_PUBLISHABLE_KEY` is a `pk_test_...`
+The sign-in screen's "▶ Dev: log in as test user" button is
+`src/lib/auth/TestLoginButton.tsx` and appears only when `VITE_CLERK_PUBLISHABLE_KEY` is a `pk_test_...`
 key **and** both `VITE_TEST_USER_EMAIL`/`VITE_TEST_USER_PASSWORD` are set. If it's
 missing, check `.env.local` before concluding the app can't be tested logged-in.
 
-gather's sign-in flow (`src/routes/sign-in.tsx`) consumes `@appelent/auth`'s
-`SignInForm`/`TestLoginButton` directly — the migration off the hand-rolled
-Clerk `<SignIn>` has landed.
+gather's sign-in flow (`src/routes/sign-in.tsx`) renders `src/lib/auth`'s
+`SignInForm`, which includes the `TestLoginButton`.
 
 ## What to drive
 

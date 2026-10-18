@@ -18,8 +18,7 @@
     "update:preview": "eas update --channel preview --environment preview",
     "update:prod": "eas update --channel production --environment production",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit",
-    "eas-build-pre-install": "echo \"//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}\" >> ~/.npmrc"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@clerk/expo": "^4.2.3",

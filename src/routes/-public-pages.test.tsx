@@ -31,7 +31,7 @@ vi.mock('@tanstack/react-router', async () => {
   }
 })
 
-vi.mock('@appelent/auth', () => ({
+vi.mock('../lib/auth', () => ({
   AuthConfigProvider: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),

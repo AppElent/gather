@@ -9,8 +9,8 @@
  *
  * ## Why the stored word is `system` and not the web's `auto`
  *
- * The web's three-way control comes from `@appelent/auth`, whose `ThemeMode`
- * is `'light' | 'dark' | 'auto'`. That package is React-DOM only and never
+ * The web's three-way control lives in `src/lib/auth`, whose `ThemeMode`
+ * is `'light' | 'dark' | 'auto'`. That code is React-DOM only and never
  * crosses to the phone, and neither does the value: this preference is written
  * to the phone's own key-value store and read by nothing else, so the two
  * tokens never meet and there is nothing to reconcile.

@@ -17,7 +17,7 @@ PR that changes the web app gets its own Convex backend and Worker.
 | Trigger | PR opened/updated, skipped when only `apps/mobile/` or `pnpm-lock.yaml` changed; closing the PR deletes the Worker |
 | Backend | `convex deploy --preview-create pr-<N> --preview-run seed:seedPreview` |
 | Worker | `gather-pr-<N>`, URL posted as a PR comment |
-| Repo-scoped names | Carry the `PREVIEW_` prefix (`PREVIEW_CONVEX_DEPLOY_KEY`, `PREVIEW_VITE_CLERK_PUBLISHABLE_KEY`, `PREVIEW_VITE_TEST_USER_*`, `PREVIEW_VITE_SENTRY_*`, `PREVIEW_SENTRY_AUTH_TOKEN`, `PREVIEW_GITHUB_ISSUES_TOKEN`) so they cannot shadow or be shadowed by `stg`/`production` Environment values; `NODE_AUTH_TOKEN` while `@appelent/*` packages remain |
+| Repo-scoped names | Carry the `PREVIEW_` prefix (`PREVIEW_CONVEX_DEPLOY_KEY`, `PREVIEW_VITE_CLERK_PUBLISHABLE_KEY`, `PREVIEW_VITE_TEST_USER_*`, `PREVIEW_VITE_SENTRY_*`, `PREVIEW_SENTRY_AUTH_TOKEN`, `PREVIEW_GITHUB_ISSUES_TOKEN`) so they cannot shadow or be shadowed by `stg`/`production` Environment values |
 | Test login | `VITE_TEST_USER_*` are build-time only and inlined into the client bundle, so the test user lives on the Clerk *test* instance |
 
 ## Hazards

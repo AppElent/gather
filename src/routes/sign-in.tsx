@@ -1,8 +1,8 @@
-import { SignInForm, useAuthConfig } from '@appelent/auth'
 import { useAuth } from '@clerk/clerk-react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect } from 'react'
 import { PublicPageFrame } from '../components/app/PublicPageFrame'
+import { SignInForm, useAuthConfig } from '../lib/auth'
 
 export const Route = createFileRoute('/sign-in')({ component: SignInPage })
 

@@ -4,6 +4,6 @@ export {
   mergeInfisicalFolders,
   normalizeInfisicalExport,
   readInfisicalConfig,
-} from '@appelent/dev/env'
+} from './lib/env/index.mjs'
 
 export const INFISICAL_ENVIRONMENTS = ENV_CONFIG.source.environments

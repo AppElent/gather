@@ -18,6 +18,8 @@ const { count, size, warnings } = await generateSW({
   navigateFallbackDenylist: [/^\/api\//, /^\/convex\//],
   skipWaiting: true,
   clientsClaim: true,
+  // No public maps in the shipped artifact (Sentry standard).
+  sourcemap: false,
 })
 
 for (const warning of warnings) {

@@ -72,15 +72,14 @@ and EAS. These bindings deviate from or narrow the shared guidance:
 
 | Capability | Binding |
 | --- | --- |
-| `@appelent/*` packages | **Exception** to the "no `@appelent` dependency" rule in [auth](docs/standards/auth.md), [i18n](docs/standards/i18n.md) and [environments](docs/standards/environments.md). Gather still depends on `@appelent/auth`, `@appelent/i18n` and `@appelent/dev` (only `scripts/env-source.mjs` and its test) from the private GitHub Packages registry, so `.npmrc`, `NODE_AUTH_TOKEN` in every workflow, the EAS `eas-build-pre-install` hook and the SessionStart hook stay until the packages are copied into the app. |
-| Auth | Web: `@appelent/auth` supplies the sign-in, sign-up and forgot-password forms, profile panel, appearance settings, header user menu and theme sync. The app owns `src/integrations/clerk/provider.tsx` (plain `ClerkProvider`, `signInUrl`/`signUpUrl` pointed at gather's routes) and the Clerk↔Convex JWT bridge in `src/integrations/convex/provider.tsx`; Convex validates with `CLERK_JWT_ISSUER_DOMAIN`. The package's `AppearanceSettings` hardcodes "ArchStudio" in its copy — a package defect that goes with the package. Mobile: `@clerk/expo`, one Clerk generation ahead of the web ([ADR-0014](docs/adr/0014-the-phone-is-a-clerk-generation-ahead-of-the-web.md)). |
+| Auth | Web: the sign-in, sign-up and forgot-password forms, profile panel, appearance settings, header user menu and theme sync are app-owned in `src/lib/auth/`, copied from the [auth web examples](docs/standards/auth/examples/web/index.ts). Their copy is still the English it was copied with, except `AppearanceSettings`, which reads the message tree; translating the rest is open. The app owns `src/integrations/clerk/provider.tsx` (plain `ClerkProvider`, `signInUrl`/`signUpUrl` pointed at gather's routes) and the Clerk↔Convex JWT bridge in `src/integrations/convex/provider.tsx`; Convex validates with `CLERK_JWT_ISSUER_DOMAIN`. Mobile: `@clerk/expo`, one Clerk generation ahead of the web ([ADR-0014](docs/adr/0014-the-phone-is-a-clerk-generation-ahead-of-the-web.md)). |
 | Localization | See [Localization](#localization). |
 | Environments | `pnpm env:*` runs the vendored `scripts/env.mjs` against `env.manifest.ts`. Facts and hazards: [environment](docs/runbooks/environment.md). |
 | `appelent.json` | Kept as the config the vendored scripts read (`envManifest`). Its `features` block is a frozen legacy ledger: never bump it, and do not run the retired `/appelent` plugin commands, which regenerate superseded instruction blocks. |
 | Worktrees | `t3.json` runs `scripts/copy-env.sh` on worktree creation, copying `.env.local`, `.dev.vars` and `apps/mobile/.env.local` from the main checkout; `scripts/workspace.mjs` is installed but not adopted. **Exception** to per-worktree isolated backends: every worktree shares the main checkout's dev Convex deployment, so runtime writes are visible to all of them. |
-| Test login | Non-production web builds show `@appelent/auth`'s test-login button when the Clerk key is `pk_test_…` and `VITE_TEST_USER_*` are set; the phone's equivalent is `EXPO_PUBLIC_TEST_USER_*`, local only. These values are inlined into bundles, so the account must live on the Clerk *test* instance and is never set for production. |
+| Test login | **Exception** to the auth standard's `+clerk_test` email-code test login: the shared test user (`PREVIEW_TEST_USER` in `convex/seed.ts`) signs in with a password, so `src/lib/auth/TestLoginButton.tsx` keeps the password flow and shows only when the Clerk key is `pk_test_…` and both `VITE_TEST_USER_*` are set. The phone's equivalent is `EXPO_PUBLIC_TEST_USER_*`, local only. These values are inlined into bundles, so the account must live on the Clerk *test* instance and is never set for production. |
 | Convex query caching | Not adopted on web or mobile. |
-| Observability | `@sentry/tanstackstart-react` is installed and `VITE_SENTRY_*`/`SENTRY_AUTH_TOKEN` are routed, but nothing initialises Sentry: there is no `instrument.server.mjs` (the `start` script imports one) and nothing in `src/router.tsx`. Treat Sentry as absent until it is wired per [Sentry monitoring](docs/standards/sentry-monitoring.md). |
+| Observability | Web only: `@sentry/react` in the browser and `@sentry/cloudflare` in the Worker (`src/server.ts`), scrubbed by `src/lib/observability/privacy.ts`. Convex and the phone are not covered. Facts: [Sentry runbook](docs/runbooks/sentry.md). |
 | PWA | `scripts/generate-sw.mjs` (Workbox) runs after every `vite build`; it predates the [PWA](docs/standards/pwa.md) template. |
 | Mobile tests | Phone unit tests run in the root Vitest `mobile` project, not Jest with jest-expo as [mobile baseline](docs/standards/mobile-baseline.md) specifies. |
 | Documentation | **Exception** to "one-off work is an issue and its PR" in [documentation](docs/standards/documentation.md): an unfinished data migration keeps a document in `docs/migrations/` until it has run everywhere, because code comments and the [one-shot code](#one-shot-code) rule point at it as the retirement ledger. A finished one becomes a `docs/records/` record when something cites it and is deleted otherwise. |
@@ -88,8 +87,10 @@ and EAS. These bindings deviate from or narrow the shared guidance:
 
 ### Localization
 
-Binds [i18n](docs/standards/i18n.md). `@appelent/i18n` supplies the engine
-(exception above); `src/lib/i18n/` holds the web wiring and the
+Binds [i18n](docs/standards/i18n.md). `src/lib/i18n/runtime/` is the engine —
+the provider and Clerk language sync copied from the
+[i18n examples](docs/standards/i18n/examples/index.tsx), with the pure helpers
+taken from `@gather/core/i18n`; `src/lib/i18n/` holds the web wiring and the
 `renderWithI18n` test helper (`useI18n` throws outside `LocaleProvider`); the
 language controls are `LanguageToggle` (topbar) and `LanguageSettings` (`/settings`).
 The English and Dutch trees live in `packages/core/src/messages/`; English is
