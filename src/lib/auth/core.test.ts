@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { clerkErrorMessage, shouldShowTestLogin } from './core'
+import {
+  clerkErrorMessage,
+  emailCodeErrorKey,
+  shouldShowTestLogin,
+} from './core'
 
 describe('shouldShowTestLogin', () => {
   it('is false on a live key even with creds present', () => {
@@ -74,5 +78,31 @@ describe('clerkErrorMessage', () => {
     expect(clerkErrorMessage(undefined, 'Custom fallback')).toBe(
       'Custom fallback',
     )
+  })
+})
+
+describe('emailCodeErrorKey', () => {
+  const withCode = (code: string) => ({ errors: [{ code }] })
+
+  it('classifies the failures a person can act on', () => {
+    expect(emailCodeErrorKey(withCode('form_code_incorrect'))).toBe(
+      'codeIncorrect',
+    )
+    expect(emailCodeErrorKey(withCode('verification_expired'))).toBe(
+      'codeExpired',
+    )
+    expect(emailCodeErrorKey(withCode('verification_failed'))).toBe(
+      'codeExpired',
+    )
+    expect(emailCodeErrorKey(withCode('too_many_requests'))).toBe('rateLimited')
+    expect(emailCodeErrorKey({ status: 429 })).toBe('rateLimited')
+  })
+
+  it('leaves anything else to the Clerk message', () => {
+    expect(emailCodeErrorKey(withCode('form_identifier_not_found'))).toBe(
+      undefined,
+    )
+    expect(emailCodeErrorKey(new Error('boom'))).toBe(undefined)
+    expect(emailCodeErrorKey(undefined)).toBe(undefined)
   })
 })
