@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a Convex table, changing what "Export your data" contains, or changing who may see a row or column.
-version: 1.0.0
+version: 1.1.0
 status: current
 ---
 
@@ -56,12 +56,17 @@ everything user-owned belongs to a Group or to a person
   `version`, then `conventions`, `notIncluded`, `excludedTables` and
   `omittedFields`. Bump `EXPORT_VERSION` when a reader of the previous version
   would misread the new one; a new table is not a bump.
-- **Delivery uses what every build already has.** The web downloads a Blob. The
-  phone shares the file through React Native's `Share` on iOS and saves it to a
-  folder chosen in the system picker (`expo-file-system`) on Android, so the
-  feature ships over the air. `expo-sharing` would give Android a share sheet
-  but is a native module and moves the fingerprint
+- **Delivery is the platform's own.** The web downloads a Blob. The phone
+  (`apps/mobile/src/features/account/export/`) writes the file to the cache
+  with `expo-file-system` and opens the system share sheet with `expo-sharing`,
+  on iOS and Android alike; a phone with nowhere to share to is told so before
+  anything is read. The file stays in the cache until the next export replaces
+  it, because Android's sheet can close before the receiving app has read it.
+- **`expo-sharing` is a native dependency.** It moved the fingerprint, so the
+  feature reaches phones with a native build, not over the air
   ([ADR-0029](../adr/0029-a-javascript-change-ships-over-the-air-and-a-native-one-does-not.md)).
+  Its config plugin is not in `app.json`: sharing out needs none, and its
+  share-*into* half would compete with `expo-share-intent` ([Drop](drop.md)).
 
 ## Out of scope
 

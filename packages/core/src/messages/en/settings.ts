@@ -39,7 +39,7 @@ export const settings = {
     action: 'Export',
     busy: 'Exporting… {done} of {total}',
     failed: 'Could not export your data. Try again.',
-    saved: 'Saved as {file}.',
+    unavailable: 'This device has nowhere to share the file to.',
   },
 
   nutritionTargets: {
