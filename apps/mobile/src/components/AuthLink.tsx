@@ -18,9 +18,19 @@ interface AuthLinkProps {
   prompt?: string
   label: string
   onPress: () => void
+  /** Dims the link and stops presses — a resend that is still cooling down. */
+  disabled?: boolean
+  /** So a verification run can reach the link without matching its words. */
+  testID?: string
 }
 
-export function AuthLink({ prompt, label, onPress }: AuthLinkProps) {
+export function AuthLink({
+  prompt,
+  label,
+  onPress,
+  disabled = false,
+  testID,
+}: AuthLinkProps) {
   const tokens = useTokens()
 
   return (
@@ -29,11 +39,18 @@ export function AuthLink({ prompt, label, onPress }: AuthLinkProps) {
         <Text style={[styles.prompt, { color: tokens.muted }]}>{prompt}</Text>
       ) : null}
       <Pressable
+        testID={testID}
         onPress={onPress}
+        disabled={disabled}
         accessibilityRole="link"
+        accessibilityState={{ disabled }}
         accessibilityLabel={prompt ? `${prompt} ${label}` : label}
         hitSlop={8}
-        style={({ pressed }) => [styles.hit, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.hit,
+          pressed && styles.pressed,
+          disabled && styles.inert,
+        ]}
       >
         <Text style={[styles.label, { color: tokens.fg }]}>{label}</Text>
       </Pressable>
@@ -52,5 +69,6 @@ const styles = StyleSheet.create({
   prompt: { fontSize: 14.5 },
   hit: { paddingVertical: 11 },
   pressed: { opacity: 0.6 },
+  inert: { opacity: 0.5 },
   label: { fontSize: 14.5, fontWeight: '700', textDecorationLine: 'underline' },
 })

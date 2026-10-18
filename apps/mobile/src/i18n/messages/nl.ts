@@ -404,6 +404,24 @@ export const nl = {
     forgot: 'Wachtwoord vergeten?',
     noAccount: 'Nog geen account?',
     createOne: 'Maak er een aan',
+    emailCode: {
+      send: coreNl.auth.signIn.emailCode.send,
+      sent: coreNl.auth.signIn.emailCode.sent,
+      resend: coreNl.auth.signIn.emailCode.resend,
+      resendIn: coreNl.auth.signIn.emailCode.resendIn,
+      resent: coreNl.auth.signIn.emailCode.resent,
+      back: coreNl.auth.signIn.emailCode.back,
+      secondFactor: {
+        heading: 'Nog één stap',
+        totp: coreNl.auth.signIn.secondFactor.totp,
+        backupCode: coreNl.auth.signIn.secondFactor.backupCode,
+        sent: coreNl.auth.signIn.secondFactor.sent,
+        sentFallback: coreNl.auth.signIn.secondFactor.sentFallback,
+        backupCodeLabel: coreNl.auth.signIn.secondFactor.backupCodeLabel,
+        verify: coreNl.auth.signIn.secondFactor.verify,
+        back: coreNl.auth.signIn.secondFactor.back,
+      },
+    },
   },
 
   signUp: {
@@ -483,7 +501,10 @@ export const nl = {
     passwordPwned:
       'Dat wachtwoord is opgedoken in een datalek. Kies er een andere.',
     codeIncorrect: 'Die code klopt niet.',
-    codeExpired: 'Die code is verlopen. Vraag een nieuwe aan.',
+    codeExpired: coreNl.auth.errors.codeExpired,
+    emailCodeUnavailable: coreNl.auth.signIn.emailCode.unavailable,
+    needsExtraStep: coreNl.auth.errors.needsExtraStep,
+    noSecondFactor: coreNl.auth.errors.noSecondFactor,
     required: 'Dit mag niet leeg zijn.',
     tooManyRequests: 'Te veel pogingen. Wacht even en probeer het opnieuw.',
   },
