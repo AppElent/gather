@@ -216,7 +216,7 @@ export const backfillFoodServings = internalMutation({
  * #19 gives a recipe to a Group rather than to a person, and says so in fields
  * that are required from the first commit — so there is no shape a pre-#19 row
  * can be migrated into. Recipe data is disposable, so it is destroyed rather
- * than migrated; see docs/migrations/0002-recipes-become-group-owned.md, which
+ * than migrated; see docs/records/2026-07-30-migration-0002-recipes-become-group-owned.md, which
  * says that plainly and is the reason this is acceptable.
  *
  * A diary entry is *not* disposable and nothing about it is touched beyond its
@@ -269,7 +269,7 @@ const DEFAULT_SAMPLE_SIZE = 20
  * Run it, move a child, run it again, and put the two outputs side by side:
  * the per-Group counts are the only thing allowed to have changed, and every
  * line of the sample must be identical. See
- * docs/migrations/0003-baby-log-onto-group-scope.md, which says plainly to stop
+ * docs/records/2026-08-01-migration-0003-baby-log-onto-group-scope.md, which says plainly to stop
  * if it is not.
  *
  * The sample is the *oldest* entries by design. It is the part of the log that

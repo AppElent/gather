@@ -115,7 +115,7 @@ const DEEP_MODULES: Record<string, DeepModule> = {
  * The old paths that were one segment and nothing more.
  *
  * `/dashboard` is here because Home is genuinely what it became — the Group's
- * shared surface, under the name CONTEXT.md gives it.
+ * shared surface, under the name GLOSSARY.md gives it.
  */
 const FLAT_MODULES: Record<string, PlainSurface> = {
   dashboard: 'home',

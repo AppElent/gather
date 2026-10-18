@@ -1,6 +1,15 @@
+---
+type: decision
+description: Read before changing how the phone and web address a Group (historical; superseded).
+version: 1.0.0
+status: superseded
+date: 2026-08-13
+superseded_by: 0031-the-current-group-is-ambient-on-web-and-mobile.md
+---
+
 # The Group is addressed on the web and ambient on the phone
 
-Status: superseded by [ADR-0031](0031-the-current-group-is-ambient-on-web-and-mobile.md)
+Superseded by [ADR-0031](0031-the-current-group-is-ambient-on-web-and-mobile.md).
 
 This decision applied to the former split between URL-addressed web Groups and
 ambient mobile Groups and is retained as historical context only.
@@ -17,7 +26,7 @@ The web keeps the Group in the URL as [ADR-0002](0002-the-group-is-explicit-in-t
 
 ## Enforcement
 
-`apps/mobile/src/group/GroupProvider.tsx` owns selection and validation. Mobile mutations receive the Group from that context; Convex authorization remains unchanged. See `docs/mobile-interaction.md` for the interaction rules around native navigation.
+`apps/mobile/src/group/GroupProvider.tsx` owns selection and validation. Mobile mutations receive the Group from that context; Convex authorization remains unchanged. See [`apps/mobile/DESIGN_SYSTEM.md`](../../apps/mobile/DESIGN_SYSTEM.md#interaction-vocabulary) for the interaction rules around native navigation.
 
 ## Reopen when
 

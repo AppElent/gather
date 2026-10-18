@@ -9,7 +9,7 @@
  *
  * Both also carry a Pin in the top right corner. The hold menu can pin too, and
  * so can Edit mode, but a menu is never the only way to reach something
- * (`docs/mobile-interaction.md`) - and pinning is the one thing on this screen
+ * (`apps/mobile/DESIGN_SYSTEM.md`) - and pinning is the one thing on this screen
  * somebody does often enough to want a target rather than a gesture.
  *
  * **The Pin is a sibling of the row, not a child of it**, which is the one
@@ -52,7 +52,7 @@ export interface ModuleEntryActions {
 /**
  * Feedback that is a fill rather than a fade.
  *
- * `docs/mobile-interaction.md` bans `opacity: 0.6` by name - it is the React
+ * `apps/mobile/DESIGN_SYSTEM.md` bans `opacity: 0.6` by name - it is the React
  * Native default and it is wrong on both platforms, because it dims the *row*
  * where the platform lightens the *surface behind* it. So Android gets its own
  * ripple and iOS gets a translucent wash of the tint's own ink, which reads as

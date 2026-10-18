@@ -2,7 +2,7 @@
 
 Captured `application/ld+json` Recipe payloads from live recipe sites, used
 by `convex/lib/recipeParsingFixtures.test.ts` to test extraction against
-real-world variety (spec: docs/superpowers/specs/2026-07-17-nutrition-tracking-design.md §7.1).
+real-world variety (spec §7.1, retired from the repo: https://github.com/AppElent/gather/blob/b4f778c/docs/superpowers/specs/2026-07-17-nutrition-tracking-design.md).
 
 Refresh or add a fixture with:
 

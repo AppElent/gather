@@ -1,6 +1,12 @@
-# A nested page carries its own trail, and back is an address
+---
+type: decision
+description: Read before changing breadcrumbs, nested web routes, or back links.
+version: 1.0.0
+status: accepted
+date: 2026-08-11
+---
 
-Status: accepted (2026-08-11)
+# A nested page carries its own trail, and back is an address
 
 Every route below a Module's index renders a `Breadcrumbs` with the trail from
 that index down to itself. The shell keeps global navigation; the page owns the
@@ -70,7 +76,7 @@ sheet already closes back to the diary because that is what its route does.
 
 **Every new nested route adds its trail in the same change.** There is no
 registry that would show a gap, and no test that fails for a page that quietly
-renders without one, so the rule lives in `CLAUDE.md` where the next person
+renders without one, so the rule lives in [`docs/runbooks/add-a-module.md`](../runbooks/add-a-module.md) where the next person
 adding a route will read it. A collection index does not get a trail; its
 children do.
 

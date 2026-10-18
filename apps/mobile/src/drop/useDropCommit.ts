@@ -4,7 +4,7 @@
  * Nearly every write here already existed before Drops did: the recipe URL
  * import, note create and update, task add, baby event add, tasting subject
  * update. That is the point — a Drop aimed at Recipes *is* an Import as
- * `CONTEXT.md` already defines one, so this added no second reader of anything.
+ * `GLOSSARY.md` already defines one, so this added no second reader of anything.
  * The one exception is `recipes.setPhoto`, and the reason is in that mutation's
  * own docstring: `recipes.update` takes the whole recipe, so a caller holding
  * only a storage id would have to read a recipe back and write it out again to

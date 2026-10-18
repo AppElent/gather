@@ -1,6 +1,12 @@
-# Staging deploys on merge, production deploys on a click
+---
+type: decision
+description: Read before changing the staging or production deploy trigger.
+version: 1.0.0
+status: accepted
+date: 2026-08-06
+---
 
-Status: accepted (2026-08-06)
+# Staging deploys on merge, production deploys on a click
 
 `main` deploys itself to **staging**. Production deploys from the same workflow,
 from the same branch, through the same steps — but only when somebody presses
@@ -89,7 +95,7 @@ wins over a repo secret of the same name. Three different `CONVEX_DEPLOY_KEY`
 values now coexist — staging's, production's, and the repo-level `preview:` key —
 and they stay apart only because `preview.yml` declares no `environment:`. Giving
 it one would point every PR preview at a real backend without failing. That trap
-is called out in `CLAUDE.md` and in `deploy.yml` itself, because nothing enforces
+is called out in [`docs/runbooks/previews.md`](../runbooks/previews.md#hazards) and in `deploy.yml` itself, because nothing enforces
 it.
 
 ## Why CI does not call `deploy:dev` / `deploy:prod`

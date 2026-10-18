@@ -12,7 +12,7 @@
  * compile error until somebody answers the question**. That is deliberately
  * unlike `moduleDestination.ts`, the seed contributions, the breadcrumb trails
  * and `quickActions.ts`, every one of which fails silently and is kept honest
- * only by a line in `CLAUDE.md`.
+ * only by a row in `docs/runbooks/add-a-module.md`.
  *
  * It is a separate list from `QUICK_ACTIONS` even though the two describe
  * neighbouring things — the Add tab's capture verbs, and the destinations a
@@ -95,7 +95,7 @@ export interface DropTarget {
 const RECIPES: DropTarget[] = [
   {
     // No new Convex function and no second reader: a Drop aimed at Recipes is
-    // an Import exactly as CONTEXT.md already defines one, and it opens the
+    // an Import exactly as GLOSSARY.md already defines one, and it opens the
     // importer with the link already in it.
     id: 'recipe-import',
     module: 'recipes',

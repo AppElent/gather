@@ -22,7 +22,7 @@ export const reportIssue = createServerFn({ method: 'POST' })
     if (!validated.ok) {
       return { ok: false, error: validated.error }
     }
-    const { type, text, url, user } = validated.value
+    const { type, text, url, signedIn } = validated.value
 
     const response = await fetch(
       `https://api.github.com/repos/${owner}/${repo}/issues`,
@@ -36,7 +36,7 @@ export const reportIssue = createServerFn({ method: 'POST' })
         },
         body: JSON.stringify({
           title: buildIssueTitle(type, text),
-          body: buildIssueBody(text, url, user),
+          body: buildIssueBody(text, url, signedIn),
           labels: [type],
         }),
       },

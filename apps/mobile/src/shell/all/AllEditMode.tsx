@@ -1,7 +1,7 @@
 /**
  * Arranging the All screen, as a mode.
  *
- * `docs/mobile-interaction.md` settles the shape: rearranging is a mode rather
+ * `apps/mobile/DESIGN_SYSTEM.md` settles the shape: rearranging is a mode rather
  * than a gesture, because hold means "open the menu" everywhere in this app and
  * a hold that sometimes became a drag would claim the gesture before anybody
  * knew it was one. So this is reached from that menu, or from the one in the

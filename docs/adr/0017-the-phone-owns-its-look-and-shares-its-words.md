@@ -1,6 +1,12 @@
-# The phone owns its look and shares its words
+---
+type: decision
+description: Read before changing what the phone and web share in look and vocabulary.
+version: 1.0.0
+status: accepted
+date: 2026-08-13
+---
 
-Status: accepted (2026-08-13)
+# The phone owns its look and shares its words
 
 ## Decision
 
@@ -12,7 +18,7 @@ Mobile owns its native layout, typography, neutrals, spacing, and controls. Both
 
 ## Enforcement
 
-`packages/core/src/moduleTints.ts` is keyed by `ModuleGroup`; `apps/mobile/src/theme/` consumes it through typed tokens. Message parity and core typechecks prevent shared vocabulary from drifting. See `docs/mobile-interaction.md` for interaction conventions.
+`packages/core/src/moduleTints.ts` is keyed by `ModuleGroup`; `apps/mobile/src/theme/` consumes it through typed tokens. Message parity and core typechecks prevent shared vocabulary from drifting. See [`apps/mobile/DESIGN_SYSTEM.md`](../../apps/mobile/DESIGN_SYSTEM.md#interaction-vocabulary) for interaction conventions.
 
 ## Reopen when
 

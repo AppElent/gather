@@ -20,7 +20,7 @@
  * The Group is named before anything is written, and the app follows the Drop
  * there **after** the save rather than the moment somebody taps a name in the
  * sheet. Two reasons: an abandoned Drop must leave nothing behind, including a
- * silently changed Group; and `docs/mobile-interaction.md` says the
+ * silently changed Group; and `apps/mobile/DESIGN_SYSTEM.md` says the
  * confirmation *is* the screen changing, so arriving in the new Group is what
  * says the save worked. ADR-0015 stands — the Group is still a place, and this
  * introduces no per-write Group anywhere else.

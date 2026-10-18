@@ -169,7 +169,7 @@ Against: it deletes the middle level of the three this Module has. Renaming, reo
 
 The web row shows a P-pill, label chips and a due date. 390 points does not have room for all three beside a title that is usually a sentence. These three spend the row differently.
 
-Fixed in all three: completing an item puts it away — it leaves the active list and drops into a collapsed Completed (n). That is docs/mobile-interaction.md, and it is a change from the web, where convex/tasks.ts sorts completed tasks to the bottom and leaves them sitting there. Swipe right completes; swipe left reveals a Delete you then have to tap (B draws it). A list gather cannot write to hides its composer.
+Fixed in all three: completing an item puts it away — it leaves the active list and drops into a collapsed Completed (n). That is apps/mobile/DESIGN_SYSTEM.md, and it is a change from the web, where convex/tasks.ts sorts completed tasks to the bottom and leaves them sitting there. Swipe right completes; swipe left reveals a Delete you then have to tap (B draws it). A list gather cannot write to hides its composer.
 
 SETTLED: B's rows win, but as a SETTING rather than a fixed choice — the list's ⋯ menu turns Due dates, Priority and Labels on and off, and with all three off B becomes A exactly. So A and B stopped being rivals; they are the two ends of one control. THE MIX's list at the top is the live one.
 
@@ -234,7 +234,7 @@ Three answers, and they are not cosmetic. A and B disagree about whether editing
 
 SETTLED: THE MIX's answer — the screen owns everything, each attribute opening a native sheet — and the due-date sheet is now a CALENDAR with Today / Tomorrow / Weekend / None above it, rather than the list of presets it was. Tap Due date on the mix's task at the top; the month arrows work.
 
-The line all three answer to is in docs/mobile-interaction.md: "A menu is never the only way to reach something. Everything in it is also on the row's detail screen." A satisfies it by construction. B satisfies it. C breaks it deliberately, and its Against says so.
+The line all three answer to is in apps/mobile/DESIGN_SYSTEM.md: "A menu is never the only way to reach something. Everything in it is also on the row's detail screen." A satisfies it by construction. B satisfies it. C breaks it deliberately, and its Against says so.
 
 The fourth artboard is a different question with the same shape: the Add tab's task-new quick action. It already exists in src/shell/quickActions.ts as kind: 'row', and QuickActionSheet currently fakes it into local state and writes nothing at all. WHICH LIST DOES AN UNTARGETED TASK LAND IN? Drawn as the last list you added to, with a picker one tap away — the alternatives (a designated Inbox list per Group, or refusing to add until a list is chosen) are both defensible and neither is drawn.
 
@@ -274,7 +274,7 @@ Claim: the third level is a web habit. Hold the row, pick the field, edit it in 
 
 For: the fastest edit of the three, and it deletes a route, a screen and a back-stack from the app.
 
-Against: it contradicts docs/mobile-interaction.md head-on — everything in a hold menu is supposed to also be on a detail screen, and here there is none. A link to one task has nowhere to land, which matters because "every deep-linkable screen must have a working parent when opened cold" is in the same document. Choosing C means amending that document, not making an exception in a component.`,
+Against: it contradicts apps/mobile/DESIGN_SYSTEM.md head-on — everything in a hold menu is supposed to also be on a detail screen, and here there is none. A link to one task has nowhere to land, which matters because "every deep-linkable screen must have a working parent when opened cold" is in the same document. Choosing C means amending that document, not making an exception in a component.`,
   },
   {
     id: 'note-quickadd',

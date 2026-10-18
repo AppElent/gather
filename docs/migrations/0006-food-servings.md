@@ -17,8 +17,8 @@ Convex validates the schema against existing documents when a deploy pushes it,
 so a `foods` row still carrying `servingSize` **rejects the push**. The usual
 answer is to run a backfill first — but `maintenance:backfillFoodServings`
 ships *inside the very push* those rows are blocking. It cannot run before
-itself. (`docs/migrations/0001` is what this should have looked like: two
-deploys with the backfill in between.)
+itself. ([Migration 0001](https://github.com/AppElent/gather/blob/b4f778c/docs/migrations/0001-group-slugs-and-personal-groups.md)
+is what this should have looked like: two deploys with the backfill in between.)
 
 So the deadlock is broken from outside the code.
 

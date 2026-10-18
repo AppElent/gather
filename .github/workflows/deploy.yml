@@ -30,6 +30,10 @@ jobs:
       - run: pnpm run check
       - run: pnpm run env:check
       - run: pnpm run typecheck
+      # apps/mobile has its own tsconfig (React Native types, Expo Router); the
+      # root `tsc` run above does not use it. Its tests already run under the
+      # `mobile` project of the root vitest config, so `pnpm test` covers those.
+      - run: pnpm --filter @gather/mobile typecheck
       - run: pnpm test
       # No `pnpm build` here — the deploy job builds for real a few minutes later,
       # and a build-only failure there fails the workflow just as loudly.

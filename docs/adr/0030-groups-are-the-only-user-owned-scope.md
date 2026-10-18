@@ -1,6 +1,12 @@
-# Groups are the only user-owned scope
+---
+type: decision
+description: Read before changing Group ownership, onboarding without a Group, or Personal records.
+version: 1.0.0
+status: accepted
+date: 2026-09-01
+---
 
-Status: decided (2026-09-01)
+# Groups are the only user-owned scope
 
 Gather treats every user-owned record as belonging to exactly one Group. A
 Group is an ordinary membership and sharing boundary; it has no Personal mode,

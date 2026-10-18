@@ -3,7 +3,7 @@
  *
  * ## One screen, two chromes, decided by content
  *
- * A subject **with a photo** is a Detail screen (`docs/mobile-interaction.md`):
+ * A subject **with a photo** is a Detail screen (`apps/mobile/DESIGN_SYSTEM.md`):
  * no title in the bar, the photo and the name pinned, only the tastings
  * scrolling. You recognise this record by its picture, which is the whole
  * test. The same subject **without** one is Pushed: title in the bar,

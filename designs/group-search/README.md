@@ -57,7 +57,7 @@ invented — that Module does not exist yet.
 The field is the tab bar. On iOS 26 the Search tab carries `role: 'search'`
 (`apps/mobile/src/shell/tabs.ts`), so its capsule expands in place: the bar
 becomes a full-width field and the capsule becomes a close button. There is no
-header search and no Cancel. Per `docs/mobile-interaction.md` no artboard draws
+header search and no Cancel. Per `apps/mobile/DESIGN_SYSTEM.md` no artboard draws
 the status bar or the keyboard, so each one shows the moment the keyboard has
 been dismissed and the field has settled to the bottom.
 
