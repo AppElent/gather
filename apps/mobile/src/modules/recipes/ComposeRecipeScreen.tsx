@@ -37,6 +37,7 @@
  * copy. What replaces it is the *collection*, not the tab root the form was
  * launched from — see `save` for why one call covers both doors.
  */
+import { isAiLimitReached } from '@gather/core/ai-limit'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
@@ -165,7 +166,11 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
       haptics.itemSaved()
     } catch (error) {
       haptics.actionFailed()
-      setImportProblem(messageFrom(error, text.create.importFailed))
+      setImportProblem(
+        isAiLimitReached(error)
+          ? text.form.aiLimitReached
+          : messageFrom(error, text.create.importFailed),
+      )
     } finally {
       setImporting(false)
     }

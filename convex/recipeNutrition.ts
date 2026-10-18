@@ -2,6 +2,7 @@
 
 import { ConvexError, v } from 'convex/values'
 import { action } from './_generated/server'
+import { takeAiCall } from './lib/aiUsage'
 import { estimateNutritionWithAi } from './lib/nutritionAiEstimate'
 
 export const estimateNutrition = action({
@@ -17,6 +18,7 @@ export const estimateNutrition = action({
     }
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) throw new ConvexError('AI estimation is not configured.')
+    await takeAiCall(ctx, identity.subject)
     const nutrition = await estimateNutritionWithAi(
       args.ingredients,
       args.servings,
