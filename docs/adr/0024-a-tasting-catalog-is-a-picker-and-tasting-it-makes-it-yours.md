@@ -1,6 +1,14 @@
+---
+type: decision
+description: Read before changing the tasting Catalog or how tasting an entry copies it.
+version: 1.0.0
+status: accepted
+date: 2026-08-22
+---
+
 # A Tasting catalog is a picker, and tasting it makes it yours
 
-Status: decided (2026-08-22), not yet implemented
+Not yet implemented when decided.
 
 The tasting Modules — Cheeses, Wines, Beers — need somewhere for "Gouda" to come
 from. Gather already has an answer to that question, and it is the wrong one

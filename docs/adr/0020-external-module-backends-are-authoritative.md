@@ -1,6 +1,12 @@
-# External Module Backends are authoritative and Gather caches them
+---
+type: decision
+description: Read before changing an external Module backend or how Gather caches it.
+version: 1.0.0
+status: accepted
+date: 2026-08-08
+---
 
-Status: accepted (2026-08-08)
+# External Module Backends are authoritative and Gather caches them
 
 A Group's Module collection may use either a local Backend or an external
 Backend. When it uses an external Backend, the external system is authoritative

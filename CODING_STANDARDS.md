@@ -63,7 +63,7 @@ in code, hypotheses and issue titles, and record newly resolved terms there. A
 rule about behavior goes in a `docs/contracts/` contract, not the glossary.
 Read the ADRs in `docs/adr/` for the affected boundary and name any conflict
 with an accepted ADR before reopening it. Two ADR numbers are shared by two
-files each; cite those by filename ([index](docs/adr/README.md)).
+files each; cite those by filename ([index](docs/README.md#decisions)).
 
 ## Local bindings and exceptions
 
@@ -83,7 +83,7 @@ and EAS. These bindings deviate from or narrow the shared guidance:
 | Observability | `@sentry/tanstackstart-react` is installed and `VITE_SENTRY_*`/`SENTRY_AUTH_TOKEN` are routed, but nothing initialises Sentry: there is no `instrument.server.mjs` (the `start` script imports one) and nothing in `src/router.tsx`. Treat Sentry as absent until it is wired per [Sentry monitoring](docs/standards/sentry-monitoring.md). |
 | PWA | `scripts/generate-sw.mjs` (Workbox) runs after every `vite build`; it predates the [PWA](docs/standards/pwa.md) template. |
 | Mobile tests | Phone unit tests run in the root Vitest `mobile` project, not Jest with jest-expo as [mobile baseline](docs/standards/mobile-baseline.md) specifies. |
-| Documentation | **Exception** to [documentation](docs/standards/documentation.md) until the docs restructure: ADRs carry a prose `Status:` line rather than frontmatter; `docs/migrations/` is the retirement ledger for one-shot code (see below); `docs/superpowers/`, `docs/plans/`, `docs/briefs/`, `docs/research/` and `docs/review-notes/` are unclassified history. |
+| Documentation | **Exception** to "one-off work is an issue and its PR" in [documentation](docs/standards/documentation.md): an unfinished data migration keeps a document in `docs/migrations/` until it has run everywhere, because code comments and the [one-shot code](#one-shot-code) rule point at it as the retirement ledger. A finished one becomes a `docs/records/` record when something cites it and is deleted otherwise. |
 | Agent workflow | `.claude/skills/verify` is the one project skill (route→Module map). `.claude/commands/` holds thin commands: `review-session` invokes the global `custom-review-session` skill, `upgrade-deps` copies the global `custom-upgrade-deps` template, `babysit` is gather's PR policy. A fix that is not gather-specific goes back to the global source. |
 
 ### Localization

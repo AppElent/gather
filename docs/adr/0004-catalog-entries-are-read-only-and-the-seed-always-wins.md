@@ -1,6 +1,12 @@
-# Catalog entries are read-only, and the seed always wins
+---
+type: decision
+description: Read before changing Catalog rows, their seed, or whether a person may edit them.
+version: 1.0.0
+status: accepted
+date: 2026-08-02
+---
 
-Status: accepted (2026-08-02)
+# Catalog entries are read-only, and the seed always wins
 
 The **Catalog** — reference data owned by nobody, today just the food database
 — ships with the app and is present in every environment, production included.

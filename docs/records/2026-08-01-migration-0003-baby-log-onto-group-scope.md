@@ -1,3 +1,11 @@
+---
+type: record
+kind: verification
+description: Read for how each baby log moved onto Group scope (cited by convex/maintenance.ts and its tests).
+version: 1.0.0
+date: 2026-08-01
+---
+
 # 0003 — The baby log onto Group scope
 
 Puts each child in the Group whose Members should share their log, so both

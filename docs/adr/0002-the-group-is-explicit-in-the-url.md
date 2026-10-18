@@ -1,6 +1,15 @@
+---
+type: decision
+description: Read before changing how a Group appears in web URLs (historical; superseded).
+version: 1.0.0
+status: superseded
+date: 2026-07-28
+superseded_by: 0031-the-current-group-is-ambient-on-web-and-mobile.md
+---
+
 # The Group is explicit in the URL
 
-Status: superseded by [ADR-0031](0031-the-current-group-is-ambient-on-web-and-mobile.md)
+Superseded by [ADR-0031](0031-the-current-group-is-ambient-on-web-and-mobile.md).
 
 This decision applied to the former URL-addressed Group model and is retained
 as historical context only.

@@ -1,6 +1,12 @@
-# The activity stream is derived from rows that testify
+---
+type: decision
+description: Read before changing the activity stream, Attribution, or which rows it is derived from.
+version: 1.0.0
+status: accepted
+date: 2026-08-03
+---
 
-Status: accepted (2026-08-03)
+# The activity stream is derived from rows that testify
 
 Home's stream is derived from the Group-scoped tables themselves rather than from
 an events table. A Module joins the stream by carrying an actor and a time — not

@@ -28,6 +28,6 @@ Before the task, read the matching project doc:
 | Deploying, or changing the deploy or preview workflows | [Deploy](docs/runbooks/deploy.md), [Previews](docs/runbooks/previews.md) |
 | Upgrading dependencies | [`upgrade-deps`](.claude/commands/upgrade-deps.md); never weaken or skip a test to make an upgrade pass — stop and report |
 
-Domain terms: [GLOSSARY.md](GLOSSARY.md). Decisions: [docs/adr/](docs/adr/README.md).
+Domain terms: [GLOSSARY.md](GLOSSARY.md). Decisions: [ADR index](docs/README.md#decisions).
 Adding, moving, or finding docs: [docs map](docs/README.md). Issues are GitHub
 Issues on `AppElent/gather`; engineering skills read [docs/agents/](docs/agents/issue-tracker.md).

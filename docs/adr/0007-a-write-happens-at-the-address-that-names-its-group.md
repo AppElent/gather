@@ -1,6 +1,12 @@
-# A write happens at the address that names its Group
+---
+type: decision
+description: Read before changing where a write lands or which Group authorizes it.
+version: 1.0.0
+status: accepted
+date: 2026-08-03
+---
 
-Status: accepted (2026-08-03)
+# A write happens at the address that names its Group
 
 Whether you *may* change a piece of content is answered by membership of its home
 Group, from wherever you are reading it. **Where** you change it is answered by

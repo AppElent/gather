@@ -1,6 +1,12 @@
-# Task backends expose capabilities and reconcile manually
+---
+type: decision
+description: Read before changing task backend capabilities or sync.
+version: 1.0.0
+status: accepted
+date: 2026-08-08
+---
 
-Status: accepted (2026-08-08)
+# Task backends expose capabilities and reconcile manually
 
 The Tasks Module presents one Task model across local and external backends,
 while making provider ownership and capability differences explicit.

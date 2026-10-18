@@ -10,9 +10,9 @@ date: 2026-10-18
 
 Synthesis of three read-only research passes. Evidence, SHAs and file paths are in:
 
-- [A — developer-tools onboarding delta](foundry-reuse/A-onboarding-delta.md)
-- [B — foundry change inventory](foundry-reuse/B-change-inventory.md)
-- [C — App Store / Play gap](foundry-reuse/C-app-store-gap.md)
+- [A — developer-tools onboarding delta](a-onboarding-delta.md)
+- [B — foundry change inventory](b-change-inventory.md)
+- [C — App Store / Play gap](c-app-store-gap.md)
 
 ## Headline
 

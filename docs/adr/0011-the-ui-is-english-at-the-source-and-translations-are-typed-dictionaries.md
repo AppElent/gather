@@ -1,6 +1,12 @@
-# The UI is English at the source, and translations are typed dictionaries
+---
+type: decision
+description: Read before changing localization, message trees, or what is and is not translated.
+version: 1.0.0
+status: accepted
+date: 2026-08-04
+---
 
-Status: accepted (2026-08-04)
+# The UI is English at the source, and translations are typed dictionaries
 
 Gather's own words are written in English first, in `src/lib/i18n/messages/en/`,
 and every other locale is a file of the same shape that `satisfies` the English

@@ -14,7 +14,7 @@ and every user-visible word come from `@gather/core`.
 
 What a press does, what a swipe does, what buzzes, what appears while things
 load. Decided 2026-08-21 from the survey in
-[`docs/research/mobile-interaction-vocabulary.md`](../../docs/research/mobile-interaction-vocabulary.md),
+[`docs/records/2026-08-20-mobile-interaction-vocabulary.md`](../../docs/records/2026-08-20-mobile-interaction-vocabulary.md),
 which keeps the alternatives and the reasoning. **A new screen follows these
 rules; a rule that turns out wrong is changed here, not excepted in a component.**
 

@@ -1,6 +1,15 @@
+---
+type: decision
+description: Read before changing data ownership scopes (historical; superseded).
+version: 1.0.0
+status: superseded
+date: 2026-07-28
+superseded_by: 0030-groups-are-the-only-user-owned-scope.md
+---
+
 # Three scopes: Group, Personal, Catalog
 
-Status: superseded by [ADR-0030](0030-groups-are-the-only-user-owned-scope.md).
+Superseded by [ADR-0030](0030-groups-are-the-only-user-owned-scope.md).
 
 This decision applied to the former Personal Group and Personal-record model
 and is retained as historical context only. It was amended by

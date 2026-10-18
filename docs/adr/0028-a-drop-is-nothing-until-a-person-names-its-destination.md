@@ -1,6 +1,12 @@
-# A Drop is nothing until a person names its destination
+---
+type: decision
+description: Read before changing the share sheet, a Drop, or Drop destinations.
+version: 1.0.0
+status: accepted
+date: 2026-08-25
+---
 
-Status: decided (2026-08-25)
+# A Drop is nothing until a person names its destination
 
 ## Decision
 
