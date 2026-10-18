@@ -555,6 +555,31 @@ export const en = {
     forgot: 'Forgotten your password?',
     noAccount: "Don't have an account?",
     createOne: 'Create one',
+    /**
+     * Passwordless sign-in, in the web's words (`auth.signIn.emailCode`) except
+     * for the second-factor heading, which the web draws as a form title.
+     */
+    emailCode: {
+      send: coreEn.auth.signIn.emailCode.send,
+      /** `{email}` is the address the code went to. */
+      sent: coreEn.auth.signIn.emailCode.sent,
+      resend: coreEn.auth.signIn.emailCode.resend,
+      /** `{seconds}` counts down until a new code may be asked for. */
+      resendIn: coreEn.auth.signIn.emailCode.resendIn,
+      resent: coreEn.auth.signIn.emailCode.resent,
+      back: coreEn.auth.signIn.emailCode.back,
+      secondFactor: {
+        heading: 'One more step',
+        totp: coreEn.auth.signIn.secondFactor.totp,
+        backupCode: coreEn.auth.signIn.secondFactor.backupCode,
+        /** `{contact}` is where Clerk sent the code. */
+        sent: coreEn.auth.signIn.secondFactor.sent,
+        sentFallback: coreEn.auth.signIn.secondFactor.sentFallback,
+        backupCodeLabel: coreEn.auth.signIn.secondFactor.backupCodeLabel,
+        verify: coreEn.auth.signIn.secondFactor.verify,
+        back: coreEn.auth.signIn.secondFactor.back,
+      },
+    },
   },
 
   signUp: {
@@ -658,7 +683,10 @@ export const en = {
     passwordPwned:
       'That password has turned up in a data breach. Please pick another.',
     codeIncorrect: 'That code is not right.',
-    codeExpired: 'That code has expired. Ask for a new one.',
+    codeExpired: coreEn.auth.errors.codeExpired,
+    emailCodeUnavailable: coreEn.auth.signIn.emailCode.unavailable,
+    needsExtraStep: coreEn.auth.errors.needsExtraStep,
+    noSecondFactor: coreEn.auth.errors.noSecondFactor,
     required: 'This cannot be empty.',
     tooManyRequests: 'Too many attempts. Wait a moment and try again.',
   },
