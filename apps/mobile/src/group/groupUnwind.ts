@@ -16,15 +16,23 @@
  * a switch resets what they show instead: screens come and go inside a stack
  * that is still attached, which is the path react-native-screens cleans up.
  *
- * Root routes are given new keys rather than kept, so the root screen
- * remounts too. Search's query and All's edit mode belong to the Group that
- * was on screen; a switch is a new place, not the old one re-labelled.
+ * Each stack goes back to its `index` route, with no params, and never to
+ * whatever happens to be first in it: a stack opened by a deep link straight
+ * onto a record (`/all/recipes/recipe?id=…`) has that record screen as its
+ * first route, and reusing it would reopen the old Group's record in the new
+ * one. The route has no key, so the router mints a fresh one and the root
+ * screen remounts too: Search's query and All's edit mode belong to the Group
+ * that was on screen, and a switch is a new place, not the old one
+ * re-labelled.
  *
  * Settings is not here: it is not Group-scoped, and keeps its place.
  */
 
 /** The tabs whose stacks show one Group's content. */
 export const GROUP_SCOPED_TABS = ['home', 'all', 'search'] as const
+
+/** The route every Group-scoped stack starts from: each layout declares it. */
+const ROOT_ROUTE = 'index'
 
 /** The slice of a navigator's state this reads; hand-typed for the same
  * reason as `SearchScreen`'s `Navigator`. */
@@ -64,8 +72,8 @@ function findTabs(state: NavState | undefined): NavState | undefined {
 }
 
 /**
- * One RESET per Group-scoped stack that has state, each back to its root
- * route with no key so the router mints a fresh one. The stack keeps its own
+ * One RESET per Group-scoped stack that has state, each back to a fresh
+ * `index` route. The stack keeps its own
  * key and route names (`stale: false`), so the navigator is the same
  * navigator; only its screens change.
  */
@@ -78,8 +86,10 @@ export function groupUnwindActions(
 
   return tabState.routes.flatMap((route) => {
     const stack = route.state
-    const root = stack?.routes[0]
-    if (!tabs.includes(route.name) || !stack || !root) return []
+    if (!tabs.includes(route.name) || !stack) return []
+    // The router refuses a RESET to a route the stack does not declare; a
+    // stack without `index` is a wiring bug, not something to guess around.
+    if (stack.routeNames && !stack.routeNames.includes(ROOT_ROUTE)) return []
     return [
       {
         type: 'RESET' as const,
@@ -88,7 +98,7 @@ export function groupUnwindActions(
           index: 0 as const,
           stale: false as const,
           preloadedRoutes: [] as [],
-          routes: [{ name: root.name, params: root.params }],
+          routes: [{ name: ROOT_ROUTE }],
         },
         target: stack.key,
       },

@@ -64,7 +64,7 @@ describe('groupUnwindActions', () => {
     const all = actions[1]
     expect(all.type).toBe('RESET')
     expect(all.payload.index).toBe(0)
-    expect(all.payload.routes).toEqual([{ name: 'index', params: undefined }])
+    expect(all.payload.routes).toEqual([{ name: 'index' }])
   })
 
   test('keeps the stack itself: same key, same route names, not stale', () => {
@@ -95,6 +95,38 @@ describe('groupUnwindActions', () => {
       'index-search-s-0',
     )
     expect(action.payload.routes[0].key).toBeUndefined()
+  })
+
+  test('goes to index, not to a record a deep link opened the stack on', () => {
+    // `/all/recipes/recipe?id=r1` opened cold: the record is the first route
+    // and there is no `index` under it.
+    const root = rootWith([
+      {
+        key: 'all-t',
+        name: 'all',
+        state: stack('all-s', ['recipes/recipe']),
+      },
+    ])
+
+    const [action] = groupUnwindActions(root)
+
+    expect(action.payload.routes).toEqual([{ name: 'index' }])
+    expect(action.payload.index).toBe(0)
+  })
+
+  test('does not reset a stack that declares no index route', () => {
+    const root = rootWith([
+      {
+        key: 'all-t',
+        name: 'all',
+        state: {
+          ...stack('all-s', ['recipes/recipe']),
+          routeNames: ['recipes/recipe'],
+        },
+      },
+    ])
+
+    expect(groupUnwindActions(root)).toEqual([])
   })
 
   test('leaves Settings and Add alone: they are not Group-scoped', () => {
