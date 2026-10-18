@@ -118,6 +118,8 @@ export const privacy = {
     body: {
       rights:
         'Je hebt het recht je gegevens in te zien, te corrigeren, te verwijderen of te exporteren, de verwerking te beperken of er bezwaar tegen te maken, en je toestemming in te trekken.',
+      export:
+        'Je kunt je gegevens zelf exporteren: in de app via Instellingen → Account → Je gegevens exporteren, of op het web op de Account-pagina. Je krijgt één JSON-bestand met je account en alles in je Groepen. Andere Leden staan daarin alleen met hun naam, en foto’s zijn opgenomen als links.',
       howTo:
         'De meeste gegevens kun je zelf in de app corrigeren, en je account verwijderen zoals hierboven beschreven. Voor elk ander verzoek kun je mailen naar privacy@appelent.nl. We reageren binnen een maand.',
       complaint:
