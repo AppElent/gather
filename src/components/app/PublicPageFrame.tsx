@@ -8,6 +8,8 @@ interface PublicPageFrameProps {
   subtitle: string
   children: ReactNode
   actions?: ReactNode
+  /** Room for long-form reading, such as the privacy statement. */
+  wide?: boolean
 }
 
 export function PublicPageFrame({
@@ -16,8 +18,10 @@ export function PublicPageFrame({
   subtitle,
   children,
   actions,
+  wide = false,
 }: PublicPageFrameProps) {
-  const { publicFrame } = useMessages().shell
+  const messages = useMessages()
+  const { publicFrame } = messages.shell
 
   return (
     <main className="app-shell grid min-h-svh grid-rows-[auto_1fr] bg-[var(--app-bg)] text-[var(--app-fg)]">
@@ -47,7 +51,9 @@ export function PublicPageFrame({
         </div>
       </header>
       <div className="mx-auto grid w-full max-w-6xl items-center px-4 py-8 md:px-6 md:py-12">
-        <section className="mx-auto grid w-full max-w-md gap-4">
+        <section
+          className={`mx-auto grid w-full gap-4 ${wide ? 'max-w-2xl' : 'max-w-md'}`}
+        >
           <div className="shell-card grid gap-4 p-5 md:p-6">
             <div>
               <p className="shell-eyebrow">{eyebrow}</p>
@@ -60,6 +66,17 @@ export function PublicPageFrame({
             </div>
             {children}
           </div>
+          {/* Every signed-out page links the statement: the store listings and
+              the phone point at it, and so does anyone deciding whether to sign
+              up. */}
+          <footer className="text-center text-xs text-[var(--app-muted)]">
+            <Link
+              to="/privacy"
+              className="text-[var(--app-muted)] underline-offset-2 hover:underline"
+            >
+              {messages.privacy.title}
+            </Link>
+          </footer>
         </section>
       </div>
     </main>
