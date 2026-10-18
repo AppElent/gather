@@ -125,11 +125,14 @@ jobs:
             --cmd-url-env-var-name CONVEX_URL \
             --cmd "VITE_CONVEX_URL=\$CONVEX_URL pnpm build"
 
-      # Convex has no post-deploy hook outside previews, so the Catalog seed is a
-      # separate step. Runs before the Worker flips, so the backend is complete by
+      # Convex has no post-deploy hook outside previews, so the Catalog seeds are
+      # separate steps. Runs before the Worker flips, so the backend is complete by
       # the time anyone can reach the new frontend.
       - name: Seed Catalog
         run: pnpm exec convex run seed:seedCatalog
+
+      - name: Seed tasting Catalog
+        run: pnpm exec convex run seed:seedTastingCatalog
 
       - name: Deploy Worker
         run: pnpm exec wrangler deploy $WRANGLER_ARGS
