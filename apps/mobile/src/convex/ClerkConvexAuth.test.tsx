@@ -309,6 +309,42 @@ describe('ClerkConvexAuth', () => {
     view.unmount()
   })
 
+  test("a late failure from the previous account's session does not overwrite the new one's, so recovery still runs", async () => {
+    const { client, seen, rerender, view } = renderWithClient()
+    await until(() => seen.authenticated)
+
+    let finishStale: (token: string | null) => void = () => {}
+    harness.fetch = ({ sessionId, skipCache }) =>
+      sessionId === 'sess_A' && skipCache
+        ? new Promise((resolve) => {
+            finishStale = resolve
+          })
+        : Promise.resolve(harness.clerk.tokenAvailable ? 'jwt' : null)
+    const stale = client.startForcedFetch()
+
+    // Account B signs in offline and fails: the current generation's failure.
+    act(() => client.setConnected(false))
+    harness.clerk.tokenAvailable = false
+    harness.clerk.sessionId = 'sess_B'
+    rerender()
+    await until(() => client.setAuthCalls === 2)
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(seen.authenticated).toBe(false)
+
+    // Then A's forced fetch finally comes back empty too.
+    await act(async () => {
+      finishStale(null)
+      await stale
+    })
+
+    // B is still the one that failed, so the reconnect still recovers it.
+    harness.clerk.tokenAvailable = true
+    act(() => client.setConnected(true))
+    await until(() => seen.authenticated)
+    expect(client.setAuthCalls).toBe(3)
+    view.unmount()
+  })
+
   test("a late failure from the previous account's session does not send the new one round again", async () => {
     const { client, seen, rerender, view } = renderWithClient()
     await until(() => seen.authenticated)

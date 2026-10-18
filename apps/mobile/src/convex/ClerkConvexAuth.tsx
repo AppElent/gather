@@ -10,9 +10,10 @@
  *
  * Each fetcher belongs to a **generation** — one Clerk session and one attempt
  * — and a failure is recorded against the generation whose fetch failed, never
- * cleared, only superseded. So a late answer from a session or attempt that
- * has since been replaced cannot raise or hide the current one's failure; it
- * is the same rule Convex applies to its own stale fetches (config versions).
+ * cleared, only superseded — and only while that generation is the active
+ * one. So a late answer from a session or attempt that has since been
+ * replaced cannot raise, hide or overwrite the current one's failure; it is
+ * the same rule Convex applies to its own stale fetches (config versions).
  * And only an empty *forced* fetch counts: Convex follows an empty cached
  * lookup with a forced one, and only when that is empty too has it given up.
  *
@@ -34,6 +35,7 @@ import {
   use,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -172,15 +174,26 @@ export function ClerkConvexAuth({
   const [failedGeneration, setFailedGeneration] = useState<Generation | null>(
     null,
   )
+  // Only the active generation may record a failure. A replaced one's fetch
+  // can still finish empty after the active one has failed, and writing it
+  // down would make `failed` false and stop recovery. A layout effect, so the
+  // ref has moved on before any fetch started by the new generation returns.
+  const active = useRef(generation)
+  useLayoutEffect(() => {
+    active.current = generation
+  }, [generation])
+  const markFailed = useCallback((failing: Generation) => {
+    if (failing === active.current) setFailedGeneration(failing)
+  }, [])
   const reauthenticate = useCallback(() => setAttempt((n) => n + 1), [])
   const value = useMemo(
     () => ({
       generation,
       reauthenticate,
       failed: failedGeneration === generation,
-      markFailed: setFailedGeneration,
+      markFailed,
     }),
-    [generation, reauthenticate, failedGeneration],
+    [generation, reauthenticate, failedGeneration, markFailed],
   )
 
   return (
