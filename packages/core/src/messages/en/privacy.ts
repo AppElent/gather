@@ -130,6 +130,8 @@ export const privacy = {
     body: {
       rights:
         'You have the right to access, correct, delete, or export your data, to restrict or object to its processing, and to withdraw consent.',
+      export:
+        'You can export your data yourself: in the app under Settings → Account → Export your data, or on the web on the Account page. You get one JSON file with your account and everything in your Groups. Other Members appear in it by name only, and photos are included as links.',
       howTo:
         'You can correct most of your data directly in the app, and delete your account as described above. For any other request, email privacy@appelent.nl. We respond within one month.',
       complaint:
