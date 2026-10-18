@@ -113,7 +113,10 @@ test('keeps the imported source when prefilled nutrition is untouched', () => {
 
 test('estimate button fills nutrition and submits ai source', async () => {
   const onSubmit = vi.fn()
-  const onEstimate = vi.fn().mockResolvedValue({ calories: 300, fat: 10 })
+  const onEstimate = vi.fn().mockResolvedValue({
+    ok: true,
+    nutrition: { calories: 300, fat: 10 },
+  })
   renderWithI18n(
     <RecipeForm
       onSubmit={onSubmit}
@@ -175,12 +178,37 @@ test('surfaces the ConvexError friendly data string on estimate failure', async 
   expect(screen.queryByText(/Uncaught ConvexError/i)).not.toBeInTheDocument()
 })
 
+test('says so when the daily AI limit is reached, and fills nothing', async () => {
+  const onSubmit = vi.fn()
+  const onEstimate = vi
+    .fn()
+    .mockResolvedValue({ ok: false, reason: 'limitReached' })
+  renderWithI18n(
+    <RecipeForm
+      onSubmit={onSubmit}
+      submitting={false}
+      onEstimate={onEstimate}
+    />,
+  )
+
+  fireEvent.change(screen.getByLabelText('Ingredients'), {
+    target: { value: 'water\nwortel' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: /estimate with ai/i }))
+
+  expect(await screen.findByText(/used today’s AI calls/i)).toBeInTheDocument()
+  expect(screen.queryByDisplayValue('300')).not.toBeInTheDocument()
+})
+
 test('disables nutrition inputs while an estimate is in flight', async () => {
   const onSubmit = vi.fn()
-  let resolveEstimate: (facts: { calories: number }) => void
+  let resolveEstimate: (result: {
+    ok: true
+    nutrition: { calories: number }
+  }) => void
   const onEstimate = vi.fn(
     () =>
-      new Promise<{ calories: number }>((resolve) => {
+      new Promise<{ ok: true; nutrition: { calories: number } }>((resolve) => {
         resolveEstimate = resolve
       }),
   )
@@ -201,7 +229,7 @@ test('disables nutrition inputs while an estimate is in flight', async () => {
   expect(screen.getByLabelText('Calories (kcal)')).toBeDisabled()
   expect(screen.getByRole('button', { name: /save/i })).toBeDisabled()
 
-  resolveEstimate!({ calories: 300 })
+  resolveEstimate!({ ok: true, nutrition: { calories: 300 } })
   await screen.findByDisplayValue('300')
 
   expect(screen.getByLabelText('Servings')).not.toBeDisabled()

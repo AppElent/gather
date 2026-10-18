@@ -306,6 +306,24 @@ export default defineSchema({
     .index('by_name', ['name'])
     .searchIndex('search_by_text', { searchField: 'searchText' }),
 
+  /**
+   * How many AI calls a person has made on a UTC day — the one counter behind
+   * every action that reaches Anthropic (`lib/aiUsage.ts`).
+   *
+   * **Personal** in the sense of ADR-0003: the cap is on the person, whichever
+   * Group they were in when they asked, so there is a `userId` here and no
+   * `groupId`. Account deletion removes these rows (`cascade.finishAccount`).
+   *
+   * Old days are never read again; nothing sweeps them because a row per
+   * person per day they used AI is too small to be worth a job.
+   */
+  aiUsage: defineTable({
+    userId: v.id('users'),
+    /** `YYYY-MM-DD`, UTC. */
+    day: v.string(),
+    count: v.number(),
+  }).index('by_user_and_day', ['userId', 'day']),
+
   consumptionEntries: defineTable({
     userId: v.id('users'),
     date: v.string(),

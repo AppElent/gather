@@ -157,6 +157,11 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
     setSourceUrl(null)
     try {
       const result = await importFromUrl({ url, groupSlug })
+      if (!result.ok) {
+        haptics.actionFailed()
+        setImportProblem(text.form.aiLimitReached)
+        return
+      }
       setValues(recipeFormFromImport(result))
       setPhotoId(result.imageId ?? undefined)
       setPhotoUrl(result.imageUrl)

@@ -91,6 +91,10 @@ export function NewRecipePage({
         url: url.trim(),
         groupSlug: destination.groupSlug,
       })
+      if (!result.ok) {
+        setImportError(form.aiLimitReached)
+        return
+      }
       setImported({
         values: {
           title: result.title,

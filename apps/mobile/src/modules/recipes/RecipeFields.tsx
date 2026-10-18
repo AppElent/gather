@@ -47,7 +47,9 @@ export interface RecipeFieldsProps {
   onEstimate?: (args: {
     ingredients: string[]
     servings?: number
-  }) => Promise<Facts>
+  }) => Promise<
+    { ok: true; nutrition: Facts } | { ok: false; reason: 'limitReached' }
+  >
   disabled?: boolean
 }
 
@@ -83,14 +85,18 @@ export function RecipeFields({
     setEstimateProblem(null)
     try {
       const servings = Number(values.servings.trim())
-      const facts = await onEstimate({
+      const result = await onEstimate({
         ingredients: ingredientLines,
         servings:
           Number.isFinite(servings) && servings >= 1 ? servings : undefined,
       })
+      if (!result.ok) {
+        setEstimateProblem(text.aiLimitReached)
+        return
+      }
       onChange({
         ...values,
-        nutrition: facts,
+        nutrition: result.nutrition,
         nutritionSource: 'ai' satisfies NutritionSource,
       })
     } catch {

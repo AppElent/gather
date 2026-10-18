@@ -20,6 +20,9 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
 - `tasks`, `calendarEvents` and `babyEvents` hang off a parent rather than a
   Group, so each is deleted inside its parent's entry. `comboItems` belong to a
   person's combo and go with the account purge.
+- Personal tables (`userId`, no `groupId`: `combos`, `consumptionEntries`,
+  `aiUsage`) are not in the cascade; `cascade.finishAccount` deletes them by
+  index, so a new one is added there by hand.
 - Storage ids come back from the cascade and are deleted by scheduled work, so
   a large Group survives the one-transaction limit ([stored files](stored-files.md)).
 - **Account deletion is Convex first, Clerk second**, in scheduled steps, one

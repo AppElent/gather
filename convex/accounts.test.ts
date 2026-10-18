@@ -432,6 +432,38 @@ describe('what belongs to the person rather than a Group', () => {
     expect(left).toEqual({ combos: 0, comboItems: 0, entries: 1 })
   })
 
+  test('the AI usage counter goes, and only theirs', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+    await signUp(t, asBob)
+    const alice = await userId(t, asAlice)
+    const bob = await userId(t, asBob)
+    await t.run(async (ctx) => {
+      await ctx.db.insert('aiUsage', {
+        userId: alice,
+        day: '2026-09-01',
+        count: 3,
+      })
+      await ctx.db.insert('aiUsage', {
+        userId: alice,
+        day: '2026-09-02',
+        count: 1,
+      })
+      await ctx.db.insert('aiUsage', {
+        userId: bob,
+        day: '2026-09-02',
+        count: 2,
+      })
+    })
+
+    await deleteAccount(t, asAlice)
+
+    const left = await t.run(
+      async (ctx) => await ctx.db.query('aiUsage').collect(),
+    )
+    expect(left.map((row) => row.userId)).toEqual([bob])
+  })
+
   test('the user row goes last, and it does go', async () => {
     const t = testConvex()
     await signUp(t, asAlice)

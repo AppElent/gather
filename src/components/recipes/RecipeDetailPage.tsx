@@ -177,13 +177,17 @@ export function RecipeDetailPage({
                   setEstimating(true)
                   setError(null)
                   try {
-                    const nutrition = await estimateNutrition({
+                    const estimate = await estimateNutrition({
                       ingredients: recipe.ingredients,
                       servings: recipe.servings,
                     })
+                    if (!estimate.ok) {
+                      setError(form.aiLimitReached)
+                      return
+                    }
                     await setNutrition({
                       id: recipe._id,
-                      nutrition,
+                      nutrition: estimate.nutrition,
                       source: 'ai',
                     })
                   } catch (err) {

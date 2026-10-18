@@ -190,11 +190,16 @@ export function RecipeScreen({ base }: RecipeScreenProps) {
     setEstimating(true)
     setProblem(null)
     try {
-      const nutrition = await estimateNutrition({
+      const estimate = await estimateNutrition({
         ingredients: recipe.ingredients,
         servings: recipe.servings,
       })
-      await setNutrition({ id, nutrition, source: 'ai' })
+      if (!estimate.ok) {
+        haptics.actionFailed()
+        setProblem(text.form.aiLimitReached)
+        return
+      }
+      await setNutrition({ id, nutrition: estimate.nutrition, source: 'ai' })
     } catch {
       haptics.actionFailed()
       setProblem(text.form.estimateFailed)

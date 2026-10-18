@@ -1,5 +1,6 @@
 import { ConvexError } from 'convex/values'
 import { useState } from 'react'
+import type { AiLimitReached } from '../../../convex/lib/aiUsage'
 import type {
   NutritionFacts,
   NutritionSource,
@@ -40,7 +41,7 @@ interface Props {
   onEstimate?: (args: {
     ingredients: string[]
     servings?: number
-  }) => Promise<NutritionFacts>
+  }) => Promise<{ ok: true; nutrition: NutritionFacts } | AiLimitReached>
 }
 
 const lines = (s: string) =>
@@ -188,11 +189,15 @@ export function RecipeForm({
                 setEstimating(true)
                 setEstimateError(null)
                 try {
-                  const facts = await onEstimate({
+                  const result = await onEstimate({
                     ingredients: lines(ingredients),
                     servings: parsePositiveInt(servings),
                   })
-                  setNutritionInputs(toNutrientInputs(facts))
+                  if (!result.ok) {
+                    setEstimateError(form.aiLimitReached)
+                    return
+                  }
+                  setNutritionInputs(toNutrientInputs(result.nutrition))
                   setNutritionSource('ai')
                 } catch (err) {
                   setEstimateError(
