@@ -1,13 +1,13 @@
 ---
 type: runbook
 description: Read when adding a Module, a nested web route, a Convex table with a groupId, a _storage column, a photo preset, or a schema-keyed message.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Add a Module
 
 Gather's registries that every new Module, route or column has to reach.
-Six fail `pnpm typecheck` or `pnpm test` when forgotten; **four fail
+Seven fail `pnpm typecheck` or `pnpm test` when forgotten; **four fail
 silently**, and this page is the only thing that keeps them honest. Work
 through every row in the same change as the Module.
 
@@ -29,6 +29,7 @@ through every row in the same change as the Module.
 | `packages/core/src/messages/{en,nl}/modules.ts` | Every Module: label and description, English first | `pnpm typecheck` (`satisfies Record<ModuleId, …>`) | [Localization](../../CODING_STANDARDS.md#localization) |
 | `apps/mobile/src/drop/dropTargets.ts` `DROP_TARGETS` | Every Module; an empty list if it accepts no Drop | `pnpm typecheck` (`Record<ModuleId, …>`) | [Drop](../contracts/drop.md) |
 | `convex/lib/groupCascade.ts` `GROUP_CONTENT` | Every table with a `groupId` | `pnpm typecheck` (derived from the schema) | [Account deletion](../contracts/account-deletion.md) |
+| `convex/lib/dataExport.ts` `EXPORT_TABLES` | Every Convex table | `pnpm typecheck` (keyed by every schema table) | [Data export](../contracts/data-export.md) |
 | `convex/lib/storedFiles.ts` `FILE_HOLDERS` | Every `_storage` column | `pnpm typecheck` (typed off the schema) | [Stored files](../contracts/stored-files.md) |
 | Message tables keyed by `NutrientKey`, `MealName`, `BabyEventType` | A new nutrient, meal or baby event type | `pnpm typecheck` | [Localization](../../CODING_STANDARDS.md#localization) |
 | `src/lib/groupPaths.ts` (`GROUP_MODULE_INDEXES`, `MODULE_INDEX_SURFACES`) + a route file under `src/routes/_app/` | Every Module | `pnpm test` (`src/lib/modules.routes.test.ts`) | [Navigation](../contracts/navigation.md) |

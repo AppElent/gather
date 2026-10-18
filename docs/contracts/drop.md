@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the share sheet, a Drop, its destinations, host rules, or expo-share-intent.
-version: 1.0.0
+version: 1.1.0
 status: current
 ---
 
@@ -28,6 +28,10 @@ that already means making Group content visible to a second Group.
 - **A Drop is native surface.** `expo-share-intent` is a config plugin, so
   touching it moves the fingerprint and the change cannot ship over the air
   ([ADR-0029](../adr/0029-a-javascript-change-ships-over-the-air-and-a-native-one-does-not.md)).
+- **`expo-share-intent` is the only way in.** `expo-sharing` is installed to
+  share *out* ([data export](data-export.md)) and its config plugin is kept
+  out of `app.json`: its share-into half would register a second receiver for
+  the same intents and extension.
 
 ## Acceptance
 

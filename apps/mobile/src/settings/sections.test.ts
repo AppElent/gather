@@ -48,6 +48,7 @@ describe('the Settings list', () => {
       'account-password',
       'account-email',
       'account-devices',
+      'account-export',
       'account-delete',
     ])
   })
