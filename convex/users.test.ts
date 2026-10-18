@@ -80,7 +80,9 @@ describe('my Pins in one Group', () => {
     const t = testConvex()
     await signUp(t, asAlice)
 
-    expect(await pinsOf(t, asAlice, await initialGroupSlug(t, asAlice))).toBeNull()
+    expect(
+      await pinsOf(t, asAlice, await initialGroupSlug(t, asAlice)),
+    ).toBeNull()
   })
 
   test('read back in the order I set them', async () => {

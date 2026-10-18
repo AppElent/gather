@@ -14,7 +14,6 @@ Only unfinished work belongs in this index. A release owner records command outp
 | --- | --- | --- | --- |
 | `cleanUserDocuments` | active operational repair | release owner | retain while schema-rejected user rows can exist; archive its run result before retirement |
 | `mergeDuplicateUsers` | active operational repair | account-data owner | retain while duplicate Clerk subjects require owner-directed repair; retire after an invariant check replaces it |
-| `backfillGroupSlugsAndPersonalGroups` | retired migration | release owner | remove only after its completed deployment record is archived |
 | `backfillFoodSearchText` | active migration 0005 | release owner | 0005 retirement condition |
 | `backfillFoodServings` | active migration 0006 | release owner | 0006 retirement condition |
 | `wipeRecipes` | retired migration | release owner | remove only after its completed deployment record is archived |

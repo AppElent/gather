@@ -6,19 +6,12 @@ import { ShellGroupProvider } from './ShellGroup'
 import { Sidebar } from './Sidebar'
 
 /**
- * What the shell shows when the address bar names no Group.
+ * What the shell shows for the Current Group.
  *
- * Settings, Account and the Groups list are deliberately unscoped — Settings
- * and Account are Personal (ADR-0003), and Groups is where you pick a Group, so
- * it cannot require one. Standing on any of them, the URL names no Group.
- *
- * Two different situations hide behind that, and the shell now tells them
- * apart. Someone who has never been in a Group this session has nothing to
- * draw, and gets a sentence saying so — that is what the first block below
- * covers, rendering these surfaces bare, with no shell memory around them.
- * Someone who walked out of a Group to reach `/groups` has one, and the last
- * block covers that: the modules and the dock stay, so stepping out to pick a
- * Group does not blank the shell on the way.
+ * The Group is ambient (ADR-0031): no address names it, and the shell draws the
+ * Current Group's navigation on every page — Settings, Account and the Groups
+ * list included. Only somebody with no Current Group at all has nothing to
+ * draw, and gets a sentence saying so instead.
  */
 
 const location = vi.hoisted(() => ({ pathname: '/settings' }))
@@ -32,11 +25,14 @@ const groups = vi.hoisted(() => ({ value: [] as unknown }))
  * decides for itself whether it points at the current page — by *prefix* unless
  * `activeOptions.exact` says otherwise — and when it decides yes it spreads
  * `{ 'data-status': 'active', 'aria-current': 'page' }` *after* the caller's own
- * props, so it wins. Home points at `/g/<slug>`, a prefix of every page in the
- * Group, so the dock lit Home under every Module a phone opened.
+ * props, so it wins. Home used to point at `/g/<slug>`, a prefix of every page
+ * in the Group, so the dock lit Home under every Module a phone opened.
  *
  * This reproduces exactly that: the prefix rule, and the router's props landing
- * last. Remove `activeOptions` from either surface and these tests fail.
+ * last. Since the Group left the URL (ADR-0031) Home is `/home` and no nav item
+ * is a prefix of another Module's page, so removing `activeOptions` no longer
+ * fails these tests on its own — they pin down that exactly one item is lit,
+ * whichever of the two mechanisms would light a second.
  */
 vi.mock('@tanstack/react-router', () => ({
   useLocation: () => location,
@@ -92,12 +88,15 @@ vi.mock('../../../convex/_generated/api', () => ({
 
 vi.mock('./useCurrentGroup', () => ({
   useCurrentGroup: () => ({
-    current: (groups.value as Array<{
-      _id: string
-      name: string
-      slug: string
-      role?: 'admin' | 'member'
-    }>)[0] ?? null,
+    current:
+      (
+        groups.value as Array<{
+          _id: string
+          name: string
+          slug: string
+          role?: 'admin' | 'member'
+        }>
+      )[0] ?? null,
     groups: groups.value,
     setCurrentGroup: vi.fn(),
   }),
@@ -106,13 +105,12 @@ vi.mock('./useCurrentGroup', () => ({
 beforeEach(() => {
   location.pathname = '/settings'
   pins.value = ['recipes', 'tasks']
-  groups.value = [
-    { _id: 'g1', name: 'Alice', slug: 'me-alice', isPersonal: true },
-  ]
+  groups.value = [{ _id: 'g1', name: 'Alice', slug: 'alice' }]
 })
 
-describe('the sidebar off any Group route', () => {
+describe('the sidebar', () => {
   test('says why the modules are missing instead of listing none', () => {
+    groups.value = []
     renderWithI18n(<Sidebar />)
 
     expect(screen.getByText(/pick a group to see its modules/i)).toBeDefined()
@@ -140,13 +138,12 @@ describe('the sidebar off any Group route', () => {
     renderWithI18n(<Sidebar />)
     expect(screen.queryByRole('link', { name: 'Group settings' })).toBeNull()
 
-    location.pathname = '/g/me-alice/recipes'
+    groups.value = []
     renderWithI18n(<Sidebar />)
     expect(screen.queryByRole('link', { name: 'Group settings' })).toBeNull()
   })
 
-  test('lists the modules again as soon as the address names a Group', () => {
-    location.pathname = '/g/me-alice/recipes'
+  test('lists the modules on a page that is not a Module', () => {
     renderWithI18n(<Sidebar />)
 
     const nav = screen.getByRole('navigation', { name: 'Primary' })
@@ -160,7 +157,7 @@ describe('the sidebar off any Group route', () => {
    * registry started handing back English again.
    */
   test('names the modules in the reader’s language', () => {
-    location.pathname = '/g/me-alice/recipes'
+    location.pathname = '/recipes'
     renderWithI18n(<Sidebar />, { locale: 'nl' })
 
     const nav = screen.getByRole('navigation', { name: 'Hoofdnavigatie' })
@@ -170,7 +167,7 @@ describe('the sidebar off any Group route', () => {
   })
 
   test('and Settings still means yours, wherever you are standing', () => {
-    location.pathname = '/g/me-alice/recipes'
+    location.pathname = '/recipes'
     renderWithI18n(<Sidebar />)
 
     expect(
@@ -179,7 +176,7 @@ describe('the sidebar off any Group route', () => {
   })
 
   test('says nothing about preview data any more', () => {
-    location.pathname = '/g/me-alice/recipes'
+    location.pathname = '/recipes'
     const { container } = renderWithI18n(<Sidebar />)
 
     // The footer used to be a card headed "Preview group" promising that group
@@ -201,7 +198,7 @@ describe('the sidebar off any Group route', () => {
  */
 describe('which item claims to be the page you are on', () => {
   test('the dock lights the Module, not Home above it', () => {
-    location.pathname = '/g/me-alice/tasks'
+    location.pathname = '/tasks'
     renderWithI18n(<MobileDock />)
 
     const current = screen.getAllByRole('link', { current: 'page' })
@@ -209,7 +206,7 @@ describe('which item claims to be the page you are on', () => {
   })
 
   test('the sidebar agrees, attribute and all', () => {
-    location.pathname = '/g/me-alice/tasks'
+    location.pathname = '/tasks'
     renderWithI18n(<Sidebar />)
 
     const current = screen.getAllByRole('link', { current: 'page' })
@@ -219,7 +216,7 @@ describe('which item claims to be the page you are on', () => {
   test('a Module page below its index still belongs to that Module', () => {
     // `/recipes/<id>` is Recipes, which only `activeNavItemId` knows — the
     // router sees a link to `/recipes` that is not this page.
-    location.pathname = '/g/me-alice/recipes/rec_1'
+    location.pathname = '/recipes/rec_1'
     renderWithI18n(<MobileDock />)
 
     const current = screen.getAllByRole('link', { current: 'page' })
@@ -227,7 +224,7 @@ describe('which item claims to be the page you are on', () => {
   })
 
   test('Home is lit on Home, and only there', () => {
-    location.pathname = '/g/me-alice'
+    location.pathname = '/home'
     renderWithI18n(<MobileDock />)
 
     const current = screen.getAllByRole('link', { current: 'page' })
@@ -235,15 +232,16 @@ describe('which item claims to be the page you are on', () => {
   })
 })
 
-describe('the mobile dock with no Group ever visited', () => {
+describe('the mobile dock with no Current Group', () => {
   test('is not there at all, rather than an empty bar', () => {
+    groups.value = []
     const { container } = renderWithI18n(<MobileDock />)
 
     expect(container.firstChild).toBeNull()
   })
 
-  test('comes back inside a Group', () => {
-    location.pathname = '/g/me-alice/recipes'
+  test('comes back with one', () => {
+    location.pathname = '/recipes'
     renderWithI18n(<MobileDock />)
 
     expect(
@@ -253,39 +251,38 @@ describe('the mobile dock with no Group ever visited', () => {
 })
 
 /**
- * Leaving *to* the list of Groups is not leaving your Group.
+ * Going to the list of Groups is not leaving your Group.
  *
- * `/groups` sits outside `/g/<slug>`, so the URL genuinely names no Group there
- * — and it must keep doing so, because ADR-0002 gives it the only say in what
- * the app reads and writes. What changes is only what the shell draws: it holds
- * on to the last Group the address named so the way back does not vanish while
- * you are looking for it.
+ * `/groups` belongs to no Group, but the Current Group is still the Current
+ * Group there (ADR-0031), so the way back stays drawn. Which item is *active*
+ * is still decided against the real pathname: standing on `/groups`
+ * highlights no Module.
  */
-describe('stepping out of a Group and back', () => {
-  // A fresh element each time, or React reuses the identical one and never
-  // re-reads the pathname the rerender is there to change.
-  function renderShell(ui: () => React.ReactNode) {
-    // Standing in a Group first is what gives the shell something to remember;
-    // the rerender is the navigation to a slugless route.
-    location.pathname = '/g/me-alice/recipes'
-    const view = renderWithI18n(<ShellGroupProvider>{ui()}</ShellGroupProvider>)
+describe('on the list of Groups', () => {
+  beforeEach(() => {
     location.pathname = '/groups'
-    view.rerender(<ShellGroupProvider>{ui()}</ShellGroupProvider>)
-    return view
-  }
+  })
 
-  test('the modules stay listed on the way to Groups', () => {
-    renderShell(() => <Sidebar />)
+  test('the modules stay listed', () => {
+    renderWithI18n(
+      <ShellGroupProvider>
+        <Sidebar />
+      </ShellGroupProvider>,
+    )
 
     expect(screen.getByRole('navigation', { name: 'Primary' })).toBeDefined()
     expect(screen.queryByText(/pick a group to see its modules/i)).toBeNull()
     expect(
       screen.getByRole('link', { name: /home/i }).getAttribute('href'),
-    ).toBe('/g/me-alice')
+    ).toBe('/home')
   })
 
   test('and the dock stays with them', () => {
-    renderShell(() => <MobileDock />)
+    renderWithI18n(
+      <ShellGroupProvider>
+        <MobileDock />
+      </ShellGroupProvider>,
+    )
 
     expect(
       screen.getByRole('navigation', { name: 'Mobile navigation' }),
@@ -293,10 +290,14 @@ describe('stepping out of a Group and back', () => {
   })
 
   test('but no Module claims to be the page you are on', () => {
-    renderShell(() => <Sidebar />)
+    renderWithI18n(
+      <ShellGroupProvider>
+        <Sidebar />
+      </ShellGroupProvider>,
+    )
 
     // The footer's own "Groups" link is a different matter — that one really is
-    // the page. It is the Module list that must not pretend you never left.
+    // the page. It is the Module list that must not pretend you are elsewhere.
     const modules = screen.getByRole('navigation', { name: 'Primary' })
     expect(modules.querySelector('[aria-current="page"]')).toBeNull()
   })

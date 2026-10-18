@@ -52,7 +52,9 @@ export default function Groups() {
                   {group.name}
                 </Text>
                 <Text style={[styles.meta, { color: tokens.muted }]}>
-                  {isCurrent ? t.shell.switcher.current : t.shell.switcher.shared}
+                  {isCurrent
+                    ? t.shell.switcher.current
+                    : t.shell.switcher.shared}
                 </Text>
               </View>
               {isCurrent ? <Check size={20} color={tokens.fg} /> : null}

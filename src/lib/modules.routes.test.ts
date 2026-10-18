@@ -5,7 +5,7 @@ import { describe, expect, test } from 'vitest'
 import { groupSurfaceForModule, moduleSegment } from './groupPaths'
 
 /**
- * Every Module is reachable inside a Group, and nowhere else.
+ * Every Module is reachable at its one top-level address (ADR-0031).
  *
  * `moduleLink` builds a Module's destination from `groupSurfaceForModule`, and
  * that surface is checked against the generated route tree by TypeScript. What
@@ -13,7 +13,7 @@ import { groupSurfaceForModule, moduleSegment } from './groupPaths'
  * a surface would quietly point at All instead of at itself — so that is
  * asserted here, along with the route file being on disk at all.
  */
-describe('every Module inside a Group', () => {
+describe('every Module at its ambient address', () => {
   const base = join(process.cwd(), 'src/routes/_app')
 
   for (const module of MODULES) {
@@ -21,7 +21,7 @@ describe('every Module inside a Group', () => {
       expect(groupSurfaceForModule(module.id)).not.toBeNull()
     })
 
-    test(`${module.id} has a route file under `, () => {
+    test(`${module.id} has a route file under _app`, () => {
       const segment = moduleSegment(module.id)
       expect(segment).not.toBe('')
       const candidates = [
@@ -32,17 +32,10 @@ describe('every Module inside a Group', () => {
     })
   }
 
-  // The flat routes are gone, so there is no second place a Module could live
-  // and no way for the two to disagree about which one is current.
-  test('no Module has a route outside a Group', () => {
-    const flatRoot = join(process.cwd(), 'src/routes/_app')
-    const flat = MODULES.filter((module) => {
-      const segment = moduleSegment(module.id)
-      return [
-        join(flatRoot, `${segment}.tsx`),
-        join(flatRoot, segment, 'index.tsx'),
-      ].some((path) => existsSync(path))
-    })
-    expect(flat.map((module) => module.id)).toEqual([])
+  // The `/g/<slug>/…` routes are gone and old URLs 404 rather than redirect,
+  // so there is no second place a Module could live and no way for the two to
+  // disagree about which one is current.
+  test('no Module has a route under a Group slug', () => {
+    expect(existsSync(join(base, 'g'))).toBe(false)
   })
 })

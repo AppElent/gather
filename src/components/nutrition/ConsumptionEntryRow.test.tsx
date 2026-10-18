@@ -173,10 +173,7 @@ test('shows a View recipe link when recipeId is set', () => {
     />,
   )
   const link = screen.getByText('View recipe')
-  expect(link.closest('a')).toHaveAttribute(
-    'href',
-    '/recipes/recipe1',
-  )
+  expect(link.closest('a')).toHaveAttribute('href', '/recipes/recipe1')
 })
 
 test('shows a View food link when foodId is set', () => {
@@ -189,10 +186,7 @@ test('shows a View food link when foodId is set', () => {
     />,
   )
   const link = screen.getByText('View food')
-  expect(link.closest('a')).toHaveAttribute(
-    'href',
-    '/foods/food1',
-  )
+  expect(link.closest('a')).toHaveAttribute('href', '/foods/food1')
 })
 
 test('editing quantity and saving calls onUpdate with the new quantity, current meal and date', async () => {

@@ -9,6 +9,7 @@ import {
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { ArrowDown, ArrowUp } from 'lucide-react'
+import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
 import { api } from '../../../convex/_generated/api'
 import { Icon } from '../../components/app/Icon'
 import { Pill, SurfaceCard } from '../../components/app/ShellPrimitives'
@@ -201,4 +202,3 @@ function AllModulesPage() {
     </div>
   )
 }
-import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
