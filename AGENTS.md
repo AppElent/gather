@@ -19,7 +19,7 @@ Before the task, read the matching project doc:
 | Touching the share sheet, a Drop, or `expo-share-intent` | [Drop](docs/contracts/drop.md) |
 | Writing user-visible text, in either app | [Localization binding](CODING_STANDARDS.md#localization) |
 | Adding web navigation, breadcrumbs, or back links | [Navigation](docs/contracts/navigation.md) |
-| Writing a migration, backfill, or compatibility shim | [One-shot code](CODING_STANDARDS.md#one-shot-code) |
+| Writing, running, or retiring a migration, backfill, or compatibility shim | [Active migrations and their commands](docs/migrations/README.md), [one-shot code rule](CODING_STANDARDS.md#one-shot-code) |
 | Running checks or verifying a web change | [Verification](docs/runbooks/verification.md) |
 | Building, running, or verifying the phone app | [Mobile verification](docs/runbooks/mobile-verification.md) |
 | Publishing an over-the-air update or a store build | [Mobile releases](docs/runbooks/mobile-releases.md) |

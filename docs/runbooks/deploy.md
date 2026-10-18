@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when deploying gather, changing deploy.yml or the deploy scripts, or adding reference data a deploy must seed.
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Deploy
@@ -29,6 +29,20 @@ run `seed:seedCatalog` **and** `seed:seedTastingCatalog`. `deploy.yml` runs only
 `seed:seedCatalog`: CI deploys do not reconcile the tasting Catalog (open
 follow-up). Reference data a new Module needs gets its own seed step here and
 in the scripts ([seed data](../contracts/seed-data.md)).
+
+## Known gaps
+
+Recorded as found on 2026-10-18; none is fixed yet.
+
+- **CI deploys skip the tasting Catalog.** `deploy.yml` runs `seed:seedCatalog`
+  but not `seed:seedTastingCatalog`, so staging and production reconcile the
+  tasting Catalog only when someone runs `pnpm deploy:*` or `pnpm seed` by hand.
+- **Sentry is not initialised.** The package is installed and its variables are
+  routed, but no code calls Sentry, and the `start` script imports
+  `dist/server/instrument.server.mjs`, which nothing builds
+  ([Observability binding](../../CODING_STANDARDS.md#local-bindings-and-exceptions)).
+- **`ci.yml` runs on pull requests only.** A push to `main` is checked only by
+  `deploy.yml`'s `checks` job, which also gates the staging deploy.
 
 ## Verify
 
