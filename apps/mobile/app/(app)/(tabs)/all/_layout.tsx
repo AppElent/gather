@@ -1,19 +1,20 @@
 /**
- * All's Group-keyed stack. Keying the stack resets pushed module screens when
- * the Group changes while leaving the native tab navigator mounted.
+ * All's stack. A Group switch resets it to a fresh root through navigation
+ * state (`src/group/groupUnwind.ts`), never by remounting it: re-keying a
+ * native stack inside a tab crashes Android (#235). Its screens draw through
+ * `GroupScoped`, so none of them renders in the new Group before that reset
+ * has landed.
  */
 import { Stack } from 'expo-router'
 
-import { useGroup } from '../../../../src/group/GroupProvider'
+import { GroupScoped } from '../../../../src/group/GroupProvider'
 import { TabSafeArea } from '../../../../src/shell/TabSafeArea'
 
 export default function AllStackLayout() {
-  const { group } = useGroup()
-
   return (
     <TabSafeArea>
       <Stack
-        key={group.slug}
+        screenLayout={({ children }) => <GroupScoped>{children}</GroupScoped>}
         screenOptions={{
           headerShown: false,
           headerBackButtonDisplayMode: 'minimal',

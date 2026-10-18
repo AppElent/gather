@@ -35,6 +35,7 @@ import {
   use,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
 } from 'react'
@@ -75,9 +76,10 @@ export interface GroupContextValue {
    * only way to obtain one is a stale list, and honouring it would put the app
    * in a Group the backend then refuses every query for.
    *
-   * ADR-0015 also requires a switch to unwind every tab stack. That is not done
-   * here: each nested tab stack is keyed by the slug, so changing it remounts
-   * every visited stack at its root while the fixed tab navigator stays put.
+   * ADR-0015 also requires a switch to unwind every tab stack. That is not
+   * done here, because this provider sits above the navigator: any change of
+   * the Group on screen calls `onSwitch`, and the shell resets the stacks
+   * (`groupUnwind.ts`).
    */
   setGroup: (groupId: string) => void
 }
@@ -104,9 +106,22 @@ export interface GroupProviderProps {
   pending: ReactNode
   /** Drawn when the Member is in no Group at all. */
   none: ReactNode
+  /**
+   * Called whenever the Group on screen changes to another one — a switch, or
+   * the fallback when a membership ends under the app — and never for the
+   * first Group after sign-in. It runs before paint, while every `GroupScoped`
+   * screen is drawing nothing, so a screen left over from the old Group never
+   * renders inside the new one.
+   */
+  onSwitch?: () => void
 }
 
-export function GroupProvider({ children, pending, none }: GroupProviderProps) {
+export function GroupProvider({
+  children,
+  pending,
+  none,
+  onSwitch,
+}: GroupProviderProps) {
   // Read once, synchronously, before the first paint. An awaited read would
   // mean a frame in the wrong Group on every cold start.
   const [retained, setRetained] = useState(readRetainedGroup)
@@ -180,15 +195,62 @@ export function GroupProvider({ children, pending, none }: GroupProviderProps) {
     [visibleGroups],
   )
 
+  const resolved =
+    visibleGroups?.find((candidate) => candidate._id === groupId) ?? null
+
+  // The Group the tab stacks were last unwound for. Both ways the Group
+  // changes — `setGroup`, and the fallback above when `groups.myGroups` drops
+  // the one on screen — leave it behind `resolved` for exactly one render,
+  // and that render is the dangerous one: whatever is pushed in a stack still
+  // belongs to the old Group, and when a membership ended its queries are
+  // already failing in the same update that dropped the Group. So for that
+  // render every Group-scoped screen draws nothing (`GroupScoped`), and the
+  // layout effect below unwinds the stacks and catches up before anything is
+  // painted. The native stacks stay mounted throughout (#235); only the
+  // screens' contents are let go, which is what the old Group `key` did.
+  //
+  // The first Group after sign-in is taken during render: there are no stacks
+  // to unwind. Losing the answer (sign-out, leaving the last Group) unmounts
+  // the tree, so the next one is a first Group again.
+  const [unwoundFor, setUnwoundFor] = useState<string | null>(null)
+  if (unwoundFor === null && resolved !== null) setUnwoundFor(resolved._id)
+  if (unwoundFor !== null && resolved === null) setUnwoundFor(null)
+  const unwinding =
+    resolved !== null && unwoundFor !== null && unwoundFor !== resolved._id
+
+  useLayoutEffect(() => {
+    if (!unwinding || !resolved) return
+    onSwitch?.()
+    // A layout effect's update is flushed before paint, which is the point:
+    // the navigator cannot be dispatched to during this component's render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUnwoundFor(resolved._id)
+  }, [unwinding, resolved, onSwitch])
+
   const value = useMemo<GroupContextValue | null>(() => {
-    if (!visibleGroups || !groupId) return null
-    const group = visibleGroups.find((candidate) => candidate._id === groupId)
-    return group ? { group, groups: visibleGroups, setGroup } : null
-  }, [visibleGroups, groupId, setGroup])
+    if (!visibleGroups || !resolved) return null
+    return { group: resolved, groups: visibleGroups, setGroup }
+  }, [visibleGroups, resolved, setGroup])
 
   if (!value) {
     return selection.status === 'none' ? none : pending
   }
 
-  return <GroupContext value={value}>{children}</GroupContext>
+  return (
+    <GroupContext value={value}>
+      <UnwindingContext value={unwinding}>{children}</UnwindingContext>
+    </GroupContext>
+  )
+}
+
+const UnwindingContext = createContext(false)
+
+/**
+ * Draws a Group-scoped screen, except during the one render in which the
+ * Group has changed and its stack has not yet been unwound (see
+ * `unwoundFor`). Wraps every screen of the Home, All and Search stacks
+ * through their `screenLayout`.
+ */
+export function GroupScoped({ children }: { children: ReactNode }) {
+  return use(UnwindingContext) ? null : children
 }

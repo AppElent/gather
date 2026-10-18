@@ -11,8 +11,8 @@
  *
  * The list is a constant and does not read the Group, the Pins, or anything
  * else that can change (ADR-0015, #142): five slots, same five in every Group.
- * That is what lets a switch preserve the navigator: only its Group-keyed
- * stacks remount at their roots.
+ * That is what lets a switch preserve the navigator: only its Group-scoped
+ * stacks go back to their roots (`src/group/groupUnwind.ts`).
  */
 import { usePathname } from 'expo-router'
 import { NativeTabs } from 'expo-router/unstable-native-tabs'
