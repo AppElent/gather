@@ -11,7 +11,7 @@ import { en as coreEn } from '@gather/core/messages'
  *
  * - **The phone's own words** — everything under `signIn`, `signUp`, `verify`,
  *   `reset`, `fields`, `actions`, `errors`, `gate`. The web has no counterpart:
- *   its forms come from `@appelent/auth`, which is React-DOM only and never
+ *   its forms live in `src/lib/auth`, which is React-DOM only and never
  *   crosses. These are written here and belong here.
  * - **Shared words** — `brand`, `welcome.tagline/title/subtitle`, and the whole
  *   of `modules`. These are transcribed from the web's `src/lib/i18n/messages/`
@@ -277,9 +277,9 @@ export const en = {
    * chrome is translated and your content is not is the same promise on both
    * clients, and ADR-0017 says a second vocabulary for it would be the failure.
    *
-   * Appearance is not, and cannot be. The web's control comes from
-   * `@appelent/auth`, which is React-DOM only, hardcodes its copy in English,
-   * and calls the third option "Auto"; none of that crosses. The phone writes
+   * Appearance is not, and cannot be. The web's control is
+   * `src/lib/auth`'s `AppearanceSettings`, which is React-DOM only and calls
+   * the third option "Auto"; none of that crosses. The phone writes
    * its own three words and uses the platform's — see
    * `@gather/core/appearance` for why the stored token is `system`.
    */

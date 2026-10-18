@@ -1,6 +1,6 @@
-import { HeaderUser } from '@appelent/auth'
 import { Bug, Menu, MessageSquare, Search } from 'lucide-react'
 import type { RouteContext } from '../../lib/appNavigation'
+import { HeaderUser } from '../../lib/auth'
 import { useMessages } from '../../lib/i18n'
 import { LanguageToggle } from './LanguageToggle'
 import { IconButton } from './ShellPrimitives'

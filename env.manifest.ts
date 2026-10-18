@@ -11,7 +11,7 @@
  */
 
 /**
- * Source configuration for the shared `appelent env` CLI (`@appelent/dev`).
+ * Source configuration for the env CLI (`scripts/env.mjs`).
  * Mirrors `INFISICAL_ENVIRONMENTS` in `scripts/env-source.mjs`; `/gather`
  * overrides a same-named root value.
  */
@@ -356,7 +356,7 @@ export const ENTRIES = [
     key: 'testUserEmail',
     infisicalKey: 'test-user-email',
     description:
-      "Shared Clerk test-instance user for @appelent/auth's one-click login. Published, not secret: the build inlines it into a bundle served at a public URL.",
+      "Shared Clerk test-instance user for the sign-in page's one-click test login. Published, not secret: the build inlines it into a bundle served at a public URL.",
     optional: true,
     secret: false,
     lands: {
@@ -586,24 +586,6 @@ export const ENTRIES = [
       workflow: {
         name: 'CLOUDFLARE_ACCOUNT_ID',
         environments: ['preview', 'stg', 'production'],
-      },
-    },
-  },
-  {
-    key: 'nodeAuthToken',
-    infisicalKey: 'node-auth-token',
-    description:
-      'read:packages token for the private @appelent/* GitHub Packages scope. Optional: the workflows fall back to GITHUB_TOKEN.',
-    optional: true,
-    secret: true,
-    lands: {
-      workflow: {
-        name: 'NODE_AUTH_TOKEN',
-        environments: ['preview', 'stg', 'production'],
-      },
-      'eas-tooling': {
-        name: 'NODE_AUTH_TOKEN',
-        environments: ['local', 'preview', 'stg', 'production'],
       },
     },
   },

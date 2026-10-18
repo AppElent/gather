@@ -11,12 +11,8 @@ are in [CODING_STANDARDS.md](./CODING_STANDARDS.md) and the [docs map](./docs/RE
 ## Getting Started
 
 This project uses **pnpm** — install it via Corepack if you don't have it
-(`corepack enable`). `@appelent/*` packages are published to a private GitHub
-Packages registry; add a `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}`
-line to your **user-level** `~/.npmrc` (never the committed one) with a
-`read:packages` token before installing.
-
-Then:
+(`corepack enable`). Every dependency comes from the public npm registry, so
+no token is needed. Then:
 
 ```bash
 pnpm install
@@ -84,12 +80,12 @@ Don't set Worker secrets or Convex env vars by hand — `pnpm run env:apply <env
 
 KV, D1, R2, and Durable Object bindings are configured in `wrangler.jsonc` — see https://developers.cloudflare.com/workers/wrangler/configuration/.
 
-## Auth (Clerk + @appelent/auth)
+## Auth (Clerk)
 
 Sign-in/sign-up/forgot-password forms, the account profile panel, appearance
-settings, and the header user menu all come from the shared `@appelent/auth`
-package (`src/routes/sign-in.tsx`, `sign-up.tsx`, `forgot-password.tsx`,
-`_app/account.tsx`, `components/app/Topbar.tsx`). `src/integrations/clerk/provider.tsx`
+settings, and the header user menu are app-owned in `src/lib/auth/`, used by
+`src/routes/sign-in.tsx`, `sign-up.tsx`, `forgot-password.tsx`,
+`_app/account.tsx` and `components/app/Topbar.tsx`. `src/integrations/clerk/provider.tsx`
 wraps the app in a plain `<ClerkProvider>`.
 
 1. Sign up at [clerk.com](https://clerk.com) and create an application

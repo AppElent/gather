@@ -51,7 +51,7 @@ describe('cascade layers', () => {
 
   test('only layers, at-rules and :root live at the top level', () => {
     // `:root` custom properties stay unlayered on purpose — they override
-    // `@appelent/auth/tokens.css`, which is imported unlayered itself.
+    // `lib/auth/tokens.css`, which is imported unlayered itself.
     const unexpected = topLevelHeads().filter(
       (head) =>
         !/^(@layer|@media|@supports|@keyframes|@theme|:root)/.test(head),

@@ -16,16 +16,12 @@ concurrency:
 jobs:
   checks:
     runs-on: ubuntu-latest
-    permissions: { contents: read, packages: read }
+    permissions: { contents: read }
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
-      - name: Configure GitHub Packages auth
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
-        run: echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
       - run: pnpm run env:check
@@ -43,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     # push to main -> stg; manual Run workflow -> production.
     environment: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'stg' }}
-    permissions: { contents: read, packages: read }
+    permissions: { contents: read }
     env:
       # Every value below is environment-scoped: the `stg` and `production`
       # GitHub Environments hold their own copies, so this file names each once
@@ -92,13 +88,6 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
 
-      # @appelent/* is a private GitHub Packages scope. pnpm won't expand env vars
-      # from the committed .npmrc, so write the token to the runner's ~/.npmrc.
-      - name: Configure GitHub Packages auth
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN || secrets.GITHUB_TOKEN }}
-        run: echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
-
       - run: pnpm install --frozen-lockfile
 
       # Fails the deploy rather than shipping a half-configured environment.
@@ -125,11 +114,14 @@ jobs:
             --cmd-url-env-var-name CONVEX_URL \
             --cmd "VITE_CONVEX_URL=\$CONVEX_URL pnpm build"
 
-      # Convex has no post-deploy hook outside previews, so the Catalog seed is a
-      # separate step. Runs before the Worker flips, so the backend is complete by
+      # Convex has no post-deploy hook outside previews, so the Catalog seeds are
+      # separate steps. Runs before the Worker flips, so the backend is complete by
       # the time anyone can reach the new frontend.
       - name: Seed Catalog
         run: pnpm exec convex run seed:seedCatalog
+
+      - name: Seed tasting Catalog
+        run: pnpm exec convex run seed:seedTastingCatalog
 
       - name: Deploy Worker
         run: pnpm exec wrangler deploy $WRANGLER_ARGS

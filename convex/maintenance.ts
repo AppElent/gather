@@ -211,52 +211,6 @@ export const backfillFoodServings = internalMutation({
 })
 
 /**
- * Delete every recipe, and clear the references that leaves dangling.
- *
- * #19 gives a recipe to a Group rather than to a person, and says so in fields
- * that are required from the first commit — so there is no shape a pre-#19 row
- * can be migrated into. Recipe data is disposable, so it is destroyed rather
- * than migrated; see docs/records/2026-07-30-migration-0002-recipes-become-group-owned.md, which
- * says that plainly and is the reason this is acceptable.
- *
- * A diary entry is *not* disposable and nothing about it is touched beyond its
- * `recipeId`. What it recorded — the label, the quantity, the nutrition — is a
- * snapshot, and a snapshot does not change because the thing it was taken from
- * is gone (ADR-0003). Only the provenance reference is cleared, and provenance
- * was already allowed to dangle.
- *
- * Dry run by default — pass `{ apply: true }` to write. Idempotent: a second
- * run finds no recipes and no references left to clear, and reports zeroes.
- */
-export const wipeRecipes = internalMutation({
-  args: { apply: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
-    const apply = args.apply ?? false
-
-    const recipes = await ctx.db.query('recipes').collect()
-    if (apply) {
-      for (const recipe of recipes) await ctx.db.delete(recipe._id)
-    }
-
-    const entries = await ctx.db.query('consumptionEntries').collect()
-    const linked = entries.filter((e) => e.recipeId !== undefined)
-    if (apply) {
-      // The reference and only the reference — `patch` rather than `replace`,
-      // so there is no way for this to reach the snapshot by accident.
-      for (const entry of linked) {
-        await ctx.db.patch(entry._id, { recipeId: undefined })
-      }
-    }
-
-    return {
-      apply,
-      recipesDeleted: recipes.length,
-      entriesUnlinked: linked.length,
-    }
-  },
-})
-
-/**
  * How many events a bounded sample takes, unless the caller says otherwise.
  * Small enough to read side by side in a terminal.
  */

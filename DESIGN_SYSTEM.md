@@ -25,9 +25,9 @@ Conform, improve, or differ as described in [working with standards](CODING_STAN
 
 A sea/lagoon palette (`--sea-ink`, `--lagoon`, light and dark) defined in
 `src/styles.css`, with `.demo-panel`/`.demo-card` as the card surface. The same
-file overrides `@appelent/auth`'s `--auth-*` tokens to that palette and supplies
-`.rm-panel`/`.rm-label`, which the package's `ProfilePanel` and
-`AppearanceSettings` use but do not ship, styled to match `.demo-panel` and
+file overrides the `--auth-*` tokens from `src/lib/auth/tokens.css` to that
+palette and supplies `.rm-panel`/`.rm-label`, which `src/lib/auth/`'s
+`ProfilePanel` and `AppearanceSettings` use, styled to match `.demo-panel` and
 `.demo-section-title`. Shell components live in
 `src/components/app/`; destructive actions confirm through `ConfirmAction`.
 

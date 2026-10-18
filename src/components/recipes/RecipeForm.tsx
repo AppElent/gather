@@ -1,3 +1,4 @@
+import { isAiLimitReached } from '@gather/core/ai-limit'
 import { ConvexError } from 'convex/values'
 import { useState } from 'react'
 import type {
@@ -196,13 +197,15 @@ export function RecipeForm({
                   setNutritionSource('ai')
                 } catch (err) {
                   setEstimateError(
-                    err instanceof ConvexError
-                      ? typeof err.data === 'string'
-                        ? err.data
-                        : form.estimateFailed
-                      : err instanceof Error
-                        ? err.message
-                        : form.estimateFailed,
+                    isAiLimitReached(err)
+                      ? form.aiLimitReached
+                      : err instanceof ConvexError
+                        ? typeof err.data === 'string'
+                          ? err.data
+                          : form.estimateFailed
+                        : err instanceof Error
+                          ? err.message
+                          : form.estimateFailed,
                   )
                 } finally {
                   setEstimating(false)

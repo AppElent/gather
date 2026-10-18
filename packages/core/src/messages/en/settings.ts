@@ -12,6 +12,17 @@ export const settings = {
     },
   },
 
+  appearance: {
+    title: 'Appearance',
+    description: 'Choose how Gather looks. Auto follows your system setting.',
+    /** Keyed by the web's stored theme mode (`src/lib/auth/theme.ts`). */
+    modes: {
+      light: 'Light',
+      auto: 'Auto',
+      dark: 'Dark',
+    },
+  },
+
   nutritionTargets: {
     title: 'Daily targets',
     description:

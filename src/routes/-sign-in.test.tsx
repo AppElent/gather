@@ -14,7 +14,7 @@ vi.mock('@clerk/clerk-react', () => ({
   useAuth: () => authState,
 }))
 
-vi.mock('@appelent/auth', () => ({
+vi.mock('../lib/auth', () => ({
   SignInForm: ({ onSuccess }: { onSuccess: () => void }) => (
     <section aria-label="Sign in form">
       <button type="button" onClick={onSuccess}>

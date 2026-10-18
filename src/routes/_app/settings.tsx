@@ -1,9 +1,9 @@
-import { AppearanceSettings } from '@appelent/auth'
 import { createFileRoute } from '@tanstack/react-router'
 import { GroupSettingsLinks } from '../../components/settings/GroupSettingsLinks'
 import { LanguageSettings } from '../../components/settings/LanguageSettings'
 import { NutritionTargetsSettings } from '../../components/settings/NutritionTargetsSettings'
 import { SampleDataSettings } from '../../components/settings/SampleDataSettings'
+import { AppearanceSettings } from '../../lib/auth'
 import { useMessages } from '../../lib/i18n'
 
 /**

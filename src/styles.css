@@ -1,7 +1,7 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
-@import "@appelent/auth/tokens.css";
+@import "./lib/auth/tokens.css";
 @plugin "@tailwindcss/typography";
 
 @theme {
@@ -9,9 +9,9 @@
 }
 
 /* Custom properties stay unlayered on purpose.
-   `@appelent/auth/tokens.css` is imported unlayered too, and the `--auth-*`
+   `lib/auth/tokens.css` is imported unlayered too, and the `--auth-*`
    block further down overrides its values; putting ours in a layer would hand
-   the package's defaults the win and undo gather's palette. Custom properties
+   the auth defaults the win and undo gather's palette. Custom properties
    never compete with a utility class, so there is nothing to gain by layering
    them and a working override to lose. */
 :root {
@@ -104,7 +104,7 @@
 }
 
 
-/* @appelent/auth brand overrides — bridge the shared auth UI onto gather's
+/* Auth brand overrides — bridge the auth UI in src/lib/auth onto gather's
    sea/lagoon palette. These reference gather's own theme vars (already
    correctly re-themed via :root[data-theme="dark"] / prefers-color-scheme),
    so no separate .dark {} copy is needed here. */
@@ -462,7 +462,7 @@
     font-weight: 700;
   }
 
-  /* Used by @appelent/auth's ProfilePanel and AppearanceSettings, which expect
+  /* Used by src/lib/auth's ProfilePanel and AppearanceSettings, which expect
      these class names but do not ship them; gather supplies them to match the
      .demo-panel / .demo-section-title card styling above. */
   .rm-panel {
