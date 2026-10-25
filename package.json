@@ -55,7 +55,7 @@
     "@tanstack/react-router": "^1.170.40",
     "@tanstack/react-router-devtools": "^1.167.2",
     "@tanstack/react-router-ssr-query": "^1.167.3",
-    "@tanstack/react-start": "^1.168.59",
+    "@tanstack/react-start": "^1.169.3",
     "@tanstack/react-store": "^0.11.1",
     "@tanstack/react-table": "^9.2.4",
     "@tanstack/router-plugin": "^1.132.0",
@@ -72,7 +72,7 @@
     "streamdown": "^2.3.0",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.1.18",
-    "zod": "^4.3.6",
+    "zod": "^4.6.6",
     "zxing-wasm": "^3.1.1"
   },
   "devDependencies": {
@@ -93,10 +93,10 @@
     "concurrently": "^10.0.3",
     "convex-test": "^0.0.54",
     "jsdom": "^28.1.0",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.5",
     "typescript": "^6.0.2",
-    "vite": "^8.0.0",
-    "vitest": "^4.1.5",
+    "vite": "^8.1.6",
+    "vitest": "^5.0.5",
     "workbox-build": "^7.4.1",
     "wrangler": "^4.70.0"
   },
