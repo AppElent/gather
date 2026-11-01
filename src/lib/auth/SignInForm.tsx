@@ -98,7 +98,12 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
       onSuccess()
       return
     }
-    if (signIn.status !== 'needs_second_factor') {
+    // Device trust (`needs_client_trust`) verifies a new device with the same
+    // second-factor methods as MFA.
+    if (
+      signIn.status !== 'needs_second_factor' &&
+      signIn.status !== 'needs_client_trust'
+    ) {
       setErrorKey('needsExtraStep')
       return
     }

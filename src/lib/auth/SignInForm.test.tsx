@@ -156,6 +156,21 @@ describe('SignInForm', () => {
       await screen.findByText(/\+31 6 ••• 12/)
       expect(signIn.mfa.sendPhoneCode).toHaveBeenCalledTimes(1)
     })
+
+    it('verifies a new device (client trust) with the email code step', async () => {
+      resolvesTo(signIn.password, {
+        status: 'needs_client_trust',
+        supportedSecondFactors: [
+          { strategy: 'email_code', safeIdentifier: 'a•••@b.com' },
+        ],
+      })
+      renderForm()
+      type('Email', 'a@b.com')
+      type('Password', 'pw')
+      fireEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
+      await screen.findByText(/a•••@b\.com/)
+      expect(signIn.mfa.sendEmailCode).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('email code', () => {
