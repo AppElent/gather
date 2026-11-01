@@ -19,7 +19,7 @@
     "format": "biome format",
     "lint": "biome lint",
     "lint:fix": "biome check --write",
-    "check": "biome check",
+    "check": "biome check && node scripts/check-mobile-structure.mjs",
     "cf-typegen": "wrangler types",
     "seed": "pnpm exec convex run seed:seedCatalog && pnpm exec convex run seed:seedTastingCatalog",
     "seed:sample": "pnpm exec convex run seed:seedPreview",

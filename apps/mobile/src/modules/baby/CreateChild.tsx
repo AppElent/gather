@@ -172,7 +172,7 @@ export function CreateChild() {
               <TextInput
                 value={birthDate}
                 onChangeText={setBirthDate}
-                placeholder="YYYY-MM-DD"
+                placeholder={t.baby.log.form.birthDatePlaceholder}
                 placeholderTextColor={tokens.muted}
                 keyboardType="numbers-and-punctuation"
                 style={[

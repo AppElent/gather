@@ -55,6 +55,7 @@ export const log = {
   form: {
     name: 'Naam',
     birthDate: 'Geboortedatum',
+    birthDatePlaceholder: 'JJJJ-MM-DD',
     sex: 'Geslacht',
     sexUnspecified: 'Zeg ik liever niet',
     sexFemale: 'Meisje',

@@ -60,6 +60,7 @@ export const log = {
   form: {
     name: 'Name',
     birthDate: 'Birth date',
+    birthDatePlaceholder: 'YYYY-MM-DD',
     sex: 'Sex',
     sexUnspecified: 'Prefer not to say',
     sexFemale: 'Female',

@@ -341,7 +341,7 @@ export function ChildSettings({ childId }: { childId: string }) {
               saveDetails({ birthDate: draftBirthDate ?? record.birthDate })
             }
             returnKeyType="done"
-            placeholder="YYYY-MM-DD"
+            placeholder={t.baby.log.form.birthDatePlaceholder}
             placeholderTextColor={tokens.muted}
             keyboardType="numbers-and-punctuation"
             accessibilityLabel={t.baby.log.form.birthDate}

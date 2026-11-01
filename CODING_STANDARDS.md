@@ -17,6 +17,7 @@ Read only what the task needs; never preload every standard.
 | --- | --- |
 | Adding, moving, or naming native files | [Mobile structure](docs/standards/mobile-structure.md) |
 | Repository, package manager, formatter, types, tests, CI, or toolkit sync | [Baseline](docs/standards/baseline.md) |
+| Top-level folders, workspace packages, or shared code between web, Convex, and mobile | [Repository layout](docs/standards/repo-layout.md) |
 | Dependabot or automated dependency PRs | [Dependency updates](docs/standards/dependency-updates.md) |
 | Web app stack, UI states, or browser capabilities | [Web baseline](docs/standards/web-baseline.md) |
 | Expo setup, native configuration, builds, or releases | [Mobile baseline](docs/standards/mobile-baseline.md) |
@@ -25,6 +26,7 @@ Read only what the task needs; never preload every standard.
 | Environment variables and secrets | [Environments](docs/standards/environments.md) |
 | Worktrees and isolated backends | [Workspaces](docs/standards/workspaces.md) |
 | Authentication | [Auth](docs/standards/auth.md) |
+| Convex functions, schema, migrations, seeds, tests, or account deletion and export | [Convex backend](docs/standards/convex.md) |
 | Convex query reads, subscription retention, or local read caches | [Convex query caching](docs/standards/convex-query-caching.md) |
 | Localization | [i18n](docs/standards/i18n.md) |
 | Error reporting and source maps | [Sentry monitoring](docs/standards/sentry-monitoring.md) |
@@ -83,19 +85,24 @@ and EAS. These bindings deviate from or narrow the shared guidance:
 | Convex query caching | Mobile: `retention`, 5 min expiration, 20 idle entries, in `apps/mobile/src/convex/queries.ts` (hooks and bounds) and `QueryCacheProvider.tsx` (mounted by `ConvexSessionGate`, keyed by account). A Group switch releases nothing: Group reads name their Group in their arguments ([ADR-0031](docs/adr/0031-the-current-group-is-ambient-on-web-and-mobile.md)). `convex-helpers` 0.1.120 is the newest whose `convex` peer accepts 1.42; it is unpatched, because the starter's lifecycle adapter disposes the registry itself. `EXPO_PUBLIC_DEBUG_QUERIES=1` logs wire subscriptions in development. Evidence: [record](docs/records/2026-10-18-mobile-query-retention.md). Web: not adopted. |
 | Observability | Web: `@sentry/react` in the browser and `@sentry/cloudflare` in the Worker (`src/server.ts`). Phone: `@sentry/react-native`, errors only, in `apps/mobile/src/observability/`. All three share the scrubber in `packages/core/src/sentryPrivacy.ts`. Convex is not covered. Facts: [Sentry runbook](docs/runbooks/sentry.md). |
 | PWA | `scripts/generate-sw.mjs` (Workbox) runs after every `vite build`; it predates the [PWA](docs/standards/pwa.md) template. |
-| Mobile tests | Phone unit tests run in the root Vitest `mobile` project, not Jest with jest-expo as [mobile baseline](docs/standards/mobile-baseline.md) specifies. |
+| Mobile tests | **Exception** to Jest with jest-expo in [mobile baseline](docs/standards/mobile-baseline.md) and the `Mobile Jest` CI step in [baseline](docs/standards/baseline.md): phone unit tests run in the root Vitest `mobile` project. One runner, config and setup covers web, Convex, core and the phone, and the phone's tests already pass under it; a second runner would add config without adding coverage. |
 | Documentation | **Exception** to "one-off work is an issue and its PR" in [documentation](docs/standards/documentation.md): an unfinished data migration keeps a document in `docs/migrations/` until it has run everywhere, because code comments and the [one-shot code](#one-shot-code) rule point at it as the retirement ledger. A finished one becomes a `docs/records/` record when something cites it and is deleted otherwise. |
 | Agent workflow | `.claude/skills/verify` is the one project skill (route→Module map). `.claude/commands/` holds thin commands: `review-session` invokes the global `custom-review-session` skill, `upgrade-deps` copies the global `custom-upgrade-deps` template, `babysit` is gather's PR policy. A fix that is not gather-specific goes back to the global source. |
+| Formatting | **Exception** to the [baseline](docs/standards/baseline.md) Biome fragment's tabs and double quotes: `biome.json` keeps 2-space indents, single quotes and semicolons as needed, everywhere in the repository. Gather was written in this style; switching rewrites every file and its blame for no behavior change. The fragment's mobile rules are adopted under Gather's names (`Notice`, `src/convex/queries.ts`). Toolkit-owned and verbatim-copied scripts (`scripts/check-mobile-structure.mjs`, `scripts/env.mjs`, …) keep the toolkit's style and are excluded from Biome. |
 | Linting | Biome is the only linter, phone included (`biome.json`). The phone's ESLint (`eslint-config-expo`) was removed: CI never ran it, and beyond Biome it reported only React Compiler readiness rules, which do not apply while the compiler is off. Turning the compiler on is when to add them back. |
 | Dependency updates | `.github/dependabot.yml`: cooldown 3 days, the same as `minimumReleaseAge`; besides the Expo, React Native and React family it ignores `@sentry/react-native` (excluded from `expo install`) and `convex-helpers` (pinned, see Convex query caching). Alerts and security updates are on. |
+| Package manager and CI | `pnpm-workspace.yaml` follows the [baseline template](docs/standards/baseline/templates/pnpm-workspace.yaml) except `verifyDepsBeforeRun: false`, whose reason and retirement condition are in that file. `ci.yml` runs the template's steps, except: no `push` trigger (`deploy.yml` calls it through `workflow_call` before deploying `main`), no separate core typecheck (the root `tsc` covers `packages/core`), and no mobile Jest step (see Mobile tests). `pnpm check` runs Biome and `scripts/check-mobile-structure.mjs`. |
 | Deploys | `deploy.yml` follows [deployments](docs/standards/deployments.md) with the existing names `stg` and `production`. Its `checks` job calls `ci.yml`. |
 
 ### Deferred toolkit adoption
 
-Synced 2026-11-01 (developer-tools `a148b1b`). Not yet adopted:
+Synced 2026-11-01 (developer-tools `922e11c`). Not yet adopted:
 
 - **Environment tiers** ([environments](docs/standards/environments.md) 2.2): preview still reads Infisical `dev` with test-instance auth, not `staging` with production auth. It needs a `staging` app folder in Infisical, so the owner decides when to move.
-- **`env.mjs check --ci` without Infisical:** the deploy's `Check environment` step fails with "Canonical source is missing", so staging has not deployed since 2026-09-18. The fix belongs in the synced engine (developer-tools `standards/env-ci-and-preview-guard`), not here.
+- **Lefthook pre-commit** ([baseline](docs/standards/baseline.md) 2.2): any dependency change re-resolves pnpm peers and moves the phone's runtime fingerprint, so it lands with the next SDK upgrade, which needs a rebuild anyway.
+- **One React version** ([mobile baseline](docs/standards/mobile-baseline.md) 2.5): the web resolves `react` 19.2.7, the phone pins 19.2.3. The next SDK upgrade pins both to the SDK's version.
+- **Repository layout** ([repo layout](docs/standards/repo-layout.md)): 61 phone files import `convex/_generated` by deep relative path; there is no `apps/mobile/src/convex/api.ts` yet. The first change that touches one adds that module; later ones move their imports to it, per the standard's migration.
+- **Convex backend** ([convex](docs/standards/convex.md)): auth is read ad hoc (`ctx.auth.getUserIdentity` outside one helper) and user-facing failures throw English strings (`new ConvexError('Not authenticated')`), not keyed codes. Adopt per function when touched; the standard's first step, finding public functions with no auth check, is worth its own issue.
 - **Deployments defaults:** no `main` ruleset yet; `deploy:prod` still reads `.env.local`, not `env.mjs exec production`.
 - **Mobile distribution and baseline 2.4:** no `APP_VARIANT` side-by-side installs (`app.json` is static), no restart prompt for a downloaded update, and no CI publish after the backend deploys. `apps/mobile/scripts/publish-update.mjs` stays in place of the toolkit wrapper. The fingerprint config, the runtime-diff workflow and opt-in CI builds are not added: the fingerprint config changes the runtime once, so every installed build would need a rebuild first.
 
