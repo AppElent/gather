@@ -11,8 +11,9 @@
  * `FragmentManager`. The next time the tab is selected Android tries to put
  * the orphan back into a container that no longer exists — *"No view found
  * for id … for fragment ScreenStackFragment"*. react-native-screens fixed it
- * in 4.29 (software-mansion/react-native-screens#4504); Expo SDK 57 pins
- * 4.26. The native stacks therefore stay mounted for the app's lifetime, and
+ * in 4.29 (software-mansion/react-native-screens#4504); Expo SDK 58 ships
+ * 4.30, but a keyed remount has not been retried on it. The native stacks
+ * therefore stay mounted for the app's lifetime, and
  * a switch resets what they show instead: screens come and go inside a stack
  * that is still attached, which is the path react-native-screens cleans up.
  *

@@ -1,0 +1,8 @@
+# Optional pre-commit check from the toolkit baseline. Skip it for one commit
+# with `git commit --no-verify` or `LEFTHOOK=0 git commit`.
+# `--staged` needs `"vcs": { "enabled": true, "clientKind": "git" }` in biome.json.
+pre-commit:
+  commands:
+    biome:
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css}"
+      run: pnpm exec biome check --staged --no-errors-on-unmatched

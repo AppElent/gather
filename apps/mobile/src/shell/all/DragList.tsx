@@ -21,7 +21,7 @@ import { Animated, StyleSheet, Text, View } from 'react-native'
 import {
   Gesture,
   GestureDetector,
-  type ScrollView as GestureScrollView,
+  type LegacyScrollView as GestureScrollView,
 } from 'react-native-gesture-handler'
 
 import { dropIndex, movedTo, shiftFor } from '../../arrange/arrange'

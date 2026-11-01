@@ -39,8 +39,7 @@ export function ClerkProvider({ children }) {
 }
 
 /**
- * Clerk **Core 3** shapes, not Core 2 (ADR-0037 — the phone is a generation
- * ahead of the web).
+ * Clerk **Core 3** shapes, not Core 2 (ADR-0038).
  *
  * `errors` is not optional. `usePasswordSignIn` calls `pickError(errors, …)`
  * during render, which reads `errors.fields` unconditionally — a shim without

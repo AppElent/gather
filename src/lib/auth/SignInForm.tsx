@@ -1,10 +1,11 @@
-import { useSignIn } from '@clerk/clerk-react'
+import { useSignIn } from '@clerk/react'
 import { useState } from 'react'
 import { fmt, useMessages } from '../i18n'
 import { AuthButton } from './AuthButton'
 import { useAuthConfig } from './AuthConfigProvider'
 import { AuthError } from './AuthError'
 import { AuthField } from './AuthField'
+import { orThrow } from './clerkResult'
 import {
   clerkErrorMessage,
   type EmailCodeErrorKey,
@@ -18,12 +19,10 @@ import { useCooldown } from './useCooldown'
 /** Seconds "Send a new code" stays disabled after a send. */
 const RESEND_COOLDOWN_SECONDS = 30
 
-type SignIn = NonNullable<ReturnType<typeof useSignIn>['signIn']>
-type FirstFactor = NonNullable<SignIn['supportedFirstFactors']>[number]
-type EmailCodeFactor = Extract<FirstFactor, { strategy: 'email_code' }>
+type SignIn = ReturnType<typeof useSignIn>['signIn']
 
-function emailCodeFactor(factors: SignIn['supportedFirstFactors']) {
-  return factors?.find((f): f is EmailCodeFactor => f.strategy === 'email_code')
+function hasEmailCodeFactor(signIn: SignIn) {
+  return signIn.supportedFirstFactors.some((f) => f.strategy === 'email_code')
 }
 
 type SecondFactorStep = {
@@ -38,8 +37,13 @@ type SecondFactorStep = {
  */
 type Step = 'credentials' | 'emailCode' | 'secondFactor'
 
+/**
+ * Clerk Core 3: each step resolves to `{ error }` (rethrown by `orThrow`), the
+ * attempt's state is read back from `signIn`, and `finalize()` is what makes a
+ * `complete` sign-in the active session.
+ */
 export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
-  const { isLoaded, signIn, setActive } = useSignIn()
+  const { signIn } = useSignIn()
   const config = useAuthConfig()
   const { auth } = useMessages()
   const cooldown = useCooldown(RESEND_COOLDOWN_SECONDS)
@@ -76,9 +80,6 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
   }
 
   async function run(action: (signIn: SignIn) => Promise<void>) {
-    if (!isLoaded) {
-      return
-    }
     clearFeedback()
     setLoading(true)
     try {
@@ -91,34 +92,25 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
   }
 
   /** Both first factors end here: a session, a second factor, or a dead end. */
-  async function proceed(
-    signIn: SignIn,
-    result: Awaited<ReturnType<SignIn['create']>>,
-  ) {
-    if (result.status === 'complete') {
-      await setActive?.({ session: result.createdSessionId })
+  async function proceed(signIn: SignIn) {
+    if (signIn.status === 'complete') {
+      await orThrow(signIn.finalize())
       onSuccess()
       return
     }
-    if (result.status !== 'needs_second_factor') {
+    if (signIn.status !== 'needs_second_factor') {
       setErrorKey('needsExtraStep')
       return
     }
-    const factor = pickSecondFactor(result.supportedSecondFactors ?? [])
+    const factor = pickSecondFactor(signIn.supportedSecondFactors)
     if (!factor) {
       setErrorKey('noSecondFactor')
       return
     }
     if (factor.strategy === 'phone_code') {
-      await signIn.prepareSecondFactor({
-        strategy: 'phone_code',
-        phoneNumberId: factor.phoneNumberId,
-      })
+      await orThrow(signIn.mfa.sendPhoneCode())
     } else if (factor.strategy === 'email_code') {
-      await signIn.prepareSecondFactor({
-        strategy: 'email_code',
-        emailAddressId: factor.emailAddressId,
-      })
+      await orThrow(signIn.mfa.sendEmailCode())
     }
     setCode('')
     setSecondFactor({
@@ -132,10 +124,8 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
   function submitPassword(e: React.FormEvent) {
     e.preventDefault()
     return run(async (signIn) => {
-      await proceed(
-        signIn,
-        await signIn.create({ identifier: email, password }),
-      )
+      await orThrow(signIn.password({ identifier: email, password }))
+      await proceed(signIn)
     })
   }
 
@@ -146,16 +136,12 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
       return
     }
     return run(async (signIn) => {
-      const attempt = await signIn.create({ identifier: email.trim() })
-      const factor = emailCodeFactor(attempt.supportedFirstFactors)
-      if (!factor) {
+      await orThrow(signIn.create({ identifier: email.trim() }))
+      if (!hasEmailCodeFactor(signIn)) {
         setClerkError(auth.signIn.emailCode.unavailable)
         return
       }
-      await signIn.prepareFirstFactor({
-        strategy: 'email_code',
-        emailAddressId: factor.emailAddressId,
-      })
+      await orThrow(signIn.emailCode.sendCode())
       setCode('')
       setStep('emailCode')
       cooldown.start()
@@ -164,15 +150,11 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
 
   function resendEmailCode() {
     return run(async (signIn) => {
-      const factor = emailCodeFactor(signIn.supportedFirstFactors)
-      if (!factor) {
+      if (!hasEmailCodeFactor(signIn)) {
         setClerkError(auth.signIn.emailCode.unavailable)
         return
       }
-      await signIn.prepareFirstFactor({
-        strategy: 'email_code',
-        emailAddressId: factor.emailAddressId,
-      })
+      await orThrow(signIn.emailCode.sendCode())
       cooldown.start()
       setNotice(true)
     })
@@ -181,10 +163,8 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
   function submitEmailCode(e: React.FormEvent) {
     e.preventDefault()
     return run(async (signIn) => {
-      await proceed(
-        signIn,
-        await signIn.attemptFirstFactor({ strategy: 'email_code', code }),
-      )
+      await orThrow(signIn.emailCode.verifyCode({ code }))
+      await proceed(signIn)
     })
   }
 
@@ -194,12 +174,15 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
       return
     }
     return run(async (signIn) => {
-      const result = await signIn.attemptSecondFactor({
-        strategy: secondFactor.strategy,
-        code,
-      })
-      if (result.status === 'complete') {
-        await setActive?.({ session: result.createdSessionId })
+      const verify = {
+        totp: signIn.mfa.verifyTOTP,
+        phone_code: signIn.mfa.verifyPhoneCode,
+        email_code: signIn.mfa.verifyEmailCode,
+        backup_code: signIn.mfa.verifyBackupCode,
+      }[secondFactor.strategy]
+      await orThrow(verify({ code }))
+      if (signIn.status === 'complete') {
+        await orThrow(signIn.finalize())
         onSuccess()
       } else {
         setErrorKey('invalidVerification')
@@ -208,6 +191,8 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
   }
 
   function backToCredentials() {
+    // A fresh attempt: the next password or code must not reuse this one.
+    void signIn.reset()
     clearFeedback()
     setSecondFactor(null)
     setCode('')

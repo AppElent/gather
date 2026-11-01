@@ -1,13 +1,14 @@
-import { useSignIn } from '@clerk/clerk-react'
+import { useSignIn } from '@clerk/react'
 import { useState } from 'react'
 import { useMessages } from '../i18n'
 import { AuthButton } from './AuthButton'
 import { AuthError } from './AuthError'
 import { AuthField } from './AuthField'
+import { orThrow } from './clerkResult'
 import { clerkErrorMessage } from './core'
 
 export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
-  const { isLoaded, signIn, setActive } = useSignIn()
+  const { signIn } = useSignIn()
   const { auth } = useMessages()
   const [step, setStep] = useState<'request' | 'reset'>('request')
   const [email, setEmail] = useState('')
@@ -18,16 +19,11 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 
   async function requestCode(e: React.FormEvent) {
     e.preventDefault()
-    if (!isLoaded) {
-      return
-    }
     setError(null)
     setLoading(true)
     try {
-      await signIn.create({
-        strategy: 'reset_password_email_code',
-        identifier: email,
-      })
+      await orThrow(signIn.create({ identifier: email }))
+      await orThrow(signIn.resetPasswordEmailCode.sendCode())
       setStep('reset')
     } catch (err) {
       setError(clerkErrorMessage(err, auth.errors.generic))
@@ -38,19 +34,18 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 
   async function resetPassword(e: React.FormEvent) {
     e.preventDefault()
-    if (!isLoaded) {
-      return
-    }
     setError(null)
     setLoading(true)
     try {
-      const result = await signIn.attemptFirstFactor({
-        strategy: 'reset_password_email_code',
-        code,
-        password,
-      })
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
+      // Core 3 checks the code and sets the password in two calls. A rejected
+      // password leaves the code spent and verified, so a retry only resubmits
+      // the password (ADR-0038).
+      if (signIn.status !== 'needs_new_password') {
+        await orThrow(signIn.resetPasswordEmailCode.verifyCode({ code }))
+      }
+      await orThrow(signIn.resetPasswordEmailCode.submitPassword({ password }))
+      if (signIn.status === 'complete') {
+        await orThrow(signIn.finalize())
         onSuccess()
       } else {
         setError(auth.forgotPassword.failed)

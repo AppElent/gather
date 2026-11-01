@@ -1,12 +1,15 @@
 ---
 type: decision
-description: Read before changing the phone or web Clerk SDK generation.
-version: 1.0.0
-status: accepted
+description: Read before changing the phone or web Clerk SDK generation (historical; superseded).
+version: 1.0.1
+status: superseded
 date: 2026-08-13
+superseded_by: 0038-both-clients-speak-clerk-core-3.md
 ---
 
 # The phone is a Clerk generation ahead of the web
+
+Superseded by [ADR-0038](0038-both-clients-speak-clerk-core-3.md).
 
 gather's web app authenticates through `@clerk/clerk-react` ^5.61 — Clerk
 **Core 2**. `apps/mobile` authenticates through `@clerk/expo`, which depends on

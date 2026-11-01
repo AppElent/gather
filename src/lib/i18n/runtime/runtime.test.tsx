@@ -6,10 +6,10 @@ const clerk = vi.hoisted(() => ({
   user: null as null | {
     id: string
     unsafeMetadata: Record<string, unknown>
-    update: typeof update
+    updateMetadata: typeof update
   },
 }))
-vi.mock('@clerk/clerk-react', () => ({ useUser: () => clerk }))
+vi.mock('@clerk/react', () => ({ useUser: () => clerk }))
 
 import { createLanguageSync } from './clerk-sync'
 import { createI18n } from './index'
@@ -64,7 +64,11 @@ describe('i18n runtime', () => {
 
   it('adopts the language saved on the user when none was chosen here', async () => {
     update.mockResolvedValue({})
-    clerk.user = { id: 'u1', unsafeMetadata: { language: 'nl' }, update }
+    clerk.user = {
+      id: 'u1',
+      unsafeMetadata: { language: 'nl' },
+      updateMetadata: update,
+    }
     render(
       <LocaleProvider initialLocale="en">
         <LanguageSync />
@@ -80,7 +84,11 @@ describe('i18n runtime', () => {
     update.mockResolvedValue({})
     // biome-ignore lint/suspicious/noDocumentCookie: an explicit choice made earlier on this device.
     document.cookie = 'lang=en; path=/'
-    clerk.user = { id: 'u1', unsafeMetadata: { language: 'nl' }, update }
+    clerk.user = {
+      id: 'u1',
+      unsafeMetadata: { language: 'nl' },
+      updateMetadata: update,
+    }
     render(
       <LocaleProvider initialLocale="en">
         <LanguageSync />

@@ -9,17 +9,16 @@
  * `autoComplete="new-password"` is what makes the platform offer to generate and
  * save one, which is the only reason the sign-in screen has anything to fill.
  *
- * Clerk **Core 3** (ADR-0037). The phone is a Clerk generation ahead of the
- * web, which is Core 2 in `src/lib/auth` — so the web's form logic
- * reads like a reference implementation and is not one. Same hook names,
- * different returns: `{ error }` instead of `throw`, `finalize()` instead of
- * `setActive()`, per-field errors on the hook's `errors` signal.
+ * Clerk **Core 3**, the same generation as the web's forms in `src/lib/auth`
+ * (ADR-0038): calls resolve to `{ error }`, and a finished attempt still needs
+ * `finalize()`. The phone reads per-field errors off the hook's `errors`
+ * signal, where the web shows one banner.
  */
 
 import { useSignUp } from '@clerk/expo'
 import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import type { TextInput } from 'react-native'
+import type { TextInputInstance } from 'react-native'
 import { type CodedError, pickError } from '../../src/auth/clerkErrors'
 import { AuthButton } from '../../src/components/AuthButton'
 import { AuthError } from '../../src/components/AuthError'
@@ -37,7 +36,7 @@ export default function SignUp() {
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [returned, setReturned] = useState<CodedError | null>(null)
-  const passwordRef = useRef<TextInput>(null)
+  const passwordRef = useRef<TextInputInstance>(null)
 
   const ready = email.trim().length > 0 && password.length > 0
   const error = pickError(errors, returned, t)

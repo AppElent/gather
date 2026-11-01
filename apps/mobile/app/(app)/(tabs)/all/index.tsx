@@ -22,7 +22,9 @@
 import { router, Stack } from 'expo-router'
 import { useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import { ScrollView } from 'react-native-gesture-handler'
+// Legacy: Gesture Handler 3's `ScrollView` has no handler tag on its ref, and
+// AllEditMode's drag names this view in `blocksExternalGesture`.
+import { LegacyScrollView as ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { NativeContextMenu } from '../../../../src/components/NativeContextMenu'

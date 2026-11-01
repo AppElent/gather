@@ -169,7 +169,7 @@ export function CollectionScreen({ base }: CollectionScreenProps) {
           // Hidden while the collection is empty: a search field over nothing
           // is a control that cannot do anything, and the empty state below
           // already says what to do instead.
-          collectionIsEmpty ? null : (
+          collectionIsEmpty ? undefined : (
             <SearchField
               value={query}
               onChangeText={setQuery}

@@ -26,9 +26,11 @@ and the Expo phone app. Convex is **not covered** (see Coverage).
 
 ## What is sent, and what never is
 
-Errors only. Tracing, replay, logs, profiling, screenshots and release-health sessions are off. `sendDefaultPii` is
-false, and the scrubber removes request bodies, headers, cookies, query strings
-and fragments, `extra`, stack-frame locals, emails, Bearer tokens and JWTs, and
+Errors only. Tracing, replay, logs, profiling, screenshots and release-health sessions are off. On the web,
+Sentry 11's `dataCollection` (`SENTRY_BASE_OPTIONS`) turns off every automatic
+source of user data; the phone's SDK still uses `sendDefaultPii: false`. The
+scrubber removes request bodies, headers, cookies, query strings and
+fragments, `extra`, stack-frame locals, emails, Bearer tokens and JWTs, and
 the value Convex echoes in an `ArgumentValidationError`. No user is attached.
 Convex arguments are never captured.
 

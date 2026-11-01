@@ -11,7 +11,7 @@ const clerk = vi.hoisted(() => ({
 }))
 const convexAuth = vi.hoisted(() => ({ isAuthenticated: false }))
 
-vi.mock('@clerk/clerk-react', () => ({ useAuth: () => clerk }))
+vi.mock('@clerk/react', () => ({ useAuth: () => clerk }))
 vi.mock('convex/react', () => ({ useConvexAuth: () => convexAuth }))
 
 function Probe() {

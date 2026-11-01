@@ -9,7 +9,7 @@ vi.mock('../../server/reportIssue', () => ({
   reportIssue: (...args: unknown[]) => reportIssueMock(...args),
 }))
 
-vi.mock('@clerk/clerk-react', () => ({
+vi.mock('@clerk/react', () => ({
   useUser: () => ({
     user: {
       id: 'user_123',

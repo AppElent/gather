@@ -14,6 +14,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  type TextInputInstance,
   type TextInputProps,
   View,
 } from 'react-native'
@@ -29,7 +30,7 @@ interface AuthFieldProps extends Omit<TextInputProps, 'style'> {
   invalid?: boolean
 }
 
-export const AuthField = forwardRef<TextInput, AuthFieldProps>(
+export const AuthField = forwardRef<TextInputInstance, AuthFieldProps>(
   function AuthField({ label, secure, invalid, ...props }, ref) {
     const tokens = useTokens()
     const { t } = useI18n()
