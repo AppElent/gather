@@ -3,8 +3,8 @@
   "repository": "AppElent/developer-tools",
   "scope": "project",
   "ref": "main",
-  "commit": "1662d7e8fb449cdc214659226beb6e782be4503c",
-  "manifestHash": "3ec6dd696b44d86037b69c11f4fe3fede1e798667f226248b2b78358c808b3f6",
+  "commit": "a148b1ba0528f029228f619a2340dffc29e53e4f",
+  "manifestHash": "6babe8304399af4c42baf4ffa678dff9436e0ccead5fa56db4d5c0cc38115572",
   "files": {
     "docs/adr/.template.md": {
       "sha256": "f28b286102fb1a00512455a06896e5da3c47d67a14b0ee6c08fa84258af24adf",
@@ -165,8 +165,8 @@
       "version": "1.1.0"
     },
     "docs/standards/environments.md": {
-      "sha256": "1b305d825634576bbd5e84222d186549a5105b2f4f3acfaabc2a2dd2153a97b6",
-      "version": "2.0.0"
+      "sha256": "82e5fbf3b760e40cf6cebe93447fb077937415b2698909376ac8f851973be478",
+      "version": "2.2.0"
     },
     "docs/standards/environments/examples/env.manifest.ts": {
       "sha256": "fee7f704e0833f6566811487c3f584221e8aba46cbb9516e900f7192f7c5da67"
@@ -218,15 +218,15 @@
       "version": "2.0.0"
     },
     "docs/standards/mobile-baseline.md": {
-      "sha256": "42514474b559802c1fd978c155fc9ded1aaec7a9c885653032e6fcbc7d87b109",
-      "version": "2.1.0"
+      "sha256": "13166f13f8f01a9174905c3a39a15470ee3fea36592735c2c023d9b0c250fdbb",
+      "version": "2.4.0"
     },
     "docs/standards/mobile-baseline/examples/ota-guard.ts": {
       "sha256": "289feb472d01d52047d137fb8d65de5394f6cfb15b81e00a1bc9b4ddf8821456"
     },
     "docs/standards/mobile-coding.md": {
-      "sha256": "2530e25e64df6794bde6ea98a59ccf3779f34a0bde3180eacf47efdabafc4687",
-      "version": "1.2.0"
+      "sha256": "114315afe83030276d903bd900b50e3458c053ce14410079b34f53d4b43db467",
+      "version": "1.3.0"
     },
     "docs/standards/mobile-design.md": {
       "sha256": "a8741107bcd2d2937067e5ee198bb5baf9d6b94d7d73a1da03bae13a44a93934",
@@ -244,11 +244,11 @@
       "version": "1.0.1"
     },
     "docs/standards/previews.md": {
-      "sha256": "2bc0b7ef0f10aebd37aa131f52d9b310dfce8a071163877c615c78fc2c8e02b7",
-      "version": "2.0.0"
+      "sha256": "fde3d6dac5280b2748c09218b248711c9eab0cd5ff3f9610dcb17d7f650d9743",
+      "version": "3.0.0"
     },
     "docs/standards/previews/templates/preview.yml": {
-      "sha256": "51d9162a3ed95b02023f37388607a2fcaf90e23dd7b5fab54e31e014d9612edd"
+      "sha256": "0d8663ff89a877f42643320d7a192721de6837fbfd3892f628e41a89b99e4c62"
     },
     "docs/standards/pwa.md": {
       "sha256": "f3e2c80e8b437acdec6bf4f3591bd147848130a6bda8cb75fa6d2c67c332a61b",
@@ -264,12 +264,12 @@
       "sha256": "6d53f308f65c9aca379905a3dcb35dd8aa2496fcd6ea698651581dbcf7a71aec"
     },
     "docs/standards/sentry-monitoring.md": {
-      "sha256": "c676a3e34570d56b49df4bfd13564ede77efed47fa205ca7697f3294d29e266b",
-      "version": "2.0.0"
+      "sha256": "3086e9549768d413df4bdebfa86ea9598a0da5e35d5116b01479930a2966309b",
+      "version": "2.1.0"
     },
     "docs/standards/sentry-monitoring/setup.md": {
-      "sha256": "a9a2e4692f99a62e38afba42e61601a55d14d2fa6cacc6b46fba5011dba3649c",
-      "version": "1.0.0"
+      "sha256": "bea5734edf3551af8e7592e146722861eefd681ab827c8b10dd9f367b76fdf9e",
+      "version": "1.0.1"
     },
     "docs/standards/specialist-skills.md": {
       "sha256": "6488c7896982879accb1c4d54c0f019e69a8100c2a9f0d2249c07071d6960e04",
@@ -280,8 +280,8 @@
       "version": "2.1.0"
     },
     "docs/standards/web-baseline.md": {
-      "sha256": "5fb8b1d779a47f7a086090d18dc58f51483f5b165c4b71e65f522705f313a509",
-      "version": "2.0.3"
+      "sha256": "8aea421d591a62b3d37920b4ab42303dc72bb00102414c6b581292140adb2a06",
+      "version": "2.1.0"
     },
     "docs/standards/web-baseline/examples/confirm-dialog.tsx": {
       "sha256": "5be8e7dcab78ce4c765b90ed6d917134eadbb0a6be51e1757cf6185ac6aa8386"
@@ -325,13 +325,13 @@
       "sha256": "f34515713620986ed40c76e440ba201c65fe8d6ba4044366aa0f5fe63eb1ec59"
     },
     "scripts/env.mjs": {
-      "sha256": "b2e835b6a27f245d59dd8d84547e375fe4a03724716f5662d978bf0f567f77e2"
+      "sha256": "9347b3602296c5d9d31b7fab503e2ef696886f2f3de4c9899d44b459e8add087"
     },
     "scripts/lib/baseline.mjs": {
       "sha256": "369d5f0e662e3962dd526f09aca356a4c8a5f2e3baabdb27f4fcc90e12ab7001"
     },
     "scripts/lib/env/cli.mjs": {
-      "sha256": "30055cc36e88e02103dcadce42e86b5d1875000d73a9777cbf4a074f223b18ef"
+      "sha256": "da83ad471ee679363ad170b8dc8106c682dfba7ae15b512cb23e3f917c84ef47"
     },
     "scripts/lib/env/engine.mjs": {
       "sha256": "348a1fd167875e1046edb7fff6519032d09e4e348c03dc8165cd9bd2618ce461"
@@ -340,7 +340,7 @@
       "sha256": "46ed1a44395a7808913a1321a59e132bc314ea7f0bfceb2a09d28a23c4bcca9b"
     },
     "scripts/lib/env/index.mjs": {
-      "sha256": "4e95b929dfb4129b6512d9417c88ccfb64e66ec9039b608a16d530fa2f032408"
+      "sha256": "e35512ad9ed40ab8ee6f3cecab0f1a0a869e8ba0df749ed7377affcb5b32fbe9"
     },
     "scripts/lib/env/manifest.mjs": {
       "sha256": "f62eaa6635a17832ad3924ee5c9c7322848886a524c3f3707ae9e0519d59c0de"
@@ -349,10 +349,10 @@
       "sha256": "bd66c16dc3075c7c14ef343e5c43b46d038c19feb952d1b187c867475ebe61c6"
     },
     "scripts/lib/env/planning.mjs": {
-      "sha256": "0ec6f91abb8b92344f4df4feace8eca9d8b2f58027d8a25d57a025c4abe4a0f3"
+      "sha256": "1954e0a38ce439b81c5e08d94814f49b1b41a8d6bd6d91dcf166e03af046b57c"
     },
     "scripts/lib/env/process.mjs": {
-      "sha256": "4dff44175b959b7e7376ce10fef8011840c4c2b37cca08acf5fc658e66364d44"
+      "sha256": "ef575cdda2fbac90b2eb43871e1c408766cdbc9906dde5d095fe3c9a8775693b"
     },
     "scripts/lib/env/providers.mjs": {
       "sha256": "9c828958c06bf7003d2dc123e1f2852ad4b3b5f0842e008cd459810edf0edae2"
@@ -361,7 +361,7 @@
       "sha256": "534f1f4fca926beaa80d535831088bc3cebfc2ce1956dc63f468b2aa88a1d336"
     },
     "scripts/lib/env/types.ts": {
-      "sha256": "94426527176f22cb4410bdc8b30b6a17da31094153ac5ac0531f591b495ee33b"
+      "sha256": "966ee58f10c754840055a5969fbecaaadae792374dc5883fb201c107b7b3224a"
     },
     "scripts/lib/project/manifest.mjs": {
       "sha256": "23b2bd54ef896a7a7a9350c258fb36a3ace87e28b76ad47acb179e9675a62f55"
@@ -407,12 +407,48 @@
     },
     "scripts/workspace.mjs": {
       "sha256": "4a913d63a48fdebb952f1939d4719cc1b3096534bddcea966771440caeeca587"
+    },
+    "docs/standards/dependency-updates.md": {
+      "sha256": "166b3fb363d7fd76c2e311d1433db262c97adaa2997a4b53f24a4712596c20f7",
+      "version": "1.0.0"
+    },
+    "docs/standards/dependency-updates/templates/dependabot.yml": {
+      "sha256": "039f585004b6fa58974fca437018a7766ba95bdadb6b61a075205501bc84111d"
+    },
+    "docs/standards/deployments.md": {
+      "sha256": "48ee7a41267f065ed57414b8a121a8859fbf18814ff9a8e561dc86e81340d959",
+      "version": "1.0.0"
+    },
+    "docs/standards/deployments/templates/deploy.yml": {
+      "sha256": "5b236670af68caabdfe18c3a9865047f80049b88fb690a2a8da15843ea4f9715"
+    },
+    "docs/standards/mobile-baseline/templates/eas-local-build.yml": {
+      "sha256": "abc6e08620117978368bcd013e89e2d276f55cb4ca1403c0489c48f62416ee1f"
+    },
+    "docs/standards/mobile-baseline/templates/fingerprint.config.js": {
+      "sha256": "ae7f37909ba8958ee3a4b0d5bd966d4ecdd9044f9b6440883997961fbab76273"
+    },
+    "docs/standards/mobile-baseline/templates/fingerprint.mjs": {
+      "sha256": "5c7474a6f50d85bc07c81d931bbc36da03ed22f365deb06d5ef8e16c966451b5"
+    },
+    "docs/standards/mobile-baseline/templates/mobile-build.yml": {
+      "sha256": "19fbb476f287aaa1c0b7dc8288671ea3aa2d0e9d9b421bdf6ffda6e19e3c3056"
+    },
+    "docs/standards/mobile-baseline/templates/mobile-runtime.yml": {
+      "sha256": "b1e4e1dea2ded85bb58e0fae2b23c05fd6933de183403b7a5eb3f9a2e14ebe15"
+    },
+    "docs/standards/mobile-baseline/templates/publish-update.mjs": {
+      "sha256": "47838724acb2e4d024333af9deb78ff233f6e69e702f6804250cd5e69a885701"
+    },
+    "docs/standards/mobile-distribution.md": {
+      "sha256": "5f5312f2825ff163ea20d2ac8774f9b9badc229d7da8329a060baf6ac7af48e1",
+      "version": "1.0.0"
     }
   },
   "blocks": {
     "AGENTS.md": "5dd11c522805ab3041f27582a641d667534c3594f06ab023a435219f3894dcea",
     "CLAUDE.md": "3a539a9496d276ff97cbc761a98a6db988880a0939a61e78fb156b237927cb24",
-    "CODING_STANDARDS.md": "8f010e239c518cb6b7a68699cbd2dee280d40454cace7ded328b2a2e005e4314",
+    "CODING_STANDARDS.md": "c02e42dbea4d3325c5bdc2cfd166b2cf27d35fad12e70e77010770e2623edd17",
     "DESIGN_SYSTEM.md": "47a654e3d684ca6b60820fd200aafa6834776f793c1ae6a3ab2094ab82e78ee1"
   }
 }
