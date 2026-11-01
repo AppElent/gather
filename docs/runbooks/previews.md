@@ -1,20 +1,20 @@
 ---
 type: runbook
 description: Read when changing the PR preview workflow, its secrets, or what a preview seeds.
-version: 1.0.0
+version: 2.0.0
 ---
 
 # Previews
 
-Binds the shared [previews](../standards/previews.md) standard. Every same-repo
-PR that changes the web app gets its own Convex backend and Worker.
+Binds the shared [previews](../standards/previews.md) standard. A same-repo PR
+labelled `preview:web` gets its own Convex backend and Worker.
 
 ## Project facts
 
 | Fact | Value |
 | --- | --- |
 | Workflow | `.github/workflows/preview.yml` |
-| Trigger | PR opened/updated, skipped when only `apps/mobile/` or `pnpm-lock.yaml` changed; closing the PR deletes the Worker |
+| Trigger | Opt-in: adding the `preview:web` label deploys, pushes redeploy while it stays; removing the label or closing the PR deletes the Worker |
 | Backend | `convex deploy --preview-create pr-<N> --preview-run seed:seedPreview` |
 | Worker | `gather-pr-<N>`, URL posted as a PR comment |
 | Repo-scoped names | Carry the `PREVIEW_` prefix (`PREVIEW_CONVEX_DEPLOY_KEY`, `PREVIEW_VITE_CLERK_PUBLISHABLE_KEY`, `PREVIEW_VITE_TEST_USER_*`, `PREVIEW_VITE_SENTRY_*`, `PREVIEW_SENTRY_AUTH_TOKEN`, `PREVIEW_GITHUB_ISSUES_TOKEN`) so they cannot shadow or be shadowed by `stg`/`production` Environment values |
