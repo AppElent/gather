@@ -96,7 +96,7 @@
     "lefthook": "^2.2.2",
     "sharp": "^0.35.3",
     "typescript": "^6.0.2",
-    "vite": "^8.0.0",
+    "vite": "^8.1.6",
     "vitest": "^4.1.5",
     "workbox-build": "^7.4.1",
     "wrangler": "^4.70.0"
