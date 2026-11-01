@@ -5,7 +5,7 @@
  * sign anyone in and must not look as though it has — hence a third screen
  * rather than revealing a password field in place.
  *
- * Clerk **Core 3** (ADR-0014). The phone is a Clerk generation ahead of the
+ * Clerk **Core 3** (ADR-0037). The phone is a Clerk generation ahead of the
  * web, which is Core 2 in `src/lib/auth` — so the web's form logic
  * reads like a reference implementation and is not one. Same hook names,
  * different returns: `{ error }` instead of `throw`, `finalize()` instead of

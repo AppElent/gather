@@ -59,7 +59,7 @@ device there are no insets to measure and components that read
   should see the front door real users get. A `process` banner catches anything
   else that reaches for the global. Symptom if missing: every card blank,
   `ReferenceError: process is not defined`, then `Cannot read … 'mount'`.
-- **The Clerk shim must be Core 3, not Core 2 (ADR-0014).** `useSignIn()` has to
+- **The Clerk shim must be Core 3, not Core 2 (ADR-0037).** `useSignIn()` has to
   return an `errors` signal with `{ fields, global }` — `usePasswordSignIn`
   calls `pickError(errors, …)` during render and reads `errors.fields`
   unconditionally. A shim without it throws on first render and `WelcomeActions`

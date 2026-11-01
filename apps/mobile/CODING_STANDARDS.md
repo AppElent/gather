@@ -30,7 +30,7 @@ Apply the shared [mobile coding](../../docs/standards/mobile-coding.md),
   registration: [stored files](../../docs/contracts/stored-files.md).
 - **A Drop is native surface** — see [Drop](../../docs/contracts/drop.md).
 - **Auth is Clerk Core 3** (`@clerk/expo`), a generation ahead of the web
-  ([ADR-0014](../../docs/adr/0014-the-phone-is-a-clerk-generation-ahead-of-the-web.md)).
+  ([ADR-0037](../../docs/adr/0037-the-phone-is-a-clerk-generation-ahead-of-the-web.md)).
 - **Words** come from `@gather/core`'s message trees, composed with the phone's
   own in `src/i18n/messages/`; rules in [localization](../../CODING_STANDARDS.md#localization).
 - **Tests** run in the root Vitest `mobile` project (`src/**/*.test.ts`), and

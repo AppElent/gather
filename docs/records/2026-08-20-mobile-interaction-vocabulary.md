@@ -215,14 +215,14 @@ Two traps if `formSheet` wins, both real and both recent:
 
 ## 4. Headers, back, and where the trail went
 
-The web app's rule — [ADR-0013](../adr/0013-a-nested-page-carries-its-own-trail.md),
+The web app's rule — [ADR-0036](../adr/0036-a-nested-page-carries-its-own-trail.md),
 a nested page renders its own breadcrumbs — has no iOS equivalent and should
 not get one. iOS's answer to "where am I and how do I get out" is the native
 back button with the parent's title, plus the interactive swipe-from-edge
 gesture. Android's is the system back gesture. Both come free with
 `Stack`; a drawn breadcrumb trail on a 390pt-wide screen is web furniture.
 
-What ADR-0013 *does* carry across is its second rule: **back points at the
+What ADR-0036 *does* carry across is its second rule: **back points at the
 parent's address, never at history**. On the phone the navigator already
 guarantees that for pushes; the place it can break is a deep link that lands
 mid-hierarchy with nothing beneath it.
@@ -230,7 +230,7 @@ mid-hierarchy with nothing beneath it.
 - **Recommendation:** no breadcrumbs on the phone; native `Stack` headers with
   large titles on Module indexes (`headerLargeTitle`) and inline titles below;
   every deep-linkable screen must have a working parent when opened cold. Write
-  the ADR-0013 exception down, since a reader of the web rule will otherwise
+  the ADR-0036 exception down, since a reader of the web rule will otherwise
   assume it applies.
 - **Open:** large titles or not. GitHub uses them, Todoist largely does not.
 

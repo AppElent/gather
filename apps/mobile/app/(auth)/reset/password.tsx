@@ -12,7 +12,7 @@
  * default is right without asking, and asking is a question this prototype has
  * no answer for — see the resolution on #147.
  *
- * Clerk **Core 3** (ADR-0014). The phone is a Clerk generation ahead of the
+ * Clerk **Core 3** (ADR-0037). The phone is a Clerk generation ahead of the
  * web, which is Core 2 in `src/lib/auth` — so the web's form logic
  * reads like a reference implementation and is not one. Same hook names,
  * different returns: `{ error }` instead of `throw`, `finalize()` instead of
