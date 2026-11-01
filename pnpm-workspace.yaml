@@ -29,7 +29,6 @@ allowBuilds:
   "@clerk/shared": false # postinstall is just a telemetry notice
   "@google/genai": false # no native binary needed at install time
   protobufjs: false # no native binary needed at install time
-  unrs-resolver: true # native binary resolver (napi-postinstall picks the platform build)
   core-js: false # postinstall is just a sponsorship notice, no native binary (pulled in by jspdf's html2canvas dep)
   browser-tabs-lock: false # postinstall just prints a SuperTokens plug, no native binary (pulled in by @clerk/expo)
   bufferutil: false # optional native speed-up for `ws`; it falls back to JS without it

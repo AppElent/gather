@@ -70,6 +70,7 @@ export function glyph(fallback: LucideIcon, symbol: SymbolName | null): Glyph {
 
   const Fallback = fallback
 
+  // biome-ignore lint/correctness/noComponentHookFactories: called once per icon at module scope (the icon maps), never during render
   return function SymbolGlyph({
     size = 24,
     color,

@@ -127,19 +127,20 @@ describe('a diary entry outlives the recipe it came from', () => {
     expect(entry.recipeId).toBe(ids.recipe)
   })
 
-  test.each(
-    Object.keys(GONE),
-  )('recorded values survive %s, and the link goes', async (how) => {
-    const seeded = await seed()
-    await GONE[how as keyof typeof GONE](seeded)
+  test.each(Object.keys(GONE))(
+    'recorded values survive %s, and the link goes',
+    async (how) => {
+      const seeded = await seed()
+      await GONE[how as keyof typeof GONE](seeded)
 
-    const entry = await entryAsShown(seeded.t)
+      const entry = await entryAsShown(seeded.t)
 
-    expect(entry.label).toBe('Sunday roast')
-    expect(entry.quantity).toBe(1)
-    expect(entry.nutrition).toEqual(SNAPSHOT)
-    expect(entry.recipeId).toBeUndefined()
-  })
+      expect(entry.label).toBe('Sunday roast')
+      expect(entry.quantity).toBe(1)
+      expect(entry.nutrition).toEqual(SNAPSHOT)
+      expect(entry.recipeId).toBeUndefined()
+    },
+  )
 })
 
 describe('recomputing on a quantity change', () => {

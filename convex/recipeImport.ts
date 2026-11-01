@@ -129,7 +129,7 @@ export const importFromUrl = action({
         headers: { 'User-Agent': IMPORT_USER_AGENT },
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       })
-      if (!response || !response.ok) throw new Error('fetch not ok')
+      if (!response?.ok) throw new Error('fetch not ok')
       html = await response.text()
     } catch {
       throw new ConvexError(BLOCKED_MESSAGE)
@@ -181,7 +181,7 @@ async function storeRemoteImage(
     const res = await safeFetch(url, {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
-    if (!res || !res.ok) return undefined
+    if (!res?.ok) return undefined
     const blob = await res.blob()
     return await ctx.storage.store(blob)
   } catch {

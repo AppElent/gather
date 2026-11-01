@@ -1,8 +1,8 @@
 import { BABY_EVENT_TYPES, type BabyEventType } from '@gather/core/domain'
 import { v } from 'convex/values'
 
-export { BABY_EVENT_TYPES }
 export type { BabyEventType }
+export { BABY_EVENT_TYPES }
 
 export const babyEventTypeValidator = v.union(
   v.literal('temperature'),

@@ -7,8 +7,8 @@ import {
 import { v } from 'convex/values'
 import { NUTRIENT_KEYS, type NutritionFacts } from './nutrition'
 
-export { MEAL_NAMES, QUANTITY_UNITS }
 export type { MealName, QuantityUnit }
+export { MEAL_NAMES, QUANTITY_UNITS }
 
 export const mealValidator = v.union(
   v.literal('breakfast'),

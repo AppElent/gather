@@ -158,19 +158,20 @@ describe('scaleCrop', () => {
 })
 
 describe('a locked aspect survives every path', () => {
-  test.each([
-    2160, 2161, 3023, 3024, 4031,
-  ])('an image %ipx tall still frames an exact square', (height) => {
-    const image = { width: 4031, height }
-    let crop = initialCrop(image, 1)
-    expect(crop.width).toBe(crop.height)
-    crop = scaleCrop(crop, image, 1, 0.333)
-    expect(crop.width).toBe(crop.height)
-    crop = moveCrop(crop, image, 777, 777)
-    expect(crop.width).toBe(crop.height)
-    crop = resizeCrop(crop, image, 1, 555, 111)
-    expect(crop.width).toBe(crop.height)
-    expect(crop.x + crop.width).toBeLessThanOrEqual(image.width)
-    expect(crop.y + crop.height).toBeLessThanOrEqual(image.height)
-  })
+  test.each([2160, 2161, 3023, 3024, 4031])(
+    'an image %ipx tall still frames an exact square',
+    (height) => {
+      const image = { width: 4031, height }
+      let crop = initialCrop(image, 1)
+      expect(crop.width).toBe(crop.height)
+      crop = scaleCrop(crop, image, 1, 0.333)
+      expect(crop.width).toBe(crop.height)
+      crop = moveCrop(crop, image, 777, 777)
+      expect(crop.width).toBe(crop.height)
+      crop = resizeCrop(crop, image, 1, 555, 111)
+      expect(crop.width).toBe(crop.height)
+      expect(crop.x + crop.width).toBeLessThanOrEqual(image.width)
+      expect(crop.y + crop.height).toBeLessThanOrEqual(image.height)
+    },
+  )
 })
