@@ -101,8 +101,6 @@ and EAS. These bindings deviate from or narrow the shared guidance:
 Synced 2026-11-01 (developer-tools `922e11c`). Not yet adopted:
 
 - **Environment tiers** ([environments](docs/standards/environments.md) 2.2): preview still reads Infisical `dev` with test-instance auth, not `staging` with production auth. It needs a `staging` app folder in Infisical, so the owner decides when to move.
-- **Lefthook pre-commit** ([baseline](docs/standards/baseline.md) 2.2): any dependency change re-resolves pnpm peers and moves the phone's runtime fingerprint, so it lands with the next SDK upgrade, which needs a rebuild anyway.
-- **One React version** ([mobile baseline](docs/standards/mobile-baseline.md) 2.5): the web resolves `react` 19.2.7, the phone pins 19.2.3. The next SDK upgrade pins both to the SDK's version.
 - **Repository layout** ([repo layout](docs/standards/repo-layout.md)): 61 phone files import `convex/_generated` by deep relative path; there is no `apps/mobile/src/convex/api.ts` yet. The first change that touches one adds that module; later ones move their imports to it, per the standard's migration.
 - **Convex backend** ([convex](docs/standards/convex.md)): auth is read ad hoc (`ctx.auth.getUserIdentity` outside one helper) and user-facing failures throw English strings (`new ConvexError('Not authenticated')`), not keyed codes. Adopt per function when touched; the standard's first step, finding public functions with no auth check, is worth its own issue.
 - **Deployments defaults:** no `main` ruleset yet; `deploy:prod` still reads `.env.local`, not `env.mjs exec production`.
