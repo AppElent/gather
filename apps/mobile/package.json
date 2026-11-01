@@ -17,7 +17,6 @@
     "build:preview:android": "eas build --platform android --profile preview-internal",
     "update:preview": "node scripts/publish-update.mjs preview",
     "update:prod": "node scripts/publish-update.mjs production",
-    "lint": "expo lint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -66,9 +65,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.17",
-    "eas-cli": "^16.32.0",
-    "eslint": "^9.25.0",
-    "eslint-config-expo": "~57.0.2",
+    "eas-cli": "16.32.0",
     "expo-device-hub": "^0.13.0",
     "typescript": "~6.0.3"
   },

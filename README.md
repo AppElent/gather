@@ -70,11 +70,11 @@ Deploying by hand is still possible and is what the npm scripts are for:
 
 1. Authenticate: `pnpm exec wrangler login`
 2. Deploy to prod: `pnpm run deploy:prod` (runs `convex deploy && convex run seed:seedCatalog --prod && pnpm run build && wrangler deploy`)
-3. Deploy to dev: `pnpm run deploy:dev` (runs `convex dev --once && convex run seed:seedCatalog && pnpm run build:development && wrangler deploy --env dev`)
+3. Deploy to dev: `pnpm run deploy:dev` (runs `convex dev --once && convex run seed:seedCatalog && CLOUDFLARE_ENV=dev pnpm run build:development && wrangler deploy`)
 
 Both read `VITE_*` from your `.env.local`, and `deploy:dev` needs an interactive Convex login — which is why CI reimplements the pipeline instead of calling these.
 
-There is deliberately no `deploy:stg` script, for the same reason: it would build against whatever `VITE_CONVEX_URL` your `.env.local` happens to hold. To reach staging by hand, export the staging `CONVEX_DEPLOY_KEY` and run the same steps `deploy.yml` does — `convex deploy --cmd-url-env-var-name CONVEX_URL --cmd '…pnpm build'`, then `wrangler deploy --env stg`.
+There is deliberately no `deploy:stg` script, for the same reason: it would build against whatever `VITE_CONVEX_URL` your `.env.local` happens to hold. To reach staging by hand, export the staging `CONVEX_DEPLOY_KEY` and run the same steps `deploy.yml` does — `CLOUDFLARE_ENV=stg convex deploy --cmd-url-env-var-name CONVEX_URL --cmd '…pnpm build'`, then `wrangler deploy` (the build, not `--env`, picks the Worker).
 
 Don't set Worker secrets or Convex env vars by hand — `pnpm run env:apply <environment>` writes both, along with the GitHub secrets and variables, from `env.manifest.ts`. `wrangler.jsonc` has no `vars` block: everything the client needs is a `VITE_*` var inlined into the bundle at build time, so a Worker runtime binding would never be read.
 

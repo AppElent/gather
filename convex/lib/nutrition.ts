@@ -5,8 +5,8 @@ import {
 } from '@gather/core/domain'
 import { v } from 'convex/values'
 
-export { NUTRIENT_KEYS }
 export type { NutrientKey, NutritionSource }
+export { NUTRIENT_KEYS }
 
 /** All values per serving (recipes) or per 100 g/ml (foods, phase 2). Calories in kcal, everything else grams. */
 export type NutritionFacts = Partial<Record<NutrientKey, number>>

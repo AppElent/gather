@@ -17,8 +17,10 @@ Read only what the task needs; never preload every standard.
 | --- | --- |
 | Adding, moving, or naming native files | [Mobile structure](docs/standards/mobile-structure.md) |
 | Repository, package manager, formatter, types, tests, CI, or toolkit sync | [Baseline](docs/standards/baseline.md) |
+| Dependabot or automated dependency PRs | [Dependency updates](docs/standards/dependency-updates.md) |
 | Web app stack, UI states, or browser capabilities | [Web baseline](docs/standards/web-baseline.md) |
 | Expo setup, native configuration, builds, or releases | [Mobile baseline](docs/standards/mobile-baseline.md) |
+| Getting a build onto a phone, TestFlight, or OTA updates | [Mobile distribution](docs/standards/mobile-distribution.md) |
 | Verification | [Verification](docs/standards/verification.md), then the project's check commands |
 | Environment variables and secrets | [Environments](docs/standards/environments.md) |
 | Worktrees and isolated backends | [Workspaces](docs/standards/workspaces.md) |
@@ -28,6 +30,7 @@ Read only what the task needs; never preload every standard.
 | Error reporting and source maps | [Sentry monitoring](docs/standards/sentry-monitoring.md) |
 | In-app problem reports | [Issue reporting](docs/standards/issue-reporting.md) |
 | Pull-request previews | [Previews](docs/standards/previews.md) |
+| Staging or production deploys, deploy workflows, or branch rules | [Deployments](docs/standards/deployments.md) |
 | Web manifest, installability, or service worker | [PWA](docs/standards/pwa.md) |
 | Application CLI or browser login for it | [App CLI](docs/standards/app-cli.md) |
 | MCP server or tools | [MCP](docs/standards/mcp.md) |
@@ -62,8 +65,7 @@ Run the [project checks](docs/runbooks/verification.md) for every affected targe
 in code, hypotheses and issue titles, and record newly resolved terms there. A
 rule about behavior goes in a `docs/contracts/` contract, not the glossary.
 Read the ADRs in `docs/adr/` for the affected boundary and name any conflict
-with an accepted ADR before reopening it. Two ADR numbers are shared by two
-files each; cite those by filename ([index](docs/README.md#decisions)).
+with an accepted ADR before reopening it.
 
 ## Local bindings and exceptions
 
@@ -72,18 +74,30 @@ and EAS. These bindings deviate from or narrow the shared guidance:
 
 | Capability | Binding |
 | --- | --- |
-| Auth | Web: the sign-in, sign-up and forgot-password forms, profile panel, appearance settings, header user menu and theme sync are app-owned in `src/lib/auth/`, copied from the [auth web examples](docs/standards/auth/examples/web/index.ts). Their copy is still the English it was copied with, except `AppearanceSettings`, which reads the message tree; translating the rest is open. The app owns `src/integrations/clerk/provider.tsx` (plain `ClerkProvider`, `signInUrl`/`signUpUrl` pointed at gather's routes) and the Clerk↔Convex JWT bridge in `src/integrations/convex/provider.tsx`; Convex validates with `CLERK_JWT_ISSUER_DOMAIN`. Mobile: `@clerk/expo`, one Clerk generation ahead of the web ([ADR-0014](docs/adr/0014-the-phone-is-a-clerk-generation-ahead-of-the-web.md)). |
+| Auth | Web: the sign-in, sign-up and forgot-password forms, profile panel, appearance settings, header user menu and theme sync are app-owned in `src/lib/auth/`, copied from the [auth web examples](docs/standards/auth/examples/web/index.ts). Their copy is still the English it was copied with, except `AppearanceSettings`, which reads the message tree; translating the rest is open. The app owns `src/integrations/clerk/provider.tsx` (plain `ClerkProvider`, `signInUrl`/`signUpUrl` pointed at gather's routes) and the Clerk↔Convex JWT bridge in `src/integrations/convex/provider.tsx`; Convex validates with `CLERK_JWT_ISSUER_DOMAIN`. Mobile: `@clerk/expo`, one Clerk generation ahead of the web ([ADR-0037](docs/adr/0037-the-phone-is-a-clerk-generation-ahead-of-the-web.md)). |
 | Localization | See [Localization](#localization). |
 | Environments | `pnpm env:*` runs the vendored `scripts/env.mjs` against `env.manifest.ts`. Facts and hazards: [environment](docs/runbooks/environment.md). |
 | `appelent.json` | Kept as the config the vendored scripts read (`envManifest`). Its `features` block is a frozen legacy ledger: never bump it, and do not run the retired `/appelent` plugin commands, which regenerate superseded instruction blocks. |
 | Worktrees | `t3.json` runs `scripts/copy-env.sh` on worktree creation, copying `.env.local`, `.dev.vars` and `apps/mobile/.env.local` from the main checkout; `scripts/workspace.mjs` is installed but not adopted. **Exception** to per-worktree isolated backends: every worktree shares the main checkout's dev Convex deployment, so runtime writes are visible to all of them. |
 | Test login | **Exception** to the auth standard's `+clerk_test` email-code test login: the shared test user (`PREVIEW_TEST_USER` in `convex/seed.ts`) signs in with a password, so `src/lib/auth/TestLoginButton.tsx` keeps the password flow and shows only when the Clerk key is `pk_test_…` and both `VITE_TEST_USER_*` are set. The phone's equivalent is `EXPO_PUBLIC_TEST_USER_*`, local only. These values are inlined into bundles, so the account must live on the Clerk *test* instance and is never set for production. |
 | Convex query caching | Mobile: `retention`, 5 min expiration, 20 idle entries, in `apps/mobile/src/convex/queries.ts` (hooks and bounds) and `QueryCacheProvider.tsx` (mounted by `ConvexSessionGate`, keyed by account). A Group switch releases nothing: Group reads name their Group in their arguments ([ADR-0031](docs/adr/0031-the-current-group-is-ambient-on-web-and-mobile.md)). `convex-helpers` 0.1.120 is the newest whose `convex` peer accepts 1.42; it is unpatched, because the starter's lifecycle adapter disposes the registry itself. `EXPO_PUBLIC_DEBUG_QUERIES=1` logs wire subscriptions in development. Evidence: [record](docs/records/2026-10-18-mobile-query-retention.md). Web: not adopted. |
-| Observability | Web only: `@sentry/react` in the browser and `@sentry/cloudflare` in the Worker (`src/server.ts`), scrubbed by `src/lib/observability/privacy.ts`. Convex and the phone are not covered. Facts: [Sentry runbook](docs/runbooks/sentry.md). |
+| Observability | Web: `@sentry/react` in the browser and `@sentry/cloudflare` in the Worker (`src/server.ts`). Phone: `@sentry/react-native`, errors only, in `apps/mobile/src/observability/`. All three share the scrubber in `packages/core/src/sentryPrivacy.ts`. Convex is not covered. Facts: [Sentry runbook](docs/runbooks/sentry.md). |
 | PWA | `scripts/generate-sw.mjs` (Workbox) runs after every `vite build`; it predates the [PWA](docs/standards/pwa.md) template. |
 | Mobile tests | Phone unit tests run in the root Vitest `mobile` project, not Jest with jest-expo as [mobile baseline](docs/standards/mobile-baseline.md) specifies. |
 | Documentation | **Exception** to "one-off work is an issue and its PR" in [documentation](docs/standards/documentation.md): an unfinished data migration keeps a document in `docs/migrations/` until it has run everywhere, because code comments and the [one-shot code](#one-shot-code) rule point at it as the retirement ledger. A finished one becomes a `docs/records/` record when something cites it and is deleted otherwise. |
 | Agent workflow | `.claude/skills/verify` is the one project skill (route→Module map). `.claude/commands/` holds thin commands: `review-session` invokes the global `custom-review-session` skill, `upgrade-deps` copies the global `custom-upgrade-deps` template, `babysit` is gather's PR policy. A fix that is not gather-specific goes back to the global source. |
+| Linting | Biome is the only linter, phone included (`biome.json`). The phone's ESLint (`eslint-config-expo`) was removed: CI never ran it, and beyond Biome it reported only React Compiler readiness rules, which do not apply while the compiler is off. Turning the compiler on is when to add them back. |
+| Dependency updates | `.github/dependabot.yml`: cooldown 3 days, the same as `minimumReleaseAge`; besides the Expo, React Native and React family it ignores `@sentry/react-native` (excluded from `expo install`) and `convex-helpers` (pinned, see Convex query caching). Alerts and security updates are on. |
+| Deploys | `deploy.yml` follows [deployments](docs/standards/deployments.md) with the existing names `stg` and `production`. Its `checks` job calls `ci.yml`. |
+
+### Deferred toolkit adoption
+
+Synced 2026-11-01 (developer-tools `a148b1b`). Not yet adopted:
+
+- **Environment tiers** ([environments](docs/standards/environments.md) 2.2): preview still reads Infisical `dev` with test-instance auth, not `staging` with production auth. It needs a `staging` app folder in Infisical, so the owner decides when to move.
+- **`env.mjs check --ci` without Infisical:** the deploy's `Check environment` step fails with "Canonical source is missing", so staging has not deployed since 2026-09-18. The fix belongs in the synced engine (developer-tools `standards/env-ci-and-preview-guard`), not here.
+- **Deployments defaults:** no `main` ruleset yet; `deploy:prod` still reads `.env.local`, not `env.mjs exec production`.
+- **Mobile distribution and baseline 2.4:** no `APP_VARIANT` side-by-side installs (`app.json` is static), no restart prompt for a downloaded update, and no CI publish after the backend deploys. `apps/mobile/scripts/publish-update.mjs` stays in place of the toolkit wrapper. The fingerprint config, the runtime-diff workflow and opt-in CI builds are not added: the fingerprint config changes the runtime once, so every installed build would need a rebuild first.
 
 ### Localization
 

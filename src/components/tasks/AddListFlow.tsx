@@ -248,6 +248,43 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
  * defined below its only caller and rendered by it alone, so threading them
  * through keeps the whole flow's strings resolved in one place.
  */
+const selectClass =
+  'min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm'
+
+function MappingSelect({
+  label,
+  value,
+  onChange,
+  options,
+  required,
+  notMapped,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: SourceProperty[]
+  required?: boolean
+  notMapped: string
+}) {
+  return (
+    <label className="grid gap-1 text-sm">
+      {label}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={selectClass}
+      >
+        {!required && <option value="">{notMapped}</option>}
+        {options.map((p) => (
+          <option key={p.name} value={p.name}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
 function NotionMappingForm({
   text,
   listNameLabel,
@@ -291,41 +328,6 @@ function NotionMappingForm({
     })
   }
 
-  const selectClass =
-    'min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm'
-
-  function MappingSelect({
-    label,
-    value,
-    onChange,
-    options,
-    required,
-  }: {
-    label: string
-    value: string
-    onChange: (v: string) => void
-    options: SourceProperty[]
-    required?: boolean
-  }) {
-    return (
-      <label className="grid gap-1 text-sm">
-        {label}
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={selectClass}
-        >
-          {!required && <option value="">{text.notMapped}</option>}
-          {options.map((p) => (
-            <option key={p.name} value={p.name}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      </label>
-    )
-  }
-
   return (
     <form onSubmit={submit} className="grid gap-3">
       <p className="m-0 text-sm text-[var(--app-muted)]">{text.intro}</p>
@@ -343,6 +345,7 @@ function NotionMappingForm({
         value={title}
         onChange={setTitle}
         options={titleProps}
+        notMapped={text.notMapped}
         required
       />
       <MappingSelect
@@ -350,6 +353,7 @@ function NotionMappingForm({
         value={done}
         onChange={setDone}
         options={doneProps}
+        notMapped={text.notMapped}
         required
       />
       <MappingSelect
@@ -357,18 +361,21 @@ function NotionMappingForm({
         value={dueDate}
         onChange={setDueDate}
         options={dateProps}
+        notMapped={text.notMapped}
       />
       <MappingSelect
         label={text.priorityProperty}
         value={priority}
         onChange={setPriority}
         options={selectProps}
+        notMapped={text.notMapped}
       />
       <MappingSelect
         label={text.labelsProperty}
         value={labels}
         onChange={setLabels}
         options={multiSelectProps}
+        notMapped={text.notMapped}
       />
       <button
         type="submit"

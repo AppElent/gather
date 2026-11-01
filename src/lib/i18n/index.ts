@@ -2,6 +2,7 @@ import { fmt, type Locale, plural, SUPPORTED_LOCALES } from '@gather/core/i18n'
 import { en, type Messages, nl } from '@gather/core/messages'
 import { createI18n } from './runtime'
 
+export type { Locale, Messages }
 /**
  * Joins Gather's portable locale contract to the web i18n engine.
  *
@@ -10,7 +11,6 @@ import { createI18n } from './runtime'
  * `@gather/core`. See ADR-0011 for the chrome/content boundary.
  */
 export { fmt, plural, SUPPORTED_LOCALES }
-export type { Locale, Messages }
 
 export const {
   LocaleProvider,

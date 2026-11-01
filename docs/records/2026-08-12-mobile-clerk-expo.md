@@ -1,7 +1,7 @@
 ---
 type: record
 kind: research
-description: Read for what Clerk on Expo requires and what the phone builds itself (evidence for ADR-0014), as of 2026-08-12.
+description: Read for what Clerk on Expo requires and what the phone builds itself (evidence for ADR-0037), as of 2026-08-12.
 version: 1.0.0
 date: 2026-08-12
 ---

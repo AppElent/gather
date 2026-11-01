@@ -47,8 +47,6 @@ export function VocabularySheet({
 }) {
   const tokens = useTokens('tasting')
   const { t } = useI18n()
-  const tint = tokens.tintOf('tasting')
-  const Check = UI_ICONS.Check
   const Search = UI_ICONS.Search
   const [query, setQuery] = useState('')
 
@@ -63,33 +61,6 @@ export function VocabularySheet({
   function choose(key: string | null) {
     haptics.selectionChanged()
     onSelect(key)
-  }
-
-  function Row({
-    label,
-    on,
-    onPress,
-  }: {
-    label: string
-    on: boolean
-    onPress: () => void
-  }) {
-    return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ selected: on }}
-        accessibilityLabel={label}
-        onPress={onPress}
-        style={({ pressed }) => [
-          styles.row,
-          { borderBottomColor: tokens.border },
-          pressed && { backgroundColor: tokens.tile },
-        ]}
-      >
-        <Text style={[styles.rowLabel, { color: tokens.fg }]}>{label}</Text>
-        {on ? <Check size={18} color={tint.fg} strokeWidth={2.4} /> : null}
-      </Pressable>
-    )
   }
 
   return (
@@ -132,6 +103,41 @@ export function VocabularySheet({
         ) : null}
       </ScrollView>
     </NativeSheet>
+  )
+}
+
+function Row({
+  label,
+  on,
+  onPress,
+}: {
+  label: string
+  on: boolean
+  onPress: () => void
+}) {
+  const tokens = useTokens('tasting')
+  const Check = UI_ICONS.Check
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.row,
+        { borderBottomColor: tokens.border },
+        pressed && { backgroundColor: tokens.tile },
+      ]}
+    >
+      <Text style={[styles.rowLabel, { color: tokens.fg }]}>{label}</Text>
+      {on ? (
+        <Check
+          size={18}
+          color={tokens.tintOf('tasting').fg}
+          strokeWidth={2.4}
+        />
+      ) : null}
+    </Pressable>
   )
 }
 

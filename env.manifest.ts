@@ -638,7 +638,7 @@ export function placementsFor(
   for (const entry of ENTRIES as readonly Entry[]) {
     for (const consumer of CONSUMERS) {
       const landing = entry.lands[consumer]
-      if (!landing || !landing.environments.includes(environment)) continue
+      if (!landing?.environments.includes(environment)) continue
       const destination = destinationFor(consumer, environment, context)
       if (!destination) continue
       placements.push({

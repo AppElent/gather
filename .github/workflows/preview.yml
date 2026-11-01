@@ -1,41 +1,23 @@
 name: PR Preview
 
+# Opt-in: deploys only while the PR carries the `preview:web` label; pushes
+# redeploy, and removing the label or closing the PR deletes the Worker. Close
+# always cleans up, so Workers deployed before the label gate are not left behind.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
-
-concurrency:
-  group: preview-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+    types: [opened, synchronize, reopened, labeled, unlabeled, closed]
 
 jobs:
-  changes:
-    if: github.event.action != 'closed'
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: read
-    outputs:
-      web: ${{ steps.filter.outputs.web }}
-    steps:
-      - name: Check whether the web app changed
-        id: filter
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const files = await github.paginate(github.rest.pulls.listFiles, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-              per_page: 100,
-            });
-            const web = files.some(({ filename }) =>
-              filename !== 'pnpm-lock.yaml' && !filename.startsWith('apps/mobile/'),
-            );
-            core.setOutput('web', web);
-
   deploy:
-    needs: changes
-    if: github.event.action != 'closed' && needs.changes.outputs.web == 'true'
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'preview:web') &&
+      github.event.action != 'closed' && github.event.action != 'unlabeled' &&
+      (github.event.action != 'labeled' || github.event.label.name == 'preview:web')
+    # Job-level so a fully skipped run (an unrelated label) cannot cancel a deploy.
+    concurrency:
+      group: preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -161,7 +143,13 @@ jobs:
             }
 
   cleanup:
-    if: github.event.action == 'closed'
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.action == 'closed' ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'preview:web'))
+    concurrency:
+      group: preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       contents: read

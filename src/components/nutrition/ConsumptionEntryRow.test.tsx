@@ -431,25 +431,23 @@ test('a food with no named servings still edits by a custom base-unit amount', (
   })
 })
 
-test.each([
-  '0',
-  '-5',
-  'abc',
-  '',
-])('a food entry refuses the amount %p, exactly as the numeric editor always did', (typed) => {
-  food.value = CATALOG_BREAD
-  const onUpdate = vi.fn()
-  renderRow({ entry: breadEntry, onUpdate })
+test.each(['0', '-5', 'abc', ''])(
+  'a food entry refuses the amount %p, exactly as the numeric editor always did',
+  (typed) => {
+    food.value = CATALOG_BREAD
+    const onUpdate = vi.fn()
+    renderRow({ entry: breadEntry, onUpdate })
 
-  fireEvent.click(screen.getByText('Edit'))
-  fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
-  fireEvent.change(screen.getByLabelText('Amount'), {
-    target: { value: typed },
-  })
-  fireEvent.click(screen.getByText('Save'))
+    fireEvent.click(screen.getByText('Edit'))
+    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.change(screen.getByLabelText('Amount'), {
+      target: { value: typed },
+    })
+    fireEvent.click(screen.getByText('Save'))
 
-  expect(onUpdate).not.toHaveBeenCalled()
-})
+    expect(onUpdate).not.toHaveBeenCalled()
+  },
+)
 
 /**
  * A recipe entry counts servings of the recipe, and there is nothing to choose

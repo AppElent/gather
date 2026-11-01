@@ -24,7 +24,7 @@
     "seed": "pnpm exec convex run seed:seedCatalog && pnpm exec convex run seed:seedTastingCatalog",
     "seed:sample": "pnpm exec convex run seed:seedPreview",
     "deploy": "pnpm run deploy:prod",
-    "deploy:dev": "pnpm exec convex dev --once && pnpm exec convex run seed:seedCatalog && pnpm exec convex run seed:seedTastingCatalog && pnpm run build:development && wrangler deploy --env dev",
+    "deploy:dev": "pnpm exec convex dev --once && pnpm exec convex run seed:seedCatalog && pnpm exec convex run seed:seedTastingCatalog && CLOUDFLARE_ENV=dev pnpm run build:development && wrangler deploy",
     "deploy:prod": "pnpm exec convex deploy && pnpm exec convex run seed:seedCatalog --prod && pnpm exec convex run seed:seedTastingCatalog --prod && pnpm run build && wrangler deploy",
     "env:check": "node scripts/env.mjs check",
     "env:apply": "node scripts/env.mjs apply",
@@ -76,7 +76,7 @@
     "zxing-wasm": "^3.1.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.5",
+    "@biomejs/biome": "2.6.2",
     "@edge-runtime/vm": "^5.0.0",
     "@sentry/vite-plugin": "5.3.0",
     "@tailwindcss/typography": "^0.5.16",

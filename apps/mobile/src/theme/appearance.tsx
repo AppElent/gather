@@ -57,8 +57,8 @@ import {
   writePreference,
 } from '../prefs/localPreference'
 
-export type { AppearancePreference, ColorScheme }
 export { APPEARANCE_PREFERENCES } from '@gather/core/appearance'
+export type { AppearancePreference, ColorScheme }
 
 interface AppearanceValue {
   /** What somebody chose, which is what the Settings control shows selected. */

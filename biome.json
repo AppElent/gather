@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.5/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -26,7 +26,10 @@
       "!scripts/check-project.mjs",
       "!scripts/env.mjs",
       "!scripts/sync-devtools.mjs",
-      "!scripts/workspace.mjs"
+      "!scripts/workspace.mjs",
+      "!apps/mobile/ios",
+      "!apps/mobile/android",
+      "!**/*.md"
     ]
   },
   "formatter": {
@@ -38,7 +41,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "style": {
         "noNonNullAssertion": "off"
       },
@@ -59,6 +62,30 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["apps/mobile/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noReactNativeRawText": {
+              "level": "error",
+              "options": { "skip": ["Notice"] }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.test.*", "src/lib/i18n/runtime/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noComponentHookFactories": "off",
+            "noReactNativeRawText": "off"
+          }
+        }
+      }
+    },
     {
       "includes": [
         "apps/mobile/src/**",

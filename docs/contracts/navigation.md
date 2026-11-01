@@ -9,7 +9,7 @@ status: current
 
 The shell keeps global navigation; a page owns its local hierarchy, because
 the page is the only thing that knows which food this is
-([ADR-0013](../adr/0013-a-nested-page-carries-its-own-trail.md)). The phone has
+([ADR-0036](../adr/0036-a-nested-page-carries-its-own-trail.md)). The phone has
 no breadcrumbs ([mobile design system](../../apps/mobile/DESIGN_SYSTEM.md#chrome)).
 
 ## Behavior

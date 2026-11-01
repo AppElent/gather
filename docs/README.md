@@ -21,11 +21,7 @@ Design studies: [designs/](../designs/).
 
 ## Decisions
 
-Two numbers are each held by two accepted ADRs: 0013 and 0014. They are left as
-they are — renumbering an accepted ADR would silently retarget every `ADR-0013`
-/ `ADR-0014` already written in code comments and docs — so cite either pair by
-filename, not by number alone. A new ADR takes the number after the highest
-(0036 next).
+A new ADR takes the number after the highest (0038 next).
 
 | ID | Decision | Status | Domain | Key implementation references |
 | --- | --- | --- | --- | --- |
@@ -42,9 +38,7 @@ filename, not by number alone. A new ADR takes the number after the highest
 | [0011](adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md) | The UI is English at the source, and translations are typed dictionaries | accepted | i18n | `packages/core/src/messages/`, `src/lib/i18n/` |
 | [0012](adr/0012-a-combo-is-a-personal-shortcut-and-not-a-recipe.md) | A Combo is a Personal shortcut, and not a kind of Recipe | accepted | nutrition | `convex/combos.ts` |
 | [0013](adr/0013-staging-deploys-on-merge-production-deploys-on-a-click.md) | Staging deploys on merge, production deploys on a click | accepted | deployment | `.github/workflows/deploy.yml` |
-| [0013](adr/0013-a-nested-page-carries-its-own-trail.md) | A nested page carries its own trail, and back is an address | accepted | web navigation | `src/components/app/Breadcrumbs.tsx` |
 | [0014](adr/0014-a-variable-declares-its-consumer-not-its-destination.md) | A variable declares its consumer, not its destination | accepted | environment | `env.manifest.ts`, `scripts/env.mjs` |
-| [0014](adr/0014-the-phone-is-a-clerk-generation-ahead-of-the-web.md) | The phone is a Clerk generation ahead of the web | accepted | mobile auth | `apps/mobile/src/auth/` |
 | [0015](adr/0015-the-group-is-addressed-on-the-web-and-ambient-on-the-phone.md) | The Group is addressed on the web and ambient on the phone | superseded | mobile navigation | `apps/mobile/src/group/GroupProvider.tsx`, `apps/mobile/app/g/` |
 | [0016](adr/0016-shared-code-crosses-as-a-package-with-no-dependencies.md) | Shared code crosses as a package with no dependencies | accepted | workspace boundary | `packages/core/package.json`, `packages/core/tsconfig.json` |
 | [0017](adr/0017-the-phone-owns-its-look-and-shares-its-words.md) | The phone owns its look and shares its words | accepted | mobile design | `apps/mobile/src/theme/`, `packages/core/src/moduleTints.ts` |
@@ -66,3 +60,5 @@ filename, not by number alone. A new ADR takes the number after the highest
 | [0033](adr/0033-the-phones-all-screen-is-arranged-on-the-device.md) | The phone's All screen is arranged on the device | accepted | mobile navigation | `apps/mobile/src/prefs/moduleArrangement.ts`, `packages/core/src/moduleArrangement.ts` |
 | [0034](adr/0034-notes-tasks-and-calendar-remain-separate-modules.md) | Notes, Tasks and Calendar remain separate Modules | accepted | modules | `packages/core/src/modules.ts` |
 | [0035](adr/0035-money-tools-are-separate-modules.md) | Money tools are separate Modules | accepted | money modules | `packages/core/src/modules.ts`, `apps/mobile/src/modules/finances/` |
+| [0036](adr/0036-a-nested-page-carries-its-own-trail.md) | A nested page carries its own trail, and back is an address | accepted | web navigation | `src/components/app/Breadcrumbs.tsx` |
+| [0037](adr/0037-the-phone-is-a-clerk-generation-ahead-of-the-web.md) | The phone is a Clerk generation ahead of the web | accepted | mobile auth | `apps/mobile/src/auth/` |

@@ -187,17 +187,20 @@ describe('verify', () => {
     ['verification_expired', en.errors.codeExpired],
     ['verification_failed', en.errors.codeExpired],
     ['too_many_requests', en.errors.tooManyRequests],
-  ])('a %s failure never finalizes and reads as itself', async (code, message) => {
-    clerk.signIn.emailCode.verifyCode.mockResolvedValue({
-      error: { code: 'api_response_error' },
-    })
-    clerk.errors.fields = { code: { code } }
-    const { result } = renderHook()
-    expect(await run(() => result.current.verify('000000'))).toBe(false)
-    expect(clerk.signIn.finalize).not.toHaveBeenCalled()
-    expect(result.current.error).toBe(message)
-    expect(result.current.busy).toBe(false)
-  })
+  ])(
+    'a %s failure never finalizes and reads as itself',
+    async (code, message) => {
+      clerk.signIn.emailCode.verifyCode.mockResolvedValue({
+        error: { code: 'api_response_error' },
+      })
+      clerk.errors.fields = { code: { code } }
+      const { result } = renderHook()
+      expect(await run(() => result.current.verify('000000'))).toBe(false)
+      expect(clerk.signIn.finalize).not.toHaveBeenCalled()
+      expect(result.current.error).toBe(message)
+      expect(result.current.busy).toBe(false)
+    },
+  )
 
   test('a failed finalize is reported and releases the form', async () => {
     clerk.signIn.emailCode.verifyCode.mockImplementation(async () => {

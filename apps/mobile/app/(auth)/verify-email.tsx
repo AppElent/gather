@@ -11,7 +11,7 @@
  * SMS; the email code has no equivalent, so the keyboard is the fallback and the
  * field is numeric and capped at six.
  *
- * Clerk **Core 3** (ADR-0014). The phone is a Clerk generation ahead of the
+ * Clerk **Core 3** (ADR-0037). The phone is a Clerk generation ahead of the
  * web, which is Core 2 in `src/lib/auth` — so the web's form logic
  * reads like a reference implementation and is not one. Same hook names,
  * different returns: `{ error }` instead of `throw`, `finalize()` instead of
