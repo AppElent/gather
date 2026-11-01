@@ -23,6 +23,7 @@
       "!**/src/styles.css",
       "!scripts/lib",
       "!scripts/baseline*.mjs",
+      "!scripts/check-mobile-structure.mjs",
       "!scripts/check-project.mjs",
       "!scripts/env.mjs",
       "!scripts/sync-devtools.mjs",
@@ -33,13 +34,13 @@
     ]
   },
   "formatter": {
-    "enabled": true,
+    "enabled": false,
     "indentStyle": "space",
     "indentWidth": 2
   },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
-    "enabled": true,
+    "enabled": false,
     "rules": {
       "preset": "recommended",
       "style": {

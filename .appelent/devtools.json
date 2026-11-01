@@ -3,8 +3,8 @@
   "repository": "AppElent/developer-tools",
   "scope": "project",
   "ref": "main",
-  "commit": "a4ceacff1be49df11f8cad1b5a11827c041224d9",
-  "manifestHash": "25a3a8374561478b35efcd137cd5994ed8ce74fc3c79477aad106a2e4dbcb531",
+  "commit": "922e11c81e300bfe3c1f61b98707b77ebde72750",
+  "manifestHash": "59be18e343575adc15ccc12f8dba37e2a2152663a02482b731c42f6d1f64a32d",
   "files": {
     "docs/adr/.template.md": {
       "sha256": "f28b286102fb1a00512455a06896e5da3c47d67a14b0ee6c08fa84258af24adf",
@@ -135,8 +135,8 @@
       "sha256": "2b5fc7ca3a68216d3c63124808e073c093899f5020312349ee9be43246a75b35"
     },
     "docs/standards/baseline.md": {
-      "sha256": "a82f6563e35fe46aaa069d4f41251b991707cdea2d3b2f11b78772b0a9c02cd0",
-      "version": "2.1.0"
+      "sha256": "430e7c94e6492e03dc08dbce1a5de2671c1544cd70bafc80796b5cfffe96075d",
+      "version": "2.2.0"
     },
     "docs/standards/baseline/toolkit.md": {
       "sha256": "8538d7fef72a8d34393a55344f5ca31eaf93e24324d219ffcb3447e5178d4776",
@@ -218,8 +218,8 @@
       "version": "2.0.0"
     },
     "docs/standards/mobile-baseline.md": {
-      "sha256": "13166f13f8f01a9174905c3a39a15470ee3fea36592735c2c023d9b0c250fdbb",
-      "version": "2.4.0"
+      "sha256": "141a959f511535ea1785330789badcceeb84adeb2fe3bf0892fdf23165ce696c",
+      "version": "2.5.0"
     },
     "docs/standards/mobile-baseline/examples/ota-guard.ts": {
       "sha256": "289feb472d01d52047d137fb8d65de5394f6cfb15b81e00a1bc9b4ddf8821456"
@@ -233,11 +233,11 @@
       "version": "1.1.1"
     },
     "docs/standards/mobile-structure.md": {
-      "sha256": "77f425e722c3b7813c20161f91af4e6d7dccef81391f62d51ca95602fcc38470",
-      "version": "1.0.0"
+      "sha256": "2d36ec37d33a674435f349c82099c7080bd08deefe602b2d842d51aa626987c0",
+      "version": "1.1.0"
     },
     "docs/standards/mobile-structure/examples/check-mobile-structure.mjs": {
-      "sha256": "69e60cd17a4ae9c5f9d6c2a8ff95e698f3c104152b65153dabe167d29a5434e0"
+      "sha256": "d23197afe23ef83d1f0259511a4efea429391f303001e3b13886ec3000e76a28"
     },
     "docs/standards/number-fields.md": {
       "sha256": "3c72090d1356626ad78c60e51b4b94a6597612a4eece72dfb43b0e01c1353b4d",
@@ -264,12 +264,12 @@
       "sha256": "6d53f308f65c9aca379905a3dcb35dd8aa2496fcd6ea698651581dbcf7a71aec"
     },
     "docs/standards/sentry-monitoring.md": {
-      "sha256": "3086e9549768d413df4bdebfa86ea9598a0da5e35d5116b01479930a2966309b",
-      "version": "2.1.0"
+      "sha256": "17d555d9a40af80284f5588c42c24dd01bd85637fdcffeae93bb651823ef050c",
+      "version": "2.2.0"
     },
     "docs/standards/sentry-monitoring/setup.md": {
-      "sha256": "bea5734edf3551af8e7592e146722861eefd681ab827c8b10dd9f367b76fdf9e",
-      "version": "1.0.1"
+      "sha256": "e5074b6cca77038f95b8efa4d74ec6295f2e146a0da8ba2362b506a426116daf",
+      "version": "1.1.0"
     },
     "docs/standards/specialist-skills.md": {
       "sha256": "6488c7896982879accb1c4d54c0f019e69a8100c2a9f0d2249c07071d6960e04",
@@ -328,7 +328,7 @@
       "sha256": "9347b3602296c5d9d31b7fab503e2ef696886f2f3de4c9899d44b459e8add087"
     },
     "scripts/lib/baseline.mjs": {
-      "sha256": "369d5f0e662e3962dd526f09aca356a4c8a5f2e3baabdb27f4fcc90e12ab7001"
+      "sha256": "7e55f5ff793a4800f74718b9c6b5df4ac19bce48463eb8a54a2f87d5200038c2"
     },
     "scripts/lib/env/cli.mjs": {
       "sha256": "f15836d547ba135f76accff14f6c16dffcb6eaeb45a2775313f6c61d700fb84d"
@@ -443,12 +443,35 @@
     "docs/standards/mobile-distribution.md": {
       "sha256": "5f5312f2825ff163ea20d2ac8774f9b9badc229d7da8329a060baf6ac7af48e1",
       "version": "1.0.0"
+    },
+    "docs/standards/baseline/templates/biome.fragment.json": {
+      "sha256": "b9dd169a93273be50cad537983871ab1a066698002887ce803b94b165c096951"
+    },
+    "docs/standards/baseline/templates/ci.yml": {
+      "sha256": "d1cd16bc50601826f88905218b48853421d796e59527cb83515bec5f1ca0859d"
+    },
+    "docs/standards/baseline/templates/lefthook.yml": {
+      "sha256": "4b7dee796eea2a3dae8fbd6dcfed6f84cb1f5a84525858b570b0ac86cd6787c7"
+    },
+    "docs/standards/baseline/templates/pnpm-workspace.yaml": {
+      "sha256": "46b56e44bf07a901ca6f23c11b6bf4d78c68a11b70c01195efeb1e8d7cba8c81"
+    },
+    "docs/standards/convex.md": {
+      "sha256": "bc8da8053aceb9e2a2e5e91789fc06756562b652c00a1852642cd9286187180c",
+      "version": "1.0.0"
+    },
+    "docs/standards/repo-layout.md": {
+      "sha256": "a699406e81863ac1faf6a748b9f270f95985f12a6a9f6b289c21e9f75fed5ad7",
+      "version": "1.0.0"
+    },
+    "docs/standards/sentry-monitoring/examples/convex-sentry.mjs": {
+      "sha256": "f6cd3d75195ae7fad1083eeb1ab6f347f40ced85d189d6232e4c1c1a2c78648f"
     }
   },
   "blocks": {
     "AGENTS.md": "5dd11c522805ab3041f27582a641d667534c3594f06ab023a435219f3894dcea",
     "CLAUDE.md": "3a539a9496d276ff97cbc761a98a6db988880a0939a61e78fb156b237927cb24",
-    "CODING_STANDARDS.md": "c02e42dbea4d3325c5bdc2cfd166b2cf27d35fad12e70e77010770e2623edd17",
+    "CODING_STANDARDS.md": "1e5dfc2d2c6b0e61c5c862dcfc275f587be043edcd215dbde0ca86e702a58599",
     "DESIGN_SYSTEM.md": "47a654e3d684ca6b60820fd200aafa6834776f793c1ae6a3ab2094ab82e78ee1"
   }
 }

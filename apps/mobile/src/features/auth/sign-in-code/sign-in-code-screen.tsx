@@ -27,7 +27,7 @@ import { AuthLink } from '../../../components/AuthLink'
 import { AuthScreen } from '../../../components/AuthScreen'
 import { haptics } from '../../../feedback/haptics'
 import { fmt, useI18n } from '../../../i18n'
-import { useTokens } from '../../../theme/tokens'
+import { TYPE, useTokens } from '../../../theme/tokens'
 import { useEmailCodeSignIn } from '../use-email-code-sign-in'
 import { useCooldown } from './use-cooldown'
 
@@ -184,5 +184,5 @@ export function SignInCodeScreen({ email }: { email?: string }) {
 }
 
 const styles = StyleSheet.create({
-  notice: { fontSize: 14, lineHeight: 20 },
+  notice: TYPE.body,
 })
