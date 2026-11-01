@@ -43,7 +43,7 @@ function CacheLifecycle({ children }: { children: ReactNode }) {
       registry.idle = 0
       if (all) registry.subs.clear()
     }
-    const update = (state: string) => {
+    const update = (state: string | null | undefined) => {
       const foreground = state === 'active'
       registry.timeout = foreground ? EXPIRATION_MS : 0
       registry.maxIdleEntries = foreground ? MAX_IDLE_ENTRIES : 0

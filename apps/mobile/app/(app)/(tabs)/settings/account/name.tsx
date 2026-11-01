@@ -18,7 +18,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  type TextInput,
+  type TextInputInstance,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -36,7 +36,7 @@ export default function EditName() {
   const { t } = useI18n()
   const { user } = useUser()
   const insets = useSafeAreaInsets()
-  const last = useRef<TextInput>(null)
+  const last = useRef<TextInputInstance>(null)
 
   const [first, setFirst] = useState(user?.firstName ?? '')
   const [family, setFamily] = useState(user?.lastName ?? '')

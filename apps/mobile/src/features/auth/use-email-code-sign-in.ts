@@ -7,7 +7,7 @@
  * `verify-email`, so the only thing the second screen needs from the first is
  * the address to say back.
  *
- * Core 3 (ADR-0037): calls resolve to `{ error }`, and a verified code still
+ * Core 3 (ADR-0038): calls resolve to `{ error }`, and a verified code still
  * needs `finalize()` before `isSignedIn` flips — at which point the `(auth)`
  * layout redirects and the screen unmounts, so `busy` is only cleared on the
  * failure paths. Nothing here navigates, for the same reason as

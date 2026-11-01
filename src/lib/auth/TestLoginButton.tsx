@@ -1,12 +1,13 @@
-import { useSignIn } from '@clerk/clerk-react'
+import { useSignIn } from '@clerk/react'
 import { useState } from 'react'
 import { useMessages } from '../i18n'
 import { AuthButton } from './AuthButton'
 import { AuthError } from './AuthError'
+import { orThrow } from './clerkResult'
 import { clerkErrorMessage, shouldShowTestLogin } from './core'
 
 export function TestLoginButton({ onSuccess }: { onSuccess: () => void }) {
-  const { isLoaded, signIn, setActive } = useSignIn()
+  const { signIn } = useSignIn()
   const { auth } = useMessages()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -16,18 +17,17 @@ export function TestLoginButton({ onSuccess }: { onSuccess: () => void }) {
   }
 
   async function loginTestUser() {
-    if (!isLoaded) {
-      return
-    }
     setError(null)
     setLoading(true)
     try {
-      const result = await signIn.create({
-        identifier: import.meta.env.VITE_TEST_USER_EMAIL as string,
-        password: import.meta.env.VITE_TEST_USER_PASSWORD as string,
-      })
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
+      await orThrow(
+        signIn.password({
+          identifier: import.meta.env.VITE_TEST_USER_EMAIL as string,
+          password: import.meta.env.VITE_TEST_USER_PASSWORD as string,
+        }),
+      )
+      if (signIn.status === 'complete') {
+        await orThrow(signIn.finalize())
         onSuccess()
       } else {
         setError(auth.testLogin.needsSteps)

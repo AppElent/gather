@@ -1,4 +1,4 @@
-import { useUser } from '@clerk/clerk-react'
+import { useUser } from '@clerk/react'
 import { useEffect, useState } from 'react'
 import { useMessages } from '../../lib/i18n'
 import type { IssueReporterType } from '../../lib/issueReporter'

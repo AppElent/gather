@@ -19,7 +19,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  type TextInput,
+  type TextInputInstance,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -37,7 +37,7 @@ export default function ChangePassword() {
   const { t } = useI18n()
   const { user } = useUser()
   const insets = useSafeAreaInsets()
-  const next = useRef<TextInput>(null)
+  const next = useRef<TextInputInstance>(null)
 
   const [current, setCurrent] = useState('')
   const [password, setPassword] = useState('')

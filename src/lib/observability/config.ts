@@ -30,13 +30,27 @@ export function environmentFromHostname(hostname: string): string {
 }
 
 /**
- * Options shared by the browser and the Worker. `sendDefaultPii: false` stops
- * the SDK attaching IPs, cookies and headers; the hooks in `./privacy` remove
- * what is left. Tracing, replay, logs and profiling stay off: this is a
- * household app holding health, money and notes, and nothing here needs them.
+ * Options shared by the browser and the Worker. `dataCollection` (Sentry 11's
+ * replacement for `sendDefaultPii`) turns off every automatic source of user
+ * data: IPs and user info, cookies, headers, bodies, query strings and stack
+ * locals. The hooks in `./privacy` remove what is left. Tracing, replay, logs
+ * and profiling stay off: this is a household app holding health, money and
+ * notes, and nothing here needs them.
  */
 export const SENTRY_BASE_OPTIONS = {
-  sendDefaultPii: false,
+  dataCollection: {
+    userInfo: false,
+    cookies: false,
+    httpHeaders: false,
+    httpBodies: [] as never[], // none; `as never[]` keeps it mutable under `as const`
+    urlQueryParams: false,
+    stackFrameVariables: false,
+    databaseQueryData: false,
+    queues: false,
+    graphQL: { document: false, variables: false },
+    genAI: { inputs: false, outputs: false },
+    mcp: { inputs: false, outputs: false },
+  },
   attachStacktrace: true,
   maxBreadcrumbs: 30,
 } as const

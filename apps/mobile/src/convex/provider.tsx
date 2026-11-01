@@ -43,10 +43,9 @@ const convex = new ConvexReactClient(CONVEX_URL, {
 })
 
 export function AppConvexProvider({ children }: { children: ReactNode }) {
-  // `useAuth` comes from `@clerk/expo` (Clerk Core 3) while the web passes
-  // `@clerk/clerk-react`'s (Core 2) — ADR-0037. Convex only ever calls the hook
-  // and reads a token off it, so the generation split stops here. The adapter
-  // is ours rather than `ConvexProviderWithClerk` so a failed token refresh can
-  // be retried (`ClerkConvexAuth.tsx`).
+  // `useAuth` comes from `@clerk/expo`, the web's from `@clerk/react`; both are
+  // Clerk Core 3 (ADR-0038), and Convex only calls the hook for a token. The
+  // adapter is ours rather than `ConvexProviderWithClerk` so a failed token
+  // refresh can be retried (`ClerkConvexAuth.tsx`).
   return <ClerkConvexAuth client={convex}>{children}</ClerkConvexAuth>
 }

@@ -10,7 +10,7 @@ const authState = vi.hoisted(() => ({
 
 const navigateMock = vi.hoisted(() => vi.fn())
 
-vi.mock('@clerk/clerk-react', () => ({
+vi.mock('@clerk/react', () => ({
   useAuth: () => authState,
 }))
 

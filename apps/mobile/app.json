@@ -79,14 +79,7 @@
       "expo-localization",
       "expo-sqlite",
       "@sentry/react-native/expo",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "enableSceneSupport": true
-          }
-        }
-      ]
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

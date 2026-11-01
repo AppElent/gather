@@ -15,7 +15,7 @@ const stalled = vi.hoisted(() => ({ value: false }))
 const reloadMock = vi.hoisted(() => vi.fn())
 const navigateMock = vi.hoisted(() => vi.fn())
 
-vi.mock('@clerk/clerk-react', () => ({ useAuth: () => clerk }))
+vi.mock('@clerk/react', () => ({ useAuth: () => clerk }))
 
 vi.mock('convex/react', () => ({
   useConvexAuth: () => convexAuth,

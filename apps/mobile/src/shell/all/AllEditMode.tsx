@@ -24,7 +24,7 @@
 import type { ModuleGroup } from '@gather/core/modules'
 import { moduleText } from '@gather/core/modules'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import type { ScrollView as GestureScrollView } from 'react-native-gesture-handler'
+import type { LegacyScrollView as GestureScrollView } from 'react-native-gesture-handler'
 
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'

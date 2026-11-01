@@ -11,11 +11,10 @@
  * SMS; the email code has no equivalent, so the keyboard is the fallback and the
  * field is numeric and capped at six.
  *
- * Clerk **Core 3** (ADR-0037). The phone is a Clerk generation ahead of the
- * web, which is Core 2 in `src/lib/auth` — so the web's form logic
- * reads like a reference implementation and is not one. Same hook names,
- * different returns: `{ error }` instead of `throw`, `finalize()` instead of
- * `setActive()`, per-field errors on the hook's `errors` signal.
+ * Clerk **Core 3**, the same generation as the web's forms in `src/lib/auth`
+ * (ADR-0038): calls resolve to `{ error }`, and a finished attempt still needs
+ * `finalize()`. The phone reads per-field errors off the hook's `errors`
+ * signal, where the web shows one banner.
  */
 
 import { useSignUp } from '@clerk/expo'

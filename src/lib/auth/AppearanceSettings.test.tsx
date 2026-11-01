@@ -12,8 +12,8 @@ beforeAll(() => {
 })
 
 const update = vi.fn()
-const user = { unsafeMetadata: { language: 'nl' }, update }
-vi.mock('@clerk/clerk-react', () => ({
+const user = { unsafeMetadata: { language: 'nl' }, updateMetadata: update }
+vi.mock('@clerk/react', () => ({
   useUser: () => ({ user }),
 }))
 
@@ -43,9 +43,8 @@ describe('AppearanceSettings', () => {
 
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(localStorage.getItem('theme')).toBe('dark')
-    expect(update).toHaveBeenCalledWith({
-      unsafeMetadata: { language: 'nl', theme: 'dark' },
-    })
+    // Clerk merges it server-side, so the saved language is left alone.
+    expect(update).toHaveBeenCalledWith({ unsafeMetadata: { theme: 'dark' } })
     expect(
       screen.getByRole('button', { name: /Dark/ }).getAttribute('aria-pressed'),
     ).toBe('true')

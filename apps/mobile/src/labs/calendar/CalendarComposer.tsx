@@ -29,6 +29,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  type TextInputInstance,
   View,
 } from 'react-native'
 import Animated, {
@@ -141,7 +142,7 @@ function CardComposer({
    * the caret gone — you picked a date and the composer read as finished, which
    * is the opposite of what a create is.
    */
-  const nameRef = useRef<TextInput>(null)
+  const nameRef = useRef<TextInputInstance>(null)
   /**
    * `blur()`, not `Keyboard.dismiss()`: dismiss hides the keyboard and leaves
    * the field focused, and a `focus()` on an already-focused field is a no-op —
