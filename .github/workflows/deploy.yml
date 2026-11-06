@@ -36,7 +36,9 @@ jobs:
       # which environment is declared in env.manifest.ts and verified by the
       # `Check environment` step below, before anything ships.
       ENVIRONMENT_NAME: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'stg' }}
-      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      # Production only. A stg job also inherits any repo secret of this name, so
+      # withholding it here is what stops a merge changing the backend (ADR 0039).
+      CONVEX_DEPLOY_KEY: ${{ github.event_name == 'workflow_dispatch' && secrets.CONVEX_DEPLOY_KEY || '' }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -72,9 +74,7 @@ jobs:
 
       # Fails the deploy rather than shipping a half-configured environment. An
       # Environment without its own CONVEX_DEPLOY_KEY silently inherits the repo
-      # one, so production checks the prefix first; stg must hold no key at all,
-      # because with one a merge could change the backend real households use.
-      # `--ci` checks the job env instead of calling APIs: a workflow cannot list
+      # one, so production checks the prefix first. `--ci` checks the job env instead of calling APIs: a workflow cannot list
       # GitHub secrets and does not need to, because it holds them.
       - name: Check environment
         run: |
@@ -83,9 +83,6 @@ jobs:
               prod:*) ;;
               *) echo "::error::CONVEX_DEPLOY_KEY in the production Environment is missing or not a prod: key."; exit 1 ;;
             esac
-          elif [ -n "$CONVEX_DEPLOY_KEY" ]; then
-            echo "::error::The stg Environment must not hold a CONVEX_DEPLOY_KEY (ADR 0039)."
-            exit 1
           fi
           node scripts/env.mjs check "$ENVIRONMENT_NAME" --ci
 
