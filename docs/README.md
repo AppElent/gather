@@ -63,3 +63,4 @@ A new ADR takes the number after the highest (0038 next).
 | [0036](adr/0036-a-nested-page-carries-its-own-trail.md) | A nested page carries its own trail, and back is an address | accepted | web navigation | `src/components/app/Breadcrumbs.tsx` |
 | [0037](adr/0037-the-phone-is-a-clerk-generation-ahead-of-the-web.md) | The phone is a Clerk generation ahead of the web | superseded | mobile auth | `apps/mobile/src/auth/` |
 | [0038](adr/0038-both-clients-speak-clerk-core-3.md) | Both clients speak Clerk Core 3 | accepted | auth | `src/lib/auth/`, `apps/mobile/src/auth/` |
+| [0039](adr/0039-staging-is-a-frontend-on-the-production-backend.md) | Staging is a frontend on the production backend | accepted | deployment | `.github/workflows/deploy.yml`, `env.manifest.ts` |

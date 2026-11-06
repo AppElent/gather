@@ -59,7 +59,7 @@ export type Destination =
   | { kind: 'file'; path: string }
   | {
       kind: 'convex'
-      target: 'dev' | 'preview-default' | 'staging' | 'production'
+      target: 'dev' | 'preview-default' | 'production'
     }
   | { kind: 'worker'; worker: string }
   | { kind: 'github'; scope: 'repo' | 'stg' | 'production' }
@@ -139,8 +139,11 @@ export function destinationFor(
           return { kind: 'convex', target: 'dev' }
         case 'preview':
           return { kind: 'convex', target: 'preview-default' }
+        // Staging runs on the production deployment, whose variables belong to
+        // `production` (ADR 0039). A second writer would be a way to set
+        // ENABLE_SAMPLE_DATA on real households.
         case 'stg':
-          return { kind: 'convex', target: 'staging' }
+          return null
         case 'production':
           return { kind: 'convex', target: 'production' }
       }
@@ -249,7 +252,7 @@ export const ENTRIES = [
     key: 'clerkPublishableKey',
     infisicalKey: 'clerk-publishable-key',
     description:
-      'Clerk publishable key. Published by design; `pk_test_…` everywhere but production.',
+      'Clerk publishable key. Published by design. Staging uses the production key because it shares the production Convex deployment, which trusts one issuer (ADR 0039).',
     secret: false,
     lands: {
       'vite-build': {
@@ -275,7 +278,7 @@ export const ENTRIES = [
     lands: {
       'convex-functions': {
         name: 'CLERK_JWT_ISSUER_DOMAIN',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'production'],
       },
     },
   },
@@ -290,13 +293,13 @@ export const ENTRIES = [
       'vite-build': {
         name: 'VITE_CONVEX_URL',
         environments: ['local', 'preview', 'stg', 'production'],
-        // Every deployed build learns the URL from the deploy it just did,
-        // via `convex deploy --cmd-url-env-var-name CONVEX_URL`. There is no
-        // value to store, and on preview there could not be — Convex mints a
-        // backend per PR.
+        // A build that deploys a backend learns the URL from that deploy, via
+        // `convex deploy --cmd-url-env-var-name CONVEX_URL`. There is no value
+        // to store, and on preview there could not be — Convex mints a backend
+        // per PR. Staging deploys no backend, so it stores the production URL
+        // (ADR 0039).
         suppliedIn: {
           preview: 'convex deploy --cmd-url-env-var-name CONVEX_URL',
-          stg: 'convex deploy --cmd-url-env-var-name CONVEX_URL',
           production: 'convex deploy --cmd-url-env-var-name CONVEX_URL',
         },
       },
@@ -324,12 +327,12 @@ export const ENTRIES = [
     key: 'convexDeployKey',
     infisicalKey: 'convex-deploy-key',
     description:
-      'Deploy key scoping every `convex` command in CI to one deployment. Its prefix (`preview:` / `prod:`) picks the target.',
+      'Deploy key scoping every `convex` command in CI to one deployment. Its prefix (`preview:` / `prod:`) picks the target. Absent from stg by design: a merge must not be able to change the production backend (ADR 0039).',
     secret: true,
     lands: {
       workflow: {
         name: 'CONVEX_DEPLOY_KEY',
-        environments: ['preview', 'stg', 'production'],
+        environments: ['preview', 'production'],
       },
     },
   },
@@ -339,16 +342,16 @@ export const ENTRIES = [
     key: 'sampleDataEnabled',
     infisicalKey: 'enable-sample-data',
     description:
-      'Whether the Sample household can be loaded. Two names, one decision: the Convex copy gates the mutation, the Vite copy shows the panel. Never production — its absence there is what keeps fake households out of real data.',
+      'Whether the Sample household can be loaded. Two names, one decision: the Convex copy gates the mutation, the Vite copy shows the panel. Never production or stg, which share a deployment — its absence there is what keeps fake households out of real data.',
     secret: false,
     lands: {
       'convex-functions': {
         name: 'ENABLE_SAMPLE_DATA',
-        environments: ['local', 'preview', 'stg'],
+        environments: ['local', 'preview'],
       },
       'vite-build': {
         name: 'VITE_ENABLE_SAMPLE_DATA',
-        environments: ['local', 'preview', 'stg'],
+        environments: ['local', 'preview'],
       },
     },
   },
@@ -362,7 +365,7 @@ export const ENTRIES = [
     lands: {
       'vite-build': {
         name: 'VITE_TEST_USER_EMAIL',
-        environments: ['local', 'preview', 'stg'],
+        environments: ['local', 'preview'],
       },
       'expo-local': {
         name: 'EXPO_PUBLIC_TEST_USER_EMAIL',
@@ -380,7 +383,7 @@ export const ENTRIES = [
     lands: {
       'vite-build': {
         name: 'VITE_TEST_USER_PASSWORD',
-        environments: ['local', 'preview', 'stg'],
+        environments: ['local', 'preview'],
       },
       'expo-local': {
         name: 'EXPO_PUBLIC_TEST_USER_PASSWORD',
@@ -480,7 +483,7 @@ export const ENTRIES = [
     lands: {
       'convex-functions': {
         name: 'ANTHROPIC_API_KEY',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'production'],
       },
     },
   },
@@ -496,7 +499,7 @@ export const ENTRIES = [
     lands: {
       'convex-functions': {
         name: 'NOTION_CLIENT_ID',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'production'],
       },
     },
   },
@@ -509,7 +512,7 @@ export const ENTRIES = [
     lands: {
       'convex-functions': {
         name: 'NOTION_CLIENT_SECRET',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'production'],
       },
     },
   },
@@ -523,7 +526,7 @@ export const ENTRIES = [
     lands: {
       'convex-functions': {
         name: 'TODOIST_CLIENT_ID',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'production'],
       },
     },
   },
@@ -536,7 +539,7 @@ export const ENTRIES = [
     lands: {
       'convex-functions': {
         name: 'TODOIST_CLIENT_SECRET',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'production'],
       },
     },
   },

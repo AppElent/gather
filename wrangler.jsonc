@@ -9,6 +9,12 @@
   // local. Production is the top-level config, not an env block.
   "env": {
     "dev": { "name": "gather-dev", "workers_dev": true },
-    "stg": { "name": "gather-stg", "workers_dev": true }
+    // A custom domain, because the production Clerk instance staging signs in
+    // through refuses origins outside appelent.nl (ADR 0039).
+    "stg": {
+      "name": "gather-stg",
+      "workers_dev": true,
+      "routes": [{ "pattern": "gather-stg.appelent.nl", "custom_domain": true }]
+    }
   }
 }

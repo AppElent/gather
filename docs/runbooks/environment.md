@@ -23,6 +23,7 @@ here.
 | Fact | Value |
 | --- | --- |
 | Targets → Infisical environment | `local` → `dev`, `preview` and `stg` → `staging`, `production` → `prod` |
+| `stg` holds no Convex deploy key or Convex variables | It runs on the production deployment, which `production` configures ([ADR-0039](../adr/0039-staging-is-a-frontend-on-the-production-backend.md)) |
 | Infisical folders | `/` then `/gather`; `/gather` overrides a same-named root value. `.infisical.json` holds the project reference only |
 | Local apply writes | `.env.local`, `.dev.vars`, `apps/mobile/.env.local` |
 | Remote apply routes to | GitHub (repo scope uses the `PREVIEW_` prefix; `stg`/`production` Environments), Convex, Workers, EAS (`development`, `preview`, `production`) |
