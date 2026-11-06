@@ -3,6 +3,9 @@ name: Deploy
 # Merge to main -> stg. Manual "Run workflow" -> production. There is no
 # deployed dev environment: dev is `pnpm dev` against your own convex dev
 # deployment, which is why nothing here can push schema out from under it.
+#
+# stg is a frontend on the production Convex deployment (ADR 0039): a merge ships
+# the gather-stg Worker and nothing else. Backend changes ship on the click.
 on:
   push:
     branches: [main]
@@ -40,9 +43,7 @@ jobs:
       # Public values are GitHub *variables*, not secrets: the build inlines
       # them into a downloadable bundle.
       VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
-      VITE_ENABLE_SAMPLE_DATA: ${{ vars.VITE_ENABLE_SAMPLE_DATA }}
-      VITE_TEST_USER_EMAIL: ${{ vars.VITE_TEST_USER_EMAIL }}
-      VITE_TEST_USER_PASSWORD: ${{ vars.VITE_TEST_USER_PASSWORD }}
+      VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
       VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
       VITE_SENTRY_ORG: ${{ vars.VITE_SENTRY_ORG }}
       VITE_SENTRY_PROJECT: ${{ vars.VITE_SENTRY_PROJECT }}
@@ -71,17 +72,21 @@ jobs:
 
       # Fails the deploy rather than shipping a half-configured environment. An
       # Environment without its own CONVEX_DEPLOY_KEY silently inherits the repo
-      # one, so the prefix is checked first. `--ci` checks the job env instead of
-      # calling APIs: a workflow cannot list GitHub secrets and does not need to,
-      # because it holds them. This catches the hazard ADR 0013 names — "the
-      # staging deployment inherits nothing" — before a merge ships a staging
-      # site nobody can sign into.
+      # one, so production checks the prefix first; stg must hold no key at all,
+      # because with one a merge could change the backend real households use.
+      # `--ci` checks the job env instead of calling APIs: a workflow cannot list
+      # GitHub secrets and does not need to, because it holds them.
       - name: Check environment
         run: |
-          case "$CONVEX_DEPLOY_KEY" in
-            prod:*) ;;
-            *) echo "::error::CONVEX_DEPLOY_KEY in the $ENVIRONMENT_NAME Environment is missing or not a prod: key."; exit 1 ;;
-          esac
+          if [ "$ENVIRONMENT_NAME" = production ]; then
+            case "$CONVEX_DEPLOY_KEY" in
+              prod:*) ;;
+              *) echo "::error::CONVEX_DEPLOY_KEY in the production Environment is missing or not a prod: key."; exit 1 ;;
+            esac
+          elif [ -n "$CONVEX_DEPLOY_KEY" ]; then
+            echo "::error::The stg Environment must not hold a CONVEX_DEPLOY_KEY (ADR 0039)."
+            exit 1
+          fi
           node scripts/env.mjs check "$ENVIRONMENT_NAME" --ci
 
       # CONVEX_DEPLOY_KEY alone picks the target deployment. Convex exposes that
@@ -92,6 +97,7 @@ jobs:
       # Both targets run `pnpm build`, not build:development — staging exists to
       # exercise the same bundle production ships.
       - name: Convex deploy + build
+        if: github.event_name == 'workflow_dispatch'
         run: |
           pnpm exec convex deploy \
             --cmd-url-env-var-name CONVEX_URL \
@@ -101,10 +107,17 @@ jobs:
       # separate steps. Runs before the Worker flips, so the backend is complete by
       # the time anyone can reach the new frontend.
       - name: Seed Catalog
+        if: github.event_name == 'workflow_dispatch'
         run: pnpm exec convex run seed:seedCatalog
 
       - name: Seed tasting Catalog
+        if: github.event_name == 'workflow_dispatch'
         run: pnpm exec convex run seed:seedTastingCatalog
+
+      # VITE_CONVEX_URL comes from the stg Environment, as the production URL.
+      - name: Build staging
+        if: github.event_name != 'workflow_dispatch'
+        run: pnpm build
 
       # Without the name check, a build without CLOUDFLARE_ENV would silently
       # replace the production Worker from a staging deploy.

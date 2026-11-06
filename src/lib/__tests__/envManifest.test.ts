@@ -147,10 +147,29 @@ describe('what production may not have', () => {
     expect(productionNames).not.toContain('VITE_TEST_USER_PASSWORD')
   })
 
-  it('still carries them on stg, which is a prod-type deployment', () => {
-    const stgNames = placementsFor('stg').map((p) => p.name)
-    expect(stgNames).toContain('ENABLE_SAMPLE_DATA')
-    expect(stgNames).toContain('VITE_ENABLE_SAMPLE_DATA')
+})
+
+describe('what stg may not have', () => {
+  // stg is a frontend on the production Convex deployment (ADR 0039).
+  const stgNames = placementsFor('stg').map((p) => p.name)
+
+  it('excludes the sample household and the test user, like production', () => {
+    expect(stgNames).not.toContain('ENABLE_SAMPLE_DATA')
+    expect(stgNames).not.toContain('VITE_ENABLE_SAMPLE_DATA')
+    expect(stgNames).not.toContain('VITE_TEST_USER_EMAIL')
+    expect(stgNames).not.toContain('VITE_TEST_USER_PASSWORD')
+  })
+
+  it('cannot change the production backend', () => {
+    expect(stgNames).not.toContain('CONVEX_DEPLOY_KEY')
+    expect(destinationFor('convex-functions', 'stg')).toBeNull()
+  })
+
+  it('stores the Convex URL, because no deploy produces it', () => {
+    const url = placementsFor('stg').find(
+      (p) => p.entry.key === 'convexUrl' && p.name === 'VITE_CONVEX_URL',
+    )
+    expect(url?.suppliedBy).toBeNull()
   })
 })
 
@@ -159,7 +178,7 @@ describe('values the deploy produces', () => {
     // Convex mints a backend per PR, so on preview there is no value anyone
     // could have stored. Without this, `check` would report a permanent and
     // unfixable failure.
-    for (const environment of ['preview', 'stg', 'production'] as const) {
+    for (const environment of ['preview', 'production'] as const) {
       const supplied = placementsFor(environment, { prNumber: '1' }).find(
         (p) => p.entry.key === 'convexUrl',
       )
