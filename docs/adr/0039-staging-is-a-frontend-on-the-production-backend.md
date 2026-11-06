@@ -22,8 +22,8 @@ one-maintainer household app does not earn its upkeep.
 The alternative was to hand stg the production deploy key and leave the workflow
 alone. Every merge would then have changed the schema and functions real
 households use while the production Worker stayed on the old build, with no click
-in between. Holding no key makes that impossible rather than discouraged, and the
-workflow fails if the stg Environment ever gains one.
+in between. The workflow withholds the key from a stg job, which makes that impossible
+rather than discouraged, even if a repo secret of the same name exists.
 
 The cost is that staging cannot run a change that needs new Convex functions: such
 a page fails there until production deploys. Staging tests frontend changes only.
