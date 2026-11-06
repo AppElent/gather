@@ -1,7 +1,7 @@
 ---
 type: decision
 description: Read before changing how an environment variable is declared and routed.
-version: 1.0.0
+version: 1.1.0
 status: accepted
 date: 2026-08-09
 ---
@@ -20,7 +20,7 @@ function, the workflow itself, or the Expo build — and the environments it is 
 | `build-tooling` | `.env.local` | GitHub repo | GitHub env `stg` | GitHub env `production` |
 | `local-tooling` | `.env.local` | — | — | — |
 | `worker-runtime` | `.dev.vars` | `gather-pr-<N>` | `gather-stg` | `gather` |
-| `convex-functions` | your `convex dev` | `--type preview` default | convex `staging` | convex prod |
+| `convex-functions` | your `convex dev` | `--type preview` default | none ([ADR 0039](./0039-staging-is-a-frontend-on-the-production-backend.md)) | convex prod |
 | `workflow` | — | GitHub repo | GitHub env `stg` | GitHub env `production` |
 | `expo-build` | EAS `development` | EAS `preview` | EAS `preview` | EAS `production` |
 | `eas-tooling` | EAS `development` | EAS `preview` | EAS `preview` | EAS `production` |
