@@ -27,7 +27,6 @@ import Beer from 'lucide-react-native/icons/beer'
 import Calendar from 'lucide-react-native/icons/calendar'
 import CalendarHeart from 'lucide-react-native/icons/calendar-heart'
 import Camera from 'lucide-react-native/icons/camera'
-// Chrome. Not Modules, so deliberately kept out of the union below.
 import Check from 'lucide-react-native/icons/check'
 import ChefHat from 'lucide-react-native/icons/chef-hat'
 import ChevronDown from 'lucide-react-native/icons/chevron-down'
@@ -40,11 +39,13 @@ import CircleMinus from 'lucide-react-native/icons/circle-minus'
 import CirclePlus from 'lucide-react-native/icons/circle-plus'
 import Clock from 'lucide-react-native/icons/clock'
 import Ellipsis from 'lucide-react-native/icons/ellipsis'
+import ExternalLink from 'lucide-react-native/icons/external-link'
 import Eye from 'lucide-react-native/icons/eye'
 import EyeOff from 'lucide-react-native/icons/eye-off'
 import FlaskConical from 'lucide-react-native/icons/flask-conical'
 import GripVertical from 'lucide-react-native/icons/grip-vertical'
 import ImagePlus from 'lucide-react-native/icons/image-plus'
+import Info from 'lucide-react-native/icons/info'
 import KeyRound from 'lucide-react-native/icons/key-round'
 import Grid from 'lucide-react-native/icons/layout-grid'
 import List from 'lucide-react-native/icons/list'
@@ -68,6 +69,7 @@ import User from 'lucide-react-native/icons/user'
 import Users from 'lucide-react-native/icons/users'
 import Wine from 'lucide-react-native/icons/wine'
 import X from 'lucide-react-native/icons/x'
+// Chrome. Not Modules, so deliberately kept out of the union below.
 
 import { CheeseWedge } from './CheeseWedge'
 import { type Glyph, glyph } from './glyph'
@@ -136,6 +138,10 @@ export const UI_ICONS = {
   CircleEllipsis: glyph(CircleEllipsis, 'ellipsis.circle'),
   /** A time on a form, never a duration. */
   Clock: glyph(Clock, 'clock'),
+  /** A row that leaves the app for a web page, where a chevron would lie. */
+  ExternalLink: glyph(ExternalLink, 'arrow.up.right'),
+  /** Settings' About group: the privacy statement. */
+  Info: glyph(Info, 'info.circle'),
   /** Settings' Labs group: prototypes, in development builds only. */
   FlaskConical: glyph(FlaskConical, 'flask'),
   /** A place on a form. */

@@ -220,7 +220,11 @@ export const nl = {
       account: coreNl.shell.routes.account.title,
       phone: 'Op deze telefoon',
       modules: 'Modules',
+      about: coreNl.shell.about.eyebrow,
     },
+
+    /** Opens the web's statement in a browser; the words are the web's own. */
+    privacy: coreNl.privacy.title,
 
     search: {
       placeholder: 'Instellingen zoeken',
