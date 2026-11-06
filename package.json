@@ -72,7 +72,7 @@
     "streamdown": "^2.3.0",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.1.18",
-    "zod": "^4.3.6",
+    "zod": "^4.6.6",
     "zxing-wasm": "^3.1.1"
   },
   "devDependencies": {
