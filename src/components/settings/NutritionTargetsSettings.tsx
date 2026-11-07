@@ -1,7 +1,7 @@
+import type { NutritionFacts } from '@gather/core/domain'
 import { useMutation, useQuery } from 'convex/react'
 import { useEffect, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import type { NutritionFacts } from '../../../convex/lib/nutrition'
 import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'

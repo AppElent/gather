@@ -1,4 +1,6 @@
 import { nl } from '@gather/core/messages'
+import { refusal } from '@gather/core/refusals'
+import { ConvexError } from 'convex/values'
 import { expect, test } from 'vitest'
 import { refusalText } from './SaveAsCombo'
 
@@ -11,10 +13,12 @@ import { refusalText } from './SaveAsCombo'
 const combos = nl.nutrition.diary.combos
 
 test('resolves a refusal key into the reader’s language', () => {
-  expect(refusalText(new Error('comboNothingSelected'), combos)).toBe(
-    'Vink minstens één item aan.',
-  )
-  expect(refusalText(new Error('comboComponentUnavailable'), combos)).toBe(
+  expect(
+    refusalText(new ConvexError(refusal('comboNothingSelected')), combos),
+  ).toBe('Vink minstens één item aan.')
+  expect(
+    refusalText(new ConvexError(refusal('comboComponentUnavailable')), combos),
+  ).toBe(
     'Iets hierin kan niet meer genoteerd worden, dus er is niets gewijzigd.',
   )
 })

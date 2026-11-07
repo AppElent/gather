@@ -1,5 +1,5 @@
+import { barcodeTerm } from '@gather/core/domain'
 import { expect, test } from 'vitest'
-import { barcodeTerm } from '../../../convex/lib/offFetch'
 import { offCacheKey, shouldSearchOff } from './useFoodSearch'
 
 test('a barcode typed into the search box is resolved as a barcode', () => {

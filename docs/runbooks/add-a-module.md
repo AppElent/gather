@@ -31,6 +31,7 @@ through every row in the same change as the Module.
 | `convex/lib/groupCascade.ts` `GROUP_CONTENT` | Every table with a `groupId` | `pnpm typecheck` (derived from the schema) | [Account deletion](../contracts/account-deletion.md) |
 | `convex/lib/storedFiles.ts` `FILE_HOLDERS` | Every `_storage` column | `pnpm typecheck` (typed off the schema) | [Stored files](../contracts/stored-files.md) |
 | Message tables keyed by `NutrientKey`, `MealName`, `BabyEventType` | A new nutrient, meal or baby event type | `pnpm typecheck` | [Localization](../../CODING_STANDARDS.md#localization) |
+| `packages/core/src/babyEvents.ts` (`BabyEventDataByType`, `summarizeBabyEvent`) | A new baby event type | `pnpm typecheck` | [Localization](../../CODING_STANDARDS.md#localization) |
 | `src/lib/groupPaths.ts` (`GROUP_MODULE_INDEXES`, `MODULE_INDEX_SURFACES`) + a route file under `src/routes/_app/` | Every Module | `pnpm test` (`src/lib/modules.routes.test.ts`) | [Navigation](../contracts/navigation.md) |
 | `apps/mobile/src/modules/moduleDestination.ts` | When the Module gets native screens | **Silent**: Home and All keep opening the "planned" placeholder | — |
 | `apps/mobile/src/shell/quickActions.ts` `QUICK_ACTIONS` | When the Module has a capture verb for the Add tab | **Silent**: the verb is missing from Add | [Mobile design system](../../apps/mobile/DESIGN_SYSTEM.md#forms-and-quick-actions) |

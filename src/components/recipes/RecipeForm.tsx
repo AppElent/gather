@@ -1,10 +1,7 @@
 import { isAiLimitReached } from '@gather/core/ai-limit'
+import type { NutritionFacts, NutritionSource } from '@gather/core/domain'
 import { ConvexError } from 'convex/values'
 import { useState } from 'react'
-import type {
-  NutritionFacts,
-  NutritionSource,
-} from '../../../convex/lib/nutrition'
 import { useMessages } from '../../lib/i18n'
 import { NutrientInputGrid } from '../nutrition/NutrientInputGrid'
 import {

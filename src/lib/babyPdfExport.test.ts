@@ -1,6 +1,6 @@
+import type { BabyEventType } from '@gather/core/domain'
 import { describe, expect, test } from 'vitest'
 import type { Doc } from '../../convex/_generated/dataModel'
-import type { BabyEventType } from '../../convex/lib/babyEvents'
 import { groupEventsByMinute } from './babyPdfExport'
 
 const START = new Date('2026-07-25T09:00:00').getTime()

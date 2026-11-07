@@ -1,4 +1,5 @@
 import { normalizeCalendarEvent } from '@gather/core/calendar'
+import { minutesToClock } from '@gather/core/civil-date'
 import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
@@ -16,8 +17,7 @@ import { CalendarEditor } from '../calendar/CalendarEditor'
 import { useCalendarEditor } from '../calendar/useCalendarEditor'
 
 function time(value?: number) {
-  if (value === undefined) return null
-  return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`
+  return value === undefined ? null : minutesToClock(value)
 }
 
 export function CalendarEventScreen({ eventId }: { eventId: string }) {
@@ -46,7 +46,6 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
     groupId: group._id,
     connected: serviceActionsEnabled && Boolean(me),
     create: async (payload) => {
-      if (!payload.calendarId) throw new Error('calendar:calendarRequired')
       return await addEvent({
         groupSlug: group.slug,
         calendarId: payload.calendarId as never,

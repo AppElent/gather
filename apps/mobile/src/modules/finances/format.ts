@@ -12,7 +12,8 @@
  * somewhere, and it happens once, here.
  */
 
-import { formatMoney, monthsUntil, todayIso } from '@gather/core/finance'
+import { addMonths, localIsoDate, monthsUntil } from '@gather/core/civil-date'
+import { formatMoney } from '@gather/core/finance'
 
 export interface Formatters {
   money: (cents: number, options?: { decimals?: boolean }) => string
@@ -65,18 +66,11 @@ export function formatters(locale: string, currency: string): Formatters {
 }
 
 /** Months from today to a date a Member entered. Zero for a date behind us. */
-export function monthsFromToday(iso: string | undefined, now = todayIso()) {
+export function monthsFromToday(iso: string | undefined, now = localIsoDate()) {
   return iso ? monthsUntil(now, iso) : undefined
 }
 
 /** The `YYYY-MM-DD` a month offset from the seam lands on. */
-export function dateForMonth(month: number, now = todayIso()): string {
-  const [year, monthPart, day] = now.split('-').map(Number)
-  const shifted = year * 12 + (monthPart - 1) + Math.max(0, month - 1)
-  const nextYear = Math.floor(shifted / 12)
-  const nextMonth = (shifted % 12) + 1
-  const last = new Date(Date.UTC(nextYear, nextMonth, 0)).getUTCDate()
-  return `${String(nextYear).padStart(4, '0')}-${String(nextMonth).padStart(2, '0')}-${String(
-    Math.min(day, last),
-  ).padStart(2, '0')}`
+export function dateForMonth(month: number, now = localIsoDate()): string {
+  return addMonths(now, Math.max(0, month - 1))
 }

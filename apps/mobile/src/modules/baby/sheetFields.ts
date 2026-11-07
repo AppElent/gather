@@ -25,6 +25,13 @@
  * Pure and message-free: labels arrive as a parameter (ADR-0011's third rule),
  * which is what lets this be tested with no React tree and no device.
  */
+import {
+  DIAPER_KINDS,
+  FEEDING_METHODS,
+  TEMPERATURE_CELSIUS_MAX,
+  TEMPERATURE_CELSIUS_MIN,
+  type TemperatureMethod,
+} from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
 
 export interface SheetField {
@@ -79,8 +86,8 @@ export const SHEET_SPECS: Record<BabyEventType, SheetSpec> = {
       options: ['36.5', '37.0', '37.5', '38.0', '38.5'],
       fallback: '37.0',
       step: 0.1,
-      min: 34,
-      max: 42,
+      min: TEMPERATURE_CELSIUS_MIN,
+      max: TEMPERATURE_CELSIUS_MAX,
       decimals: 1,
       unit: '°C',
     },
@@ -88,7 +95,13 @@ export const SHEET_SPECS: Record<BabyEventType, SheetSpec> = {
       key: 'method',
       labelKey: 'method',
       input: 'chips',
-      options: ['oral', 'ear', 'forehead', 'axillary', 'rectal'],
+      options: [
+        'oral',
+        'ear',
+        'forehead',
+        'axillary',
+        'rectal',
+      ] satisfies TemperatureMethod[],
       fallback: 'ear',
     },
   ],
@@ -97,7 +110,7 @@ export const SHEET_SPECS: Record<BabyEventType, SheetSpec> = {
       key: 'method',
       labelKey: 'method',
       input: 'chips',
-      options: ['breast', 'bottle', 'solid'],
+      options: [...FEEDING_METHODS],
       fallback: 'bottle',
     },
     // Per side rather than one total: "both sides, 20 minutes" cannot be split
@@ -161,7 +174,7 @@ export const SHEET_SPECS: Record<BabyEventType, SheetSpec> = {
       key: 'kind',
       labelKey: 'kind',
       input: 'chips',
-      options: ['wet', 'dirty', 'both'],
+      options: [...DIAPER_KINDS],
       fallback: 'wet',
     },
   ],
@@ -302,25 +315,6 @@ export function fieldsFor(
 }
 
 /**
- * The one required box this type has, when it is still empty.
- *
- * A key rather than a sentence (ADR-0011's fourth rule): the sheet resolves
- * it. These are the three types whose `data` the mutation refuses outright —
- * before this, an empty medication name reached the server and came back as
- * "could not save this entry", which is true and tells nobody which box.
- */
-export function missingRequired(
-  type: BabyEventType,
-  picks: Record<string, string>,
-): 'enterMedicationName' | 'enterVaccineName' | 'enterMemoryWhat' | null {
-  const blank = (key: string) => (picks[key] ?? '').trim().length === 0
-  if (type === 'medication' && blank('name')) return 'enterMedicationName'
-  if (type === 'vaccination' && blank('name')) return 'enterVaccineName'
-  if (type === 'memory' && blank('what')) return 'enterMemoryWhat'
-  return null
-}
-
-/**
  * The visible numeric rows holding a value outside their own bounds.
  *
  * The stepper clamps, but the box can be typed into, and that is where the real
@@ -349,7 +343,7 @@ export interface PreviousEvent {
   type: BabyEventType
   timestamp: number
   endTimestamp?: number
-  data: unknown
+  data: Record<string, unknown>
 }
 
 /** A finite number, or null for anything that is not one. */
@@ -400,7 +394,7 @@ export function initialPicks(
   previous: PreviousEvent | undefined,
 ): Record<string, string> {
   const spec = SHEET_SPECS[type]
-  const data = (previous?.data ?? {}) as Record<string, unknown>
+  const data = previous?.data ?? {}
   const picks: Record<string, string> = {}
 
   for (const field of spec) {
@@ -460,10 +454,9 @@ export function editPicks(
   event: PreviousEvent,
 ): Record<string, string> {
   const picks: Record<string, string> = {}
-  const data = (event.data ?? {}) as Record<string, unknown>
 
   for (const field of SHEET_SPECS[type]) {
-    const stored = data[field.key]
+    const stored = event.data[field.key]
     const asText = stored === undefined || stored === null ? '' : String(stored)
     if (field.input === 'chips') {
       picks[field.key] = field.options.includes(asText)

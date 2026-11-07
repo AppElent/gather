@@ -7,6 +7,7 @@
  * `QueryResult | RecentRecordInput` union at each use, is what let a
  * translated Kind label reach a route param.
  */
+import { minutesToClock } from '@gather/core/civil-date'
 import { isTastingKind } from '@gather/core/tastings'
 import type { Href } from 'expo-router'
 
@@ -32,7 +33,7 @@ export type QueryResult = {
 function clock(value?: number) {
   return value === undefined
     ? null
-    : `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`
+    : minutesToClock(value)
 }
 
 /** The one-line subtitle. Display text in the reader's language, and only that. */

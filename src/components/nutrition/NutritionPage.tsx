@@ -1,33 +1,15 @@
+import { addDays, localIsoDate } from '@gather/core/civil-date'
+import { MEAL_NAMES } from '@gather/core/domain'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { MEAL_NAMES, sumFacts } from '../../../convex/lib/consumption'
+import { sumFacts } from '../../../convex/lib/consumption'
 import { fmt, useMessages } from '../../lib/i18n'
 import { DayTotals } from './DayTotals'
 import { sumKcal } from './kcal'
 import { MealSlot } from './MealSlot'
 import type { NutritionNav } from './nutritionNav'
-
-// Client-local YYYY-MM-DD — matches spec §3.4 ("no server timezone math").
-// Exported because the add route has to read "today" the same way the diary
-// does, or a sheet opened with no date in the URL would write to another day.
-export function todayLocal(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
-function shiftDate(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00`)
-  d.setDate(d.getDate() + days)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
 
 export interface NutritionSearch {
   date?: string
@@ -68,7 +50,7 @@ export function NutritionPage({
   onDateChange,
   nav,
 }: NutritionPageProps) {
-  const date = dateParam || todayLocal()
+  const date = dateParam || localIsoDate()
 
   const me = useQuery(api.users.me)
   const entries = useQuery(api.consumption.listForDay, { date })
@@ -121,7 +103,7 @@ export function NutritionPage({
       <div className="mb-4 flex items-center justify-between gap-2">
         <button
           type="button"
-          onClick={() => onDateChange(shiftDate(date, -1))}
+          onClick={() => onDateChange(addDays(date, -1))}
           className="rounded border px-2 py-1 text-sm"
         >
           {diary.prevDay}
@@ -134,7 +116,7 @@ export function NutritionPage({
         />
         <button
           type="button"
-          onClick={() => onDateChange(shiftDate(date, 1))}
+          onClick={() => onDateChange(addDays(date, 1))}
           className="rounded border px-2 py-1 text-sm"
         >
           {diary.nextDay}
@@ -145,7 +127,7 @@ export function NutritionPage({
         totals={totals}
         targets={me?.nutritionTargets}
         heading={
-          date === todayLocal()
+          date === localIsoDate()
             ? diary.totalsToday
             : fmt(diary.totalsOn, { date })
         }

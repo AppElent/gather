@@ -11,8 +11,12 @@
  * Nothing here reads the clock: `now` is passed in, because a summary that
  * silently depended on the wall clock could not be tested at a fixed instant.
  */
+import {
+  asBabyEvent,
+  type DurationUnits,
+  shortDuration,
+} from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
-import { fmt } from '@gather/core/i18n'
 
 export interface LoggedEvent {
   type: BabyEventType
@@ -34,33 +38,6 @@ export function startOfDay(now: number): number {
   const date = new Date(now)
   date.setHours(0, 0, 0, 0)
   return date.getTime()
-}
-
-/** How a language writes a short duration ("5h 10m", "5 u 10 min"). */
-export interface DurationUnits {
-  minutes: string
-  hours: string
-  hoursMinutes: string
-  days: string
-}
-
-/**
- * "32m", "3h 10m", "2d" — or the same in the reader's language.
- *
- * Coarse on purpose above an hour: a parent reading "3h 10m ago" is answering
- * "is she due?", and seconds of precision would be noise on the tile.
- */
-export function shortDuration(ms: number, units: DurationUnits): string {
-  const minutes = Math.max(0, Math.floor(ms / 60_000))
-  if (minutes < 60) return fmt(units.minutes, { minutes })
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) {
-    const rest = minutes % 60
-    return rest === 0
-      ? fmt(units.hours, { hours })
-      : fmt(units.hoursMinutes, { hours, minutes: rest })
-  }
-  return fmt(units.days, { days: Math.floor(hours / 24) })
 }
 
 function todaysOf(
@@ -146,11 +123,11 @@ export function tileStatus(
     }
   }
 
-  if (type === 'temperature') {
-    const celsius = (latest.data as { celsius?: number } | null)?.celsius
+  const event = asBabyEvent(latest)
+  if (event.type === 'temperature') {
     return {
       type,
-      headline: celsius === undefined ? null : `${celsius.toFixed(1)} °C`,
+      headline: `${event.data.celsius.toFixed(1)} °C`,
       detail: t.at(t.formatTime(latest.timestamp)),
     }
   }

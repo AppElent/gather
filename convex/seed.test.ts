@@ -1,3 +1,4 @@
+import { SAMPLE_GROUP_NAME } from '@gather/core/groups'
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
 import {
@@ -6,7 +7,6 @@ import {
   ensureSeedUser,
   resetSample,
 } from './lib/seed/apply'
-import { SAMPLE_GROUP_NAME } from './lib/seed/sampleHousehold'
 
 /**
  * The Sample household, built against the Group boundary.

@@ -1,13 +1,10 @@
+import { localIsoDate } from '@gather/core/civil-date'
+import type { BabyEventType } from '@gather/core/domain'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
-import type { BabyEventType } from '../../../convex/lib/babyEvents'
-import {
-  combineDateTime,
-  toDateInputValue,
-  toTimeInputValue,
-} from '../../lib/babyDate'
+import { combineDateTime, toTimeInputValue } from '../../lib/babyDate'
 import { BABY_INPUT_CLASS as inputClass } from '../../lib/babyEventFields'
 import type { EventValues } from '../../lib/babyEventFormValues'
 import {
@@ -108,7 +105,7 @@ export function EventForm({
           <input
             type="date"
             className={inputClass}
-            value={toDateInputValue(timestampMs)}
+            value={localIsoDate(timestampMs)}
             onChange={(e) =>
               setTimestampMs(
                 combineDateTime(e.target.value, toTimeInputValue(timestampMs)),
@@ -122,7 +119,7 @@ export function EventForm({
             value={toTimeInputValue(timestampMs)}
             onChange={(e) =>
               setTimestampMs(
-                combineDateTime(toDateInputValue(timestampMs), e.target.value),
+                combineDateTime(localIsoDate(timestampMs), e.target.value),
               )
             }
             required

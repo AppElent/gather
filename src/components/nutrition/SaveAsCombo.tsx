@@ -1,11 +1,6 @@
+import { COMBO_REFUSALS, readRefusal } from '@gather/core/refusals'
 import { useState } from 'react'
 import { useMessages } from '../../lib/i18n'
-
-/** The refusal keys `combos.saveFromMeal` throws, and nothing else. */
-const REFUSAL_KEYS = [
-  'comboNothingSelected',
-  'comboComponentUnavailable',
-] as const
 
 type Combos = ReturnType<typeof useMessages>['nutrition']['diary']['combos']
 
@@ -19,10 +14,8 @@ type Combos = ReturnType<typeof useMessages>['nutrition']['diary']['combos']
  * for anybody, so it gets the general one rather than being put on screen raw.
  */
 export function refusalText(error: unknown, combos: Combos): string {
-  const key = error instanceof Error ? error.message : ''
-  return REFUSAL_KEYS.includes(key as (typeof REFUSAL_KEYS)[number])
-    ? combos[key as (typeof REFUSAL_KEYS)[number]]
-    : combos.saveFailed
+  const key = readRefusal(error, COMBO_REFUSALS)
+  return key ? combos[key] : combos.saveFailed
 }
 
 interface Props {

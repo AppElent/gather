@@ -5,8 +5,7 @@
  * which is where it was designed, and the Calendar prototype's composer, whose
  * build brief says in as many words that *a reimplementation of that grid is a
  * bug, not a variation*. So the drawing moved here and both call it — the
- * arithmetic already lived apart, in `modules/tasks/taskDates.ts`, for the same
- * reason.
+ * arithmetic lives apart, in `@gather/core/civil-date`, for the same reason.
  *
  * It knows nothing about what a day *means*. Selection, today, and the tint are
  * props; the caller owns the state and the write. That is what lets one grid
@@ -20,13 +19,13 @@
  * and it is a prop rather than a heuristic because only the caller knows
  * whether its container is fixed.
  */
+import { localMidnight } from '@gather/core/civil-date'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import type { MonthGrid } from '../modules/tasks/taskDates'
-import { parseDay } from '../modules/tasks/taskDates'
 import { useTokens } from '../theme/tokens'
 
 export interface MonthGridViewProps {
-  grid: MonthGrid
+  /** Six rows of seven from `monthGrid`. */
+  grid: (string | null)[][]
   /** The app's locale, never the device's (ADR-0011). */
   locale: string
   /** `YYYY-MM-DD`, or undefined where nothing is chosen yet. */
@@ -85,9 +84,9 @@ export function MonthGridView({
 }: MonthGridViewProps) {
   const tokens = useTokens()
   const weeks =
-    dropTrailingEmptyRow && grid.weeks[5]?.every((day) => day === null)
-      ? grid.weeks.slice(0, 5)
-      : grid.weeks
+    dropTrailingEmptyRow && grid[5]?.every((day) => day === null)
+      ? grid.slice(0, 5)
+      : grid
 
   return (
     <>
@@ -102,7 +101,7 @@ export function MonthGridView({
                 testID={`${testIDPrefix}-${iso}`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: iso === selected }}
-                accessibilityLabel={parseDay(iso).toLocaleDateString(locale, {
+                accessibilityLabel={localMidnight(iso).toLocaleDateString(locale, {
                   weekday: 'long',
                   day: 'numeric',
                   month: 'long',
@@ -136,7 +135,7 @@ export function MonthGridView({
                       },
                     ]}
                   >
-                    {parseDay(iso).getDate()}
+                    {localMidnight(iso).getDate()}
                   </Text>
                 </View>
               </Pressable>

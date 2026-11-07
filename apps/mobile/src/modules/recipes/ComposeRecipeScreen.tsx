@@ -37,9 +37,10 @@
  * copy. What replaces it is the *collection*, not the tab root the form was
  * launched from — see `save` for why one call covers both doors.
  */
+
 import { isAiLimitReached } from '@gather/core/ai-limit'
+import { refusalSentence } from '@gather/core/refusals'
 import { useAction, useMutation } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -169,7 +170,7 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
       setImportProblem(
         isAiLimitReached(error)
           ? text.form.aiLimitReached
-          : messageFrom(error, text.create.importFailed),
+          : refusalSentence(error) ?? text.create.importFailed,
       )
     } finally {
       setImporting(false)
@@ -203,7 +204,7 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
       router.push(recipeHref(base, '/recipe', { recipeId: id }))
     } catch (error) {
       haptics.actionFailed()
-      setSaveProblem(messageFrom(error, text.form.saveFailed))
+      setSaveProblem(refusalSentence(error) ?? text.form.saveFailed)
       setSaving(false)
     }
   }
@@ -372,19 +373,6 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
       </KeyboardAvoidingView>
     </>
   )
-}
-
-/**
- * What went wrong, in words somebody can read.
- *
- * A `ConvexError` carries a message the server chose — "That address could not
- * be fetched" — and is worth showing. Anything else is a network or a bug, and
- * the Module's own sentence is a better answer than its stack.
- */
-export function messageFrom(error: unknown, fallback: string): string {
-  if (error instanceof ConvexError && typeof error.data === 'string')
-    return error.data
-  return fallback
 }
 
 const styles = StyleSheet.create({

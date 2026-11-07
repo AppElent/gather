@@ -1,10 +1,10 @@
+import { localIsoDate } from '@gather/core/civil-date'
 import { useAction, useMutation } from 'convex/react'
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../../../../convex/_generated/api'
 import type { Doc, Id } from '../../../../../convex/_generated/dataModel'
 import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
-import { toIso } from './taskDates'
 import type {
   ListDisplay,
   Note,
@@ -241,7 +241,7 @@ export function useTaskState(): TaskState {
     updatedByName: note.updatedByName,
     updatedByMe: note.updatedByMe,
   }))
-  return { today: toIso(new Date()), lists, tasks, notes }
+  return { today: localIsoDate(), lists, tasks, notes }
 }
 
 function requireActions(): ActionRefs {

@@ -1,15 +1,11 @@
-import { type BabyBarSlot, offeredEventTypes } from '@gather/core/domain'
+import { localIsoDate } from '@gather/core/civil-date'
+import type { BabyEventType } from '@gather/core/domain'
+import { BABY_EVENT_TYPES, type BabyBarSlot, offeredEventTypes } from '@gather/core/domain'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import type { BabyEventType } from '../../../convex/lib/babyEvents'
-import { BABY_EVENT_TYPES } from '../../../convex/lib/babyEvents'
-import {
-  combineDateTime,
-  toDateInputValue,
-  toTimeInputValue,
-} from '../../lib/babyDate'
+import { combineDateTime, toTimeInputValue } from '../../lib/babyDate'
 import { BABY_INPUT_CLASS as inputClass } from '../../lib/babyEventFields'
 import type { EventValues } from '../../lib/babyEventFormValues'
 import {
@@ -177,7 +173,7 @@ export function MultiEventForm({
           <input
             type="date"
             className={inputClass}
-            value={toDateInputValue(timestampMs)}
+            value={localIsoDate(timestampMs)}
             onChange={(e) =>
               setTimestampMs(
                 combineDateTime(e.target.value, toTimeInputValue(timestampMs)),
@@ -191,7 +187,7 @@ export function MultiEventForm({
             value={toTimeInputValue(timestampMs)}
             onChange={(e) =>
               setTimestampMs(
-                combineDateTime(toDateInputValue(timestampMs), e.target.value),
+                combineDateTime(localIsoDate(timestampMs), e.target.value),
               )
             }
             required

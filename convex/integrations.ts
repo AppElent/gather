@@ -1,3 +1,4 @@
+import type { ExternalProviderId } from '@gather/core/domain'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { ActionCtx } from './_generated/server'
@@ -11,7 +12,6 @@ import {
 import { requireGroupBySlug } from './lib/groupAccess'
 import { getAdapter } from './lib/taskProviders'
 import {
-  type ExternalProviderId,
   ProviderAuthError,
   type ProviderSource,
   type SourceProperty,

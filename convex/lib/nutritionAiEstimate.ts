@@ -1,4 +1,5 @@
-import { type NutritionFacts, sanitizeNutrition } from './nutrition'
+import type { NutritionFacts } from '@gather/core/domain'
+import { sanitizeNutrition } from './nutrition'
 
 const ANTHROPIC_MODEL = 'claude-sonnet-5'
 const ANTHROPIC_MAX_TOKENS = 1024

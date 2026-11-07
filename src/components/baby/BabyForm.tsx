@@ -1,3 +1,4 @@
+import type { BabySex } from '@gather/core/baby-events'
 import {
   BABY_EVENT_TYPES,
   type BabyEventType,
@@ -14,7 +15,7 @@ const inputClass =
 export interface BabyFormValues {
   name: string
   birthDate: string
-  sex?: 'female' | 'male' | 'unspecified'
+  sex?: BabySex
   /**
    * What this Child's log will *not* offer (ADR-0022).
    *

@@ -1,12 +1,11 @@
 import {
   type AgendaRow,
-  addCalendarDays,
   type CalendarEvent,
   type CalendarPerson,
   type CalendarView,
   normalizeCalendarEvent,
-  todayCalendarDate,
 } from '@gather/core/calendar'
+import { addDays, localIsoDate } from '@gather/core/civil-date'
 import Constants from 'expo-constants'
 import { Stack } from 'expo-router'
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react'
@@ -58,7 +57,7 @@ export interface CalendarScreenProps {
 
 export function CalendarScreen({
   data,
-  today = todayCalendarDate(),
+  today = localIsoDate(),
   onAdd,
   onEvent,
   onDeleteEvent,
@@ -97,11 +96,11 @@ export function CalendarScreen({
     [data?.events],
   )
   const from = useMemo(
-    () => addCalendarDays(navigation.activeDate, -21),
+    () => addDays(navigation.activeDate, -21),
     [navigation.activeDate],
   )
   const toExclusive = useMemo(
-    () => addCalendarDays(navigation.activeDate, 42),
+    () => addDays(navigation.activeDate, 42),
     [navigation.activeDate],
   )
   const filteredEvents = useMemo(

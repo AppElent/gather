@@ -3,9 +3,9 @@ import {
   type CalendarEvent,
   type CalendarPerson,
   type CalendarView,
-  calendarMonthGrid,
   visibleMarksForDate,
 } from '@gather/core/calendar'
+import { monthGrid, weekOf } from '@gather/core/civil-date'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
@@ -57,7 +57,7 @@ function MonthDays({
 >) {
   const tokens = useTokens('home')
   const { locale } = useI18n()
-  const grid = calendarMonthGrid(activeDate)
+  const grid = monthGrid(activeDate)
   return (
     <View testID="calendar-month-grid">
       <WeekdayStrip locale={locale} />
@@ -147,14 +147,7 @@ function WeekDays({
 >) {
   const tokens = useTokens('home')
   const { locale } = useI18n()
-  const first = new Date(`${activeDate}T12:00:00`)
-  const monday = new Date(first)
-  monday.setDate(first.getDate() - ((first.getDay() + 6) % 7))
-  const dates = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(monday)
-    date.setDate(monday.getDate() + index)
-    return date.toISOString().slice(0, 10)
-  })
+  const dates = weekOf(activeDate)
   return (
     <View testID="calendar-week-grid">
       <WeekdayStrip locale={locale} />

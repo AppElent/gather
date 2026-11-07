@@ -12,7 +12,7 @@ import type { BabyEventType } from '@gather/core/domain'
 export interface TrendSource {
   type: BabyEventType
   timestamp: number
-  data: unknown
+  data: Record<string, unknown>
 }
 
 export interface TrendPoint {
@@ -38,7 +38,7 @@ export function trendValues(
     .filter((event) => event.type === type)
     .map((event) => ({
       at: event.timestamp,
-      value: (event.data as Record<string, unknown> | null)?.[field],
+      value: event.data[field],
     }))
     .filter(
       (point): point is { at: number; value: number } =>

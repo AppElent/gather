@@ -1,3 +1,4 @@
+import type { ExternalProviderId } from '@gather/core/domain'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { action, internalQuery, mutation, query } from './_generated/server'
@@ -164,7 +165,7 @@ export const getList = internalQuery({
 
 export type GetTasksResult =
   | { status: 'ok'; tasks: UnifiedTask[] }
-  | { status: 'reconnect'; provider: 'notion' | 'todoist' }
+  | { status: 'reconnect'; provider: ExternalProviderId }
   | { status: 'error'; message: string }
 
 /** Unified entry point: returns UnifiedTask[] for any list, dispatching by

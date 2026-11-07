@@ -1,4 +1,4 @@
-import type { NutritionFacts } from '../nutrition'
+import type { NutritionFacts } from '@gather/core/domain'
 import type { Serving } from '../servings'
 
 /**

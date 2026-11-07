@@ -6,6 +6,7 @@
  * and rotating the phone does not lose it. `readAxis` falls back to whichever
  * option the canvas chose, so the bare route shows the decided design.
  */
+import { localIsoDate } from '@gather/core/civil-date'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useI18n } from '../../../../../src/i18n'
 import {
@@ -36,7 +37,7 @@ export default function CalendarLabRoute() {
   }>()
 
   if (params.production === 'true') {
-    const today = new Date().toISOString().slice(0, 10)
+    const today = localIsoDate()
     const events = labEvents(today).map((event) => ({
       id: event.id,
       calendarId: event.calendarId,

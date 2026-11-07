@@ -1,3 +1,4 @@
+import { EXTERNAL_PROVIDER_IDS, type ExternalProviderId } from '@gather/core/domain'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -8,14 +9,14 @@ import type {
 } from '../../../convex/lib/taskProviders/types'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, type Messages, useMessages } from '../../lib/i18n'
-import type { ExternalProvider } from '../../lib/oauth'
+import { PROVIDER_LABELS } from '../../lib/oauth'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useConnectProvider } from '../settings/ConnectionsSettings'
 
 type Step =
   | { kind: 'provider' }
   | { kind: 'local-name' }
-  | { kind: 'source'; provider: ExternalProvider; sources: ProviderSource[] }
+  | { kind: 'source'; provider: ExternalProviderId; sources: ProviderSource[] }
   | {
       kind: 'notion-mapping'
       source: ProviderSource
@@ -61,11 +62,11 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
     }
   }
 
-  function connectionFor(provider: ExternalProvider) {
+  function connectionFor(provider: ExternalProviderId) {
     return connections?.find((c) => c.provider === provider)
   }
 
-  async function pickExternal(provider: ExternalProvider) {
+  async function pickExternal(provider: ExternalProviderId) {
     await run(async () => {
       const sources = await listSources({ provider, groupSlug })
       setStep({ kind: 'source', provider, sources })
@@ -73,7 +74,7 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
   }
 
   async function pickSource(
-    provider: ExternalProvider,
+    provider: ExternalProviderId,
     source: ProviderSource,
   ) {
     setName(source.name)
@@ -155,7 +156,7 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
           >
             {addList.local}
           </button>
-          {(['notion', 'todoist'] as const).map((provider) =>
+          {EXTERNAL_PROVIDER_IDS.map((provider) =>
             connectionFor(provider) ? (
               <button
                 key={provider}
@@ -165,7 +166,7 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
                 onClick={() => void pickExternal(provider)}
               >
                 {fmt(addList.mirror, {
-                  provider: provider === 'notion' ? 'Notion' : 'Todoist',
+                  provider: PROVIDER_LABELS[provider],
                 })}
               </button>
             ) : (
@@ -177,7 +178,7 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
                 onClick={() => void run(() => connect(provider))}
               >
                 {fmt(addList.connectFirst, {
-                  provider: provider === 'notion' ? 'Notion' : 'Todoist',
+                  provider: PROVIDER_LABELS[provider],
                 })}
               </button>
             ),

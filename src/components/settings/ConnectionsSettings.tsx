@@ -1,3 +1,4 @@
+import { EXTERNAL_PROVIDER_IDS, type ExternalProviderId } from '@gather/core/domain'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -5,17 +6,12 @@ import { errorMessage } from '../../lib/errorMessage'
 import { groupHref } from '../../lib/groupPaths'
 import { fmt, useMessages } from '../../lib/i18n'
 import {
-  type ExternalProvider,
   newOAuthState,
   oauthRedirectUri,
+  PROVIDER_LABELS,
 } from '../../lib/oauth'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
-
-const PROVIDERS: Array<{ id: ExternalProvider; label: string }> = [
-  { id: 'notion', label: 'Notion' },
-  { id: 'todoist', label: 'Todoist' },
-]
 
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold'
@@ -29,7 +25,7 @@ const buttonClass =
  */
 export function useConnectProvider(groupSlug: string, returnTo: string) {
   const getAuthorizeUrl = useAction(api.integrations.getAuthorizeUrl)
-  return async (provider: ExternalProvider) => {
+  return async (provider: ExternalProviderId) => {
     const url = await getAuthorizeUrl({
       provider,
       redirectUri: oauthRedirectUri(),
@@ -66,9 +62,9 @@ export function ConnectionsSettings({
   )
   const { confirm, dialog } = useConfirmAction()
   const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState<ExternalProvider | null>(null)
+  const [busy, setBusy] = useState<ExternalProviderId | null>(null)
 
-  async function onConnect(provider: ExternalProvider) {
+  async function onConnect(provider: ExternalProviderId) {
     setError(null)
     setBusy(provider)
     try {
@@ -89,15 +85,15 @@ export function ConnectionsSettings({
       </p>
       {error && <p className="m-0 mb-2 text-sm text-red-600">{error}</p>}
       <ul className="m-0 grid list-none gap-2 p-0">
-        {PROVIDERS.map((p) => {
-          const conn = connections?.find((c) => c.provider === p.id)
+        {EXTERNAL_PROVIDER_IDS.map((provider) => {
+          const conn = connections?.find((c) => c.provider === provider)
           return (
             <li
-              key={p.id}
+              key={provider}
               className="flex items-center justify-between gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2"
             >
               <div>
-                <span className="text-sm font-semibold">{p.label}</span>
+                <span className="text-sm font-semibold">{PROVIDER_LABELS[provider]}</span>
                 <p className="m-0 text-xs text-[var(--app-muted)]">
                   {conn
                     ? fmt(connectionsText.connectedBy, {
@@ -114,13 +110,13 @@ export function ConnectionsSettings({
                   onClick={() =>
                     confirm({
                       title: fmt(connectionsText.disconnectTitle, {
-                        provider: p.label,
+                        provider: PROVIDER_LABELS[provider],
                         group: groupName,
                       }),
                       body: connectionsText.disconnectBody,
                       confirmLabel: connectionsText.disconnect,
                       errorFallback: fmt(connectionsText.disconnectFailed, {
-                        provider: p.label,
+                        provider: PROVIDER_LABELS[provider],
                       }),
                       run: () =>
                         disconnect({ connectionId: conn._id, groupSlug }),
@@ -133,10 +129,10 @@ export function ConnectionsSettings({
                 <button
                   type="button"
                   className={buttonClass}
-                  disabled={busy === p.id}
-                  onClick={() => void onConnect(p.id)}
+                  disabled={busy === provider}
+                  onClick={() => void onConnect(provider)}
                 >
-                  {busy === p.id
+                  {busy === provider
                     ? connectionsText.opening
                     : connectionsText.connect}
                 </button>

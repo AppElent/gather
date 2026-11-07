@@ -1,15 +1,9 @@
 import {
   NUTRIENT_KEYS,
-  type NutrientKey,
+  type NutritionFacts,
   type NutritionSource,
 } from '@gather/core/domain'
 import { v } from 'convex/values'
-
-export type { NutrientKey, NutritionSource }
-export { NUTRIENT_KEYS }
-
-/** All values per serving (recipes) or per 100 g/ml (foods, phase 2). Calories in kcal, everything else grams. */
-export type NutritionFacts = Partial<Record<NutrientKey, number>>
 
 export const nutritionValidator = v.object({
   calories: v.optional(v.number()),
@@ -27,11 +21,6 @@ export const nutritionSourceValidator = v.union(
   v.literal('ai'),
   v.literal('manual'),
 )
-
-// The nutrient *names* used to live here, next to the keys. They are read by a
-// person, so they are translated, and they now live in each locale's
-// `nutrients.ts` under `src/lib/i18n/messages/` keyed by `NutrientKey`
-// (ADR-0011). No Convex function ever read them; three client components did.
 
 // JSON-LD nutrition values are free text in the wild: "250 kcal", "12,5 g"
 // (Dutch decimal comma), "1,200 kcal" (US thousands comma), "1046 kJ",

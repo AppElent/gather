@@ -29,6 +29,7 @@
  * The frame — drag-to-dismiss, close button, scrim — is `Sheet`'s; this file is
  * only what the sheet asks.
  */
+import { missingRequiredField } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
@@ -58,7 +59,6 @@ import {
   buildSheetData,
   endTimestampFor,
   initialPicks,
-  missingRequired,
   outOfRangeFields,
   type PreviousEvent,
 } from './sheetFields'
@@ -128,7 +128,7 @@ export function QuickLogSheet({
 
   /** Every included type still missing the one box it cannot save without. */
   const missing = included.flatMap((each) => {
-    const key = missingRequired(each, picks[each] ?? {})
+    const key = missingRequiredField(each, picks[each] ?? {})
     return key ? [{ owner: each, key }] : []
   })
 

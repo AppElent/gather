@@ -1,3 +1,4 @@
+import { refusal } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
@@ -161,7 +162,7 @@ export const saveFromMeal = mutation({
       // form that shows it is the only thing that knows their language
       // (ADR-0011) — a message built here would reach a Dutch reader in
       // English.
-      throw new ConvexError('comboNothingSelected')
+      throw new ConvexError(refusal('comboNothingSelected'))
     }
 
     // Read the meal and keep what was ticked, rather than reading the ticked
@@ -223,7 +224,7 @@ export const saveFromMeal = mutation({
       // transaction takes the half-made Combo with it.
       // A key rather than a sentence, for the same reason as above: the form
       // resolves it into the reader's language.
-      throw new ConvexError('comboComponentUnavailable')
+      throw new ConvexError(refusal('comboComponentUnavailable'))
     }
 
     for (const entry of entries) await ctx.db.delete(entry._id)

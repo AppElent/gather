@@ -1,12 +1,9 @@
+import { ACCOUNT_DELETED } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { requireGroupBySlug } from './lib/groupAccess'
 import { nutritionValidator } from './lib/nutrition'
-import {
-  ACCOUNT_DELETED,
-  getCurrentUser,
-  getUserByClerkId,
-} from './lib/sharing'
+import { getCurrentUser, getUserByClerkId } from './lib/sharing'
 
 /** Returns the current gather user row, or null if not signed in / not yet provisioned. */
 export const me = query({

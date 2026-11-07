@@ -1,4 +1,5 @@
 import { declinedEventTypes } from '@gather/core/domain'
+import { SAMPLE_GROUP_NAME } from '@gather/core/groups'
 import type { Id, TableNames } from '../../_generated/dataModel'
 import type { MutationCtx } from '../../_generated/server'
 import {
@@ -16,7 +17,6 @@ import {
   SAMPLE_COMBOS,
   SAMPLE_DIARY,
   SAMPLE_FINANCE_SETTINGS,
-  SAMPLE_GROUP_NAME,
   SAMPLE_HOLDINGS,
   SAMPLE_HOUSE,
   SAMPLE_HOUSEMATES,

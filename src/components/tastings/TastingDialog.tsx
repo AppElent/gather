@@ -1,3 +1,4 @@
+import { localIsoDate } from '@gather/core/civil-date'
 import {
   TASTING_RATING,
   type TastingAttributes,
@@ -40,11 +41,6 @@ interface TastingDialogProps {
   onSaved?: (subjectId: Id<'tastingSubjects'>) => void
 }
 
-function today() {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-}
-
 export function TastingDialog({
   open,
   kind,
@@ -79,7 +75,7 @@ export function TastingDialog({
     initialSubject?.attributes ?? {},
   )
   const [rating, setRating] = useState(tasting?.rating ?? 3)
-  const [tastedAt, setTastedAt] = useState(tasting?.tastedAt ?? today())
+  const [tastedAt, setTastedAt] = useState(tasting?.tastedAt ?? localIsoDate())
   const [attributes, setAttributes] = useState<Attributes>(
     (tasting?.attributes as Attributes) ?? {},
   )

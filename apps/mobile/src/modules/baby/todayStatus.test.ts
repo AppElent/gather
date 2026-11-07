@@ -4,7 +4,6 @@ import { resolveSelectedChild } from './selectedChild'
 import {
   type LoggedEvent,
   latestOf,
-  shortDuration,
   sleepTotalMs,
   startOfDay,
   tileStatus,
@@ -35,21 +34,6 @@ function at(hour: number, minute = 0) {
     `2026-08-20T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`,
   ).getTime()
 }
-
-describe('short durations', () => {
-  test('minutes below an hour', () => {
-    expect(shortDuration(32 * 60_000, UNITS)).toBe('32m')
-  })
-
-  test('hours drop the minutes when there are none', () => {
-    expect(shortDuration(3 * 3_600_000, UNITS)).toBe('3h')
-    expect(shortDuration(3 * 3_600_000 + 10 * 60_000, UNITS)).toBe('3h 10m')
-  })
-
-  test('a negative gap reads as zero rather than as a negative age', () => {
-    expect(shortDuration(-5000, UNITS)).toBe('0m')
-  })
-})
 
 describe('finding the last event of a type', () => {
   const events: LoggedEvent[] = [

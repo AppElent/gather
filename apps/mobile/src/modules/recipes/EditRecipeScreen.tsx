@@ -11,6 +11,7 @@
  * recipe, and the change is visible the moment the screen behind reappears —
  * `recipes.get` is live, so there is nothing to reload and nothing to say.
  */
+import { refusalSentence } from '@gather/core/refusals'
 import { useAction, useMutation } from 'convex/react'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -29,7 +30,6 @@ import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { messageFrom } from './ComposeRecipeScreen'
 import { RecipeFields } from './RecipeFields'
 import {
   type RecipeFormValues,
@@ -110,7 +110,7 @@ export function EditRecipeScreen() {
       router.back()
     } catch (error) {
       haptics.actionFailed()
-      setSaveProblem(messageFrom(error, text.form.saveFailed))
+      setSaveProblem(refusalSentence(error) ?? text.form.saveFailed)
       setSaving(false)
     }
   }

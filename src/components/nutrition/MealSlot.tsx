@@ -1,6 +1,6 @@
+import type { MealName } from '@gather/core/domain'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import type { MealName } from '../../../convex/lib/consumption'
 import type { AppLink } from '../../lib/appLink'
 import { fmt, useMessages } from '../../lib/i18n'
 import type { ConsumptionEntryData } from './ConsumptionEntryRow'

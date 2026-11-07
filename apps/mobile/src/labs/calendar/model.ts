@@ -16,7 +16,7 @@
  *
  * Everything takes a `YYYY-MM-DD` string and never an instant.
  */
-import { addDays, daysBetween, parseDay } from '../../modules/tasks/taskDates'
+import { addDays, daysBetween, localMidnight } from '@gather/core/civil-date'
 import type { LabEvent, LabMember } from './fixtures'
 
 /** One mark, then a count. Settled on the device: three did not read. */
@@ -184,7 +184,7 @@ export function dayHeading(
   locale: string,
   words: { today: string },
 ): string {
-  const long = parseDay(iso).toLocaleDateString(locale, {
+  const long = localMidnight(iso).toLocaleDateString(locale, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

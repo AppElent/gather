@@ -31,9 +31,7 @@
  * the message tree. A validator that returned "A recipe needs a title." would
  * be an English sentence in a file no locale can reach (ADR-0011).
  */
-import type { NutrientKey, NutritionSource } from '@gather/core/domain'
-
-type NutritionFacts = Partial<Record<NutrientKey, number>>
+import type { NutritionFacts, NutritionSource } from '@gather/core/domain'
 
 /** A recipe mid-edit: text as typed, plus the two things that are not text. */
 export interface RecipeFormValues {

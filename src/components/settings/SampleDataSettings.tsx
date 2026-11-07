@@ -1,7 +1,7 @@
+import { SAMPLE_GROUP_NAME } from '@gather/core/groups'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import { SAMPLE_GROUP_NAME } from '../../../convex/lib/seed/sampleHousehold'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, plural, useI18n } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'

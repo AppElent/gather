@@ -1,4 +1,5 @@
 import { formatAge } from '@gather/core/baby-age'
+import { asBabyEvent } from '@gather/core/baby-events'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { useEffect, useMemo, useState } from 'react'
@@ -66,23 +67,24 @@ export function BabyDetailPage({
   const temperaturePoints = useMemo(
     () =>
       (events ?? [])
-        .filter((e) => e.type === 'temperature')
-        .map((e) => ({
-          x: e.timestamp,
-          y: (e.data as { celsius: number }).celsius,
-        })),
+        .map(asBabyEvent)
+        .flatMap((e) =>
+          e.type === 'temperature'
+            ? [{ x: e.timestamp, y: e.data.celsius }]
+            : [],
+        ),
     [events],
   )
 
   const weightPoints = useMemo(
     () =>
       (events ?? [])
-        .filter((e) => e.type === 'growth')
-        .map((e) => ({
-          x: e.timestamp,
-          y: (e.data as { weightKg?: number }).weightKg,
-        }))
-        .filter((p): p is { x: number; y: number } => p.y !== undefined),
+        .map(asBabyEvent)
+        .flatMap((e) =>
+          e.type === 'growth' && e.data.weightKg !== undefined
+            ? [{ x: e.timestamp, y: e.data.weightKg }]
+            : [],
+        ),
     [events],
   )
 

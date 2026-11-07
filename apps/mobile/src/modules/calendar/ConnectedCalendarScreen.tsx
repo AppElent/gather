@@ -3,7 +3,7 @@ import type {
   CalendarPeopleFilter,
   CalendarView,
 } from '@gather/core/calendar'
-import { todayCalendarDate } from '@gather/core/calendar'
+import { localIsoDate } from '@gather/core/civil-date'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { Alert } from 'react-native'
@@ -25,7 +25,7 @@ import { useCalendarEditor } from './useCalendarEditor'
 export function ConnectedCalendarScreen() {
   const { group } = useGroup()
   const { t } = useI18n()
-  const [today] = useState(todayCalendarDate)
+  const [today] = useState(() => localIsoDate())
   const [filterSheet, setFilterSheet] = useState<'people' | null>(null)
   const [management, setManagement] = useState(false)
   const data = useCalendarData(group.slug, today)
@@ -42,7 +42,6 @@ export function ConnectedCalendarScreen() {
     groupId: group._id,
     connected: serviceActionsEnabled && Boolean(me),
     create: async (payload) => {
-      if (!payload.calendarId) throw new Error('calendar:calendarRequired')
       return await addEvent({
         groupSlug: group.slug,
         calendarId: payload.calendarId as never,

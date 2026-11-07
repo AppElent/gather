@@ -1,8 +1,8 @@
+import { localIsoDate } from '@gather/core/civil-date'
+import { MEAL_NAMES, type MealName } from '@gather/core/domain'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
-import { MEAL_NAMES, type MealName } from '../../../../convex/lib/consumption'
 import { AddSheet } from '../../../components/nutrition/AddSheet'
-import { todayLocal } from '../../../components/nutrition/NutritionPage'
 import { groupNutritionNav } from '../../../components/nutrition/nutritionNav'
 
 /**
@@ -41,7 +41,7 @@ function AddToMeal() {
 
   return (
     <AddSheet
-      date={date || todayLocal()}
+      date={date || localIsoDate()}
       meal={meal}
       justAddedFoodId={food}
       nav={groupNutritionNav(groupSlug)}

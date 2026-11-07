@@ -7,8 +7,8 @@
  * a schedule runs on. This is the one place that translation happens.
  */
 
+import { localIsoDate, monthsUntil } from '@gather/core/civil-date'
 import type { LoanPart, LoanPartKind } from '@gather/core/finance'
-import { monthsUntil, todayIso } from '@gather/core/finance'
 
 /** A loan part as `convex/loanParts` stores it. */
 export interface StoredLoanPart {
@@ -29,7 +29,7 @@ export interface StoredLoanPart {
 
 export function toLoanPart(
   stored: StoredLoanPart,
-  today: string = todayIso(),
+  today: string = localIsoDate(),
 ): LoanPart {
   const part: LoanPart = {
     kind: stored.kind,
@@ -57,7 +57,7 @@ export function toLoanPart(
 
 export function toLoanParts(
   stored: readonly StoredLoanPart[],
-  today: string = todayIso(),
+  today: string = localIsoDate(),
 ): LoanPart[] {
   return stored.map((part) => toLoanPart(part, today))
 }

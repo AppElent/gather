@@ -1,27 +1,9 @@
+import { barcodeTerm } from '@gather/core/domain'
+
 const OFF_USER_AGENT =
   'gather-nutrition-tracker/1.0 (https://github.com/AppElent/gather)'
 const OFF_TIMEOUT_MS = 10_000
-const BARCODE_PATTERN = /^\d{8,14}$/
 const LANG_PATTERN = /^[a-z]{2}$/
-
-/**
- * The barcode a search term is, or `null` when it is ordinary text.
- *
- * Lives here, beside the pattern, so the search box can tell a barcode from a
- * name without restating `BARCODE_PATTERN` on the client — one definition of
- * "plausible barcode" for the lookup and for the thing that decides to make
- * one (#80).
- *
- * Eight digits is EAN-8, the shortest symbology gather reads, and it is also
- * what keeps a number still being typed out of barcode mode: fewer digits is
- * somebody part-way through, and falls through to the text search it was
- * already getting. The caller debounces, so the intermediate lengths of a
- * barcode being typed never reach here at all.
- */
-export function barcodeTerm(term: string): string | null {
-  const trimmed = term.trim()
-  return BARCODE_PATTERN.test(trimmed) ? trimmed : null
-}
 
 /**
  * The language subfields search-a-licious should look in.
@@ -46,7 +28,7 @@ export async function fetchOffProduct(
   barcode: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<unknown | null> {
-  if (!BARCODE_PATTERN.test(barcode)) return null
+  if (barcodeTerm(barcode) !== barcode) return null
   let response: Response
   try {
     response = await fetchImpl(

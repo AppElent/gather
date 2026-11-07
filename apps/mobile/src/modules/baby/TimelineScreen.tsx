@@ -12,6 +12,8 @@
  * can do about it (`EntryScreen`).
  */
 
+import { asBabyEvent, summarizeBabyEvent } from '@gather/core/baby-events'
+import type { Messages } from '@gather/core/messages'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import {
@@ -34,12 +36,24 @@ import { useTokens } from '../../theme/tokens'
 import { EVENT_ICONS } from './icons'
 import type { BabyBase } from './paths'
 import { babyHref } from './paths'
-import { summarize } from './summarize'
 import { useBabyLog } from './useBabyLog'
 
 export interface TimelineScreenProps {
   /** Which tab stack this instance is mounted in (ADR-0023). */
   base: BabyBase
+}
+
+/** A row has no notes line of its own, so a note's text is what the row says. */
+function rowDetail(
+  item: Parameters<typeof summarizeBabyEvent>[0] & { notes?: string },
+  log: Messages['baby']['log'],
+): string {
+  const summary = summarizeBabyEvent(item, log)
+  const event = asBabyEvent(item)
+  if (event.type !== 'note') return summary
+  const text = event.notes?.trim()
+  if (!text) return summary
+  return event.data.milestone ? `${summary} · ${text}` : text
 }
 
 export function TimelineScreen({ base }: TimelineScreenProps) {
@@ -173,14 +187,7 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
                       {t.baby.eventTypes[item.type]}
                     </Text>
                     <Text style={[styles.detail, { color: tokens.muted }]}>
-                      {summarize(
-                        item,
-                        {
-                          ...t.baby.log.summary,
-                          duration: t.baby.log.status.duration,
-                        },
-                        t.baby.log.options,
-                      )}
+                      {rowDetail(item, t.baby.log)}
                     </Text>
                   </View>
                   <UI_ICONS.ChevronRight

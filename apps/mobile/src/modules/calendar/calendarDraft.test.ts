@@ -96,7 +96,7 @@ describe('calendar drafts', () => {
       { type: 'change', field: 'title', value: 'Party' },
     ).draft!
 
-    expect(calendarSaveBlocker(dirty, false, false)).toBe('calendar:offline')
+    expect(calendarSaveBlocker(dirty, false, false)).toBe('offline')
     expect(calendarSaveBlocker(dirty, true, false)).toBeNull()
   })
 
@@ -118,13 +118,13 @@ describe('calendar drafts', () => {
       'saving',
     )
     expect(
-      reduceCalendarDraft(base, { type: 'saveFailure', error: 'network' }).draft
+      reduceCalendarDraft(base, { type: 'saveFailure', error: 'save' }).draft
         ?.error,
-    ).toBe('network')
+    ).toBe('save')
     expect(
       reduceCalendarDraft(base, {
         type: 'saveFailure',
-        error: 'calendar:conflict',
+        error: 'conflict',
       }).draft?.status,
     ).toBe('conflict')
   })

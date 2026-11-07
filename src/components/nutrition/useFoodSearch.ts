@@ -1,8 +1,8 @@
+import { barcodeTerm } from '@gather/core/domain'
 import { useAction, useQuery } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import { barcodeTerm } from '../../../convex/lib/offFetch'
 import type { OffSearchResult } from '../../../convex/lib/offMapping'
 import { useI18n } from '../../lib/i18n'
 

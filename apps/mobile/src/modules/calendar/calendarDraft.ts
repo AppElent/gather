@@ -5,8 +5,16 @@ import {
   hasCalendarErrors,
   validateCalendarFields,
 } from '@gather/core/calendar'
+import type { CalendarRefusalCode } from '@gather/core/refusals'
 
 export const CALENDAR_DRAFT_VERSION = 1
+
+/** A refusal from the server, or a failure only this device knows about. */
+export type CalendarDraftError =
+  | CalendarRefusalCode
+  | 'offline'
+  | 'storage'
+  | 'save'
 
 export type CalendarDraft = {
   version: typeof CALENDAR_DRAFT_VERSION
@@ -19,7 +27,7 @@ export type CalendarDraft = {
   values: Required<CalendarFieldValues>
   original: Required<CalendarFieldValues> | null
   status: 'editing' | 'saving' | 'conflict' | 'error' | 'dismissed'
-  error: string | null
+  error: CalendarDraftError | null
 }
 
 export type DraftAction =
@@ -33,7 +41,7 @@ export type DraftAction =
   | { type: 'dismiss' }
   | { type: 'resume' }
   | { type: 'saveStart' }
-  | { type: 'saveFailure'; error: string }
+  | { type: 'saveFailure'; error: CalendarDraftError }
   | { type: 'saveSuccess' }
   | { type: 'duplicate'; draftId: string }
   | { type: 'discard' }
@@ -170,8 +178,7 @@ export function reduceCalendarDraft(
         draft: {
           ...draft,
           status:
-            action.error === 'calendar:conflict' ||
-            action.error === 'calendar:deleted'
+            action.error === 'conflict' || action.error === 'deleted'
               ? 'conflict'
               : 'error',
           error: action.error,
@@ -224,15 +231,11 @@ export function calendarSaveBlocker(
   draft: CalendarDraft,
   connected: boolean,
   submitting: boolean,
-): string | null {
+): 'saving' | 'unchanged' | 'invalid' | 'offline' | null {
   if (submitting || draft.status === 'saving') return 'saving'
   if (!isDraftDirty(draft)) return 'unchanged'
-  const errors = validateDraft(draft)
-  if (hasCalendarErrors(errors)) {
-    const firstError = Object.values(errors).find(Boolean)
-    return firstError ? `calendar:${firstError}` : 'calendar:invalid'
-  }
-  if (!connected) return 'calendar:offline'
+  if (hasCalendarErrors(validateDraft(draft))) return 'invalid'
+  if (!connected) return 'offline'
   return null
 }
 

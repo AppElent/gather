@@ -36,9 +36,10 @@
  *   hiding is visible the moment the screen opens rather than only after you
  *   go looking.
  */
-import type { ModuleGroup } from '@gather/core/module-tints'
 
-import { addDays } from '../../modules/tasks/taskDates'
+
+import { addDays } from '@gather/core/civil-date'
+import type { ModuleGroup } from '@gather/core/module-tints'
 
 export interface LabCalendar {
   id: string

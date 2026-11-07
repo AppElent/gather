@@ -1,6 +1,6 @@
+import { MEAL_NAMES, type MealName } from '@gather/core/domain'
 import { createFileRoute } from '@tanstack/react-router'
 import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
-import { MEAL_NAMES, type MealName } from '../../../../convex/lib/consumption'
 import { groupFoodNav } from '../../../components/foods/foodNav'
 import {
   NewFoodPage,

@@ -1,4 +1,4 @@
-import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import type { NutritionFacts } from '@gather/core/domain'
 
 /**
  * Calories as they are shown: a whole number.

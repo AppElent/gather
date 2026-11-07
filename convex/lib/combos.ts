@@ -1,10 +1,9 @@
-import type { QuantityUnit } from './consumption'
+import type { NutritionFacts, QuantityUnit } from '@gather/core/domain'
 import {
   computeFoodEntryNutrition,
   computeRecipeEntryNutrition,
   scaleFacts,
 } from './consumption'
-import type { NutritionFacts } from './nutrition'
 import type { Serving } from './servings'
 
 /**

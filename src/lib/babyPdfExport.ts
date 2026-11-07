@@ -1,11 +1,12 @@
 import { formatAge } from '@gather/core/baby-age'
+import { summarizeBabyEvent } from '@gather/core/baby-events'
+import { localIsoDate } from '@gather/core/civil-date'
+import type { BabyEventType } from '@gather/core/domain'
+import { BABY_EVENT_TYPES } from '@gather/core/domain'
+import type { Messages } from '@gather/core/messages'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { Doc } from '../../convex/_generated/dataModel'
-import type { BabyEventType } from '../../convex/lib/babyEvents'
-import { BABY_EVENT_TYPES } from '../../convex/lib/babyEvents'
-import type { BabySummaryMessages } from './babyEventSummary'
-import { summarizeEvent } from './babyEventSummary'
 import { fmt } from './i18n'
 
 export type BabyPdfLayout = 'category' | 'chronological'
@@ -13,7 +14,7 @@ export type BabyPdfLayout = 'category' | 'chronological'
 export interface BabyPdfExportOptions {
   baby: { name: string; birthDate: string }
   /** The Baby log's words, and the locale to format dates in (ADR-0011). */
-  messages: BabySummaryMessages
+  messages: Messages['baby']['log']
   eventTypes: Record<BabyEventType, string>
   locale: string
   events: Doc<'babyEvents'>[]
@@ -77,7 +78,7 @@ function drawHeader(
   baby: { name: string; birthDate: string },
   from: number,
   to: number,
-  m: BabySummaryMessages,
+  m: Messages['baby']['log'],
   locale: string,
 ) {
   doc.setFontSize(16)
@@ -101,7 +102,7 @@ function drawByCategory(
   doc: jsPDF,
   events: Doc<'babyEvents'>[],
   included: BabyEventType[],
-  m: BabySummaryMessages,
+  m: Messages['baby']['log'],
   eventTypes: Record<BabyEventType, string>,
 ): boolean {
   let cursorY = 40
@@ -135,7 +136,7 @@ function drawByCategory(
       body: rows.map((e) => [
         formatDate(e.timestamp),
         formatTime(e.timestamp),
-        summarizeEvent(e, m),
+        summarizeBabyEvent(e, m),
         e.notes ?? '',
       ]),
       ...TABLE_STYLES,
@@ -155,7 +156,7 @@ function drawChronological(
   doc: jsPDF,
   events: Doc<'babyEvents'>[],
   included: BabyEventType[],
-  m: BabySummaryMessages,
+  m: Messages['baby']['log'],
   eventTypes: Record<BabyEventType, string>,
 ): boolean {
   const groups = groupEventsByMinute(events, included)
@@ -175,7 +176,7 @@ function drawChronological(
       formatDate(group.minuteMs),
       formatTime(group.minuteMs),
       group.events
-        .map((e) => `${eventTypes[e.type]}: ${summarizeEvent(e, m)}`)
+        .map((e) => `${eventTypes[e.type]}: ${summarizeBabyEvent(e, m)}`)
         .join('\n'),
       group.events
         .filter((e) => e.notes)
@@ -221,7 +222,7 @@ export function exportBabyLogPdf({
     doc.text(m.pdf.empty, 14, 40)
   }
 
-  const dateStamp = new Date(to).toISOString().slice(0, 10)
+  const dateStamp = localIsoDate(to)
   const safeName =
     baby.name.trim().replace(/\s+/g, '-').toLowerCase() ||
     m.pdf.fileNameFallback

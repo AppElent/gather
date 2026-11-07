@@ -1,3 +1,4 @@
+import { addDays, compareIsoDates, isIsoDate } from './civilDate'
 import type { ModuleGroup } from './modules'
 
 export type CalendarView = 'month' | 'week' | 'agenda'
@@ -38,16 +39,18 @@ export interface CalendarPeopleFilter {
   includeUnassigned: boolean
 }
 
-export type CalendarValidationKey =
-  | 'calendarRequired'
-  | 'titleRequired'
-  | 'titleTooLong'
-  | 'invalidDate'
-  | 'timeRequired'
-  | 'invalidTime'
-  | 'locationTooLong'
-  | 'notesTooLong'
-  | 'duplicateAssignee'
+export const CALENDAR_VALIDATION_KEYS = [
+  'calendarRequired',
+  'titleRequired',
+  'titleTooLong',
+  'invalidDate',
+  'timeRequired',
+  'invalidTime',
+  'locationTooLong',
+  'notesTooLong',
+  'duplicateAssignee',
+] as const
+export type CalendarValidationKey = (typeof CALENDAR_VALIDATION_KEYS)[number]
 
 export interface CalendarFieldErrors {
   calendarId?: CalendarValidationKey
@@ -69,107 +72,6 @@ export interface CalendarFieldValues {
   assigneeIds: readonly string[]
   location?: string | null
   notes?: string | null
-}
-
-const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
-
-function parts(value: string) {
-  const match = ISO_DATE.exec(value)
-  if (!match) return null
-  const year = Number(match[1])
-  const month = Number(match[2])
-  const day = Number(match[3])
-  if (month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) {
-    return null
-  }
-  return { year, month, day }
-}
-
-function daysInMonth(year: number, month: number) {
-  return new Date(Date.UTC(year, month, 0)).getUTCDate()
-}
-
-function iso(year: number, month: number, day: number) {
-  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-function dateNumber(value: string) {
-  const parsed = parts(value)
-  return parsed ? Date.UTC(parsed.year, parsed.month - 1, parsed.day) : NaN
-}
-
-function isValidCivilDate(value: string): boolean {
-  return parts(value) !== null
-}
-
-/** Date arithmetic deliberately uses UTC midnight, never a local timestamp. */
-export function addCalendarDays(value: string, amount: number): string {
-  const parsed = parts(value)
-  if (!parsed) return value
-  const date = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day))
-  date.setUTCDate(date.getUTCDate() + Math.trunc(amount))
-  return iso(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
-}
-
-export function addCalendarMonths(value: string, amount: number): string {
-  const parsed = parts(value)
-  if (!parsed) return value
-  const target = parsed.year * 12 + parsed.month - 1 + Math.trunc(amount)
-  const year = Math.floor(target / 12)
-  const month = (((target % 12) + 12) % 12) + 1
-  return iso(year, month, Math.min(parsed.day, daysInMonth(year, month)))
-}
-
-function compareCalendarDates(a: string, b: string): number {
-  return dateNumber(a) - dateNumber(b)
-}
-
-export function todayCalendarDate(now = new Date()): string {
-  return iso(now.getFullYear(), now.getMonth() + 1, now.getDate())
-}
-
-export function monthStart(value: string): string {
-  const parsed = parts(value)
-  return parsed ? iso(parsed.year, parsed.month, 1) : value
-}
-
-function mondayStart(value: string): string {
-  const parsed = parts(value)
-  if (!parsed) return value
-  const weekday = new Date(
-    Date.UTC(parsed.year, parsed.month - 1, parsed.day),
-  ).getUTCDay()
-  return addCalendarDays(value, -((weekday + 6) % 7))
-}
-
-export function calendarWeek(value: string): string[] {
-  const start = mondayStart(value)
-  return Array.from({ length: 7 }, (_, index) => addCalendarDays(start, index))
-}
-
-export function calendarMonthGrid(value: string): (string | null)[][] {
-  const first = monthStart(value)
-  const parsed = parts(first)
-  if (!parsed) return []
-  const start = mondayStart(first)
-  const last = iso(
-    parsed.year,
-    parsed.month,
-    daysInMonth(parsed.year, parsed.month),
-  )
-  const cells = Array.from({ length: 42 }, (_, index) =>
-    addCalendarDays(start, index),
-  )
-  return Array.from({ length: 6 }, (_, row) =>
-    cells.slice(row * 7, row * 7 + 7).map((day) => {
-      if (
-        compareCalendarDates(day, first) < 0 ||
-        compareCalendarDates(day, last) > 0
-      )
-        return null
-      return day
-    }),
-  )
 }
 
 export function normalizeCalendarEvent(
@@ -195,7 +97,7 @@ export function validateCalendarFields(
   if (!values.calendarId) errors.calendarId = 'calendarRequired'
   if (!values.title.trim()) errors.title = 'titleRequired'
   else if (values.title.trim().length > 200) errors.title = 'titleTooLong'
-  if (!isValidCivilDate(values.date)) errors.date = 'invalidDate'
+  if (!isIsoDate(values.date)) errors.date = 'invalidDate'
   if (!values.allDay) {
     if (values.startMinutes == null || values.endMinutes == null)
       errors.time = 'timeRequired'
@@ -250,7 +152,7 @@ export function orderCalendarEvents(
   events: readonly CalendarEvent[],
 ): CalendarEvent[] {
   return [...events].sort((a, b) => {
-    const date = compareCalendarDates(a.date, b.date)
+    const date = compareIsoDates(a.date, b.date)
     if (date !== 0) return date
     const allDay = Number(b.allDay) - Number(a.allDay)
     if (allDay !== 0) return allDay
@@ -347,6 +249,7 @@ export function agendaRows(
   events: readonly CalendarEvent[],
   from: string,
   toExclusive: string,
+  today: string,
   selectedDate?: string,
   expandedDates: readonly string[] = [],
 ): AgendaRow[] {
@@ -354,15 +257,15 @@ export function agendaRows(
   const dates = []
   for (
     let date = from;
-    compareCalendarDates(date, toExclusive) < 0;
-    date = addCalendarDays(date, 1)
+    compareIsoDates(date, toExclusive) < 0;
+    date = addDays(date, 1)
   )
     dates.push(date)
   const byDate = new Map<string, CalendarEvent[]>()
   for (const event of ordered) {
     if (
-      compareCalendarDates(event.date, from) >= 0 &&
-      compareCalendarDates(event.date, toExclusive) < 0
+      compareIsoDates(event.date, from) >= 0 &&
+      compareIsoDates(event.date, toExclusive) < 0
     ) {
       byDate.set(event.date, [...(byDate.get(event.date) ?? []), event])
     }
@@ -376,7 +279,7 @@ export function agendaRows(
       byDate.has(date) ||
       expanded.has(date) ||
       date === selectedDate ||
-      date === todayCalendarDate()
+      date === today
     ) {
       rows.push({
         kind: 'day',
@@ -393,7 +296,7 @@ export function agendaRows(
       !byDate.has(dates[index]) &&
       !expanded.has(dates[index]) &&
       dates[index] !== selectedDate &&
-      dates[index] !== todayCalendarDate()
+      dates[index] !== today
     )
       index++
     const gapDates = dates.slice(start, index)

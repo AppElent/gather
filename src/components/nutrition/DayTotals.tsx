@@ -1,8 +1,5 @@
+import { NUTRIENT_KEYS, type NutritionFacts } from '@gather/core/domain'
 import { Link } from '@tanstack/react-router'
-import {
-  NUTRIENT_KEYS,
-  type NutritionFacts,
-} from '../../../convex/lib/nutrition'
 import { fmt, useMessages } from '../../lib/i18n'
 import { NUTRITION_TARGETS_ANCHOR } from '../settings/NutritionTargetsSettings'
 

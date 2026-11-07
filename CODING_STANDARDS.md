@@ -102,7 +102,7 @@ Synced 2026-11-01 (developer-tools `922e11c`). Not yet adopted:
 
 - **Environment tiers** ([environments](docs/standards/environments.md) 2.2): preview still reads Infisical `dev` with test-instance auth, not `staging` with production auth. It needs a `staging` app folder in Infisical, so the owner decides when to move.
 - **Repository layout** ([repo layout](docs/standards/repo-layout.md)): 61 phone files import `convex/_generated` by deep relative path; there is no `apps/mobile/src/convex/api.ts` yet. The first change that touches one adds that module; later ones move their imports to it, per the standard's migration.
-- **Convex backend** ([convex](docs/standards/convex.md)): auth is read ad hoc (`ctx.auth.getUserIdentity` outside one helper) and user-facing failures throw English strings (`new ConvexError('Not authenticated')`), not keyed codes. Adopt per function when touched; the standard's first step, finding public functions with no auth check, is worth its own issue.
+- **Convex backend** ([convex](docs/standards/convex.md)): auth is read ad hoc (`ctx.auth.getUserIdentity` outside one helper) and user-facing failures throw English strings (`new ConvexError('Not authenticated')`), not keyed codes. Calendar, tasting and combo refusals are keyed, through `@gather/core/refusals`; adopt per function when touched; the standard's first step, finding public functions with no auth check, is worth its own issue.
 - **Deployments defaults:** no `main` ruleset yet; `deploy:prod` still reads `.env.local`, not `env.mjs exec production`.
 - **Mobile distribution and baseline 2.4:** no `APP_VARIANT` side-by-side installs (`app.json` is static), no restart prompt for a downloaded update, and no CI publish after the backend deploys. `apps/mobile/scripts/publish-update.mjs` stays in place of the toolkit wrapper. The fingerprint config, the runtime-diff workflow and opt-in CI builds are not added: the fingerprint config changes the runtime once, so every installed build would need a rebuild first.
 
@@ -127,7 +127,7 @@ validators and effects apply as written. Gather's schema unions are `ModuleId`,
 `NutrientKey`, `MealName` and `BabyEventType`: add both locales' entries in the
 same change as a new member. Pure modules that take messages as a trailing
 parameter include `navItems`, `getRouteContext`, `formatActivityTime`,
-`formatAge` and `summarizeEvent`.
+`formatAge` and `summarizeBabyEvent`.
 
 ### One-shot code
 

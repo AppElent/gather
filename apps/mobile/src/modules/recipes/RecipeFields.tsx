@@ -18,7 +18,7 @@
  * sentence naming it and never a control that changes it.
  */
 import { isAiLimitReached } from '@gather/core/ai-limit'
-import type { NutrientKey, NutritionSource } from '@gather/core/domain'
+import type { NutritionFacts as Facts, NutritionSource } from '@gather/core/domain'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
@@ -28,8 +28,6 @@ import { RADIUS, useTokens } from '../../theme/tokens'
 import { NutritionFacts } from './NutritionFacts'
 import type { RecipeFormValues } from './recipeForm'
 import { StarRating } from './StarRating'
-
-type Facts = Partial<Record<NutrientKey, number>>
 
 export interface RecipeFieldsProps {
   values: RecipeFormValues

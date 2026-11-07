@@ -17,6 +17,8 @@
  * because a parent who thinks they deleted twelve medication entries will not
  * find out otherwise until they need them.
  */
+import type { BabySex } from '@gather/core/baby-events'
+import { isIsoDate } from '@gather/core/civil-date'
 import {
   BABY_BAR_SHORTCUTS,
   BABY_EVENT_TYPES,
@@ -128,7 +130,7 @@ export function ChildSettings({ childId }: { childId: string }) {
   async function saveDetails(patch: {
     name?: string
     birthDate?: string
-    sex?: 'female' | 'male' | 'unspecified'
+    sex?: BabySex
   }) {
     const name = (patch.name ?? draftName ?? record.name).trim()
     const birthDate = (
@@ -152,7 +154,7 @@ export function ChildSettings({ childId }: { childId: string }) {
 
     // A blank name or a date that is not a date is refused here rather than
     // stored: `birthDate` drives every age in the Module.
-    if (!name || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+    if (!name || !isIsoDate(birthDate)) {
       setDetailsFailed(true)
       return
     }

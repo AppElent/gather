@@ -1,8 +1,10 @@
-import { BABY_EVENT_TYPES, type BabyEventType } from '@gather/core/domain'
+import {
+  DIAPER_KINDS,
+  FEEDING_METHODS,
+  missingRequiredField,
+} from '@gather/core/baby-events'
+import type { BabyEventType } from '@gather/core/domain'
 import { v } from 'convex/values'
-
-export type { BabyEventType }
-export { BABY_EVENT_TYPES }
 
 export const babyEventTypeValidator = v.union(
   v.literal('temperature'),
@@ -27,12 +29,6 @@ export const babyBarSlotValidator = v.union(
   v.literal('todo'),
   v.literal('question'),
 )
-
-// The event-type *names* used to live here. They are read by a person, so they
-// are translated, and they now live in each locale's `baby.ts` under
-// `src/lib/i18n/messages/` keyed by `BabyEventType` (ADR-0011). `activity.ts`
-// used to read them to title an entry; it sends the type key now and lets the
-// client choose the word.
 
 export const temperatureMethodValidator = v.union(
   v.literal('oral'),
@@ -139,8 +135,6 @@ export const babyEventDataValidator = v.union(
   memoryDataValidator,
 )
 
-export type BabyEventData = Record<string, unknown>
-
 /** Absent, or a finite non-negative number of minutes. */
 function isValidMinutes(value: unknown): boolean {
   if (value === undefined) return true
@@ -152,23 +146,19 @@ function isValidMinutes(value: unknown): boolean {
 // union, not the one matching `type`.
 export function isValidEventData(
   type: BabyEventType,
-  data: BabyEventData,
+  data: Record<string, unknown>,
 ): boolean {
   switch (type) {
     case 'temperature':
       return typeof data.celsius === 'number'
     case 'feeding':
       return (
-        (data.method === 'breast' ||
-          data.method === 'bottle' ||
-          data.method === 'solid') &&
+        FEEDING_METHODS.some((method) => method === data.method) &&
         isValidMinutes(data.leftMin) &&
         isValidMinutes(data.rightMin)
       )
     case 'diaper':
-      return (
-        data.kind === 'wet' || data.kind === 'dirty' || data.kind === 'both'
-      )
+      return DIAPER_KINDS.some((kind) => kind === data.kind)
     case 'sleep':
       return true
     case 'growth':
@@ -178,13 +168,11 @@ export function isValidEventData(
         typeof data.headCircumferenceCm === 'number'
       )
     case 'medication':
-      return typeof data.name === 'string' && data.name.trim().length > 0
     case 'vaccination':
-      return typeof data.name === 'string' && data.name.trim().length > 0
+    case 'memory':
+      return missingRequiredField(type, data) === null
     case 'note':
       return true
-    case 'memory':
-      return typeof data.what === 'string' && data.what.trim().length > 0
     default:
       return false
   }

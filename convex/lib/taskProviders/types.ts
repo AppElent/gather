@@ -1,4 +1,4 @@
-export type ExternalProviderId = 'notion' | 'todoist'
+import type { ExternalProviderId } from '@gather/core/domain'
 
 export interface UnifiedTask {
   externalId: string

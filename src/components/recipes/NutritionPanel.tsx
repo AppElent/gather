@@ -1,8 +1,4 @@
-import {
-  NUTRIENT_KEYS,
-  type NutritionFacts,
-  type NutritionSource,
-} from '../../../convex/lib/nutrition'
+import { NUTRIENT_KEYS, type NutritionFacts, type NutritionSource } from '@gather/core/domain'
 import { useMessages } from '../../lib/i18n'
 
 interface Props {

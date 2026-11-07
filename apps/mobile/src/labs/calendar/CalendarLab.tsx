@@ -15,7 +15,9 @@
  * Everything is in memory. `prototypes/calendar/build-brief.md` lists the five
  * schema changes the real Module needs; all five are faked in `fixtures.ts`.
  */
+
 import { MenuView } from '@expo/ui/community/menu'
+import { addMonths, localIsoDate, localMidnight, monthGrid, monthStart } from '@gather/core/civil-date'
 import { Stack } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
@@ -34,13 +36,6 @@ import { Segmented } from '../../components/Segmented'
 import { SwipeableRow } from '../../components/SwipeableRow'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
-import {
-  monthGrid,
-  monthOf,
-  parseDay,
-  shiftMonth,
-  toIso,
-} from '../../modules/tasks/taskDates'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { PrototypeBanner } from '../PrototypeBanner'
@@ -89,16 +84,16 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
 
-  const today = useMemo(() => toIso(new Date()), [])
+  const today = useMemo(() => localIsoDate(), [])
   const [events, setEvents] = useState<LabEvent[]>(() => labEvents(today))
   const [hidden, setHidden] = useState<string[]>(LAB_HIDDEN_CALENDAR_IDS)
   const [selected, setSelected] = useState(today)
-  const [month, setMonth] = useState(() => monthOf(today))
+  const [month, setMonth] = useState(() => monthStart(today))
   const [view, setView] = useState<CalendarView>('week')
   const [draft, setDraft] = useState<Draft | null>(null)
 
   const shown = useMemo(() => visibleEvents(events, hidden), [events, hidden])
-  const grid = useMemo(() => monthGrid(month.year, month.month), [month])
+  const grid = useMemo(() => monthGrid(month), [month])
 
   /**
    * The rule the drawing turned up: `monthGrid` always answers six rows so a
@@ -108,9 +103,7 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
    */
   const weeks = useMemo(
     () =>
-      grid.weeks[5].every((day) => day === null)
-        ? grid.weeks.slice(0, 5)
-        : grid.weeks,
+      grid[5].every((day) => day === null) ? grid.slice(0, 5) : grid,
     [grid],
   )
   const selectedWeek = useMemo(
@@ -125,14 +118,13 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
   const pickDay = (iso: string) => {
     haptics.selectionChanged()
     setSelected(iso)
-    const of = monthOf(iso)
-    if (of.year !== month.year || of.month !== month.month) setMonth(of)
+    setMonth(monthStart(iso))
   }
 
   const goToday = () => {
     haptics.selectionChanged()
     setSelected(today)
-    setMonth(monthOf(today))
+    setMonth(monthStart(today))
   }
 
   const changeView = (next: CalendarView) => {
@@ -142,7 +134,7 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
 
   const pageMonth = (by: 1 | -1) => {
     haptics.selectionChanged()
-    setMonth((current) => shiftMonth(current, by))
+    setMonth((current) => addMonths(current, by))
   }
 
   const toggleCalendar = (id: string) =>
@@ -230,8 +222,12 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
     ])
   }
 
-  const monthName = grid.first.toLocaleDateString(locale, { month: 'long' })
-  const yearName = grid.first.toLocaleDateString(locale, { year: 'numeric' })
+  const monthName = localMidnight(month).toLocaleDateString(locale, {
+    month: 'long',
+  })
+  const yearName = localMidnight(month).toLocaleDateString(locale, {
+    year: 'numeric',
+  })
 
   /* ── the fluid header's gesture ───────────────────────────────────────
    * Only `transform` moves: the grid is drawn at its full height and slid up
@@ -509,7 +505,7 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
                       accessibilityRole="button"
                       accessibilityLabel={t.labs.calendar.previousMonth}
                       hitSlop={12}
-                      onPress={() => setMonth(shiftMonth(month, -1))}
+                      onPress={() => setMonth(addMonths(month, -1))}
                     >
                       <UI_ICONS.ChevronLeft
                         size={19}
@@ -528,7 +524,7 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
                       accessibilityRole="button"
                       accessibilityLabel={t.labs.calendar.nextMonth}
                       hitSlop={12}
-                      onPress={() => setMonth(shiftMonth(month, 1))}
+                      onPress={() => setMonth(addMonths(month, 1))}
                     >
                       <UI_ICONS.ChevronRight
                         size={19}
@@ -715,7 +711,7 @@ function DayCell({
   const { marks, overflow } = cellMarks(events, LAB_MEMBERS)
 
   const spoken = [
-    parseDay(iso).toLocaleDateString(locale, {
+    localMidnight(iso).toLocaleDateString(locale, {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
@@ -753,7 +749,7 @@ function DayCell({
             { color: isToday ? tokens.surface : tokens.muted },
           ]}
         >
-          {parseDay(iso).getDate()}
+          {localMidnight(iso).getDate()}
         </Text>
       </View>
 

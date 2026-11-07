@@ -5,6 +5,7 @@ import {
   normalizeCalendarEvent,
   validateCalendarFields,
 } from '@gather/core/calendar'
+import { type CalendarRefusalCode, calendarRefusal } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
@@ -28,8 +29,8 @@ export const calendarPeopleFilterValidator = v.object({
   includeUnassigned: v.boolean(),
 })
 
-export function calendarError(code: string): never {
-  throw new ConvexError(`calendar:${code}`)
+export function calendarError(code: CalendarRefusalCode): never {
+  throw new ConvexError(calendarRefusal(code))
 }
 
 export async function calendarInGroup(

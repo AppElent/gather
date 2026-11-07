@@ -1,3 +1,4 @@
+import { NUTRIENT_KEYS, type NutritionFacts } from '@gather/core/domain'
 import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
@@ -10,11 +11,7 @@ import {
   scaleFacts,
 } from './lib/consumption'
 import { isVisibleToGroups } from './lib/groupAccess'
-import {
-  NUTRIENT_KEYS,
-  type NutritionFacts,
-  nutritionValidator,
-} from './lib/nutrition'
+import { nutritionValidator } from './lib/nutrition'
 import { rankLoggedAmounts } from './lib/servings'
 import { getCurrentUser, getMyGroupIds } from './lib/sharing'
 

@@ -1,8 +1,4 @@
-import {
-  NUTRIENT_KEYS,
-  type NutrientKey,
-  type NutritionFacts,
-} from '../../../convex/lib/nutrition'
+import { NUTRIENT_KEYS, type NutrientKey, type NutritionFacts } from '@gather/core/domain'
 
 export const inputClass =
   'w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)] disabled:cursor-not-allowed disabled:opacity-60'

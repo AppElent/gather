@@ -7,6 +7,7 @@
  * and the one the Group put first is the one they mean by "what we pay".
  */
 
+import { isIsoDate } from '@gather/core/civil-date'
 import { calculationTotals, homeBuyingCosts } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
@@ -111,7 +112,7 @@ export function HouseScreen({
       updateHouse({ id: houseId, groupSlug, valueCents: cents })
     }
     if (editing === 'bought') {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return
+      if (!isIsoDate(value)) return
       updateHouse({ id: houseId, groupSlug, boughtOn: value })
     }
     setDraft('')

@@ -10,6 +10,9 @@
  * Member's Groups on every read and never written anywhere the web can see.
  */
 
+/** The Sample household's Group. Its name is how the seed finds it again. */
+export const SAMPLE_GROUP_NAME = 'Willow Street'
+
 /** Enough of a Group to choose one and address it. */
 export interface LandingGroup {
   _id: string

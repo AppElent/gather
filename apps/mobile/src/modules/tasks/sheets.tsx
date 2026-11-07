@@ -12,6 +12,7 @@
  * writes on selection and closes is one tap, and the sheet closing *is* the
  * confirmation.
  */
+import { addDays, addMonths, localMidnight, monthGrid, monthStart } from '@gather/core/civil-date'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
@@ -25,13 +26,7 @@ import { RADIUS, useTokens } from '../../theme/tokens'
 import { Chip } from './components'
 import { TASK_ICONS } from './icons'
 import { taskActions, useTaskState } from './store'
-import {
-  addDays,
-  monthGrid,
-  monthOf,
-  shiftMonth,
-  weekendFrom,
-} from './taskDates'
+import { weekendFrom } from './taskDates'
 import { type Priority, SUGGESTED_LABELS } from './types'
 
 const PRIORITIES: Priority[] = [1, 2, 3, 4]
@@ -68,10 +63,10 @@ export function DueDateSheet({
   const state = useTaskState()
   const task = state.tasks.find((each) => each.id === taskId)
   const [month, setMonth] = useState(() =>
-    monthOf(task?.dueDate ?? state.today),
+    monthStart(task?.dueDate ?? state.today),
   )
 
-  const grid = monthGrid(month.year, month.month)
+  const grid = monthGrid(month)
   const selected = task?.dueDate
 
   const pick = (iso: string | undefined) => {
@@ -124,12 +119,12 @@ export function DueDateSheet({
           accessibilityRole="button"
           accessibilityLabel={t.labs.task.previousMonth}
           hitSlop={12}
-          onPress={() => setMonth(shiftMonth(month, -1))}
+          onPress={() => setMonth(addMonths(month, -1))}
         >
           <UI_ICONS.ChevronLeft size={20} color={tokens.fg} strokeWidth={2.2} />
         </Pressable>
         <Text style={[styles.monthName, { color: tokens.fg }]}>
-          {grid.first.toLocaleDateString(locale, {
+          {localMidnight(month).toLocaleDateString(locale, {
             month: 'long',
             year: 'numeric',
           })}
@@ -139,7 +134,7 @@ export function DueDateSheet({
           accessibilityRole="button"
           accessibilityLabel={t.labs.task.nextMonth}
           hitSlop={12}
-          onPress={() => setMonth(shiftMonth(month, 1))}
+          onPress={() => setMonth(addMonths(month, 1))}
         >
           <UI_ICONS.ChevronRight
             size={20}

@@ -7,6 +7,7 @@
  * month", they type a target and a date and Gather says the rest (ADR-0025).
  */
 
+import { isIsoDate } from '@gather/core/civil-date'
 import { savingsProgress } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
@@ -74,7 +75,7 @@ export function SavingsScreen({ base }: { base: FinanceBase }) {
   function save() {
     const cents = Math.round(Number(target.replace(',', '.')) * 100)
     if (!name.trim() || !Number.isFinite(cents) || cents <= 0) return
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return
+    if (!isIsoDate(date)) return
     create({
       groupSlug,
       name: name.trim(),

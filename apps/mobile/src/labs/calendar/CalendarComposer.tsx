@@ -21,6 +21,7 @@
  * - **Nothing is written anywhere.** `onChange` mutates a `useState` array on
  *   the screen above and that is the entire persistence story.
  */
+import { addDays, addMonths, localMidnight, minutesToClock, monthGrid, monthStart } from '@gather/core/civil-date'
 import { useEffect, useRef, useState } from 'react'
 import {
   Platform,
@@ -42,14 +43,7 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { NativeSheet } from '../../components/NativeSheet'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
-import {
-  addDays,
-  monthGrid,
-  monthOf,
-  parseDay,
-  shiftMonth,
-  weekendFrom,
-} from '../../modules/tasks/taskDates'
+import { weekendFrom } from '../../modules/tasks/taskDates'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import type { ComposerVariant } from './axes'
@@ -125,7 +119,7 @@ function CardComposer({
   const { t } = useI18n()
   const [local, setLocal] = useState<Draft>(draft as Draft)
   const [pane, setPane] = useState<Pane>('none')
-  const [month, setMonth] = useState(() => monthOf((draft as Draft).date))
+  const [month, setMonth] = useState(() => monthStart((draft as Draft).date))
 
   /**
    * The real keyboard's height, on the UI thread. This is the whole reason the
@@ -361,7 +355,7 @@ function CardComposer({
 
             <Chip
               testID="composer-date"
-              label={parseDay(local.date).toLocaleDateString(locale, {
+              label={localMidnight(local.date).toLocaleDateString(locale, {
                 weekday: 'short',
                 day: 'numeric',
                 month: 'short',
@@ -453,15 +447,16 @@ function DatePane({
   value: string
   today: string
   locale: string
-  month: { year: number; month: number }
-  onMonth: (next: { year: number; month: number }) => void
+  /** The first of the month on show. */
+  month: string
+  onMonth: (next: string) => void
   onPick: (iso: string) => void
   onDone: () => void
 }) {
   const tokens = useTokens('home')
   const tint = tokens.tintOf('home')
   const { t } = useI18n()
-  const grid = monthGrid(month.year, month.month)
+  const grid = monthGrid(month)
 
   const shortcuts = [
     { id: 'today', label: t.labs.calendar.todayShort, iso: today },
@@ -498,12 +493,12 @@ function DatePane({
           accessibilityRole="button"
           accessibilityLabel={t.labs.calendar.previousMonth}
           hitSlop={12}
-          onPress={() => onMonth(shiftMonth(month, -1))}
+          onPress={() => onMonth(addMonths(month, -1))}
         >
           <UI_ICONS.ChevronLeft size={20} color={tokens.fg} strokeWidth={2.2} />
         </Pressable>
         <Text style={[styles.monthName, { color: tokens.fg }]}>
-          {grid.first.toLocaleDateString(locale, {
+          {localMidnight(month).toLocaleDateString(locale, {
             month: 'long',
             year: 'numeric',
           })}
@@ -513,7 +508,7 @@ function DatePane({
           accessibilityRole="button"
           accessibilityLabel={t.labs.calendar.nextMonth}
           hitSlop={12}
-          onPress={() => onMonth(shiftMonth(month, 1))}
+          onPress={() => onMonth(addMonths(month, 1))}
         >
           <UI_ICONS.ChevronRight
             size={20}
@@ -644,7 +639,7 @@ function SheetComposer({
       />
       <SheetRow
         label={t.labs.calendar.chips.date}
-        value={parseDay(local.date).toLocaleDateString(locale, {
+        value={localMidnight(local.date).toLocaleDateString(locale, {
           weekday: 'short',
           day: 'numeric',
           month: 'short',
@@ -792,7 +787,7 @@ function InlineComposer({
     setTitle('')
   }
 
-  const dayName = parseDay(selected).toLocaleDateString(locale, {
+  const dayName = localMidnight(selected).toLocaleDateString(locale, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -914,9 +909,7 @@ function TimePane({
 
   const times = Array.from({ length: 32 }, (_, index) => {
     const minutes = 7 * 60 + index * 30
-    return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${
-      minutes % 60 === 0 ? '00' : '30'
-    }`
+    return minutesToClock(minutes)
   })
 
   const durations = [
@@ -928,9 +921,7 @@ function TimePane({
   const plus = (from: string, minutes: number) => {
     const [hour, minute] = from.split(':').map(Number)
     const total = (hour * 60 + minute + minutes) % (24 * 60)
-    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(
-      total % 60,
-    ).padStart(2, '0')}`
+    return minutesToClock(total)
   }
 
   const current = start ?? '09:00'

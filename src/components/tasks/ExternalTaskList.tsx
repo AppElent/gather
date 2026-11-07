@@ -1,3 +1,4 @@
+import type { ExternalProviderId } from '@gather/core/domain'
 import { Link } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
 import { RefreshCw, Trash2 } from 'lucide-react'
@@ -7,23 +8,22 @@ import type { Id } from '../../../convex/_generated/dataModel'
 import type { UnifiedTask } from '../../../convex/lib/taskProviders/types'
 import { groupLink } from '../../lib/groupPaths'
 import { fmt, useMessages } from '../../lib/i18n'
+import { PROVIDER_LABELS } from '../../lib/oauth'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import { TaskRow } from './TaskRow'
 
 type LoadState =
   | { status: 'loading' }
   | { status: 'ok'; tasks: UnifiedTask[] }
-  | { status: 'reconnect'; provider: 'notion' | 'todoist' }
+  | { status: 'reconnect'; provider: ExternalProviderId }
   | { status: 'error'; message: string }
-
-const PROVIDER_LABELS = { notion: 'Notion', todoist: 'Todoist' } as const
 
 export interface ExternalTaskListProps {
   listId: Id<'taskLists'>
   /** The Group the list — and the connection behind it — lives in. */
   groupSlug: string
   name: string
-  provider: 'notion' | 'todoist'
+  provider: ExternalProviderId
   onRemoveList: () => void
 }
 

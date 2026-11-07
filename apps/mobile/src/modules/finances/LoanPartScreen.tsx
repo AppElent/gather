@@ -11,11 +11,11 @@
  * changing a rate here answers both questions without navigating back.
  */
 
+import { isIsoDate, monthsUntil } from '@gather/core/civil-date'
 import {
   calculationTotals,
   LOAN_PART_KINDS,
   type LoanPartKind,
-  monthsUntil,
   schedulePart,
 } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
@@ -160,7 +160,7 @@ export function LoanPartScreen({
         write({ termMonths: Math.round(years * 12) })
     }
     if (editing === 'fixedUntil') {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) write({ fixedUntil: value })
+      if (isIsoDate(value)) write({ fixedUntil: value })
     }
     if (editing === 'expiryRate') {
       const rate = numeric()

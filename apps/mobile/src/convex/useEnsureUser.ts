@@ -26,12 +26,11 @@
  * leave the person on a loading screen forever. `retry` runs it again.
  */
 
+import { ACCOUNT_DELETED, refusalSentence } from '@gather/core/refusals'
 import { useConvexAuth, useMutation } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { useCallback, useEffect, useState } from 'react'
 
 import { api } from '../../../../convex/_generated/api'
-import { ACCOUNT_DELETED } from '../../../../convex/lib/sharing'
 
 export interface Provisioning {
   /** The last attempt was refused for a reason other than a deletion. */
@@ -40,7 +39,7 @@ export interface Provisioning {
 }
 
 function isAccountDeletedError(error: unknown): boolean {
-  return error instanceof ConvexError && error.data === ACCOUNT_DELETED
+  return refusalSentence(error) === ACCOUNT_DELETED
 }
 
 export function useEnsureUser(): Provisioning {

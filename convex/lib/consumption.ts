@@ -1,14 +1,5 @@
-import {
-  MEAL_NAMES,
-  type MealName,
-  QUANTITY_UNITS,
-  type QuantityUnit,
-} from '@gather/core/domain'
+import { NUTRIENT_KEYS, type NutritionFacts } from '@gather/core/domain'
 import { v } from 'convex/values'
-import { NUTRIENT_KEYS, type NutritionFacts } from './nutrition'
-
-export type { MealName, QuantityUnit }
-export { MEAL_NAMES, QUANTITY_UNITS }
 
 export const mealValidator = v.union(
   v.literal('breakfast'),
@@ -16,11 +7,6 @@ export const mealValidator = v.union(
   v.literal('dinner'),
   v.literal('snack'),
 )
-
-// The meal *names* used to live here. They are read by a person, so they are
-// translated, and they now live in each locale's `nutrition.ts` under
-// `src/lib/i18n/messages/` keyed by `MealName` (ADR-0011). No Convex function
-// ever read them; three client components did.
 
 export const quantityUnitValidator = v.union(
   v.literal('serving'),

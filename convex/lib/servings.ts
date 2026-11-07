@@ -1,6 +1,6 @@
+import type { NutritionFacts } from '@gather/core/domain'
 import { v } from 'convex/values'
 import { scaleFacts } from './consumption'
-import type { NutritionFacts } from './nutrition'
 
 /**
  * A named amount of a food: what somebody calls a portion of it, and how much

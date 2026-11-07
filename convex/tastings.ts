@@ -1,3 +1,5 @@
+import { isIsoDate } from '@gather/core/civil-date'
+import { refusal } from '@gather/core/refusals'
 import {
   isValidTastingRating,
   type TastingKind,
@@ -240,23 +242,21 @@ export const generateUploadUrl = mutation({
   },
 })
 
-/** `YYYY-MM-DD`, and nothing else. A date is not a moment (story 12). */
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
-
 function checkedRating(rating: number): number {
   // A key rather than a sentence: the form resolves it (ADR-0011).
-  if (!isValidTastingRating(rating)) throw new ConvexError('needsScore')
+  if (!isValidTastingRating(rating)) throw new ConvexError(refusal('needsScore'))
   return rating
 }
 
+/** `YYYY-MM-DD`, and nothing else. A date is not a moment (story 12). */
 function checkedDate(tastedAt: string): string {
-  if (!ISO_DATE.test(tastedAt)) throw new ConvexError('Invalid date')
+  if (!isIsoDate(tastedAt)) throw new ConvexError('Invalid date')
   return tastedAt
 }
 
 function checkedName(name: string): string {
   const trimmed = name.trim()
-  if (!trimmed) throw new ConvexError('needsName')
+  if (!trimmed) throw new ConvexError(refusal('needsName'))
   return trimmed
 }
 
@@ -415,7 +415,7 @@ export const updateTasting = mutation({
     // A separate, *differentiated* refusal, on purpose: the reader can see the
     // row and is being told the rule, not being kept from knowing it exists.
     if (tasting.createdByUserId !== user._id) {
-      throw new ConvexError('notYourTasting')
+      throw new ConvexError(refusal('notYourTasting'))
     }
     const subject = await ctx.db.get(tasting.subjectId)
     if (!subject) throw new ConvexError('Tasting not found')

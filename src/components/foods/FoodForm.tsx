@@ -1,9 +1,6 @@
+import type { NutritionFacts, NutritionSource } from '@gather/core/domain'
 import { useState } from 'react'
-import {
-  hasNutritionFigures,
-  type NutritionFacts,
-  type NutritionSource,
-} from '../../../convex/lib/nutrition'
+import { hasNutritionFigures } from '../../../convex/lib/nutrition'
 import type { Serving } from '../../../convex/lib/servings'
 import { fmt, useMessages } from '../../lib/i18n'
 import { NutrientInputGrid } from '../nutrition/NutrientInputGrid'

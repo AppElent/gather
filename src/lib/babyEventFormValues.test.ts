@@ -1,6 +1,6 @@
+import type { BabyEventType } from '@gather/core/domain'
 import { beforeEach, describe, expect, test } from 'vitest'
 import type { Doc } from '../../convex/_generated/dataModel'
-import type { BabyEventType } from '../../convex/lib/babyEvents'
 import { isValidEventData } from '../../convex/lib/babyEvents'
 import { buildEventInput, initialEventValues } from './babyEventFormValues'
 

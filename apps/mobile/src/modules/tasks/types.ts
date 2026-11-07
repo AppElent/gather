@@ -1,4 +1,5 @@
-export type Provider = 'local' | 'notion' | 'todoist'
+import type { TaskProviderId } from '@gather/core/domain'
+
 export type Priority = 1 | 2 | 3 | 4
 
 export interface ListDisplay {
@@ -10,7 +11,7 @@ export interface ListDisplay {
 export interface TaskList {
   id: string
   name: string
-  provider: Provider
+  provider: TaskProviderId
   writable: boolean
   display: ListDisplay
   order: number

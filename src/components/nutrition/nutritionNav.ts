@@ -1,4 +1,4 @@
-import type { MealName } from '../../../convex/lib/consumption'
+import type { MealName } from '@gather/core/domain'
 import type { AppLink } from '../../lib/appLink'
 import { groupLink } from '../../lib/groupPaths'
 import { groupFoodNav, type NewFoodIntent } from '../foods/foodNav'

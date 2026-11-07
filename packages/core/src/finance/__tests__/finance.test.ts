@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import { homeBuyingCosts } from '../buyingCosts'
-import { addMonths, monthsUntil, parseIsoDate, todayIso } from '../dates'
 import { formatMoney, roundCents, splitEvenly, toCents } from '../money'
 import { changeSince, netWorthTotals } from '../netWorth'
 import {
@@ -40,27 +39,6 @@ describe('money', () => {
   it('formats in the reader language rather than the device one', () => {
     expect(formatMoney(123_456, 'EUR', 'nl')).toContain('1.234,56')
     expect(formatMoney(123_456, 'EUR', 'en')).toContain('1,234.56')
-  })
-})
-
-describe('dates', () => {
-  it('refuses something that is not a date', () => {
-    expect(parseIsoDate('2026-13-01')).toBeNull()
-    expect(parseIsoDate('tomorrow')).toBeNull()
-  })
-
-  it('lands on a real day when a month is shorter', () => {
-    expect(addMonths('2026-01-31', 1)).toBe('2026-02-28')
-  })
-
-  it('counts a part month as a month to save in', () => {
-    expect(monthsUntil('2026-08-25', '2028-02-01')).toBe(18)
-    expect(monthsUntil('2026-08-01', '2026-09-01')).toBe(1)
-    expect(monthsUntil('2026-08-25', '2026-01-01')).toBe(0)
-  })
-
-  it('writes today the way everything else stores a date', () => {
-    expect(todayIso(new Date(2026, 7, 5))).toBe('2026-08-05')
   })
 })
 

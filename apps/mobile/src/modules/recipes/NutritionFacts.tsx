@@ -8,13 +8,11 @@
  * came from an import or from an estimate somebody asked for, and the badge
  * says which (ADR-0011's `nutrients.sources`).
  */
-import { NUTRIENT_KEYS, type NutrientKey } from '@gather/core/domain'
+import { type NutritionFacts as Facts, NUTRIENT_KEYS } from '@gather/core/domain'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
-
-type Facts = Partial<Record<NutrientKey, number>>
 
 export interface NutritionFactsProps {
   nutrition: Facts

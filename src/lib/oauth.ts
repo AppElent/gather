@@ -13,7 +13,12 @@
  * comes back without one therefore fails visibly rather than picking one.
  */
 
-export type ExternalProvider = 'notion' | 'todoist'
+import { EXTERNAL_PROVIDER_IDS, type ExternalProviderId } from '@gather/core/domain'
+
+export const PROVIDER_LABELS: Record<ExternalProviderId, string> = {
+  notion: 'Notion',
+  todoist: 'Todoist',
+}
 
 const STATE_KEY = 'gather.oauth.state'
 const RETURN_KEY = 'gather.oauth.returnTo'
@@ -28,7 +33,7 @@ export function oauthRedirectUri(): string {
  * where to return afterwards.
  */
 export function newOAuthState(
-  provider: ExternalProvider,
+  provider: ExternalProviderId,
   groupSlug: string,
   returnTo: string,
 ): string {
@@ -48,7 +53,7 @@ export function newOAuthState(
  * is a failure the callback shows, not something to paper over.
  */
 export function consumeOAuthState(state: string | undefined): {
-  provider: ExternalProvider
+  provider: ExternalProviderId
   groupSlug: string | null
   returnTo: string
 } | null {
@@ -59,7 +64,9 @@ export function consumeOAuthState(state: string | undefined): {
   sessionStorage.removeItem(RETURN_KEY)
   sessionStorage.removeItem(GROUP_KEY)
   if (!state || !stored || state !== stored) return null
-  const provider = state.split('.')[0]
-  if (provider !== 'notion' && provider !== 'todoist') return null
+  const provider = EXTERNAL_PROVIDER_IDS.find(
+    (id) => id === state.split('.')[0],
+  )
+  if (!provider) return null
   return { provider, groupSlug, returnTo }
 }

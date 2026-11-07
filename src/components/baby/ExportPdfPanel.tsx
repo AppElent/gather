@@ -1,14 +1,11 @@
+import { localIsoDate } from '@gather/core/civil-date'
+import type { BabyEventType } from '@gather/core/domain'
+import { BABY_EVENT_TYPES } from '@gather/core/domain'
 import { useConvex } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import type { BabyEventType } from '../../../convex/lib/babyEvents'
-import { BABY_EVENT_TYPES } from '../../../convex/lib/babyEvents'
-import {
-  combineDateTime,
-  toDateInputValue,
-  toTimeInputValue,
-} from '../../lib/babyDate'
+import { combineDateTime, toTimeInputValue } from '../../lib/babyDate'
 import type { BabyPdfLayout } from '../../lib/babyPdfExport'
 import { useI18n } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
@@ -97,7 +94,7 @@ export function ExportPdfPanel({
             <input
               type="date"
               className={inputClass}
-              value={toDateInputValue(fromMs)}
+              value={localIsoDate(fromMs)}
               onChange={(e) =>
                 setFromMs(
                   combineDateTime(e.target.value, toTimeInputValue(fromMs)),
@@ -110,7 +107,7 @@ export function ExportPdfPanel({
               value={toTimeInputValue(fromMs)}
               onChange={(e) =>
                 setFromMs(
-                  combineDateTime(toDateInputValue(fromMs), e.target.value),
+                  combineDateTime(localIsoDate(fromMs), e.target.value),
                 )
               }
             />
@@ -124,7 +121,7 @@ export function ExportPdfPanel({
             <input
               type="date"
               className={inputClass}
-              value={toDateInputValue(toMs)}
+              value={localIsoDate(toMs)}
               onChange={(e) =>
                 setToMs(combineDateTime(e.target.value, toTimeInputValue(toMs)))
               }
@@ -134,7 +131,7 @@ export function ExportPdfPanel({
               className={inputClass}
               value={toTimeInputValue(toMs)}
               onChange={(e) =>
-                setToMs(combineDateTime(toDateInputValue(toMs), e.target.value))
+                setToMs(combineDateTime(localIsoDate(toMs), e.target.value))
               }
             />
           </div>

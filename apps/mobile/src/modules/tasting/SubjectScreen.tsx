@@ -33,6 +33,7 @@
  * no archive, no undo — so this is the confirm side of confirm-or-undo, never
  * both.
  */
+import { localMidnight } from '@gather/core/civil-date'
 import type { TastingAttributeValue, TastingKind } from '@gather/core/tastings'
 import { tastingFields } from '@gather/core/tastings'
 import { useMutation } from 'convex/react'
@@ -460,10 +461,10 @@ export function SubjectScreen({
                   {tasting.mine ? copy.you : (tasting.byName ?? '')}
                 </Text>
                 <Text style={[styles.when, { color: tokens.muted }]}>
-                  {new Date(`${tasting.tastedAt}T00:00:00Z`).toLocaleDateString(
-                    locale,
-                    { day: 'numeric', month: 'short', timeZone: 'UTC' },
-                  )}
+                  {localMidnight(tasting.tastedAt).toLocaleDateString(locale, {
+                    day: 'numeric',
+                    month: 'short',
+                  })}
                 </Text>
                 <View style={styles.spacer} />
                 <Text style={[styles.score, { color: tint.fg }]}>

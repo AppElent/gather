@@ -1,14 +1,11 @@
+import { localIsoDate } from '@gather/core/civil-date'
 import { describe, expect, test } from 'vitest'
-import {
-  combineDateTime,
-  toDateInputValue,
-  toTimeInputValue,
-} from './babyDate'
+import { combineDateTime, toTimeInputValue } from './babyDate'
 
 describe('date/time input round trip', () => {
-  test('toDateInputValue/toTimeInputValue/combineDateTime round-trips a timestamp', () => {
+  test('localIsoDate/toTimeInputValue/combineDateTime round-trips a timestamp', () => {
     const original = new Date('2026-03-15T09:45:00').getTime()
-    const date = toDateInputValue(original)
+    const date = localIsoDate(original)
     const time = toTimeInputValue(original)
     expect(date).toBe('2026-03-15')
     expect(time).toBe('09:45')

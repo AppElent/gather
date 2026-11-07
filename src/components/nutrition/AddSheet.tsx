@@ -1,3 +1,5 @@
+import type { MealName, NutritionFacts, NutritionSource, QuantityUnit } from '@gather/core/domain'
+import { barcodeTerm } from '@gather/core/domain'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
 import { Barcode, Plus } from 'lucide-react'
@@ -5,16 +7,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { type ComboCounts, comboEntries } from '../../../convex/lib/combos'
-import {
-  computeRecipeEntryNutrition,
-  type MealName,
-  type QuantityUnit,
-} from '../../../convex/lib/consumption'
-import type {
-  NutritionFacts,
-  NutritionSource,
-} from '../../../convex/lib/nutrition'
-import { barcodeTerm } from '../../../convex/lib/offFetch'
+import { computeRecipeEntryNutrition } from '../../../convex/lib/consumption'
 import type { OffSearchResult } from '../../../convex/lib/offMapping'
 import type { Serving } from '../../../convex/lib/servings'
 import { offeredServings, resolveAmount } from '../../../convex/lib/servings'

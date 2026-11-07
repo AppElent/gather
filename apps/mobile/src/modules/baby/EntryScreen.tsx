@@ -19,6 +19,7 @@
  * Group — and an undo toast on a record somebody may show a doctor is not good
  * enough.
  */
+import { missingRequiredField } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
 import { useMutation } from 'convex/react'
 import { Image } from 'expo-image'
@@ -50,7 +51,6 @@ import {
   editPicks,
   endTimestampFor,
   fieldsFor,
-  missingRequired,
   outOfRangeFields,
 } from './sheetFields'
 import { useBabyLog } from './useBabyLog'
@@ -123,7 +123,7 @@ export function EntryScreen() {
   const draft = picks ?? {}
   const draftTime = timestamp ?? entry.timestamp
   const rejected = editing ? outOfRangeFields(type, draft) : []
-  const missing = editing ? missingRequired(type, draft) : null
+  const missing = editing ? missingRequiredField(type, draft) : null
   const blocked = rejected.length > 0 || missing !== null
 
   async function save() {

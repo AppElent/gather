@@ -1,8 +1,5 @@
-import {
-  addCalendarDays,
-  addCalendarMonths,
-  type CalendarView,
-} from '@gather/core/calendar'
+import type { CalendarView } from '@gather/core/calendar'
+import { addDays, addMonths } from '@gather/core/civil-date'
 
 export interface CalendarNavigationState {
   activeDate: string
@@ -62,8 +59,8 @@ export function pageActiveDate(
 ): CalendarNavigationState {
   const next =
     state.presentation === 'month'
-      ? addCalendarMonths(state.activeDate, direction)
-      : addCalendarDays(state.activeDate, direction * 7)
+      ? addMonths(state.activeDate, direction)
+      : addDays(state.activeDate, direction * 7)
   return { ...state, activeDate: next }
 }
 

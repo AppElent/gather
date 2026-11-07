@@ -1,3 +1,4 @@
+import { missingRequiredField } from '@gather/core/baby-events'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -5,7 +6,6 @@ import {
   endTimestampFor,
   fieldsFor,
   initialPicks,
-  missingRequired,
   type PreviousEvent,
   parseNumber,
   SHEET_SPECS,
@@ -230,20 +230,20 @@ describe('when a sleep ended', () => {
 
 describe('the box a type cannot save without', () => {
   test('a memory needs to say what happened', () => {
-    expect(missingRequired('memory', {})).toBe('enterMemoryWhat')
-    expect(missingRequired('memory', { what: '   ' })).toBe('enterMemoryWhat')
-    expect(missingRequired('memory', { what: 'First laugh' })).toBeNull()
+    expect(missingRequiredField('memory', {})).toBe('enterMemoryWhat')
+    expect(missingRequiredField('memory', { what: '   ' })).toBe('enterMemoryWhat')
+    expect(missingRequiredField('memory', { what: 'First laugh' })).toBeNull()
   })
 
   test('so do the two entries that are a name', () => {
-    expect(missingRequired('medication', {})).toBe('enterMedicationName')
-    expect(missingRequired('vaccination', {})).toBe('enterVaccineName')
+    expect(missingRequiredField('medication', {})).toBe('enterMedicationName')
+    expect(missingRequiredField('vaccination', {})).toBe('enterVaccineName')
   })
 
   test('every other type can be saved as it opens', () => {
-    expect(missingRequired('diaper', { kind: 'wet' })).toBeNull()
-    expect(missingRequired('sleep', {})).toBeNull()
-    expect(missingRequired('note', {})).toBeNull()
+    expect(missingRequiredField('diaper', { kind: 'wet' })).toBeNull()
+    expect(missingRequiredField('sleep', {})).toBeNull()
+    expect(missingRequiredField('note', {})).toBeNull()
   })
 })
 

@@ -4,6 +4,7 @@ import type { Id } from './_generated/dataModel'
 import { mutation, query } from './_generated/server'
 import {
   calendarColorValidator,
+  calendarError,
   calendarInGroup,
   calendarPeopleFilterValidator,
   calendarViewValidator,
@@ -195,7 +196,7 @@ export const updateEvent = mutation({
     )
     const currentRevision = current.event.revision ?? 0
     if (currentRevision !== args.expectedRevision)
-      throw new Error('calendar:conflict')
+      calendarError('conflict')
     validateEventFields(args)
     await validateAssignees(
       ctx,
@@ -248,7 +249,7 @@ export const setPreferences = mutation({
       const members = await currentGroupMembers(ctx, group._id)
       const allowed = new Set(members.map(({ user: member }) => member._id))
       if (args.peopleFilter.userIds.some((id) => !allowed.has(id)))
-        throw new Error('calendar:person-not-member')
+        calendarError('person-not-member')
     }
     const patch: {
       calendarView?: 'month' | 'week' | 'agenda'

@@ -11,6 +11,7 @@
  * `@gather/core/finance`'s `money.ts` gives.
  */
 
+import { isIsoDate } from '@gather/core/civil-date'
 import {
   BUYING_COST_LINES,
   COST_CATEGORIES,
@@ -159,8 +160,7 @@ export function requireName(name: string) {
 
 /** `YYYY-MM-DD`, or a refusal. Dates are compared as strings everywhere here. */
 export function requireIsoDate(date: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
-    throw new ConvexError('Date must be YYYY-MM-DD')
+  if (!isIsoDate(date)) throw new ConvexError('Date must be YYYY-MM-DD')
   return date
 }
 

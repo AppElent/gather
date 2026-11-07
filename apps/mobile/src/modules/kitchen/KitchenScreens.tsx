@@ -1,3 +1,4 @@
+import { addDays, localIsoDate, localMidnight, mondayStart } from '@gather/core/civil-date'
 import {
   eligibleDinnerCandidates,
   randomDinner,
@@ -30,14 +31,6 @@ import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { useTaskState } from '../tasks/store'
 import { TaskList } from '../tasks/TaskListScreen'
-
-const iso = (date: Date) => date.toISOString().slice(0, 10)
-const addDays = (date: Date, days: number) => {
-  const copy = new Date(date)
-  copy.setDate(copy.getDate() + days)
-  return copy
-}
-const monday = (date: Date) => addDays(date, -((date.getDay() + 6) % 7))
 
 function KitchenShell({
   title,
@@ -146,8 +139,9 @@ const sentenceCase = (text: string) =>
   text.charAt(0).toLocaleUpperCase() + text.slice(1)
 
 /** "21–27 sep", or "28 sep – 4 okt" across a month, in the app's language. */
-function weekRange(start: Date, locale: string) {
-  const end = addDays(start, 6)
+function weekRange(from: string, locale: string) {
+  const start = localMidnight(from)
+  const end = localMidnight(addDays(from, 6))
   const day = (date: Date) =>
     date.toLocaleDateString(locale, { day: 'numeric' })
   const dayMonth = (date: Date) =>
@@ -161,12 +155,12 @@ export function MealPlannerScreen() {
   const { group } = useGroup()
   const { t, locale } = useI18n()
   const tokens = useTokens('kitchen')
-  const [weekStart, setWeekStart] = useState(() => monday(new Date()))
+  const [weekStart, setWeekStart] = useState(() => mondayStart(localIsoDate()))
   const [pickerDate, setPickerDate] = useState<string | null>(null)
   const [pickerLimit, setPickerLimit] = useState<10 | 20 | 30 | undefined>()
   const [editing, setEditing] = useState<Id<'mealEntries'> | null>(null)
-  const from = iso(weekStart)
-  const to = iso(addDays(weekStart, 6))
+  const from = weekStart
+  const to = addDays(weekStart, 6)
   const data = useQuery(api.kitchen.overview, {
     groupSlug: group.slug,
     from,
@@ -216,7 +210,7 @@ export function MealPlannerScreen() {
     })
   const fillWeek = async () => {
     for (let i = 0; i < 7; i++) {
-      const date = iso(addDays(weekStart, i))
+      const date = addDays(weekStart, i)
       if (data?.dinners.some((row) => row.date === date)) continue
       const candidate = randomDinner(candidates) as
         | (typeof candidates)[number]
@@ -281,7 +275,7 @@ export function MealPlannerScreen() {
         </Text>
       </Pressable>
       {Array.from({ length: 7 }, (_, index) => {
-        const date = iso(addDays(weekStart, index))
+        const date = addDays(weekStart, index)
         const dinner = data?.dinners.find((row) => row.date === date)
         return (
           <View
@@ -298,7 +292,7 @@ export function MealPlannerScreen() {
             >
               <Text style={[styles.dayName, { color: tokens.fg }]}>
                 {sentenceCase(
-                  new Date(`${date}T12:00`).toLocaleDateString(locale, {
+                  localMidnight(date).toLocaleDateString(locale, {
                     weekday: 'long',
                     day: 'numeric',
                     month: 'short',

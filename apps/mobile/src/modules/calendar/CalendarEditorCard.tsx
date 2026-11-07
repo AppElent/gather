@@ -1,8 +1,10 @@
-import type {
-  CalendarColor,
-  CalendarFieldErrors,
-  CalendarPerson,
+import {
+  CALENDAR_VALIDATION_KEYS,
+  type CalendarColor,
+  type CalendarFieldErrors,
+  type CalendarPerson,
 } from '@gather/core/calendar'
+import { localIsoDate } from '@gather/core/civil-date'
 import { useState } from 'react'
 import {
   KeyboardAvoidingView,
@@ -27,11 +29,6 @@ import type { CalendarDraft } from './calendarDraft'
 function dayDate(iso: string) {
   const date = new Date(`${iso}T12:00`)
   return Number.isNaN(date.getTime()) ? new Date() : date
-}
-
-function isoDay(date: Date) {
-  const pad = (value: number) => String(value).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
 /** The draft stores minutes since midnight; the picker wants a Date that day. */
@@ -126,24 +123,22 @@ export function CalendarEditorCard({
     key
       ? t.calendar.validation[key as keyof typeof t.calendar.validation]
       : undefined
-  const draftError =
-    draft.error === 'calendar:conflict'
-      ? t.calendar.errors.conflict
-      : draft.error === 'calendar:deleted'
-        ? t.calendar.errors.deleted
-        : draft.error === 'storage'
-          ? t.calendar.errors.storage
-          : draft.error === 'calendar:offline'
-            ? t.calendar.errors.offline
-            : draft.error?.startsWith('calendar:')
-              ? (t.calendar.validation[
-                  draft.error.slice(
-                    'calendar:'.length,
-                  ) as keyof typeof t.calendar.validation
-                ] ?? draft.error)
-              : draft.error === 'save'
-                ? t.calendar.errors.save
-                : draft.error
+  const validationKey = CALENDAR_VALIDATION_KEYS.find(
+    (key) => key === draft.error,
+  )
+  const draftError = !draft.error
+    ? null
+    : validationKey
+      ? t.calendar.validation[validationKey]
+      : draft.error === 'conflict'
+        ? t.calendar.errors.conflict
+        : draft.error === 'deleted'
+          ? t.calendar.errors.deleted
+          : draft.error === 'storage'
+            ? t.calendar.errors.storage
+            : draft.error === 'offline'
+              ? t.calendar.errors.offline
+              : t.calendar.errors.save
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -203,7 +198,7 @@ export function CalendarEditorCard({
               <DateTimeWheel
                 mode="date"
                 value={dayDate(draft.values.date)}
-                onChange={(next) => onChange('date', isoDay(next))}
+                onChange={(next) => onChange('date', localIsoDate(next))}
                 onClose={() => setPicking(null)}
               />
             ) : null}

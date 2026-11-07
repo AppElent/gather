@@ -1,11 +1,10 @@
+import type { MealName, NutritionFacts } from '@gather/core/domain'
+import { MEAL_NAMES } from '@gather/core/domain'
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import type { MealName } from '../../../convex/lib/consumption'
-import { MEAL_NAMES } from '../../../convex/lib/consumption'
-import type { NutritionFacts } from '../../../convex/lib/nutrition'
 import {
   offeredServings,
   parseServingAmount,

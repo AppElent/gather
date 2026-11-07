@@ -150,7 +150,31 @@ export const NUTRIENT_KEYS = [
   'salt',
 ] as const
 export type NutrientKey = (typeof NUTRIENT_KEYS)[number]
+/** All values per serving (recipes) or per 100 g/ml (foods). Calories in kcal, everything else grams. */
+export type NutritionFacts = Partial<Record<NutrientKey, number>>
 export type NutritionSource = 'imported' | 'ai' | 'manual'
+
+/**
+ * The barcode a search term is, or `null` when it is ordinary text.
+ *
+ * One definition of "plausible barcode" for the lookup and for the search box
+ * that decides to make one (#80).
+ *
+ * Eight digits is EAN-8, the shortest symbology gather reads, and it is also
+ * what keeps a number still being typed out of barcode mode: fewer digits is
+ * somebody part-way through, and falls through to the text search it was
+ * already getting. The caller debounces, so the intermediate lengths of a
+ * barcode being typed never reach here at all.
+ */
+export function barcodeTerm(term: string): string | null {
+  const trimmed = term.trim()
+  return /^\d{8,14}$/.test(trimmed) ? trimmed : null
+}
+
+export const EXTERNAL_PROVIDER_IDS = ['notion', 'todoist'] as const
+export type ExternalProviderId = (typeof EXTERNAL_PROVIDER_IDS)[number]
+/** Where a task list keeps its tasks. */
+export type TaskProviderId = ExternalProviderId | 'local'
 
 export const MEAL_NAMES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
 export type MealName = (typeof MEAL_NAMES)[number]

@@ -1,6 +1,7 @@
+import { missingRequiredField } from '@gather/core/baby-events'
+import type { BabyEventType } from '@gather/core/domain'
 import type { Messages } from '@gather/core/messages'
 import type { Doc } from '../../convex/_generated/dataModel'
-import type { BabyEventData, BabyEventType } from '../../convex/lib/babyEvents'
 import { DEFAULT_TEMPERATURE_CELSIUS } from './babyEventFields'
 import { readLastUsed, writeLastUsed } from './lastUsed'
 
@@ -19,7 +20,8 @@ export type EventValidationError = keyof Messages['baby']['log']['validation']
 export type EventValues = Record<string, string | boolean>
 
 export interface EventInput {
-  data: BabyEventData
+  /** Typed in, so not yet a valid payload: the mutation decides that. */
+  data: Record<string, unknown>
   /** Absent means "no end time"; callers editing an event should send null. */
   endTimestamp?: number
   error?: EventValidationError
@@ -38,7 +40,8 @@ function num(value: string | boolean | undefined): number | undefined {
 }
 
 function fromData(event: Doc<'babyEvents'> | undefined, key: string): unknown {
-  return (event?.data as Record<string, unknown> | undefined)?.[key]
+  const data: Record<string, unknown> | undefined = event?.data
+  return data?.[key]
 }
 
 function seedString(
@@ -169,6 +172,9 @@ export function buildEventInput(
   values: EventValues,
   timestampMs: number,
 ): EventInput {
+  const missing = missingRequiredField(type, values)
+  if (missing) return { data: {}, error: missing }
+
   switch (type) {
     case 'temperature': {
       const celsius = num(values.celsius)
@@ -196,33 +202,22 @@ export function buildEventInput(
       }
       return { data: { weightKg, heightCm, headCircumferenceCm } }
     }
-    case 'medication': {
-      const name = str(values.name).trim()
-      if (!name) return { data: {}, error: 'enterMedicationName' }
+    case 'medication':
       return {
         data: {
-          name,
+          name: str(values.name).trim(),
           doseAmount: num(values.doseAmount),
           doseUnit: str(values.doseUnit).trim() || undefined,
         },
       }
-    }
-    case 'vaccination': {
-      const name = str(values.name).trim()
-      if (!name) return { data: {}, error: 'enterVaccineName' }
-      return { data: { name } }
-    }
+    case 'vaccination':
+      return { data: { name: str(values.name).trim() } }
     case 'note':
       return {
         data: { milestone: values.milestone === true ? true : undefined },
       }
-    case 'memory': {
-      const what = str(values.what).trim()
-      // A key, not a sentence: the form that renders the complaint is the one
-      // that knows the reader's language (ADR-0011).
-      if (!what) return { data: {}, error: 'enterMemoryWhat' }
-      return { data: { what } }
-    }
+    case 'memory':
+      return { data: { what: str(values.what).trim() } }
   }
 }
 

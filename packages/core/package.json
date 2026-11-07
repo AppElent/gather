@@ -7,7 +7,9 @@
     "./ai-limit": "./src/aiLimit.ts",
     "./appearance": "./src/appearance.ts",
     "./baby-age": "./src/babyAge.ts",
+    "./baby-events": "./src/babyEvents.ts",
     "./calendar": "./src/calendar.ts",
+    "./civil-date": "./src/civilDate.ts",
     "./domain": "./src/domain.ts",
     "./drop-rules": "./src/dropRules.ts",
     "./finance": "./src/finance/index.ts",
@@ -20,6 +22,7 @@
     "./modules": "./src/modules.ts",
     "./photo-presets": "./src/photoPresets.ts",
     "./pins": "./src/pins.ts",
+    "./refusals": "./src/refusals.ts",
     "./sentry-privacy": "./src/sentryPrivacy.ts",
     "./tastings": "./src/tastings.ts"
   },

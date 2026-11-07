@@ -1,14 +1,13 @@
-import type { BabyEventType } from '../../../convex/lib/babyEvents'
-import {
-  combineDateTime,
-  toDateInputValue,
-  toTimeInputValue,
-} from '../../lib/babyDate'
 import {
   DIAPER_KINDS,
   FEEDING_METHODS,
-  BABY_INPUT_CLASS as inputClass,
   TEMPERATURE_METHODS,
+} from '@gather/core/baby-events'
+import { localIsoDate } from '@gather/core/civil-date'
+import type { BabyEventType } from '@gather/core/domain'
+import { combineDateTime, toTimeInputValue } from '../../lib/babyDate'
+import {
+  BABY_INPUT_CLASS as inputClass,
   TEMPERATURE_OPTIONS,
 } from '../../lib/babyEventFields'
 import type { EventValues } from '../../lib/babyEventFormValues'
@@ -46,7 +45,7 @@ export function EventTypeFields({
   }
 
   function setEndTime(timeStr: string) {
-    const date = toDateInputValue(endMs ?? timestampMs)
+    const date = localIsoDate(endMs ?? timestampMs)
     onChange({ endTimestamp: String(combineDateTime(date, timeStr)) })
   }
 
@@ -57,7 +56,7 @@ export function EventTypeFields({
         <input
           type="date"
           className={inputClass}
-          value={endMs ? toDateInputValue(endMs) : ''}
+          value={endMs ? localIsoDate(endMs) : ''}
           onChange={(e) => setEndDate(e.target.value)}
         />
         <input

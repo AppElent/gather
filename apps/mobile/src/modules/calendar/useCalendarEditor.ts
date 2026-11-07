@@ -1,4 +1,5 @@
 import type { CalendarEvent } from '@gather/core/calendar'
+import { readCalendarRefusal } from '@gather/core/refusals'
 import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { haptics } from '../../feedback/haptics'
 import {
@@ -18,6 +19,11 @@ import {
   writeCalendarDraft,
 } from './calendarDraftStore'
 
+/** What a save sends: by then validation has insisted on a calendar. */
+export type CalendarSavePayload = ReturnType<typeof draftPayload> & {
+  calendarId: string
+}
+
 const initialState: CalendarDraftState = {
   draft: null,
   presentation: 'card',
@@ -34,11 +40,11 @@ export function useCalendarEditor({
   userId: string
   groupId: string
   connected: boolean
-  create: (payload: ReturnType<typeof draftPayload>) => Promise<string>
+  create: (payload: CalendarSavePayload) => Promise<string>
   update: (
     id: string,
     revision: number,
-    payload: ReturnType<typeof draftPayload>,
+    payload: CalendarSavePayload,
   ) => Promise<{ revision: number }>
   remove: (id: string) => Promise<void>
 }) {
@@ -83,18 +89,26 @@ export function useCalendarEditor({
     if (!draft) return false
     const blocker = calendarSaveBlocker(draft, connected, submitting.current)
     if (blocker) {
-      if (blocker === 'calendar:offline')
+      if (blocker === 'offline')
         dispatch({ type: 'saveFailure', error: blocker })
+      return false
+    }
+    const { calendarId } = draft.values
+    if (!calendarId || (draft.mode === 'edit' && !draft.eventId)) {
+      dispatch({
+        type: 'saveFailure',
+        error: calendarId ? 'save' : 'calendarRequired',
+      })
+      haptics.actionFailed()
       return false
     }
     submitting.current = true
     dispatch({ type: 'saveStart' })
     try {
-      const payload = draftPayload(draft)
-      if (draft.mode === 'create') await create(payload)
-      else if (draft.eventId)
+      const payload = { ...draftPayload(draft), calendarId }
+      if (draft.mode === 'edit' && draft.eventId)
         await update(draft.eventId, draft.baseRevision, payload)
-      else throw new Error('missing-event')
+      else await create(payload)
       clearCalendarDraft(userId, groupId)
       if (mounted.current) {
         dispatch({ type: 'saveSuccess' })
@@ -102,16 +116,11 @@ export function useCalendarEditor({
       }
       return true
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'save'
-      const code = message.includes('calendar:conflict')
-        ? 'calendar:conflict'
-        : message.includes('calendar:deleted')
-          ? 'calendar:deleted'
-          : message.includes('calendar:')
-            ? message.slice(message.indexOf('calendar:'))
-            : 'save'
       if (mounted.current) {
-        dispatch({ type: 'saveFailure', error: code })
+        dispatch({
+          type: 'saveFailure',
+          error: readCalendarRefusal(error) ?? 'save',
+        })
         haptics.actionFailed()
       }
       return false

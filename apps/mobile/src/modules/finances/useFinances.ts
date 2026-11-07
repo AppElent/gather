@@ -7,7 +7,7 @@
  * this Module still takes a `groupSlug`, because a write happens at the address
  * that names its Group (ADR-0007).
  */
-import { todayIso } from '@gather/core/finance'
+import { localIsoDate } from '@gather/core/civil-date'
 import { useMemo } from 'react'
 import { api } from '../../../../../convex/_generated/api'
 import { useQuery } from '../../convex/queries'
@@ -35,6 +35,6 @@ export function useFinances() {
     format,
     text: t.finances,
     /** Read once per render rather than per row: every screen dates from it. */
-    today: todayIso(),
+    today: localIsoDate(),
   }
 }

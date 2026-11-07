@@ -10,6 +10,7 @@
  * the previous *question*, not unwind a navigation stack that also contains the
  * screen you started from.
  */
+import type { BabySex } from '@gather/core/baby-events'
 import {
   BABY_EVENT_TYPES,
   type BabyEventType,
@@ -66,7 +67,7 @@ export function CreateChild() {
   const [step, setStep] = useState(1)
   const [name, setName] = useState('')
   const [birthDate, setBirthDate] = useState('')
-  const [sex, setSex] = useState<'female' | 'male' | 'unspecified'>(
+  const [sex, setSex] = useState<BabySex>(
     'unspecified',
   )
   const [tracked, setTracked] = useState<BabyEventType[]>(DEFAULT_TRACKED)

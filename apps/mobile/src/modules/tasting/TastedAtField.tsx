@@ -14,6 +14,7 @@
  * Formatted in the **app's** language, not the device's — this app has its own
  * language toggle and a screen that mixes the two reads as a bug (ADR-0011).
  */
+import { addDays, localIsoDate, localMidnight } from '@gather/core/civil-date'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
@@ -21,21 +22,12 @@ import { useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { TASTING_UI_ICONS } from './icons'
 
-const DAY_MS = 24 * 60 * 60 * 1000
-
-/** Today, as the plain day string the mutation takes. */
-export function todayIso(now: number = Date.now()): string {
-  return new Date(now).toISOString().slice(0, 10)
-}
-
 /** The same day, `days` later or earlier. Never past today. */
-export function shiftIso(iso: string, days: number, now = Date.now()): string {
-  const shifted = new Date(`${iso}T00:00:00Z`).getTime() + days * DAY_MS
+function shiftTastedAt(iso: string, days: number, today: string): string {
+  const shifted = addDays(iso, days)
   // You cannot have tasted it tomorrow. Clamping rather than disabling the
   // button keeps the two steppers the same size and the same shape.
-  return new Date(Math.min(shifted, new Date(todayIso(now)).getTime()))
-    .toISOString()
-    .slice(0, 10)
+  return shifted > today ? today : shifted
 }
 
 export function TastedAtField({
@@ -53,22 +45,21 @@ export function TastedAtField({
   const words = t.tastings.composer
   const Calendar = TASTING_UI_ICONS.Calendar
 
-  const today = todayIso()
-  const yesterday = shiftIso(today, -1)
+  const today = localIsoDate()
+  const yesterday = addDays(today, -1)
   const label =
     value === today
       ? words.today
       : value === yesterday
         ? words.yesterday
-        : new Date(`${value}T00:00:00Z`).toLocaleDateString(locale, {
+        : localMidnight(value).toLocaleDateString(locale, {
             weekday: 'short',
             day: 'numeric',
             month: 'short',
-            timeZone: 'UTC',
           })
 
   function step(days: number) {
-    const next = shiftIso(value, days)
+    const next = shiftTastedAt(value, days, today)
     if (next === value) return
     haptics.selectionChanged()
     onChange(next)
