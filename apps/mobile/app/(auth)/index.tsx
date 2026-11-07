@@ -1,5 +1,5 @@
 /**
- * The front door — direction A, "words plus a tinted strip".
+ * The front door: words plus a tinted strip.
  *
  * The pitch leads, in the same two sentences the web's About page uses, and the
  * catalogue confirms it underneath as a band of tinted chips. The claim is
@@ -13,9 +13,6 @@
  * The accent here is ink, not a tint (ADR-0017): the front door belongs to no
  * Module, and a teal Sign in would be claiming you had already arrived
  * somewhere.
- *
- * Direction B lives in `welcome-catalogue.tsx`, unreachable from here on
- * purpose. One of the two is deleted once #147 is settled.
  */
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'

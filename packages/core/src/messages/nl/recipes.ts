@@ -32,8 +32,6 @@ export const recipes = {
   destination: {
     prefix: 'Wordt toegevoegd aan',
     suffix: '.',
-    fallbackSuffix:
-      '— je persoonlijke Groep, omdat deze pagina niet in een Groep zit.',
   },
 
   form: {
@@ -109,7 +107,6 @@ export const recipes = {
 
     rate: '{title} beoordelen',
     rateFailed: 'Die beoordeling kon niet worden opgeslagen.',
-    clearRating: 'Beoordeling wissen',
     readOnly: 'Hoort bij {group}, dus hier alleen te lezen.',
     deleteTitle: 'Recept verwijderen?',
     deleteBody: '"{title}" verwijderen? Dit kan niet ongedaan worden gemaakt.',

@@ -72,7 +72,6 @@ export function TastingSubjectPage({
     subjectId: subject._id,
     name: subject.name,
     attributes: subject.attributes,
-    count: subject.count,
   }
 
   return (

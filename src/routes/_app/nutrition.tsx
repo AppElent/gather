@@ -19,8 +19,6 @@ import { groupNutritionNav } from '../../components/nutrition/nutritionNav'
  *
  * A food diary is Personal (ADR-0003), so the Group segment picks the
  * navigation context and nothing else: the page is identical in every Group.
- * (There is no flat `/nutrition` route — ADR-0002 removed the flat tree, and
- * `src/lib/legacyPaths.ts` is what still answers for old links.)
  */
 export const Route = createFileRoute('/_app/nutrition')({
   component: GroupNutrition,

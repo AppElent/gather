@@ -11,9 +11,7 @@ vi.mock('@tanstack/react-router', async () => {
   return {
     ...actual,
     createFileRoute: () => (options: unknown) => ({ options }),
-    createRootRouteWithContext: () => () => (options: unknown) => ({
-      options,
-    }),
+    createRootRoute: (options: unknown) => ({ options }),
     Link: ({
       children,
       to,
@@ -52,10 +50,6 @@ vi.mock('../integrations/clerk/provider', () => ({
 
 vi.mock('../integrations/convex/provider', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}))
-
-vi.mock('../integrations/tanstack-query/devtools', () => ({
-  default: {},
 }))
 
 test('about page uses Gather-specific copy in the public frame', () => {

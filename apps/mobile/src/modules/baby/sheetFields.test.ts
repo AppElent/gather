@@ -5,29 +5,12 @@ import {
   endTimestampFor,
   fieldsFor,
   initialPicks,
-  lastOfType,
   missingRequired,
   type PreviousEvent,
   parseNumber,
   SHEET_SPECS,
-  sheetHandles,
   stepValue,
 } from './sheetFields'
-
-describe('which types the quick sheet can finish', () => {
-  test('the four one-tap ones, plus note', () => {
-    expect(sheetHandles('feeding')).toBe(true)
-    expect(sheetHandles('diaper')).toBe(true)
-    expect(sheetHandles('sleep')).toBe(true)
-    expect(sheetHandles('note')).toBe(true)
-  })
-
-  test('the free-text ones too — there is no second screen to fall through to', () => {
-    expect(sheetHandles('growth')).toBe(true)
-    expect(sheetHandles('medication')).toBe(true)
-    expect(sheetHandles('vaccination')).toBe(true)
-  })
-})
 
 describe('a unit belongs to a method, not to a type', () => {
   const keys = (method: string) =>
@@ -242,22 +225,6 @@ describe('when a sleep ended', () => {
 
   test('nothing else has an end', () => {
     expect(endTimestampFor('feeding', {}, 1000)).toBeUndefined()
-  })
-})
-
-describe('finding the last event of a type', () => {
-  const events: PreviousEvent[] = [
-    { type: 'feeding', timestamp: 10, data: { method: 'bottle' } },
-    { type: 'feeding', timestamp: 30, data: { method: 'breast' } },
-    { type: 'diaper', timestamp: 40, data: { kind: 'wet' } },
-  ]
-
-  test('the most recent one, not the last in the array', () => {
-    expect(lastOfType(events, 'feeding')?.timestamp).toBe(30)
-  })
-
-  test('nothing logged is undefined, which the picks read as the fallback', () => {
-    expect(lastOfType(events, 'growth')).toBeUndefined()
   })
 })
 

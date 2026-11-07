@@ -40,7 +40,6 @@ export default function AuthLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="welcome-catalogue" options={{ headerShown: false }} />
     </Stack>
   )
 }

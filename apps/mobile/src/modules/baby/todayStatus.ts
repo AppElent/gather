@@ -44,23 +44,13 @@ export interface DurationUnits {
   days: string
 }
 
-const COMPACT: DurationUnits = {
-  minutes: '{minutes}m',
-  hours: '{hours}h',
-  hoursMinutes: '{hours}h {minutes}m',
-  days: '{days}d',
-}
-
 /**
  * "32m", "3h 10m", "2d" — or the same in the reader's language.
  *
  * Coarse on purpose above an hour: a parent reading "3h 10m ago" is answering
  * "is she due?", and seconds of precision would be noise on the tile.
  */
-export function shortDuration(
-  ms: number,
-  units: DurationUnits = COMPACT,
-): string {
+export function shortDuration(ms: number, units: DurationUnits): string {
   const minutes = Math.max(0, Math.floor(ms / 60_000))
   if (minutes < 60) return fmt(units.minutes, { minutes })
   const hours = Math.floor(minutes / 60)
@@ -81,12 +71,16 @@ function todaysOf(
   return events.filter((e) => e.type === type && e.timestamp >= dayStart)
 }
 
-function latestOf(events: readonly LoggedEvent[], type: BabyEventType) {
+/** The most recent event of a type. */
+export function latestOf<E extends { type: BabyEventType; timestamp: number }>(
+  events: readonly E[],
+  type: BabyEventType,
+): E | undefined {
   return events
     .filter((e) => e.type === type)
-    .reduce<LoggedEvent | null>(
+    .reduce<E | undefined>(
       (latest, e) => (!latest || e.timestamp > latest.timestamp ? e : latest),
-      null,
+      undefined,
     )
 }
 
@@ -113,8 +107,7 @@ export function sleepTotalMs(
 
 export interface StatusMessages {
   ago: (duration: string) => string
-  /** Omitted in tests; the compact English form is the default. */
-  duration?: DurationUnits
+  duration: DurationUnits
   countToday: (count: number) => string
   never: string
   at: (time: string) => string

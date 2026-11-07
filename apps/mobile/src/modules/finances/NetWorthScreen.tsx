@@ -12,7 +12,11 @@
  * on the server.
  */
 
-import { calculationTotals, netWorthTotals } from '@gather/core/finance'
+import {
+  calculationTotals,
+  changeSince,
+  netWorthTotals,
+} from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
@@ -103,7 +107,7 @@ export function NetWorthScreen({ base: _base }: { base: FinanceBase }) {
   })
   const totals = netWorthTotals(rows)
   const previous = snapshots?.[0]
-  const change = previous ? totals.netCents - previous.netCents : null
+  const change = changeSince(totals.netCents, previous?.netCents)
 
   function save() {
     const cents = Math.round(Number(amount.replace(',', '.')) * 100)

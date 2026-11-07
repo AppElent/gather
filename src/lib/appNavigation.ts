@@ -35,15 +35,6 @@ import {
  */
 export type NavMessages = Pick<Messages, 'shell' | 'modules'>
 
-/**
- * What a Module is called and what it is for, in the reader's language.
- *
- * The cast is the one place a `ModuleDef.id` is narrowed to a declared id, and
- * it is safe for the same reason it is needed: every `ModuleDef` in circulation
- * came out of `MODULES`, and the message tree is typed `Record<ModuleId, …>`
- * against that same list, but `moduleById` has to accept the arbitrary strings
- * that arrive from URLs and stored Pins.
- */
 /** Where a navigation item points. */
 export type NavDestination = Pick<
   LinkProps,
@@ -198,14 +189,13 @@ export function navItems(
 export function dockNavItems(
   items: readonly NavItem[],
   activeId: string | null = null,
-  slots: number = DOCK_SLOTS,
 ): NavItem[] {
-  if (items.length <= slots) return [...items]
+  if (items.length <= DOCK_SLOTS) return [...items]
 
   const first = items[0]
   const last = items[items.length - 1]
   const middle = items.slice(1, -1)
-  const shown = middle.slice(0, Math.max(slots - 2, 0))
+  const shown = middle.slice(0, DOCK_SLOTS - 2)
 
   const active = middle.find((item) => item.id === activeId)
   if (active && shown.length > 0 && !shown.includes(active)) {

@@ -1,7 +1,6 @@
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import type { QueryClient } from '@tanstack/react-query'
 import {
-  createRootRouteWithContext,
+  createRootRoute,
   HeadContent,
   Link,
   Scripts,
@@ -11,7 +10,6 @@ import { useEffect } from 'react'
 import { PublicPageFrame } from '../components/app/PublicPageFrame'
 import ClerkProvider from '../integrations/clerk/provider'
 import ConvexProvider from '../integrations/convex/provider'
-import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import {
   type AuthConfig,
   AuthConfigProvider,
@@ -28,10 +26,6 @@ import { LanguageSync } from '../lib/i18n/LanguageSync'
 import { getSsrLocale } from '../lib/i18n/server'
 import appCss from '../styles.css?url'
 
-interface MyRouterContext {
-  queryClient: QueryClient
-}
-
 const authConfig: AuthConfig = {
   appName: 'gather',
   paths: {
@@ -45,7 +39,7 @@ const authConfig: AuthConfig = {
   socialProviders: [],
 }
 
-export const Route = createRootRouteWithContext<MyRouterContext>()({
+export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -165,7 +159,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                       name: 'Tanstack Router',
                       render: <TanStackRouterDevtoolsPanel />,
                     },
-                    TanStackQueryDevtools,
                   ]}
                 />
               </AuthConfigProvider>

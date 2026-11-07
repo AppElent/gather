@@ -20,7 +20,6 @@ export type QuickActionId =
   | 'task-new'
   | 'recipe-import'
   | 'meal-log'
-  | 'food-scan'
   | 'cheese-tasting'
   | 'wine-tasting'
   | 'beer-tasting'
@@ -30,24 +29,18 @@ export type QuickActionId =
  * kind asks for. Copy and fields are resolved by the mobile message tree so
  * this portable seam remains data, not an English-only UI description.
  */
-export interface QuickAction {
+export type QuickAction = {
   id: QuickActionId
   module: 'tasks' | 'recipes' | 'nutrition' | 'cheeses' | 'wines' | 'beers'
   group: ModuleGroup
   icon: ModuleIconName
-  kind: QuickActionKind
-  /** `compose` only: which Kind the subject step is picking. */
-  tastingKind?: TastingKind
-  /**
-   * Where a `handoff` goes, for a Module that has somewhere to go.
-   *
-   * Absent means the shared demo create screen, which is where every handoff
-   * landed while no Module owned a real form. A Module that has built one
-   * names it here and stops being a demo — and the launcher never learns
-   * which Module it is handing to.
-   */
-  href?: Href
-}
+} & (
+  | { kind: 'row' | 'sheet' }
+  /** `tastingKind` is which Kind the subject step is picking. */
+  | { kind: 'compose'; tastingKind: TastingKind }
+  /** `href` is the Module's own screen, which the launcher hands over to. */
+  | { kind: 'handoff'; href: Href }
+)
 
 /**
  * Only currently working flows appear until each Module owns its real one.
@@ -113,12 +106,5 @@ export const QUICK_ACTIONS = [
     group: 'kitchen',
     icon: 'Apple',
     kind: 'sheet',
-  },
-  {
-    id: 'food-scan',
-    module: 'nutrition',
-    group: 'kitchen',
-    icon: 'Apple',
-    kind: 'handoff',
   },
 ] as const satisfies readonly QuickAction[]

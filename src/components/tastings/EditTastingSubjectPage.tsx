@@ -133,11 +133,7 @@ function EditSubjectForm({
               groupSlug,
               id: subject._id,
               name,
-              attributes: Object.fromEntries(
-                Object.entries(attributes).filter(
-                  ([, value]) => value !== undefined,
-                ),
-              ),
+              attributes,
               ...(photoTouched ? { photoId: photoId ?? null } : {}),
             })
             navigate(nav.subject(subject._id))

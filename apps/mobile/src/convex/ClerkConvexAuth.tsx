@@ -168,7 +168,6 @@ export function ClerkConvexAuth({
   // biome-ignore lint/correctness/useExhaustiveDependencies: the deps are what make a generation
   const generation = useMemo<Generation>(
     () => ({}),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [sessionId, orgId, orgRole, attempt],
   )
   const [failedGeneration, setFailedGeneration] = useState<Generation | null>(

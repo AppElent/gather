@@ -1,11 +1,12 @@
-import type { Breadcrumb, Event } from '@sentry/react'
 import { describe, expect, it } from 'vitest'
 import {
+  type ScrubbableBreadcrumb,
+  type ScrubbableEvent,
   sanitizeBreadcrumb,
   sanitizeEvent,
   sanitizeText,
   stripUrl,
-} from './privacy'
+} from '../sentryPrivacy'
 
 const JWT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyXzEyMyJ9.c2lnbmF0dXJlLXZhbHVl'
 
@@ -57,7 +58,7 @@ describe('sanitizeBreadcrumb', () => {
   })
 
   it('drops every DOM breadcrumb, whose message carries aria-label text', () => {
-    const click: Breadcrumb = {
+    const click: ScrubbableBreadcrumb = {
       category: 'ui.click',
       message:
         'body > main > button[aria-label="Delete task Baby fever 39.4"][title="Dr. Jansen"]',
@@ -83,7 +84,7 @@ describe('sanitizeBreadcrumb', () => {
   })
 
   it('keeps structural fields only and strips query strings', () => {
-    const crumb: Breadcrumb = {
+    const crumb: ScrubbableBreadcrumb = {
       category: 'fetch',
       message: 'GET for jane@example.nl',
       data: {
@@ -103,7 +104,7 @@ describe('sanitizeBreadcrumb', () => {
 })
 
 describe('sanitizeEvent', () => {
-  const build = (): Event => ({
+  const build = () => ({
     message: `failed for jane@example.nl with ${JWT}`,
     user: { id: 'user_1', email: 'jane@example.nl', ip_address: '1.2.3.4' },
     extra: { args: { title: 'Dentist for the baby' } },
@@ -150,7 +151,7 @@ describe('sanitizeEvent', () => {
   it('keeps only the opaque user id', () => {
     expect(sanitizeEvent(build()).user).toEqual({ id: 'user_1' })
     expect(
-      sanitizeEvent({ user: { email: 'a@b.nl' } } as Event).user,
+      sanitizeEvent({ user: { email: 'a@b.nl' } } as ScrubbableEvent).user,
     ).toBeUndefined()
   })
 

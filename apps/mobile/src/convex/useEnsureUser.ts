@@ -39,7 +39,7 @@ export interface Provisioning {
   retry: () => void
 }
 
-export function isAccountDeletedError(error: unknown): boolean {
+function isAccountDeletedError(error: unknown): boolean {
   return error instanceof ConvexError && error.data === ACCOUNT_DELETED
 }
 

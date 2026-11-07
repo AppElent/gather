@@ -1,11 +1,10 @@
-import { MODULES } from '@gather/core/modules'
 import { describe, expect, test } from 'vitest'
 import {
-  GROUP_MODULE_INDEX_SURFACES,
+  GROUP_ROUTES,
+  type GroupSurface,
   groupHref,
   groupIndexSurfaceOf,
   groupLink,
-  groupSurfaceForModule,
   moduleLink,
 } from './groupPaths'
 
@@ -29,15 +28,12 @@ describe('ambient Group routes', () => {
   })
 
   test('all module links are top-level routes', () => {
-    for (const surface of GROUP_MODULE_INDEX_SURFACES) {
+    for (const surface of Object.keys(GROUP_ROUTES) as GroupSurface[]) {
       expect(groupHref(surface, 'ignored')).not.toContain('/g/')
     }
     expect(moduleLink({ id: 'recipes' }, 'ignored')).toEqual({
       to: '/recipes',
       params: {},
     })
-    expect(MODULES.filter((m) => groupSurfaceForModule(m.id) === null)).toEqual(
-      [],
-    )
   })
 })

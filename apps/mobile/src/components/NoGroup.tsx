@@ -2,8 +2,8 @@
  * The one signed-in state with no Group at all.
  *
  * It sits outside anything Group-scoped, because a shell drawn around a Group
- * that does not exist is chrome that leads nowhere (ADR-0015). It is only
- * reached after `GroupProvider`'s grace period, so it means "you are in no
+ * that does not exist is chrome that leads nowhere (ADR-0015). `GroupProvider`
+ * draws it only once `groups.myGroups` has answered, so it means "you are in no
  * Group", never "the list has not arrived".
  *
  * It used to offer no way out but the web, because the phone had no way to make

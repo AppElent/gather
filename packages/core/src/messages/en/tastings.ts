@@ -277,8 +277,6 @@ export const index = {
   searchEmpty: 'Nothing matching that.',
   clearSearch: 'Clear the search',
   add: 'Log a tasting',
-  /** The average, read aloud. `{score}` is 4.3, `{count}` the number behind it. */
-  averageOf: '{score} from {count}',
   /** Beside the stars, where the score itself is already drawn. */
   fromCount: 'from {count}',
   noScore: 'Not rated yet',
@@ -327,7 +325,6 @@ export const composer = {
   laterDay: 'A day later',
   notesPlaceholder: 'What did it taste of?',
   addYourOwn: 'Add your own',
-  addTerm: 'Add “{name}”',
   choose: 'Choose',
   none: 'Not set',
   clear: 'Clear',
@@ -360,11 +357,9 @@ export const subject = {
   logTasting: 'Log a tasting',
   addPhoto: 'Label',
   photoOf: 'Photo of {name}',
-  photoUploading: 'Adding the photo…',
   photoFailed: 'That photo could not be added.',
   photoDenied: 'Gather needs permission to use that.',
   takePhoto: 'Take a photo',
-  choosePhoto: 'Choose a photo',
   replacePhoto: 'Replace',
   removePhoto: 'Remove',
   /** Attribution on a Tasting row. */

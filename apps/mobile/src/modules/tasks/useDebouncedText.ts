@@ -24,7 +24,6 @@ const IDLE = 600
 export function useDebouncedText(
   value: string,
   commit: (next: string) => void,
-  delay: number = IDLE,
 ) {
   const [draft, setDraft] = useState(value)
   /** The keystroke not yet written, or `null` when everything is saved. */
@@ -58,9 +57,9 @@ export function useDebouncedText(
       setDraft(next)
       pending.current = next
       if (timer.current) clearTimeout(timer.current)
-      timer.current = setTimeout(flush, delay)
+      timer.current = setTimeout(flush, IDLE)
     },
-    [delay, flush],
+    [flush],
   )
 
   return { draft, change, flush }

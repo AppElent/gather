@@ -23,7 +23,6 @@ describe('mobile app destinations', () => {
       { id: 'task-new', kind: 'row' },
       { id: 'recipe-import', kind: 'handoff' },
       { id: 'meal-log', kind: 'sheet' },
-      { id: 'food-scan', kind: 'handoff' },
     ])
   })
 
@@ -53,11 +52,6 @@ describe('mobile app destinations', () => {
     expect(action && 'href' in action ? action.href : null).toBe(
       '/all/recipes/import',
     )
-  })
-
-  test('a handoff with nowhere built yet falls through to the shared form', () => {
-    const action = QUICK_ACTIONS.find(({ id }) => id === 'food-scan')
-    expect(action && 'href' in action).toBe(false)
   })
 
   test('writing a recipe from blank is not advertised in the launcher', () => {

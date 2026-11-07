@@ -55,13 +55,14 @@ import {
 } from 'react-native'
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { movedTo } from '../../arrange/arrange'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
 import { fmt, type Messages, useI18n } from '../../i18n'
 import type { Glyph } from '../../theme/glyph'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { BABY_UI_ICONS, EVENT_ICONS } from './icons'
-import { dragTarget, movedTo, residualOffset } from './logBarArrange'
+import { dragTarget, residualOffset } from './logBarArrange'
 
 /** The width of one button while logging. Arranging measures its own. */
 const ITEM_WIDTH = 61

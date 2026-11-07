@@ -11,9 +11,7 @@
  *   mounted. (On iOS, dismiss leaves the tab entirely; see `searchOrigin.ts`.)
  * - **The recents re-read**, on every arrival. Records are written by
  *   `useRecordRecent` on detail screens in other tabs, and Search's stack
- *   stays mounted, so it does not remount on the way back. Doing it here rather
- *   than in the pathname effect is also what keeps the React Compiler's
- *   `set-state-in-effect` rule satisfied.
+ *   stays mounted, so it does not remount on the way back.
  *
  * A module-level emitter rather than a context: the two ends are a route layout
  * and a screen three files apart, and threading a provider between them to

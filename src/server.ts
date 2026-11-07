@@ -1,5 +1,6 @@
 // The Worker's fetch entry (`main` in wrangler.jsonc). Wraps TanStack Start's
 // handler with Sentry only for deployed requests that have a DSN.
+import { sanitizeBreadcrumb, sanitizeEvent } from '@gather/core/sentry-privacy'
 import * as Sentry from '@sentry/cloudflare'
 import handler from '@tanstack/react-start/server-entry'
 import {
@@ -7,7 +8,6 @@ import {
   isLocalReportingUrl,
   SENTRY_BASE_OPTIONS,
 } from './lib/observability/config'
-import { sanitizeBreadcrumb, sanitizeEvent } from './lib/observability/privacy'
 import { setErrorSink } from './lib/observability/report'
 
 const dsn = import.meta.env.VITE_SENTRY_DSN

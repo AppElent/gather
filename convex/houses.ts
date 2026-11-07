@@ -244,11 +244,3 @@ export const saveBuyingCosts = mutation({
     return await ctx.db.insert('homeBuyingCosts', fields)
   },
 })
-
-export const removeBuyingCosts = mutation({
-  args: { id: v.id('homeBuyingCosts'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id)
-    await ctx.db.delete(args.id)
-  },
-})

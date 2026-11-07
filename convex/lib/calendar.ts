@@ -7,7 +7,7 @@ import {
 } from '@gather/core/calendar'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
-import type { MutationCtx, QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
 import { getMembership, requireGroupBySlug } from './groupAccess'
 
 export const calendarColorValidator = v.union(
@@ -144,5 +144,3 @@ export async function callerMembership(
   if (!membership) calendarError('not-member')
   return membership
 }
-
-export type CalendarCtx = QueryCtx | MutationCtx

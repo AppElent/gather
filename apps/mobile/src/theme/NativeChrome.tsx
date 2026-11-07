@@ -25,12 +25,7 @@ import { type ReactNode, useEffect } from 'react'
 
 import { type Tokens, useTokens } from './tokens'
 
-/**
- * Exported for the same reason `useTokens` is a hook rather than a constant:
- * the mapping from Gather's palette to the six colours the navigator knows
- * about is a fact about the palette, not about any one screen.
- */
-export function navigationTheme(tokens: Tokens): Theme {
+function navigationTheme(tokens: Tokens): Theme {
   const base = tokens.scheme === 'dark' ? DarkTheme : DefaultTheme
   return {
     ...base,

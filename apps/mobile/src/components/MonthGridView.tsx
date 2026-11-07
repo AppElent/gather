@@ -48,7 +48,7 @@ export interface MonthGridViewProps {
  * it makes the strip start where the grid does without anybody having to
  * rotate an array.
  */
-export function weekdayNames(locale: string): string[] {
+function weekdayNames(locale: string): string[] {
   return Array.from({ length: 7 }, (_, index) =>
     new Date(2024, 0, 1 + index).toLocaleDateString(locale, {
       weekday: 'narrow',

@@ -23,7 +23,6 @@ function GroupNewRecipe() {
       destination={{
         groupSlug: group.slug,
         groupName: group.name,
-        fallback: false,
       }}
       nav={groupRecipeNav(group.slug)}
     />

@@ -12,10 +12,4 @@ export interface RecipeDestination {
   groupSlug: string
   /** Its name, for saying out loud where the recipe is going. */
   groupName: string
-  /**
-   * True when the route named no Group and this is the caller's Personal group,
-   * chosen for them. The flat `/recipes/new` route has nowhere else to get a
-   * Group from; #24 deletes it, and this with it.
-   */
-  fallback: boolean
 }

@@ -1,13 +1,13 @@
 import { useAction, useQuery } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { barcodeTerm } from '../../../convex/lib/offFetch'
 import type { OffSearchResult } from '../../../convex/lib/offMapping'
 import { useI18n } from '../../lib/i18n'
 
 /** How long the term sits still before the local search runs. */
-export const SEARCH_DEBOUNCE_MS = 250
+const SEARCH_DEBOUNCE_MS = 250
 
 /**
  * How long it sits still before Open Food Facts is asked.
@@ -24,15 +24,7 @@ export const SEARCH_DEBOUNCE_MS = 250
  * per-term cache means backspacing and retyping costs nothing. Naming a
  * product is a handful of requests, well inside the ceiling.
  */
-export const OFF_SEARCH_DEBOUNCE_MS = 400
-
-/**
- * Whether the term is a barcode, and so resolves by lookup rather than by
- * search. Re-exported from `convex/lib/offFetch` rather than restated: the
- * pattern that decides what a lookup will accept is the one that decides
- * whether to make one.
- */
-export { barcodeTerm }
+const OFF_SEARCH_DEBOUNCE_MS = 400
 
 /**
  * Whether a term is worth asking Open Food Facts about at all.
@@ -75,7 +67,6 @@ export interface FoodSearch {
    * make the effect depend on the locale (ADR-0011).
    */
   offError: 'searchFailed' | null
-  clearOffError: () => void
 }
 
 /**
@@ -201,8 +192,6 @@ export function useFoodSearch(): FoodSearch {
     }
   }, [offTerm, locale, searchByName, lookupBarcode])
 
-  const clearOffError = useCallback(() => setOffError(null), [])
-
   return {
     term,
     setTerm,
@@ -210,6 +199,5 @@ export function useFoodSearch(): FoodSearch {
     offResults,
     offSearching,
     offError,
-    clearOffError,
   }
 }

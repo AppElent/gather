@@ -5,7 +5,6 @@ import { isNativeModule, moduleDestination } from '../moduleDestination'
 import {
   moduleIdOf,
   TASTING_BASES,
-  tabOf,
   tastingHref,
   tastingKindFromRoute,
 } from './paths'
@@ -50,9 +49,6 @@ describe('where a screen sends you', () => {
     })
   })
 
-  test('the base belongs to All', () => {
-    expect(tabOf(TASTING_BASES.all)).toBe('all')
-  })
 })
 
 describe('opening a tasting Module', () => {

@@ -92,7 +92,7 @@ function writeStored(groupSlug: string, value: StoredAll) {
   writePreference(allArrangementKey(groupSlug), JSON.stringify(value))
 }
 
-export function readAllView(): AllView {
+function readAllView(): AllView {
   return readPreference(PREFERENCE_KEYS.allView) === 'grid' ? 'grid' : 'list'
 }
 

@@ -3,7 +3,6 @@ import {
   type CalendarFieldErrors,
   type CalendarFieldValues,
   hasCalendarErrors,
-  normalizeCalendarEvent,
   validateCalendarFields,
 } from '@gather/core/calendar'
 
@@ -25,28 +24,23 @@ export type CalendarDraft = {
 
 export type DraftAction =
   | { type: 'open'; draft: CalendarDraft }
-  | { type: 'storageError'; error: string }
   | {
       type: 'change'
       field: keyof CalendarDraft['values']
       value: string | boolean | number | null | string[]
     }
   | { type: 'expand' }
-  | { type: 'collapse' }
   | { type: 'dismiss' }
   | { type: 'resume' }
   | { type: 'saveStart' }
   | { type: 'saveFailure'; error: string }
-  | { type: 'conflict'; error: 'conflict' | 'deleted' }
   | { type: 'saveSuccess' }
-  | { type: 'reload'; event: CalendarEvent }
   | { type: 'duplicate'; draftId: string }
   | { type: 'discard' }
 
 export interface CalendarDraftState {
   draft: CalendarDraft | null
   presentation: 'card' | 'sheet'
-  storageError: string | null
 }
 
 export function emptyDraftValues(
@@ -143,19 +137,10 @@ export function reduceCalendarDraft(
   action: DraftAction,
 ): CalendarDraftState {
   if (action.type === 'open')
-    return {
-      ...state,
-      draft: action.draft,
-      presentation: 'card',
-      storageError: null,
-    }
-  if (action.type === 'storageError')
-    return { ...state, storageError: action.error }
+    return { ...state, draft: action.draft, presentation: 'card' }
   if (!state.draft && action.type !== 'discard') return state
   if (action.type === 'expand') return { ...state, presentation: 'sheet' }
-  if (action.type === 'collapse') return { ...state, presentation: 'card' }
-  if (action.type === 'discard')
-    return { ...state, draft: null, storageError: null }
+  if (action.type === 'discard') return { ...state, draft: null }
   const draft = state.draft!
   switch (action.type) {
     case 'change':
@@ -185,36 +170,15 @@ export function reduceCalendarDraft(
         draft: {
           ...draft,
           status:
-            action.error === 'calendar:conflict'
+            action.error === 'calendar:conflict' ||
+            action.error === 'calendar:deleted'
               ? 'conflict'
-              : action.error === 'calendar:deleted'
-                ? 'conflict'
-                : 'error',
+              : 'error',
           error: action.error,
         },
       }
-    case 'conflict':
-      return {
-        ...state,
-        draft: { ...draft, status: 'conflict', error: action.error },
-      }
     case 'saveSuccess':
-      return { ...state, draft: null, storageError: null }
-    case 'reload': {
-      const values = valuesFromEvent(action.event)
-      return {
-        ...state,
-        draft: {
-          ...draft,
-          eventId: action.event.id,
-          baseRevision: action.event.revision,
-          values,
-          original: values,
-          status: 'editing',
-          error: null,
-        },
-      }
-    }
+      return { ...state, draft: null }
     case 'duplicate':
       return {
         ...state,
@@ -255,14 +219,6 @@ export function restoreCalendarDraft(
   return draft as CalendarDraft
 }
 
-export function draftCanSave(
-  draft: CalendarDraft,
-  connected: boolean,
-  submitting: boolean,
-): boolean {
-  return calendarSaveBlocker(draft, connected, submitting) === null
-}
-
 /** Keep a native button press from becoming a silent no-op. */
 export function calendarSaveBlocker(
   draft: CalendarDraft,
@@ -290,5 +246,3 @@ export function draftPayload(draft: CalendarDraft) {
     notes: (draft.values.notes ?? '').trim() || null,
   }
 }
-
-export { normalizeCalendarEvent }

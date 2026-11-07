@@ -30,23 +30,6 @@ export function dragTarget(
   return Math.min(count - 1, Math.max(0, fromIndex + shift))
 }
 
-/** The list with one item lifted out and put back at another index. */
-export function movedTo<T>(order: readonly T[], from: number, to: number): T[] {
-  const next = [...order]
-  if (
-    from === to ||
-    from < 0 ||
-    to < 0 ||
-    from >= next.length ||
-    to >= next.length
-  ) {
-    return next
-  }
-  const [item] = next.splice(from, 1)
-  next.splice(to, 0, item)
-  return next
-}
-
 /**
  * How far the held button still has to move to sit under the finger, once the
  * other buttons have already slotted around it.

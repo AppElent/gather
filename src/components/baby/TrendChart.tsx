@@ -4,12 +4,13 @@ import { fmt, useMessages } from '../../lib/i18n'
 interface TrendChartProps {
   points: { x: number; y: number }[]
   unit: string
-  height?: number
 }
 
 /** Minimal hand-rolled SVG line chart — no charting dependency, just enough
  * for temperature/growth trend lines over time. */
-export function TrendChart({ points, unit, height = 160 }: TrendChartProps) {
+const HEIGHT = 160
+
+export function TrendChart({ points, unit }: TrendChartProps) {
   const { child } = useMessages().baby.log
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -50,7 +51,7 @@ export function TrendChart({ points, unit, height = 160 }: TrendChartProps) {
   const xRange = maxX - minX || 1
 
   const plotWidth = width - padding.left - padding.right
-  const plotHeight = height - padding.top - padding.bottom
+  const plotHeight = HEIGHT - padding.top - padding.bottom
 
   const toX = (x: number) => padding.left + ((x - minX) / xRange) * plotWidth
   const toY = (y: number) =>
@@ -66,7 +67,7 @@ export function TrendChart({ points, unit, height = 160 }: TrendChartProps) {
   return (
     <div ref={containerRef} className="w-full">
       <svg
-        viewBox={`0 0 ${width} ${height}`}
+        viewBox={`0 0 ${width} ${HEIGHT}`}
         className="w-full"
         role="img"
         aria-label={fmt(child.trendChart, {
@@ -78,14 +79,14 @@ export function TrendChart({ points, unit, height = 160 }: TrendChartProps) {
           x1={padding.left}
           y1={padding.top}
           x2={padding.left}
-          y2={height - padding.bottom}
+          y2={HEIGHT - padding.bottom}
           stroke="var(--app-border)"
         />
         <line
           x1={padding.left}
-          y1={height - padding.bottom}
+          y1={HEIGHT - padding.bottom}
           x2={width - padding.right}
-          y2={height - padding.bottom}
+          y2={HEIGHT - padding.bottom}
           stroke="var(--app-border)"
         />
         <text x={4} y={toY(maxY) + 4} fontSize="10" fill="var(--app-muted)">
@@ -106,7 +107,7 @@ export function TrendChart({ points, unit, height = 160 }: TrendChartProps) {
         ))}
         <text
           x={width - padding.right}
-          y={height - 6}
+          y={HEIGHT - 6}
           fontSize="10"
           textAnchor="end"
           fill="var(--app-muted)"
@@ -115,7 +116,7 @@ export function TrendChart({ points, unit, height = 160 }: TrendChartProps) {
         </text>
         <text
           x={padding.left}
-          y={height - 6}
+          y={HEIGHT - 6}
           fontSize="10"
           fill="var(--app-muted)"
         >

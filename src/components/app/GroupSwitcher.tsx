@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { groupIndexSurfaceOf, groupLink } from '../../lib/groupPaths'
 import { useMessages } from '../../lib/i18n'
 import { Icon } from './Icon'
-import { useShellGroup } from './ShellGroup'
 import { useCurrentGroup } from './useCurrentGroup'
 
 export interface GroupSwitcherProps {
@@ -37,11 +36,7 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
   const messages = useMessages()
   const { groupSwitcher } = messages.shell
   const { loading } = messages.common.errors
-  // The shell's Group rather than the URL's: on `/groups` or `/settings` this
-  // keeps naming the Group you came from, which is the one the sidebar below is
-  // still listing and the one you are most likely on your way back to.
-  const { group: current, groups } = useShellGroup()
-  const { setCurrentGroup } = useCurrentGroup()
+  const { current, groups, setCurrentGroup } = useCurrentGroup()
   const surface = groupIndexSurfaceOf(location.pathname) ?? 'home'
 
   const [open, setOpen] = useState(false)

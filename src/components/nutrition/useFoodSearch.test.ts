@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
-import { barcodeTerm, offCacheKey, shouldSearchOff } from './useFoodSearch'
+import { barcodeTerm } from '../../../convex/lib/offFetch'
+import { offCacheKey, shouldSearchOff } from './useFoodSearch'
 
 test('a barcode typed into the search box is resolved as a barcode', () => {
   // Not restated here: the search box borrows the pattern the lookup itself

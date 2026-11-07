@@ -12,13 +12,7 @@ import { useI18n } from '../i18n'
 import { MODULE_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
 
-export function ModulePlaceholder({
-  module,
-  showHeader = false,
-}: {
-  module: ModuleDef
-  showHeader?: boolean
-}) {
+export function ModulePlaceholder({ module }: { module: ModuleDef }) {
   const tokens = useTokens(module.group)
   const { t } = useI18n()
   const insets = useSafeAreaInsets()
@@ -28,18 +22,13 @@ export function ModulePlaceholder({
 
   return (
     <>
-      {showHeader ? (
-        <Stack.Screen options={{ headerShown: true, title: text.label }} />
-      ) : null}
+      <Stack.Screen options={{ headerShown: true, title: text.label }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.bg }}
         contentContainerStyle={[
           styles.content,
-          {
-            paddingTop: showHeader ? 20 : insets.top + 12,
-            paddingBottom: insets.bottom + 24,
-          },
+          { paddingTop: 20, paddingBottom: insets.bottom + 24 },
         ]}
       >
         <View style={[styles.hero, { backgroundColor: tint.bg }]}>

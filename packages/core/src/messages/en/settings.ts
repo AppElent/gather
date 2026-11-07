@@ -61,8 +61,6 @@ export const settings = {
 
   group: {
     title: 'This group',
-    personalNote:
-      'Your personal group. It is only ever yours, so there is nothing here to share or leave.',
     sharedNote: 'Its name, the code that lets somebody in, and the way out.',
     name: 'Name',
     rename: 'Rename',

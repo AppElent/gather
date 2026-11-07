@@ -3,7 +3,6 @@ import {
   MAX_SLUG_LENGTH,
   normaliseSlug,
   nthSlugCandidate,
-  personalSlugBase,
   RESERVED_SLUGS,
   sharedSlugBase,
 } from './slugs'
@@ -83,34 +82,6 @@ describe('sharedSlugBase', () => {
     expect(sharedSlugBase(`Me ${'a'.repeat(80)}`).length).toBeLessThanOrEqual(
       MAX_SLUG_LENGTH,
     )
-  })
-})
-
-describe('personalSlugBase', () => {
-  test('puts a person in the reserved Personal namespace', () => {
-    expect(personalSlugBase('Alice')).toBe('me-alice')
-    expect(personalSlugBase('Ada Lovelace')).toBe('me-ada-lovelace')
-  })
-
-  test('falls back to me-member when the name normalises to nothing', () => {
-    expect(personalSlugBase('')).toBe('me-member')
-    expect(personalSlugBase('🙂')).toBe('me-member')
-  })
-
-  test('does not double the prefix for a person literally called Me', () => {
-    expect(personalSlugBase('Me')).toBe('me-me')
-  })
-
-  test('stays within the maximum slug length', () => {
-    expect(personalSlugBase('a'.repeat(80)).length).toBeLessThanOrEqual(
-      MAX_SLUG_LENGTH,
-    )
-  })
-
-  test('is always inside the namespace a shared Group is kept out of', () => {
-    for (const name of ['Alice', '', 'Me', 'Ölçü']) {
-      expect(personalSlugBase(name).startsWith('me-')).toBe(true)
-    }
   })
 })
 

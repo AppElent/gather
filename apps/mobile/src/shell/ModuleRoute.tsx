@@ -19,5 +19,5 @@ export function ModuleRoute({ fallback }: { fallback: '/all' | '/home' }) {
     return <Redirect href={`${fallback}/${moduleId}` as never} />
   }
 
-  return <ModulePlaceholder module={module} showHeader />
+  return <ModulePlaceholder module={module} />
 }

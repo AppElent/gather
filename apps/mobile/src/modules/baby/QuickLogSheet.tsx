@@ -58,11 +58,11 @@ import {
   buildSheetData,
   endTimestampFor,
   initialPicks,
-  lastOfType,
   missingRequired,
   outOfRangeFields,
   type PreviousEvent,
 } from './sheetFields'
+import { latestOf } from './todayStatus'
 
 export interface QuickLogSheetProps {
   babyId: Id<'babies'>
@@ -95,7 +95,7 @@ export function QuickLogSheet({
 
   const [included, setIncluded] = useState<BabyEventType[]>([type])
   const [picks, setPicks] = useState<Record<string, Picks>>(() => ({
-    [type]: initialPicks(type, lastOfType(previous, type)),
+    [type]: initialPicks(type, latestOf(previous, type)),
   }))
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
@@ -140,7 +140,7 @@ export function QuickLogSheet({
     setPicks((prev) =>
       prev[each]
         ? prev
-        : { ...prev, [each]: initialPicks(each, lastOfType(previous, each)) },
+        : { ...prev, [each]: initialPicks(each, latestOf(previous, each)) },
     )
     setIncluded((current) => {
       if (current.includes(each)) {

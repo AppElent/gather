@@ -2,7 +2,6 @@ import { screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { MobileDock } from './MobileDock'
-import { ShellGroupProvider } from './ShellGroup'
 import { Sidebar } from './Sidebar'
 
 /**
@@ -264,11 +263,7 @@ describe('on the list of Groups', () => {
   })
 
   test('the modules stay listed', () => {
-    renderWithI18n(
-      <ShellGroupProvider>
-        <Sidebar />
-      </ShellGroupProvider>,
-    )
+    renderWithI18n(<Sidebar />)
 
     expect(screen.getByRole('navigation', { name: 'Primary' })).toBeDefined()
     expect(screen.queryByText(/pick a group to see its modules/i)).toBeNull()
@@ -278,11 +273,7 @@ describe('on the list of Groups', () => {
   })
 
   test('and the dock stays with them', () => {
-    renderWithI18n(
-      <ShellGroupProvider>
-        <MobileDock />
-      </ShellGroupProvider>,
-    )
+    renderWithI18n(<MobileDock />)
 
     expect(
       screen.getByRole('navigation', { name: 'Mobile navigation' }),
@@ -290,11 +281,7 @@ describe('on the list of Groups', () => {
   })
 
   test('but no Module claims to be the page you are on', () => {
-    renderWithI18n(
-      <ShellGroupProvider>
-        <Sidebar />
-      </ShellGroupProvider>,
-    )
+    renderWithI18n(<Sidebar />)
 
     // The footer's own "Groups" link is a different matter — that one really is
     // the page. It is the Module list that must not pretend you are elsewhere.

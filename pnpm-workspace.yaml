@@ -18,8 +18,7 @@ verifyDepsBeforeRun: false
 # pnpm 11 default-denies install/build lifecycle scripts (neutralizes the
 # postinstall-RCE vector supply-chain worms rely on). Only packages that
 # genuinely compile/download a native binary are allowed to run scripts;
-# everything else (e.g. @clerk/shared's telemetry notice, @google/genai's
-# and protobufjs's postinstall) stays denied.
+# everything else (e.g. @clerk/shared's telemetry notice) stays denied.
 allowBuilds:
   esbuild: true # native binary compile (bundler)
   lightningcss: true # native binary compile (Tailwind v4 oxide/CSS transform)
@@ -27,8 +26,6 @@ allowBuilds:
   workerd: true # downloads the Cloudflare Workers runtime binary
   "@sentry/cli": true # downloads the sentry-cli binary, needed for sourcemap upload
   "@clerk/shared": false # postinstall is just a telemetry notice
-  "@google/genai": false # no native binary needed at install time
-  protobufjs: false # no native binary needed at install time
   core-js: false # postinstall is just a sponsorship notice, no native binary (pulled in by jspdf's html2canvas dep)
   browser-tabs-lock: false # postinstall just prints a SuperTokens plug, no native binary (pulled in by @clerk/expo)
   bufferutil: false # optional native speed-up for `ws`; it falls back to JS without it
@@ -40,10 +37,6 @@ allowBuilds:
 minimumReleaseAge: 4320 # 3 days — blocks the worm/account-takeover window
 
 overrides:
-  # @tanstack/ai-gemini pulls in @google/genai@^2.8.0, which latest-resolved to
-  # 2.11.0 (published within the minimumReleaseAge cooldown). Pin to 2.10.0
-  # (published 2026-06-24, outside the cooldown) instead of weakening the policy.
-  "@google/genai": "2.10.0"
   # convex lists the deprecated @clerk/clerk-react as an optional peer next to
   # @clerk/react, and pnpm auto-installs optional peers. The web is on
   # @clerk/react (Clerk Core 3), so keep the old package out of the graph.

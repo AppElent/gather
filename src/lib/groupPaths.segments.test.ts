@@ -4,7 +4,8 @@ import { MODULES } from '@gather/core/modules'
 import { describe, expect, test } from 'vitest'
 import { RESERVED_SLUGS } from '../../convex/lib/slugs'
 import {
-  GROUP_SURFACES,
+  GROUP_ROUTES,
+  type GroupSurface,
   groupHref,
   groupSurfaceSegment,
   moduleSegment,
@@ -22,6 +23,7 @@ import {
  */
 
 const MODULE_SEGMENTS = new Set(MODULES.map((m) => moduleSegment(m.id)))
+const GROUP_SURFACES = Object.keys(GROUP_ROUTES) as GroupSurface[]
 
 describe('Group-level route segments', () => {
   test('no Module can take a segment the shell has reserved', () => {

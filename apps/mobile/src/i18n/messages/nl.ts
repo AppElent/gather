@@ -71,7 +71,6 @@ export const nl = {
     add: {
       title: 'Toevoegen aan {group}',
       workingOnly: 'Alleen acties die vandaag werken.',
-      close: 'Sluiten',
       back: 'Terug naar acties',
       save: '{noun} opslaan',
       saved: 'Toegevoegd: {items}',
@@ -120,35 +119,13 @@ export const nl = {
           fields: ['Voedingsmiddel', 'Hoeveel?'],
           noun: 'maaltijd',
         },
-        'food-scan': {
-          label: 'Barcode scannen',
-          module: coreNl.modules.byId.nutrition.label,
-          fields: [],
-          noun: 'voedingsmiddel',
-        },
       },
-      create: {
-        title: 'Maken',
-        description:
-          'Dit is een tijdelijke vervanger voor het volledige moduleformulier. Er wordt niets opgeslagen.',
-        fields: ['Naam', 'Notities', 'Tags'],
-        save: 'Opslaan',
-        saved: 'Er is niets opgeslagen — dit is een demostroom.',
-      },
-    },
-
-    search: {
-      title: 'Zoeken',
-      deferred:
-        'Zoeken wordt ontworpen rond de gegevens die het veilig kan vinden.',
     },
 
     home: {
       switchFrom: 'Groep: {group}. {action}',
       intro:
         'Welkom bij Gather. Je vindt alle modules voor deze Groep bij Alles.',
-      personalSubtitle: coreNl.shell.home.personalSubtitle,
-      sharedSubtitle: coreNl.shell.home.sharedSubtitle,
     },
 
     all: {
@@ -180,7 +157,6 @@ export const nl = {
     switcher: {
       action: coreNl.shell.groupSwitcher.label,
       title: coreNl.shell.groupSwitcher.pick,
-      personal: coreNl.shell.groupSwitcher.personalPill,
       shared: coreNl.shell.groupSwitcher.shared,
       current: 'Huidige Groep',
     },
@@ -236,14 +212,12 @@ export const nl = {
     password: 'Wachtwoord',
     email: 'E-mail',
     devices: 'Apparaten',
-    photo: 'Foto',
 
     editName: {
       title: 'Naam',
       description: 'Wat andere leden van je Groepen zien.',
       first: 'Voornaam',
       last: 'Achternaam',
-      saved: 'Naam bijgewerkt',
     },
 
     changePassword: {
@@ -253,7 +227,6 @@ export const nl = {
       current: 'Huidig wachtwoord',
       next: 'Nieuw wachtwoord',
       submit: 'Wachtwoord wijzigen',
-      saved: 'Wachtwoord gewijzigd',
       noPassword:
         'Je logt in zonder wachtwoord, dus er is er hier geen te wijzigen.',
     },
@@ -276,7 +249,6 @@ export const nl = {
       signOutOf: 'Uitloggen',
       revokeTitle: 'Uitloggen op {device}?',
       revokeBody: 'Dat apparaat moet opnieuw inloggen.',
-      empty: 'Geen andere apparaten.',
     },
 
     picture: {
@@ -303,7 +275,6 @@ export const nl = {
       confirmBody:
         'Je account en alles wat alleen jij kon zien wordt definitief verwijderd.',
       confirm: 'Verwijderen',
-      failed: 'Je account kon niet worden verwijderd. Er is niets verwijderd.',
       partlyFailed:
         'Je gegevens zijn verwijderd, maar het account zelf niet. Neem contact op met support.',
       unavailable:
@@ -319,13 +290,8 @@ export const nl = {
     name: 'Naam',
     quantity: 'Hoeveelheid (optioneel)',
     prepMinutes: 'Bereidingstijd in minuten',
-    noMeals:
-      'Nog geen maaltijden. Voeg een snelle maaltijd toe of gebruik een recept.',
     nothingPlanned: 'Niets gepland',
     noPantry: 'Nog niets in de voorraadkast.',
-    noCalendars: 'Nog geen agenda’s.',
-    noEvents: 'Geen afspraken deze maand.',
-    chooseList: 'Boodschappenlijst kiezen',
     noGroceryList: 'Kies een takenlijst voor boodschappen.',
     quick: 'Snel onder {minutes} minuten',
     quickShort: '≤ {minutes} min',
@@ -336,24 +302,14 @@ export const nl = {
     noMatches: 'Niets gevonden.',
     previousWeek: 'Vorige week',
     nextWeek: 'Volgende week',
-    previousMonth: 'Vorige maand',
-    nextMonth: 'Volgende maand',
     randomizeWeek: 'Niet geplande week invullen',
     mealLibrary: 'Snelle maaltijden',
     chooseDinner: 'Avondeten kiezen',
     changeList: 'Andere lijst gebruiken',
     addGroceryItem: 'Item toevoegen…',
-    random: 'Willekeurige maaltijd',
     clearDinner: 'Maaltijd wissen',
     deleteTitle: '“{title}” verwijderen?',
     deleteBody: 'Dit kan niet ongedaan worden gemaakt.',
-    newCalendar: 'Nieuwe agenda',
-    newEvent: 'Nieuwe afspraak',
-    eventDate: 'Datum (JJJJ-MM-DD)',
-    startTime: 'Begin (UU:MM)',
-    endTime: 'Einde (UU:MM)',
-    visible: 'Agenda tonen',
-    hidden: 'Agenda verbergen',
   },
 
   social: {
@@ -375,8 +331,6 @@ export const nl = {
   },
 
   actions: {
-    continue: 'Doorgaan',
-    back: 'Terug',
     resend: 'Stuur opnieuw',
     save: 'Opslaan',
     close: 'Sluiten',
@@ -398,7 +352,6 @@ export const nl = {
   },
 
   signIn: {
-    title: 'Inloggen',
     heading: 'Welkom terug',
     submit: 'Inloggen',
     forgot: 'Wachtwoord vergeten?',
@@ -425,7 +378,6 @@ export const nl = {
   },
 
   signUp: {
-    title: 'Account aanmaken',
     heading: 'Maak je account aan',
     subtitle: 'Je krijgt een code per e-mail om het adres te bevestigen.',
     submit: 'Account aanmaken',
@@ -434,7 +386,6 @@ export const nl = {
   },
 
   verify: {
-    title: 'Bevestig je e-mailadres',
     heading: 'Kijk in je e-mail',
     subtitle: 'We hebben een code van zes cijfers naar {email} gestuurd.',
     submit: 'Bevestigen',
@@ -443,20 +394,17 @@ export const nl = {
 
   reset: {
     request: {
-      title: 'Wachtwoord opnieuw instellen',
       heading: 'Wachtwoord opnieuw instellen',
       subtitle:
         'Geef het adres waarmee je je hebt aangemeld, dan sturen we een code.',
       submit: 'Stuur de code',
     },
     code: {
-      title: 'Vul de code in',
       heading: 'Kijk in je e-mail',
       subtitle: 'We hebben een code van zes cijfers naar {email} gestuurd.',
       submit: 'Doorgaan',
     },
     password: {
-      title: 'Kies een wachtwoord',
       heading: 'Kies een nieuw wachtwoord',
       subtitle: 'Neem iets dat je hier nog niet eerder hebt gebruikt.',
       submit: 'Opslaan en inloggen',
@@ -484,7 +432,6 @@ export const nl = {
   },
 
   signedIn: {
-    as: 'Ingelogd als {email}',
     signOut: 'Uitloggen',
   },
 
@@ -599,12 +546,8 @@ export const nl = {
       'Prototypes van schermen waarover nog beslist wordt. Alleen in ontwikkelbuilds.',
     banner:
       'Prototype. De gegevens zijn verzonnen en blijven alleen in deze sessie.',
-    reset: 'Opnieuw beginnen met verse gegevens',
 
     entries: {
-      tasks: 'Taken — lijsten, één lijst, een taak',
-      editModes: 'Een taak bewerken — drie manieren',
-      notes: 'Notities',
       calendar: 'Agenda — de maand, het vakje en de invoerkaart',
     },
 
@@ -618,10 +561,8 @@ export const nl = {
     },
 
     variants: {
-      title: 'Varianten',
       show: 'Variantenkiezer tonen',
       hide: 'Variantenkiezer verbergen',
-      reset: 'Terug naar de uitkomst van het canvas',
       chosen: 'Keuze van het canvas',
     },
 
@@ -649,9 +590,6 @@ export const nl = {
       nothingOn: 'Niets gepland.',
       nothingAhead: 'Verder niets deze maand.',
       quietWeek: 'Een rustige week.',
-      hidden: 'Verborgen',
-      show: 'Tonen',
-      hide: 'Verbergen',
       /**
        * Settled on a device on 2 September 2026. The three axes stay in the
        * code — a winner does not delete the alternatives — but this is what
@@ -753,7 +691,6 @@ export const nl = {
     },
 
     task: {
-      untitled: 'Nieuwe taak',
       titlePlaceholder: 'Wat moet er gebeuren?',
       due: 'Einddatum',
       priority: 'Prioriteit',
@@ -782,29 +719,10 @@ export const nl = {
       renameLabelEverywhere: 'Overal hernoemen',
       removeLabelEverywhere: 'Van elke taak verwijderen',
       renamingLabel: '{label} hernoemen naar',
-      renameLabelSave: 'Hernoemen',
       renameLabelCancel: 'Annuleren',
-      labelCount: '{count} labels',
       previousMonth: 'Vorige maand',
       nextMonth: 'Volgende maand',
       overdue: 'Te laat',
-    },
-
-    editModes: {
-      title: 'Een taak bewerken',
-      intro:
-        'Dezelfde taak, op drie manieren bewerkt. Probeer ze en zeg welke de Module moet krijgen.',
-      detail: 'Een eigen scherm',
-      detailWhy:
-        'Alle eigenschappen op één scherm verderop. De meeste tikken om er te komen, de meeste ruimte als je er bent, en de enige die verder reikt dan vier eigenschappen.',
-      inline: 'In de regel zelf',
-      inlineWhy:
-        'Tik op de titel en typ. Het snelst voor een typefout, en het kan nooit meer dan de titel bewerken.',
-      sheet: 'Een venster over de lijst',
-      sheetWhy:
-        'Houd de regel vast, bewerk in een venster, blijf in de lijst. Je houdt je plek, maar het venster krijgt een scrollbalk zodra er eigenschappen bij komen.',
-      subject: 'De taak',
-      open: 'Probeer het',
     },
 
     notes: {

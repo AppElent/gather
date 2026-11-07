@@ -13,7 +13,6 @@ import { CommandPalette } from './CommandPalette'
 import { GatherPanel } from './GatherPanel'
 import { IssueReporterModal } from './IssueReporterModal'
 import { MobileDock } from './MobileDock'
-import { ShellGroupProvider } from './ShellGroup'
 import { IconButton } from './ShellPrimitives'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
@@ -35,9 +34,7 @@ function getFocusableElements(container: HTMLElement) {
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <CurrentGroupProvider>
-      <ShellGroupProvider>
-        <AppShellBody>{children}</AppShellBody>
-      </ShellGroupProvider>
+      <AppShellBody>{children}</AppShellBody>
     </CurrentGroupProvider>
   )
 }

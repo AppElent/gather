@@ -36,13 +36,9 @@ async function requireMembership(
   return { user, group, membership }
 }
 
-/**
- * Admins can change a Group and its membership; plain members cannot.
- * Written as "not a member" so that rows still carrying the old `owner` role
- * keep their privileges until the backfill has renamed them.
- */
+/** Admins can change a Group and its membership; plain members cannot. */
 function isAdmin(membership: Doc<'memberships'>): boolean {
-  return membership.role !== 'member'
+  return membership.role === 'admin'
 }
 
 export const myGroups = query({
@@ -57,8 +53,7 @@ export const myGroups = query({
     const groups = await Promise.all(
       memberships.map(async (membership) => ({
         group: await ctx.db.get(membership.groupId),
-        role:
-          (membership.role as string) === 'owner' ? 'admin' : membership.role,
+        role: membership.role,
       })),
     )
     const visible = await Promise.all(

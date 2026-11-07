@@ -10,7 +10,7 @@ import {
   TASTING_KIND_SPECS,
   TASTING_KINDS,
   TASTING_VOCABULARIES,
-  TASTING_VOCABULARY_IDS,
+  type TastingVocabularyId,
   tastingAverage,
   tastingFactsLine,
   tastingFields,
@@ -46,7 +46,7 @@ describe('every Kind spec', () => {
     for (const { kind, field } of everyField) {
       if (field.type !== 'select' && field.type !== 'tags') continue
       expect(field.vocabulary, `${kind}.${field.key}`).toBeDefined()
-      expect(TASTING_VOCABULARY_IDS).toContain(field.vocabulary)
+      expect(Object.keys(TASTING_VOCABULARIES)).toContain(field.vocabulary)
     }
   })
 
@@ -121,7 +121,9 @@ describe('every word the Modules say', () => {
   })
 
   test('names every term of every vocabulary in both locales', () => {
-    for (const id of TASTING_VOCABULARY_IDS) {
+    for (const id of Object.keys(
+      TASTING_VOCABULARIES,
+    ) as TastingVocabularyId[]) {
       const english = en.tastings.vocabularies[id] as Record<string, string>
       const dutch = nl.tastings.vocabularies[id] as Record<string, string>
       for (const term of TASTING_VOCABULARIES[id] as readonly string[]) {

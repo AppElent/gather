@@ -47,42 +47,6 @@ export const settings = query({
   },
 })
 
-export const saveSettings = mutation({
-  args: {
-    groupSlug: v.string(),
-    homeCurrency: v.string(),
-    rates: v.optional(
-      v.array(
-        v.object({
-          currency: v.string(),
-          rate: v.number(),
-          asOf: v.number(),
-        }),
-      ),
-    ),
-  },
-  handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const currency = args.homeCurrency.trim().toUpperCase()
-    if (!/^[A-Z]{3}$/.test(currency))
-      throw new ConvexError('A currency is three letters')
-    const existing = await ctx.db
-      .query('financeSettings')
-      .withIndex('by_group', (q) => q.eq('groupId', group._id))
-      .unique()
-    const fields = {
-      groupId: group._id,
-      homeCurrency: currency,
-      rates: args.rates,
-    }
-    if (existing) {
-      await ctx.db.patch(existing._id, fields)
-      return existing._id
-    }
-    return await ctx.db.insert('financeSettings', fields)
-  },
-})
-
 export const list = query({
   args: { groupSlug: v.string() },
   handler: async (ctx, args) => {
@@ -165,37 +129,6 @@ export const create = mutation({
       lastPriceAt: args.lastPriceCents === undefined ? undefined : Date.now(),
       order: nextOrder(existing),
     })
-  },
-})
-
-export const update = mutation({
-  args: {
-    id: v.id('holdings'),
-    groupSlug: v.string(),
-    name: v.optional(v.string()),
-    exchange: v.optional(v.string()),
-    openingDate: v.optional(v.string()),
-    openingUnits: v.optional(v.number()),
-    openingAverageCostCents: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id)
-    const patch: Record<string, unknown> = {}
-    if (args.name !== undefined) patch.name = requireName(args.name)
-    if (args.exchange !== undefined)
-      patch.exchange = args.exchange.trim() || undefined
-    if (args.openingDate !== undefined)
-      patch.openingDate = requireIsoDate(args.openingDate)
-    if (args.openingUnits !== undefined) {
-      if (args.openingUnits <= 0)
-        throw new ConvexError('An opening position needs units')
-      patch.openingUnits = args.openingUnits
-    }
-    if (args.openingAverageCostCents !== undefined)
-      patch.openingAverageCostCents = requireAmount(
-        args.openingAverageCostCents,
-      )
-    await ctx.db.patch(args.id, patch)
   },
 })
 
@@ -299,13 +232,5 @@ export const addTransaction = mutation({
       groupId: group._id,
       createdByUserId: user._id,
     })
-  },
-})
-
-export const removeTransaction = mutation({
-  args: { id: v.id('holdingTransactions'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id)
-    await ctx.db.delete(args.id)
   },
 })

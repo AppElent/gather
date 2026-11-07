@@ -246,31 +246,12 @@ test('names the group a save will land in', () => {
       destination={{
         groupSlug: 'household',
         groupName: 'Jansen Household',
-        fallback: false,
       }}
     />,
   )
 
   expect(screen.getByText(/adding to/i)).toHaveTextContent(
     'Adding to Jansen Household.',
-  )
-})
-
-test('says so when the group was chosen rather than asked for', () => {
-  renderWithI18n(
-    <RecipeForm
-      onSubmit={vi.fn()}
-      submitting={false}
-      destination={{
-        groupSlug: 'me-alice',
-        groupName: "Alice's things",
-        fallback: true,
-      }}
-    />,
-  )
-
-  expect(screen.getByText(/adding to/i)).toHaveTextContent(
-    "Adding to Alice's things — your personal group, because this page is not inside one.",
   )
 })
 

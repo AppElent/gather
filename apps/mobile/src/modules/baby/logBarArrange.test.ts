@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { dragTarget, movedTo, residualOffset } from './logBarArrange'
+import { dragTarget, residualOffset } from './logBarArrange'
 
 describe('which slot a drag is over', () => {
   test('snaps once the finger is past a button’s halfway point', () => {
@@ -23,29 +23,6 @@ describe('which slot a drag is over', () => {
 
   test('a bar that has not been measured yet places nothing', () => {
     expect(dragTarget(6, 2, 300, 0)).toBe(2)
-  })
-})
-
-describe('moving a button', () => {
-  const order = ['a', 'b', 'c', 'd']
-
-  test('forwards', () => {
-    expect(movedTo(order, 0, 2)).toEqual(['b', 'c', 'a', 'd'])
-  })
-
-  test('backwards', () => {
-    expect(movedTo(order, 3, 1)).toEqual(['a', 'd', 'b', 'c'])
-  })
-
-  test('onto itself is a copy, not a mutation', () => {
-    const same = movedTo(order, 1, 1)
-    expect(same).toEqual(order)
-    expect(same).not.toBe(order)
-  })
-
-  test('out of bounds leaves the order alone', () => {
-    expect(movedTo(order, 0, 9)).toEqual(order)
-    expect(movedTo(order, -1, 2)).toEqual(order)
   })
 })
 

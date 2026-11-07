@@ -60,9 +60,6 @@ const SHARED_ESCAPE_PREFIX = 'g-'
 /** Slug for a Group whose name carries nothing sluggable at all. */
 const EMPTY_SLUG_FALLBACK = 'group'
 
-/** Personal slug for a person whose name carries nothing sluggable at all. */
-const EMPTY_PERSONAL_SLUG = `${PERSONAL_SLUG_PREFIX}member`
-
 /**
  * Latin letters with no canonical decomposition, so NFKD leaves them intact and
  * stripping combining marks does not reach them. Without this they vanish
@@ -121,12 +118,6 @@ export function sharedSlugBase(name: string): string {
   const collides =
     RESERVED_SLUGS.has(slug) || slug.startsWith(PERSONAL_SLUG_PREFIX)
   return collides ? cap(`${SHARED_ESCAPE_PREFIX}${slug}`) : slug
-}
-
-/** The slug a person's Personal group starts from — always in the namespace. */
-export function personalSlugBase(name: string): string {
-  const slug = sluggablePart(name)
-  return slug ? cap(`${PERSONAL_SLUG_PREFIX}${slug}`) : EMPTY_PERSONAL_SLUG
 }
 
 /**

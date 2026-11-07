@@ -20,7 +20,6 @@ interface SubjectChoice {
   name: string
   attributes: Attributes
   catalogKey?: string
-  count?: number
 }
 
 export interface EditableTasting {
@@ -129,11 +128,6 @@ export function TastingDialog({
       return { ...current, [key]: value }
     })
 
-  const clean = (values: Attributes) =>
-    Object.fromEntries(
-      Object.entries(values).filter(([, value]) => value !== undefined),
-    )
-
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4"
@@ -204,7 +198,6 @@ export function TastingDialog({
                         subjectId: entry._id,
                         name: entry.name,
                         attributes: entry.attributes as Attributes,
-                        count: entry.count,
                       })
                     }
                   >
@@ -275,9 +268,8 @@ export function TastingDialog({
                     id: tasting.id,
                     rating,
                     tastedAt,
-                    attributes: clean(attributes),
+                    attributes,
                   })
-                  onSaved?.(choice.subjectId as Id<'tastingSubjects'>)
                 } else {
                   const result = await log({
                     groupSlug,
@@ -286,12 +278,12 @@ export function TastingDialog({
                       ? { subjectId: choice.subjectId }
                       : {
                           name: choice.name,
-                          attributes: clean(subjectAttributes),
+                          attributes: subjectAttributes,
                           catalogKey: choice.catalogKey,
                         },
                     rating,
                     tastedAt,
-                    attributes: clean(attributes),
+                    attributes,
                   })
                   onSaved?.(result.subjectId)
                 }

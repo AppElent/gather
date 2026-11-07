@@ -161,7 +161,6 @@ export const diary = {
       'Something here can no longer be logged, so nothing was changed.',
     saved: '“{name}” saved',
     update: 'Update {name}',
-    updateFailed: 'Could not update that combo',
   },
 
   recipeAdd: {
@@ -182,7 +181,6 @@ export const diary = {
     searching: 'Searching Open Food Facts…',
     searchFailed: 'Couldn’t search Open Food Facts.',
     perHundred: '{calories} kcal/100g',
-    pieceOf: 'piece ({size}{unit})',
   },
 }
 

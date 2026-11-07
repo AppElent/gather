@@ -1,5 +1,4 @@
 export type ExternalProviderId = 'notion' | 'todoist'
-export type ProviderId = 'local' | ExternalProviderId
 
 export interface UnifiedTask {
   externalId: string
@@ -37,8 +36,6 @@ export interface SourceConfig {
 
 export interface ProviderCapabilities {
   write: boolean
-  priority: boolean
-  labels: boolean
 }
 
 /** Thrown when the provider rejects our token (expired/revoked). The UI

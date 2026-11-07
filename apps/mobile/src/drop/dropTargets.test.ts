@@ -150,7 +150,9 @@ describe('the registry itself', () => {
   test('every target resolves to a screen', () => {
     for (const targets of Object.values(DROP_TARGETS)) {
       for (const target of targets) {
-        expect(target.route({ id: 'seed' }), target.id).toBeTruthy()
+        if ('route' in target) {
+          expect(target.route({ id: 'seed' }), target.id).toBeTruthy()
+        }
       }
     }
   })

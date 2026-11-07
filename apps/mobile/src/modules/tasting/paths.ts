@@ -43,11 +43,6 @@ export function tastingHref(
   return (params ? { pathname: path, params } : path) as Href
 }
 
-/** The tab a `base` belongs to, for a screen that has to hand one on. */
-export function tabOf(_base: TastingBase): TastingTab {
-  return 'all'
-}
-
 /**
  * The Kind a route's `[kind]` segment names, or `undefined`.
  *

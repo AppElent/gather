@@ -111,7 +111,6 @@ export const en = {
     add: {
       title: 'Add to {group}',
       workingOnly: 'Only actions that work today.',
-      close: 'Close',
       back: 'Back to actions',
       save: 'Save {noun}',
       saved: 'Added: {items}',
@@ -160,27 +159,7 @@ export const en = {
           fields: ['Food', 'How much?'],
           noun: 'meal',
         },
-        'food-scan': {
-          label: 'Scan a barcode',
-          module: coreEn.modules.byId.nutrition.label,
-          fields: [],
-          noun: 'food',
-        },
       },
-      create: {
-        title: 'Create',
-        description:
-          'This is a temporary stand-in for the full Module form. It does not save anything.',
-        fields: ['Name', 'Notes', 'Tags'],
-        save: 'Save',
-        saved: 'Nothing was saved — this is a demo flow.',
-      },
-    },
-
-    search: {
-      title: 'Search',
-      deferred:
-        'Search is being designed around the records it will safely find.',
     },
 
     /**
@@ -191,8 +170,6 @@ export const en = {
       /** The accessible name of the Group button; `{group}` is its name. */
       switchFrom: 'Group: {group}. {action}',
       intro: 'Welcome to Gather. Find every module for this group in All.',
-      personalSubtitle: coreEn.shell.home.personalSubtitle,
-      sharedSubtitle: coreEn.shell.home.sharedSubtitle,
     },
 
     /**
@@ -242,7 +219,6 @@ export const en = {
     switcher: {
       action: coreEn.shell.groupSwitcher.label,
       title: coreEn.shell.groupSwitcher.pick,
-      personal: coreEn.shell.groupSwitcher.personalPill,
       shared: coreEn.shell.groupSwitcher.shared,
       /** Marks the row you are already in, for a reader who cannot see the tick. */
       current: 'Current group',
@@ -354,7 +330,6 @@ export const en = {
     password: 'Password',
     email: 'Email',
     devices: 'Devices',
-    photo: 'Photo',
 
     /** Changing the name Clerk holds. Both halves, because Clerk stores both. */
     editName: {
@@ -362,7 +337,6 @@ export const en = {
       description: 'What other members of your Groups see.',
       first: 'First name',
       last: 'Last name',
-      saved: 'Name updated',
     },
 
     changePassword: {
@@ -372,7 +346,6 @@ export const en = {
       current: 'Current password',
       next: 'New password',
       submit: 'Change password',
-      saved: 'Password changed',
       noPassword:
         'You sign in without a password, so there is none to change here.',
     },
@@ -403,7 +376,6 @@ export const en = {
       signOutOf: 'Sign out',
       revokeTitle: 'Sign out of {device}?',
       revokeBody: 'That device has to sign in again.',
-      empty: 'No other devices.',
     },
 
     /** Changing the picture. It is Clerk's, not the household's storage. */
@@ -436,7 +408,6 @@ export const en = {
       confirmBody:
         'Your account and everything only you could see is deleted for good.',
       confirm: 'Delete',
-      failed: 'Your account could not be deleted. Nothing has been removed.',
       /**
        * The half-way failure, which is real: Convex is purged before Clerk,
        * because the purge needs a signed-in caller and there is none once the
@@ -463,12 +434,8 @@ export const en = {
     name: 'Name',
     quantity: 'Quantity (optional)',
     prepMinutes: 'Preparation time in minutes',
-    noMeals: 'No meals yet. Add a quick meal or use a recipe.',
     nothingPlanned: 'Nothing planned',
     noPantry: 'Nothing in the pantry yet.',
-    noCalendars: 'No calendars yet.',
-    noEvents: 'No events this month.',
-    chooseList: 'Choose grocery list',
     noGroceryList: 'Choose a task list for groceries.',
     quick: 'Quick under {minutes} minutes',
     quickShort: '≤ {minutes} min',
@@ -479,24 +446,14 @@ export const en = {
     noMatches: 'Nothing matches.',
     previousWeek: 'Previous week',
     nextWeek: 'Next week',
-    previousMonth: 'Previous month',
-    nextMonth: 'Next month',
     randomizeWeek: 'Randomize unplanned week',
     mealLibrary: 'Quick meals',
     chooseDinner: 'Choose dinner',
     changeList: 'Use another list',
     addGroceryItem: 'Add an item…',
-    random: 'Random dinner',
     clearDinner: 'Clear dinner',
     deleteTitle: 'Delete “{title}”?',
     deleteBody: 'This cannot be undone.',
-    newCalendar: 'New calendar',
-    newEvent: 'New event',
-    eventDate: 'Date (YYYY-MM-DD)',
-    startTime: 'Start (HH:MM)',
-    endTime: 'End (HH:MM)',
-    visible: 'Show calendar',
-    hidden: 'Hide calendar',
   },
 
   /**
@@ -527,8 +484,6 @@ export const en = {
   },
 
   actions: {
-    continue: 'Continue',
-    back: 'Back',
     resend: 'Send it again',
     save: 'Save',
     close: 'Close',
@@ -549,7 +504,6 @@ export const en = {
   },
 
   signIn: {
-    title: 'Sign in',
     heading: 'Welcome back',
     submit: 'Sign in',
     forgot: 'Forgotten your password?',
@@ -583,7 +537,6 @@ export const en = {
   },
 
   signUp: {
-    title: 'Create an account',
     heading: 'Create your account',
     subtitle: 'You will get a code by email to confirm the address.',
     submit: 'Create account',
@@ -592,7 +545,6 @@ export const en = {
   },
 
   verify: {
-    title: 'Confirm your email',
     heading: 'Check your email',
     /** `{email}` is the address the code went to. */
     subtitle: 'We sent a six-digit code to {email}.',
@@ -602,21 +554,18 @@ export const en = {
 
   reset: {
     request: {
-      title: 'Reset your password',
       heading: 'Reset your password',
       subtitle:
         'Tell us the address you signed up with and we will send a code.',
       submit: 'Send the code',
     },
     code: {
-      title: 'Enter the code',
       heading: 'Check your email',
       /** `{email}` is the address the code went to. */
       subtitle: 'We sent a six-digit code to {email}.',
       submit: 'Continue',
     },
     password: {
-      title: 'Choose a password',
       heading: 'Choose a new password',
       subtitle: 'Pick something you have not used here before.',
       submit: 'Save and sign in',
@@ -665,8 +614,6 @@ export const en = {
    * sat on Home until #164 gave the shell somewhere for them.
    */
   signedIn: {
-    /** `{email}` is the signed-in account. */
-    as: 'Signed in as {email}',
     signOut: 'Sign out',
   },
 
@@ -692,7 +639,7 @@ export const en = {
   },
 
   /**
-   * Settings → Labs: the Tasks and Notes prototypes.
+   * Settings → Labs: the prototypes.
    *
    * These are dev-only screens driven by fixtures — nothing under `labs` ever
    * reaches a release build, because `settingsSections` is only handed
@@ -816,12 +763,8 @@ export const en = {
       'Prototypes of screens that are still being decided. Development builds only.',
     /** The strip every prototype screen carries, so nobody mistakes it for the app. */
     banner: 'Prototype. The data is made up and only lives in this session.',
-    reset: 'Start over with fresh data',
 
     entries: {
-      tasks: 'Tasks — lists, one list, a task',
-      editModes: 'Editing a task — three ways',
-      notes: 'Notes',
       calendar: 'Calendar — the month, the cell and the composer',
     },
 
@@ -848,10 +791,8 @@ export const en = {
      * than pick a whole screen.
      */
     variants: {
-      title: 'Variants',
       show: 'Show the variant switcher',
       hide: 'Hide the variant switcher',
-      reset: 'Back to the canvas verdict',
       /** Marks the option the design canvas already argued for. */
       chosen: 'Canvas verdict',
     },
@@ -888,10 +829,6 @@ export const en = {
       nothingAhead: 'Nothing else this month.',
       /** An empty week in the agenda, so a gap reads as a gap and not a bug. */
       quietWeek: 'A quiet week.',
-      /** Under a calendar the person has switched off. */
-      hidden: 'Hidden',
-      show: 'Show',
-      hide: 'Hide',
       /** The composer. The name is the field everything else hangs off. */
       /**
        * Settled on a device on 2 September 2026. The three axes stay in the
@@ -1014,8 +951,6 @@ export const en = {
     },
 
     task: {
-      /** The detail screen's own title, when the task has no title yet. */
-      untitled: 'New task',
       titlePlaceholder: 'What needs doing?',
       due: 'Due date',
       priority: 'Priority',
@@ -1057,32 +992,11 @@ export const en = {
       removeLabelEverywhere: 'Remove from every task',
       /** The field, while it is renaming a label rather than adding one. */
       renamingLabel: 'Rename {label} to',
-      renameLabelSave: 'Rename',
       renameLabelCancel: 'Cancel',
-      /** Read on the row when a task carries more than one. */
-      labelCount: '{count} labels',
       /** Announced on the calendar's month arrows. */
       previousMonth: 'Previous month',
       nextMonth: 'Next month',
       overdue: 'Overdue',
-    },
-
-    editModes: {
-      title: 'Editing a task',
-      intro:
-        'The same task, edited three ways. Try each and say which one you want the Module to have.',
-      detail: 'A screen of its own',
-      detailWhy:
-        'Every property on one pushed screen. Most taps to reach, most room once you are there, and the only one that scales past four properties.',
-      inline: 'In the row, where it sits',
-      inlineWhy:
-        'Tap the title and type. Fastest for fixing a typo, and it can only ever edit the title.',
-      sheet: 'A sheet over the list',
-      sheetWhy:
-        'Hold the row, edit in a sheet, stay in the list. Keeps your place, but the sheet grows a scrollbar as properties are added.',
-      /** The one task all three modes edit, so the comparison is honest. */
-      subject: 'The task',
-      open: 'Try it',
     },
 
     notes: {

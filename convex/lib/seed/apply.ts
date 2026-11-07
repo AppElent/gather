@@ -496,7 +496,6 @@ export async function applySample(
       slug: await allocateGroupSlug(ctx, {
         name: SAMPLE_GROUP_NAME,
       }),
-      isPersonal: false,
     }),
   )
   rec.track(

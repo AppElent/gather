@@ -174,7 +174,6 @@ describe('Recipes', () => {
         destination={{
           groupSlug: GROUP,
           groupName: 'Jansen household',
-          fallback: false,
         }}
         nav={recipeNav}
       />,

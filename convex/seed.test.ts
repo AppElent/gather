@@ -53,7 +53,6 @@ describe('the Sample household', () => {
 
     const group = await sampleGroup(t)
     expect(group).not.toBeNull()
-    expect(group?.isPersonal).toBe(false)
     // Allocated rather than hand-written, so it cannot collide with a Group
     // somebody actually made (ADR-0002).
     expect(group?.slug).toBeTruthy()

@@ -99,7 +99,6 @@ export const log = {
     head: 'Hoofdomtrek',
     temperature: 'Temperatuur',
     allTrends: 'Alle grafieken',
-    sinceBirth: 'sinds de geboorte',
     measurements: '{count} metingen',
     noTrend: 'Er zijn twee items nodig voordat er een lijn te tekenen valt.',
   },
@@ -113,11 +112,8 @@ export const log = {
       'Iets uitzetten verandert alleen wat je krijgt aangeboden. Wat al genoteerd is, blijft staan en wordt niet verborgen of verwijderd.',
     none: 'Er wordt nog niets bijgehouden voor {name}.',
     countOf: '{count} van {total}',
-    moveUp: '{type} omhoog',
-    moveDown: '{type} omlaag',
     orderHint:
       'Deze volgorde is de volgorde waarin het logboek ze aanbiedt. Zet wat je het meest gebruikt bovenaan.',
-    arrangeHold: 'Houd vast om te ordenen',
     arrangeHint: 'Sleep om te ordenen',
   },
 
@@ -136,8 +132,6 @@ export const log = {
     finish: '{name} toevoegen',
     aboutTitle: 'Over het kind',
     addPhoto: 'Foto toevoegen',
-    ageHint: '{age}',
-    nameRequired: 'Vul een naam in',
     failed: 'Kon dat kind niet toevoegen',
   },
 
@@ -150,13 +144,10 @@ export const log = {
     newList: 'Nieuwe lijst',
     newListHint: 'Aangemaakt voor {name}, alleen in Gather',
     choose: 'Kies een bestaande lijst',
-    pickTodos: 'Lijst met taken',
-    pickQuestions: 'Lijst met vragen',
     anyListIn: 'Elke lijst in {group}, waar die ook op draait.',
     readOnly: '{provider} · alleen lezen',
     readOnlyBody:
       'Lijsten van {provider} zijn in Gather alleen-lezen. Je ziet deze lijst hier wel, maar je kunt er niets aan toevoegen.',
-    openCount: { one: '{count} open', other: '{count} open' },
     addTodo: 'Taak toevoegen',
     addQuestion: 'Vraag toevoegen',
     done: 'Klaar',

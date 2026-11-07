@@ -6,9 +6,7 @@ import type { RecipeDestination } from './recipeDestination'
  *
  * Both actions on the new-recipe page commit to a Group — the import fetches
  * *for* one and the save writes *into* one — so this sits next to each of them
- * rather than once at the top where it would scroll away. It is the same
- * component in both places and on both routes; only the Group differs, and the
- * one that was chosen rather than asked for says so.
+ * rather than once at the top where it would scroll away.
  */
 export function RecipeDestinationNotice({
   destination,
@@ -23,7 +21,7 @@ export function RecipeDestinationNotice({
       <span className="font-semibold text-[var(--app-fg)]">
         {destination.groupName}
       </span>
-      {destination.fallback ? ` ${notice.fallbackSuffix}` : notice.suffix}
+      {notice.suffix}
     </p>
   )
 }

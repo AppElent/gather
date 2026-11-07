@@ -41,7 +41,6 @@ export const shell = {
     personal: 'Je eigen Groep',
     shared: 'Gedeelde Groep',
     pick: 'Kies een Groep',
-    personalPill: 'Persoonlijk',
     manage: 'Groepen beheren',
   },
 
@@ -119,15 +118,6 @@ export const shell = {
     signIn: 'Inloggen',
     body: 'De pagina is misschien verplaatst, of de link wijst naar een module die er nog niet is.',
     goHome: 'Naar Gather',
-  },
-
-  groupGate: {
-    unknownTitle: 'Die Groep bestaat niet',
-    unknownBody:
-      'Er is hier niets dat “{slug}” heet. Controleer de link, of kies een Groep in de zijbalk.',
-    forbiddenTitle: 'Deze Groep is niet van jou',
-    forbiddenBody:
-      'Je bent er geen lid van. Vraag een beheerder van de Groep om een uitnodiging.',
   },
 
   groups: {
@@ -218,16 +208,9 @@ export const shell = {
   },
 
   home: {
-    personalSubtitle: 'Je eigen Groep. Alles wat je hier bewaart is privé.',
     sharedSubtitle: 'Wat iedereen in deze Groep heeft gedaan.',
     whoIsHere: 'Wie er zijn',
     admin: 'Beheerder',
-    personalNote: {
-      before:
-        '{group} is alleen van jou — niemand anders ziet wat je hier bewaart. Om iets met anderen te delen, begin je samen met hen een Groep bij',
-      link: 'Groepen',
-      after: '.',
-    },
     sharedNote: {
       before:
         'Iedereen hier ziet alles in {group}. Om iemand uit te nodigen of te vertrekken, ga je naar',
@@ -236,8 +219,6 @@ export const shell = {
     },
     recentActivity: 'Recente activiteit',
     nothingYet: 'Er is nog niets gebeurd in {group}.',
-    nothingYetPersonal:
-      'Alles wat je hier toevoegt komt in deze lijst, en alleen jij ziet het ooit.',
     nothingYetShared:
       'Alles wat iemand hier toevoegt komt in deze lijst, met zijn of haar naam erbij.',
   },

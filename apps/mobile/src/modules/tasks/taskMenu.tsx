@@ -151,5 +151,5 @@ export function useTaskSheets(onReorder?: () => void) {
     </>
   )
 
-  return { onAction, sheets, confirmDelete }
+  return { onAction, sheets }
 }

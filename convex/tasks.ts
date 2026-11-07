@@ -174,17 +174,10 @@ export const reorder = mutation({
     const expected = new Set(open.map((task) => task._id))
     if (
       args.ids.length !== open.length ||
+      new Set(args.ids).size !== open.length ||
       args.ids.some((id) => !expected.has(id))
     ) {
       throw new ConvexError('Reorder must contain every open task exactly once')
-    }
-    const seen = new Set<string>()
-    for (const id of args.ids) {
-      if (seen.has(id))
-        throw new ConvexError(
-          'Reorder must contain every open task exactly once',
-        )
-      seen.add(id)
     }
     await Promise.all(args.ids.map((id, order) => ctx.db.patch(id, { order })))
   },

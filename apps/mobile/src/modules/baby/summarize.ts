@@ -25,8 +25,7 @@ export interface SummaryEvent {
 
 type SummaryMessages = {
   celsiusWithMethod: string
-  /** How this language writes a duration; the compact English one if absent. */
-  duration?: DurationUnits
+  duration: DurationUnits
   celsius: string
   sideMinutes: string
   diaper: { wet: string; dirty: string; both: string }

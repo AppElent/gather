@@ -11,9 +11,8 @@
  */
 
 /**
- * Source configuration for the env CLI (`scripts/env.mjs`).
- * Mirrors `INFISICAL_ENVIRONMENTS` in `scripts/env-source.mjs`; `/gather`
- * overrides a same-named root value.
+ * Source configuration for the env CLI (`scripts/env.mjs`); `/gather` overrides
+ * a same-named root value.
  */
 export const ENV_CONFIG = {
   appName: 'gather',
@@ -204,7 +203,7 @@ type Landing = {
  * Vite only exposes prefixed variables to the bundle, so a `vite-build` landing
  * whose name lacks the prefix is silently never delivered — the app boots and
  * reads `undefined`. Requiring the prefix in the type turns that into a compile
- * error, and lets `src/env.ts` derive its client schema without a cast.
+ * error.
  */
 type ViteLanding = Landing & { name: `VITE_${string}` }
 type ExpoLanding = Landing & { name: `EXPO_PUBLIC_${string}` }

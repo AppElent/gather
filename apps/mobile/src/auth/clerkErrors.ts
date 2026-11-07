@@ -46,7 +46,7 @@ const CODE_MAP: Record<string, ErrorKey> = {
 }
 
 /** `null` in, `null` out — so a call site can render this straight into `<AuthError>`. */
-export function readError(
+function readError(
   error: CodedError | null | undefined,
   t: Messages,
 ): string | null {
@@ -60,7 +60,7 @@ export function readError(
 }
 
 /** The shape of `useSignIn().errors` / `useSignUp().errors`, minus the specifics. */
-export interface ErrorSignal<TFields extends object> {
+interface ErrorSignal<TFields extends object> {
   fields: TFields
   global: readonly CodedError[] | null
 }
@@ -69,7 +69,7 @@ export interface ErrorSignal<TFields extends object> {
  * The first thing worth saying out of a whole `errors` signal. Field errors come
  * first because they name what to fix; a global error is the fallback.
  */
-export function readErrors<TFields extends object>(
+function readErrors<TFields extends object>(
   errors: ErrorSignal<TFields>,
   t: Messages,
 ): string | null {

@@ -252,15 +252,6 @@ export function Checklist({
   )
 }
 
-/** The count shown beside a list's name on the Child's log. */
-export function openCount(
-  tasks: readonly { done: boolean }[] | undefined,
-  template: { one: string; other: string },
-): string {
-  const open = (tasks ?? []).filter((task) => !task.done).length
-  return fmt(open === 1 ? template.one : template.other, { count: open })
-}
-
 const styles = StyleSheet.create({
   wrap: { gap: 8 },
   title: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },

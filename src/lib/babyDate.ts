@@ -1,8 +1,3 @@
-import { formatAge } from '@gather/core/baby-age'
-
-export type { AgeMessages } from '@gather/core/baby-age'
-export { formatAge }
-
 // `<input type="datetime-local">` renders unpredictably wide on mobile
 // Safari (the combined widget doesn't respect its container's width),
 // overflowing its card — so date and time are separate `type="date"` /

@@ -16,7 +16,7 @@ and the Expo phone app. Convex is **not covered** (see Coverage).
 | Browser | `src/instrument.client.ts`, imported first by `src/client.tsx`. Initialises only with `VITE_SENTRY_DSN`, outside `vite dev`, on a non-local host. Tag `app=gather-web` |
 | Worker | `src/server.ts` is the `main` in `wrangler.jsonc`. Wraps TanStack Start with `@sentry/cloudflare` for deployed requests with a DSN; captures a 5xx response because Start turns SSR errors into a response instead of throwing. Tag `app=gather-web-server` |
 | Router errors | `defaultOnCatch` in `src/router.tsx` calls `reportError` (`src/lib/observability/report.ts`), once per error object, through a sink each runtime registers |
-| Scrubbing | One implementation, `packages/core/src/sentryPrivacy.ts` (`@gather/core/sentry-privacy`), runs in `beforeSend` and `beforeBreadcrumb` on the browser, the Worker and the phone. Web tests: `src/lib/observability/privacy.test.ts`; phone wiring: `apps/mobile/src/observability/options.test.ts` |
+| Scrubbing | One implementation, `packages/core/src/sentryPrivacy.ts` (`@gather/core/sentry-privacy`), runs in `beforeSend` and `beforeBreadcrumb` on the browser, the Worker and the phone. Tests: `packages/core/src/__tests__/sentryPrivacy.test.ts`; phone wiring: `apps/mobile/src/observability/options.test.ts` |
 | Environment | From the hostname (`environmentFromHostname`): `gather-pr-<N>` → `preview`, `gather-stg` → `staging`, `gather-dev` → `development`, else `production` |
 | Release | `SENTRY_RELEASE`, else `git rev-parse HEAD`, inlined as `VITE_SENTRY_RELEASE`; the same string names the source-map upload |
 | Project | Browser and Worker share one Sentry project, told apart by the `app` tag |

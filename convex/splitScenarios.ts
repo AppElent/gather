@@ -20,8 +20,6 @@ import { ConvexError, v } from 'convex/values'
 
 import { mutation, query } from './_generated/server'
 import {
-  findInGroup,
-  requireInGroup,
   requireName,
   splitPartyValidator,
 } from './lib/finance'
@@ -36,19 +34,6 @@ export const list = query({
       .withIndex('by_group', (q) => q.eq('groupId', group._id))
       .collect()
     return scenarios.sort((a, b) => b.createdAt - a.createdAt)
-  },
-})
-
-export const get = query({
-  args: { id: v.id('splitScenarios'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    const found = await findInGroup(ctx, args.groupSlug, args.id)
-    if (!found) return null
-    return {
-      ...found.doc,
-      createdByName:
-        (await ctx.db.get(found.doc.createdByUserId))?.name ?? null,
-    }
   },
 })
 
@@ -105,37 +90,5 @@ export const save = mutation({
       createdByUserId: user._id,
       createdAt: Date.now(),
     })
-  },
-})
-
-/** The only way to change a saved split: make another one from it. */
-export const duplicate = mutation({
-  args: {
-    id: v.id('splitScenarios'),
-    groupSlug: v.string(),
-    name: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { doc, group, user } = await requireInGroup(
-      ctx,
-      args.groupSlug,
-      args.id,
-    )
-    const { _id, _creationTime, ...rest } = doc
-    return await ctx.db.insert('splitScenarios', {
-      ...rest,
-      name: requireName(args.name),
-      groupId: group._id,
-      createdByUserId: user._id,
-      createdAt: Date.now(),
-    })
-  },
-})
-
-export const remove = mutation({
-  args: { id: v.id('splitScenarios'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id)
-    await ctx.db.delete(args.id)
   },
 })

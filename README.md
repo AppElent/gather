@@ -109,8 +109,7 @@ shows a "Dev: log in as test user" button on the sign-in screen.
 `env.manifest.ts` is the single source of truth. An entry declares **who reads**
 a value — the Vite build, a Worker server function, a Convex function, the
 workflow — and which environments need it; a table in that file derives *where*
-it has to be written. Nothing else lists variable names: `src/env.ts` derives its
-schemas from the manifest and `.env.example` is generated from it.
+it has to be written. `.env.example` is generated from it.
 
 ```bash
 pnpm run env:check                 # manifest consistency + .env.example freshness
@@ -148,13 +147,9 @@ mistakes the types refuse: marking a value the Vite build reads as `secret`
 (the build inlines it into a public bundle), and giving it a name without the
 `VITE_` prefix (Vite would never deliver it).
 
-Read `env.ts` values as usual:
-
-```ts
-import { env } from '../env'
-
-console.log(env.VITE_CONVEX_URL)
-```
+Nothing validates variables when the app starts. The app reads `import.meta.env.*`
+and the Worker's server functions read `process.env.*` directly, each handling an
+absent value itself; `pnpm run env:check` is what holds an environment to the manifest.
 
 See [ADR 0014](./docs/adr/0014-a-variable-declares-its-consumer-not-its-destination.md).
 

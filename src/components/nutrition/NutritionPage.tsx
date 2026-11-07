@@ -1,4 +1,3 @@
-import { moduleById } from '@gather/core/modules'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
@@ -63,10 +62,6 @@ export interface NutritionPageProps {
  * Group in the URL, so it looks the same whichever Group it was opened from.
  * The route passes in only the date and the links, which is what keeps that
  * true — there is nothing else about it for a Group to change.
- *
- * There is one address, `/g/<slug>/nutrition`. An earlier version of this
- * comment claimed a flat `/nutrition` route as well; ADR-0002 removed the flat
- * tree, and `src/lib/legacyPaths.ts` is what answers for links to it now.
  */
 export function NutritionPage({
   date: dateParam,
@@ -97,11 +92,9 @@ export function NutritionPage({
       <h1 className="mb-1 text-2xl font-semibold">
         {messages.modules.byId.nutrition.label}
       </h1>
-      {moduleById('nutrition')?.scope === 'personal' && (
-        <p className="mb-4 text-sm text-[var(--app-muted)]">
-          {diary.personalNote}
-        </p>
-      )}
+      <p className="mb-4 text-sm text-[var(--app-muted)]">
+        {diary.personalNote}
+      </p>
 
       {/* The two libraries the diary draws on. Both were addresses you had to
           know before (#100): the Catalog had no way in from here at all, and a

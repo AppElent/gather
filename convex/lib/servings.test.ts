@@ -1,6 +1,5 @@
 import { expect, test } from 'vitest'
 import {
-  authoredServings,
   offeredServings,
   parseServingAmount,
   rankLoggedAmounts,
@@ -15,18 +14,6 @@ const bread = {
     { label: '2 slices', amount: 70 },
   ],
 }
-
-test('a food with a servings list simply has it', () => {
-  expect(authoredServings(bread)).toEqual(bread.servings)
-})
-
-test('a food with no list has nothing to offer, and says so with an empty one', () => {
-  // The single `servingSize`/`servingLabel` pair this used to read as well is
-  // gone (#71); a row that had one was carried into the list by
-  // maintenance:backfillFoodServings before the fields were dropped.
-  expect(authoredServings({})).toEqual([])
-  expect(authoredServings({ servings: [] })).toEqual([])
-})
 
 test('choosing a serving resolves to its amount, its name and its nutrients', () => {
   expect(

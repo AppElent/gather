@@ -41,12 +41,6 @@ export const temperatureMethodValidator = v.union(
   v.literal('ear'),
   v.literal('forehead'),
 )
-export type TemperatureMethod =
-  | 'oral'
-  | 'rectal'
-  | 'axillary'
-  | 'ear'
-  | 'forehead'
 
 export const feedingMethodValidator = v.union(
   v.literal('breast'),

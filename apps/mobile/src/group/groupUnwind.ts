@@ -30,7 +30,7 @@
  */
 
 /** The tabs whose stacks show one Group's content. */
-export const GROUP_SCOPED_TABS = ['home', 'all', 'search'] as const
+const GROUP_SCOPED_TABS = ['home', 'all', 'search'] as const
 
 /** The route every Group-scoped stack starts from: each layout declares it. */
 const ROOT_ROUTE = 'index'

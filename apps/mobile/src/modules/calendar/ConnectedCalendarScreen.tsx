@@ -163,7 +163,7 @@ export function ConnectedCalendarScreen() {
               {
                 text: t.calendar.deleteEvent,
                 style: 'destructive',
-                onPress: () => void editor.deleteForEvent?.(event.id),
+                onPress: () => void editor.deleteForEvent(event.id),
               },
             ],
           )
@@ -176,13 +176,9 @@ export function ConnectedCalendarScreen() {
       />
       {filterSheet ? (
         <CalendarFilters
-          calendars={data.calendars}
-          hiddenCalendarIds={data.hiddenCalendarIds ?? []}
           people={data.people}
           peopleFilter={data.peopleFilter}
-          mode="people"
           onClose={() => setFilterSheet(null)}
-          onCalendar={() => undefined}
           onPeople={savePeople}
         />
       ) : null}

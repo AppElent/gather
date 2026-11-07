@@ -2,8 +2,6 @@ import {
   addCalendarDays,
   addCalendarMonths,
   type CalendarView,
-  calendarWeek,
-  monthStart,
 } from '@gather/core/calendar'
 
 export interface CalendarNavigationState {
@@ -21,7 +19,7 @@ export function initialCalendarNavigation(
     activeDate: today,
     preferredView,
     presentation: preferredView,
-    headerProgress: preferredView === 'month' ? 1 : 0,
+    headerProgress: viewProgress(preferredView),
   }
 }
 
@@ -74,10 +72,4 @@ export function selectCalendarDate(
   date: string,
 ): CalendarNavigationState {
   return { ...state, activeDate: date }
-}
-
-export function headerDates(state: CalendarNavigationState): string[] {
-  return state.presentation === 'month'
-    ? calendarWeek(monthStart(state.activeDate))
-    : calendarWeek(state.activeDate)
 }

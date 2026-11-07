@@ -23,7 +23,6 @@
  * a native module, so a client whose native side predates it throws on load and
  * there is no handler that could catch that — **the dev client has to be
  * rebuilt for this dependency**, exactly as it did for `expo-secure-store`.
- * Expo Go bundles it already.
  */
 import Storage from 'expo-sqlite/kv-store'
 

@@ -47,14 +47,12 @@ import GripVertical from 'lucide-react-native/icons/grip-vertical'
 import ImagePlus from 'lucide-react-native/icons/image-plus'
 import KeyRound from 'lucide-react-native/icons/key-round'
 import Grid from 'lucide-react-native/icons/layout-grid'
-import List from 'lucide-react-native/icons/list'
 import ListChecks from 'lucide-react-native/icons/list-checks'
 import Mail from 'lucide-react-native/icons/mail'
 import MapPin from 'lucide-react-native/icons/map-pin'
 import NotebookPen from 'lucide-react-native/icons/notebook-pen'
 import Pencil from 'lucide-react-native/icons/pencil'
 import Pin from 'lucide-react-native/icons/pin'
-import PinOff from 'lucide-react-native/icons/pin-off'
 import Plus from 'lucide-react-native/icons/plus'
 import Refrigerator from 'lucide-react-native/icons/refrigerator'
 import Repeat from 'lucide-react-native/icons/repeat'
@@ -146,7 +144,6 @@ export const UI_ICONS = {
   Users: glyph(Users, 'person.2'),
   /** The Settings tab's Modules group. */
   Grid: glyph(Grid, 'square.grid.2x2'),
-  List: glyph(List, 'list.bullet'),
   GripVertical: glyph(GripVertical, 'line.3.horizontal'),
   Eye: glyph(Eye, 'eye'),
   EyeOff: glyph(EyeOff, 'eye.slash'),
@@ -163,7 +160,6 @@ export const UI_ICONS = {
    * takes `fill` at the call site (see `glyph`).
    */
   PinFill: glyph(Pin, 'pin.fill'),
-  PinOff: glyph(PinOff, 'pin.slash'),
   /** The email addresses on an account. */
   Mail: glyph(Mail, 'envelope'),
   /** Edit, where a row already does something else when pressed. */

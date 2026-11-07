@@ -15,16 +15,9 @@
  *
  * Three states, and no fourth:
  *
- * - **pending** — the Groups have not arrived, or they have arrived empty and
- *   the grace period below has not run out. Nothing Group-scoped can render.
+ * - **pending** — the Groups have not arrived. Nothing Group-scoped can render.
  * - **none** — the Member really is in no Group.
  * - **ready** — `useGroup()` answers, and every surface under it can rely on it.
- *
- * `EMPTY_GRACE_MS` is the web's constant, ported for the same reason it exists
- * there: `ensureUser` inserts everybody's Personal group on the same mount that
- * first asks for the list, so a first-ever launch answers empty and fills in a
- * round-trip later. Believing that immediately would greet a new arrival with a
- * screen about having no household moments before they have one.
  */
 import { useAuth } from '@clerk/expo'
 import { selectGroup } from '@gather/core/groups'
@@ -52,11 +45,6 @@ import {
   readRetainedGroup,
   writeRetainedGroup,
 } from './retainedGroup'
-
-/** How long an empty list of Groups is treated as one that has not finished
- * arriving. Long enough for `ensureUser` to insert a Personal group and for the
- * query to push the new answer back; short enough that a genuinely group-less
- * account is not left watching a spinner. */
 
 /** A Group as the phone needs it: enough to name it, switch to it, and scope a
  * query by it. */
@@ -164,11 +152,6 @@ export function GroupProvider({
     if (selection.status === 'none') clearRetainedGroup()
   }, [selection.status])
 
-  // Runs out once and stays run out — it is only ever consulted while the
-  // answer is `none`, so there is nothing to reset it for. The cost is that
-  // leaving your last Group with the app open spends five seconds on the
-  // pending screen before the honest one; the alternative is a new account
-  // being told it has no household in the gap before it has one.
   const groupId = selection.status === 'ready' ? selection.groupId : null
 
   // A fallback replaces what was retained, in memory as well as on disk. Not
@@ -223,7 +206,6 @@ export function GroupProvider({
     onSwitch?.()
     // A layout effect's update is flushed before paint, which is the point:
     // the navigator cannot be dispatched to during this component's render.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUnwoundFor(resolved._id)
   }, [unwinding, resolved, onSwitch])
 

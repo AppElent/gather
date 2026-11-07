@@ -57,7 +57,7 @@ export type DropHostPreference = 'recipes' | 'notes'
  * `m.youtube.com` and `www.youtube.com` both find `youtube.com` while
  * `maps.google.com` can be listed without claiming all of Google.
  */
-export const DROP_HOST_RULES: Readonly<Record<string, DropHostPreference>> = {
+const DROP_HOST_RULES: Readonly<Record<string, DropHostPreference>> = {
   // Video and social — no recipe markup, and the model fallback cannot read a
   // video either.
   'youtube.com': 'notes',

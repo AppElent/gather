@@ -21,7 +21,6 @@ import {
 import { NativeSheet } from '../components/NativeSheet'
 import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
-import { isNativeModule } from '../modules/moduleDestination'
 import { TASTING_BASES, tastingHref } from '../modules/tasting/paths'
 import { SubjectPickerSheet } from '../modules/tasting/SubjectPickerSheet'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
@@ -31,17 +30,6 @@ import {
   type QuickAction,
   type QuickActionId,
 } from './quickActions'
-
-/**
- * A handoff or compose action opens its Module's screen; for a Module with no
- * native screen yet that screen is the "planned" placeholder, which is a dead
- * end to be sent to. In-sheet captures save without leaving, so they stay.
- */
-const LAUNCHABLE = QUICK_ACTIONS.filter(
-  (action) =>
-    (action.kind !== 'handoff' && action.kind !== 'compose') ||
-    isNativeModule(action.module),
-)
 
 /**
  * "{noun} opslaan" with a lowercase noun starts the button in lowercase; a
@@ -101,12 +89,7 @@ function SheetBody({
   const choose = (action: QuickAction) => {
     if (action.kind === 'handoff') {
       onClose()
-      // The Module's own screen where there is one; the shared demo form
-      // where there is not. The launcher does not know which Module it is
-      // handing to, and must not start to.
-      router.push(
-        action.href ?? { pathname: '/create', params: { action: action.id } },
-      )
+      router.push(action.href)
       return
     }
 
@@ -184,6 +167,22 @@ function SheetBody({
     )
   }
 
+  const backButton = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={text.back}
+      onPress={() => setOpenId(null)}
+      hitSlop={12}
+      style={({ pressed }) => [
+        styles.close,
+        { backgroundColor: tokens.tile },
+        pressed && styles.pressed,
+      ]}
+    >
+      <Back size={18} color={tokens.muted} />
+    </Pressable>
+  )
+
   if (composing) {
     return (
       <SubjectPickerSheet
@@ -205,21 +204,7 @@ function SheetBody({
             }),
           )
         }}
-        leading={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={text.back}
-            onPress={() => setOpenId(null)}
-            hitSlop={12}
-            style={({ pressed }) => [
-              styles.close,
-              { backgroundColor: tokens.tile },
-              pressed && styles.pressed,
-            ]}
-          >
-            <Back size={18} color={tokens.muted} />
-          </Pressable>
-        }
+        leading={backButton}
       />
     )
   }
@@ -241,23 +226,7 @@ function SheetBody({
             : text.workingOnly
       }
       onClose={onClose}
-      leading={
-        inSheetCapture ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={text.back}
-            onPress={() => setOpenId(null)}
-            hitSlop={12}
-            style={({ pressed }) => [
-              styles.close,
-              { backgroundColor: tokens.tile },
-              pressed && styles.pressed,
-            ]}
-          >
-            <Back size={18} color={tokens.muted} />
-          </Pressable>
-        ) : null
-      }
+      leading={inSheetCapture ? backButton : null}
     >
       <ScrollView keyboardShouldPersistTaps="handled">
         {inSheetCapture && openAction ? (
@@ -269,7 +238,7 @@ function SheetBody({
           </View>
         ) : (
           <View style={styles.rows}>
-            {LAUNCHABLE.map((action) => {
+            {QUICK_ACTIONS.map((action) => {
               const copy = actionText(action)
               const tint = tokens.tintOf(action.group)
               const Icon = MODULE_ICONS[action.icon]

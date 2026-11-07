@@ -139,25 +139,6 @@ export function offeredEventTypes(
   )
 }
 
-/**
- * The same list with one entry moved one place, for the settings screen's
- * arrows. Out-of-bounds moves return the list unchanged rather than wrapping:
- * pressing "up" on the top row should do nothing, not send it to the bottom.
- */
-export function moveBarSlot(
-  slots: readonly BabyBarSlot[],
-  slot: BabyBarSlot,
-  direction: -1 | 1,
-): BabyBarSlot[] {
-  const from = slots.indexOf(slot)
-  const to = from + direction
-  if (from < 0 || to < 0 || to >= slots.length) return [...slots]
-  const next = [...slots]
-  next[from] = next[to]
-  next[to] = slot
-  return next
-}
-
 export const NUTRIENT_KEYS = [
   'calories',
   'protein',

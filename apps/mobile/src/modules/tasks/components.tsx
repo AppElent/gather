@@ -26,13 +26,6 @@ import {
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 
-/**
- * The strip across the top of every taskActions.
- *
- * It is not decoration: these screens sit inside the real app, one tap from
- * real settings, and a made-up task list is indistinguishable from a real one
- * at a glance. It says so once per screen and then gets out of the way.
- */
 /** The section heading above a card. */
 export function SectionLabel({ children }: { children: ReactNode }) {
   const tokens = useTokens('home')
@@ -195,12 +188,6 @@ export function Chip({
 }
 
 const styles = StyleSheet.create({
-  banner: {
-    borderRadius: RADIUS.control,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  bannerText: { fontSize: 12.5, lineHeight: 18, fontWeight: '600' },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',

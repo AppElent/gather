@@ -25,20 +25,6 @@ export const servingValidator = v.object({
 const MAX_LOGGED_SERVINGS = 3
 
 /**
- * The servings a food itself declares.
- *
- * A food written before the list existed carried at most one serving, in
- * `servingSize` + `servingLabel`, and this read either shape while both
- * existed. The old pair is gone (#71, docs/migrations/0006-food-servings.md),
- * so there is one shape left and this is now just the accessor — kept because
- * every caller wants "the list, or nothing" and `?? []` at each of them is how
- * that quietly becomes two answers.
- */
-export function authoredServings(food: { servings?: Serving[] }): Serving[] {
-  return food.servings ?? []
-}
-
-/**
  * A person's own amounts for one food, most-used first.
  *
  * This is what covers a Catalog food, which nobody may edit (ADR-0004), and a
@@ -83,7 +69,7 @@ export function offeredServings(
   food: { servings?: Serving[] },
   loggedAmounts: readonly Serving[] = [],
 ): OfferedServing[] {
-  const authored = authoredServings(food).map((serving) => ({
+  const authored = (food.servings ?? []).map((serving) => ({
     ...serving,
     own: false,
   }))

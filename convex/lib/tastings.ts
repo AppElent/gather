@@ -15,7 +15,6 @@
  */
 
 import {
-  isTastingKind,
   normalizeTastingAttributes,
   TASTING_KINDS,
   type TastingAttributeValue,
@@ -36,7 +35,7 @@ export const tastingKindValidator = v.union(
  * The three shapes the five field types produce — `select` and `text` are
  * strings, `number` and `scale` are numbers, `tags` is an array of strings.
  */
-export const tastingAttributeValidator = v.union(
+const tastingAttributeValidator = v.union(
   v.string(),
   v.number(),
   v.array(v.string()),
@@ -46,11 +45,6 @@ export const tastingAttributesValidator = v.record(
   v.string(),
   tastingAttributeValidator,
 )
-
-export function assertTastingKind(value: string): TastingKind {
-  if (!isTastingKind(value)) throw new ConvexError('Unknown tasting kind')
-  return value
-}
 
 /**
  * Normalize an attribute bag and refuse it if it does not match the Kind.

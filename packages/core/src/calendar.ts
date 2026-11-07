@@ -98,7 +98,7 @@ function dateNumber(value: string) {
   return parsed ? Date.UTC(parsed.year, parsed.month - 1, parsed.day) : NaN
 }
 
-export function isValidCivilDate(value: string): boolean {
+function isValidCivilDate(value: string): boolean {
   return parts(value) !== null
 }
 
@@ -120,7 +120,7 @@ export function addCalendarMonths(value: string, amount: number): string {
   return iso(year, month, Math.min(parsed.day, daysInMonth(year, month)))
 }
 
-export function compareCalendarDates(a: string, b: string): number {
+function compareCalendarDates(a: string, b: string): number {
   return dateNumber(a) - dateNumber(b)
 }
 
@@ -133,7 +133,7 @@ export function monthStart(value: string): string {
   return parsed ? iso(parsed.year, parsed.month, 1) : value
 }
 
-export function mondayStart(value: string): string {
+function mondayStart(value: string): string {
   const parsed = parts(value)
   if (!parsed) return value
   const weekday = new Date(
@@ -221,7 +221,7 @@ export function hasCalendarErrors(errors: CalendarFieldErrors): boolean {
   return Object.keys(errors).length > 0
 }
 
-export function eventMatchesPeopleFilter(
+function eventMatchesPeopleFilter(
   event: CalendarEvent,
   filter: CalendarPeopleFilter | null,
 ): boolean {
@@ -264,7 +264,6 @@ export function orderCalendarEvents(
 export interface CalendarMark {
   key: string
   kind: 'person' | 'unassigned'
-  label: string
   initial?: string
   color: CalendarColor
 }
@@ -304,8 +303,6 @@ export function marksForDate(
         result.push({
           key: `${event.id}:${id}`,
           kind: 'person',
-          label:
-            people.find((person) => person.id === id)?.name ?? 'Former member',
           initial: initials.get(id) ?? '?',
           color: event.color,
         })
@@ -314,7 +311,6 @@ export function marksForDate(
       result.push({
         key: `${event.id}:unassigned`,
         kind: 'unassigned',
-        label: 'Unassigned',
         color: event.color,
       })
     }

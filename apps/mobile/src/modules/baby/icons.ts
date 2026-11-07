@@ -12,10 +12,8 @@
  */
 import type { BabyEventType } from '@gather/core/domain'
 import Baby from 'lucide-react-native/icons/baby'
-import CalendarClock from 'lucide-react-native/icons/calendar-clock'
 import CircleQuestionMark from 'lucide-react-native/icons/circle-question-mark'
 import Droplet from 'lucide-react-native/icons/droplet'
-import FileDown from 'lucide-react-native/icons/file-down'
 import ListChecks from 'lucide-react-native/icons/list-checks'
 import Milk from 'lucide-react-native/icons/milk'
 import Moon from 'lucide-react-native/icons/moon'
@@ -26,8 +24,6 @@ import Ruler from 'lucide-react-native/icons/ruler'
 import Sparkles from 'lucide-react-native/icons/sparkles'
 import Syringe from 'lucide-react-native/icons/syringe'
 import Thermometer from 'lucide-react-native/icons/thermometer'
-import Trash2 from 'lucide-react-native/icons/trash-2'
-import TrendingUp from 'lucide-react-native/icons/trending-up'
 
 import { type Glyph, glyph } from '../../theme/glyph'
 
@@ -47,11 +43,7 @@ export const EVENT_ICONS = {
 
 export const BABY_UI_ICONS = {
   Baby: glyph(Baby, 'figure.and.child.holdinghands'),
-  CalendarClock: glyph(CalendarClock, 'calendar.badge.clock'),
   CircleQuestionMark: glyph(CircleQuestionMark, 'questionmark.circle'),
-  FileDown: glyph(FileDown, 'square.and.arrow.down'),
   ListChecks: glyph(ListChecks, 'checklist'),
   Plus: glyph(Plus, 'plus'),
-  Trash2: glyph(Trash2, 'trash'),
-  TrendingUp: glyph(TrendingUp, 'chart.line.uptrend.xyaxis'),
 } satisfies Record<string, Glyph>

@@ -13,6 +13,7 @@
  * and there is no way to link to it.
  */
 
+import type { ModuleId } from '@gather/core/modules'
 import type { LinkProps } from '@tanstack/react-router'
 import type { AppLink } from './appLink'
 
@@ -24,7 +25,7 @@ import type { AppLink } from './appLink'
  * being assembled from an index path plus an id at the call site — the id is
  * exactly the part a hand-built path gets wrong.
  */
-const GROUP_ROUTES = {
+export const GROUP_ROUTES = {
   home: '/home',
   // Every Module in the Group, pinned or not. A real page rather than a
   // collapsed sidebar section, so the mobile dock's last slot has somewhere to
@@ -89,8 +90,6 @@ const GROUP_ROUTES = {
 /** A page that exists inside a Group. */
 export type GroupSurface = keyof typeof GROUP_ROUTES
 
-export const GROUP_SURFACES = Object.keys(GROUP_ROUTES) as GroupSurface[]
-
 /**
  * The `$name` segments a route path declares, read straight off the path.
  *
@@ -110,16 +109,13 @@ export type GroupParams<S extends GroupSurface> = PathParams<
   (typeof GROUP_ROUTES)[S]
 >
 
-/** What a surface needs beyond the Group itself — a recipe id, a baby id, … */
-type ExtraParams<S extends GroupSurface> = GroupParams<S>
-
 /**
  * The builders' third argument: required for a surface that takes a param of
  * its own, and not accepted at all for one that does not.
  */
-type ExtraArgs<S extends GroupSurface> = keyof ExtraParams<S> extends never
+type ExtraArgs<S extends GroupSurface> = keyof GroupParams<S> extends never
   ? []
-  : [ExtraParams<S>]
+  : [GroupParams<S>]
 
 /**
  * A Module's own front page inside a Group, plus the pages the Group itself
@@ -165,9 +161,6 @@ const GROUP_MODULE_INDEXES = [
 ] as const satisfies readonly GroupSurface[]
 
 export type GroupModuleIndex = (typeof GROUP_MODULE_INDEXES)[number]
-
-export const GROUP_MODULE_INDEX_SURFACES: readonly GroupModuleIndex[] =
-  GROUP_MODULE_INDEXES
 
 /**
  * `<Link>` / `navigate` options for a Group destination. The `to` keeps its
@@ -229,7 +222,6 @@ export function groupSurfaceSegment(surface: GroupSurface): string {
   return GROUP_ROUTES[surface].split('/').filter(Boolean)[0] ?? ''
 }
 
-/** The Group a path addresses, or null when the path is not Group-scoped. */
 /**
  * The Module index a Group-scoped path sits under, ignoring which Group it is
  * in — what the switcher needs to land you on the same Module in a different
@@ -253,11 +245,10 @@ export function groupIndexSurfaceOf(pathname: string): GroupModuleIndex | null {
 /**
  * Where each Module lives inside a Group, keyed by `ModuleDef.id`.
  *
- * Total over `MODULES` — every Module has a Group surface, and a test holds it
- * that way. This is the only place a Module's URL is written down; the registry
- * itself carries no path, so there is nothing for the two to disagree about.
+ * This is the only place a Module's URL is written down; the registry itself
+ * carries no path, so there is nothing for the two to disagree about.
  */
-const MODULE_INDEX_SURFACES: Record<string, GroupModuleIndex> = {
+const MODULE_INDEX_SURFACES: Record<ModuleId, GroupModuleIndex> = {
   recipes: 'recipes',
   nutrition: 'nutrition',
   tasks: 'tasks',
@@ -275,23 +266,15 @@ const MODULE_INDEX_SURFACES: Record<string, GroupModuleIndex> = {
   beers: 'beers',
 }
 
-export function groupSurfaceForModule(
-  moduleId: string,
-): GroupModuleIndex | null {
-  return MODULE_INDEX_SURFACES[moduleId] ?? null
-}
-
 /**
  * The first segment a Module occupies under `/g/<slug>/` — `recipes` for
  * Recipes, `baby` for the Baby log.
  *
  * Read off the surface rather than stored on the Module, so there is one place
  * a Module's address is written and nothing for a second copy to drift from.
- * The empty string for an id no Module declares.
  */
-export function moduleSegment(moduleId: string): string {
-  const surface = groupSurfaceForModule(moduleId)
-  return surface ? groupSurfaceSegment(surface) : ''
+export function moduleSegment(moduleId: ModuleId): string {
+  return groupSurfaceSegment(MODULE_INDEX_SURFACES[moduleId])
 }
 
 /**
@@ -310,8 +293,7 @@ export function moduleSegment(moduleId: string): string {
  * Module links at all rather than inventing a Group to point at.
  */
 export function moduleLink(module: { id: string }, groupSlug: string): AppLink {
-  // Every Module resolves to a surface — `MODULE_INDEX_SURFACES` is total over
-  // `MODULES` and a test holds it that way — so this only stands in for an id
-  // no Module declares, and All is the page that lists every Module there is.
-  return groupLink(groupSurfaceForModule(module.id) ?? 'all', groupSlug)
+  // `ModuleDef.id` is `string` only because `moduleById` accepts stored strings;
+  // every `ModuleDef` in circulation came out of `MODULES`.
+  return groupLink(MODULE_INDEX_SURFACES[module.id as ModuleId], groupSlug)
 }

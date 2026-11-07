@@ -77,7 +77,6 @@ function eventForOutput(event: ReturnType<typeof normalizedEvent>) {
   return {
     ...event,
     id: event._id,
-    color: event.color,
   }
 }
 

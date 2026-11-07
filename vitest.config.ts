@@ -2,16 +2,10 @@ import viteReact from '@vitejs/plugin-react'
 import { configDefaults, defineConfig } from 'vitest/config'
 
 const alias = {
-  '@': new URL('./src', import.meta.url).pathname,
   '#': new URL('./src', import.meta.url).pathname,
 }
 
-const exclude = [
-  ...configDefaults.exclude,
-  '**/.claude/**',
-  '**/node_modules_OLD/**',
-  '**/node_modules.*/**',
-]
+const exclude = [...configDefaults.exclude, '**/.claude/**']
 
 // Two suites, two runtimes. The web suite needs a DOM; the Convex suite runs
 // real queries and mutations through `convex-test`, which needs the edge

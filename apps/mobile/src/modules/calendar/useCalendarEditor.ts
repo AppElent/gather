@@ -21,7 +21,6 @@ import {
 const initialState: CalendarDraftState = {
   draft: null,
   presentation: 'card',
-  storageError: null,
 }
 
 export function useCalendarEditor({
@@ -57,7 +56,7 @@ export function useCalendarEditor({
       const restored = readCalendarDraft(userId, groupId)
       if (restored) dispatch({ type: 'open', draft: restored })
     } catch {
-      dispatch({ type: 'storageError', error: 'draftCouldNotRestore' })
+      // A stored draft that cannot be read is no draft.
     }
   }, [groupId, userId])
   useEffect(() => {
@@ -139,7 +138,6 @@ export function useCalendarEditor({
       value: string | boolean | number | null | string[],
     ) => act({ type: 'change', field, value }),
     expand: () => act({ type: 'expand' }),
-    collapse: () => act({ type: 'collapse' }),
     dismiss: () => act({ type: 'dismiss' }),
     discard: () => {
       if (state.draft) clearCalendarDraft(userId, groupId)

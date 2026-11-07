@@ -60,7 +60,6 @@ export interface CalendarEditorProps {
   onSave: () => void
   onClose: () => void
   onExpand?: () => void
-  onCollapse?: () => void
   onDuplicate?: () => void
   onDelete?: () => void
   onCreateCalendar?: () => void
@@ -99,7 +98,6 @@ export function CalendarEditorCard({
   onSave,
   onClose,
   onExpand,
-  onCollapse,
   onDuplicate,
   onDelete,
   onCreateCalendar,
@@ -370,15 +368,13 @@ export function CalendarEditorCard({
               </Field>
             </>
           ) : null}
-          {onExpand || onCollapse ? (
+          {onExpand ? (
             <Pressable
-              testID={onCollapse ? 'calendar-collapse' : 'calendar-expand'}
-              onPress={onCollapse ?? onExpand}
+              testID="calendar-expand"
+              onPress={onExpand}
               style={styles.more}
             >
-              <Text style={{ color: tokens.accent }}>
-                {onCollapse ? t.calendar.collapse : t.calendar.expand}
-              </Text>
+              <Text style={{ color: tokens.accent }}>{t.calendar.expand}</Text>
             </Pressable>
           ) : null}
         </ScrollView>

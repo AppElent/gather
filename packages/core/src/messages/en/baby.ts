@@ -110,7 +110,6 @@ export const log = {
     head: 'Head circumference',
     temperature: 'Temperature',
     allTrends: 'All trends',
-    sinceBirth: 'since birth',
     /** The number of points on the line, which is not a number of days. */
     measurements: '{count} measurements',
     noTrend: 'Two entries are needed before there is a line to draw.',
@@ -124,13 +123,8 @@ export const log = {
       'Turning one off only changes what you are offered. Nothing already logged is hidden or deleted.',
     none: 'Nothing is being tracked for {name} yet.',
     countOf: '{count} of {total}',
-    /** The arrows: this list's order is the order the log bar offers. */
-    moveUp: 'Move {type} up',
-    moveDown: 'Move {type} down',
     orderHint:
       'The order here is the order the log offers them in. Move the ones you use most to the top.',
-    /** The same arrangement, from the log bar itself. */
-    arrangeHold: 'Hold to rearrange',
     arrangeHint: 'Drag to rearrange',
   },
 
@@ -151,8 +145,6 @@ export const log = {
     finish: 'Add {name}',
     aboutTitle: 'About the child',
     addPhoto: 'Add a photo',
-    ageHint: '{age}',
-    nameRequired: 'Enter a name',
     failed: 'Could not add that child',
   },
 
@@ -166,13 +158,10 @@ export const log = {
     newList: 'New list',
     newListHint: 'Created for {name}, local to Gather',
     choose: 'Choose an existing list',
-    pickTodos: 'To-do list',
-    pickQuestions: 'Questions list',
     anyListIn: 'Any list in {group}, whatever it runs on.',
     readOnly: '{provider} · read-only',
     readOnlyBody:
       '{provider} lists are read-only in Gather. You will see this list here, but you will not be able to add to it.',
-    openCount: { one: '{count} open', other: '{count} open' },
     addTodo: 'Add a to-do',
     addQuestion: 'Add a question',
     done: 'Done',

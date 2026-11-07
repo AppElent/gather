@@ -63,8 +63,6 @@ export const settings = {
 
   group: {
     title: 'Deze Groep',
-    personalNote:
-      'Je persoonlijke Groep. Die is alleen van jou, dus er valt hier niets te delen of te verlaten.',
     sharedNote:
       'De naam, de code waarmee iemand binnenkomt, en de weg naar buiten.',
     name: 'Naam',

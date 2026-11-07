@@ -90,22 +90,6 @@ export const create = mutation({
   },
 })
 
-export const rename = mutation({
-  args: {
-    id: v.id('mortgageCalculations'),
-    groupSlug: v.string(),
-    name: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { user } = await requireInGroup(ctx, args.groupSlug, args.id)
-    await ctx.db.patch(args.id, {
-      name: requireName(args.name),
-      updatedByUserId: user._id,
-      updatedAt: Date.now(),
-    })
-  },
-})
-
 /**
  * How a Member asks "what if".
  *

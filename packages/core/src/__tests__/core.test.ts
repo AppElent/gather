@@ -6,7 +6,6 @@ import {
   babyBarSlots,
   declinedEventTypes,
   MEAL_NAMES,
-  moveBarSlot,
   NUTRIENT_KEYS,
   offeredEventTypes,
   QUANTITY_UNITS,
@@ -161,35 +160,6 @@ describe('the offered types in the household order', () => {
     expect(
       offeredEventTypes(undefined, ['sleep', 'feeding']).slice(0, 3),
     ).toEqual(['sleep', 'feeding', 'temperature'])
-  })
-})
-
-describe('rearranging the offer', () => {
-  const order = ['feeding', 'diaper', 'sleep'] as const
-
-  test('one place up', () => {
-    expect(moveBarSlot(order, 'sleep', -1)).toEqual([
-      'feeding',
-      'sleep',
-      'diaper',
-    ])
-  })
-
-  test('one place down', () => {
-    expect(moveBarSlot(order, 'feeding', 1)).toEqual([
-      'diaper',
-      'feeding',
-      'sleep',
-    ])
-  })
-
-  test('off the top does nothing rather than wrapping to the bottom', () => {
-    expect(moveBarSlot(order, 'feeding', -1)).toEqual([...order])
-    expect(moveBarSlot(order, 'sleep', 1)).toEqual([...order])
-  })
-
-  test('a type that is not in the list is left alone', () => {
-    expect(moveBarSlot(order, 'growth', -1)).toEqual([...order])
   })
 })
 

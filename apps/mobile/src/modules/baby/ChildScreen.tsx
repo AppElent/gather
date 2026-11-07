@@ -60,7 +60,6 @@ import { hideSlot, showAllSlots } from './logBarState'
 import { type BabyBase, babyHref } from './paths'
 import { type QuickListKind, QuickListSheet } from './QuickListSheet'
 import { QuickLogSheet } from './QuickLogSheet'
-import { sheetHandles } from './sheetFields'
 import { TrendCard } from './TrendCard'
 import { tileStatus, tileTypes } from './todayStatus'
 import { useBabyLog } from './useBabyLog'
@@ -154,15 +153,6 @@ export function ChildScreen({ base }: ChildScreenProps) {
     })
   }
 
-  /**
-   * One way to log, whatever the type: the sheet asks with chips where there is
-   * a closed set and with a text box where there is not, so nothing falls
-   * through to a second screen.
-   */
-  function openLog(type: BabyEventType) {
-    if (sheetHandles(type)) setLogging(type)
-  }
-
   function confirmChildDelete(childToDelete: { _id: string; name: string }) {
     Alert.alert(
       fmt(t.baby.log.form.deleteTitle, { name: childToDelete.name }),
@@ -190,7 +180,7 @@ export function ChildScreen({ base }: ChildScreenProps) {
       setListing(slot)
       return
     }
-    openLog(slot)
+    setLogging(slot)
   }
 
   return (
@@ -257,7 +247,7 @@ export function ChildScreen({ base }: ChildScreenProps) {
                 accessibilityLabel={fmt(t.baby.log.entry.logTitle, {
                   type: t.baby.eventTypes[type],
                 })}
-                onPress={() => openLog(type)}
+                onPress={() => setLogging(type)}
                 style={({ pressed }) => [
                   styles.tile,
                   {

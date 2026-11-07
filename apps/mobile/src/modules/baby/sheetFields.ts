@@ -345,15 +345,6 @@ export function outOfRangeFields(
   })
 }
 
-/**
- * Every type, now. Kept as a function rather than inlined `true` because the
- * question ("can this be logged from the sheet?") is the one a caller asks, and
- * it stops being trivially yes the moment a type needs a photo or a timer.
- */
-export function sheetHandles(_type: BabyEventType): boolean {
-  return true
-}
-
 export interface PreviousEvent {
   type: BabyEventType
   timestamp: number
@@ -495,19 +486,6 @@ export function editPicks(
   }
 
   return picks
-}
-
-/** The most recent event of a type, for pre-filling. */
-export function lastOfType(
-  events: readonly PreviousEvent[],
-  type: BabyEventType,
-): PreviousEvent | undefined {
-  return events
-    .filter((e) => e.type === type)
-    .reduce<PreviousEvent | undefined>(
-      (latest, e) => (!latest || e.timestamp > latest.timestamp ? e : latest),
-      undefined,
-    )
 }
 
 /**

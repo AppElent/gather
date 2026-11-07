@@ -79,18 +79,21 @@ export interface DropRouteParams {
   id: string
 }
 
-export interface DropTarget {
-  id: DropTargetId
+export type DropTarget = {
   module: ModuleId
   icon: ModuleIconName
-  /** Whether the Drop becomes a new thing or joins one that exists. */
-  mode: 'create' | 'append'
   picks: DropPick
   /** Only a tasting target: which Kind stage two lists subjects from. */
   tastingKind?: TastingKind
-  /** Where the person is standing once the Drop is finished. */
-  route: (params: DropRouteParams) => Href
-}
+} & (
+  /** Their screens take the Drop itself as params, so `useDropCommit` addresses them. */
+  | { id: 'recipe-import' | 'recipe-new-photo' }
+  | {
+      id: Exclude<DropTargetId, 'recipe-import' | 'recipe-new-photo'>
+      /** Where the person is standing once the Drop is finished. */
+      route: (params: DropRouteParams) => Href
+    }
+)
 
 const RECIPES: DropTarget[] = [
   {
@@ -100,23 +103,18 @@ const RECIPES: DropTarget[] = [
     id: 'recipe-import',
     module: 'recipes',
     icon: 'ChefHat',
-    mode: 'create',
     picks: 'none',
-    route: () => recipeHref('/all/recipes', '/import'),
   },
   {
     id: 'recipe-new-photo',
     module: 'recipes',
     icon: 'ChefHat',
-    mode: 'create',
     picks: 'none',
-    route: () => recipeHref('/all/recipes', '/new'),
   },
   {
     id: 'recipe-photo',
     module: 'recipes',
     icon: 'ChefHat',
-    mode: 'append',
     picks: 'recipe',
     route: ({ id }) => recipeHref('/all/recipes', '/recipe', { recipeId: id }),
   },
@@ -130,7 +128,6 @@ const NOTES: DropTarget[] = [
     id: 'note-new',
     module: 'notes',
     icon: 'NotebookPen',
-    mode: 'create',
     picks: 'none',
     route: noteRoute,
   },
@@ -138,7 +135,6 @@ const NOTES: DropTarget[] = [
     id: 'note-append',
     module: 'notes',
     icon: 'NotebookPen',
-    mode: 'append',
     picks: 'note',
     route: noteRoute,
   },
@@ -149,10 +145,8 @@ const TASKS: DropTarget[] = [
     id: 'task-new',
     module: 'tasks',
     icon: 'ListChecks',
-    mode: 'create',
     // A task with nowhere to live is a task nobody sees again, so the list is
-    // asked for rather than defaulted — the one `create` that still needs a
-    // second stage.
+    // asked for rather than defaulted.
     picks: 'task-list',
     route: ({ id }) =>
       ({ pathname: '/all/tasks/[listId]', params: { listId: id } }) as Href,
@@ -167,7 +161,6 @@ const GROCERIES: DropTarget[] = [
     id: 'grocery-line',
     module: 'groceries',
     icon: 'ShoppingCart',
-    mode: 'append',
     picks: 'none',
     route: () => '/all/groceries' as Href,
   },
@@ -178,14 +171,13 @@ const BABY_LOG: DropTarget[] = [
     id: 'baby-memory',
     module: 'baby-log',
     icon: 'Baby',
-    mode: 'create',
     picks: 'none',
     route: () => babyHref('/all/baby-log', '/timeline'),
   },
 ]
 
 function tastingPhoto(
-  id: DropTargetId,
+  id: 'cheese-photo' | 'wine-photo' | 'beer-photo',
   module: ModuleId,
   icon: ModuleIconName,
   kind: TastingKind,
@@ -194,7 +186,6 @@ function tastingPhoto(
     id,
     module,
     icon,
-    mode: 'append',
     picks: 'tasting-subject',
     tastingKind: kind,
     route: ({ id: subjectId }) =>
@@ -266,7 +257,7 @@ export function dropTargetById(id: DropTargetId): DropTarget {
   return target
 }
 
-export interface RankedDropTarget extends DropTarget {
+export type RankedDropTarget = DropTarget & {
   /** The one the chooser opens with already selected. Exactly one is true. */
   preselected: boolean
 }

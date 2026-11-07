@@ -137,19 +137,11 @@ export const finances = {
     partCount: '{count} loan parts',
     onePart: '1 loan part',
     recurring: 'Recurring costs',
-    /** `{count}` costs, `{share}` this Member's share a month. */
-    recurringSummary: '{count} costs · your share {share}',
-    recurringEmpty: 'What the household pays every month',
     savings: 'Savings goals',
-    savingsEmpty: 'Save towards something together',
-    /** `{name}` and `{date}` of the goal arriving soonest. */
-    savingsSummary: '{name} on track for {date}',
     split: 'Shared costs',
-    splitSummary: 'Who owes what, once',
     portfolio: 'Portfolio',
     portfolioEmpty: 'No holdings yet',
     netWorth: 'Net worth',
-    netWorthEmpty: 'Nothing entered yet',
     emptyTitle: 'Nothing here yet',
     emptyBody:
       'Add the house you live in — or one you are only considering — and the mortgage, the buying costs and what it is worth hang off it.',
@@ -166,7 +158,6 @@ export const finances = {
     summaryCaption: 'Mortgage, all parts',
     /** `{parts}`, `{outstanding}`. */
     summarySub: '{parts} · {outstanding} outstanding',
-    noMortgage: 'No mortgage calculation yet',
     /** `{date}` the first fixed rate ends. */
     firstFixEnds: 'First fix ends {date}',
     calculations: 'Mortgage calculations',
@@ -192,7 +183,6 @@ export const finances = {
   mortgage: {
     parts: 'Loan parts',
     addPart: 'Add a loan part',
-    noParts: 'No loan parts yet',
     noPartsBody:
       'A mortgage here is made of its parts. Add the first one and the totals follow.',
     together: 'All of it together',
@@ -205,8 +195,6 @@ export const finances = {
     stepsSummary: '{count} steps, {from} to {to}',
     oneStep: 'Nothing changes',
     oneStepSub: 'No fix ends while this mortgage runs',
-    /** `{amount}` a month. */
-    barMonthly: '{amount} a month',
     /** `{parts}` and `{outstanding}`. */
     barSub: '{parts} · {outstanding} outstanding',
     notice:
@@ -331,7 +319,6 @@ export const finances = {
       notePlaceholder: 'Renews in March',
       whoPays: 'Who pays what',
       changeSplit: 'Change the split',
-      splitEven: 'Split evenly',
       splitUnset: 'Not divided',
       namePlaceholder: 'Car insurance',
       notice:
@@ -374,7 +361,6 @@ export const finances = {
     puttingAsideSub: 'What you plan each month',
     /** `{date}` and `{name}` of whoever last updated it. */
     updatedBy: 'Updated {date} by {name}',
-    updateProgress: 'Update progress',
     behind: 'Behind the target date',
     notice:
       'You enter what you have saved. Gather does not read it from an account.',
@@ -428,8 +414,6 @@ export const finances = {
     fees: 'Fees paid',
     /** `{time}` the price was taken. */
     pricesAt: 'Prices {time}',
-    /** `{time}` the conversion was taken. */
-    fxAt: '{pair} {time}',
     stale: 'Could not refresh just now. Pull down to try again.',
     staleBadge: 'stale',
     notice:
@@ -451,8 +435,6 @@ export const finances = {
       openingPosition: 'Opening position',
       openingBody:
         'Whichever you pick, this becomes an opening position you can add buys, sales, dividends and fees to afterwards.',
-      knowWhatIHold: 'I know what I hold',
-      haveHistory: 'I have my history',
       units: 'Units',
       averagePrice: 'Average price',
       asAt: 'As at',

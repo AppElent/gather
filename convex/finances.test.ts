@@ -425,9 +425,10 @@ describe('saved splits', () => {
 
     const saved = await t
       .withIdentity(alice)
-      .query(api.splitScenarios.get, { id, groupSlug: 'jansen' })
-    expect(saved?.transfers).toEqual(scenario.transfers)
-    expect(saved?.createdByName).toBe('Alice')
+      .query(api.splitScenarios.list, { groupSlug: 'jansen' })
+    expect(saved.find((s) => s._id === id)?.transfers).toEqual(
+      scenario.transfers,
+    )
   })
 
   test('one that does not add up is refused', async () => {
@@ -439,31 +440,6 @@ describe('saved splits', () => {
         owed: [{ party: { name: 'Rae' }, amountCents: 10_000 }],
       }),
     ).rejects.toThrow(/add up/)
-  })
-
-  test('changing one means duplicating it', async () => {
-    const { t } = await seed()
-    const id = await t
-      .withIdentity(alice)
-      .mutation(api.splitScenarios.save, { groupSlug: 'jansen', ...scenario })
-    const copyId = await t
-      .withIdentity(alice)
-      .mutation(api.splitScenarios.duplicate, {
-        id,
-        groupSlug: 'jansen',
-        name: 'Ski trip (copy)',
-      })
-
-    const all = await t
-      .withIdentity(alice)
-      .query(api.splitScenarios.list, { groupSlug: 'jansen' })
-    expect(all.map((s) => s.name).sort()).toEqual([
-      'Ski trip',
-      'Ski trip (copy)',
-    ])
-    expect(copyId).not.toBe(id)
-    // There is no update mutation, deliberately.
-    expect('update' in api.splitScenarios).toBe(false)
   })
 })
 
@@ -618,31 +594,31 @@ describe('net worth', () => {
       ],
     })
 
-    const snapshot = await t
-      .withIdentity(alice)
-      .query(api.netWorth.getSnapshot, { id, groupSlug: 'jansen' })
+    const snapshotOf = async () => {
+      const all = await t
+        .withIdentity(alice)
+        .query(api.netWorth.snapshots, { groupSlug: 'jansen' })
+      return all.find((row) => row._id === id)
+    }
+    const snapshot = await snapshotOf()
     expect(snapshot?.netCents).toBe(45_200_000 + 2_140_000 - 19_840_000)
     expect(snapshot?.rows[0].asOf).toBe('2026-07-01')
     expect(snapshot?.takenByName).toBe('Alice')
 
-    // Changing the entry afterwards leaves the snapshot exactly as it was.
-    const entries = await t
-      .withIdentity(alice)
-      .query(api.netWorth.entries, { groupSlug: 'jansen' })
-    await t.withIdentity(alice).mutation(api.netWorth.updateEntry, {
-      id: entries[0]._id,
+    // Adding an entry afterwards leaves the snapshot exactly as it was.
+    await t.withIdentity(alice).mutation(api.netWorth.addEntry, {
       groupSlug: 'jansen',
+      kind: 'asset',
+      label: 'Car',
       amountCents: 9_999_999,
     })
-    const again = await t
-      .withIdentity(alice)
-      .query(api.netWorth.getSnapshot, { id, groupSlug: 'jansen' })
+    const again = await snapshotOf()
     expect(again?.netCents).toBe(snapshot?.netCents)
   })
 
-  test('a snapshot in another Group reads as missing', async () => {
+  test('a snapshot does not show in another Group', async () => {
     const { t } = await seed()
-    const id = await t.withIdentity(alice).mutation(api.netWorth.take, {
+    await t.withIdentity(alice).mutation(api.netWorth.take, {
       groupSlug: 'jansen',
       takenOn: '2026-08-01',
       rows: [],
@@ -650,7 +626,7 @@ describe('net worth', () => {
     expect(
       await t
         .withIdentity(bob)
-        .query(api.netWorth.getSnapshot, { id, groupSlug: 'de-vries' }),
-    ).toBeNull()
+        .query(api.netWorth.snapshots, { groupSlug: 'de-vries' }),
+    ).toEqual([])
   })
 })

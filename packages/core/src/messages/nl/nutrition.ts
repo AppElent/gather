@@ -116,7 +116,6 @@ export const diary = {
       'Iets hierin kan niet meer genoteerd worden, dus er is niets gewijzigd.',
     saved: '“{name}” opgeslagen',
     update: '{name} bijwerken',
-    updateFailed: 'Kon die combinatie niet bijwerken',
   },
 
   recipeAdd: {
@@ -138,7 +137,6 @@ export const diary = {
     searching: 'Zoeken bij Open Food Facts…',
     searchFailed: 'Kon niet zoeken bij Open Food Facts.',
     perHundred: '{calories} kcal/100 g',
-    pieceOf: 'stuk ({size}{unit})',
   },
 } satisfies typeof enDiary
 

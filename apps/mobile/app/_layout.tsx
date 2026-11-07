@@ -31,7 +31,6 @@ import '../src/observability/init'
 import { ClerkProvider } from '@clerk/expo'
 import { tokenCache } from '@clerk/expo/token-cache'
 import { BottomSheetModalProvider } from '@expo/ui/community/bottom-sheet'
-import Constants, { ExecutionEnvironment } from 'expo-constants'
 import type { ErrorBoundaryProps } from 'expo-router'
 import { ErrorBoundary as RouterErrorBoundary, Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
@@ -63,14 +62,7 @@ import { NativeChrome } from '../src/theme/NativeChrome'
 LogBox.ignoreLogs(['Clerk: Clerk has been loaded with development keys'])
 
 SplashScreen.preventAutoHideAsync()
-
-// Expo Go substitutes its own splash and refuses `setOptions`, warning loudly
-// each launch. Holding and hiding still work there — only the fade does not —
-// so the guard keeps the dev loop quiet without changing behaviour anywhere the
-// call is honoured. Remove it when the phone moves to a dev build.
-if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
-  SplashScreen.setOptions({ duration: 220, fade: true })
-}
+SplashScreen.setOptions({ duration: 220, fade: true })
 
 /**
  * Expo Router's own error screen, kept as it is, plus a report. Its boundary
