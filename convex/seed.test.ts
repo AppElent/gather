@@ -179,6 +179,49 @@ describe('the Sample household', () => {
     expect(left).toEqual([])
   })
 
+  test('takes what the app added inside it with it when it is reset', async () => {
+    const t = testConvex()
+    const ownerId = await buildSample(t)
+    const group = await sampleGroup(t)
+    if (!group) throw new Error('no sample group')
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert('notes', {
+        groupId: group._id,
+        title: 'Added later',
+        body: '',
+        createdBy: ownerId,
+        updatedAt: 0,
+      })
+      await ctx.db.insert('recurringCosts', {
+        groupId: group._id,
+        createdByUserId: ownerId,
+        order: 0,
+        name: 'Added later',
+        amountCents: 100,
+        frequency: 'monthly',
+        category: 'utilities',
+      })
+      await ctx.db.insert('netWorthEntries', {
+        groupId: group._id,
+        createdByUserId: ownerId,
+        order: 0,
+        label: 'Added later',
+        kind: 'asset',
+        amountCents: 100,
+      })
+    })
+
+    await t.run(async (ctx) => await resetSample(ctx))
+
+    const left = await t.run(async (ctx) => ({
+      notes: await ctx.db.query('notes').collect(),
+      costs: await ctx.db.query('recurringCosts').collect(),
+      worth: await ctx.db.query('netWorthEntries').collect(),
+    }))
+    expect(left).toEqual({ notes: [], costs: [], worth: [] })
+  })
+
   test('contains a representative immutable Shared costs scenario', async () => {
     const t = testConvex()
     await buildSample(t)

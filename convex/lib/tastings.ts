@@ -23,11 +23,9 @@ import {
   validateTastingAttributes,
 } from '@gather/core/tastings'
 import { ConvexError, v } from 'convex/values'
+import { literals } from './validators'
 
-/** `'cheese' | 'wine' | 'beer'`, derived from the spec rather than retyped. */
-export const tastingKindValidator = v.union(
-  ...TASTING_KINDS.map((kind) => v.literal(kind)),
-)
+export const tastingKindValidator = literals(TASTING_KINDS)
 
 /**
  * What one attribute holds: a word, a figure, or several words.

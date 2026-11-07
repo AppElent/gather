@@ -14,18 +14,18 @@
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
+import type { MutationCtx } from './_generated/server'
 import { internalMutation } from './_generated/server'
-import { deleteGroupContent } from './lib/groupCascade'
+import { destroyGroup, detachFromGroup } from './lib/groupCascade'
 import { deleteStoredFile } from './lib/storedFiles'
 
 /**
  * How many blobs one step releases.
  *
- * `deleteStoredFile` asks whether any row in any of five tables still points
- * at the blob before it goes, so each of these is five table scans. Twenty is
- * a hundred scans — comfortably inside a transaction, and small enough that a
- * household with hundreds of photos simply takes more steps rather than
- * failing.
+ * `deleteStoredFile` asks whether any row in any photo-holding table still
+ * points at the blob before it goes, so each of these scans all of those tables.
+ * Twenty stays comfortably inside a transaction, and a household with hundreds
+ * of photos simply takes more steps rather than failing.
  */
 const FILES_PER_STEP = 20
 
@@ -64,12 +64,7 @@ export const purgeAccount = internalMutation({
   handler: async (ctx, args) => {
     const [next, ...rest] = args.groupIds
     if (next) {
-      const files = await deleteGroupContent(ctx, next)
-      if (files.length) {
-        await ctx.scheduler.runAfter(0, internal.cascade.releaseFiles, {
-          storageIds: files,
-        })
-      }
+      await destroyGroup(ctx, next)
       await ctx.scheduler.runAfter(0, internal.cascade.purgeAccount, {
         userId: args.userId,
         groupIds: rest,
@@ -93,7 +88,7 @@ export const purgeAccount = internalMutation({
  * nobody.
  */
 async function finishAccount(
-  ctx: Parameters<typeof deleteGroupContent>[0],
+  ctx: MutationCtx,
   userId: Id<'users'>,
 ) {
   const combos = await ctx.db
@@ -133,63 +128,4 @@ async function finishAccount(
   }
 
   await ctx.db.delete(userId)
-}
-
-/**
- * Take a departing member out of the two places a Group stores them as more
- * than a byline.
- *
- * A **cost split** is refused on save unless it adds to a hundred and names
- * only current members (`recurringCosts.validateSplit`), so a split with one
- * party missing is not a split the household could ever have agreed to, and it
- * is not this function's business to invent a new one. It is cleared, and the
- * cost goes back to being undivided until somebody says how it should be.
- *
- * A **saved split scenario** is the opposite: it is immutable on purpose and
- * already stores each party's name beside their id precisely so it keeps
- * reading after somebody leaves. So only the id goes.
- */
-async function detachFromGroup(
-  ctx: Parameters<typeof deleteGroupContent>[0],
-  userId: Id<'users'>,
-  groupId: Id<'groups'>,
-) {
-  const costs = await ctx.db
-    .query('recurringCosts')
-    .withIndex('by_group', (q) => q.eq('groupId', groupId))
-    .collect()
-  for (const cost of costs) {
-    if (!cost.split?.some((share) => share.userId === userId)) continue
-    await ctx.db.patch(cost._id, { split: undefined })
-  }
-
-  const scenarios = await ctx.db
-    .query('splitScenarios')
-    .withIndex('by_group', (q) => q.eq('groupId', groupId))
-    .collect()
-  for (const scenario of scenarios) {
-    const anonymise = <P extends { userId?: Id<'users'>; name: string }>(
-      party: P,
-    ): P => (party.userId === userId ? { ...party, userId: undefined } : party)
-    const names = [
-      ...scenario.payments.map((p) => p.party),
-      ...scenario.participants,
-      ...scenario.owed.map((o) => o.party),
-      ...scenario.transfers.flatMap((t) => [t.from, t.to]),
-    ]
-    if (!names.some((party) => party.userId === userId)) continue
-    await ctx.db.patch(scenario._id, {
-      payments: scenario.payments.map((p) => ({
-        ...p,
-        party: anonymise(p.party),
-      })),
-      participants: scenario.participants.map(anonymise),
-      owed: scenario.owed.map((o) => ({ ...o, party: anonymise(o.party) })),
-      transfers: scenario.transfers.map((t) => ({
-        ...t,
-        from: anonymise(t.from),
-        to: anonymise(t.to),
-      })),
-    })
-  }
 }

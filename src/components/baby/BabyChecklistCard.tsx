@@ -22,7 +22,7 @@ interface BabyChecklistCardProps {
 
 /** Pinned quick-capture checklist card on the baby page (to-dos, questions
  * for the pediatrician, …) — backed by a local taskList (see
- * babies.ensureTodoList / ensureQuestionsList) so each is just the existing
+ * babies.ensureAuxLists) so each is just the existing
  * Tasks module under a different lens, not a parallel concept. */
 export function BabyChecklistCard({
   taskListId,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { alice, bob, carla, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 import { type GroupActivityEntry, mergeActivity } from './activity'
 import { GROUP_REFUSAL_MESSAGES } from './lib/groupAccess'
@@ -16,9 +16,6 @@ import { GROUP_REFUSAL_MESSAGES } from './lib/groupAccess'
  * the URL would pass every other test here and fail hers.
  */
 
-const alice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
-const bob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
-const carla = { subject: 'clerk_carla', name: 'Carla', email: 'c@example.com' }
 
 const JANSEN = 'jansen-household'
 const DE_VRIES = 'de-vries-household'
@@ -51,22 +48,19 @@ async function seed() {
       email: carla.email,
     })
 
-    const jansen = await ctx.db.insert('groups', {
+    const jansen = await seedGroup(ctx, {
       name: 'Jansen Household',
       slug: JANSEN,
-      isPersonal: false,
       inviteCode: 'jansen',
     })
-    const devries = await ctx.db.insert('groups', {
+    const devries = await seedGroup(ctx, {
       name: 'De Vries Household',
       slug: DE_VRIES,
-      isPersonal: false,
       inviteCode: 'devries',
     })
-    const aliceAlone = await ctx.db.insert('groups', {
+    const aliceAlone = await seedGroup(ctx, {
       name: "Alice's things",
       slug: ME_ALICE,
-      isPersonal: true,
       inviteCode: 'me-alice-code',
     })
 
@@ -77,7 +71,7 @@ async function seed() {
       [devries, carlaId, 'admin'],
       [aliceAlone, aliceId, 'admin'],
     ] as const) {
-      await ctx.db.insert('memberships', { groupId, userId, role })
+      await seedMember(ctx, groupId, userId, role)
     }
 
     return { aliceId, bobId, carlaId, jansen, devries, aliceAlone }
@@ -133,7 +127,8 @@ async function activityIn(t: Harness, identity: typeof alice, slug: string) {
     .query(api.activity.forGroup, { groupSlug: slug })
 }
 
-const titles = (entries: GroupActivityEntry[]) => entries.map((e) => e.title)
+const titles = (entries: GroupActivityEntry[]) =>
+  entries.map((e) => (e.kind === 'babyEvent' ? e.eventType : e.title))
 
 describe('the stream belongs to the Group in the address', () => {
   test("a Group's activity holds its own records and none of the other Group's", async () => {
@@ -372,8 +367,8 @@ describe('order and volume', () => {
 
     const stream = await activityIn(t, alice, JANSEN)
     expect(stream).toHaveLength(30)
-    expect(stream[0].title).toBe('Recipe 34')
-    expect(stream.at(-1)?.title).toBe('Recipe 05')
+    expect(titles(stream)[0]).toBe('Recipe 34')
+    expect(titles(stream).at(-1)).toBe('Recipe 05')
   })
 })
 
@@ -386,15 +381,23 @@ describe('one busy Module does not empty the stream of the rest', () => {
   const entry = (
     kind: GroupActivityEntry['kind'],
     at: number,
-  ): GroupActivityEntry => ({
-    id: `${kind}-${at}`,
-    kind,
-    at,
-    byName: 'Alice',
-    title: `${kind} ${at}`,
-    context: null,
-    targetId: null,
-  })
+  ): GroupActivityEntry => {
+    const common = {
+      id: `${kind}-${at}`,
+      at,
+      byName: 'Alice',
+      context: null,
+      targetId: null,
+    }
+    switch (kind) {
+      case 'babyEvent':
+        return { ...common, kind, eventType: 'feeding' }
+      case 'tasting':
+        return { ...common, kind, title: `${kind} ${at}`, moduleId: 'wines' }
+      default:
+        return { ...common, kind, title: `${kind} ${at}` }
+    }
+  }
 
   test('a recipe from last week survives a hundred nappies from today', () => {
     const babyEvents = Array.from({ length: 100 }, (_, i) =>

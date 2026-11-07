@@ -11,14 +11,16 @@ import { v } from 'convex/values'
 
 import { mutation, query } from './_generated/server'
 import {
-  findInGroup,
-  nextOrder,
   requireAmount,
-  requireInGroup,
   requireIsoDate,
   requireName,
 } from './lib/finance'
-import { requireGroupBySlug } from './lib/groupAccess'
+import {
+  findInGroup,
+  requireGroupBySlug,
+  requireInGroup,
+} from './lib/groupAccess'
+import { nextOrder } from './lib/order'
 
 export const list = query({
   args: { groupSlug: v.string() },

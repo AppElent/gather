@@ -96,6 +96,7 @@ function EntryTitle({
   entry: GroupActivityEntry
   groupSlug: string
 }) {
+  const messages = useMessages()
   const className = 'font-semibold text-[var(--app-fg)]'
 
   // The URL is built here, through `groupPaths.ts`, from the row id the server
@@ -110,13 +111,15 @@ function EntryTitle({
       </Link>
     )
   }
-  if (entry.kind === 'babyEvent' && entry.targetId) {
+  if (entry.kind === 'babyEvent') {
+    const word = messages.baby.eventTypes[entry.eventType]
+    if (!entry.targetId) return <span className={className}>{word}</span>
     return (
       <Link
         {...groupLink('child', groupSlug, { babyId: entry.targetId })}
         className={className}
       >
-        {entry.title}
+        {word}
       </Link>
     )
   }

@@ -1,13 +1,13 @@
+import { isValidEventData } from '@gather/core/baby-events'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
-import { requireBabyAccess } from './lib/babyAccess'
 import {
   babyEventDataValidator,
   babyEventTypeValidator,
-  isValidEventData,
 } from './lib/babyEvents'
+import { requireInGroup } from './lib/groupAccess'
 import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
 
 const byTimestampDesc = (a: Doc<'babyEvents'>, b: Doc<'babyEvents'>) =>
@@ -28,7 +28,7 @@ export const listByBaby = query({
     to: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await requireBabyAccess(ctx, args.groupSlug, args.babyId)
+    await requireInGroup(ctx, args.groupSlug, args.babyId, 'Baby not found')
     const rows = args.type
       ? await ctx.db
           .query('babyEvents')
@@ -68,7 +68,7 @@ async function requireEditableEvent(
 ) {
   const event = await ctx.db.get(eventId)
   if (!event) throw new ConvexError('Event not found')
-  await requireBabyAccess(ctx, groupSlug, event.babyId)
+  await requireInGroup(ctx, groupSlug, event.babyId, 'Baby not found')
   return event
 }
 
@@ -87,7 +87,12 @@ export const add = mutation({
     data: babyEventDataValidator,
   },
   handler: async (ctx, args) => {
-    const { user } = await requireBabyAccess(ctx, args.groupSlug, args.babyId)
+    const { user } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.babyId,
+      'Baby not found',
+    )
     if (!isValidEventData(args.type, args.data)) {
       throw new ConvexError('Event data does not match the event type')
     }

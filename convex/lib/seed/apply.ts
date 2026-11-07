@@ -7,8 +7,10 @@ import {
   computeRecipeEntryNutrition,
 } from '../consumption'
 import { foodSearchText } from '../foodSearchText'
+import { destroyGroup } from '../groupCascade'
 import { allocateGroupSlug } from '../groupSlugs'
 import { getUserByClerkId } from '../sharing'
+import { auxListNames } from '../taskLists'
 import { CATALOG_FOODS } from './catalogFoods'
 import {
   SAMPLE_BABY,
@@ -240,22 +242,18 @@ export async function applyTastingCatalog(ctx: MutationCtx) {
 // ---------------------------------------------------------------------------
 
 /**
- * Remove everything previous Sample household runs created, then repair what
- * those deletions left behind.
+ * Remove everything previous Sample household runs created.
  *
- * The recorded ids are not enough on their own. A row the *app* created
- * inside the Sample household — a task added to a seeded list, an event
- * logged against the seeded baby, the baby's lazily-created to-do list from
- * `babies.ensureTodoList` — is not in `documentIds`, so deleting its parent
- * would leave it in the database but unreachable: every query for it
- * navigates through the list, baby or Group that no longer exists. Invisible
- * garbage is worse than deletion, so the sweep below removes descendants
- * whose parent has gone.
+ * The recorded ids are not enough on their own. A row the *app* created inside
+ * the Sample household — a task added to a seeded list, a note, a cost, the
+ * baby's lazily-created lists — is not in `documentIds`, and would be left in
+ * the database but unreachable. So a recorded Group goes through `destroyGroup`,
+ * which reaches everything it contains, and then the rest of the recorded rows
+ * go by id: the housemates, their foods and their diaries.
  *
  * Content that is *not* contained by the Sample household survives: a recipe
- * living in a real Group is only un-shared from the deleted one, and Personal
- * records (the food diary) belong to a user rather than a Group and are left
- * alone entirely.
+ * living in a real Group is only un-shared from the deleted one, and a real
+ * person's Personal records belong to them rather than to a Group.
  */
 export async function resetSample(ctx: MutationCtx) {
   const runs = await ctx.db
@@ -263,146 +261,38 @@ export async function resetSample(ctx: MutationCtx) {
     .withIndex('by_label', (q) => q.eq('label', SAMPLE_LABEL))
     .collect()
 
-  let deleted = 0
-  for (const run of runs) {
-    for (const raw of run.documentIds) {
-      const id = raw as Id<TableNames>
-      if (await ctx.db.get(id)) {
-        await ctx.db.delete(id)
-        deleted++
-      }
-    }
-  }
-
   const alive = async (id: Id<TableNames> | undefined) =>
     id !== undefined && (await ctx.db.get(id)) !== null
 
-  // Ordered by containment: Groups are gone already, so drop what hung off
-  // them first, then what hung off *those* rows.
-  let orphaned = 0
+  const recorded = runs.flatMap((run) => run.documentIds as Id<TableNames>[])
+  let deleted = 0
+  for (const id of recorded) {
+    if (await alive(id)) deleted++
+  }
+  for (const id of recorded) {
+    const groupId = ctx.db.normalizeId('groups', id)
+    if (groupId) await destroyGroup(ctx, groupId)
+  }
+  for (const id of recorded) {
+    if (await alive(id)) await ctx.db.delete(id)
+  }
 
+  // What a deleted housemate leaves behind outside the Sample Group. A dangling
+  // recipeId/foodId inside a surviving record is fine: provenance is allowed to
+  // dangle (ADR 0003).
+  let orphaned = 0
   for (const membership of await ctx.db.query('memberships').collect()) {
-    if (
-      !(await alive(membership.groupId)) ||
-      !(await alive(membership.userId))
-    ) {
+    if (!(await alive(membership.userId))) {
       await ctx.db.delete(membership._id)
       orphaned++
     }
   }
-  // Holds a real OAuth access token — a dangling one is a live credential
-  // nobody can reach or revoke through the app.
-  for (const conn of await ctx.db.query('integrationConnections').collect()) {
-    if (!(await alive(conn.groupId))) {
-      await ctx.db.delete(conn._id)
-      orphaned++
-    }
-  }
-  for (const list of await ctx.db.query('taskLists').collect()) {
-    if (!(await alive(list.groupId))) {
-      await ctx.db.delete(list._id)
-      orphaned++
-    }
-  }
-  for (const baby of await ctx.db.query('babies').collect()) {
-    if (!(await alive(baby.groupId))) {
-      await ctx.db.delete(baby._id)
-      orphaned++
-    }
-  }
-  for (const task of await ctx.db.query('tasks').collect()) {
-    if (!(await alive(task.listId))) {
-      await ctx.db.delete(task._id)
-      orphaned++
-    }
-  }
-  for (const dinner of await ctx.db.query('plannedDinners').collect()) {
-    if (!(await alive(dinner.groupId))) {
-      await ctx.db.delete(dinner._id)
-      orphaned++
-    }
-  }
-  for (const entry of await ctx.db.query('mealEntries').collect()) {
-    if (!(await alive(entry.groupId))) {
-      await ctx.db.delete(entry._id)
-      orphaned++
-    }
-  }
-  for (const entry of await ctx.db.query('pantryEntries').collect()) {
-    if (!(await alive(entry.groupId))) {
-      await ctx.db.delete(entry._id)
-      orphaned++
-    }
-  }
-  for (const calendar of await ctx.db.query('calendars').collect()) {
-    if (!(await alive(calendar.groupId))) {
-      await ctx.db.delete(calendar._id)
-      orphaned++
-    }
-  }
-  for (const event of await ctx.db.query('calendarEvents').collect()) {
-    if (!(await alive(event.calendarId))) {
-      await ctx.db.delete(event._id)
-      orphaned++
-    }
-  }
-  for (const event of await ctx.db.query('babyEvents').collect()) {
-    if (!(await alive(event.babyId))) {
-      await ctx.db.delete(event._id)
-      orphaned++
-    }
-  }
-  // A subject belongs to its Group and a Tasting to its subject, so both
-  // follow containment exactly as a baby and its events do — including a
-  // subject somebody added through the app to the seeded household, which the
-  // run never recorded and would otherwise leave unreachable.
-  for (const subject of await ctx.db.query('tastingSubjects').collect()) {
-    if (!(await alive(subject.groupId))) {
-      await ctx.db.delete(subject._id)
-      orphaned++
-    }
-  }
-  for (const tasting of await ctx.db.query('tastings').collect()) {
-    if (!(await alive(tasting.subjectId))) {
-      await ctx.db.delete(tasting._id)
-      orphaned++
-    }
-  }
-
-  // A recipe lives in one Group and may be *shared* into others (ADR-0003), so
-  // it is the home Group that decides its fate: gone with it. This used to read
-  // the other way round, when a recipe was owned by a person and merely shared
-  // into a Group — under that model a deleted Group left the recipe standing.
-  // A recipe whose home Group has gone is unreachable by anybody, which is the
-  // invisible garbage this sweep exists to prevent.
-  for (const recipe of await ctx.db.query('recipes').collect()) {
-    if (!(await alive(recipe.groupId))) {
-      await ctx.db.delete(recipe._id)
-      orphaned++
-      continue
-    }
-    const shared: Id<'groups'>[] = []
-    for (const groupId of recipe.sharedGroupIds) {
-      if (await alive(groupId)) shared.push(groupId)
-    }
-    if (shared.length !== recipe.sharedGroupIds.length) {
-      await ctx.db.patch(recipe._id, { sharedGroupIds: shared })
-    }
-  }
-
-  // Personal records follow the person, not the Group — only a diary entry
-  // belonging to a user who no longer exists is orphaned. A dangling
-  // recipeId/foodId is fine: provenance is allowed to dangle (ADR 0003).
   for (const entry of await ctx.db.query('consumptionEntries').collect()) {
     if (!(await alive(entry.userId))) {
       await ctx.db.delete(entry._id)
       orphaned++
     }
   }
-  // The same, for a Combo and the components inside one. A component whose
-  // Combo has gone is unreachable rather than intact, which is the containment
-  // rule this sweep exists for; a dangling foodId/recipeId inside a surviving
-  // one is fine for the same reason a diary entry's is.
   for (const combo of await ctx.db.query('combos').collect()) {
     if (!(await alive(combo.userId))) {
       await ctx.db.delete(combo._id)
@@ -427,13 +317,6 @@ export async function resetSample(ctx: MutationCtx) {
     const groupId = (await alive(restore.groupId)) ? restore.groupId : undefined
     await ctx.db.patch(restore.userId, { defaultGroupId: groupId })
     defaultGroupRestored = groupId !== undefined
-  }
-  // Anyone else still pointing at a Group we deleted (including the owner
-  // when there was nothing to restore) loses the stale pointer.
-  for (const user of await ctx.db.query('users').collect()) {
-    if (user.defaultGroupId && !(await alive(user.defaultGroupId))) {
-      await ctx.db.patch(user._id, { defaultGroupId: undefined })
-    }
   }
 
   for (const run of runs) await ctx.db.delete(run._id)
@@ -695,7 +578,7 @@ export async function applySample(
   const babyTaskListId = rec.track(
     await ctx.db.insert('taskLists', {
       groupId,
-      name: `${SAMPLE_BABY.name} to-dos`,
+      name: auxListNames(SAMPLE_BABY.name).todos,
       provider: 'local',
       order: listOrder++,
     }),
@@ -703,7 +586,7 @@ export async function applySample(
   const babyQuestionsListId = rec.track(
     await ctx.db.insert('taskLists', {
       groupId,
-      name: `${SAMPLE_BABY.name} questions`,
+      name: auxListNames(SAMPLE_BABY.name).questions,
       provider: 'local',
       order: listOrder++,
     }),

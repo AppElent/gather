@@ -1,10 +1,28 @@
 import type { NutritionFacts, QuantityUnit } from '@gather/core/domain'
+import { v } from 'convex/values'
 import {
   computeFoodEntryNutrition,
   computeRecipeEntryNutrition,
+  quantityUnitValidator,
   scaleFacts,
 } from './consumption'
+import { nutritionValidator } from './nutrition'
 import type { Serving } from './servings'
+
+/** One thing inside a Combo, in the table and on the write that replaces them. */
+export const comboComponentFields = {
+  foodId: v.optional(v.id('foods')),
+  recipeId: v.optional(v.id('recipes')),
+  label: v.string(),
+  quantity: v.number(),
+  quantityUnit: quantityUnitValidator,
+  nutrition: v.optional(nutritionValidator),
+  // Kept for the same reason as the figures beside it, and only on the same
+  // rows: a one-off has no food and no recipe to read an icon back from, so
+  // a Combo that does not carry its own would lose it on every future log
+  // (#94).
+  icon: v.optional(v.string()),
+}
 
 /**
  * One component of a Combo, as the client gets it: what was saved, plus

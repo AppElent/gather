@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { alice, bob, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 
@@ -14,8 +14,6 @@ import type { Id } from './_generated/dataModel'
  * would happily render b's child under a's address.
  */
 
-const alice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
-const bob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
 
 /**
  * Two households. Alice is in both, Bob only in the second — so "not a member"
@@ -36,34 +34,20 @@ async function seed() {
       email: bob.email,
     })
 
-    const jansen = await ctx.db.insert('groups', {
+    const jansen = await seedGroup(ctx, {
       name: 'Jansen Household',
       slug: 'jansen-household',
-      isPersonal: false,
       inviteCode: 'jansen',
     })
-    const devries = await ctx.db.insert('groups', {
+    const devries = await seedGroup(ctx, {
       name: 'De Vries Household',
       slug: 'de-vries-household',
-      isPersonal: false,
       inviteCode: 'devries',
     })
 
-    await ctx.db.insert('memberships', {
-      groupId: jansen,
-      userId: aliceId,
-      role: 'admin',
-    })
-    await ctx.db.insert('memberships', {
-      groupId: devries,
-      userId: aliceId,
-      role: 'member',
-    })
-    await ctx.db.insert('memberships', {
-      groupId: devries,
-      userId: bobId,
-      role: 'admin',
-    })
+    await seedMember(ctx, jansen, aliceId, 'admin')
+    await seedMember(ctx, devries, aliceId, 'member')
+    await seedMember(ctx, devries, bobId, 'admin')
 
     const noor = await ctx.db.insert('babies', {
       groupId: jansen,
@@ -265,7 +249,7 @@ describe('editing a child under the wrong Group', () => {
     const { t, sam } = await seed()
 
     await expect(
-      t.withIdentity(alice).mutation(api.babies.ensureTodoList, {
+      t.withIdentity(alice).mutation(api.babies.ensureAuxLists, {
         id: sam,
         groupSlug: 'jansen-household',
       }),

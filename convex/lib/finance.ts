@@ -1,11 +1,9 @@
 /**
  * The shapes the Finances tables and their functions agree on.
  *
- * Every closed set here is declared once against the union `@gather/core`
- * defines, so the database, the functions and the screens cannot drift into
- * three different ideas of what a loan part or a cost category is. The
- * `satisfies` line under each is what makes adding a member of the union
- * without adding it here a compile error.
+ * Every closed set here is derived from the tuple `@gather/core` defines, so
+ * the database, the functions and the screens cannot drift into three different
+ * ideas of what a loan part or a cost category is.
  *
  * Money is stored as an integer number of cents, everywhere, for the reason
  * `@gather/core/finance`'s `money.ts` gives.
@@ -22,17 +20,7 @@ import {
   TRANSFER_TAX_BANDS,
 } from '@gather/core/finance'
 import { ConvexError, v } from 'convex/values'
-
-import type { Doc, Id } from '../_generated/dataModel'
-import type { QueryCtx } from '../_generated/server'
-import { requireGroupBySlug } from './groupAccess'
-
-/** A `v.union` of literals, built from the seam's own tuple. */
-function literals<T extends string>(values: readonly T[]) {
-  // Convex's union needs at least two members, and every set here has more.
-  const [first, second, ...rest] = values.map((value) => v.literal(value))
-  return v.union(first, second, ...rest)
-}
+import { literals } from './validators'
 
 export const loanPartKindValidator = literals(LOAN_PART_KINDS)
 export const costFrequencyValidator = literals(COST_FREQUENCIES)
@@ -54,11 +42,40 @@ export const chargeValidator = v.object({
   chargePercent: v.number(),
 })
 
+/** A mortgage part, in the table and on the writes that add and change one. */
+export const loanPartFields = {
+  kind: loanPartKindValidator,
+  principalCents: v.number(),
+  annualRatePercent: v.number(),
+  termMonths: v.number(),
+  // The date the fix ends, rather than a count of months: a stored count
+  // would quietly mean something different every month it was not opened.
+  fixedUntil: v.optional(v.string()), // YYYY-MM-DD
+  // What the Member says the rate becomes then, and the other figures they
+  // wanted to compare against. Gather forecasts nothing.
+  expiryRatePercent: v.optional(v.number()),
+  expiryRateOptions: v.optional(v.array(v.number())),
+  repayments: v.optional(v.array(repaymentValidator)),
+  charge: v.optional(chargeValidator),
+}
+
 /** One Member's share of a standing cost, in whole percent. */
 export const splitShareValidator = v.object({
   userId: v.id('users'),
   percent: v.number(),
 })
+
+/** A standing cost, in the table and on the writes that add and change one. */
+export const recurringCostFields = {
+  name: v.string(),
+  amountCents: v.number(),
+  frequency: costFrequencyValidator,
+  category: costCategoryValidator,
+  note: v.optional(v.string()),
+  // How the Group divides it. A ratio, never a debt - nothing accrues and
+  // nothing settles. Absent or empty means the cost is not divided.
+  split: v.optional(v.array(splitShareValidator)),
+}
 
 export const buyingCostLinesValidator = v.object(
   Object.fromEntries(
@@ -81,8 +98,74 @@ export const splitPartyValidator = v.object({
   name: v.string(),
 })
 
+/** A saved Shared costs result, in the table and on the write that saves one. */
+export const splitScenarioFields = {
+  name: v.string(),
+  // Members are snapshotted by name as well as by id, so a saved split still
+  // reads correctly after somebody leaves the Group.
+  payments: v.array(
+    v.object({
+      party: splitPartyValidator,
+      amountCents: v.number(),
+      label: v.optional(v.string()),
+    }),
+  ),
+  participants: v.array(splitPartyValidator),
+  mode: v.union(v.literal('equal'), v.literal('custom')),
+  // Frozen results rather than inputs to recompute: the Members and their
+  // ids may be gone, and a scenario that recalculated would stop being the
+  // thing that was saved.
+  owed: v.array(
+    v.object({ party: splitPartyValidator, amountCents: v.number() }),
+  ),
+  transfers: v.array(
+    v.object({
+      from: splitPartyValidator,
+      to: splitPartyValidator,
+      amountCents: v.number(),
+    }),
+  ),
+  totalCents: v.number(),
+}
+
+/** A Portfolio position, in the table and on the write that opens one. */
+export const holdingFields = {
+  kind: holdingKindValidator,
+  // Enough to name one instrument rather than one ticker: the same symbol
+  // trades in two currencies on two exchanges, and a Portfolio that cannot
+  // tell them apart is one that adds dollars to euros.
+  symbol: v.string(),
+  name: v.string(),
+  exchange: v.optional(v.string()),
+  currency: v.string(),
+  // The dated position everything else is built on.
+  openingDate: v.string(), // YYYY-MM-DD
+  openingUnits: v.number(),
+  openingAverageCostCents: v.number(),
+  // The last price anybody has, and the moment it is as at. There is no
+  // price without one, and a refresh that fails leaves both alone so the
+  // screen can say how old the figure is instead of blanking it.
+  lastPriceCents: v.optional(v.number()),
+}
+
+/** A dated Portfolio event, in the table and on the write that adds one. */
+export const holdingTransactionFields = {
+  kind: transactionKindValidator,
+  date: v.string(), // YYYY-MM-DD
+  units: v.optional(v.number()),
+  pricePerUnitCents: v.optional(v.number()),
+  perUnitCents: v.optional(v.number()),
+  feeCents: v.optional(v.number()),
+  note: v.optional(v.string()),
+}
+
+export const netWorthKindValidator = v.union(
+  v.literal('asset'),
+  v.literal('liability'),
+)
+
 export const netWorthRowValidator = v.object({
-  kind: v.union(v.literal('asset'), v.literal('liability')),
+  kind: netWorthKindValidator,
   source: v.union(
     v.literal('manual'),
     v.literal('house'),
@@ -93,49 +176,6 @@ export const netWorthRowValidator = v.object({
   amountCents: v.number(),
   asOf: v.optional(v.string()),
 })
-
-/** Every Finances table, so the access helper below can name one. */
-export type FinanceTable =
-  | 'houses'
-  | 'mortgageCalculations'
-  | 'loanParts'
-  | 'homeBuyingCosts'
-  | 'recurringCosts'
-  | 'savingsGoals'
-  | 'splitScenarios'
-  | 'holdings'
-  | 'holdingTransactions'
-  | 'netWorthEntries'
-  | 'netWorthSnapshots'
-
-/**
- * One Finances row, read through the Group the caller named.
- *
- * The row must live in *that* Group, for the reason `babyAccess` gives: a link
- * that claims something about a record and a Group which is not true answers
- * "not found", and "not found" is the same answer as "not yours" so that
- * neither can be used to discover the other.
- */
-export async function findInGroup<T extends FinanceTable>(
-  ctx: QueryCtx,
-  groupSlug: string,
-  id: Id<T>,
-): Promise<{ user: Doc<'users'>; group: Doc<'groups'>; doc: Doc<T> } | null> {
-  const { user, group } = await requireGroupBySlug(ctx, groupSlug)
-  const doc = (await ctx.db.get(id)) as Doc<T> | null
-  if (!doc || doc.groupId !== group._id) return null
-  return { user, group, doc }
-}
-
-export async function requireInGroup<T extends FinanceTable>(
-  ctx: QueryCtx,
-  groupSlug: string,
-  id: Id<T>,
-) {
-  const found = await findInGroup(ctx, groupSlug, id)
-  if (!found) throw new ConvexError('Not found')
-  return found
-}
 
 /** A figure a Member typed still has to be a number, and usually a positive one. */
 export function requireAmount(cents: number, { allowZero = true } = {}) {
@@ -162,9 +202,4 @@ export function requireName(name: string) {
 export function requireIsoDate(date: string) {
   if (!isIsoDate(date)) throw new ConvexError('Date must be YYYY-MM-DD')
   return date
-}
-
-/** The next `order` for a Group's rows in one table. */
-export function nextOrder(rows: readonly { order: number }[]): number {
-  return rows.reduce((max, row) => Math.max(max, row.order), -1) + 1
 }

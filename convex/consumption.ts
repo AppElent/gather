@@ -1,19 +1,23 @@
 import { NUTRIENT_KEYS, type NutritionFacts } from '@gather/core/domain'
-import { v } from 'convex/values'
+import { type ObjectType, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import {
   computeFoodEntryNutrition,
   computeRecipeEntryNutrition,
+  diaryItemFields,
   mealValidator,
   quantityUnitValidator,
   scaleFacts,
 } from './lib/consumption'
 import { isVisibleToGroups } from './lib/groupAccess'
-import { nutritionValidator } from './lib/nutrition'
 import { rankLoggedAmounts } from './lib/servings'
-import { getCurrentUser, getMyGroupIds } from './lib/sharing'
+import {
+  getCurrentUser,
+  getMyGroupIds,
+  requireCurrentUser,
+} from './lib/sharing'
 
 function assertValidNutrition(nutrition: NutritionFacts) {
   for (const key of NUTRIENT_KEYS) {
@@ -129,29 +133,23 @@ export const loggedAmountsForFood = query({
   },
 })
 
+function assertValidItem(item: ObjectType<typeof diaryItemFields>) {
+  if (item.recipeId && item.foodId) {
+    throw new Error('An entry cannot reference both a recipe and a food')
+  }
+  if (item.quantity <= 0) throw new Error('Quantity must be positive')
+  assertValidNutrition(item.nutrition)
+}
+
 export const create = mutation({
   args: {
     date: v.string(),
     meal: mealValidator,
-    recipeId: v.optional(v.id('recipes')),
-    foodId: v.optional(v.id('foods')),
-    label: v.string(),
-    quantity: v.number(),
-    quantityUnit: quantityUnitValidator,
-    nutrition: nutritionValidator,
-    // An emoji, for a one-off (#94). Sent only by the card that writes one:
-    // an entry that references a food or a recipe has something behind it to
-    // show, and reads that instead of carrying a copy.
-    icon: v.optional(v.string()),
+    ...diaryItemFields,
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
-    if (args.recipeId && args.foodId) {
-      throw new Error('An entry cannot reference both a recipe and a food')
-    }
-    if (args.quantity <= 0) throw new Error('Quantity must be positive')
-    assertValidNutrition(args.nutrition)
+    const user = await requireCurrentUser(ctx)
+    assertValidItem(args)
     return await ctx.db.insert('consumptionEntries', {
       userId: user._id,
       ...args,
@@ -172,15 +170,7 @@ export const createMany = mutation({
     date: v.string(),
     meal: mealValidator,
     entries: v.array(
-      v.object({
-        recipeId: v.optional(v.id('recipes')),
-        foodId: v.optional(v.id('foods')),
-        label: v.string(),
-        quantity: v.number(),
-        quantityUnit: quantityUnitValidator,
-        nutrition: nutritionValidator,
-        icon: v.optional(v.string()),
-      }),
+      v.object(diaryItemFields),
     ),
     /**
      * The Combo these came from, when they came from one (#99).
@@ -194,15 +184,10 @@ export const createMany = mutation({
     comboLabel: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const ids: Id<'consumptionEntries'>[] = []
     for (const entry of args.entries) {
-      if (entry.recipeId && entry.foodId) {
-        throw new Error('An entry cannot reference both a recipe and a food')
-      }
-      if (entry.quantity <= 0) throw new Error('Quantity must be positive')
-      assertValidNutrition(entry.nutrition)
+      assertValidItem(entry)
       ids.push(
         await ctx.db.insert('consumptionEntries', {
           userId: user._id,
@@ -273,8 +258,7 @@ export const update = mutation({
     quantityUnit: v.optional(quantityUnitValidator),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const entry = await ctx.db.get(args.id)
     if (!entry) throw new Error('Entry not found')
     if (entry.userId !== user._id) throw new Error('Not the owner')
@@ -323,8 +307,7 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id('consumptionEntries') },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const entry = await ctx.db.get(args.id)
     if (!entry) return
     if (entry.userId !== user._id) throw new Error('Not the owner')

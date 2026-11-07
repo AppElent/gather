@@ -25,7 +25,7 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
   const { t, locale } = useI18n()
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
-  const event = useQuery(api.kitchen.getCalendarEvent, {
+  const event = useQuery(api.calendar.getCalendarEvent, {
     groupSlug: group.slug,
     id: eventId as Id<'calendarEvents'>,
   })
@@ -37,9 +37,9 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
   const members = useQuery(api.groups.members, { slug: group.slug })
   const me = useQuery(api.users.me)
   const { serviceActionsEnabled } = useAvailability()
-  const addEvent = useMutation(api.kitchen.addCalendarEvent)
+  const addEvent = useMutation(api.calendar.addCalendarEvent)
   const updateEvent = useMutation(api.calendar.updateEvent)
-  const removeEvent = useMutation(api.kitchen.removeCalendarEvent)
+  const removeEvent = useMutation(api.calendar.removeCalendarEvent)
   const [editing, setEditing] = useState(false)
   const controller = useCalendarEditor({
     userId: me?._id ?? '',

@@ -68,7 +68,9 @@ const MEMBERS = [
   { userId: 'u_bob', name: 'Bob', role: 'member' },
 ]
 
-const entry = (over: Partial<GroupActivityEntry> = {}): GroupActivityEntry => ({
+type RecipeEntry = Extract<GroupActivityEntry, { kind: 'recipe' }>
+
+const entry = (over: Partial<RecipeEntry> = {}): RecipeEntry => ({
   id: 'r1',
   kind: 'recipe',
   at: Date.now(),
@@ -194,14 +196,15 @@ describe('the stream', () => {
 
   test('links a log entry to the child it is about', () => {
     activity.value = [
-      entry({
+      {
         id: 'e1',
         kind: 'babyEvent',
-        title: 'Feeding',
+        eventType: 'feeding',
+        at: Date.now(),
         context: 'Noor',
         targetId: 'baby_1',
         byName: 'Alice',
-      }),
+      },
     ]
     renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 
@@ -214,13 +217,15 @@ describe('the stream', () => {
 
   test('links a task to the Group’s Tasks page, and names its list', () => {
     activity.value = [
-      entry({
-        id: 't1',
+      {
+        ...entry({
+          id: 't1',
+          title: 'Buy nappies',
+          context: 'Shopping',
+          targetId: null,
+        }),
         kind: 'task',
-        title: 'Buy nappies',
-        context: 'Shopping',
-        targetId: null,
-      }),
+      },
     ]
     renderWithI18n(<GroupHome {...HOUSEHOLD} />)
 

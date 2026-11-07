@@ -152,7 +152,8 @@ export const NUTRIENT_KEYS = [
 export type NutrientKey = (typeof NUTRIENT_KEYS)[number]
 /** All values per serving (recipes) or per 100 g/ml (foods). Calories in kcal, everything else grams. */
 export type NutritionFacts = Partial<Record<NutrientKey, number>>
-export type NutritionSource = 'imported' | 'ai' | 'manual'
+export const NUTRITION_SOURCES = ['imported', 'ai', 'manual'] as const
+export type NutritionSource = (typeof NUTRITION_SOURCES)[number]
 
 /**
  * The barcode a search term is, or `null` when it is ordinary text.
@@ -174,7 +175,8 @@ export function barcodeTerm(term: string): string | null {
 export const EXTERNAL_PROVIDER_IDS = ['notion', 'todoist'] as const
 export type ExternalProviderId = (typeof EXTERNAL_PROVIDER_IDS)[number]
 /** Where a task list keeps its tasks. */
-export type TaskProviderId = ExternalProviderId | 'local'
+export const TASK_PROVIDER_IDS = ['local', ...EXTERNAL_PROVIDER_IDS] as const
+export type TaskProviderId = (typeof TASK_PROVIDER_IDS)[number]
 
 export const MEAL_NAMES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
 export type MealName = (typeof MEAL_NAMES)[number]

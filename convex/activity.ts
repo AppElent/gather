@@ -1,3 +1,4 @@
+import type { BabyEventType } from '@gather/core/domain'
 import { tastingKindSpec } from '@gather/core/tastings'
 import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
@@ -18,7 +19,7 @@ import { requireGroupBySlug } from './lib/groupAccess'
  *
  * ## What is in the stream, and what is not
  *
- * Three sources, and they are exactly the Group-scoped tables that record who
+ * Four sources, and they are exactly the Group-scoped tables that record who
  * did the thing:
  *
  * - `recipes` — lives in a Group (`groupId`), attributed by `createdByUserId`.
@@ -35,10 +36,9 @@ import { requireGroupBySlug } from './lib/groupAccess'
  *
  * - `consumptionEntries` — a food diary is **Personal** (ADR-0003). It is a
  *   record *about a person*, follows them across every Group and belongs to no
- *   Group's activity — including the activity of their own Personal group,
- *   which is an ordinary Group with one Member and gets no exception. Making it
- *   one would mean a diary entry showed up in a Group's stream, which is
- *   precisely the thing a Personal record is defined not to do.
+ *   Group's activity. Making it one would mean a diary entry showed up in a
+ *   Group's stream, which is precisely the thing a Personal record is defined
+ *   not to do.
  * - `foods` — **Catalog** (ADR-0003). It has no `groupId` at all: it is owned by
  *   nobody and readable by everybody, so there is no Group whose activity it
  *   could belong to.
@@ -49,13 +49,9 @@ import { requireGroupBySlug } from './lib/groupAccess'
  *   two entry kinds and no correctness.
  */
 
-/** Which Module a stream entry came out of, from the reader's point of view. */
-export type ActivityKind = 'recipe' | 'task' | 'babyEvent' | 'tasting'
-
-export interface GroupActivityEntry {
+interface ActivityEntryBase {
   /** The source row's id — unique across tables, so it keys the list. */
   id: string
-  kind: ActivityKind
   /** When it appeared in the Group. */
   at: number
   /**
@@ -64,32 +60,8 @@ export interface GroupActivityEntry {
    * from the client. Null when the row it named has gone.
    */
   byName: string | null
-  /**
-   * What changed, in the words of the thing itself — a recipe's title, a
-   * task's title. These are content: somebody typed them, and they are shown
-   * as they were typed.
-   *
-   * The one exception is `kind: 'babyEvent'`, where there is no such
-   * sentence: what changed is *a temperature*, *a feed*, a category whose
-   * name is chrome and therefore translated. For those this carries the
-   * `BabyEventType` key and the client looks the word up (ADR-0011).
-   */
-  title: string
   /** Where it sits: the list a task is in, the child a log entry is about. */
   context: string | null
-  /**
-   * Which Module the entry belongs to, where `kind` alone cannot say.
-   *
-   * Almost every kind maps to exactly one Module and the client resolves it
-   * from that. `tasting` is the exception: Cheeses, Wines and Beers are three
-   * Modules over one pair of tables, so the entry has to carry which. Absent
-   * everywhere else, and read as a fallback rather than a replacement.
-   *
-   * A Module id and never a path — the id comes from the shared catalogue
-   * both clients already hold (`@gather/core`), which is a different thing
-   * from the route tree this file still must not know about.
-   */
-  moduleId?: string
   /**
    * The row a link can point at, for the client to build a URL from through
    * `groupPaths.ts`. Never a path: assembling one here would put a route in a
@@ -98,6 +70,29 @@ export interface GroupActivityEntry {
    */
   targetId: string | null
 }
+
+/**
+ * What changed, by kind.
+ *
+ * A `title` is content in the words of the thing itself, shown as somebody typed
+ * it. A log entry has no such sentence: what changed is *a temperature*, *a
+ * feed*, whose name is chrome, so it carries the `eventType` and the client looks
+ * the word up (ADR-0011).
+ *
+ * `moduleId` is there because Cheeses, Wines and Beers are three Modules over one
+ * pair of tables, so `kind` cannot say which. It is an id from the catalogue both
+ * clients hold (`@gather/core`), never a path.
+ */
+export type GroupActivityEntry = ActivityEntryBase &
+  (
+    | { kind: 'recipe'; title: string }
+    | { kind: 'task'; title: string }
+    | { kind: 'babyEvent'; eventType: BabyEventType }
+    | { kind: 'tasting'; title: string; moduleId: string }
+  )
+
+/** Which Module a stream entry came out of, from the reader's point of view. */
+export type ActivityKind = GroupActivityEntry['kind']
 
 /**
  * How much of the stream is shown, and how much of it any one source may take.
@@ -200,7 +195,7 @@ async function recentRecipes(ctx: QueryCtx, groupId: Id<'groups'>) {
  * The Group's tasks, newest first per list, bounded per list.
  *
  * A task carries no Group of its own — it hangs off a list — so the Group is
- * read on the lists and the tasks follow from them, exactly as `taskAccess`
+ * read on the lists and the tasks follow from them, exactly as `tasks.ts`
  * does it. Only local lists have rows here; an external list's items live in
  * Notion or Todoist and were never written by anyone in this app, so there is
  * no attribution for them and nothing to put in the stream.
@@ -332,10 +327,7 @@ export const forGroup = query({
             kind: 'babyEvent',
             at: event._creationTime,
             byName: nameOf(event.loggedBy),
-            // The `babyEvent` case of `title` (see the field's comment):
-            // a type key, not a sentence, because the word for it is the
-            // reader's and this file does not know which language that is.
-            title: event.type,
+            eventType: event.type,
             context: baby.name,
             targetId: baby._id,
           }),

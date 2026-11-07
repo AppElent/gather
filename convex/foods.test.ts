@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
-import { testConvex } from '../test/convexHarness'
-import { api } from './_generated/api'
+import { alice as asAlice, bob as asBob, testConvex } from '../test/convexHarness'
+import { api, internal } from './_generated/api'
 
 /**
  * The Catalog belongs to nobody and reads the same for everybody (GLOSSARY.md).
@@ -11,12 +11,6 @@ import { api } from './_generated/api'
  * have narrowed anything. Signing in is the only bar.
  */
 
-const asAlice = {
-  subject: 'clerk_alice',
-  name: 'Alice',
-  email: 'a@example.com',
-}
-const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
 
 async function seed() {
   const t = testConvex()
@@ -268,7 +262,7 @@ describe('a food’s picture', () => {
 
     await t
       .withIdentity(asAlice)
-      .mutation(api.foods.attachOffImage, { id, imageId })
+      .mutation(internal.foods.attachOffImage, { id, imageId })
 
     const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
     expect(food?.imageId).toBe(imageId)
@@ -294,7 +288,7 @@ describe('a food’s picture', () => {
 
     await t
       .withIdentity(asAlice)
-      .mutation(api.foods.attachOffImage, { id, imageId })
+      .mutation(internal.foods.attachOffImage, { id, imageId })
 
     const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
     expect(food?.imageId).toBeUndefined()
@@ -563,7 +557,7 @@ describe('where a food’s figures came from', () => {
 
     await t
       .withIdentity(asAlice)
-      .mutation(api.foods.applyOffRefresh, { id, ...nutella })
+      .mutation(internal.foods.applyOffRefresh, { id, ...nutella })
 
     const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
     expect(food?.nutritionSource).toBe('imported')
@@ -873,7 +867,7 @@ describe('a food’s icon', () => {
 
     // Open Food Facts has no emoji, so a refresh has nothing to overwrite it
     // with — and the icon was yours, not theirs.
-    await t.withIdentity(asAlice).mutation(api.foods.applyOffRefresh, {
+    await t.withIdentity(asAlice).mutation(internal.foods.applyOffRefresh, {
       id,
       barcode: '3017620422003',
       name: 'Nutella',

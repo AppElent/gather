@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 
 const alice = {
@@ -17,28 +17,18 @@ describe('Group search', () => {
         name: alice.name,
         email: alice.email,
       })
-      const groupId = await ctx.db.insert('groups', {
+      const groupId = await seedGroup(ctx, {
         name: 'Home',
         slug: 'search-home',
         inviteCode: 'search-home',
-        isPersonal: false,
       })
-      const otherGroupId = await ctx.db.insert('groups', {
+      const otherGroupId = await seedGroup(ctx, {
         name: 'Elsewhere',
         slug: 'search-elsewhere',
         inviteCode: 'search-elsewhere',
-        isPersonal: false,
       })
-      await ctx.db.insert('memberships', {
-        groupId,
-        userId: aliceId,
-        role: 'admin',
-      })
-      await ctx.db.insert('memberships', {
-        groupId: otherGroupId,
-        userId: aliceId,
-        role: 'admin',
-      })
+      await seedMember(ctx, groupId, aliceId, 'admin')
+      await seedMember(ctx, otherGroupId, aliceId, 'admin')
       await ctx.db.insert('recipes', {
         groupId,
         sharedGroupIds: [],

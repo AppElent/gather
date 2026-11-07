@@ -15,7 +15,7 @@
 
 import { fmt, plural } from '@gather/core/i18n'
 import { moduleById, moduleText } from '@gather/core/modules'
-import type { ActivityKind, GroupActivityEntry } from '../../convex/activity'
+import type { ActivityKind } from '../../convex/activity'
 import type { NavMessages } from './appNavigation'
 
 /**
@@ -32,16 +32,21 @@ export const ACTIVITY_MODULE_ID: Record<ActivityKind, string> = {
   tasting: 'cheeses',
 }
 
+interface ActivityModuleRef {
+  kind: ActivityKind
+  moduleId?: string
+}
+
 /** The Module an entry belongs to — its own, where it names one. */
 export function activityModuleId(
-  entry: Pick<GroupActivityEntry, 'kind' | 'moduleId'>,
+  entry: ActivityModuleRef,
 ): string {
   return entry.moduleId ?? ACTIVITY_MODULE_ID[entry.kind]
 }
 
 /** The Module an entry belongs to, named as the rest of the app names it. */
 export function activityModuleLabel(
-  entry: Pick<GroupActivityEntry, 'kind' | 'moduleId'>,
+  entry: ActivityModuleRef,
   messages: NavMessages,
 ): string {
   const module = moduleById(activityModuleId(entry))
@@ -49,7 +54,7 @@ export function activityModuleLabel(
 }
 
 export function activityModuleIcon(
-  entry: Pick<GroupActivityEntry, 'kind' | 'moduleId'>,
+  entry: ActivityModuleRef,
 ): string {
   return moduleById(activityModuleId(entry))?.icon ?? 'Circle'
 }

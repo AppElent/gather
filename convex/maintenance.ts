@@ -1,31 +1,33 @@
+import type { WithoutSystemFields } from 'convex/server'
 import { v } from 'convex/values'
-import type { Doc, Id } from './_generated/dataModel'
+import type { Doc, Id, TableNames } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation, internalQuery } from './_generated/server'
 import { foodSearchText } from './lib/foodSearchText'
 import { pickCanonicalUser } from './lib/sharing'
 import { stableDigest } from './lib/stableDigest'
+import schema from './schema'
 
 /**
- * One-off cleanup for `users` documents carrying stray fields left over from
- * removed experiments (e.g. `nutritionTargets`), which fail schema
- * validation and block `convex dev`/deploy from pushing any new functions.
+ * Cleanup for `users` documents carrying fields the schema does not name, which
+ * fail schema validation and block `convex dev`/deploy from pushing any new
+ * functions. Everything the schema names survives, whatever it is added next.
  * Safe to re-run — replacing an already-clean document is a no-op.
  */
 export const cleanUserDocuments = internalMutation({
   args: {},
   handler: async (ctx) => {
+    const fields = Object.keys(schema.tables.users.validator.fields)
     const users = await ctx.db.query('users').collect()
     let cleaned = 0
     for (const user of users) {
-      const { clerkId, name, email, imageUrl, defaultGroupId } = user
-      await ctx.db.replace(user._id, {
-        clerkId,
-        name,
-        email,
-        imageUrl,
-        defaultGroupId,
-      })
+      const known = Object.entries(user).filter(([field]) =>
+        fields.includes(field),
+      )
+      await ctx.db.replace(
+        user._id,
+        Object.fromEntries(known) as WithoutSystemFields<Doc<'users'>>,
+      )
       cleaned++
     }
     return { cleaned }
@@ -404,7 +406,113 @@ export const moveBabyToGroup = internalMutation({
   },
 })
 
-/** Repoint every `v.id('users')` reference from `drop` onto `keep`. */
+/** Whether a stored value holds a user's id anywhere inside it. */
+type HoldsUserId<V> = 0 extends 1 & V
+  ? never
+  : V extends Id<'users'>
+    ? true
+    : V extends string | number | boolean | null | undefined
+      ? never
+      : V extends readonly (infer E)[]
+        ? HoldsUserId<E>
+        : V extends object
+          ? HoldsUserId<V[keyof V]>
+          : never
+
+type UserColumn<T extends TableNames> = {
+  [K in Exclude<keyof Doc<T>, '_id'>]-?: [HoldsUserId<Doc<T>[K]>] extends [
+    never,
+  ]
+    ? never
+    : K
+}[Exclude<keyof Doc<T>, '_id'>]
+
+type TableHoldingUsers = {
+  [T in TableNames]: [UserColumn<T>] extends [never] ? never : T
+}[TableNames]
+
+/**
+ * Every column that names a user, derived from the data model, so a new one fails
+ * `pnpm typecheck` until somebody says how a merge treats it.
+ *
+ * `repoint` swaps the id wherever it sits in the value. `own rule` is a column
+ * with a uniqueness rule a swap would break: one membership per (group, user), one
+ * `aiUsage` row per (user, day). `mergeUserInto` handles those itself.
+ */
+const USER_REFERENCES: {
+  [T in TableHoldingUsers]: Record<UserColumn<T>, 'repoint' | 'own rule'>
+} = {
+  memberships: { userId: 'own rule', calendarPeopleFilter: 'repoint' },
+  aiUsage: { userId: 'own rule' },
+  recipes: { createdByUserId: 'repoint' },
+  tasks: { createdBy: 'repoint' },
+  foods: { createdBy: 'repoint' },
+  notes: { createdBy: 'repoint', updatedBy: 'repoint' },
+  mealEntries: { createdBy: 'repoint' },
+  pantryEntries: { createdBy: 'repoint' },
+  calendars: { createdBy: 'repoint' },
+  calendarEvents: { createdBy: 'repoint', assigneeIds: 'repoint' },
+  integrationConnections: { connectedBy: 'repoint' },
+  babyEvents: { loggedBy: 'repoint' },
+  consumptionEntries: { userId: 'repoint' },
+  combos: { userId: 'repoint' },
+  houses: { createdByUserId: 'repoint' },
+  mortgageCalculations: {
+    createdByUserId: 'repoint',
+    updatedByUserId: 'repoint',
+  },
+  homeBuyingCosts: { updatedByUserId: 'repoint' },
+  recurringCosts: { createdByUserId: 'repoint', split: 'repoint' },
+  savingsGoals: { createdByUserId: 'repoint', updatedByUserId: 'repoint' },
+  splitScenarios: {
+    createdByUserId: 'repoint',
+    payments: 'repoint',
+    participants: 'repoint',
+    owed: 'repoint',
+    transfers: 'repoint',
+  },
+  holdings: { createdByUserId: 'repoint' },
+  holdingTransactions: { createdByUserId: 'repoint' },
+  netWorthEntries: { createdByUserId: 'repoint' },
+  netWorthSnapshots: { takenByUserId: 'repoint' },
+  tastingSubjects: { createdByUserId: 'repoint' },
+  tastings: { createdByUserId: 'repoint' },
+  seedRuns: { restoreDefaultGroup: 'repoint' },
+}
+
+function repointUserIds(
+  value: unknown,
+  drop: ReadonlySet<string>,
+  keep: Id<'users'>,
+): unknown {
+  if (typeof value === 'string') return drop.has(value) ? keep : value
+  if (Array.isArray(value)) {
+    const next = value.map((item) => repointUserIds(item, drop, keep))
+    // `keep` and a dupe both named in one list are now one person.
+    return next.every((item) => typeof item === 'string')
+      ? [...new Set(next)]
+      : next
+  }
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, inner]) => [
+        key,
+        repointUserIds(inner, drop, keep),
+      ]),
+    )
+  }
+  return value
+}
+
+/**
+ * Repoint every `v.id('users')` reference from `drop` onto `keep`. A reference
+ * left on a deleted row is attribution that reads as nobody, a split that no
+ * longer adds up, a calendar event assigned to no one.
+ *
+ * Most of these tables have no index on the user, so this scans them. It is a
+ * repair over a household-sized dataset, and scanning beats carrying indexes that
+ * nothing in the app itself would ever query.
+ */
 async function mergeUserInto(
   ctx: MutationCtx,
   clerkId: string,
@@ -428,16 +536,14 @@ async function mergeUserInto(
         .collect()
     ).map((m) => m.groupId),
   )
-
-  // `recipes`, `tasks`, `foods`, `integrationConnections` and `babyEvents`
-  // carry a user reference but no index on it. This is a one-off repair over a
-  // household-sized dataset, so scanning beats carrying five indexes that
-  // nothing in the app itself would ever query.
-  const recipes = await ctx.db.query('recipes').collect()
-  const tasks = await ctx.db.query('tasks').collect()
-  const foods = await ctx.db.query('foods').collect()
-  const connections = await ctx.db.query('integrationConnections').collect()
-  const babyEvents = await ctx.db.query('babyEvents').collect()
+  const keepUsage = new Map(
+    (
+      await ctx.db
+        .query('aiUsage')
+        .withIndex('by_user_and_day', (q) => q.eq('userId', keep._id))
+        .collect()
+    ).map((row) => [row.day, row]),
+  )
 
   for (const dupe of drop) {
     const memberships = await ctx.db
@@ -457,42 +563,24 @@ async function mergeUserInto(
       if (apply) await ctx.db.patch(m._id, { userId: keep._id })
     }
 
-    // Attribution follows the merge: "who added this" must go on pointing at
-    // the row the app resolves the person to, not at one it is about to delete.
-    for (const r of recipes) {
-      if (r.createdByUserId !== dupe._id) continue
-      bump('recipes')
-      if (apply) await ctx.db.patch(r._id, { createdByUserId: keep._id })
-    }
-
-    const entries = await ctx.db
-      .query('consumptionEntries')
-      .withIndex('by_user_date', (q) => q.eq('userId', dupe._id))
+    const usage = await ctx.db
+      .query('aiUsage')
+      .withIndex('by_user_and_day', (q) => q.eq('userId', dupe._id))
       .collect()
-    for (const e of entries) {
-      bump('consumptionEntries')
-      if (apply) await ctx.db.patch(e._id, { userId: keep._id })
-    }
-
-    for (const t of tasks) {
-      if (t.createdBy !== dupe._id) continue
-      bump('tasks')
-      if (apply) await ctx.db.patch(t._id, { createdBy: keep._id })
-    }
-    for (const f of foods) {
-      if (f.createdBy !== dupe._id) continue
-      bump('foods')
-      if (apply) await ctx.db.patch(f._id, { createdBy: keep._id })
-    }
-    for (const c of connections) {
-      if (c.connectedBy !== dupe._id) continue
-      bump('integrationConnections')
-      if (apply) await ctx.db.patch(c._id, { connectedBy: keep._id })
-    }
-    for (const e of babyEvents) {
-      if (e.loggedBy !== dupe._id) continue
-      bump('babyEvents')
-      if (apply) await ctx.db.patch(e._id, { loggedBy: keep._id })
+    for (const row of usage) {
+      bump('aiUsage')
+      const kept = keepUsage.get(row.day)
+      if (!kept) {
+        keepUsage.set(row.day, { ...row, userId: keep._id })
+        if (apply) await ctx.db.patch(row._id, { userId: keep._id })
+        continue
+      }
+      // One person, one budget: the calls add up rather than being forgotten.
+      kept.count += row.count
+      if (apply) {
+        await ctx.db.patch(kept._id, { count: kept.count })
+        await ctx.db.delete(row._id)
+      }
     }
 
     // Only fills a gap — a surviving row that already picked a default group
@@ -504,6 +592,27 @@ async function mergeUserInto(
     }
 
     if (apply) await ctx.db.delete(dupe._id)
+  }
+
+  const dropIds = new Set<string>(drop.map((dupe) => dupe._id))
+  for (const table of Object.keys(USER_REFERENCES) as TableHoldingUsers[]) {
+    const columns = Object.entries(USER_REFERENCES[table])
+      .filter(([, rule]) => rule === 'repoint')
+      .map(([column]) => column)
+    if (columns.length === 0) continue
+    for (const row of await ctx.db.query(table).collect()) {
+      const patch: Record<string, unknown> = {}
+      for (const column of columns) {
+        const before = (row as Record<string, unknown>)[column]
+        const after = repointUserIds(before, dropIds, keep._id)
+        if (JSON.stringify(before) !== JSON.stringify(after)) {
+          patch[column] = after
+        }
+      }
+      if (Object.keys(patch).length === 0) continue
+      bump(table)
+      if (apply) await ctx.db.patch(row._id as Id<TableHoldingUsers>, patch)
+    }
   }
 
   return {

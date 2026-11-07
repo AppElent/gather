@@ -1,22 +1,15 @@
 import {
+  BABY_SEXES,
   DIAPER_KINDS,
   FEEDING_METHODS,
-  missingRequiredField,
+  FEEDING_SIDES,
+  TEMPERATURE_METHODS,
 } from '@gather/core/baby-events'
-import type { BabyEventType } from '@gather/core/domain'
+import { BABY_EVENT_TYPES } from '@gather/core/domain'
 import { v } from 'convex/values'
+import { literals } from './validators'
 
-export const babyEventTypeValidator = v.union(
-  v.literal('temperature'),
-  v.literal('feeding'),
-  v.literal('diaper'),
-  v.literal('sleep'),
-  v.literal('growth'),
-  v.literal('medication'),
-  v.literal('vaccination'),
-  v.literal('note'),
-  v.literal('memory'),
-)
+export const babyEventTypeValidator = literals(BABY_EVENT_TYPES)
 
 /**
  * One button on a Child's log bar: an event type, or one of the two shortcuts
@@ -30,30 +23,14 @@ export const babyBarSlotValidator = v.union(
   v.literal('question'),
 )
 
-export const temperatureMethodValidator = v.union(
-  v.literal('oral'),
-  v.literal('rectal'),
-  v.literal('axillary'),
-  v.literal('ear'),
-  v.literal('forehead'),
-)
+export const babySexValidator = literals(BABY_SEXES)
 
-export const feedingMethodValidator = v.union(
-  v.literal('breast'),
-  v.literal('bottle'),
-  v.literal('solid'),
-)
-export const feedingSideValidator = v.union(
-  v.literal('left'),
-  v.literal('right'),
-  v.literal('both'),
-)
+export const temperatureMethodValidator = literals(TEMPERATURE_METHODS)
 
-export const diaperKindValidator = v.union(
-  v.literal('wet'),
-  v.literal('dirty'),
-  v.literal('both'),
-)
+export const feedingMethodValidator = literals(FEEDING_METHODS)
+export const feedingSideValidator = literals(FEEDING_SIDES)
+
+export const diaperKindValidator = literals(DIAPER_KINDS)
 
 // Per-type event payload. Kept separate from schema.ts's top-level `type`
 // field (needed there for the `by_baby_type` index) — a mismatch between
@@ -134,46 +111,3 @@ export const babyEventDataValidator = v.union(
   noteDataValidator,
   memoryDataValidator,
 )
-
-/** Absent, or a finite non-negative number of minutes. */
-function isValidMinutes(value: unknown): boolean {
-  if (value === undefined) return true
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0
-}
-
-// Confirms `data` actually satisfies the shape the given `type` implies —
-// the schema validator only checks `data` against *some* member of the
-// union, not the one matching `type`.
-export function isValidEventData(
-  type: BabyEventType,
-  data: Record<string, unknown>,
-): boolean {
-  switch (type) {
-    case 'temperature':
-      return typeof data.celsius === 'number'
-    case 'feeding':
-      return (
-        FEEDING_METHODS.some((method) => method === data.method) &&
-        isValidMinutes(data.leftMin) &&
-        isValidMinutes(data.rightMin)
-      )
-    case 'diaper':
-      return DIAPER_KINDS.some((kind) => kind === data.kind)
-    case 'sleep':
-      return true
-    case 'growth':
-      return (
-        typeof data.weightKg === 'number' ||
-        typeof data.heightCm === 'number' ||
-        typeof data.headCircumferenceCm === 'number'
-      )
-    case 'medication':
-    case 'vaccination':
-    case 'memory':
-      return missingRequiredField(type, data) === null
-    case 'note':
-      return true
-    default:
-      return false
-  }
-}

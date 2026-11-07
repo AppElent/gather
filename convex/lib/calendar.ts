@@ -1,4 +1,6 @@
 import {
+  CALENDAR_COLORS,
+  CALENDAR_VIEWS,
   type CalendarColor,
   type CalendarEvent,
   hasCalendarErrors,
@@ -9,20 +11,12 @@ import { type CalendarRefusalCode, calendarRefusal } from '@gather/core/refusals
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { getMembership, requireGroupBySlug } from './groupAccess'
+import { requireInGroup } from './groupAccess'
+import { literals } from './validators'
 
-export const calendarColorValidator = v.union(
-  v.literal('home'),
-  v.literal('kitchen'),
-  v.literal('money'),
-  v.literal('tasting'),
-)
+export const calendarColorValidator = literals(CALENDAR_COLORS)
 
-export const calendarViewValidator = v.union(
-  v.literal('month'),
-  v.literal('week'),
-  v.literal('agenda'),
-)
+export const calendarViewValidator = literals(CALENDAR_VIEWS)
 
 export const calendarPeopleFilterValidator = v.object({
   userIds: v.array(v.id('users')),
@@ -33,17 +27,6 @@ export function calendarError(code: CalendarRefusalCode): never {
   throw new ConvexError(calendarRefusal(code))
 }
 
-export async function calendarInGroup(
-  ctx: QueryCtx,
-  groupSlug: string,
-  calendarId: Id<'calendars'>,
-) {
-  const { group, user, membership } = await requireGroupBySlug(ctx, groupSlug)
-  const calendar = await ctx.db.get(calendarId)
-  if (!calendar || calendar.groupId !== group._id) calendarError('not-found')
-  return { group, user, membership, calendar }
-}
-
 export async function eventInGroup(
   ctx: QueryCtx,
   groupSlug: string,
@@ -51,8 +34,13 @@ export async function eventInGroup(
 ) {
   const event = await ctx.db.get(eventId)
   if (!event) calendarError('deleted')
-  const result = await calendarInGroup(ctx, groupSlug, event.calendarId)
-  return { ...result, event }
+  const { group, user, membership, doc: calendar } = await requireInGroup(
+    ctx,
+    groupSlug,
+    event.calendarId,
+    calendarRefusal('not-found'),
+  )
+  return { group, user, membership, calendar, event }
 }
 
 export async function currentGroupMembers(
@@ -89,8 +77,7 @@ export async function validateAssignees(
       calendarError('assignee-not-member')
 }
 
-export function validateEventFields(args: {
-  calendarId: Id<'calendars'> | null
+interface EventFields {
   title: string
   date: string
   allDay: boolean
@@ -99,9 +86,30 @@ export function validateEventFields(args: {
   assigneeIds: readonly Id<'users'>[]
   location: string | null
   notes: string | null
-}) {
+}
+
+export function validateEventFields(
+  args: EventFields & { calendarId: Id<'calendars'> | null },
+) {
   const errors = validateCalendarFields(args)
   if (hasCalendarErrors(errors)) calendarError(Object.values(errors)[0])
+}
+
+/** What a validated event is stored as, whichever door it came through. */
+export function storedEventFields(
+  args: EventFields & { calendarId: Id<'calendars'> },
+) {
+  return {
+    calendarId: args.calendarId,
+    title: args.title.trim(),
+    date: args.date,
+    allDay: args.allDay,
+    startMinutes: args.allDay ? undefined : (args.startMinutes ?? undefined),
+    endMinutes: args.allDay ? undefined : (args.endMinutes ?? undefined),
+    assigneeIds: [...new Set(args.assigneeIds)],
+    location: args.location?.trim() || undefined,
+    notes: args.notes?.trim() || undefined,
+  }
 }
 
 export function normalizedEvent(
@@ -134,14 +142,4 @@ export function normalizedEvent(
     assigneeIds: [...new Set(event.assigneeIds ?? [])],
     calendarName: calendar.name,
   }
-}
-
-export async function callerMembership(
-  ctx: QueryCtx,
-  groupId: Id<'groups'>,
-  userId: Id<'users'>,
-) {
-  const membership = await getMembership(ctx, groupId, userId)
-  if (!membership) calendarError('not-member')
-  return membership
 }

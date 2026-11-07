@@ -1,8 +1,17 @@
 import { addDays, compareIsoDates, isIsoDate } from './civilDate'
 import type { ModuleGroup } from './modules'
 
-export type CalendarView = 'month' | 'week' | 'agenda'
-export type CalendarColor = ModuleGroup
+export const CALENDAR_VIEWS = ['month', 'week', 'agenda'] as const
+export type CalendarView = (typeof CALENDAR_VIEWS)[number]
+
+/** In the order a new calendar picks its default: first least-used colour. */
+export const CALENDAR_COLORS = [
+  'home',
+  'kitchen',
+  'money',
+  'tasting',
+] as const satisfies readonly ModuleGroup[]
+export type CalendarColor = (typeof CALENDAR_COLORS)[number]
 
 export interface CalendarEventInput {
   id: string

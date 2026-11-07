@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { testConvex } from '../test/convexHarness'
+import { alice, bob, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 
 /**
@@ -20,8 +20,6 @@ import { api } from './_generated/api'
  *   field its kind needs.
  */
 
-const alice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
-const bob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
 
 /** Two households. Alice is in the first only, Bob in the second only. */
 async function seed() {
@@ -38,28 +36,18 @@ async function seed() {
       name: 'Bob',
       email: bob.email,
     })
-    const jansen = await ctx.db.insert('groups', {
+    const jansen = await seedGroup(ctx, {
       name: 'Jansen Household',
       slug: 'jansen',
-      isPersonal: false,
       inviteCode: 'jansen',
     })
-    const devries = await ctx.db.insert('groups', {
+    const devries = await seedGroup(ctx, {
       name: 'De Vries Household',
       slug: 'de-vries',
-      isPersonal: false,
       inviteCode: 'devries',
     })
-    await ctx.db.insert('memberships', {
-      groupId: jansen,
-      userId: aliceId,
-      role: 'admin',
-    })
-    await ctx.db.insert('memberships', {
-      groupId: devries,
-      userId: bobId,
-      role: 'admin',
-    })
+    await seedMember(ctx, jansen, aliceId, 'admin')
+    await seedMember(ctx, devries, bobId, 'admin')
     return { aliceId, bobId, jansen, devries }
   })
 

@@ -48,13 +48,13 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
 ])
 
 /**
- * The namespace Personal groups live in, and which shared Groups are kept out
- * of, so that a household named "Me and Bob" can never take a slug that reads
- * like somebody's Personal group (ADR-0002).
+ * Kept out of a new Group's slug so that a household named "Me and Bob" can never
+ * take an address that reads like one person's, beside the existing Groups that
+ * hold this prefix (ADR-0002).
  */
 export const PERSONAL_SLUG_PREFIX = 'me-'
 
-/** Prefix escaping a shared Group out of a reserved or Personal slug. */
+/** Prefix escaping a Group out of a reserved or `me-` slug. */
 const SHARED_ESCAPE_PREFIX = 'g-'
 
 /** Slug for a Group whose name carries nothing sluggable at all. */
@@ -109,8 +109,8 @@ export function normaliseSlug(name: string): string {
 }
 
 /**
- * The slug a shared Group starts from, escaped out of the reserved segments and
- * the Personal namespace so the ladder below can only ever produce a usable
+ * The slug a Group starts from, escaped out of the reserved segments and the
+ * `me-` prefix so the ladder below can only ever produce a usable
  * slug. "Me and Bob" becomes `g-me-and-bob`, not `me-and-bob`.
  */
 export function sharedSlugBase(name: string): string {

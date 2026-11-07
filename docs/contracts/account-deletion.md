@@ -16,19 +16,25 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
 - **`convex/lib/groupCascade.ts` cannot be forgotten.** `GROUP_CONTENT` is keyed
   by every schema table with a `groupId`, derived from the data model, so a new
   table fails `pnpm typecheck` until somebody says how its rows are reached.
-  `groups.deleteGroup` and account deletion both run it.
+- **One function destroys a Group.** `destroyGroup` runs the registry, deletes
+  the Group with its own image and schedules the release of the files. Deleting
+  a Group, deleting an account and resetting the Sample household all go through
+  it.
 - `tasks`, `calendarEvents` and `babyEvents` hang off a parent rather than a
   Group, so each is deleted inside its parent's entry. `comboItems` belong to a
   person's combo and go with the account purge.
 - Personal tables (`userId`, no `groupId`: `combos`, `consumptionEntries`,
   `aiUsage`) are not in the cascade; `cascade.finishAccount` deletes them by
   index, so a new one is added there by hand.
-- Storage ids come back from the cascade and are deleted by scheduled work, so
-  a large Group survives the one-transaction limit ([stored files](stored-files.md)).
+- Storage ids are collected by the cascade and deleted by scheduled work, so a
+  large Group survives the one-transaction limit ([stored files](stored-files.md)).
 - **Account deletion is Convex first, Clerk second**, in scheduled steps, one
   Group per step (`convex/accounts.ts`, `convex/cascade.ts`).
 - **A solo Group dies with the person; a shared Group they only leave.** What
-  they added to a household stays with the household.
+  they added to a household stays with the household. `detachFromGroup` takes
+  them out of it the same way whether they left or deleted their account: a cost
+  split naming them is cleared, and a saved split scenario keeps their name
+  without their id.
 - **`users.deletedAt` stops `ensureUser` re-provisioning the account mid-purge**;
   the `users` row is deleted last for that reason.
 - **`deleteSelfEnabled` is checked before anything is called.** Purging a

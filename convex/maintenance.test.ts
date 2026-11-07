@@ -2,17 +2,11 @@ import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 import { convexTest } from 'convex-test'
 import { describe, expect, test } from 'vitest'
-import { modules, testConvex } from '../test/convexHarness'
+import { alice as asAlice, bob as asBob, modules, seedMember, testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import schema from './schema'
 
-const asAlice = {
-  subject: 'clerk_alice',
-  name: 'Alice',
-  email: 'a@example.com',
-}
-const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
 
 /**
  * The baby log's move onto Group scope, behind #20.
@@ -66,7 +60,7 @@ async function seedBabyLog() {
       [household, aliceId, 'admin'],
       [household, bobId, 'member'],
     ] as const) {
-      await ctx.db.insert('memberships', { groupId, userId, role })
+      await seedMember(ctx, groupId, userId, role)
     }
 
     const noor = await ctx.db.insert('babies', {
@@ -683,5 +677,152 @@ describe('backfillFoodServings', () => {
         apply: true,
       }),
     ).toEqual({ apply: true, foods: 4, stripped: 0, converted: 0 })
+  })
+})
+
+describe('cleanUserDocuments', () => {
+  const withStrayField = defineSchema({
+    ...schema.tables,
+    users: defineTable({
+      ...schema.tables.users.validator.fields,
+      removedExperiment: v.optional(v.string()),
+    }),
+  })
+
+  test('strips what the schema does not name and keeps everything it does', async () => {
+    const t = convexTest(withStrayField, modules)
+    const id = await t.run(
+      async (ctx) =>
+        await ctx.db.insert('users', {
+          clerkId: 'clerk_alice',
+          name: 'Alice',
+          email: 'a@example.com',
+          deletedAt: 123,
+          nutritionTargets: { calories: 2000 },
+          pinnedModuleIds: ['recipes'],
+          removedExperiment: 'stray',
+        }),
+    )
+
+    await t.mutation(internal.maintenance.cleanUserDocuments, {})
+
+    const user = await t.run(async (ctx) => await ctx.db.get(id))
+    expect(user).toMatchObject({
+      clerkId: 'clerk_alice',
+      deletedAt: 123,
+      nutritionTargets: { calories: 2000 },
+      pinnedModuleIds: ['recipes'],
+    })
+    expect(user).not.toHaveProperty('removedExperiment')
+  })
+})
+
+describe('mergeDuplicateUsers', () => {
+  /** One person with two rows, and something of theirs in a shared Group. */
+  async function withDuplicate() {
+    const t = testConvex()
+    const ids = await t.run(async (ctx) => {
+      const person = { clerkId: 'clerk_alice', name: 'Alice', email: 'a@x.nl' }
+      const keep = await ctx.db.insert('users', person)
+      const dupe = await ctx.db.insert('users', person)
+      const groupId = await ctx.db.insert('groups', {
+        name: 'Household',
+        inviteCode: 'INVITE',
+        slug: 'household',
+      })
+      await seedMember(ctx, groupId, keep, 'admin')
+      await seedMember(ctx, groupId, dupe, 'member')
+      const calendarId = await ctx.db.insert('calendars', {
+        groupId,
+        name: 'Home',
+        source: 'local',
+        createdBy: dupe,
+      })
+      const rows = {
+        note: await ctx.db.insert('notes', {
+          groupId,
+          title: 'A note',
+          body: '',
+          createdBy: dupe,
+          updatedBy: dupe,
+          updatedAt: 0,
+        }),
+        cost: await ctx.db.insert('recurringCosts', {
+          groupId,
+          createdByUserId: dupe,
+          name: 'Energy',
+          amountCents: 100,
+          frequency: 'monthly',
+          category: 'utilities',
+          split: [{ userId: dupe, percent: 100 }],
+          order: 0,
+        }),
+        event: await ctx.db.insert('calendarEvents', {
+          calendarId,
+          title: 'Dentist',
+          date: '2026-09-01',
+          createdBy: dupe,
+          assigneeIds: [keep, dupe],
+        }),
+      }
+      await ctx.db.insert('aiUsage', { userId: keep, day: '2026-09-01', count: 2 })
+      await ctx.db.insert('aiUsage', { userId: dupe, day: '2026-09-01', count: 3 })
+      await ctx.db.insert('aiUsage', { userId: dupe, day: '2026-09-02', count: 1 })
+      return { keep, dupe, ...rows }
+    })
+    return { t, ...ids }
+  }
+
+  test('repoints references the app reads, in columns and inside values', async () => {
+    const { t, keep, dupe, note, cost, event } = await withDuplicate()
+
+    await t.mutation(internal.maintenance.mergeDuplicateUsers, { apply: true })
+
+    const after = await t.run(async (ctx) => ({
+      dupe: await ctx.db.get(dupe),
+      note: await ctx.db.get(note),
+      cost: await ctx.db.get(cost),
+      event: await ctx.db.get(event),
+      memberships: await ctx.db.query('memberships').collect(),
+    }))
+    expect(after.dupe).toBeNull()
+    expect(after.note).toMatchObject({ createdBy: keep, updatedBy: keep })
+    expect(after.cost).toMatchObject({
+      createdByUserId: keep,
+      split: [{ userId: keep, percent: 100 }],
+    })
+    expect(after.event?.createdBy).toBe(keep)
+    expect(after.event?.assigneeIds).toEqual([keep])
+    expect(after.memberships.map((m) => m.userId)).toEqual([keep])
+  })
+
+  test('adds up one person’s AI budget rather than leaving two rows for a day', async () => {
+    const { t, keep } = await withDuplicate()
+
+    await t.mutation(internal.maintenance.mergeDuplicateUsers, { apply: true })
+
+    const usage = await t.run(async (ctx) => await ctx.db.query('aiUsage').collect())
+    expect(
+      usage.map(({ userId, day, count }) => ({ userId, day, count })),
+    ).toEqual([
+      { userId: keep, day: '2026-09-01', count: 5 },
+      { userId: keep, day: '2026-09-02', count: 1 },
+    ])
+  })
+
+  test('only reports without apply', async () => {
+    const { t, dupe, note } = await withDuplicate()
+
+    const report = await t.mutation(internal.maintenance.mergeDuplicateUsers, {})
+
+    expect(report.plans[0].repointed).toMatchObject({
+      notes: 1,
+      recurringCosts: 1,
+      calendars: 1,
+      calendarEvents: 1,
+      aiUsage: 2,
+    })
+    const untouched = await t.run(async (ctx) => await ctx.db.get(note))
+    expect(untouched?.createdBy).toBe(dupe)
   })
 })

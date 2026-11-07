@@ -34,9 +34,9 @@ export function CalendarManagementSheet({
   const { t } = useI18n()
   const tokens = useTokens('home')
   const { serviceActionsEnabled } = useAvailability()
-  const add = useMutation(api.kitchen.addCalendar)
+  const add = useMutation(api.calendar.addCalendar)
   const update = useMutation(api.calendar.updateCalendar)
-  const remove = useMutation(api.kitchen.removeCalendar)
+  const remove = useMutation(api.calendar.removeCalendar)
   const [name, setName] = useState('')
   const colors: CalendarEvent['color'][] = [
     'home',

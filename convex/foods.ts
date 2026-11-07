@@ -1,52 +1,20 @@
 import { ConvexError, v } from 'convex/values'
 import type { Doc } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
-import { mutation, query } from './_generated/server'
+import { internalMutation, mutation, query } from './_generated/server'
+import {
+  foodFields,
+  offImportFields,
+  savedFoodFields,
+} from './lib/foodFields'
 import { foodSearchText } from './lib/foodSearchText'
 import {
   hasNutritionFigures,
   nextNutritionSource,
   nutritionSourceValidator,
-  nutritionValidator,
 } from './lib/nutrition'
-import { servingValidator } from './lib/servings'
-import { getCurrentUser } from './lib/sharing'
+import { getCurrentUser, requireCurrentUser } from './lib/sharing'
 import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
-
-const foodFields = {
-  name: v.string(),
-  brand: v.optional(v.string()),
-  baseUnit: v.union(v.literal('g'), v.literal('ml')),
-  nutritionPer100: nutritionValidator,
-  servings: v.optional(v.array(servingValidator)),
-}
-
-/**
- * The fields a *person* saves, which is `foodFields` plus the emoji they
- * picked (#94).
- *
- * Separate from `foodFields` because of the one write that is not a person
- * saying what this food is: `applyOffRefresh` replaces a row wholesale with
- * Open Food Facts' answer, and Open Food Facts has no emoji. A refresh
- * therefore leaves the icon you chose exactly where it was, rather than
- * clearing it on your behalf.
- *
- * Absent means none. It is never stored as an empty string — a set-but-empty
- * icon would sit in front of the generic glyph in the tile's fallback chain
- * and render nothing at all.
- *
- * Three states, not two, which is why `null` is in the type. Convex drops an
- * argument whose value is `undefined` before it reaches the server, so an
- * optional string can only say "a person chose this one" or nothing at all —
- * and "nothing at all" would have to mean both *leave what is there* and
- * *take it off*. `null` is the clear, because it survives the wire; omitting
- * the field leaves the icon alone, which is what any caller that does not
- * know about icons should do.
- */
-const savedFoodFields = {
-  ...foodFields,
-  icon: v.optional(v.union(v.string(), v.null())),
-}
 
 /**
  * The patch fragment for an icon argument, given the three states above.
@@ -178,8 +146,7 @@ export const create = mutation({
     nutritionSource: v.optional(nutritionSourceValidator),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     if (args.barcode) {
       const existing = await ctx.db
         .query('foods')
@@ -212,8 +179,7 @@ export const update = mutation({
     barcode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const { id, icon, ...rest } = args
     const food = await ctx.db.get(id)
     if (!food) throw new Error('Food not found')
@@ -258,19 +224,13 @@ export const update = mutation({
 // overwrite local edits.
 export const upsertFromOff = mutation({
   args: {
-    ...savedFoodFields,
-    barcode: v.string(),
+    ...offImportFields,
     // Either already fetched by `foodsLookup.importFromOff`, or omitted for
     // a fast add-sheet import whose picture follows in the background.
     imageId: v.optional(v.id('_storage')),
-    // A direct import uses `imported`; a person who checked first and
-    // corrected the figures sends `manual` instead, and the food says the
-    // true thing about the numbers it actually carries (#112).
-    nutritionSource: v.optional(nutritionSourceValidator),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const { barcode, nutritionSource, icon, ...withoutSource } = args
     const rest = {
       ...withoutSource,
@@ -327,11 +287,10 @@ export const upsertFromOff = mutation({
  * while the fetch was in flight, keep that newer one and delete this
  * unreachable blob instead.
  */
-export const attachOffImage = mutation({
+export const attachOffImage = internalMutation({
   args: { id: v.id('foods'), imageId: v.id('_storage') },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    await requireCurrentUser(ctx)
     const food = await ctx.db.get(args.id)
     if (!food) {
       await deleteStoredFile(ctx, args.imageId)
@@ -349,21 +308,16 @@ export const attachOffImage = mutation({
 })
 
 // Applies a fresh Open Food Facts fetch over an existing row and clears
-// localEdited. Only ever called by the `refreshFromOff` action (a future
-// task, `convex/foodsLookup.ts`) after an explicit user confirmation — never
-// automatically, and never from `update`/`upsertFromOff`.
-export const applyOffRefresh = mutation({
+// localEdited. Only ever called by the `foodsLookup.refreshFromOff` action after
+// an explicit user confirmation — never automatically, and never from
+// `update`/`upsertFromOff`.
+export const applyOffRefresh = internalMutation({
   args: { id: v.id('foods'), ...foodFields, barcode: v.string() },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    await requireCurrentUser(ctx)
     const { id, ...rest } = args
     const food = await ctx.db.get(id)
     if (!food) throw new Error('Food not found')
-    // `barcode` arrives as an argument rather than being read off the row, so
-    // the "this food has no barcode" check in `foodsLookup.refreshFromOff` is
-    // no protection here — a client can call this mutation directly with any
-    // food id at all.
     assertNotCatalog(food)
     await ctx.db.patch(id, {
       ...rest,

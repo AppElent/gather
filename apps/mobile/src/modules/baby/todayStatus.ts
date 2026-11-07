@@ -124,7 +124,7 @@ export function tileStatus(
   }
 
   const event = asBabyEvent(latest)
-  if (event.type === 'temperature') {
+  if (event.type === 'temperature' && typeof event.data.celsius === 'number') {
     return {
       type,
       headline: `${event.data.celsius.toFixed(1)} °C`,

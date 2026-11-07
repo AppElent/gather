@@ -30,6 +30,7 @@ through every row in the same change as the Module.
 | `apps/mobile/src/drop/dropTargets.ts` `DROP_TARGETS` | Every Module; an empty list if it accepts no Drop | `pnpm typecheck` (`Record<ModuleId, …>`) | [Drop](../contracts/drop.md) |
 | `convex/lib/groupCascade.ts` `GROUP_CONTENT` | Every table with a `groupId` | `pnpm typecheck` (derived from the schema) | [Account deletion](../contracts/account-deletion.md) |
 | `convex/lib/storedFiles.ts` `FILE_HOLDERS` | Every `_storage` column | `pnpm typecheck` (typed off the schema) | [Stored files](../contracts/stored-files.md) |
+| `convex/maintenance.ts` `USER_REFERENCES` | Every column holding a `v.id('users')` | `pnpm typecheck` (derived from the schema) | [Migrations](../migrations/README.md) |
 | Message tables keyed by `NutrientKey`, `MealName`, `BabyEventType` | A new nutrient, meal or baby event type | `pnpm typecheck` | [Localization](../../CODING_STANDARDS.md#localization) |
 | `packages/core/src/babyEvents.ts` (`BabyEventDataByType`, `summarizeBabyEvent`) | A new baby event type | `pnpm typecheck` | [Localization](../../CODING_STANDARDS.md#localization) |
 | `src/lib/groupPaths.ts` (`GROUP_MODULE_INDEXES`, `MODULE_INDEX_SURFACES`) + a route file under `src/routes/_app/` | Every Module | `pnpm test` (`src/lib/modules.routes.test.ts`) | [Navigation](../contracts/navigation.md) |

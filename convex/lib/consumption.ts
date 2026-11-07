@@ -1,19 +1,31 @@
-import { NUTRIENT_KEYS, type NutritionFacts } from '@gather/core/domain'
+import {
+  MEAL_NAMES,
+  NUTRIENT_KEYS,
+  type NutritionFacts,
+  QUANTITY_UNITS,
+} from '@gather/core/domain'
 import { v } from 'convex/values'
+import { nutritionValidator } from './nutrition'
+import { literals } from './validators'
 
-export const mealValidator = v.union(
-  v.literal('breakfast'),
-  v.literal('lunch'),
-  v.literal('dinner'),
-  v.literal('snack'),
-)
+export const mealValidator = literals(MEAL_NAMES)
 
-export const quantityUnitValidator = v.union(
-  v.literal('serving'),
-  v.literal('g'),
-  v.literal('ml'),
-  v.literal('piece'),
-)
+export const quantityUnitValidator = literals(QUANTITY_UNITS)
+
+/** One logged thing, in the diary and on the two writes that add one. */
+export const diaryItemFields = {
+  recipeId: v.optional(v.id('recipes')),
+  foodId: v.optional(v.id('foods')),
+  label: v.string(),
+  quantity: v.number(),
+  quantityUnit: quantityUnitValidator,
+  nutrition: nutritionValidator,
+  // An emoji, for a **one-off** — an entry with no `foodId` and no
+  // `recipeId`, which has nothing to inherit a picture from and never will
+  // (#94). An entry that does reference a food reads the food's own icon
+  // instead, so this stays absent there. Content, not a display string.
+  icon: v.optional(v.string()),
+}
 
 // Multiplies every present nutrient by `factor`, rounded to 2 decimals to
 // avoid floating-point noise in stored snapshots.

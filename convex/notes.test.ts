@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 
 const alice = {
@@ -22,33 +22,19 @@ async function seed() {
       name: bob.name,
       email: bob.email,
     })
-    const first = await ctx.db.insert('groups', {
+    const first = await seedGroup(ctx, {
       name: 'First',
       slug: 'notes-first',
       inviteCode: 'first',
-      isPersonal: false,
     })
-    const second = await ctx.db.insert('groups', {
+    const second = await seedGroup(ctx, {
       name: 'Second',
       slug: 'notes-second',
       inviteCode: 'second',
-      isPersonal: false,
     })
-    await ctx.db.insert('memberships', {
-      groupId: first,
-      userId: aliceId,
-      role: 'admin',
-    })
-    await ctx.db.insert('memberships', {
-      groupId: second,
-      userId: aliceId,
-      role: 'member',
-    })
-    await ctx.db.insert('memberships', {
-      groupId: second,
-      userId: bobId,
-      role: 'admin',
-    })
+    await seedMember(ctx, first, aliceId, 'admin')
+    await seedMember(ctx, second, aliceId, 'member')
+    await seedMember(ctx, second, bobId, 'admin')
     const firstNote = await ctx.db.insert('notes', {
       groupId: first,
       title: 'First note',

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 
@@ -44,34 +44,20 @@ async function seed() {
       email: 'carol@example.com',
     })
 
-    const household = await ctx.db.insert('groups', {
+    const household = await seedGroup(ctx, {
       name: 'Household',
       inviteCode: 'household-code',
       slug: 'household',
-      isPersonal: false,
     })
-    const cookingClub = await ctx.db.insert('groups', {
+    const cookingClub = await seedGroup(ctx, {
       name: 'Cooking club',
       inviteCode: 'club-code',
       slug: 'cooking-club',
-      isPersonal: false,
     })
 
-    const aliceInHousehold = await ctx.db.insert('memberships', {
-      groupId: household,
-      userId: alice,
-      role: 'admin',
-    })
-    await ctx.db.insert('memberships', {
-      groupId: household,
-      userId: bob,
-      role: 'member',
-    })
-    await ctx.db.insert('memberships', {
-      groupId: cookingClub,
-      userId: carol,
-      role: 'admin',
-    })
+    const aliceInHousehold = await seedMember(ctx, household, alice, 'admin')
+    await seedMember(ctx, household, bob, 'member')
+    await seedMember(ctx, cookingClub, carol, 'admin')
 
     const roast = await ctx.db.insert('recipes', {
       groupId: household,
@@ -139,11 +125,7 @@ async function endMembership(t: Harness, membershipId: Id<'memberships'>) {
 async function seedWithAliceInBothGroups() {
   const { t, ids } = await seed()
   await t.run(async (ctx) => {
-    await ctx.db.insert('memberships', {
-      groupId: ids.cookingClub,
-      userId: ids.alice,
-      role: 'member',
-    })
+    await seedMember(ctx, ids.cookingClub, ids.alice, 'member')
   })
   return { t, ids }
 }
@@ -281,11 +263,7 @@ describe("a listed recipe says whose collection it came from, when it isn't this
     // Bob is only in the household, so give the club a second Member who can
     // be compared against Carol without changing anyone else's memberships.
     await t.run(async (ctx) => {
-      await ctx.db.insert('memberships', {
-        groupId: ids.cookingClub,
-        userId: ids.bob,
-        role: 'member',
-      })
+      await seedMember(ctx, ids.cookingClub, ids.bob, 'member')
     })
 
     const named = (rows: Array<{ title: string; homeGroupName: unknown }>) =>
@@ -454,11 +432,7 @@ describe('recipes.get', () => {
   test('a recipe you can see, read from the wrong Group, is not found', async () => {
     const { t, ids } = await seed()
     await t.run(async (ctx) => {
-      await ctx.db.insert('memberships', {
-        groupId: ids.cookingClub,
-        userId: ids.alice,
-        role: 'member',
-      })
+      await seedMember(ctx, ids.cookingClub, ids.alice, 'member')
     })
 
     const fromClub = await t
@@ -741,17 +715,12 @@ describe('moving a recipe between Groups', () => {
     const { t, ids } = await seedWithAliceInBothGroups()
 
     const secondHousehold = await t.run(async (ctx) => {
-      const group = await ctx.db.insert('groups', {
+      const group = await seedGroup(ctx, {
         name: 'Second household',
         inviteCode: 'second-code',
         slug: 'second-household',
-        isPersonal: false,
       })
-      await ctx.db.insert('memberships', {
-        groupId: group,
-        userId: ids.alice,
-        role: 'admin',
-      })
+      await seedMember(ctx, group, ids.alice, 'admin')
       return group
     })
 

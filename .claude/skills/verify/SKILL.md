@@ -55,7 +55,7 @@ core message trees.
 Convex backend functions: `convex/recipes.ts`, `convex/groups.ts`, `convex/users.ts`,
 `convex/foods.ts`, `convex/foodsLookup.ts`, `convex/consumption.ts`, `convex/babies.ts`,
 `convex/babyEvents.ts`, `convex/lib/sharing.ts`, `convex/lib/offMapping.ts`,
-`convex/lib/offFetch.ts`, `convex/lib/consumption.ts`, `convex/lib/babyAccess.ts`,
+`convex/lib/offFetch.ts`, `convex/lib/consumption.ts`, `convex/lib/groupAccess.ts`,
 `convex/lib/babyEvents.ts`.
 
 ## Auth note

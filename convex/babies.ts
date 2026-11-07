@@ -1,13 +1,25 @@
-import { ConvexError, v } from 'convex/values'
-import type { Doc, Id } from './_generated/dataModel'
+import { v } from 'convex/values'
+import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
-import { findBabyInGroup, requireBabyAccess } from './lib/babyAccess'
-import { babyBarSlotValidator, babyEventTypeValidator } from './lib/babyEvents'
-import { requireGroupBySlug } from './lib/groupAccess'
-import { getCurrentUser } from './lib/sharing'
-import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
-import { requireListAccess } from './lib/taskAccess'
+import {
+  babyBarSlotValidator,
+  babyEventTypeValidator,
+  babySexValidator,
+} from './lib/babyEvents'
+import {
+  findInGroup,
+  requireGroupBySlug,
+  requireInGroup,
+} from './lib/groupAccess'
+import { purgeEventsOfBaby, purgeTasksOfList } from './lib/groupCascade'
+import { nextOrder } from './lib/order'
+import {
+  deleteStoredFile,
+  replaceStoredFile,
+  signedInUploadUrl,
+} from './lib/storedFiles'
+import { auxListNames, insertLocalList } from './lib/taskLists'
 
 /**
  * The children in one household's log.
@@ -49,9 +61,9 @@ export const list = query({
 export const get = query({
   args: { id: v.id('babies'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const found = await findBabyInGroup(ctx, args.groupSlug, args.id)
+    const found = await findInGroup(ctx, args.groupSlug, args.id)
     if (!found) return null
-    const { baby } = found
+    const { doc: baby } = found
     const photoUrl = baby.photoId
       ? await ctx.storage.getUrl(baby.photoId)
       : null
@@ -61,18 +73,8 @@ export const get = query({
 
 export const generateUploadUrl = mutation({
   args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
-    return await ctx.storage.generateUploadUrl()
-  },
+  handler: signedInUploadUrl,
 })
-
-const sexValidator = v.union(
-  v.literal('female'),
-  v.literal('male'),
-  v.literal('unspecified'),
-)
 
 /**
  * The list backing one of a child's two checklist cards.
@@ -91,25 +93,18 @@ async function resolveAuxTaskList(
 ) {
   // A list from another Group is refused rather than quietly replaced with a
   // new one: the caller named something that is not theirs to name.
-  if (chosen) return (await requireListAccess(ctx, groupSlug, chosen)).list._id
-  const existing = await ctx.db
-    .query('taskLists')
-    .withIndex('by_group', (q) => q.eq('groupId', groupId))
-    .collect()
-  const nextOrder = existing.reduce((max, l) => Math.max(max, l.order), -1) + 1
-  return await ctx.db.insert('taskLists', {
-    groupId,
-    name: listName,
-    provider: 'local',
-    order: nextOrder,
-  })
+  if (chosen) {
+    return (await requireInGroup(ctx, groupSlug, chosen, 'List not found')).doc
+      ._id
+  }
+  return await insertLocalList(ctx, groupId, listName)
 }
 
 export const create = mutation({
   args: {
     name: v.string(),
     birthDate: v.string(),
-    sex: v.optional(sexValidator),
+    sex: v.optional(babySexValidator),
     photoId: v.optional(v.id('_storage')),
     groupSlug: v.string(),
     // The types this child's log will *not* offer. Absent or empty means
@@ -128,21 +123,20 @@ export const create = mutation({
       .query('babies')
       .withIndex('by_group', (q) => q.eq('groupId', group._id))
       .collect()
-    const nextOrder =
-      existing.reduce((max, b) => Math.max(max, b.order), -1) + 1
+    const listNames = auxListNames(args.name)
     const taskListId = await resolveAuxTaskList(
       ctx,
       args.groupSlug,
       group._id,
       args.taskListId,
-      `${args.name} to-dos`,
+      listNames.todos,
     )
     const questionsListId = await resolveAuxTaskList(
       ctx,
       args.groupSlug,
       group._id,
       args.questionsListId,
-      `${args.name} questions`,
+      listNames.questions,
     )
     return await ctx.db.insert('babies', {
       groupId: group._id,
@@ -155,61 +149,8 @@ export const create = mutation({
       questionsListId,
       taskListChosen: args.taskListId !== undefined,
       questionsListChosen: args.questionsListId !== undefined,
-      order: nextOrder,
+      order: nextOrder(existing),
     })
-  },
-})
-
-/** Lazily creates a local taskList backing one of the baby's pinned
- * checklist cards (to-dos, questions) — reuses the Tasks module instead of
- * a parallel concept per card. `field` is which column on `babies` stores
- * the resulting list id. */
-async function ensureAuxTaskList(
-  ctx: MutationCtx,
-  baby: Doc<'babies'>,
-  field: 'taskListId' | 'questionsListId',
-  listName: string,
-) {
-  const existingListId = baby[field]
-  if (existingListId) return existingListId
-  const existing = await ctx.db
-    .query('taskLists')
-    .withIndex('by_group', (q) => q.eq('groupId', baby.groupId))
-    .collect()
-  const nextOrder = existing.reduce((max, l) => Math.max(max, l.order), -1) + 1
-  const listId = await ctx.db.insert('taskLists', {
-    groupId: baby.groupId,
-    name: listName,
-    provider: 'local',
-    order: nextOrder,
-  })
-  await ctx.db.patch(baby._id, { [field]: listId })
-  return listId
-}
-
-export const ensureTodoList = mutation({
-  args: { id: v.id('babies'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    const { baby } = await requireBabyAccess(ctx, args.groupSlug, args.id)
-    return await ensureAuxTaskList(
-      ctx,
-      baby,
-      'taskListId',
-      `${baby.name} to-dos`,
-    )
-  },
-})
-
-export const ensureQuestionsList = mutation({
-  args: { id: v.id('babies'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    const { baby } = await requireBabyAccess(ctx, args.groupSlug, args.id)
-    return await ensureAuxTaskList(
-      ctx,
-      baby,
-      'questionsListId',
-      `${baby.name} questions`,
-    )
   },
 })
 
@@ -229,10 +170,11 @@ export const ensureQuestionsList = mutation({
 export const ensureAuxLists = mutation({
   args: { id: v.id('babies'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const { baby, group } = await requireBabyAccess(
+    const { doc: baby, group } = await requireInGroup(
       ctx,
       args.groupSlug,
       args.id,
+      'Baby not found',
     )
     if (baby.taskListId && baby.questionsListId) {
       return {
@@ -240,24 +182,13 @@ export const ensureAuxLists = mutation({
         questionsListId: baby.questionsListId,
       }
     }
+    const listNames = auxListNames(baby.name)
     const taskListId =
       baby.taskListId ??
-      (await resolveAuxTaskList(
-        ctx,
-        args.groupSlug,
-        group._id,
-        undefined,
-        `${baby.name} to-dos`,
-      ))
+      (await insertLocalList(ctx, group._id, listNames.todos))
     const questionsListId =
       baby.questionsListId ??
-      (await resolveAuxTaskList(
-        ctx,
-        args.groupSlug,
-        group._id,
-        undefined,
-        `${baby.name} questions`,
-      ))
+      (await insertLocalList(ctx, group._id, listNames.questions))
     await ctx.db.patch(args.id, { taskListId, questionsListId })
     return { taskListId, questionsListId }
   },
@@ -269,7 +200,7 @@ export const update = mutation({
     groupSlug: v.string(),
     name: v.string(),
     birthDate: v.string(),
-    sex: v.optional(v.union(sexValidator, v.null())),
+    sex: v.optional(v.union(babySexValidator, v.null())),
     photoId: v.optional(v.union(v.id('_storage'), v.null())),
     // Omitted leaves the child's offer alone. An empty array is a real
     // choice too — it takes every refusal back off, so the log offers
@@ -283,7 +214,12 @@ export const update = mutation({
     questionsListId: v.optional(v.id('taskLists')),
   },
   handler: async (ctx, args) => {
-    const { baby } = await requireBabyAccess(ctx, args.groupSlug, args.id)
+    const { doc: baby } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.id,
+      'Baby not found',
+    )
     const {
       sex,
       photoId,
@@ -294,9 +230,15 @@ export const update = mutation({
     } = args
     // Repointing a card at a list from another Group is refused, exactly as it
     // is at creation.
-    if (taskListId) await requireListAccess(ctx, args.groupSlug, taskListId)
+    if (taskListId)
+      await requireInGroup(ctx, args.groupSlug, taskListId, 'List not found')
     if (questionsListId) {
-      await requireListAccess(ctx, args.groupSlug, questionsListId)
+      await requireInGroup(
+        ctx,
+        args.groupSlug,
+        questionsListId,
+        'List not found',
+      )
     }
     await ctx.db.patch(args.id, {
       name: args.name,
@@ -334,26 +276,24 @@ async function deleteAuxTaskList(
   chosen: boolean | undefined,
 ) {
   if (!taskListId || chosen) return
-  const tasks = await ctx.db
-    .query('tasks')
-    .withIndex('by_list', (q) => q.eq('listId', taskListId))
-    .collect()
-  await Promise.all(tasks.map((t) => ctx.db.delete(t._id)))
+  await purgeTasksOfList(ctx, taskListId)
   await ctx.db.delete(taskListId)
 }
 
 export const remove = mutation({
   args: { id: v.id('babies'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const { baby } = await requireBabyAccess(ctx, args.groupSlug, args.id)
-    const events = await ctx.db
-      .query('babyEvents')
-      .withIndex('by_baby', (q) => q.eq('babyId', args.id))
-      .collect()
-    await Promise.all(events.map((e) => ctx.db.delete(e._id)))
+    const { doc: baby } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.id,
+      'Baby not found',
+    )
     // The entries are gone, so nothing points at their pictures any more. A
     // Memory's photo is reachable from nowhere else once its entry is deleted.
-    for (const event of events) await deleteStoredFile(ctx, event.photoId)
+    for (const photo of await purgeEventsOfBaby(ctx, args.id)) {
+      await deleteStoredFile(ctx, photo)
+    }
     await deleteAuxTaskList(ctx, baby.taskListId, baby.taskListChosen)
     await deleteAuxTaskList(ctx, baby.questionsListId, baby.questionsListChosen)
     await ctx.db.delete(args.id)

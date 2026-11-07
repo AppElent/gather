@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 
@@ -47,22 +47,13 @@ async function seed() {
       name: 'Bob',
       email: 'bob@example.com',
     })
-    const household = await ctx.db.insert('groups', {
+    const household = await seedGroup(ctx, {
       name: 'Household',
       inviteCode: 'household-code',
       slug: 'household',
-      isPersonal: false,
     })
-    const aliceInHousehold = await ctx.db.insert('memberships', {
-      groupId: household,
-      userId: alice,
-      role: 'admin',
-    })
-    await ctx.db.insert('memberships', {
-      groupId: household,
-      userId: bob,
-      role: 'member',
-    })
+    const aliceInHousehold = await seedMember(ctx, household, alice, 'admin')
+    await seedMember(ctx, household, bob, 'member')
 
     const recipe = await ctx.db.insert('recipes', {
       groupId: household,
@@ -222,24 +213,22 @@ describe('a move or an unshare leaves the diary alone', () => {
         name: 'Bob',
         email: 'bob@example.com',
       })
-      const household = await ctx.db.insert('groups', {
+      const household = await seedGroup(ctx, {
         name: 'Household',
         inviteCode: 'household-code',
         slug: 'household',
-        isPersonal: false,
       })
-      const cookingClub = await ctx.db.insert('groups', {
+      const cookingClub = await seedGroup(ctx, {
         name: 'Cooking club',
         inviteCode: 'club-code',
         slug: 'cooking-club',
-        isPersonal: false,
       })
       for (const [groupId, userId] of [
         [household, alice],
         [household, bob],
         [cookingClub, bob],
       ] as const) {
-        await ctx.db.insert('memberships', { groupId, userId, role: 'admin' })
+        await seedMember(ctx, groupId, userId, 'admin' )
       }
 
       const roast = await ctx.db.insert('recipes', {

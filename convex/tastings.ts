@@ -10,9 +10,17 @@ import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
-import { requireGroupBySlug } from './lib/groupAccess'
+import {
+  findInGroup,
+  requireGroupBySlug,
+  requireInGroup,
+} from './lib/groupAccess'
 import { getCurrentUser } from './lib/sharing'
-import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
+import {
+  deleteStoredFile,
+  replaceStoredFile,
+  signedInUploadUrl,
+} from './lib/storedFiles'
 import {
   checkedAttributes,
   tastingAttributesValidator,
@@ -171,11 +179,9 @@ async function findSubject(
   id: Id<'tastingSubjects'>,
   kind?: TastingKind,
 ) {
-  const { group, user } = await requireGroupBySlug(ctx, groupSlug)
-  const subject = await ctx.db.get(id)
-  if (!subject || subject.groupId !== group._id) return null
-  if (kind && subject.kind !== kind) return null
-  return { subject, group, user }
+  const found = await findInGroup(ctx, groupSlug, id)
+  if (!found || (kind && found.doc.kind !== kind)) return null
+  return found
 }
 
 /** One subject's page: its facts, its photo, and the household's history. */
@@ -194,7 +200,7 @@ export const getSubject = query({
   } | null> => {
     const found = await findSubject(ctx, args.groupSlug, args.id, args.kind)
     if (!found) return null
-    const { subject, user } = found
+    const { doc: subject, user } = found
 
     const rows = await tastingsOf(ctx, subject._id)
     // One read per distinct person, not per Tasting — the same rule the
@@ -235,11 +241,7 @@ export const getSubject = query({
 
 export const generateUploadUrl = mutation({
   args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
-    return await ctx.storage.generateUploadUrl()
-  },
+  handler: signedInUploadUrl,
 })
 
 function checkedRating(rating: number): number {
@@ -406,12 +408,12 @@ export const updateTasting = mutation({
     attributes: v.optional(tastingAttributesValidator),
   },
   handler: async (ctx, args) => {
-    const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
-    const tasting = await ctx.db.get(args.id)
-    // One answer for "no such tasting" and "another Group's" (ADR-0009).
-    if (!tasting || tasting.groupId !== group._id) {
-      throw new ConvexError('Tasting not found')
-    }
+    const { doc: tasting, user } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.id,
+      'Tasting not found',
+    )
     // A separate, *differentiated* refusal, on purpose: the reader can see the
     // row and is being told the rule, not being kept from knowing it exists.
     if (tasting.createdByUserId !== user._id) {
@@ -442,11 +444,7 @@ export const updateTasting = mutation({
 export const removeTasting = mutation({
   args: { groupSlug: v.string(), id: v.id('tastings') },
   handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const tasting = await ctx.db.get(args.id)
-    if (!tasting || tasting.groupId !== group._id) {
-      throw new ConvexError('Tasting not found')
-    }
+    await requireInGroup(ctx, args.groupSlug, args.id, 'Tasting not found')
     await ctx.db.delete(args.id)
   },
 })
@@ -471,7 +469,7 @@ export const updateSubject = mutation({
   handler: async (ctx, args) => {
     const found = await findSubject(ctx, args.groupSlug, args.id)
     if (!found) throw new ConvexError('Subject not found')
-    const { subject } = found
+    const { doc: subject } = found
     const { photoId } = args
 
     await ctx.db.patch(args.id, {
@@ -498,7 +496,7 @@ export const removeSubject = mutation({
   handler: async (ctx, args) => {
     const found = await findSubject(ctx, args.groupSlug, args.id)
     if (!found) throw new ConvexError('Subject not found')
-    const { subject } = found
+    const { doc: subject } = found
 
     const rows = await tastingsOf(ctx, subject._id)
     for (const row of rows) await ctx.db.delete(row._id)

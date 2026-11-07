@@ -1,6 +1,6 @@
 import { isAiLimitReached } from '@gather/core/ai-limit'
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { alice as asAlice, bob as asBob, testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import { DAILY_AI_CALLS } from './lib/aiUsage'
 
@@ -12,12 +12,6 @@ import { DAILY_AI_CALLS } from './lib/aiUsage'
  * test that matters here proves the provider was *not* reached.
  */
 
-const asAlice = {
-  subject: 'clerk_alice',
-  name: 'Alice',
-  email: 'a@example.com',
-}
-const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
 
 afterEach(() => {
   vi.useRealTimers()

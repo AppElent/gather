@@ -1,7 +1,7 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { internalMutation } from './_generated/server'
 import { DAILY_AI_CALLS, utcDay } from './lib/aiUsage'
-import { getUserByClerkId } from './lib/sharing'
+import { getUserByClerkId, NOT_SIGNED_IN } from './lib/sharing'
 
 /**
  * Count one AI call against today, or refuse it.
@@ -16,7 +16,7 @@ export const take = internalMutation({
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const user = await getUserByClerkId(ctx, args.clerkId)
-    if (!user) throw new Error('Not authenticated')
+    if (!user) throw new ConvexError(NOT_SIGNED_IN)
 
     const day = utcDay(Date.now())
     const row = await ctx.db

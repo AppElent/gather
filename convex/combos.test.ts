@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { alice as asAlice, bob as asBob, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { comboEntries } from './lib/combos'
@@ -14,12 +14,6 @@ import { comboEntries } from './lib/combos'
  * changed Combo never changes the Combo.
  */
 
-const asAlice = {
-  subject: 'clerk_alice',
-  name: 'Alice',
-  email: 'a@example.com',
-}
-const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
 
 const DAY = '2026-07-30'
 
@@ -46,17 +40,12 @@ async function loggedBreakfast() {
       .withIndex('by_clerkId', (q) => q.eq('clerkId', asAlice.subject))
       .unique()
     if (!alice) throw new Error('Alice should exist')
-    const group = await ctx.db.insert('groups', {
+    const group = await seedGroup(ctx, {
       name: 'Jansen Household',
       inviteCode: 'household',
       slug: 'jansen-household',
-      isPersonal: false,
     })
-    await ctx.db.insert('memberships', {
-      groupId: group,
-      userId: alice._id,
-      role: 'admin',
-    })
+    await seedMember(ctx, group, alice._id, 'admin')
     const recipe = await ctx.db.insert('recipes', {
       groupId: group,
       sharedGroupIds: [],
@@ -559,17 +548,12 @@ describe('a Combo is one person’s', () => {
         .withIndex('by_clerkId', (q) => q.eq('clerkId', asAlice.subject))
         .unique()
       if (!alice) throw new Error('Alice should exist')
-      const other = await ctx.db.insert('groups', {
+      const other = await seedGroup(ctx, {
         name: 'Wine club',
         inviteCode: 'wine',
         slug: 'wine-club',
-        isPersonal: false,
       })
-      await ctx.db.insert('memberships', {
-        groupId: other,
-        userId: alice._id,
-        role: 'member',
-      })
+      await seedMember(ctx, other, alice._id, 'member')
     })
 
     expect(await t.withIdentity(asAlice).query(api.combos.list, {})).toEqual(

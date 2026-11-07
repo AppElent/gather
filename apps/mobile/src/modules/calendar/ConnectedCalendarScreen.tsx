@@ -32,10 +32,10 @@ export function ConnectedCalendarScreen() {
   const { serviceActionsEnabled } = useAvailability()
   const me = useQuery(api.users.me)
   const setPreferences = useMutation(api.calendar.setPreferences)
-  const visibility = useMutation(api.kitchen.setCalendarVisibility)
-  const addEvent = useMutation(api.kitchen.addCalendarEvent)
+  const visibility = useMutation(api.calendar.setCalendarVisibility)
+  const addEvent = useMutation(api.calendar.addCalendarEvent)
   const updateEvent = useMutation(api.calendar.updateEvent)
-  const removeEvent = useMutation(api.kitchen.removeCalendarEvent)
+  const removeEvent = useMutation(api.calendar.removeCalendarEvent)
   const [editorVisible, setEditorVisible] = useState(false)
   const editor = useCalendarEditor({
     userId: me?._id ?? '',

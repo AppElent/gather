@@ -1,5 +1,9 @@
+import { ConvexError } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
-import type { QueryCtx } from '../_generated/server'
+import type { ActionCtx, QueryCtx } from '../_generated/server'
+
+/** The refusal for a signed-out caller. A readable sentence, not a key. */
+export const NOT_SIGNED_IN = 'Not authenticated'
 
 /**
  * Pick the row standing for a Clerk subject when the table holds more than one.
@@ -39,6 +43,23 @@ export async function getCurrentUser(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity()
   if (!identity) return null
   return await getUserByClerkId(ctx, identity.subject)
+}
+
+/**
+ * The Clerk identity behind the call, or a refusal. For actions, which have no
+ * database to resolve it against, and for provisioning the `users` row itself.
+ */
+export async function requireIdentity(ctx: Pick<ActionCtx, 'auth'>) {
+  const identity = await ctx.auth.getUserIdentity()
+  if (!identity) throw new ConvexError(NOT_SIGNED_IN)
+  return identity
+}
+
+/** The calling Clerk user's `users` row, or a refusal. */
+export async function requireCurrentUser(ctx: QueryCtx) {
+  const user = await getCurrentUser(ctx)
+  if (!user) throw new ConvexError(NOT_SIGNED_IN)
+  return user
 }
 
 /** Group ids the given user belongs to. */

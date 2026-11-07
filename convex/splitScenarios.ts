@@ -21,7 +21,7 @@ import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import {
   requireName,
-  splitPartyValidator,
+  splitScenarioFields,
 } from './lib/finance'
 import { requireGroupBySlug } from './lib/groupAccess'
 
@@ -36,30 +36,6 @@ export const list = query({
     return scenarios.sort((a, b) => b.createdAt - a.createdAt)
   },
 })
-
-const scenarioFields = {
-  name: v.string(),
-  payments: v.array(
-    v.object({
-      party: splitPartyValidator,
-      amountCents: v.number(),
-      label: v.optional(v.string()),
-    }),
-  ),
-  participants: v.array(splitPartyValidator),
-  mode: v.union(v.literal('equal'), v.literal('custom')),
-  owed: v.array(
-    v.object({ party: splitPartyValidator, amountCents: v.number() }),
-  ),
-  transfers: v.array(
-    v.object({
-      from: splitPartyValidator,
-      to: splitPartyValidator,
-      amountCents: v.number(),
-    }),
-  ),
-  totalCents: v.number(),
-}
 
 /**
  * The one check worth making on a frozen result: it has to hand out exactly
@@ -78,7 +54,7 @@ function requireBalanced(args: {
 }
 
 export const save = mutation({
-  args: { groupSlug: v.string(), ...scenarioFields },
+  args: { groupSlug: v.string(), ...splitScenarioFields },
   handler: async (ctx, args) => {
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
     requireBalanced(args)

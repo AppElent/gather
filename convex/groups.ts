@@ -1,17 +1,17 @@
 import { ConvexError, v } from 'convex/values'
-import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
-import { mutation, query } from './_generated/server'
+import { internalQuery, mutation, query } from './_generated/server'
 import {
   getMembership,
+  groupRoleValidator,
   requireGroupBySlug,
   resolveGroupBySlug,
 } from './lib/groupAccess'
-import { deleteGroupContent } from './lib/groupCascade'
+import { destroyGroup, detachFromGroup } from './lib/groupCascade'
 import { allocateGroupSlug } from './lib/groupSlugs'
-import { getCurrentUser } from './lib/sharing'
-import { replaceStoredFile } from './lib/storedFiles'
+import { getCurrentUser, requireCurrentUser } from './lib/sharing'
+import { replaceStoredFile, signedInUploadUrl } from './lib/storedFiles'
 
 /**
  * Resolve the caller and their standing in a Group, or refuse.
@@ -27,8 +27,7 @@ async function requireMembership(
   group: Doc<'groups'>
   membership: Doc<'memberships'>
 }> {
-  const user = await getCurrentUser(ctx)
-  if (!user) throw new Error('Not authenticated')
+  const user = await requireCurrentUser(ctx)
   const group = await ctx.db.get(groupId)
   if (!group) throw new Error('Group not found')
   const membership = await getMembership(ctx, groupId, user._id)
@@ -81,14 +80,14 @@ export const myGroups = query({
 })
 
 /**
- * The Group a `/g/<slug>/…` route is addressing, together with the caller's
- * standing in it — or why they cannot have it.
+ * The Group a slug addresses, together with the caller's standing in it — or why
+ * they cannot have it. For actions, which have no `ctx.db` to call
+ * `resolveGroupBySlug` with.
  *
- * The route gate renders one of the refusals rather than erroring, so the three
- * come back as data. There is deliberately no fallback: a caller who asks for a
- * Group they are not in is refused, never quietly handed one they are in.
+ * There is deliberately no fallback: a caller who asks for a Group they are not
+ * in is refused, never quietly handed one they are in.
  */
-export const bySlug = query({
+export const bySlug = internalQuery({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
     const resolution = await resolveGroupBySlug(ctx, args.slug)
@@ -171,8 +170,7 @@ export const inviteCode = query({
 export const createGroup = mutation({
   args: { name: v.string() },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const groupId = await ctx.db.insert('groups', {
       name: args.name,
       slug: await allocateGroupSlug(ctx, {
@@ -212,10 +210,7 @@ export const renameGroup = mutation({
 
 export const generateImageUploadUrl = mutation({
   args: {},
-  handler: async (ctx) => {
-    if (!(await getCurrentUser(ctx))) throw new Error('Not authenticated')
-    return await ctx.storage.generateUploadUrl()
-  },
+  handler: signedInUploadUrl,
 })
 
 export const updateAppearance = mutation({
@@ -239,8 +234,7 @@ export const updateAppearance = mutation({
 export const joinByInvite = mutation({
   args: { inviteCode: v.string() },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const group = await ctx.db
       .query('groups')
       .withIndex('by_inviteCode', (q) => q.eq('inviteCode', args.inviteCode))
@@ -265,14 +259,12 @@ export const joinByInvite = mutation({
  * Exists because `leaveGroup` refuses the last admin's departure, and a refusal
  * with no way to satisfy it is just a different trap. Admins only: deciding who
  * else may rename or delete the Group is exactly the thing the role is for.
- *
- * A Personal group has one Member and no second role to give.
  */
 export const setMemberRole = mutation({
   args: {
     groupId: v.id('groups'),
     userId: v.id('users'),
-    role: v.union(v.literal('admin'), v.literal('member')),
+    role: groupRoleValidator,
   },
   handler: async (ctx, args) => {
     const { group, membership } = await requireMembership(ctx, args.groupId)
@@ -331,6 +323,7 @@ export const leaveGroup = mutation({
       }
     }
 
+    await detachFromGroup(ctx, membership.userId, group._id)
     await ctx.db.delete(membership._id)
   },
 })
@@ -354,14 +347,6 @@ export const deleteGroup = mutation({
       throw new Error('Remove the other members before deleting this group')
     }
 
-    // The membership goes with everything else the Group contained — this
-    // used to delete the two rows and leave every recipe, list, baby and
-    // holding in it unreachable, with their photos leaked in storage.
-    const files = await deleteGroupContent(ctx, group._id)
-    if (files.length) {
-      await ctx.scheduler.runAfter(0, internal.cascade.releaseFiles, {
-        storageIds: files,
-      })
-    }
+    await destroyGroup(ctx, group._id)
   },
 })

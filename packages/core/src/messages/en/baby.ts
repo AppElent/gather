@@ -315,14 +315,20 @@ export const log = {
       both: 'Wet and dirty diaper',
     },
     sleepFor: 'Sleep · {duration}',
-    sleep: 'Sleep',
     headCircumference: 'head {value} cm',
-    growth: 'Growth measurement',
-    medication: 'Medication',
-    vaccination: 'Vaccination',
     milestone: 'Milestone',
-    note: 'Note',
-    memory: 'Memory',
+    /** The row's word when there is nothing more to say about it. */
+    fallback: {
+      temperature: 'Temperature',
+      feeding: 'Feeding',
+      diaper: 'Diaper',
+      sleep: 'Sleep',
+      growth: 'Growth measurement',
+      medication: 'Medication',
+      vaccination: 'Vaccination',
+      note: 'Note',
+      memory: 'Memory',
+    } satisfies Record<BabyEventType, string>,
   },
 
   /** The PDF itself, which is a document a person reads like any other. */

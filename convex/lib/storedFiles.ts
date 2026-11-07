@@ -9,9 +9,8 @@
  *
  * So the mutation that orphans a blob deletes it, in the same transaction, and
  * these are the two shapes that takes: reconciling the id a row *held* with the
- * id it is *being given*, and dropping the one a deleted record held. Recipes
- * and Baby are the two Modules with a photo today and there will be a third, so
- * the rule lives here once rather than open-coded in each.
+ * id it is *being given*, and dropping the one a deleted record held. The rule
+ * lives here once rather than open-coded in each Module with a photo.
  *
  * **Deletion belongs behind the access check the mutation already makes.** A
  * `_storage` id carries no ownership — a function that took one and deleted it
@@ -41,6 +40,7 @@
 
 import type { Doc, Id, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
+import { requireCurrentUser } from './sharing'
 
 /**
  * The fields of one table that hold a `_storage` id, if it has any.
@@ -139,7 +139,7 @@ export async function replaceStoredFile(
  * The registry above is the only thing that knows which column that is, so
  * anything enumerating rows in order to delete them — a Group cascade, an
  * account purge — asks here rather than reaching for `imageId ?? photoId` and
- * quietly missing the sixth table the day it arrives.
+ * quietly missing the next table the day it arrives.
  */
 export function storedFileIdOf<T extends TableNames>(
   table: T,
@@ -148,4 +148,10 @@ export function storedFileIdOf<T extends TableNames>(
   const field = (FILE_HOLDERS as Record<string, string | undefined>)[table]
   if (!field) return undefined
   return (row as Record<string, unknown>)[field] as Id<'_storage'> | undefined
+}
+
+/** The handler behind every Module's public upload mutation. */
+export async function signedInUploadUrl(ctx: MutationCtx): Promise<string> {
+  await requireCurrentUser(ctx)
+  return await ctx.storage.generateUploadUrl()
 }

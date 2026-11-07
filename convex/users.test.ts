@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { alice as asAlice, bob as asBob, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { MAX_PINNED_MODULES } from './users'
@@ -18,12 +18,6 @@ import { MAX_PINNED_MODULES } from './users'
 
 type Harness = ReturnType<typeof testConvex>
 
-const asAlice = {
-  subject: 'clerk_alice',
-  name: 'Alice',
-  email: 'a@example.com',
-}
-const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
 
 async function signUp(t: Harness, identity: typeof asAlice) {
   await t.withIdentity(identity).mutation(api.users.ensureUser, {})

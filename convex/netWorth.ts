@@ -18,12 +18,13 @@ import { v } from 'convex/values'
 
 import { mutation, query } from './_generated/server'
 import {
+  netWorthKindValidator,
   netWorthRowValidator,
-  nextOrder,
   requireAmount,
   requireName,
 } from './lib/finance'
 import { requireGroupBySlug } from './lib/groupAccess'
+import { nextOrder } from './lib/order'
 
 export const entries = query({
   args: { groupSlug: v.string() },
@@ -56,12 +57,10 @@ export const snapshots = query({
   },
 })
 
-const entryKind = v.union(v.literal('asset'), v.literal('liability'))
-
 export const addEntry = mutation({
   args: {
     groupSlug: v.string(),
-    kind: entryKind,
+    kind: netWorthKindValidator,
     label: v.string(),
     amountCents: v.number(),
   },

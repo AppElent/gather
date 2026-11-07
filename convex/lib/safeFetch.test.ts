@@ -1,5 +1,6 @@
-import { describe, expect, test, vi } from 'vitest'
-import { isUrlSafeToFetch, safeFetch } from './recipeImport'
+import { afterEach, describe, expect, test, vi } from 'vitest'
+import type { Id } from '../_generated/dataModel'
+import { isUrlSafeToFetch, safeFetch, storeRemoteImage } from './safeFetch'
 
 describe('isUrlSafeToFetch', () => {
   test('allows a normal public https URL', () => {
@@ -158,5 +159,58 @@ describe('safeFetch', () => {
       fetchImpl,
     )
     expect(res).toBeUndefined()
+  })
+})
+
+describe('storeRemoteImage', () => {
+  const stored = 'stored-id' as Id<'_storage'>
+  const ctx = () => ({ storage: { store: vi.fn(async () => stored) } })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const respondWith = (response: Response) =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => response),
+    )
+
+  test('stores a picture', async () => {
+    respondWith(
+      new Response('jpeg', { headers: { 'content-type': 'image/jpeg' } }),
+    )
+    const target = ctx()
+
+    expect(
+      await storeRemoteImage(target as never, 'https://example.com/a.jpg'),
+    ).toBe(stored)
+    expect(target.storage.store).toHaveBeenCalledOnce()
+  })
+
+  test('refuses what is not a picture', async () => {
+    respondWith(
+      new Response('<html>', { headers: { 'content-type': 'text/html' } }),
+    )
+    const target = ctx()
+
+    expect(
+      await storeRemoteImage(target as never, 'https://example.com/a.jpg'),
+    ).toBeUndefined()
+    expect(target.storage.store).not.toHaveBeenCalled()
+  })
+
+  test('refuses a picture too big to keep, whatever it declared', async () => {
+    respondWith(
+      new Response(new Blob([new Uint8Array(10 * 1024 * 1024 + 1)]), {
+        headers: { 'content-type': 'image/jpeg', 'content-length': '10' },
+      }),
+    )
+    const target = ctx()
+
+    expect(
+      await storeRemoteImage(target as never, 'https://example.com/a.jpg'),
+    ).toBeUndefined()
+    expect(target.storage.store).not.toHaveBeenCalled()
   })
 })

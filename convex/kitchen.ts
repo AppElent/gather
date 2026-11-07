@@ -1,15 +1,12 @@
 import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
+import * as calendar from './calendar'
 import {
-  calendarColorValidator,
-  calendarInGroup,
-  normalizedEvent,
-  validateAssignees,
-  validateEventFields,
-} from './lib/calendar'
-import { requireGroupBySlug } from './lib/groupAccess'
-
-const quickLimit = v.union(v.literal(10), v.literal(20), v.literal(30))
+  isVisibleToGroups,
+  requireGroupBySlug,
+  requireInGroup,
+} from './lib/groupAccess'
+import { quickLimitValidator } from './lib/kitchen'
 
 export const overview = query({
   args: {
@@ -18,7 +15,10 @@ export const overview = query({
     to: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
+    const { group, membership } = await requireGroupBySlug(
+      ctx,
+      args.groupSlug,
+    )
     const [mealEntries, dinners, pantry, calendars, recipes] =
       await Promise.all([
         ctx.db
@@ -39,15 +39,8 @@ export const overview = query({
           .collect(),
         ctx.db.query('recipes').collect(),
       ])
-    const membership = await ctx.db
-      .query('memberships')
-      .withIndex('by_group', (q) => q.eq('groupId', group._id))
-      .filter((q) => q.eq(q.field('userId'), user._id))
-      .first()
-    const visibleRecipes = recipes.filter(
-      (recipe) =>
-        recipe.groupId === group._id ||
-        recipe.sharedGroupIds.includes(group._id),
+    const visibleRecipes = recipes.filter((recipe) =>
+      isVisibleToGroups(recipe, [group._id]),
     )
     const events = (
       await Promise.all(
@@ -124,10 +117,7 @@ export const addMealEntry = mutation({
 export const removeMealEntry = mutation({
   args: { groupSlug: v.string(), id: v.id('mealEntries') },
   handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const entry = await ctx.db.get(args.id)
-    if (!entry || entry.groupId !== group._id)
-      throw new ConvexError('Meal not found')
+    await requireInGroup(ctx, args.groupSlug, args.id, 'Meal not found')
     await ctx.db.delete(args.id)
   },
 })
@@ -140,10 +130,7 @@ export const updateMealEntry = mutation({
     prepMinutes: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const entry = await ctx.db.get(args.id)
-    if (!entry || entry.groupId !== group._id)
-      throw new ConvexError('Meal not found')
+    await requireInGroup(ctx, args.groupSlug, args.id, 'Meal not found')
     await ctx.db.patch(args.id, {
       title: args.title.trim(),
       prepMinutes: args.prepMinutes,
@@ -159,7 +146,7 @@ export const setDinner = mutation({
     prepMinutes: v.optional(v.number()),
     recipeId: v.optional(v.id('recipes')),
     mealEntryId: v.optional(v.id('mealEntries')),
-    quickLimit: v.optional(quickLimit),
+    quickLimit: v.optional(quickLimitValidator),
   },
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
@@ -171,18 +158,17 @@ export const setDinner = mutation({
     let title = args.title
     let prepMinutes = args.prepMinutes
     if (args.mealEntryId) {
-      const meal = await ctx.db.get(args.mealEntryId)
-      if (!meal || meal.groupId !== group._id)
-        throw new ConvexError('Meal not found')
+      const { doc: meal } = await requireInGroup(
+        ctx,
+        args.groupSlug,
+        args.mealEntryId,
+        'Meal not found',
+      )
       title = meal.title
       prepMinutes = meal.prepMinutes
     } else if (args.recipeId) {
       const recipe = await ctx.db.get(args.recipeId)
-      if (
-        !recipe ||
-        (recipe.groupId !== group._id &&
-          !recipe.sharedGroupIds.includes(group._id))
-      )
+      if (!recipe || !isVisibleToGroups(recipe, [group._id]))
         throw new ConvexError('Recipe not found')
       title = recipe.title
       prepMinutes = recipe.prepMinutes
@@ -244,10 +230,7 @@ export const addPantryEntry = mutation({
 export const removePantryEntry = mutation({
   args: { groupSlug: v.string(), id: v.id('pantryEntries') },
   handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const entry = await ctx.db.get(args.id)
-    if (!entry || entry.groupId !== group._id)
-      throw new ConvexError('Pantry entry not found')
+    await requireInGroup(ctx, args.groupSlug, args.id, 'Pantry entry not found')
     await ctx.db.delete(args.id)
   },
 })
@@ -260,10 +243,7 @@ export const updatePantryEntry = mutation({
     quantity: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const entry = await ctx.db.get(args.id)
-    if (!entry || entry.groupId !== group._id)
-      throw new ConvexError('Pantry entry not found')
+    await requireInGroup(ctx, args.groupSlug, args.id, 'Pantry entry not found')
     await ctx.db.patch(args.id, {
       title: args.title.trim(),
       quantity: args.quantity?.trim() || undefined,
@@ -276,187 +256,22 @@ export const setGroceryList = mutation({
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     if (args.listId) {
-      const list = await ctx.db.get(args.listId)
-      if (!list || list.groupId !== group._id)
-        throw new ConvexError('Task list not found')
+      await requireInGroup(
+        ctx,
+        args.groupSlug,
+        args.listId,
+        'Task list not found',
+      )
     }
     await ctx.db.patch(group._id, { groceryListId: args.listId ?? undefined })
   },
 })
 
-export const addCalendar = mutation({
-  args: {
-    groupSlug: v.string(),
-    name: v.string(),
-    color: v.optional(calendarColorValidator),
-  },
-  returns: v.id('calendars'),
-  handler: async (ctx, args) => {
-    const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
-    const name = args.name.trim()
-    if (!name) throw new ConvexError('Calendar name required')
-    const colors = ['home', 'kitchen', 'money', 'tasting'] as const
-    const existing = await ctx.db
-      .query('calendars')
-      .withIndex('by_group', (q) => q.eq('groupId', group._id))
-      .collect()
-    const counts = new Map(colors.map((color) => [color, 0]))
-    for (const calendar of existing) {
-      const color = calendar.color ?? 'home'
-      counts.set(color, (counts.get(color) ?? 0) + 1)
-    }
-    const defaultColor = colors.reduce(
-      (chosen, color) =>
-        counts.get(color)! < counts.get(chosen)! ? color : chosen,
-      colors[0],
-    )
-    return await ctx.db.insert('calendars', {
-      groupId: group._id,
-      name,
-      source: 'local',
-      createdBy: user._id,
-      color: args.color ?? defaultColor,
-    })
-  },
-})
-
-export const removeCalendar = mutation({
-  args: { groupSlug: v.string(), id: v.id('calendars') },
-  handler: async (ctx, args) => {
-    const { calendar } = await calendarInGroup(ctx, args.groupSlug, args.id)
-    const events = await ctx.db
-      .query('calendarEvents')
-      .withIndex('by_calendar', (q) => q.eq('calendarId', calendar._id))
-      .collect()
-    await Promise.all(events.map((event) => ctx.db.delete(event._id)))
-    await ctx.db.delete(calendar._id)
-    const memberships = await ctx.db
-      .query('memberships')
-      .withIndex('by_group', (q) => q.eq('groupId', calendar.groupId))
-      .collect()
-    await Promise.all(
-      memberships.map((membership) =>
-        ctx.db.patch(membership._id, {
-          hiddenCalendarIds: (membership.hiddenCalendarIds ?? []).filter(
-            (id) => id !== calendar._id,
-          ),
-        }),
-      ),
-    )
-  },
-})
-
-export const addCalendarEvent = mutation({
-  args: {
-    groupSlug: v.string(),
-    calendarId: v.id('calendars'),
-    title: v.string(),
-    date: v.string(),
-    startMinutes: v.optional(v.number()),
-    endMinutes: v.optional(v.number()),
-    allDay: v.optional(v.boolean()),
-    assigneeIds: v.optional(v.array(v.id('users'))),
-    location: v.optional(v.string()),
-    notes: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const { calendar, user } = await calendarInGroup(
-      ctx,
-      args.groupSlug,
-      args.calendarId,
-    )
-    const allDay =
-      args.allDay ??
-      (args.startMinutes === undefined && args.endMinutes === undefined)
-    const assigneeIds = args.assigneeIds ?? []
-    validateEventFields({
-      calendarId: calendar._id,
-      title: args.title,
-      date: args.date,
-      allDay,
-      startMinutes: args.startMinutes ?? null,
-      endMinutes: args.endMinutes ?? null,
-      assigneeIds,
-      location: args.location ?? null,
-      notes: args.notes ?? null,
-    })
-    await validateAssignees(ctx, calendar.groupId, assigneeIds)
-    return await ctx.db.insert('calendarEvents', {
-      calendarId: calendar._id,
-      title: args.title.trim(),
-      date: args.date,
-      allDay,
-      startMinutes: allDay ? undefined : args.startMinutes,
-      endMinutes: allDay ? undefined : args.endMinutes,
-      assigneeIds,
-      location: args.location?.trim() || undefined,
-      notes: args.notes?.trim() || undefined,
-      revision: 0,
-      createdBy: user._id,
-    })
-  },
-})
-
-/** One event's own destination, including when Search opened it cold. */
-export const getCalendarEvent = query({
-  args: { groupSlug: v.string(), id: v.id('calendarEvents') },
-  returns: v.union(
-    v.null(),
-    v.object({
-      _id: v.id('calendarEvents'),
-      id: v.string(),
-      calendarId: v.id('calendars'),
-      title: v.string(),
-      date: v.string(),
-      allDay: v.boolean(),
-      startMinutes: v.optional(v.number()),
-      endMinutes: v.optional(v.number()),
-      assigneeIds: v.array(v.id('users')),
-      location: v.string(),
-      notes: v.string(),
-      revision: v.number(),
-      calendarName: v.string(),
-      color: calendarColorValidator,
-    }),
-  ),
-  handler: async (ctx, args) => {
-    await requireGroupBySlug(ctx, args.groupSlug)
-    const event = await ctx.db.get(args.id)
-    if (!event) return null
-    const { calendar } = await calendarInGroup(
-      ctx,
-      args.groupSlug,
-      event.calendarId,
-    )
-    return normalizedEvent(event, calendar)
-  },
-})
-
-export const removeCalendarEvent = mutation({
-  args: { groupSlug: v.string(), id: v.id('calendarEvents') },
-  handler: async (ctx, args) => {
-    const event = await ctx.db.get(args.id)
-    if (!event) throw new ConvexError('Calendar event not found')
-    await calendarInGroup(ctx, args.groupSlug, event.calendarId)
-    await ctx.db.delete(args.id)
-  },
-})
-
-export const setCalendarVisibility = mutation({
-  args: {
-    groupSlug: v.string(),
-    calendarId: v.id('calendars'),
-    visible: v.boolean(),
-  },
-  handler: async (ctx, args) => {
-    const { calendar, membership } = await calendarInGroup(
-      ctx,
-      args.groupSlug,
-      args.calendarId,
-    )
-    const hidden = new Set(membership.hiddenCalendarIds ?? [])
-    if (args.visible) hidden.delete(calendar._id)
-    else hidden.add(calendar._id)
-    await ctx.db.patch(membership._id, { hiddenCalendarIds: [...hidden] })
-  },
-})
+// Installed phones call these by name until the next OTA has reached them
+// (docs/migrations/README.md).
+export const addCalendar = calendar.addCalendar
+export const removeCalendar = calendar.removeCalendar
+export const addCalendarEvent = calendar.addCalendarEvent
+export const getCalendarEvent = calendar.getCalendarEvent
+export const removeCalendarEvent = calendar.removeCalendarEvent
+export const setCalendarVisibility = calendar.setCalendarVisibility

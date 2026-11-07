@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { alice, bob, carla, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 
 /**
@@ -17,9 +17,6 @@ import { api } from './_generated/api'
  *   Group's slug — the address has to be telling the truth.
  */
 
-const alice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
-const bob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
-const carla = { subject: 'clerk_carla', name: 'Carla', email: 'c@example.com' }
 
 const JANSEN = 'jansen-household'
 const DE_VRIES = 'de-vries-household'
@@ -50,22 +47,19 @@ async function seed() {
       email: carla.email,
     })
 
-    const jansen = await ctx.db.insert('groups', {
+    const jansen = await seedGroup(ctx, {
       name: 'Jansen Household',
       slug: JANSEN,
-      isPersonal: false,
       inviteCode: 'jansen',
     })
-    const devries = await ctx.db.insert('groups', {
+    const devries = await seedGroup(ctx, {
       name: 'De Vries Household',
       slug: DE_VRIES,
-      isPersonal: false,
       inviteCode: 'devries',
     })
-    const aliceAlone = await ctx.db.insert('groups', {
+    const aliceAlone = await seedGroup(ctx, {
       name: "Alice's things",
       slug: 'me-alice',
-      isPersonal: true,
       inviteCode: 'me-alice-code',
     })
 
@@ -75,7 +69,7 @@ async function seed() {
       [devries, carlaId, 'admin'],
       [aliceAlone, aliceId, 'admin'],
     ] as const) {
-      await ctx.db.insert('memberships', { groupId, userId, role })
+      await seedMember(ctx, groupId, userId, role)
     }
 
     const noor = await ctx.db.insert('babies', {

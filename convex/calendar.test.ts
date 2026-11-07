@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 
 const alice = {
@@ -22,31 +22,19 @@ async function seed() {
       name: bob.name,
       email: bob.email,
     })
-    const group = await ctx.db.insert('groups', {
+    const group = await seedGroup(ctx, {
       name: 'Home',
       slug: 'calendar-home',
       inviteCode: 'calendar-home',
     })
-    const other = await ctx.db.insert('groups', {
+    const other = await seedGroup(ctx, {
       name: 'Other',
       slug: 'calendar-other',
       inviteCode: 'calendar-other',
     })
-    await ctx.db.insert('memberships', {
-      groupId: group,
-      userId: aliceId,
-      role: 'admin',
-    })
-    await ctx.db.insert('memberships', {
-      groupId: group,
-      userId: bobId,
-      role: 'member',
-    })
-    await ctx.db.insert('memberships', {
-      groupId: other,
-      userId: aliceId,
-      role: 'member',
-    })
+    await seedMember(ctx, group, aliceId, 'admin')
+    await seedMember(ctx, group, bobId, 'member')
+    await seedMember(ctx, other, aliceId, 'member')
     const calendar = await ctx.db.insert('calendars', {
       groupId: group,
       name: 'Home',
@@ -69,7 +57,7 @@ describe('calendar backend', () => {
     const { t, calendar } = await seed()
     const id = await t
       .withIdentity(alice)
-      .mutation(api.kitchen.addCalendarEvent, {
+      .mutation(api.calendar.addCalendarEvent, {
         groupSlug: 'calendar-home',
         calendarId: calendar,
         title: 'Legacy',
@@ -77,7 +65,7 @@ describe('calendar backend', () => {
       })
     const event = await t
       .withIdentity(alice)
-      .query(api.kitchen.getCalendarEvent, { groupSlug: 'calendar-home', id })
+      .query(api.calendar.getCalendarEvent, { groupSlug: 'calendar-home', id })
     expect(event).toMatchObject({
       title: 'Legacy',
       allDay: true,
@@ -93,7 +81,7 @@ describe('calendar backend', () => {
     const { t, calendar, bobId } = await seed()
     const id = await t
       .withIdentity(alice)
-      .mutation(api.kitchen.addCalendarEvent, {
+      .mutation(api.calendar.addCalendarEvent, {
         groupSlug: 'calendar-home',
         calendarId: calendar,
         title: 'Appointment',
@@ -124,7 +112,7 @@ describe('calendar backend', () => {
     expect(result.revision).toBe(1)
     const event = await t
       .withIdentity(alice)
-      .query(api.kitchen.getCalendarEvent, { groupSlug: 'calendar-home', id })
+      .query(api.calendar.getCalendarEvent, { groupSlug: 'calendar-home', id })
     expect(event).toMatchObject({
       title: 'Moved',
       date: '2026-09-13',
@@ -141,20 +129,20 @@ describe('calendar backend', () => {
     const { t, calendar, otherCalendar } = await seed()
     const id = await t
       .withIdentity(alice)
-      .mutation(api.kitchen.addCalendarEvent, {
+      .mutation(api.calendar.addCalendarEvent, {
         groupSlug: 'calendar-home',
         calendarId: calendar,
         title: 'Private',
         date: '2026-09-12',
       })
     await expect(
-      t.withIdentity(alice).query(api.kitchen.getCalendarEvent, {
+      t.withIdentity(alice).query(api.calendar.getCalendarEvent, {
         groupSlug: 'calendar-other',
         id,
       }),
     ).rejects.toThrow()
     await expect(
-      t.withIdentity(bob).mutation(api.kitchen.addCalendarEvent, {
+      t.withIdentity(bob).mutation(api.calendar.addCalendarEvent, {
         groupSlug: 'calendar-other',
         calendarId: otherCalendar,
         title: 'Nope',
@@ -199,7 +187,7 @@ describe('calendar backend', () => {
         .withIdentity(bob)
         .query(api.calendar.preferences, { groupSlug: 'calendar-home' }),
     ).toMatchObject({ view: 'week', peopleFilter: null })
-    await t.withIdentity(bob).mutation(api.kitchen.setCalendarVisibility, {
+    await t.withIdentity(bob).mutation(api.calendar.setCalendarVisibility, {
       groupSlug: 'calendar-home',
       calendarId: calendar,
       visible: false,
@@ -245,5 +233,26 @@ describe('calendar backend', () => {
       paginationOpts: { numItems: 100, cursor: first.continueCursor },
     })
     expect(second.page).toHaveLength(5)
+  })
+})
+
+describe('the kitchen addresses of the calendar functions', () => {
+  test('still answer for phones that have not updated', async () => {
+    const { t, calendar } = await seed()
+
+    const id = await t
+      .withIdentity(alice)
+      .mutation(api.kitchen.addCalendarEvent, {
+        groupSlug: 'calendar-home',
+        calendarId: calendar,
+        title: 'Dentist',
+        date: '2026-09-01',
+      })
+
+    expect(
+      await t
+        .withIdentity(alice)
+        .query(api.kitchen.getCalendarEvent, { groupSlug: 'calendar-home', id }),
+    ).toMatchObject({ title: 'Dentist' })
   })
 })

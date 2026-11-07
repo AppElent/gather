@@ -16,16 +16,18 @@ import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import {
   buyingCostLinesValidator,
-  findInGroup,
-  nextOrder,
   requireAmount,
-  requireInGroup,
   requireIsoDate,
   requireName,
   requirePercent,
   transferTaxBandValidator,
 } from './lib/finance'
-import { requireGroupBySlug } from './lib/groupAccess'
+import {
+  findInGroup,
+  requireGroupBySlug,
+  requireInGroup,
+} from './lib/groupAccess'
+import { nextOrder } from './lib/order'
 
 /**
  * Every House in the Group, each with enough of its mortgage to fill the index

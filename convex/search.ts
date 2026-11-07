@@ -1,4 +1,4 @@
-import { v } from 'convex/values'
+import { type Infer, v } from 'convex/values'
 
 import { query } from './_generated/server'
 import { requireGroupBySlug } from './lib/groupAccess'
@@ -30,22 +30,7 @@ const resultValidator = v.object({
   creationTime: v.number(),
 })
 
-type SearchResult = {
-  id: string
-  type: 'recipe' | 'task' | 'note' | 'tasting' | 'calendarEvent'
-  title: string
-  tags: string[]
-  excerpt: string
-  listName?: string
-  dueDate?: string
-  kind?: string
-  calendarName?: string
-  date?: string
-  startMinutes?: number
-  endMinutes?: number
-  creationTime: number
-  rank: number
-}
+type SearchResult = Infer<typeof resultValidator> & { rank: number }
 
 function normalized(value: string) {
   return value.trim().toLocaleLowerCase()

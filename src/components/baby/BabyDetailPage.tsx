@@ -42,27 +42,21 @@ export function BabyDetailPage({
   const babies = useQuery(api.babies.list, { groupSlug })
   const [exportOpen, setExportOpen] = useState(false)
   // Skip until the baby has actually loaded — firing this unconditionally
-  // means a deleted/inaccessible id makes requireBabyAccess throw instead
+  // means a deleted/inaccessible id makes the access check throw instead
   // of falling through to the "Child not found" state below.
   const events = useQuery(
     api.babyEvents.listByBaby,
     baby ? { babyId: id, groupSlug } : 'skip',
   )
-  const ensureTodoList = useMutation(api.babies.ensureTodoList)
-  const ensureQuestionsList = useMutation(api.babies.ensureQuestionsList)
+  const ensureAuxLists = useMutation(api.babies.ensureAuxLists)
   const { locale, messages } = useI18n()
   const { child } = messages.baby.log
 
   useEffect(() => {
-    if (baby && !baby.taskListId)
-      void ensureTodoList({ id: baby._id, groupSlug })
-  }, [baby, groupSlug, ensureTodoList])
-
-  useEffect(() => {
-    if (baby && !baby.questionsListId) {
-      void ensureQuestionsList({ id: baby._id, groupSlug })
+    if (baby && !(baby.taskListId && baby.questionsListId)) {
+      void ensureAuxLists({ id: baby._id, groupSlug })
     }
-  }, [baby, groupSlug, ensureQuestionsList])
+  }, [baby, groupSlug, ensureAuxLists])
 
   const temperaturePoints = useMemo(
     () =>

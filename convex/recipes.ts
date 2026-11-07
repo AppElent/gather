@@ -1,7 +1,8 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
+import { anthropicApiKey } from './lib/anthropic'
 import {
   getGroupBySlug,
   getMembership,
@@ -13,8 +14,17 @@ import {
   nutritionSourceValidator,
   nutritionValidator,
 } from './lib/nutrition'
-import { getCurrentUser, getMyGroupIds } from './lib/sharing'
-import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
+import { recipeFields } from './lib/recipeFields'
+import {
+  getCurrentUser,
+  getMyGroupIds,
+  requireCurrentUser,
+} from './lib/sharing'
+import {
+  deleteStoredFile,
+  replaceStoredFile,
+  signedInUploadUrl,
+} from './lib/storedFiles'
 
 /** A recipe as every list and detail page wants it: with its picture resolved. */
 async function withImageUrl<T extends { imageId?: Id<'_storage'> }>(
@@ -188,27 +198,8 @@ export const get = query({
 
 export const generateUploadUrl = mutation({
   args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
-    return await ctx.storage.generateUploadUrl()
-  },
+  handler: signedInUploadUrl,
 })
-
-const recipeFields = {
-  title: v.string(),
-  description: v.optional(v.string()),
-  imageId: v.optional(v.id('_storage')),
-  ingredients: v.array(v.string()),
-  steps: v.array(v.string()),
-  tags: v.array(v.string()),
-  rating: v.optional(v.number()),
-  prepMinutes: v.optional(v.number()),
-  sourceUrl: v.optional(v.string()),
-  servings: v.optional(v.number()),
-  nutrition: v.optional(nutritionValidator),
-  nutritionSource: v.optional(nutritionSourceValidator),
-}
 
 /**
  * The recipe behind an id, when the caller may change it — or null when there
@@ -229,12 +220,17 @@ async function writableRecipe(
   ctx: QueryCtx,
   id: Id<'recipes'>,
 ): Promise<Doc<'recipes'> | null> {
-  const user = await getCurrentUser(ctx)
-  if (!user) throw new Error('Not authenticated')
+  const user = await requireCurrentUser(ctx)
   const recipe = await ctx.db.get(id)
   if (!recipe) return null
   const membership = await getMembership(ctx, recipe.groupId, user._id)
   if (!membership) return null
+  return recipe
+}
+
+async function requireWritableRecipe(ctx: QueryCtx, id: Id<'recipes'>) {
+  const recipe = await writableRecipe(ctx, id)
+  if (!recipe) throw new ConvexError('Recipe not found')
   return recipe
 }
 
@@ -268,8 +264,7 @@ export const update = mutation({
     nutritionSource: v.optional(v.union(nutritionSourceValidator, v.null())),
   },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    const recipe = await requireWritableRecipe(ctx, args.id)
     const {
       id,
       imageId,
@@ -328,8 +323,7 @@ export const update = mutation({
 export const rate = mutation({
   args: { id: v.id('recipes'), rating: v.union(v.number(), v.null()) },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    await requireWritableRecipe(ctx, args.id)
     await ctx.db.patch(args.id, { rating: args.rating ?? undefined })
   },
 })
@@ -354,8 +348,7 @@ export const rate = mutation({
 export const setPhoto = mutation({
   args: { id: v.id('recipes'), imageId: v.union(v.id('_storage'), v.null()) },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    const recipe = await requireWritableRecipe(ctx, args.id)
     await ctx.db.patch(args.id, { imageId: args.imageId ?? undefined })
     await replaceStoredFile(ctx, recipe.imageId, args.imageId)
   },
@@ -368,8 +361,7 @@ export const setNutrition = mutation({
     source: v.union(v.literal('ai'), v.literal('manual')),
   },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    await requireWritableRecipe(ctx, args.id)
     await ctx.db.patch(args.id, {
       nutrition: args.nutrition,
       nutritionSource: args.source,
@@ -381,7 +373,7 @@ export const setNutrition = mutation({
 /** Whether the AI-estimation features are configured on this deployment. */
 export const aiConfigured = query({
   args: {},
-  handler: async () => Boolean(process.env.ANTHROPIC_API_KEY),
+  handler: async () => Boolean(anthropicApiKey()),
 })
 
 export const remove = mutation({
@@ -425,8 +417,7 @@ export const remove = mutation({
 export const move = mutation({
   args: { id: v.id('recipes'), toGroupSlug: v.string() },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    const recipe = await requireWritableRecipe(ctx, args.id)
     const { group } = await requireGroupBySlug(ctx, args.toGroupSlug)
     // Already home. Moving somewhere it already lives changes nothing.
     if (group._id === recipe.groupId) return
@@ -444,8 +435,7 @@ export const move = mutation({
 export const share = mutation({
   args: { id: v.id('recipes'), withGroupSlug: v.string() },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    const recipe = await requireWritableRecipe(ctx, args.id)
     const { group } = await requireGroupBySlug(ctx, args.withGroupSlug)
     // Sharing with the Group it lives in, and sharing twice, both ask for
     // something that is already true.
@@ -460,8 +450,7 @@ export const share = mutation({
 export const unshare = mutation({
   args: { id: v.id('recipes'), withGroupSlug: v.string() },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    const recipe = await requireWritableRecipe(ctx, args.id)
     const group = await getGroupBySlug(ctx, args.withGroupSlug)
     // Unsharing the home Group is refused rather than quietly ignored: it is
     // not a Share to withdraw, and a recipe visible in no Group at all is not a

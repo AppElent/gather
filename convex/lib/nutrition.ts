@@ -1,26 +1,23 @@
 import {
   NUTRIENT_KEYS,
+  NUTRITION_SOURCES,
+  type NutrientKey,
   type NutritionFacts,
   type NutritionSource,
 } from '@gather/core/domain'
 import { v } from 'convex/values'
+import { literals } from './validators'
 
-export const nutritionValidator = v.object({
-  calories: v.optional(v.number()),
-  protein: v.optional(v.number()),
-  carbs: v.optional(v.number()),
-  sugars: v.optional(v.number()),
-  fat: v.optional(v.number()),
-  saturatedFat: v.optional(v.number()),
-  fiber: v.optional(v.number()),
-  salt: v.optional(v.number()),
-})
+const optionalAmount = v.optional(v.number())
 
-export const nutritionSourceValidator = v.union(
-  v.literal('imported'),
-  v.literal('ai'),
-  v.literal('manual'),
+export const nutritionValidator = v.object(
+  Object.fromEntries(NUTRIENT_KEYS.map((key) => [key, optionalAmount])) as Record<
+    NutrientKey,
+    typeof optionalAmount
+  >,
 )
+
+export const nutritionSourceValidator = literals(NUTRITION_SOURCES)
 
 // JSON-LD nutrition values are free text in the wild: "250 kcal", "12,5 g"
 // (Dutch decimal comma), "1,200 kcal" (US thousands comma), "1046 kJ",

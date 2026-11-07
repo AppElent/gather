@@ -4,11 +4,15 @@ import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import type { ComboComponent } from './lib/combos'
-import { comboEntries } from './lib/combos'
-import { mealValidator, quantityUnitValidator } from './lib/consumption'
+import { comboComponentFields, comboEntries } from './lib/combos'
+import { mealValidator } from './lib/consumption'
 import { isVisibleToGroups } from './lib/groupAccess'
-import { nutritionValidator } from './lib/nutrition'
-import { getCurrentUser, getMyGroupIds } from './lib/sharing'
+import { nextOrder } from './lib/order'
+import {
+  getCurrentUser,
+  getMyGroupIds,
+  requireCurrentUser,
+} from './lib/sharing'
 
 /**
  * A Combo is Personal (ADR-0003, ADR-0012): it belongs to a person, follows
@@ -108,19 +112,6 @@ export const list = query({
   },
 })
 
-const componentFields = {
-  foodId: v.optional(v.id('foods')),
-  recipeId: v.optional(v.id('recipes')),
-  label: v.string(),
-  quantity: v.number(),
-  quantityUnit: quantityUnitValidator,
-  nutrition: v.optional(nutritionValidator),
-  // Travels with the figures, and for the same reason (#94): `replaceItems`
-  // deletes and recreates every row, so a field missing here is a field the
-  // Combo loses the moment anybody edits it — even though saving it kept it.
-  icon: v.optional(v.string()),
-}
-
 /**
  * Make a Combo out of entries you have already logged, and put the Combo in
  * their place.
@@ -151,8 +142,7 @@ export const saveFromMeal = mutation({
     entryIds: v.array(v.id('consumptionEntries')),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const name = args.name.trim()
     if (!name) throw new ConvexError('A combo needs a name.')
 
@@ -187,7 +177,7 @@ export const saveFromMeal = mutation({
     const comboId = await ctx.db.insert('combos', {
       userId: user._id,
       name,
-      order: existing.length,
+      order: nextOrder(existing),
     })
     for (const entry of entries) {
       await ctx.db.insert('comboItems', {
@@ -263,11 +253,10 @@ export const saveFromMeal = mutation({
 export const replaceItems = mutation({
   args: {
     id: v.id('combos'),
-    components: v.array(v.object(componentFields)),
+    components: v.array(v.object(comboComponentFields)),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const combo = await ctx.db.get(args.id)
     // One refusal for "no such combo" and "not yours" — a Combo nobody may
     // read must not be discoverable by how the refusal is worded (ADR-0009).
@@ -288,8 +277,7 @@ export const replaceItems = mutation({
 export const rename = mutation({
   args: { id: v.id('combos'), name: v.string() },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const combo = await ctx.db.get(args.id)
     if (!combo || combo.userId !== user._id) {
       throw new ConvexError('Combo not found')
@@ -303,8 +291,7 @@ export const rename = mutation({
 export const remove = mutation({
   args: { id: v.id('combos') },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const combo = await ctx.db.get(args.id)
     if (!combo || combo.userId !== user._id) {
       throw new ConvexError('Combo not found')
