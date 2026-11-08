@@ -26,9 +26,10 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SearchField } from '../../components/SearchField'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
+import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { Card, SectionLabel } from '../tasks/components'
-import { TASK_ICONS } from '../tasks/icons'
+import { Card } from '../../ui/card'
+import { SectionLabel } from '../../ui/section-label'
 import { confirmDeleteNote } from './notesActions'
 import { noteWhen, preview } from './noteText'
 import { type Note, useNoteActions, useNotes } from './store'
@@ -146,7 +147,7 @@ export function Notes() {
               }}
               style={styles.headerButton}
             >
-              <TASK_ICONS.Plus size={22} color={tokens.fg} strokeWidth={2.2} />
+              <UI_ICONS.Plus size={22} color={tokens.fg} strokeWidth={2.2} />
             </Pressable>
           ),
         }}

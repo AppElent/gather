@@ -1,4 +1,9 @@
-import type { ModuleGroup, ModuleIconName } from '@gather/core/modules'
+import {
+  MODULES,
+  type ModuleGroup,
+  type ModuleIconName,
+  type ModuleId,
+} from '@gather/core/modules'
 import type { TastingKind } from '@gather/core/tastings'
 import type { Href } from 'expo-router'
 
@@ -29,12 +34,7 @@ export type QuickActionId =
  * kind asks for. Copy and fields are resolved by the mobile message tree so
  * this portable seam remains data, not an English-only UI description.
  */
-export type QuickAction = {
-  id: QuickActionId
-  module: 'tasks' | 'recipes' | 'nutrition' | 'cheeses' | 'wines' | 'beers'
-  group: ModuleGroup
-  icon: ModuleIconName
-} & (
+type QuickActionDef = { id: QuickActionId } & (
   | { kind: 'row' | 'sheet' }
   /** `tastingKind` is which Kind the subject step is picking. */
   | { kind: 'compose'; tastingKind: TastingKind }
@@ -42,69 +42,67 @@ export type QuickAction = {
   | { kind: 'handoff'; href: Href }
 )
 
+/** An action with the Module it belongs to, whose tint and icon it wears. */
+export type QuickAction = QuickActionDef & {
+  module: ModuleId
+  group: ModuleGroup
+  icon: ModuleIconName
+}
+
 /**
- * Only currently working flows appear until each Module owns its real one.
+ * Every Module, and the capture verbs it puts on the Add tab, in launcher
+ * order. An empty list is an answer: adding a Module is a compile error until
+ * somebody decides whether it has a verb, as with `DROP_TARGETS`.
  *
- * Writing a recipe from blank used to sit here and no longer does. The Add tab
- * is for capture — you found a thing, and it is in your hand — and a blank
- * recipe form is the opposite of that. It is still reachable, one level in,
- * behind the collection's own add control (`AddRecipeSheet`): **reachable, and
- * not advertised.**
+ * Only currently working flows appear until each Module owns its real one.
+ * Writing a recipe from blank is not here: the Add tab is for capture — you
+ * found a thing, and it is in your hand — and a blank recipe form is the
+ * opposite of that. It is reachable one level in, behind the collection's own
+ * add control (`AddRecipeSheet`): **reachable, and not advertised.**
  */
-export const QUICK_ACTIONS = [
+const ACTIONS_BY_MODULE: Record<ModuleId, readonly QuickActionDef[]> = {
   /**
    * Three rows, not one "Tasting" row plus a Kind step: the launcher is a flat
    * list of verbs, and a Kind chooser would cost everyone a tap to save three
    * rows nobody minds.
    */
-  {
-    id: 'cheese-tasting',
-    module: 'cheeses',
-    group: 'tasting',
-    icon: 'Grape',
-    kind: 'compose',
-    tastingKind: 'cheese',
-  },
-  {
-    id: 'wine-tasting',
-    module: 'wines',
-    group: 'tasting',
-    icon: 'Wine',
-    kind: 'compose',
-    tastingKind: 'wine',
-  },
-  {
-    id: 'beer-tasting',
-    module: 'beers',
-    group: 'tasting',
-    icon: 'Beer',
-    kind: 'compose',
-    tastingKind: 'beer',
-  },
-  {
-    id: 'task-new',
-    module: 'tasks',
-    group: 'home',
-    icon: 'ListChecks',
-    kind: 'row',
-  },
-  {
-    // A real handoff now, not a text box in a sheet: an import is a *reading*
-    // of a page, partly parsed and partly guessed, and it has to be shown to
-    // somebody before it becomes a recipe. That review does not fit in a
-    // launcher, so the launcher hands over to the Module's own screen.
-    id: 'recipe-import',
-    module: 'recipes',
-    group: 'kitchen',
-    icon: 'ChefHat',
-    kind: 'handoff',
-    href: moduleHref('/all/recipes/import'),
-  },
-  {
-    id: 'meal-log',
-    module: 'nutrition',
-    group: 'kitchen',
-    icon: 'Apple',
-    kind: 'sheet',
-  },
-] as const satisfies readonly QuickAction[]
+  cheeses: [{ id: 'cheese-tasting', kind: 'compose', tastingKind: 'cheese' }],
+  wines: [{ id: 'wine-tasting', kind: 'compose', tastingKind: 'wine' }],
+  beers: [{ id: 'beer-tasting', kind: 'compose', tastingKind: 'beer' }],
+  tasks: [{ id: 'task-new', kind: 'row' }],
+  recipes: [
+    // An import is a *reading* of a page, partly parsed and partly guessed,
+    // and it has to be shown to somebody before it becomes a recipe. That
+    // review does not fit in a launcher, so the launcher hands over to the
+    // Module's own screen.
+    {
+      id: 'recipe-import',
+      kind: 'handoff',
+      href: moduleHref('/all/recipes/import'),
+    },
+  ],
+  nutrition: [{ id: 'meal-log', kind: 'sheet' }],
+  'meal-planner': [],
+  groceries: [],
+  pantry: [],
+  'recurring-costs': [],
+  'shared-costs': [],
+  'savings-goals': [],
+  'baby-log': [],
+  calendar: [],
+  notes: [],
+}
+
+const LAUNCHER_ORDER: readonly string[] = Object.keys(ACTIONS_BY_MODULE)
+
+export const QUICK_ACTIONS: readonly QuickAction[] = MODULES.flatMap(
+  ({ id, group, icon }) =>
+    ACTIONS_BY_MODULE[id].map((action) => ({
+      ...action,
+      module: id,
+      group,
+      icon,
+    })),
+).sort(
+  (a, b) => LAUNCHER_ORDER.indexOf(a.module) - LAUNCHER_ORDER.indexOf(b.module),
+)

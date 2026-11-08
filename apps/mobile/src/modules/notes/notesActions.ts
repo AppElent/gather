@@ -6,8 +6,7 @@
  * menu and the note's own ⋯ reach it, and an alert whose wording depended on
  * which one you used would be a bug nobody would ever notice.
  */
-import { Alert } from 'react-native'
-
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt, type Messages } from '../../i18n'
 import type { Note } from './store'
 
@@ -16,14 +15,11 @@ export function confirmDeleteNote(
   t: Messages,
   onDelete: () => void,
 ) {
-  Alert.alert(
-    fmt(t.notes.deleteTitle, {
-      title: note.title || t.notes.untitled,
-    }),
-    t.notes.deleteBody,
-    [
-      { text: t.actions.cancel, style: 'cancel' },
-      { text: t.actions.delete, style: 'destructive', onPress: onDelete },
-    ],
-  )
+  confirmDestructive({
+    title: fmt(t.notes.deleteTitle, { title: note.title || t.notes.untitled }),
+    message: t.notes.deleteBody,
+    confirm: t.actions.delete,
+    cancel: t.actions.cancel,
+    onConfirm: onDelete,
+  })
 }

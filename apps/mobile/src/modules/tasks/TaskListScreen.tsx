@@ -17,7 +17,6 @@ import { type MenuAction, MenuView } from '@expo/ui/community/menu'
 import { Stack, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import {
-  Alert,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -32,10 +31,13 @@ import {
 import { LegacyScrollView as ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, type Messages, useI18n } from '../../i18n'
+import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { Card, Chip, priorityColor } from './components'
+import { Card } from '../../ui/card'
+import { Chip, priorityColor } from './components'
 import { TASK_ICONS } from './icons'
 import { ReorderMode } from './ReorderMode'
 import { RenameSheet } from './sheets'
@@ -91,21 +93,16 @@ export function TaskList({
   }
 
   const confirmDeleteList = () => {
-    Alert.alert(
-      fmt(t.tasks.list.deleteTitle, { title: list.name }),
-      t.tasks.list.deleteBody,
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: t.actions.delete,
-          style: 'destructive',
-          onPress: () => {
-            actions.deleteList(list.id)
-            router.back()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(t.tasks.list.deleteTitle, { title: list.name }),
+      message: t.tasks.list.deleteBody,
+      confirm: t.actions.delete,
+      cancel: t.actions.cancel,
+      onConfirm: () => {
+        actions.deleteList(list.id)
+        router.back()
+      },
+    })
   }
 
   const onListMenu = (action: string) => {
@@ -227,7 +224,7 @@ export function TaskList({
                 onPressAction={(event) => onListMenu(event.nativeEvent.event)}
               >
                 <View style={styles.headerButton}>
-                  <TASK_ICONS.Ellipsis
+                  <UI_ICONS.Ellipsis
                     size={22}
                     color={tokens.fg}
                     strokeWidth={2.2}

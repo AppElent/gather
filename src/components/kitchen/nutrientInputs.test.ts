@@ -1,22 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import {
-  nutrientInputsToFacts,
-  parseDecimal,
-  toNutrientInputs,
-} from './nutrientInputs'
-
-describe('parseDecimal', () => {
-  test('parses plain and Dutch-comma decimals', () => {
-    expect(parseDecimal('12.5')).toBe(12.5)
-    expect(parseDecimal('12,5')).toBe(12.5)
-  })
-  test('rejects empty, whitespace-only, negative, and garbage input', () => {
-    expect(parseDecimal('')).toBeUndefined()
-    expect(parseDecimal('   ')).toBeUndefined()
-    expect(parseDecimal('-1')).toBeUndefined()
-    expect(parseDecimal('abc')).toBeUndefined()
-  })
-})
+import { nutrientInputsToFacts, toNutrientInputs } from './nutrientInputs'
 
 describe('toNutrientInputs', () => {
   test('stringifies present values and leaves absent ones as empty strings', () => {
@@ -46,10 +29,11 @@ describe('toNutrientInputs', () => {
 })
 
 describe('nutrientInputsToFacts', () => {
-  test('builds a NutritionFacts object from parseable inputs, dropping empty/invalid ones', () => {
+  test('builds a NutritionFacts object from parseable inputs, dropping empty, invalid and negative ones', () => {
     const inputs = toNutrientInputs({ calories: 520 })
     inputs.protein = '12,5'
     inputs.fat = 'oops'
+    inputs.salt = '-1'
     expect(nutrientInputsToFacts(inputs)).toEqual({
       calories: 520,
       protein: 12.5,

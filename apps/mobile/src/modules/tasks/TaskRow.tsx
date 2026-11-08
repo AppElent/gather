@@ -316,7 +316,7 @@ export function TaskComposer({
 
   return (
     <View style={styles.composer}>
-      <TASK_ICONS.Plus
+      <UI_ICONS.Plus
         size={17}
         color={tokens.tintOf('home').fg}
         strokeWidth={2.2}

@@ -31,12 +31,13 @@ import { useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { Card, Checkbox, Chip, priorityColor } from './components'
+import { Card } from '../../ui/card'
+import { useDebouncedText } from '../../ui/use-debounced-text'
+import { Checkbox, Chip, priorityColor } from './components'
 import { TASK_ICONS } from './icons'
 import { useTaskActions, useTaskState } from './store'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
-import { useDebouncedText } from './useDebouncedText'
 
 export function TaskDetail({ taskId }: { taskId: string }) {
   const tokens = useTokens('home')

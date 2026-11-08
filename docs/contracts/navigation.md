@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a nested web route, breadcrumbs, a back link, or a Module's web address.
-version: 1.2.0
+version: 1.3.0
 status: current
 ---
 
@@ -17,9 +17,12 @@ no breadcrumbs ([mobile design system](../../apps/mobile/DESIGN_SYSTEM.md#chrome
 The [nested-page trail rules](../standards/web-design.md#nested-pages-carry-their-own-trail)
 apply as written. Gather binds them:
 
-- **Every route below a Module's index renders `<Breadcrumbs>`**
+- **Every route below an index renders `<Breadcrumbs>`**
   (`src/components/app/Breadcrumbs.tsx`) with the trail from that index down to
   itself — Foods → *Hagelslag* → Edit, and the same for Recipes and the Baby log.
+  `Breadcrumbs.routes.test.ts` walks `src/routes/_app/` for it. The two
+  exceptions are the add sheet over the nutrition diary, which closes back to
+  the diary, and the OAuth callback.
 - **Content labels** (a food's name, a recipe's title) are never translated
   ([ADR-0011](../adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md)).
 - **Every in-app link is built with `linkTo` or `hrefTo` from `src/lib/links.ts`**,

@@ -11,8 +11,6 @@ export const calendar = {
   agenda: 'Agenda',
   nothingPlanned: 'Niets gepland',
   noEventsRange: 'Geen afspraken · {from}–{to}',
-  loading: 'Agenda laden…',
-  retry: 'Opnieuw proberen',
   filtersActive: 'Filters actief',
   everyone: 'Iedereen',
   unassigned: 'Niet toegewezen',

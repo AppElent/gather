@@ -9,16 +9,13 @@
  *
  * `DROP_TARGETS` is an exhaustive record keyed by `ModuleId`, so a Module that
  * accepts nothing has to declare an empty list and **adding a Module is a
- * compile error until somebody answers the question**. That is deliberately
- * unlike `moduleDestination.ts`, the seed contributions, the breadcrumb trails
- * and `quickActions.ts`, every one of which fails silently and is kept honest
- * only by a row in `docs/runbooks/add-a-module.md`.
+ * compile error until somebody answers the question**. `QUICK_ACTIONS` is
+ * keyed the same way.
  *
  * It is a separate list from `QUICK_ACTIONS` even though the two describe
  * neighbouring things — the Add tab's capture verbs, and the destinations a
- * Drop can be aimed at. The two will drift. That was accepted in exchange for
- * this one being exhaustive, which `QUICK_ACTIONS` is not and does not want to
- * be.
+ * Drop can be aimed at. A Module may take a Drop and offer no verb, or the
+ * other way round.
  *
  * ## Ranking
  *

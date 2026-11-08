@@ -119,7 +119,7 @@ export const UI_ICONS = {
   CircleMinus: glyph(CircleMinus, 'minus.circle.fill'),
   CirclePlus: glyph(CirclePlus, 'plus.circle.fill'),
   /**
-   * The All screen's nav-bar menu: view, and the way into Edit.
+   * A screen's nav-bar menu: All's view and Edit, a task list's, a note's.
    *
    * Bare `ellipsis`, not `ellipsis.circle`. iOS 26 draws a nav-bar button on
    * its own glass circle, so the circled symbol lands a ring inside a ring -

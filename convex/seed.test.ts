@@ -1,6 +1,11 @@
 import { SAMPLE_GROUP_NAME } from '@gather/core/groups'
+import { MODULES, type ModuleId } from '@gather/core/modules'
+import type { TastingKind } from '@gather/core/tastings'
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
+import type { Doc, Id } from './_generated/dataModel'
+import type { MutationCtx } from './_generated/server'
+import type { GroupScopedTable } from './lib/groupAccess'
 import {
   applyCatalog,
   applySample,
@@ -236,4 +241,85 @@ describe('the Sample household', () => {
     expect(scenarios[0].transfers).toHaveLength(2)
     expect(scenarios[0].totalCents).toBe(450_00)
   })
+})
+
+/** The Sample household's rows that make one Module look used. */
+type SampleContent = (
+  ctx: MutationCtx,
+  sample: { group: Doc<'groups'>; ownerId: Id<'users'> },
+) => Promise<unknown[]>
+
+async function groupRows(
+  ctx: MutationCtx,
+  table: GroupScopedTable,
+  groupId: Id<'groups'>,
+) {
+  const rows: { groupId: Id<'groups'> }[] = await ctx.db.query(table).collect()
+  return rows.filter((row) => row.groupId === groupId)
+}
+
+const inGroup =
+  (table: GroupScopedTable): SampleContent =>
+  (ctx, { group }) =>
+    groupRows(ctx, table, group._id)
+
+const subjectsOf =
+  (kind: TastingKind): SampleContent =>
+  async (ctx, { group }) =>
+    (
+      (await groupRows(
+        ctx,
+        'tastingSubjects',
+        group._id,
+      )) as Doc<'tastingSubjects'>[]
+    ).filter((subject) => subject.kind === kind)
+
+/**
+ * Where each Module's sample content lives. Keyed by every Module, so a new
+ * one fails `pnpm typecheck` here until it names its rows, and the test below
+ * fails until the seed writes some.
+ */
+const SAMPLE_CONTENT: Record<ModuleId, SampleContent> = {
+  recipes: inGroup('recipes'),
+  // Personal: the diary belongs to the person the household is built around.
+  nutrition: async (ctx, { ownerId }) =>
+    (await ctx.db.query('consumptionEntries').collect()).filter(
+      (entry) => entry.userId === ownerId,
+    ),
+  'meal-planner': inGroup('plannedDinners'),
+  groceries: async (ctx, { group }) => {
+    const listId = group.groceryListId
+    if (!listId) return []
+    return (await ctx.db.query('tasks').collect()).filter(
+      (task) => task.listId === listId,
+    )
+  },
+  pantry: inGroup('pantryEntries'),
+  'recurring-costs': inGroup('recurringCosts'),
+  'shared-costs': inGroup('splitScenarios'),
+  'savings-goals': inGroup('savingsGoals'),
+  tasks: inGroup('taskLists'),
+  'baby-log': inGroup('babies'),
+  calendar: inGroup('calendars'),
+  notes: inGroup('notes'),
+  cheeses: subjectsOf('cheese'),
+  wines: subjectsOf('wine'),
+  beers: subjectsOf('beer'),
+}
+
+describe('every Module in the Sample household', () => {
+  test.each(MODULES.map((module) => module.id))(
+    '%s has sample content',
+    async (moduleId) => {
+      const t = testConvex()
+      const ownerId = await buildSample(t)
+      const group = await sampleGroup(t)
+      if (!group) throw new Error('no sample group')
+
+      const rows = await t.run((ctx) =>
+        SAMPLE_CONTENT[moduleId](ctx, { group, ownerId }),
+      )
+      expect(rows.length).toBeGreaterThan(0)
+    },
+  )
 })

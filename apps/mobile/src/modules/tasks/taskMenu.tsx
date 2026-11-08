@@ -10,8 +10,8 @@
  */
 import type { MenuAction } from '@expo/ui/community/menu'
 import { useState } from 'react'
-import { Alert } from 'react-native'
 
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, type Messages, useI18n } from '../../i18n'
 import {
@@ -94,21 +94,16 @@ export function useTaskSheets({
   const close = () => setOpen(null)
 
   const confirmDelete = (task: Task) =>
-    Alert.alert(
-      fmt(t.tasks.list.deleteTitle, { title: task.title }),
-      t.tasks.list.deleteBody,
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: t.actions.delete,
-          style: 'destructive',
-          onPress: () => {
-            actions.deleteTask(task.id)
-            onDeleted?.()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(t.tasks.list.deleteTitle, { title: task.title }),
+      message: t.tasks.list.deleteBody,
+      confirm: t.actions.delete,
+      cancel: t.actions.cancel,
+      onConfirm: () => {
+        actions.deleteTask(task.id)
+        onDeleted?.()
+      },
+    })
 
   const onAction = (task: Task, action: string) => {
     switch (action) {

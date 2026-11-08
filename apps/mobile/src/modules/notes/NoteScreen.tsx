@@ -27,9 +27,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
+import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { TASK_ICONS } from '../tasks/icons'
-import { useDebouncedText } from '../tasks/useDebouncedText'
+import { useDebouncedText } from '../../ui/use-debounced-text'
 import { confirmDeleteNote } from './notesActions'
 import { noteWhen, preview } from './noteText'
 import { useNoteActions, useNotes } from './store'
@@ -104,7 +104,7 @@ export function Note({ noteId }: { noteId: string }) {
               }}
             >
               <View style={styles.headerButton}>
-                <TASK_ICONS.Ellipsis
+                <UI_ICONS.Ellipsis
                   size={22}
                   color={tokens.fg}
                   strokeWidth={2.2}
@@ -137,7 +137,7 @@ export function Note({ noteId }: { noteId: string }) {
 
           <View style={styles.meta}>
             {note.pinned ? (
-              <TASK_ICONS.Pin
+              <UI_ICONS.Pin
                 size={13}
                 color={tokens.muted}
                 strokeWidth={2.2}

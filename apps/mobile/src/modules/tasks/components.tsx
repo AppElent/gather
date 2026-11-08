@@ -1,6 +1,6 @@
 /**
- * The handful of pieces every Tasks and Notes screen is made of: 16px card
- * radius, 14px inset, a 21px box with a 1.6 stroke.
+ * The handful of pieces every Tasks screen is made of besides `Card`: a 21px
+ * box with a 1.6 stroke, chips, and pressable rows.
  *
  * `PressRow` highlights with a background fill and an Android ripple rather
  * than `opacity: 0.6`; `apps/mobile/DESIGN_SYSTEM.md` calls the opacity
@@ -18,7 +18,7 @@ import {
 } from 'react-native'
 
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { useTokens } from '../../theme/tokens'
 import type { Priority } from './types'
 
 /** Red for the most urgent, amber for high, and nothing at all below that. */
@@ -29,37 +29,6 @@ export function priorityColor(
   if (priority === 1) return danger
   if (priority === 2) return '#b4791f'
   return undefined
-}
-
-/** The section heading above a card. */
-export function SectionLabel({ children }: { children: ReactNode }) {
-  const tokens = useTokens('home')
-  return (
-    <Text style={[styles.sectionLabel, { color: tokens.muted }]}>
-      {typeof children === 'string' ? children.toUpperCase() : children}
-    </Text>
-  )
-}
-
-export function Card({
-  children,
-  style,
-}: {
-  children: ReactNode
-  style?: ViewStyle
-}) {
-  const tokens = useTokens('home')
-  return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
-        style,
-      ]}
-    >
-      {children}
-    </View>
-  )
 }
 
 /**
@@ -192,18 +161,6 @@ export function Chip({
 }
 
 const styles = StyleSheet.create({
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    paddingHorizontal: 4,
-  },
-  card: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.card,
-    paddingHorizontal: 14,
-    overflow: 'hidden',
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

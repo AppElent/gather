@@ -1,15 +1,15 @@
 ---
 type: runbook
 description: Read when adding a Module, a nested web route, a Convex table with a groupId, a _storage column, a photo preset, or a schema-keyed message.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Add a Module
 
 Gather's registries that every new Module, route or column has to reach.
-Six fail `pnpm typecheck` or `pnpm test` when forgotten; **four fail
-silently**, and this page is the only thing that keeps them honest. Work
-through every row in the same change as the Module.
+Every row but the last fails `pnpm typecheck` or `pnpm test` when forgotten;
+`PHOTO_PRESETS` is kept honest only by this page. Work through every row in
+the same change as the Module.
 
 ## Prerequisites
 
@@ -35,16 +35,17 @@ through every row in the same change as the Module.
 | `packages/core/src/babyEvents.ts` (`BabyEventDataByType`, `summarizeBabyEvent`) | A new baby event type | `pnpm typecheck` | [Localization](../../CODING_STANDARDS.md#localization) |
 | `src/lib/links.ts` `MODULE_ROUTES` + a route file under `src/routes/_app/` | Every Module | `pnpm typecheck` (`Record<ModuleId, …>`); `pnpm test` (`src/lib/modules.routes.test.ts`) for the route file | [Navigation](../contracts/navigation.md) |
 | `apps/mobile/src/modules/moduleDestination.ts` `NATIVE_MODULES` (and `ModulePath` for each screen pushed by name) | When the Module gets native screens | `pnpm test` (`moduleDestination.test.ts`: every Module's address must be a route file, and only a Module without screens may land on the placeholder) | — |
-| `apps/mobile/src/shell/quickActions.ts` `QUICK_ACTIONS` | When the Module has a capture verb for the Add tab | **Silent**: the verb is missing from Add | [Mobile design system](../../apps/mobile/DESIGN_SYSTEM.md#forms-and-quick-actions) |
-| Seed contribution in `convex/lib/seed/` | Every Module: a Catalog fixture if it needs reference data, Sample household fixtures always | **Silent**: previews and dev show an empty Module | [Seed data](../contracts/seed-data.md) |
-| `<Breadcrumbs>` trail | Every route below a Module's index | **Silent**: a page you can enter but not leave | [Navigation](../contracts/navigation.md) |
+| `apps/mobile/src/shell/quickActions.ts` `ACTIONS_BY_MODULE` | Every Module; an empty list if it has no capture verb for the Add tab | `pnpm typecheck` (`Record<ModuleId, …>`) | [Mobile design system](../../apps/mobile/DESIGN_SYSTEM.md#forms-and-quick-actions) |
+| Seed contribution in `convex/lib/seed/`, and the Module's row in `SAMPLE_CONTENT` (`convex/seed.test.ts`) | Every Module: a Catalog fixture if it needs reference data, Sample household fixtures always | `pnpm typecheck` (`SAMPLE_CONTENT` is a `Record<ModuleId, …>`); `pnpm test` when the Sample household has no rows for it | [Seed data](../contracts/seed-data.md) |
+| `<Breadcrumbs>` trail | Every route below an index | `pnpm test` (`src/components/app/Breadcrumbs.routes.test.ts` walks `src/routes/_app/`; an exception needs an entry with its reason) | [Navigation](../contracts/navigation.md) |
 | `packages/core/src/photoPresets.ts` `PHOTO_PRESETS` | A new kind of photo | Silent drift: a dimension written at a call site | [Stored files](../contracts/stored-files.md) |
 
 ## Steps
 
 1. Declare the Module in `modules.ts` and its words in both core trees; run
    `pnpm typecheck` and let each compile error name the next registry.
-2. Add the web surface and route, then the four silent rows above.
+2. Add the web surface and route, then run `pnpm test` and let each failure
+   name the next row.
 3. For a backend change to existing data, write the migration with its end
    condition ([one-shot code](../../CODING_STANDARDS.md#one-shot-code)).
 
