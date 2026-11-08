@@ -1,44 +1,118 @@
+/**
+ * Tasks' one door to the backend: what a Group's lists hold, and every write.
+ *
+ * Local lists are Convex subscriptions, which the query cache already shares
+ * between every screen that mounts them. A linked list is not: its tasks come
+ * from Notion or Todoist through an action, so the last answer for each list is
+ * kept here, once for the app, and fetched again only when someone asks
+ * (ADR-0021: first open, then manual refresh). A failed fetch keeps the last
+ * rows readable and says so through the list's `sync`.
+ */
 import { localIsoDate } from '@gather/core/civil-date'
+import type { OptimisticLocalStore } from 'convex/browser'
 import { useAction, useMutation } from 'convex/react'
-import { useEffect, useMemo, useState } from 'react'
+import type { FunctionReturnType } from 'convex/server'
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { api, type Doc, type Id } from '../../convex/api'
 import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
-import type {
-  ListDisplay,
-  Note,
-  Priority,
-  Task,
-  TaskList,
-  TaskState,
-} from './types'
+import type { ListDisplay, ListSync, Priority, Task, TaskList } from './types'
 
-type ActionRefs = {
-  toggle: (id: string) => Promise<unknown>
-  add: (listId: string, title: string) => Promise<unknown>
-  rename: (id: string, title: string) => Promise<unknown>
-  due: (id: string, value: string | undefined) => Promise<unknown>
-  priority: (id: string, value: Priority | undefined) => Promise<unknown>
-  labels: (id: string, value: string[]) => Promise<unknown>
-  notes: (id: string, value: string) => Promise<unknown>
-  remove: (id: string) => Promise<unknown>
-  moveTask: (id: string, listId: string) => Promise<unknown>
-  reorder: (listId: string, ids: string[]) => Promise<unknown>
-  display: (listId: string, value: ListDisplay) => Promise<unknown>
-  renameList: (id: string, name: string) => Promise<unknown>
-  removeList: (id: string) => Promise<unknown>
-  addNote: () => Promise<string>
-  editNote: (
-    id: string,
-    patch: { title?: string; body?: string },
-  ) => Promise<unknown>
-  togglePin: (id: string) => Promise<unknown>
-  deleteNote: (id: string) => Promise<unknown>
-  renameLabel: (from: string, to: string) => Promise<unknown>
-  removeLabel: (label: string) => Promise<unknown>
+type ListRow = FunctionReturnType<typeof api.taskLists.list>[number]
+type FetchResult = FunctionReturnType<typeof api.taskLists.getTasks>
+type FetchTasks = (listId: string) => Promise<FetchResult>
+
+interface ExternalEntry {
+  sync: Exclude<ListSync, 'live'>
+  tasks: Task[]
 }
 
-let actions: ActionRefs | null = null
+let external: ReadonlyMap<string, ExternalEntry> = new Map()
+const inFlight = new Map<string, Promise<ListSync>>()
+const listeners = new Set<() => void>()
+
+function put(listId: string, entry: ExternalEntry) {
+  external = new Map(external).set(listId, entry)
+  for (const listener of listeners) listener()
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
+/** Every linked list's last answer, as one immutable value per change. */
+export function externalSnapshot(): ReadonlyMap<string, ExternalEntry> {
+  return external
+}
+
+/** A provider's answer as rows, or the previous rows marked stale. */
+export function externalEntry(
+  listId: string,
+  result: FetchResult,
+  previous: readonly Task[],
+): ExternalEntry {
+  if (result.status !== 'ok') {
+    return {
+      sync: result.status === 'reconnect' ? 'reconnect' : 'failed',
+      tasks: [...previous],
+    }
+  }
+  return {
+    sync: 'synced',
+    tasks: result.tasks.map((task, order) => ({
+      id: task.externalId,
+      listId,
+      title: task.title,
+      done: task.done,
+      dueDate: task.dueDate,
+      priority: task.priority,
+      labels: task.labels ?? [],
+      order,
+    })),
+  }
+}
+
+/** Asks the provider for one list now; a second ask while one runs joins it. */
+export function syncExternalList(
+  listId: string,
+  fetchTasks: FetchTasks,
+): Promise<ListSync> {
+  const running = inFlight.get(listId)
+  if (running) return running
+  const previous = external.get(listId)?.tasks ?? []
+  put(listId, { sync: 'loading', tasks: previous })
+  const run = fetchTasks(listId)
+    .then(
+      (result) => externalEntry(listId, result, previous),
+      (): ExternalEntry => ({ sync: 'failed', tasks: previous }),
+    )
+    .then((entry) => {
+      put(listId, entry)
+      return entry.sync
+    })
+    .finally(() => inFlight.delete(listId))
+  inFlight.set(listId, run)
+  return run
+}
+
+/**
+ * Fetches the linked lists nobody has an answer for yet. A list that failed
+ * is asked again on the next open, since reconnecting happens elsewhere.
+ */
+export function ensureExternalLists(
+  listIds: readonly string[],
+  fetchTasks: FetchTasks,
+) {
+  for (const listId of listIds) {
+    const sync = external.get(listId)?.sync
+    if (sync !== 'loading' && sync !== 'synced') {
+      void syncExternalList(listId, fetchTasks)
+    }
+  }
+}
 
 /**
  * The dynamic local-list subscriptions for one Group.
@@ -63,227 +137,200 @@ export function localTaskQueries(
   )
 }
 
-export function useTaskState(): TaskState {
+/** Local rows and linked rows as one model: the only place the two meet. */
+export function mergeTasks(
+  lists: readonly ListRow[],
+  local: Readonly<Record<string, unknown>>,
+  linked: ReadonlyMap<string, ExternalEntry>,
+): { lists: TaskList[]; tasks: Task[] } {
+  const tasks: Task[] = []
+  const views = lists.map((list): TaskList => {
+    let sync: ListSync
+    if (list.provider === 'local') {
+      const rows = local[list._id]
+      // `useQueries` hands back the Error a failed subscription threw.
+      sync = Array.isArray(rows)
+        ? 'live'
+        : rows instanceof Error
+          ? 'failed'
+          : 'loading'
+      if (Array.isArray(rows)) {
+        for (const row of rows as Doc<'tasks'>[]) {
+          tasks.push({
+            id: row._id,
+            listId: row.listId,
+            title: row.title,
+            done: row.done,
+            dueDate: row.dueDate,
+            priority: row.priority,
+            labels: row.labels ?? [],
+            notes: row.notes,
+            order: row.order,
+          })
+        }
+      }
+    } else {
+      const entry = linked.get(list._id)
+      sync = entry?.sync ?? 'loading'
+      tasks.push(...(entry?.tasks ?? []))
+    }
+    return {
+      id: list._id,
+      name: list.name,
+      provider: list.provider,
+      writable: list.writable,
+      display: list.display,
+      order: list.order,
+      sync,
+    }
+  })
+  return { lists: views, tasks }
+}
+
+export function taskSections<T extends { done: boolean }>(tasks: readonly T[]) {
+  return {
+    active: tasks.filter((task) => !task.done),
+    completed: tasks.filter((task) => task.done),
+  }
+}
+
+/** Ticks a task in every cached list that holds it, before the server agrees. */
+export function toggleInPlace(
+  store: OptimisticLocalStore,
+  { taskId }: { taskId: Id<'tasks'> },
+) {
+  for (const { args, value } of store.getAllQueries(api.tasks.listByList)) {
+    if (!value?.some((task) => task._id === taskId)) continue
+    store.setQuery(
+      api.tasks.listByList,
+      args,
+      value.map((task) =>
+        task._id === taskId ? { ...task, done: !task.done } : task,
+      ),
+    )
+  }
+}
+
+const NO_LISTS: readonly ListRow[] = []
+
+function useListsOf(lists: readonly ListRow[]) {
   const { group } = useGroup()
-  const listsQuery = useQuery(api.taskLists.list, { groupSlug: group.slug })
-  const notesQuery = useQuery(api.notes.list, { groupSlug: group.slug })
+  const localQueries = useMemo(
+    () => localTaskQueries(lists, group.slug),
+    [lists, group.slug],
+  )
+  const local = useQueries(localQueries)
+  const linked = useSyncExternalStore(subscribe, externalSnapshot)
   const getTasks = useAction(api.taskLists.getTasks)
-  const [externalTasks, setExternalTasks] = useState<Task[]>([])
-  const externalListIds = (listsQuery ?? [])
+  const fetchTasks = useCallback(
+    (listId: string) =>
+      getTasks({ listId: listId as Id<'taskLists'>, groupSlug: group.slug }),
+    [getTasks, group.slug],
+  )
+  const linkedIds = lists
     .filter((list) => list.provider !== 'local')
     .map((list) => list._id)
     .join(',')
-  const localQueries = useMemo(
-    () => localTaskQueries(listsQuery ?? [], group.slug),
-    [listsQuery, group.slug],
-  )
-  const taskQueries = useQueries(localQueries)
-
   useEffect(() => {
-    let active = true
-    const externalIds = externalListIds ? externalListIds.split(',') : []
-    if (externalIds.length === 0) {
-      setExternalTasks((current) => (current.length === 0 ? current : []))
-      return () => {
-        active = false
-      }
-    }
-    void Promise.all(
-      externalIds.map(async (listId) => {
-        const result = await getTasks({
-          listId: listId as Id<'taskLists'>,
-          groupSlug: group.slug,
-        })
-        if (result.status !== 'ok') return []
-        return result.tasks.map((task, order) => ({
-          id: task.externalId,
-          listId,
-          title: task.title,
-          done: task.done,
-          dueDate: task.dueDate,
-          priority: task.priority,
-          labels: task.labels ?? [],
-          order,
-        }))
-      }),
-    ).then((rows) => {
-      if (active) setExternalTasks(rows.flat())
-    })
-    return () => {
-      active = false
-    }
-  }, [externalListIds, getTasks, group.slug])
+    if (linkedIds) ensureExternalLists(linkedIds.split(','), fetchTasks)
+  }, [linkedIds, fetchTasks])
+  const refresh = useCallback(
+    (listId: string) => syncExternalList(listId, fetchTasks),
+    [fetchTasks],
+  )
+  return { ...mergeTasks(lists, local, linked), refresh }
+}
 
+/** Every list in the Current Group, and every task on them. */
+export function useTaskState() {
+  const { group } = useGroup()
+  const lists = useQuery(api.taskLists.list, { groupSlug: group.slug })
+  const state = useListsOf(lists ?? NO_LISTS)
+  return { today: localIsoDate(), ...state }
+}
+
+/**
+ * One list and its tasks in their order, without subscribing to the rest of
+ * the Group's lists or asking any other provider.
+ */
+export function useTaskList(listId: string) {
+  const { group } = useGroup()
+  const lists = useQuery(api.taskLists.list, { groupSlug: group.slug })
+  const only = useMemo(
+    () => (lists ?? NO_LISTS).filter((list) => list._id === listId),
+    [lists, listId],
+  )
+  const state = useListsOf(only)
+  return {
+    today: localIsoDate(),
+    list: state.lists[0],
+    tasks: [...state.tasks].sort((a, b) => a.order - b.order),
+    refresh: () => state.refresh(listId),
+  }
+}
+
+/** Every write Tasks makes, in the Current Group. */
+export function useTaskActions() {
+  const { group } = useGroup()
+  const groupSlug = group.slug
   const add = useMutation(api.tasks.add)
-  const toggle = useMutation(api.tasks.toggleDone)
+  const toggle = useMutation(api.tasks.toggleDone).withOptimisticUpdate(
+    toggleInPlace,
+  )
   const update = useMutation(api.tasks.update)
   const remove = useMutation(api.tasks.remove)
+  const moveToList = useMutation(api.tasks.moveToList)
   const reorder = useMutation(api.tasks.reorder)
   const updateDisplay = useMutation(api.taskLists.updateDisplay)
   const renameList = useMutation(api.taskLists.rename)
   const removeList = useMutation(api.taskLists.remove)
-  const createNote = useMutation(api.notes.create)
-  const updateNote = useMutation(api.notes.update)
-  const removeNote = useMutation(api.notes.remove)
   const renameLabel = useMutation(api.tasks.renameLabel)
   const removeLabel = useMutation(api.tasks.removeLabel)
 
-  actions = {
-    toggle: (id) =>
-      toggle({ taskId: id as Id<'tasks'>, groupSlug: group.slug }),
-    add: (listId, title) =>
-      add({ listId: listId as Id<'taskLists'>, groupSlug: group.slug, title }),
-    rename: (id, title) =>
-      update({ taskId: id as Id<'tasks'>, groupSlug: group.slug, title }),
-    due: (id, value) =>
-      update({
+  const patch = (
+    id: string,
+    fields: Omit<Parameters<typeof update>[0], 'taskId' | 'groupSlug'>,
+  ) => update({ taskId: id as Id<'tasks'>, groupSlug, ...fields })
+
+  return {
+    addTask: (listId: string, title: string) =>
+      add({ listId: listId as Id<'taskLists'>, groupSlug, title }),
+    toggleTask: (id: string) =>
+      toggle({ taskId: id as Id<'tasks'>, groupSlug }),
+    renameTask: (id: string, title: string) => patch(id, { title }),
+    setDue: (id: string, value: string | undefined) =>
+      patch(id, { dueDate: value ?? null }),
+    setPriority: (id: string, value: Priority | undefined) =>
+      patch(id, { priority: value ?? null }),
+    setLabels: (id: string, labels: string[]) => patch(id, { labels }),
+    setNotes: (id: string, notes: string) => patch(id, { notes }),
+    deleteTask: (id: string) =>
+      remove({ taskId: id as Id<'tasks'>, groupSlug }),
+    moveTask: (id: string, listId: string) =>
+      moveToList({
         taskId: id as Id<'tasks'>,
-        groupSlug: group.slug,
-        dueDate: value ?? null,
+        groupSlug,
+        listId: listId as Id<'taskLists'>,
       }),
-    priority: (id, value) =>
-      update({
-        taskId: id as Id<'tasks'>,
-        groupSlug: group.slug,
-        priority: value ?? null,
-      }),
-    labels: (id, value) =>
-      update({
-        taskId: id as Id<'tasks'>,
-        groupSlug: group.slug,
-        labels: value,
-      }),
-    notes: (id, value) =>
-      update({
-        taskId: id as Id<'tasks'>,
-        groupSlug: group.slug,
-        notes: value,
-      }),
-    remove: (id) =>
-      remove({ taskId: id as Id<'tasks'>, groupSlug: group.slug }),
-    moveTask: async () => undefined,
-    reorder: (listId, ids) =>
+    reorderTasks: (listId: string, ids: string[]) =>
       reorder({
         listId: listId as Id<'taskLists'>,
-        groupSlug: group.slug,
+        groupSlug,
         ids: ids as Id<'tasks'>[],
       }),
-    display: (listId, value) =>
+    /** One option changes; the others keep the list's current value. */
+    setListDisplay: (list: TaskList, change: Partial<ListDisplay>) =>
       updateDisplay({
-        listId: listId as Id<'taskLists'>,
-        groupSlug: group.slug,
-        display: value,
+        listId: list.id as Id<'taskLists'>,
+        groupSlug,
+        display: { ...list.display, ...change },
       }),
-    renameList: (id, name) =>
-      renameList({
-        listId: id as Id<'taskLists'>,
-        groupSlug: group.slug,
-        name,
-      }),
-    removeList: (id) =>
-      removeList({ listId: id as Id<'taskLists'>, groupSlug: group.slug }),
-    addNote: async () =>
-      await createNote({ groupSlug: group.slug, title: '', body: '' }),
-    editNote: (id, patch) =>
-      updateNote({
-        noteId: id as Id<'notes'>,
-        groupSlug: group.slug,
-        ...patch,
-      }),
-    togglePin: (id) =>
-      updateNote({
-        noteId: id as Id<'notes'>,
-        groupSlug: group.slug,
-        pinned: !(notesQuery?.find((note) => note._id === id)?.pinned ?? false),
-      }),
-    deleteNote: (id) =>
-      removeNote({ noteId: id as Id<'notes'>, groupSlug: group.slug }),
-    renameLabel: (from, to) => renameLabel({ groupSlug: group.slug, from, to }),
-    removeLabel: (label) => removeLabel({ groupSlug: group.slug, label }),
+    renameList: (id: string, name: string) =>
+      renameList({ listId: id as Id<'taskLists'>, groupSlug, name }),
+    deleteList: (id: string) =>
+      removeList({ listId: id as Id<'taskLists'>, groupSlug }),
+    renameLabel: (from: string, to: string) =>
+      renameLabel({ groupSlug, from, to }),
+    removeLabel: (label: string) => removeLabel({ groupSlug, label }),
   }
-
-  const tasks = useMemo<Task[]>(
-    () => [
-      ...(
-        Object.values(taskQueries) as Array<Doc<'tasks'>[] | undefined>
-      ).flatMap((rows) =>
-        (rows ?? []).map((task) => ({
-          id: task._id,
-          listId: task.listId,
-          title: task.title,
-          done: task.done,
-          dueDate: task.dueDate,
-          priority: task.priority,
-          labels: task.labels ?? [],
-          notes: task.notes,
-          order: task.order,
-        })),
-      ),
-      ...externalTasks,
-    ],
-    [externalTasks, taskQueries],
-  )
-  const lists: TaskList[] = (listsQuery ?? []).map((list) => ({
-    id: list._id,
-    name: list.name,
-    provider: list.provider,
-    writable: list.writable,
-    display: list.display,
-    order: list.order ?? 0,
-  }))
-  const notes: Note[] = (notesQuery ?? []).map((note) => ({
-    id: note._id,
-    title: note.title,
-    body: note.body,
-    pinned: note.pinned ?? false,
-    updatedAt: note.updatedAt,
-    updatedByName: note.updatedByName,
-    updatedByMe: note.updatedByMe,
-  }))
-  return { today: localIsoDate(), lists, tasks, notes }
-}
-
-function requireActions(): ActionRefs {
-  if (!actions)
-    throw new Error('Task actions are unavailable outside a task screen')
-  return actions
-}
-
-export const taskActions = {
-  toggleTask: (id: string) => requireActions().toggle(id),
-  addTask: (listId: string, title: string) =>
-    requireActions().add(listId, title),
-  renameTask: (id: string, title: string) => requireActions().rename(id, title),
-  setDue: (id: string, value: string | undefined) =>
-    requireActions().due(id, value),
-  setPriority: (id: string, value: Priority | undefined) =>
-    requireActions().priority(id, value),
-  setLabels: (id: string, value: string[]) =>
-    requireActions().labels(id, value),
-  setNotes: (id: string, value: string) => requireActions().notes(id, value),
-  deleteTask: (id: string) => requireActions().remove(id),
-  moveTask: (id: string, listId: string) =>
-    requireActions().moveTask(id, listId),
-  reorderTasks: (listId: string, ids: string[]) =>
-    requireActions().reorder(listId, ids),
-  setListDisplay: (listId: string, value: Partial<ListDisplay>) => {
-    const list = requireActions()
-    return list.display(listId, {
-      due: false,
-      priority: false,
-      labels: false,
-      ...value,
-    })
-  },
-  renameList: (id: string, name: string) =>
-    requireActions().renameList(id, name),
-  deleteList: (id: string) => requireActions().removeList(id),
-  addNote: () => requireActions().addNote(),
-  editNote: (id: string, patch: { title?: string; body?: string }) =>
-    requireActions().editNote(id, patch),
-  togglePin: (id: string) => requireActions().togglePin(id),
-  deleteNote: (id: string) => requireActions().deleteNote(id),
-  renameLabel: (from: string, to: string) =>
-    requireActions().renameLabel(from, to),
-  removeLabel: (label: string) => requireActions().removeLabel(label),
 }

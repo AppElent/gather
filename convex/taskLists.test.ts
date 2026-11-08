@@ -346,6 +346,79 @@ describe('the tasks inside a list', () => {
     ])
   })
 
+  test('move to another list of the same Group, at its end', async () => {
+    const { t, aliceId, jansen, jansenList, jansenTask } = await seed()
+    const errands = await t.run(async (ctx) => {
+      const listId = await ctx.db.insert('taskLists', {
+        groupId: jansen,
+        name: 'Errands',
+        provider: 'local',
+        order: 1,
+      })
+      await ctx.db.insert('tasks', {
+        listId,
+        title: 'Post the letter',
+        done: false,
+        createdBy: aliceId,
+        order: 0,
+      })
+      return listId
+    })
+
+    await t.withIdentity(alice).mutation(api.tasks.moveToList, {
+      taskId: jansenTask,
+      groupSlug: JANSEN,
+      listId: errands,
+    })
+
+    const read = (listId: typeof errands) =>
+      t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    expect((await read(errands)).map((task) => task.title)).toEqual([
+      'Post the letter',
+      'Take the bins out',
+    ])
+    expect(await read(jansenList)).toEqual([])
+  })
+
+  test('cannot be moved into another Group, nor into a list Gather may not write', async () => {
+    const { t, jansen, jansenConnection, devriesList, jansenList, jansenTask } =
+      await seed()
+    const notionList = await t.run((ctx) =>
+      ctx.db.insert('taskLists', {
+        groupId: jansen,
+        name: 'From Notion',
+        provider: 'notion',
+        providerConfig: {
+          connectionId: jansenConnection,
+          sourceId: 'database',
+        },
+        order: 1,
+      }),
+    )
+
+    await expect(
+      t.withIdentity(alice).mutation(api.tasks.moveToList, {
+        taskId: jansenTask,
+        groupSlug: JANSEN,
+        listId: devriesList,
+      }),
+    ).rejects.toThrow(/List not found/)
+    await expect(
+      t.withIdentity(alice).mutation(api.tasks.moveToList, {
+        taskId: jansenTask,
+        groupSlug: JANSEN,
+        listId: notionList,
+      }),
+    ).rejects.toThrow(/read-only/)
+
+    const jansenTasks = await t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId: jansenList, groupSlug: JANSEN })
+    expect(jansenTasks.map((task) => task.title)).toEqual(['Take the bins out'])
+  })
+
   test('a task in another Group reads like a task id that names nothing', async () => {
     const { t, aliceId, jansenList, jansenTask } = await seed()
 

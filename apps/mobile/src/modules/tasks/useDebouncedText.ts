@@ -11,10 +11,6 @@
  * So the draft lives here and the write is debounced, flushed on blur, and
  * flushed again when the screen goes away. What a person sees is unchanged:
  * they type, they leave, it is saved.
- *
- * The taskActions has no backend to spare, but it models the real cadence
- * deliberately — a taskActions that writes differently from the thing it is
- * standing in for is answering a question nobody asked.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 

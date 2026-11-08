@@ -1,14 +1,10 @@
 /**
- * The glyphs the Tasks and Notes taskActionss need, and nothing else.
+ * The glyphs the Tasks and Notes screens need, and nothing else.
  *
  * Same rule as `theme/icons.ts` and the Baby log's own set: deep imports, one
  * `glyph(lucide, sfSymbol)` pair each, so the bundle carries exactly what is
  * listed here and an iPhone draws its own symbols rather than someone else's
  * stroke icons.
- *
- * It lives beside the taskActionss rather than in `theme/icons.ts` because that
- * file is the app's vocabulary and this is a lab. When a Module ships, its
- * glyphs move up into `theme/icons.ts` and this file loses them.
  */
 import Calendar from 'lucide-react-native/icons/calendar'
 import CircleCheck from 'lucide-react-native/icons/circle-check'

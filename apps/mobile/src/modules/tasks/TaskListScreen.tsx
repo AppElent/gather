@@ -1,22 +1,17 @@
 /**
  * Tasks, level two: one list, whole.
  *
- * This is the screen the canvas spent the most argument on, and three of its
- * decisions are load-bearing:
+ * Three decisions are load-bearing:
  *
  * - **Rich rows, with a switch.** A row can carry a priority bar, a due date
  *   and its labels. Which of those it draws is a per-list setting in the list's
- *   own ⋯ menu, and with all three off the row collapses to exactly the plain
- *   checklist `modules/baby/Checklist.tsx` draws. That is what makes "rich vs
- *   plain" a setting instead of an argument.
+ *   own ⋯ menu, and with all three off the row collapses to the plain checklist
+ *   line. That is what makes "rich vs plain" a setting instead of an argument.
  * - **Reorder is a mode**, reachable from both the row's hold menu and the
  *   list's ⋯ — see `ReorderMode.tsx`.
  * - **A list Gather cannot write to says so and hides its composer**
  *   (ADR-0021). It is also the only list here with pull-to-refresh, because it
  *   is the only one Convex is not keeping live.
- *
- * Every write goes to the fixture store; nothing here calls Convex. See
- * `fixtures.ts` for why.
  */
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
 import { Stack, useRouter } from 'expo-router'
@@ -27,7 +22,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native'
 // Gesture Handler's own ScrollView, not React Native's: reorder's drag names
@@ -36,25 +30,20 @@ import {
 // `ScrollView` no longer puts a handler tag on its ref, so this is the legacy one
 // until reorder moves to the v3 gesture hooks.
 import { LegacyScrollView as ScrollView } from 'react-native-gesture-handler'
-import ReanimatedSwipeable, {
-  type SwipeableMethods,
-  SwipeDirection,
-} from 'react-native-gesture-handler/ReanimatedSwipeable'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
-import { fmt, useI18n } from '../../i18n'
-import { UI_ICONS } from '../../theme/icons'
+import { fmt, type Messages, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { Card, Checkbox, Chip } from './components'
+import { Card, Chip, priorityColor } from './components'
 import { TASK_ICONS } from './icons'
 import { ReorderMode } from './ReorderMode'
-import { priorityColor, RenameSheet } from './sheets'
-import { taskActions, useTaskState } from './store'
+import { RenameSheet } from './sheets'
+import { taskSections, useTaskActions, useTaskList } from './store'
+import { CompletedToggle, TaskComposer, TaskRow } from './TaskRow'
 import { dueLabel, isOverdue } from './taskDates'
-import { taskMenuActions, useTaskSheets } from './taskMenu'
-import type { List, ListDisplay, Task } from './types'
+import { useTaskSheets } from './taskMenu'
+import type { ListDisplay, Task, TaskList as TaskListModel } from './types'
 
 /** A menu entry an owning module adds to the list's ⋯ menu. */
 export interface ListMenuExtra {
@@ -82,36 +71,23 @@ export function TaskList({
   const insets = useSafeAreaInsets()
   const { t } = useI18n()
   const router = useRouter()
-  const state = useTaskState()
+  const { list, tasks, today, refresh } = useTaskList(listId)
+  const actions = useTaskActions()
 
   const [renamingList, setRenamingList] = useState(false)
   const [reordering, setReordering] = useState(false)
-  const taskSheets = useTaskSheets(() => setReordering(true))
+  const taskSheets = useTaskSheets({ onReorder: () => setReordering(true) })
   const scrollRef = useRef<ScrollView>(null)
   const [dragging, setDragging] = useState(false)
   const [completedOpen, setCompletedOpen] = useState(false)
-  const [draft, setDraft] = useState('')
   const [refreshing, setRefreshing] = useState(false)
-  const [synced, setSynced] = useState(false)
+  const [refreshed, setRefreshed] = useState(false)
 
-  const list = state.lists.find((each) => each.id === listId)
-  const tasks = state.tasks
-    .filter((task) => task.listId === listId)
-    .sort((a, b) => a.order - b.order)
-  const active = tasks.filter((task) => !task.done)
-  const completed = tasks.filter((task) => task.done)
+  const { active, completed } = taskSections(tasks)
 
   if (!list) {
     // The only way here is deleting the list from its own screen, which pops.
     return <View style={{ flex: 1, backgroundColor: tokens.bg }} />
-  }
-
-  const addTask = () => {
-    const title = draft.trim()
-    if (!title) return
-    setDraft('')
-    taskActions.addTask(list.id, title)
-    haptics.itemSaved()
   }
 
   const confirmDeleteList = () => {
@@ -124,7 +100,7 @@ export function TaskList({
           text: t.actions.delete,
           style: 'destructive',
           onPress: () => {
-            taskActions.deleteList(list.id)
+            actions.deleteList(list.id)
             router.back()
           },
         },
@@ -134,7 +110,7 @@ export function TaskList({
 
   const onListMenu = (action: string) => {
     if (action === 'due' || action === 'priority' || action === 'labels') {
-      taskActions.setListDisplay(list.id, { [action]: !list.display[action] })
+      actions.setListDisplay(list, { [action]: !list.display[action] })
       haptics.selectionChanged()
       return
     }
@@ -144,11 +120,40 @@ export function TaskList({
     menuExtras.find((extra) => extra.id === action)?.onPress()
   }
 
+  const onRefresh = async () => {
+    setRefreshing(true)
+    haptics.refreshStarted()
+    const sync = await refresh()
+    setRefreshing(false)
+    setRefreshed(sync === 'synced')
+    if (sync !== 'synced') haptics.actionFailed()
+  }
+
   const openTask = (task: Task) =>
     router.push({
       pathname: '/all/tasks/task/[taskId]',
       params: { taskId: task.id },
     })
+
+  const row = (task: Task, last: boolean) => (
+    <TaskRow
+      key={task.id}
+      task={task}
+      writable={list.writable}
+      last={last}
+      bar={
+        (list.display.priority &&
+          priorityColor(task.priority, tokens.danger)) ||
+        'transparent'
+      }
+      meta={<TaskMeta task={task} display={list.display} today={today} />}
+      onOpen={() => openTask(task)}
+      menu={{
+        reorder: true,
+        onAction: (action) => taskSheets.onAction(task, action),
+      }}
+    />
+  )
 
   return (
     <>
@@ -249,14 +254,7 @@ export function TaskList({
           list.writable ? undefined : (
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true)
-                haptics.refreshStarted()
-                setTimeout(() => {
-                  setRefreshing(false)
-                  setSynced(true)
-                }, 900)
-              }}
+              onRefresh={onRefresh}
               tintColor={tokens.muted}
             />
           )
@@ -266,10 +264,10 @@ export function TaskList({
           <ReorderMode
             tasks={active}
             display={list.display}
-            today={state.today}
+            today={today}
             scrollRef={scrollRef}
             onDragging={setDragging}
-            onCommit={(ids) => taskActions.reorderTasks(list.id, ids)}
+            onCommit={(ids) => actions.reorderTasks(list.id, ids)}
           />
         ) : (
           <>
@@ -287,9 +285,18 @@ export function TaskList({
                   accessibilityElementsHidden
                   importantForAccessibility="no"
                 />
-                <Text style={[styles.readOnlyText, { color: tokens.muted }]}>
-                  {fmt(t.tasks.list.readOnly, { provider: list.provider })}
-                  {synced ? ` ${t.tasks.list.refreshed}.` : ''}
+                <Text
+                  style={[
+                    styles.readOnlyText,
+                    {
+                      color:
+                        list.sync === 'reconnect' || list.sync === 'failed'
+                          ? tokens.danger
+                          : tokens.muted,
+                    },
+                  ]}
+                >
+                  {syncNotice(list, refreshed, t)}
                 </Text>
               </View>
             )}
@@ -298,93 +305,40 @@ export function TaskList({
               {active.length === 0 && completed.length === 0 ? (
                 <View style={styles.emptyRow}>
                   <Text style={[styles.empty, { color: tokens.muted }]}>
-                    {t.tasks.list.empty}
+                    {list.sync === 'loading'
+                      ? fmt(t.tasks.list.loading, { provider: list.provider })
+                      : t.tasks.list.empty}
                   </Text>
                 </View>
               ) : null}
 
-              {active.map((task, index) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  list={list}
-                  display={list.display}
-                  today={state.today}
-                  last={
-                    index === active.length - 1 &&
+              {active.map((task, index) =>
+                row(
+                  task,
+                  index === active.length - 1 &&
                     completed.length === 0 &&
-                    !list.writable
-                  }
-                  onOpen={() => openTask(task)}
-                  onMenu={(action) => taskSheets.onAction(task, action)}
-                />
-              ))}
+                    !list.writable,
+                ),
+              )}
 
               {completed.length > 0 ? (
                 <>
-                  <Pressable
-                    testID="completed-toggle"
-                    accessibilityRole="button"
-                    accessibilityState={{ expanded: completedOpen }}
-                    accessibilityLabel={
-                      completedOpen
-                        ? t.actions.hideCompleted
-                        : t.actions.showCompleted
-                    }
+                  <CompletedToggle
+                    count={completed.length}
+                    open={completedOpen}
                     onPress={() => setCompletedOpen((open) => !open)}
-                    style={({ pressed }) => [
-                      styles.completedToggle,
-                      { borderTopColor: tokens.border },
-                      pressed && { backgroundColor: tokens.tile },
-                    ]}
-                  >
-                    <Text
-                      style={[styles.completedLabel, { color: tokens.muted }]}
-                    >
-                      {fmt(t.actions.completed, { count: completed.length })}
-                    </Text>
-                    <View style={completedOpen ? styles.flipped : undefined}>
-                      <UI_ICONS.ChevronDown size={18} color={tokens.muted} />
-                    </View>
-                  </Pressable>
+                  />
                   {completedOpen
-                    ? completed.map((task) => (
-                        <TaskRow
-                          key={task.id}
-                          task={task}
-                          list={list}
-                          display={list.display}
-                          today={state.today}
-                          last={false}
-                          onOpen={() => openTask(task)}
-                          onMenu={(action) => taskSheets.onAction(task, action)}
-                        />
-                      ))
+                    ? completed.map((task) => row(task, false))
                     : null}
                 </>
               ) : null}
 
               {list.writable ? (
-                <View style={styles.composer}>
-                  <TASK_ICONS.Plus
-                    size={17}
-                    color={tokens.tintOf('home').fg}
-                    strokeWidth={2.2}
-                    accessibilityElementsHidden
-                    importantForAccessibility="no"
-                  />
-                  <TextInput
-                    testID="task-composer"
-                    value={draft}
-                    onChangeText={setDraft}
-                    onSubmitEditing={addTask}
-                    placeholder={addPlaceholder ?? t.tasks.list.addTask}
-                    placeholderTextColor={tokens.muted}
-                    returnKeyType="done"
-                    accessibilityLabel={addPlaceholder ?? t.tasks.list.addTask}
-                    style={[styles.composerInput, { color: tokens.fg }]}
-                  />
-                </View>
+                <TaskComposer
+                  listId={list.id}
+                  placeholder={addPlaceholder ?? t.tasks.list.addTask}
+                />
               ) : null}
             </Card>
           </>
@@ -396,7 +350,7 @@ export function TaskList({
         <RenameSheet
           title={t.tasks.list.rename}
           value={list.name}
-          onSave={(next) => taskActions.renameList(list.id, next)}
+          onSave={(next) => actions.renameList(list.id, next)}
           onClose={() => setRenamingList(false)}
         />
       ) : null}
@@ -404,229 +358,81 @@ export function TaskList({
   )
 }
 
-/**
- * One task.
- *
- * Three ways in, which is the point: tap opens it, swipe right completes it,
- * hold opens the menu. The menu is never the only way to anything — every item
- * in it is also a row on the detail screen.
- */
-function TaskRow({
+/** What the banner over a linked list says about where its rows came from. */
+function syncNotice(list: TaskListModel, refreshed: boolean, t: Messages) {
+  const provider = { provider: list.provider }
+  if (list.sync === 'reconnect') return fmt(t.tasks.list.reconnect, provider)
+  if (list.sync === 'failed') return fmt(t.tasks.list.failed, provider)
+  const readOnly = fmt(t.tasks.list.readOnly, provider)
+  return refreshed && list.sync === 'synced'
+    ? `${readOnly} ${t.tasks.list.refreshed}.`
+    : readOnly
+}
+
+/** The due date, priority and labels a list's display settings ask for. */
+function TaskMeta({
   task,
-  list,
   display,
   today,
-  last,
-  onOpen,
-  onMenu,
 }: {
   task: Task
-  list: List
   display: ListDisplay
   today: string
-  last: boolean
-  onOpen: () => void
-  onMenu: (action: string) => void
 }) {
   const tokens = useTokens('home')
   const { t, locale } = useI18n()
-  const swipe = useRef<SwipeableMethods | null>(null)
-
-  const overdue = Boolean(task.dueDate && isOverdue(task.dueDate, today))
-  const bar = display.priority
-    ? priorityColor(task.priority, tokens.danger)
-    : undefined
-  const meta =
+  const shown =
     (display.due && task.dueDate) ||
     (display.priority && task.priority) ||
     (display.labels && task.labels.length > 0)
+  if (!shown) return null
 
-  const row = (
-    <View
-      style={[
-        styles.row,
-        {
-          backgroundColor: tokens.surface,
-          borderBottomColor: tokens.border,
-          borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
-        },
-      ]}
-    >
-      <View style={[styles.bar, { backgroundColor: bar ?? 'transparent' }]} />
-      <Pressable
-        testID={`toggle-${task.id}`}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: task.done, disabled: !list.writable }}
-        accessibilityLabel={task.title}
-        disabled={!list.writable}
-        hitSlop={10}
-        onPress={() => {
-          taskActions.toggleTask(task.id)
-          if (!task.done) haptics.itemCompleted()
-        }}
-      >
-        <Checkbox checked={task.done} />
-      </Pressable>
-      <Pressable
-        testID={`task-${task.id}`}
-        accessibilityRole="button"
-        accessibilityLabel={task.title}
-        onPress={onOpen}
-        style={styles.rowText}
-      >
-        <Text
-          numberOfLines={1}
-          style={[
-            styles.title,
-            {
-              color: task.done ? tokens.muted : tokens.fg,
-              textDecorationLine: task.done ? 'line-through' : 'none',
-            },
-          ]}
-        >
-          {task.title}
-        </Text>
-        {meta ? (
-          <View style={styles.metaRow}>
-            {display.due && task.dueDate ? (
-              <View style={styles.metaItem}>
-                <TASK_ICONS.Calendar
-                  size={12}
-                  color={overdue ? tokens.danger : tokens.muted}
-                  strokeWidth={2.2}
-                  accessibilityElementsHidden
-                  importantForAccessibility="no"
-                />
-                <Text
-                  style={[
-                    styles.meta,
-                    { color: overdue ? tokens.danger : tokens.muted },
-                  ]}
-                >
-                  {dueLabel(task.dueDate, today, locale, {
-                    today: t.tasks.task.today,
-                    tomorrow: t.tasks.task.tomorrow,
-                  })}
-                </Text>
-              </View>
-            ) : null}
-            {display.priority && task.priority ? (
-              <View style={styles.metaItem}>
-                <TASK_ICONS.Flag
-                  size={12}
-                  color={
-                    priorityColor(task.priority, tokens.danger) ?? tokens.muted
-                  }
-                  strokeWidth={2.4}
-                  accessibilityElementsHidden
-                  importantForAccessibility="no"
-                />
-                <Text
-                  style={[
-                    styles.meta,
-                    {
-                      color:
-                        priorityColor(task.priority, tokens.danger) ??
-                        tokens.muted,
-                    },
-                  ]}
-                >
-                  {t.tasks.task.priorities[task.priority]}
-                </Text>
-              </View>
-            ) : null}
-            {display.labels
-              ? task.labels.map((label) => <Chip key={label} label={label} />)
-              : null}
-          </View>
-        ) : null}
-      </Pressable>
+  const overdue = Boolean(task.dueDate && isOverdue(task.dueDate, today))
+  const flag = priorityColor(task.priority, tokens.danger) ?? tokens.muted
+
+  return (
+    <View style={styles.metaRow}>
+      {display.due && task.dueDate ? (
+        <View style={styles.metaItem}>
+          <TASK_ICONS.Calendar
+            size={12}
+            color={overdue ? tokens.danger : tokens.muted}
+            strokeWidth={2.2}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+          <Text
+            style={[
+              styles.meta,
+              { color: overdue ? tokens.danger : tokens.muted },
+            ]}
+          >
+            {dueLabel(task.dueDate, today, locale, {
+              today: t.tasks.task.today,
+              tomorrow: t.tasks.task.tomorrow,
+            })}
+          </Text>
+        </View>
+      ) : null}
+      {display.priority && task.priority ? (
+        <View style={styles.metaItem}>
+          <TASK_ICONS.Flag
+            size={12}
+            color={flag}
+            strokeWidth={2.4}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+          <Text style={[styles.meta, { color: flag }]}>
+            {t.tasks.task.priorities[task.priority]}
+          </Text>
+        </View>
+      ) : null}
+      {display.labels
+        ? task.labels.map((label) => <Chip key={label} label={label} />)
+        : null}
     </View>
   )
-
-  /**
-   * The row, swipeable — with the hold menu wrapped around the *outside* of it.
-   *
-   * The nesting is the whole point, and it was inside out the first time. With
-   * the menu within the swipeable, iOS's context menu lifts a view Reanimated
-   * is transforming: the row vanished on hold and the text juddered on the way
-   * back, because UIKit and Reanimated were each deciding where it was. From
-   * outside, the menu's source is the swipeable's own untransformed container
-   * and the lift is the ordinary one. Mail puts both on one row too.
-   *
-   * A read-only list gets neither swipe — both of them are writes — but it
-   * keeps the menu, whose writing actions are disabled one by one.
-   */
-  const swipeable = list.writable ? (
-    <ReanimatedSwipeable
-      friction={1.6}
-      leftThreshold={56}
-      rightThreshold={72}
-      overshootLeft={false}
-      overshootRight={false}
-      onSwipeableWillOpen={(direction) => {
-        // `SwipeDirection` names the way the FINGER went, not which panel
-        // opened — the library reports RIGHT when the *left* panel is what
-        // came out. Reading it as the panel is why this completed on a
-        // left-swipe and did nothing on a right one.
-        if (direction === SwipeDirection.RIGHT) {
-          // Swiping right reveals the left panel: complete, and put the row
-          // back rather than leaving an open panel behind a moved row.
-          haptics.itemCompleted()
-          taskActions.toggleTask(task.id)
-          swipe.current?.close()
-        } else {
-          haptics.swipeThresholdPassed()
-        }
-      }}
-      renderLeftActions={(_progress, _translation, methods) => {
-        swipe.current = methods
-        return (
-          <View style={[styles.completeAction, { backgroundColor: '#3f7d4e' }]}>
-            <TASK_ICONS.CircleCheck size={20} color="#ffffff" strokeWidth={2} />
-            <Text style={styles.actionText}>
-              {task.done ? t.tasks.list.uncomplete : t.tasks.list.complete}
-            </Text>
-          </View>
-        )
-      }}
-      renderRightActions={(_progress, _translation, methods) => (
-        <View style={[styles.deleteAction, { backgroundColor: tokens.danger }]}>
-          <Pressable
-            testID={`delete-${task.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={t.actions.delete}
-            onPress={() => {
-              methods.close()
-              onMenu('delete')
-            }}
-            style={styles.actionPress}
-          >
-            <TASK_ICONS.Trash2 size={19} color="#ffffff" strokeWidth={2} />
-            <Text style={styles.actionText}>{t.actions.delete}</Text>
-          </Pressable>
-        </View>
-      )}
-    >
-      {row}
-    </ReanimatedSwipeable>
-  ) : (
-    row
-  )
-
-  const menu = (
-    <NativeContextMenu
-      actions={taskMenuActions(task, t, {
-        writable: list.writable,
-        reorder: true,
-      })}
-      onAction={onMenu}
-    >
-      {swipeable}
-    </NativeContextMenu>
-  )
-
-  return menu
 }
 
 const styles = StyleSheet.create({
@@ -656,23 +462,6 @@ const styles = StyleSheet.create({
   readOnlyText: { flex: 1, fontSize: 13, lineHeight: 19 },
   emptyRow: { minHeight: 50, justifyContent: 'center' },
   empty: { fontSize: 14 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    minHeight: 50,
-    marginHorizontal: -14,
-    paddingHorizontal: 14,
-  },
-  bar: {
-    width: 3,
-    borderRadius: 2,
-    alignSelf: 'stretch',
-    marginVertical: 12,
-    marginLeft: -8,
-  },
-  rowText: { flex: 1, gap: 5, paddingVertical: 9 },
-  title: { fontSize: 15.5 },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -681,40 +470,4 @@ const styles = StyleSheet.create({
   },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   meta: { fontSize: 12, fontWeight: '700' },
-  completedToggle: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    marginHorizontal: -14,
-    paddingHorizontal: 14,
-  },
-  completedLabel: { fontSize: 15, fontWeight: '600' },
-  flipped: { transform: [{ rotate: '180deg' }] },
-  composer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    minHeight: 50,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'transparent',
-  },
-  composerInput: { flex: 1, fontSize: 15.5, paddingVertical: 12 },
-  completeAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 18,
-  },
-  deleteAction: { justifyContent: 'center' },
-  actionPress: {
-    minWidth: 88,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-    paddingHorizontal: 16,
-    alignSelf: 'stretch',
-  },
-  actionText: { fontSize: 12.5, fontWeight: '700', color: '#ffffff' },
 })

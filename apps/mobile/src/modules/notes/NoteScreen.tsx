@@ -8,9 +8,7 @@
  *
  * The bar above the keyboard is drawn and not wired, and says so. Whether Notes
  * gets rich text at all is a question about the schema — a `body` column holds
- * a string, and Markdown, HTML and a block model are three different products —
- * and the taskActions's job is to show what the bar costs in room, not to answer
- * it.
+ * a string, and Markdown, HTML and a block model are three different products.
  */
 import { MenuView } from '@expo/ui/community/menu'
 import { Stack, useRouter } from 'expo-router'
@@ -31,10 +29,10 @@ import { fmt, useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { TASK_ICONS } from '../tasks/icons'
-import { taskActions, useTaskState } from '../tasks/store'
 import { useDebouncedText } from '../tasks/useDebouncedText'
-import { noteWhen } from './NotesScreen'
 import { confirmDeleteNote } from './notesActions'
+import { noteWhen, preview } from './noteText'
+import { useNoteActions, useNotes } from './store'
 
 /** Drawn, not wired. The letters are the affordance, not an icon set. */
 const FORMATS = ['B', 'I', 'H', '•', '1.', '☑'] as const
@@ -44,9 +42,8 @@ export function Note({ noteId }: { noteId: string }) {
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
   const router = useRouter()
-  const state = useTaskState()
-
-  const note = state.notes.find((each) => each.id === noteId)
+  const actions = useNoteActions()
+  const note = useNotes().find((each) => each.id === noteId)
 
   useRecordRecent(
     note
@@ -54,11 +51,7 @@ export function Note({ noteId }: { noteId: string }) {
           id: note.id,
           type: 'note',
           title: note.title,
-          detail:
-            note.body
-              .split('\n')
-              .find((line) => line.trim())
-              ?.trim() ?? '',
+          detail: preview(note.body),
         }
       : null,
   )
@@ -66,10 +59,10 @@ export function Note({ noteId }: { noteId: string }) {
   // A note is the longest thing anybody types in this app, so it is the one
   // that would cost the most in per-keystroke writes — see `useDebouncedText`.
   const title = useDebouncedText(note?.title ?? '', (next) => {
-    if (note) taskActions.editNote(note.id, { title: next })
+    if (note) actions.editNote(note.id, { title: next })
   })
   const body = useDebouncedText(note?.body ?? '', (next) => {
-    if (note) taskActions.editNote(note.id, { body: next })
+    if (note) actions.editNote(note.id, { body: next })
   })
 
   if (!note) return <View style={{ flex: 1, backgroundColor: tokens.bg }} />
@@ -99,11 +92,14 @@ export function Note({ noteId }: { noteId: string }) {
               onPressAction={(event) => {
                 const action = event.nativeEvent.event
                 if (action === 'pin') {
-                  taskActions.togglePin(note.id)
+                  actions.togglePin(note)
                   haptics.selectionChanged()
                 }
                 if (action === 'delete') {
-                  confirmDeleteNote(note, t, () => router.back())
+                  confirmDeleteNote(note, t, () => {
+                    actions.deleteNote(note.id)
+                    router.back()
+                  })
                 }
               }}
             >

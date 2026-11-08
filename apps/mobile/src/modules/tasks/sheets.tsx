@@ -12,7 +12,13 @@
  * writes on selection and closes is one tap, and the sheet closing *is* the
  * confirmation.
  */
-import { addDays, addMonths, localMidnight, monthGrid, monthStart } from '@gather/core/civil-date'
+import {
+  addDays,
+  addMonths,
+  localMidnight,
+  monthGrid,
+  monthStart,
+} from '@gather/core/civil-date'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
@@ -23,23 +29,13 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { Chip } from './components'
+import { Chip, priorityColor } from './components'
 import { TASK_ICONS } from './icons'
-import { taskActions, useTaskState } from './store'
+import { useTaskActions, useTaskState } from './store'
 import { weekendFrom } from './taskDates'
 import { type Priority, SUGGESTED_LABELS } from './types'
 
 const PRIORITIES: Priority[] = [1, 2, 3, 4]
-
-/** Red for the most urgent, amber for high, and nothing at all below that. */
-export function priorityColor(
-  priority: Priority | undefined,
-  danger: string,
-): string | undefined {
-  if (priority === 1) return danger
-  if (priority === 2) return '#b4791f'
-  return undefined
-}
 
 /**
  * Due date: shortcuts, then a month.
@@ -61,6 +57,7 @@ export function DueDateSheet({
   const tint = tokens.tintOf('home')
   const { t, locale } = useI18n()
   const state = useTaskState()
+  const actions = useTaskActions()
   const task = state.tasks.find((each) => each.id === taskId)
   const [month, setMonth] = useState(() =>
     monthStart(task?.dueDate ?? state.today),
@@ -70,7 +67,7 @@ export function DueDateSheet({
   const selected = task?.dueDate
 
   const pick = (iso: string | undefined) => {
-    taskActions.setDue(taskId, iso)
+    actions.setDue(taskId, iso)
     haptics.selectionChanged()
     onClose()
   }
@@ -169,10 +166,11 @@ export function PrioritySheet({
   const tokens = useTokens('home')
   const { t } = useI18n()
   const state = useTaskState()
+  const actions = useTaskActions()
   const current = state.tasks.find((each) => each.id === taskId)?.priority
 
   const choose = (priority: Priority | undefined) => {
-    taskActions.setPriority(taskId, priority)
+    actions.setPriority(taskId, priority)
     haptics.selectionChanged()
     onClose()
   }
@@ -228,13 +226,11 @@ export function PrioritySheet({
 }
 
 /**
- * Labels: the ones on the task, the ones the Group already uses, and a field.
+ * Labels: the ones on the task, the ones the Group already uses, and a field,
+ * with no label table behind them.
  *
  * This one keeps its sheet open — labels are a set rather than a choice, and
  * closing after the first would make adding two an exercise in reopening.
- */
-/**
- * Labels, with no label table behind them.
  *
  * A label exists because a task carries the word. Nothing creates one and
  * nothing has to delete one: the last task to let go of `hous` is what makes
@@ -257,15 +253,15 @@ export function LabelsSheet({
   const tokens = useTokens('home')
   const { t } = useI18n()
   const state = useTaskState()
+  const actions = useTaskActions()
   const task = state.tasks.find((each) => each.id === taskId)
   const [draft, setDraft] = useState('')
   /** The label being renamed, if the field is doing that instead of adding. */
   const [renaming, setRenaming] = useState<string | null>(null)
 
   const labels = task?.labels ?? []
-  // Everything anybody has typed, minus what is already on this task. The
-  // fixtures' suggestions are seeded here rather than kept as a list, so they
-  // behave like every other label: used or gone.
+  // Everything anybody has typed, minus what is already on this task, with a
+  // few starters for a Group that has typed nothing yet.
   const elsewhere = Array.from(
     new Set([
       ...state.tasks.flatMap((each) => each.labels),
@@ -275,14 +271,14 @@ export function LabelsSheet({
     .filter((label) => !labels.includes(label))
     .sort()
 
-  const setOwn = (next: string[]) => taskActions.setLabels(taskId, next)
+  const setOwn = (next: string[]) => actions.setLabels(taskId, next)
 
   const submit = () => {
     const value = draft.trim().toLowerCase()
     if (!value) return
     setDraft('')
     if (renaming) {
-      taskActions.renameLabel(renaming, value)
+      actions.renameLabel(renaming, value)
       setRenaming(null)
       haptics.itemSaved()
       return
@@ -352,7 +348,7 @@ export function LabelsSheet({
                 ]}
                 onAction={(id) => {
                   if (id === 'rename') startRename(label)
-                  if (id === 'remove') taskActions.removeLabel(label)
+                  if (id === 'remove') actions.removeLabel(label)
                 }}
               >
                 <Chip
@@ -430,6 +426,7 @@ export function MoveToListSheet({
   const tokens = useTokens('home')
   const { t } = useI18n()
   const state = useTaskState()
+  const actions = useTaskActions()
   const task = state.tasks.find((each) => each.id === taskId)
 
   return (
@@ -452,9 +449,11 @@ export function MoveToListSheet({
               accessibilityLabel={list.name}
               disabled={disabled}
               onPress={() => {
-                taskActions.moveTask(taskId, list.id)
-                haptics.itemSaved()
                 onClose()
+                actions.moveTask(taskId, list.id).then(
+                  () => haptics.itemSaved(),
+                  () => haptics.actionFailed(),
+                )
               }}
               style={({ pressed }) => [
                 styles.optionRow,

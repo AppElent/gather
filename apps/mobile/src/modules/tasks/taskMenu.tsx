@@ -2,14 +2,11 @@
  * What holding a task offers, and the sheets those offers open.
  *
  * A task appears on three screens — the Today strip, a list, the detail screen
- * — and holding it has to mean the same thing on each. It did not: Today's
- * rows were built as a digest and quietly grew up into rows, keeping the shape
- * of the list's rows without any of their gestures. Nothing catches that,
- * because a row with no menu renders perfectly well.
- *
- * So the action list and the sheets it opens live here, once. A screen decides
- * only what its own rows look like and whether Reorder is on the menu — that
- * being the one action a list has and a cross-list strip cannot.
+ * — and holding it, or tapping one of its properties, has to mean the same
+ * thing on each. So the action list and the sheets it opens live here, once. A
+ * screen decides only what its own rows look like and whether Reorder is on
+ * the menu — that being the one action a list has and a cross-list strip
+ * cannot.
  */
 import type { MenuAction } from '@expo/ui/community/menu'
 import { useState } from 'react'
@@ -24,7 +21,7 @@ import {
   PrioritySheet,
   RenameSheet,
 } from './sheets'
-import { taskActions, useTaskState } from './store'
+import { useTaskActions, useTaskState } from './store'
 import type { Task } from './types'
 
 /**
@@ -80,9 +77,17 @@ type TaskSheet = 'due' | 'priority' | 'labels' | 'move' | 'rename'
  * Returns the sheets as an element the caller renders last, after its own
  * scroll view — a sheet inside one is a sheet that scrolls away.
  */
-export function useTaskSheets(onReorder?: () => void) {
+export function useTaskSheets({
+  onReorder,
+  onDeleted,
+}: {
+  onReorder?: () => void
+  /** For a screen that is about the task, and so has to leave with it. */
+  onDeleted?: () => void
+} = {}) {
   const { t } = useI18n()
   const state = useTaskState()
+  const actions = useTaskActions()
   const [open, setOpen] = useState<{ kind: TaskSheet; taskId: string } | null>(
     null,
   )
@@ -97,7 +102,10 @@ export function useTaskSheets(onReorder?: () => void) {
         {
           text: t.actions.delete,
           style: 'destructive',
-          onPress: () => taskActions.deleteTask(task.id),
+          onPress: () => {
+            actions.deleteTask(task.id)
+            onDeleted?.()
+          },
         },
       ],
     )
@@ -105,8 +113,8 @@ export function useTaskSheets(onReorder?: () => void) {
   const onAction = (task: Task, action: string) => {
     switch (action) {
       case 'complete':
-        taskActions.toggleTask(task.id)
-        haptics.itemCompleted()
+        if (!task.done) haptics.itemCompleted()
+        actions.toggleTask(task.id).catch(() => haptics.actionFailed())
         break
       case 'rename':
       case 'due':
@@ -144,7 +152,7 @@ export function useTaskSheets(onReorder?: () => void) {
           value={
             state.tasks.find((each) => each.id === open.taskId)?.title ?? ''
           }
-          onSave={(next) => taskActions.renameTask(open.taskId, next)}
+          onSave={(next) => actions.renameTask(open.taskId, next)}
           onClose={close}
         />
       ) : null}

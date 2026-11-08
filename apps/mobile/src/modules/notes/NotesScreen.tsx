@@ -29,59 +29,21 @@ import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { Card, SectionLabel } from '../tasks/components'
 import { TASK_ICONS } from '../tasks/icons'
-import { taskActions, useTaskState } from '../tasks/store'
-import type { Note } from '../tasks/types'
 import { confirmDeleteNote } from './notesActions'
-
-/**
- * When a note was last touched, in the app's language.
- *
- * Today gets a clock, everything else gets a date, and nothing gets "3 hours
- * ago": Hermes ships no `Intl.RelativeTimeFormat` (see `src/i18n/index.tsx`),
- * and hand-rolling one in two languages to say something a timestamp already
- * says is not worth the strings.
- */
-export function noteWhen(
-  updatedAt: number,
-  locale: string,
-  todayWord: string,
-): string {
-  const when = new Date(updatedAt)
-  const now = new Date()
-  const sameDay =
-    when.getFullYear() === now.getFullYear() &&
-    when.getMonth() === now.getMonth() &&
-    when.getDate() === now.getDate()
-
-  if (sameDay) {
-    return `${todayWord} ${when.toLocaleTimeString(locale, {
-      hour: '2-digit',
-      minute: '2-digit',
-    })}`
-  }
-  return when.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
-}
-
-/** The first line with anything on it, which is what a preview is. */
-export function preview(body: string): string {
-  return (
-    body
-      .split('\n')
-      .find((line) => line.trim().length > 0)
-      ?.trim() ?? ''
-  )
-}
+import { noteWhen, preview } from './noteText'
+import { type Note, useNoteActions, useNotes } from './store'
 
 export function Notes() {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
   const router = useRouter()
-  const state = useTaskState()
+  const notes = useNotes()
+  const actions = useNoteActions()
   const [query, setQuery] = useState('')
 
   const needle = query.trim().toLowerCase()
-  const matching = state.notes.filter(
+  const matching = notes.filter(
     (note) =>
       !needle ||
       note.title.toLowerCase().includes(needle) ||
@@ -97,9 +59,9 @@ export function Notes() {
       params: { noteId: id },
     })
 
-  const rows = (notes: Note[]) => (
+  const rows = (shown: Note[]) => (
     <Card>
-      {notes.map((note, index) => (
+      {shown.map((note, index) => (
         <NativeContextMenu
           key={note.id}
           actions={[
@@ -117,10 +79,12 @@ export function Notes() {
           ]}
           onAction={(action) => {
             if (action === 'pin') {
-              taskActions.togglePin(note.id)
+              actions.togglePin(note)
               haptics.selectionChanged()
             }
-            if (action === 'delete') confirmDeleteNote(note, t)
+            if (action === 'delete') {
+              confirmDeleteNote(note, t, () => actions.deleteNote(note.id))
+            }
           }}
         >
           <Pressable
@@ -135,7 +99,7 @@ export function Notes() {
                 backgroundColor: tokens.surface,
                 borderBottomColor: tokens.border,
                 borderBottomWidth:
-                  index === notes.length - 1 ? 0 : StyleSheet.hairlineWidth,
+                  index === shown.length - 1 ? 0 : StyleSheet.hairlineWidth,
               },
               pressed && { backgroundColor: tokens.tile },
             ]}
@@ -176,7 +140,7 @@ export function Notes() {
               accessibilityLabel={t.notes.newNote}
               hitSlop={12}
               onPress={async () => {
-                const id = await taskActions.addNote()
+                const id = await actions.addNote()
                 haptics.itemSaved()
                 open(id)
               }}
@@ -204,7 +168,7 @@ export function Notes() {
           testID="notes-search"
         />
 
-        {state.notes.length === 0 ? (
+        {notes.length === 0 ? (
           <Text style={[styles.empty, { color: tokens.muted }]}>
             {t.notes.empty}
           </Text>

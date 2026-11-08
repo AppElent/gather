@@ -73,6 +73,28 @@ async function requireEditableTask(
   return task
 }
 
+/** A list of the named Group that Gather may write to (ADR-0021). */
+async function requireWritableList(
+  ctx: MutationCtx,
+  groupSlug: string,
+  listId: Id<'taskLists'>,
+) {
+  const found = await requireInGroup(ctx, groupSlug, listId, 'List not found')
+  if (!canWriteToList(found.doc.provider)) {
+    throw new ConvexError('This list is read-only')
+  }
+  return found
+}
+
+/** The order that puts a task last on a list. */
+async function endOfList(ctx: MutationCtx, listId: Id<'taskLists'>) {
+  const existing = await ctx.db
+    .query('tasks')
+    .withIndex('by_list', (q) => q.eq('listId', listId))
+    .collect()
+  return nextOrder(existing)
+}
+
 export const add = mutation({
   args: {
     listId: v.id('taskLists'),
@@ -83,19 +105,7 @@ export const add = mutation({
     labels: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const { user, doc: list } = await requireInGroup(
-      ctx,
-      args.groupSlug,
-      args.listId,
-      'List not found',
-    )
-    if (!canWriteToList(list.provider)) {
-      throw new ConvexError('This list is read-only')
-    }
-    const existing = await ctx.db
-      .query('tasks')
-      .withIndex('by_list', (q) => q.eq('listId', args.listId))
-      .collect()
+    const { user } = await requireWritableList(ctx, args.groupSlug, args.listId)
     return await ctx.db.insert('tasks', {
       listId: args.listId,
       title: args.title,
@@ -104,7 +114,7 @@ export const add = mutation({
       priority: args.priority,
       labels: args.labels,
       createdBy: user._id,
-      order: nextOrder(existing),
+      order: await endOfList(ctx, args.listId),
     })
   },
 })
@@ -156,15 +166,7 @@ export const reorder = mutation({
     ids: v.array(v.id('tasks')),
   },
   handler: async (ctx, args) => {
-    const { doc: list } = await requireInGroup(
-      ctx,
-      args.groupSlug,
-      args.listId,
-      'List not found',
-    )
-    if (!canWriteToList(list.provider)) {
-      throw new ConvexError('This list is read-only')
-    }
+    await requireWritableList(ctx, args.groupSlug, args.listId)
     const rows = await ctx.db
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
@@ -270,5 +272,23 @@ export const move = mutation({
     if (!neighbor || neighbor.done !== task.done) return
     await ctx.db.patch(task._id, { order: neighbor.order })
     await ctx.db.patch(neighbor._id, { order: task.order })
+  },
+})
+
+/** Into another writable list of the same Group, at its end. */
+export const moveToList = mutation({
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    listId: v.id('taskLists'),
+  },
+  handler: async (ctx, args) => {
+    const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    if (task.listId === args.listId) return
+    await requireWritableList(ctx, args.groupSlug, args.listId)
+    await ctx.db.patch(task._id, {
+      listId: args.listId,
+      order: await endOfList(ctx, args.listId),
+    })
   },
 })

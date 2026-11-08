@@ -12,10 +12,9 @@
  * You rearrange by recognising the row, and stripping it back to a title is
  * what makes that harder.
  *
- * The arithmetic is `reorder.ts`. There is still no drag-and-drop dependency
- * here and this is not the change that should add one: a fixed-height list
- * that does not auto-scroll is about eighty lines, and the library is five
- * hundred kilobytes and a native rebuild.
+ * The arithmetic is `arrange/arrange.ts`. There is no drag-and-drop
+ * dependency: a fixed-height list that does not auto-scroll is short, and the
+ * library is five hundred kilobytes and a native rebuild.
  *
  * The gesture is **`react-native-gesture-handler`, not `PanResponder`.** The
  * first attempt used `PanResponder`, copying the Baby log's arranging bar, and
@@ -39,8 +38,7 @@ import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { Card } from './components'
-import { priorityColor } from './sheets'
+import { Card, priorityColor } from './components'
 import { dueLabel } from './taskDates'
 import type { ListDisplay, Task } from './types'
 
