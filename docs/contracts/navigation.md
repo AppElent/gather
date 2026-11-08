@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a nested web route, breadcrumbs, a back link, or a Module's web address.
-version: 1.1.0
+version: 1.3.1
 status: current
 ---
 
@@ -17,18 +17,37 @@ no breadcrumbs ([mobile design system](../../apps/mobile/DESIGN_SYSTEM.md#chrome
 The [nested-page trail rules](../standards/web-design.md#nested-pages-carry-their-own-trail)
 apply as written. Gather binds them:
 
-- **Every route below a Module's index renders `<Breadcrumbs>`**
+- **Every route below an index renders `<Breadcrumbs>`**
   (`src/components/app/Breadcrumbs.tsx`) with the trail from that index down to
   itself — Foods → *Hagelslag* → Edit, and the same for Recipes and the Baby log.
+  `Breadcrumbs.routes.test.ts` walks `src/routes/_app/` for it. The two
+  exceptions are the add sheet over the nutrition diary, which closes back to
+  the diary, and the OAuth callback.
 - **Content labels** (a food's name, a recipe's title) are never translated
   ([ADR-0011](../adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md)).
-- **The parent link is built with `src/lib/groupPaths.ts`**, so the Group
-  travels with it ([ADR-0002](../adr/0002-the-group-is-explicit-in-the-url.md)).
+- **Every link to a page in the signed-in app is built with `linkTo` or
+  `hrefTo` from `src/lib/links.ts`**, whose `ROUTES` table names each such
+  destination once and is type-checked against the route tree. Three kinds of
+  address are not in `ROUTES`, and the few places that reach them write the
+  path: the landing address `/`, which only decides where to send you; the
+  sign-in, sign-up and forgot-password pages; and the OAuth callback, which only
+  a provider sends anyone to. A link never names a Group: the Current Group is
+  ambient ([ADR-0031](../adr/0031-the-current-group-is-ambient-on-web-and-mobile.md)),
+  and pages read it with `useRequiredCurrentGroup()` rather than receiving it.
+  `AppShell` renders a page under a Group index surface only once there is a
+  Current Group: it shows loading until the Groups arrive and sends somebody in
+  no Group to Groups. Personal pages (Nutrition, Foods, Combos) render without
+  one.
+- **Switching Group is `setCurrentGroup`, never a link.** A control that moves
+  somebody into another Group calls `setCurrentGroup` in its click handler and
+  links to a page without params (an index surface), because an id means
+  nothing in the other Group.
 - The flat shell pages without a trail are Settings, Account and Groups.
-- Every Module is reachable inside a Group: its surface in `groupPaths.ts` and
-  its route file are asserted by `src/lib/modules.routes.test.ts`.
+- Every Module has one address: `MODULE_ROUTES` in `links.ts` is a
+  `Record<ModuleId, …>`, so a Module without one is a type error, and
+  `src/lib/modules.routes.test.ts` asserts its route file exists.
 
 ## Acceptance
 
 - Each nested page shows a trail whose last step is unlinked and whose parent
-  link keeps the current Group.
+  link is its parent's address.

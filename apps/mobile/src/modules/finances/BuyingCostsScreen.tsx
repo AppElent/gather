@@ -8,26 +8,26 @@
  * what they can afford.
  */
 
+import { parseDecimal } from '@gather/core/decimal'
 import {
   BUYING_COST_LINES,
   type BuyingCostLine,
   homeBuyingCosts,
   TRANSFER_TAX_BANDS,
-  type TransferTaxBand,
+  TRANSFER_TAX_PERCENT,
+  toCents,
 } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
 import { FINANCE_ICONS } from './icons'
 import { termWords } from './loanParts'
-import type { FinanceBase } from './paths'
 import {
   AnswerBar,
   Card,
@@ -45,13 +45,6 @@ import {
 } from './ui'
 import { useFinances } from './useFinances'
 
-/** The percentage each band carried when this screen was written. */
-const BAND_PERCENT: Record<TransferTaxBand, number> = {
-  starter: 0,
-  ownHome: 2,
-  other: 10.4,
-}
-
 type Editing =
   | BuyingCostLine
   | 'price'
@@ -61,13 +54,7 @@ type Editing =
   | 'nhg'
   | null
 
-export function BuyingCostsScreen({
-  base: _base,
-  houseId,
-}: {
-  base: FinanceBase
-  houseId: Id<'houses'>
-}) {
+export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
   const tokens = useMoneyTokens()
   const { groupSlug, format, text } = useFinances()
   const house = useQuery(api.houses.get, { id: houseId, groupSlug })
@@ -104,7 +91,7 @@ export function BuyingCostsScreen({
       mortgageRatePercent: 4,
       mortgageTermMonths: 360,
       transferTaxBand: 'ownHome',
-      transferTaxPercent: BAND_PERCENT.ownHome,
+      transferTaxPercent: TRANSFER_TAX_PERCENT.ownHome,
     })
   }
 
@@ -137,12 +124,12 @@ export function BuyingCostsScreen({
   }
 
   function commit() {
-    const value = Number(draft.trim().replace(',', '.'))
-    if (!Number.isFinite(value) || value < 0) {
+    const value = parseDecimal(draft) ?? 0
+    if (value < 0) {
       setEditing(null)
       return
     }
-    const cents = Math.round(value * 100)
+    const cents = toCents(value)
     if (editing === 'price') write({ purchasePriceCents: cents })
     if (editing === 'ownMoney') write({ ownMoneyCents: cents })
     if (editing === 'mortgage') write({ mortgageCents: cents })
@@ -215,14 +202,14 @@ export function BuyingCostsScreen({
             <Chip
               key={band}
               label={`${text.transferTaxBands[band]} · ${format.percent(
-                BAND_PERCENT[band],
-                BAND_PERCENT[band] % 1 === 0 ? 0 : 1,
+                TRANSFER_TAX_PERCENT[band],
+                TRANSFER_TAX_PERCENT[band] % 1 === 0 ? 0 : 1,
               )}`}
               selected={stored.transferTaxBand === band}
               onPress={() =>
                 write({
                   transferTaxBand: band,
-                  transferTaxPercent: BAND_PERCENT[band],
+                  transferTaxPercent: TRANSFER_TAX_PERCENT[band],
                 })
               }
             />

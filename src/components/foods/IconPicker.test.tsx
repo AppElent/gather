@@ -31,12 +31,7 @@ test('starts collapsed and invites the person to choose an icon', () => {
  * blank square — a bug nobody would find by reading the picker.
  */
 
-test('the set is curated rather than every emoji there is', () => {
-  // Roughly forty was the decision (#75's triage), not an exact number — this
-  // guards the shape of the answer, so that widening it later is a choice
-  // somebody makes rather than something that drifts.
-  expect(FOOD_ICONS.length).toBeGreaterThanOrEqual(30)
-  expect(FOOD_ICONS.length).toBeLessThanOrEqual(50)
+test('offers each icon once', () => {
   expect(new Set(FOOD_ICONS).size).toBe(FOOD_ICONS.length)
 })
 

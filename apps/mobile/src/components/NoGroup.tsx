@@ -2,13 +2,12 @@
  * The one signed-in state with no Group at all.
  *
  * It sits outside anything Group-scoped, because a shell drawn around a Group
- * that does not exist is chrome that leads nowhere (ADR-0015). It is only
- * reached after `GroupProvider`'s grace period, so it means "you are in no
+ * that does not exist is chrome that leads nowhere (ADR-0015). `GroupProvider`
+ * draws it only once `groups.myGroups` has answered, so it means "you are in no
  * Group", never "the list has not arrived".
  *
- * It used to offer no way out but the web, because the phone had no way to make
- * a Group. From #164 it renders the same `GroupForms` the Groups screen does —
- * the same component, not a second create surface to keep in step — so the one
+ * It renders the same `GroupForms` the Groups screen does — the same
+ * component, not a second create surface to keep in step — so the one
  * screen where somebody has nothing else to do is the one screen that can fix
  * itself. Creating or joining makes `myGroups` non-empty, and the provider
  * replaces this with the shell on the next answer.

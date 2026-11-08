@@ -16,19 +16,20 @@
  * arrives — it reads the price and its age off the same two fields either way.
  */
 
-import { holdingPosition } from '@gather/core/finance'
+import { parseDecimal } from '@gather/core/decimal'
+import { holdingPosition, parseCents } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
 import { Segmented } from '../../components/Segmented'
+import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
+import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
-import { type FinanceBase, financeHref } from './paths'
 import { portfolioTotalsFor } from './portfolioTotals'
 import {
   AddRow,
@@ -47,7 +48,7 @@ import {
 } from './ui'
 import { useFinances } from './useFinances'
 
-export function PortfolioScreen({ base }: { base: FinanceBase }) {
+export function PortfolioScreen() {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { groupSlug, format, text, currency, rates, today } = useFinances()
@@ -93,12 +94,18 @@ export function PortfolioScreen({ base }: { base: FinanceBase }) {
     setAdding(true)
   }
 
+  const unitCount = parseDecimal(units)
+  // Only the units are required: a blank price opens the holding at zero.
+  const cents = parseCents(price) ?? 0
+  const valid =
+    symbol.trim().length > 0 &&
+    name.trim().length > 0 &&
+    unitCount !== null &&
+    unitCount > 0 &&
+    cents >= 0
+
   function save() {
-    const unitCount = Number(units.replace(',', '.'))
-    const cents = Math.round(Number(price.replace(',', '.')) * 100)
-    if (!symbol.trim() || !name.trim()) return
-    if (!Number.isFinite(unitCount) || unitCount <= 0) return
-    if (!Number.isFinite(cents) || cents < 0) return
+    if (!valid) return
     create({
       groupSlug,
       kind,
@@ -113,11 +120,6 @@ export function PortfolioScreen({ base }: { base: FinanceBase }) {
     })
     setAdding(false)
   }
-
-  const valid =
-    symbol.trim().length > 0 &&
-    name.trim().length > 0 &&
-    Number(units.replace(',', '.')) > 0
 
   return (
     <>
@@ -210,7 +212,7 @@ export function PortfolioScreen({ base }: { base: FinanceBase }) {
                     chevron
                     onPress={() =>
                       router.push(
-                        financeHref(base, '/holding', {
+                        moduleHref('/settings/labs/finance/holding', {
                           holdingId: holding._id,
                         }),
                       )

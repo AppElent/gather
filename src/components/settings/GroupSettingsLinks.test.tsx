@@ -1,15 +1,12 @@
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { renderWithI18n } from '../../lib/i18n/testing'
+import { renderInGroup } from '../app/testing'
 import { GroupSettingsLinks } from './GroupSettingsLinks'
 
 /**
- * What stands where the connections used to be.
- *
- * Connecting Notion moved off `/settings`, which is a page about you, onto each
- * Group's own settings page — a connection belongs to a Group. Somebody who
- * knows where it was should be sent on rather than shown a gap, and each Group
- * has its own answer, so every Group gets a row.
+ * The way from your settings to each Group's: a connection such as Notion
+ * belongs to a Group, and each Group has its own answer, so every Group gets a
+ * row.
  */
 
 const groups = vi.hoisted(() => ({ value: undefined as unknown }))
@@ -19,14 +16,11 @@ vi.mock('convex/react', () => ({ useQuery: () => groups.value }))
 vi.mock('../../../convex/_generated/api', () => ({
   api: { groups: { myGroups: 'groups:myGroups' } },
 }))
-vi.mock('../app/useCurrentGroup', () => ({
-  useCurrentGroup: () => ({ setCurrentGroup: vi.fn() }),
-}))
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({
     to,
-    params,
+    params: _params,
     children,
     ...rest
   }: {
@@ -34,7 +28,7 @@ vi.mock('@tanstack/react-router', () => ({
     params: Record<string, string>
     children: React.ReactNode
   }) => (
-    <a href={to.replace('$groupSlug', params.groupSlug)} {...rest}>
+    <a href={to} {...rest}>
       {children}
     </a>
   ),
@@ -46,17 +40,18 @@ beforeEach(() => {
 
 describe('the signpost to each Group’s settings', () => {
   test('says a connection belongs to a group rather than to you', () => {
-    renderWithI18n(<GroupSettingsLinks />)
+    renderInGroup(<GroupSettingsLinks />)
     expect(screen.getByText(/belong to a group, not to you/i)).toBeDefined()
   })
 
-  test('links to every Group the caller is in, by its own slug', () => {
+  test('links every Group the caller is in to its settings, as the Current Group', () => {
     groups.value = [
       { _id: 'g1', name: 'Jansen Household', slug: 'jansen-household' },
       { _id: 'g2', name: 'Cooking club', slug: 'cooking-club' },
     ]
 
-    renderWithI18n(<GroupSettingsLinks />)
+    const setCurrentGroup = vi.fn()
+    renderInGroup(<GroupSettingsLinks />, { setCurrentGroup })
 
     expect(
       screen
@@ -66,10 +61,13 @@ describe('the signpost to each Group’s settings', () => {
     expect(
       screen.getByRole('link', { name: /Cooking club/ }).getAttribute('href'),
     ).toBe('/group-settings')
+
+    fireEvent.click(screen.getByRole('link', { name: /Cooking club/ }))
+    expect(setCurrentGroup).toHaveBeenCalledWith('g2')
   })
 
   test('offers nothing at all until the answer has arrived', () => {
-    renderWithI18n(<GroupSettingsLinks />)
+    renderInGroup(<GroupSettingsLinks />)
     expect(screen.queryAllByRole('link')).toEqual([])
   })
 })

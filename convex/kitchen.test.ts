@@ -1,10 +1,7 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { alice, bob, carol, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 
-const alice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
-const bob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
-const carol = { subject: 'clerk_carol', name: 'Carol', email: 'c@example.com' }
 
 async function seed() {
   const t = testConvex()
@@ -24,29 +21,19 @@ async function seed() {
       name: carol.name,
       email: carol.email,
     })
-    const home = await ctx.db.insert('groups', {
+    const home = await seedGroup(ctx, {
       name: 'Home',
       slug: 'home',
-      isPersonal: false,
       inviteCode: 'home',
     })
-    const other = await ctx.db.insert('groups', {
+    const other = await seedGroup(ctx, {
       name: 'Other',
       slug: 'other',
-      isPersonal: false,
       inviteCode: 'other',
     })
     for (const userId of [aliceId, bobId])
-      await ctx.db.insert('memberships', {
-        groupId: home,
-        userId,
-        role: 'member',
-      })
-    await ctx.db.insert('memberships', {
-      groupId: other,
-      userId: aliceId,
-      role: 'admin',
-    })
+      await seedMember(ctx, home, userId, 'member')
+    await seedMember(ctx, other, aliceId, 'admin')
     const recipe = await ctx.db.insert('recipes', {
       groupId: home,
       sharedGroupIds: [],

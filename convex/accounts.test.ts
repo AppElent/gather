@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 
@@ -56,18 +56,13 @@ async function deleteAccount(t: Harness, identity: typeof asAlice) {
 /** A Group with a second member in it, and Alice as its admin. */
 async function sharedGroup(t: Harness, alice: Id<'users'>, bob: Id<'users'>) {
   return await t.run(async (ctx) => {
-    const groupId = await ctx.db.insert('groups', {
+    const groupId = await seedGroup(ctx, {
       name: 'Household',
       slug: 'household',
-      isPersonal: false,
       inviteCode: 'abc123',
     })
-    await ctx.db.insert('memberships', {
-      groupId,
-      userId: alice,
-      role: 'admin',
-    })
-    await ctx.db.insert('memberships', { groupId, userId: bob, role: 'member' })
+    await seedMember(ctx, groupId, alice, 'admin')
+    await seedMember(ctx, groupId, bob, 'member' )
     return groupId
   })
 }
@@ -75,17 +70,12 @@ async function sharedGroup(t: Harness, alice: Id<'users'>, bob: Id<'users'>) {
 /** A Group only Alice is in. */
 async function soloGroup(t: Harness, alice: Id<'users'>) {
   return await t.run(async (ctx) => {
-    const groupId = await ctx.db.insert('groups', {
+    const groupId = await seedGroup(ctx, {
       name: 'Allotment',
       slug: 'allotment',
-      isPersonal: false,
       inviteCode: 'def456',
     })
-    await ctx.db.insert('memberships', {
-      groupId,
-      userId: alice,
-      role: 'admin',
-    })
+    await seedMember(ctx, groupId, alice, 'admin')
     return groupId
   })
 }
@@ -236,8 +226,8 @@ describe('a Group nobody else is in', () => {
     expect(stillThere).toBe(false)
   })
 
-  // There is no Personal group any more (ADR-0030); a Group made through the
-  // app, rather than inserted by a fixture, is the one this has to reach.
+  // A Group made through the app, rather than inserted by a fixture, is the one
+  // this has to reach.
   test('includes one made through the app', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
@@ -544,17 +534,12 @@ describe('deleting a Group from the app', () => {
     const alice = await userId(t, asAlice)
     const home = await soloGroup(t, alice)
     const other = await t.run(async (ctx) => {
-      const groupId = await ctx.db.insert('groups', {
+      const groupId = await seedGroup(ctx, {
         name: 'Book club',
         slug: 'book-club',
-        isPersonal: false,
         inviteCode: 'ghi789',
       })
-      await ctx.db.insert('memberships', {
-        groupId,
-        userId: alice,
-        role: 'admin',
-      })
+      await seedMember(ctx, groupId, alice, 'admin')
       await ctx.db.insert('recipes', {
         groupId,
         sharedGroupIds: [home],

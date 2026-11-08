@@ -50,13 +50,7 @@ import { en } from './messages/en'
 import { nl } from './messages/nl'
 
 export type { Locale } from '@gather/core/i18n'
-export {
-  fmt,
-  isLocale,
-  plural,
-  resolveLocale,
-  SUPPORTED_LOCALES,
-} from '@gather/core/i18n'
+export { fmt, plural, SUPPORTED_LOCALES } from '@gather/core/i18n'
 export type Messages = typeof en
 
 const DICTIONARIES: Record<Locale, Messages> = { en, nl }

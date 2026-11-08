@@ -3,10 +3,9 @@ import type { ModuleGroup, ModuleId } from '../../modules'
 /**
  * What every Module is called and what it is for.
  *
- * These used to live in `lib/modules.ts` beside each Module's icon and scope.
- * They moved because a label is the most-rendered string in the app — sidebar,
- * dock, topbar title, All, the palette, nine placeholder pages — and a registry
- * that no React context may reach cannot hold a translated one.
+ * Not in `modules.ts` beside each Module's icon and scope: a label is the
+ * most-rendered string in the app, and a registry that no React context may
+ * reach cannot hold a translated one.
  *
  * `satisfies Record<ModuleId, …>` is the part that matters: declaring a Module
  * without naming it here is a typecheck failure, not a page reading

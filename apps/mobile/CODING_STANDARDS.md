@@ -33,5 +33,9 @@ Apply the shared [mobile coding](../../docs/standards/mobile-coding.md),
   ([ADR-0038](../../docs/adr/0038-both-clients-speak-clerk-core-3.md)).
 - **Words** come from `@gather/core`'s message trees, composed with the phone's
   own in `src/i18n/messages/`; rules in [localization](../../CODING_STANDARDS.md#localization).
+- **Shared UI that no Module owns** goes in `src/ui/`, named as
+  [mobile structure](../../docs/standards/mobile-structure.md) says
+  (`card.tsx`, `use-debounced-text.ts`), and imports no Module.
+  `src/components/` is the older shared folder, kept until its files change.
 - **Tests** run in the root Vitest `mobile` project (`src/**/*.test.ts`), and
   `pnpm --filter @gather/mobile typecheck` covers the app.

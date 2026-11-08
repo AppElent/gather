@@ -58,7 +58,6 @@ export const shell = {
     personal: 'Your own group',
     shared: 'Shared group',
     pick: 'Pick a group',
-    personalPill: 'Personal',
     manage: 'Manage groups',
   },
 
@@ -138,16 +137,6 @@ export const shell = {
     signIn: 'Sign in',
     body: 'The page may have moved, or the link may point to a module that has not been added yet.',
     goHome: 'Go to Gather',
-  },
-
-  /** The gate in front of every `/g/<slug>` page. */
-  groupGate: {
-    unknownTitle: 'No such group',
-    unknownBody:
-      'Nothing here is called “{slug}”. Check the link, or pick a group from the sidebar.',
-    forbiddenTitle: 'This group is not yours',
-    forbiddenBody:
-      'You are not a member of it. Ask an admin of the group for an invite.',
   },
 
   /** The Groups page: the households you are in, and the two ways to get another. */
@@ -244,7 +233,6 @@ export const shell = {
   },
 
   home: {
-    personalSubtitle: 'Your own group. Anything kept here is private to you.',
     sharedSubtitle: 'What everyone in this group has been up to.',
     whoIsHere: 'Who is here',
     admin: 'Admin',
@@ -253,12 +241,6 @@ export const shell = {
      * so a translation can put the sentence in its own order without either
      * half having to carry markup.
      */
-    personalNote: {
-      before:
-        '{group} is yours alone — nothing kept here is visible to anybody else. To share something with other people, start a group with them in',
-      link: 'Groups',
-      after: '.',
-    },
     sharedNote: {
       before:
         'Everyone here sees everything in {group}. To invite somebody else, or to leave, go to',
@@ -267,8 +249,6 @@ export const shell = {
     },
     recentActivity: 'Recent activity',
     nothingYet: 'Nothing has happened in {group} yet.',
-    nothingYetPersonal:
-      'Whatever you add here appears in this list, and only you will ever see it.',
     nothingYetShared:
       'Whatever anybody here adds appears in this list, with their name on it.',
   },

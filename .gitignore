@@ -1,6 +1,5 @@
+.pnpm-store
 node_modules
-node_modules_OLD
-node_modules.*
 .DS_Store
 dist
 dist-ssr

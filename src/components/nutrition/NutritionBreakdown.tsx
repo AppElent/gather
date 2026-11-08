@@ -1,7 +1,4 @@
-import {
-  NUTRIENT_KEYS,
-  type NutritionFacts,
-} from '../../../convex/lib/nutrition'
+import { NUTRIENT_KEYS, type NutritionFacts } from '@gather/core/domain'
 import { useMessages } from '../../lib/i18n'
 
 /**

@@ -39,7 +39,6 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { openBrowserAsync } from 'expo-web-browser'
 import { useState } from 'react'
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -47,27 +46,22 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
+import { moduleHref } from '../moduleDestination'
 import { RECIPE_UI_ICONS } from './icons'
 import { NutritionFacts } from './NutritionFacts'
-import { type RecipeBase, recipeHref } from './paths'
 import { StarRating } from './StarRating'
 import { useRecipes } from './useRecipes'
 
-export interface RecipeScreenProps {
-  /** Which tab stack this instance is mounted in (ADR-0023). */
-  base: RecipeBase
-}
-
-export function RecipeScreen({ base }: RecipeScreenProps) {
+export function RecipeScreen() {
   useKeepAwake()
 
   const tokens = useTokens('kitchen')
@@ -163,28 +157,23 @@ export function RecipeScreen({ base }: RecipeScreenProps) {
   const id = recipe._id
 
   const confirmDelete = () => {
-    Alert.alert(
-      text.detail.deleteTitle,
-      fmt(text.detail.deleteBody, { title: recipe.title }),
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: t.actions.delete,
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await remove({ id })
-              // The screen changing is the confirmation; there is nothing left
-              // here to show a message on.
-              router.back()
-            } catch {
-              haptics.actionFailed()
-              setProblem(text.detail.deleteFailed)
-            }
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: text.detail.deleteTitle,
+      message: fmt(text.detail.deleteBody, { title: recipe.title }),
+      confirm: t.actions.delete,
+      cancel: t.actions.cancel,
+      onConfirm: async () => {
+        try {
+          await remove({ id })
+          // The screen changing is the confirmation; there is nothing left
+          // here to show a message on.
+          router.back()
+        } catch {
+          haptics.actionFailed()
+          setProblem(text.detail.deleteFailed)
+        }
+      },
+    })
   }
 
   const reEstimate = async () => {
@@ -221,7 +210,9 @@ export function RecipeScreen({ base }: RecipeScreenProps) {
                     label={t.actions.edit}
                     testID="recipe-edit"
                     onPress={() =>
-                      router.push(recipeHref(base, '/edit', { recipeId: id }))
+                      router.push(
+                        moduleHref('/all/recipes/edit', { recipeId: id }),
+                      )
                     }
                   >
                     <UI_ICONS.Pencil
@@ -409,7 +400,7 @@ export function RecipeScreen({ base }: RecipeScreenProps) {
                 accessibilityRole="button"
                 accessibilityLabel={text.detail.editManually}
                 onPress={() =>
-                  router.push(recipeHref(base, '/edit', { recipeId: id }))
+                  router.push(moduleHref('/all/recipes/edit', { recipeId: id }))
                 }
                 style={({ pressed }) => [
                   styles.secondary,

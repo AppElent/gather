@@ -1,6 +1,5 @@
-import type { LucideIcon } from 'lucide-react'
-import * as Icons from 'lucide-react'
-import { EVENT_TYPE_ICONS } from '../../lib/babyEventFields'
+import { Icon } from '../app/Icon'
+import { EVENT_TYPE_ICONS } from './babyEventFields'
 
 /** Lucide glyph for a baby event type, falling back to a plain circle. */
 export function EventIcon({
@@ -10,9 +9,7 @@ export function EventIcon({
   type: string
   className?: string
 }) {
-  const Icon =
-    (Icons as unknown as Record<string, LucideIcon>)[
-      EVENT_TYPE_ICONS[type] ?? 'Circle'
-    ] ?? Icons.Circle
-  return <Icon className={className} aria-hidden="true" />
+  return (
+    <Icon name={EVENT_TYPE_ICONS[type] ?? 'Circle'} className={className} />
+  )
 }

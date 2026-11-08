@@ -3,15 +3,23 @@ import { describe, expect, test } from 'vitest'
 import { resolveSelectedChild } from './selectedChild'
 import {
   type LoggedEvent,
-  shortDuration,
+  latestOf,
   sleepTotalMs,
   startOfDay,
   tileStatus,
   tileTypes,
 } from './todayStatus'
 
+const UNITS = {
+  minutes: '{minutes}m',
+  hours: '{hours}h',
+  hoursMinutes: '{hours}h {minutes}m',
+  days: '{days}d',
+}
+
 const t = {
   ago: (d: string) => `${d} ago`,
+  duration: UNITS,
   countToday: (c: number) => `${c} today`,
   never: 'never',
   at: (time: string) => `at ${time}`,
@@ -27,18 +35,19 @@ function at(hour: number, minute = 0) {
   ).getTime()
 }
 
-describe('short durations', () => {
-  test('minutes below an hour', () => {
-    expect(shortDuration(32 * 60_000)).toBe('32m')
+describe('finding the last event of a type', () => {
+  const events: LoggedEvent[] = [
+    { type: 'feeding', timestamp: 10, data: { method: 'bottle' } },
+    { type: 'feeding', timestamp: 30, data: { method: 'breast' } },
+    { type: 'diaper', timestamp: 40, data: { kind: 'wet' } },
+  ]
+
+  test('the most recent one, not the last in the array', () => {
+    expect(latestOf(events, 'feeding')?.timestamp).toBe(30)
   })
 
-  test('hours drop the minutes when there are none', () => {
-    expect(shortDuration(3 * 3_600_000)).toBe('3h')
-    expect(shortDuration(3 * 3_600_000 + 10 * 60_000)).toBe('3h 10m')
-  })
-
-  test('a negative gap reads as zero rather than as a negative age', () => {
-    expect(shortDuration(-5000)).toBe('0m')
+  test('nothing logged is undefined, which the picks read as the fallback', () => {
+    expect(latestOf(events, 'growth')).toBeUndefined()
   })
 })
 

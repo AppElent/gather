@@ -63,15 +63,11 @@ export const settings = {
 
   group: {
     title: 'Deze Groep',
-    personalNote:
-      'Je persoonlijke Groep. Die is alleen van jou, dus er valt hier niets te delen of te verlaten.',
     sharedNote:
       'De naam, de code waarmee iemand binnenkomt, en de weg naar buiten.',
     name: 'Naam',
     rename: 'Hernoemen',
     renameFailed: 'Kon deze Groep niet hernoemen.',
-    addressChanges:
-      'Het adres verandert mee met de naam, dus oude links naar deze Groep werken daarna niet meer.',
     inviteCode: 'Uitnodigingscode',
     inviteCodeNote:
       'Iedereen met deze code kan zich aanmelden via Groepen — deel hem alleen met mensen die je erbij wilt hebben.',

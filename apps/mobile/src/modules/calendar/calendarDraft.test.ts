@@ -4,7 +4,6 @@ import {
   type CalendarDraftState,
   calendarSaveBlocker,
   createCalendarDraft,
-  draftCanSave,
   draftPayload,
   editCalendarDraft,
   reduceCalendarDraft,
@@ -28,11 +27,7 @@ const event = normalizeCalendarEvent({
 
 describe('calendar drafts', () => {
   test('changes and dismissals do not call a backend and retain all fields', () => {
-    let state: CalendarDraftState = {
-      draft: null,
-      presentation: 'card',
-      storageError: null,
-    }
+    let state: CalendarDraftState = { draft: null, presentation: 'card' }
     state = reduceCalendarDraft(state, {
       type: 'open',
       draft: editCalendarDraft('user', 'group', event),
@@ -62,25 +57,25 @@ describe('calendar drafts', () => {
       '2026-09-12',
       'calendar-1',
     )
-    expect(draftCanSave(draft, true, false)).toBe(false)
+    expect(calendarSaveBlocker(draft, true, false)).toBe('unchanged')
     const changed = reduceCalendarDraft(
-      { draft, presentation: 'card', storageError: null },
+      { draft, presentation: 'card' },
       { type: 'change', field: 'title', value: 'Party' },
     ).draft!
     const timed = reduceCalendarDraft(
-      { draft: changed, presentation: 'card', storageError: null },
+      { draft: changed, presentation: 'card' },
       { type: 'change', field: 'allDay', value: false },
     ).draft!
     const withTime = reduceCalendarDraft(
       reduceCalendarDraft(
-        { draft: timed, presentation: 'card', storageError: null },
+        { draft: timed, presentation: 'card' },
         { type: 'change', field: 'startMinutes', value: 60 },
       ),
       { type: 'change', field: 'endMinutes', value: 120 },
     ).draft!
-    expect(draftCanSave(withTime, true, false)).toBe(true)
+    expect(calendarSaveBlocker(withTime, true, false)).toBeNull()
     const allDay = reduceCalendarDraft(
-      { draft: withTime, presentation: 'card', storageError: null },
+      { draft: withTime, presentation: 'card' },
       { type: 'change', field: 'allDay', value: true },
     ).draft!
     expect(draftPayload(allDay)).toMatchObject({
@@ -97,11 +92,11 @@ describe('calendar drafts', () => {
       'calendar-1',
     )
     const dirty = reduceCalendarDraft(
-      { draft, presentation: 'card', storageError: null },
+      { draft, presentation: 'card' },
       { type: 'change', field: 'title', value: 'Party' },
     ).draft!
 
-    expect(calendarSaveBlocker(dirty, false, false)).toBe('calendar:offline')
+    expect(calendarSaveBlocker(dirty, false, false)).toBe('offline')
     expect(calendarSaveBlocker(dirty, true, false)).toBeNull()
   })
 
@@ -114,22 +109,23 @@ describe('calendar drafts', () => {
     )
     const base = {
       draft: reduceCalendarDraft(
-        { draft, presentation: 'card', storageError: null },
+        { draft, presentation: 'card' },
         { type: 'change', field: 'title', value: 'Party' },
       ).draft!,
       presentation: 'card' as const,
-      storageError: null,
     }
     expect(reduceCalendarDraft(base, { type: 'saveStart' }).draft?.status).toBe(
       'saving',
     )
     expect(
-      reduceCalendarDraft(base, { type: 'saveFailure', error: 'network' }).draft
+      reduceCalendarDraft(base, { type: 'saveFailure', error: 'save' }).draft
         ?.error,
-    ).toBe('network')
+    ).toBe('save')
     expect(
-      reduceCalendarDraft(base, { type: 'conflict', error: 'conflict' }).draft
-        ?.status,
+      reduceCalendarDraft(base, {
+        type: 'saveFailure',
+        error: 'conflict',
+      }).draft?.status,
     ).toBe('conflict')
   })
 

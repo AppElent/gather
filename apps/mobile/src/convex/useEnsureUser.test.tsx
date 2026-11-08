@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
+import { ACCOUNT_DELETED } from '@gather/core/refusals'
 import { ConvexError } from 'convex/values'
 import { act } from 'react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
-import { ACCOUNT_DELETED } from '../../../../convex/lib/sharing'
 import { mount, settle } from '../testing/dom'
 import { type Provisioning, useEnsureUser } from './useEnsureUser'
 

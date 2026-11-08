@@ -11,7 +11,7 @@
  * filters what has already arrived rather than asking again.
  */
 
-import { api } from '../../../../../convex/_generated/api'
+import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 

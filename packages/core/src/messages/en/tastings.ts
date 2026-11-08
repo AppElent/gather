@@ -277,8 +277,6 @@ export const index = {
   searchEmpty: 'Nothing matching that.',
   clearSearch: 'Clear the search',
   add: 'Log a tasting',
-  /** The average, read aloud. `{score}` is 4.3, `{count}` the number behind it. */
-  averageOf: '{score} from {count}',
   /** Beside the stars, where the score itself is already drawn. */
   fromCount: 'from {count}',
   noScore: 'Not rated yet',
@@ -327,7 +325,6 @@ export const composer = {
   laterDay: 'A day later',
   notesPlaceholder: 'What did it taste of?',
   addYourOwn: 'Add your own',
-  addTerm: 'Add “{name}”',
   choose: 'Choose',
   none: 'Not set',
   clear: 'Clear',
@@ -339,7 +336,10 @@ export const composer = {
   newHere: 'New in {group}',
   existing: '{count} tasting so far',
   existingOther: '{count} tastings so far',
-  /** The refusal keys `validateTastingAttributes` reports. */
+  /**
+   * What a refused save reads as: each problem `validateTastingAttributes`
+   * reports, and each tasting refusal (`TASTING_REFUSALS`).
+   */
   problems: {
     unknownField: 'That field is not part of this form.',
     wrongType: 'That is not a value this field can hold.',
@@ -349,6 +349,7 @@ export const composer = {
     tooMany: 'That is too many.',
     needsName: 'Give it a name first.',
     needsScore: 'Give it a score first.',
+    notYourTasting: 'Only whoever logged this tasting can change it.',
   },
 }
 
@@ -360,11 +361,9 @@ export const subject = {
   logTasting: 'Log a tasting',
   addPhoto: 'Label',
   photoOf: 'Photo of {name}',
-  photoUploading: 'Adding the photo…',
   photoFailed: 'That photo could not be added.',
   photoDenied: 'Gather needs permission to use that.',
   takePhoto: 'Take a photo',
-  choosePhoto: 'Choose a photo',
   replacePhoto: 'Replace',
   removePhoto: 'Remove',
   /** Attribution on a Tasting row. */

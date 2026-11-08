@@ -3,16 +3,14 @@ import type {
   CalendarPeopleFilter,
   CalendarView,
 } from '@gather/core/calendar'
-import { todayCalendarDate } from '@gather/core/calendar'
+import { localIsoDate } from '@gather/core/civil-date'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { Alert } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
-import { useAvailability } from '../../availability/AvailabilityProvider'
-import { useQuery } from '../../convex/queries'
+import { api, type Id } from '../../convex/api'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { useGroup } from '../../group/GroupProvider'
-import { useI18n } from '../../i18n'
+import { fmt, useI18n } from '../../i18n'
 import { CalendarEditor } from './CalendarEditor'
 import { CalendarEventSource } from './CalendarEventSource'
 import { CalendarFilters } from './CalendarFilters'
@@ -25,56 +23,15 @@ import { useCalendarEditor } from './useCalendarEditor'
 export function ConnectedCalendarScreen() {
   const { group } = useGroup()
   const { t } = useI18n()
-  const [today] = useState(todayCalendarDate)
+  const [today] = useState(() => localIsoDate())
+  const [activeDate, setActiveDate] = useState(today)
   const [filterSheet, setFilterSheet] = useState<'people' | null>(null)
   const [management, setManagement] = useState(false)
-  const data = useCalendarData(group.slug, today)
-  const { serviceActionsEnabled } = useAvailability()
-  const me = useQuery(api.users.me)
+  const data = useCalendarData(group.slug, activeDate)
   const setPreferences = useMutation(api.calendar.setPreferences)
-  const visibility = useMutation(api.kitchen.setCalendarVisibility)
-  const addEvent = useMutation(api.kitchen.addCalendarEvent)
-  const updateEvent = useMutation(api.calendar.updateEvent)
-  const removeEvent = useMutation(api.kitchen.removeCalendarEvent)
+  const visibility = useMutation(api.calendar.setCalendarVisibility)
   const [editorVisible, setEditorVisible] = useState(false)
-  const editor = useCalendarEditor({
-    userId: me?._id ?? '',
-    groupId: group._id,
-    connected: serviceActionsEnabled && Boolean(me),
-    create: async (payload) => {
-      if (!payload.calendarId) throw new Error('calendar:calendarRequired')
-      return await addEvent({
-        groupSlug: group.slug,
-        calendarId: payload.calendarId as never,
-        title: payload.title,
-        date: payload.date,
-        allDay: payload.allDay,
-        startMinutes: payload.startMinutes ?? undefined,
-        endMinutes: payload.endMinutes ?? undefined,
-        assigneeIds: payload.assigneeIds as Id<'users'>[],
-        location: payload.location ?? undefined,
-        notes: payload.notes ?? undefined,
-      })
-    },
-    update: async (id, revision, payload) =>
-      await updateEvent({
-        groupSlug: group.slug,
-        id: id as never,
-        expectedRevision: revision,
-        title: payload.title,
-        calendarId: payload.calendarId as never,
-        date: payload.date,
-        allDay: payload.allDay,
-        startMinutes: payload.startMinutes,
-        endMinutes: payload.endMinutes,
-        assigneeIds: payload.assigneeIds as Id<'users'>[],
-        location: payload.location,
-        notes: payload.notes,
-      }),
-    remove: async (id) => {
-      await removeEvent({ groupSlug: group.slug, id: id as never })
-    },
-  })
+  const editor = useCalendarEditor()
 
   const saveView = (view: CalendarView) => {
     void setPreferences({ groupSlug: group.slug, view })
@@ -147,6 +104,7 @@ export function ConnectedCalendarScreen() {
         }
         data={data}
         today={today}
+        onActiveDate={setActiveDate}
         preferredView={data.view}
         sourceNodes={sourceNodes}
         onOpenCalendars={() => setManagement(true)}
@@ -155,18 +113,12 @@ export function ConnectedCalendarScreen() {
         onAdd={openNew}
         onEvent={openEvent}
         onDeleteEvent={(event) =>
-          Alert.alert(
-            t.calendar.confirmDelete.replace('{title}', event.title),
-            undefined,
-            [
-              { text: t.actions.cancel, style: 'cancel' },
-              {
-                text: t.calendar.deleteEvent,
-                style: 'destructive',
-                onPress: () => void editor.deleteForEvent?.(event.id),
-              },
-            ],
-          )
+          confirmDestructive({
+            title: fmt(t.calendar.confirmDelete, { title: event.title }),
+            confirm: t.calendar.deleteEvent,
+            cancel: t.actions.cancel,
+            onConfirm: () => void editor.deleteForEvent(event.id),
+          })
         }
         hasDraft={editor.draft?.status === 'dismissed'}
         onResumeDraft={() => {
@@ -176,13 +128,9 @@ export function ConnectedCalendarScreen() {
       />
       {filterSheet ? (
         <CalendarFilters
-          calendars={data.calendars}
-          hiddenCalendarIds={data.hiddenCalendarIds ?? []}
           people={data.people}
           peopleFilter={data.peopleFilter}
-          mode="people"
           onClose={() => setFilterSheet(null)}
-          onCalendar={() => undefined}
           onPeople={savePeople}
         />
       ) : null}

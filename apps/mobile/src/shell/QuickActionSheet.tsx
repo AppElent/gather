@@ -1,11 +1,10 @@
 /**
  * The add tab's launcher.
  *
- * It draws nothing of its own frame any more. Every sheet in the app is the
- * same `Sheet` — one drag gesture, one scrim, one answer to the keyboard — so a
- * fix to any of those is a fix to all four rather than to whichever copy
- * somebody happened to be looking at. This one only needs a Back button in the
- * heading, which is what `leading` is for.
+ * It draws nothing of its own frame. Every sheet in the app is the same
+ * `NativeSheet` — one drag gesture, one scrim, one answer to the keyboard — so
+ * a fix to any of those is a fix to all of them. This one only needs a Back
+ * button in the heading, which is what `leading` is for.
  */
 import { router } from 'expo-router'
 import { useState } from 'react'
@@ -21,8 +20,7 @@ import {
 import { NativeSheet } from '../components/NativeSheet'
 import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
-import { isNativeModule } from '../modules/moduleDestination'
-import { TASTING_BASES, tastingHref } from '../modules/tasting/paths'
+import { moduleHref } from '../modules/moduleDestination'
 import { SubjectPickerSheet } from '../modules/tasting/SubjectPickerSheet'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
@@ -31,17 +29,6 @@ import {
   type QuickAction,
   type QuickActionId,
 } from './quickActions'
-
-/**
- * A handoff or compose action opens its Module's screen; for a Module with no
- * native screen yet that screen is the "planned" placeholder, which is a dead
- * end to be sent to. In-sheet captures save without leaving, so they stay.
- */
-const LAUNCHABLE = QUICK_ACTIONS.filter(
-  (action) =>
-    (action.kind !== 'handoff' && action.kind !== 'compose') ||
-    isNativeModule(action.module),
-)
 
 /**
  * "{noun} opslaan" with a lowercase noun starts the button in lowercase; a
@@ -75,16 +62,6 @@ function SheetBody({
   const tokens = useTokens()
   const { t } = useI18n()
   const [openId, setOpenId] = useState<QuickActionId | null>(null)
-  /**
-   * Which tab stack a handoff is pushed into: **the one you are looking at**.
-   *
-   * The launcher floats over whichever tab is focused, and pushing into a
-   * different tab's stack is not merely disorienting — expo-router tears the
-   * unfocused stack down under you and the app goes with it. It is also the
-   * handoff rule (`apps/mobile/DESIGN_SYSTEM.md`): you pressed Add from All, so
-   * saving has to put you back in All.
-   */
-  const base = TASTING_BASES.all
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [added, setAdded] = useState<string[]>([])
   const text = t.shell.add
@@ -101,12 +78,7 @@ function SheetBody({
   const choose = (action: QuickAction) => {
     if (action.kind === 'handoff') {
       onClose()
-      // The Module's own screen where there is one; the shared demo form
-      // where there is not. The launcher does not know which Module it is
-      // handing to, and must not start to.
-      router.push(
-        action.href ?? { pathname: '/create', params: { action: action.id } },
-      )
+      router.push(action.href)
       return
     }
 
@@ -184,6 +156,22 @@ function SheetBody({
     )
   }
 
+  const backButton = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={text.back}
+      onPress={() => setOpenId(null)}
+      hitSlop={12}
+      style={({ pressed }) => [
+        styles.close,
+        { backgroundColor: tokens.tile },
+        pressed && styles.pressed,
+      ]}
+    >
+      <Back size={18} color={tokens.muted} />
+    </Pressable>
+  )
+
   if (composing) {
     return (
       <SubjectPickerSheet
@@ -192,7 +180,7 @@ function SheetBody({
         onChoose={(choice) => {
           onClose()
           router.push(
-            tastingHref(base, composing, '/compose', {
+            moduleHref(`/all/tasting/${composing}/compose`, {
               mode: 'new',
               ...('subjectId' in choice
                 ? { subjectId: choice.subjectId }
@@ -205,21 +193,7 @@ function SheetBody({
             }),
           )
         }}
-        leading={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={text.back}
-            onPress={() => setOpenId(null)}
-            hitSlop={12}
-            style={({ pressed }) => [
-              styles.close,
-              { backgroundColor: tokens.tile },
-              pressed && styles.pressed,
-            ]}
-          >
-            <Back size={18} color={tokens.muted} />
-          </Pressable>
-        }
+        leading={backButton}
       />
     )
   }
@@ -241,23 +215,7 @@ function SheetBody({
             : text.workingOnly
       }
       onClose={onClose}
-      leading={
-        inSheetCapture ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={text.back}
-            onPress={() => setOpenId(null)}
-            hitSlop={12}
-            style={({ pressed }) => [
-              styles.close,
-              { backgroundColor: tokens.tile },
-              pressed && styles.pressed,
-            ]}
-          >
-            <Back size={18} color={tokens.muted} />
-          </Pressable>
-        ) : null
-      }
+      leading={inSheetCapture ? backButton : null}
     >
       <ScrollView keyboardShouldPersistTaps="handled">
         {inSheetCapture && openAction ? (
@@ -269,7 +227,7 @@ function SheetBody({
           </View>
         ) : (
           <View style={styles.rows}>
-            {LAUNCHABLE.map((action) => {
+            {QUICK_ACTIONS.map((action) => {
               const copy = actionText(action)
               const tint = tokens.tintOf(action.group)
               const Icon = MODULE_ICONS[action.icon]

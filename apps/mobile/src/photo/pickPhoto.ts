@@ -40,7 +40,7 @@
  * in storage referenced by nothing. That is #41, and it is the same hole the
  * web's recipe and food images already have. Recipes' review-before-save
  * import makes abandoning the *expected* way to reject a bad parse, so the
- * hole is now reachable on purpose rather than only by accident.
+ * hole is reachable on purpose rather than only by accident.
  *
  * ## The URL it ends up with is public
  *

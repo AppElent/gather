@@ -5,7 +5,7 @@
  * title, a hairline-bordered card, and rows inside it that are 48pt tall and
  * separated by a hairline. The phone owns its look and these are plain React
  * Native primitives styled from `theme/tokens` (ADR-0017) — the point is that
- * thirteen screens cannot each invent their own row.
+ * no screen invents its own row.
  *
  * Two things every money screen needs and gets here:
  *

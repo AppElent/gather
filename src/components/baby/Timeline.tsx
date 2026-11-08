@@ -1,17 +1,14 @@
+import { summarizeBabyEvent } from '@gather/core/baby-events'
+import { localIsoDate } from '@gather/core/civil-date'
 import { useMutation } from 'convex/react'
 import { ChevronRight, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
-import {
-  dayKey,
-  formatEventDateHeading,
-  formatEventTimestamp,
-} from '../../lib/babyDate'
-import { summarizeEvent } from '../../lib/babyEventSummary'
 import { fmt, useI18n, useMessages } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
+import { formatEventDateHeading, formatEventTimestamp } from './babyDate'
 import { EventForm } from './EventForm'
 import { EventIcon } from './EventIcon'
 
@@ -48,7 +45,7 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
 
   const groups = new Map<string, TimelineProps['events']>()
   for (const event of events) {
-    const key = dayKey(event.timestamp)
+    const key = localIsoDate(event.timestamp)
     const list = groups.get(key) ?? []
     list.push(event)
     groups.set(key, list)
@@ -95,7 +92,7 @@ export function Timeline({ babyId, groupSlug, events }: TimelineProps) {
                           </span>
                         </div>
                         <p className="m-0 mt-0.5">
-                          {summarizeEvent(event, log)}
+                          {summarizeBabyEvent(event, log)}
                         </p>
                         {event.notes && (
                           <p className="m-0 mt-0.5 text-[var(--app-muted)]">

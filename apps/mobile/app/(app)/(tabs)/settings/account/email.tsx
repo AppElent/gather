@@ -3,13 +3,10 @@
  *
  * Adding one is a verification round trip with its own screen, its own code
  * field and its own failure modes, and none of that is what issue #208 asked
- * for. What it is not is a text field that looks editable: the screen this
- * replaces said "managed on the web" about the whole account, and the reason
- * that was worth deleting is that it was untrue about the name and the
- * password — not about this.
+ * for. What it is not is a text field that looks editable.
  *
- * So the list is the content, and the sentence under it is the honest half of
- * the old one.
+ * So the list is the content, and the sentence under it says where an address
+ * is added or removed.
  */
 import { useUser } from '@clerk/expo'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'

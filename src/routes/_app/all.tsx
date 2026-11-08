@@ -14,8 +14,8 @@ import { api } from '../../../convex/_generated/api'
 import { Icon } from '../../components/app/Icon'
 import { Pill, SurfaceCard } from '../../components/app/ShellPrimitives'
 import type { NavMessages } from '../../lib/appNavigation'
-import { moduleLink } from '../../lib/groupPaths'
 import { fmt, useMessages } from '../../lib/i18n'
+import { moduleLink } from '../../lib/links'
 
 /**
  * Every Module in this Group, pinned or not.
@@ -42,16 +42,14 @@ function ScopeMark({ module }: { module: ModuleDef }) {
 
 function ModuleFace({
   module,
-  groupSlug,
   messages,
 }: {
   module: ModuleDef
-  groupSlug: string
   messages: NavMessages
 }) {
   return (
     <Link
-      {...moduleLink(module, groupSlug)}
+      {...moduleLink(module)}
       className="grid min-w-0 grid-cols-[28px_minmax(0,1fr)] items-center gap-2 text-sm font-semibold text-[var(--app-fg)] no-underline"
     >
       <span className="grid h-7 w-7 place-items-center rounded-[7px] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)]">
@@ -111,11 +109,7 @@ function AllModulesPage() {
             {pinned.map((module, index) => (
               <div key={module.id} className={ROW}>
                 <div className="flex min-w-0 items-center gap-2">
-                  <ModuleFace
-                    module={module}
-                    groupSlug={groupSlug}
-                    messages={messages}
-                  />
+                  <ModuleFace module={module} messages={messages} />
                   <ScopeMark module={module} />
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
@@ -170,11 +164,7 @@ function AllModulesPage() {
                 return (
                   <div key={module.id} className={ROW}>
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <ModuleFace
-                        module={module}
-                        groupSlug={groupSlug}
-                        messages={messages}
-                      />
+                      <ModuleFace module={module} messages={messages} />
                       {module.status === 'placeholder' ? (
                         <Pill>{marks.soon}</Pill>
                       ) : null}

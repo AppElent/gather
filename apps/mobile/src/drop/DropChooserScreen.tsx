@@ -22,16 +22,17 @@
  * sheet. Two reasons: an abandoned Drop must leave nothing behind, including a
  * silently changed Group; and `apps/mobile/DESIGN_SYSTEM.md` says the
  * confirmation *is* the screen changing, so arriving in the new Group is what
- * says the save worked. ADR-0015 stands — the Group is still a place, and this
- * introduces no per-write Group anywhere else.
+ * says the save worked. The Group is still ambient (ADR-0031); this introduces
+ * no per-write Group anywhere else.
  *
- * ## One destination keeps the Drop
+ * ## A target can keep the Drop
  *
- * `recipe-import` writes nothing here: the importer reads the page on its own
- * screen, and it can fail there. So that one alone is pushed *on top of* this
- * chooser with the Drop still pending, and Back returns to a live list of
- * somewhere else to put the link. Every other destination has already written
- * by the time it navigates, and a failure never leaves this screen at all.
+ * One that `keepsDrop` writes nothing here — today only `recipe-import`, whose
+ * importer reads the page on its own screen and can fail there. It is pushed
+ * *on top of* this chooser with the Drop still pending, so Back returns to a
+ * live list of somewhere else to put the link, and its own successful save
+ * clears the Drop. Every other destination has already written by the time it
+ * navigates, and a failure never leaves this screen at all.
  */
 import { moduleById } from '@gather/core/modules'
 import { Image } from 'expo-image'
@@ -47,7 +48,7 @@ import {
 } from 'react-native'
 
 import { haptics } from '../feedback/haptics'
-import { useGroup } from '../group/GroupProvider'
+import { useGroup, useOpenInGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
@@ -67,7 +68,8 @@ export function DropChooserScreen() {
   const tokens = useTokens()
   const router = useRouter()
   const { t } = useI18n()
-  const { group, groups, setGroup } = useGroup()
+  const { group, groups } = useGroup()
+  const openInGroup = useOpenInGroup()
   const { pending, clear, offer } = useDrop()
   const commit = useDropCommit()
   // The harness. `agent-device` cannot drive a share sheet, so
@@ -80,7 +82,7 @@ export function DropChooserScreen() {
   const text = t.drop
 
   const [selected, setSelected] = useState<string | null>(null)
-  const [saveGroup, setSaveGroup] = useState(group.slug)
+  const [saveGroup, setSaveGroup] = useState(group._id)
   const [naming, setNaming] = useState(false)
   const [saving, setSaving] = useState(false)
   const [problem, setProblem] = useState<DropProblem | 'failed' | null>(null)
@@ -109,7 +111,7 @@ export function DropChooserScreen() {
     targets.find((target) => target.id === selected) ??
     targets.find((target) => target.preselected) ??
     targets[0]
-  const named = groups.find((each) => each.slug === saveGroup) ?? group
+  const named = groups.find((each) => each._id === saveGroup) ?? group
 
   async function confirm() {
     if (!chosen || !drop || saving) return
@@ -117,7 +119,7 @@ export function DropChooserScreen() {
     // Stage two is a screen, not a write. Nothing has been uploaded or created
     // at this point, so backing out of it costs the household nothing.
     if (chosen.picks !== 'none') {
-      router.push(dropPickHref(chosen.id, saveGroup))
+      router.push(dropPickHref(chosen.id, named._id))
       return
     }
 
@@ -127,7 +129,7 @@ export function DropChooserScreen() {
       const result = await commit({
         target: chosen,
         drop,
-        groupSlug: saveGroup,
+        group: named,
       })
       if (!result.ok) {
         haptics.actionFailed()
@@ -135,20 +137,21 @@ export function DropChooserScreen() {
         return
       }
 
-      // The importer has not read the page yet and can still fail, so it keeps
-      // the Drop and keeps this screen underneath it. See the note at the top.
-      if (chosen.id === 'recipe-import') {
-        if (saveGroup !== group.slug) setGroup(saveGroup)
-        router.push(result.href)
+      const { href } = result
+      // A target that has not written yet keeps the Drop and keeps this screen
+      // underneath it. See the note at the top.
+      if (chosen.keepsDrop) {
+        openInGroup(named._id, () => router.push(href))
         return
       }
 
       haptics.itemSaved()
       // Follow the Drop into the Group it named, now that the write is done.
-      if (saveGroup !== group.slug) setGroup(saveGroup)
-      clear()
-      router.dismissTo('/home')
-      router.push(result.href)
+      openInGroup(named._id, () => {
+        clear()
+        router.dismissTo('/home')
+        router.push(href)
+      })
     } catch {
       haptics.actionFailed()
       setProblem('failed')

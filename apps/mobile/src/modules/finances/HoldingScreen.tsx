@@ -11,19 +11,19 @@
  * the notice at the bottom says so.
  */
 
-import { holdingPosition, isStale } from '@gather/core/finance'
+import { parseDecimal } from '@gather/core/decimal'
+import { holdingPosition, isStale, parseCents } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, StyleSheet, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import { StyleSheet, View } from 'react-native'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
 import { FINANCE_ICONS } from './icons'
-import type { FinanceBase } from './paths'
 import {
   AddRow,
   Card,
@@ -43,13 +43,7 @@ import { useFinances } from './useFinances'
 
 type TransactionKind = 'buy' | 'sell' | 'dividend' | 'fee' | 'adjustment'
 
-export function HoldingScreen({
-  base: _base,
-  holdingId,
-}: {
-  base: FinanceBase
-  holdingId: Id<'holdings'>
-}) {
+export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { groupSlug, format, text, today } = useFinances()
@@ -69,7 +63,7 @@ export function HoldingScreen({
   const [newPrice, setNewPrice] = useState('')
 
   const Target = FINANCE_ICONS.Target
-  const Alert_ = FINANCE_ICONS.Alert
+  const Alert = FINANCE_ICONS.Alert
   const tint = tokens.tintOf('money')
 
   if (holding === undefined) {
@@ -111,11 +105,9 @@ export function HoldingScreen({
   const stale = isStale(holding.lastPriceAt, Date.now())
 
   function save() {
-    const unitCount = Number(units.replace(',', '.'))
-    const cents = Math.round(Number(price.replace(',', '.')) * 100)
-    const feeCents = fee
-      ? Math.round(Number(fee.replace(',', '.')) * 100)
-      : undefined
+    const unitCount = parseDecimal(units) ?? 0
+    const cents = parseCents(price) ?? 0
+    const feeCents = parseCents(fee) ?? undefined
     addTransaction({
       holdingId,
       groupSlug,
@@ -141,21 +133,16 @@ export function HoldingScreen({
   }
 
   function confirmDelete() {
-    Alert.alert(
-      fmt(text.errors.confirmDelete, { name: holding?.symbol ?? '' }),
-      text.errors.confirmDeleteBody,
-      [
-        { text: text.actions.cancel, style: 'cancel' },
-        {
-          text: text.actions.delete,
-          style: 'destructive',
-          onPress: () => {
-            remove({ id: holdingId, groupSlug })
-            router.back()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(text.errors.confirmDelete, { name: holding?.symbol ?? '' }),
+      message: text.errors.confirmDeleteBody,
+      confirm: text.actions.delete,
+      cancel: text.actions.cancel,
+      onConfirm: () => {
+        remove({ id: holdingId, groupSlug })
+        router.back()
+      },
+    })
   }
 
   return (
@@ -230,7 +217,7 @@ export function HoldingScreen({
               key={`${entry.date}-${index}`}
               leading={
                 entry.kind === 'adjustment' ? (
-                  <Alert_ size={17} color={tokens.danger} strokeWidth={2} />
+                  <Alert size={17} color={tokens.danger} strokeWidth={2} />
                 ) : undefined
               }
               label={`${text.transactionKinds[entry.kind]} · ${format.date(
@@ -356,10 +343,8 @@ export function HoldingScreen({
             <PrimaryButton
               label={text.actions.save}
               onPress={() => {
-                const cents = Math.round(
-                  Number(newPrice.replace(',', '.')) * 100,
-                )
-                if (Number.isFinite(cents) && cents >= 0)
+                const cents = parseCents(newPrice) ?? 0
+                if (cents >= 0)
                   setPrice({
                     id: holdingId,
                     groupSlug,

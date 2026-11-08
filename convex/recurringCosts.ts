@@ -12,16 +12,17 @@ import { ConvexError, v } from 'convex/values'
 
 import { mutation, query } from './_generated/server'
 import {
-  costCategoryValidator,
-  costFrequencyValidator,
-  findInGroup,
-  nextOrder,
+  recurringCostFields,
   requireAmount,
-  requireInGroup,
   requireName,
-  splitShareValidator,
 } from './lib/finance'
-import { getMembership, requireGroupBySlug } from './lib/groupAccess'
+import {
+  findInGroup,
+  getMembership,
+  requireGroupBySlug,
+  requireInGroup,
+} from './lib/groupAccess'
+import { nextOrder } from './lib/order'
 
 export const list = query({
   args: { groupSlug: v.string() },
@@ -63,17 +64,8 @@ async function validateSplit(
   }
 }
 
-const costFields = {
-  name: v.string(),
-  amountCents: v.number(),
-  frequency: costFrequencyValidator,
-  category: costCategoryValidator,
-  note: v.optional(v.string()),
-  split: v.optional(v.array(splitShareValidator)),
-}
-
 export const create = mutation({
-  args: { groupSlug: v.string(), ...costFields },
+  args: { groupSlug: v.string(), ...recurringCostFields },
   handler: async (ctx, args) => {
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
     await validateSplit(ctx, group._id, args.split ?? [])
@@ -96,7 +88,7 @@ export const create = mutation({
 })
 
 export const update = mutation({
-  args: { id: v.id('recurringCosts'), groupSlug: v.string(), ...costFields },
+  args: { id: v.id('recurringCosts'), groupSlug: v.string(), ...recurringCostFields },
   handler: async (ctx, args) => {
     const { group } = await requireInGroup(ctx, args.groupSlug, args.id)
     await validateSplit(ctx, group._id, args.split ?? [])

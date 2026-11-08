@@ -1,20 +1,14 @@
+import type { BabyEventType } from '@gather/core/domain'
+import { BABY_EVENT_TYPES } from '@gather/core/domain'
 import { useConvex } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import type { BabyEventType } from '../../../convex/lib/babyEvents'
-import { BABY_EVENT_TYPES } from '../../../convex/lib/babyEvents'
-import {
-  combineDateTime,
-  toDateInputValue,
-  toTimeInputValue,
-} from '../../lib/babyDate'
-import type { BabyPdfLayout } from '../../lib/babyPdfExport'
 import { useI18n } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
-
-const inputClass =
-  'w-full min-w-0 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--app-accent)]'
+import { combineDateTime } from './babyDate'
+import type { BabyPdfLayout } from './babyPdfExport'
+import { DateTimeFields } from './DateTimeFields'
 
 interface ExportPdfPanelProps {
   babyId: Id<'babies'>
@@ -59,7 +53,7 @@ export function ExportPdfPanel({
     try {
       // jsPDF + jspdf-autotable are ~140KB gzipped — load them only when the
       // user actually exports, instead of on every visit to this page.
-      const { exportBabyLogPdf } = await import('../../lib/babyPdfExport')
+      const { exportBabyLogPdf } = await import('./babyPdfExport')
       const events = await convex.query(api.babyEvents.listByBaby, {
         babyId,
         groupSlug,
@@ -89,56 +83,16 @@ export function ExportPdfPanel({
     <SurfaceCard>
       <h2 className="m-0 mb-3 text-sm font-semibold">{exportText.title}</h2>
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="min-w-0">
-          <span className="mb-1 block text-sm font-medium">
-            {exportText.from}
-          </span>
-          <div className="flex gap-2">
-            <input
-              type="date"
-              className={inputClass}
-              value={toDateInputValue(fromMs)}
-              onChange={(e) =>
-                setFromMs(
-                  combineDateTime(e.target.value, toTimeInputValue(fromMs)),
-                )
-              }
-            />
-            <input
-              type="time"
-              className={inputClass}
-              value={toTimeInputValue(fromMs)}
-              onChange={(e) =>
-                setFromMs(
-                  combineDateTime(toDateInputValue(fromMs), e.target.value),
-                )
-              }
-            />
-          </div>
-        </div>
-        <div className="min-w-0">
-          <span className="mb-1 block text-sm font-medium">
-            {exportText.to}
-          </span>
-          <div className="flex gap-2">
-            <input
-              type="date"
-              className={inputClass}
-              value={toDateInputValue(toMs)}
-              onChange={(e) =>
-                setToMs(combineDateTime(e.target.value, toTimeInputValue(toMs)))
-              }
-            />
-            <input
-              type="time"
-              className={inputClass}
-              value={toTimeInputValue(toMs)}
-              onChange={(e) =>
-                setToMs(combineDateTime(toDateInputValue(toMs), e.target.value))
-              }
-            />
-          </div>
-        </div>
+        <DateTimeFields
+          label={exportText.from}
+          valueMs={fromMs}
+          onChange={(ms) => ms !== undefined && setFromMs(ms)}
+        />
+        <DateTimeFields
+          label={exportText.to}
+          valueMs={toMs}
+          onChange={(ms) => ms !== undefined && setToMs(ms)}
+        />
       </div>
 
       <fieldset className="mt-3">

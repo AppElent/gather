@@ -1,3 +1,4 @@
+import { addDays, localIsoDate, localMidnight, mondayStart } from '@gather/core/civil-date'
 import {
   eligibleDinnerCandidates,
   randomDinner,
@@ -6,7 +7,6 @@ import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
 import { useMemo, useState } from 'react'
 import {
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -16,28 +16,20 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { NativeSheet } from '../../components/NativeSheet'
 import { SearchField } from '../../components/SearchField'
 import { SwipeableRow } from '../../components/SwipeableRow'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { useTaskState } from '../tasks/store'
+import { useTaskLists } from '../tasks/store'
 import { TaskList } from '../tasks/TaskListScreen'
-
-const iso = (date: Date) => date.toISOString().slice(0, 10)
-const addDays = (date: Date, days: number) => {
-  const copy = new Date(date)
-  copy.setDate(copy.getDate() + days)
-  return copy
-}
-const monday = (date: Date) => addDays(date, -((date.getDay() + 6) % 7))
 
 function KitchenShell({
   title,
@@ -122,32 +114,14 @@ function Composer({
   )
 }
 
-function ConfirmDelete(
-  labels: { cancel: string; delete: string },
-  {
-    title,
-    body,
-    onDelete,
-  }: {
-    title: string
-    body: string
-    onDelete: () => void
-  },
-) {
-  Alert.alert(title, body, [
-    { text: labels.cancel, style: 'cancel' },
-    { text: labels.delete, style: 'destructive', onPress: onDelete },
-  ])
-  return null
-}
-
 /** Dutch writes "maandag 21 sep"; as a label it wants only its first capital. */
 const sentenceCase = (text: string) =>
   text.charAt(0).toLocaleUpperCase() + text.slice(1)
 
 /** "21–27 sep", or "28 sep – 4 okt" across a month, in the app's language. */
-function weekRange(start: Date, locale: string) {
-  const end = addDays(start, 6)
+function weekRange(from: string, locale: string) {
+  const start = localMidnight(from)
+  const end = localMidnight(addDays(from, 6))
   const day = (date: Date) =>
     date.toLocaleDateString(locale, { day: 'numeric' })
   const dayMonth = (date: Date) =>
@@ -161,12 +135,12 @@ export function MealPlannerScreen() {
   const { group } = useGroup()
   const { t, locale } = useI18n()
   const tokens = useTokens('kitchen')
-  const [weekStart, setWeekStart] = useState(() => monday(new Date()))
+  const [weekStart, setWeekStart] = useState(() => mondayStart(localIsoDate()))
   const [pickerDate, setPickerDate] = useState<string | null>(null)
   const [pickerLimit, setPickerLimit] = useState<10 | 20 | 30 | undefined>()
   const [editing, setEditing] = useState<Id<'mealEntries'> | null>(null)
-  const from = iso(weekStart)
-  const to = iso(addDays(weekStart, 6))
+  const from = weekStart
+  const to = addDays(weekStart, 6)
   const data = useQuery(api.kitchen.overview, {
     groupSlug: group.slug,
     from,
@@ -175,6 +149,14 @@ export function MealPlannerScreen() {
   const addMeal = useMutation(api.kitchen.addMealEntry)
   const updateMeal = useMutation(api.kitchen.updateMealEntry)
   const removeMeal = useMutation(api.kitchen.removeMealEntry)
+  const confirmRemove = (entry: { _id: Id<'mealEntries'>; title: string }) =>
+    confirmDestructive({
+      title: fmt(t.kitchen.deleteTitle, { title: entry.title }),
+      message: t.kitchen.deleteBody,
+      confirm: t.actions.delete,
+      cancel: t.actions.cancel,
+      onConfirm: () => removeMeal({ groupSlug: group.slug, id: entry._id }),
+    })
   const setDinner = useMutation(api.kitchen.setDinner)
   const clearDinner = useMutation(api.kitchen.clearDinner)
   const candidates = useMemo(
@@ -216,7 +198,7 @@ export function MealPlannerScreen() {
     })
   const fillWeek = async () => {
     for (let i = 0; i < 7; i++) {
-      const date = iso(addDays(weekStart, i))
+      const date = addDays(weekStart, i)
       if (data?.dinners.some((row) => row.date === date)) continue
       const candidate = randomDinner(candidates) as
         | (typeof candidates)[number]
@@ -281,7 +263,7 @@ export function MealPlannerScreen() {
         </Text>
       </Pressable>
       {Array.from({ length: 7 }, (_, index) => {
-        const date = iso(addDays(weekStart, index))
+        const date = addDays(weekStart, index)
         const dinner = data?.dinners.find((row) => row.date === date)
         return (
           <View
@@ -298,7 +280,7 @@ export function MealPlannerScreen() {
             >
               <Text style={[styles.dayName, { color: tokens.fg }]}>
                 {sentenceCase(
-                  new Date(`${date}T12:00`).toLocaleDateString(locale, {
+                  localMidnight(date).toLocaleDateString(locale, {
                     weekday: 'long',
                     day: 'numeric',
                     month: 'short',
@@ -424,23 +406,13 @@ export function MealPlannerScreen() {
           onAction={(action) => {
             if (action === 'edit') setEditing(entry._id)
             else
-              ConfirmDelete(t.actions, {
-                title: fmt(t.kitchen.deleteTitle, { title: entry.title }),
-                body: t.kitchen.deleteBody,
-                onDelete: () =>
-                  removeMeal({ groupSlug: group.slug, id: entry._id }),
-              })
+              confirmRemove(entry)
           }}
         >
           <SwipeableRow
             deleteLabel={t.actions.delete}
             onDelete={() =>
-              ConfirmDelete(t.actions, {
-                title: fmt(t.kitchen.deleteTitle, { title: entry.title }),
-                body: t.kitchen.deleteBody,
-                onDelete: () =>
-                  removeMeal({ groupSlug: group.slug, id: entry._id }),
-              })
+              confirmRemove(entry)
             }
           >
             <Pressable
@@ -602,7 +574,7 @@ export function GroceriesScreen() {
   const { t } = useI18n()
   const data = useQuery(api.kitchen.overview, { groupSlug: group.slug })
   const set = useMutation(api.kitchen.setGroceryList)
-  const state = useTaskState()
+  const lists = useTaskLists()
   const selected = data?.groceryListId
   if (selected)
     return (
@@ -624,15 +596,14 @@ export function GroceriesScreen() {
   return (
     <KitchenShell title={t.modules.byId.groceries.label}>
       <Text>{t.kitchen.noGroceryList}</Text>
-      {state.lists.map((list) => (
+      {lists?.map((list) => (
         <Pressable
-          key={list.id}
+          key={list._id}
           style={styles.row}
           onPress={() =>
-            set({
-              groupSlug: group.slug,
-              listId: list.id as Id<'taskLists'>,
-            }).then(() => haptics.selectionChanged())
+            set({ groupSlug: group.slug, listId: list._id }).then(() =>
+              haptics.selectionChanged(),
+            )
           }
         >
           <Text>{list.name}</Text>
@@ -650,6 +621,14 @@ export function PantryScreen() {
   const add = useMutation(api.kitchen.addPantryEntry)
   const update = useMutation(api.kitchen.updatePantryEntry)
   const remove = useMutation(api.kitchen.removePantryEntry)
+  const confirmRemove = (item: { _id: Id<'pantryEntries'>; title: string }) =>
+    confirmDestructive({
+      title: fmt(t.kitchen.deleteTitle, { title: item.title }),
+      message: t.kitchen.deleteBody,
+      confirm: t.actions.delete,
+      cancel: t.actions.cancel,
+      onConfirm: () => remove({ groupSlug: group.slug, id: item._id }),
+    })
   const [editing, setEditing] = useState<Id<'pantryEntries'> | null>(null)
   const entry = data?.pantry.find((item) => item._id === editing)
   return (
@@ -681,23 +660,13 @@ export function PantryScreen() {
             onAction={(action) =>
               action === 'edit'
                 ? setEditing(item._id)
-                : ConfirmDelete(t.actions, {
-                    title: fmt(t.kitchen.deleteTitle, { title: item.title }),
-                    body: t.kitchen.deleteBody,
-                    onDelete: () =>
-                      remove({ groupSlug: group.slug, id: item._id }),
-                  })
+                : confirmRemove(item)
             }
           >
             <SwipeableRow
               deleteLabel={t.actions.delete}
               onDelete={() =>
-                ConfirmDelete(t.actions, {
-                  title: fmt(t.kitchen.deleteTitle, { title: item.title }),
-                  body: t.kitchen.deleteBody,
-                  onDelete: () =>
-                    remove({ groupSlug: group.slug, id: item._id }),
-                })
+                confirmRemove(item)
               }
             >
               <Pressable

@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the Catalog, the tasting Catalog, the Sample household, or any seed entrypoint.
-version: 2.1.0
+version: 2.2.0
 status: current
 ---
 
@@ -44,9 +44,11 @@ callable functions, because every export under `convex/` is deployed API.
   is fake content for dev and previews only. It is wiped and recreated on every
   run, tracked in the `seedRuns` table, with every date anchored to the run.
   Fixtures are handwritten; `faker` only pads lists to test volume.
-- **Reset cascades through containment**: a task added to a seeded list, or a
-  baby's lazily created lists, go with the household, because deleting only
-  the recorded rows would leave them unreachable rather than intact.
+- **Reset cascades through containment**: it destroys the recorded Group through
+  `destroyGroup` ([account deletion](account-deletion.md)), so a task added to a
+  seeded list, a note or a cost added later, or a baby's lazily created lists go
+  with the household, because deleting only the recorded rows would leave them
+  unreachable rather than intact.
 - **What the sample Group merely references survives**: a recipe a real person
   owns is un-shared, not deleted, and the owner's previous default Group is
   restored.

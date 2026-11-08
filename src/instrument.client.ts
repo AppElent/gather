@@ -1,17 +1,17 @@
 // Imported first by `client.tsx`, so it runs before hydration. A no-op without
 // VITE_SENTRY_DSN, in dev, and on a local host — local and DSN-less previews
 // keep working and never report.
+import {
+  sanitizeBreadcrumb,
+  sanitizeEvent,
+  sanitizeText,
+} from '@gather/core/sentry-privacy'
 import * as Sentry from '@sentry/react'
 import {
   environmentFromHostname,
   isLocalReportingUrl,
   SENTRY_BASE_OPTIONS,
 } from './lib/observability/config'
-import {
-  sanitizeBreadcrumb,
-  sanitizeEvent,
-  sanitizeText,
-} from './lib/observability/privacy'
 import { setErrorSink } from './lib/observability/report'
 
 const dsn = import.meta.env.VITE_SENTRY_DSN

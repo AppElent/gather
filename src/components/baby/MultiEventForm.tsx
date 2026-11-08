@@ -1,27 +1,26 @@
-import { type BabyBarSlot, offeredEventTypes } from '@gather/core/domain'
+import type { BabyEventType } from '@gather/core/domain'
+import {
+  BABY_EVENT_TYPES,
+  type BabyBarSlot,
+  offeredEventTypes,
+} from '@gather/core/domain'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import type { BabyEventType } from '../../../convex/lib/babyEvents'
-import { BABY_EVENT_TYPES } from '../../../convex/lib/babyEvents'
-import {
-  combineDateTime,
-  toDateInputValue,
-  toTimeInputValue,
-} from '../../lib/babyDate'
-import { BABY_INPUT_CLASS as inputClass } from '../../lib/babyEventFields'
-import type { EventValues } from '../../lib/babyEventFormValues'
+import { errorMessage } from '../../lib/errorMessage'
+import { fmt, plural, useI18n } from '../../lib/i18n'
+import { BABY_INPUT_CLASS as inputClass } from './babyEventFields'
+import type { EventValues } from './babyEventFormValues'
 import {
   buildEventInput,
   initialEventValues,
   rememberEventChoices,
-} from '../../lib/babyEventFormValues'
-import { errorMessage } from '../../lib/errorMessage'
-import { fmt, plural, useI18n } from '../../lib/i18n'
-import { readLastUsed, writeLastUsed } from '../../lib/lastUsed'
+} from './babyEventFormValues'
+import { DateTimeFields } from './DateTimeFields'
 import { EventIcon } from './EventIcon'
 import { EventTypeFields } from './EventTypeFields'
+import { readLastUsed, writeLastUsed } from './lastUsed'
 
 interface MultiEventFormProps {
   babyId: Id<'babies'>
@@ -82,13 +81,7 @@ export function MultiEventForm({
   )
   const [valuesByType, setValuesByType] = useState<
     Partial<Record<BabyEventType, EventValues>>
-  >(() => {
-    const initial: Partial<Record<BabyEventType, EventValues>> = {}
-    for (const type of initialSelection(offered)) {
-      initial[type] = initialEventValues(type)
-    }
-    return initial
-  })
+  >(() => Object.fromEntries(selected.map((t) => [t, initialEventValues(t)])))
   const [notesByType, setNotesByType] = useState<
     Partial<Record<BabyEventType, string>>
   >({})
@@ -110,6 +103,9 @@ export function MultiEventForm({
     )
   }
 
+  const valuesOf = (type: BabyEventType) =>
+    valuesByType[type] ?? initialEventValues(type)
+
   // Rendered in the canonical type order rather than the order they were
   // checked, so the form doesn't reshuffle as boxes are ticked.
   const activeTypes = offered.filter((t) => selected.includes(t))
@@ -118,14 +114,18 @@ export function MultiEventForm({
     e.preventDefault()
     setError(null)
 
-    const inputs: { type: BabyEventType; values: EventValues }[] = []
+    const inputs: {
+      type: BabyEventType
+      values: EventValues
+      built: ReturnType<typeof buildEventInput>
+    }[] = []
     const errors: Partial<Record<BabyEventType, string>> = {}
     // Keys in, sentences out: the validator does not know the language.
     for (const type of activeTypes) {
-      const values = valuesByType[type] ?? initialEventValues(type)
+      const values = valuesOf(type)
       const built = buildEventInput(type, values, timestampMs)
       if (built.error) errors[type] = validation[built.error]
-      else inputs.push({ type, values })
+      else inputs.push({ type, values, built })
     }
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) return
@@ -133,8 +133,7 @@ export function MultiEventForm({
     setSubmitting(true)
     const saved: BabyEventType[] = []
     try {
-      for (const { type, values } of inputs) {
-        const built = buildEventInput(type, values, timestampMs)
+      for (const { type, values, built } of inputs) {
         await add({
           babyId,
           groupSlug,
@@ -171,32 +170,13 @@ export function MultiEventForm({
     <form onSubmit={submit} className="grid gap-3">
       <h3 className="m-0 text-sm font-semibold">{multi.heading}</h3>
 
-      <div className="min-w-0 sm:max-w-sm">
-        <span className="mb-1 block text-sm font-medium">{multi.when}</span>
-        <div className="flex gap-2">
-          <input
-            type="date"
-            className={inputClass}
-            value={toDateInputValue(timestampMs)}
-            onChange={(e) =>
-              setTimestampMs(
-                combineDateTime(e.target.value, toTimeInputValue(timestampMs)),
-              )
-            }
-            required
-          />
-          <input
-            type="time"
-            className={inputClass}
-            value={toTimeInputValue(timestampMs)}
-            onChange={(e) =>
-              setTimestampMs(
-                combineDateTime(toDateInputValue(timestampMs), e.target.value),
-              )
-            }
-            required
-          />
-        </div>
+      <div className="sm:max-w-sm">
+        <DateTimeFields
+          label={multi.when}
+          valueMs={timestampMs}
+          onChange={(ms) => ms !== undefined && setTimestampMs(ms)}
+          required
+        />
       </div>
 
       <fieldset className="m-0 border-0 p-0">
@@ -226,7 +206,7 @@ export function MultiEventForm({
           </p>
           <EventTypeFields
             type={type}
-            values={valuesByType[type] ?? initialEventValues(type)}
+            values={valuesOf(type)}
             timestampMs={timestampMs}
             onChange={(patch) =>
               setValuesByType((prev) => ({

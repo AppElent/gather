@@ -8,6 +8,8 @@
  * cents, and rounds exactly once, here.
  */
 
+import { parseDecimal } from '../decimal'
+
 /** An amount of money, as a whole number of cents. */
 export type Cents = number
 
@@ -19,6 +21,12 @@ export function roundCents(value: number): Cents {
 /** Cents from a decimal amount a Member typed. */
 export function toCents(amount: number): Cents {
   return roundCents(amount * 100)
+}
+
+/** Cents from the text of an amount box; null when the box holds no number. */
+export function parseCents(text: string | undefined): Cents | null {
+  const amount = parseDecimal(text)
+  return amount === null ? null : toCents(amount)
 }
 
 /** The decimal amount a formatter wants. */

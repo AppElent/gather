@@ -4,29 +4,38 @@ import {
   babyBarSlotValidator,
   babyEventDataValidator,
   babyEventTypeValidator,
+  babySexValidator,
 } from './lib/babyEvents'
 import {
   calendarColorValidator,
   calendarPeopleFilterValidator,
   calendarViewValidator,
 } from './lib/calendar'
-import { mealValidator, quantityUnitValidator } from './lib/consumption'
+import { comboComponentFields } from './lib/combos'
+import { diaryItemFields, mealValidator } from './lib/consumption'
 import {
   buyingCostLinesValidator,
-  chargeValidator,
-  costCategoryValidator,
-  costFrequencyValidator,
-  holdingKindValidator,
-  loanPartKindValidator,
+  holdingFields,
+  holdingTransactionFields,
+  loanPartFields,
+  netWorthKindValidator,
   netWorthRowValidator,
-  repaymentValidator,
-  splitPartyValidator,
-  splitShareValidator,
-  transactionKindValidator,
+  recurringCostFields,
+  splitScenarioFields,
   transferTaxBandValidator,
 } from './lib/finance'
+import { foodFields } from './lib/foodFields'
+import { groupRoleValidator } from './lib/groupAccess'
+import { quickLimitValidator } from './lib/kitchen'
 import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
-import { servingValidator } from './lib/servings'
+import { recipeFields } from './lib/recipeFields'
+import {
+  externalProviderValidator,
+  providerConfigValidator,
+  taskListDisplayValidator,
+  taskPriorityValidator,
+  taskProviderValidator,
+} from './lib/taskFields'
 import {
   tastingAttributesValidator,
   tastingKindValidator,
@@ -60,8 +69,8 @@ export default defineSchema({
   groups: defineTable({
     name: v.string(),
     inviteCode: v.string(),
-    // Globally unique, and readable so that the Group you are acting in is
-    // visible in the URL (ADR-0002).
+    // Globally unique: Group-scoped functions take the Current Group as
+    // `groupSlug` and resolve it by this.
     slug: v.string(),
     // Legacy only. New writes omit this; `removePersonalGroupSemantics`
     // removes it from existing rows before the next schema tightening.
@@ -76,7 +85,7 @@ export default defineSchema({
   memberships: defineTable({
     groupId: v.id('groups'),
     userId: v.id('users'),
-    role: v.union(v.literal('admin'), v.literal('member')),
+    role: groupRoleValidator,
     // The Modules this person keeps in *this* Group's navigation, in their own
     // order (ADR-0005). A membership is already exactly one person in one
     // Group, so the pair needs no table of its own — and a Pin then has the
@@ -109,52 +118,17 @@ export default defineSchema({
     groupId: v.id('groups'),
     sharedGroupIds: v.array(v.id('groups')),
     createdByUserId: v.id('users'),
-    title: v.string(),
-    description: v.optional(v.string()),
-    imageId: v.optional(v.id('_storage')),
-    ingredients: v.array(v.string()),
-    steps: v.array(v.string()),
-    tags: v.array(v.string()),
-    rating: v.optional(v.number()),
-    prepMinutes: v.optional(v.number()),
-    sourceUrl: v.optional(v.string()),
-    servings: v.optional(v.number()),
-    nutrition: v.optional(nutritionValidator),
-    nutritionSource: v.optional(nutritionSourceValidator),
+    ...recipeFields,
     nutritionStale: v.optional(v.boolean()),
   }).index('by_group', ['groupId']),
 
   taskLists: defineTable({
     groupId: v.id('groups'),
     name: v.string(),
-    provider: v.union(
-      v.literal('local'),
-      v.literal('notion'),
-      v.literal('todoist'),
-    ),
-    providerConfig: v.optional(
-      v.object({
-        connectionId: v.id('integrationConnections'),
-        sourceId: v.string(), // Notion database id / Todoist project id
-        propertyMapping: v.optional(
-          v.object({
-            title: v.string(),
-            done: v.string(),
-            dueDate: v.optional(v.string()),
-            priority: v.optional(v.string()),
-            labels: v.optional(v.string()),
-          }),
-        ),
-      }),
-    ),
+    provider: taskProviderValidator,
+    providerConfig: v.optional(providerConfigValidator),
     order: v.number(),
-    display: v.optional(
-      v.object({
-        due: v.boolean(),
-        priority: v.boolean(),
-        labels: v.boolean(),
-      }),
-    ),
+    display: v.optional(taskListDisplayValidator),
   }).index('by_group', ['groupId']),
 
   // Rows exist only for provider === 'local' lists.
@@ -163,9 +137,7 @@ export default defineSchema({
     title: v.string(),
     done: v.boolean(),
     dueDate: v.optional(v.string()), // ISO date, YYYY-MM-DD
-    priority: v.optional(
-      v.union(v.literal(1), v.literal(2), v.literal(3), v.literal(4)),
-    ),
+    priority: v.optional(taskPriorityValidator),
     labels: v.optional(v.array(v.string())),
     notes: v.optional(v.string()),
     createdBy: v.id('users'),
@@ -198,9 +170,7 @@ export default defineSchema({
     mealEntryId: v.optional(v.id('mealEntries')),
     title: v.string(),
     prepMinutes: v.optional(v.number()),
-    quickLimit: v.optional(
-      v.union(v.literal(10), v.literal(20), v.literal(30)),
-    ),
+    quickLimit: v.optional(quickLimitValidator),
   })
     .index('by_group', ['groupId'])
     .index('by_group_date', ['groupId', 'date']),
@@ -238,23 +208,15 @@ export default defineSchema({
 
   integrationConnections: defineTable({
     groupId: v.id('groups'),
-    provider: v.union(v.literal('notion'), v.literal('todoist')),
+    provider: externalProviderValidator,
     accessToken: v.string(), // server-only; never returned by a public function
     accountLabel: v.string(), // Notion workspace name / 'Todoist'
     connectedBy: v.id('users'),
   }).index('by_group_provider', ['groupId', 'provider']),
 
   foods: defineTable({
-    name: v.string(),
-    brand: v.optional(v.string()),
+    ...foodFields,
     barcode: v.optional(v.string()),
-    baseUnit: v.union(v.literal('g'), v.literal('ml')),
-    nutritionPer100: nutritionValidator,
-    // What somebody calls a portion of this food, in order — "1 slice",
-    // "1 glass" — each an amount in `baseUnit`. Optional because most foods
-    // have none: an empty list is answered by the person's own logged amounts
-    // rather than by inventing a portion for them.
-    servings: v.optional(v.array(servingValidator)),
     source: v.union(
       v.literal('openfoodfacts'),
       v.literal('manual'),
@@ -328,17 +290,7 @@ export default defineSchema({
     userId: v.id('users'),
     date: v.string(),
     meal: mealValidator,
-    recipeId: v.optional(v.id('recipes')),
-    foodId: v.optional(v.id('foods')),
-    label: v.string(),
-    quantity: v.number(),
-    quantityUnit: quantityUnitValidator,
-    nutrition: nutritionValidator,
-    // An emoji, for a **one-off** — an entry with no `foodId` and no
-    // `recipeId`, which has nothing to inherit a picture from and never will
-    // (#94). An entry that does reference a food reads the food's own icon
-    // instead, so this stays absent there. Content, not a display string.
-    icon: v.optional(v.string()),
+    ...diaryItemFields,
     // Which Combo wrote this entry, and what that Combo was called when it
     // did (#99). Absent on everything logged one thing at a time.
     //
@@ -383,26 +335,14 @@ export default defineSchema({
    */
   comboItems: defineTable({
     comboId: v.id('combos'),
-    foodId: v.optional(v.id('foods')),
-    recipeId: v.optional(v.id('recipes')),
-    label: v.string(),
-    quantity: v.number(),
-    quantityUnit: quantityUnitValidator,
-    nutrition: v.optional(nutritionValidator),
-    // Kept for the same reason as the figures beside it, and only on the same
-    // rows: a one-off has no food and no recipe to read an icon back from, so
-    // a Combo that does not carry its own would lose it on every future log
-    // (#94).
-    icon: v.optional(v.string()),
+    ...comboComponentFields,
   }).index('by_combo', ['comboId']),
 
   babies: defineTable({
     groupId: v.id('groups'),
     name: v.string(),
     birthDate: v.string(), // ISO YYYY-MM-DD
-    sex: v.optional(
-      v.union(v.literal('female'), v.literal('male'), v.literal('unspecified')),
-    ),
+    sex: v.optional(babySexValidator),
     photoId: v.optional(v.id('_storage')),
     // Which event types this child's log *refuses* — everything else is
     // offered by the quick-log buttons and the type picker (ADR-0022). Absent
@@ -431,8 +371,7 @@ export default defineSchema({
     // The to-do and questions cards are just local taskLists, reusing the Tasks
     // module instead of parallel concepts. `babies.create` resolves both — a
     // list the caller picked, or a new one named after the child — and
-    // ensureTodoList / ensureQuestionsList still fill them in for children
-    // created before it did.
+    // ensureAuxLists still fills them in for children created before it did.
     taskListId: v.optional(v.id('taskLists')),
     questionsListId: v.optional(v.id('taskLists')),
     // Whether the card points at a list that has a life of its own. A list the
@@ -507,19 +446,7 @@ export default defineSchema({
   loanParts: defineTable({
     groupId: v.id('groups'),
     calculationId: v.id('mortgageCalculations'),
-    kind: loanPartKindValidator,
-    principalCents: v.number(),
-    annualRatePercent: v.number(),
-    termMonths: v.number(),
-    // The date the fix ends, rather than a count of months: a stored count
-    // would quietly mean something different every month it was not opened.
-    fixedUntil: v.optional(v.string()), // YYYY-MM-DD
-    // What the Member says the rate becomes then, and the other figures they
-    // wanted to compare against. Gather forecasts nothing.
-    expiryRatePercent: v.optional(v.number()),
-    expiryRateOptions: v.optional(v.array(v.number())),
-    repayments: v.optional(v.array(repaymentValidator)),
-    charge: v.optional(chargeValidator),
+    ...loanPartFields,
     order: v.number(),
   })
     .index('by_group', ['groupId'])
@@ -551,14 +478,7 @@ export default defineSchema({
   recurringCosts: defineTable({
     groupId: v.id('groups'),
     createdByUserId: v.id('users'),
-    name: v.string(),
-    amountCents: v.number(),
-    frequency: costFrequencyValidator,
-    category: costCategoryValidator,
-    note: v.optional(v.string()),
-    // How the Group divides it. A ratio, never a debt - nothing accrues and
-    // nothing settles. Absent or empty means the cost is not divided.
-    split: v.optional(v.array(splitShareValidator)),
+    ...recurringCostFields,
     order: v.number(),
   }).index('by_group', ['groupId']),
 
@@ -582,54 +502,14 @@ export default defineSchema({
     groupId: v.id('groups'),
     createdByUserId: v.id('users'),
     createdAt: v.number(),
-    name: v.string(),
-    // Members are snapshotted by name as well as by id, so a saved split still
-    // reads correctly after somebody leaves the Group.
-    payments: v.array(
-      v.object({
-        party: splitPartyValidator,
-        amountCents: v.number(),
-        label: v.optional(v.string()),
-      }),
-    ),
-    participants: v.array(splitPartyValidator),
-    mode: v.union(v.literal('equal'), v.literal('custom')),
-    // Frozen results rather than inputs to recompute: the Members and their
-    // ids may be gone, and a scenario that recalculated would stop being the
-    // thing that was saved.
-    owed: v.array(
-      v.object({ party: splitPartyValidator, amountCents: v.number() }),
-    ),
-    transfers: v.array(
-      v.object({
-        from: splitPartyValidator,
-        to: splitPartyValidator,
-        amountCents: v.number(),
-      }),
-    ),
-    totalCents: v.number(),
+    ...splitScenarioFields,
   }).index('by_group', ['groupId']),
 
   // Listed stocks and ETFs only (ADR-0026).
   holdings: defineTable({
     groupId: v.id('groups'),
     createdByUserId: v.id('users'),
-    kind: holdingKindValidator,
-    // Enough to name one instrument rather than one ticker: the same symbol
-    // trades in two currencies on two exchanges, and a Portfolio that cannot
-    // tell them apart is one that adds dollars to euros.
-    symbol: v.string(),
-    name: v.string(),
-    exchange: v.optional(v.string()),
-    currency: v.string(),
-    // The dated position everything else is built on.
-    openingDate: v.string(), // YYYY-MM-DD
-    openingUnits: v.number(),
-    openingAverageCostCents: v.number(),
-    // The last price anybody has, and the moment it is as at. There is no
-    // price without one, and a refresh that fails leaves both alone so the
-    // screen can say how old the figure is instead of blanking it.
-    lastPriceCents: v.optional(v.number()),
+    ...holdingFields,
     lastPriceAt: v.optional(v.number()),
     order: v.number(),
   }).index('by_group', ['groupId']),
@@ -638,13 +518,7 @@ export default defineSchema({
     groupId: v.id('groups'),
     holdingId: v.id('holdings'),
     createdByUserId: v.id('users'),
-    kind: transactionKindValidator,
-    date: v.string(), // YYYY-MM-DD
-    units: v.optional(v.number()),
-    pricePerUnitCents: v.optional(v.number()),
-    perUnitCents: v.optional(v.number()),
-    feeCents: v.optional(v.number()),
-    note: v.optional(v.string()),
+    ...holdingTransactionFields,
   })
     .index('by_group', ['groupId'])
     .index('by_holding', ['holdingId']),
@@ -670,7 +544,7 @@ export default defineSchema({
   netWorthEntries: defineTable({
     groupId: v.id('groups'),
     createdByUserId: v.id('users'),
-    kind: v.union(v.literal('asset'), v.literal('liability')),
+    kind: netWorthKindValidator,
     label: v.string(),
     amountCents: v.number(),
     order: v.number(),

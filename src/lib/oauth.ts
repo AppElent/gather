@@ -7,13 +7,43 @@
  * and — since a connection belongs to a Group (ADR-0003) — which Group the
  * connection is being made for.
  *
- * The Group cannot be recovered any other way. The callback is not a Group
- * route, the provider does not carry it, and falling back to "a Group you are
- * in" is exactly the caller-wide guess the rebuild removes. A round trip that
- * comes back without one therefore fails visibly rather than picking one.
+ * The Group is written down rather than read from the Current Group on the way
+ * back: the provider does not carry it, and the Current Group may have changed
+ * in another tab while the provider's page was open. A round trip that comes
+ * back without one fails visibly rather than picking one.
  */
 
-export type ExternalProvider = 'notion' | 'todoist'
+import {
+  EXTERNAL_PROVIDER_IDS,
+  type ExternalProviderId,
+} from '@gather/core/domain'
+import { useAction } from 'convex/react'
+import { api } from '../../convex/_generated/api'
+import { hrefTo } from './links'
+
+export const PROVIDER_LABELS: Record<ExternalProviderId, string> = {
+  notion: 'Notion',
+  todoist: 'Todoist',
+}
+
+/**
+ * Starts the provider OAuth flow for one Group; the caller picks where the round
+ * trip returns to.
+ *
+ * The Group is written down before leaving, because the callback comes back on
+ * a fresh page load with nothing but what `sessionStorage` kept for it.
+ */
+export function useConnectProvider(groupSlug: string, returnTo: string) {
+  const getAuthorizeUrl = useAction(api.integrations.getAuthorizeUrl)
+  return async (provider: ExternalProviderId) => {
+    const url = await getAuthorizeUrl({
+      provider,
+      redirectUri: oauthRedirectUri(),
+      state: newOAuthState(provider, groupSlug, returnTo),
+    })
+    window.location.href = url
+  }
+}
 
 const STATE_KEY = 'gather.oauth.state'
 const RETURN_KEY = 'gather.oauth.returnTo'
@@ -28,7 +58,7 @@ export function oauthRedirectUri(): string {
  * where to return afterwards.
  */
 export function newOAuthState(
-  provider: ExternalProvider,
+  provider: ExternalProviderId,
   groupSlug: string,
   returnTo: string,
 ): string {
@@ -48,18 +78,20 @@ export function newOAuthState(
  * is a failure the callback shows, not something to paper over.
  */
 export function consumeOAuthState(state: string | undefined): {
-  provider: ExternalProvider
+  provider: ExternalProviderId
   groupSlug: string | null
   returnTo: string
 } | null {
   const stored = sessionStorage.getItem(STATE_KEY)
-  const returnTo = sessionStorage.getItem(RETURN_KEY) ?? '/settings'
+  const returnTo = sessionStorage.getItem(RETURN_KEY) ?? hrefTo('settings')
   const groupSlug = sessionStorage.getItem(GROUP_KEY)
   sessionStorage.removeItem(STATE_KEY)
   sessionStorage.removeItem(RETURN_KEY)
   sessionStorage.removeItem(GROUP_KEY)
   if (!state || !stored || state !== stored) return null
-  const provider = state.split('.')[0]
-  if (provider !== 'notion' && provider !== 'todoist') return null
+  const provider = EXTERNAL_PROVIDER_IDS.find(
+    (id) => id === state.split('.')[0],
+  )
+  if (!provider) return null
   return { provider, groupSlug, returnTo }
 }

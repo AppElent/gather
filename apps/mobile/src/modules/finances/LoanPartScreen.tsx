@@ -11,26 +11,27 @@
  * changing a rate here answers both questions without navigating back.
  */
 
+import { isIsoDate, monthsUntil } from '@gather/core/civil-date'
+import { parseDecimal } from '@gather/core/decimal'
 import {
   calculationTotals,
   LOAN_PART_KINDS,
   type LoanPartKind,
-  monthsUntil,
+  parseCents,
   schedulePart,
 } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, StyleSheet, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import { StyleSheet, View } from 'react-native'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
 import { Segmented } from '../../components/Segmented'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
 import { termWords, toLoanPart, toLoanParts } from './loanParts'
-import type { FinanceBase } from './paths'
 import {
   AddRow,
   AnswerBar,
@@ -58,10 +59,8 @@ type Editing =
   | null
 
 export function LoanPartScreen({
-  base: _base,
   partId,
 }: {
-  base: FinanceBase
   partId: Id<'loanParts'>
 }) {
   const tokens = useMoneyTokens()
@@ -137,7 +136,7 @@ export function LoanPartScreen({
     })
   }
 
-  const numeric = () => Number(draft.trim().replace(',', '.'))
+  const numeric = () => parseDecimal(draft) ?? 0
 
   // Narrowed once, above the closures: the queries resolved before this point,
   // and TypeScript cannot see that through a function boundary.
@@ -146,25 +145,23 @@ export function LoanPartScreen({
   function save() {
     const value = draft.trim()
     if (editing === 'amount') {
-      const cents = Math.round(numeric() * 100)
-      if (Number.isFinite(cents) && cents > 0) write({ principalCents: cents })
+      const cents = parseCents(draft) ?? 0
+      if (cents > 0) write({ principalCents: cents })
     }
     if (editing === 'rate') {
       const rate = numeric()
-      if (Number.isFinite(rate) && rate >= 0 && rate <= 100)
-        write({ annualRatePercent: rate })
+      if (rate >= 0 && rate <= 100) write({ annualRatePercent: rate })
     }
     if (editing === 'term') {
       const years = numeric()
-      if (Number.isFinite(years) && years > 0)
-        write({ termMonths: Math.round(years * 12) })
+      if (years > 0) write({ termMonths: Math.round(years * 12) })
     }
     if (editing === 'fixedUntil') {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) write({ fixedUntil: value })
+      if (isIsoDate(value)) write({ fixedUntil: value })
     }
     if (editing === 'expiryRate') {
       const rate = numeric()
-      if (Number.isFinite(rate) && rate >= 0 && rate <= 100) {
+      if (rate >= 0 && rate <= 100) {
         const options = [
           ...new Set([...(current.expiryRateOptions ?? []), rate]),
         ]
@@ -172,8 +169,8 @@ export function LoanPartScreen({
       }
     }
     if (editing === 'repayment') {
-      const cents = Math.round(numeric() * 100)
-      if (Number.isFinite(cents) && cents > 0) {
+      const cents = parseCents(draft) ?? 0
+      if (cents > 0) {
         write({
           repayments: [
             ...(current.repayments ?? []),
@@ -183,10 +180,12 @@ export function LoanPartScreen({
       }
     }
     if (editing === 'charge') {
-      const rate = numeric()
-      const free = Number(freeAnnual.replace(',', '.'))
-      if (Number.isFinite(rate) && Number.isFinite(free))
-        write({ charge: { freeAnnualPercent: free, chargePercent: rate } })
+      write({
+        charge: {
+          freeAnnualPercent: parseDecimal(freeAnnual) ?? 0,
+          chargePercent: numeric(),
+        },
+      })
     }
     setDraft('')
     setEditing(null)
@@ -199,17 +198,16 @@ export function LoanPartScreen({
   }
 
   function confirmDelete() {
-    Alert.alert(title, text.errors.confirmDeleteBody, [
-      { text: text.actions.cancel, style: 'cancel' },
-      {
-        text: text.actions.delete,
-        style: 'destructive',
-        onPress: () => {
-          removePart({ id: partId, groupSlug })
-          router.back()
-        },
+    confirmDestructive({
+      title,
+      message: text.errors.confirmDeleteBody,
+      confirm: text.actions.delete,
+      cancel: text.actions.cancel,
+      onConfirm: () => {
+        removePart({ id: partId, groupSlug })
+        router.back()
       },
-    ])
+    })
   }
 
   // What this part costs in the month the fix ends, which is the month after

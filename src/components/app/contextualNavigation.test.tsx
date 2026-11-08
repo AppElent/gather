@@ -1,17 +1,14 @@
 import { screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { renderWithI18n } from '../../lib/i18n/testing'
 import { BabyDetailPage } from '../baby/BabyDetailPage'
-import { groupBabyNav } from '../baby/babyNav'
 import { EditBabyPage } from '../baby/EditBabyPage'
 import { NewBabyPage } from '../baby/NewBabyPage'
 import { EditFoodPage } from '../foods/EditFoodPage'
 import { FoodDetailPage } from '../foods/FoodDetailPage'
-import { groupFoodNav } from '../foods/foodNav'
 import { EditRecipePage } from '../recipes/EditRecipePage'
 import { NewRecipePage } from '../recipes/NewRecipePage'
 import { RecipeDetailPage } from '../recipes/RecipeDetailPage'
-import { groupRecipeNav } from '../recipes/recipeNav'
+import { renderInGroup } from './testing'
 
 /**
  * Every nested page says where it sits and how to get out (#101).
@@ -72,11 +69,6 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-const GROUP = 'jansen-household'
-const foodNav = groupFoodNav(GROUP)
-const recipeNav = groupRecipeNav(GROUP)
-const babyNav = groupBabyNav(GROUP)
-
 /** The steps the trail draws, in order, as a reader would read them. */
 function trailSteps(landmark = 'Breadcrumb') {
   const list = within(
@@ -105,7 +97,7 @@ describe('Foods', () => {
       nutritionPer100: { calories: 500 },
       seedKey: undefined,
     }
-    renderWithI18n(<FoodDetailPage foodId="food_1" nav={foodNav} />)
+    renderInGroup(<FoodDetailPage foodId="food_1" />)
 
     expect(trailSteps()).toEqual(['Foods', 'Hagelslag'])
     expect(backHref('Back to Foods')).toBe('/foods')
@@ -119,16 +111,16 @@ describe('Foods', () => {
       nutritionPer100: { calories: 500 },
       seedKey: undefined,
     }
-    renderWithI18n(<EditFoodPage foodId="food_1" nav={foodNav} />)
+    renderInGroup(<EditFoodPage foodId="food_1" />)
 
     expect(trailSteps()).toEqual(['Foods', 'Hagelslag', 'Edit'])
-    // One step up, not all the way out — and still in this Group.
+    // One step up, not all the way out.
     expect(backHref('Back to Hagelslag')).toBe('/foods/food_1')
   })
 
   test('a food that is not there still has a way out', () => {
     docs.value['foods:get'] = null
-    renderWithI18n(<FoodDetailPage foodId="food_1" nav={foodNav} />)
+    renderInGroup(<FoodDetailPage foodId="food_1" />)
 
     expect(backHref('Back to Foods')).toBe('/foods')
   })
@@ -146,13 +138,7 @@ describe('Recipes', () => {
 
   test('a recipe sits under its Group’s list', () => {
     docs.value['recipes:get'] = recipe
-    renderWithI18n(
-      <RecipeDetailPage
-        recipeId="recipe_1"
-        groupSlug={GROUP}
-        nav={recipeNav}
-      />,
-    )
+    renderInGroup(<RecipeDetailPage recipeId="recipe_1" />)
 
     expect(trailSteps()).toEqual(['Recipes', 'Boeuf bourguignon'])
     expect(backHref('Back to Recipes')).toBe('/recipes')
@@ -160,25 +146,14 @@ describe('Recipes', () => {
 
   test('editing one sits under the recipe itself', () => {
     docs.value['recipes:get'] = { ...recipe, imageUrl: null }
-    renderWithI18n(
-      <EditRecipePage recipeId="recipe_1" groupSlug={GROUP} nav={recipeNav} />,
-    )
+    renderInGroup(<EditRecipePage recipeId="recipe_1" />)
 
     expect(trailSteps()).toEqual(['Recipes', 'Boeuf bourguignon', 'Edit'])
     expect(backHref('Back to Boeuf bourguignon')).toBe('/recipes/recipe_1')
   })
 
   test('adding one sits under the list it will land in', () => {
-    renderWithI18n(
-      <NewRecipePage
-        destination={{
-          groupSlug: GROUP,
-          groupName: 'Jansen household',
-          fallback: false,
-        }}
-        nav={recipeNav}
-      />,
-    )
+    renderInGroup(<NewRecipePage />)
 
     expect(trailSteps()).toEqual(['Recipes', 'New recipe'])
     expect(backHref('Back to Recipes')).toBe('/recipes')
@@ -197,9 +172,7 @@ describe('Baby log', () => {
     docs.value['babies:get'] = baby
     docs.value['babies:list'] = [baby]
     docs.value['babyEvents:listByBaby'] = []
-    renderWithI18n(
-      <BabyDetailPage babyId="baby_1" groupSlug={GROUP} nav={babyNav} />,
-    )
+    renderInGroup(<BabyDetailPage babyId="baby_1" />)
 
     expect(trailSteps()).toEqual(['Baby log', 'Fien'])
     expect(backHref('Back to Baby log')).toBe('/baby')
@@ -207,18 +180,14 @@ describe('Baby log', () => {
 
   test('editing one sits under the child', () => {
     docs.value['babies:get'] = baby
-    renderWithI18n(
-      <EditBabyPage babyId="baby_1" groupSlug={GROUP} nav={babyNav} />,
-    )
+    renderInGroup(<EditBabyPage babyId="baby_1" />)
 
     expect(trailSteps()).toEqual(['Baby log', 'Fien', 'Edit'])
     expect(backHref('Back to Fien')).toBe('/baby/baby_1')
   })
 
   test('adding one sits under the log, in the reader’s language', () => {
-    renderWithI18n(<NewBabyPage groupSlug={GROUP} nav={babyNav} />, {
-      locale: 'nl',
-    })
+    renderInGroup(<NewBabyPage />, { locale: 'nl' })
 
     // The Module's name comes from the message tree keyed by its id, so a
     // Dutch reader gets a Dutch trail without the page knowing anything about

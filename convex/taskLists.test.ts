@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { alice, bob, carla, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 
 /**
@@ -9,17 +9,14 @@ import { api } from './_generated/api'
  *
  * Lists are Group-scoped content, and so is the provider connection behind a
  * linked list — a Notion token belongs to the household that authorised it.
- * Under `/g/<slug>/tasks` both have to come from the Group in the URL, or the
- * page shows one household's lists at another household's address.
+ * Both have to come from the Group the caller names, or the page shows one
+ * household's lists in another household.
  *
- * The case worth stating twice is Alice's: she is in *both* households, which
- * is exactly what the old caller-wide helper got wrong. It asked "is this list
- * in any Group I am in", so for her the answer was yes at either address.
+ * The case worth stating twice is Alice's: she is in *both* households, so a
+ * caller-wide check ("is this list in any Group I am in") would answer yes for
+ * her under either Group.
  */
 
-const alice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
-const bob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
-const carla = { subject: 'clerk_carla', name: 'Carla', email: 'c@example.com' }
 
 const JANSEN = 'jansen-household'
 const DE_VRIES = 'de-vries-household'
@@ -29,8 +26,8 @@ const JANSEN_TOKEN = 'jansen-notion-token'
 
 /**
  * Two households — Alice in both, Bob only in the second — and Carla, who is in
- * neither and has only her own Personal group, which is an ordinary Group with
- * one Member and is what "somewhere I am allowed to stand" means for a stranger.
+ * neither and has only a one-member Group of her own, which is what "somewhere
+ * I am allowed to stand" means for a stranger.
  *
  * Jansen holds a list with one task on it and a Notion connection; De Vries
  * holds a list of its own. `goneList` is an id whose row has been deleted, so a
@@ -56,22 +53,19 @@ async function seed() {
       email: carla.email,
     })
 
-    const jansen = await ctx.db.insert('groups', {
+    const jansen = await seedGroup(ctx, {
       name: 'Jansen Household',
       slug: JANSEN,
-      isPersonal: false,
       inviteCode: 'jansen',
     })
-    const devries = await ctx.db.insert('groups', {
+    const devries = await seedGroup(ctx, {
       name: 'De Vries Household',
       slug: DE_VRIES,
-      isPersonal: false,
       inviteCode: 'devries',
     })
-    const carlaAlone = await ctx.db.insert('groups', {
+    const carlaAlone = await seedGroup(ctx, {
       name: "Carla's things",
       slug: ME_CARLA,
-      isPersonal: true,
       inviteCode: 'me-carla-code',
     })
 
@@ -81,7 +75,7 @@ async function seed() {
       [devries, bobId, 'admin'],
       [carlaAlone, carlaId, 'admin'],
     ] as const) {
-      await ctx.db.insert('memberships', { groupId, userId, role })
+      await seedMember(ctx, groupId, userId, role)
     }
 
     const jansenList = await ctx.db.insert('taskLists', {
@@ -283,7 +277,7 @@ describe('reaching one list', () => {
 })
 
 describe('the tasks inside a list', () => {
-  test('are added to the Group the URL named, and read back there', async () => {
+  test('are added to the Group the caller named, and read back there', async () => {
     const { t, devriesList } = await seed()
 
     await t.withIdentity(alice).mutation(api.tasks.add, {
@@ -350,6 +344,91 @@ describe('the tasks inside a list', () => {
     expect(jansen).toEqual([
       expect.objectContaining({ title: 'Take the bins out', done: false }),
     ])
+  })
+
+  test('move to another list of the same Group, at its end', async () => {
+    const { t, aliceId, jansen, jansenList, jansenTask } = await seed()
+    const errands = await t.run(async (ctx) => {
+      const listId = await ctx.db.insert('taskLists', {
+        groupId: jansen,
+        name: 'Errands',
+        provider: 'local',
+        order: 1,
+      })
+      await ctx.db.insert('tasks', {
+        listId,
+        title: 'Post the letter',
+        done: false,
+        createdBy: aliceId,
+        order: 0,
+      })
+      return listId
+    })
+
+    await t.withIdentity(alice).mutation(api.tasks.moveToList, {
+      taskId: jansenTask,
+      groupSlug: JANSEN,
+      listId: errands,
+    })
+
+    const read = (listId: typeof errands) =>
+      t
+        .withIdentity(alice)
+        .query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    expect((await read(errands)).map((task) => task.title)).toEqual([
+      'Post the letter',
+      'Take the bins out',
+    ])
+    expect(await read(jansenList)).toEqual([])
+  })
+
+  test('cannot be moved into another Group, nor into a list Gather may not write', async () => {
+    const { t, jansen, jansenConnection, devriesList, jansenList, jansenTask } =
+      await seed()
+    const notionList = await t.run((ctx) =>
+      ctx.db.insert('taskLists', {
+        groupId: jansen,
+        name: 'From Notion',
+        provider: 'notion',
+        providerConfig: {
+          connectionId: jansenConnection,
+          sourceId: 'database',
+        },
+        order: 1,
+      }),
+    )
+
+    await expect(
+      t.withIdentity(alice).mutation(api.tasks.moveToList, {
+        taskId: jansenTask,
+        groupSlug: JANSEN,
+        listId: devriesList,
+      }),
+    ).rejects.toThrow(/List not found/)
+    await expect(
+      t.withIdentity(alice).mutation(api.tasks.moveToList, {
+        taskId: jansenTask,
+        groupSlug: JANSEN,
+        listId: notionList,
+      }),
+    ).rejects.toThrow(/read-only/)
+
+    const jansenTasks = await t
+      .withIdentity(alice)
+      .query(api.tasks.listByList, { listId: jansenList, groupSlug: JANSEN })
+    expect(jansenTasks.map((task) => task.title)).toEqual(['Take the bins out'])
+  })
+
+  test('only a Member moves a task', async () => {
+    const { t, devriesList, jansenTask } = await seed()
+    const args = { taskId: jansenTask, groupSlug: JANSEN, listId: devriesList }
+
+    await expect(t.mutation(api.tasks.moveToList, args)).rejects.toThrow(
+      /Not authenticated/,
+    )
+    await expect(
+      t.withIdentity(carla).mutation(api.tasks.moveToList, args),
+    ).rejects.toThrow(/Not a member/)
   })
 
   test('a task in another Group reads like a task id that names nothing', async () => {
@@ -497,7 +576,7 @@ describe('the access token', () => {
 })
 
 describe('adding a list from inside a Group', () => {
-  test('puts it in the Group the URL named', async () => {
+  test('puts it in the Group the caller named', async () => {
     const { t } = await seed()
 
     await t.withIdentity(alice).mutation(api.taskLists.create, {

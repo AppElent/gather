@@ -1,6 +1,5 @@
+import { addDays, monthGrid, monthStart } from '@gather/core/civil-date'
 import { describe, expect, test } from 'vitest'
-
-import { addDays, monthGrid, monthOf } from '../../modules/tasks/taskDates'
 import {
   LAB_HIDDEN_CALENDAR_IDS,
   LAB_MEMBERS,
@@ -206,12 +205,12 @@ describe('how a row reads', () => {
 
 describe('the grid the screen draws', () => {
   test('always offers six rows, which is what the sheet needs', () => {
-    expect(monthGrid(2026, 8).weeks).toHaveLength(6)
+    expect(monthGrid('2026-09-01')).toHaveLength(6)
   })
 
   test('has a trailing empty row a full screen should drop', () => {
     // September 2026 is the month the canvas drew, and the row it argued about.
-    expect(monthGrid(2026, 8).weeks[5].every((day) => day === null)).toBe(true)
-    expect(monthOf(TODAY)).toEqual({ year: 2026, month: 8 })
+    expect(monthGrid('2026-09-01')[5].every((day) => day === null)).toBe(true)
+    expect(monthStart(TODAY)).toBe('2026-09-01')
   })
 })

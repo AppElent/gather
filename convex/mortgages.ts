@@ -8,26 +8,23 @@
  * figure cannot differ between the phone and the web.
  */
 
-import { ConvexError, v } from 'convex/values'
+import { ConvexError, type ObjectType, v } from 'convex/values'
 
 import type { Id } from './_generated/dataModel'
-import type { MutationCtx } from './_generated/server'
+import type { QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import {
-  chargeValidator,
-  findInGroup,
-  loanPartKindValidator,
-  nextOrder,
-  repaymentValidator,
+  loanPartFields,
   requireAmount,
-  requireInGroup,
   requireIsoDate,
   requireName,
   requirePercent,
 } from './lib/finance'
+import { findInGroup, requireInGroup } from './lib/groupAccess'
+import { nextOrder } from './lib/order'
 
 async function partsOf(
-  ctx: MutationCtx | Parameters<typeof findInGroup>[0],
+  ctx: QueryCtx,
   calculationId: Id<'mortgageCalculations'>,
 ) {
   const parts = await ctx.db
@@ -90,22 +87,6 @@ export const create = mutation({
   },
 })
 
-export const rename = mutation({
-  args: {
-    id: v.id('mortgageCalculations'),
-    groupSlug: v.string(),
-    name: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { user } = await requireInGroup(ctx, args.groupSlug, args.id)
-    await ctx.db.patch(args.id, {
-      name: requireName(args.name),
-      updatedByUserId: user._id,
-      updatedAt: Date.now(),
-    })
-  },
-})
-
 /**
  * How a Member asks "what if".
  *
@@ -155,28 +136,7 @@ export const remove = mutation({
   },
 })
 
-const partFields = {
-  kind: loanPartKindValidator,
-  principalCents: v.number(),
-  annualRatePercent: v.number(),
-  termMonths: v.number(),
-  fixedUntil: v.optional(v.string()),
-  expiryRatePercent: v.optional(v.number()),
-  expiryRateOptions: v.optional(v.array(v.number())),
-  repayments: v.optional(v.array(repaymentValidator)),
-  charge: v.optional(chargeValidator),
-}
-
-function validatePart(input: {
-  principalCents: number
-  annualRatePercent: number
-  termMonths: number
-  fixedUntil?: string
-  expiryRatePercent?: number
-  expiryRateOptions?: number[]
-  repayments?: { kind: 'once' | 'monthly'; amountCents: number; date: string }[]
-  charge?: { freeAnnualPercent: number; chargePercent: number }
-}) {
+function validatePart(input: ObjectType<typeof loanPartFields>) {
   requireAmount(input.principalCents, { allowZero: false })
   requirePercent(input.annualRatePercent)
   if (input.termMonths < 1)
@@ -199,7 +159,7 @@ export const addPart = mutation({
   args: {
     calculationId: v.id('mortgageCalculations'),
     groupSlug: v.string(),
-    ...partFields,
+    ...loanPartFields,
   },
   handler: async (ctx, args) => {
     const { group, user } = await requireInGroup(
@@ -228,7 +188,7 @@ export const updatePart = mutation({
   args: {
     id: v.id('loanParts'),
     groupSlug: v.string(),
-    ...partFields,
+    ...loanPartFields,
   },
   handler: async (ctx, args) => {
     const { doc, user } = await requireInGroup(ctx, args.groupSlug, args.id)

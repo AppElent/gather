@@ -42,13 +42,11 @@ export const recipes = {
 
   /**
    * Split around the Group's name, which is rendered in bold between the two
-   * halves, and split again on whether the Group was chosen or fallen back to.
+   * halves.
    */
   destination: {
     prefix: 'Adding to',
     suffix: '.',
-    fallbackSuffix:
-      '— your personal group, because this page is not inside one.',
   },
 
   form: {
@@ -153,7 +151,6 @@ export const recipes = {
      */
     rate: 'Rate {title}',
     rateFailed: 'That rating could not be saved.',
-    clearRating: 'Clear rating',
     readOnly: 'Lives in {group}, so it is read-only here.',
     deleteTitle: 'Delete recipe?',
     deleteBody: 'Delete "{title}"? This cannot be undone.',

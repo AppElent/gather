@@ -1,20 +1,21 @@
+import type { MealName, NutritionFacts } from '@gather/core/domain'
+import { MEAL_NAMES } from '@gather/core/domain'
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import type { MealName } from '../../../convex/lib/consumption'
-import { MEAL_NAMES } from '../../../convex/lib/consumption'
-import type { NutritionFacts } from '../../../convex/lib/nutrition'
+import { piecesInBaseUnit } from '../../../convex/lib/consumption'
 import {
   offeredServings,
   parseServingAmount,
   resolveAmount,
 } from '../../../convex/lib/servings'
+import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
-import { FoodThumbnail, type ThumbnailKind } from './FoodThumbnail'
+import { linkTo } from '../../lib/links'
+import { FoodThumbnail, type ThumbnailKind } from '../kitchen/FoodThumbnail'
 import { roundKcal } from './kcal'
-import type { NutritionNav } from './nutritionNav'
 import {
   ServingPicker,
   type ServingSelection,
@@ -55,7 +56,6 @@ export interface ConsumptionEntryData {
 
 interface Props {
   entry: ConsumptionEntryData
-  nav: NutritionNav
   /**
    * Whether this row is going into the Combo being saved (#99). Absent the
    * rest of the time: the diary is for reading, and a permanent column of
@@ -161,15 +161,17 @@ function FoodEntryAmount({
   if (food === undefined) return null
 
   // What the entry's number is worth in the food's base unit — itself when it
-  // already counts those, and `portion` lots of the first serving when it
-  // counts pieces.
-  const portion = food?.servings?.[0]?.amount
+  // already counts those, and that many portions' worth when it counts pieces.
+  const pieces =
+    food && entry.quantityUnit === 'piece'
+      ? piecesInBaseUnit(food, entry.quantity)
+      : undefined
   const baseAmount =
     food && entry.quantityUnit === food.baseUnit
       ? entry.quantity
-      : entry.quantityUnit === 'piece' && portion
-        ? Math.round(entry.quantity * portion * 100) / 100
-        : undefined
+      : pieces === undefined
+        ? undefined
+        : Math.round(pieces * 100) / 100
 
   if (!food || baseAmount === undefined) {
     return (
@@ -213,7 +215,6 @@ function FoodEntryAmount({
 
 export function ConsumptionEntryRow({
   entry,
-  nav,
   selection,
   onUpdate,
   onDelete,
@@ -278,7 +279,7 @@ export function ConsumptionEntryRow({
             </span>
             {entry.recipeId && (
               <Link
-                {...nav.recipe(entry.recipeId)}
+                {...linkTo('recipe', { recipeId: entry.recipeId })}
                 className="ml-2 text-xs underline"
               >
                 {diary.entry.viewRecipe}
@@ -286,7 +287,7 @@ export function ConsumptionEntryRow({
             )}
             {entry.foodId && (
               <Link
-                {...nav.food(entry.foodId)}
+                {...linkTo('food', { foodId: entry.foodId })}
                 className="ml-2 text-xs underline"
               >
                 {diary.entry.viewFood}
@@ -384,9 +385,7 @@ export function ConsumptionEntryRow({
                 })
                 setEditing(false)
               } catch (err) {
-                setError(
-                  err instanceof Error ? err.message : diary.entry.saveFailed,
-                )
+                setError(errorMessage(err, diary.entry.saveFailed))
               } finally {
                 setSaving(false)
               }

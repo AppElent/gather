@@ -5,6 +5,7 @@ import { api } from '../../../convex/_generated/api'
 import { SurfaceCard } from '../../components/app/ShellPrimitives'
 import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { consumeOAuthState, oauthRedirectUri } from '../../lib/oauth'
 
 export const Route = createFileRoute('/_app/integrations/callback')({
@@ -46,10 +47,10 @@ function OAuthCallback() {
       setFailure({ kind: 'invalid' })
       return
     }
-    // A connection belongs to a Group, and this page is not inside one: the
-    // only Group it can know about is the one the flow set out from. Without
-    // it there is nowhere to store the token, and picking a Group on the
-    // caller's behalf is the guess ADR-0002 exists to stop — so this fails.
+    // A connection belongs to the Group the flow set out from, which is not
+    // necessarily the Current Group now. Without it there is nowhere to store
+    // the token, and picking a Group on the caller's behalf would be a guess —
+    // so this fails.
     if (!consumed.groupSlug) {
       setFailure({ kind: 'noGroup' })
       return
@@ -77,7 +78,7 @@ function OAuthCallback() {
                 ? failure.message || oauthCallback.failed
                 : oauthCallback[failure.kind]}
             </p>
-            <Link to="/settings" className="text-sm font-semibold">
+            <Link {...linkTo('settings')} className="text-sm font-semibold">
               {oauthCallback.backToSettings}
             </Link>
           </div>

@@ -16,13 +16,13 @@ import {
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { Segmented } from '../../components/Segmented'
+import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
+import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
-import { type FinanceBase, financeHref } from './paths'
 import {
   AddRow,
   Card,
@@ -38,7 +38,7 @@ import {
 import { useCostSheet } from './useCostSheet'
 import { useFinances } from './useFinances'
 
-export function RecurringScreen({ base }: { base: FinanceBase }) {
+export function RecurringScreen() {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { groupSlug, format, text } = useFinances()
@@ -173,7 +173,9 @@ export function RecurringScreen({ base }: { base: FinanceBase }) {
                       last={index === rows.length - 1}
                       onPress={() =>
                         router.push(
-                          financeHref(base, '/cost', { costId: cost._id }),
+                          moduleHref('/all/recurring-costs/cost', {
+                            costId: cost._id,
+                          }),
                         )
                       }
                     />

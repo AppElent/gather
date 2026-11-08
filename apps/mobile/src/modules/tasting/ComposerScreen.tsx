@@ -29,6 +29,9 @@
  * the controls are identical and two copies would drift; which one is running
  * is entirely `mode`.
  */
+
+import { localIsoDate } from '@gather/core/civil-date'
+import { readRefusal, TASTING_REFUSALS } from '@gather/core/refusals'
 import type { TastingAttributeValue, TastingKind } from '@gather/core/tastings'
 import { tastingFields } from '@gather/core/tastings'
 import { useMutation } from 'convex/react'
@@ -44,8 +47,7 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
@@ -53,7 +55,7 @@ import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { StarRating } from './StarRating'
 import { subjectFacts } from './summary'
-import { TastedAtField, todayIso } from './TastedAtField'
+import { TastedAtField } from './TastedAtField'
 import { TastingField } from './TastingField'
 import { kindWords } from './words'
 
@@ -113,7 +115,7 @@ export function ComposerScreen({
   const [name, setName] = useState(chosenName ?? '')
   const [facts, setFacts] = useState<Attributes>({})
   const [rating, setRating] = useState<number | null>(null)
-  const [tastedAt, setTastedAt] = useState(todayIso())
+  const [tastedAt, setTastedAt] = useState(() => localIsoDate())
   const [impressions, setImpressions] = useState<Attributes>({})
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
@@ -252,7 +254,7 @@ export function ComposerScreen({
     } catch (error) {
       haptics.actionFailed()
       setFailure(
-        error instanceof Error && error.message.includes('notYourTasting')
+        readRefusal(error, TASTING_REFUSALS) === 'notYourTasting'
           ? fmt(t.tastings.subject.notYours, { name: t.tastings.subject.you })
           : t.errors.generic,
       )

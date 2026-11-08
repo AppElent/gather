@@ -17,28 +17,20 @@ export type BabyEventType = (typeof BABY_EVENT_TYPES)[number]
 /**
  * The event types one Child's log offers (ADR-0022).
  *
- * **What is stored is the refusals, not the acceptances**, and that is the
- * whole point. The field used to hold the types a household had said yes to,
- * which read naturally and was wrong in one specific way: a type added to the
- * catalogue *after* somebody made their choice is missing from their list, and
- * a list of acceptances cannot tell "they turned this off" apart from "this
- * did not exist when they were asked". Every Child on the deployment stopped
- * being offered Memory the day it shipped, and the only cure was for each
- * household to go and find it in settings.
- *
- * Storing the noes inverts that. A type nobody has refused is offered, so a
- * new one arrives switched on for everybody and stays on until someone says
- * otherwise. The cost is that the field no longer reads as the answer to the
- * question the settings screen asks — which is what `declinedEventTypes` is
- * for, and why nothing outside this module builds the array by hand.
+ * **What is stored is the refusals, not the acceptances.** A list of
+ * acceptances cannot tell "they turned this off" apart from "this did not
+ * exist when they were asked", so a type added to the catalogue later would be
+ * missing for every Child. A type nobody has refused is offered, so a new one
+ * arrives switched on for everybody and stays on until someone says otherwise.
+ * The cost is that the field does not read as the answer to the question the
+ * settings screen asks — which is what `declinedEventTypes` is for, and why
+ * nothing outside this module builds the array by hand.
  *
  * Absent means nothing has been refused. An array holding every type is a real
  * choice and offers nothing.
  *
- * **Order is not stored here.** It once was, and the settings screen wrote the
- * bar's arrangement into this array as a side effect of writing the set. That
- * is `barOrder`'s job now (see `babyBarSlots`), so this answers only the
- * question of membership and always answers it in catalogue order.
+ * **Order is not stored here**: that is `barOrder`'s job (see `babyBarSlots`),
+ * so this answers only the question of membership, in catalogue order.
  *
  * This decides what is *offered*, never what is shown: an entry of a type that
  * is no longer tracked stays in the timeline and stays editable.
@@ -99,8 +91,8 @@ export function isBabyBarShortcut(slot: BabyBarSlot): slot is BabyBarShortcut {
  *   arrangement.
  * - A tracked type the arrangement has never heard of is appended. That is
  *   what makes a type you just turned on appear, and it is what makes an
- *   absent `barOrder` mean "everything, in tracked order, shortcuts last" —
- *   which is what the bar did before the field existed, so no backfill.
+ *   absent `barOrder` mean "everything, in tracked order, shortcuts last", so
+ *   no backfill.
  * - A shortcut survives on its own say-so. Absent means somebody turned it
  *   off, which is a thing the settings screen can do and nothing else can.
  */
@@ -139,25 +131,6 @@ export function offeredEventTypes(
   )
 }
 
-/**
- * The same list with one entry moved one place, for the settings screen's
- * arrows. Out-of-bounds moves return the list unchanged rather than wrapping:
- * pressing "up" on the top row should do nothing, not send it to the bottom.
- */
-export function moveBarSlot(
-  slots: readonly BabyBarSlot[],
-  slot: BabyBarSlot,
-  direction: -1 | 1,
-): BabyBarSlot[] {
-  const from = slots.indexOf(slot)
-  const to = from + direction
-  if (from < 0 || to < 0 || to >= slots.length) return [...slots]
-  const next = [...slots]
-  next[from] = next[to]
-  next[to] = slot
-  return next
-}
-
 export const NUTRIENT_KEYS = [
   'calories',
   'protein',
@@ -169,7 +142,33 @@ export const NUTRIENT_KEYS = [
   'salt',
 ] as const
 export type NutrientKey = (typeof NUTRIENT_KEYS)[number]
-export type NutritionSource = 'imported' | 'ai' | 'manual'
+/** All values per serving (recipes) or per 100 g/ml (foods). Calories in kcal, everything else grams. */
+export type NutritionFacts = Partial<Record<NutrientKey, number>>
+export const NUTRITION_SOURCES = ['imported', 'ai', 'manual'] as const
+export type NutritionSource = (typeof NUTRITION_SOURCES)[number]
+
+/**
+ * The barcode a search term is, or `null` when it is ordinary text.
+ *
+ * One definition of "plausible barcode" for the lookup and for the search box
+ * that decides to make one (#80).
+ *
+ * Eight digits is EAN-8, the shortest symbology gather reads, and it is also
+ * what keeps a number still being typed out of barcode mode: fewer digits is
+ * somebody part-way through, and falls through to the text search it was
+ * already getting. The caller debounces, so the intermediate lengths of a
+ * barcode being typed never reach here at all.
+ */
+export function barcodeTerm(term: string): string | null {
+  const trimmed = term.trim()
+  return /^\d{8,14}$/.test(trimmed) ? trimmed : null
+}
+
+export const EXTERNAL_PROVIDER_IDS = ['notion', 'todoist'] as const
+export type ExternalProviderId = (typeof EXTERNAL_PROVIDER_IDS)[number]
+/** Where a task list keeps its tasks. */
+export const TASK_PROVIDER_IDS = ['local', ...EXTERNAL_PROVIDER_IDS] as const
+export type TaskProviderId = (typeof TASK_PROVIDER_IDS)[number]
 
 export const MEAL_NAMES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
 export type MealName = (typeof MEAL_NAMES)[number]

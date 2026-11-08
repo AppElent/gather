@@ -61,14 +61,10 @@ export const settings = {
 
   group: {
     title: 'This group',
-    personalNote:
-      'Your personal group. It is only ever yours, so there is nothing here to share or leave.',
     sharedNote: 'Its name, the code that lets somebody in, and the way out.',
     name: 'Name',
     rename: 'Rename',
     renameFailed: 'Could not rename this group.',
-    addressChanges:
-      'The address changes with the name, so old links to this group stop working.',
     inviteCode: 'Invite code',
     inviteCodeNote:
       'Anyone holding this code can join from Groups — share it only with people you want in this group.',

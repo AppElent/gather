@@ -3,32 +3,28 @@ import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
+import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
-import { ImageUploadField } from '../app/ImageUploadField'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { ImageUploadField } from '../photo/ImageUploadField'
 import { RecipeForm } from './RecipeForm'
-import type { RecipeNav } from './recipeNav'
 
 type RecipeDetail = Doc<'recipes'> & { imageUrl: string | null }
 
 export interface EditRecipePageProps {
   recipeId: string
-  groupSlug: string
-  nav: RecipeNav
 }
 
 /**
  * Editing a recipe, whole.
  *
- * The slug goes to `recipes.get` with the id: a recipe is read through the
- * Group the URL claims can see it, so an edit page under a Group the recipe is
- * not visible from renders "not found" rather than the form (ADR-0002).
+ * A recipe is read through the Current Group, so a recipe that Group cannot
+ * see renders "not found" rather than the form.
  */
-export function EditRecipePage({
-  recipeId,
-  groupSlug,
-  nav,
-}: EditRecipePageProps) {
+export function EditRecipePage({ recipeId }: EditRecipePageProps) {
+  const { slug: groupSlug } = useRequiredCurrentGroup()
   const recipe = useQuery(api.recipes.get, {
     id: recipeId as Id<'recipes'>,
     groupSlug,
@@ -39,8 +35,15 @@ export function EditRecipePage({
   // because the two states that never reach the form — still loading, and not
   // visible from this Group — are the two where a way back matters most.
   const trail: Crumb[] = [
-    { label: messages.modules.byId.recipes.label, link: nav.list },
-    ...(recipe ? [{ label: recipe.title, link: nav.detail(recipe._id) }] : []),
+    { label: messages.modules.byId.recipes.label, link: linkTo('recipes') },
+    ...(recipe
+      ? [
+          {
+            label: recipe.title,
+            link: linkTo('recipe', { recipeId: recipe._id }),
+          },
+        ]
+      : []),
     { label: messages.common.actions.edit },
   ]
 
@@ -59,18 +62,14 @@ export function EditRecipePage({
       </div>
     )
 
-  return (
-    <EditRecipeForm key={recipe._id} recipe={recipe} nav={nav} trail={trail} />
-  )
+  return <EditRecipeForm key={recipe._id} recipe={recipe} trail={trail} />
 }
 
 function EditRecipeForm({
   recipe,
-  nav,
   trail,
 }: {
   recipe: RecipeDetail
-  nav: RecipeNav
   trail: readonly Crumb[]
 }) {
   const update = useMutation(api.recipes.update)
@@ -135,9 +134,9 @@ function EditRecipeForm({
               nutrition: values.nutrition ?? null,
               nutritionSource: values.nutritionSource ?? null,
             })
-            navigate(nav.detail(recipe._id))
+            navigate(linkTo('recipe', { recipeId: recipe._id }))
           } catch (err) {
-            setError(err instanceof Error ? err.message : form.saveFailed)
+            setError(errorMessage(err, form.saveFailed))
             setSubmitting(false)
           }
         }}

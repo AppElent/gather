@@ -3,7 +3,8 @@ import type { ComboComponent, ComboCounts } from '../../../convex/lib/combos'
 import { comboEntries, countOf, isModified } from '../../../convex/lib/combos'
 import { sumFacts } from '../../../convex/lib/consumption'
 import { fmt, plural, useI18n } from '../../lib/i18n'
-import { FoodThumbnail } from './FoodThumbnail'
+import { FoodThumbnail } from '../kitchen/FoodThumbnail'
+import { Confirm, useLogging } from './logging'
 import { NutritionBreakdown } from './NutritionBreakdown'
 import { ResultCard } from './ResultCard'
 
@@ -17,10 +18,8 @@ interface Props {
   combo: ComboSummary
   expanded: boolean
   onToggle: () => void
-  busy: boolean
-  error: string | null
   /** Given what today's logging looks like, write it. */
-  onLog: (counts: ComboCounts, modified: boolean) => void
+  onLog: (counts: ComboCounts, modified: boolean) => Promise<void>
 }
 
 /**
@@ -36,17 +35,11 @@ interface Props {
  * Nothing here writes to the Combo. Adjustments apply to today's entries only,
  * and Reset puts back what was saved without closing the sheet.
  */
-export function ComboCard({
-  combo,
-  expanded,
-  onToggle,
-  busy,
-  error,
-  onLog,
-}: Props) {
+export function ComboCard({ combo, expanded, onToggle, onLog }: Props) {
   const { locale, messages } = useI18n()
   const { combos } = messages.nutrition.diary
   const [counts, setCounts] = useState<ComboCounts>({})
+  const { busy, error, run } = useLogging()
 
   const entries = comboEntries(combo.components, counts)
   const totals = sumFacts(entries.map((entry) => entry.nutrition))
@@ -124,16 +117,13 @@ export function ComboCard({
       <div className="mt-3">
         <NutritionBreakdown facts={totals} />
       </div>
-      {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
-      <div className="mt-3 flex items-center gap-3">
-        <button
-          type="button"
-          disabled={busy || entries.length === 0}
-          onClick={() => onLog(counts, modified)}
-          className="min-h-11 rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-4 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {messages.nutrition.diary.add.confirm}
-        </button>
+      <Confirm
+        disabled={entries.length === 0}
+        reason={combos.nothingLeft}
+        busy={busy}
+        error={error}
+        onConfirm={() => run(() => onLog(counts, modified))}
+      >
         {modified && (
           <button
             type="button"
@@ -143,10 +133,7 @@ export function ComboCard({
             {combos.reset}
           </button>
         )}
-        {entries.length === 0 && (
-          <span className="text-xs opacity-60">{combos.nothingLeft}</span>
-        )}
-      </div>
+      </Confirm>
     </ResultCard>
   )
 }

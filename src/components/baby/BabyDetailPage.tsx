@@ -1,15 +1,17 @@
+import { formatAge } from '@gather/core/baby-age'
+import { asBabyEvent } from '@gather/core/baby-events'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { formatAge } from '../../lib/babyDate'
 import { useI18n } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { SurfaceCard } from '../app/ShellPrimitives'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { BabyChecklistCard } from './BabyChecklistCard'
 import { BabySwitcher } from './BabySwitcher'
-import type { BabyNav } from './babyNav'
 import { ExportPdfButton } from './ExportPdfButton'
 import { ExportPdfPanel } from './ExportPdfPanel'
 import { QuickLogButtons } from './QuickLogButtons'
@@ -18,78 +20,66 @@ import { TrendChart } from './TrendChart'
 
 export interface BabyDetailPageProps {
   babyId: string
-  /** The Group the URL claims this child is in. */
-  groupSlug: string
-  nav: BabyNav
 }
 
 /**
  * One child's log, whole.
  *
- * The id and the slug are checked against each other rather than separately: a
- * child from another household reads as "not found" here even when the caller
- * could see it from a Group of their own, because the URL is claiming something
- * about this child and this Group that is not true.
+ * The id and the Current Group are checked against each other: a child from
+ * another household reads as "not found" here even when the caller could see
+ * it from a Group of their own.
  */
-export function BabyDetailPage({
-  babyId,
-  groupSlug,
-  nav,
-}: BabyDetailPageProps) {
+export function BabyDetailPage({ babyId }: BabyDetailPageProps) {
+  const { slug: groupSlug } = useRequiredCurrentGroup()
   const id = babyId as Id<'babies'>
   const baby = useQuery(api.babies.get, { id, groupSlug })
   const babies = useQuery(api.babies.list, { groupSlug })
   const [exportOpen, setExportOpen] = useState(false)
   // Skip until the baby has actually loaded — firing this unconditionally
-  // means a deleted/inaccessible id makes requireBabyAccess throw instead
+  // means a deleted/inaccessible id makes the access check throw instead
   // of falling through to the "Child not found" state below.
   const events = useQuery(
     api.babyEvents.listByBaby,
     baby ? { babyId: id, groupSlug } : 'skip',
   )
-  const ensureTodoList = useMutation(api.babies.ensureTodoList)
-  const ensureQuestionsList = useMutation(api.babies.ensureQuestionsList)
+  const ensureAuxLists = useMutation(api.babies.ensureAuxLists)
   const { locale, messages } = useI18n()
   const { child } = messages.baby.log
 
   useEffect(() => {
-    if (baby && !baby.taskListId)
-      void ensureTodoList({ id: baby._id, groupSlug })
-  }, [baby, groupSlug, ensureTodoList])
-
-  useEffect(() => {
-    if (baby && !baby.questionsListId) {
-      void ensureQuestionsList({ id: baby._id, groupSlug })
+    if (baby && !(baby.taskListId && baby.questionsListId)) {
+      void ensureAuxLists({ id: baby._id, groupSlug })
     }
-  }, [baby, groupSlug, ensureQuestionsList])
+  }, [baby, groupSlug, ensureAuxLists])
 
   const temperaturePoints = useMemo(
     () =>
       (events ?? [])
-        .filter((e) => e.type === 'temperature')
-        .map((e) => ({
-          x: e.timestamp,
-          y: (e.data as { celsius: number }).celsius,
-        })),
+        .map(asBabyEvent)
+        .flatMap((e) =>
+          e.type === 'temperature'
+            ? [{ x: e.timestamp, y: e.data.celsius }]
+            : [],
+        ),
     [events],
   )
 
   const weightPoints = useMemo(
     () =>
       (events ?? [])
-        .filter((e) => e.type === 'growth')
-        .map((e) => ({
-          x: e.timestamp,
-          y: (e.data as { weightKg?: number }).weightKg,
-        }))
-        .filter((p): p is { x: number; y: number } => p.y !== undefined),
+        .map(asBabyEvent)
+        .flatMap((e) =>
+          e.type === 'growth' && e.data.weightKg !== undefined
+            ? [{ x: e.timestamp, y: e.data.weightKg }]
+            : [],
+        ),
     [events],
   )
 
   // Baby log → this child. The switcher below moves sideways between the
   // children of one household; this is the step up out of them.
   const trail: Crumb[] = [
-    { label: messages.modules.byId['baby-log'].label, link: nav.list },
+    { label: messages.modules.byId['baby-log'].label, link: linkTo('baby-log') },
     ...(baby ? [{ label: baby.name }] : []),
   ]
 
@@ -130,7 +120,7 @@ export function BabyDetailPage({
         />
       )}
 
-      {babies && <BabySwitcher babies={babies} activeId={id} nav={nav} />}
+      {babies && <BabySwitcher babies={babies} activeId={id} />}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -153,7 +143,7 @@ export function BabyDetailPage({
         <div className="flex flex-wrap gap-2">
           <ExportPdfButton onClick={() => setExportOpen(true)} />
           <Link
-            {...nav.edit(id)}
+            {...linkTo('editChild', { babyId: id })}
             className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold no-underline"
           >
             {messages.common.actions.edit}

@@ -1,7 +1,8 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
+import { anthropicApiKey } from './lib/anthropic'
 import {
   getGroupBySlug,
   getMembership,
@@ -13,8 +14,17 @@ import {
   nutritionSourceValidator,
   nutritionValidator,
 } from './lib/nutrition'
-import { getCurrentUser, getMyGroupIds } from './lib/sharing'
-import { deleteStoredFile, replaceStoredFile } from './lib/storedFiles'
+import { recipeFields } from './lib/recipeFields'
+import {
+  getCurrentUser,
+  getMyGroupIds,
+  requireCurrentUser,
+} from './lib/sharing'
+import {
+  deleteStoredFile,
+  replaceStoredFile,
+  signedInUploadUrl,
+} from './lib/storedFiles'
 
 /** A recipe as every list and detail page wants it: with its picture resolved. */
 async function withImageUrl<T extends { imageId?: Id<'_storage'> }>(
@@ -32,12 +42,9 @@ async function withImageUrl<T extends { imageId?: Id<'_storage'> }>(
  * shared into it from elsewhere.
  *
  * The slug is what makes the collection the *Group's* rather than the caller's,
- * so it is required. The slugless form this query used to have unioned in every
- * Group the caller belonged to, which showed two Members standing on the same
- * page different lists — the URL stopped deciding what you see, which is the
- * whole point of ADR-0002. #24 deleted the flat route that needed it and it is
- * gone with it; `listAcrossMyGroups` below is what is left, and it is not a
- * Group's collection and does not pretend to be one.
+ * so it is required: a caller-wide union would show two Members of the same
+ * Group different lists. `listAcrossMyGroups` below is caller-wide, and it is
+ * not a Group's collection and does not pretend to be one.
  */
 export const list = query({
   args: { groupSlug: v.string() },
@@ -66,7 +73,7 @@ export const list = query({
     // Where a shared-in recipe actually lives, and whether the caller may
     // change it — resolved here rather than left for the client to work out.
     //
-    // The phone has no Group in its address bar (ADR-0015), so "this one is a
+    // A client knows only its Current Group (ADR-0031), so "this one is a
     // friend's" has to be carried by the row itself, and the test of it is *a
     // name is present* rather than a comparison a client performs against a
     // Group id it would otherwise have no reason to know. The Group's own
@@ -113,7 +120,7 @@ export const list = query({
  *
  * Deliberately caller-wide, and deliberately not `list`. The food diary is a
  * Personal record that reads the same inside every Group (ADR-0003), so its
- * recipe picker cannot be narrowed to the Group in the URL without offering
+ * recipe picker cannot be narrowed to the Current Group without offering
  * different recipes depending on which Group the diary happened to be opened
  * from. Nothing that renders a *Group's* page may use this — `list` is that.
  */
@@ -133,17 +140,14 @@ export const listAcrossMyGroups = query({
 })
 
 /**
- * One recipe, read through the Group the URL claims can see it.
+ * One recipe, read through the Group the caller claims can see it.
  *
- * The recipe has to be visible *from that Group*: a deep link to
- * `/g/cooking-club/recipes/<id>` answers "not found" for a recipe the caller
- * can only reach through their household, because the URL is claiming something
- * about this recipe and that Group which is not true. Same rule as
- * `babies.get`; asking the caller's memberships instead is the caller-wide
- * shape ADR-0002 removes.
+ * The recipe has to be visible *from that Group*: naming the cooking club
+ * answers "not found" for a recipe the caller can only reach through their
+ * household. Same rule as `babies.get`.
  *
- * Not visible from here and no such recipe are the same answer, so the page
- * cannot be used to find out that a recipe exists somewhere.
+ * Not visible from here and no such recipe are the same answer (ADR-0009), so
+ * the page cannot be used to find out that a recipe exists somewhere.
  */
 export const get = query({
   args: { id: v.id('recipes'), groupSlug: v.string() },
@@ -188,27 +192,8 @@ export const get = query({
 
 export const generateUploadUrl = mutation({
   args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
-    return await ctx.storage.generateUploadUrl()
-  },
+  handler: signedInUploadUrl,
 })
-
-const recipeFields = {
-  title: v.string(),
-  description: v.optional(v.string()),
-  imageId: v.optional(v.id('_storage')),
-  ingredients: v.array(v.string()),
-  steps: v.array(v.string()),
-  tags: v.array(v.string()),
-  rating: v.optional(v.number()),
-  prepMinutes: v.optional(v.number()),
-  sourceUrl: v.optional(v.string()),
-  servings: v.optional(v.number()),
-  nutrition: v.optional(nutritionValidator),
-  nutritionSource: v.optional(nutritionSourceValidator),
-}
 
 /**
  * The recipe behind an id, when the caller may change it — or null when there
@@ -220,21 +205,25 @@ const recipeFields = {
  * added a recipe has exactly the standing of every other Member.
  *
  * A recipe the caller may not write and a recipe that is not there are the same
- * null. This used to throw "Not a member of that group", which confirmed that
- * the id was real — the leak #20 closed for babies and `recipes.get` already
- * avoided. Each caller then renders that one null however it renders a missing
- * recipe, and the two cases stay indistinguishable all the way out.
+ * null (ADR-0009): a distinct refusal would confirm that the id is real. Each
+ * caller renders that one null however it renders a missing recipe, and the
+ * two cases stay indistinguishable all the way out.
  */
 async function writableRecipe(
   ctx: QueryCtx,
   id: Id<'recipes'>,
 ): Promise<Doc<'recipes'> | null> {
-  const user = await getCurrentUser(ctx)
-  if (!user) throw new Error('Not authenticated')
+  const user = await requireCurrentUser(ctx)
   const recipe = await ctx.db.get(id)
   if (!recipe) return null
   const membership = await getMembership(ctx, recipe.groupId, user._id)
   if (!membership) return null
+  return recipe
+}
+
+async function requireWritableRecipe(ctx: QueryCtx, id: Id<'recipes'>) {
+  const recipe = await writableRecipe(ctx, id)
+  if (!recipe) throw new ConvexError('Recipe not found')
   return recipe
 }
 
@@ -244,7 +233,7 @@ export const create = mutation({
     const { groupSlug, ...fields } = args
     // The destination is the Group the caller asked for and nothing else. There
     // is deliberately no fallback to `defaultGroupId`: a recipe landing
-    // somewhere the caller did not name is the thing #19 exists to stop.
+    // somewhere the caller did not name is exactly what this prevents.
     const { user, group } = await requireGroupBySlug(ctx, groupSlug)
     return await ctx.db.insert('recipes', {
       groupId: group._id,
@@ -268,8 +257,7 @@ export const update = mutation({
     nutritionSource: v.optional(v.union(nutritionSourceValidator, v.null())),
   },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    const recipe = await requireWritableRecipe(ctx, args.id)
     const {
       id,
       imageId,
@@ -328,8 +316,7 @@ export const update = mutation({
 export const rate = mutation({
   args: { id: v.id('recipes'), rating: v.union(v.number(), v.null()) },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    await requireWritableRecipe(ctx, args.id)
     await ctx.db.patch(args.id, { rating: args.rating ?? undefined })
   },
 })
@@ -354,8 +341,7 @@ export const rate = mutation({
 export const setPhoto = mutation({
   args: { id: v.id('recipes'), imageId: v.union(v.id('_storage'), v.null()) },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    const recipe = await requireWritableRecipe(ctx, args.id)
     await ctx.db.patch(args.id, { imageId: args.imageId ?? undefined })
     await replaceStoredFile(ctx, recipe.imageId, args.imageId)
   },
@@ -368,8 +354,7 @@ export const setNutrition = mutation({
     source: v.union(v.literal('ai'), v.literal('manual')),
   },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    await requireWritableRecipe(ctx, args.id)
     await ctx.db.patch(args.id, {
       nutrition: args.nutrition,
       nutritionSource: args.source,
@@ -381,7 +366,7 @@ export const setNutrition = mutation({
 /** Whether the AI-estimation features are configured on this deployment. */
 export const aiConfigured = query({
   args: {},
-  handler: async () => Boolean(process.env.ANTHROPIC_API_KEY),
+  handler: async () => Boolean(anthropicApiKey()),
 })
 
 export const remove = mutation({
@@ -425,8 +410,7 @@ export const remove = mutation({
 export const move = mutation({
   args: { id: v.id('recipes'), toGroupSlug: v.string() },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    const recipe = await requireWritableRecipe(ctx, args.id)
     const { group } = await requireGroupBySlug(ctx, args.toGroupSlug)
     // Already home. Moving somewhere it already lives changes nothing.
     if (group._id === recipe.groupId) return
@@ -444,8 +428,7 @@ export const move = mutation({
 export const share = mutation({
   args: { id: v.id('recipes'), withGroupSlug: v.string() },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    const recipe = await requireWritableRecipe(ctx, args.id)
     const { group } = await requireGroupBySlug(ctx, args.withGroupSlug)
     // Sharing with the Group it lives in, and sharing twice, both ask for
     // something that is already true.
@@ -460,8 +443,7 @@ export const share = mutation({
 export const unshare = mutation({
   args: { id: v.id('recipes'), withGroupSlug: v.string() },
   handler: async (ctx, args) => {
-    const recipe = await writableRecipe(ctx, args.id)
-    if (!recipe) throw new Error('Recipe not found')
+    const recipe = await requireWritableRecipe(ctx, args.id)
     const group = await getGroupBySlug(ctx, args.withGroupSlug)
     // Unsharing the home Group is refused rather than quietly ignored: it is
     // not a Share to withdraw, and a recipe visible in no Group at all is not a

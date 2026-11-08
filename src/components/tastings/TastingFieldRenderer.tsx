@@ -4,6 +4,20 @@ import {
   tastingVocabulary,
 } from '@gather/core/tastings'
 import { useMessages } from '../../lib/i18n'
+import { tastingTerm } from './tastingText'
+
+type Attributes = Record<string, TastingAttributeValue>
+
+/** What a renderer reports, applied: a value sets the field, `undefined` clears it. */
+export function withAttribute(
+  attributes: Attributes,
+  key: string,
+  value: TastingAttributeValue | undefined,
+): Attributes {
+  if (value !== undefined) return { ...attributes, [key]: value }
+  const { [key]: _cleared, ...rest } = attributes
+  return rest
+}
 
 export interface TastingFieldRendererProps {
   field: TastingFieldDef
@@ -16,20 +30,14 @@ export function TastingFieldRenderer({
   value,
   onChange,
 }: TastingFieldRendererProps) {
-  const { tastings } = useMessages()
+  const messages = useMessages()
+  const { tastings } = messages
   const label = tastings.fields[field.key as keyof typeof tastings.fields]
   const id = `tasting-field-${field.key}`
   const controlClass =
     'min-h-10 w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm'
 
-  const term = (key: string) => {
-    if (!field.vocabulary) return key
-    const words = tastings.vocabularies[field.vocabulary] as Record<
-      string,
-      string
-    >
-    return words[key] ?? key
-  }
+  const term = (key: string) => tastingTerm(messages, field.vocabulary, key)
 
   return (
     <label htmlFor={id} className="grid gap-1.5 text-sm font-medium">

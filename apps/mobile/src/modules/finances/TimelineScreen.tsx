@@ -14,14 +14,12 @@
 import { mortgageSteps } from '@gather/core/finance'
 import { Stack } from 'expo-router'
 import { View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
 import { dateForMonth } from './format'
 import { toLoanParts } from './loanParts'
-import type { FinanceBase } from './paths'
 import {
   Card,
   Disclaimer,
@@ -34,10 +32,8 @@ import {
 import { useFinances } from './useFinances'
 
 export function TimelineScreen({
-  base: _base,
   calculationId,
 }: {
-  base: FinanceBase
   calculationId: Id<'mortgageCalculations'>
 }) {
   const tokens = useMoneyTokens()

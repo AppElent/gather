@@ -6,10 +6,9 @@
  * drift, and Settings is an alternative way in rather than the other half of
  * the answer.
  *
- * Its first card is the Child themselves — name, birth date, sex. Those were
- * captured once by the create wizard and, until this card existed, could never
- * be corrected: a typo in a name, or a birth date a digit out (which quietly
- * moves every age on every screen), was permanent. The switcher's pencil is the
+ * Its first card is the Child themselves — name, birth date, sex. The create
+ * wizard captures them once, and a typo in a name, or a birth date a digit out
+ * (which quietly moves every age on every screen), has to be correctable. The switcher's pencil is the
  * door people actually find, since that is the only screen listing children.
  *
  * Tracked types are the substance. Turning one off shrinks what the log offers
@@ -17,13 +16,13 @@
  * because a parent who thinks they deleted twelve medication entries will not
  * find out otherwise until they need them.
  */
+import type { BabySex } from '@gather/core/baby-events'
+import { isIsoDate } from '@gather/core/civil-date'
 import {
   BABY_BAR_SHORTCUTS,
   BABY_EVENT_TYPES,
   type BabyBarSlot,
-  type BabyEventType,
   babyBarSlots,
-  declinedEventTypes,
   isBabyBarShortcut,
   trackedEventTypes,
 } from '@gather/core/domain'
@@ -31,7 +30,6 @@ import { useMutation } from 'convex/react'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -41,15 +39,16 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { ListPicker, type PickedList } from './ListPicker'
 import { LogBar, slotIcon, slotLabel } from './LogBar'
+import { useWriteChildBar } from './useWriteChildBar'
 
 export function ChildSettings({ childId }: { childId: string }) {
   const tokens = useTokens('home')
@@ -66,6 +65,7 @@ export function ChildSettings({ childId }: { childId: string }) {
   })
   const lists = useQuery(api.taskLists.list, { groupSlug })
   const update = useMutation(api.babies.update)
+  const writeBar = useWriteChildBar()
   const remove = useMutation(api.babies.remove)
   const [busy, setBusy] = useState(false)
 
@@ -128,7 +128,7 @@ export function ChildSettings({ childId }: { childId: string }) {
   async function saveDetails(patch: {
     name?: string
     birthDate?: string
-    sex?: 'female' | 'male' | 'unspecified'
+    sex?: BabySex
   }) {
     const name = (patch.name ?? draftName ?? record.name).trim()
     const birthDate = (
@@ -152,7 +152,7 @@ export function ChildSettings({ childId }: { childId: string }) {
 
     // A blank name or a date that is not a date is refused here rather than
     // stored: `birthDate` drives every age in the Module.
-    if (!name || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+    if (!name || !isIsoDate(birthDate)) {
       setDetailsFailed(true)
       return
     }
@@ -175,35 +175,13 @@ export function ChildSettings({ childId }: { childId: string }) {
     }
   }
 
-  /**
-   * One list on screen, two fields on the record.
-   *
-   * The screen shows a single arrangement, because that is what a person is
-   * looking at: the log bar. The record keeps the two questions apart —
-   * `untrackedTypes` is which event types the log *refuses* (ADR-0022) and
-   * `barOrder` is where each button sits — so both are derived from the one
-   * list here and written together. A type is tracked exactly when it is on
-   * the bar; a shortcut has no offer to be part of and only has a place.
-   */
   async function setSlots(next: BabyBarSlot[]) {
     // Shown first, sent second. Cleared only once the write is through, so the
     // switches never animate back to a value the person already changed.
     setIntended(next)
     setBusy(true)
     try {
-      await update({
-        id: record._id,
-        groupSlug,
-        name: record.name,
-        birthDate: record.birthDate,
-        untrackedTypes: declinedEventTypes(
-          next.filter(
-            (slot): slot is BabyEventType => !isBabyBarShortcut(slot),
-          ),
-        ),
-        // Sent in the order it is in: this array *is* the arrangement.
-        barOrder: next,
-      })
+      await writeBar(record, next)
       setIntended(null)
     } catch {
       setIntended(null)
@@ -254,21 +232,16 @@ export function ChildSettings({ childId }: { childId: string }) {
   }
 
   function confirmDelete() {
-    Alert.alert(
-      fmt(t.baby.log.form.deleteTitle, { name: record.name }),
-      t.baby.log.form.deleteBody,
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: fmt(t.baby.log.form.deleteConfirm, { name: record.name }),
-          style: 'destructive',
-          onPress: async () => {
-            await remove({ id: record._id, groupSlug })
-            router.back()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(t.baby.log.form.deleteTitle, { name: record.name }),
+      message: t.baby.log.form.deleteBody,
+      confirm: fmt(t.baby.log.form.deleteConfirm, { name: record.name }),
+      cancel: t.actions.cancel,
+      onConfirm: async () => {
+        await remove({ id: record._id, groupSlug })
+        router.back()
+      },
+    })
   }
 
   const pickedFor = (listId: string | undefined): PickedList => {

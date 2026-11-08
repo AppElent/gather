@@ -1,30 +1,26 @@
 /**
  * The Group you are in, which on a phone is a place rather than an address.
  *
- * ADR-0015: the web reads the Group out of `/g/<slug>/…` and can therefore hold
- * two Groups open in two tabs. There is one foreground app here, so the Group
- * lives in this context, is retained locally between launches, and is
- * **validated against `groups.myGroups` on every read**. Being removed from a
- * Group is a real event; a retained slug is a guess about a membership that may
- * have ended while the app was closed.
+ * The Current Group is ambient (ADR-0031): it lives in this context, is
+ * retained locally between launches, and is **validated against
+ * `groups.myGroups` on every read**. Being removed from a Group is a real
+ * event; a retained id is a guess about a membership that may have ended while
+ * the app was closed.
+ *
+ * A Group is named by its id here and everywhere the app chooses one. A slug
+ * is only what the backend's queries still take and what an old `/g/<slug>`
+ * link carries; those resolve it to an id through `groups` first.
  *
  * The decision itself is `selectGroup` in `@gather/core/groups` — pure, shared
- * with the web's landing redirect, and tested in the Node seam. What is left
- * here is the three things only a client can do: read the retained slug,
- * persist a new one, and decide what to draw while the answer is not `ready`.
+ * with the web, and tested in the Node seam. What is left here is the three
+ * things only a client can do: read the retained id, persist a new one, and
+ * decide what to draw while the answer is not `ready`.
  *
  * Three states, and no fourth:
  *
- * - **pending** — the Groups have not arrived, or they have arrived empty and
- *   the grace period below has not run out. Nothing Group-scoped can render.
+ * - **pending** — the Groups have not arrived. Nothing Group-scoped can render.
  * - **none** — the Member really is in no Group.
  * - **ready** — `useGroup()` answers, and every surface under it can rely on it.
- *
- * `EMPTY_GRACE_MS` is the web's constant, ported for the same reason it exists
- * there: `ensureUser` inserts everybody's Personal group on the same mount that
- * first asks for the list, so a first-ever launch answers empty and fills in a
- * round-trip later. Believing that immediately would greet a new arrival with a
- * screen about having no household moments before they have one.
  */
 import { useAuth } from '@clerk/expo'
 import { selectGroup } from '@gather/core/groups'
@@ -39,8 +35,7 @@ import {
   useMemo,
   useState,
 } from 'react'
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
+import { api, type Id } from '../convex/api'
 import { useQuery } from '../convex/queries'
 import {
   groupsForSurface,
@@ -52,11 +47,6 @@ import {
   readRetainedGroup,
   writeRetainedGroup,
 } from './retainedGroup'
-
-/** How long an empty list of Groups is treated as one that has not finished
- * arriving. Long enough for `ensureUser` to insert a Personal group and for the
- * query to push the new answer back; short enough that a genuinely group-less
- * account is not left watching a spinner. */
 
 /** A Group as the phone needs it: enough to name it, switch to it, and scope a
  * query by it. */
@@ -72,16 +62,17 @@ export interface GroupContextValue {
   /** Every Group this Member is in, in the order the backend returns them. */
   groups: AmbientGroup[]
   /**
-   * Move to another Group. Ignores a slug the Member is not in, because the
-   * only way to obtain one is a stale list, and honouring it would put the app
-   * in a Group the backend then refuses every query for.
+   * Move to another Group, named by its id — a slug does not typecheck. Ignores
+   * an id the Member is not in, because the only way to obtain one is a stale
+   * list, and honouring it would put the app in a Group the backend then
+   * refuses every query for.
    *
    * ADR-0015 also requires a switch to unwind every tab stack. That is not
    * done here, because this provider sits above the navigator: any change of
    * the Group on screen calls `onSwitch`, and the shell resets the stacks
    * (`groupUnwind.ts`).
    */
-  setGroup: (groupId: string) => void
+  setGroup: (groupId: Id<'groups'>) => void
 }
 
 const GroupContext = createContext<GroupContextValue | null>(null)
@@ -164,22 +155,17 @@ export function GroupProvider({
     if (selection.status === 'none') clearRetainedGroup()
   }, [selection.status])
 
-  // Runs out once and stays run out — it is only ever consulted while the
-  // answer is `none`, so there is nothing to reset it for. The cost is that
-  // leaving your last Group with the app open spends five seconds on the
-  // pending screen before the honest one; the alternative is a new account
-  // being told it has no household in the gap before it has one.
   const groupId = selection.status === 'ready' ? selection.groupId : null
 
   // A fallback replaces what was retained, in memory as well as on disk. Not
-  // doing so leaves a slug that is not where anybody is: a Member removed from
+  // doing so leaves an id that is not where anybody is: a Member removed from
   // the Group they left the app in would be bounced off it again on every
   // launch, and — worse — being *re-added* to it later in the same session
-  // would make the stale slug match again and silently yank them out of the
+  // would make the stale id match again and silently yank them out of the
   // Group they were reading.
   //
   // Adjusting state during render rather than in an effect is React's own
-  // pattern for this, and it converges in one pass: a slug that resolves to
+  // pattern for this, and it converges in one pass: an id that resolves to
   // itself produces no further update.
   if (groupId !== null && groupId !== retained) setRetained(groupId)
 
@@ -188,7 +174,7 @@ export function GroupProvider({
   }, [groupId])
 
   const setGroup = useCallback(
-    (next: string) => {
+    (next: Id<'groups'>) => {
       if (!visibleGroups?.some((candidate) => candidate._id === next)) return
       setRetained(next)
     },
@@ -223,7 +209,6 @@ export function GroupProvider({
     onSwitch?.()
     // A layout effect's update is flushed before paint, which is the point:
     // the navigator cannot be dispatched to during this component's render.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUnwoundFor(resolved._id)
   }, [unwinding, resolved, onSwitch])
 
@@ -243,13 +228,50 @@ export function GroupProvider({
   )
 }
 
+/**
+ * Open something in a Group that may not be the one on screen: switch to it,
+ * and call `open` once it is the Group on screen.
+ *
+ * Navigating in the same tick as `setGroup` loses the destination. The switch
+ * lands on the next render, and `onSwitch` then unwinds every Group-scoped
+ * stack from a navigation state that already holds the screen just pushed. By
+ * the time this effect sees the new Group, that unwind has run (a layout
+ * effect, flushed before passive ones), so what `open` pushes stays.
+ *
+ * The caller must stay mounted across the switch, so it cannot be a
+ * Group-scoped screen: the Group-link handoff and the Drop screens, which sit
+ * above the tabs.
+ */
+export function useOpenInGroup() {
+  const { group, setGroup } = useGroup()
+  const [pending, setPending] = useState<{
+    groupId: Id<'groups'>
+    open: () => void
+  } | null>(null)
+
+  useEffect(() => {
+    if (!pending) return
+    if (pending.groupId !== group._id) {
+      setGroup(pending.groupId)
+      return
+    }
+    setPending(null)
+    pending.open()
+  }, [pending, group._id, setGroup])
+
+  return useCallback(
+    (groupId: Id<'groups'>, open: () => void) => setPending({ groupId, open }),
+    [],
+  )
+}
+
 const UnwindingContext = createContext(false)
 
 /**
  * Draws a Group-scoped screen, except during the one render in which the
  * Group has changed and its stack has not yet been unwound (see
- * `unwoundFor`). Wraps every screen of the Home, All and Search stacks
- * through their `screenLayout`.
+ * `unwoundFor`). `GroupScopedStack` wraps every screen of the Home, All and
+ * Search stacks in it.
  */
 export function GroupScoped({ children }: { children: ReactNode }) {
   return use(UnwindingContext) ? null : children

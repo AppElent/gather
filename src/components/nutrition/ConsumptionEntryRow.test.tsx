@@ -2,14 +2,11 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
-import { groupNutritionNav } from './nutritionNav'
 
-const nav = groupNutritionNav('jansen-household')
 
 // TanStack Router's <Link> requires a RouterProvider context to render (it
 // reads router state via useLinkProps); this component test renders in
-// isolation, so mock it out to a plain anchor, matching the same pattern
-// used in AppShell.test.tsx / CommandFeed.test.tsx / PublicPageFrame.test.tsx.
+// isolation, so mock it out to a plain anchor.
 vi.mock('@tanstack/react-router', () => ({
   Link: ({
     children,
@@ -113,7 +110,6 @@ function renderRow(
 ) {
   return renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={entry}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
@@ -125,7 +121,6 @@ function renderRow(
 test('renders label, quantity, unit, and calories', () => {
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={entry}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
@@ -140,7 +135,6 @@ test('clicking Delete calls onDelete', () => {
   const onDelete = vi.fn()
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={entry}
       onUpdate={vi.fn()}
       onDelete={onDelete}
@@ -153,7 +147,6 @@ test('clicking Delete calls onDelete', () => {
 test('shows no source link for a quick-add entry (no recipeId or foodId)', () => {
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={entry}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
@@ -166,7 +159,6 @@ test('shows no source link for a quick-add entry (no recipeId or foodId)', () =>
 test('shows a View recipe link when recipeId is set', () => {
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={{ ...entry, recipeId: 'recipe1' }}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
@@ -179,7 +171,6 @@ test('shows a View recipe link when recipeId is set', () => {
 test('shows a View food link when foodId is set', () => {
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={{ ...entry, foodId: 'food1' }}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
@@ -193,7 +184,6 @@ test('editing quantity and saving calls onUpdate with the new quantity, current 
   const onUpdate = vi.fn().mockResolvedValue(undefined)
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={entry}
       onUpdate={onUpdate}
       onDelete={vi.fn()}
@@ -215,7 +205,6 @@ test('a failed save keeps the row in edit mode and shows an error', async () => 
   const onUpdate = vi.fn().mockRejectedValue(new Error('Network error'))
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={entry}
       onUpdate={onUpdate}
       onDelete={vi.fn()}
@@ -235,7 +224,6 @@ test('a failed save keeps the row in edit mode and shows an error', async () => 
 test('a one-off shows the icon it was logged with', () => {
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={{ ...entry, label: 'Poffertjes at the fair', icon: '🍬' }}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
@@ -248,7 +236,6 @@ test('a one-off shows the icon it was logged with', () => {
 test('a food entry uses the food icon when it has no photograph', () => {
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={{
         ...entry,
         foodId: 'food1',
@@ -266,7 +253,6 @@ test('a food entry uses the food icon when it has no photograph', () => {
 test('a one-off with no icon falls back to the food glyph', () => {
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={entry}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
@@ -284,7 +270,6 @@ test('a selectable row offers a tick named after what it holds', () => {
   const onChange = vi.fn()
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={entry}
       selection={{ selected: false, onChange }}
       onUpdate={vi.fn()}
@@ -300,7 +285,6 @@ test('a selectable row offers a tick named after what it holds', () => {
 test('a row nobody is choosing from has no tick at all', () => {
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={entry}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
@@ -313,7 +297,6 @@ test('an invalid quantity does not call onUpdate', () => {
   const onUpdate = vi.fn()
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={entry}
       onUpdate={onUpdate}
       onDelete={vi.fn()}
@@ -495,11 +478,9 @@ test('a food entry whose food is gone keeps the plain amount field', () => {
  * An entry counted in the food's *portions* rather than its base unit — the
  * shape the sample household seeds, and so the shape most people meet first.
  *
- * It used to keep the plain grams box, on the grounds that its number counts
- * something the chips do not. But a piece *is* an amount: `quantity` lots of
- * the food's first serving. Leaving it out meant the seeded diary showed the
- * old editor and a freshly logged food showed the new one, which is what was
- * reported on #126. It converts, so it is offered.
+ * A piece *is* an amount: `quantity` lots of the food's first serving. It
+ * converts, so it is offered, and the seeded diary edits like a freshly
+ * logged food (#126).
  */
 test('a food entry counted in pieces is offered the servings too', () => {
   food.value = CATALOG_BREAD
@@ -577,7 +558,6 @@ test('editing an entry already in base units does not send a unit', async () => 
 test('a row a Combo logged is badged with its name', () => {
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={{ ...entry, comboLabel: 'Usual breakfast' }}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}
@@ -592,7 +572,6 @@ test('a row a Combo logged is badged with its name', () => {
 test('a row logged one thing at a time carries no badge', () => {
   renderWithI18n(
     <ConsumptionEntryRow
-      nav={nav}
       entry={entry}
       onUpdate={vi.fn()}
       onDelete={vi.fn()}

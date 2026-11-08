@@ -1,4 +1,5 @@
-import { type NutritionFacts, parseNutritionValue } from './nutrition'
+import type { NutritionFacts } from '@gather/core/domain'
+import { parseNutritionValue } from './nutrition'
 import type { Serving } from './servings'
 
 export interface OffMappedFood {

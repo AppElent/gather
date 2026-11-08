@@ -1,20 +1,20 @@
-import { BABY_EVENT_TYPES, type BabyEventType } from '@gather/core/domain'
-import { v } from 'convex/values'
+import {
+  BABY_SEXES,
+  type BabyEventDataByType,
+  DIAPER_KINDS,
+  FEEDING_METHODS,
+  FEEDING_SIDES,
+  TEMPERATURE_METHODS,
+} from '@gather/core/baby-events'
+import {
+  BABY_BAR_SHORTCUTS,
+  BABY_EVENT_TYPES,
+  type BabyEventType,
+} from '@gather/core/domain'
+import { type GenericValidator, type Infer, v } from 'convex/values'
+import { literals } from './validators'
 
-export type { BabyEventType }
-export { BABY_EVENT_TYPES }
-
-export const babyEventTypeValidator = v.union(
-  v.literal('temperature'),
-  v.literal('feeding'),
-  v.literal('diaper'),
-  v.literal('sleep'),
-  v.literal('growth'),
-  v.literal('medication'),
-  v.literal('vaccination'),
-  v.literal('note'),
-  v.literal('memory'),
-)
+export const babyEventTypeValidator = literals(BABY_EVENT_TYPES)
 
 /**
  * One button on a Child's log bar: an event type, or one of the two shortcuts
@@ -24,46 +24,17 @@ export const babyEventTypeValidator = v.union(
  */
 export const babyBarSlotValidator = v.union(
   babyEventTypeValidator,
-  v.literal('todo'),
-  v.literal('question'),
+  literals(BABY_BAR_SHORTCUTS),
 )
 
-// The event-type *names* used to live here. They are read by a person, so they
-// are translated, and they now live in each locale's `baby.ts` under
-// `src/lib/i18n/messages/` keyed by `BabyEventType` (ADR-0011). `activity.ts`
-// used to read them to title an entry; it sends the type key now and lets the
-// client choose the word.
+export const babySexValidator = literals(BABY_SEXES)
 
-export const temperatureMethodValidator = v.union(
-  v.literal('oral'),
-  v.literal('rectal'),
-  v.literal('axillary'),
-  v.literal('ear'),
-  v.literal('forehead'),
-)
-export type TemperatureMethod =
-  | 'oral'
-  | 'rectal'
-  | 'axillary'
-  | 'ear'
-  | 'forehead'
+export const temperatureMethodValidator = literals(TEMPERATURE_METHODS)
 
-export const feedingMethodValidator = v.union(
-  v.literal('breast'),
-  v.literal('bottle'),
-  v.literal('solid'),
-)
-export const feedingSideValidator = v.union(
-  v.literal('left'),
-  v.literal('right'),
-  v.literal('both'),
-)
+export const feedingMethodValidator = literals(FEEDING_METHODS)
+export const feedingSideValidator = literals(FEEDING_SIDES)
 
-export const diaperKindValidator = v.union(
-  v.literal('wet'),
-  v.literal('dirty'),
-  v.literal('both'),
-)
+export const diaperKindValidator = literals(DIAPER_KINDS)
 
 // Per-type event payload. Kept separate from schema.ts's top-level `type`
 // field (needed there for the `by_baby_type` index) — a mismatch between
@@ -145,53 +116,31 @@ export const babyEventDataValidator = v.union(
   memoryDataValidator,
 )
 
-export type BabyEventData = Record<string, unknown>
-
-/** Absent, or a finite non-negative number of minutes. */
-function isValidMinutes(value: unknown): boolean {
-  if (value === undefined) return true
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+// The screens read `data` through core's `BabyEventDataByType`. This stops
+// compiling, naming the type, the moment a payload validator above and that
+// type disagree about a field.
+type Same<A, B> =
+  (<X>() => X extends A ? 1 : 2) extends <X>() => X extends B ? 1 : 2
+    ? true
+    : false
+// `v.object({})` infers `{}` but refuses every field, which core spells
+// `Record<string, never>`.
+type Accepted<V extends GenericValidator> =
+  keyof Infer<V> extends never ? Record<string, never> : Infer<V>
+type DataValidatorByType = {
+  temperature: typeof temperatureDataValidator
+  feeding: typeof feedingDataValidator
+  diaper: typeof diaperDataValidator
+  sleep: typeof sleepDataValidator
+  growth: typeof growthDataValidator
+  medication: typeof medicationDataValidator
+  vaccination: typeof vaccinationDataValidator
+  note: typeof noteDataValidator
+  memory: typeof memoryDataValidator
 }
-
-// Confirms `data` actually satisfies the shape the given `type` implies —
-// the schema validator only checks `data` against *some* member of the
-// union, not the one matching `type`.
-export function isValidEventData(
-  type: BabyEventType,
-  data: BabyEventData,
-): boolean {
-  switch (type) {
-    case 'temperature':
-      return typeof data.celsius === 'number'
-    case 'feeding':
-      return (
-        (data.method === 'breast' ||
-          data.method === 'bottle' ||
-          data.method === 'solid') &&
-        isValidMinutes(data.leftMin) &&
-        isValidMinutes(data.rightMin)
-      )
-    case 'diaper':
-      return (
-        data.kind === 'wet' || data.kind === 'dirty' || data.kind === 'both'
-      )
-    case 'sleep':
-      return true
-    case 'growth':
-      return (
-        typeof data.weightKg === 'number' ||
-        typeof data.heightCm === 'number' ||
-        typeof data.headCircumferenceCm === 'number'
-      )
-    case 'medication':
-      return typeof data.name === 'string' && data.name.trim().length > 0
-    case 'vaccination':
-      return typeof data.name === 'string' && data.name.trim().length > 0
-    case 'note':
-      return true
-    case 'memory':
-      return typeof data.what === 'string' && data.what.trim().length > 0
-    default:
-      return false
-  }
-}
+;({}) as {
+  [T in keyof DataValidatorByType]: Same<
+    Accepted<DataValidatorByType[T]>,
+    BabyEventDataByType[T]
+  >
+} satisfies Record<BabyEventType, true>

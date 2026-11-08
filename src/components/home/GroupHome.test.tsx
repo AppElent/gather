@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import type { GroupActivityEntry } from '../../../convex/activity'
-import { renderWithI18n } from '../../lib/i18n/testing'
+import { renderInGroup, TEST_GROUP } from '../app/testing'
 import { GroupHome } from './GroupHome'
 
 /**
@@ -58,17 +58,16 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-const HOUSEHOLD = {
-  groupSlug: 'jansen-household',
-  groupName: 'Jansen Household',
-}
+const HOUSEHOLD = { ...TEST_GROUP, name: 'Jansen Household' }
 
 const MEMBERS = [
   { userId: 'u_alice', name: 'Alice', role: 'admin' },
   { userId: 'u_bob', name: 'Bob', role: 'member' },
 ]
 
-const entry = (over: Partial<GroupActivityEntry> = {}): GroupActivityEntry => ({
+type RecipeEntry = Extract<GroupActivityEntry, { kind: 'recipe' }>
+
+const entry = (over: Partial<RecipeEntry> = {}): RecipeEntry => ({
   id: 'r1',
   kind: 'recipe',
   at: Date.now(),
@@ -87,7 +86,7 @@ beforeEach(() => {
 
 describe('the very first visit, before anything has happened', () => {
   test('names the Group, says who is in it, and says what to do next', () => {
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     // The Group. Named as a heading, not buried in a sentence.
     expect(
@@ -112,7 +111,7 @@ describe('the very first visit, before anything has happened', () => {
   })
 
   test('the starters point into this Group and not at a bare module path', () => {
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     const recipes = screen.getByRole('link', { name: 'Recipes' })
     expect(recipes.getAttribute('href')).toBe('/recipes')
@@ -120,9 +119,9 @@ describe('the very first visit, before anything has happened', () => {
 
   test('a Group points to its management page', () => {
     members.value = [{ userId: 'u_alice', name: 'Alice', role: 'admin' }]
-    renderWithI18n(
-      <GroupHome groupSlug="me-alice" groupName="Alice's things" />,
-    )
+    renderInGroup(<GroupHome />, {
+      group: { ...TEST_GROUP, slug: 'me-alice', name: "Alice's things" },
+    })
 
     const who = screen.getByRole('region', { name: 'Who is here' })
     expect(within(who).getByRole('link', { name: /groups/i })).toBeDefined()
@@ -137,7 +136,7 @@ describe('the very first visit, before anything has happened', () => {
   })
 
   test('a shared group says everyone here sees everything', () => {
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     const who = screen.getByRole('region', { name: 'Who is here' })
     expect(
@@ -148,7 +147,7 @@ describe('the very first visit, before anything has happened', () => {
 
   test('the Members are shown whether or not anything has happened', () => {
     activity.value = [entry()]
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     const who = screen.getByRole('region', { name: 'Who is here' })
     expect(within(who).getByText('Alice')).toBeDefined()
@@ -158,7 +157,7 @@ describe('the very first visit, before anything has happened', () => {
 
 describe('the stream', () => {
   test('asks for this Group and no other', () => {
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     expect(queryArgs.value).toContainEqual({
       name: 'activity:forGroup',
@@ -172,7 +171,7 @@ describe('the stream', () => {
 
   test('says who did what, and in which module', () => {
     activity.value = [entry()]
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     const card = screen.getByRole('region', { name: 'Recent activity' })
     expect(within(card).getByText('Bob')).toBeDefined()
@@ -185,7 +184,7 @@ describe('the stream', () => {
 
   test('links a recipe to its page inside this Group', () => {
     activity.value = [entry()]
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     expect(
       screen.getByRole('link', { name: 'Roast chicken' }).getAttribute('href'),
@@ -194,16 +193,17 @@ describe('the stream', () => {
 
   test('links a log entry to the child it is about', () => {
     activity.value = [
-      entry({
+      {
         id: 'e1',
         kind: 'babyEvent',
-        title: 'Feeding',
+        eventType: 'feeding',
+        at: Date.now(),
         context: 'Noor',
         targetId: 'baby_1',
         byName: 'Alice',
-      }),
+      },
     ]
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     expect(
       screen.getByRole('link', { name: 'Feeding' }).getAttribute('href'),
@@ -214,15 +214,17 @@ describe('the stream', () => {
 
   test('links a task to the Group’s Tasks page, and names its list', () => {
     activity.value = [
-      entry({
-        id: 't1',
+      {
+        ...entry({
+          id: 't1',
+          title: 'Buy nappies',
+          context: 'Shopping',
+          targetId: null,
+        }),
         kind: 'task',
-        title: 'Buy nappies',
-        context: 'Shopping',
-        targetId: null,
-      }),
+      },
     ]
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     expect(
       screen.getByRole('link', { name: 'Buy nappies' }).getAttribute('href'),
@@ -232,7 +234,7 @@ describe('the stream', () => {
 
   test('an entry whose person has gone still says what happened', () => {
     activity.value = [entry({ byName: null })]
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     expect(screen.getByText('Someone')).toBeDefined()
     expect(screen.getByRole('link', { name: 'Roast chicken' })).toBeDefined()
@@ -243,7 +245,7 @@ describe('the stream', () => {
       entry({ id: 'r2', title: 'Newest' }),
       entry({ id: 'r1', title: 'Oldest' }),
     ]
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     const items = screen
       .getByRole('region', { name: 'Recent activity' })
@@ -255,7 +257,7 @@ describe('the stream', () => {
 
   test('says it is still loading rather than that nothing has happened', () => {
     activity.value = undefined
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     expect(screen.queryByText(/nothing has happened/i)).toBeNull()
   })
@@ -264,7 +266,7 @@ describe('the stream', () => {
 describe('nothing is stored per person, and nothing is editable', () => {
   test('there is no layout editor on the page', () => {
     activity.value = [entry()]
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     // A configurable Home would need at least one control to configure it
     // with. There is none: Home is one owned surface, the same for everybody
@@ -276,7 +278,7 @@ describe('nothing is stored per person, and nothing is editable', () => {
 
   test('nothing about the page is written back', () => {
     activity.value = [entry()]
-    renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     // `useMutation` is not even imported — the mock would throw if it were
     // called, and this asserts the page only ever reads.
@@ -305,12 +307,9 @@ describe('what a phone has to survive', () => {
         role: 'admin',
       },
     ]
-    renderWithI18n(
-      <GroupHome
-        groupSlug="jansen-household"
-        groupName="Vandenbergenhuishoudenoverdewintermaanden"
-      />,
-    )
+    renderInGroup(<GroupHome />, {
+      group: { ...TEST_GROUP, name: 'Vandenbergenhuishoudenoverdewintermaanden' },
+    })
 
     // jsdom does no layout, so these are assertions about the two properties
     // that decide whether a long word can overflow — not about the width of
@@ -339,7 +338,7 @@ describe('what a phone has to survive', () => {
 
   test('the page never lays anything out in a table', () => {
     activity.value = [entry(), entry({ id: 'r2', title: 'Second' })]
-    const { container } = renderWithI18n(<GroupHome {...HOUSEHOLD} />)
+    const { container } = renderInGroup(<GroupHome />, { group: HOUSEHOLD })
 
     // A table is the one layout that cannot be made to shrink below the sum of
     // its columns, which is how a page starts scrolling sideways on a phone.

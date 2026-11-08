@@ -1,6 +1,6 @@
 import type { CalendarPerson } from '@gather/core/calendar'
-import { Alert } from 'react-native'
-import { useI18n } from '../../i18n'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
+import { fmt, useI18n } from '../../i18n'
 import { CalendarEditorCard } from './CalendarEditorCard'
 import { CalendarEditorSheet } from './CalendarEditorSheet'
 import {
@@ -53,18 +53,12 @@ export function CalendarEditor({
     onExpand: controller.expand,
     onDuplicate: controller.duplicate,
     onDelete: () =>
-      Alert.alert(
-        t.calendar.confirmDelete.replace('{title}', draft.values.title),
-        undefined,
-        [
-          { text: t.actions.cancel },
-          {
-            text: t.calendar.deleteEvent,
-            style: 'destructive',
-            onPress: () => void controller.delete(),
-          },
-        ],
-      ),
+      confirmDestructive({
+        title: fmt(t.calendar.confirmDelete, { title: draft.values.title }),
+        confirm: t.calendar.deleteEvent,
+        cancel: t.actions.cancel,
+        onConfirm: () => void controller.delete(),
+      }),
     saving: draft.status === 'saving',
     onCreateCalendar,
   }

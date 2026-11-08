@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the share sheet, a Drop, its destinations, host rules, or expo-share-intent.
-version: 1.0.0
+version: 1.1.0
 status: current
 ---
 
@@ -23,8 +23,17 @@ that already means making Group content visible to a second Group.
 - **Host rules preselect and never restrict.** `packages/core/src/dropRules.ts`
   (`DROP_HOST_RULES`) may put a destination on top; it may never take one off
   the sheet. A stale rule then costs one extra tap rather than a dead end.
-- Confirming switches the app's Group to the chosen one and lands the person on
-  what they made: the screen changing is the confirmation.
+- Confirming switches the app's Group to the chosen one and, once that Group
+  is on screen, lands the person on what they made: the screen changing is the
+  confirmation. The switch and the landing go through `useOpenInGroup`, the
+  same path an old `/g/<slug>` link takes; navigating in the same tick as the
+  switch would be undone by the switch's unwind of the tab stacks.
+- **The commit clears the Drop.** A target that has not written by the time it
+  navigates declares `keepsDrop` (today only `recipe-import`): its screen is
+  pushed over the chooser with the Drop still pending, so Back still has
+  somewhere else to put it, and that screen's own successful save clears the
+  Drop the way every other commit does. The Group a Drop is aimed at is held
+  as a Group id, and stage two lists and writes into that same Group.
 - **A Drop is native surface.** `expo-share-intent` is a config plugin, so
   touching it moves the fingerprint and the change cannot ship over the air
   ([ADR-0029](../adr/0029-a-javascript-change-ships-over-the-air-and-a-native-one-does-not.md)).

@@ -12,7 +12,7 @@
  *   app. The theme is built from the same tokens the screens use, so a header
  *   and the screen under it cannot disagree.
  * - **The status bar.** Set from the resolved scheme rather than left on
- *   `auto`, because `auto` reads the device and the device is no longer the
+ *   `auto`, because `auto` reads the device and the device is not the
  *   only thing that decides (see `theme/appearance.tsx`).
  * - **The window behind the tree.** The root view keeps its launch colour
  *   otherwise, which shows through as a pale band under a dark app while a
@@ -25,12 +25,7 @@ import { type ReactNode, useEffect } from 'react'
 
 import { type Tokens, useTokens } from './tokens'
 
-/**
- * Exported for the same reason `useTokens` is a hook rather than a constant:
- * the mapping from Gather's palette to the six colours the navigator knows
- * about is a fact about the palette, not about any one screen.
- */
-export function navigationTheme(tokens: Tokens): Theme {
+function navigationTheme(tokens: Tokens): Theme {
   const base = tokens.scheme === 'dark' ? DarkTheme : DefaultTheme
   return {
     ...base,

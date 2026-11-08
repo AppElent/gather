@@ -5,7 +5,7 @@
  * ## Why this is a route rather than a sheet
  *
  * An entry has a stable address and can be opened cold. Fast in-context flows
- * use the shared native `BottomSheetModal`; this screen remains a destination.
+ * use `NativeSheet`; this screen remains a destination.
  *
  * ## Why editing happens here rather than reopening the log sheet
  *
@@ -19,6 +19,7 @@
  * Group — and an undo toast on a record somebody may show a doctor is not good
  * enough.
  */
+import { missingRequiredField } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
 import { useMutation } from 'convex/react'
 import { Image } from 'expo-image'
@@ -26,7 +27,6 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -35,22 +35,20 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
-import { PhotoField } from '../../components/PhotoField'
+import { api, type Id } from '../../convex/api'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { DateTimeField } from './DateTimeField'
 import { EntryFields, fieldLabel, optionText } from './EntryFields'
+import { EntryPhotoField } from './EntryPhotoField'
 import { EVENT_ICONS } from './icons'
 import {
   buildSheetData,
   editPicks,
   endTimestampFor,
   fieldsFor,
-  missingRequired,
   outOfRangeFields,
 } from './sheetFields'
 import { useBabyLog } from './useBabyLog'
@@ -64,7 +62,6 @@ export function EntryScreen() {
 
   const update = useMutation(api.babyEvents.update)
   const remove = useMutation(api.babyEvents.remove)
-  const generateUploadUrl = useMutation(api.babies.generateUploadUrl)
 
   const { entryId } = useLocalSearchParams<{ entryId?: string }>()
   const entry = useMemo(
@@ -123,7 +120,7 @@ export function EntryScreen() {
   const draft = picks ?? {}
   const draftTime = timestamp ?? entry.timestamp
   const rejected = editing ? outOfRangeFields(type, draft) : []
-  const missing = editing ? missingRequired(type, draft) : null
+  const missing = editing ? missingRequiredField(type, draft) : null
   const blocked = rejected.length > 0 || missing !== null
 
   async function save() {
@@ -154,31 +151,28 @@ export function EntryScreen() {
 
   function confirmDelete() {
     if (!entry) return
-    Alert.alert(
-      t.baby.log.timeline.deleteTitle,
-      fmt(t.baby.log.timeline.deleteEntry, { type: t.baby.eventTypes[type] }),
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: t.baby.log.timeline.deleteConfirm,
-          style: 'destructive',
-          onPress: async () => {
-            setBusy(true)
-            try {
-              await remove({
-                eventId: entry._id as Id<'babyEvents'>,
-                groupSlug: log.groupSlug,
-              })
-              router.back()
-            } catch {
-              haptics.actionFailed()
-              setFailure(t.baby.log.timeline.deleteFailed)
-              setBusy(false)
-            }
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: t.baby.log.timeline.deleteTitle,
+      message: fmt(t.baby.log.timeline.deleteEntry, {
+        type: t.baby.eventTypes[type],
+      }),
+      confirm: t.baby.log.timeline.deleteConfirm,
+      cancel: t.actions.cancel,
+      onConfirm: async () => {
+        setBusy(true)
+        try {
+          await remove({
+            eventId: entry._id as Id<'babyEvents'>,
+            groupSlug: log.groupSlug,
+          })
+          router.back()
+        } catch {
+          haptics.actionFailed()
+          setFailure(t.baby.log.timeline.deleteFailed)
+          setBusy(false)
+        }
+      },
+    })
   }
 
   /** The read view: every row this type has, with the value it holds. */
@@ -303,29 +297,13 @@ export function EntryScreen() {
               ]}
             />
 
-            {type === 'memory' ? (
-              <PhotoField
-                photoUrl={entry.photoUrl}
-                value={photoId}
-                onChange={setPhotoId}
-                generateUploadUrl={generateUploadUrl}
-                labels={{
-                  heading: t.baby.log.entry.photo,
-                  take: t.baby.log.entry.takePhoto,
-                  choose: t.baby.log.entry.choosePhoto,
-                  replace: t.baby.log.entry.replacePhoto,
-                  remove: t.baby.log.entry.removePhoto,
-                  uploading: t.baby.log.entry.photoUploading,
-                  denied: t.baby.log.entry.photoDenied,
-                  failed: t.baby.log.entry.photoFailed,
-                  alt: fmt(t.baby.log.entry.photoOf, {
-                    type: t.baby.eventTypes[type],
-                  }),
-                }}
-                preset="memoryPhoto"
-                disabled={busy}
-              />
-            ) : null}
+            <EntryPhotoField
+              type={type}
+              photoUrl={entry.photoUrl}
+              value={photoId}
+              onChange={setPhotoId}
+              disabled={busy}
+            />
 
             {missing ? (
               <Text style={[styles.error, { color: tokens.danger }]}>
@@ -469,8 +447,8 @@ export function EntryScreen() {
 
 const styles = StyleSheet.create({
   centre: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // No top padding of its own: the sheet's own bar is the top edge now, and
-  // adding a second one under it is what read as "not native".
+  // Barely any top padding: the header is the top edge, and a second one under
+  // it reads as "not native".
   content: { paddingHorizontal: 18, paddingTop: 4, gap: 14 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   glyph: {

@@ -1,11 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import {
-  addCalendarDays,
-  addCalendarMonths,
   agendaRows,
-  calendarMonthGrid,
-  calendarWeek,
   filterCalendarEvents,
   initialsForPeople,
   marksForDate,
@@ -27,10 +23,7 @@ const event = (
   })
 
 describe('calendar model', () => {
-  test('validates real leap dates and uses UTC-safe date arithmetic', () => {
-    expect(addCalendarDays('2024-02-28', 1)).toBe('2024-02-29')
-    expect(addCalendarDays('2024-03-10', -1)).toBe('2024-03-09')
-    expect(addCalendarMonths('2024-01-31', 1)).toBe('2024-02-29')
+  test('validates real leap dates', () => {
     expect(
       validateCalendarFields({
         calendarId: 'c',
@@ -49,28 +42,6 @@ describe('calendar model', () => {
         assigneeIds: [],
       }).date,
     ).toBe('invalidDate')
-  })
-
-  test('keeps a Monday-first week and six date-picker rows', () => {
-    expect(calendarWeek('2026-09-16')).toEqual([
-      '2026-09-14',
-      '2026-09-15',
-      '2026-09-16',
-      '2026-09-17',
-      '2026-09-18',
-      '2026-09-19',
-      '2026-09-20',
-    ])
-    expect(calendarMonthGrid('2026-09-16')).toHaveLength(6)
-    expect(calendarMonthGrid('2026-09-16')[0]).toEqual([
-      null,
-      '2026-09-01',
-      '2026-09-02',
-      '2026-09-03',
-      '2026-09-04',
-      '2026-09-05',
-      '2026-09-06',
-    ])
   })
 
   test('normalizes legacy all-day, people, optional text and revision fields', () => {
@@ -217,6 +188,7 @@ describe('calendar model', () => {
       [event({ date: '2026-09-01' })],
       '2026-09-01',
       '2026-09-20',
+      '2026-10-30',
       '2026-09-06',
     )
     expect(
@@ -227,9 +199,19 @@ describe('calendar model', () => {
       (rows.find((row) => row.kind === 'gap') as { dates: string[] }).dates,
     ).not.toContain('2026-09-06')
     expect(
-      agendaRows([], '2026-09-01', '2026-09-05').every(
+      agendaRows([], '2026-09-01', '2026-09-05', '2026-10-30').every(
         (row) => row.kind === 'day',
       ),
     ).toBe(true)
+  })
+
+  test('keeps today visible inside a long empty run', () => {
+    const rows = agendaRows([], '2026-09-01', '2026-09-30', '2026-09-15')
+    expect(
+      rows.some((row) => row.kind === 'day' && row.date === '2026-09-15'),
+    ).toBe(true)
+    expect(
+      rows.flatMap((row) => (row.kind === 'gap' ? row.dates : [])),
+    ).not.toContain('2026-09-15')
   })
 })

@@ -8,8 +8,8 @@
  * hatch rather than the front door: a query replaces the whole list, identity
  * card included, with flat results that each name the group they came from.
  *
- * There is no profile destination any more. The profile is the card at the top,
- * and it goes to Account like every other row goes somewhere.
+ * The profile is the card at the top, and it goes to Account like every other
+ * row goes somewhere.
  *
  * The rows are drawn from `settings/sections.ts` rather than written here, so
  * the field searches exactly what the screen shows.

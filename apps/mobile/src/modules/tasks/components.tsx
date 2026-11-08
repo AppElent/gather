@@ -1,16 +1,10 @@
 /**
- * The handful of pieces every taskActions screen is made of.
+ * The handful of pieces every Tasks screen is made of besides `Card`: a 21px
+ * box with a 1.6 stroke, chips, and pressable rows.
  *
- * Geometry is lifted from `modules/baby/Checklist.tsx` on purpose — 16px card
- * radius, 14px inset, a 21px box with a 1.6 stroke, 15.5px row text — because
- * the Tasks Module is meant to *adopt* that component rather than replace it,
- * and a taskActions drawn at different sizes would be judging a different screen.
- *
- * One thing here is deliberately not what the app does today: `PressRow`
- * highlights with a background fill and an Android ripple rather than
- * `opacity: 0.6`. `apps/mobile/DESIGN_SYSTEM.md` calls the opacity default wrong
- * on both platforms, and a new screen is where that gets fixed rather than
- * inherited.
+ * `PressRow` highlights with a background fill and an Android ripple rather
+ * than `opacity: 0.6`; `apps/mobile/DESIGN_SYSTEM.md` calls the opacity
+ * default wrong on both platforms.
  */
 import type { ReactNode } from 'react'
 import {
@@ -24,44 +18,17 @@ import {
 } from 'react-native'
 
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { useTokens } from '../../theme/tokens'
+import type { Priority } from './types'
 
-/**
- * The strip across the top of every taskActions.
- *
- * It is not decoration: these screens sit inside the real app, one tap from
- * real settings, and a made-up task list is indistinguishable from a real one
- * at a glance. It says so once per screen and then gets out of the way.
- */
-/** The section heading above a card. */
-export function SectionLabel({ children }: { children: ReactNode }) {
-  const tokens = useTokens('home')
-  return (
-    <Text style={[styles.sectionLabel, { color: tokens.muted }]}>
-      {typeof children === 'string' ? children.toUpperCase() : children}
-    </Text>
-  )
-}
-
-export function Card({
-  children,
-  style,
-}: {
-  children: ReactNode
-  style?: ViewStyle
-}) {
-  const tokens = useTokens('home')
-  return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
-        style,
-      ]}
-    >
-      {children}
-    </View>
-  )
+/** Red for the most urgent, amber for high, and nothing at all below that. */
+export function priorityColor(
+  priority: Priority | undefined,
+  danger: string,
+): string | undefined {
+  if (priority === 1) return danger
+  if (priority === 2) return '#b4791f'
+  return undefined
 }
 
 /**
@@ -131,10 +98,9 @@ export function Checkbox({ checked }: { checked: boolean }) {
 /**
  * A label on a task, or a suggestion in the label sheet.
  *
- * `remove` draws the cross. A lit chip has always removed itself on tap, but
- * nothing said so — a filled pill reads as a state, not as a button, and the
- * first report back from the taskActions was that labels could only be added.
- * The cross is not a second target: the whole chip is still one press.
+ * `remove` draws the cross: a filled pill reads as a state, not as a button,
+ * so without it a lit chip removing itself on tap is a secret. The cross is
+ * not a second target: the whole chip is still one press.
  */
 export function Chip({
   label,
@@ -195,24 +161,6 @@ export function Chip({
 }
 
 const styles = StyleSheet.create({
-  banner: {
-    borderRadius: RADIUS.control,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  bannerText: { fontSize: 12.5, lineHeight: 18, fontWeight: '600' },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    paddingHorizontal: 4,
-  },
-  card: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.card,
-    paddingHorizontal: 14,
-    overflow: 'hidden',
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

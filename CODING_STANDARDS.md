@@ -52,7 +52,7 @@ Project decisions below select implementations and explain deviations from share
 
 | Path | Owns |
 | --- | --- |
-| `src/` | TanStack Start web app (SSR, Cloudflare Worker); file routes in `src/routes/`, Group addresses in `src/lib/groupPaths.ts` |
+| `src/` | TanStack Start web app (SSR, Cloudflare Worker); file routes in `src/routes/`, in-app links in `src/lib/links.ts` |
 | `convex/` | Shared backend; schema in `convex/schema.ts`, helpers in `convex/lib/`, seed fixtures in `convex/lib/seed/` |
 | `apps/mobile/` | Expo app; read [mobile standards](apps/mobile/CODING_STANDARDS.md) before native changes |
 | `packages/core/` | `@gather/core`: dependency-free domain code, Module metadata, message trees, photo presets ([ADR-0016](docs/adr/0016-shared-code-crosses-as-a-package-with-no-dependencies.md)) |
@@ -89,7 +89,7 @@ and EAS. These bindings deviate from or narrow the shared guidance:
 | Documentation | **Exception** to "one-off work is an issue and its PR" in [documentation](docs/standards/documentation.md): an unfinished data migration keeps a document in `docs/migrations/` until it has run everywhere, because code comments and the [one-shot code](#one-shot-code) rule point at it as the retirement ledger. A finished one becomes a `docs/records/` record when something cites it and is deleted otherwise. |
 | Agent workflow | `.claude/skills/verify` is the one project skill (route→Module map). `.claude/commands/` holds thin commands: `review-session` invokes the global `custom-review-session` skill, `upgrade-deps` copies the global `custom-upgrade-deps` template, `babysit` is gather's PR policy. A fix that is not gather-specific goes back to the global source. |
 | Formatting | **Exception** to the [baseline](docs/standards/baseline.md) Biome fragment's tabs and double quotes: `biome.json` keeps 2-space indents, single quotes and semicolons as needed, everywhere in the repository. Gather was written in this style; switching rewrites every file and its blame for no behavior change. The fragment's mobile rules are adopted under Gather's names (`Notice`, `src/convex/queries.ts`). Toolkit-owned and verbatim-copied scripts (`scripts/check-mobile-structure.mjs`, `scripts/env.mjs`, …) keep the toolkit's style and are excluded from Biome. |
-| Linting | Biome is the only linter, phone included (`biome.json`). The phone's ESLint (`eslint-config-expo`) was removed: CI never ran it, and beyond Biome it reported only React Compiler readiness rules, which do not apply while the compiler is off. Turning the compiler on is when to add them back. |
+| Linting | Biome is the only linter, phone included (`biome.json`). The phone's ESLint (`eslint-config-expo`) was removed: CI never ran it, and beyond Biome it reported only React Compiler readiness rules, which do not apply while the compiler is off. Turning the compiler on is when to add them back. The root `linter.enabled` is `false`; the `apps/mobile/**` overrides turn it on, so the phone's import rules run: Convex functions and ids come through `apps/mobile/src/convex/api.ts` ([repo layout](docs/standards/repo-layout.md)), and Convex hooks through `src/convex/queries.ts`. |
 | Pre-commit hook | `lefthook.yml` runs `biome check --staged` before a commit, from the [baseline](docs/standards/baseline.md) template; the root `lefthook` dev dependency installs it on `pnpm install`. Skip one commit with `git commit --no-verify` or `LEFTHOOK=0`. |
 | React version | Web and phone pin the same exact `react` and `react-dom` (19.3.0, the version Expo SDK 58 bundles), so the workspace holds one React. Bump them together with the Expo SDK. |
 | Dependency updates | `.github/dependabot.yml`: cooldown 3 days, the same as `minimumReleaseAge`; besides the Expo, React Native and React family it ignores `@sentry/react-native` (excluded from `expo install`) and `convex-helpers` (pinned, see Convex query caching). Alerts and security updates are on. |
@@ -101,8 +101,7 @@ and EAS. These bindings deviate from or narrow the shared guidance:
 Synced 2026-11-01 (developer-tools `922e11c`). Not yet adopted:
 
 - **Environment tiers** ([environments](docs/standards/environments.md) 2.2): preview still reads Infisical `dev` with test-instance auth, not `staging` with production auth. It needs a `staging` app folder in Infisical, so the owner decides when to move.
-- **Repository layout** ([repo layout](docs/standards/repo-layout.md)): 61 phone files import `convex/_generated` by deep relative path; there is no `apps/mobile/src/convex/api.ts` yet. The first change that touches one adds that module; later ones move their imports to it, per the standard's migration.
-- **Convex backend** ([convex](docs/standards/convex.md)): auth is read ad hoc (`ctx.auth.getUserIdentity` outside one helper) and user-facing failures throw English strings (`new ConvexError('Not authenticated')`), not keyed codes. Adopt per function when touched; the standard's first step, finding public functions with no auth check, is worth its own issue.
+- **Convex backend** ([convex](docs/standards/convex.md)): auth goes through `requireCurrentUser` and `requireIdentity` (`convex/lib/sharing.ts`) and access to a row through `requireInGroup` (`convex/lib/groupAccess.ts`), but most user-facing failures still throw English strings (`new ConvexError('Recipe not found')`), not keyed codes. Calendar, tasting and combo refusals are keyed, through `@gather/core/refusals`; adopt per function when touched; the standard's first step, finding public functions with no auth check, is worth its own issue.
 - **Deployments defaults:** no `main` ruleset yet; `deploy:prod` still reads `.env.local`, not `env.mjs exec production`.
 - **Mobile distribution and baseline 2.4:** no `APP_VARIANT` side-by-side installs (`app.json` is static), no restart prompt for a downloaded update, and no CI publish after the backend deploys. `apps/mobile/scripts/publish-update.mjs` stays in place of the toolkit wrapper. The fingerprint config, the runtime-diff workflow and opt-in CI builds are not added: the fingerprint config changes the runtime once, so every installed build would need a rebuild first.
 
@@ -127,7 +126,7 @@ validators and effects apply as written. Gather's schema unions are `ModuleId`,
 `NutrientKey`, `MealName` and `BabyEventType`: add both locales' entries in the
 same change as a new member. Pure modules that take messages as a trailing
 parameter include `navItems`, `getRouteContext`, `formatActivityTime`,
-`formatAge` and `summarizeEvent`.
+`formatAge` and `summarizeBabyEvent`.
 
 ### One-shot code
 

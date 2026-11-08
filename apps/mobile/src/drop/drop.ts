@@ -43,7 +43,7 @@ export type Drop =
  * note list nor a checklist has room for one. The remainder becomes the body,
  * so nothing shared is thrown away by the split.
  */
-export const DROP_TITLE_MAX = 80
+const DROP_TITLE_MAX = 80
 
 export function dropTitle(text: string): string {
   const line = text

@@ -6,27 +6,20 @@ import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, useMessages } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { AddListFlow } from './AddListFlow'
 import { ExternalTaskList } from './ExternalTaskList'
 import { LocalTaskList } from './LocalTaskList'
-import type { TaskNav } from './taskNav'
-
-export interface TasksPageProps {
-  /** The Group whose lists these are. Always the one in the URL. */
-  groupSlug: string
-  nav: TaskNav
-}
 
 /**
- * A household's task lists, whole.
+ * The Current Group's task lists, whole.
  *
  * Task lists are Group-scoped content, so the slug goes to Convex with every
- * read and every write: this is the lists of the Group in the address, and
- * adding one — local or linked — puts it there. There is no slugless form to
- * fall back to, and so no "pick a group first" state: `/g/<slug>/tasks` is the
- * only page that renders this.
+ * read and every write, and adding one — local or linked — puts it in the
+ * Current Group.
  */
-export function TasksPage({ groupSlug, nav }: TasksPageProps) {
+export function TasksPage() {
+  const { slug: groupSlug } = useRequiredCurrentGroup()
   const lists = useQuery(api.taskLists.list, { groupSlug })
   const removeList = useMutation(api.taskLists.remove)
   const [adding, setAdding] = useState(false)
@@ -74,7 +67,6 @@ export function TasksPage({ groupSlug, nav }: TasksPageProps) {
       {adding && (
         <AddListFlow
           groupSlug={groupSlug}
-          returnTo={nav.returnTo}
           onDone={() => setAdding(false)}
         />
       )}

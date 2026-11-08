@@ -3,35 +3,23 @@
  *
  * Deleting is permanent in Gather today, so it asks first and names the note it
  * is about to destroy (`apps/mobile/DESIGN_SYSTEM.md`). Both the index's hold
- * menu and the note's own â‹¯ reach it, and an alert whose wording depended on
+ * menu and the note's own ⋯ reach it, and an alert whose wording depended on
  * which one you used would be a bug nobody would ever notice.
  */
-import { Alert } from 'react-native'
-
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt, type Messages } from '../../i18n'
-import { taskActions } from '../tasks/store'
-import type { Note } from '../tasks/types'
+import type { Note } from './store'
 
 export function confirmDeleteNote(
   note: Note,
   t: Messages,
-  onDeleted?: () => void,
+  onDelete: () => void,
 ) {
-  Alert.alert(
-    fmt(t.labs.notes.deleteTitle, {
-      title: note.title || t.labs.notes.untitled,
-    }),
-    t.labs.list.deleteBody,
-    [
-      { text: t.actions.cancel, style: 'cancel' },
-      {
-        text: t.actions.delete,
-        style: 'destructive',
-        onPress: () => {
-          taskActions.deleteNote(note.id)
-          onDeleted?.()
-        },
-      },
-    ],
-  )
+  confirmDestructive({
+    title: fmt(t.notes.deleteTitle, { title: note.title || t.notes.untitled }),
+    message: t.notes.deleteBody,
+    confirm: t.actions.delete,
+    cancel: t.actions.cancel,
+    onConfirm: onDelete,
+  })
 }

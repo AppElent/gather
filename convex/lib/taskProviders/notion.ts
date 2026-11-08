@@ -82,7 +82,7 @@ export function mapNotionPage(
 
 export const notionAdapter: TaskProviderAdapter = {
   id: 'notion',
-  capabilities: { write: false, priority: true, labels: true },
+  capabilities: { write: false },
 
   async listAvailableSources(accessToken, fetchImpl = fetch) {
     const data = (await notionRequest(

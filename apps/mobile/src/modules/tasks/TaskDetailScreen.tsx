@@ -15,9 +15,8 @@
  * permanent today (`apps/mobile/DESIGN_SYSTEM.md`).
  */
 import { Stack, useRouter } from 'expo-router'
-import { type ReactNode, useState } from 'react'
+import type { ReactNode } from 'react'
 import {
-  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -28,25 +27,17 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { haptics } from '../../feedback/haptics'
-import { fmt, useI18n } from '../../i18n'
+import { useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { Card, Checkbox, Chip } from './components'
+import { Card } from '../../ui/card'
+import { useDebouncedText } from '../../ui/use-debounced-text'
+import { Checkbox, Chip, priorityColor } from './components'
 import { TASK_ICONS } from './icons'
-import {
-  DueDateSheet,
-  LabelsSheet,
-  MoveToListSheet,
-  PrioritySheet,
-  priorityColor,
-} from './sheets'
-import { taskActions, useTaskState } from './store'
+import { useTaskActions, useTaskState } from './store'
 import { dueLabel, isOverdue } from './taskDates'
-import { useDebouncedText } from './useDebouncedText'
-
-type Sheet = 'due' | 'priority' | 'labels' | 'move'
+import { useTaskSheets } from './taskMenu'
 
 export function TaskDetail({ taskId }: { taskId: string }) {
   const tokens = useTokens('home')
@@ -54,7 +45,11 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const { t, locale } = useI18n()
   const router = useRouter()
   const state = useTaskState()
-  const [sheet, setSheet] = useState<Sheet | null>(null)
+  const actions = useTaskActions()
+  const taskSheets = useTaskSheets({
+    tasks: state.tasks,
+    onDeleted: () => router.back(),
+  })
 
   const task = state.tasks.find((each) => each.id === taskId)
   const list = state.lists.find((each) => each.id === task?.listId)
@@ -72,37 +67,21 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
   // Both fields write on a pause, not on a keystroke — see `useDebouncedText`.
   const title = useDebouncedText(task?.title ?? '', (next) => {
-    if (task) taskActions.renameTask(task.id, next)
+    if (task) actions.renameTask(task.id, next)
   })
   const notes = useDebouncedText(task?.notes ?? '', (next) => {
-    if (task) taskActions.setNotes(task.id, next)
+    if (task) actions.setNotes(task.id, next)
   })
 
   if (!task) return <View style={{ flex: 1, backgroundColor: tokens.bg }} />
 
   const overdue = Boolean(task.dueDate && isOverdue(task.dueDate, state.today))
-
-  const confirmDelete = () =>
-    Alert.alert(
-      fmt(t.labs.list.deleteTitle, { title: task.title }),
-      t.labs.list.deleteBody,
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: t.actions.delete,
-          style: 'destructive',
-          onPress: () => {
-            taskActions.deleteTask(task.id)
-            router.back()
-          },
-        },
-      ],
-    )
+  const open = (action: string) => taskSheets.onAction(task, action)
 
   return (
     <>
       <Stack.Screen
-        options={{ headerShown: true, title: list?.name ?? t.labs.tasks.title }}
+        options={{ headerShown: true, title: list?.name ?? t.tasks.title }}
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
@@ -128,10 +107,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             accessibilityState={{ checked: task.done }}
             accessibilityLabel={task.title}
             hitSlop={12}
-            onPress={() => {
-              taskActions.toggleTask(task.id)
-              if (!task.done) haptics.itemCompleted()
-            }}
+            onPress={() => open('complete')}
             style={styles.headBox}
           >
             <Checkbox checked={task.done} />
@@ -141,10 +117,10 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             value={title.draft}
             onChangeText={title.change}
             onBlur={title.flush}
-            placeholder={t.labs.task.titlePlaceholder}
+            placeholder={t.tasks.task.titlePlaceholder}
             placeholderTextColor={tokens.muted}
             multiline
-            accessibilityLabel={t.labs.task.titlePlaceholder}
+            accessibilityLabel={t.tasks.task.titlePlaceholder}
             style={[
               styles.title,
               {
@@ -165,17 +141,17 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 strokeWidth={2}
               />
             }
-            label={t.labs.task.due}
+            label={t.tasks.task.due}
             value={
               task.dueDate
                 ? dueLabel(task.dueDate, state.today, locale, {
-                    today: t.labs.task.today,
-                    tomorrow: t.labs.task.tomorrow,
+                    today: t.tasks.task.today,
+                    tomorrow: t.tasks.task.tomorrow,
                   })
-                : t.labs.task.unset
+                : t.tasks.task.unset
             }
             danger={overdue}
-            onPress={() => setSheet('due')}
+            onPress={() => open('due')}
           />
           <PropertyRow
             testID="detail-priority"
@@ -188,21 +164,21 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 strokeWidth={2}
               />
             }
-            label={t.labs.task.priority}
+            label={t.tasks.task.priority}
             value={
               task.priority
-                ? t.labs.task.priorities[task.priority]
-                : t.labs.task.unset
+                ? t.tasks.task.priorities[task.priority]
+                : t.tasks.task.unset
             }
-            onPress={() => setSheet('priority')}
+            onPress={() => open('priority')}
           />
           <PropertyRow
             testID="detail-labels"
             icon={
               <TASK_ICONS.Tag size={18} color={tokens.muted} strokeWidth={2} />
             }
-            label={t.labs.task.labels}
-            value={task.labels.length === 0 ? t.labs.task.unset : undefined}
+            label={t.tasks.task.labels}
+            value={task.labels.length === 0 ? t.tasks.task.unset : undefined}
             trailing={
               task.labels.length > 0 ? (
                 <View style={styles.chips}>
@@ -217,7 +193,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 </View>
               ) : undefined
             }
-            onPress={() => setSheet('labels')}
+            onPress={() => open('labels')}
           />
           <PropertyRow
             testID="detail-list"
@@ -236,9 +212,9 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 />
               )
             }
-            label={t.labs.task.list}
+            label={t.tasks.task.list}
             value={list?.name ?? ''}
-            onPress={() => setSheet('move')}
+            onPress={() => open('move')}
             last
           />
         </Card>
@@ -249,23 +225,23 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             value={notes.draft}
             onChangeText={notes.change}
             onBlur={notes.flush}
-            placeholder={t.labs.task.notesPlaceholder}
+            placeholder={t.tasks.task.notesPlaceholder}
             placeholderTextColor={tokens.muted}
             multiline
-            accessibilityLabel={t.labs.task.notes}
+            accessibilityLabel={t.tasks.task.notes}
             style={[styles.notes, { color: tokens.fg }]}
           />
         </Card>
 
         <Text style={[styles.hint, { color: tokens.muted }]}>
-          {t.labs.task.autosaved}
+          {t.tasks.task.autosaved}
         </Text>
 
         <Pressable
           testID="detail-delete"
           accessibilityRole="button"
-          accessibilityLabel={t.labs.task.delete}
-          onPress={confirmDelete}
+          accessibilityLabel={t.tasks.task.delete}
+          onPress={() => open('delete')}
           style={({ pressed }) => [
             styles.delete,
             { borderColor: tokens.border, backgroundColor: tokens.surface },
@@ -280,23 +256,12 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             importantForAccessibility="no"
           />
           <Text style={[styles.deleteText, { color: tokens.danger }]}>
-            {t.labs.task.delete}
+            {t.tasks.task.delete}
           </Text>
         </Pressable>
       </ScrollView>
 
-      {sheet === 'due' ? (
-        <DueDateSheet taskId={task.id} onClose={() => setSheet(null)} />
-      ) : null}
-      {sheet === 'priority' ? (
-        <PrioritySheet taskId={task.id} onClose={() => setSheet(null)} />
-      ) : null}
-      {sheet === 'labels' ? (
-        <LabelsSheet taskId={task.id} onClose={() => setSheet(null)} />
-      ) : null}
-      {sheet === 'move' ? (
-        <MoveToListSheet taskId={task.id} onClose={() => setSheet(null)} />
-      ) : null}
+      {taskSheets.sheets}
     </>
   )
 }

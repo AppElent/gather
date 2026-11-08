@@ -6,7 +6,7 @@
  * hand and may be one the Group is only considering — there is no property
  * register behind any of this, and the value is whatever somebody last typed.
  *
- * The Group comes from the caller's request and nowhere else (ADR-0002).
+ * The Group comes from the caller's `groupSlug` and nowhere else.
  */
 
 import { v } from 'convex/values'
@@ -16,16 +16,18 @@ import type { MutationCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import {
   buyingCostLinesValidator,
-  findInGroup,
-  nextOrder,
   requireAmount,
-  requireInGroup,
   requireIsoDate,
   requireName,
   requirePercent,
   transferTaxBandValidator,
 } from './lib/finance'
-import { requireGroupBySlug } from './lib/groupAccess'
+import {
+  findInGroup,
+  requireGroupBySlug,
+  requireInGroup,
+} from './lib/groupAccess'
+import { nextOrder } from './lib/order'
 
 /**
  * Every House in the Group, each with enough of its mortgage to fill the index
@@ -242,13 +244,5 @@ export const saveBuyingCosts = mutation({
       return existing._id
     }
     return await ctx.db.insert('homeBuyingCosts', fields)
-  },
-})
-
-export const removeBuyingCosts = mutation({
-  args: { id: v.id('homeBuyingCosts'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id)
-    await ctx.db.delete(args.id)
   },
 })

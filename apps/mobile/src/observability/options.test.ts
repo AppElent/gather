@@ -162,9 +162,9 @@ describe('buildSentryOptions', () => {
 
 describe('routeName', () => {
   it('is the file pattern, with dynamic segments left as patterns', () => {
-    expect(routeName(['(app)', 'g', '[groupId]', 'recipes'])).toBe(
-      '/(app)/g/[groupId]/recipes',
-    )
+    expect(
+      routeName(['(app)', '(tabs)', 'all', 'tasting', '[kind]', 'subject']),
+    ).toBe('/(app)/(tabs)/all/tasting/[kind]/subject')
     expect(routeName([])).toBe('/')
   })
 })

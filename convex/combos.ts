@@ -1,13 +1,18 @@
+import { refusal } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
 import type { ComboComponent } from './lib/combos'
-import { comboEntries } from './lib/combos'
-import { mealValidator, quantityUnitValidator } from './lib/consumption'
+import { comboComponentFields, comboEntries } from './lib/combos'
+import { mealValidator } from './lib/consumption'
 import { isVisibleToGroups } from './lib/groupAccess'
-import { nutritionValidator } from './lib/nutrition'
-import { getCurrentUser, getMyGroupIds } from './lib/sharing'
+import { nextOrder } from './lib/order'
+import {
+  getCurrentUser,
+  getMyGroupIds,
+  requireCurrentUser,
+} from './lib/sharing'
 
 /**
  * A Combo is Personal (ADR-0003, ADR-0012): it belongs to a person, follows
@@ -107,19 +112,6 @@ export const list = query({
   },
 })
 
-const componentFields = {
-  foodId: v.optional(v.id('foods')),
-  recipeId: v.optional(v.id('recipes')),
-  label: v.string(),
-  quantity: v.number(),
-  quantityUnit: quantityUnitValidator,
-  nutrition: v.optional(nutritionValidator),
-  // Travels with the figures, and for the same reason (#94): `replaceItems`
-  // deletes and recreates every row, so a field missing here is a field the
-  // Combo loses the moment anybody edits it — even though saving it kept it.
-  icon: v.optional(v.string()),
-}
-
 /**
  * Make a Combo out of entries you have already logged, and put the Combo in
  * their place.
@@ -130,9 +122,9 @@ const componentFields = {
  * with figures of its own — so nothing you chose is silently dropped, and the
  * entries you did not tick are not touched at all.
  *
- * Then it *replaces* them (#99). Saving used to leave the originals behind, so
- * the shortcut's first use cost a round of deleting and re-logging what you
- * had just curated. The replacement is the Combo's own expansion — the same
+ * Then it *replaces* them (#99): leaving the originals behind would make the
+ * shortcut's first use cost a round of deleting and re-logging what you had
+ * just curated. The replacement is the Combo's own expansion — the same
  * pure function the card renders from, so what you get is exactly what logging
  * that Combo tomorrow will get you.
  *
@@ -150,8 +142,7 @@ export const saveFromMeal = mutation({
     entryIds: v.array(v.id('consumptionEntries')),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const name = args.name.trim()
     if (!name) throw new ConvexError('A combo needs a name.')
 
@@ -161,7 +152,7 @@ export const saveFromMeal = mutation({
       // form that shows it is the only thing that knows their language
       // (ADR-0011) — a message built here would reach a Dutch reader in
       // English.
-      throw new ConvexError('comboNothingSelected')
+      throw new ConvexError(refusal('comboNothingSelected'))
     }
 
     // Read the meal and keep what was ticked, rather than reading the ticked
@@ -186,7 +177,7 @@ export const saveFromMeal = mutation({
     const comboId = await ctx.db.insert('combos', {
       userId: user._id,
       name,
-      order: existing.length,
+      order: nextOrder(existing),
     })
     for (const entry of entries) {
       await ctx.db.insert('comboItems', {
@@ -223,7 +214,7 @@ export const saveFromMeal = mutation({
       // transaction takes the half-made Combo with it.
       // A key rather than a sentence, for the same reason as above: the form
       // resolves it into the reader's language.
-      throw new ConvexError('comboComponentUnavailable')
+      throw new ConvexError(refusal('comboComponentUnavailable'))
     }
 
     for (const entry of entries) await ctx.db.delete(entry._id)
@@ -262,11 +253,10 @@ export const saveFromMeal = mutation({
 export const replaceItems = mutation({
   args: {
     id: v.id('combos'),
-    components: v.array(v.object(componentFields)),
+    components: v.array(v.object(comboComponentFields)),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const combo = await ctx.db.get(args.id)
     // One refusal for "no such combo" and "not yours" — a Combo nobody may
     // read must not be discoverable by how the refusal is worded (ADR-0009).
@@ -287,8 +277,7 @@ export const replaceItems = mutation({
 export const rename = mutation({
   args: { id: v.id('combos'), name: v.string() },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const combo = await ctx.db.get(args.id)
     if (!combo || combo.userId !== user._id) {
       throw new ConvexError('Combo not found')
@@ -302,8 +291,7 @@ export const rename = mutation({
 export const remove = mutation({
   args: { id: v.id('combos') },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const combo = await ctx.db.get(args.id)
     if (!combo || combo.userId !== user._id) {
       throw new ConvexError('Combo not found')

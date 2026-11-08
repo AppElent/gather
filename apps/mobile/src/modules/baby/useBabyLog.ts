@@ -12,8 +12,7 @@
  */
 import { babyBarSlots, trackedEventTypes } from '@gather/core/domain'
 import { useCallback, useMemo, useState } from 'react'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import {

@@ -12,20 +12,24 @@
  * on the server.
  */
 
-import { calculationTotals, netWorthTotals } from '@gather/core/finance'
+import {
+  calculationTotals,
+  changeSince,
+  netWorthTotals,
+  parseCents,
+} from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
 import { View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
 import { FINANCE_ICONS } from './icons'
 import { toLoanParts } from './loanParts'
 import { netWorthRows } from './netWorthRows'
-import type { FinanceBase } from './paths'
 import { portfolioTotalsFor } from './portfolioTotals'
 import {
   AddRow,
@@ -43,7 +47,7 @@ import {
 } from './ui'
 import { useFinances } from './useFinances'
 
-export function NetWorthScreen({ base: _base }: { base: FinanceBase }) {
+export function NetWorthScreen() {
   const tokens = useMoneyTokens()
   const { groupSlug, format, text, currency, rates, today } = useFinances()
   const houses = useQuery(api.houses.list, { groupSlug })
@@ -103,11 +107,11 @@ export function NetWorthScreen({ base: _base }: { base: FinanceBase }) {
   })
   const totals = netWorthTotals(rows)
   const previous = snapshots?.[0]
-  const change = previous ? totals.netCents - previous.netCents : null
+  const change = changeSince(totals.netCents, previous?.netCents)
 
   function save() {
-    const cents = Math.round(Number(amount.replace(',', '.')) * 100)
-    if (!adding || !label.trim() || !Number.isFinite(cents) || cents < 0) return
+    const cents = parseCents(amount) ?? 0
+    if (!adding || !label.trim() || cents < 0) return
     addEntry({
       groupSlug,
       kind: adding,

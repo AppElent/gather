@@ -5,8 +5,8 @@
  * decides how that becomes a sentence, which Module it belongs to and where it
  * links lives here — on the client, because all three are client concepts. The
  * Module catalog in particular is one `convex/schema.ts` says out loud the
- * backend must not know, and a URL is one `groupPaths.ts` type-checks against
- * the route tree, which Convex cannot do.
+ * backend must not know, and a URL is one `links.ts` type-checks against the
+ * route tree, which Convex cannot do.
  *
  * The words themselves come in as an argument rather than out of a hook: this
  * is a plain module over plain data, and it stays callable from a test without
@@ -15,7 +15,7 @@
 
 import { fmt, plural } from '@gather/core/i18n'
 import { moduleById, moduleText } from '@gather/core/modules'
-import type { ActivityKind, GroupActivityEntry } from '../../convex/activity'
+import type { ActivityKind } from '../../convex/activity'
 import type { NavMessages } from './appNavigation'
 
 /**
@@ -32,16 +32,21 @@ export const ACTIVITY_MODULE_ID: Record<ActivityKind, string> = {
   tasting: 'cheeses',
 }
 
+interface ActivityModuleRef {
+  kind: ActivityKind
+  moduleId?: string
+}
+
 /** The Module an entry belongs to — its own, where it names one. */
 export function activityModuleId(
-  entry: Pick<GroupActivityEntry, 'kind' | 'moduleId'>,
+  entry: ActivityModuleRef,
 ): string {
   return entry.moduleId ?? ACTIVITY_MODULE_ID[entry.kind]
 }
 
 /** The Module an entry belongs to, named as the rest of the app names it. */
 export function activityModuleLabel(
-  entry: Pick<GroupActivityEntry, 'kind' | 'moduleId'>,
+  entry: ActivityModuleRef,
   messages: NavMessages,
 ): string {
   const module = moduleById(activityModuleId(entry))
@@ -49,7 +54,7 @@ export function activityModuleLabel(
 }
 
 export function activityModuleIcon(
-  entry: Pick<GroupActivityEntry, 'kind' | 'moduleId'>,
+  entry: ActivityModuleRef,
 ): string {
   return moduleById(activityModuleId(entry))?.icon ?? 'Circle'
 }

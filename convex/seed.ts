@@ -7,7 +7,7 @@ import {
   ensureSeedUser,
   resetSample,
 } from './lib/seed/apply'
-import { getCurrentUser } from './lib/sharing'
+import { requireCurrentUser } from './lib/sharing'
 
 /**
  * Seed entrypoints. Two mechanisms with deliberately opposite rules, kept as
@@ -112,8 +112,7 @@ export const loadSampleData = mutation({
   args: {},
   handler: async (ctx) => {
     requireSampleDataEnabled()
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     const catalog = await applyCatalog(ctx)
     const tastingCatalog = await applyTastingCatalog(ctx)
     const reset = await resetSample(ctx)
@@ -127,8 +126,7 @@ export const resetSampleData = mutation({
   args: {},
   handler: async (ctx) => {
     requireSampleDataEnabled()
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new ConvexError('Not authenticated')
+    await requireCurrentUser(ctx)
     return await resetSample(ctx)
   },
 })

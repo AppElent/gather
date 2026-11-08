@@ -16,12 +16,11 @@ export function AppLayout() {
   // sign-in.tsx navigates here on the same signal, so the two routes never
   // disagree. Convex's own isAuthenticated can lag behind (or, rarely, hang)
   // right after a fresh sign-in; treat that as still-loading rather than
-  // bouncing back to /sign-in, which previously caused an infinite redirect
-  // loop between the two routes.
+  // bouncing back to /sign-in, which would loop between the two routes.
   const { isLoaded: isClerkLoaded, isSignedIn } = useAuth()
   const { isAuthenticated } = useConvexAuth()
   // ...but only up to a point: Convex never retries a handshake it has given up
-  // on, so waiting on isAuthenticated alone used to leave the whole app on
+  // on, so waiting on isAuthenticated alone would leave the whole app on
   // "Loading..." until the user reloaded by hand. Offer that reload instead.
   const authStalled = useConvexAuthStalled()
   const messages = useMessages()

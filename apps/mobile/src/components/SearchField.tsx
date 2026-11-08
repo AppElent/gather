@@ -3,11 +3,11 @@
  *
  * Search itself does not use this — a whole screen of search is `Stack.SearchBar`,
  * which the platform draws. This is the other case: a control sitting above a
- * collection, where there was no native answer and five near-copies grew instead.
+ * collection, where there is no native answer.
  *
  * The clear affordance is the reason it is worth having. `clearButtonMode` is
- * iOS-only, so every copy of this field left Android with no way to empty a
- * query that returned hits. Here iOS gets the native button and everything
+ * iOS-only, which would leave Android with no way to empty a query that
+ * returned hits. Here iOS gets the native button and everything
  * else gets a real one — never both.
  */
 

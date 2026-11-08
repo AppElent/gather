@@ -1,3 +1,4 @@
+import { missingRequiredField } from '@gather/core/baby-events'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -5,29 +6,10 @@ import {
   endTimestampFor,
   fieldsFor,
   initialPicks,
-  lastOfType,
-  missingRequired,
   type PreviousEvent,
-  parseNumber,
   SHEET_SPECS,
-  sheetHandles,
   stepValue,
 } from './sheetFields'
-
-describe('which types the quick sheet can finish', () => {
-  test('the four one-tap ones, plus note', () => {
-    expect(sheetHandles('feeding')).toBe(true)
-    expect(sheetHandles('diaper')).toBe(true)
-    expect(sheetHandles('sleep')).toBe(true)
-    expect(sheetHandles('note')).toBe(true)
-  })
-
-  test('the free-text ones too — there is no second screen to fall through to', () => {
-    expect(sheetHandles('growth')).toBe(true)
-    expect(sheetHandles('medication')).toBe(true)
-    expect(sheetHandles('vaccination')).toBe(true)
-  })
-})
 
 describe('a unit belongs to a method, not to a type', () => {
   const keys = (method: string) =>
@@ -143,19 +125,6 @@ describe('the stepper', () => {
   })
 })
 
-describe('reading a number out of a box somebody is still typing', () => {
-  test('a comma is a decimal point — some keyboards only offer one of them', () => {
-    expect(parseNumber('6,8')).toBe(6.8)
-  })
-
-  test('empty and nonsense are null, never zero', () => {
-    expect(parseNumber('')).toBeNull()
-    expect(parseNumber('  ')).toBeNull()
-    expect(parseNumber('abc')).toBeNull()
-    expect(parseNumber(undefined)).toBeNull()
-  })
-})
-
 describe('the payload', () => {
   test('numbers are numbers, not the box text', () => {
     expect(
@@ -245,38 +214,22 @@ describe('when a sleep ended', () => {
   })
 })
 
-describe('finding the last event of a type', () => {
-  const events: PreviousEvent[] = [
-    { type: 'feeding', timestamp: 10, data: { method: 'bottle' } },
-    { type: 'feeding', timestamp: 30, data: { method: 'breast' } },
-    { type: 'diaper', timestamp: 40, data: { kind: 'wet' } },
-  ]
-
-  test('the most recent one, not the last in the array', () => {
-    expect(lastOfType(events, 'feeding')?.timestamp).toBe(30)
-  })
-
-  test('nothing logged is undefined, which the picks read as the fallback', () => {
-    expect(lastOfType(events, 'growth')).toBeUndefined()
-  })
-})
-
 describe('the box a type cannot save without', () => {
   test('a memory needs to say what happened', () => {
-    expect(missingRequired('memory', {})).toBe('enterMemoryWhat')
-    expect(missingRequired('memory', { what: '   ' })).toBe('enterMemoryWhat')
-    expect(missingRequired('memory', { what: 'First laugh' })).toBeNull()
+    expect(missingRequiredField('memory', {})).toBe('enterMemoryWhat')
+    expect(missingRequiredField('memory', { what: '   ' })).toBe('enterMemoryWhat')
+    expect(missingRequiredField('memory', { what: 'First laugh' })).toBeNull()
   })
 
   test('so do the two entries that are a name', () => {
-    expect(missingRequired('medication', {})).toBe('enterMedicationName')
-    expect(missingRequired('vaccination', {})).toBe('enterVaccineName')
+    expect(missingRequiredField('medication', {})).toBe('enterMedicationName')
+    expect(missingRequiredField('vaccination', {})).toBe('enterVaccineName')
   })
 
   test('every other type can be saved as it opens', () => {
-    expect(missingRequired('diaper', { kind: 'wet' })).toBeNull()
-    expect(missingRequired('sleep', {})).toBeNull()
-    expect(missingRequired('note', {})).toBeNull()
+    expect(missingRequiredField('diaper', { kind: 'wet' })).toBeNull()
+    expect(missingRequiredField('sleep', {})).toBeNull()
+    expect(missingRequiredField('note', {})).toBeNull()
   })
 })
 

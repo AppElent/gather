@@ -5,10 +5,11 @@ import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { useConfirmAction } from '../app/ConfirmAction'
-import { ImageUploadField } from '../app/ImageUploadField'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import type { ShellGroup } from '../app/useCurrentGroup'
+import { ImageUploadField } from '../photo/ImageUploadField'
 
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold'
@@ -23,16 +24,8 @@ export interface GroupIdentitySettingsProps {
 /**
  * What a Group is, who can get in, and how to get out.
  *
- * These used to be nowhere. Renaming and leaving lived on `/groups` or not at
- * all, and the invite code was a grey aside on a list row — so a page called
- * "<Group> settings" held one card about Notion and nothing about the Group
- * itself, which read as unfinished because it was. A Group row on `/groups` now
- * leads here, and this is what it has to be worth arriving at.
- *
- * Each control is offered only where it means something. A Personal group has
- * no second Member to invite, no name worth changing and nowhere to leave to,
- * so it gets none of them; renaming is an admin's to do. The mutations refuse
- * all of that again on the server — this only avoids showing a reader a button
+ * Renaming is an admin's to do, so only an admin is offered it. The mutation
+ * refuses it again on the server — this only avoids showing a reader a button
  * whose whole purpose is to tell them no.
  */
 export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
@@ -62,13 +55,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
     setSaving(true)
     setError(null)
     try {
-      // The slug follows the name, so the address this page is on stops
-      // existing the moment the rename lands. Going to the new one is part of
-      // the same action, not something to leave a reader stranded by.
       await rename({ groupId: group._id, name: trimmed })
-      await navigate({
-        to: '/group-settings',
-      })
     } catch (err) {
       setError(errorMessage(err, group_.renameFailed))
     } finally {
@@ -126,9 +113,6 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
                 {saving ? actions.saving : group_.rename}
               </button>
             </div>
-            <p className="m-0 text-xs text-[var(--app-muted)]">
-              {group_.addressChanges}
-            </p>
           </form>
         ) : null}
 
@@ -189,7 +173,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
                   errorFallback: group_.leaveFailed,
                   run: async () => {
                     await leave({ groupId: group._id })
-                    await navigate({ to: '/groups' })
+                    await navigate(linkTo('groups'))
                   },
                 })
               }
@@ -208,7 +192,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
 /**
  * The invite code, asked for by name.
  *
- * Its own query rather than a field on the gate's Group, because the code is a
+ * Its own query rather than a field on the Current Group, because the code is a
  * capability and reading one should be a request somebody made — see
  * `groups.inviteCode`.
  */

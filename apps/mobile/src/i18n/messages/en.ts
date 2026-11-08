@@ -13,8 +13,7 @@ import { en as coreEn } from '@gather/core/messages'
  *   `reset`, `fields`, `actions`, `errors`, `gate`. The web has no counterpart:
  *   its forms live in `src/lib/auth`, which is React-DOM only and never
  *   crosses. These are written here and belong here.
- * - **Shared words** — `brand`, `welcome.tagline/title/subtitle`, and the whole
- *   of `modules`. These are transcribed from the web's `src/lib/i18n/messages/`
+ * - **Shared words** — every value read from `coreEn` (`@gather/core/messages`),
  *   so the two clients make the same promise in the same words.
  */
 export const en = {
@@ -111,7 +110,6 @@ export const en = {
     add: {
       title: 'Add to {group}',
       workingOnly: 'Only actions that work today.',
-      close: 'Close',
       back: 'Back to actions',
       save: 'Save {noun}',
       saved: 'Added: {items}',
@@ -160,27 +158,7 @@ export const en = {
           fields: ['Food', 'How much?'],
           noun: 'meal',
         },
-        'food-scan': {
-          label: 'Scan a barcode',
-          module: coreEn.modules.byId.nutrition.label,
-          fields: [],
-          noun: 'food',
-        },
       },
-      create: {
-        title: 'Create',
-        description:
-          'This is a temporary stand-in for the full Module form. It does not save anything.',
-        fields: ['Name', 'Notes', 'Tags'],
-        save: 'Save',
-        saved: 'Nothing was saved — this is a demo flow.',
-      },
-    },
-
-    search: {
-      title: 'Search',
-      deferred:
-        'Search is being designed around the records it will safely find.',
     },
 
     /**
@@ -191,8 +169,6 @@ export const en = {
       /** The accessible name of the Group button; `{group}` is its name. */
       switchFrom: 'Group: {group}. {action}',
       intro: 'Welcome to Gather. Find every module for this group in All.',
-      personalSubtitle: coreEn.shell.home.personalSubtitle,
-      sharedSubtitle: coreEn.shell.home.sharedSubtitle,
     },
 
     /**
@@ -242,7 +218,6 @@ export const en = {
     switcher: {
       action: coreEn.shell.groupSwitcher.label,
       title: coreEn.shell.groupSwitcher.pick,
-      personal: coreEn.shell.groupSwitcher.personalPill,
       shared: coreEn.shell.groupSwitcher.shared,
       /** Marks the row you are already in, for a reader who cannot see the tick. */
       current: 'Current group',
@@ -338,10 +313,8 @@ export const en = {
   /**
    * Who you are, what can be changed about it, and the two ways out.
    *
-   * It used to say all of this was managed on the web, which stopped being
-   * true the moment the phone could create an account: an app that signs
-   * people up has to let them leave from the same place (App Store guideline
-   * 5.1.1(v)).
+   * An app that signs people up has to let them leave from the same place
+   * (App Store guideline 5.1.1(v)).
    *
    * The hub is a list, like Settings itself, and each thing you can change is
    * its own screen. Only `email` is read-only, and it says so rather than
@@ -354,7 +327,6 @@ export const en = {
     password: 'Password',
     email: 'Email',
     devices: 'Devices',
-    photo: 'Photo',
 
     /** Changing the name Clerk holds. Both halves, because Clerk stores both. */
     editName: {
@@ -362,7 +334,6 @@ export const en = {
       description: 'What other members of your Groups see.',
       first: 'First name',
       last: 'Last name',
-      saved: 'Name updated',
     },
 
     changePassword: {
@@ -372,7 +343,6 @@ export const en = {
       current: 'Current password',
       next: 'New password',
       submit: 'Change password',
-      saved: 'Password changed',
       noPassword:
         'You sign in without a password, so there is none to change here.',
     },
@@ -403,7 +373,6 @@ export const en = {
       signOutOf: 'Sign out',
       revokeTitle: 'Sign out of {device}?',
       revokeBody: 'That device has to sign in again.',
-      empty: 'No other devices.',
     },
 
     /** Changing the picture. It is Clerk's, not the household's storage. */
@@ -436,7 +405,6 @@ export const en = {
       confirmBody:
         'Your account and everything only you could see is deleted for good.',
       confirm: 'Delete',
-      failed: 'Your account could not be deleted. Nothing has been removed.',
       /**
        * The half-way failure, which is real: Convex is purged before Clerk,
        * because the purge needs a signed-in caller and there is none once the
@@ -463,12 +431,8 @@ export const en = {
     name: 'Name',
     quantity: 'Quantity (optional)',
     prepMinutes: 'Preparation time in minutes',
-    noMeals: 'No meals yet. Add a quick meal or use a recipe.',
     nothingPlanned: 'Nothing planned',
     noPantry: 'Nothing in the pantry yet.',
-    noCalendars: 'No calendars yet.',
-    noEvents: 'No events this month.',
-    chooseList: 'Choose grocery list',
     noGroceryList: 'Choose a task list for groceries.',
     quick: 'Quick under {minutes} minutes',
     quickShort: '≤ {minutes} min',
@@ -479,24 +443,14 @@ export const en = {
     noMatches: 'Nothing matches.',
     previousWeek: 'Previous week',
     nextWeek: 'Next week',
-    previousMonth: 'Previous month',
-    nextMonth: 'Next month',
     randomizeWeek: 'Randomize unplanned week',
     mealLibrary: 'Quick meals',
     chooseDinner: 'Choose dinner',
     changeList: 'Use another list',
     addGroceryItem: 'Add an item…',
-    random: 'Random dinner',
     clearDinner: 'Clear dinner',
     deleteTitle: 'Delete “{title}”?',
     deleteBody: 'This cannot be undone.',
-    newCalendar: 'New calendar',
-    newEvent: 'New event',
-    eventDate: 'Date (YYYY-MM-DD)',
-    startTime: 'Start (HH:MM)',
-    endTime: 'End (HH:MM)',
-    visible: 'Show calendar',
-    hidden: 'Hide calendar',
   },
 
   /**
@@ -527,8 +481,6 @@ export const en = {
   },
 
   actions: {
-    continue: 'Continue',
-    back: 'Back',
     resend: 'Send it again',
     save: 'Save',
     close: 'Close',
@@ -549,7 +501,6 @@ export const en = {
   },
 
   signIn: {
-    title: 'Sign in',
     heading: 'Welcome back',
     submit: 'Sign in',
     forgot: 'Forgotten your password?',
@@ -583,7 +534,6 @@ export const en = {
   },
 
   signUp: {
-    title: 'Create an account',
     heading: 'Create your account',
     subtitle: 'You will get a code by email to confirm the address.',
     submit: 'Create account',
@@ -592,7 +542,6 @@ export const en = {
   },
 
   verify: {
-    title: 'Confirm your email',
     heading: 'Check your email',
     /** `{email}` is the address the code went to. */
     subtitle: 'We sent a six-digit code to {email}.',
@@ -602,21 +551,18 @@ export const en = {
 
   reset: {
     request: {
-      title: 'Reset your password',
       heading: 'Reset your password',
       subtitle:
         'Tell us the address you signed up with and we will send a code.',
       submit: 'Send the code',
     },
     code: {
-      title: 'Enter the code',
       heading: 'Check your email',
       /** `{email}` is the address the code went to. */
       subtitle: 'We sent a six-digit code to {email}.',
       submit: 'Continue',
     },
     password: {
-      title: 'Choose a password',
       heading: 'Choose a new password',
       subtitle: 'Pick something you have not used here before.',
       submit: 'Save and sign in',
@@ -638,9 +584,8 @@ export const en = {
    * The ambient Group (ADR-0015) while it is being established, and the one
    * signed-in state where there is none to establish.
    *
-   * `noneBody` used to send people to the web, because the phone had no way to
-   * make a Group. It has one from #164, and the same two forms the Groups
-   * screen uses are rendered directly under this — a dead end that names
+   * The same two forms the Groups screen uses are rendered directly under
+   * `noneBody`, so it does not send people to the web: a dead end that names
    * another client is not an answer when the answer is on screen.
    */
   group: {
@@ -665,8 +610,6 @@ export const en = {
    * sat on Home until #164 gave the shell somewhere for them.
    */
   signedIn: {
-    /** `{email}` is the signed-in account. */
-    as: 'Signed in as {email}',
     signOut: 'Sign out',
   },
 
@@ -691,19 +634,6 @@ export const en = {
     tooManyRequests: 'Too many attempts. Wait a moment and try again.',
   },
 
-  /**
-   * Settings → Labs: the Tasks and Notes prototypes.
-   *
-   * These are dev-only screens driven by fixtures — nothing under `labs` ever
-   * reaches a release build, because `settingsSections` is only handed
-   * `labs: true` on `__DEV__`. They are still translated, for the reason
-   * ADR-0011 gives: an English literal in `src/` is a habit, and the one place
-   * it would be excused is the place the next screen gets copied from.
-   *
-   * Fixture *content* — task titles, note bodies, list names — is deliberately
-   * not here. Content is never translated (ADR-0011), and made-up content is
-   * still content.
-   */
   /**
    * The share sheet's chooser (ADR-0028).
    *
@@ -809,6 +739,160 @@ export const en = {
     failed: 'That could not be saved. Try again, or pick somewhere else.',
   },
 
+  /**
+   * The Tasks Module's own words: the phone's, not `coreEn.tasks`. The web's
+   * tree for the same Module is a different shape, and merging the two is
+   * ADR-0017 work; until then a second `tasks` key here is a duplicate-key
+   * type error, so the two cannot be confused silently.
+   */
+  tasks: {
+    title: 'Tasks',
+    today: 'Today',
+    todayEmpty: 'Nothing due today.',
+    lists: 'Lists',
+    /** The count on the right of a list's row. */
+    open: '{count} open',
+    openOne: '1 open',
+    allDone: 'All done',
+    /** The badge on a list Gather did not create. */
+    linked: 'Linked',
+    /** Which list a task on the Today strip came from. */
+    inList: 'in {list}',
+    /** A linked list's count, when its provider did not answer. */
+    notLoaded: 'Not loaded',
+
+    list: {
+      addTask: 'Add a task…',
+      empty: 'Nothing on this list yet.',
+      /** The ⋯ menu's first group: which of a task's properties the rows show. */
+      display: 'Show on each row',
+      dueDates: 'Due dates',
+      priority: 'Priority',
+      labels: 'Labels',
+      rename: 'Rename list',
+      deleteList: 'Delete list',
+      /** The banner across the top of reorder mode. */
+      reorderHint:
+        'Drag to rearrange. Completing, editing and swiping are off until you tap Done.',
+      /** Completed rows have no order anyone arranges, so the mode hides them. */
+      reorderCompleted: 'Completed tasks are hidden while you rearrange.',
+      /** A list Gather may read and not write (ADR-0021). */
+      readOnly:
+        'This list lives in {provider}. Gather can read it, but not write to it — so there is no composer here.',
+      /** Only a provider-backed list has anything to pull for. */
+      refreshed: 'Synced just now',
+      /** A linked list on its first fetch, before it has any rows to show. */
+      loading: 'Loading from {provider}…',
+      /** The provider refused the stored connection (ADR-0021). */
+      reconnect:
+        'Gather lost its connection to {provider}. Reconnect it in Gather on the web, then pull down to refresh.',
+      /** The provider did not answer; whatever rows were loaded before stay. */
+      failed:
+        'Could not load this list from {provider}. Pull down to try again.',
+      /** The row's hold menu. */
+      complete: 'Complete',
+      uncomplete: 'Mark as not done',
+      renameTask: 'Rename',
+      dueDate: 'Due date',
+      moveToList: 'Move to list…',
+      /** The alert before a delete, which is permanent in Gather today. */
+      deleteTitle: 'Delete “{title}”?',
+      deleteBody: 'This cannot be undone.',
+    },
+
+    task: {
+      titlePlaceholder: 'What needs doing?',
+      due: 'Due date',
+      priority: 'Priority',
+      labels: 'Labels',
+      list: 'List',
+      notes: 'Notes',
+      notesPlaceholder: 'Anything worth writing down',
+      /** The value shown on a row nobody has set. */
+      unset: 'None',
+      /** Back is done — the screen says so once, rather than growing a button. */
+      autosaved: 'Changes are kept as you make them. Back is done.',
+      delete: 'Delete task',
+      /** The shortcuts above the month grid. */
+      today: 'Today',
+      tomorrow: 'Tomorrow',
+      weekend: 'This weekend',
+      clear: 'No date',
+      /** Keyed by the schema's 1–4, so a fifth priority is a type error. */
+      priorities: {
+        1: 'Urgent',
+        2: 'High',
+        3: 'Normal',
+        4: 'Low',
+      },
+      /** The label editor's field. */
+      addLabel: 'Add a label',
+      /**
+       * The label sheet's two groups. There is no label table behind them: a
+       * label exists because a task carries the word, so "used in this Group"
+       * is a query over the tasks and empties itself when the last one lets go.
+       */
+      labelsOnTask: 'On this task',
+      labelsInGroup: 'Used in this Group',
+      labelsNone: 'No labels yet.',
+      /** Read out on the cross inside a label that is on the task. */
+      removeLabel: 'Remove {label}',
+      /** The hold menu on a label nobody has put on this task yet. */
+      renameLabelEverywhere: 'Rename everywhere',
+      removeLabelEverywhere: 'Remove from every task',
+      /** The field, while it is renaming a label rather than adding one. */
+      renamingLabel: 'Rename {label} to',
+      renameLabelCancel: 'Cancel',
+      /** Announced on the calendar's month arrows. */
+      previousMonth: 'Previous month',
+      nextMonth: 'Next month',
+      overdue: 'Overdue',
+    },
+  },
+
+  /** The Notes Module's own words, on the same terms as `tasks` above. */
+  notes: {
+    title: 'Notes',
+    search: 'Search notes',
+    pinned: 'Pinned',
+    recent: 'Recent',
+    empty: 'No notes yet.',
+    /** Nothing matched the field — never an add button (mobile-interaction). */
+    noMatches: 'Nothing called “{query}”.',
+    newNote: 'New note',
+    untitled: 'Untitled note',
+    titlePlaceholder: 'Title',
+    bodyPlaceholder: 'Start writing…',
+    /** The meta line under a note's title. */
+    editedBy: 'Edited {when} by {name}',
+    editedByYou: 'Edited {when} by you',
+    edited: 'Edited {when}',
+    pin: 'Pin',
+    unpin: 'Unpin',
+    delete: 'Delete note',
+    deleteTitle: 'Delete “{title}”?',
+    /** The formatting bar above the keyboard. Drawn, not wired — see the screen. */
+    formatting:
+      'Formatting is drawn, not wired: this prototype is about the shape.',
+    /** A note edited today says so rather than giving the date. */
+    today: 'Today',
+    /** The alert before a delete, which is permanent in Gather today. */
+    deleteBody: 'This cannot be undone.',
+  },
+
+  /**
+   * Settings → Labs: the prototypes, and only them.
+   *
+   * Development builds only: `settings/labs/_layout.tsx` redirects in a release
+   * and Settings lists the row only on `__DEV__`. A word a shipped Module uses
+   * does not belong here. These are still translated, for the reason ADR-0011 gives: an English literal in `src/` is
+   * a habit, and the one place it would be excused is the place the next
+   * screen gets copied from.
+   *
+   * Fixture *content* — event names, calendar names — is deliberately not
+   * here. Content is never translated (ADR-0011), and made-up content is still
+   * content.
+   */
   labs: {
     title: 'Labs',
     /** Under the heading, saying what the whole section is. */
@@ -816,12 +900,8 @@ export const en = {
       'Prototypes of screens that are still being decided. Development builds only.',
     /** The strip every prototype screen carries, so nobody mistakes it for the app. */
     banner: 'Prototype. The data is made up and only lives in this session.',
-    reset: 'Start over with fresh data',
 
     entries: {
-      tasks: 'Tasks — lists, one list, a task',
-      editModes: 'Editing a task — three ways',
-      notes: 'Notes',
       calendar: 'Calendar — the month, the cell and the composer',
     },
 
@@ -848,10 +928,8 @@ export const en = {
      * than pick a whole screen.
      */
     variants: {
-      title: 'Variants',
       show: 'Show the variant switcher',
       hide: 'Hide the variant switcher',
-      reset: 'Back to the canvas verdict',
       /** Marks the option the design canvas already argued for. */
       chosen: 'Canvas verdict',
     },
@@ -888,10 +966,6 @@ export const en = {
       nothingAhead: 'Nothing else this month.',
       /** An empty week in the agenda, so a gap reads as a gap and not a bug. */
       quietWeek: 'A quiet week.',
-      /** Under a calendar the person has switched off. */
-      hidden: 'Hidden',
-      show: 'Show',
-      hide: 'Hide',
       /** The composer. The name is the field everything else hangs off. */
       /**
        * Settled on a device on 2 September 2026. The three axes stay in the
@@ -913,7 +987,7 @@ export const en = {
         notes: 'Notes',
         repeats: 'Repeats…',
       },
-      /** The panes those chips open, which used to be dead ends. */
+      /** The panes those chips open. */
       wherePlaceholder: 'Where',
       notesPlaceholder: 'Notes',
       startsAt: 'Starts at',
@@ -965,149 +1039,6 @@ export const en = {
       },
       /** The prototype writes nothing, and says so where a save would be. */
       notSaved: 'Nothing here is saved.',
-    },
-
-    tasks: {
-      title: 'Tasks',
-      today: 'Today',
-      todayEmpty: 'Nothing due today.',
-      lists: 'Lists',
-      /** The count on the right of a list's row. */
-      open: '{count} open',
-      openOne: '1 open',
-      allDone: 'All done',
-      /** The badge on a list Gather did not create. */
-      linked: 'Linked',
-      /** Which list a task on the Today strip came from. */
-      inList: 'in {list}',
-    },
-
-    list: {
-      addTask: 'Add a task…',
-      empty: 'Nothing on this list yet.',
-      /** The ⋯ menu's first group: which of a task's properties the rows show. */
-      display: 'Show on each row',
-      dueDates: 'Due dates',
-      priority: 'Priority',
-      labels: 'Labels',
-      rename: 'Rename list',
-      deleteList: 'Delete list',
-      /** The banner across the top of reorder mode. */
-      reorderHint:
-        'Drag to rearrange. Completing, editing and swiping are off until you tap Done.',
-      /** Completed rows have no order anyone arranges, so the mode hides them. */
-      reorderCompleted: 'Completed tasks are hidden while you rearrange.',
-      /** A list Gather may read and not write (ADR-0021). */
-      readOnly:
-        'This list lives in {provider}. Gather can read it, but not write to it — so there is no composer here.',
-      /** Only a provider-backed list has anything to pull for. */
-      refreshed: 'Synced just now',
-      /** The row's hold menu. */
-      complete: 'Complete',
-      uncomplete: 'Mark as not done',
-      renameTask: 'Rename',
-      dueDate: 'Due date',
-      moveToList: 'Move to list…',
-      /** The alert before a delete, which is permanent in Gather today. */
-      deleteTitle: 'Delete “{title}”?',
-      deleteBody: 'This cannot be undone.',
-    },
-
-    task: {
-      /** The detail screen's own title, when the task has no title yet. */
-      untitled: 'New task',
-      titlePlaceholder: 'What needs doing?',
-      due: 'Due date',
-      priority: 'Priority',
-      labels: 'Labels',
-      list: 'List',
-      notes: 'Notes',
-      notesPlaceholder: 'Anything worth writing down',
-      /** The value shown on a row nobody has set. */
-      unset: 'None',
-      /** Back is done — the screen says so once, rather than growing a button. */
-      autosaved: 'Changes are kept as you make them. Back is done.',
-      delete: 'Delete task',
-      /** The shortcuts above the month grid. */
-      today: 'Today',
-      tomorrow: 'Tomorrow',
-      weekend: 'This weekend',
-      clear: 'No date',
-      /** Keyed by the schema's 1–4, so a fifth priority is a type error. */
-      priorities: {
-        1: 'Urgent',
-        2: 'High',
-        3: 'Normal',
-        4: 'Low',
-      },
-      /** The label editor's field. */
-      addLabel: 'Add a label',
-      /**
-       * The label sheet's two groups. There is no label table behind them: a
-       * label exists because a task carries the word, so "used in this Group"
-       * is a query over the tasks and empties itself when the last one lets go.
-       */
-      labelsOnTask: 'On this task',
-      labelsInGroup: 'Used in this Group',
-      labelsNone: 'No labels yet.',
-      /** Read out on the cross inside a label that is on the task. */
-      removeLabel: 'Remove {label}',
-      /** The hold menu on a label nobody has put on this task yet. */
-      renameLabelEverywhere: 'Rename everywhere',
-      removeLabelEverywhere: 'Remove from every task',
-      /** The field, while it is renaming a label rather than adding one. */
-      renamingLabel: 'Rename {label} to',
-      renameLabelSave: 'Rename',
-      renameLabelCancel: 'Cancel',
-      /** Read on the row when a task carries more than one. */
-      labelCount: '{count} labels',
-      /** Announced on the calendar's month arrows. */
-      previousMonth: 'Previous month',
-      nextMonth: 'Next month',
-      overdue: 'Overdue',
-    },
-
-    editModes: {
-      title: 'Editing a task',
-      intro:
-        'The same task, edited three ways. Try each and say which one you want the Module to have.',
-      detail: 'A screen of its own',
-      detailWhy:
-        'Every property on one pushed screen. Most taps to reach, most room once you are there, and the only one that scales past four properties.',
-      inline: 'In the row, where it sits',
-      inlineWhy:
-        'Tap the title and type. Fastest for fixing a typo, and it can only ever edit the title.',
-      sheet: 'A sheet over the list',
-      sheetWhy:
-        'Hold the row, edit in a sheet, stay in the list. Keeps your place, but the sheet grows a scrollbar as properties are added.',
-      /** The one task all three modes edit, so the comparison is honest. */
-      subject: 'The task',
-      open: 'Try it',
-    },
-
-    notes: {
-      title: 'Notes',
-      search: 'Search notes',
-      pinned: 'Pinned',
-      recent: 'Recent',
-      empty: 'No notes yet.',
-      /** Nothing matched the field — never an add button (mobile-interaction). */
-      noMatches: 'Nothing called “{query}”.',
-      newNote: 'New note',
-      untitled: 'Untitled note',
-      titlePlaceholder: 'Title',
-      bodyPlaceholder: 'Start writing…',
-      /** The meta line under a note's title. */
-      editedBy: 'Edited {when} by {name}',
-      editedByYou: 'Edited {when} by you',
-      edited: 'Edited {when}',
-      pin: 'Pin',
-      unpin: 'Unpin',
-      delete: 'Delete note',
-      deleteTitle: 'Delete “{title}”?',
-      /** The formatting bar above the keyboard. Drawn, not wired — see the screen. */
-      formatting:
-        'Formatting is drawn, not wired: this prototype is about the shape.',
     },
   },
 }

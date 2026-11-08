@@ -1,30 +1,18 @@
-import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
-import { api } from './_generated/api'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { alice as asAlice, bob as asBob, carol as asCarol, testConvex } from '../test/convexHarness'
+import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { requireGroupBySlug } from './lib/groupAccess'
 import { RESERVED_SLUGS } from './lib/slugs'
 
 /**
  * What a person can see and do with Groups, asserted through the real queries
- * and mutations. The rules under test are #17's acceptance criteria: everyone
- * has exactly one Personal group, every Group has a slug no other Group holds,
- * and a Personal group cannot be left or deleted.
+ * and mutations: every Group has a slug no other Group holds, and a Group can't
+ * be left without an admin.
  */
 
 type Harness = ReturnType<typeof testConvex>
 
-const asAlice = {
-  subject: 'clerk_alice',
-  name: 'Alice',
-  email: 'a@example.com',
-}
-const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
-const asCarol = {
-  subject: 'clerk_carol',
-  name: 'Carol',
-  email: 'c@example.com',
-}
 
 /** Sign a person up exactly as the app does on first mount. */
 async function signUp(t: Harness, identity: typeof asAlice) {
@@ -142,7 +130,7 @@ describe('slugs', () => {
     }
   })
 
-  test('allows ordinary names without a Personal namespace', async () => {
+  test('escapes a name out of the `me-` prefix', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
     await t
@@ -197,9 +185,8 @@ describe('an ordinary Group', () => {
   })
 
   /**
-   * The settings page renaming a Group is standing on that Group's address,
-   * which the rename makes stop existing. It cannot work the new slug out for
-   * itself — `allocateGroupSlug` resolves collisions — so it has to be told.
+   * The renamer cannot work the new slug out for itself — `allocateGroupSlug`
+   * resolves collisions — so it has to be told.
    */
   test('hands back the slug it moved to, so the renamer can follow', async () => {
     const t = testConvex()
@@ -279,6 +266,60 @@ describe('an ordinary Group', () => {
     expect((await groupsOf(t, asBob)).map((g) => g._id)).not.toContain(groupId)
     // Leaving is one person's decision: Alice still has the Group.
     expect((await groupsOf(t, asAlice)).map((g) => g._id)).toContain(groupId)
+  })
+
+  test('takes the leaver out of the costs they were part of', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    const { alice, bob } = await t.run(async (ctx) => {
+      const users = await ctx.db.query('users').collect()
+      const idOf = (subject: string) =>
+        users.find((u) => u.clerkId === subject)?._id as Id<'users'>
+      return { alice: idOf(asAlice.subject), bob: idOf(asBob.subject) }
+    })
+    const { costId, scenarioId } = await t.run(async (ctx) => ({
+      costId: await ctx.db.insert('recurringCosts', {
+        groupId,
+        createdByUserId: alice,
+        order: 0,
+        name: 'Energy',
+        amountCents: 4500,
+        frequency: 'monthly',
+        category: 'utilities',
+        split: [
+          { userId: alice, percent: 50 },
+          { userId: bob, percent: 50 },
+        ],
+      }),
+      scenarioId: await ctx.db.insert('splitScenarios', {
+        groupId,
+        createdByUserId: alice,
+        createdAt: 0,
+        name: 'Holiday',
+        payments: [{ party: { userId: bob, name: 'Bob' }, amountCents: 100 }],
+        participants: [
+          { userId: alice, name: 'Alice' },
+          { userId: bob, name: 'Bob' },
+        ],
+        mode: 'equal',
+        owed: [],
+        transfers: [],
+        totalCents: 100,
+      }),
+    }))
+
+    await t.withIdentity(asBob).mutation(api.groups.leaveGroup, { groupId })
+
+    const { cost, scenario } = await t.run(async (ctx) => ({
+      cost: await ctx.db.get(costId),
+      scenario: await ctx.db.get(scenarioId),
+    }))
+    expect(cost?.split).toBeUndefined()
+    expect(scenario?.payments[0]?.party).toEqual({ name: 'Bob' })
+    expect(scenario?.participants).toEqual([
+      { userId: alice, name: 'Alice' },
+      { name: 'Bob' },
+    ])
   })
 
   /**
@@ -418,6 +459,36 @@ describe('an ordinary Group', () => {
     )
   })
 
+  describe('with stored files', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    test('releases its own image when it is deleted', async () => {
+      const t = testConvex()
+      const groupId = await household(t)
+      await t.withIdentity(asBob).mutation(api.groups.leaveGroup, { groupId })
+      const imageId = await t.run(async (ctx) => {
+        const stored = await ctx.storage.store(new Blob(['jpeg']))
+        await ctx.db.patch(groupId, { imageId: stored })
+        return stored
+      })
+
+      await t
+        .withIdentity(asAlice)
+        .mutation(api.groups.deleteGroup, { groupId })
+      await t.finishAllScheduledFunctions(vi.runAllTimers)
+
+      const stored = await t.run(
+        async (ctx) => await ctx.storage.getUrl(imageId),
+      )
+      expect(stored).toBeNull()
+    })
+  })
+
   test('cannot be deleted by a plain member', async () => {
     const t = testConvex()
     const groupId = await household(t)
@@ -429,8 +500,8 @@ describe('an ordinary Group', () => {
 })
 
 /**
- * Resolving a Group from the slug in the URL (ADR-0002). This is the check every
- * Group-scoped route and function goes through, so what matters is not only that
+ * Resolving a Group from the slug the caller names. This is the check every
+ * Group-scoped function goes through, so what matters is not only that
  * the right people get in, but that the three ways of being kept out stay told
  * apart: a Group that does not exist, one that is not yours, and no session.
  */
@@ -451,10 +522,10 @@ describe('resolving a Group by slug', () => {
 
     const asAdmin = await t
       .withIdentity(asAlice)
-      .query(api.groups.bySlug, { slug: 'jansen-household' })
+      .query(internal.groups.bySlug, { slug: 'jansen-household' })
     const asPlainMember = await t
       .withIdentity(asBob)
-      .query(api.groups.bySlug, { slug: 'jansen-household' })
+      .query(internal.groups.bySlug, { slug: 'jansen-household' })
 
     expect(asAdmin).toMatchObject({
       ok: true,
@@ -473,7 +544,7 @@ describe('resolving a Group by slug', () => {
 
     const result = await t
       .withIdentity(asAlice)
-      .query(api.groups.bySlug, { slug: 'alice' })
+      .query(internal.groups.bySlug, { slug: 'alice' })
 
     expect(result).toMatchObject({
       ok: true,
@@ -487,7 +558,7 @@ describe('resolving a Group by slug', () => {
     const slug = await aliceOnlyHousehold(t)
 
     expect(
-      await t.withIdentity(asBob).query(api.groups.bySlug, { slug }),
+      await t.withIdentity(asBob).query(internal.groups.bySlug, { slug }),
     ).toEqual({ ok: false, reason: 'not-a-member' })
   })
 
@@ -499,7 +570,7 @@ describe('resolving a Group by slug', () => {
       expect(
         await t
           .withIdentity(identity)
-          .query(api.groups.bySlug, { slug: 'no-such-household' }),
+          .query(internal.groups.bySlug, { slug: 'no-such-household' }),
       ).toEqual({ ok: false, reason: 'unknown-slug' })
     }
   })
@@ -509,8 +580,8 @@ describe('resolving a Group by slug', () => {
     const slug = await aliceOnlyHousehold(t)
     const bob = t.withIdentity(asBob)
 
-    const refused = await bob.query(api.groups.bySlug, { slug })
-    const unknown = await bob.query(api.groups.bySlug, { slug: 'nonsense' })
+    const refused = await bob.query(internal.groups.bySlug, { slug })
+    const unknown = await bob.query(internal.groups.bySlug, { slug: 'nonsense' })
 
     expect(refused).not.toEqual(unknown)
     expect(refused.ok).toBe(false)
@@ -521,7 +592,7 @@ describe('resolving a Group by slug', () => {
     const t = testConvex()
     const slug = await aliceOnlyHousehold(t)
 
-    expect(await t.query(api.groups.bySlug, { slug })).toEqual({
+    expect(await t.query(internal.groups.bySlug, { slug })).toEqual({
       ok: false,
       reason: 'not-signed-in',
     })
@@ -534,7 +605,7 @@ describe('resolving a Group by slug', () => {
     // Asking for Alice's must not quietly fall back to another Group.
     const result = await t
       .withIdentity(asBob)
-      .query(api.groups.bySlug, { slug })
+      .query(internal.groups.bySlug, { slug })
 
     expect(result.ok).toBe(false)
     expect(JSON.stringify(result)).not.toContain('jansen-household')

@@ -1,13 +1,10 @@
 import type { BabyEventType } from '../../domain'
 
 /**
- * The names of the eight things a log entry can be.
+ * The names of the things a log entry can be.
  *
- * They used to be `BABY_EVENT_LABELS` in `convex/lib/babyEvents.ts`, and unlike
- * the nutrient and meal labels one Convex function *did* read them —
- * `activity.ts` put one in each entry's `title`. That was the backend choosing
- * a display word, so it now sends the type key instead and the client looks it
- * up here (ADR-0011).
+ * The backend sends the type key and the client looks the word up here: a
+ * display word is the reader's language, not the server's (ADR-0011).
  */
 export const eventTypes = {
   temperature: 'Temperature',
@@ -110,7 +107,6 @@ export const log = {
     head: 'Head circumference',
     temperature: 'Temperature',
     allTrends: 'All trends',
-    sinceBirth: 'since birth',
     /** The number of points on the line, which is not a number of days. */
     measurements: '{count} measurements',
     noTrend: 'Two entries are needed before there is a line to draw.',
@@ -124,13 +120,8 @@ export const log = {
       'Turning one off only changes what you are offered. Nothing already logged is hidden or deleted.',
     none: 'Nothing is being tracked for {name} yet.',
     countOf: '{count} of {total}',
-    /** The arrows: this list's order is the order the log bar offers. */
-    moveUp: 'Move {type} up',
-    moveDown: 'Move {type} down',
     orderHint:
       'The order here is the order the log offers them in. Move the ones you use most to the top.',
-    /** The same arrangement, from the log bar itself. */
-    arrangeHold: 'Hold to rearrange',
     arrangeHint: 'Drag to rearrange',
   },
 
@@ -151,8 +142,6 @@ export const log = {
     finish: 'Add {name}',
     aboutTitle: 'About the child',
     addPhoto: 'Add a photo',
-    ageHint: '{age}',
-    nameRequired: 'Enter a name',
     failed: 'Could not add that child',
   },
 
@@ -166,13 +155,10 @@ export const log = {
     newList: 'New list',
     newListHint: 'Created for {name}, local to Gather',
     choose: 'Choose an existing list',
-    pickTodos: 'To-do list',
-    pickQuestions: 'Questions list',
     anyListIn: 'Any list in {group}, whatever it runs on.',
     readOnly: '{provider} · read-only',
     readOnlyBody:
       '{provider} lists are read-only in Gather. You will see this list here, but you will not be able to add to it.',
-    openCount: { one: '{count} open', other: '{count} open' },
     addTodo: 'Add a to-do',
     addQuestion: 'Add a question',
     done: 'Done',
@@ -326,14 +312,20 @@ export const log = {
       both: 'Wet and dirty diaper',
     },
     sleepFor: 'Sleep · {duration}',
-    sleep: 'Sleep',
     headCircumference: 'head {value} cm',
-    growth: 'Growth measurement',
-    medication: 'Medication',
-    vaccination: 'Vaccination',
     milestone: 'Milestone',
-    note: 'Note',
-    memory: 'Memory',
+    /** The row's word when there is nothing more to say about it. */
+    fallback: {
+      temperature: 'Temperature',
+      feeding: 'Feeding',
+      diaper: 'Diaper',
+      sleep: 'Sleep',
+      growth: 'Growth measurement',
+      medication: 'Medication',
+      vaccination: 'Vaccination',
+      note: 'Note',
+      memory: 'Memory',
+    } satisfies Record<BabyEventType, string>,
   },
 
   /** The PDF itself, which is a document a person reads like any other. */

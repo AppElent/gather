@@ -1,10 +1,10 @@
-import { useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { groupLink } from '../../lib/groupPaths'
+import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
+import { useCurrentGroup } from '../app/useCurrentGroup'
 
 export interface RecipeSharingPanelProps {
   recipeId: Id<'recipes'>
@@ -38,7 +38,7 @@ export function RecipeSharingPanel({
   const move = useMutation(api.recipes.move)
   const share = useMutation(api.recipes.share)
   const unshare = useMutation(api.recipes.unshare)
-  const navigate = useNavigate()
+  const { setCurrentGroup } = useCurrentGroup()
   const messages = useMessages()
   const { sharing } = messages.recipes
 
@@ -57,9 +57,7 @@ export function RecipeSharingPanel({
     try {
       await action()
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : messages.common.errors.didNotWork,
-      )
+      setError(errorMessage(err, messages.common.errors.didNotWork))
     } finally {
       setBusy(false)
     }
@@ -134,11 +132,11 @@ export function RecipeSharingPanel({
               onClick={() =>
                 run(async () => {
                   await move({ id: recipeId, toGroupSlug: moveTo })
-                  // This page is addressed inside the Group the recipe has just
-                  // left, and that address no longer resolves to anything
-                  // (ADR-0002). Follow the recipe to its new one rather than
+                  // The page reads the recipe through the Current Group, which
+                  // it has just left. Follow it to its new Group rather than
                   // leaving a "not found" behind.
-                  await navigate(groupLink('recipe', moveTo, { recipeId }))
+                  const destination = others.find((g) => g.slug === moveTo)
+                  if (destination) setCurrentGroup(destination._id)
                 })
               }
             >

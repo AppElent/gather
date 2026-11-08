@@ -1,6 +1,4 @@
-import type { BabyEventType } from '../babyEvents'
-import type { MealName } from '../consumption'
-import type { NutritionFacts } from '../nutrition'
+import type { BabyEventType, MealName, NutritionFacts } from '@gather/core/domain'
 
 /**
  * The Sample household: fake content for dev and preview environments only,
@@ -19,8 +17,6 @@ import type { NutritionFacts } from '../nutrition'
 
 /** Who authored a piece of Group-scoped content. */
 export type SampleAuthor = 'owner' | 'nora' | 'sam'
-
-export const SAMPLE_GROUP_NAME = 'Willow Street'
 
 /**
  * Housemates. These get `users` rows with synthetic Clerk subjects that

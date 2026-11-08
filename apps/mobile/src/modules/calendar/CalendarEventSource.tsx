@@ -1,11 +1,10 @@
 import {
-  addCalendarMonths,
   type CalendarEvent,
-  monthStart,
   normalizeCalendarEvent,
 } from '@gather/core/calendar'
+import { addMonths, monthStart } from '@gather/core/civil-date'
 import { useEffect } from 'react'
-import { api } from '../../../../../convex/_generated/api'
+import { api } from '../../convex/api'
 import { usePaginatedQuery } from '../../convex/queries'
 
 export function CalendarEventSource({
@@ -26,7 +25,7 @@ export function CalendarEventSource({
   onEvents: (sourceKey: string, events: CalendarEvent[]) => void
 }) {
   const from = monthStart(month)
-  const toExclusive = addCalendarMonths(from, 1)
+  const toExclusive = addMonths(from, 1)
   const result = usePaginatedQuery(
     api.calendar.listEvents,
     { groupSlug, calendarId: calendarId as never, from, toExclusive },

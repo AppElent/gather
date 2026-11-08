@@ -79,7 +79,7 @@ export type TastingFieldType = (typeof TASTING_FIELD_TYPES)[number]
  * "%" only looks like it is not (ADR-0011). Resolved through
  * `messages.tastings.units`.
  */
-export const TASTING_UNITS = ['percent', 'months'] as const
+const TASTING_UNITS = ['percent', 'months'] as const
 export type TastingUnit = (typeof TASTING_UNITS)[number]
 
 // ---------------------------------------------------------------------------
@@ -248,12 +248,6 @@ export const TASTING_VOCABULARIES = {
 } as const satisfies Record<string, readonly string[]>
 
 export type TastingVocabularyId = keyof typeof TASTING_VOCABULARIES
-export type TastingTerm<V extends TastingVocabularyId = TastingVocabularyId> =
-  (typeof TASTING_VOCABULARIES)[V][number]
-
-export const TASTING_VOCABULARY_IDS = Object.keys(
-  TASTING_VOCABULARIES,
-) as TastingVocabularyId[]
 
 /**
  * How many terms a `select` can offer before a row of chips stops being a row.
@@ -391,11 +385,6 @@ export function tastingFields(
   return scope === 'subject' ? spec.subjectFields : spec.tastingFields
 }
 
-/** The Modules the tasting Kinds are reached through, in Kind order. */
-export const TASTING_MODULE_IDS = TASTING_KINDS.map(
-  (kind) => TASTING_KIND_SPECS[kind].moduleId,
-)
-
 /** Which Kind a Module shows, or `undefined` for a Module that is not one. */
 export function tastingKindForModule(
   moduleId: string,
@@ -463,10 +452,10 @@ export type TastingAttributeValue = string | number | string[]
 export type TastingAttributes = Readonly<Record<string, TastingAttributeValue>>
 
 /** The longest a typed tag may be, and how many a field may carry. */
-export const TAG_MAX_LENGTH = 40
-export const TAG_MAX_COUNT = 24
+const TAG_MAX_LENGTH = 40
+const TAG_MAX_COUNT = 24
 /** Free prose. Long enough for a paragraph, short enough not to be a document. */
-export const TEXT_MAX_LENGTH = 2000
+const TEXT_MAX_LENGTH = 2000
 
 /**
  * Why an attribute was refused.

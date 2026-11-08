@@ -1,14 +1,15 @@
+import { MEAL_NAMES } from '@gather/core/domain'
 import { useNavigate } from '@tanstack/react-router'
-import { useAction, useConvex, useMutation } from 'convex/react'
-import { ConvexError } from 'convex/values'
+import { useAction, useMutation } from 'convex/react'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import type { AppLink } from '../../lib/appLink'
+import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
+import { addFoodLink, linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { FoodForm, type FoodFormValues } from './FoodForm'
-import type { FoodNav } from './foodNav'
+import { offFoodValues, useBarcodeLookup } from './foodLookup'
 
 export interface NewFoodSearch {
   barcode?: string
@@ -42,29 +43,15 @@ export function validateNewFoodSearch(
   }
 }
 
-export interface NewFoodPageProps {
-  barcode?: string
-  /** Prefills the name, for a search that matched nothing (#79). */
-  name?: string
-  /**
-   * Where saving hands the person back to, given the food that now exists.
-   *
-   * Absent means the food's own page, which is where adding a food from the
-   * Foods module has always landed. The add sheet supplies one so that
-   * importing or adding a food *while logging breakfast* returns to breakfast
-   * with the food ready to log, rather than stranding somebody in the Catalog
-   * (#93, #79). Built by the route, which is the only thing that knows both
-   * Modules' addresses.
-   */
-  after?: (foodId: Id<'foods'>) => AppLink
-  nav: FoodNav
-}
-
-/** Adding a food to the Catalog, whole. Shared by both `new` routes. */
-export function NewFoodPage({ barcode, name, after, nav }: NewFoodPageProps) {
+/** Adding a food to the Catalog, whole. */
+export function NewFoodPage({
+  barcode,
+  name,
+  returnDate,
+  returnMeal,
+}: NewFoodSearch) {
   const navigate = useNavigate()
-  const convex = useConvex()
-  const lookupBarcode = useAction(api.foodsLookup.lookupBarcode)
+  const lookUp = useBarcodeLookup()
   const create = useMutation(api.foods.create)
   // An action rather than the mutation, because an Open Food Facts save is
   // where the product's picture is fetched and stored (#69). Fetching it here,
@@ -76,8 +63,22 @@ export function NewFoodPage({ barcode, name, after, nav }: NewFoodPageProps) {
 
   // Foods → Add food. Fixed: nothing on this page is loaded before the trail
   // is true, so it is the same trail from the first paint.
+  /**
+   * Where saving hands the person back to, given the food that now exists.
+   *
+   * A day and a meal mean somebody came from the add sheet — reviewing an Open
+   * Food Facts import (#93) or adding a food a search found nothing for (#79) —
+   * so saving returns them to that meal with the food ready to log, rather than
+   * stranding them in the Catalog. Otherwise, the food's own page.
+   */
+  const meal = MEAL_NAMES.find((m) => m === returnMeal)
+  const after = (foodId: Id<'foods'>) =>
+    returnDate && meal
+      ? addFoodLink(returnDate, meal, foodId)
+      : linkTo('food', { foodId })
+
   const trail: Crumb[] = [
-    { label: messages.foods.list.title, link: nav.list },
+    { label: messages.foods.list.title, link: linkTo('foods') },
     { label: createText.title },
   ]
 
@@ -88,11 +89,14 @@ export function NewFoodPage({ barcode, name, after, nav }: NewFoodPageProps) {
     values: Partial<FoodFormValues>
     version: number
   }>({ values: { barcode, name }, version: 0 })
-  const [sourceNote, setSourceNote] = useState<string | undefined>()
-  // Where Open Food Facts keeps this product's picture. Held rather than
-  // fetched: nothing is stored until the save, so a review that is abandoned
-  // leaves no blob behind (#93).
-  const [offImageUrl, setOffImageUrl] = useState<string | undefined>()
+  // Set when the form holds an Open Food Facts product, which is what makes
+  // the save an import. Its picture is held as a URL rather than fetched:
+  // nothing is stored until the save, so a review that is abandoned leaves no
+  // blob behind (#93).
+  const [offImport, setOffImport] = useState<{
+    barcode: string
+    imageUrl?: string
+  } | null>(null)
   // Non-blocking — shown alongside the (still fully usable) blank form when
   // OFF times out or is unreachable, per spec §6 ("same as not-found, plus
   // a non-blocking error toast"). Distinct from `error`, which is reserved
@@ -108,36 +112,24 @@ export function NewFoodPage({ barcode, name, after, nav }: NewFoodPageProps) {
     if (!barcode || hasLookedUp.current) return
     hasLookedUp.current = true
     ;(async () => {
-      const existing = await convex.query(api.foods.getByBarcode, { barcode })
-      if (existing) {
-        // A barcode you already have is not an import, so there is nothing to
-        // review — and if somebody came from the add sheet to log it, that is
-        // where they wanted to be, not on the food's page (#93).
-        const to = after ? after(existing._id) : nav.detail(existing._id)
-        navigate({ ...to, replace: true })
-        return
-      }
       try {
-        const mapped = await lookupBarcode({ barcode })
-        if (mapped) {
+        const match = await lookUp(barcode)
+        if (match.kind === 'food') {
+          // A barcode you already have has nothing to review — and if somebody
+          // came from the add sheet to log it, that is where they wanted to
+          // be, not on the food's page (#93).
+          navigate({ ...after(match.food._id), replace: true })
+          return
+        }
+        if (match.kind === 'product') {
           setPrefill({
-            values: {
-              barcode,
-              name: mapped.name,
-              brand: mapped.brand,
-              nutritionPer100: mapped.nutritionPer100,
-              servings: mapped.servings,
-              // Open Food Facts' figures until the person types over one, at
-              // which point the form says `manual` and the save records it.
-              nutritionSource: 'imported',
-            },
+            values: offFoodValues(match.product),
             version: Date.now(),
           })
-          setOffImageUrl(mapped.imageUrl)
-          setSourceNote(createText.fromOff)
+          setOffImport({ barcode, imageUrl: match.product.imageUrl })
         }
       } catch {
-        // A failed OFF lookup (timeout, network error, thrown ConvexError)
+        // A failed lookup (timeout, network error, thrown ConvexError)
         // leaves the form a blank manual entry prefilled with the barcode —
         // never blocks manual entry — but the user still gets a non-blocking
         // heads-up about why nothing was prefilled (spec §6).
@@ -175,29 +167,17 @@ export function NewFoodPage({ barcode, name, after, nav }: NewFoodPageProps) {
         key={`form-${prefill.version}`}
         submitting={submitting}
         initial={prefill.values}
-        sourceNote={sourceNote}
+        sourceNote={offImport ? createText.fromOff : undefined}
         onSubmit={async (values) => {
           setSubmitting(true)
           setError(null)
           try {
-            const id: Id<'foods'> = sourceNote
-              ? await importFromOff({
-                  ...values,
-                  barcode: values.barcode as string,
-                  imageUrl: offImageUrl,
-                })
+            const id: Id<'foods'> = offImport
+              ? await importFromOff({ ...values, ...offImport })
               : await create(values)
-            navigate(after ? after(id) : nav.detail(id))
+            navigate(after(id))
           } catch (err) {
-            setError(
-              err instanceof ConvexError
-                ? typeof err.data === 'string'
-                  ? err.data
-                  : form.saveFailed
-                : err instanceof Error
-                  ? err.message
-                  : form.saveFailed,
-            )
+            setError(errorMessage(err, form.saveFailed))
             setSubmitting(false)
           }
         }}

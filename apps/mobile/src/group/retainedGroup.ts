@@ -2,14 +2,12 @@
  * Where the phone remembers which Group it was last in.
  *
  * The store itself, and why it is local and synchronous, is
- * `prefs/localPreference.ts` — the retained Group was the first of the three
- * preferences that live there, and appearance and language joined it in #164
- * rather than each bringing its own persistence.
+ * `prefs/localPreference.ts`, shared with appearance and language.
  *
- * What is left here is the part that is about a Group: what is stored is a
- * *slug*, not an id. It is the same thing the web's address bar carries, so a
- * deep link and a retained selection say the Group the same way, and it is
- * legible in a debugger.
+ * What is left here is the part that is about a Group: what is stored is the
+ * Group's *id* — the same thing `setGroup` takes and `selectGroup` validates.
+ * A slug is not a Group's identity (ADR-0031); an old `/g/<slug>` link is
+ * resolved to an id before anything is retained.
  */
 import {
   clearPreference,
@@ -18,7 +16,7 @@ import {
   writePreference,
 } from '../prefs/localPreference'
 
-/** The slug the app was last in, or null if it has never been anywhere. */
+/** The id of the Group the app was last in, or null if it has never been anywhere. */
 export function readRetainedGroup(): string | null {
   return readPreference(PREFERENCE_KEYS.group)
 }
@@ -29,7 +27,7 @@ export function writeRetainedGroup(groupId: string) {
 
 /**
  * Forget the retained Group. Sign-out's job: the next person to sign in on this
- * phone must not open in the last person's household, and a slug that is not
+ * phone must not open in the last person's household, and an id that is not
  * theirs would be rejected on read anyway — silently, and one round-trip late.
  *
  * Appearance and language are deliberately *not* forgotten with it. They are

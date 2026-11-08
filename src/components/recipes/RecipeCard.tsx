@@ -1,4 +1,4 @@
-import { FoodThumbnail } from '../nutrition/FoodThumbnail'
+import { FoodThumbnail } from '../kitchen/FoodThumbnail'
 
 export type RecipeViewMode = 'grid' | 'banner' | 'compact'
 

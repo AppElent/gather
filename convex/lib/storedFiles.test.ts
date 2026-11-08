@@ -7,9 +7,9 @@ import { deleteStoredFile, replaceStoredFile } from './storedFiles'
 /**
  * The compare-and-delete rule on its own, away from any Module.
  *
- * `babies` and `recipes` each hold one photo and each call this; the four
- * transitions below are the whole of what they get, so they are asserted once
- * here rather than twice through the mutations.
+ * Every table holding a photo calls this; the four transitions below are the
+ * whole of what they get, so they are asserted once here rather than once per
+ * Module through its mutations.
  */
 
 const t = () => testConvex()
@@ -30,8 +30,8 @@ async function storedBlob() {
 /**
  * A ctx that only remembers being asked. Storage is the one thing here with a
  * cost per call, and "leaves the file alone" and "never asks storage anything"
- * are different claims — the tests below assert the second, which the state
- * assertions above cannot see.
+ * are different claims — the tests that use this assert the second, which a
+ * state assertion cannot see.
  */
 function recordingCtx() {
   const calls: string[] = []
@@ -152,7 +152,6 @@ describe('a file another row still points at', () => {
         name: 'Household',
         slug: 'household',
         inviteCode: 'code',
-        isPersonal: false,
       })
       return await ctx.db.insert('recipes', {
         groupId,

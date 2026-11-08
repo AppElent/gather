@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import type { AppLink } from '../../lib/appLink'
 import { fmt, useMessages } from '../../lib/i18n'
+import type { AppLink } from '../../lib/links'
 
 /**
  * One step of a page's local hierarchy.
@@ -41,8 +41,7 @@ export interface BreadcrumbsProps {
  * notification is not the collection the page belongs to — and the global back
  * gesture already covers "undo my last navigation" (out of scope, #101). This
  * points at the actual parent address instead, so the answer is the same
- * however somebody arrived, and it carries the Group with it because every
- * `AppLink` in the app is built by `groupPaths` (ADR-0002).
+ * however somebody arrived.
  *
  * Reading from the end rather than taking `trail[length - 2]` is what keeps a
  * half-built trail useful: a detail page knows its Module before it knows the

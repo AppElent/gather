@@ -4,12 +4,13 @@ import {
   type CalendarEvent,
   type CalendarPerson,
 } from '@gather/core/calendar'
+import { minutesToClock } from '@gather/core/civil-date'
 import { useEffect, useMemo } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SwipeableRow } from '../../components/SwipeableRow'
-import { useI18n } from '../../i18n'
+import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 
 export interface CalendarAgendaProps {
@@ -28,8 +29,7 @@ export interface CalendarAgendaProps {
 }
 
 function minutes(value?: number) {
-  if (value == null) return ''
-  return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`
+  return value == null ? '' : minutesToClock(value)
 }
 
 export function CalendarAgenda({
@@ -49,8 +49,9 @@ export function CalendarAgenda({
   const { t, locale } = useI18n()
   const tokens = useTokens('home')
   const rows = useMemo(
-    () => agendaRows(events, from, toExclusive, selectedDate, expandedDates),
-    [events, expandedDates, from, selectedDate, toExclusive],
+    () =>
+      agendaRows(events, from, toExclusive, today, selectedDate, expandedDates),
+    [events, expandedDates, from, selectedDate, toExclusive, today],
   )
   const peopleById = useMemo(
     () => new Map(people.map((person) => [person.id, person.name])),
@@ -159,9 +160,10 @@ export function CalendarAgenda({
           accessibilityRole="button"
         >
           <Text style={[styles.gapText, { color: tokens.muted }]}>
-            {t.calendar.noEventsRange
-              .replace('{from}', shortDay(item.from))
-              .replace('{to}', shortDay(item.to))}
+            {fmt(t.calendar.noEventsRange, {
+              from: shortDay(item.from),
+              to: shortDay(item.to),
+            })}
           </Text>
         </Pressable>
       )

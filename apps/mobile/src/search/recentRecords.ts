@@ -7,7 +7,7 @@
  */
 import { isTastingKind, type TastingKind } from '@gather/core/tastings'
 
-export const MAXIMUM_PER_GROUP = 10
+const MAXIMUM_PER_GROUP = 10
 
 export type SearchRecordType =
   | 'recipe'

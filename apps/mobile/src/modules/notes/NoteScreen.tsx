@@ -8,9 +8,7 @@
  *
  * The bar above the keyboard is drawn and not wired, and says so. Whether Notes
  * gets rich text at all is a question about the schema — a `body` column holds
- * a string, and Markdown, HTML and a block model are three different products —
- * and the taskActions's job is to show what the bar costs in room, not to answer
- * it.
+ * a string, and Markdown, HTML and a block model are three different products.
  */
 import { MenuView } from '@expo/ui/community/menu'
 import { Stack, useRouter } from 'expo-router'
@@ -29,12 +27,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
+import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { TASK_ICONS } from '../tasks/icons'
-import { taskActions, useTaskState } from '../tasks/store'
-import { useDebouncedText } from '../tasks/useDebouncedText'
-import { noteWhen } from './NotesScreen'
+import { useDebouncedText } from '../../ui/use-debounced-text'
 import { confirmDeleteNote } from './notesActions'
+import { noteWhen, preview } from './noteText'
+import { useNoteActions, useNotes } from './store'
 
 /** Drawn, not wired. The letters are the affordance, not an icon set. */
 const FORMATS = ['B', 'I', 'H', '•', '1.', '☑'] as const
@@ -44,9 +42,8 @@ export function Note({ noteId }: { noteId: string }) {
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
   const router = useRouter()
-  const state = useTaskState()
-
-  const note = state.notes.find((each) => each.id === noteId)
+  const actions = useNoteActions()
+  const note = useNotes().find((each) => each.id === noteId)
 
   useRecordRecent(
     note
@@ -54,11 +51,7 @@ export function Note({ noteId }: { noteId: string }) {
           id: note.id,
           type: 'note',
           title: note.title,
-          detail:
-            note.body
-              .split('\n')
-              .find((line) => line.trim())
-              ?.trim() ?? '',
+          detail: preview(note.body),
         }
       : null,
   )
@@ -66,10 +59,10 @@ export function Note({ noteId }: { noteId: string }) {
   // A note is the longest thing anybody types in this app, so it is the one
   // that would cost the most in per-keystroke writes — see `useDebouncedText`.
   const title = useDebouncedText(note?.title ?? '', (next) => {
-    if (note) taskActions.editNote(note.id, { title: next })
+    if (note) actions.editNote(note.id, { title: next })
   })
   const body = useDebouncedText(note?.body ?? '', (next) => {
-    if (note) taskActions.editNote(note.id, { body: next })
+    if (note) actions.editNote(note.id, { body: next })
   })
 
   if (!note) return <View style={{ flex: 1, backgroundColor: tokens.bg }} />
@@ -86,12 +79,12 @@ export function Note({ noteId }: { noteId: string }) {
               actions={[
                 {
                   id: 'pin',
-                  title: note.pinned ? t.labs.notes.unpin : t.labs.notes.pin,
+                  title: note.pinned ? t.notes.unpin : t.notes.pin,
                   image: 'pin',
                 },
                 {
                   id: 'delete',
-                  title: t.labs.notes.delete,
+                  title: t.notes.delete,
                   image: 'trash',
                   attributes: { destructive: true },
                 },
@@ -99,16 +92,19 @@ export function Note({ noteId }: { noteId: string }) {
               onPressAction={(event) => {
                 const action = event.nativeEvent.event
                 if (action === 'pin') {
-                  taskActions.togglePin(note.id)
+                  actions.togglePin(note)
                   haptics.selectionChanged()
                 }
                 if (action === 'delete') {
-                  confirmDeleteNote(note, t, () => router.back())
+                  confirmDeleteNote(note, t, () => {
+                    actions.deleteNote(note.id)
+                    router.back()
+                  })
                 }
               }}
             >
               <View style={styles.headerButton}>
-                <TASK_ICONS.Ellipsis
+                <UI_ICONS.Ellipsis
                   size={22}
                   color={tokens.fg}
                   strokeWidth={2.2}
@@ -132,16 +128,16 @@ export function Note({ noteId }: { noteId: string }) {
             value={title.draft}
             onChangeText={title.change}
             onBlur={title.flush}
-            placeholder={t.labs.notes.titlePlaceholder}
+            placeholder={t.notes.titlePlaceholder}
             placeholderTextColor={tokens.muted}
             multiline
-            accessibilityLabel={t.labs.notes.titlePlaceholder}
+            accessibilityLabel={t.notes.titlePlaceholder}
             style={[styles.title, { color: tokens.fg }]}
           />
 
           <View style={styles.meta}>
             {note.pinned ? (
-              <TASK_ICONS.Pin
+              <UI_ICONS.Pin
                 size={13}
                 color={tokens.muted}
                 strokeWidth={2.2}
@@ -151,16 +147,11 @@ export function Note({ noteId }: { noteId: string }) {
             ) : null}
             <Text style={[styles.metaText, { color: tokens.muted }]}>
               {note.updatedByMe || note.updatedByName === null
-                ? fmt(
-                    note.updatedByMe
-                      ? t.labs.notes.editedByYou
-                      : t.labs.notes.edited,
-                    {
-                      when: noteWhen(note.updatedAt, locale, t.labs.task.today),
-                    },
-                  )
-                : fmt(t.labs.notes.editedBy, {
-                    when: noteWhen(note.updatedAt, locale, t.labs.task.today),
+                ? fmt(note.updatedByMe ? t.notes.editedByYou : t.notes.edited, {
+                    when: noteWhen(note.updatedAt, locale, t.notes.today),
+                  })
+                : fmt(t.notes.editedBy, {
+                    when: noteWhen(note.updatedAt, locale, t.notes.today),
                     name: note.updatedByName,
                   })}
             </Text>
@@ -171,15 +162,15 @@ export function Note({ noteId }: { noteId: string }) {
             value={body.draft}
             onChangeText={body.change}
             onBlur={body.flush}
-            placeholder={t.labs.notes.bodyPlaceholder}
+            placeholder={t.notes.bodyPlaceholder}
             placeholderTextColor={tokens.muted}
             multiline
-            accessibilityLabel={t.labs.notes.bodyPlaceholder}
+            accessibilityLabel={t.notes.bodyPlaceholder}
             style={[styles.body, { color: tokens.fg }]}
           />
 
           <Text style={[styles.footnote, { color: tokens.muted }]}>
-            {t.labs.notes.formatting}
+            {t.notes.formatting}
           </Text>
         </ScrollView>
 

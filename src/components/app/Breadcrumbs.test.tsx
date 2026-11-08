@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, test, vi } from 'vitest'
-import { groupLink } from '../../lib/groupPaths'
 import { renderWithI18n } from '../../lib/i18n/testing'
+import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb, parentCrumb } from './Breadcrumbs'
 
 /**
@@ -11,7 +11,7 @@ import { Breadcrumbs, type Crumb, parentCrumb } from './Breadcrumbs'
  * "where am I inside it?" — they render above the route and never see the food,
  * the recipe or the child the page is about. This is the piece that does, so
  * everything it is asked to prove is about the trail it was handed: that the
- * order survives, that the Group survives every link in it (ADR-0002), and
+ * order survives, that every link in it points at its step's page, and
  * that a phone gets a real, reachable back action rather than a chevron that
  * calls `history.back()` and lands wherever the person happened to come from.
  */
@@ -49,8 +49,8 @@ vi.mock('@tanstack/react-router', () => ({
   },
 }))
 
-const foods = groupLink('foods', 'jansen-household')
-const food = groupLink('food', 'jansen-household', { foodId: 'food_1' })
+const foods = linkTo('foods')
+const food = linkTo('food', { foodId: 'food_1' })
 
 /** Foods → Hagelslag → Edit, the deepest trail the app has. */
 const editTrail: Crumb[] = [
@@ -90,12 +90,10 @@ describe('the trail a nested page shows', () => {
     )
   })
 
-  test('keeps the Group in every address it points at', () => {
+  test('points every step at its own page', () => {
     renderWithI18n(<Breadcrumbs trail={editTrail} />)
     const list = crumbList()
 
-    // ADR-0002: the Group is part of the URL, so a way back that dropped it
-    // would move somebody to another Group's Foods without saying so.
     expect(
       within(list).getByRole('link', { name: 'Foods' }).getAttribute('href'),
     ).toBe('/foods')

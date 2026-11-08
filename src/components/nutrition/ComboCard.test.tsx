@@ -34,14 +34,7 @@ const combo = { _id: 'combo1', name: 'Usual breakfast', components }
 
 function render(onLog = vi.fn()) {
   renderWithI18n(
-    <ComboCard
-      combo={combo}
-      expanded
-      onToggle={vi.fn()}
-      busy={false}
-      error={null}
-      onLog={onLog}
-    />,
+    <ComboCard combo={combo} expanded onToggle={vi.fn()} onLog={onLog} />,
   )
   return onLog
 }
@@ -104,8 +97,6 @@ test('a component nobody can reach any more says so and has no stepper', () => {
       }}
       expanded
       onToggle={vi.fn()}
-      busy={false}
-      error={null}
       onLog={vi.fn()}
     />,
   )

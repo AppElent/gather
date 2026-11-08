@@ -5,9 +5,8 @@
  * **One list per screen.** They are different modes of use ("what I must do"
  * and "what I must ask"), and the card on the log offers them as two rows, so
  * two rows that arrive at the same stacked pair reads as a link that ignored
- * which one you pressed. Each is now its own destination, titled with the list
- * you asked for, and scanning a doctor's appointment for the two lines that
- * belong in it is no longer a thing anybody has to do.
+ * which one you pressed. Each is its own destination, titled with the list you
+ * asked for.
  *
  * It is one route with a `list` param rather than two route files, because the
  * screen is genuinely the same screen with a different subject — the way a
@@ -25,8 +24,7 @@ import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt, useI18n } from '../../i18n'
 import { useTokens } from '../../theme/tokens'
@@ -86,11 +84,10 @@ export function ListsScreen() {
       >
         {listId ? (
           <Checklist
-            listId={listId as Id<'taskLists'>}
-            groupSlug={log.groupSlug}
+            listId={listId}
             title={title}
             addLabel={questions ? text.addQuestion : text.addTodo}
-            writable={found ? found.writable : true}
+            emptyLabel={t.baby.log.child.checklistEmpty}
             readOnlyReason={
               found
                 ? fmt(text.readOnlyBody, { provider: found.provider })

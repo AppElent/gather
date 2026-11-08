@@ -1,10 +1,7 @@
+import { NUTRIENT_KEYS, type NutritionFacts } from '@gather/core/domain'
 import { Link } from '@tanstack/react-router'
-import {
-  NUTRIENT_KEYS,
-  type NutritionFacts,
-} from '../../../convex/lib/nutrition'
 import { fmt, useMessages } from '../../lib/i18n'
-import { NUTRITION_TARGETS_ANCHOR } from '../settings/NutritionTargetsSettings'
+import { linkTo, NUTRITION_TARGETS_ANCHOR } from '../../lib/links'
 
 interface Props {
   totals: NutritionFacts
@@ -49,7 +46,7 @@ export function DayTotals({ totals, targets, heading }: Props) {
         {/* The way through to editing. Targets are Personal, so they are edited
             on /settings and not in whichever Group the diary was opened from. */}
         <Link
-          to="/settings"
+          {...linkTo('settings')}
           hash={NUTRITION_TARGETS_ANCHOR}
           className="text-xs underline opacity-60"
         >

@@ -9,9 +9,8 @@
  *
  * So the mutation that orphans a blob deletes it, in the same transaction, and
  * these are the two shapes that takes: reconciling the id a row *held* with the
- * id it is *being given*, and dropping the one a deleted record held. Recipes
- * and Baby are the two Modules with a photo today and there will be a third, so
- * the rule lives here once rather than open-coded in each.
+ * id it is *being given*, and dropping the one a deleted record held. The rule
+ * lives here once rather than open-coded in each Module with a photo.
  *
  * **Deletion belongs behind the access check the mutation already makes.** A
  * `_storage` id carries no ownership — a function that took one and deleted it
@@ -19,13 +18,13 @@
  * caller here has already resolved the record and refused whoever may not write
  * it; there is deliberately no publicly callable form of this.
  *
- * **A blob goes when the *last* row lets go of it, not the first.** #38 assumed
- * no two rows ever hold one `_storage` id, and no gather code copies one — but
- * nothing enforces it at the door either. `imageId`/`photoId` are supplied by
+ * **A blob goes when the *last* row lets go of it, not the first.** No gather
+ * code copies a `_storage` id from one row to another, but nothing enforces it
+ * at the door either. `imageId`/`photoId` are supplied by
  * the client on create and update, and every read hands the id back, so a
  * Member of a Group a recipe was merely Shared into can put that id on a recipe
  * of their own. They still cannot write the original row, and unguarded, their
- * delete would have destroyed the original's picture (PR #58 review). So the
+ * delete would destroy the original's picture. So the
  * rule is asked rather than assumed: after the write that let go, is any row
  * still pointing at this blob? That also gives Copy a safe answer in advance —
  * two rows on one blob keep the picture until both are gone.
@@ -41,6 +40,7 @@
 
 import type { Doc, Id, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
+import { requireCurrentUser } from './sharing'
 
 /**
  * The fields of one table that hold a `_storage` id, if it has any.
@@ -63,7 +63,7 @@ type FileHolder = {
 /**
  * Which field holds the file, per table that has one.
  *
- * Typed off the schema rather than written out, so adding a photo to a third
+ * Typed off the schema rather than written out, so adding a photo to another
  * Module fails to compile until it is registered here. A table missing from
  * this map is invisible to the reference check, and a blob it alone still
  * points at would be deleted out from under it — the one way this file can
@@ -139,7 +139,7 @@ export async function replaceStoredFile(
  * The registry above is the only thing that knows which column that is, so
  * anything enumerating rows in order to delete them — a Group cascade, an
  * account purge — asks here rather than reaching for `imageId ?? photoId` and
- * quietly missing the sixth table the day it arrives.
+ * quietly missing the next table the day it arrives.
  */
 export function storedFileIdOf<T extends TableNames>(
   table: T,
@@ -148,4 +148,10 @@ export function storedFileIdOf<T extends TableNames>(
   const field = (FILE_HOLDERS as Record<string, string | undefined>)[table]
   if (!field) return undefined
   return (row as Record<string, unknown>)[field] as Id<'_storage'> | undefined
+}
+
+/** The handler behind every Module's public upload mutation. */
+export async function signedInUploadUrl(ctx: MutationCtx): Promise<string> {
+  await requireCurrentUser(ctx)
+  return await ctx.storage.generateUploadUrl()
 }

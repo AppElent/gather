@@ -7,8 +7,9 @@
  * cannot be triggered by a request, and so that running one is a decision
  * somebody made rather than a side effect of a deploy.
  */
+
+import type { BabyEventType } from '@gather/core/domain'
 import { internalMutation } from './_generated/server'
-import type { BabyEventType } from './lib/babyEvents'
 
 /**
  * The event catalogue as it stood when `trackedTypes` was the field.

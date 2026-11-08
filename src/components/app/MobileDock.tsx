@@ -12,10 +12,10 @@ import { useNavigation } from './useNavigation'
  * decided against the *full* list, not this one — a pin the dock had no room
  * for must not make the two surfaces disagree.
  *
- * Off a Group route the dock keeps pointing at the Group you were last in, so
- * a trip to Groups or Settings does not take the bottom of the phone away and
- * give it back. With no Group visited at all there is no navigation to show and
- * the dock is not there — a bar of nothing pinned to the bottom of a phone is a
+ * On pages that belong to no Module — Groups, Settings — the dock keeps
+ * pointing at the Current Group, so the bottom of the phone is not taken away
+ * and given back. With no Current Group there is no navigation to show and the
+ * dock is not there — a bar of nothing pinned to the bottom of a phone is a
  * bar that still takes the space. Settings, Groups and Account are reached from
  * the topbar either way, through its navigation button and its user menu, which
  * do not depend on a Group.
@@ -40,8 +40,6 @@ export function MobileDock() {
         <Link
           key={item.id}
           {...item.link}
-          // This bar colours itself from `aria-current`, so the router must not
-          // be allowed to set it by prefix — see `NAV_ACTIVE_OPTIONS`.
           // This bar colours itself from `aria-current`, so the router must not
           // be allowed to set it by prefix — see `NAV_ACTIVE_OPTIONS`.
           activeOptions={NAV_ACTIVE_OPTIONS}

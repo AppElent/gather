@@ -17,8 +17,7 @@ import { useRouter } from 'expo-router'
 import type { ReactNode } from 'react'
 import { useCallback, useState } from 'react'
 
-import type { TastingBase } from './paths'
-import { tastingHref } from './paths'
+import { moduleHref } from '../moduleDestination'
 import { type SubjectChoice, SubjectPickerSheet } from './SubjectPickerSheet'
 
 export interface Capture {
@@ -29,7 +28,7 @@ export interface Capture {
   choose: (choice: SubjectChoice) => void
 }
 
-export function useCapture(base: TastingBase, kind: TastingKind): Capture {
+export function useCapture(kind: TastingKind): Capture {
   const router = useRouter()
   const [picking, setPicking] = useState(false)
 
@@ -37,7 +36,7 @@ export function useCapture(base: TastingBase, kind: TastingKind): Capture {
     (choice: SubjectChoice) => {
       setPicking(false)
       router.push(
-        tastingHref(base, kind, '/compose', {
+        moduleHref(`/all/tasting/${kind}/compose`, {
           mode: 'new',
           ...('subjectId' in choice
             ? { subjectId: choice.subjectId }
@@ -48,7 +47,7 @@ export function useCapture(base: TastingBase, kind: TastingKind): Capture {
         }),
       )
     },
-    [base, kind, router],
+    [kind, router],
   )
 
   return {

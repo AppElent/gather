@@ -4,8 +4,8 @@
  *
  * ## Why this is navigation state and not a `key`
  *
- * The stacks used to be keyed by the Group's slug, which remounted them. On
- * Android that is a native crash (#235): unmounting a `ScreenStack` clears
+ * Keying the stacks by Group remounts them, and on Android that is a native
+ * crash (#235): unmounting a `ScreenStack` clears
  * each screen's container before the stack's own detach cleanup runs, so that
  * cleanup skips the screen's fragment and leaves it in the tab's
  * `FragmentManager`. The next time the tab is selected Android tries to put
@@ -29,7 +29,8 @@
  * Settings is not here: it is not Group-scoped, and keeps its place.
  */
 
-/** The tabs whose stacks show one Group's content. */
+/** The tabs whose stacks show one Group's content: each draws
+ * `GroupScopedStack`. */
 export const GROUP_SCOPED_TABS = ['home', 'all', 'search'] as const
 
 /** The route every Group-scoped stack starts from: each layout declares it. */

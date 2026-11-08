@@ -10,7 +10,7 @@
 import { Stack, useRouter } from 'expo-router'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../../../convex/_generated/api'
+import { api } from '../../../../../src/convex/api'
 import { useQuery } from '../../../../../src/convex/queries'
 import { useGroup } from '../../../../../src/group/GroupProvider'
 import { useI18n } from '../../../../../src/i18n'

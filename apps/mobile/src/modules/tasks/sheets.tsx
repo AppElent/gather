@@ -12,6 +12,14 @@
  * writes on selection and closes is one tap, and the sheet closing *is* the
  * confirmation.
  */
+import {
+  addDays,
+  addMonths,
+  localIsoDate,
+  localMidnight,
+  monthGrid,
+  monthStart,
+} from '@gather/core/civil-date'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
@@ -22,29 +30,13 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { Chip } from './components'
+import { Chip, priorityColor } from './components'
 import { TASK_ICONS } from './icons'
-import { taskActions, useTaskState } from './store'
-import {
-  addDays,
-  monthGrid,
-  monthOf,
-  shiftMonth,
-  weekendFrom,
-} from './taskDates'
-import { type Priority, SUGGESTED_LABELS } from './types'
+import { useTaskActions, useTaskLists, useTaskState } from './store'
+import { weekendFrom } from './taskDates'
+import { type Priority, SUGGESTED_LABELS, type Task } from './types'
 
 const PRIORITIES: Priority[] = [1, 2, 3, 4]
-
-/** Red for the most urgent, amber for high, and nothing at all below that. */
-export function priorityColor(
-  priority: Priority | undefined,
-  danger: string,
-): string | undefined {
-  if (priority === 1) return danger
-  if (priority === 2) return '#b4791f'
-  return undefined
-}
 
 /**
  * Due date: shortcuts, then a month.
@@ -56,47 +48,37 @@ export function priorityColor(
  * already know and useless for "the Tuesday after the bank holiday".
  */
 export function DueDateSheet({
-  taskId,
+  task,
   onClose,
 }: {
-  taskId: string
+  task: Task
   onClose: () => void
 }) {
   const tokens = useTokens('home')
   const tint = tokens.tintOf('home')
   const { t, locale } = useI18n()
-  const state = useTaskState()
-  const task = state.tasks.find((each) => each.id === taskId)
-  const [month, setMonth] = useState(() =>
-    monthOf(task?.dueDate ?? state.today),
-  )
+  const actions = useTaskActions()
+  const today = localIsoDate()
+  const [month, setMonth] = useState(() => monthStart(task.dueDate ?? today))
 
-  const grid = monthGrid(month.year, month.month)
-  const selected = task?.dueDate
+  const grid = monthGrid(month)
+  const selected = task.dueDate
 
   const pick = (iso: string | undefined) => {
-    taskActions.setDue(taskId, iso)
+    actions.setDue(task.id, iso)
     haptics.selectionChanged()
     onClose()
   }
 
   const shortcuts: { id: string; label: string; iso: string | undefined }[] = [
-    { id: 'today', label: t.labs.task.today, iso: state.today },
-    {
-      id: 'tomorrow',
-      label: t.labs.task.tomorrow,
-      iso: addDays(state.today, 1),
-    },
-    {
-      id: 'weekend',
-      label: t.labs.task.weekend,
-      iso: weekendFrom(state.today),
-    },
-    { id: 'none', label: t.labs.task.clear, iso: undefined },
+    { id: 'today', label: t.tasks.task.today, iso: today },
+    { id: 'tomorrow', label: t.tasks.task.tomorrow, iso: addDays(today, 1) },
+    { id: 'weekend', label: t.tasks.task.weekend, iso: weekendFrom(today) },
+    { id: 'none', label: t.tasks.task.clear, iso: undefined },
   ]
 
   return (
-    <NativeSheet title={t.labs.task.due} onClose={onClose}>
+    <NativeSheet title={t.tasks.task.due} onClose={onClose}>
       <View style={styles.shortcuts}>
         {shortcuts.map((shortcut) => (
           <Pressable
@@ -122,14 +104,14 @@ export function DueDateSheet({
         <Pressable
           testID="due-previous-month"
           accessibilityRole="button"
-          accessibilityLabel={t.labs.task.previousMonth}
+          accessibilityLabel={t.tasks.task.previousMonth}
           hitSlop={12}
-          onPress={() => setMonth(shiftMonth(month, -1))}
+          onPress={() => setMonth(addMonths(month, -1))}
         >
           <UI_ICONS.ChevronLeft size={20} color={tokens.fg} strokeWidth={2.2} />
         </Pressable>
         <Text style={[styles.monthName, { color: tokens.fg }]}>
-          {grid.first.toLocaleDateString(locale, {
+          {localMidnight(month).toLocaleDateString(locale, {
             month: 'long',
             year: 'numeric',
           })}
@@ -137,9 +119,9 @@ export function DueDateSheet({
         <Pressable
           testID="due-next-month"
           accessibilityRole="button"
-          accessibilityLabel={t.labs.task.nextMonth}
+          accessibilityLabel={t.tasks.task.nextMonth}
           hitSlop={12}
-          onPress={() => setMonth(shiftMonth(month, 1))}
+          onPress={() => setMonth(addMonths(month, 1))}
         >
           <UI_ICONS.ChevronRight
             size={20}
@@ -155,7 +137,7 @@ export function DueDateSheet({
         grid={grid}
         locale={locale}
         selected={selected}
-        today={state.today}
+        today={today}
         tint={tint.fg}
         onPick={pick}
         testIDPrefix="due-day"
@@ -165,32 +147,32 @@ export function DueDateSheet({
 }
 
 export function PrioritySheet({
-  taskId,
+  task,
   onClose,
 }: {
-  taskId: string
+  task: Task
   onClose: () => void
 }) {
   const tokens = useTokens('home')
   const { t } = useI18n()
-  const state = useTaskState()
-  const current = state.tasks.find((each) => each.id === taskId)?.priority
+  const actions = useTaskActions()
+  const current = task.priority
 
   const choose = (priority: Priority | undefined) => {
-    taskActions.setPriority(taskId, priority)
+    actions.setPriority(task.id, priority)
     haptics.selectionChanged()
     onClose()
   }
 
   return (
-    <NativeSheet title={t.labs.task.priority} onClose={onClose}>
+    <NativeSheet title={t.tasks.task.priority} onClose={onClose}>
       {PRIORITIES.map((priority) => (
         <Pressable
           key={priority}
           testID={`priority-${priority}`}
           accessibilityRole="button"
           accessibilityState={{ selected: priority === current }}
-          accessibilityLabel={t.labs.task.priorities[priority]}
+          accessibilityLabel={t.tasks.task.priorities[priority]}
           onPress={() => choose(priority)}
           style={({ pressed }) => [
             styles.optionRow,
@@ -206,7 +188,7 @@ export function PrioritySheet({
             importantForAccessibility="no"
           />
           <Text style={[styles.optionText, { color: tokens.fg }]}>
-            {t.labs.task.priorities[priority]}
+            {t.tasks.task.priorities[priority]}
           </Text>
           {priority === current ? (
             <UI_ICONS.Check size={18} color={tokens.fg} strokeWidth={2.6} />
@@ -216,7 +198,7 @@ export function PrioritySheet({
       <Pressable
         testID="priority-none"
         accessibilityRole="button"
-        accessibilityLabel={t.labs.task.unset}
+        accessibilityLabel={t.tasks.task.unset}
         onPress={() => choose(undefined)}
         style={({ pressed }) => [
           styles.optionRow,
@@ -225,7 +207,7 @@ export function PrioritySheet({
         ]}
       >
         <Text style={[styles.optionText, { color: tokens.muted }]}>
-          {t.labs.task.unset}
+          {t.tasks.task.unset}
         </Text>
       </Pressable>
     </NativeSheet>
@@ -233,13 +215,11 @@ export function PrioritySheet({
 }
 
 /**
- * Labels: the ones on the task, the ones the Group already uses, and a field.
+ * Labels: the ones on the task, the ones the Group already uses, and a field,
+ * with no label table behind them.
  *
  * This one keeps its sheet open — labels are a set rather than a choice, and
  * closing after the first would make adding two an exercise in reopening.
- */
-/**
- * Labels, with no label table behind them.
  *
  * A label exists because a task carries the word. Nothing creates one and
  * nothing has to delete one: the last task to let go of `hous` is what makes
@@ -253,24 +233,26 @@ export function PrioritySheet({
  * operation.
  */
 export function LabelsSheet({
-  taskId,
+  task,
   onClose,
 }: {
-  taskId: string
+  task: Task
   onClose: () => void
 }) {
   const tokens = useTokens('home')
   const { t } = useI18n()
+  // Every task in the Group, because the suggestions are every word anybody
+  // has typed, and there is no label table to ask instead. Mounted only while
+  // the sheet is open.
   const state = useTaskState()
-  const task = state.tasks.find((each) => each.id === taskId)
+  const actions = useTaskActions()
   const [draft, setDraft] = useState('')
   /** The label being renamed, if the field is doing that instead of adding. */
   const [renaming, setRenaming] = useState<string | null>(null)
 
-  const labels = task?.labels ?? []
-  // Everything anybody has typed, minus what is already on this task. The
-  // fixtures' suggestions are seeded here rather than kept as a list, so they
-  // behave like every other label: used or gone.
+  const labels = task.labels
+  // Everything anybody has typed, minus what is already on this task, with a
+  // few starters for a Group that has typed nothing yet.
   const elsewhere = Array.from(
     new Set([
       ...state.tasks.flatMap((each) => each.labels),
@@ -280,14 +262,14 @@ export function LabelsSheet({
     .filter((label) => !labels.includes(label))
     .sort()
 
-  const setOwn = (next: string[]) => taskActions.setLabels(taskId, next)
+  const setOwn = (next: string[]) => actions.setLabels(task.id, next)
 
   const submit = () => {
     const value = draft.trim().toLowerCase()
     if (!value) return
     setDraft('')
     if (renaming) {
-      taskActions.renameLabel(renaming, value)
+      actions.renameLabel(renaming, value)
       setRenaming(null)
       haptics.itemSaved()
       return
@@ -307,13 +289,13 @@ export function LabelsSheet({
   }
 
   return (
-    <NativeSheet title={t.labs.task.labels} onClose={onClose}>
+    <NativeSheet title={t.tasks.task.labels} onClose={onClose}>
       <Text style={[styles.groupLabel, { color: tokens.muted }]}>
-        {t.labs.task.labelsOnTask}
+        {t.tasks.task.labelsOnTask}
       </Text>
       {labels.length === 0 ? (
         <Text style={[styles.groupEmpty, { color: tokens.muted }]}>
-          {t.labs.task.labelsNone}
+          {t.tasks.task.labelsNone}
         </Text>
       ) : (
         <View style={styles.chips}>
@@ -323,7 +305,7 @@ export function LabelsSheet({
               label={label}
               on
               remove
-              accessibilityLabel={fmt(t.labs.task.removeLabel, { label })}
+              accessibilityLabel={fmt(t.tasks.task.removeLabel, { label })}
               onPress={() => {
                 haptics.selectionChanged()
                 setOwn(labels.filter((each) => each !== label))
@@ -336,7 +318,7 @@ export function LabelsSheet({
       {elsewhere.length > 0 ? (
         <>
           <Text style={[styles.groupLabel, { color: tokens.muted }]}>
-            {t.labs.task.labelsInGroup}
+            {t.tasks.task.labelsInGroup}
           </Text>
           <View style={styles.chips}>
             {elsewhere.map((label) => (
@@ -345,19 +327,19 @@ export function LabelsSheet({
                 actions={[
                   {
                     id: 'rename',
-                    title: t.labs.task.renameLabelEverywhere,
+                    title: t.tasks.task.renameLabelEverywhere,
                     image: 'pencil',
                   },
                   {
                     id: 'remove',
-                    title: t.labs.task.removeLabelEverywhere,
+                    title: t.tasks.task.removeLabelEverywhere,
                     image: 'trash',
                     attributes: { destructive: true },
                   },
                 ]}
                 onAction={(id) => {
                   if (id === 'rename') startRename(label)
-                  if (id === 'remove') taskActions.removeLabel(label)
+                  if (id === 'remove') actions.removeLabel(label)
                 }}
               >
                 <Chip
@@ -393,8 +375,8 @@ export function LabelsSheet({
           onSubmitEditing={submit}
           placeholder={
             renaming
-              ? fmt(t.labs.task.renamingLabel, { label: renaming })
-              : t.labs.task.addLabel
+              ? fmt(t.tasks.task.renamingLabel, { label: renaming })
+              : t.tasks.task.addLabel
           }
           placeholderTextColor={tokens.muted}
           autoCapitalize="none"
@@ -402,8 +384,8 @@ export function LabelsSheet({
           returnKeyType="done"
           accessibilityLabel={
             renaming
-              ? fmt(t.labs.task.renamingLabel, { label: renaming })
-              : t.labs.task.addLabel
+              ? fmt(t.tasks.task.renamingLabel, { label: renaming })
+              : t.tasks.task.addLabel
           }
           style={[styles.fieldInput, { color: tokens.fg }]}
         />
@@ -412,12 +394,12 @@ export function LabelsSheet({
         <Pressable
           testID="label-rename-cancel"
           accessibilityRole="button"
-          accessibilityLabel={t.labs.task.renameLabelCancel}
+          accessibilityLabel={t.tasks.task.renameLabelCancel}
           onPress={cancelRename}
           style={styles.renameCancel}
         >
           <Text style={[styles.renameCancelText, { color: tokens.accent }]}>
-            {t.labs.task.renameLabelCancel}
+            {t.tasks.task.renameLabelCancel}
           </Text>
         </Pressable>
       ) : null}
@@ -426,20 +408,20 @@ export function LabelsSheet({
 }
 
 export function MoveToListSheet({
-  taskId,
+  task,
   onClose,
 }: {
-  taskId: string
+  task: Task
   onClose: () => void
 }) {
   const tokens = useTokens('home')
   const { t } = useI18n()
-  const state = useTaskState()
-  const task = state.tasks.find((each) => each.id === taskId)
+  const lists = useTaskLists()
+  const actions = useTaskActions()
 
   return (
-    <NativeSheet title={t.labs.list.moveToList} onClose={onClose}>
-      {[...state.lists]
+    <NativeSheet title={t.tasks.list.moveToList} onClose={onClose}>
+      {[...(lists ?? [])]
         .sort((a, b) => a.order - b.order)
         .map((list, index, all) => {
           // A list Gather may not write to cannot be moved into: the write
@@ -447,19 +429,21 @@ export function MoveToListSheet({
           const disabled = !list.writable
           return (
             <Pressable
-              key={list.id}
-              testID={`move-${list.id}`}
+              key={list._id}
+              testID={`move-${list._id}`}
               accessibilityRole="button"
               accessibilityState={{
-                selected: list.id === task?.listId,
+                selected: list._id === task.listId,
                 disabled,
               }}
               accessibilityLabel={list.name}
               disabled={disabled}
               onPress={() => {
-                taskActions.moveTask(taskId, list.id)
-                haptics.itemSaved()
                 onClose()
+                actions.moveTask(task.id, list._id).then(
+                  () => haptics.itemSaved(),
+                  () => haptics.actionFailed(),
+                )
               }}
               style={({ pressed }) => [
                 styles.optionRow,
@@ -478,7 +462,7 @@ export function MoveToListSheet({
                   color={tokens.muted}
                   strokeWidth={2.2}
                 />
-              ) : list.id === task?.listId ? (
+              ) : list._id === task.listId ? (
                 <UI_ICONS.Check size={18} color={tokens.fg} strokeWidth={2.6} />
               ) : null}
             </Pressable>

@@ -1,13 +1,12 @@
 /**
  * The one place a Group-scoped request is authorised.
  *
- * ADR-0002 puts the Group in the URL so that membership is checked once, at the
- * route boundary, instead of every function re-deriving "the active Group" from
- * hidden state on the user. This module is that check. Every Group-scoped query
+ * Membership is checked once, here, instead of every function re-deriving
+ * "the active Group" from hidden state on the user. Every Group-scoped query
  * and mutation resolves its Group through here, from the slug the caller asked
- * for — never from a stored default, and never falling back to a Group the
- * caller happens to belong to. A refusal is a refusal. The fallback that used
- * to sit alongside this, for the flat routes, is gone with them.
+ * for (the Current Group, ADR-0031) — never from a stored default, and never
+ * falling back to a Group the caller happens to belong to. A refusal is a
+ * refusal.
  *
  * Two entry points over one implementation:
  *
@@ -17,9 +16,12 @@
  *   render either way.
  */
 
-import type { Doc, Id } from '../_generated/dataModel'
+import { ConvexError, type Value, v } from 'convex/values'
+import type { Doc, Id, TableNames } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { getCurrentUser } from './sharing'
+import { getCurrentUser, NOT_SIGNED_IN } from './sharing'
+
+export const groupRoleValidator = v.union(v.literal('admin'), v.literal('member'))
 
 /** A Member's standing in a Group. */
 export type GroupRole = Doc<'memberships'>['role']
@@ -81,7 +83,7 @@ export type GroupResolution =
  * prose, and so the two never drift into the same string.
  */
 export const GROUP_REFUSAL_MESSAGES: Record<GroupRefusal, string> = {
-  'not-signed-in': 'Not authenticated',
+  'not-signed-in': NOT_SIGNED_IN,
   'unknown-slug': 'No group has that slug',
   'not-a-member': 'Not a member of that group',
 }
@@ -152,7 +154,49 @@ export async function requireGroupBySlug(
   slug: string,
 ): Promise<ResolvedGroup> {
   const resolution = await resolveGroupBySlug(ctx, slug)
-  if (!resolution.ok) throw new Error(GROUP_REFUSAL_MESSAGES[resolution.reason])
+  if (!resolution.ok)
+    throw new ConvexError(GROUP_REFUSAL_MESSAGES[resolution.reason])
   const { user, group, membership, role } = resolution
   return { user, group, membership, role }
+}
+
+/**
+ * Every table whose rows belong to a Group.
+ *
+ * Assignability runs row → shape: a table without the column simply does not
+ * extend it, which is what makes the union exactly the group-scoped tables.
+ */
+export type GroupScopedTable = {
+  [T in TableNames]: Doc<T> extends { groupId: Id<'groups'> } ? T : never
+}[TableNames]
+
+/**
+ * The caller, the Group they named, and one row of it, or null when that row
+ * does not live in that Group. Throws only when the *Group* is refused.
+ *
+ * "No such row" and "in another Group" are one answer, so neither can be used
+ * to find out that a record exists somewhere; refusing the Group stays distinct
+ * (ADR-0009).
+ */
+export async function findInGroup<T extends GroupScopedTable>(
+  ctx: QueryCtx,
+  groupSlug: string,
+  id: Id<T>,
+): Promise<(ResolvedGroup & { doc: Doc<T> }) | null> {
+  const resolved = await requireGroupBySlug(ctx, groupSlug)
+  const doc = (await ctx.db.get(id)) as Doc<T> | null
+  if (!doc || doc.groupId !== resolved.group._id) return null
+  return { ...resolved, doc }
+}
+
+/** As `findInGroup`, but a row outside the named Group is refused with `notFound`. */
+export async function requireInGroup<T extends GroupScopedTable>(
+  ctx: QueryCtx,
+  groupSlug: string,
+  id: Id<T>,
+  notFound: Value = 'Not found',
+) {
+  const found = await findInGroup(ctx, groupSlug, id)
+  if (!found) throw new ConvexError(notFound)
+  return found
 }

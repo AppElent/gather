@@ -14,8 +14,8 @@
  * since "is `tannin` a field?" depends on the Kind and the scope.
  */
 
+import { tastingAttributeRefusal } from '@gather/core/refusals'
 import {
-  isTastingKind,
   normalizeTastingAttributes,
   TASTING_KINDS,
   type TastingAttributeValue,
@@ -24,11 +24,9 @@ import {
   validateTastingAttributes,
 } from '@gather/core/tastings'
 import { ConvexError, v } from 'convex/values'
+import { literals } from './validators'
 
-/** `'cheese' | 'wine' | 'beer'`, derived from the spec rather than retyped. */
-export const tastingKindValidator = v.union(
-  ...TASTING_KINDS.map((kind) => v.literal(kind)),
-)
+export const tastingKindValidator = literals(TASTING_KINDS)
 
 /**
  * What one attribute holds: a word, a figure, or several words.
@@ -36,7 +34,7 @@ export const tastingKindValidator = v.union(
  * The three shapes the five field types produce — `select` and `text` are
  * strings, `number` and `scale` are numbers, `tags` is an array of strings.
  */
-export const tastingAttributeValidator = v.union(
+const tastingAttributeValidator = v.union(
   v.string(),
   v.number(),
   v.array(v.string()),
@@ -46,11 +44,6 @@ export const tastingAttributesValidator = v.record(
   v.string(),
   tastingAttributeValidator,
 )
-
-export function assertTastingKind(value: string): TastingKind {
-  if (!isTastingKind(value)) throw new ConvexError('Unknown tasting kind')
-  return value
-}
 
 /**
  * Normalize an attribute bag and refuse it if it does not match the Kind.
@@ -68,12 +61,6 @@ export function checkedAttributes(
 ): Record<string, TastingAttributeValue> {
   const normalized = normalizeTastingAttributes(attributes ?? {})
   const [problem] = validateTastingAttributes(kind, scope, normalized)
-  if (problem) {
-    throw new ConvexError({
-      kind: 'tastingAttribute',
-      field: problem.field,
-      problem: problem.problem,
-    })
-  }
+  if (problem) throw new ConvexError(tastingAttributeRefusal(problem))
   return normalized
 }

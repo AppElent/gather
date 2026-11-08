@@ -7,20 +7,25 @@
  * and the one the Group put first is the one they mean by "what we pay".
  */
 
-import { calculationTotals, homeBuyingCosts } from '@gather/core/finance'
+import { isIsoDate } from '@gather/core/civil-date'
+import {
+  calculationTotals,
+  homeBuyingCosts,
+  parseCents,
+} from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import { View } from 'react-native'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
+import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
 import { toLoanParts } from './loanParts'
-import { type FinanceBase, financeHref } from './paths'
 import {
   AddRow,
   Card,
@@ -38,13 +43,7 @@ import { useFinances } from './useFinances'
 
 type Editing = 'calculation' | 'value' | 'bought' | null
 
-export function HouseScreen({
-  base,
-  houseId,
-}: {
-  base: FinanceBase
-  houseId: Id<'houses'>
-}) {
+export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { groupSlug, format, text, today } = useFinances()
@@ -106,12 +105,12 @@ export function HouseScreen({
       createCalculation({ houseId, groupSlug, name: value })
     }
     if (editing === 'value') {
-      const cents = Math.round(Number(value.replace(',', '.')) * 100)
-      if (!Number.isFinite(cents) || cents < 0) return
+      const cents = parseCents(value) ?? 0
+      if (cents < 0) return
       updateHouse({ id: houseId, groupSlug, valueCents: cents })
     }
     if (editing === 'bought') {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return
+      if (!isIsoDate(value)) return
       updateHouse({ id: houseId, groupSlug, boughtOn: value })
     }
     setDraft('')
@@ -119,21 +118,16 @@ export function HouseScreen({
   }
 
   function confirmDelete() {
-    Alert.alert(
-      fmt(text.errors.confirmDelete, { name: house?.name ?? '' }),
-      text.errors.confirmDeleteBody,
-      [
-        { text: text.actions.cancel, style: 'cancel' },
-        {
-          text: text.actions.delete,
-          style: 'destructive',
-          onPress: () => {
-            removeHouse({ id: houseId, groupSlug })
-            router.back()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(text.errors.confirmDelete, { name: house?.name ?? '' }),
+      message: text.errors.confirmDeleteBody,
+      confirm: text.actions.delete,
+      cancel: text.actions.cancel,
+      onConfirm: () => {
+        removeHouse({ id: houseId, groupSlug })
+        router.back()
+      },
+    })
   }
 
   return (
@@ -202,7 +196,7 @@ export function HouseScreen({
                 chevron
                 onPress={() =>
                   router.push(
-                    financeHref(base, '/mortgage', {
+                    moduleHref('/settings/labs/finance/mortgage', {
                       calculationId: calculation._id,
                     }),
                   )
@@ -274,7 +268,9 @@ export function HouseScreen({
             chevron
             last
             onPress={() =>
-              router.push(financeHref(base, '/buying-costs', { houseId }))
+              router.push(
+                moduleHref('/settings/labs/finance/buying-costs', { houseId }),
+              )
             }
           />
         </Card>

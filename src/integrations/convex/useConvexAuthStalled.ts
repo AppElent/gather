@@ -8,7 +8,7 @@ export const AUTH_STALLED_AFTER_MS = 10_000
 
 /**
  * True when Clerk reports a signed-in user but Convex has not authenticated
- * that session within `stalledAfterMs`.
+ * that session within `AUTH_STALLED_AFTER_MS`.
  *
  * Convex reports a handshake it has abandoned as `{isLoading: false,
  * isAuthenticated: false}` - the same shape as a signed-out visitor - and never
@@ -16,7 +16,7 @@ export const AUTH_STALLED_AFTER_MS = 10_000
  * The timer also covers a token fetch that simply never settles, which Convex
  * reports as a permanent `{isLoading: true}`.
  */
-export function useConvexAuthStalled(stalledAfterMs = AUTH_STALLED_AFTER_MS) {
+export function useConvexAuthStalled() {
   const { isLoaded, isSignedIn } = useAuth()
   const { isAuthenticated } = useConvexAuth()
   const [stalled, setStalled] = useState(false)
@@ -26,9 +26,9 @@ export function useConvexAuthStalled(stalledAfterMs = AUTH_STALLED_AFTER_MS) {
       setStalled(false)
       return
     }
-    const timeoutId = setTimeout(() => setStalled(true), stalledAfterMs)
+    const timeoutId = setTimeout(() => setStalled(true), AUTH_STALLED_AFTER_MS)
     return () => clearTimeout(timeoutId)
-  }, [isLoaded, isSignedIn, isAuthenticated, stalledAfterMs])
+  }, [isLoaded, isSignedIn, isAuthenticated])
 
   return stalled
 }

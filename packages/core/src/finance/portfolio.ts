@@ -175,7 +175,7 @@ function convert(cents: Cents, fx: FxRate | null): Cents {
   return fx ? roundCents(cents * fx.rate) : cents
 }
 
-export function valueHolding(
+function valueHolding(
   holding: ValuedHolding,
   now: number,
 ): HoldingValue {

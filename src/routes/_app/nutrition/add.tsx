@@ -1,9 +1,8 @@
+import { localIsoDate } from '@gather/core/civil-date'
+import { MEAL_NAMES, type MealName } from '@gather/core/domain'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
-import { MEAL_NAMES, type MealName } from '../../../../convex/lib/consumption'
 import { AddSheet } from '../../../components/nutrition/AddSheet'
-import { todayLocal } from '../../../components/nutrition/NutritionPage'
-import { groupNutritionNav } from '../../../components/nutrition/nutritionNav'
+import { linkTo } from '../../../lib/links'
 
 /**
  * The meal being added to, defaulting to the first slot for a hand-typed URL,
@@ -35,19 +34,17 @@ export const Route = createFileRoute('/_app/nutrition/add')({
 })
 
 function AddToMeal() {
-  const { slug: groupSlug } = useRequiredCurrentGroup()
   const { date, meal, food } = Route.useSearch()
   const navigate = useNavigate()
 
   return (
     <AddSheet
-      date={date || todayLocal()}
+      date={date || localIsoDate()}
       meal={meal}
       justAddedFoodId={food}
-      nav={groupNutritionNav(groupSlug)}
       onClose={() =>
         navigate({
-          to: '/nutrition',
+          ...linkTo('nutrition'),
           search: { date },
         })
       }

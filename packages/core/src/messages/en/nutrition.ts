@@ -161,7 +161,6 @@ export const diary = {
       'Something here can no longer be logged, so nothing was changed.',
     saved: '“{name}” saved',
     update: 'Update {name}',
-    updateFailed: 'Could not update that combo',
   },
 
   recipeAdd: {
@@ -182,7 +181,6 @@ export const diary = {
     searching: 'Searching Open Food Facts…',
     searchFailed: 'Couldn’t search Open Food Facts.',
     perHundred: '{calories} kcal/100g',
-    pieceOf: 'piece ({size}{unit})',
   },
 }
 
@@ -209,7 +207,6 @@ export const combosLibrary = {
   rename: 'Rename',
   renameLabel: 'New name for “{name}”',
   renameFailed: 'Could not rename this combo',
-  delete: 'Delete',
   deleteLabel: 'Delete “{name}”',
   /** Replaces the buttons once Delete is pressed. There is no undo. */
   deleteConfirm: 'Delete “{name}”?',

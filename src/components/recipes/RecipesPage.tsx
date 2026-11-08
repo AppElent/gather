@@ -3,27 +3,20 @@ import { useQuery } from 'convex/react'
 import { Plus } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import { useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { SurfaceCard } from '../app/ShellPrimitives'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { RecipeCard } from './RecipeCard'
-import type { RecipeNav } from './recipeNav'
 import { useRecipeViewMode } from './useRecipeViewMode'
 import { ViewModeToggle } from './ViewModeToggle'
 
 /**
- * The recipe list, whole: one Group's collection.
- *
- * The slug is required, and the page shows exactly what that Group can see —
- * its own recipes and the ones shared into it. A page that unioned in the
- * caller's other Groups would show two Members of one Group different
- * collections at the same URL, which is what ADR-0002 exists to stop.
+ * The recipe list, whole: exactly what the Current Group can see — its own
+ * recipes and the ones shared into it, never the caller's other Groups', so two
+ * Members of one Group see one collection.
  */
-export function RecipesPage({
-  nav,
-  groupSlug,
-}: {
-  nav: RecipeNav
-  groupSlug: string
-}) {
+export function RecipesPage() {
+  const { slug: groupSlug } = useRequiredCurrentGroup()
   const recipes = useQuery(api.recipes.list, { groupSlug })
   const [viewMode, setViewMode] = useRecipeViewMode()
   const messages = useMessages()
@@ -43,7 +36,7 @@ export function RecipesPage({
         <div className="flex items-center gap-3">
           <ViewModeToggle mode={viewMode} onChange={setViewMode} />
           <Link
-            {...nav.create}
+            {...linkTo('newRecipe')}
             aria-label={list.add}
             className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-fg)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
           >
@@ -70,7 +63,7 @@ export function RecipesPage({
               {list.emptyBody}
             </p>
             <Link
-              {...nav.create}
+              {...linkTo('newRecipe')}
               aria-label={list.emptyAction}
               className="mx-auto inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] no-underline lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
             >
@@ -90,7 +83,7 @@ export function RecipesPage({
           {recipes.map((r) => (
             <Link
               key={r._id}
-              {...nav.detail(r._id)}
+              {...linkTo('recipe', { recipeId: r._id })}
               className="block no-underline transition hover:opacity-90"
             >
               <RecipeCard recipe={r} mode={viewMode} />

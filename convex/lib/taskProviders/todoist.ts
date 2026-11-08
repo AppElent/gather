@@ -45,7 +45,7 @@ export function mapTodoistTask(t: TodoistApiTask): UnifiedTask {
 
 export const todoistAdapter: TaskProviderAdapter = {
   id: 'todoist',
-  capabilities: { write: false, priority: true, labels: true },
+  capabilities: { write: false },
 
   async listAvailableSources(accessToken, fetchImpl = fetch) {
     const projects = (await todoistRequest(

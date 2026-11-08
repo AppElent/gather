@@ -34,7 +34,11 @@ import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
-import { getCurrentUser, getMyGroupIds } from './lib/sharing'
+import {
+  getCurrentUser,
+  getMyGroupIds,
+  requireCurrentUser,
+} from './lib/sharing'
 
 /** The Groups they are in, split by whether anybody else is in them. */
 async function partitionGroups(ctx: QueryCtx, userId: Id<'users'>) {
@@ -88,8 +92,7 @@ export const deletionPreview = query({
 export const deleteAccount = mutation({
   args: {},
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     if (user.deletedAt) return
 
     const { solo } = await partitionGroups(ctx, user._id)

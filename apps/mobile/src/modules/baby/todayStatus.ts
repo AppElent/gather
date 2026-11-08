@@ -11,8 +11,12 @@
  * Nothing here reads the clock: `now` is passed in, because a summary that
  * silently depended on the wall clock could not be tested at a fixed instant.
  */
+import {
+  asBabyEvent,
+  type DurationUnits,
+  shortDuration,
+} from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
-import { fmt } from '@gather/core/i18n'
 
 export interface LoggedEvent {
   type: BabyEventType
@@ -36,43 +40,6 @@ export function startOfDay(now: number): number {
   return date.getTime()
 }
 
-/** How a language writes a short duration ("5h 10m", "5 u 10 min"). */
-export interface DurationUnits {
-  minutes: string
-  hours: string
-  hoursMinutes: string
-  days: string
-}
-
-const COMPACT: DurationUnits = {
-  minutes: '{minutes}m',
-  hours: '{hours}h',
-  hoursMinutes: '{hours}h {minutes}m',
-  days: '{days}d',
-}
-
-/**
- * "32m", "3h 10m", "2d" — or the same in the reader's language.
- *
- * Coarse on purpose above an hour: a parent reading "3h 10m ago" is answering
- * "is she due?", and seconds of precision would be noise on the tile.
- */
-export function shortDuration(
-  ms: number,
-  units: DurationUnits = COMPACT,
-): string {
-  const minutes = Math.max(0, Math.floor(ms / 60_000))
-  if (minutes < 60) return fmt(units.minutes, { minutes })
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) {
-    const rest = minutes % 60
-    return rest === 0
-      ? fmt(units.hours, { hours })
-      : fmt(units.hoursMinutes, { hours, minutes: rest })
-  }
-  return fmt(units.days, { days: Math.floor(hours / 24) })
-}
-
 function todaysOf(
   events: readonly LoggedEvent[],
   type: BabyEventType,
@@ -81,12 +48,16 @@ function todaysOf(
   return events.filter((e) => e.type === type && e.timestamp >= dayStart)
 }
 
-function latestOf(events: readonly LoggedEvent[], type: BabyEventType) {
+/** The most recent event of a type. */
+export function latestOf<E extends { type: BabyEventType; timestamp: number }>(
+  events: readonly E[],
+  type: BabyEventType,
+): E | undefined {
   return events
     .filter((e) => e.type === type)
-    .reduce<LoggedEvent | null>(
+    .reduce<E | undefined>(
       (latest, e) => (!latest || e.timestamp > latest.timestamp ? e : latest),
-      null,
+      undefined,
     )
 }
 
@@ -113,8 +84,7 @@ export function sleepTotalMs(
 
 export interface StatusMessages {
   ago: (duration: string) => string
-  /** Omitted in tests; the compact English form is the default. */
-  duration?: DurationUnits
+  duration: DurationUnits
   countToday: (count: number) => string
   never: string
   at: (time: string) => string
@@ -153,11 +123,11 @@ export function tileStatus(
     }
   }
 
-  if (type === 'temperature') {
-    const celsius = (latest.data as { celsius?: number } | null)?.celsius
+  const event = asBabyEvent(latest)
+  if (event.type === 'temperature' && typeof event.data.celsius === 'number') {
     return {
       type,
-      headline: celsius === undefined ? null : `${celsius.toFixed(1)} °C`,
+      headline: `${event.data.celsius.toFixed(1)} °C`,
       detail: t.at(t.formatTime(latest.timestamp)),
     }
   }

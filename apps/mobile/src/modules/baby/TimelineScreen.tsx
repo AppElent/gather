@@ -12,10 +12,11 @@
  * can do about it (`EntryScreen`).
  */
 
+import { asBabyEvent, summarizeBabyEvent } from '@gather/core/baby-events'
+import type { Messages } from '@gather/core/messages'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import {
-  Alert,
   Pressable,
   SectionList,
   StyleSheet,
@@ -23,26 +24,32 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SwipeableRow } from '../../components/SwipeableRow'
+import { api, type Id } from '../../convex/api'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { useTokens } from '../../theme/tokens'
+import { moduleHref } from '../moduleDestination'
 import { EVENT_ICONS } from './icons'
-import type { BabyBase } from './paths'
-import { babyHref } from './paths'
-import { summarize } from './summarize'
 import { useBabyLog } from './useBabyLog'
 
-export interface TimelineScreenProps {
-  /** Which tab stack this instance is mounted in (ADR-0023). */
-  base: BabyBase
+/** A row has no notes line of its own, so a note's text is what the row says. */
+function rowDetail(
+  item: Parameters<typeof summarizeBabyEvent>[0] & { notes?: string },
+  log: Messages['baby']['log'],
+): string {
+  const summary = summarizeBabyEvent(item, log)
+  const event = asBabyEvent(item)
+  if (event.type !== 'note') return summary
+  const text = event.notes?.trim()
+  if (!text) return summary
+  return event.data.milestone ? `${summary} · ${text}` : text
 }
 
-export function TimelineScreen({ base }: TimelineScreenProps) {
+export function TimelineScreen() {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
   const router = useRouter()
@@ -53,24 +60,19 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
   const remove = useMutation(api.babyEvents.remove)
 
   function confirmDelete(item: NonNullable<typeof log.events>[number]) {
-    Alert.alert(
-      t.baby.log.timeline.deleteTitle,
-      fmt(t.baby.log.timeline.deleteEntry, {
+    confirmDestructive({
+      title: t.baby.log.timeline.deleteTitle,
+      message: fmt(t.baby.log.timeline.deleteEntry, {
         type: t.baby.eventTypes[item.type],
       }),
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: t.baby.log.timeline.deleteConfirm,
-          style: 'destructive',
-          onPress: () =>
-            remove({
-              eventId: item._id as Id<'babyEvents'>,
-              groupSlug: log.groupSlug,
-            }).catch(() => haptics.actionFailed()),
-        },
-      ],
-    )
+      confirm: t.baby.log.timeline.deleteConfirm,
+      cancel: t.actions.cancel,
+      onConfirm: () =>
+        remove({
+          eventId: item._id as Id<'babyEvents'>,
+          groupSlug: log.groupSlug,
+        }).catch(() => haptics.actionFailed()),
+    })
   }
 
   const sections = (() => {
@@ -141,7 +143,9 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
                 ]}
                 onAction={(action) => {
                   if (action === 'edit')
-                    router.push(babyHref(base, '/entry', { entryId: item._id }))
+                    router.push(
+                      moduleHref('/all/baby-log/entry', { entryId: item._id }),
+                    )
                   if (action === 'delete') confirmDelete(item)
                 }}
               >
@@ -151,7 +155,9 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
                     type: t.baby.eventTypes[item.type],
                   })}
                   onPress={() =>
-                    router.push(babyHref(base, '/entry', { entryId: item._id }))
+                    router.push(
+                      moduleHref('/all/baby-log/entry', { entryId: item._id }),
+                    )
                   }
                   style={({ pressed }) => [
                     styles.row,
@@ -173,14 +179,7 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
                       {t.baby.eventTypes[item.type]}
                     </Text>
                     <Text style={[styles.detail, { color: tokens.muted }]}>
-                      {summarize(
-                        item,
-                        {
-                          ...t.baby.log.summary,
-                          duration: t.baby.log.status.duration,
-                        },
-                        t.baby.log.options,
-                      )}
+                      {rowDetail(item, t.baby.log)}
                     </Text>
                   </View>
                   <UI_ICONS.ChevronRight

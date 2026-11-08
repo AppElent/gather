@@ -1,13 +1,10 @@
 /**
  * Emptying a Group of everything it contains.
  *
- * Deleting a Group used to delete two rows — the membership and the Group —
- * and leave every recipe, task list, baby, calendar, house, holding and
- * tasting subject in it as rows nothing can reach, with their photos leaked in
- * storage. Nothing surfaced it, because unreachable rows read exactly like
- * rows that are not there. The seed's own reset says why that is the worse
- * failure (`lib/seed/apply.ts`: invisible garbage is worse than deletion), and
- * account deletion is what finally needed the cascade to exist.
+ * Rows a deleted Group leaves behind read exactly like rows that are not there:
+ * nothing surfaces them, and they keep their photos alive in storage. So one
+ * function destroys a Group, and account deletion, `groups.deleteGroup` and the
+ * sample reset all go through it.
  *
  * ## The registry cannot be forgotten
  *
@@ -27,26 +24,18 @@
  *
  * ## Blobs come back rather than going here
  *
- * `deleteStoredFile` asks whether any row in any of five tables still points
- * at a blob, so it costs five table scans per photo. A Group with fifty photos
- * would spend two hundred and fifty scans inside one transaction. So the
- * storage ids are *returned*, and the caller schedules them — which is also
- * what makes the whole thing survive a Group larger than one transaction.
+ * `deleteStoredFile` asks whether any row in any photo-holding table still
+ * points at a blob, so it costs a scan of each of them per photo, which a Group
+ * with fifty photos could not spend inside one transaction. So the storage ids
+ * are collected and released by scheduled work, which is also what makes the
+ * whole thing survive a Group larger than one transaction.
  */
 
+import { internal } from '../_generated/api'
 import type { Doc, Id, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
+import type { GroupScopedTable } from './groupAccess'
 import { storedFileIdOf } from './storedFiles'
-
-/**
- * Every table whose rows belong to a Group.
- *
- * Assignability runs row → shape: a table without the column simply does not
- * extend it, which is what makes the union exactly the group-scoped tables.
- */
-type GroupScopedTable = {
-  [T in TableNames]: Doc<T> extends { groupId: Id<'groups'> } ? T : never
-}[TableNames]
 
 /** Delete these rows, handing back the stored files they were holding. */
 async function purge<T extends TableNames>(
@@ -61,6 +50,51 @@ async function purge<T extends TableNames>(
     await ctx.db.delete(row._id)
   }
   return files
+}
+
+/** Delete a list's tasks: the only way to find them is through the list. */
+export async function purgeTasksOfList(
+  ctx: MutationCtx,
+  listId: Id<'taskLists'>,
+) {
+  await purge(
+    ctx,
+    'tasks',
+    await ctx.db
+      .query('tasks')
+      .withIndex('by_list', (q) => q.eq('listId', listId))
+      .collect(),
+  )
+}
+
+/** Delete a calendar's events: the only way to find them is through it. */
+export async function purgeEventsOfCalendar(
+  ctx: MutationCtx,
+  calendarId: Id<'calendars'>,
+) {
+  await purge(
+    ctx,
+    'calendarEvents',
+    await ctx.db
+      .query('calendarEvents')
+      .withIndex('by_calendar', (q) => q.eq('calendarId', calendarId))
+      .collect(),
+  )
+}
+
+/** Delete a child's events, handing back the photos they held. */
+export async function purgeEventsOfBaby(
+  ctx: MutationCtx,
+  babyId: Id<'babies'>,
+): Promise<Id<'_storage'>[]> {
+  return await purge(
+    ctx,
+    'babyEvents',
+    await ctx.db
+      .query('babyEvents')
+      .withIndex('by_baby', (q) => q.eq('babyId', babyId))
+      .collect(),
+  )
 }
 
 /**
@@ -93,16 +127,7 @@ const GROUP_CONTENT: {
       .query('taskLists')
       .withIndex('by_group', (q) => q.eq('groupId', groupId))
       .collect()
-    for (const list of lists) {
-      await purge(
-        ctx,
-        'tasks',
-        await ctx.db
-          .query('tasks')
-          .withIndex('by_list', (q) => q.eq('listId', list._id))
-          .collect(),
-      )
-    }
+    for (const list of lists) await purgeTasksOfList(ctx, list._id)
     return purge(ctx, 'taskLists', lists)
   },
 
@@ -113,16 +138,7 @@ const GROUP_CONTENT: {
       .collect()
     const files: Id<'_storage'>[] = []
     for (const baby of babies) {
-      files.push(
-        ...(await purge(
-          ctx,
-          'babyEvents',
-          await ctx.db
-            .query('babyEvents')
-            .withIndex('by_baby', (q) => q.eq('babyId', baby._id))
-            .collect(),
-        )),
-      )
+      files.push(...(await purgeEventsOfBaby(ctx, baby._id)))
     }
     files.push(...(await purge(ctx, 'babies', babies)))
     return files
@@ -134,14 +150,7 @@ const GROUP_CONTENT: {
       .withIndex('by_group', (q) => q.eq('groupId', groupId))
       .collect()
     for (const calendar of calendars) {
-      await purge(
-        ctx,
-        'calendarEvents',
-        await ctx.db
-          .query('calendarEvents')
-          .withIndex('by_calendar', (q) => q.eq('calendarId', calendar._id))
-          .collect(),
-      )
+      await purgeEventsOfCalendar(ctx, calendar._id)
     }
     return purge(ctx, 'calendars', calendars)
   },
@@ -351,18 +360,20 @@ const GROUP_CONTENT: {
 }
 
 /**
- * Delete a Group and everything in it, returning the stored files it released.
+ * Delete a Group and everything in it, its own image included, and schedule the
+ * release of the stored files that lets go of. Already gone is not an error.
  *
- * The caller schedules those — see the note at the top of this file — and is
- * also the one that has already decided this Group may be destroyed. Nothing
- * here checks a membership or a role: it is reachable only from mutations that
- * have.
+ * The caller has already decided this Group may be destroyed. Nothing here
+ * checks a membership or a role: it is reachable only from mutations that have.
  */
-export async function deleteGroupContent(
+export async function destroyGroup(
   ctx: MutationCtx,
   groupId: Id<'groups'>,
-): Promise<Id<'_storage'>[]> {
-  const files: Id<'_storage'>[] = []
+): Promise<void> {
+  const group = await ctx.db.get(groupId)
+  if (!group) return
+
+  const files = group.imageId ? [group.imageId] : []
   for (const table of Object.keys(GROUP_CONTENT) as GroupScopedTable[]) {
     files.push(...(await GROUP_CONTENT[table](ctx, groupId)))
   }
@@ -388,5 +399,68 @@ export async function deleteGroupContent(
   }
 
   await ctx.db.delete(groupId)
-  return files
+  if (files.length) {
+    await ctx.scheduler.runAfter(0, internal.cascade.releaseFiles, {
+      storageIds: files,
+    })
+  }
+}
+
+/**
+ * Take a departing member out of the two places a Group stores them as more
+ * than a byline.
+ *
+ * A **cost split** is refused on save unless it adds to a hundred and names
+ * only current members (`recurringCosts.validateSplit`), so a split with one
+ * party missing is not a split the household could ever have agreed to, and it
+ * is not this function's business to invent a new one. It is cleared, and the
+ * cost goes back to being undivided until somebody says how it should be.
+ *
+ * A **saved split scenario** is the opposite: it is immutable on purpose and
+ * already stores each party's name beside their id precisely so it keeps
+ * reading after somebody leaves. So only the id goes.
+ */
+export async function detachFromGroup(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  groupId: Id<'groups'>,
+) {
+  const costs = await ctx.db
+    .query('recurringCosts')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .collect()
+  for (const cost of costs) {
+    if (!cost.split?.some((share) => share.userId === userId)) continue
+    await ctx.db.patch(cost._id, { split: undefined })
+  }
+
+  const scenarios = await ctx.db
+    .query('splitScenarios')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .collect()
+  for (const scenario of scenarios) {
+    const anonymise = <P extends { userId?: Id<'users'>; name: string }>(
+      party: P,
+    ): P => (party.userId === userId ? { ...party, userId: undefined } : party)
+    const names = [
+      ...scenario.payments.map((p) => p.party),
+      ...scenario.participants,
+      ...scenario.owed.map((o) => o.party),
+      ...scenario.transfers.flatMap((t) => [t.from, t.to]),
+    ]
+    if (!names.some((party) => party.userId === userId)) continue
+    await ctx.db.patch(scenario._id, {
+      payments: scenario.payments.map((p) => ({
+        ...p,
+        party: anonymise(p.party),
+      })),
+      participants: scenario.participants.map(anonymise),
+      owed: scenario.owed.map((o) => ({ ...o, party: anonymise(o.party) })),
+      transfers: scenario.transfers.map((t) => ({
+        ...t,
+        from: anonymise(t.from),
+        to: anonymise(t.to),
+      })),
+    })
+  }
 }

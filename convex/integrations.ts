@@ -1,3 +1,4 @@
+import type { ExternalProviderId } from '@gather/core/domain'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { ActionCtx } from './_generated/server'
@@ -9,15 +10,14 @@ import {
   query,
 } from './_generated/server'
 import { requireGroupBySlug } from './lib/groupAccess'
+import { requireIdentity } from './lib/sharing'
+import { externalProviderValidator } from './lib/taskFields'
 import { getAdapter } from './lib/taskProviders'
 import {
-  type ExternalProviderId,
   ProviderAuthError,
   type ProviderSource,
   type SourceProperty,
 } from './lib/taskProviders/types'
-
-const externalProvider = v.union(v.literal('notion'), v.literal('todoist'))
 
 // ---------- public queries/mutations (no tokens ever leave here) ----------
 
@@ -96,13 +96,12 @@ export const getConnection = internalQuery({
 /**
  * A Group's connection for one provider, token and all.
  *
- * Named for the Group rather than for the caller on purpose: "my connection"
- * was the caller-wide framing this replaces, which read `defaultGroupId` and so
- * answered the same whichever Group's page had asked. The Group is authorised
- * here, and only a Member of it gets the row.
+ * Named for the Group rather than for the caller on purpose: a caller-wide "my
+ * connection" would answer the same whichever Group had asked. The Group is
+ * authorised here, and only a Member of it gets the row.
  */
 export const getGroupConnection = internalQuery({
-  args: { groupSlug: v.string(), provider: externalProvider },
+  args: { groupSlug: v.string(), provider: externalProviderValidator },
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     return await ctx.db
@@ -117,7 +116,7 @@ export const getGroupConnection = internalQuery({
 export const storeConnection = internalMutation({
   args: {
     groupId: v.id('groups'),
-    provider: externalProvider,
+    provider: externalProviderValidator,
     accessToken: v.string(),
     accountLabel: v.string(),
     connectedBy: v.id('users'),
@@ -179,13 +178,12 @@ function requireEnv(name: string): string {
 
 export const getAuthorizeUrl = action({
   args: {
-    provider: externalProvider,
+    provider: externalProviderValidator,
     redirectUri: v.string(),
     state: v.string(),
   },
   handler: async (ctx, args): Promise<string> => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new ConvexError('Not authenticated')
+    await requireIdentity(ctx)
     if (args.provider === 'notion') {
       const url = new URL('https://api.notion.com/v1/oauth/authorize')
       url.searchParams.set('client_id', requireEnv('NOTION_CLIENT_ID'))
@@ -212,7 +210,7 @@ export const getAuthorizeUrl = action({
  */
 export const completeOAuth = action({
   args: {
-    provider: externalProvider,
+    provider: externalProviderValidator,
     groupSlug: v.string(),
     code: v.string(),
     redirectUri: v.string(),
@@ -306,7 +304,7 @@ function toUserError(error: unknown, provider: ExternalProviderId): never {
 }
 
 export const listSources = action({
-  args: { provider: externalProvider, groupSlug: v.string() },
+  args: { provider: externalProviderValidator, groupSlug: v.string() },
   handler: async (ctx, args): Promise<ProviderSource[]> => {
     const conn = await requireGroupConnection(
       ctx,
@@ -325,7 +323,7 @@ export const listSources = action({
 
 export const getSourceSchema = action({
   args: {
-    provider: externalProvider,
+    provider: externalProviderValidator,
     groupSlug: v.string(),
     sourceId: v.string(),
   },

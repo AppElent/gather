@@ -6,9 +6,9 @@ import { Pill, SurfaceCard } from './ShellPrimitives'
 /**
  * Takes the Module's id and looks the rest up, rather than being handed a
  * label, a description and an icon by each of the nine routes that render it.
- * Three props every caller filled from the same registry row were three chances
- * to fill one from a different one — and now that two of the three are
- * translated, three chances to leave a page half in English.
+ * Three props every caller filled from the same registry row would be three
+ * chances to fill one from a different one, and to leave a page half in
+ * English.
  */
 export function ModulePlaceholder({ moduleId }: { moduleId: ModuleId }) {
   const messages = useMessages()

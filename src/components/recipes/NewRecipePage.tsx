@@ -1,23 +1,23 @@
-import { isAiLimitReached } from '@gather/core/ai-limit'
+import { AI_LIMIT_KIND } from '@gather/core/ai-limit'
 import { useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
-import { ImageUploadField } from '../app/ImageUploadField'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { ImageUploadField } from '../photo/ImageUploadField'
 import { RecipeDestinationNotice } from './RecipeDestinationNotice'
 import { RecipeForm, type RecipeFormValues } from './RecipeForm'
-import type { RecipeDestination } from './recipeDestination'
-import type { RecipeNav } from './recipeNav'
 
 export interface NewRecipeSearch {
   url?: string
 }
 
-/** The import URL, validated identically on both routes. */
+/** The recipe URL to import, from `?url=`. */
 export function validateNewRecipeSearch(
   search: Record<string, unknown>,
 ): NewRecipeSearch {
@@ -27,25 +27,15 @@ export function validateNewRecipeSearch(
 export interface NewRecipePageProps {
   /** A recipe URL to import on arrival, from `?url=`. */
   initialUrl?: string
-  /** The Group the recipe lands in — resolved by the route, never guessed here. */
-  destination: RecipeDestination
-  nav: RecipeNav
 }
 
 /**
- * Adding a recipe, whole. Rendered by both `/recipes/new` and
- * `/g/<slug>/recipes/new`; the saved recipe is opened through `nav`, so the
- * Group-scoped route stays in its Group afterwards.
- *
- * Where the recipe *goes* arrives the same way, as `destination`. One page, one
- * mechanism, a different Group on each route — and the server is told which,
- * rather than deciding for itself.
+ * Adding a recipe to the Current Group, whole. The server is told which Group,
+ * rather than deciding for itself, and the page says so before saving.
  */
-export function NewRecipePage({
-  initialUrl,
-  destination,
-  nav,
-}: NewRecipePageProps) {
+export function NewRecipePage({ initialUrl }: NewRecipePageProps) {
+  const group = useRequiredCurrentGroup()
+  const destination = { groupSlug: group.slug, groupName: group.name }
   const create = useMutation(api.recipes.create)
   const generateUploadUrl = useMutation(api.recipes.generateUploadUrl)
   const importFromUrl = useAction(api.recipeImport.importFromUrl)
@@ -57,7 +47,7 @@ export function NewRecipePage({
 
   /** Recipes → New recipe. */
   const trail: Crumb[] = [
-    { label: messages.modules.byId.recipes.label, link: nav.list },
+    { label: messages.modules.byId.recipes.label, link: linkTo('recipes') },
     { label: createText.title },
   ]
 
@@ -110,15 +100,9 @@ export function NewRecipePage({
       setImageUrl(result.imageUrl)
     } catch (err) {
       setImportError(
-        isAiLimitReached(err)
-          ? form.aiLimitReached
-          : err instanceof ConvexError
-            ? typeof err.data === 'string'
-              ? err.data
-              : createText.importFailed
-            : err instanceof Error
-              ? err.message
-              : createText.importFailed,
+        errorMessage(err, createText.importFailed, {
+          [AI_LIMIT_KIND]: form.aiLimitReached,
+        }),
       )
     } finally {
       setImporting(false)
@@ -208,17 +192,9 @@ export function NewRecipePage({
               sourceUrl: sourceUrl ?? undefined,
               imageId,
             })
-            navigate(nav.detail(id))
+            navigate(linkTo('recipe', { recipeId: id }))
           } catch (err) {
-            setError(
-              err instanceof ConvexError
-                ? typeof err.data === 'string'
-                  ? err.data
-                  : form.saveFailed
-                : err instanceof Error
-                  ? err.message
-                  : form.saveFailed,
-            )
+            setError(errorMessage(err, form.saveFailed))
             setSubmitting(false)
           }
         }}

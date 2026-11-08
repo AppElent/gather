@@ -318,63 +318,6 @@
     text-transform: uppercase;
   }
 
-  .shell-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--app-muted);
-    font-size: 0.8125rem;
-  }
-
-  .shell-status-dot {
-    inline-size: 0.4375rem;
-    block-size: 0.4375rem;
-    border-radius: 999px;
-  }
-
-  .shell-status-dot-success {
-    background: var(--app-success);
-  }
-
-  .shell-status-dot-warning {
-    background: var(--app-warning);
-  }
-
-  .shell-status-dot-muted {
-    background: var(--app-muted);
-  }
-
-  .shell-avatar-stack {
-    display: flex;
-    align-items: center;
-    min-inline-size: 0;
-    margin: 0;
-    border: 0;
-    padding: 0;
-  }
-
-  .shell-avatar {
-    display: inline-grid;
-    place-items: center;
-    inline-size: 1.875rem;
-    block-size: 1.875rem;
-    margin-inline-start: -0.4375rem;
-    border: 2px solid var(--app-surface);
-    border-radius: 999px;
-    background: var(--app-surface-muted);
-    color: var(--app-fg);
-    font-size: 0.6875rem;
-    font-weight: 700;
-  }
-
-  .shell-avatar:first-child {
-    margin-inline-start: 0;
-  }
-
-  .shell-avatar-more {
-    color: var(--app-muted);
-  }
-
   .page-wrap {
     width: min(1080px, calc(100% - 2rem));
     margin-inline: auto;

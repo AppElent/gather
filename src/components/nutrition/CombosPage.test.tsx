@@ -3,7 +3,6 @@ import { beforeEach, expect, test, vi } from 'vitest'
 import type { ComboComponent } from '../../../convex/lib/combos'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { CombosPage } from './CombosPage'
-import { groupNutritionNav } from './nutritionNav'
 
 /**
  * The Combos library (#100): somewhere to see what you have saved, rather than
@@ -88,8 +87,8 @@ beforeEach(() => {
   queried.value = []
 })
 
-function render(groupSlug = 'jansen-household') {
-  renderWithI18n(<CombosPage nav={groupNutritionNav(groupSlug)} />)
+function render() {
+  renderWithI18n(<CombosPage />)
 }
 
 test('asks only for the signed-in person’s combos', () => {
@@ -141,12 +140,3 @@ test('a component nobody can reach any more still shows, and says so', () => {
   expect(screen.getByText('Not available any more')).toBeDefined()
 })
 
-test('keeps the Group that was open in the way back to the diary', () => {
-  combos.value = []
-  render('wine-club')
-
-  expect(screen.getByRole('link', { name: /diary/i })).toHaveAttribute(
-    'href',
-    '/nutrition',
-  )
-})

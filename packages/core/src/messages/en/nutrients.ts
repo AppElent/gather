@@ -3,11 +3,8 @@ import type { NutrientKey, NutritionSource } from '../../domain'
 /**
  * The nutrient names, shared by Recipes, Nutrition and Foods.
  *
- * They used to be `NUTRIENT_LABELS` in `convex/lib/nutrition.ts`, beside the
- * keys and the validator. No Convex function ever read them — only three client
- * components did — so they were display strings sitting in a backend file that
- * no message tree could reach. The keys and the shape stayed there, where the
- * schema needs them; the words came here (ADR-0011).
+ * The keys live in `domain.ts`, where the schema needs them; the words are the
+ * reader's, so they live here (ADR-0011).
  *
  * The unit is part of the label because it is part of the name a reader knows:
  * "Protein (g)" is one column heading, not a heading plus a unit to compose.

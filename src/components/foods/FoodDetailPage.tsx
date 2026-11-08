@@ -4,19 +4,18 @@ import { Pencil, RefreshCw } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, useMessages } from '../../lib/i18n'
+import { linkTo, newFoodLink } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { useConfirmAction } from '../app/ConfirmAction'
-import { FoodThumbnail } from '../nutrition/FoodThumbnail'
-import { NutritionPanel } from '../recipes/NutritionPanel'
-import type { FoodNav } from './foodNav'
+import { FoodThumbnail } from '../kitchen/FoodThumbnail'
+import { NutritionPanel } from '../kitchen/NutritionPanel'
 
 export interface FoodDetailPageProps {
   foodId: string
-  nav: FoodNav
 }
 
-/** One Catalog food, whole. Shared by both detail routes. */
-export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
+/** One Catalog food, whole. */
+export function FoodDetailPage({ foodId }: FoodDetailPageProps) {
   const food = useQuery(api.foods.get, { id: foodId as Id<'foods'> })
   const refreshFromOff = useAction(api.foodsLookup.refreshFromOff)
   const { confirm, dialog } = useConfirmAction()
@@ -27,7 +26,7 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
   // it is loading — and when it turns out not to exist — the trail is the
   // collection alone, which is still the way out of here.
   const trail: Crumb[] = [
-    { label: messages.foods.list.title, link: nav.list },
+    { label: messages.foods.list.title, link: linkTo('foods') },
     ...(food ? [{ label: food.name }] : []),
   ]
 
@@ -58,13 +57,13 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
           </div>
         </div>
         {/*
-          Catalog entries are owned by nobody and read-only (ADR 0004) — the
-          next Catalog seed overwrites them unconditionally, so offering an
-          edit that silently reverts would be worse than offering none.
+          Edit only when the save would be accepted: Catalog entries are owned
+          by nobody and read-only (ADR 0004), and anything else only by whoever
+          made it.
         */}
-        {food.seedKey === undefined ? (
+        {food.canEdit ? (
           <Link
-            {...nav.edit(foodId)}
+            {...linkTo('editFood', { foodId })}
             aria-label={messages.common.actions.edit}
             className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border no-underline lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
           >
@@ -73,19 +72,17 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
               {messages.common.actions.edit}
             </span>
           </Link>
-        ) : (
+        ) : food.seedKey !== undefined ? (
           <span className="rounded border border-dashed px-3 py-1.5 text-sm opacity-60">
             {detail.builtIn}
           </span>
-        )}
+        ) : null}
       </div>
 
       {food.seedKey !== undefined && (
         <p className="mb-4 text-sm opacity-60">
           {detail.builtInNote}{' '}
-          {/* Through the Group in the address; the flat `/foods/new` this
-              arrived as is gone (ADR-0002). */}
-          <Link {...nav.create()} className="underline">
+          <Link {...newFoodLink()} className="underline">
             {detail.createYourOwn}
           </Link>
           .
@@ -93,10 +90,9 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
       )}
 
       {/*
-        The badge says where the *figures* came from, which the row now
-        records for itself. It used to be derived from `source` — where the
-        *row* came from — which answered the wrong question: an imported row
-        somebody had since typed over still read "Imported".
+        The badge says where the *figures* came from, which the row records
+        for itself — not `source`, where the *row* came from: an imported row
+        somebody has since typed over is not "Imported".
 
         A food that recorded nothing (anything older than the field, and every
         Catalog entry, whose figures are authored) gets no badge rather than a

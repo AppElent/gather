@@ -43,7 +43,7 @@ in step with it:
 - Neutrals and radii — `apps/mobile/src/theme/tokens.ts`
 - The four group tints, light and dark — `packages/core/src/module-tints.ts`
 - Row and card geometry — `apps/mobile/src/modules/notes/NotesScreen.tsx`,
-  `apps/mobile/src/modules/tasks/components.tsx`
+  `apps/mobile/src/ui/card.tsx`, `apps/mobile/src/modules/tasks/components.tsx`
 - The badge pill — `apps/mobile/src/modules/recipes/CollectionScreen.tsx`
 - Skeleton geometry — `apps/mobile/src/components/LoadingSkeleton.tsx`
 - Unavailable copy — `t.gate` in `apps/mobile/src/i18n/messages/en.ts`

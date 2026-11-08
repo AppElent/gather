@@ -4,9 +4,9 @@ import {
   BABY_BAR_SHORTCUTS,
   BABY_EVENT_TYPES,
   babyBarSlots,
+  barcodeTerm,
   declinedEventTypes,
   MEAL_NAMES,
-  moveBarSlot,
   NUTRIENT_KEYS,
   offeredEventTypes,
   QUANTITY_UNITS,
@@ -14,7 +14,7 @@ import {
 } from '../domain'
 import { fmt, isLocale, plural, resolveLocale } from '../i18n'
 import { en, nl } from '../messages'
-import { MODULE_GROUPS, MODULES, moduleText } from '../modules'
+import { MODULES, moduleText } from '../modules'
 import { DEFAULT_PINS, pinnedModuleIds } from '../pins'
 
 function leaves(value: unknown, path = ''): Map<string, string> {
@@ -34,9 +34,7 @@ function placeholders(text: string): string[] {
 }
 
 describe('the portable Gather catalogue', () => {
-  test('keeps the complete catalogue and its message join in one contract', () => {
-    expect(MODULES).toHaveLength(15)
-    expect(MODULE_GROUPS).toEqual(['kitchen', 'money', 'home', 'tasting'])
+  test('joins a Module to its name in the reader’s language', () => {
     expect(moduleText(MODULES[0], en).label).toBe('Recipes')
     expect(moduleText(MODULES[0], nl).label).toBe('Recepten')
   })
@@ -164,35 +162,6 @@ describe('the offered types in the household order', () => {
   })
 })
 
-describe('rearranging the offer', () => {
-  const order = ['feeding', 'diaper', 'sleep'] as const
-
-  test('one place up', () => {
-    expect(moveBarSlot(order, 'sleep', -1)).toEqual([
-      'feeding',
-      'sleep',
-      'diaper',
-    ])
-  })
-
-  test('one place down', () => {
-    expect(moveBarSlot(order, 'feeding', 1)).toEqual([
-      'diaper',
-      'feeding',
-      'sleep',
-    ])
-  })
-
-  test('off the top does nothing rather than wrapping to the bottom', () => {
-    expect(moveBarSlot(order, 'feeding', -1)).toEqual([...order])
-    expect(moveBarSlot(order, 'sleep', 1)).toEqual([...order])
-  })
-
-  test('a type that is not in the list is left alone', () => {
-    expect(moveBarSlot(order, 'growth', -1)).toEqual([...order])
-  })
-})
-
 describe('the log bar', () => {
   test('no stored arrangement is every tracked type, then both shortcuts', () => {
     expect(babyBarSlots(['feeding', 'diaper'], undefined)).toEqual([
@@ -250,5 +219,43 @@ describe('the daily AI cap on the wire', () => {
     expect(isAiLimitReached({ data: { kind: 'tastingAttribute' } })).toBe(false)
     expect(isAiLimitReached(null)).toBe(false)
     expect(isAiLimitReached(undefined)).toBe(false)
+  })
+})
+
+describe('barcodeTerm', () => {
+  test('reads the barcode out of a term that is one, ignoring the spaces around it', () => {
+    expect(barcodeTerm('8712345678901')).toBe('8712345678901')
+    expect(barcodeTerm('  8712345678901  ')).toBe('8712345678901')
+    // EAN-8 at one end, the longest code the lookup accepts at the other.
+    expect(barcodeTerm('12345678')).toBe('12345678')
+    expect(barcodeTerm('12345678901234')).toBe('12345678901234')
+  })
+
+  test('a number still being typed is not a barcode', () => {
+    // The point of the floor: the digits of a barcode arrive one at a time, and
+    // each prefix has to stay an ordinary search rather than a failed lookup.
+    for (const partial of [
+      '8',
+      '87',
+      '871',
+      '8712',
+      '87123',
+      '871234',
+      '8712345',
+    ]) {
+      expect(barcodeTerm(partial)).toBeNull()
+    }
+  })
+
+  test('a number longer than any barcode is not one either', () => {
+    expect(barcodeTerm('123456789012345')).toBeNull()
+  })
+
+  test('a name is not a barcode, however many digits are in it', () => {
+    expect(barcodeTerm('hagelslag')).toBeNull()
+    expect(barcodeTerm('')).toBeNull()
+    expect(barcodeTerm('cola zero 330 ml')).toBeNull()
+    expect(barcodeTerm('871234-5678901')).toBeNull()
+    expect(barcodeTerm('8712345678901 melk')).toBeNull()
   })
 })

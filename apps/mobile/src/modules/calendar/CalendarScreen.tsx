@@ -1,15 +1,20 @@
-import {
-  type AgendaRow,
-  addCalendarDays,
-  type CalendarEvent,
-  type CalendarPerson,
-  type CalendarView,
-  normalizeCalendarEvent,
-  todayCalendarDate,
+import type {
+  AgendaRow,
+  CalendarEvent,
+  CalendarPerson,
+  CalendarView,
 } from '@gather/core/calendar'
+import { addDays } from '@gather/core/civil-date'
 import Constants from 'expo-constants'
 import { Stack } from 'expo-router'
-import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react'
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import {
   type FlatList,
   Platform,
@@ -21,7 +26,6 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'
 import { useTokens } from '../../theme/tokens'
 import { CalendarAgenda } from './CalendarAgenda'
@@ -36,41 +40,44 @@ import {
 
 export interface CalendarScreenData {
   calendars: { id: string; name: string; color?: CalendarEvent['color'] }[]
+  /** Normalized, with hidden calendars and the people filter already applied. */
   events: CalendarEvent[]
   people: CalendarPerson[]
-  hiddenCalendarIds?: string[]
+  hiddenCalendarIds: string[]
 }
 
 export interface CalendarScreenProps {
-  data?: CalendarScreenData
-  today?: string
-  onAdd?: (date: string) => void
-  onEvent?: (event: CalendarEvent) => void
-  onDeleteEvent?: (event: CalendarEvent) => void
-  preferredView?: CalendarView
-  sourceNodes?: ReactNode
-  onViewChange?: (view: CalendarView) => void
-  onOpenCalendars?: () => void
-  onOpenPeople?: () => void
-  hasDraft?: boolean
-  onResumeDraft?: () => void
+  data: CalendarScreenData
+  today: string
+  /** Told whenever the visible date moves, so the events around it are loaded. */
+  onActiveDate: (date: string) => void
+  onAdd: (date: string) => void
+  onEvent: (event: CalendarEvent) => void
+  onDeleteEvent: (event: CalendarEvent) => void
+  preferredView: CalendarView
+  sourceNodes: ReactNode
+  onViewChange: (view: CalendarView) => void
+  onOpenCalendars: () => void
+  onOpenPeople: () => void
+  hasDraft: boolean
+  onResumeDraft: () => void
 }
 
 export function CalendarScreen({
   data,
-  today = todayCalendarDate(),
+  today,
+  onActiveDate,
   onAdd,
   onEvent,
   onDeleteEvent,
-  preferredView = 'week',
+  preferredView,
   sourceNodes,
   onViewChange,
   onOpenCalendars,
   onOpenPeople,
-  hasDraft = false,
+  hasDraft,
   onResumeDraft,
 }: CalendarScreenProps) {
-  const { group } = useGroup()
   const { t } = useI18n()
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
@@ -88,25 +95,16 @@ export function CalendarScreen({
     Record<string, readonly string[]>
   >({})
   const activeMonth = navigation.activeDate.slice(0, 7)
-  const hidden = useMemo(
-    () => data?.hiddenCalendarIds ?? [],
-    [data?.hiddenCalendarIds],
-  )
-  const events = useMemo(
-    () => (data?.events ?? []).map(normalizeCalendarEvent),
-    [data?.events],
-  )
+  useEffect(() => {
+    onActiveDate(navigation.activeDate)
+  }, [navigation.activeDate, onActiveDate])
   const from = useMemo(
-    () => addCalendarDays(navigation.activeDate, -21),
+    () => addDays(navigation.activeDate, -21),
     [navigation.activeDate],
   )
   const toExclusive = useMemo(
-    () => addCalendarDays(navigation.activeDate, 42),
+    () => addDays(navigation.activeDate, 42),
     [navigation.activeDate],
-  )
-  const filteredEvents = useMemo(
-    () => events.filter((event) => !hidden.includes(event.calendarId)),
-    [events, hidden],
   )
 
   const expandedDates = expandedByMonth[activeMonth] ?? []
@@ -134,8 +132,8 @@ export function CalendarScreen({
           presentation={navigation.presentation}
           progress={navigation.headerProgress}
           topInset={topInset}
-          events={filteredEvents}
-          people={data?.people ?? []}
+          events={data.events}
+          people={data.people}
           onSelectDate={jumpToDate}
           onPage={(direction) =>
             setNavigation((current) => pageActiveDate(current, direction))
@@ -143,22 +141,17 @@ export function CalendarScreen({
           onToggle={() => setNavigation((current) => toggleHeader(current))}
           onView={(view: CalendarView) => {
             setNavigation((current) => setCalendarView(current, view))
-            onViewChange?.(view)
+            onViewChange(view)
           }}
-          onAdd={() => onAdd?.(navigation.activeDate)}
-          onOpenCalendars={() => onOpenCalendars?.()}
-          onOpenPeople={() => onOpenPeople?.()}
+          onAdd={() => onAdd(navigation.activeDate)}
+          onOpenCalendars={onOpenCalendars}
+          onOpenPeople={onOpenPeople}
         />
         {/* box-none: the row itself never takes a touch, but the draft pill does. */}
         <View style={styles.status} pointerEvents="box-none">
-          {hidden.length > 0 ? (
+          {data.hiddenCalendarIds.length > 0 ? (
             <Text style={[styles.filterStatus, { color: tokens.accent }]}>
               {t.calendar.filtersActive}
-            </Text>
-          ) : null}
-          {!data ? (
-            <Text style={[styles.loading, { color: tokens.muted }]}>
-              {t.calendar.loading}
             </Text>
           ) : null}
           {hasDraft ? (
@@ -185,12 +178,12 @@ export function CalendarScreen({
           toExclusive={toExclusive}
           selectedDate={navigation.activeDate}
           today={today}
-          events={filteredEvents}
-          people={data?.people ?? []}
+          events={data.events}
+          people={data.people}
           expandedDates={expandedDates}
           onSelectDate={jumpToDate}
-          onEvent={(event) => onEvent?.(event)}
-          onDeleteEvent={(event) => onDeleteEvent?.(event)}
+          onEvent={onEvent}
+          onDeleteEvent={onDeleteEvent}
           onExpandGap={(dates) => {
             setExpandedByMonth((current) => ({
               ...current,
@@ -202,9 +195,6 @@ export function CalendarScreen({
           }}
           listRef={listRef}
         />
-        <Text accessibilityLabel={group.name} style={styles.hiddenGroup}>
-          {group.name}
-        </Text>
       </View>
     </>
   )
@@ -228,6 +218,4 @@ const styles = StyleSheet.create({
   },
   draftText: { fontSize: 14, fontWeight: '600' },
   filterStatus: { fontSize: 11, fontWeight: '600' },
-  loading: { fontSize: 12 },
-  hiddenGroup: { position: 'absolute', width: 1, height: 1, opacity: 0 },
 })

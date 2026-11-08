@@ -1,4 +1,6 @@
 import {
+  type TastingAttributes,
+  type TastingFieldScope,
   type TastingKind,
   tastingFields,
   tastingKindSpec,
@@ -11,24 +13,22 @@ import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, plural, useI18n, useMessages } from '../../lib/i18n'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
+import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { type EditableTasting, TastingDialog } from './TastingDialog'
-import type { TastingNav } from './tastingNav'
+import { TASTING_LINKS } from './tastingNav'
 import { tastingFieldValue } from './tastingText'
 
 export function TastingSubjectPage({
   kind,
   subjectId,
-  groupSlug,
-  groupName,
-  nav,
 }: {
   kind: TastingKind
   subjectId: string
-  groupSlug: string
-  groupName: string
-  nav: TastingNav
 }) {
+  const { slug: groupSlug, name: groupName } = useRequiredCurrentGroup()
+  const nav = TASTING_LINKS[kind]
   const id = subjectId as Id<'tastingSubjects'>
   const detail = useQuery(api.tastings.getSubject, { groupSlug, id, kind })
   const removeTasting = useMutation(api.tastings.removeTasting)
@@ -40,7 +40,7 @@ export function TastingSubjectPage({
   const moduleId = tastingKindSpec(kind).moduleId
   const [logging, setLogging] = useState(false)
   const [editing, setEditing] = useState<EditableTasting | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { confirm, dialog } = useConfirmAction()
   const trail: Crumb[] = [
     { label: messages.modules.byId[moduleId].label, link: nav.list },
     ...(detail ? [{ label: detail.subject.name }] : []),
@@ -72,7 +72,6 @@ export function TastingSubjectPage({
     subjectId: subject._id,
     name: subject.name,
     attributes: subject.attributes,
-    count: subject.count,
   }
 
   return (
@@ -123,28 +122,26 @@ export function TastingSubjectPage({
             type="button"
             aria-label={copy.subject.delete}
             className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-red-300 text-red-700 lg:gap-2 lg:px-3 lg:text-sm lg:font-semibold"
-            onClick={async () => {
-              const body =
-                subject.count === 0
-                  ? copy.subject.deleteSubjectBodyEmpty
-                  : plural(
-                      locale,
-                      subject.count,
-                      copy.subject.deleteSubjectBody,
-                    )
-              if (
-                !window.confirm(
-                  `${fmt(copy.subject.deleteSubjectTitle, { name: subject.name })}\n\n${body}`,
-                )
-              )
-                return
-              try {
-                await removeSubject({ groupSlug, id: subject._id })
-                navigate(nav.list)
-              } catch (cause) {
-                setError(cause instanceof Error ? cause.message : String(cause))
-              }
-            }}
+            onClick={() =>
+              confirm({
+                title: fmt(copy.subject.deleteSubjectTitle, {
+                  name: subject.name,
+                }),
+                body:
+                  subject.count === 0
+                    ? copy.subject.deleteSubjectBodyEmpty
+                    : plural(
+                        locale,
+                        subject.count,
+                        copy.subject.deleteSubjectBody,
+                      ),
+                confirmLabel: copy.subject.delete,
+                run: async () => {
+                  await removeSubject({ groupSlug, id: subject._id })
+                  navigate(nav.list)
+                },
+              })
+            }
           >
             <Trash2 className="h-4 w-4" aria-hidden="true" />
             <span className="hidden lg:inline">{copy.subject.delete}</span>
@@ -152,32 +149,16 @@ export function TastingSubjectPage({
         </div>
       </header>
 
-      {error ? (
-        <p role="alert" className="m-0 text-sm text-red-700">
-          {error}
-        </p>
-      ) : null}
-
       <SurfaceCard>
         <h2 className="mt-0 text-sm font-semibold uppercase tracking-wide text-[var(--app-muted)]">
           {copy.subject.facts}
         </h2>
-        <dl className="m-0 grid gap-3 sm:grid-cols-2">
-          {tastingFields(kind, 'subject').map((field) => {
-            const value = subject.attributes[field.key]
-            if (value === undefined) return null
-            return (
-              <div key={field.key}>
-                <dt className="text-xs font-semibold text-[var(--app-muted)]">
-                  {copy.fields[field.key as keyof typeof copy.fields]}
-                </dt>
-                <dd className="m-0 mt-1 text-sm">
-                  {tastingFieldValue(messages, field, value)}
-                </dd>
-              </div>
-            )
-          })}
-        </dl>
+        <Facts
+          kind={kind}
+          scope="subject"
+          attributes={subject.attributes}
+          className="m-0"
+        />
       </SurfaceCard>
 
       <section>
@@ -229,36 +210,26 @@ export function TastingSubjectPage({
                       type="button"
                       aria-label={copy.subject.deleteTasting}
                       className="grid min-h-9 min-w-9 place-items-center rounded-[var(--app-radius)] border border-red-300 text-red-700"
-                      onClick={async () => {
-                        if (
-                          !window.confirm(
-                            `${copy.subject.deleteTastingTitle}\n\n${copy.subject.deleteTastingBody}`,
-                          )
-                        )
-                          return
-                        await removeTasting({ groupSlug, id: tasting._id })
-                      }}
+                      onClick={() =>
+                        confirm({
+                          title: copy.subject.deleteTastingTitle,
+                          body: copy.subject.deleteTastingBody,
+                          confirmLabel: copy.subject.delete,
+                          run: () =>
+                            removeTasting({ groupSlug, id: tasting._id }),
+                        })
+                      }
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
-                <dl className="mb-0 mt-3 grid gap-3 sm:grid-cols-2">
-                  {tastingFields(kind, 'tasting').map((field) => {
-                    const value = tasting.attributes[field.key]
-                    if (value === undefined) return null
-                    return (
-                      <div key={field.key}>
-                        <dt className="text-xs font-semibold text-[var(--app-muted)]">
-                          {copy.fields[field.key as keyof typeof copy.fields]}
-                        </dt>
-                        <dd className="m-0 mt-1 text-sm">
-                          {tastingFieldValue(messages, field, value)}
-                        </dd>
-                      </div>
-                    )
-                  })}
-                </dl>
+                <Facts
+                  kind={kind}
+                  scope="tasting"
+                  attributes={tasting.attributes}
+                  className="mb-0 mt-3"
+                />
               </SurfaceCard>
             ))}
           </div>
@@ -284,6 +255,44 @@ export function TastingSubjectPage({
         tasting={editing ?? undefined}
         onClose={() => setEditing(null)}
       />
+      {dialog}
     </article>
+  )
+}
+
+/** The filled-in fields of a subject or a tasting, as label and value. */
+function Facts({
+  kind,
+  scope,
+  attributes,
+  className,
+}: {
+  kind: TastingKind
+  scope: TastingFieldScope
+  attributes: TastingAttributes
+  className: string
+}) {
+  const messages = useMessages()
+  return (
+    <dl className={`${className} grid gap-3 sm:grid-cols-2`}>
+      {tastingFields(kind, scope).map((field) => {
+        const value = attributes[field.key]
+        if (value === undefined) return null
+        return (
+          <div key={field.key}>
+            <dt className="text-xs font-semibold text-[var(--app-muted)]">
+              {
+                messages.tastings.fields[
+                  field.key as keyof typeof messages.tastings.fields
+                ]
+              }
+            </dt>
+            <dd className="m-0 mt-1 text-sm">
+              {tastingFieldValue(messages, field, value)}
+            </dd>
+          </div>
+        )
+      })}
+    </dl>
   )
 }

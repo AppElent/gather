@@ -23,6 +23,13 @@ import { annuityPayment } from './mortgage'
 export const TRANSFER_TAX_BANDS = ['starter', 'ownHome', 'other'] as const
 export type TransferTaxBand = (typeof TRANSFER_TAX_BANDS)[number]
 
+/** The percentage each band carries today, which a new choice records. */
+export const TRANSFER_TAX_PERCENT: Record<TransferTaxBand, number> = {
+  starter: 0,
+  ownHome: 2,
+  other: 10.4,
+}
+
 /** The cost lines the form asks about, in the order the screen shows them. */
 export const BUYING_COST_LINES = [
   'notary',

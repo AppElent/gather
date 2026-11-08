@@ -13,11 +13,6 @@
  *
  * The submit does not navigate. `finalize()` flips `isSignedIn`, the `(auth)`
  * layout redirects, and this screen unmounts; see `usePasswordSignIn`.
- *
- * Clerk **Core 3**, the same generation as the web's forms in `src/lib/auth`
- * (ADR-0038): calls resolve to `{ error }`, and a finished attempt still needs
- * `finalize()`. The phone reads per-field errors off the hook's `errors`
- * signal, where the web shows one banner.
  */
 
 import { useRouter } from 'expo-router'

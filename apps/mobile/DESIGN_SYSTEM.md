@@ -61,7 +61,7 @@ haptics off, or while the camera or dictation is active.
   appear only for Undo and for a failure the person did not cause.
 - **Undo or confirm, never both.** Reversible things just happen, with undo
   (complete, unpin, un-share). Permanent things ask first, in an alert that
-  names what is destroyed. Deleting in gather is permanent today (hard
+  names what is destroyed (`confirmDestructive`, `src/feedback/`). Deleting in gather is permanent today (hard
   deletes, no `deletedAt`), so destructive actions confirm.
 - **Completing puts an item away**, into a collapsed **Completed (n)** section
   at the bottom of its list.

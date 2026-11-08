@@ -1,11 +1,13 @@
+import { ACCOUNT_DELETED } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { requireGroupBySlug } from './lib/groupAccess'
 import { nutritionValidator } from './lib/nutrition'
 import {
-  ACCOUNT_DELETED,
   getCurrentUser,
   getUserByClerkId,
+  requireCurrentUser,
+  requireIdentity,
 } from './lib/sharing'
 
 /** Returns the current gather user row, or null if not signed in / not yet provisioned. */
@@ -21,8 +23,7 @@ export const me = query({
 export const ensureUser = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new Error('Not authenticated')
+    const identity = await requireIdentity(ctx)
 
     // Runs on every app mount, and is the only thing that inserts into
     // `users` — so it must never insert a second row for a subject that
@@ -71,7 +72,7 @@ export const MAX_PINNED_MODULES = 32
  *
  * Null rather than the default list, because "has not chosen" and "chose these"
  * are different answers and only the client knows the Module catalog the
- * default is written in. `pinnedModuleIds` in `src/lib/pins.ts` turns the
+ * default is written in. `pinnedModuleIds` in `packages/core/src/pins.ts` turns the
  * former into the latter.
  *
  * The fallback to the person's pre-ADR-0005 list is what makes a Group they
@@ -122,8 +123,7 @@ export const setPins = mutation({
 export const setNutritionTargets = mutation({
   args: { targets: nutritionValidator },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) throw new Error('Not authenticated')
+    const user = await requireCurrentUser(ctx)
     await ctx.db.patch(user._id, { nutritionTargets: args.targets })
   },
 })

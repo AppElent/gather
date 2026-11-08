@@ -4,16 +4,13 @@
  *
  * ## One row, one kind of thing
  *
- * A to-do and a question used to sit past a hairline divider at the end, fixed
- * there, outside the arrangement. That divider was drawing a distinction the
- * person using the bar does not have: "ask about the rash" is one of the
- * things you reach for while logging, and if it is the thing you reach for
- * most it belongs under your thumb. So every button is a `BabyBarSlot` now —
- * an event type or a shortcut — and they arrange together.
+ * A to-do and a question are not fenced off at the end: "ask about the rash" is
+ * one of the things you reach for while logging, and if it is the thing you
+ * reach for most it belongs under your thumb. So every button is a
+ * `BabyBarSlot` — an event type or a shortcut — and they arrange together.
  *
  * The distinction survives where it costs nothing: a shortcut keeps its dashed
- * ring, which travels with it. What it does not do any more is decide where it
- * is allowed to go.
+ * ring, which travels with it. It does not decide where it is allowed to go.
  *
  * ## Two modes
  *
@@ -55,13 +52,14 @@ import {
 } from 'react-native'
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { movedTo } from '../../arrange/arrange'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
 import { fmt, type Messages, useI18n } from '../../i18n'
 import type { Glyph } from '../../theme/glyph'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { BABY_UI_ICONS, EVENT_ICONS } from './icons'
-import { dragTarget, movedTo, residualOffset } from './logBarArrange'
+import { dragTarget, residualOffset } from './logBarArrange'
 
 /** The width of one button while logging. Arranging measures its own. */
 const ITEM_WIDTH = 61
@@ -71,15 +69,14 @@ const ITEM_WIDTH = 61
  *
  * The bottom inset is the whole of what is down there that is not ours. On iOS
  * the native tab bar is translucent and this screen is drawn *underneath* it,
- * so UIKit reports the tab bar's height as part of the inset — and the bar was
- * spending that inset on a flat 4px, which is exactly how it ended up behind
- * the tab bar. On Android the tab bar is a sibling view with the screen above
- * it, so the inset there is small or zero.
+ * so UIKit reports the tab bar's height as part of the inset, and a bar that
+ * ignores it sits behind the tab bar. On Android the tab bar is a sibling view
+ * with the screen above it, so the inset there is small or zero.
  *
- * The inset is now paid *and then some*. Spending it exactly leaves the labels
- * flush against the tab bar's own edge, which still reads as behind it — which
- * is what the second round of iOS feedback was about. `BAR_GAP` is that gap,
- * and it is the only number here that is taste rather than measurement.
+ * The inset is paid *and then some*. Spending it exactly leaves the labels
+ * flush against the tab bar's own edge, which still reads as behind it.
+ * `BAR_GAP` is that gap, and it is the only number here that is taste rather
+ * than measurement.
  */
 const BAR_GAP = 7
 const barBottom = (inset: number) => inset + BAR_GAP
@@ -468,8 +465,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // What still separates "record what happened" from "remind me later", now
-  // that they share a row and an arrangement.
+  // What separates "record what happened" from "remind me later" in a shared
+  // row and arrangement.
   circleDashed: { borderWidth: 1, borderStyle: 'dashed' },
   label: { fontSize: 10.5 },
   arrangeHead: {

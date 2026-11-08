@@ -2,7 +2,6 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { AddSheet } from './AddSheet'
-import { groupNutritionNav } from './nutritionNav'
 
 /**
  * The add sheet's one rule: every row is a card, every card expands in place,
@@ -71,10 +70,9 @@ const offProduct = vi.hoisted(() => ({ value: null as unknown }))
 const offImportFailure = vi.hoisted(() => ({ value: null as Error | null }))
 const calls = vi.hoisted(() => ({ value: [] as Array<[string, unknown]> }))
 const offImageCalls = vi.hoisted(() => ({ value: [] as unknown[] }))
-const currentUser = vi.hoisted(() => ({ value: { _id: 'user1' } as unknown }))
 
 vi.mock('convex/react', () => ({
-  useQuery: (name: string, args: { term?: string } | 'skip') => {
+  useQuery: (name: string, args: { term?: string; id?: string } | 'skip') => {
     if (args !== 'skip' && name === 'foods:search') {
       const term = (args.term ?? '').trim().toLowerCase()
       if (!term) return []
@@ -86,9 +84,13 @@ vi.mock('convex/react', () => ({
       return args === 'skip' ? undefined : existingFood.value
     }
     if (name === 'foods:get') {
-      return args === 'skip' ? undefined : justAddedFood.value
+      if (args === 'skip') return undefined
+      // The food a review handed back, or the one a scan found.
+      const known = [justAddedFood.value, existingFood.value] as Array<{
+        _id: string
+      } | null>
+      return known.find((food) => food?._id === args.id) ?? null
     }
-    if (name === 'users:me') return currentUser.value
     if (name === 'recipes:listAcrossMyGroups') return recipes.value
     if (name === 'combos:list') return combos.value
     if (name === 'consumption:loggedAmountsForFood') {
@@ -133,7 +135,6 @@ vi.mock('../../../convex/_generated/api', () => ({
     },
     recipes: { listAcrossMyGroups: 'recipes:listAcrossMyGroups' },
     combos: { list: 'combos:list', replaceItems: 'combos:replaceItems' },
-    users: { me: 'users:me' },
     consumption: {
       create: 'consumption:create',
       createMany: 'consumption:createMany',
@@ -184,15 +185,12 @@ function href({
   return query ? `${path}?${query}` : path
 }
 
-const nav = groupNutritionNav('jansen-household')
-
 function renderSheet(onClose = vi.fn(), justAddedFoodId?: string) {
   renderWithI18n(
     <AddSheet
       date="2026-07-18"
       meal="breakfast"
       justAddedFoodId={justAddedFoodId}
-      nav={nav}
       onClose={onClose}
     />,
   )
@@ -215,7 +213,6 @@ beforeEach(() => {
   offProduct.value = null
   offImportFailure.value = null
   offImageCalls.value = []
-  currentUser.value = { _id: 'user1' }
   // jsdom has no `navigator.mediaDevices`, which is what the scanner asks for
   // first. A stand-in that refuses is the state a phone with the camera denied
   // is in, and it leaves the manual barcode entry — the part this suite drives.
@@ -487,11 +484,9 @@ test('a failed scanned import tells the person what happened', async () => {
 
 test('a scanned product with no name is asked about rather than imported as ""', async () => {
   // `mapOffProduct` maps a product with no `product_name` rather than
-  // rejecting it, deliberately leaving the name "to the user on the
-  // confirmation screen". This path used to have no confirmation screen, and
-  // sent the mapping straight to the import — silently saving a food called
-  // "". The review form *is* that screen, and its name field is required, so
-  // the name is supplied before anything is written.
+  // rejecting it, leaving the name "to the user on the confirmation screen".
+  // The review form *is* that screen, and its name field is required, so the
+  // name is supplied before anything is written.
   offProduct.value = { name: '', brand: 'Plus', nutritionPer100: {} }
   renderSheet()
   await scan('8712345678901')
@@ -530,7 +525,7 @@ test('the food a review form just saved comes back expanded and ready to log', a
 
 test('a food returned through the same add-sheet route opens after its search changes', async () => {
   const { rerender } = renderWithI18n(
-    <AddSheet date="2026-07-18" meal="breakfast" nav={nav} onClose={vi.fn()} />,
+    <AddSheet date="2026-07-18" meal="breakfast" onClose={vi.fn()} />,
   )
   justAddedFood.value = {
     _id: 'food9',
@@ -544,7 +539,6 @@ test('a food returned through the same add-sheet route opens after its search ch
       date="2026-07-18"
       meal="breakfast"
       justAddedFoodId="food9"
-      nav={nav}
       onClose={vi.fn()}
     />,
   )
@@ -574,7 +568,6 @@ test('returning from a second import starts with a fresh food card', async () =>
       date="2026-07-18"
       meal="breakfast"
       justAddedFoodId="food9"
-      nav={nav}
       onClose={vi.fn()}
     />,
   )
@@ -583,14 +576,13 @@ test('returning from a second import starts with a fresh food card', async () =>
     name: 'First milk',
     baseUnit: 'ml',
     nutritionPer100: { calories: 64 },
-    createdBy: 'user1',
+    canEdit: true,
   }
   rerender(
     <AddSheet
       date="2026-07-18"
       meal="breakfast"
       justAddedFoodId="food9"
-      nav={nav}
       onClose={vi.fn()}
     />,
   )
@@ -603,14 +595,13 @@ test('returning from a second import starts with a fresh food card', async () =>
     name: 'Second milk',
     baseUnit: 'ml',
     nutritionPer100: { calories: 64 },
-    createdBy: 'user1',
+    canEdit: true,
   }
   rerender(
     <AddSheet
       date="2026-07-18"
       meal="breakfast"
       justAddedFoodId="food10"
-      nav={nav}
       onClose={vi.fn()}
     />,
   )
@@ -627,7 +618,7 @@ test('an expanded food card edits the full food before it is logged', async () =
     baseUnit: 'ml',
     nutritionPer100: { calories: 64 },
     nutritionSource: 'imported',
-    createdBy: 'user1',
+    canEdit: true,
   }
   renderSheet(vi.fn(), 'food9')
 
@@ -650,6 +641,21 @@ test('an expanded food card edits the full food before it is logged', async () =
       }),
     ]),
   )
+})
+
+test('a food somebody else made can be logged but not edited', async () => {
+  // The server says who may edit; the card asks it rather than working it out.
+  justAddedFood.value = {
+    _id: 'food9',
+    name: 'Volle melk',
+    baseUnit: 'ml',
+    nutritionPer100: { calories: 64 },
+    canEdit: false,
+  }
+  renderSheet(vi.fn(), 'food9')
+
+  await waitFor(() => expect(screen.getByText('Add to diary')).toBeDefined())
+  expect(screen.queryByText('Edit food details')).toBeNull()
 })
 
 test('the search field offers a clear only while there is something to clear', async () => {

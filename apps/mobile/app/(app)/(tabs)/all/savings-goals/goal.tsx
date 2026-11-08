@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router'
-import type { Id } from '../../../../../../../convex/_generated/dataModel'
+import type { Id } from '../../../../../src/convex/api'
 
 import { SavingsGoalScreen } from '../../../../../src/modules/finances/SavingsScreen'
 
@@ -7,7 +7,6 @@ export default function SavingsGoal() {
   const { goalId } = useLocalSearchParams<{ goalId: string }>()
   return (
     <SavingsGoalScreen
-      base="/all/savings-goals"
       goalId={goalId as Id<'savingsGoals'>}
     />
   )

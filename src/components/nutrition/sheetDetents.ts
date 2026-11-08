@@ -25,7 +25,7 @@ export const DRAG_THRESHOLD_PX = 6
  * A quick flick down from full goes to peek rather than all the way out, so
  * one gesture never both collapses and closes; a flick up always goes full.
  */
-export const FLICK_VELOCITY = 0.55
+const FLICK_VELOCITY = 0.55
 
 /** The detent a resting position is closest to. */
 export function nearestDetent(frac: number): Detent {

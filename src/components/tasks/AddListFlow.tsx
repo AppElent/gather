@@ -1,3 +1,7 @@
+import {
+  EXTERNAL_PROVIDER_IDS,
+  type ExternalProviderId,
+} from '@gather/core/domain'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -8,14 +12,14 @@ import type {
 } from '../../../convex/lib/taskProviders/types'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, type Messages, useMessages } from '../../lib/i18n'
-import type { ExternalProvider } from '../../lib/oauth'
+import { hrefTo } from '../../lib/links'
+import { PROVIDER_LABELS, useConnectProvider } from '../../lib/oauth'
 import { SurfaceCard } from '../app/ShellPrimitives'
-import { useConnectProvider } from '../settings/ConnectionsSettings'
 
 type Step =
   | { kind: 'provider' }
   | { kind: 'local-name' }
-  | { kind: 'source'; provider: ExternalProvider; sources: ProviderSource[] }
+  | { kind: 'source'; provider: ExternalProviderId; sources: ProviderSource[] }
   | {
       kind: 'notion-mapping'
       source: ProviderSource
@@ -28,19 +32,19 @@ const inputClass =
   'min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm'
 
 export interface AddListFlowProps {
-  /** The Group the list is being added to. Always the one in the URL. */
+  /** The Group the list is being added to. */
   groupSlug: string
-  /** Where the provider OAuth round-trip should come back to. */
-  returnTo: string
   onDone: () => void
 }
 
-export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
+export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
   const connections = useQuery(api.integrations.listConnections, { groupSlug })
   const listSources = useAction(api.integrations.listSources)
   const getSourceSchema = useAction(api.integrations.getSourceSchema)
   const createList = useMutation(api.taskLists.create)
-  const connect = useConnectProvider(groupSlug, returnTo)
+  // The provider OAuth round-trip comes back to Tasks, as a plain path because
+  // it survives a full page load in sessionStorage.
+  const connect = useConnectProvider(groupSlug, hrefTo('tasks'))
   const messages = useMessages()
   const { addList, notionMapping } = messages.tasks
 
@@ -61,11 +65,11 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
     }
   }
 
-  function connectionFor(provider: ExternalProvider) {
+  function connectionFor(provider: ExternalProviderId) {
     return connections?.find((c) => c.provider === provider)
   }
 
-  async function pickExternal(provider: ExternalProvider) {
+  async function pickExternal(provider: ExternalProviderId) {
     await run(async () => {
       const sources = await listSources({ provider, groupSlug })
       setStep({ kind: 'source', provider, sources })
@@ -73,7 +77,7 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
   }
 
   async function pickSource(
-    provider: ExternalProvider,
+    provider: ExternalProviderId,
     source: ProviderSource,
   ) {
     setName(source.name)
@@ -155,7 +159,7 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
           >
             {addList.local}
           </button>
-          {(['notion', 'todoist'] as const).map((provider) =>
+          {EXTERNAL_PROVIDER_IDS.map((provider) =>
             connectionFor(provider) ? (
               <button
                 key={provider}
@@ -165,7 +169,7 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
                 onClick={() => void pickExternal(provider)}
               >
                 {fmt(addList.mirror, {
-                  provider: provider === 'notion' ? 'Notion' : 'Todoist',
+                  provider: PROVIDER_LABELS[provider],
                 })}
               </button>
             ) : (
@@ -177,7 +181,7 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
                 onClick={() => void run(() => connect(provider))}
               >
                 {fmt(addList.connectFirst, {
-                  provider: provider === 'notion' ? 'Notion' : 'Todoist',
+                  provider: PROVIDER_LABELS[provider],
                 })}
               </button>
             ),
@@ -243,11 +247,6 @@ export function AddListFlow({ groupSlug, returnTo, onDone }: AddListFlowProps) {
   )
 }
 
-/**
- * Takes its words as props rather than reading the context itself — it is
- * defined below its only caller and rendered by it alone, so threading them
- * through keeps the whole flow's strings resolved in one place.
- */
 const selectClass =
   'min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm'
 
@@ -285,6 +284,11 @@ function MappingSelect({
   )
 }
 
+/**
+ * Takes its words as props rather than reading the context itself — it is
+ * defined below its only caller and rendered by it alone, so threading them
+ * through keeps the whole flow's strings resolved in one place.
+ */
 function NotionMappingForm({
   text,
   listNameLabel,

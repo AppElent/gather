@@ -1,4 +1,5 @@
-export type Provider = 'local' | 'notion' | 'todoist'
+import type { TaskProviderId } from '@gather/core/domain'
+
 export type Priority = 1 | 2 | 3 | 4
 
 export interface ListDisplay {
@@ -7,16 +8,22 @@ export interface ListDisplay {
   labels: boolean
 }
 
+/**
+ * Where a list's tasks stand. A local list is `live` once Convex has answered;
+ * a linked one is `synced` after its provider answered, and `reconnect` or
+ * `failed` when it did not, with the last rows still shown (ADR-0021).
+ */
+export type ListSync = 'live' | 'loading' | 'synced' | 'reconnect' | 'failed'
+
 export interface TaskList {
   id: string
   name: string
-  provider: Provider
+  provider: TaskProviderId
   writable: boolean
   display: ListDisplay
   order: number
+  sync: ListSync
 }
-
-export type List = TaskList
 
 export interface Task {
   id: string
@@ -28,24 +35,6 @@ export interface Task {
   labels: string[]
   notes?: string
   order: number
-}
-
-export interface Note {
-  id: string
-  title: string
-  body: string
-  pinned: boolean
-  updatedAt: number
-  /** The last editor's name; null when that account no longer exists. */
-  updatedByName: string | null
-  updatedByMe: boolean
-}
-
-export interface TaskState {
-  today: string
-  lists: TaskList[]
-  tasks: Task[]
-  notes: Note[]
 }
 
 export const SUGGESTED_LABELS = ['house', 'admin', 'car', 'inbox', 'errand']

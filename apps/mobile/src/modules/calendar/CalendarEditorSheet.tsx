@@ -17,7 +17,6 @@ export function CalendarEditorSheet(props: CalendarEditorProps) {
         {...props}
         overlay={false}
         full
-        onCollapse={props.onCollapse}
         onExpand={undefined}
       />
     </NativeSheet>

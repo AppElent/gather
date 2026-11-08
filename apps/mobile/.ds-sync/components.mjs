@@ -644,8 +644,6 @@ export function Shell({ groups, signOut, children }) {
 
 export interface ModulePlaceholderProps {
   module: ModuleDef
-  /** Also renders a native stack header titled with the Module's name. */
-  showHeader?: boolean
 }
 
 export declare function ModulePlaceholder(props: ModulePlaceholderProps): JSX.Element
@@ -658,7 +656,6 @@ The destination for any Module that is listed but not built on the phone.
 import { moduleById } from '@gather/core/modules'
 
 <ModulePlaceholder module={moduleById('recipes')} />
-<ModulePlaceholder module={module} showHeader />
 \`\`\`
 
 ## Rules
@@ -667,8 +664,8 @@ import { moduleById } from '@gather/core/modules'
 - **The tint comes from the Module's group, automatically** — \`kitchen\`, \`money\`,
   \`home\` or \`tasting\`. Never override the hero colour; the four bands are what
   keep thirteen Modules from reading as confetti.
-- \`showHeader\` is for a pushed route that needs a native title bar. A tab leaf
-  leaves it off — the tab bar already names it.
+- It is a pushed route, so it renders a native stack header titled with the
+  Module's name.
 - **A Module being live on the web is not evidence it is live here.** This is the
   one clear answer no matter where the Module was opened from.
 - Its words come from the shared message tree, keyed by Module id.
@@ -679,50 +676,7 @@ import { ModulePlaceholder } from '@gather/mobile'
 export function ModuleRoute({ moduleId }) {
   const module = moduleById(moduleId)
   if (!module) return null
-  return <ModulePlaceholder module={module} showHeader />
-}
-`,
-  },
-
-  {
-    name: 'ModuleTab',
-    group: 'Shell',
-    summary:
-      'The three tabs that are a Module and nothing else yet — one component, the same placeholder.',
-    pad: 0,
-    specimen: `G.h(G.ModuleTab, { tab: 'nutrition' })`,
-    types: `import type { ModuleId } from '@gather/core/modules'
-
-export interface ModuleTabProps {
-  tab: Extract<ModuleId, 'recipes' | 'tasks' | 'nutrition'>
-}
-
-export declare function ModuleTab(props: ModuleTabProps): JSX.Element
-`,
-    prompt: `# ModuleTab
-
-The tab-leaf wrapper for the three Modules nailed to the tab bar.
-
-\`\`\`jsx
-<ModuleTab tab="recipes" />
-<ModuleTab tab="tasks" />
-<ModuleTab tab="nutrition" />
-\`\`\`
-
-## Rules
-
-- **Only those three ids type-check.** Five tab slots are fixed for everybody;
-  that is a decision about navigation, not a claim about what is built.
-- Each is a leaf — there is nothing to push into yet, so there is no stack and
-  nothing for a Group switch to reset.
-- **It exists so the three fixed tabs land on the exact same placeholder** as a
-  Module opened from Home or All. Do not hand-roll a per-tab screen.
-- It throws on an unknown id rather than rendering an empty square.
-`,
-    usage: `import { ModuleTab } from '@gather/mobile'
-
-export default function NutritionTab() {
-  return <ModuleTab tab="nutrition" />
+  return <ModulePlaceholder module={module} />
 }
 `,
   },
@@ -751,8 +705,7 @@ Every Module as a small tinted chip, ordered by group.
 - **Not interactive, on purpose.** A tile that looked tappable and was not would
   be a worse promise than one that plainly is not — and there is nothing behind
   it until you are signed in.
-- Use it as the band *under* a pitch, where the words lead. When the catalogue
-  itself is the pitch, use \`CatalogueGrid\`.
+- Use it as the band *under* a pitch, where the words lead.
 - Labels come from the shared message tree, so it is translated with the app.
 `,
     usage: `import { CatalogueStrip } from '@gather/mobile'
@@ -762,46 +715,6 @@ export function Pitch() {
     <>
       <Text>Everything your household shares, in one place.</Text>
       <CatalogueStrip />
-    </>
-  )
-}
-`,
-  },
-
-  {
-    name: 'CatalogueGrid',
-    group: 'Shell',
-    summary:
-      'The same thirteen Modules as square tinted tiles, three to a row — the hero variant.',
-    pad: 20,
-    specimen: `G.h(G.CatalogueGrid, null)`,
-    types: `export declare function CatalogueGrid(): JSX.Element
-`,
-    prompt: `# CatalogueGrid
-
-The catalogue as the hero: thirteen square tiles, three to a row, in group order.
-
-\`\`\`jsx
-<CatalogueGrid />
-\`\`\`
-
-## Rules
-
-- **Takes no props**, same as \`CatalogueStrip\`, and is equally non-interactive.
-- **Use it where the catalogue *is* the pitch** and the words are a caption. Use
-  \`CatalogueStrip\` where the words lead.
-- Three to a row at any width (31.9% each plus two 8pt gaps) — do not wrap it in
-  a fixed-width container that breaks that.
-- \`CatalogueStrip\` and \`CatalogueGrid\` exist so the choice can be made from
-  screenshots. One of them is expected to be deleted; do not build a third.
-`,
-    usage: `import { CatalogueGrid } from '@gather/mobile'
-
-export function WelcomeHero() {
-  return (
-    <>
-      <CatalogueGrid />
-      <Text>Thirteen Modules. Every one of them in every Group.</Text>
     </>
   )
 }

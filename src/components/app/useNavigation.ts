@@ -4,7 +4,7 @@ import { api } from '../../../convex/_generated/api'
 import type { NavItem } from '../../lib/appNavigation'
 import { activeNavItemId, navItems } from '../../lib/appNavigation'
 import { useMessages } from '../../lib/i18n'
-import { useShellGroup } from './ShellGroup'
+import { useCurrentGroup } from './useCurrentGroup'
 
 /**
  * The navigation, resolved once and shared by every surface that renders it.
@@ -14,13 +14,10 @@ import { useShellGroup } from './ShellGroup'
  * not two implementations that happen to agree — there is only one answer, and
  * the dock merely shows less of it.
  *
- * The Group comes off the address bar because the shell is rendered above both
- * route trees, and the URL is the only thing that says which Group you are in
- * (ADR-0002) — through `useShellGroup`, which on a route naming no Group at all
- * falls back to the last one it named rather than emptying the sidebar and
- * unmounting the dock on the way to `/groups`. Which item is *active* is still
- * decided against the real pathname, so standing on `/groups` highlights
- * nothing: the links are there to go back with, not to claim you already did.
+ * The Group is the Current Group (ADR-0031), so the sidebar and dock stay drawn
+ * on `/groups` and `/settings`. Which item is *active* is still decided against
+ * the real pathname, so standing on `/groups` highlights nothing: the links are
+ * there to go back with, not to claim you already did.
  */
 export function useNavigation(): {
   items: NavItem[]
@@ -28,12 +25,15 @@ export function useNavigation(): {
 } {
   const location = useLocation()
   const messages = useMessages()
-  const { slug } = useShellGroup()
-  // Pins belong to a person *in a Group* (ADR-0005), so there is nothing to ask
-  // for until there is a Group to ask about — and `navItems` renders nothing
-  // without one either.
-  const pins = useQuery(api.users.myPins, slug ? { groupSlug: slug } : 'skip')
-  const items = navItems(pins ?? undefined, slug, messages)
+  const { current } = useCurrentGroup()
+  // Pins belong to a person *in a Group* (ADR-0005), and every item names a
+  // page of the Current Group, so without one there is nothing to ask for and
+  // nothing to list.
+  const pins = useQuery(
+    api.users.myPins,
+    current ? { groupSlug: current.slug } : 'skip',
+  )
+  const items = current ? navItems(pins ?? undefined, messages) : []
 
   return { items, activeId: activeNavItemId(location.pathname, items) }
 }

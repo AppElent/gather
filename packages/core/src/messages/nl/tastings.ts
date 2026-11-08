@@ -255,7 +255,6 @@ export const index = {
   searchEmpty: 'Niets gevonden.',
   clearSearch: 'Zoekopdracht wissen',
   add: 'Proeverij vastleggen',
-  averageOf: '{score} uit {count}',
   fromCount: 'uit {count}',
   noScore: 'Nog niet beoordeeld',
 } satisfies typeof enIndex
@@ -289,7 +288,6 @@ export const composer = {
   laterDay: 'Een dag later',
   notesPlaceholder: 'Waar smaakte het naar?',
   addYourOwn: 'Zelf toevoegen',
-  addTerm: '“{name}” toevoegen',
   choose: 'Kiezen',
   none: 'Niet ingevuld',
   clear: 'Wissen',
@@ -309,6 +307,7 @@ export const composer = {
     tooMany: 'Dat zijn er te veel.',
     needsName: 'Geef het eerst een naam.',
     needsScore: 'Geef het eerst een cijfer.',
+    notYourTasting: 'Alleen wie deze proeverij heeft vastgelegd, kan hem aanpassen.',
   },
 } satisfies typeof enComposer
 
@@ -319,11 +318,9 @@ export const subject = {
   logTasting: 'Proeverij vastleggen',
   addPhoto: 'Etiket',
   photoOf: 'Foto van {name}',
-  photoUploading: 'Foto wordt toegevoegd…',
   photoFailed: 'Die foto kon niet worden toegevoegd.',
   photoDenied: 'Gather heeft daar toestemming voor nodig.',
   takePhoto: 'Foto maken',
-  choosePhoto: 'Foto kiezen',
   replacePhoto: 'Vervangen',
   removePhoto: 'Verwijderen',
   you: 'Jij',

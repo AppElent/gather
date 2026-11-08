@@ -23,12 +23,12 @@
  * The type you arrived with can be removed like any other, as long as one
  * remains: a save with nothing in it is not a thing to offer.
  *
- * With one type included — the ordinary case — this is exactly the sheet it was
- * before, and none of the above is visible.
+ * With one type included — the ordinary case — none of the above is visible.
  *
- * The frame — drag-to-dismiss, close button, scrim — is `Sheet`'s; this file is
- * only what the sheet asks.
+ * The frame — drag-to-dismiss, close button, scrim — is `NativeSheet`'s; this
+ * file is only what the sheet asks.
  */
+import { missingRequiredField } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
@@ -42,27 +42,24 @@ import {
   TextInput,
   View,
 } from 'react-native'
-
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { NativeSheet } from '../../components/NativeSheet'
-import { PhotoField } from '../../components/PhotoField'
+import { api, type Id } from '../../convex/api'
 import { haptics } from '../../feedback/haptics'
 import { fmt, plural, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { DateTimeField } from './DateTimeField'
 import { EntryFields, fieldLabel } from './EntryFields'
+import { EntryPhotoField } from './EntryPhotoField'
 import { EVENT_ICONS } from './icons'
 import {
   buildSheetData,
   endTimestampFor,
   initialPicks,
-  lastOfType,
-  missingRequired,
   outOfRangeFields,
   type PreviousEvent,
 } from './sheetFields'
+import { latestOf } from './todayStatus'
 
 export interface QuickLogSheetProps {
   babyId: Id<'babies'>
@@ -95,7 +92,7 @@ export function QuickLogSheet({
 
   const [included, setIncluded] = useState<BabyEventType[]>([type])
   const [picks, setPicks] = useState<Record<string, Picks>>(() => ({
-    [type]: initialPicks(type, lastOfType(previous, type)),
+    [type]: initialPicks(type, latestOf(previous, type)),
   }))
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
@@ -113,7 +110,6 @@ export function QuickLogSheet({
     Partial<Record<BabyEventType, string | null>>
   >({})
 
-  const generateUploadUrl = useMutation(api.babies.generateUploadUrl)
 
   const fieldLabels = t.baby.log.fields as Record<string, string>
   const several = included.length > 1
@@ -128,7 +124,7 @@ export function QuickLogSheet({
 
   /** Every included type still missing the one box it cannot save without. */
   const missing = included.flatMap((each) => {
-    const key = missingRequired(each, picks[each] ?? {})
+    const key = missingRequiredField(each, picks[each] ?? {})
     return key ? [{ owner: each, key }] : []
   })
 
@@ -140,7 +136,7 @@ export function QuickLogSheet({
     setPicks((prev) =>
       prev[each]
         ? prev
-        : { ...prev, [each]: initialPicks(each, lastOfType(previous, each)) },
+        : { ...prev, [each]: initialPicks(each, latestOf(previous, each)) },
     )
     setIncluded((current) => {
       if (current.includes(each)) {
@@ -366,33 +362,14 @@ export function QuickLogSheet({
               ]}
             />
 
-            {/* Only Memory offers a photo today. The control is general —
-                `photoId` is on the event, not inside a Memory's payload — so
-                the day a rash photo belongs on a Note this is one line. */}
-            {each === 'memory' ? (
-              <PhotoField
-                value={photos[each]}
-                onChange={(storageId) =>
-                  setPhotos((prev) => ({ ...prev, [each]: storageId }))
-                }
-                generateUploadUrl={generateUploadUrl}
-                labels={{
-                  heading: t.baby.log.entry.photo,
-                  take: t.baby.log.entry.takePhoto,
-                  choose: t.baby.log.entry.choosePhoto,
-                  replace: t.baby.log.entry.replacePhoto,
-                  remove: t.baby.log.entry.removePhoto,
-                  uploading: t.baby.log.entry.photoUploading,
-                  denied: t.baby.log.entry.photoDenied,
-                  failed: t.baby.log.entry.photoFailed,
-                  alt: fmt(t.baby.log.entry.photoOf, {
-                    type: t.baby.eventTypes[each],
-                  }),
-                }}
-                preset="memoryPhoto"
-                disabled={saving}
-              />
-            ) : null}
+            <EntryPhotoField
+              type={each}
+              value={photos[each]}
+              onChange={(storageId) =>
+                setPhotos((prev) => ({ ...prev, [each]: storageId }))
+              }
+              disabled={saving}
+            />
           </View>
         ))}
 

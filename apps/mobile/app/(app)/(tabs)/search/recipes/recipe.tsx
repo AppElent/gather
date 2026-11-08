@@ -5,5 +5,5 @@
 import { RecipeScreen } from '../../../../../src/modules/recipes/RecipeScreen'
 
 export default function SearchRecipe() {
-  return <RecipeScreen base="/all/recipes" />
+  return <RecipeScreen />
 }

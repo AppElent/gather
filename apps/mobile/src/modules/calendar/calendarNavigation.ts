@@ -1,10 +1,5 @@
-import {
-  addCalendarDays,
-  addCalendarMonths,
-  type CalendarView,
-  calendarWeek,
-  monthStart,
-} from '@gather/core/calendar'
+import type { CalendarView } from '@gather/core/calendar'
+import { addDays, addMonths } from '@gather/core/civil-date'
 
 export interface CalendarNavigationState {
   activeDate: string
@@ -21,7 +16,7 @@ export function initialCalendarNavigation(
     activeDate: today,
     preferredView,
     presentation: preferredView,
-    headerProgress: preferredView === 'month' ? 1 : 0,
+    headerProgress: viewProgress(preferredView),
   }
 }
 
@@ -64,8 +59,8 @@ export function pageActiveDate(
 ): CalendarNavigationState {
   const next =
     state.presentation === 'month'
-      ? addCalendarMonths(state.activeDate, direction)
-      : addCalendarDays(state.activeDate, direction * 7)
+      ? addMonths(state.activeDate, direction)
+      : addDays(state.activeDate, direction * 7)
   return { ...state, activeDate: next }
 }
 
@@ -74,10 +69,4 @@ export function selectCalendarDate(
   date: string,
 ): CalendarNavigationState {
   return { ...state, activeDate: date }
-}
-
-export function headerDates(state: CalendarNavigationState): string[] {
-  return state.presentation === 'month'
-    ? calendarWeek(monthStart(state.activeDate))
-    : calendarWeek(state.activeDate)
 }

@@ -21,16 +21,18 @@ import { ConvexError, v } from 'convex/values'
 
 import { mutation, query } from './_generated/server'
 import {
-  findInGroup,
-  holdingKindValidator,
-  nextOrder,
+  holdingFields,
+  holdingTransactionFields,
   requireAmount,
-  requireInGroup,
   requireIsoDate,
   requireName,
-  transactionKindValidator,
 } from './lib/finance'
-import { requireGroupBySlug } from './lib/groupAccess'
+import {
+  findInGroup,
+  requireGroupBySlug,
+  requireInGroup,
+} from './lib/groupAccess'
+import { nextOrder } from './lib/order'
 
 /** The Group's home currency, and the rates a Member entered to reach it. */
 export const settings = query({
@@ -44,42 +46,6 @@ export const settings = query({
     // Euro until somebody says otherwise: the Module is Netherlands-first, and
     // a Group with nothing to convert should not be asked to choose.
     return row ?? { homeCurrency: 'EUR', rates: [] }
-  },
-})
-
-export const saveSettings = mutation({
-  args: {
-    groupSlug: v.string(),
-    homeCurrency: v.string(),
-    rates: v.optional(
-      v.array(
-        v.object({
-          currency: v.string(),
-          rate: v.number(),
-          asOf: v.number(),
-        }),
-      ),
-    ),
-  },
-  handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const currency = args.homeCurrency.trim().toUpperCase()
-    if (!/^[A-Z]{3}$/.test(currency))
-      throw new ConvexError('A currency is three letters')
-    const existing = await ctx.db
-      .query('financeSettings')
-      .withIndex('by_group', (q) => q.eq('groupId', group._id))
-      .unique()
-    const fields = {
-      groupId: group._id,
-      homeCurrency: currency,
-      rates: args.rates,
-    }
-    if (existing) {
-      await ctx.db.patch(existing._id, fields)
-      return existing._id
-    }
-    return await ctx.db.insert('financeSettings', fields)
   },
 })
 
@@ -128,15 +94,7 @@ export const get = query({
 export const create = mutation({
   args: {
     groupSlug: v.string(),
-    kind: holdingKindValidator,
-    symbol: v.string(),
-    name: v.string(),
-    exchange: v.optional(v.string()),
-    currency: v.string(),
-    openingDate: v.string(),
-    openingUnits: v.number(),
-    openingAverageCostCents: v.number(),
-    lastPriceCents: v.optional(v.number()),
+    ...holdingFields,
   },
   handler: async (ctx, args) => {
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
@@ -165,37 +123,6 @@ export const create = mutation({
       lastPriceAt: args.lastPriceCents === undefined ? undefined : Date.now(),
       order: nextOrder(existing),
     })
-  },
-})
-
-export const update = mutation({
-  args: {
-    id: v.id('holdings'),
-    groupSlug: v.string(),
-    name: v.optional(v.string()),
-    exchange: v.optional(v.string()),
-    openingDate: v.optional(v.string()),
-    openingUnits: v.optional(v.number()),
-    openingAverageCostCents: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id)
-    const patch: Record<string, unknown> = {}
-    if (args.name !== undefined) patch.name = requireName(args.name)
-    if (args.exchange !== undefined)
-      patch.exchange = args.exchange.trim() || undefined
-    if (args.openingDate !== undefined)
-      patch.openingDate = requireIsoDate(args.openingDate)
-    if (args.openingUnits !== undefined) {
-      if (args.openingUnits <= 0)
-        throw new ConvexError('An opening position needs units')
-      patch.openingUnits = args.openingUnits
-    }
-    if (args.openingAverageCostCents !== undefined)
-      patch.openingAverageCostCents = requireAmount(
-        args.openingAverageCostCents,
-      )
-    await ctx.db.patch(args.id, patch)
   },
 })
 
@@ -236,16 +163,6 @@ export const remove = mutation({
   },
 })
 
-const transactionFields = {
-  kind: transactionKindValidator,
-  date: v.string(),
-  units: v.optional(v.number()),
-  pricePerUnitCents: v.optional(v.number()),
-  perUnitCents: v.optional(v.number()),
-  feeCents: v.optional(v.number()),
-  note: v.optional(v.string()),
-}
-
 /** Each kind needs different fields, and a half-filled one is not a record. */
 function validateTransaction(input: {
   kind: string
@@ -282,7 +199,7 @@ export const addTransaction = mutation({
   args: {
     holdingId: v.id('holdings'),
     groupSlug: v.string(),
-    ...transactionFields,
+    ...holdingTransactionFields,
   },
   handler: async (ctx, args) => {
     const { group, user } = await requireInGroup(
@@ -299,13 +216,5 @@ export const addTransaction = mutation({
       groupId: group._id,
       createdByUserId: user._id,
     })
-  },
-})
-
-export const removeTransaction = mutation({
-  args: { id: v.id('holdingTransactions'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id)
-    await ctx.db.delete(args.id)
   },
 })

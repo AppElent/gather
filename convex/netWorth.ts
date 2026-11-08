@@ -18,14 +18,13 @@ import { v } from 'convex/values'
 
 import { mutation, query } from './_generated/server'
 import {
-  findInGroup,
+  netWorthKindValidator,
   netWorthRowValidator,
-  nextOrder,
   requireAmount,
-  requireInGroup,
   requireName,
 } from './lib/finance'
 import { requireGroupBySlug } from './lib/groupAccess'
+import { nextOrder } from './lib/order'
 
 export const entries = query({
   args: { groupSlug: v.string() },
@@ -58,24 +57,10 @@ export const snapshots = query({
   },
 })
 
-export const getSnapshot = query({
-  args: { id: v.id('netWorthSnapshots'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    const found = await findInGroup(ctx, args.groupSlug, args.id)
-    if (!found) return null
-    return {
-      ...found.doc,
-      takenByName: (await ctx.db.get(found.doc.takenByUserId))?.name ?? null,
-    }
-  },
-})
-
-const entryKind = v.union(v.literal('asset'), v.literal('liability'))
-
 export const addEntry = mutation({
   args: {
     groupSlug: v.string(),
-    kind: entryKind,
+    kind: netWorthKindValidator,
     label: v.string(),
     amountCents: v.number(),
   },
@@ -93,31 +78,6 @@ export const addEntry = mutation({
       amountCents: requireAmount(args.amountCents),
       order: nextOrder(existing),
     })
-  },
-})
-
-export const updateEntry = mutation({
-  args: {
-    id: v.id('netWorthEntries'),
-    groupSlug: v.string(),
-    label: v.optional(v.string()),
-    amountCents: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id)
-    const patch: Record<string, unknown> = {}
-    if (args.label !== undefined) patch.label = requireName(args.label)
-    if (args.amountCents !== undefined)
-      patch.amountCents = requireAmount(args.amountCents)
-    await ctx.db.patch(args.id, patch)
-  },
-})
-
-export const removeEntry = mutation({
-  args: { id: v.id('netWorthEntries'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id)
-    await ctx.db.delete(args.id)
   },
 })
 
@@ -151,14 +111,5 @@ export const take = mutation({
       liabilitiesCents: liabilities,
       netCents: assets - liabilities,
     })
-  },
-})
-
-/** A snapshot is never edited, but it can be thrown away. */
-export const removeSnapshot = mutation({
-  args: { id: v.id('netWorthSnapshots'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id)
-    await ctx.db.delete(args.id)
   },
 })

@@ -25,6 +25,14 @@
  * Pure and message-free: labels arrive as a parameter (ADR-0011's third rule),
  * which is what lets this be tested with no React tree and no device.
  */
+import {
+  DIAPER_KINDS,
+  FEEDING_METHODS,
+  TEMPERATURE_CELSIUS_MAX,
+  TEMPERATURE_CELSIUS_MIN,
+  type TemperatureMethod,
+} from '@gather/core/baby-events'
+import { parseDecimal } from '@gather/core/decimal'
 import type { BabyEventType } from '@gather/core/domain'
 
 export interface SheetField {
@@ -79,8 +87,8 @@ export const SHEET_SPECS: Record<BabyEventType, SheetSpec> = {
       options: ['36.5', '37.0', '37.5', '38.0', '38.5'],
       fallback: '37.0',
       step: 0.1,
-      min: 34,
-      max: 42,
+      min: TEMPERATURE_CELSIUS_MIN,
+      max: TEMPERATURE_CELSIUS_MAX,
       decimals: 1,
       unit: '°C',
     },
@@ -88,7 +96,13 @@ export const SHEET_SPECS: Record<BabyEventType, SheetSpec> = {
       key: 'method',
       labelKey: 'method',
       input: 'chips',
-      options: ['oral', 'ear', 'forehead', 'axillary', 'rectal'],
+      options: [
+        'oral',
+        'ear',
+        'forehead',
+        'axillary',
+        'rectal',
+      ] satisfies TemperatureMethod[],
       fallback: 'ear',
     },
   ],
@@ -97,7 +111,7 @@ export const SHEET_SPECS: Record<BabyEventType, SheetSpec> = {
       key: 'method',
       labelKey: 'method',
       input: 'chips',
-      options: ['breast', 'bottle', 'solid'],
+      options: [...FEEDING_METHODS],
       fallback: 'bottle',
     },
     // Per side rather than one total: "both sides, 20 minutes" cannot be split
@@ -161,7 +175,7 @@ export const SHEET_SPECS: Record<BabyEventType, SheetSpec> = {
       key: 'kind',
       labelKey: 'kind',
       input: 'chips',
-      options: ['wet', 'dirty', 'both'],
+      options: [...DIAPER_KINDS],
       fallback: 'wet',
     },
   ],
@@ -302,25 +316,6 @@ export function fieldsFor(
 }
 
 /**
- * The one required box this type has, when it is still empty.
- *
- * A key rather than a sentence (ADR-0011's fourth rule): the sheet resolves
- * it. These are the three types whose `data` the mutation refuses outright —
- * before this, an empty medication name reached the server and came back as
- * "could not save this entry", which is true and tells nobody which box.
- */
-export function missingRequired(
-  type: BabyEventType,
-  picks: Record<string, string>,
-): 'enterMedicationName' | 'enterVaccineName' | 'enterMemoryWhat' | null {
-  const blank = (key: string) => (picks[key] ?? '').trim().length === 0
-  if (type === 'medication' && blank('name')) return 'enterMedicationName'
-  if (type === 'vaccination' && blank('name')) return 'enterVaccineName'
-  if (type === 'memory' && blank('what')) return 'enterMemoryWhat'
-  return null
-}
-
-/**
  * The visible numeric rows holding a value outside their own bounds.
  *
  * The stepper clamps, but the box can be typed into, and that is where the real
@@ -335,7 +330,7 @@ export function outOfRangeFields(
 ): SheetField[] {
   return fieldsFor(type, picks).filter((field) => {
     if (field.input !== 'number') return false
-    const value = parseNumber(picks[field.key])
+    const value = parseDecimal(picks[field.key])
     // An empty measurement is not out of range; it is simply not taken.
     if (value === null) return false
     return (
@@ -345,29 +340,11 @@ export function outOfRangeFields(
   })
 }
 
-/**
- * Every type, now. Kept as a function rather than inlined `true` because the
- * question ("can this be logged from the sheet?") is the one a caller asks, and
- * it stops being trivially yes the moment a type needs a photo or a timer.
- */
-export function sheetHandles(_type: BabyEventType): boolean {
-  return true
-}
-
 export interface PreviousEvent {
   type: BabyEventType
   timestamp: number
   endTimestamp?: number
-  data: unknown
-}
-
-/** A finite number, or null for anything that is not one. */
-export function parseNumber(text: string | undefined): number | null {
-  if (text === undefined) return null
-  const trimmed = text.trim().replace(',', '.')
-  if (!trimmed) return null
-  const value = Number(trimmed)
-  return Number.isFinite(value) ? value : null
+  data: Record<string, unknown>
 }
 
 /** The stepper's next value, clamped and rounded to the field's precision. */
@@ -378,7 +355,7 @@ export function stepValue(
 ): string {
   const step = field.step ?? 1
   const decimals = field.decimals ?? 0
-  const from = parseNumber(current) ?? parseNumber(field.fallback) ?? 0
+  const from = parseDecimal(current) ?? parseDecimal(field.fallback) ?? 0
   // Rounded through an integer count of steps so 0.1 + 0.2 does not drift, and
   // so a typed 37.34 snaps onto the ladder rather than stepping to 37.44.
   const next = (Math.round(from / step) + direction) * step
@@ -409,7 +386,7 @@ export function initialPicks(
   previous: PreviousEvent | undefined,
 ): Record<string, string> {
   const spec = SHEET_SPECS[type]
-  const data = (previous?.data ?? {}) as Record<string, unknown>
+  const data = previous?.data ?? {}
   const picks: Record<string, string> = {}
 
   for (const field of spec) {
@@ -426,7 +403,7 @@ export function initialPicks(
 
     if (field.input === 'number') {
       picks[field.key] =
-        asText !== null && parseNumber(asText) !== null
+        asText !== null && parseDecimal(asText) !== null
           ? asText
           : field.fallback
       continue
@@ -438,16 +415,7 @@ export function initialPicks(
         : field.fallback
   }
 
-  if (type === 'sleep') {
-    // Sleep's duration is not in `data` — it is the gap to `endTimestamp` —
-    // so it is read back off the previous entry rather than out of its payload.
-    const span =
-      previous?.endTimestamp && previous.endTimestamp > previous.timestamp
-        ? Math.round((previous.endTimestamp - previous.timestamp) / 60_000)
-        : 0
-    picks.durationH = String(Math.floor(span / 60))
-    picks.durationM = String(span % 60)
-  }
+  if (type === 'sleep') Object.assign(picks, sleepDurationPicks(previous))
 
   return picks
 }
@@ -469,10 +437,9 @@ export function editPicks(
   event: PreviousEvent,
 ): Record<string, string> {
   const picks: Record<string, string> = {}
-  const data = (event.data ?? {}) as Record<string, unknown>
 
   for (const field of SHEET_SPECS[type]) {
-    const stored = data[field.key]
+    const stored = event.data[field.key]
     const asText = stored === undefined || stored === null ? '' : String(stored)
     if (field.input === 'chips') {
       picks[field.key] = field.options.includes(asText)
@@ -483,31 +450,24 @@ export function editPicks(
     picks[field.key] = asText
   }
 
-  if (type === 'sleep') {
-    // As in `initialPicks`: a sleep's length is the gap to `endTimestamp`, not
-    // a value in its payload.
-    const span =
-      event.endTimestamp && event.endTimestamp > event.timestamp
-        ? Math.round((event.endTimestamp - event.timestamp) / 60_000)
-        : 0
-    picks.durationH = String(Math.floor(span / 60))
-    picks.durationM = String(span % 60)
-  }
+  if (type === 'sleep') Object.assign(picks, sleepDurationPicks(event))
 
   return picks
 }
 
-/** The most recent event of a type, for pre-filling. */
-export function lastOfType(
-  events: readonly PreviousEvent[],
-  type: BabyEventType,
-): PreviousEvent | undefined {
-  return events
-    .filter((e) => e.type === type)
-    .reduce<PreviousEvent | undefined>(
-      (latest, e) => (!latest || e.timestamp > latest.timestamp ? e : latest),
-      undefined,
-    )
+/**
+ * A sleep's hours and minutes rows. Its duration is not in `data` — it is the
+ * gap to `endTimestamp` — so it is read back off the entry, not its payload.
+ */
+function sleepDurationPicks(event: PreviousEvent | undefined) {
+  const span =
+    event?.endTimestamp && event.endTimestamp > event.timestamp
+      ? Math.round((event.endTimestamp - event.timestamp) / 60_000)
+      : 0
+  return {
+    durationH: String(Math.floor(span / 60)),
+    durationM: String(span % 60),
+  }
 }
 
 /**
@@ -524,8 +484,8 @@ export function endTimestampFor(
   timestamp: number,
 ): number | undefined {
   if (type !== 'sleep') return undefined
-  const hours = parseNumber(picks.durationH) ?? 0
-  const minutes = parseNumber(picks.durationM) ?? 0
+  const hours = parseDecimal(picks.durationH) ?? 0
+  const minutes = parseDecimal(picks.durationM) ?? 0
   const total = Math.round(hours * 60 + minutes)
   return total > 0 ? timestamp + total * 60_000 : undefined
 }
@@ -544,7 +504,7 @@ export function buildSheetData(
 ): Record<string, unknown> {
   if (type === 'temperature') {
     return {
-      celsius: parseNumber(picks.celsius) ?? 0,
+      celsius: parseDecimal(picks.celsius) ?? 0,
       method: picks.method,
     }
   }
@@ -554,8 +514,8 @@ export function buildSheetData(
     // Each method carries only its own unit. Sending millilitres for a
     // breastfeed would record a figure nobody measured.
     if (method === 'breast') {
-      const left = parseNumber(picks.leftMin) ?? 0
-      const right = parseNumber(picks.rightMin) ?? 0
+      const left = parseDecimal(picks.leftMin) ?? 0
+      const right = parseDecimal(picks.rightMin) ?? 0
       const side =
         left > 0 && right > 0
           ? 'both'
@@ -572,10 +532,10 @@ export function buildSheetData(
       }
     }
     if (method === 'bottle') {
-      const ml = parseNumber(picks.amountMl)
+      const ml = parseDecimal(picks.amountMl)
       return { method, ...(ml !== null && ml > 0 ? { amountMl: ml } : {}) }
     }
-    const grams = parseNumber(picks.amountG)
+    const grams = parseDecimal(picks.amountG)
     return {
       method,
       ...(grams !== null && grams > 0 ? { amountG: grams } : {}),
@@ -592,14 +552,14 @@ export function buildSheetData(
     // not become a zero — a baby who was not measured did not weigh 0 kg.
     const growth: Record<string, number> = {}
     for (const key of ['weightKg', 'heightCm', 'headCircumferenceCm']) {
-      const value = parseNumber(picks[key])
+      const value = parseDecimal(picks[key])
       if (value !== null) growth[key] = value
     }
     return growth
   }
 
   if (type === 'medication') {
-    const amount = parseNumber(picks.doseAmount)
+    const amount = parseDecimal(picks.doseAmount)
     return {
       name: picks.name?.trim() ?? '',
       ...(amount !== null ? { doseAmount: amount } : {}),

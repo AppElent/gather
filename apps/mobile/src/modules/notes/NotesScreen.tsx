@@ -26,62 +26,25 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SearchField } from '../../components/SearchField'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
+import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { Card, SectionLabel } from '../tasks/components'
-import { TASK_ICONS } from '../tasks/icons'
-import { taskActions, useTaskState } from '../tasks/store'
-import type { Note } from '../tasks/types'
+import { Card } from '../../ui/card'
+import { SectionLabel } from '../../ui/section-label'
 import { confirmDeleteNote } from './notesActions'
-
-/**
- * When a note was last touched, in the app's language.
- *
- * Today gets a clock, everything else gets a date, and nothing gets "3 hours
- * ago": Hermes ships no `Intl.RelativeTimeFormat` (see `src/i18n/index.tsx`),
- * and hand-rolling one in two languages to say something a timestamp already
- * says is not worth the strings.
- */
-export function noteWhen(
-  updatedAt: number,
-  locale: string,
-  todayWord: string,
-): string {
-  const when = new Date(updatedAt)
-  const now = new Date()
-  const sameDay =
-    when.getFullYear() === now.getFullYear() &&
-    when.getMonth() === now.getMonth() &&
-    when.getDate() === now.getDate()
-
-  if (sameDay) {
-    return `${todayWord} ${when.toLocaleTimeString(locale, {
-      hour: '2-digit',
-      minute: '2-digit',
-    })}`
-  }
-  return when.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
-}
-
-/** The first line with anything on it, which is what a preview is. */
-export function preview(body: string): string {
-  return (
-    body
-      .split('\n')
-      .find((line) => line.trim().length > 0)
-      ?.trim() ?? ''
-  )
-}
+import { noteWhen, preview } from './noteText'
+import { type Note, useNoteActions, useNotes } from './store'
 
 export function Notes() {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
   const { t, locale } = useI18n()
   const router = useRouter()
-  const state = useTaskState()
+  const notes = useNotes()
+  const actions = useNoteActions()
   const [query, setQuery] = useState('')
 
   const needle = query.trim().toLowerCase()
-  const matching = state.notes.filter(
+  const matching = notes.filter(
     (note) =>
       !needle ||
       note.title.toLowerCase().includes(needle) ||
@@ -97,36 +60,38 @@ export function Notes() {
       params: { noteId: id },
     })
 
-  const rows = (notes: Note[]) => (
+  const rows = (shown: Note[]) => (
     <Card>
-      {notes.map((note, index) => (
+      {shown.map((note, index) => (
         <NativeContextMenu
           key={note.id}
           actions={[
             {
               id: 'pin',
-              title: note.pinned ? t.labs.notes.unpin : t.labs.notes.pin,
+              title: note.pinned ? t.notes.unpin : t.notes.pin,
               image: 'pin',
             },
             {
               id: 'delete',
-              title: t.labs.notes.delete,
+              title: t.notes.delete,
               image: 'trash',
               attributes: { destructive: true },
             },
           ]}
           onAction={(action) => {
             if (action === 'pin') {
-              taskActions.togglePin(note.id)
+              actions.togglePin(note)
               haptics.selectionChanged()
             }
-            if (action === 'delete') confirmDeleteNote(note, t)
+            if (action === 'delete') {
+              confirmDeleteNote(note, t, () => actions.deleteNote(note.id))
+            }
           }}
         >
           <Pressable
             testID={`note-${note.id}`}
             accessibilityRole="button"
-            accessibilityLabel={note.title || t.labs.notes.untitled}
+            accessibilityLabel={note.title || t.notes.untitled}
             onPress={() => open(note.id)}
             android_ripple={{ color: tokens.tile }}
             style={({ pressed }) => [
@@ -135,7 +100,7 @@ export function Notes() {
                 backgroundColor: tokens.surface,
                 borderBottomColor: tokens.border,
                 borderBottomWidth:
-                  index === notes.length - 1 ? 0 : StyleSheet.hairlineWidth,
+                  index === shown.length - 1 ? 0 : StyleSheet.hairlineWidth,
               },
               pressed && { backgroundColor: tokens.tile },
             ]}
@@ -145,7 +110,7 @@ export function Notes() {
                 numberOfLines={1}
                 style={[styles.noteTitle, { color: tokens.fg }]}
               >
-                {note.title || t.labs.notes.untitled}
+                {note.title || t.notes.untitled}
               </Text>
               <Text
                 numberOfLines={1}
@@ -155,7 +120,7 @@ export function Notes() {
               </Text>
             </View>
             <Text style={[styles.when, { color: tokens.muted }]}>
-              {noteWhen(note.updatedAt, locale, t.labs.task.today)}
+              {noteWhen(note.updatedAt, locale, t.notes.today)}
             </Text>
           </Pressable>
         </NativeContextMenu>
@@ -168,21 +133,21 @@ export function Notes() {
       <Stack.Screen
         options={{
           headerShown: true,
-          title: t.labs.notes.title,
+          title: t.notes.title,
           headerRight: () => (
             <Pressable
               testID="note-new"
               accessibilityRole="button"
-              accessibilityLabel={t.labs.notes.newNote}
+              accessibilityLabel={t.notes.newNote}
               hitSlop={12}
               onPress={async () => {
-                const id = await taskActions.addNote()
+                const id = await actions.addNote()
                 haptics.itemSaved()
                 open(id)
               }}
               style={styles.headerButton}
             >
-              <TASK_ICONS.Plus size={22} color={tokens.fg} strokeWidth={2.2} />
+              <UI_ICONS.Plus size={22} color={tokens.fg} strokeWidth={2.2} />
             </Pressable>
           ),
         }}
@@ -199,19 +164,19 @@ export function Notes() {
         <SearchField
           value={query}
           onChangeText={setQuery}
-          placeholder={t.labs.notes.search}
+          placeholder={t.notes.search}
           clearAccessibilityLabel={t.search.clear}
           testID="notes-search"
         />
 
-        {state.notes.length === 0 ? (
+        {notes.length === 0 ? (
           <Text style={[styles.empty, { color: tokens.muted }]}>
-            {t.labs.notes.empty}
+            {t.notes.empty}
           </Text>
         ) : matching.length === 0 ? (
           <View style={styles.notFound}>
             <Text style={[styles.empty, { color: tokens.muted }]}>
-              {fmt(t.labs.notes.noMatches, { query: query.trim() })}
+              {fmt(t.notes.noMatches, { query: query.trim() })}
             </Text>
             <Pressable
               testID="notes-clear-search"
@@ -233,13 +198,13 @@ export function Notes() {
           <>
             {pinned.length > 0 ? (
               <View style={styles.group}>
-                <SectionLabel>{t.labs.notes.pinned}</SectionLabel>
+                <SectionLabel>{t.notes.pinned}</SectionLabel>
                 {rows(pinned)}
               </View>
             ) : null}
             {rest.length > 0 ? (
               <View style={styles.group}>
-                <SectionLabel>{t.labs.notes.recent}</SectionLabel>
+                <SectionLabel>{t.notes.recent}</SectionLabel>
                 {rows(rest)}
               </View>
             ) : null}

@@ -7,7 +7,7 @@
  * screen.
  */
 
-import { addMonths, monthsUntil } from './dates'
+import { addMonths, monthsUntil } from '../civilDate'
 import { type Cents, roundCents } from './money'
 
 export interface SavingsGoal {

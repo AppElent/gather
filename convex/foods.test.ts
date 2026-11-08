@@ -1,22 +1,15 @@
 import { describe, expect, test, vi } from 'vitest'
-import { testConvex } from '../test/convexHarness'
-import { api } from './_generated/api'
+import { alice as asAlice, bob as asBob, testConvex } from '../test/convexHarness'
+import { api, internal } from './_generated/api'
 
 /**
  * The Catalog belongs to nobody and reads the same for everybody (GLOSSARY.md).
  *
  * Foods is the one live Module with no Group-scoped rule to enforce, and this
  * says so as a fact rather than as a comment: two people who share no Group at
- * all still get the same food, so putting `/foods` under `/g/<slug>/` cannot
- * have narrowed anything. Signing in is the only bar.
+ * all still get the same food. Signing in is the only bar.
  */
 
-const asAlice = {
-  subject: 'clerk_alice',
-  name: 'Alice',
-  email: 'a@example.com',
-}
-const asBob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
 
 async function seed() {
   const t = testConvex()
@@ -44,7 +37,8 @@ describe('the food Catalog', () => {
       .query(api.foods.get, { id: hagelslag })
 
     expect(forAlice?.name).toBe('Hagelslag')
-    expect(forBob).toEqual(forAlice)
+    // The same row; only whether the reader may edit it differs.
+    expect(forBob).toEqual({ ...forAlice, canEdit: false })
   })
 
   test('is searchable by anyone signed in', async () => {
@@ -75,6 +69,25 @@ describe('the food Catalog', () => {
         nutritionPer100: { calories: 500 },
       }),
     ).rejects.toThrow('Only the person who created this food can edit it.')
+  })
+
+  test('tells each reader whether they may edit, by the rule the edit applies', async () => {
+    const { t, hagelslag } = await seed()
+    const banana = await t.run(async (ctx) =>
+      ctx.db.insert('foods', {
+        name: 'Banana',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 89 },
+        source: 'seed',
+        seedKey: 'banana',
+      }),
+    )
+    const canEdit = async (who: typeof asAlice, id: typeof hagelslag) =>
+      (await t.withIdentity(who).query(api.foods.get, { id }))?.canEdit
+
+    expect(await canEdit(asAlice, hagelslag)).toBe(true)
+    expect(await canEdit(asBob, hagelslag)).toBe(false)
+    expect(await canEdit(asAlice, banana)).toBe(false)
   })
 })
 
@@ -125,9 +138,11 @@ describe('browsing the Catalog without searching', () => {
   test('reads the same for two people who share no group', async () => {
     const { t } = await seed()
 
-    expect(await t.withIdentity(asAlice).query(api.foods.list, {})).toEqual(
-      await t.withIdentity(asBob).query(api.foods.list, {}),
-    )
+    const strip = (rows: { canEdit: boolean }[]) =>
+      rows.map(({ canEdit: _whoIsAsking, ...row }) => row)
+    expect(
+      strip(await t.withIdentity(asAlice).query(api.foods.list, {})),
+    ).toEqual(strip(await t.withIdentity(asBob).query(api.foods.list, {})))
   })
 
   test('is not readable at all without a session', async () => {
@@ -236,7 +251,9 @@ describe('a food’s picture', () => {
 
     const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
     expect(food?.imageId).toBe(imageId)
-    expect(food?.imageUrl).toBeTruthy()
+    expect(food?.imageUrl).toBe(
+      await t.run(async (ctx) => ctx.storage.getUrl(imageId)),
+    )
   })
 
   test('a product with no picture imports perfectly well', async () => {
@@ -268,11 +285,13 @@ describe('a food’s picture', () => {
 
     await t
       .withIdentity(asAlice)
-      .mutation(api.foods.attachOffImage, { id, imageId })
+      .mutation(internal.foods.attachOffImage, { id, imageId })
 
     const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
     expect(food?.imageId).toBe(imageId)
-    expect(food?.imageUrl).toBeTruthy()
+    expect(food?.imageUrl).toBe(
+      await t.run(async (ctx) => ctx.storage.getUrl(imageId)),
+    )
   })
 
   test('a background OFF picture cannot overwrite a local edit', async () => {
@@ -294,7 +313,7 @@ describe('a food’s picture', () => {
 
     await t
       .withIdentity(asAlice)
-      .mutation(api.foods.attachOffImage, { id, imageId })
+      .mutation(internal.foods.attachOffImage, { id, imageId })
 
     const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
     expect(food?.imageId).toBeUndefined()
@@ -329,7 +348,7 @@ describe('a food’s picture', () => {
   test('a picture another row still holds survives the food letting go of it', async () => {
     const t = testConvex()
     await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
-    // Signing up no longer provisions a Group (ADR-0030); the recipe needs one.
+    // Signing up provisions no Group (ADR-0030); the recipe needs one.
     await t
       .withIdentity(asAlice)
       .mutation(api.groups.createGroup, { name: 'Household' })
@@ -563,7 +582,7 @@ describe('where a food’s figures came from', () => {
 
     await t
       .withIdentity(asAlice)
-      .mutation(api.foods.applyOffRefresh, { id, ...nutella })
+      .mutation(internal.foods.applyOffRefresh, { id, ...nutella })
 
     const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
     expect(food?.nutritionSource).toBe('imported')
@@ -667,7 +686,7 @@ describe('reviewing an import before it is saved', () => {
       // what follows is about a lookup that worked, not one that quietly
       // did nothing.
       expect(mapped?.name).toBe('Nutella')
-      expect(mapped?.imageUrl).toBeTruthy()
+      expect(mapped?.imageUrl).toBe(product.product.image_front_small_url)
     } finally {
       vi.unstubAllGlobals()
     }
@@ -873,7 +892,7 @@ describe('a food’s icon', () => {
 
     // Open Food Facts has no emoji, so a refresh has nothing to overwrite it
     // with — and the icon was yours, not theirs.
-    await t.withIdentity(asAlice).mutation(api.foods.applyOffRefresh, {
+    await t.withIdentity(asAlice).mutation(internal.foods.applyOffRefresh, {
       id,
       barcode: '3017620422003',
       name: 'Nutella',

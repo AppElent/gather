@@ -14,7 +14,6 @@ import { useSession, useUser } from '@clerk/expo'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { readThrown } from '../../../../../src/auth/clerkErrors'
 import { AuthError } from '../../../../../src/components/AuthError'
 import { SettingsCard } from '../../../../../src/components/SettingsCard'
+import { confirmDestructive } from '../../../../../src/feedback/confirmDestructive'
 import { fmt, useI18n } from '../../../../../src/i18n'
 import { useTokens } from '../../../../../src/theme/tokens'
 
@@ -77,27 +77,22 @@ export default function Devices() {
   }, [load])
 
   function confirmRevoke(row: Row) {
-    Alert.alert(
-      fmt(t.account.sessions.revokeTitle, { device: row.device }),
-      t.account.sessions.revokeBody,
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: t.account.sessions.signOutOf,
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await row.revoke()
-                await load()
-              } catch (cause) {
-                setError(readThrown(cause, t))
-              }
-            })()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(t.account.sessions.revokeTitle, { device: row.device }),
+      message: t.account.sessions.revokeBody,
+      confirm: t.account.sessions.signOutOf,
+      cancel: t.actions.cancel,
+      onConfirm: () => {
+        void (async () => {
+          try {
+            await row.revoke()
+            await load()
+          } catch (cause) {
+            setError(readThrown(cause, t))
+          }
+        })()
+      },
+    })
   }
 
   return (

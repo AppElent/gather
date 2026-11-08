@@ -62,7 +62,7 @@ function CacheLifecycle({ children }: { children: ReactNode }) {
 }
 
 /** A live backend identity must match the locally selected account. */
-export function useAccountReady(
+function useAccountReady(
   account: string | null | undefined,
   confirmedAccount: string | null | undefined,
 ) {

@@ -1,9 +1,17 @@
 import { useUser } from '@clerk/react'
-import { useEffect, useState } from 'react'
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react'
 import { useMessages } from '../../lib/i18n'
 import type { IssueReporterType } from '../../lib/issueReporter'
 import { ISSUE_REPORTER_TYPES } from '../../lib/issueReporter'
 import { reportIssue } from '../../server/reportIssue'
+import { useModalFocus } from './useModalFocus'
 
 type SubmitStatus =
   | { state: 'idle' }
@@ -11,14 +19,30 @@ type SubmitStatus =
   | { state: 'success'; issueUrl: string }
   | { state: 'error'; error: string }
 
-export function IssueReporterModal() {
-  const [open, setOpen] = useState(false)
+/**
+ * Filing a bug or an idea from wherever you are. The shell owns whether it is
+ * open, so Ctrl+Shift+I and the topbar's button open the same thing.
+ */
+export function IssueReporterModal({
+  open,
+  onOpenChange: setOpen,
+}: {
+  open: boolean
+  onOpenChange: Dispatch<SetStateAction<boolean>>
+}) {
   const [type, setType] = useState<IssueReporterType>('bug')
   const [text, setText] = useState('')
   const [status, setStatus] = useState<SubmitStatus>({ state: 'idle' })
   const { user } = useUser()
   const messages = useMessages()
   const { issueReporter } = messages.shell
+  const titleId = useId()
+  const textRef = useRef<HTMLTextAreaElement>(null)
+  const { ref, onKeyDown } = useModalFocus<HTMLDivElement>({
+    open,
+    onClose: () => setOpen(false),
+    initialFocus: textRef,
+  })
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -26,11 +50,10 @@ export function IssueReporterModal() {
         e.preventDefault()
         setOpen((v) => !v)
       }
-      if (e.key === 'Escape') setOpen(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [setOpen])
 
   if (!open) return null
 
@@ -64,10 +87,17 @@ export function IssueReporterModal() {
       onClick={() => setOpen(false)}
     >
       <div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         className="w-full max-w-md rounded-xl border bg-white p-4 shadow-lg dark:bg-neutral-900"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={onKeyDown}
       >
-        <h2 className="mb-3 text-sm font-semibold">{issueReporter.title}</h2>
+        <h2 id={titleId} className="mb-3 text-sm font-semibold">
+          {issueReporter.title}
+        </h2>
         {status.state === 'success' ? (
           <div className="space-y-3 text-sm">
             <p>{issueReporter.filed}</p>
@@ -109,7 +139,7 @@ export function IssueReporterModal() {
               {issueReporter.publicNotice}
             </p>
             <textarea
-              autoFocus
+              ref={textRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={issueReporter.placeholder}

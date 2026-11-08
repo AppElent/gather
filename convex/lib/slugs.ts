@@ -1,10 +1,10 @@
 /**
  * Slug rules for Groups.
  *
- * A slug is the readable, globally unique name identifying a Group in a URL
- * (`/g/<slug>/…`, ADR-0002). Readability is the point: it is how someone
- * notices which Group they are acting in, which is why this normalises rather
- * than hashes, and why collisions get a numbered suffix instead of an error.
+ * A slug is the readable, globally unique name a Group is resolved by: every
+ * Group-scoped function takes the Current Group as `groupSlug`. This
+ * normalises rather than hashes, and collisions get a numbered suffix instead
+ * of an error.
  *
  * Pure logic only — nothing here touches Convex. Allocation against the
  * database lives in `groupSlugs.ts`.
@@ -28,13 +28,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'sign-up',
   'forgot-password',
   'integrations',
-  // The food Catalog. It has routes at both levels but is not a Module — no
-  // registry entry, no sidebar row — so nothing else claims the segment on its
-  // behalf, and `groupPaths.segments.test.ts` holds it here instead.
   'foods',
-  // The Combos library, reserved for the same reason as `foods` above: it has a
-  // Group-level route and is not a Module — a Combo is Personal (ADR-0012), so
-  // there is no registry entry to claim the segment on its behalf.
   'combos',
   'new',
   'all',
@@ -48,20 +42,17 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
 ])
 
 /**
- * The namespace Personal groups live in, and which shared Groups are kept out
- * of, so that a household named "Me and Bob" can never take a slug that reads
- * like somebody's Personal group (ADR-0002).
+ * Kept out of a new Group's slug: former Personal groups (ADR-0030) still hold
+ * slugs with this prefix, and a household named "Me and Bob" must not read like
+ * one of them.
  */
 export const PERSONAL_SLUG_PREFIX = 'me-'
 
-/** Prefix escaping a shared Group out of a reserved or Personal slug. */
+/** Prefix escaping a Group out of a reserved or `me-` slug. */
 const SHARED_ESCAPE_PREFIX = 'g-'
 
 /** Slug for a Group whose name carries nothing sluggable at all. */
 const EMPTY_SLUG_FALLBACK = 'group'
-
-/** Personal slug for a person whose name carries nothing sluggable at all. */
-const EMPTY_PERSONAL_SLUG = `${PERSONAL_SLUG_PREFIX}member`
 
 /**
  * Latin letters with no canonical decomposition, so NFKD leaves them intact and
@@ -112,8 +103,8 @@ export function normaliseSlug(name: string): string {
 }
 
 /**
- * The slug a shared Group starts from, escaped out of the reserved segments and
- * the Personal namespace so the ladder below can only ever produce a usable
+ * The slug a Group starts from, escaped out of the reserved segments and the
+ * `me-` prefix so the ladder below can only ever produce a usable
  * slug. "Me and Bob" becomes `g-me-and-bob`, not `me-and-bob`.
  */
 export function sharedSlugBase(name: string): string {
@@ -121,12 +112,6 @@ export function sharedSlugBase(name: string): string {
   const collides =
     RESERVED_SLUGS.has(slug) || slug.startsWith(PERSONAL_SLUG_PREFIX)
   return collides ? cap(`${SHARED_ESCAPE_PREFIX}${slug}`) : slug
-}
-
-/** The slug a person's Personal group starts from — always in the namespace. */
-export function personalSlugBase(name: string): string {
-  const slug = sluggablePart(name)
-  return slug ? cap(`${PERSONAL_SLUG_PREFIX}${slug}`) : EMPTY_PERSONAL_SLUG
 }
 
 /**

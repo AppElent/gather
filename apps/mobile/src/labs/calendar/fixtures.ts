@@ -2,10 +2,8 @@
  * A household's month, handwritten.
  *
  * Nothing here is fetched and nothing here is written. The prototype answers a
- * design question (`prototypes/calendar/build-brief.md`), and the five schema
- * changes the real Module needs — `calendars.color`, `calendarEvents.assigneeId`,
- * `updateCalendarEvent`, `allDay`/`location`/`notes`, and a view preference on
- * `memberships` — are all faked below rather than migrated.
+ * design question (`prototypes/calendar/build-brief.md`), so its calendars and
+ * events are handwritten below.
  *
  * ## Anchored to today, not to September 2026
  *
@@ -36,9 +34,10 @@
  *   hiding is visible the moment the screen opens rather than only after you
  *   go looking.
  */
-import type { ModuleGroup } from '@gather/core/module-tints'
 
-import { addDays } from '../../modules/tasks/taskDates'
+
+import { addDays } from '@gather/core/civil-date'
+import type { ModuleGroup } from '@gather/core/module-tints'
 
 export interface LabCalendar {
   id: string

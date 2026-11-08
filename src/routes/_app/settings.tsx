@@ -9,9 +9,8 @@ import { useMessages } from '../../lib/i18n'
 /**
  * Your settings: the ones that are about you and read the same in every Group.
  *
- * Connections used to be here too. They are about a Group rather than about a
- * person, so they moved to `/g/<slug>/settings`; what is left in their place is
- * a way to get to each of your Groups' settings from where they used to be.
+ * Connections are about a Group rather than about a person, so they live on
+ * `/group-settings`; this page links to each of your Groups' settings.
  */
 export const Route = createFileRoute('/_app/settings')({
   component: SettingsPage,

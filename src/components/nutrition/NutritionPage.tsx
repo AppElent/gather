@@ -1,34 +1,15 @@
-import { moduleById } from '@gather/core/modules'
+import { addDays, localIsoDate } from '@gather/core/civil-date'
+import { MEAL_NAMES } from '@gather/core/domain'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { MEAL_NAMES, sumFacts } from '../../../convex/lib/consumption'
+import { sumFacts } from '../../../convex/lib/consumption'
 import { fmt, useMessages } from '../../lib/i18n'
+import { addFoodLink, linkTo } from '../../lib/links'
 import { DayTotals } from './DayTotals'
 import { sumKcal } from './kcal'
 import { MealSlot } from './MealSlot'
-import type { NutritionNav } from './nutritionNav'
-
-// Client-local YYYY-MM-DD — matches spec §3.4 ("no server timezone math").
-// Exported because the add route has to read "today" the same way the diary
-// does, or a sheet opened with no date in the URL would write to another day.
-export function todayLocal(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
-function shiftDate(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00`)
-  d.setDate(d.getDate() + days)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
 
 export interface NutritionSearch {
   date?: string
@@ -52,28 +33,19 @@ export interface NutritionPageProps {
   /** The day on show, as YYYY-MM-DD. Undefined means today. */
   date?: string
   onDateChange: (date: string) => void
-  /** Where the diary's provenance links go - see `nutritionNav.ts`. */
-  nav: NutritionNav
 }
 
 /**
  * The Nutrition day view, whole.
  *
  * A food diary is Personal (ADR-0003): it belongs to the person, not to the
- * Group in the URL, so it looks the same whichever Group it was opened from.
- * The route passes in only the date and the links, which is what keeps that
- * true — there is nothing else about it for a Group to change.
- *
- * There is one address, `/g/<slug>/nutrition`. An earlier version of this
- * comment claimed a flat `/nutrition` route as well; ADR-0002 removed the flat
- * tree, and `src/lib/legacyPaths.ts` is what answers for links to it now.
+ * Current Group, so it looks the same whichever Group it was opened from.
  */
 export function NutritionPage({
   date: dateParam,
   onDateChange,
-  nav,
 }: NutritionPageProps) {
-  const date = dateParam || todayLocal()
+  const date = dateParam || localIsoDate()
 
   const me = useQuery(api.users.me)
   const entries = useQuery(api.consumption.listForDay, { date })
@@ -97,28 +69,24 @@ export function NutritionPage({
       <h1 className="mb-1 text-2xl font-semibold">
         {messages.modules.byId.nutrition.label}
       </h1>
-      {moduleById('nutrition')?.scope === 'personal' && (
-        <p className="mb-4 text-sm text-[var(--app-muted)]">
-          {diary.personalNote}
-        </p>
-      )}
+      <p className="mb-4 text-sm text-[var(--app-muted)]">
+        {diary.personalNote}
+      </p>
 
-      {/* The two libraries the diary draws on. Both were addresses you had to
-          know before (#100): the Catalog had no way in from here at all, and a
-          Combo could only be met inside the add sheet. They sit above the day
+      {/* The two libraries the diary draws on (#100). They sit above the day
           rather than in the shell because neither is a Module — Foods is
           Catalog and a Combo is Personal — so nothing in the sidebar or the
           dock claims a row for them, and a phone reaches them the same way a
           desktop does. */}
       <nav aria-label={libraries.heading} className="mb-4 flex flex-wrap gap-2">
         <Link
-          {...nav.foods}
+          {...linkTo('foods')}
           className="inline-flex min-h-11 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm no-underline"
         >
           {libraries.foods}
         </Link>
         <Link
-          {...nav.combos}
+          {...linkTo('combos')}
           className="inline-flex min-h-11 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm no-underline"
         >
           {libraries.combos}
@@ -128,7 +96,7 @@ export function NutritionPage({
       <div className="mb-4 flex items-center justify-between gap-2">
         <button
           type="button"
-          onClick={() => onDateChange(shiftDate(date, -1))}
+          onClick={() => onDateChange(addDays(date, -1))}
           className="rounded border px-2 py-1 text-sm"
         >
           {diary.prevDay}
@@ -141,7 +109,7 @@ export function NutritionPage({
         />
         <button
           type="button"
-          onClick={() => onDateChange(shiftDate(date, 1))}
+          onClick={() => onDateChange(addDays(date, 1))}
           className="rounded border px-2 py-1 text-sm"
         >
           {diary.nextDay}
@@ -152,7 +120,7 @@ export function NutritionPage({
         totals={totals}
         targets={me?.nutritionTargets}
         heading={
-          date === todayLocal()
+          date === localIsoDate()
             ? diary.totalsToday
             : fmt(diary.totalsOn, { date })
         }
@@ -168,8 +136,7 @@ export function NutritionPage({
           key={`${date}-${meal}`}
           label={meals[meal]}
           entries={(entries ?? []).filter((e) => e.meal === meal)}
-          nav={nav}
-          addLink={nav.addEntry(date, meal)}
+          addLink={addFoodLink(date, meal)}
           // One call, because it is one transaction: the Combo, the entries it
           // takes the place of and the expansion that replaces them either all
           // happen or none of them do (#99).

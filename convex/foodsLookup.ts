@@ -1,24 +1,14 @@
 'use node'
 
 import { ConvexError, v } from 'convex/values'
-import { api } from './_generated/api'
+import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
-import type { ActionCtx } from './_generated/server'
 import { action } from './_generated/server'
-import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
+import { offImportFields } from './lib/foodFields'
 import { fetchOffProduct, searchOffProducts } from './lib/offFetch'
 import { mapOffProduct, mapOffSearchResults } from './lib/offMapping'
-import { servingValidator } from './lib/servings'
-import { safeFetch } from './recipeImport'
-
-/** Long enough for a thumbnail, short enough not to hold up an import. */
-const IMAGE_TIMEOUT_MS = 8_000
-
-/**
- * The largest picture worth keeping. A front-of-packet thumbnail is tens of
- * kilobytes; anything past this is not the thing we asked for.
- */
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024
+import { storeRemoteImage } from './lib/safeFetch'
+import { requireIdentity } from './lib/sharing'
 
 /**
  * Where a food picture may come from.
@@ -49,8 +39,7 @@ export function isOffImageUrl(url: string): boolean {
 export const lookupBarcode = action({
   args: { barcode: v.string() },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new ConvexError('Not authenticated')
+    await requireIdentity(ctx)
     const raw = await fetchOffProduct(args.barcode)
     if (!raw) return null
     return mapOffProduct(raw)
@@ -63,8 +52,7 @@ export const lookupBarcode = action({
 export const refreshFromOff = action({
   args: { id: v.id('foods') },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new ConvexError('Not authenticated')
+    await requireIdentity(ctx)
     const food = await ctx.runQuery(api.foods.get, { id: args.id })
     if (!food) throw new ConvexError('Food not found')
     if (!food.barcode) {
@@ -80,7 +68,7 @@ export const refreshFromOff = action({
     if (!mapped) {
       throw new ConvexError('Open Food Facts no longer has this product.')
     }
-    await ctx.runMutation(api.foods.applyOffRefresh, {
+    await ctx.runMutation(internal.foods.applyOffRefresh, {
       id: args.id,
       barcode: food.barcode,
       name: mapped.name,
@@ -93,45 +81,6 @@ export const refreshFromOff = action({
 })
 
 /**
- * Fetch a product's picture and keep it.
- *
- * Best effort in every direction: a product with no picture, a URL that is not
- * Open Food Facts', one that does not resolve, a server that is down, a
- * response that is not an image or is too big, a blob that will not store —
- * each means a food with no picture, never a failed import.
- *
- * Three separate refusals, because they close three different doors:
- * `isOffImageUrl` (this is a public action, so the URL is whatever a caller
- * sent), `safeFetch`'s redirect-revalidating host check (SSRF), and the
- * content-type and size checks below (storage being filled with something that
- * is not a thumbnail). A `content-length` that lies is caught by measuring the
- * blob after, before anything is stored.
- */
-async function fetchAndStoreOffImage(
-  ctx: ActionCtx,
-  url: string | undefined,
-): Promise<Id<'_storage'> | undefined> {
-  if (!url || !isOffImageUrl(url)) return undefined
-  try {
-    const response = await safeFetch(url, {
-      signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS),
-    })
-    if (!response?.ok) return undefined
-    if (!response.headers.get('content-type')?.startsWith('image/')) {
-      return undefined
-    }
-    const declared = Number(response.headers.get('content-length'))
-    if (Number.isFinite(declared) && declared > MAX_IMAGE_BYTES)
-      return undefined
-    const blob = await response.blob()
-    if (blob.size > MAX_IMAGE_BYTES) return undefined
-    return await ctx.storage.store(blob)
-  } catch {
-    return undefined
-  }
-}
-
-/**
  * Turn an Open Food Facts result into a food of your own.
  *
  * An action rather than a mutation because of the picture: fetching it is a
@@ -141,29 +90,15 @@ async function fetchAndStoreOffImage(
  */
 export const importFromOff = action({
   args: {
-    barcode: v.string(),
-    name: v.string(),
-    brand: v.optional(v.string()),
-    baseUnit: v.union(v.literal('g'), v.literal('ml')),
-    nutritionPer100: nutritionValidator,
-    servings: v.optional(v.array(servingValidator)),
+    ...offImportFields,
     imageUrl: v.optional(v.string()),
-    // A direct import carries its figures as `imported`; somebody who checks
-    // first and corrects one arrives here saying `manual`. Absent still means
-    // `imported`, which `foods.upsertFromOff` is the one to decide (#112).
-    nutritionSource: v.optional(nutritionSourceValidator),
-    // The emoji picked while reviewing (#94) — which is where one is most
-    // obviously missing, because an Open Food Facts product with no photograph
-    // is exactly the food with nothing else to show. Every field of the review
-    // reaches the row through this action, so an icon that stopped here would
-    // be dropped at the save without anything saying so.
-    icon: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args): Promise<Id<'foods'>> => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new ConvexError('Not authenticated')
+    await requireIdentity(ctx)
     const { imageUrl, ...fields } = args
-    const imageId = await fetchAndStoreOffImage(ctx, imageUrl)
+    const imageId = imageUrl && isOffImageUrl(imageUrl)
+      ? await storeRemoteImage(ctx, imageUrl)
+      : undefined
     // The mutation decides whether this blob is used at all — an existing row
     // somebody has edited keeps what it has — and deletes it if not, so a
     // refused import leaves nothing behind in storage.
@@ -182,16 +117,17 @@ export const importFromOff = action({
 export const storeOffImage = action({
   args: { id: v.id('foods'), imageUrl: v.string() },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new ConvexError('Not authenticated')
+    await requireIdentity(ctx)
     // This public action fetches before it can know whether storage will
     // accept the blob. Reject an absent or read-only target first, otherwise a
     // caller could leave an unreachable file behind by naming a Catalog row.
     const food = await ctx.runQuery(api.foods.get, { id: args.id })
     if (!food || food.seedKey !== undefined) return
-    const imageId = await fetchAndStoreOffImage(ctx, args.imageUrl)
+    const imageId = isOffImageUrl(args.imageUrl)
+      ? await storeRemoteImage(ctx, args.imageUrl)
+      : undefined
     if (!imageId) return
-    await ctx.runMutation(api.foods.attachOffImage, {
+    await ctx.runMutation(internal.foods.attachOffImage, {
       id: args.id,
       imageId,
     })
@@ -199,7 +135,7 @@ export const storeOffImage = action({
 })
 
 // Searches Open Food Facts by name, alongside the local search rather than
-// only when it returns nothing — one poor local match used to suppress the
+// only when it returns nothing, so one poor local match cannot suppress the
 // entire external catalogue. Best-effort: any OFF-side failure (network,
 // timeout, malformed response) surfaces as an empty array, never a thrown
 // error, matching lookupBarcode's contract — a failed OFF search just means
@@ -207,8 +143,7 @@ export const storeOffImage = action({
 export const searchByName = action({
   args: { term: v.string(), locale: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) throw new ConvexError('Not authenticated')
+    await requireIdentity(ctx)
     // The locale the person is reading in, so the search looks in the
     // language they are typing. `searchOffProducts` decides what an
     // unrecognised one means; this only carries it.

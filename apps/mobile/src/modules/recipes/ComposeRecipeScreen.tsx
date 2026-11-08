@@ -37,9 +37,10 @@
  * copy. What replaces it is the *collection*, not the tab root the form was
  * launched from — see `save` for why one call covers both doors.
  */
+
 import { isAiLimitReached } from '@gather/core/ai-limit'
+import { refusalSentence } from '@gather/core/refusals'
 import { useAction, useMutation } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -52,15 +53,14 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { useDrop } from '../../drop/DropProvider'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import type { RecipeBase } from './paths'
-import { recipeHref } from './paths'
-import { RecipeFields } from './RecipeFields'
+import { moduleHref } from '../moduleDestination'
+import { RecipeFields, SaveRecipeButton } from './RecipeFields'
 import {
   blankRecipeForm,
   recipeFieldsFrom,
@@ -70,13 +70,11 @@ import {
 import { useRecipes } from './useRecipes'
 
 export interface ComposeRecipeScreenProps {
-  /** Which tab stack this instance is mounted in (ADR-0023). */
-  base: RecipeBase
   /** `import` shows the link bar; `new` is the blank page behind it. */
   mode: 'import' | 'new'
 }
 
-export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
+export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
   const tokens = useTokens('kitchen')
   const insets = useSafeAreaInsets()
   const router = useRouter()
@@ -96,6 +94,11 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
     photoId?: string
     photoUri?: string
   }>()
+
+  // `recipe-import` keeps the Drop until here (`keepsDrop`): the page can
+  // still fail to read, and Back must find the chooser with the Drop pending.
+  const { pending: pendingDrop, clear: clearDrop } = useDrop()
+  const finishesDrop = Boolean(dropped.link && pendingDrop)
 
   const create = useMutation(api.recipes.create)
   const generateUploadUrl = useMutation(api.recipes.generateUploadUrl)
@@ -169,7 +172,7 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
       setImportProblem(
         isAiLimitReached(error)
           ? text.form.aiLimitReached
-          : messageFrom(error, text.create.importFailed),
+          : refusalSentence(error) ?? text.create.importFailed,
       )
     } finally {
       setImporting(false)
@@ -189,21 +192,29 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
         imageId: (photoId ?? undefined) as Id<'_storage'> | undefined,
       })
       haptics.itemSaved()
+      if (finishesDrop) {
+        // The save is the Drop's commit, finished the way every other target
+        // finishes one: clear it, leave the chooser, open what was made.
+        clearDrop()
+        router.dismissTo('/home')
+        router.push(moduleHref('/all/recipes/recipe', { recipeId: id }))
+        return
+      }
       // Land on the recipe, with the collection underneath it — never with
       // whatever happened to be there when the form was pushed.
       //
       // `dismissTo` is what makes one line serve both doors. Opened from the
       // collection, the stack is [Recipes, form] and this pops back to
-      // Recipes; opened from the Add tab it is [Home, form], the collection is
-      // not in it, and `dismissTo` replaces the form with it instead. Either
+      // Recipes; opened from the Add tab the collection is not in the stack,
+      // and `dismissTo` replaces the form with it instead. Either
       // way the recipe is pushed onto the collection, so Back from a recipe
       // you just made goes where a recipe lives rather than to the tab root
       // you happened to launch from.
-      router.dismissTo(recipeHref(base, ''))
-      router.push(recipeHref(base, '/recipe', { recipeId: id }))
+      router.dismissTo(moduleHref('/all/recipes'))
+      router.push(moduleHref('/all/recipes/recipe', { recipeId: id }))
     } catch (error) {
       haptics.actionFailed()
-      setSaveProblem(messageFrom(error, text.form.saveFailed))
+      setSaveProblem(refusalSentence(error) ?? text.form.saveFailed)
       setSaving(false)
     }
   }
@@ -343,48 +354,15 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
             </Text>
           ) : null}
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={text.form.save}
-            accessibilityState={{ disabled: Boolean(problem) || saving }}
-            testID="recipe-save"
-            disabled={Boolean(problem) || saving}
+          <SaveRecipeButton
+            disabled={Boolean(problem)}
+            saving={saving}
             onPress={save}
-            style={({ pressed }) => [
-              styles.save,
-              {
-                backgroundColor:
-                  problem || saving ? tokens.tile : tokens.accent,
-              },
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text
-              style={[
-                styles.saveLabel,
-                { color: problem || saving ? tokens.muted : tokens.onAccent },
-              ]}
-            >
-              {saving ? text.form.saving : text.form.save}
-            </Text>
-          </Pressable>
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </>
   )
-}
-
-/**
- * What went wrong, in words somebody can read.
- *
- * A `ConvexError` carries a message the server chose — "That address could not
- * be fetched" — and is worth showing. Anything else is a network or a bug, and
- * the Module's own sentence is a better answer than its stack.
- */
-export function messageFrom(error: unknown, fallback: string): string {
-  if (error instanceof ConvexError && typeof error.data === 'string')
-    return error.data
-  return fallback
 }
 
 const styles = StyleSheet.create({
@@ -412,13 +390,5 @@ const styles = StyleSheet.create({
   importLabel: { fontSize: 15, fontWeight: '700' },
   note: { fontSize: 13, lineHeight: 19 },
   problem: { fontSize: 13, lineHeight: 19 },
-  save: {
-    borderRadius: RADIUS.control,
-    minHeight: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  saveLabel: { fontSize: 16, fontWeight: '700' },
   pressed: { opacity: 0.7 },
 })

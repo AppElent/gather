@@ -5,15 +5,15 @@ import type { Id } from '../../../convex/_generated/dataModel'
 import { comboEntries } from '../../../convex/lib/combos'
 import { sumFacts } from '../../../convex/lib/consumption'
 import { fmt, plural, useI18n } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { ComboActions } from './ComboActions'
-import type { NutritionNav } from './nutritionNav'
 
 /**
  * The Combos library: what you have saved, in one place (#100).
  *
  * A Combo is Personal (ADR-0012), so `combos.list` resolves the caller and
  * returns their own rows — there is no Group argument to pass, and the page
- * therefore reads the same from every Group even though its address names one.
+ * therefore reads the same from every Group.
  *
  * Browsing only. Logging a Combo is something that happens *into a meal*, which
  * this page has no day and no slot for, and there is deliberately no builder
@@ -21,7 +21,7 @@ import type { NutritionNav } from './nutritionNav'
  * is what the empty state explains instead of offering a button that would have
  * to invent one.
  */
-export function CombosPage({ nav }: { nav: NutritionNav }) {
+export function CombosPage() {
   const { locale, messages } = useI18n()
   const library = messages.nutrition.combosLibrary
   const { combos: comboWords, personalNote } = messages.nutrition.diary
@@ -37,7 +37,7 @@ export function CombosPage({ nav }: { nav: NutritionNav }) {
       <p className="mb-4 text-sm text-[var(--app-muted)]">{personalNote}</p>
 
       <Link
-        {...nav.diary}
+        {...linkTo('nutrition')}
         className="mb-6 inline-flex min-h-11 items-center text-sm underline"
       >
         {library.back}

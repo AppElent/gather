@@ -1,10 +1,10 @@
 /**
- * The front door — direction A, "words plus a tinted strip".
+ * The front door: words plus a tinted strip.
  *
  * The pitch leads, in the same two sentences the web's About page uses, and the
  * catalogue confirms it underneath as a band of tinted chips. The claim is
- * "thirteen Modules, one Group"; a list of thirteen names in their four group
- * tints is that claim rather than an illustration of it.
+ * "every Module, one Group"; every Module's name in its group's tint is that
+ * claim rather than an illustration of it.
  *
  * The chips are not tappable and are not meant to look it. There is nothing
  * behind them until you are signed in, and a tile that invites a tap it cannot
@@ -13,9 +13,6 @@
  * The accent here is ink, not a tint (ADR-0017): the front door belongs to no
  * Module, and a teal Sign in would be claiming you had already arrived
  * somewhere.
- *
- * Direction B lives in `welcome-catalogue.tsx`, unreachable from here on
- * purpose. One of the two is deleted once #147 is settled.
  */
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'

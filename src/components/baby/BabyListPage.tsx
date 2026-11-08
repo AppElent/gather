@@ -1,26 +1,19 @@
+import { formatAge } from '@gather/core/baby-age'
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { Plus } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
-import { formatAge } from '../../lib/babyDate'
 import { useI18n } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { SurfaceCard } from '../app/ShellPrimitives'
-import type { BabyNav } from './babyNav'
-
-export interface BabyListPageProps {
-  /** The Group whose log this is. Always in the URL (ADR-0002). */
-  groupSlug: string
-  nav: BabyNav
-}
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 
 /**
- * The children in one household's log, whole.
- *
- * The Group arrives as a prop and goes straight to Convex, which resolves it
- * through the one Group-scoped check: the answer is that Group's children and
- * nobody else's, with no fallback to a stored default to fall back on.
+ * The children in the Current Group's log, whole: that Group's children and
+ * nobody else's.
  */
-export function BabyListPage({ groupSlug, nav }: BabyListPageProps) {
+export function BabyListPage() {
+  const { slug: groupSlug } = useRequiredCurrentGroup()
   const babies = useQuery(api.babies.list, { groupSlug })
   const { locale, messages } = useI18n()
   const { child, list } = messages.baby.log
@@ -37,7 +30,7 @@ export function BabyListPage({ groupSlug, nav }: BabyListPageProps) {
           </p>
         </div>
         <Link
-          {...nav.create}
+          {...linkTo('newChild')}
           className="inline-flex min-h-9 items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold text-[var(--app-fg)] no-underline"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
@@ -62,7 +55,7 @@ export function BabyListPage({ groupSlug, nav }: BabyListPageProps) {
               {list.emptyBody}
             </p>
             <Link
-              {...nav.create}
+              {...linkTo('newChild')}
               className="mx-auto inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold no-underline"
             >
               {list.emptyAction}
@@ -74,7 +67,7 @@ export function BabyListPage({ groupSlug, nav }: BabyListPageProps) {
           {babies.map((b) => (
             <Link
               key={b._id}
-              {...nav.detail(b._id)}
+              {...linkTo('child', { babyId: b._id })}
               className="block no-underline transition hover:opacity-90"
             >
               <SurfaceCard>

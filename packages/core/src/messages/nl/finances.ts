@@ -109,17 +109,11 @@ export const finances = {
     partCount: '{count} leningdelen',
     onePart: '1 leningdeel',
     recurring: 'Vaste lasten',
-    recurringSummary: '{count} lasten · jouw deel {share}',
-    recurringEmpty: 'Wat het huishouden elke maand betaalt',
     savings: 'Spaardoelen',
-    savingsEmpty: 'Spaar samen ergens naartoe',
-    savingsSummary: '{name} op koers voor {date}',
     split: 'Kosten delen',
-    splitSummary: 'Wie wat schuldig is, eenmalig',
     portfolio: 'Beleggingen',
     portfolioEmpty: 'Nog geen beleggingen',
     netWorth: 'Vermogen',
-    netWorthEmpty: 'Nog niets ingevuld',
     emptyTitle: 'Hier staat nog niets',
     emptyBody:
       'Voeg het huis toe waar je woont — of een huis waar je over nadenkt — en de hypotheek, de kosten koper en de waarde hangen eraan.',
@@ -134,7 +128,6 @@ export const finances = {
     namePlaceholder: 'Kerkstraat 14',
     summaryCaption: 'Hypotheek, alle delen',
     summarySub: '{parts} · {outstanding} openstaand',
-    noMortgage: 'Nog geen hypotheekberekening',
     firstFixEnds: 'Eerste rentevaste periode eindigt {date}',
     calculations: 'Hypotheekberekeningen',
     addCalculation: 'Berekening toevoegen',
@@ -156,7 +149,6 @@ export const finances = {
   mortgage: {
     parts: 'Leningdelen',
     addPart: 'Leningdeel toevoegen',
-    noParts: 'Nog geen leningdelen',
     noPartsBody:
       'Een hypotheek bestaat hier uit haar delen. Voeg het eerste toe en de totalen volgen.',
     together: 'Alles bij elkaar',
@@ -168,7 +160,6 @@ export const finances = {
     stepsSummary: '{count} stappen, {from} tot {to}',
     oneStep: 'Er verandert niets',
     oneStepSub: 'Geen rentevaste periode loopt af zolang deze hypotheek loopt',
-    barMonthly: '{amount} per maand',
     barSub: '{parts} · {outstanding} openstaand',
     notice:
       'Elk deel wordt apart berekend en de totalen zijn de som daarvan. De rentes na een rentevaste periode zijn de jouwe, geen voorspelling.',
@@ -273,7 +264,6 @@ export const finances = {
       notePlaceholder: 'Verlengt in maart',
       whoPays: 'Wie betaalt wat',
       changeSplit: 'Verdeling wijzigen',
-      splitEven: 'Gelijk verdelen',
       splitUnset: 'Niet verdeeld',
       namePlaceholder: 'Autoverzekering',
       notice:
@@ -308,7 +298,6 @@ export const finances = {
     puttingAside: 'Opzij per maand',
     puttingAsideSub: 'Wat jullie elke maand van plan zijn',
     updatedBy: 'Bijgewerkt op {date} door {name}',
-    updateProgress: 'Voortgang bijwerken',
     behind: 'Achter op de streefdatum',
     notice:
       'Je vult zelf in wat je gespaard hebt. Gather leest dat niet van een rekening.',
@@ -356,7 +345,6 @@ export const finances = {
     dividends: 'Ontvangen dividend',
     fees: 'Betaalde kosten',
     pricesAt: 'Koersen {time}',
-    fxAt: '{pair} {time}',
     stale: 'Kon nu niet vernieuwen. Trek omlaag om het opnieuw te proberen.',
     staleBadge: 'verouderd',
     notice:
@@ -375,8 +363,6 @@ export const finances = {
       openingPosition: 'Beginpositie',
       openingBody:
         'Wat je ook kiest, dit wordt een beginpositie waar je daarna aankopen, verkopen, dividend en kosten aan toevoegt.',
-      knowWhatIHold: 'Ik weet wat ik heb',
-      haveHistory: 'Ik heb mijn historie',
       units: 'Stuks',
       averagePrice: 'Gemiddelde prijs',
       asAt: 'Per',

@@ -20,10 +20,8 @@ import { ConvexError, v } from 'convex/values'
 
 import { mutation, query } from './_generated/server'
 import {
-  findInGroup,
-  requireInGroup,
   requireName,
-  splitPartyValidator,
+  splitScenarioFields,
 } from './lib/finance'
 import { requireGroupBySlug } from './lib/groupAccess'
 
@@ -38,43 +36,6 @@ export const list = query({
     return scenarios.sort((a, b) => b.createdAt - a.createdAt)
   },
 })
-
-export const get = query({
-  args: { id: v.id('splitScenarios'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    const found = await findInGroup(ctx, args.groupSlug, args.id)
-    if (!found) return null
-    return {
-      ...found.doc,
-      createdByName:
-        (await ctx.db.get(found.doc.createdByUserId))?.name ?? null,
-    }
-  },
-})
-
-const scenarioFields = {
-  name: v.string(),
-  payments: v.array(
-    v.object({
-      party: splitPartyValidator,
-      amountCents: v.number(),
-      label: v.optional(v.string()),
-    }),
-  ),
-  participants: v.array(splitPartyValidator),
-  mode: v.union(v.literal('equal'), v.literal('custom')),
-  owed: v.array(
-    v.object({ party: splitPartyValidator, amountCents: v.number() }),
-  ),
-  transfers: v.array(
-    v.object({
-      from: splitPartyValidator,
-      to: splitPartyValidator,
-      amountCents: v.number(),
-    }),
-  ),
-  totalCents: v.number(),
-}
 
 /**
  * The one check worth making on a frozen result: it has to hand out exactly
@@ -93,7 +54,7 @@ function requireBalanced(args: {
 }
 
 export const save = mutation({
-  args: { groupSlug: v.string(), ...scenarioFields },
+  args: { groupSlug: v.string(), ...splitScenarioFields },
   handler: async (ctx, args) => {
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
     requireBalanced(args)
@@ -105,37 +66,5 @@ export const save = mutation({
       createdByUserId: user._id,
       createdAt: Date.now(),
     })
-  },
-})
-
-/** The only way to change a saved split: make another one from it. */
-export const duplicate = mutation({
-  args: {
-    id: v.id('splitScenarios'),
-    groupSlug: v.string(),
-    name: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const { doc, group, user } = await requireInGroup(
-      ctx,
-      args.groupSlug,
-      args.id,
-    )
-    const { _id, _creationTime, ...rest } = doc
-    return await ctx.db.insert('splitScenarios', {
-      ...rest,
-      name: requireName(args.name),
-      groupId: group._id,
-      createdByUserId: user._id,
-      createdAt: Date.now(),
-    })
-  },
-})
-
-export const remove = mutation({
-  args: { id: v.id('splitScenarios'), groupSlug: v.string() },
-  handler: async (ctx, args) => {
-    await requireInGroup(ctx, args.groupSlug, args.id)
-    await ctx.db.delete(args.id)
   },
 })

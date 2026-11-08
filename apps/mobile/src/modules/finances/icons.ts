@@ -4,9 +4,6 @@
  * Each is a `glyph(lucide, sfSymbol)` pair: iOS draws the symbol, Android draws
  * the SVG, and no call site knows which.
  */
-import ArrowDownRight from 'lucide-react-native/icons/arrow-down-right'
-import ArrowUpRight from 'lucide-react-native/icons/arrow-up-right'
-import Bookmark from 'lucide-react-native/icons/bookmark'
 import ChartLine from 'lucide-react-native/icons/chart-line'
 import Clock from 'lucide-react-native/icons/clock'
 import House from 'lucide-react-native/icons/house'
@@ -30,8 +27,5 @@ export const FINANCE_ICONS = {
   Scale: glyph(Scale, 'scalemass.fill'),
   Clock: glyph(Clock, 'clock'),
   Plus: glyph(Plus, 'plus'),
-  Bookmark: glyph(Bookmark, 'bookmark.fill'),
   Alert: glyph(TriangleAlert, 'exclamationmark.triangle.fill'),
-  Up: glyph(ArrowUpRight, 'arrow.up.right'),
-  Down: glyph(ArrowDownRight, 'arrow.down.right'),
 } satisfies Record<string, Glyph>

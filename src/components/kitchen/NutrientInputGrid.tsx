@@ -1,0 +1,30 @@
+import { NUTRIENT_KEYS, type NutrientKey } from '@gather/core/domain'
+import { useMessages } from '../../lib/i18n'
+import { inputClass } from './fields'
+
+interface Props {
+  values: Record<NutrientKey, string>
+  onChange: (key: NutrientKey, value: string) => void
+  disabled?: boolean
+}
+
+export function NutrientInputGrid({ values, onChange, disabled }: Props) {
+  const labels = useMessages().nutrients.labels
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {NUTRIENT_KEYS.map((key) => (
+        <label key={key} className="block text-sm">
+          <span className="mb-1 block font-medium">{labels[key]}</span>
+          <input
+            inputMode="decimal"
+            className={inputClass}
+            value={values[key]}
+            onChange={(e) => onChange(key, e.target.value)}
+            disabled={disabled}
+          />
+        </label>
+      ))}
+    </div>
+  )
+}

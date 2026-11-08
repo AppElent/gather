@@ -7,19 +7,20 @@
  * month", they type a target and a date and Gather says the rest (ADR-0025).
  */
 
-import { savingsProgress } from '@gather/core/finance'
+import { isIsoDate } from '@gather/core/civil-date'
+import { parseCents, savingsProgress } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, StyleSheet, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import { StyleSheet, View } from 'react-native'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
+import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
-import { type FinanceBase, financeHref } from './paths'
 import {
   AddRow,
   Card,
@@ -36,7 +37,7 @@ import {
 } from './ui'
 import { useFinances } from './useFinances'
 
-export function SavingsScreen({ base }: { base: FinanceBase }) {
+export function SavingsScreen() {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { groupSlug, format, text, today } = useFinances()
@@ -72,9 +73,9 @@ export function SavingsScreen({ base }: { base: FinanceBase }) {
   }
 
   function save() {
-    const cents = Math.round(Number(target.replace(',', '.')) * 100)
-    if (!name.trim() || !Number.isFinite(cents) || cents <= 0) return
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return
+    const cents = parseCents(target) ?? 0
+    if (!name.trim() || cents <= 0) return
+    if (!isIsoDate(date)) return
     create({
       groupSlug,
       name: name.trim(),
@@ -123,7 +124,9 @@ export function SavingsScreen({ base }: { base: FinanceBase }) {
                   chevron
                   onPress={() =>
                     router.push(
-                      financeHref(base, '/goal', { goalId: goal._id }),
+                      moduleHref('/all/savings-goals/goal', {
+                        goalId: goal._id,
+                      }),
                     )
                   }
                 />
@@ -171,13 +174,7 @@ export function SavingsScreen({ base }: { base: FinanceBase }) {
 
 type Editing = 'saved' | 'monthly' | null
 
-export function SavingsGoalScreen({
-  base: _base,
-  goalId,
-}: {
-  base: FinanceBase
-  goalId: Id<'savingsGoals'>
-}) {
+export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { groupSlug, format, text, today } = useFinances()
@@ -218,8 +215,8 @@ export function SavingsGoalScreen({
   const progress = savingsProgress(goal, today)
 
   function commit() {
-    const cents = Math.round(Number(draft.replace(',', '.')) * 100)
-    if (!Number.isFinite(cents) || cents < 0) {
+    const cents = parseCents(draft) ?? 0
+    if (cents < 0) {
       setEditing(null)
       return
     }
@@ -231,21 +228,16 @@ export function SavingsGoalScreen({
   }
 
   function confirmDelete() {
-    Alert.alert(
-      fmt(text.errors.confirmDelete, { name: goal?.name ?? '' }),
-      text.errors.confirmDeleteBody,
-      [
-        { text: text.actions.cancel, style: 'cancel' },
-        {
-          text: text.actions.delete,
-          style: 'destructive',
-          onPress: () => {
-            remove({ id: goalId, groupSlug })
-            router.back()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(text.errors.confirmDelete, { name: goal?.name ?? '' }),
+      message: text.errors.confirmDeleteBody,
+      confirm: text.actions.delete,
+      cancel: text.actions.cancel,
+      onConfirm: () => {
+        remove({ id: goalId, groupSlug })
+        router.back()
+      },
+    })
   }
 
   return (

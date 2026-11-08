@@ -1,24 +1,23 @@
+import { SAMPLE_GROUP_NAME } from '@gather/core/groups'
+import { MODULES, type ModuleId } from '@gather/core/modules'
+import type { TastingKind } from '@gather/core/tastings'
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
+import type { Doc, Id } from './_generated/dataModel'
+import type { MutationCtx } from './_generated/server'
+import type { GroupScopedTable } from './lib/groupAccess'
 import {
   applyCatalog,
   applySample,
   ensureSeedUser,
   resetSample,
 } from './lib/seed/apply'
-import { SAMPLE_GROUP_NAME } from './lib/seed/sampleHousehold'
 
 /**
  * The Sample household, built against the Group boundary.
  *
- * It arrived on `main` written for the schema this branch replaced: Groups
- * carried a `type` instead of a slug, the owner's membership was `'owner'`, and
- * a recipe carried an `ownerId` and was merely *shared* into a Group. None of
- * that conflicted textually with the rebuild — it simply stopped compiling, and
- * a shape error is the only part of that a compiler can catch.
- *
- * These cover the part it cannot: that the household it builds obeys the same
- * rules a real one does. Nothing tested it before, on either branch.
+ * A compiler catches a shape error in the seed; these cover the part it
+ * cannot: that the household it builds obeys the same rules a real one does.
  */
 
 const owner = { clerkId: 'clerk_owner', name: 'Owner', email: 'o@example.test' }
@@ -47,16 +46,15 @@ async function sampleGroup(t: ReturnType<typeof testConvex>) {
 }
 
 describe('the Sample household', () => {
-  test('is an ordinary shared Group with a real address', async () => {
+  test('is an ordinary Group with an allocated slug', async () => {
     const t = testConvex()
     await buildSample(t)
 
     const group = await sampleGroup(t)
     expect(group).not.toBeNull()
-    expect(group?.isPersonal).toBe(false)
     // Allocated rather than hand-written, so it cannot collide with a Group
-    // somebody actually made (ADR-0002).
-    expect(group?.slug).toBeTruthy()
+    // somebody actually made.
+    expect(group?.slug).toBe('willow-street')
   })
 
   test('makes its owner an admin, and the housemates members', async () => {
@@ -119,8 +117,8 @@ describe('the Sample household', () => {
       groups: (await ctx.db.query('groups').collect()).filter(
         (g) => g.name === SAMPLE_GROUP_NAME,
       ).length,
-      // A recipe whose home Group has gone is reachable by nobody — the reset
-      // used to keep it, back when a person owned it and a Group merely saw it.
+      // A recipe whose home Group has gone is reachable by nobody, so the reset
+      // takes it too.
       recipes: (await ctx.db.query('recipes').collect()).length,
     }))
 
@@ -180,6 +178,49 @@ describe('the Sample household', () => {
     expect(left).toEqual([])
   })
 
+  test('takes what the app added inside it with it when it is reset', async () => {
+    const t = testConvex()
+    const ownerId = await buildSample(t)
+    const group = await sampleGroup(t)
+    if (!group) throw new Error('no sample group')
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert('notes', {
+        groupId: group._id,
+        title: 'Added later',
+        body: '',
+        createdBy: ownerId,
+        updatedAt: 0,
+      })
+      await ctx.db.insert('recurringCosts', {
+        groupId: group._id,
+        createdByUserId: ownerId,
+        order: 0,
+        name: 'Added later',
+        amountCents: 100,
+        frequency: 'monthly',
+        category: 'utilities',
+      })
+      await ctx.db.insert('netWorthEntries', {
+        groupId: group._id,
+        createdByUserId: ownerId,
+        order: 0,
+        label: 'Added later',
+        kind: 'asset',
+        amountCents: 100,
+      })
+    })
+
+    await t.run(async (ctx) => await resetSample(ctx))
+
+    const left = await t.run(async (ctx) => ({
+      notes: await ctx.db.query('notes').collect(),
+      costs: await ctx.db.query('recurringCosts').collect(),
+      worth: await ctx.db.query('netWorthEntries').collect(),
+    }))
+    expect(left).toEqual({ notes: [], costs: [], worth: [] })
+  })
+
   test('contains a representative immutable Shared costs scenario', async () => {
     const t = testConvex()
     await buildSample(t)
@@ -194,4 +235,85 @@ describe('the Sample household', () => {
     expect(scenarios[0].transfers).toHaveLength(2)
     expect(scenarios[0].totalCents).toBe(450_00)
   })
+})
+
+/** The Sample household's rows that make one Module look used. */
+type SampleContent = (
+  ctx: MutationCtx,
+  sample: { group: Doc<'groups'>; ownerId: Id<'users'> },
+) => Promise<unknown[]>
+
+async function groupRows(
+  ctx: MutationCtx,
+  table: GroupScopedTable,
+  groupId: Id<'groups'>,
+) {
+  const rows: { groupId: Id<'groups'> }[] = await ctx.db.query(table).collect()
+  return rows.filter((row) => row.groupId === groupId)
+}
+
+const inGroup =
+  (table: GroupScopedTable): SampleContent =>
+  (ctx, { group }) =>
+    groupRows(ctx, table, group._id)
+
+const subjectsOf =
+  (kind: TastingKind): SampleContent =>
+  async (ctx, { group }) =>
+    (
+      (await groupRows(
+        ctx,
+        'tastingSubjects',
+        group._id,
+      )) as Doc<'tastingSubjects'>[]
+    ).filter((subject) => subject.kind === kind)
+
+/**
+ * Where each Module's sample content lives. Keyed by every Module, so a new
+ * one fails `pnpm typecheck` here until it names its rows, and the test below
+ * fails until the seed writes some.
+ */
+const SAMPLE_CONTENT: Record<ModuleId, SampleContent> = {
+  recipes: inGroup('recipes'),
+  // Personal: the diary belongs to the person the household is built around.
+  nutrition: async (ctx, { ownerId }) =>
+    (await ctx.db.query('consumptionEntries').collect()).filter(
+      (entry) => entry.userId === ownerId,
+    ),
+  'meal-planner': inGroup('plannedDinners'),
+  groceries: async (ctx, { group }) => {
+    const listId = group.groceryListId
+    if (!listId) return []
+    return (await ctx.db.query('tasks').collect()).filter(
+      (task) => task.listId === listId,
+    )
+  },
+  pantry: inGroup('pantryEntries'),
+  'recurring-costs': inGroup('recurringCosts'),
+  'shared-costs': inGroup('splitScenarios'),
+  'savings-goals': inGroup('savingsGoals'),
+  tasks: inGroup('taskLists'),
+  'baby-log': inGroup('babies'),
+  calendar: inGroup('calendars'),
+  notes: inGroup('notes'),
+  cheeses: subjectsOf('cheese'),
+  wines: subjectsOf('wine'),
+  beers: subjectsOf('beer'),
+}
+
+describe('every Module in the Sample household', () => {
+  test.each(MODULES.map((module) => module.id))(
+    '%s has sample content',
+    async (moduleId) => {
+      const t = testConvex()
+      const ownerId = await buildSample(t)
+      const group = await sampleGroup(t)
+      if (!group) throw new Error('no sample group')
+
+      const rows = await t.run((ctx) =>
+        SAMPLE_CONTENT[moduleId](ctx, { group, ownerId }),
+      )
+      expect(rows.length).toBeGreaterThan(0)
+    },
+  )
 })

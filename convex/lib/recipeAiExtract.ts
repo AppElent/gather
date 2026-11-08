@@ -1,16 +1,13 @@
+import { type AnthropicTool, callAnthropicTool } from './anthropic'
 import { sanitizeNutrition } from './nutrition'
 import type { ParsedRecipe } from './recipeParsing'
 
-const ANTHROPIC_MODEL = 'claude-sonnet-5'
-const ANTHROPIC_MAX_TOKENS = 4096
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
-
-const EXTRACT_TOOL = {
+const EXTRACT_TOOL: AnthropicTool = {
   name: 'extract_recipe',
   description:
     'Extract recipe details from the page text, or report that none was found.',
   input_schema: {
-    type: 'object' as const,
+    type: 'object',
     properties: {
       found: {
         type: 'boolean',
@@ -47,68 +44,19 @@ const EXTRACT_TOOL = {
   },
 }
 
-interface AnthropicToolUseBlock {
-  type: 'tool_use'
-  name: string
-  input: Record<string, unknown>
-}
-
-interface AnthropicMessagesResponse {
-  content: Array<Record<string, unknown>>
-}
-
 export async function extractRecipeWithAi(
   pageText: string,
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ParsedRecipe | null> {
-  let response: Response
-  try {
-    response = await fetchImpl(ANTHROPIC_API_URL, {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: ANTHROPIC_MODEL,
-        max_tokens: ANTHROPIC_MAX_TOKENS,
-        tools: [EXTRACT_TOOL],
-        tool_choice: { type: 'tool', name: 'extract_recipe' },
-        messages: [
-          {
-            role: 'user',
-            content: `Extract the recipe from this web page text. If there's no recipe on the page, set found to false. Report servings and per-serving nutrition: use values stated on the page when present, otherwise estimate them from the ingredients.\n\n${pageText}`,
-          },
-        ],
-      }),
-    })
-  } catch {
-    return null
-  }
-  if (!response.ok) return null
-
-  let data: AnthropicMessagesResponse
-  try {
-    data = (await response.json()) as AnthropicMessagesResponse
-  } catch {
-    return null
-  }
-  if (!Array.isArray(data.content)) return null
-
-  const rawToolUseBlock = data.content.find(
-    (block) =>
-      block.type === 'tool_use' &&
-      block.name === 'extract_recipe' &&
-      typeof block.input === 'object' &&
-      block.input !== null,
-  )
-  if (!rawToolUseBlock) return null
-  const toolUseBlock = rawToolUseBlock as unknown as AnthropicToolUseBlock
-
-  const input = toolUseBlock.input
-  if (input.found !== true) return null
+  const input = await callAnthropicTool({
+    apiKey,
+    tool: EXTRACT_TOOL,
+    maxTokens: 4096,
+    prompt: `Extract the recipe from this web page text. If there's no recipe on the page, set found to false. Report servings and per-serving nutrition: use values stated on the page when present, otherwise estimate them from the ingredients.\n\n${pageText}`,
+    fetchImpl,
+  })
+  if (input?.found !== true) return null
   const title = typeof input.title === 'string' ? input.title.trim() : ''
   if (!title) return null
 

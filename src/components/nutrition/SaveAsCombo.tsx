@@ -1,11 +1,7 @@
+import { COMBO_REFUSALS, readRefusal } from '@gather/core/refusals'
 import { useState } from 'react'
 import { useMessages } from '../../lib/i18n'
-
-/** The refusal keys `combos.saveFromMeal` throws, and nothing else. */
-const REFUSAL_KEYS = [
-  'comboNothingSelected',
-  'comboComponentUnavailable',
-] as const
+import { fieldClass } from '../kitchen/fields'
 
 type Combos = ReturnType<typeof useMessages>['nutrition']['diary']['combos']
 
@@ -19,10 +15,8 @@ type Combos = ReturnType<typeof useMessages>['nutrition']['diary']['combos']
  * for anybody, so it gets the general one rather than being put on screen raw.
  */
 export function refusalText(error: unknown, combos: Combos): string {
-  const key = error instanceof Error ? error.message : ''
-  return REFUSAL_KEYS.includes(key as (typeof REFUSAL_KEYS)[number])
-    ? combos[key as (typeof REFUSAL_KEYS)[number]]
-    : combos.saveFailed
+  const key = readRefusal(error, COMBO_REFUSALS)
+  return key ? combos[key] : combos.saveFailed
 }
 
 interface Props {
@@ -110,7 +104,7 @@ export function SaveAsCombo({
         onChange={(e) => setName(e.target.value)}
         aria-label={combos.saveTitle}
         placeholder={combos.namePlaceholder}
-        className="min-h-11 min-w-0 flex-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-[16px]"
+        className={`${fieldClass} min-w-0 flex-1`}
       />
       <button
         type="submit"

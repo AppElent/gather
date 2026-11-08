@@ -13,14 +13,13 @@
  * underneath it, and UIKit's answer to that is `additionalSafeAreaInsets` on
  * the tab controller's child — which is to say, the tab bar's height is part of
  * the safe area **of the screen**, and of nothing above it. A window-level
- * reading cannot see it. That is why the Baby log's bottom bar sat behind the
- * tab bar: it was leaving room for a 34pt home indicator on a screen whose
- * bottom 83pt were spoken for.
+ * reading cannot see it, and leaves room for a 34pt home indicator on a screen
+ * whose bottom 83pt are spoken for.
  *
  * A provider renders a native view and reports that view's own insets, so
  * nesting one here — inside the tab, around the tab's stack — is what makes
  * every screen below it read its own edges instead of the window's. Nothing in
- * those screens changes: they go on asking for `insets.bottom` and now get an
+ * those screens changes: they ask for `insets.bottom` and get an
  * answer that accounts for what is actually covering them.
  *
  * ## Why `initialMetrics`

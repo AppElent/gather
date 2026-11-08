@@ -12,13 +12,11 @@
 import type { TastingKind } from '@gather/core/tastings'
 import Beer from 'lucide-react-native/icons/beer'
 import Calendar from 'lucide-react-native/icons/calendar'
-import Camera from 'lucide-react-native/icons/camera'
 import Ellipsis from 'lucide-react-native/icons/ellipsis'
 import Image from 'lucide-react-native/icons/image'
 import ImagePlus from 'lucide-react-native/icons/image-plus'
 import Plus from 'lucide-react-native/icons/plus'
 import Star from 'lucide-react-native/icons/star'
-import Trash2 from 'lucide-react-native/icons/trash-2'
 import Wine from 'lucide-react-native/icons/wine'
 
 import { CheeseWedge } from '../../theme/CheeseWedge'
@@ -35,11 +33,9 @@ export const KIND_ICONS = {
 
 export const TASTING_UI_ICONS = {
   Calendar: glyph(Calendar, 'calendar'),
-  Camera: glyph(Camera, 'camera'),
   Ellipsis: glyph(Ellipsis, 'ellipsis'),
   Image: glyph(Image, 'photo'),
   ImagePlus: glyph(ImagePlus, 'photo.badge.plus'),
   Plus: glyph(Plus, 'plus'),
   Star: glyph(Star, 'star'),
-  Trash2: glyph(Trash2, 'trash'),
 } satisfies Record<string, Glyph>

@@ -1,7 +1,7 @@
 /**
  * The renderer, and the whole reason the Kind spec is data.
  *
- * **This file has five components and never learns what a wine is.** It is
+ * **This file draws five field types and never learns what a wine is.** It is
  * handed a `TastingFieldDef` and a value, and it draws the control that field
  * type asks for. Cheese, wine and beer differ only in which defs arrive.
  *
@@ -24,6 +24,8 @@
  * `undefined` for a field nobody filled in — which is what makes
  * `normalizeTastingAttributes` on the way out a no-op rather than a rescue.
  */
+
+import { parseDecimal } from '@gather/core/decimal'
 import type {
   TastingAttributeValue,
   TastingFieldDef,
@@ -390,8 +392,7 @@ function NumberField({ field, value, onChange, disabled }: TastingFieldProps) {
         value={draft}
         onChangeText={(next) => {
           setDraft(next)
-          const parsed = Number(next.replace(',', '.'))
-          onChange(next.trim() && Number.isFinite(parsed) ? parsed : undefined)
+          onChange(parseDecimal(next) ?? undefined)
         }}
         editable={!disabled}
         keyboardType="decimal-pad"

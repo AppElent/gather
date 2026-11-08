@@ -2,7 +2,6 @@ import type { CalendarEvent } from '@gather/core/calendar'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,10 +9,11 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
 import { useAvailability } from '../../availability/AvailabilityProvider'
 import { NativeSheet } from '../../components/NativeSheet'
-import { useI18n } from '../../i18n'
+import { api } from '../../convex/api'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
+import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 
 export function CalendarManagementSheet({
@@ -34,9 +34,9 @@ export function CalendarManagementSheet({
   const { t } = useI18n()
   const tokens = useTokens('home')
   const { serviceActionsEnabled } = useAvailability()
-  const add = useMutation(api.kitchen.addCalendar)
+  const add = useMutation(api.calendar.addCalendar)
   const update = useMutation(api.calendar.updateCalendar)
-  const remove = useMutation(api.kitchen.removeCalendar)
+  const remove = useMutation(api.calendar.removeCalendar)
   const [name, setName] = useState('')
   const colors: CalendarEvent['color'][] = [
     'home',
@@ -97,19 +97,16 @@ export function CalendarManagementSheet({
               <Pressable
                 disabled={!serviceActionsEnabled}
                 onPress={() =>
-                  Alert.alert(
-                    t.calendar.confirmDelete.replace('{title}', calendar.name),
-                    t.calendar.deleteCalendarBody,
-                    [
-                      { text: t.actions.cancel, style: 'cancel' },
-                      {
-                        text: t.actions.delete,
-                        style: 'destructive',
-                        onPress: () =>
-                          void remove({ groupSlug, id: calendar.id as never }),
-                      },
-                    ],
-                  )
+                  confirmDestructive({
+                    title: fmt(t.calendar.confirmDelete, {
+                      title: calendar.name,
+                    }),
+                    message: t.calendar.deleteCalendarBody,
+                    confirm: t.actions.delete,
+                    cancel: t.actions.cancel,
+                    onConfirm: () =>
+                      void remove({ groupSlug, id: calendar.id as never }),
+                  })
                 }
               >
                 <Text style={{ color: tokens.danger }}>×</Text>

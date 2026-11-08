@@ -1,4 +1,7 @@
+import type { WithoutSystemFields } from 'convex/server'
 import { convexTest } from 'convex-test'
+import type { Doc, Id } from '../convex/_generated/dataModel'
+import type { MutationCtx } from '../convex/_generated/server'
 import schema from '../convex/schema'
 
 // convex-test discovers Convex function modules by globbing for them, and its
@@ -24,4 +27,44 @@ export const modules = import.meta.glob('../convex/**/*.*s')
  */
 export function testConvex() {
   return convexTest(schema, modules)
+}
+
+/** The people tests act as: `t.withIdentity(alice)`. */
+export const alice = {
+  subject: 'clerk_alice',
+  name: 'Alice',
+  email: 'a@example.com',
+}
+export const bob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
+export const carol = {
+  subject: 'clerk_carol',
+  name: 'Carol',
+  email: 'c@example.com',
+}
+export const carla = {
+  subject: 'clerk_carla',
+  name: 'Carla',
+  email: 'c@example.com',
+}
+
+/** A Group row, without saying more about it than the test cares about. */
+export async function seedGroup(
+  ctx: Pick<MutationCtx, 'db'>,
+  group: Omit<WithoutSystemFields<Doc<'groups'>>, 'inviteCode'> & {
+    inviteCode?: string
+  },
+): Promise<Id<'groups'>> {
+  return await ctx.db.insert('groups', {
+    inviteCode: `${group.slug}-code`,
+    ...group,
+  })
+}
+
+export async function seedMember(
+  ctx: Pick<MutationCtx, 'db'>,
+  groupId: Id<'groups'>,
+  userId: Id<'users'>,
+  role: Doc<'memberships'>['role'] = 'member',
+): Promise<Id<'memberships'>> {
+  return await ctx.db.insert('memberships', { groupId, userId, role })
 }

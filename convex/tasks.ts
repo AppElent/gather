@@ -2,8 +2,13 @@ import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalQuery, mutation, query } from './_generated/server'
-import { requireGroupBySlug } from './lib/groupAccess'
-import { findListInGroup, requireListAccess } from './lib/taskAccess'
+import {
+  findInGroup,
+  requireGroupBySlug,
+  requireInGroup,
+} from './lib/groupAccess'
+import { nextOrder } from './lib/order'
+import { taskPriorityValidator } from './lib/taskFields'
 
 const byOpenThenOrder = (a: Doc<'tasks'>, b: Doc<'tasks'>) =>
   Number(a.done) - Number(b.done) || a.order - b.order
@@ -11,7 +16,7 @@ const byOpenThenOrder = (a: Doc<'tasks'>, b: Doc<'tasks'>) =>
 export const listByList = query({
   args: { listId: v.id('taskLists'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    await requireListAccess(ctx, args.groupSlug, args.listId)
+    await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
     const rows = await ctx.db
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
@@ -23,7 +28,7 @@ export const listByList = query({
 /**
  * The rows of a list, unauthorised — and safe to be, because its one caller is
  * `taskLists.getTasks`, which has already resolved the same list through
- * `requireListAccess` against the Group in the URL. Nothing else may call this;
+ * `requireInGroup` against the Group in the URL. Nothing else may call this;
  * a second caller would have to do that check for itself first.
  */
 export const listByListInternal = internalQuery({
@@ -37,20 +42,13 @@ export const listByListInternal = internalQuery({
   },
 })
 
-const priorityValidator = v.union(
-  v.literal(1),
-  v.literal(2),
-  v.literal(3),
-  v.literal(4),
-)
-
 /**
  * The task a write is about, in the Group the caller named.
  *
  * A task carries no `groupId` — it hangs off a list — so the Group is checked
  * on the list and the task follows from that. "No such task" and "that task is
  * in another Group's list" are one answer, including for the id of a real task
- * a Member of both Groups could reach at the other address, so neither can be
+ * a Member of both Groups could reach through the other Group, so neither can be
  * used to find out that a task exists somewhere. The Group itself is still
  * refused first and distinctly.
  */
@@ -66,12 +64,37 @@ async function requireEditableTask(
     await requireGroupBySlug(ctx, groupSlug)
     throw new ConvexError('Task not found')
   }
-  const found = await findListInGroup(ctx, groupSlug, task.listId)
+  const found = await findInGroup(ctx, groupSlug, task.listId)
   if (!found) throw new ConvexError('Task not found')
-  if (found.list.provider !== 'local') {
+  if (found.doc.provider !== 'local') {
     throw new ConvexError('This list is read-only')
   }
   return task
+}
+
+/**
+ * A local list of the named Group. Only a local list has `tasks` rows; a write
+ * to an external list goes through its provider, not through these mutations.
+ */
+async function requireLocalList(
+  ctx: MutationCtx,
+  groupSlug: string,
+  listId: Id<'taskLists'>,
+) {
+  const found = await requireInGroup(ctx, groupSlug, listId, 'List not found')
+  if (found.doc.provider !== 'local') {
+    throw new ConvexError('This list is read-only')
+  }
+  return found
+}
+
+/** The order that puts a task last on a list. */
+async function endOfList(ctx: MutationCtx, listId: Id<'taskLists'>) {
+  const existing = await ctx.db
+    .query('tasks')
+    .withIndex('by_list', (q) => q.eq('listId', listId))
+    .collect()
+  return nextOrder(existing)
 }
 
 export const add = mutation({
@@ -80,27 +103,11 @@ export const add = mutation({
     groupSlug: v.string(),
     title: v.string(),
     dueDate: v.optional(v.string()),
-    priority: v.optional(priorityValidator),
+    priority: v.optional(taskPriorityValidator),
     labels: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const { user, list } = await requireListAccess(
-      ctx,
-      args.groupSlug,
-      args.listId,
-    )
-    if (list.provider !== 'local') {
-      throw new ConvexError('This list is read-only')
-    }
-    const existing = await ctx.db
-      .query('tasks')
-      .withIndex('by_list', (q) => q.eq('listId', args.listId))
-      .collect()
-    // existing.length collides with a sibling's order once any task has
-    // been deleted (e.g. orders 0,1,2 -> delete 1 -> next add gets 2 again),
-    // which makes sort/move ambiguous between same-order rows.
-    const nextOrder =
-      existing.reduce((max, t) => Math.max(max, t.order), -1) + 1
+    const { user } = await requireLocalList(ctx, args.groupSlug, args.listId)
     return await ctx.db.insert('tasks', {
       listId: args.listId,
       title: args.title,
@@ -109,7 +116,7 @@ export const add = mutation({
       priority: args.priority,
       labels: args.labels,
       createdBy: user._id,
-      order: nextOrder,
+      order: await endOfList(ctx, args.listId),
     })
   },
 })
@@ -129,7 +136,7 @@ export const update = mutation({
     title: v.optional(v.string()),
     // null clears the field (same pattern as recipes.update)
     dueDate: v.optional(v.union(v.string(), v.null())),
-    priority: v.optional(v.union(priorityValidator, v.null())),
+    priority: v.optional(v.union(taskPriorityValidator, v.null())),
     labels: v.optional(v.union(v.array(v.string()), v.null())),
     notes: v.optional(v.union(v.string(), v.null())),
   },
@@ -161,9 +168,7 @@ export const reorder = mutation({
     ids: v.array(v.id('tasks')),
   },
   handler: async (ctx, args) => {
-    const { list } = await requireListAccess(ctx, args.groupSlug, args.listId)
-    if (list.provider !== 'local')
-      throw new ConvexError('This list is read-only')
+    await requireLocalList(ctx, args.groupSlug, args.listId)
     const rows = await ctx.db
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
@@ -174,17 +179,10 @@ export const reorder = mutation({
     const expected = new Set(open.map((task) => task._id))
     if (
       args.ids.length !== open.length ||
+      new Set(args.ids).size !== open.length ||
       args.ids.some((id) => !expected.has(id))
     ) {
       throw new ConvexError('Reorder must contain every open task exactly once')
-    }
-    const seen = new Set<string>()
-    for (const id of args.ids) {
-      if (seen.has(id))
-        throw new ConvexError(
-          'Reorder must contain every open task exactly once',
-        )
-      seen.add(id)
     }
     await Promise.all(args.ids.map((id, order) => ctx.db.patch(id, { order })))
   },
@@ -276,5 +274,25 @@ export const move = mutation({
     if (!neighbor || neighbor.done !== task.done) return
     await ctx.db.patch(task._id, { order: neighbor.order })
     await ctx.db.patch(neighbor._id, { order: task.order })
+  },
+})
+
+/** Into another local list of the same Group, at its end. */
+export const moveToList = mutation({
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    listId: v.id('taskLists'),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    if (task.listId === args.listId) return null
+    await requireLocalList(ctx, args.groupSlug, args.listId)
+    await ctx.db.patch(task._id, {
+      listId: args.listId,
+      order: await endOfList(ctx, args.listId),
+    })
+    return null
   },
 })

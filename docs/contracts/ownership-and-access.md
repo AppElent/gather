@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing who owns, sees, writes to, or is refused Group content or a Personal record, or how the Current Group is chosen.
-version: 1.0.0
+version: 1.1.0
 status: current
 ---
 
@@ -30,6 +30,11 @@ defined in the [glossary](../../GLOSSARY.md).
   record" and "not in this Group" are one answer; refusing the Group itself is a
   separate, distinct one
   ([ADR-0009](../adr/0009-a-refusal-inside-a-group-never-says-which-refusal-it-is.md)).
+- **A refusal meant for a reader crosses the wire as a kind.** The server throws
+  a `ConvexError` from the vocabulary in `@gather/core/refusals`, and the client
+  reads it with that module's reader and resolves it in the reader's language
+  ([ADR-0011](../adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md)).
+  A plain `Error` will not do: production redacts its message.
 - **A Personal record snapshots what it references.** Provenance is
   permission-checked on read and safe to dangle. A **Combo** is the deliberate
   exception and says why: it is a shortcut for what will happen rather than a

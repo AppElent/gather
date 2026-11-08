@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { alice, bob, carol, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 
 /**
@@ -13,9 +13,6 @@ import { api, internal } from './_generated/api'
  * that a payload the form would never send is refused at the door.
  */
 
-const alice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
-const bob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
-const carol = { subject: 'clerk_carol', name: 'Carol', email: 'c@example.com' }
 
 /**
  * Two households. Alice and Bob share the first; Carol is only in the second —
@@ -42,34 +39,20 @@ async function seed() {
       email: carol.email,
     })
 
-    const club = await ctx.db.insert('groups', {
+    const club = await seedGroup(ctx, {
       name: 'Wine Club',
       slug: 'wine-club',
-      isPersonal: false,
       inviteCode: 'club',
     })
-    const other = await ctx.db.insert('groups', {
+    const other = await seedGroup(ctx, {
       name: 'Other House',
       slug: 'other-house',
-      isPersonal: false,
       inviteCode: 'other',
     })
 
-    await ctx.db.insert('memberships', {
-      groupId: club,
-      userId: aliceId,
-      role: 'admin',
-    })
-    await ctx.db.insert('memberships', {
-      groupId: club,
-      userId: bobId,
-      role: 'member',
-    })
-    await ctx.db.insert('memberships', {
-      groupId: other,
-      userId: carolId,
-      role: 'admin',
-    })
+    await seedMember(ctx, club, aliceId, 'admin')
+    await seedMember(ctx, club, bobId, 'member')
+    await seedMember(ctx, other, carolId, 'admin')
   })
 
   // The real catalog, reconciled the way a deploy reconciles it — so the
@@ -739,7 +722,10 @@ describe('the Group’s activity', () => {
     const stream = await t
       .withIdentity(alice)
       .query(api.activity.forGroup, CLUB)
-    const entries = stream.filter((entry) => entry.kind === 'tasting')
+    const entries = stream.filter(
+      (entry): entry is Extract<typeof entry, { kind: 'tasting' }> =>
+        entry.kind === 'tasting',
+    )
 
     // One act of logging, one line (story 28).
     expect(entries).toHaveLength(1)

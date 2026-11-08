@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when changing web or phone error reporting, the privacy scrubber, source-map upload, or the Sentry variables.
-version: 1.0.0
+version: 1.0.1
 ---
 
 # Sentry (web and phone)
@@ -16,7 +16,7 @@ and the Expo phone app. Convex is **not covered** (see Coverage).
 | Browser | `src/instrument.client.ts`, imported first by `src/client.tsx`. Initialises only with `VITE_SENTRY_DSN`, outside `vite dev`, on a non-local host. Tag `app=gather-web` |
 | Worker | `src/server.ts` is the `main` in `wrangler.jsonc`. Wraps TanStack Start with `@sentry/cloudflare` for deployed requests with a DSN; captures a 5xx response because Start turns SSR errors into a response instead of throwing. Tag `app=gather-web-server` |
 | Router errors | `defaultOnCatch` in `src/router.tsx` calls `reportError` (`src/lib/observability/report.ts`), once per error object, through a sink each runtime registers |
-| Scrubbing | One implementation, `packages/core/src/sentryPrivacy.ts` (`@gather/core/sentry-privacy`), runs in `beforeSend` and `beforeBreadcrumb` on the browser, the Worker and the phone. Web tests: `src/lib/observability/privacy.test.ts`; phone wiring: `apps/mobile/src/observability/options.test.ts` |
+| Scrubbing | One implementation, `packages/core/src/sentryPrivacy.ts` (`@gather/core/sentry-privacy`), runs in `beforeSend` and `beforeBreadcrumb` on the browser, the Worker and the phone. Tests: `packages/core/src/__tests__/sentryPrivacy.test.ts`; phone wiring: `apps/mobile/src/observability/options.test.ts` |
 | Environment | From the hostname (`environmentFromHostname`): `gather-pr-<N>` → `preview`, `gather-stg` → `staging`, `gather-dev` → `development`, else `production` |
 | Release | `SENTRY_RELEASE`, else `git rev-parse HEAD`, inlined as `VITE_SENTRY_RELEASE`; the same string names the source-map upload |
 | Project | Browser and Worker share one Sentry project, told apart by the `app` tag |
@@ -36,7 +36,7 @@ Convex arguments are never captured.
 
 | Surface | What remains |
 | --- | --- |
-| Breadcrumbs | Allowlisted categories only: `navigation`, `fetch`, `xhr`, `http`, `sentry.*`. On the phone `navigation` is a route *pattern* (`/(app)/g/[groupId]/notes`, from `useSegments`), never an address with ids or params, and `touch`, `app.lifecycle` and the rest of the native categories are dropped too. Data keys limited to `url` (no query/fragment), `method`, `status_code`, `from`, `to`. **All `ui.*` and `console` breadcrumbs are dropped**: the SDK serialises a clicked element with its `aria-label`/`title`/`alt`, and Gather puts household content in labels ("Delete task <title>") |
+| Breadcrumbs | Allowlisted categories only: `navigation`, `fetch`, `xhr`, `http`, `sentry.*`. On the phone `navigation` is a route *pattern* (`/(app)/(tabs)/all/notes/[noteId]`, from `useSegments`), never an address with ids or params, and `touch`, `app.lifecycle` and the rest of the native categories are dropped too. Data keys limited to `url` (no query/fragment), `method`, `status_code`, `from`, `to`. **All `ui.*` and `console` breadcrumbs are dropped**: the SDK serialises a clicked element with its `aria-label`/`title`/`alt`, and Gather puts household content in labels ("Delete task <title>") |
 | Convex errors | `[CONVEX M(fn)] [Request ID: x] Server Error: <ErrorClass> (message withheld)`. The function and class find the throw site; the message and any `ConvexError` data are withheld |
 | Other errors | The thrown message, redacted and cut to 500 characters, plus the stack. **Never interpolate user content into an `Error` message** — a message authored in code is sent as written |
 | Request | Method and URL without query or fragment. URL paths can hold opaque ids (a recipe id), never names |

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { fmt, useMessages } from '../../lib/i18n'
+import { fieldClass } from '../kitchen/fields'
 
 interface Props {
   name: string
@@ -66,7 +67,7 @@ export function ComboActions({ name, onRename, onDelete }: Props) {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           aria-label={fmt(library.renameLabel, { name })}
-          className="min-h-11 min-w-0 flex-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-[16px]"
+          className={`${fieldClass} min-w-0 flex-1`}
         />
         <button
           type="submit"
@@ -153,7 +154,7 @@ export function ComboActions({ name, onRename, onDelete }: Props) {
         aria-label={fmt(library.deleteLabel, { name })}
         className="inline-flex min-h-11 items-center text-sm text-red-700 underline"
       >
-        {library.delete}
+        {messages.common.actions.delete}
       </button>
     </div>
   )

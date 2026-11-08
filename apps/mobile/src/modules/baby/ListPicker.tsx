@@ -8,6 +8,7 @@
  * it does instead is tell the truth *before* the choice: a list Gather may only
  * read says so where it is picked, not later when an add fails.
  */
+import type { TaskProviderId } from '@gather/core/domain'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -22,7 +23,7 @@ export type PickedList =
 export interface PickableList {
   _id: string
   name: string
-  provider: 'local' | 'notion' | 'todoist'
+  provider: TaskProviderId
   writable: boolean
 }
 

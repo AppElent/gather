@@ -1,26 +1,19 @@
+import type { ExternalProviderId } from '@gather/core/domain'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { action, internalQuery, mutation, query } from './_generated/server'
-import { requireGroupBySlug } from './lib/groupAccess'
-import { requireListAccess } from './lib/taskAccess'
+import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
+import { purgeTasksOfList } from './lib/groupCascade'
+import { nextOrder } from './lib/order'
+import {
+  providerConfigValidator,
+  taskListDisplayValidator,
+  taskProviderValidator,
+} from './lib/taskFields'
 import { getAdapter } from './lib/taskProviders'
 import { ProviderAuthError, type UnifiedTask } from './lib/taskProviders/types'
 
-const providerConfigValidator = v.object({
-  connectionId: v.id('integrationConnections'),
-  sourceId: v.string(),
-  propertyMapping: v.optional(
-    v.object({
-      title: v.string(),
-      done: v.string(),
-      dueDate: v.optional(v.string()),
-      priority: v.optional(v.string()),
-      labels: v.optional(v.string()),
-    }),
-  ),
-})
-
-/** The lists of the Group in the URL, and of no other. */
+/** The lists of the named Group, and of no other. */
 export const list = query({
   args: { groupSlug: v.string() },
   handler: async (ctx, args) => {
@@ -37,16 +30,12 @@ export const list = query({
         provider: l.provider,
         order: l.order,
         display: l.display ?? { due: false, priority: false, labels: false },
-        // Whether this list can be added to from Gather. A local list always
-        // can; an external one answers with its provider's capability, and
-        // Gather never emulates a write the provider will not take (ADR-0021).
+        // Whether this list can be added to from Gather: only a local list
+        // has `tasks` rows, and no provider write path exists (ADR-0021).
         // Callers that offer a list as somewhere to write — the baby log's
         // checklist cards, for one — need this before the person picks, not
         // after they try.
-        writable:
-          l.provider === 'local'
-            ? true
-            : getAdapter(l.provider).capabilities.write,
+        writable: l.provider === 'local',
       }))
   },
 })
@@ -54,11 +43,7 @@ export const list = query({
 export const create = mutation({
   args: {
     name: v.string(),
-    provider: v.union(
-      v.literal('local'),
-      v.literal('notion'),
-      v.literal('todoist'),
-    ),
+    provider: taskProviderValidator,
     providerConfig: v.optional(providerConfigValidator),
     groupSlug: v.string(),
   },
@@ -94,16 +79,12 @@ export const create = mutation({
       .query('taskLists')
       .withIndex('by_group', (q) => q.eq('groupId', groupId))
       .collect()
-    // existing.length collides with a sibling's order once any list has
-    // been deleted, so derive the next order from the current max instead.
-    const nextOrder =
-      existing.reduce((max, l) => Math.max(max, l.order), -1) + 1
     return await ctx.db.insert('taskLists', {
       groupId,
       name: args.name,
       provider: args.provider,
       providerConfig: args.providerConfig,
-      order: nextOrder,
+      order: nextOrder(existing),
     })
   },
 })
@@ -115,7 +96,7 @@ export const rename = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireListAccess(ctx, args.groupSlug, args.listId)
+    await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
     await ctx.db.patch(args.listId, { name: args.name })
   },
 })
@@ -124,14 +105,10 @@ export const updateDisplay = mutation({
   args: {
     listId: v.id('taskLists'),
     groupSlug: v.string(),
-    display: v.object({
-      due: v.boolean(),
-      priority: v.boolean(),
-      labels: v.boolean(),
-    }),
+    display: taskListDisplayValidator,
   },
   handler: async (ctx, args) => {
-    await requireListAccess(ctx, args.groupSlug, args.listId)
+    await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
     await ctx.db.patch(args.listId, { display: args.display })
   },
 })
@@ -139,12 +116,8 @@ export const updateDisplay = mutation({
 export const remove = mutation({
   args: { listId: v.id('taskLists'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    await requireListAccess(ctx, args.groupSlug, args.listId)
-    const tasks = await ctx.db
-      .query('tasks')
-      .withIndex('by_list', (q) => q.eq('listId', args.listId))
-      .collect()
-    await Promise.all(tasks.map((t) => ctx.db.delete(t._id)))
+    await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
+    await purgeTasksOfList(ctx, args.listId)
     await ctx.db.delete(args.listId)
   },
 })
@@ -157,14 +130,19 @@ export const remove = mutation({
 export const getList = internalQuery({
   args: { listId: v.id('taskLists'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const { list } = await requireListAccess(ctx, args.groupSlug, args.listId)
+    const { doc: list } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.listId,
+      'List not found',
+    )
     return list
   },
 })
 
 export type GetTasksResult =
   | { status: 'ok'; tasks: UnifiedTask[] }
-  | { status: 'reconnect'; provider: 'notion' | 'todoist' }
+  | { status: 'reconnect'; provider: ExternalProviderId }
   | { status: 'error'; message: string }
 
 /** Unified entry point: returns UnifiedTask[] for any list, dispatching by

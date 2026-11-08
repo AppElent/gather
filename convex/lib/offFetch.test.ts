@@ -1,44 +1,13 @@
+import { barcodeTerm } from '@gather/core/domain'
 import { describe, expect, test, vi } from 'vitest'
-import { barcodeTerm, fetchOffProduct, searchOffProducts } from './offFetch'
+import { fetchOffProduct, searchOffProducts } from './offFetch'
 
-describe('barcodeTerm', () => {
-  test('reads the barcode out of a term that is one, ignoring the spaces around it', () => {
-    expect(barcodeTerm('8712345678901')).toBe('8712345678901')
-    expect(barcodeTerm('  8712345678901  ')).toBe('8712345678901')
-    // EAN-8 at one end, the longest code the lookup accepts at the other.
-    expect(barcodeTerm('12345678')).toBe('12345678')
-    expect(barcodeTerm('12345678901234')).toBe('12345678901234')
-  })
+function mockResponse(body: unknown, ok = true): Response {
+  return { ok, json: async () => body } as Response
+}
 
-  test('a number still being typed is not a barcode', () => {
-    // The point of the floor: the digits of a barcode arrive one at a time, and
-    // each prefix has to stay an ordinary search rather than a failed lookup.
-    for (const partial of [
-      '8',
-      '87',
-      '871',
-      '8712',
-      '87123',
-      '871234',
-      '8712345',
-    ]) {
-      expect(barcodeTerm(partial)).toBeNull()
-    }
-  })
-
-  test('a number longer than any barcode is not one either', () => {
-    expect(barcodeTerm('123456789012345')).toBeNull()
-  })
-
-  test('a name is not a barcode, however many digits are in it', () => {
-    expect(barcodeTerm('hagelslag')).toBeNull()
-    expect(barcodeTerm('')).toBeNull()
-    expect(barcodeTerm('cola zero 330 ml')).toBeNull()
-    expect(barcodeTerm('871234-5678901')).toBeNull()
-    expect(barcodeTerm('8712345678901 melk')).toBeNull()
-  })
-
-  test('what it accepts is exactly what the product lookup accepts', async () => {
+describe('fetchOffProduct', () => {
+  test('accepts exactly what `barcodeTerm` accepts', async () => {
     // The two must not drift: a term the search box promotes to a lookup that
     // the lookup then refuses would be a search that quietly returns nothing.
     const fetchImpl = vi.fn().mockResolvedValue({
@@ -51,13 +20,7 @@ describe('barcodeTerm', () => {
       expect(fetchImpl).toHaveBeenCalled()
     }
   })
-})
 
-function mockResponse(body: unknown, ok = true): Response {
-  return { ok, json: async () => body } as Response
-}
-
-describe('fetchOffProduct', () => {
   test('rejects barcodes that are not 8-14 digits without making a request', async () => {
     const fetchImpl = vi.fn()
     expect(await fetchOffProduct('abc', fetchImpl)).toBeNull()

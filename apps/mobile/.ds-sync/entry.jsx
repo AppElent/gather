@@ -30,7 +30,7 @@ import { AuthField } from '../src/components/AuthField'
 import { AuthLink } from '../src/components/AuthLink'
 import { AuthScreen } from '../src/components/AuthScreen'
 import { AuthUnavailable } from '../src/components/AuthUnavailable'
-import { CatalogueGrid, CatalogueStrip } from '../src/components/Catalogue'
+import { CatalogueStrip } from '../src/components/Catalogue'
 import { ConnectionLostBanner } from '../src/components/ConnectionLostBanner'
 import { GroupForms } from '../src/components/GroupForms'
 import { GroupPending } from '../src/components/GroupPending'
@@ -41,7 +41,6 @@ import { SettingsCard, SettingsRow } from '../src/components/SettingsCard'
 import { SocialSoon } from '../src/components/SocialSoon'
 import { WelcomeActions } from '../src/components/WelcomeActions'
 import { LocaleProvider, useI18n } from '../src/i18n'
-import { ModuleTab } from '../src/shell/ModuleTab'
 import { QuickActionSheet } from '../src/shell/QuickActionSheet'
 import { AppearanceProvider, useAppearance } from '../src/theme/appearance'
 import { MODULE_ICONS, UI_ICONS } from '../src/theme/icons'
@@ -105,13 +104,11 @@ export {
   AuthScreen,
   AuthUnavailable,
   // Shell
-  CatalogueGrid,
   CatalogueStrip,
   ConnectionLostBanner,
   GroupForms,
   GroupPending,
   ModulePlaceholder,
-  ModuleTab,
   NoGroup,
   QuickActionSheet,
   SocialSoon,

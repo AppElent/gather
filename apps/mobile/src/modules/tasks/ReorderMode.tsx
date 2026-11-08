@@ -12,16 +12,15 @@
  * You rearrange by recognising the row, and stripping it back to a title is
  * what makes that harder.
  *
- * The arithmetic is `reorder.ts`. There is still no drag-and-drop dependency
- * here and this is not the change that should add one: a fixed-height list
- * that does not auto-scroll is about eighty lines, and the library is five
- * hundred kilobytes and a native rebuild.
+ * The arithmetic is `arrange/arrange.ts`. There is no drag-and-drop
+ * dependency: a fixed-height list that does not auto-scroll is short, and the
+ * library is five hundred kilobytes and a native rebuild.
  *
- * The gesture is **`react-native-gesture-handler`, not `PanResponder`.** The
- * first attempt used `PanResponder`, copying the Baby log's arranging bar, and
- * it did not drag on either platform: that bar sits on a screen with nothing
- * scrolling behind it, and this list sits inside a `ScrollView`, which wins
- * every vertical touch. `PanResponder` has no way to say otherwise;
+ * The gesture is **`react-native-gesture-handler`, not `PanResponder`.**
+ * `PanResponder`, which the Baby log's arranging bar uses, does not drag here
+ * on either platform: that bar sits on a screen with nothing scrolling behind
+ * it, and this list sits inside a `ScrollView`, which wins every vertical
+ * touch. `PanResponder` has no way to say otherwise;
  * `blocksExternalGesture` does, and it is the same library the rows' own swipe
  * already goes through. The gesture is attached to the **grip alone** rather
  * than to the row, which is what leaves the rest of the row free to scroll a
@@ -39,8 +38,8 @@ import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { Card } from './components'
-import { priorityColor } from './sheets'
+import { Card } from '../../ui/card'
+import { priorityColor } from './components'
 import { dueLabel } from './taskDates'
 import type { ListDisplay, Task } from './types'
 
@@ -144,7 +143,7 @@ export function ReorderMode({
           importantForAccessibility="no"
         />
         <Text style={[styles.hintText, { color: tint.fg }]}>
-          {t.labs.list.reorderHint}
+          {t.tasks.list.reorderHint}
         </Text>
       </View>
 
@@ -157,12 +156,12 @@ export function ReorderMode({
           const meta = [
             display.due && task.dueDate
               ? dueLabel(task.dueDate, today, locale, {
-                  today: t.labs.task.today,
-                  tomorrow: t.labs.task.tomorrow,
+                  today: t.tasks.task.today,
+                  tomorrow: t.tasks.task.tomorrow,
                 })
               : null,
             display.priority && task.priority
-              ? t.labs.task.priorities[task.priority]
+              ? t.tasks.task.priorities[task.priority]
               : null,
             display.labels && task.labels.length > 0
               ? task.labels.join(' · ')
@@ -233,7 +232,7 @@ export function ReorderMode({
       </Card>
 
       <Text style={[styles.note, { color: tokens.muted }]}>
-        {t.labs.list.reorderCompleted}
+        {t.tasks.list.reorderCompleted}
       </Text>
     </View>
   )

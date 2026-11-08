@@ -7,8 +7,8 @@ import { Icon } from '../../components/app/Icon'
 import { SurfaceCard } from '../../components/app/ShellPrimitives'
 import { useCurrentGroup } from '../../components/app/useCurrentGroup'
 import { errorMessage } from '../../lib/errorMessage'
-import { groupLink } from '../../lib/groupPaths'
 import { useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 
 export const Route = createFileRoute('/_app/groups')({ component: GroupsPage })
 
@@ -21,18 +21,10 @@ const INPUT =
 /**
  * Every Group you are in, and the two ways to end up in another one.
  *
- * This page never got the restyle the rest of the shell did — raw `rounded-md
- * border`, `bg-emerald-100`, `bg-red-50`, none of the `--app-*` tokens — so it
- * read as a different app bolted onto this one. It is on the shared primitives
- * now, which matters more than it did: a Group row is the way into that Group's
- * settings, so this is a page people arrive at on purpose rather than a list
- * they pass through once.
- *
- * The invite code has come off the rows with the restyle. It was a grey aside
- * on every row of a page anybody can open, and it is a capability — whoever
- * holds one can join. It lives on the Group's own settings page now, next to a
- * sentence explaining what it does. Joining with somebody else's is still here,
- * because that is not about a Group you are already in.
+ * The invite code is not on the rows: it is a capability — whoever holds one
+ * can join — so it lives on the Group's own settings page, next to a sentence
+ * explaining what it does. Joining with somebody else's is here, because that
+ * is not about a Group you are already in.
  */
 function GroupsPage() {
   const groups = useQuery(api.groups.myGroups)
@@ -70,13 +62,11 @@ function GroupsPage() {
           <ul className="m-0 grid list-none gap-1 p-0">
             {groups.map((g) => (
               <li key={g._id}>
-                {/* The row is the way into the Group's own settings. It used to
-                    be a bare span that went nowhere, next to a sidebar link
-                    called "Group settings" that went here — so the one thing on
-                    screen actually naming a Group was the one thing you could
-                    not click. */}
+                {/* The row is the way into the Group's own settings: its click
+                    handler makes it the Current Group, and its link opens the
+                    page. */}
                 <Link
-                  {...groupLink('settings', g.slug)}
+                  {...linkTo('groupSettings')}
                   onClick={() => setCurrentGroup(g._id)}
                   className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-[var(--app-radius)] px-2 py-2 text-sm font-semibold text-[var(--app-fg)] no-underline hover:bg-[var(--app-surface-muted)]"
                 >
@@ -124,7 +114,7 @@ function GroupsPage() {
                   .then((groupId) => {
                     setCurrentGroup(groupId)
                     setName('')
-                    return navigate({ to: '/home' })
+                    return navigate(linkTo('home'))
                   })
                   .catch((err) =>
                     setError(errorMessage(err, text.createFailed)),
@@ -161,7 +151,7 @@ function GroupsPage() {
                   .then((groupId) => {
                     setCurrentGroup(groupId)
                     setCode('')
-                    return navigate({ to: '/home' })
+                    return navigate(linkTo('home'))
                   })
                   .catch((err) => setError(errorMessage(err, text.joinFailed)))
             }}

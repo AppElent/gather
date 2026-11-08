@@ -16,7 +16,12 @@ import { DROP_KINDS } from '@gather/core/drop-rules'
 import { MODULES } from '@gather/core/modules'
 import { describe, expect, test } from 'vitest'
 
-import { DROP_TARGETS, dropTargetById, targetsForDrop } from './dropTargets'
+import {
+  DROP_TARGETS,
+  type DropTarget,
+  dropTargetById,
+  targetsForDrop,
+} from './dropTargets'
 
 const idsFor = (kind: 'url' | 'text' | 'image', host?: string) =>
   targetsForDrop({ kind, host }).map((target) => target.id)
@@ -127,13 +132,6 @@ describe('the registry itself', () => {
     )
   })
 
-  test('a Module that takes nothing declares an empty list', () => {
-    expect(DROP_TARGETS['recurring-costs']).toEqual([])
-    expect(DROP_TARGETS['shared-costs']).toEqual([])
-    expect(DROP_TARGETS['savings-goals']).toEqual([])
-    expect(DROP_TARGETS.pantry).toEqual([])
-  })
-
   test('every registered target is reachable from some payload kind', () => {
     const reachable = new Set(
       DROP_KINDS.flatMap((kind) =>
@@ -147,12 +145,12 @@ describe('the registry itself', () => {
     }
   })
 
-  test('every target resolves to a screen', () => {
-    for (const targets of Object.values(DROP_TARGETS)) {
-      for (const target of targets) {
-        expect(target.route({ id: 'seed' }), target.id).toBeTruthy()
-      }
-    }
+  test('only the importer keeps the Drop past the chooser', () => {
+    const keeping = Object.values(DROP_TARGETS)
+      .flat()
+      .filter((target: DropTarget) => target.keepsDrop)
+      .map((target) => target.id)
+    expect(keeping).toEqual(['recipe-import'])
   })
 
   /**
@@ -161,12 +159,6 @@ describe('the registry itself', () => {
    * finishes the Drop or asks one more question.
    */
   test('a target that appends says what stage two picks', () => {
-    for (const targets of Object.values(DROP_TARGETS)) {
-      for (const target of targets) {
-        if (target.picks === 'none') continue
-        expect(target.id).not.toBe('')
-      }
-    }
     expect(dropTargetById('note-append').picks).toBe('note')
     expect(dropTargetById('note-new').picks).toBe('none')
     expect(dropTargetById('task-new').picks).toBe('task-list')

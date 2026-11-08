@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { testConvex } from '../test/convexHarness'
+import { alice, bob, carla, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 
 /**
@@ -14,21 +14,17 @@ import { api } from './_generated/api'
  * - someone in another Group reaches none of it, by any of the five entry
  *   points;
  * - being in the child's Group is not enough if you ask under a *different*
- *   Group's slug — the address has to be telling the truth.
+ *   Group's slug — the child has to be in the Group named.
  */
 
-const alice = { subject: 'clerk_alice', name: 'Alice', email: 'a@example.com' }
-const bob = { subject: 'clerk_bob', name: 'Bob', email: 'b@example.com' }
-const carla = { subject: 'clerk_carla', name: 'Carla', email: 'c@example.com' }
 
 const JANSEN = 'jansen-household'
 const DE_VRIES = 'de-vries-household'
 
 /**
  * One household with two parents in it, one child, and a second household with
- * a stranger — plus a Personal group for Alice, which is an ordinary Group with
- * one Member and is what a "different Group's slug" means for someone who *is*
- * in the child's household.
+ * a stranger — plus a one-member Group for Alice, which is what a "different
+ * Group's slug" means for someone who *is* in the child's household.
  */
 async function seed() {
   const t = testConvex()
@@ -50,22 +46,19 @@ async function seed() {
       email: carla.email,
     })
 
-    const jansen = await ctx.db.insert('groups', {
+    const jansen = await seedGroup(ctx, {
       name: 'Jansen Household',
       slug: JANSEN,
-      isPersonal: false,
       inviteCode: 'jansen',
     })
-    const devries = await ctx.db.insert('groups', {
+    const devries = await seedGroup(ctx, {
       name: 'De Vries Household',
       slug: DE_VRIES,
-      isPersonal: false,
       inviteCode: 'devries',
     })
-    const aliceAlone = await ctx.db.insert('groups', {
+    const aliceAlone = await seedGroup(ctx, {
       name: "Alice's things",
       slug: 'me-alice',
-      isPersonal: true,
       inviteCode: 'me-alice-code',
     })
 
@@ -75,7 +68,7 @@ async function seed() {
       [devries, carlaId, 'admin'],
       [aliceAlone, aliceId, 'admin'],
     ] as const) {
-      await ctx.db.insert('memberships', { groupId, userId, role })
+      await seedMember(ctx, groupId, userId, role)
     }
 
     const noor = await ctx.db.insert('babies', {
@@ -165,7 +158,7 @@ describe('someone in another Group reaches none of it', () => {
     })
     const outsider = t.withIdentity(carla)
 
-    // The Group in the address is not hers, so all five say so.
+    // The Group she names is not hers, so all five say so.
     await expect(
       outsider.query(api.babies.list, { groupSlug: JANSEN }),
     ).rejects.toThrow(/Not a member/)
@@ -219,7 +212,7 @@ describe('someone in another Group reaches none of it', () => {
 })
 
 /**
- * The rule the old caller-wide check could not express: Alice really is in the
+ * The rule a caller-wide check cannot express: Alice really is in the
  * child's household, and really is a Member of the Group she named — and it is
  * still a refusal, because the child does not live in the Group she named.
  */

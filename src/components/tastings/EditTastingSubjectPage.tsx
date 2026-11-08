@@ -9,25 +9,25 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
-import { ImageUploadField } from '../app/ImageUploadField'
-import { TastingFieldRenderer } from './TastingFieldRenderer'
-import type { TastingNav } from './tastingNav'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { ImageUploadField } from '../photo/ImageUploadField'
+import { TastingFieldRenderer, withAttribute } from './TastingFieldRenderer'
+import { TASTING_LINKS } from './tastingNav'
 
 type Attributes = Record<string, TastingAttributeValue>
 
 export function EditTastingSubjectPage({
   kind,
   subjectId,
-  groupSlug,
-  nav,
 }: {
   kind: TastingKind
   subjectId: string
-  groupSlug: string
-  nav: TastingNav
 }) {
+  const { slug: groupSlug } = useRequiredCurrentGroup()
+  const nav = TASTING_LINKS[kind]
   const id = subjectId as Id<'tastingSubjects'>
   const detail = useQuery(api.tastings.getSubject, { groupSlug, id, kind })
   const messages = useMessages()
@@ -67,7 +67,6 @@ export function EditTastingSubjectPage({
       kind={kind}
       groupSlug={groupSlug}
       subject={detail.subject}
-      nav={nav}
       trail={trail}
     />
   )
@@ -77,7 +76,6 @@ function EditSubjectForm({
   kind,
   groupSlug,
   subject,
-  nav,
   trail,
 }: {
   kind: TastingKind
@@ -88,9 +86,9 @@ function EditSubjectForm({
     attributes: Attributes
     photoUrl: string | null
   }
-  nav: TastingNav
   trail: readonly Crumb[]
 }) {
+  const nav = TASTING_LINKS[kind]
   const messages = useMessages()
   const copy = messages.tastings
   const update = useMutation(api.tastings.updateSubject)
@@ -133,16 +131,18 @@ function EditSubjectForm({
               groupSlug,
               id: subject._id,
               name,
-              attributes: Object.fromEntries(
-                Object.entries(attributes).filter(
-                  ([, value]) => value !== undefined,
-                ),
-              ),
+              attributes,
               ...(photoTouched ? { photoId: photoId ?? null } : {}),
             })
             navigate(nav.subject(subject._id))
           } catch (cause) {
-            setError(cause instanceof Error ? cause.message : String(cause))
+            setError(
+              errorMessage(
+                cause,
+                messages.common.errors.somethingWentWrong,
+                copy.composer.problems,
+              ),
+            )
             setSaving(false)
           }
         }}
@@ -161,14 +161,9 @@ function EditSubjectForm({
             field={field}
             value={attributes[field.key]}
             onChange={(value) =>
-              setAttributes((current) => {
-                if (value === undefined) {
-                  const next = { ...current }
-                  delete next[field.key]
-                  return next
-                }
-                return { ...current, [field.key]: value }
-              })
+              setAttributes((current) =>
+                withAttribute(current, field.key, value),
+              )
             }
           />
         ))}

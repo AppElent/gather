@@ -12,8 +12,8 @@
  *
  * That is the one place this design branches on content rather than on Kind,
  * and it is worth saying out loud because everything else here is Kind-blind —
- * the facts grid is whatever `subjectFields` declares, rendered by the same
- * five components the composer uses.
+ * the facts grid is whatever `subjectFields` declares, read out by
+ * `tastingFieldText` from the same field defs the composer draws.
  *
  * ## Attribution is on the row, not behind a tap
  *
@@ -33,6 +33,7 @@
  * no archive, no undo — so this is the confirm side of confirm-or-undo, never
  * both.
  */
+import { localMidnight } from '@gather/core/civil-date'
 import type { TastingAttributeValue, TastingKind } from '@gather/core/tastings'
 import { tastingFields } from '@gather/core/tastings'
 import { useMutation } from 'convex/react'
@@ -41,7 +42,6 @@ import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -49,31 +49,28 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
 import { pickPhoto, uploadPhoto } from '../../photo/pickPhoto'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { RADIUS, useTokens } from '../../theme/tokens'
+import { moduleHref } from '../moduleDestination'
 import { TASTING_UI_ICONS } from './icons'
-import type { TastingBase } from './paths'
-import { tastingHref } from './paths'
 import { StarRating } from './StarRating'
 import { subjectFacts } from './summary'
 import { tastingFieldText } from './TastingField'
 import { fieldLabel, kindWords, term } from './words'
 
 export function SubjectScreen({
-  base,
   kind,
   subjectId,
 }: {
-  base: TastingBase
   kind: TastingKind
   subjectId: string
 }) {
@@ -142,7 +139,7 @@ export function SubjectScreen({
 
   function compose(mode: 'new' | 'subject' | 'tasting', tastingId?: string) {
     router.push(
-      tastingHref(base, kind, '/compose', {
+      moduleHref(`/all/tasting/${kind}/compose`, {
         mode,
         subjectId: subject._id,
         ...(tastingId ? { tastingId } : {}),
@@ -151,44 +148,39 @@ export function SubjectScreen({
   }
 
   function confirmSubjectDelete() {
-    Alert.alert(
-      fmt(copy.deleteSubjectTitle, { name: subject.name }),
-      subject.count === 0
-        ? copy.deleteSubjectBodyEmpty
-        : plural(locale, subject.count, copy.deleteSubjectBody),
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: copy.delete,
-          style: 'destructive',
-          onPress: async () => {
-            await removeSubject({
-              groupSlug: group.slug,
-              id: subject._id as Id<'tastingSubjects'>,
-            })
-            haptics.itemCompleted()
-            router.back()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(copy.deleteSubjectTitle, { name: subject.name }),
+      message:
+        subject.count === 0
+          ? copy.deleteSubjectBodyEmpty
+          : plural(locale, subject.count, copy.deleteSubjectBody),
+      confirm: copy.delete,
+      cancel: t.actions.cancel,
+      onConfirm: async () => {
+        await removeSubject({
+          groupSlug: group.slug,
+          id: subject._id as Id<'tastingSubjects'>,
+        })
+        haptics.itemCompleted()
+        router.back()
+      },
+    })
   }
 
   function confirmTastingDelete(tastingId: string) {
-    Alert.alert(copy.deleteTastingTitle, copy.deleteTastingBody, [
-      { text: t.actions.cancel, style: 'cancel' },
-      {
-        text: copy.delete,
-        style: 'destructive',
-        onPress: async () => {
-          await removeTasting({
-            groupSlug: group.slug,
-            id: tastingId as Id<'tastings'>,
-          })
-          haptics.itemCompleted()
-        },
+    confirmDestructive({
+      title: copy.deleteTastingTitle,
+      message: copy.deleteTastingBody,
+      confirm: copy.delete,
+      cancel: t.actions.cancel,
+      onConfirm: async () => {
+        await removeTasting({
+          groupSlug: group.slug,
+          id: tastingId as Id<'tastings'>,
+        })
+        haptics.itemCompleted()
       },
-    ])
+    })
   }
 
   /**
@@ -460,10 +452,10 @@ export function SubjectScreen({
                   {tasting.mine ? copy.you : (tasting.byName ?? '')}
                 </Text>
                 <Text style={[styles.when, { color: tokens.muted }]}>
-                  {new Date(`${tasting.tastedAt}T00:00:00Z`).toLocaleDateString(
-                    locale,
-                    { day: 'numeric', month: 'short', timeZone: 'UTC' },
-                  )}
+                  {localMidnight(tasting.tastedAt).toLocaleDateString(locale, {
+                    day: 'numeric',
+                    month: 'short',
+                  })}
                 </Text>
                 <View style={styles.spacer} />
                 <Text style={[styles.score, { color: tint.fg }]}>

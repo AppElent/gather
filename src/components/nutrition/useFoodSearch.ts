@@ -1,13 +1,14 @@
+import { barcodeTerm } from '@gather/core/domain'
 import { useAction, useQuery } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import { barcodeTerm } from '../../../convex/lib/offFetch'
 import type { OffSearchResult } from '../../../convex/lib/offMapping'
 import { useI18n } from '../../lib/i18n'
+import { useDebouncedValue } from '../kitchen/useDebouncedValue'
 
 /** How long the term sits still before the local search runs. */
-export const SEARCH_DEBOUNCE_MS = 250
+const SEARCH_DEBOUNCE_MS = 250
 
 /**
  * How long it sits still before Open Food Facts is asked.
@@ -16,32 +17,22 @@ export const SEARCH_DEBOUNCE_MS = 250
  * search API; search-a-licious (the service this actually calls, see
  * offFetch.ts) publishes no separate limit, so treat 10/min as the ceiling.
  *
- * This used to be a 6.5s *minimum interval between calls*, which kept the
- * volume down by making the second thing you searched for sit there doing
- * nothing. A debounce spends the same budget without the stall: continuous
- * typing produces one request per pause rather than one per keystroke, the
+ * A debounce rather than a minimum interval between calls, so the second thing
+ * you search for never sits there waiting: continuous typing produces one
+ * request per pause rather than one per keystroke, the
  * three-character floor drops the first keystrokes of every term, and the
  * per-term cache means backspacing and retyping costs nothing. Naming a
  * product is a handful of requests, well inside the ceiling.
  */
-export const OFF_SEARCH_DEBOUNCE_MS = 400
-
-/**
- * Whether the term is a barcode, and so resolves by lookup rather than by
- * search. Re-exported from `convex/lib/offFetch` rather than restated: the
- * pattern that decides what a lookup will accept is the one that decides
- * whether to make one.
- */
-export { barcodeTerm }
+const OFF_SEARCH_DEBOUNCE_MS = 400
 
 /**
  * Whether a term is worth asking Open Food Facts about at all.
  *
  * Three characters, because a one- or two-character term is somebody still
  * typing and matches half the catalogue. Deliberately *not* conditioned on the
- * local results: local and external now run concurrently and both sections
- * render, where the external search used to be gated on local returning
- * exactly zero rows — one poor local match suppressed the whole catalogue.
+ * local results: one poor local match must not hide the whole catalogue, so
+ * local and external run concurrently and both sections render.
  */
 export function shouldSearchOff(term: string): boolean {
   return term.trim().length >= 3
@@ -75,25 +66,19 @@ export interface FoodSearch {
    * make the effect depend on the locale (ADR-0011).
    */
   offError: 'searchFailed' | null
-  clearOffError: () => void
 }
 
 /**
  * Searching for a food: your own rows and Open Food Facts, concurrently, with
  * the debounce, the per-term cache and the discarding of responses for a term
  * you have moved on from. Owns no notion of *choosing* one — that is the
- * caller's, and is why this is reusable between the add dialog and whatever
- * replaces it.
+ * caller's.
  */
 export function useFoodSearch(): FoodSearch {
   const { locale } = useI18n()
   const [term, setTerm] = useState('')
 
-  const [debouncedTerm, setDebouncedTerm] = useState('')
-  useEffect(() => {
-    const id = setTimeout(() => setDebouncedTerm(term), SEARCH_DEBOUNCE_MS)
-    return () => clearTimeout(id)
-  }, [term])
+  const debouncedTerm = useDebouncedValue(term, SEARCH_DEBOUNCE_MS)
 
   // Read off the *debounced* term, so the mode is only ever decided about a
   // term somebody has stopped typing: the digits of a barcode arriving one at a
@@ -119,11 +104,7 @@ export function useFoodSearch(): FoodSearch {
         : []
     : textMatches
 
-  const [offTerm, setOffTerm] = useState('')
-  useEffect(() => {
-    const id = setTimeout(() => setOffTerm(term.trim()), OFF_SEARCH_DEBOUNCE_MS)
-    return () => clearTimeout(id)
-  }, [term])
+  const offTerm = useDebouncedValue(term.trim(), OFF_SEARCH_DEBOUNCE_MS)
 
   const [offResults, setOffResults] = useState<OffSearchResult[] | null>(null)
   const [offSearching, setOffSearching] = useState(false)
@@ -201,8 +182,6 @@ export function useFoodSearch(): FoodSearch {
     }
   }, [offTerm, locale, searchByName, lookupBarcode])
 
-  const clearOffError = useCallback(() => setOffError(null), [])
-
   return {
     term,
     setTerm,
@@ -210,6 +189,5 @@ export function useFoodSearch(): FoodSearch {
     offResults,
     offSearching,
     offError,
-    clearOffError,
   }
 }
