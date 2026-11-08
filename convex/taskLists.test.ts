@@ -419,6 +419,18 @@ describe('the tasks inside a list', () => {
     expect(jansenTasks.map((task) => task.title)).toEqual(['Take the bins out'])
   })
 
+  test('only a Member moves a task', async () => {
+    const { t, devriesList, jansenTask } = await seed()
+    const args = { taskId: jansenTask, groupSlug: JANSEN, listId: devriesList }
+
+    await expect(t.mutation(api.tasks.moveToList, args)).rejects.toThrow(
+      /Not authenticated/,
+    )
+    await expect(
+      t.withIdentity(carla).mutation(api.tasks.moveToList, args),
+    ).rejects.toThrow(/Not a member/)
+  })
+
   test('a task in another Group reads like a task id that names nothing', async () => {
     const { t, aliceId, jansenList, jansenTask } = await seed()
 

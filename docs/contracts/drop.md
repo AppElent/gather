@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the share sheet, a Drop, its destinations, host rules, or expo-share-intent.
-version: 1.0.0
+version: 1.1.0
 status: current
 ---
 

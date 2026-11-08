@@ -284,13 +284,15 @@ export const moveToList = mutation({
     groupSlug: v.string(),
     listId: v.id('taskLists'),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
-    if (task.listId === args.listId) return
+    if (task.listId === args.listId) return null
     await requireLocalList(ctx, args.groupSlug, args.listId)
     await ctx.db.patch(task._id, {
       listId: args.listId,
       order: await endOfList(ctx, args.listId),
     })
+    return null
   },
 })

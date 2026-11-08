@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing who owns, sees, writes to, or is refused Group content or a Personal record, or how the Current Group is chosen.
-version: 1.0.0
+version: 1.1.0
 status: current
 ---
 

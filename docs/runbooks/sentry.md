@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when changing web or phone error reporting, the privacy scrubber, source-map upload, or the Sentry variables.
-version: 1.0.0
+version: 1.0.1
 ---
 
 # Sentry (web and phone)

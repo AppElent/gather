@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the Catalog, the tasting Catalog, the Sample household, or any seed entrypoint.
-version: 2.1.0
+version: 2.2.0
 status: current
 ---
 
