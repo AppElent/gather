@@ -1,4 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import { useScrollLock } from '../kitchen/useScrollLock'
 import {
   DETENTS,
   type Detent,
@@ -13,46 +14,15 @@ interface Props {
   header: ReactNode
   children: ReactNode
   onClose: () => void
-  /** Raised to full whenever this changes to true — focusing the search does it. */
+  /**
+   * A count of requests to raise the sheet to full; each time it goes up, the
+   * sheet goes to full. Focusing the search is one. Zero asks for nothing.
+   */
   promoteToFull?: number
 }
 
 /** Which surface a gesture belongs to, once there is enough of it to tell. */
 type Owner = 'sheet' | 'list'
-
-/**
- * Freezes the page behind the sheet for as long as the sheet is mounted.
- *
- * `overflow: hidden` on `body` is not enough — iOS Safari scrolls the document
- * anyway — so the body is taken out of flow at its current offset and put back
- * where it was on the way out. Without this the sheet is a `fixed` layer over a
- * live, scrollable diary, and every gesture the sheet does not claim reaches
- * the diary instead.
- */
-function useScrollLock() {
-  useEffect(() => {
-    const { body } = document
-    const y = window.scrollY
-    const previous = {
-      position: body.style.position,
-      top: body.style.top,
-      left: body.style.left,
-      right: body.style.right,
-      width: body.style.width,
-      overflow: body.style.overflow,
-    }
-    body.style.position = 'fixed'
-    body.style.top = `${-y}px`
-    body.style.left = '0'
-    body.style.right = '0'
-    body.style.width = '100%'
-    body.style.overflow = 'hidden'
-    return () => {
-      Object.assign(body.style, previous)
-      window.scrollTo(0, y)
-    }
-  }, [])
-}
 
 /**
  * The area actually visible, which stops being the layout viewport the moment a
@@ -166,7 +136,7 @@ export function BottomSheet({
   }, [setFrac])
 
   useEffect(() => {
-    if (promoteToFull === undefined) return
+    if (!promoteToFull) return
     setDetent('full')
     setFrac(DETENTS.full)
   }, [promoteToFull, setFrac])

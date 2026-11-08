@@ -3,12 +3,13 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
+import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { useConfirmAction } from '../app/ConfirmAction'
-import { ImageUploadField } from '../app/ImageUploadField'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { ImageUploadField } from '../photo/ImageUploadField'
 import { BabyForm } from './BabyForm'
 
 type BabyDetail = Doc<'babies'> & { photoUrl: string | null }
@@ -26,8 +27,13 @@ export function EditBabyPage({ babyId }: EditBabyPageProps) {
 
   /** Baby log → this child → Edit, the page this form saves back to. */
   const trail: Crumb[] = [
-    { label: messages.modules.byId['baby-log'].label, link: linkTo('baby-log') },
-    ...(baby ? [{ label: baby.name, link: linkTo('child', { babyId: baby._id }) }] : []),
+    {
+      label: messages.modules.byId['baby-log'].label,
+      link: linkTo('baby-log'),
+    },
+    ...(baby
+      ? [{ label: baby.name, link: linkTo('child', { babyId: baby._id }) }]
+      : []),
     { label: messages.common.actions.edit },
   ]
 
@@ -148,7 +154,7 @@ function EditBabyForm({
             })
             navigate(linkTo('child', { babyId: baby._id }))
           } catch (err) {
-            setError(err instanceof Error ? err.message : form.saveFailed)
+            setError(errorMessage(err, form.saveFailed))
             setSubmitting(false)
           }
         }}

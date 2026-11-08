@@ -4,20 +4,13 @@ import { useEffect, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
+import { NUTRITION_TARGETS_ANCHOR } from '../../lib/links'
 import { SurfaceCard } from '../app/ShellPrimitives'
-import { NutrientInputGrid } from '../nutrition/NutrientInputGrid'
+import { NutrientInputGrid } from '../kitchen/NutrientInputGrid'
 import {
   nutrientInputsToFacts,
   toNutrientInputs,
-} from '../nutrition/nutrientInputs'
-
-/**
- * The anchor the diary's "edit targets" link lands on.
- *
- * Exported rather than written twice: the link and the thing it scrolls to are
- * a pair, and a hash that matches nothing fails silently.
- */
-export const NUTRITION_TARGETS_ANCHOR = 'nutrition-targets'
+} from '../kitchen/nutrientInputs'
 
 interface FormProps {
   targets?: NutritionFacts

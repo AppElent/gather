@@ -1,7 +1,7 @@
 import { missingRequiredField } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
 import type { Messages } from '@gather/core/messages'
-import type { Doc } from '../../convex/_generated/dataModel'
+import type { Doc } from '../../../convex/_generated/dataModel'
 import { DEFAULT_TEMPERATURE_CELSIUS } from './babyEventFields'
 import { readLastUsed, writeLastUsed } from './lastUsed'
 

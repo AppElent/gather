@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { readBarcodes } from 'zxing-wasm/reader'
 import { useMessages } from '../../lib/i18n'
-import { inputClass } from '../nutrition/nutrientInputs'
+import { inputClass } from '../kitchen/fields'
 
 interface Props {
   onDetected: (barcode: string) => void

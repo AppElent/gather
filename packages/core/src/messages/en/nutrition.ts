@@ -207,7 +207,6 @@ export const combosLibrary = {
   rename: 'Rename',
   renameLabel: 'New name for “{name}”',
   renameFailed: 'Could not rename this combo',
-  delete: 'Delete',
   deleteLabel: 'Delete “{name}”',
   /** Replaces the buttons once Delete is pressed. There is no undo. */
   deleteConfirm: 'Delete “{name}”?',

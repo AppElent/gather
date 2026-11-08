@@ -1,19 +1,18 @@
-import { localIsoDate } from '@gather/core/civil-date'
 import type { BabyEventType } from '@gather/core/domain'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Doc, Id } from '../../../convex/_generated/dataModel'
-import { combineDateTime, toTimeInputValue } from '../../lib/babyDate'
-import { BABY_INPUT_CLASS as inputClass } from '../../lib/babyEventFields'
-import type { EventValues } from '../../lib/babyEventFormValues'
+import { errorMessage } from '../../lib/errorMessage'
+import { fmt, useMessages } from '../../lib/i18n'
+import { BABY_INPUT_CLASS as inputClass } from './babyEventFields'
+import type { EventValues } from './babyEventFormValues'
 import {
   buildEventInput,
   initialEventValues,
   rememberEventChoices,
-} from '../../lib/babyEventFormValues'
-import { errorMessage } from '../../lib/errorMessage'
-import { fmt, useMessages } from '../../lib/i18n'
+} from './babyEventFormValues'
+import { DateTimeFields } from './DateTimeFields'
 import { EventTypeFields } from './EventTypeFields'
 
 type BabyEventDoc = Doc<'babyEvents'>
@@ -97,34 +96,13 @@ export function EventForm({
         {fmt(event ? entry.editTitle : entry.logTitle, { type: typeName })}
       </h3>
 
-      <div className="min-w-0 sm:max-w-sm">
-        <span className="mb-1 block text-sm font-medium">
-          {type === 'sleep' ? entry.start : entry.when}
-        </span>
-        <div className="flex gap-2">
-          <input
-            type="date"
-            className={inputClass}
-            value={localIsoDate(timestampMs)}
-            onChange={(e) =>
-              setTimestampMs(
-                combineDateTime(e.target.value, toTimeInputValue(timestampMs)),
-              )
-            }
-            required
-          />
-          <input
-            type="time"
-            className={inputClass}
-            value={toTimeInputValue(timestampMs)}
-            onChange={(e) =>
-              setTimestampMs(
-                combineDateTime(localIsoDate(timestampMs), e.target.value),
-              )
-            }
-            required
-          />
-        </div>
+      <div className="sm:max-w-sm">
+        <DateTimeFields
+          label={type === 'sleep' ? entry.start : entry.when}
+          valueMs={timestampMs}
+          onChange={(ms) => ms !== undefined && setTimestampMs(ms)}
+          required
+        />
       </div>
 
       <EventTypeFields

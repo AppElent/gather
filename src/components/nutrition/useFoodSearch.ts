@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { OffSearchResult } from '../../../convex/lib/offMapping'
 import { useI18n } from '../../lib/i18n'
+import { useDebouncedValue } from '../kitchen/useDebouncedValue'
 
 /** How long the term sits still before the local search runs. */
 const SEARCH_DEBOUNCE_MS = 250
@@ -80,11 +81,7 @@ export function useFoodSearch(): FoodSearch {
   const { locale } = useI18n()
   const [term, setTerm] = useState('')
 
-  const [debouncedTerm, setDebouncedTerm] = useState('')
-  useEffect(() => {
-    const id = setTimeout(() => setDebouncedTerm(term), SEARCH_DEBOUNCE_MS)
-    return () => clearTimeout(id)
-  }, [term])
+  const debouncedTerm = useDebouncedValue(term, SEARCH_DEBOUNCE_MS)
 
   // Read off the *debounced* term, so the mode is only ever decided about a
   // term somebody has stopped typing: the digits of a barcode arriving one at a
@@ -110,11 +107,7 @@ export function useFoodSearch(): FoodSearch {
         : []
     : textMatches
 
-  const [offTerm, setOffTerm] = useState('')
-  useEffect(() => {
-    const id = setTimeout(() => setOffTerm(term.trim()), OFF_SEARCH_DEBOUNCE_MS)
-    return () => clearTimeout(id)
-  }, [term])
+  const offTerm = useDebouncedValue(term.trim(), OFF_SEARCH_DEBOUNCE_MS)
 
   const [offResults, setOffResults] = useState<OffSearchResult[] | null>(null)
   const [offSearching, setOffSearching] = useState(false)

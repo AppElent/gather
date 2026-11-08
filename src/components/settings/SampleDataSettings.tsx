@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, plural, useI18n } from '../../lib/i18n'
+import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
 
 const buttonClass =
@@ -34,6 +35,7 @@ export function SampleDataSettings() {
   const { sampleData } = messages.settings
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<string | null>(null)
+  const { confirm, dialog } = useConfirmAction()
 
   if (!SAMPLE_DATA_ENABLED) return null
 
@@ -99,15 +101,18 @@ export function SampleDataSettings() {
           type="button"
           className={buttonClass}
           disabled={busy !== null}
-          onClick={() => {
-            if (window.confirm(sampleData.confirmRemove)) {
-              void run('reset')
-            }
-          }}
+          onClick={() =>
+            confirm({
+              title: sampleData.confirmRemove,
+              confirmLabel: sampleData.remove,
+              run: () => run('reset'),
+            })
+          }
         >
           {busy === 'reset' ? sampleData.removing : sampleData.remove}
         </button>
       </div>
+      {dialog}
     </SurfaceCard>
   )
 }

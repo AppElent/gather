@@ -1,6 +1,7 @@
 import type { AmountChoice, OfferedServing } from '../../../convex/lib/servings'
 import { parseServingAmount } from '../../../convex/lib/servings'
 import { useMessages } from '../../lib/i18n'
+import { fieldClass } from '../kitchen/fields'
 
 /** What the card has selected, before it is turned into an amount. */
 export type ServingSelection =
@@ -89,8 +90,7 @@ interface Props {
  *
  * The named servings a food carries, then the amounts you have logged for it
  * yourself, and always a Custom at the end so the chips can never trap you.
- * Chips are thumb-sized and the field is 16px, because a mobile browser zooms
- * the page on focusing anything smaller and never zooms back.
+ * Chips are thumb-sized, and the field is the sheet's `fieldClass`.
  */
 export function ServingPicker({
   baseUnit,
@@ -163,7 +163,7 @@ export function ServingPicker({
             value={selection.input}
             onChange={(e) => onSelect({ ...selection, input: e.target.value })}
             aria-label={add.amount}
-            className="min-h-11 w-24 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-[16px]"
+            className={`${fieldClass} w-24`}
           />
           {unitServing ? (
             <select
@@ -176,7 +176,7 @@ export function ServingPicker({
                 })
               }
               aria-label={add.unit}
-              className="min-h-11 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-[16px]"
+              className={fieldClass}
             >
               <option value="base">{baseUnit}</option>
               <option value="serving">{unitServing.label}</option>

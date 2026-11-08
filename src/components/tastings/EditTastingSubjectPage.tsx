@@ -9,11 +9,12 @@ import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
-import { ImageUploadField } from '../app/ImageUploadField'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
-import { TastingFieldRenderer } from './TastingFieldRenderer'
+import { ImageUploadField } from '../photo/ImageUploadField'
+import { TastingFieldRenderer, withAttribute } from './TastingFieldRenderer'
 import { TASTING_LINKS } from './tastingNav'
 
 type Attributes = Record<string, TastingAttributeValue>
@@ -135,7 +136,13 @@ function EditSubjectForm({
             })
             navigate(nav.subject(subject._id))
           } catch (cause) {
-            setError(cause instanceof Error ? cause.message : String(cause))
+            setError(
+              errorMessage(
+                cause,
+                messages.common.errors.somethingWentWrong,
+                copy.composer.problems,
+              ),
+            )
             setSaving(false)
           }
         }}
@@ -154,14 +161,9 @@ function EditSubjectForm({
             field={field}
             value={attributes[field.key]}
             onChange={(value) =>
-              setAttributes((current) => {
-                if (value === undefined) {
-                  const next = { ...current }
-                  delete next[field.key]
-                  return next
-                }
-                return { ...current, [field.key]: value }
-              })
+              setAttributes((current) =>
+                withAttribute(current, field.key, value),
+              )
             }
           />
         ))}

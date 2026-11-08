@@ -1,15 +1,29 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
 import { jumpTargets, shellJumpTargets } from '../../lib/appNavigation'
 import { useMessages } from '../../lib/i18n'
 import { useCurrentGroup } from './useCurrentGroup'
+import { useModalFocus } from './useModalFocus'
 
-export function CommandPalette() {
-  const [open, setOpen] = useState(false)
+/**
+ * Jumping to a page by name. The shell owns whether it is open, so ⌘K and the
+ * topbar's search button open the same thing.
+ */
+export function CommandPalette({
+  open,
+  onOpenChange: setOpen,
+}: {
+  open: boolean
+  onOpenChange: Dispatch<SetStateAction<boolean>>
+}) {
   const [q, setQ] = useState('')
   const navigate = useNavigate()
   const messages = useMessages()
   const { current } = useCurrentGroup()
+  const { ref, onKeyDown } = useModalFocus<HTMLDivElement>({
+    open,
+    onClose: () => setOpen(false),
+  })
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -17,16 +31,13 @@ export function CommandPalette() {
         e.preventDefault()
         setOpen((v) => !v)
       }
-      if (e.key === 'Escape') setOpen(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [setOpen])
 
   if (!open) return null
-  const targets = current
-    ? jumpTargets(messages)
-    : shellJumpTargets(messages)
+  const targets = current ? jumpTargets(messages) : shellJumpTargets(messages)
   const results = targets.filter((target) =>
     target.label.toLowerCase().includes(q.toLowerCase()),
   )
@@ -37,11 +48,15 @@ export function CommandPalette() {
       onClick={() => setOpen(false)}
     >
       <div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-label={messages.shell.palette.placeholder}
         className="w-full max-w-md rounded-xl border bg-white p-2 shadow-lg dark:bg-neutral-900"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={onKeyDown}
       >
         <input
-          autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={messages.shell.palette.placeholder}

@@ -1,4 +1,5 @@
 import { fireEvent, screen } from '@testing-library/react'
+import { useState } from 'react'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { IssueReporterModal } from './IssueReporterModal'
@@ -23,12 +24,18 @@ beforeEach(() => {
   reportIssueMock.mockReset()
 })
 
+/** The shell's half: it owns whether the reporter is open. */
+function Reporter() {
+  const [open, setOpen] = useState(false)
+  return <IssueReporterModal open={open} onOpenChange={setOpen} />
+}
+
 function openModal() {
   fireEvent.keyDown(window, { key: 'i', ctrlKey: true, shiftKey: true })
 }
 
 test('is closed until the keyboard shortcut is pressed', () => {
-  renderWithI18n(<IssueReporterModal />)
+  renderWithI18n(<Reporter />)
   expect(screen.queryByText('Report an issue')).toBeNull()
   openModal()
   expect(screen.getByText('Report an issue')).toBeDefined()
@@ -39,7 +46,7 @@ test('submits the report with the page url and signed-in flag, never the user id
     ok: true,
     issueUrl: 'https://github.com/o/r/issues/1',
   })
-  renderWithI18n(<IssueReporterModal />)
+  renderWithI18n(<Reporter />)
   openModal()
 
   fireEvent.change(screen.getByPlaceholderText(/what happened/i), {
@@ -63,7 +70,7 @@ test('submits the report with the page url and signed-in flag, never the user id
 })
 
 test('tells the reporter the report is public', () => {
-  renderWithI18n(<IssueReporterModal />)
+  renderWithI18n(<Reporter />)
   openModal()
   expect(screen.getByText(/public GitHub issues/i)).toBeDefined()
 })
@@ -73,7 +80,7 @@ test('shows the server-reported error', async () => {
     ok: false,
     error: 'GitHub issue reporter is not configured.',
   })
-  renderWithI18n(<IssueReporterModal />)
+  renderWithI18n(<Reporter />)
   openModal()
 
   fireEvent.change(screen.getByPlaceholderText(/what happened/i), {

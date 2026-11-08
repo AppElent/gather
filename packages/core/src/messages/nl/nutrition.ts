@@ -149,7 +149,6 @@ export const combosLibrary = {
   rename: 'Hernoemen',
   renameLabel: 'Nieuwe naam voor “{name}”',
   renameFailed: 'Kon deze combinatie niet hernoemen',
-  delete: 'Verwijderen',
   deleteLabel: '“{name}” verwijderen',
   deleteConfirm: '“{name}” verwijderen?',
   deleteKeepsDiary: 'Wat je al hebt genoteerd blijft in je dagboek staan.',

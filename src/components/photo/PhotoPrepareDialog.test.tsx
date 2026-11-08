@@ -1,10 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
-import {
-  type StubbedImagePipeline,
-  stubImagePipeline,
-} from '../../test/imagePipeline'
+import { type StubbedImagePipeline, stubImagePipeline } from './imagePipeline'
 import { PhotoPrepareDialog } from './PhotoPrepareDialog'
 
 /**

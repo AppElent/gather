@@ -4,12 +4,10 @@ import { type Mock, vi } from 'vitest'
  * The browser's image pipeline, stood in for.
  *
  * jsdom has no `createImageBitmap` and no 2D canvas, so every test that touches
- * preparing a photo has to supply both. There is one copy of that here because
- * there were briefly three, and they had already drifted into disagreeing about
- * what `toBlob` hands back when asked for a type — which is the precise defect
- * the real code refuses to ship (`preparePhoto` rejects anything that is not a
- * JPEG), and so the precise thing a stub must not get quietly wrong. The same
- * lesson `src/lib/errorMessage.ts` records about its own three copies.
+ * preparing a photo has to supply both, from this one copy. Copies drift on
+ * what `toBlob` hands back when asked for a type — the precise defect the real
+ * code refuses to ship (`preparePhoto` rejects anything that is not a JPEG), and
+ * so the precise thing a stub must not get quietly wrong.
  *
  * The default behaviour is a browser that does what it is asked: it decodes to
  * the size given, and encodes to the type requested.

@@ -8,11 +8,13 @@ import {
 } from '@gather/core/tastings'
 import { useMutation, useQuery } from 'convex/react'
 import { X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
-import { TastingFieldRenderer } from './TastingFieldRenderer'
+import { useModalFocus } from '../app/useModalFocus'
+import { TastingFieldRenderer, withAttribute } from './TastingFieldRenderer'
 
 type Attributes = Record<string, TastingAttributeValue>
 
@@ -101,6 +103,13 @@ export function TastingDialog({
     (entry) => entry.name.toLocaleLowerCase() === needle,
   )
 
+  const searchRef = useRef<HTMLInputElement>(null)
+  const { ref, onKeyDown } = useModalFocus<HTMLElement>({
+    open,
+    onClose,
+    initialFocus: searchRef,
+  })
+
   if (!open) return null
 
   const choose = (next: SubjectChoice) => {
@@ -109,20 +118,6 @@ export function TastingDialog({
     setStep('compose')
     setError(null)
   }
-
-  const setAttribute = (
-    setter: React.Dispatch<React.SetStateAction<Attributes>>,
-    key: string,
-    value: TastingAttributeValue | undefined,
-  ) =>
-    setter((current) => {
-      if (value === undefined) {
-        const next = { ...current }
-        delete next[key]
-        return next
-      }
-      return { ...current, [key]: value }
-    })
 
   return (
     <div
@@ -133,9 +128,11 @@ export function TastingDialog({
       }}
     >
       <section
+        ref={ref}
         role="dialog"
         aria-modal="true"
         aria-labelledby="tasting-dialog-title"
+        onKeyDown={onKeyDown}
         className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-5 shadow-2xl"
       >
         <header className="mb-5 flex items-start justify-between gap-3">
@@ -168,7 +165,7 @@ export function TastingDialog({
             <label className="grid gap-1.5 text-sm font-medium">
               <span>{copy.picker.search}</span>
               <input
-                autoFocus
+                ref={searchRef}
                 className="min-h-11 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -285,13 +282,12 @@ export function TastingDialog({
                 }
                 onClose()
               } catch (cause) {
-                const key = cause instanceof Error ? cause.message : ''
                 setError(
-                  copy.composer.problems[
-                    key as keyof typeof copy.composer.problems
-                  ] ??
-                    key ??
+                  errorMessage(
+                    cause,
                     messages.common.errors.somethingWentWrong,
+                    copy.composer.problems,
+                  ),
                 )
               } finally {
                 setSaving(false)
@@ -319,7 +315,9 @@ export function TastingDialog({
                     field={field}
                     value={subjectAttributes[field.key]}
                     onChange={(value) =>
-                      setAttribute(setSubjectAttributes, field.key, value)
+                      setSubjectAttributes((current) =>
+                        withAttribute(current, field.key, value),
+                      )
                     }
                   />
                 ))}
@@ -361,7 +359,9 @@ export function TastingDialog({
                   field={field}
                   value={attributes[field.key]}
                   onChange={(value) =>
-                    setAttribute(setAttributes, field.key, value)
+                    setAttributes((current) =>
+                      withAttribute(current, field.key, value),
+                    )
                   }
                 />
               ))}

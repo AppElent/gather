@@ -11,6 +11,8 @@ export interface TopbarProps {
   groupName?: string | null
   onOpenNavigation: () => void
   onOpenGather: () => void
+  onOpenPalette: () => void
+  onReportIssue: () => void
 }
 
 export function Topbar({
@@ -18,6 +20,8 @@ export function Topbar({
   groupName,
   onOpenNavigation,
   onOpenGather,
+  onOpenPalette,
+  onReportIssue,
 }: TopbarProps) {
   const { topbar } = useMessages().shell
 
@@ -48,31 +52,13 @@ export function Topbar({
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <IconButton
-          label={topbar.jumpTo}
-          onClick={() => {
-            window.dispatchEvent(
-              new KeyboardEvent('keydown', { key: 'k', metaKey: true }),
-            )
-          }}
-        >
+        <IconButton label={topbar.jumpTo} onClick={onOpenPalette}>
           <Search className="h-4 w-4" aria-hidden="true" />
         </IconButton>
         <IconButton label={topbar.askGather} onClick={onOpenGather}>
           <MessageSquare className="h-4 w-4" aria-hidden="true" />
         </IconButton>
-        <IconButton
-          label={topbar.reportIssue}
-          onClick={() => {
-            window.dispatchEvent(
-              new KeyboardEvent('keydown', {
-                key: 'i',
-                ctrlKey: true,
-                shiftKey: true,
-              }),
-            )
-          }}
-        >
+        <IconButton label={topbar.reportIssue} onClick={onReportIssue}>
           <Bug className="h-4 w-4" aria-hidden="true" />
         </IconButton>
         <LanguageToggle />

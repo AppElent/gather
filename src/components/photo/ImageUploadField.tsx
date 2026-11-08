@@ -2,9 +2,9 @@ import type { PhotoPresetName } from '@gather/core/photo-presets'
 import { useEffect, useRef, useState } from 'react'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useMessages } from '../../lib/i18n'
-import type { PreparedPhoto } from '../../lib/preparePhoto'
-import { PREPARED_PHOTO_TYPE } from '../../lib/preparePhoto'
 import { PhotoPrepareDialog } from './PhotoPrepareDialog'
+import type { PreparedPhoto } from './preparePhoto'
+import { PREPARED_PHOTO_TYPE } from './preparePhoto'
 
 /**
  * The one place in Gather a person's photo becomes a stored blob.

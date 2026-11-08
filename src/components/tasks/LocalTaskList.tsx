@@ -1,10 +1,11 @@
 import { useMutation, useQuery } from 'convex/react'
-import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, useMessages } from '../../lib/i18n'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
+import { QuickAddForm } from './QuickAddForm'
 import { TaskEditor, type TaskEditorValues } from './TaskEditor'
 import { TaskRow } from './TaskRow'
 
@@ -31,19 +32,10 @@ export function LocalTaskList({
   const toggleDone = useMutation(api.tasks.toggleDone)
   const removeTask = useMutation(api.tasks.remove)
   const move = useMutation(api.tasks.move)
-  const [quickTitle, setQuickTitle] = useState('')
   const [showDetails, setShowDetails] = useState(false)
   const [editingId, setEditingId] = useState<Id<'tasks'> | null>(null)
   const messages = useMessages()
   const { local } = messages.tasks
-
-  async function quickAdd(e: React.FormEvent) {
-    e.preventDefault()
-    const trimmed = quickTitle.trim()
-    if (!trimmed) return
-    setQuickTitle('')
-    await addTask({ listId, groupSlug, title: trimmed })
-  }
 
   async function detailedAdd(values: TaskEditorValues) {
     setShowDetails(false)
@@ -79,22 +71,12 @@ export function LocalTaskList({
         </div>
       </div>
 
-      <form onSubmit={quickAdd} className="mb-1 flex gap-2">
-        <input
-          value={quickTitle}
-          onChange={(e) => setQuickTitle(e.target.value)}
-          placeholder={local.quickAdd}
-          aria-label={fmt(local.newTaskIn, { name })}
-          className="min-h-9 flex-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-3 text-sm"
-        />
-        <button
-          type="submit"
-          aria-label={local.addTask}
-          className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-        </button>
-      </form>
+      <QuickAddForm
+        placeholder={local.quickAdd}
+        fieldLabel={fmt(local.newTaskIn, { name })}
+        buttonLabel={local.addTask}
+        onAdd={(title) => addTask({ listId, groupSlug, title })}
+      />
       <button
         type="button"
         className="mb-2 text-xs text-[var(--app-muted)]"

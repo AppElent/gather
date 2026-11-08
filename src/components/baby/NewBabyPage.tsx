@@ -1,14 +1,14 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
-import { ImageUploadField } from '../app/ImageUploadField'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { ImageUploadField } from '../photo/ImageUploadField'
 import { BabyForm, type BabyFormValues } from './BabyForm'
 
 /** Adding a child to the Current Group, whole. */
@@ -25,7 +25,10 @@ export function NewBabyPage() {
 
   /** Baby log → Add a child. */
   const trail: Crumb[] = [
-    { label: messages.modules.byId['baby-log'].label, link: linkTo('baby-log') },
+    {
+      label: messages.modules.byId['baby-log'].label,
+      link: linkTo('baby-log'),
+    },
     { label: form.createTitle },
   ]
 
@@ -57,15 +60,7 @@ export function NewBabyPage() {
             const id = await create({ ...values, photoId, groupSlug })
             navigate(linkTo('child', { babyId: id }))
           } catch (err) {
-            setError(
-              err instanceof ConvexError
-                ? typeof err.data === 'string'
-                  ? err.data
-                  : form.saveFailed
-                : err instanceof Error
-                  ? err.message
-                  : form.saveFailed,
-            )
+            setError(errorMessage(err, form.saveFailed))
             setSubmitting(false)
           }
         }}

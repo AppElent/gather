@@ -6,8 +6,8 @@ import { BABY_EVENT_TYPES } from '@gather/core/domain'
 import type { Messages } from '@gather/core/messages'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import type { Doc } from '../../convex/_generated/dataModel'
-import { fmt } from './i18n'
+import type { Doc } from '../../../convex/_generated/dataModel'
+import { fmt } from '../../lib/i18n'
 
 export type BabyPdfLayout = 'category' | 'chronological'
 

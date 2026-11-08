@@ -7,6 +7,10 @@ import {
   useRef,
   useState,
 } from 'react'
+import { errorMessage } from '../../lib/errorMessage'
+import { fmt, useMessages } from '../../lib/i18n'
+import { SurfaceCard } from '../app/ShellPrimitives'
+import { useModalFocus } from '../app/useModalFocus'
 import {
   type CropRect,
   cropFraction,
@@ -15,9 +19,7 @@ import {
   resizeCrop,
   type Size,
   scaleCrop,
-} from '../../lib/cropFrame'
-import { errorMessage } from '../../lib/errorMessage'
-import { fmt, useMessages } from '../../lib/i18n'
+} from './cropFrame'
 import {
   type DecodedPhoto,
   decodePhoto,
@@ -26,8 +28,7 @@ import {
   PHOTO_PREPARE_ERROR,
   type PreparedPhoto,
   preparePhoto,
-} from '../../lib/preparePhoto'
-import { SurfaceCard } from './ShellPrimitives'
+} from './preparePhoto'
 
 /**
  * The framing step: the whole of what "prepare" looks like to a person
@@ -96,7 +97,6 @@ export function PhotoPrepareDialog({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const imageRef = useRef<HTMLImageElement>(null)
   const frameRef = useRef<HTMLButtonElement>(null)
-  const openerRef = useRef<HTMLElement | null>(null)
   const framePlacedRef = useRef(false)
   const abandonedRef = useRef(false)
 
@@ -147,29 +147,13 @@ export function PhotoPrepareDialog({
     onCancel()
   }, [onCancel])
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') abandon()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [abandon])
-
-  // Focus goes to the frame and comes back to the file input afterwards, the
-  // same way `ConfirmAction` treats the question it opens. It matters more
-  // here: the frame is the control, and someone working by keyboard would
-  // otherwise have to tab into a dialog to reach the only thing in it that
-  // does anything.
-  useEffect(() => {
-    openerRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null
-    return () => {
-      const opener = openerRef.current
-      if (opener?.isConnected) opener.focus()
-    }
-  }, [])
+  // The frame takes focus itself, once it exists: it is the control, and
+  // someone working by keyboard would otherwise have to tab into a dialog to
+  // reach the only thing in it that does anything.
+  const dialog = useModalFocus<HTMLDivElement>({
+    onClose: abandon,
+    initialFocus: false,
+  })
 
   // Once, when the frame first appears — not on every adjustment, which would
   // snatch focus back off the size slider as someone was using it.
@@ -178,26 +162,6 @@ export function PhotoPrepareDialog({
     framePlacedRef.current = true
     frameRef.current?.focus()
   }, [crop])
-
-  /** Tab stays inside the framing step until it is answered one way or another. */
-  const keepFocusInside = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Tab') return
-    const focusable = Array.from(
-      event.currentTarget.querySelectorAll<HTMLElement>(
-        'button:not(:disabled), [href], input:not(:disabled), [tabindex]:not([tabindex="-1"])',
-      ),
-    )
-    const first = focusable[0]
-    const last = focusable.at(-1)
-    if (!first || !last) return
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault()
-      last.focus()
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault()
-      first.focus()
-    }
-  }
 
   /**
    * A drag in progress, frozen at the moment it started.
@@ -312,10 +276,11 @@ export function PhotoPrepareDialog({
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
       <div
+        ref={dialog.ref}
         role="dialog"
         aria-modal="true"
         aria-label={image.frameTitle}
-        onKeyDown={keepFocusInside}
+        onKeyDown={dialog.onKeyDown}
         className="w-[min(36rem,100%)]"
       >
         <SurfaceCard>

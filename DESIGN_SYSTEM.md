@@ -29,7 +29,11 @@ file overrides the `--auth-*` tokens from `src/lib/auth/tokens.css` to that
 palette and supplies `.rm-panel`/`.rm-label`, which `src/lib/auth/`'s
 `ProfilePanel` and `AppearanceSettings` use, styled to match `.demo-panel` and
 `.demo-section-title`. Shell components live in
-`src/components/app/`; destructive actions confirm through `ConfirmAction`.
+`src/components/app/`; destructive actions confirm through `ConfirmAction`,
+and every modal takes its focus handling (initial focus, Tab trap, Escape,
+return to opener) from `useModalFocus`. Kitchen form fields take their class
+from `src/components/kitchen/fields.ts`, at 16px on phones so iOS does not zoom
+in on focus.
 
 ### Responsive action controls
 

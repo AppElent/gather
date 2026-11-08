@@ -1,10 +1,7 @@
 import { photoPreset } from '@gather/core/photo-presets'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import {
-  type StubbedImagePipeline,
-  stubImagePipeline,
-} from '../test/imagePipeline'
 import { initialCrop } from './cropFrame'
+import { type StubbedImagePipeline, stubImagePipeline } from './imagePipeline'
 import {
   type DecodedPhoto,
   decodePhoto,

@@ -10,6 +10,7 @@
  * rename is a type error rather than a runtime 404.
  */
 
+import type { MealName } from '@gather/core/domain'
 import type { ModuleId } from '@gather/core/modules'
 import type { LinkProps } from '@tanstack/react-router'
 
@@ -205,3 +206,69 @@ export function moduleLink(module: { id: string }): AppLink {
   // every `ModuleDef` in circulation came out of `MODULES`.
   return linkTo(module.id as ModuleId)
 }
+
+/**
+ * The add sheet, which is an address of its own carrying the day and the meal.
+ *
+ * `foodId` is the food a just-finished form handed back: the sheet opens with
+ * that card expanded and ready to log, which is what makes reviewing an import
+ * feel like a step in logging rather than a detour through the Catalog.
+ */
+export function addFoodLink(
+  date: string,
+  meal: MealName,
+  foodId?: string,
+): AppLink {
+  return {
+    ...linkTo('addFood'),
+    // The food only when there is one: a key carrying `undefined` is a query
+    // parameter in some serialisers and nothing in others, and the sheet's
+    // address should not depend on which.
+    search: { date, meal, ...(foodId ? { food: foodId } : {}) },
+  }
+}
+
+/**
+ * What is already known about the food somebody is about to add.
+ *
+ * All three parts are optional and independent: a scan knows the barcode, a
+ * search that found nothing knows the words that were typed, and either can
+ * have been reached from somewhere that wants the person back afterwards.
+ *
+ * `returnTo` is deliberately the *day and meal*, not a URL: the only place that
+ * sends anyone here expecting them back is the add sheet, which is addressable
+ * by exactly those two (#66). Keeping it as data rather than as a serialised
+ * link is what stops an arbitrary destination riding in on a query string.
+ */
+export interface NewFoodIntent {
+  barcode?: string
+  /** Prefills the name — the term a search matched nothing for (#79). */
+  name?: string
+  returnTo?: { date: string; meal: string }
+}
+
+/** Adding a food, optionally prefilled and optionally with a way back. */
+export function newFoodLink(intent?: NewFoodIntent): AppLink {
+  return {
+    ...linkTo('newFood'),
+    // Only the parts there are: `/foods/new` with no intent is one address
+    // rather than four spellings of it.
+    search: {
+      ...(intent?.barcode ? { barcode: intent.barcode } : {}),
+      ...(intent?.name ? { name: intent.name } : {}),
+      ...(intent?.returnTo
+        ? {
+            returnDate: intent.returnTo.date,
+            returnMeal: intent.returnTo.meal,
+          }
+        : {}),
+    },
+  }
+}
+
+/**
+ * Where the nutrition targets form sits on `/settings`. The diary links to it
+ * and the form carries it as its id: a hash that matches nothing fails
+ * silently, so both read it from here.
+ */
+export const NUTRITION_TARGETS_ANCHOR = 'nutrition-targets'

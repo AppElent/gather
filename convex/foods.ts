@@ -1,5 +1,5 @@
 import { ConvexError, v } from 'convex/values'
-import type { Doc } from './_generated/dataModel'
+import type { Doc, Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { internalMutation, mutation, query } from './_generated/server'
 import {
@@ -27,6 +27,9 @@ function iconPatch(icon: string | null | undefined) {
   return icon === undefined ? {} : { icon: icon ?? undefined }
 }
 
+const CATALOG_READ_ONLY =
+  'This is a built-in catalog food and cannot be changed. Create a new food instead.'
+
 /**
  * Catalog entries are owned by nobody and read-only (ADR 0004). Every write
  * path into `foods` goes through this, not just the edit form: these are
@@ -36,30 +39,42 @@ function iconPatch(icon: string | null | undefined) {
  * change would silently revert.
  */
 function assertNotCatalog(food: Doc<'foods'>) {
-  if (food.seedKey !== undefined) {
-    throw new ConvexError(
-      'This is a built-in catalog food and cannot be changed. Create a new food instead.',
-    )
-  }
+  if (food.seedKey !== undefined) throw new ConvexError(CATALOG_READ_ONLY)
 }
 
 /**
- * A food as a reader gets it: the row, plus a URL for its picture.
+ * Why this person may not edit this food, or null when they may: nobody edits
+ * the Catalog, and only its creator edits anything else. `update` refuses with
+ * it and every read reports it as `canEdit`, so a client offers an edit
+ * exactly when the save would be accepted.
+ */
+function editRefusal(food: Doc<'foods'>, userId: Id<'users'>): string | null {
+  if (food.seedKey !== undefined) return CATALOG_READ_ONLY
+  return food.createdBy === userId
+    ? null
+    : 'Only the person who created this food can edit it.'
+}
+
+/**
+ * A food as a reader gets it: the row, a URL for its picture, and whether
+ * this reader may edit it.
  *
  * The row holds a `_storage` id, which is no use to an `<img>`. Resolving it
  * here rather than in the client is what keeps a result list one round trip.
  */
-async function withImageUrl(ctx: QueryCtx, food: Doc<'foods'>) {
+async function asRead(ctx: QueryCtx, food: Doc<'foods'>, user: Doc<'users'>) {
   return {
     ...food,
     imageUrl: food.imageId ? await ctx.storage.getUrl(food.imageId) : null,
+    canEdit: editRefusal(food, user._id) === null,
   }
 }
 
 export const search = query({
   args: { term: v.string() },
   handler: async (ctx, args) => {
-    if (!(await getCurrentUser(ctx))) return []
+    const user = await getCurrentUser(ctx)
+    if (!user) return []
     if (!args.term.trim()) return []
     const rows = await ctx.db
       .query('foods')
@@ -67,7 +82,7 @@ export const search = query({
         q.search('searchText', args.term),
       )
       .take(20)
-    return await Promise.all(rows.map((row) => withImageUrl(ctx, row)))
+    return await Promise.all(rows.map((row) => asRead(ctx, row, user)))
   },
 })
 
@@ -97,7 +112,8 @@ const BROWSE_LIMIT = 100
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    if (!(await getCurrentUser(ctx))) return []
+    const user = await getCurrentUser(ctx)
+    if (!user) return []
     const rows = await ctx.db
       .query('foods')
       .withIndex('by_name')
@@ -105,7 +121,7 @@ export const list = query({
     return await Promise.all(
       [...rows]
         .sort((a, b) => a.name.localeCompare(b.name))
-        .map((row) => withImageUrl(ctx, row)),
+        .map((row) => asRead(ctx, row, user)),
     )
   },
 })
@@ -113,21 +129,23 @@ export const list = query({
 export const get = query({
   args: { id: v.id('foods') },
   handler: async (ctx, args) => {
-    if (!(await getCurrentUser(ctx))) return null
+    const user = await getCurrentUser(ctx)
+    if (!user) return null
     const food = await ctx.db.get(args.id)
-    return food ? await withImageUrl(ctx, food) : null
+    return food ? await asRead(ctx, food, user) : null
   },
 })
 
 export const getByBarcode = query({
   args: { barcode: v.string() },
   handler: async (ctx, args) => {
-    if (!(await getCurrentUser(ctx))) return null
+    const user = await getCurrentUser(ctx)
+    if (!user) return null
     const food = await ctx.db
       .query('foods')
       .withIndex('by_barcode', (q) => q.eq('barcode', args.barcode))
       .unique()
-    return food ? await withImageUrl(ctx, food) : null
+    return food ? await asRead(ctx, food, user) : null
   },
 })
 
@@ -183,12 +201,8 @@ export const update = mutation({
     const { id, icon, ...rest } = args
     const food = await ctx.db.get(id)
     if (!food) throw new Error('Food not found')
-    assertNotCatalog(food)
-    if (food.createdBy !== user._id) {
-      throw new ConvexError(
-        'Only the person who created this food can edit it.',
-      )
-    }
+    const refusal = editRefusal(food, user._id)
+    if (refusal) throw new ConvexError(refusal)
     await ctx.db.patch(id, {
       ...rest,
       // An absent `servings` means "none" rather than "leave what is there":

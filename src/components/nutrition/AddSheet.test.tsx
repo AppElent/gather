@@ -70,10 +70,9 @@ const offProduct = vi.hoisted(() => ({ value: null as unknown }))
 const offImportFailure = vi.hoisted(() => ({ value: null as Error | null }))
 const calls = vi.hoisted(() => ({ value: [] as Array<[string, unknown]> }))
 const offImageCalls = vi.hoisted(() => ({ value: [] as unknown[] }))
-const currentUser = vi.hoisted(() => ({ value: { _id: 'user1' } as unknown }))
 
 vi.mock('convex/react', () => ({
-  useQuery: (name: string, args: { term?: string } | 'skip') => {
+  useQuery: (name: string, args: { term?: string; id?: string } | 'skip') => {
     if (args !== 'skip' && name === 'foods:search') {
       const term = (args.term ?? '').trim().toLowerCase()
       if (!term) return []
@@ -85,9 +84,13 @@ vi.mock('convex/react', () => ({
       return args === 'skip' ? undefined : existingFood.value
     }
     if (name === 'foods:get') {
-      return args === 'skip' ? undefined : justAddedFood.value
+      if (args === 'skip') return undefined
+      // The food a review handed back, or the one a scan found.
+      const known = [justAddedFood.value, existingFood.value] as Array<{
+        _id: string
+      } | null>
+      return known.find((food) => food?._id === args.id) ?? null
     }
-    if (name === 'users:me') return currentUser.value
     if (name === 'recipes:listAcrossMyGroups') return recipes.value
     if (name === 'combos:list') return combos.value
     if (name === 'consumption:loggedAmountsForFood') {
@@ -132,7 +135,6 @@ vi.mock('../../../convex/_generated/api', () => ({
     },
     recipes: { listAcrossMyGroups: 'recipes:listAcrossMyGroups' },
     combos: { list: 'combos:list', replaceItems: 'combos:replaceItems' },
-    users: { me: 'users:me' },
     consumption: {
       create: 'consumption:create',
       createMany: 'consumption:createMany',
@@ -211,7 +213,6 @@ beforeEach(() => {
   offProduct.value = null
   offImportFailure.value = null
   offImageCalls.value = []
-  currentUser.value = { _id: 'user1' }
   // jsdom has no `navigator.mediaDevices`, which is what the scanner asks for
   // first. A stand-in that refuses is the state a phone with the camera denied
   // is in, and it leaves the manual barcode entry — the part this suite drives.
@@ -577,7 +578,7 @@ test('returning from a second import starts with a fresh food card', async () =>
     name: 'First milk',
     baseUnit: 'ml',
     nutritionPer100: { calories: 64 },
-    createdBy: 'user1',
+    canEdit: true,
   }
   rerender(
     <AddSheet
@@ -596,7 +597,7 @@ test('returning from a second import starts with a fresh food card', async () =>
     name: 'Second milk',
     baseUnit: 'ml',
     nutritionPer100: { calories: 64 },
-    createdBy: 'user1',
+    canEdit: true,
   }
   rerender(
     <AddSheet
@@ -619,7 +620,7 @@ test('an expanded food card edits the full food before it is logged', async () =
     baseUnit: 'ml',
     nutritionPer100: { calories: 64 },
     nutritionSource: 'imported',
-    createdBy: 'user1',
+    canEdit: true,
   }
   renderSheet(vi.fn(), 'food9')
 
@@ -642,6 +643,21 @@ test('an expanded food card edits the full food before it is logged', async () =
       }),
     ]),
   )
+})
+
+test('a food somebody else made can be logged but not edited', async () => {
+  // The server says who may edit; the card asks it rather than working it out.
+  justAddedFood.value = {
+    _id: 'food9',
+    name: 'Volle melk',
+    baseUnit: 'ml',
+    nutritionPer100: { calories: 64 },
+    canEdit: false,
+  }
+  renderSheet(vi.fn(), 'food9')
+
+  await waitFor(() => expect(screen.getByText('Add to diary')).toBeDefined())
+  expect(screen.queryByText('Edit food details')).toBeNull()
 })
 
 test('the search field offers a clear only while there is something to clear', async () => {

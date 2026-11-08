@@ -1,6 +1,6 @@
 import { NUTRIENT_KEYS, type NutrientKey } from '@gather/core/domain'
 import { useMessages } from '../../lib/i18n'
-import { inputClass } from './nutrientInputs'
+import { inputClass } from './fields'
 
 interface Props {
   values: Record<NutrientKey, string>

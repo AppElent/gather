@@ -1,15 +1,12 @@
-import { isAiLimitReached } from '@gather/core/ai-limit'
+import { AI_LIMIT_KIND } from '@gather/core/ai-limit'
 import type { NutritionFacts, NutritionSource } from '@gather/core/domain'
-import { ConvexError } from 'convex/values'
 import { useState } from 'react'
+import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
-import { NutrientInputGrid } from '../nutrition/NutrientInputGrid'
-import {
-  inputClass,
-  nutrientInputsToFacts,
-  parseDecimal,
-  toNutrientInputs,
-} from '../nutrition/nutrientInputs'
+import { inputClass } from '../kitchen/fields'
+import { NutrientInputGrid } from '../kitchen/NutrientInputGrid'
+import { parseDecimal } from '../kitchen/nutrientInputs'
+import { useNutritionInputs } from '../kitchen/useNutritionInputs'
 import { RecipeDestinationNotice } from './RecipeDestinationNotice'
 import type { RecipeDestination } from './recipeDestination'
 import { StarRating } from './StarRating'
@@ -75,12 +72,10 @@ export function RecipeForm({
   const [servings, setServings] = useState(
     initial?.servings !== undefined ? String(initial.servings) : '',
   )
-  const [nutritionInputs, setNutritionInputs] = useState(() =>
-    toNutrientInputs(initial?.nutrition),
+  const nutrition = useNutritionInputs(
+    initial?.nutrition,
+    initial?.nutritionSource,
   )
-  const [nutritionSource, setNutritionSource] = useState<
-    NutritionSource | undefined
-  >(initial?.nutritionSource)
   const [estimating, setEstimating] = useState(false)
   const [estimateError, setEstimateError] = useState<string | null>(null)
   const messages = useMessages()
@@ -91,8 +86,6 @@ export function RecipeForm({
       className="mx-auto grid max-w-2xl gap-4"
       onSubmit={(e) => {
         e.preventDefault()
-        const facts = nutrientInputsToFacts(nutritionInputs)
-        const hasNutrition = Object.keys(facts).length > 0
         onSubmit({
           title: title.trim(),
           description: description.trim() || undefined,
@@ -101,10 +94,8 @@ export function RecipeForm({
           tags: csv(tags),
           rating,
           servings: parsePositiveInt(servings),
-          nutrition: hasNutrition ? facts : undefined,
-          nutritionSource: hasNutrition
-            ? (nutritionSource ?? 'manual')
-            : undefined,
+          nutrition: nutrition.hasFigures ? nutrition.facts : undefined,
+          nutritionSource: nutrition.savedSource,
         })
       }}
     >
@@ -169,12 +160,9 @@ export function RecipeForm({
           />
         </label>
         <NutrientInputGrid
-          values={nutritionInputs}
+          values={nutrition.inputs}
           disabled={estimating}
-          onChange={(key, value) => {
-            setNutritionInputs((prev) => ({ ...prev, [key]: value }))
-            setNutritionSource('manual')
-          }}
+          onChange={nutrition.type}
         />
         {onEstimate && (
           <div className="mt-3">
@@ -190,19 +178,12 @@ export function RecipeForm({
                     ingredients: lines(ingredients),
                     servings: parsePositiveInt(servings),
                   })
-                  setNutritionInputs(toNutrientInputs(facts))
-                  setNutritionSource('ai')
+                  nutrition.fill(facts, 'ai')
                 } catch (err) {
                   setEstimateError(
-                    isAiLimitReached(err)
-                      ? form.aiLimitReached
-                      : err instanceof ConvexError
-                        ? typeof err.data === 'string'
-                          ? err.data
-                          : form.estimateFailed
-                        : err instanceof Error
-                          ? err.message
-                          : form.estimateFailed,
+                    errorMessage(err, form.estimateFailed, {
+                      [AI_LIMIT_KIND]: form.aiLimitReached,
+                    }),
                   )
                 } finally {
                   setEstimating(false)

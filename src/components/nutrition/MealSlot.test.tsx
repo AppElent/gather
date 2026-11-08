@@ -1,8 +1,8 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
+import { addFoodLink } from '../../lib/links'
 import { MealSlot } from './MealSlot'
-import { addFoodLink } from './nutritionNav'
 
 // TanStack Router's <Link> requires a RouterProvider context to render (it
 // reads router state via useLinkProps); this component test renders in

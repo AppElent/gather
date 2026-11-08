@@ -1,4 +1,7 @@
-import { EXTERNAL_PROVIDER_IDS, type ExternalProviderId } from '@gather/core/domain'
+import {
+  EXTERNAL_PROVIDER_IDS,
+  type ExternalProviderId,
+} from '@gather/core/domain'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -10,9 +13,8 @@ import type {
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, type Messages, useMessages } from '../../lib/i18n'
 import { hrefTo } from '../../lib/links'
-import { PROVIDER_LABELS } from '../../lib/oauth'
+import { PROVIDER_LABELS, useConnectProvider } from '../../lib/oauth'
 import { SurfaceCard } from '../app/ShellPrimitives'
-import { useConnectProvider } from '../settings/ConnectionsSettings'
 
 type Step =
   | { kind: 'provider' }

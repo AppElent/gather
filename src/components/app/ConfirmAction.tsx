@@ -1,25 +1,19 @@
-import {
-  type KeyboardEvent as ReactKeyboardEvent,
-  type ReactNode,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { SurfaceCard } from './ShellPrimitives'
+import { useModalFocus } from './useModalFocus'
 
 /**
  * Asking before something irreversible, in the app rather than in the browser.
  *
- * Every destructive control here used to be guarded by `window.confirm`, which
- * has two failure modes and no way to tell them apart. An embedded or sandboxed
- * frame — the PR preview, an in-app browser — may suppress the native modal
- * entirely, in which case `confirm` returns `false` and the click does nothing
- * at all, silently. And the work behind it was fired as a bare `void
- * mutation(...)`, so a refusal from Convex was discarded just as silently. A
- * delete that does nothing and a delete that was refused looked identical, and
- * both looked like a broken button.
+ * Never `window.confirm`, which has two failure modes and no way to tell them
+ * apart. An embedded or sandboxed frame — the PR preview, an in-app browser —
+ * may suppress the native modal entirely, in which case `confirm` returns
+ * `false` and the click does nothing at all, silently. And work fired as a bare
+ * `void mutation(...)` discards a refusal from Convex just as silently, so a
+ * delete that does nothing and a delete that was refused look identical, and
+ * both look like a broken button.
  *
  * So: the question is a dialog this app draws, and the work is awaited. A
  * rejection keeps the dialog open with the reason on it, because the reader is
@@ -55,49 +49,11 @@ function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const confirmRef = useRef<HTMLButtonElement>(null)
-  const openerRef = useRef<HTMLElement | null>(null)
   const actions = useMessages().common.actions
-
-  useEffect(() => {
-    openerRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null
-    confirmRef.current?.focus()
-    return () => {
-      const opener = openerRef.current
-      if (opener?.isConnected) opener.focus()
-    }
-  }, [])
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onCancel()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onCancel])
-
-  // Tab stays inside the question until it is answered, the same way the
-  // navigation drawer holds focus.
-  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Tab') return
-    const focusable = Array.from(
-      event.currentTarget.querySelectorAll<HTMLElement>(
-        'button:not(:disabled), [href], input:not(:disabled), [tabindex]:not([tabindex="-1"])',
-      ),
-    )
-    const first = focusable[0]
-    const last = focusable.at(-1)
-    if (!first || !last) return
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault()
-      last.focus()
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault()
-      first.focus()
-    }
-  }
+  const dialog = useModalFocus<HTMLDivElement>({
+    onClose: onCancel,
+    initialFocus: confirmRef,
+  })
 
   return (
     <div
@@ -105,11 +61,12 @@ function ConfirmDialog({
       onClick={onCancel}
     >
       <div
+        ref={dialog.ref}
         role="dialog"
         aria-modal="true"
         aria-label={request.title}
         onClick={(event) => event.stopPropagation()}
-        onKeyDown={onKeyDown}
+        onKeyDown={dialog.onKeyDown}
         className="w-[min(26rem,100%)]"
       >
         <SurfaceCard>

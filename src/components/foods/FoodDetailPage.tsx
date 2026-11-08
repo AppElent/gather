@@ -4,12 +4,11 @@ import { Pencil, RefreshCw } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, useMessages } from '../../lib/i18n'
-import { linkTo } from '../../lib/links'
+import { linkTo, newFoodLink } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { useConfirmAction } from '../app/ConfirmAction'
-import { FoodThumbnail } from '../nutrition/FoodThumbnail'
-import { NutritionPanel } from '../recipes/NutritionPanel'
-import { newFoodLink } from './foodNav'
+import { FoodThumbnail } from '../kitchen/FoodThumbnail'
+import { NutritionPanel } from '../kitchen/NutritionPanel'
 
 export interface FoodDetailPageProps {
   foodId: string
@@ -58,11 +57,11 @@ export function FoodDetailPage({ foodId }: FoodDetailPageProps) {
           </div>
         </div>
         {/*
-          Catalog entries are owned by nobody and read-only (ADR 0004) — the
-          next Catalog seed overwrites them unconditionally, so offering an
-          edit that silently reverts would be worse than offering none.
+          Edit only when the save would be accepted: Catalog entries are owned
+          by nobody and read-only (ADR 0004), and anything else only by whoever
+          made it.
         */}
-        {food.seedKey === undefined ? (
+        {food.canEdit ? (
           <Link
             {...linkTo('editFood', { foodId })}
             aria-label={messages.common.actions.edit}
@@ -73,11 +72,11 @@ export function FoodDetailPage({ foodId }: FoodDetailPageProps) {
               {messages.common.actions.edit}
             </span>
           </Link>
-        ) : (
+        ) : food.seedKey !== undefined ? (
           <span className="rounded border border-dashed px-3 py-1.5 text-sm opacity-60">
             {detail.builtIn}
           </span>
-        )}
+        ) : null}
       </div>
 
       {food.seedKey !== undefined && (

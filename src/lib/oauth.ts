@@ -13,11 +13,35 @@
  * back without one fails visibly rather than picking one.
  */
 
-import { EXTERNAL_PROVIDER_IDS, type ExternalProviderId } from '@gather/core/domain'
+import {
+  EXTERNAL_PROVIDER_IDS,
+  type ExternalProviderId,
+} from '@gather/core/domain'
+import { useAction } from 'convex/react'
+import { api } from '../../convex/_generated/api'
 
 export const PROVIDER_LABELS: Record<ExternalProviderId, string> = {
   notion: 'Notion',
   todoist: 'Todoist',
+}
+
+/**
+ * Starts the provider OAuth flow for one Group; shared with the Tasks add-list
+ * flow, which connects from inside the Group it is adding a list to.
+ *
+ * The Group is written down before leaving, because the callback comes back on
+ * a fresh page load with nothing but what `sessionStorage` kept for it.
+ */
+export function useConnectProvider(groupSlug: string, returnTo: string) {
+  const getAuthorizeUrl = useAction(api.integrations.getAuthorizeUrl)
+  return async (provider: ExternalProviderId) => {
+    const url = await getAuthorizeUrl({
+      provider,
+      redirectUri: oauthRedirectUri(),
+      state: newOAuthState(provider, groupSlug, returnTo),
+    })
+    window.location.href = url
+  }
 }
 
 const STATE_KEY = 'gather.oauth.state'

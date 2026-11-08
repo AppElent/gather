@@ -38,7 +38,8 @@ describe('the food Catalog', () => {
       .query(api.foods.get, { id: hagelslag })
 
     expect(forAlice?.name).toBe('Hagelslag')
-    expect(forBob).toEqual(forAlice)
+    // The same row; only whether the reader may edit it differs.
+    expect(forBob).toEqual({ ...forAlice, canEdit: false })
   })
 
   test('is searchable by anyone signed in', async () => {
@@ -69,6 +70,25 @@ describe('the food Catalog', () => {
         nutritionPer100: { calories: 500 },
       }),
     ).rejects.toThrow('Only the person who created this food can edit it.')
+  })
+
+  test('tells each reader whether they may edit, by the rule the edit applies', async () => {
+    const { t, hagelslag } = await seed()
+    const banana = await t.run(async (ctx) =>
+      ctx.db.insert('foods', {
+        name: 'Banana',
+        baseUnit: 'g',
+        nutritionPer100: { calories: 89 },
+        source: 'seed',
+        seedKey: 'banana',
+      }),
+    )
+    const canEdit = async (who: typeof asAlice, id: typeof hagelslag) =>
+      (await t.withIdentity(who).query(api.foods.get, { id }))?.canEdit
+
+    expect(await canEdit(asAlice, hagelslag)).toBe(true)
+    expect(await canEdit(asBob, hagelslag)).toBe(false)
+    expect(await canEdit(asAlice, banana)).toBe(false)
   })
 })
 
@@ -119,9 +139,11 @@ describe('browsing the Catalog without searching', () => {
   test('reads the same for two people who share no group', async () => {
     const { t } = await seed()
 
-    expect(await t.withIdentity(asAlice).query(api.foods.list, {})).toEqual(
-      await t.withIdentity(asBob).query(api.foods.list, {}),
-    )
+    const strip = (rows: { canEdit: boolean }[]) =>
+      rows.map(({ canEdit: _whoIsAsking, ...row }) => row)
+    expect(
+      strip(await t.withIdentity(asAlice).query(api.foods.list, {})),
+    ).toEqual(strip(await t.withIdentity(asBob).query(api.foods.list, {})))
   })
 
   test('is not readable at all without a session', async () => {

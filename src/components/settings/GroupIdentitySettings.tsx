@@ -6,9 +6,9 @@ import type { Id } from '../../../convex/_generated/dataModel'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { useConfirmAction } from '../app/ConfirmAction'
-import { ImageUploadField } from '../app/ImageUploadField'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import type { ShellGroup } from '../app/useCurrentGroup'
+import { ImageUploadField } from '../photo/ImageUploadField'
 
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold'

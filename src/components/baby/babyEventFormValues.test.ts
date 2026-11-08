@@ -1,7 +1,7 @@
 import { isValidEventData } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'
 import { beforeEach, describe, expect, test } from 'vitest'
-import type { Doc } from '../../convex/_generated/dataModel'
+import type { Doc } from '../../../convex/_generated/dataModel'
 import { buildEventInput, initialEventValues } from './babyEventFormValues'
 
 const START = new Date('2026-07-25T09:00:00').getTime()

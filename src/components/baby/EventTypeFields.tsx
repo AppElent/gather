@@ -3,15 +3,14 @@ import {
   FEEDING_METHODS,
   TEMPERATURE_METHODS,
 } from '@gather/core/baby-events'
-import { localIsoDate } from '@gather/core/civil-date'
 import type { BabyEventType } from '@gather/core/domain'
-import { combineDateTime, toTimeInputValue } from '../../lib/babyDate'
+import { useMessages } from '../../lib/i18n'
 import {
   BABY_INPUT_CLASS as inputClass,
   TEMPERATURE_OPTIONS,
-} from '../../lib/babyEventFields'
-import type { EventValues } from '../../lib/babyEventFormValues'
-import { useMessages } from '../../lib/i18n'
+} from './babyEventFields'
+import type { EventValues } from './babyEventFormValues'
+import { DateTimeFields } from './DateTimeFields'
 
 interface EventTypeFieldsProps {
   type: BabyEventType
@@ -35,39 +34,15 @@ export function EventTypeFields({
 
   const endMs = str('endTimestamp') ? Number(str('endTimestamp')) : undefined
 
-  function setEndDate(dateStr: string) {
-    if (!dateStr) {
-      onChange({ endTimestamp: '' })
-      return
-    }
-    const time = toTimeInputValue(endMs ?? timestampMs)
-    onChange({ endTimestamp: String(combineDateTime(dateStr, time)) })
-  }
-
-  function setEndTime(timeStr: string) {
-    const date = localIsoDate(endMs ?? timestampMs)
-    onChange({ endTimestamp: String(combineDateTime(date, timeStr)) })
-  }
-
   const endFields = (
-    <div className="min-w-0">
-      <span className="mb-1 block text-sm font-medium">{fields.end}</span>
-      <div className="flex gap-2">
-        <input
-          type="date"
-          className={inputClass}
-          value={endMs ? localIsoDate(endMs) : ''}
-          onChange={(e) => setEndDate(e.target.value)}
-        />
-        <input
-          type="time"
-          className={inputClass}
-          value={endMs ? toTimeInputValue(endMs) : ''}
-          onChange={(e) => setEndTime(e.target.value)}
-          disabled={!endMs}
-        />
-      </div>
-    </div>
+    <DateTimeFields
+      label={fields.end}
+      valueMs={endMs}
+      fallbackMs={timestampMs}
+      onChange={(ms) =>
+        onChange({ endTimestamp: ms === undefined ? '' : String(ms) })
+      }
+    />
   )
 
   switch (type) {

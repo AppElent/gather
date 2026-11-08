@@ -1,13 +1,13 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { Plus } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { fmt, useMessages } from '../../lib/i18n'
-import { linkTo } from '../../lib/links'
-import { FoodThumbnail } from '../nutrition/FoodThumbnail'
+import { linkTo, newFoodLink } from '../../lib/links'
+import { FoodThumbnail } from '../kitchen/FoodThumbnail'
+import { useDebouncedValue } from '../kitchen/useDebouncedValue'
 import { BarcodeScanner } from './BarcodeScanner'
-import { newFoodLink } from './foodNav'
 
 /**
  * Searching the food Catalog, whole.
@@ -17,11 +17,7 @@ import { newFoodLink } from './foodNav'
  */
 export function FoodsPage() {
   const [term, setTerm] = useState('')
-  const [debouncedTerm, setDebouncedTerm] = useState('')
-  useEffect(() => {
-    const id = setTimeout(() => setDebouncedTerm(term), 250)
-    return () => clearTimeout(id)
-  }, [term])
+  const debouncedTerm = useDebouncedValue(term, 250)
   // Two questions, and only ever one of them asked: with nothing typed the
   // page shows the Catalog, and typing narrows it. `search` cannot answer the
   // first — an empty term means nothing to a full-text index — so browsing is

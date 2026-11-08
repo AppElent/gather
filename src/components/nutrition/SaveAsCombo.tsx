@@ -1,6 +1,7 @@
 import { COMBO_REFUSALS, readRefusal } from '@gather/core/refusals'
 import { useState } from 'react'
 import { useMessages } from '../../lib/i18n'
+import { fieldClass } from '../kitchen/fields'
 
 type Combos = ReturnType<typeof useMessages>['nutrition']['diary']['combos']
 
@@ -103,7 +104,7 @@ export function SaveAsCombo({
         onChange={(e) => setName(e.target.value)}
         aria-label={combos.saveTitle}
         placeholder={combos.namePlaceholder}
-        className="min-h-11 min-w-0 flex-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-[16px]"
+        className={`${fieldClass} min-w-0 flex-1`}
       />
       <button
         type="submit"

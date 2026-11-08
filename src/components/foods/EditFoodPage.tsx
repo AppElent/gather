@@ -1,14 +1,11 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useMutation, useQuery } from 'convex/react'
-import { ConvexError } from 'convex/values'
-import { useState } from 'react'
+import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useMessages } from '../../lib/i18n'
-import { linkTo } from '../../lib/links'
+import { linkTo, newFoodLink } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
-import { FoodForm } from './FoodForm'
-import { newFoodLink } from './foodNav'
+import { EditFoodForm } from './FoodForm'
 
 export interface EditFoodPageProps {
   foodId: string
@@ -17,12 +14,9 @@ export interface EditFoodPageProps {
 /** Editing a Catalog food, whole. */
 export function EditFoodPage({ foodId }: EditFoodPageProps) {
   const food = useQuery(api.foods.get, { id: foodId as Id<'foods'> })
-  const update = useMutation(api.foods.update)
   const navigate = useNavigate()
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const messages = useMessages()
-  const { detail, edit, form } = messages.foods
+  const { detail, edit } = messages.foods
 
   // Foods → this food → Edit. The middle step is the page this form saves back
   // to, so the trail and the save land in the same place.
@@ -50,17 +44,18 @@ export function EditFoodPage({ foodId }: EditFoodPageProps) {
   // Reachable by typing the URL even though the detail page hides the link.
   // `foods.update` refuses too — this only avoids offering a form that is
   // guaranteed to fail on submit.
-  if (food.seedKey !== undefined) {
+  if (!food.canEdit) {
+    const builtIn = food.seedKey !== undefined
     return (
       <div className="mx-auto max-w-2xl">
         <Breadcrumbs trail={trail} />
         <h1 className="mb-4 text-2xl font-semibold">{food.name}</h1>
         <p className="text-sm opacity-60">
-          {edit.builtInBefore}{' '}
+          {builtIn && <>{edit.builtInBefore} </>}
           <Link {...newFoodLink()} className="underline">
             {detail.createYourOwn}
-          </Link>{' '}
-          {edit.builtInAfter}
+          </Link>
+          {builtIn && <> {edit.builtInAfter}</>}
         </p>
       </div>
     )
@@ -70,49 +65,9 @@ export function EditFoodPage({ foodId }: EditFoodPageProps) {
     <div className="mx-auto max-w-2xl">
       <Breadcrumbs trail={trail} />
       <h1 className="mb-6 text-2xl font-semibold">{edit.title}</h1>
-      {error && (
-        <p className="mb-4 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
-          {error}
-        </p>
-      )}
-      <FoodForm
-        key={food._id}
-        submitting={submitting}
-        initial={{
-          name: food.name,
-          brand: food.brand,
-          barcode: food.barcode,
-          baseUnit: food.baseUnit,
-          icon: food.icon,
-          nutritionPer100: food.nutritionPer100,
-          servings: food.servings,
-          nutritionSource: food.nutritionSource,
-        }}
-        onSubmit={async ({
-          // Shown while editing, never sent: `foods.update` works this out
-          // from the figures themselves, so an edit cannot save one answer
-          // while changing the numbers behind it.
-          nutritionSource: _decidedByTheServer,
-          ...values
-        }) => {
-          setSubmitting(true)
-          setError(null)
-          try {
-            await update({ id: food._id, ...values })
-            navigate(linkTo('food', { foodId }))
-          } catch (err) {
-            setError(
-              err instanceof ConvexError
-                ? typeof err.data === 'string'
-                  ? err.data
-                  : form.saveFailed
-                : err instanceof Error
-                  ? err.message
-                  : form.saveFailed,
-            )
-            setSubmitting(false)
-          }
-        }}
+      <EditFoodForm
+        food={food}
+        onSaved={() => navigate(linkTo('food', { foodId }))}
       />
     </div>
   )

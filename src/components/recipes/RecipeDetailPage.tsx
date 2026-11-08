@@ -1,17 +1,17 @@
-import { isAiLimitReached } from '@gather/core/ai-limit'
+import { AI_LIMIT_KIND } from '@gather/core/ai-limit'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
-import { FoodThumbnail } from '../nutrition/FoodThumbnail'
-import { NutritionPanel } from './NutritionPanel'
+import { FoodThumbnail } from '../kitchen/FoodThumbnail'
+import { NutritionPanel } from '../kitchen/NutritionPanel'
 import { RecipeSharingPanel } from './RecipeSharingPanel'
 
 export interface RecipeDetailPageProps {
@@ -100,9 +100,7 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
                   await remove({ id: recipe._id })
                   navigate(linkTo('recipes'))
                 } catch (err) {
-                  setError(
-                    err instanceof Error ? err.message : detail.deleteFailed,
-                  )
+                  setError(errorMessage(err, detail.deleteFailed))
                 }
               }}
             >
@@ -185,15 +183,9 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
                     })
                   } catch (err) {
                     setError(
-                      isAiLimitReached(err)
-                        ? form.aiLimitReached
-                        : err instanceof ConvexError
-                          ? typeof err.data === 'string'
-                            ? err.data
-                            : form.estimateFailed
-                          : err instanceof Error
-                            ? err.message
-                            : form.estimateFailed,
+                      errorMessage(err, form.estimateFailed, {
+                        [AI_LIMIT_KIND]: form.aiLimitReached,
+                      }),
                     )
                   } finally {
                     setEstimating(false)

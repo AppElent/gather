@@ -1,10 +1,11 @@
 import { useMutation, useQuery } from 'convex/react'
-import { ChevronDown, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, useMessages } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
+import { QuickAddForm } from '../tasks/QuickAddForm'
 import { TaskRow } from '../tasks/TaskRow'
 
 interface BabyChecklistCardProps {
@@ -40,16 +41,6 @@ export function BabyChecklistCard({
   const addTask = useMutation(api.tasks.add)
   const toggleDone = useMutation(api.tasks.toggleDone)
   const removeTask = useMutation(api.tasks.remove)
-  const [text, setText] = useState('')
-
-  async function quickAdd(e: React.FormEvent) {
-    e.preventDefault()
-    const trimmed = text.trim()
-    if (!trimmed) return
-    setText('')
-    if (collapsible) setOpen(true)
-    await addTask({ listId: taskListId, groupSlug, title: trimmed })
-  }
 
   const openItems = (tasks ?? []).filter((t) => !t.done)
 
@@ -81,22 +72,14 @@ export function BabyChecklistCard({
 
       {open && (
         <div className={collapsible ? 'mt-2' : undefined}>
-          <form onSubmit={quickAdd} className="mb-1 flex gap-2">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={placeholder}
-              aria-label={fmt(child.addTo, { list: title })}
-              className="min-h-9 flex-1 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-3 text-sm"
-            />
-            <button
-              type="submit"
-              aria-label={fmt(child.addTo, { list: title })}
-              className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3"
-            >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </form>
+          <QuickAddForm
+            placeholder={placeholder}
+            fieldLabel={fmt(child.addTo, { list: title })}
+            buttonLabel={fmt(child.addTo, { list: title })}
+            onAdd={(task) =>
+              addTask({ listId: taskListId, groupSlug, title: task })
+            }
+          />
           {tasks !== undefined && openItems.length === 0 ? (
             <p className="m-0 text-sm text-[var(--app-muted)]">
               {child.checklistEmpty}

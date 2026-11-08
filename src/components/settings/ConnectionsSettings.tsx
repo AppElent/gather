@@ -1,39 +1,19 @@
-import { EXTERNAL_PROVIDER_IDS, type ExternalProviderId } from '@gather/core/domain'
-import { useAction, useMutation, useQuery } from 'convex/react'
+import {
+  EXTERNAL_PROVIDER_IDS,
+  type ExternalProviderId,
+} from '@gather/core/domain'
+import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { hrefTo } from '../../lib/links'
-import {
-  newOAuthState,
-  oauthRedirectUri,
-  PROVIDER_LABELS,
-} from '../../lib/oauth'
+import { PROVIDER_LABELS, useConnectProvider } from '../../lib/oauth'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { SurfaceCard } from '../app/ShellPrimitives'
 
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold'
-
-/**
- * Starts the provider OAuth flow for one Group; shared with the Tasks add-list
- * flow, which connects from inside the Group it is adding a list to.
- *
- * The Group is written down before leaving, because the callback comes back on
- * a fresh page load with nothing but what `sessionStorage` kept for it.
- */
-export function useConnectProvider(groupSlug: string, returnTo: string) {
-  const getAuthorizeUrl = useAction(api.integrations.getAuthorizeUrl)
-  return async (provider: ExternalProviderId) => {
-    const url = await getAuthorizeUrl({
-      provider,
-      redirectUri: oauthRedirectUri(),
-      state: newOAuthState(provider, groupSlug, returnTo),
-    })
-    window.location.href = url
-  }
-}
 
 export interface ConnectionsSettingsProps {
   /** The Group these connections belong to. */
@@ -90,7 +70,9 @@ export function ConnectionsSettings({
               className="flex items-center justify-between gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2"
             >
               <div>
-                <span className="text-sm font-semibold">{PROVIDER_LABELS[provider]}</span>
+                <span className="text-sm font-semibold">
+                  {PROVIDER_LABELS[provider]}
+                </span>
                 <p className="m-0 text-xs text-[var(--app-muted)]">
                   {conn
                     ? fmt(connectionsText.connectedBy, {

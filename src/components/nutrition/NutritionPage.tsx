@@ -6,11 +6,10 @@ import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { sumFacts } from '../../../convex/lib/consumption'
 import { fmt, useMessages } from '../../lib/i18n'
-import { linkTo } from '../../lib/links'
+import { addFoodLink, linkTo } from '../../lib/links'
 import { DayTotals } from './DayTotals'
 import { sumKcal } from './kcal'
 import { MealSlot } from './MealSlot'
-import { addFoodLink } from './nutritionNav'
 
 export interface NutritionSearch {
   date?: string

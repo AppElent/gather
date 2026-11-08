@@ -1,12 +1,6 @@
 import { useLocation } from '@tanstack/react-router'
 import { X } from 'lucide-react'
-import {
-  type KeyboardEvent as ReactKeyboardEvent,
-  type ReactNode,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
+import { type ReactNode, useState } from 'react'
 import { getRouteContext } from '../../lib/appNavigation'
 import { useMessages } from '../../lib/i18n'
 import { CommandPalette } from './CommandPalette'
@@ -17,14 +11,8 @@ import { IconButton } from './ShellPrimitives'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { CurrentGroupProvider, useCurrentGroup } from './useCurrentGroup'
+import { useModalFocus } from './useModalFocus'
 import { useNavigation } from './useNavigation'
-
-const FOCUSABLE_SELECTOR =
-  'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
-
-function getFocusableElements(container: HTMLElement) {
-  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-}
 
 /**
  * The provider sits outside the shell rather than inside it because the shell
@@ -50,61 +38,12 @@ function AppShellBody({ children }: { children: ReactNode }) {
   const { items: navigation } = useNavigation()
   const [navigationOpen, setNavigationOpen] = useState(false)
   const [gatherOpen, setGatherOpen] = useState(false)
-  const navigationDrawerRef = useRef<HTMLElement>(null)
-  const navigationOpenerRef = useRef<HTMLElement | null>(null)
-
-  useEffect(() => {
-    if (!navigationOpen) {
-      const opener = navigationOpenerRef.current
-      if (opener?.isConnected) opener.focus()
-      navigationOpenerRef.current = null
-      return
-    }
-
-    navigationOpenerRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null
-
-    const drawer = navigationDrawerRef.current
-    if (drawer) getFocusableElements(drawer)[0]?.focus()
-  }, [navigationOpen])
-
-  useEffect(() => {
-    if (!navigationOpen) return
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setNavigationOpen(false)
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [navigationOpen])
-
-  useEffect(() => {
-    return () => {
-      const opener = navigationOpenerRef.current
-      if (opener?.isConnected) opener.focus()
-    }
-  }, [])
-
-  const handleDrawerKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (event.key !== 'Tab') return
-
-    const focusableElements = getFocusableElements(event.currentTarget)
-    const firstFocusable = focusableElements[0]
-    const lastFocusable = focusableElements.at(-1)
-
-    if (!firstFocusable || !lastFocusable) return
-
-    if (event.shiftKey && document.activeElement === firstFocusable) {
-      event.preventDefault()
-      lastFocusable.focus()
-    } else if (!event.shiftKey && document.activeElement === lastFocusable) {
-      event.preventDefault()
-      firstFocusable.focus()
-    }
-  }
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [reporterOpen, setReporterOpen] = useState(false)
+  const drawer = useModalFocus<HTMLElement>({
+    open: navigationOpen,
+    onClose: () => setNavigationOpen(false),
+  })
 
   return (
     <div className="app-shell">
@@ -123,6 +62,8 @@ function AppShellBody({ children }: { children: ReactNode }) {
             groupName={currentGroup?.name}
             onOpenNavigation={() => setNavigationOpen(true)}
             onOpenGather={() => setGatherOpen(true)}
+            onOpenPalette={() => setPaletteOpen(true)}
+            onReportIssue={() => setReporterOpen(true)}
           />
           <main className="min-w-0 flex-1 px-3 py-4 md:px-5 md:py-5">
             {children}
@@ -137,11 +78,11 @@ function AppShellBody({ children }: { children: ReactNode }) {
           onClick={() => setNavigationOpen(false)}
         >
           <aside
-            ref={navigationDrawerRef}
+            ref={drawer.ref}
             role="dialog"
             aria-modal="true"
             aria-label={messages.shell.drawer.label}
-            onKeyDown={handleDrawerKeyDown}
+            onKeyDown={drawer.onKeyDown}
             onClick={(event) => event.stopPropagation()}
             className="min-h-full w-[min(22rem,92vw)] overflow-y-auto border-r border-[var(--app-border)] bg-[var(--app-surface)]"
           >
@@ -170,8 +111,8 @@ function AppShellBody({ children }: { children: ReactNode }) {
         routeTitle={context.title}
         onClose={() => setGatherOpen(false)}
       />
-      <CommandPalette />
-      <IssueReporterModal />
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <IssueReporterModal open={reporterOpen} onOpenChange={setReporterOpen} />
     </div>
   )
 }

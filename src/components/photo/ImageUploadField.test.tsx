@@ -1,8 +1,8 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
-import { stubImagePipeline } from '../../test/imagePipeline'
 import { ImageUploadField } from './ImageUploadField'
+import { stubImagePipeline } from './imagePipeline'
 
 /**
  * The upload field, driven the way a person drives it: choose a file, frame it,

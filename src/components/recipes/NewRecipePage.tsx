@@ -1,15 +1,15 @@
-import { isAiLimitReached } from '@gather/core/ai-limit'
+import { AI_LIMIT_KIND } from '@gather/core/ai-limit'
 import { useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
-import { ImageUploadField } from '../app/ImageUploadField'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { ImageUploadField } from '../photo/ImageUploadField'
 import { RecipeDestinationNotice } from './RecipeDestinationNotice'
 import { RecipeForm, type RecipeFormValues } from './RecipeForm'
 
@@ -100,15 +100,9 @@ export function NewRecipePage({ initialUrl }: NewRecipePageProps) {
       setImageUrl(result.imageUrl)
     } catch (err) {
       setImportError(
-        isAiLimitReached(err)
-          ? form.aiLimitReached
-          : err instanceof ConvexError
-            ? typeof err.data === 'string'
-              ? err.data
-              : createText.importFailed
-            : err instanceof Error
-              ? err.message
-              : createText.importFailed,
+        errorMessage(err, createText.importFailed, {
+          [AI_LIMIT_KIND]: form.aiLimitReached,
+        }),
       )
     } finally {
       setImporting(false)
@@ -200,15 +194,7 @@ export function NewRecipePage({ initialUrl }: NewRecipePageProps) {
             })
             navigate(linkTo('recipe', { recipeId: id }))
           } catch (err) {
-            setError(
-              err instanceof ConvexError
-                ? typeof err.data === 'string'
-                  ? err.data
-                  : form.saveFailed
-                : err instanceof Error
-                  ? err.message
-                  : form.saveFailed,
-            )
+            setError(errorMessage(err, form.saveFailed))
             setSubmitting(false)
           }
         }}
