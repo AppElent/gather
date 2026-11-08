@@ -11,7 +11,11 @@
  * itself after somebody leaves the Group.
  */
 
-import { customCoversTotal, splitEvent, toCents } from '@gather/core/finance'
+import {
+  customCoversTotal,
+  parseCents,
+  splitEvent,
+} from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
@@ -97,7 +101,7 @@ export function SplitScreen() {
   const customCents = Object.fromEntries(
     Object.entries(customAmounts).map(([id, value]) => [
       id,
-      toCents(Number(value.replace(',', '.')) || 0),
+      parseCents(value) ?? 0,
     ]),
   )
   const input = { payments, participantIds, mode, customCents }
@@ -107,8 +111,8 @@ export function SplitScreen() {
   const allocationBalances = customCoversTotal(input)
 
   function addPayment() {
-    const cents = toCents(Number(amount.replace(',', '.')))
-    if (!payer || !Number.isFinite(cents) || cents <= 0) return
+    const cents = parseCents(amount) ?? 0
+    if (!payer || cents <= 0) return
     setPayments((current) => [
       ...current,
       { memberId: payer, amountCents: cents, label: label.trim() || undefined },

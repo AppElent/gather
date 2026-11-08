@@ -1,7 +1,12 @@
 import type { CalendarEvent } from '@gather/core/calendar'
 import { readCalendarRefusal } from '@gather/core/refusals'
+import { useMutation } from 'convex/react'
 import { useCallback, useEffect, useReducer, useRef } from 'react'
+import { useAvailability } from '../../availability/AvailabilityProvider'
+import { api, type Id } from '../../convex/api'
+import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
+import { useGroup } from '../../group/GroupProvider'
 import {
   type CalendarDraft,
   type CalendarDraftState,
@@ -20,7 +25,7 @@ import {
 } from './calendarDraftStore'
 
 /** What a save sends: by then validation has insisted on a calendar. */
-export type CalendarSavePayload = ReturnType<typeof draftPayload> & {
+type CalendarSavePayload = ReturnType<typeof draftPayload> & {
   calendarId: string
 }
 
@@ -29,25 +34,59 @@ const initialState: CalendarDraftState = {
   presentation: 'card',
 }
 
-export function useCalendarEditor({
-  userId,
-  groupId,
-  connected,
-  create,
-  update,
-  remove,
-}: {
-  userId: string
-  groupId: string
-  connected: boolean
-  create: (payload: CalendarSavePayload) => Promise<string>
-  update: (
-    id: string,
-    revision: number,
-    payload: CalendarSavePayload,
-  ) => Promise<{ revision: number }>
-  remove: (id: string) => Promise<void>
-}) {
+/**
+ * The event editor's draft, and the writes that settle it. Shared by the
+ * calendar and the event screen, so the two cannot send an event differently.
+ */
+export function useCalendarEditor() {
+  const { group } = useGroup()
+  const groupId = group._id
+  const me = useQuery(api.users.me)
+  const userId = me?._id ?? ''
+  const { serviceActionsEnabled } = useAvailability()
+  const connected = serviceActionsEnabled && Boolean(me)
+  const addEvent = useMutation(api.calendar.addCalendarEvent)
+  const updateEvent = useMutation(api.calendar.updateEvent)
+  const removeEvent = useMutation(api.calendar.removeCalendarEvent)
+
+  const create = useCallback(
+    (payload: CalendarSavePayload) =>
+      addEvent({
+        groupSlug: group.slug,
+        calendarId: payload.calendarId as Id<'calendars'>,
+        title: payload.title,
+        date: payload.date,
+        allDay: payload.allDay,
+        startMinutes: payload.startMinutes ?? undefined,
+        endMinutes: payload.endMinutes ?? undefined,
+        assigneeIds: payload.assigneeIds as Id<'users'>[],
+        location: payload.location ?? undefined,
+        notes: payload.notes ?? undefined,
+      }),
+    [addEvent, group.slug],
+  )
+  const update = useCallback(
+    (id: string, revision: number, payload: CalendarSavePayload) =>
+      updateEvent({
+        groupSlug: group.slug,
+        id: id as Id<'calendarEvents'>,
+        expectedRevision: revision,
+        title: payload.title,
+        calendarId: payload.calendarId as Id<'calendars'>,
+        date: payload.date,
+        allDay: payload.allDay,
+        startMinutes: payload.startMinutes,
+        endMinutes: payload.endMinutes,
+        assigneeIds: payload.assigneeIds as Id<'users'>[],
+        location: payload.location,
+        notes: payload.notes,
+      }),
+    [updateEvent, group.slug],
+  )
+  const remove = async (id: string) => {
+    await removeEvent({ groupSlug: group.slug, id: id as Id<'calendarEvents'> })
+  }
+
   const [state, dispatch] = useReducer(reduceCalendarDraft, initialState)
   const mounted = useRef(true)
   const submitting = useRef(false)

@@ -7,7 +7,6 @@ import {
   fieldsFor,
   initialPicks,
   type PreviousEvent,
-  parseNumber,
   SHEET_SPECS,
   stepValue,
 } from './sheetFields'
@@ -123,19 +122,6 @@ describe('the stepper', () => {
 
   test('an empty box steps from the fallback, not from zero', () => {
     expect(stepValue(celsius, '', 1)).toBe('37.1')
-  })
-})
-
-describe('reading a number out of a box somebody is still typing', () => {
-  test('a comma is a decimal point — some keyboards only offer one of them', () => {
-    expect(parseNumber('6,8')).toBe(6.8)
-  })
-
-  test('empty and nonsense are null, never zero', () => {
-    expect(parseNumber('')).toBeNull()
-    expect(parseNumber('  ')).toBeNull()
-    expect(parseNumber('abc')).toBeNull()
-    expect(parseNumber(undefined)).toBeNull()
   })
 })
 

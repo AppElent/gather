@@ -31,6 +31,7 @@
  * the message tree. A validator that returned "A recipe needs a title." would
  * be an English sentence in a file no locale can reach (ADR-0011).
  */
+import { parseDecimal } from '@gather/core/decimal'
 import type { NutritionFacts, NutritionSource } from '@gather/core/domain'
 
 /** A recipe mid-edit: text as typed, plus the two things that are not text. */
@@ -172,7 +173,7 @@ export function recipeFieldsFrom(values: RecipeFormValues): RecipeFields {
     steps: lines(values.steps),
     tags: commaSeparated(values.tags),
     rating: values.rating,
-    servings: positiveInt(values.servings),
+    servings: servingCount(values.servings),
     nutrition,
     // A source with no figures under it says where nothing came from.
     nutritionSource: nutrition
@@ -182,7 +183,7 @@ export function recipeFieldsFrom(values: RecipeFormValues): RecipeFields {
 }
 
 /** Non-blank lines, trimmed. */
-function lines(text: string): string[] {
+export function lines(text: string): string[] {
   return text
     .split('\n')
     .map((line) => line.trim())
@@ -204,9 +205,9 @@ function commaSeparated(text: string): string[] {
  * recipe does not say. Rounded rather than refused, because a phone's numeric
  * keypad still offers a decimal point.
  */
-function positiveInt(text: string): number | undefined {
-  const value = Number(text.trim().replace(',', '.'))
-  if (!Number.isFinite(value) || value < 1) return undefined
+export function servingCount(text: string): number | undefined {
+  const value = parseDecimal(text)
+  if (value === null || value < 1) return undefined
   return Math.round(value)
 }
 

@@ -8,12 +8,14 @@
  * what they can afford.
  */
 
+import { parseDecimal } from '@gather/core/decimal'
 import {
   BUYING_COST_LINES,
   type BuyingCostLine,
   homeBuyingCosts,
   TRANSFER_TAX_BANDS,
-  type TransferTaxBand,
+  TRANSFER_TAX_PERCENT,
+  toCents,
 } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
@@ -42,13 +44,6 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
-
-/** The percentage each band carried when this screen was written. */
-const BAND_PERCENT: Record<TransferTaxBand, number> = {
-  starter: 0,
-  ownHome: 2,
-  other: 10.4,
-}
 
 type Editing =
   | BuyingCostLine
@@ -96,7 +91,7 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
       mortgageRatePercent: 4,
       mortgageTermMonths: 360,
       transferTaxBand: 'ownHome',
-      transferTaxPercent: BAND_PERCENT.ownHome,
+      transferTaxPercent: TRANSFER_TAX_PERCENT.ownHome,
     })
   }
 
@@ -129,12 +124,12 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
   }
 
   function commit() {
-    const value = Number(draft.trim().replace(',', '.'))
-    if (!Number.isFinite(value) || value < 0) {
+    const value = parseDecimal(draft) ?? 0
+    if (value < 0) {
       setEditing(null)
       return
     }
-    const cents = Math.round(value * 100)
+    const cents = toCents(value)
     if (editing === 'price') write({ purchasePriceCents: cents })
     if (editing === 'ownMoney') write({ ownMoneyCents: cents })
     if (editing === 'mortgage') write({ mortgageCents: cents })
@@ -207,14 +202,14 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
             <Chip
               key={band}
               label={`${text.transferTaxBands[band]} · ${format.percent(
-                BAND_PERCENT[band],
-                BAND_PERCENT[band] % 1 === 0 ? 0 : 1,
+                TRANSFER_TAX_PERCENT[band],
+                TRANSFER_TAX_PERCENT[band] % 1 === 0 ? 0 : 1,
               )}`}
               selected={stored.transferTaxBand === band}
               onPress={() =>
                 write({
                   transferTaxBand: band,
-                  transferTaxPercent: BAND_PERCENT[band],
+                  transferTaxPercent: TRANSFER_TAX_PERCENT[band],
                 })
               }
             />

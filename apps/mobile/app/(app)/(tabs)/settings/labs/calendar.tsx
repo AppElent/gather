@@ -6,6 +6,10 @@
  * and rotating the phone does not lose it. `readAxis` falls back to whichever
  * option the canvas chose, so the bare route shows the decided design.
  */
+import {
+  filterCalendarEvents,
+  normalizeCalendarEvent,
+} from '@gather/core/calendar'
 import { localIsoDate } from '@gather/core/civil-date'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useI18n } from '../../../../../src/i18n'
@@ -20,6 +24,7 @@ import {
 import { CalendarLab } from '../../../../../src/labs/calendar/CalendarLab'
 import {
   LAB_CALENDARS,
+  LAB_HIDDEN_CALENDAR_IDS,
   LAB_MEMBERS,
   labEvents,
 } from '../../../../../src/labs/calendar/fixtures'
@@ -38,26 +43,28 @@ export default function CalendarLabRoute() {
 
   if (params.production === 'true') {
     const today = localIsoDate()
-    const events = labEvents(today).map((event) => ({
-      id: event.id,
-      calendarId: event.calendarId,
-      title: event.title,
-      date: event.date,
-      allDay: event.allDay,
-      startMinutes: event.start
-        ? Number(event.start.slice(0, 2)) * 60 + Number(event.start.slice(3))
-        : undefined,
-      endMinutes: event.end
-        ? Number(event.end.slice(0, 2)) * 60 + Number(event.end.slice(3))
-        : undefined,
-      assigneeIds: event.who,
-      location: event.location ?? '',
-      notes: '',
-      revision: 0,
-      color:
-        LAB_CALENDARS.find((calendar) => calendar.id === event.calendarId)
-          ?.tint ?? 'home',
-    }))
+    const minutes = (clock: string | undefined) =>
+      clock
+        ? Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3))
+        : undefined
+    const events = labEvents(today).map((event) =>
+      normalizeCalendarEvent({
+        id: event.id,
+        calendarId: event.calendarId,
+        title: event.title,
+        date: event.date,
+        allDay: event.allDay,
+        startMinutes: minutes(event.start),
+        endMinutes: minutes(event.end),
+        assigneeIds: event.who,
+        location: event.location,
+        color: LAB_CALENDARS.find(
+          (calendar) => calendar.id === event.calendarId,
+        )?.tint,
+      }),
+    )
+    const inert = () => {}
+    // The shipped screen over fixtures: nothing is fetched and every action is inert.
     return (
       <CalendarScreen
         today={today}
@@ -68,9 +75,20 @@ export default function CalendarLabRoute() {
             color: tint,
           })),
           people: LAB_MEMBERS,
-          hiddenCalendarIds: ['work'],
-          events,
+          hiddenCalendarIds: LAB_HIDDEN_CALENDAR_IDS,
+          events: filterCalendarEvents(events, LAB_HIDDEN_CALENDAR_IDS, null),
         }}
+        onActiveDate={inert}
+        onAdd={inert}
+        onEvent={inert}
+        onDeleteEvent={inert}
+        preferredView="week"
+        sourceNodes={null}
+        onViewChange={inert}
+        onOpenCalendars={inert}
+        onOpenPeople={inert}
+        hasDraft={false}
+        onResumeDraft={inert}
       />
     )
   }

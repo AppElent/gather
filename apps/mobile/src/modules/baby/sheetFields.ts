@@ -32,6 +32,7 @@ import {
   TEMPERATURE_CELSIUS_MIN,
   type TemperatureMethod,
 } from '@gather/core/baby-events'
+import { parseDecimal } from '@gather/core/decimal'
 import type { BabyEventType } from '@gather/core/domain'
 
 export interface SheetField {
@@ -329,7 +330,7 @@ export function outOfRangeFields(
 ): SheetField[] {
   return fieldsFor(type, picks).filter((field) => {
     if (field.input !== 'number') return false
-    const value = parseNumber(picks[field.key])
+    const value = parseDecimal(picks[field.key])
     // An empty measurement is not out of range; it is simply not taken.
     if (value === null) return false
     return (
@@ -346,15 +347,6 @@ export interface PreviousEvent {
   data: Record<string, unknown>
 }
 
-/** A finite number, or null for anything that is not one. */
-export function parseNumber(text: string | undefined): number | null {
-  if (text === undefined) return null
-  const trimmed = text.trim().replace(',', '.')
-  if (!trimmed) return null
-  const value = Number(trimmed)
-  return Number.isFinite(value) ? value : null
-}
-
 /** The stepper's next value, clamped and rounded to the field's precision. */
 export function stepValue(
   field: SheetField,
@@ -363,7 +355,7 @@ export function stepValue(
 ): string {
   const step = field.step ?? 1
   const decimals = field.decimals ?? 0
-  const from = parseNumber(current) ?? parseNumber(field.fallback) ?? 0
+  const from = parseDecimal(current) ?? parseDecimal(field.fallback) ?? 0
   // Rounded through an integer count of steps so 0.1 + 0.2 does not drift, and
   // so a typed 37.34 snaps onto the ladder rather than stepping to 37.44.
   const next = (Math.round(from / step) + direction) * step
@@ -411,7 +403,7 @@ export function initialPicks(
 
     if (field.input === 'number') {
       picks[field.key] =
-        asText !== null && parseNumber(asText) !== null
+        asText !== null && parseDecimal(asText) !== null
           ? asText
           : field.fallback
       continue
@@ -423,16 +415,7 @@ export function initialPicks(
         : field.fallback
   }
 
-  if (type === 'sleep') {
-    // Sleep's duration is not in `data` — it is the gap to `endTimestamp` —
-    // so it is read back off the previous entry rather than out of its payload.
-    const span =
-      previous?.endTimestamp && previous.endTimestamp > previous.timestamp
-        ? Math.round((previous.endTimestamp - previous.timestamp) / 60_000)
-        : 0
-    picks.durationH = String(Math.floor(span / 60))
-    picks.durationM = String(span % 60)
-  }
+  if (type === 'sleep') Object.assign(picks, sleepDurationPicks(previous))
 
   return picks
 }
@@ -467,18 +450,24 @@ export function editPicks(
     picks[field.key] = asText
   }
 
-  if (type === 'sleep') {
-    // As in `initialPicks`: a sleep's length is the gap to `endTimestamp`, not
-    // a value in its payload.
-    const span =
-      event.endTimestamp && event.endTimestamp > event.timestamp
-        ? Math.round((event.endTimestamp - event.timestamp) / 60_000)
-        : 0
-    picks.durationH = String(Math.floor(span / 60))
-    picks.durationM = String(span % 60)
-  }
+  if (type === 'sleep') Object.assign(picks, sleepDurationPicks(event))
 
   return picks
+}
+
+/**
+ * A sleep's hours and minutes rows. Its duration is not in `data` — it is the
+ * gap to `endTimestamp` — so it is read back off the entry, not its payload.
+ */
+function sleepDurationPicks(event: PreviousEvent | undefined) {
+  const span =
+    event?.endTimestamp && event.endTimestamp > event.timestamp
+      ? Math.round((event.endTimestamp - event.timestamp) / 60_000)
+      : 0
+  return {
+    durationH: String(Math.floor(span / 60)),
+    durationM: String(span % 60),
+  }
 }
 
 /**
@@ -495,8 +484,8 @@ export function endTimestampFor(
   timestamp: number,
 ): number | undefined {
   if (type !== 'sleep') return undefined
-  const hours = parseNumber(picks.durationH) ?? 0
-  const minutes = parseNumber(picks.durationM) ?? 0
+  const hours = parseDecimal(picks.durationH) ?? 0
+  const minutes = parseDecimal(picks.durationM) ?? 0
   const total = Math.round(hours * 60 + minutes)
   return total > 0 ? timestamp + total * 60_000 : undefined
 }
@@ -515,7 +504,7 @@ export function buildSheetData(
 ): Record<string, unknown> {
   if (type === 'temperature') {
     return {
-      celsius: parseNumber(picks.celsius) ?? 0,
+      celsius: parseDecimal(picks.celsius) ?? 0,
       method: picks.method,
     }
   }
@@ -525,8 +514,8 @@ export function buildSheetData(
     // Each method carries only its own unit. Sending millilitres for a
     // breastfeed would record a figure nobody measured.
     if (method === 'breast') {
-      const left = parseNumber(picks.leftMin) ?? 0
-      const right = parseNumber(picks.rightMin) ?? 0
+      const left = parseDecimal(picks.leftMin) ?? 0
+      const right = parseDecimal(picks.rightMin) ?? 0
       const side =
         left > 0 && right > 0
           ? 'both'
@@ -543,10 +532,10 @@ export function buildSheetData(
       }
     }
     if (method === 'bottle') {
-      const ml = parseNumber(picks.amountMl)
+      const ml = parseDecimal(picks.amountMl)
       return { method, ...(ml !== null && ml > 0 ? { amountMl: ml } : {}) }
     }
-    const grams = parseNumber(picks.amountG)
+    const grams = parseDecimal(picks.amountG)
     return {
       method,
       ...(grams !== null && grams > 0 ? { amountG: grams } : {}),
@@ -563,14 +552,14 @@ export function buildSheetData(
     // not become a zero — a baby who was not measured did not weigh 0 kg.
     const growth: Record<string, number> = {}
     for (const key of ['weightKg', 'heightCm', 'headCircumferenceCm']) {
-      const value = parseNumber(picks[key])
+      const value = parseDecimal(picks[key])
       if (value !== null) growth[key] = value
     }
     return growth
   }
 
   if (type === 'medication') {
-    const amount = parseNumber(picks.doseAmount)
+    const amount = parseDecimal(picks.doseAmount)
     return {
       name: picks.name?.trim() ?? '',
       ...(amount !== null ? { doseAmount: amount } : {}),

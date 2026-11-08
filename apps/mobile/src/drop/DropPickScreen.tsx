@@ -25,7 +25,6 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -36,6 +35,7 @@ import {
 import { LoadingSkeleton } from '../components/LoadingSkeleton'
 import { api } from '../convex/api'
 import { useQuery } from '../convex/queries'
+import { confirmDestructive } from '../feedback/confirmDestructive'
 import { haptics } from '../feedback/haptics'
 import { type AmbientGroup, useGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
@@ -95,18 +95,13 @@ export function DropPickScreen() {
     // names the item (`apps/mobile/DESIGN_SYSTEM.md`). Everything else here adds
     // rather than replaces, and adding never asks.
     if (candidate.hasPhoto) {
-      Alert.alert(
-        fmt(text.replaceTitle, { name: candidate.label }),
-        text.replaceBody,
-        [
-          { text: t.actions.cancel, style: 'cancel' },
-          {
-            text: text.replace,
-            style: 'destructive',
-            onPress: () => void save(candidate),
-          },
-        ],
-      )
+      confirmDestructive({
+        title: fmt(text.replaceTitle, { name: candidate.label }),
+        message: text.replaceBody,
+        confirm: text.replace,
+        cancel: t.actions.cancel,
+        onConfirm: () => void save(candidate),
+      })
       return
     }
     await save(candidate)

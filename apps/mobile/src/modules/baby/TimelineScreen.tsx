@@ -17,7 +17,6 @@ import type { Messages } from '@gather/core/messages'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import {
-  Alert,
   Pressable,
   SectionList,
   StyleSheet,
@@ -28,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SwipeableRow } from '../../components/SwipeableRow'
 import { api, type Id } from '../../convex/api'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
@@ -60,24 +60,19 @@ export function TimelineScreen() {
   const remove = useMutation(api.babyEvents.remove)
 
   function confirmDelete(item: NonNullable<typeof log.events>[number]) {
-    Alert.alert(
-      t.baby.log.timeline.deleteTitle,
-      fmt(t.baby.log.timeline.deleteEntry, {
+    confirmDestructive({
+      title: t.baby.log.timeline.deleteTitle,
+      message: fmt(t.baby.log.timeline.deleteEntry, {
         type: t.baby.eventTypes[item.type],
       }),
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: t.baby.log.timeline.deleteConfirm,
-          style: 'destructive',
-          onPress: () =>
-            remove({
-              eventId: item._id as Id<'babyEvents'>,
-              groupSlug: log.groupSlug,
-            }).catch(() => haptics.actionFailed()),
-        },
-      ],
-    )
+      confirm: t.baby.log.timeline.deleteConfirm,
+      cancel: t.actions.cancel,
+      onConfirm: () =>
+        remove({
+          eventId: item._id as Id<'babyEvents'>,
+          groupSlug: log.groupSlug,
+        }).catch(() => haptics.actionFailed()),
+    })
   }
 
   const sections = (() => {

@@ -42,7 +42,6 @@ import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -54,6 +53,7 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { NativeSheet } from '../../components/NativeSheet'
 import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
@@ -148,44 +148,39 @@ export function SubjectScreen({
   }
 
   function confirmSubjectDelete() {
-    Alert.alert(
-      fmt(copy.deleteSubjectTitle, { name: subject.name }),
-      subject.count === 0
-        ? copy.deleteSubjectBodyEmpty
-        : plural(locale, subject.count, copy.deleteSubjectBody),
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: copy.delete,
-          style: 'destructive',
-          onPress: async () => {
-            await removeSubject({
-              groupSlug: group.slug,
-              id: subject._id as Id<'tastingSubjects'>,
-            })
-            haptics.itemCompleted()
-            router.back()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(copy.deleteSubjectTitle, { name: subject.name }),
+      message:
+        subject.count === 0
+          ? copy.deleteSubjectBodyEmpty
+          : plural(locale, subject.count, copy.deleteSubjectBody),
+      confirm: copy.delete,
+      cancel: t.actions.cancel,
+      onConfirm: async () => {
+        await removeSubject({
+          groupSlug: group.slug,
+          id: subject._id as Id<'tastingSubjects'>,
+        })
+        haptics.itemCompleted()
+        router.back()
+      },
+    })
   }
 
   function confirmTastingDelete(tastingId: string) {
-    Alert.alert(copy.deleteTastingTitle, copy.deleteTastingBody, [
-      { text: t.actions.cancel, style: 'cancel' },
-      {
-        text: copy.delete,
-        style: 'destructive',
-        onPress: async () => {
-          await removeTasting({
-            groupSlug: group.slug,
-            id: tastingId as Id<'tastings'>,
-          })
-          haptics.itemCompleted()
-        },
+    confirmDestructive({
+      title: copy.deleteTastingTitle,
+      message: copy.deleteTastingBody,
+      confirm: copy.delete,
+      cancel: t.actions.cancel,
+      onConfirm: async () => {
+        await removeTasting({
+          groupSlug: group.slug,
+          id: tastingId as Id<'tastings'>,
+        })
+        haptics.itemCompleted()
       },
-    ])
+    })
   }
 
   /**

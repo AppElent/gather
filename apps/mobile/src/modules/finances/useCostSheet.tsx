@@ -5,9 +5,9 @@
  * list and the empty state on it — and the alternative was passing four pieces
  * of state down through both.
  *
- * The category picker is chips rather than a second sheet: the set is closed,
- * seven long, and typed against `CostCategory`, so it fits and forgetting one
- * is a compile error rather than a missing option.
+ * The category picker is chips rather than a second sheet: the set is closed
+ * and seven long, and the chips are core's `COST_CATEGORIES`, so a category
+ * added there appears here.
  */
 
 import {
@@ -15,6 +15,7 @@ import {
   COST_FREQUENCIES,
   type CostCategory,
   type CostFrequency,
+  parseCents,
 } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { type ReactNode, useState } from 'react'
@@ -46,9 +47,11 @@ export function useCostSheet(groupSlug: string): {
     setShowing(true)
   }
 
+  const cents = parseCents(amount)
+  const valid = name.trim().length > 0 && cents !== null && cents > 0
+
   function save() {
-    const cents = Math.round(Number(amount.replace(',', '.')) * 100)
-    if (!name.trim() || !Number.isFinite(cents) || cents <= 0) return
+    if (!valid) return
     create({
       groupSlug,
       name: name.trim(),
@@ -58,11 +61,6 @@ export function useCostSheet(groupSlug: string): {
     })
     setShowing(false)
   }
-
-  const valid =
-    name.trim().length > 0 &&
-    Number.isFinite(Number(amount.replace(',', '.'))) &&
-    Number(amount.replace(',', '.')) > 0
 
   return {
     open,

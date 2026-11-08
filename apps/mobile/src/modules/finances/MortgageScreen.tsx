@@ -15,11 +15,12 @@ import { calculationTotals, mortgageSteps } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
 import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
 import { RADIUS } from '../../theme/tokens'
 import { moduleHref } from '../moduleDestination'
@@ -107,21 +108,16 @@ export function MortgageScreen({
   }
 
   function confirmDelete() {
-    Alert.alert(
-      fmt(text.errors.confirmDelete, { name: calculation?.name ?? '' }),
-      text.errors.confirmDeleteBody,
-      [
-        { text: text.actions.cancel, style: 'cancel' },
-        {
-          text: text.actions.delete,
-          style: 'destructive',
-          onPress: () => {
-            remove({ id: calculationId, groupSlug })
-            router.back()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(text.errors.confirmDelete, { name: calculation?.name ?? '' }),
+      message: text.errors.confirmDeleteBody,
+      confirm: text.actions.delete,
+      cancel: text.actions.cancel,
+      onConfirm: () => {
+        remove({ id: calculationId, groupSlug })
+        router.back()
+      },
+    })
   }
 
   const partCount =

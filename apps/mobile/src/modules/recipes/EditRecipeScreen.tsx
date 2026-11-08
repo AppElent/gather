@@ -17,7 +17,6 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   KeyboardAvoidingView,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -28,8 +27,8 @@ import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
-import { RecipeFields } from './RecipeFields'
+import { useTokens } from '../../theme/tokens'
+import { RecipeFields, SaveRecipeButton } from './RecipeFields'
 import {
   type RecipeFormValues,
   recipeFieldsFrom,
@@ -155,31 +154,11 @@ export function EditRecipeScreen() {
             </Text>
           ) : null}
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={text.form.save}
-            accessibilityState={{ disabled: Boolean(problem) || saving }}
-            testID="recipe-save"
-            disabled={Boolean(problem) || saving}
+          <SaveRecipeButton
+            disabled={Boolean(problem)}
+            saving={saving}
             onPress={save}
-            style={({ pressed }) => [
-              styles.save,
-              {
-                backgroundColor:
-                  problem || saving ? tokens.tile : tokens.accent,
-              },
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text
-              style={[
-                styles.saveLabel,
-                { color: problem || saving ? tokens.muted : tokens.onAccent },
-              ]}
-            >
-              {saving ? text.form.saving : text.form.save}
-            </Text>
-          </Pressable>
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </>
@@ -191,13 +170,4 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 14 },
   missing: { fontSize: 15, textAlign: 'center', paddingVertical: 40 },
   problem: { fontSize: 13, lineHeight: 19 },
-  save: {
-    borderRadius: RADIUS.control,
-    minHeight: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  saveLabel: { fontSize: 16, fontWeight: '700' },
-  pressed: { opacity: 0.7 },
 })

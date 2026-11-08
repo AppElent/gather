@@ -7,20 +7,25 @@
  * for it rather than pretending the idea went away.
  */
 
+import { parseDecimal } from '@gather/core/decimal'
 import {
   annualCents,
+  COST_CATEGORIES,
+  COST_FREQUENCIES,
   monthlyCents,
+  parseCents,
   shareOf,
   splitTotalsToHundred,
 } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
 import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
 import {
   Card,
@@ -106,7 +111,7 @@ export function RecurringCostScreen({
     const next = Object.entries(percents)
       .map(([userId, value]) => ({
         userId: userId as Id<'users'>,
-        percent: Number(value.replace(',', '.')) || 0,
+        percent: parseDecimal(value) ?? 0,
       }))
       .filter((share) => share.percent > 0)
     if (
@@ -123,25 +128,20 @@ export function RecurringCostScreen({
   }
 
   function confirmDelete() {
-    Alert.alert(
-      fmt(text.errors.confirmDelete, { name: cost?.name ?? '' }),
-      text.errors.confirmDeleteBody,
-      [
-        { text: text.actions.cancel, style: 'cancel' },
-        {
-          text: text.actions.delete,
-          style: 'destructive',
-          onPress: () => {
-            remove({ id: costId, groupSlug })
-            router.back()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(text.errors.confirmDelete, { name: cost?.name ?? '' }),
+      message: text.errors.confirmDeleteBody,
+      confirm: text.actions.delete,
+      cancel: text.actions.cancel,
+      onConfirm: () => {
+        remove({ id: costId, groupSlug })
+        router.back()
+      },
+    })
   }
 
   const splitTotal = Object.values(percents).reduce(
-    (sum, value) => sum + (Number(value.replace(',', '.')) || 0),
+    (sum, value) => sum + (parseDecimal(value) ?? 0),
     0,
   )
 
@@ -255,15 +255,7 @@ export function RecurringCostScreen({
         >
           <View style={styles.chips}>
             {editing === 'frequency'
-              ? (
-                  [
-                    'weekly',
-                    'monthly',
-                    'quarterly',
-                    'halfYearly',
-                    'yearly',
-                  ] as const
-                ).map((option) => (
+              ? COST_FREQUENCIES.map((option) => (
                   <Chip
                     key={option}
                     label={text.frequencies[option]}
@@ -274,17 +266,7 @@ export function RecurringCostScreen({
                     }}
                   />
                 ))
-              : (
-                  [
-                    'housing',
-                    'utilities',
-                    'insurance',
-                    'transport',
-                    'health',
-                    'media',
-                    'other',
-                  ] as const
-                ).map((option) => (
+              : COST_CATEGORIES.map((option) => (
                   <Chip
                     key={option}
                     label={text.categories[option]}
@@ -343,11 +325,8 @@ export function RecurringCostScreen({
               label={text.actions.save}
               onPress={() => {
                 if (editing === 'amount') {
-                  const cents = Math.round(
-                    Number(draft.replace(',', '.')) * 100,
-                  )
-                  if (Number.isFinite(cents) && cents > 0)
-                    write({ amountCents: cents })
+                  const cents = parseCents(draft) ?? 0
+                  if (cents > 0) write({ amountCents: cents })
                 } else {
                   write({ note: draft.trim() || undefined })
                 }

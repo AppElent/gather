@@ -762,6 +762,8 @@ export const en = {
     linked: 'Linked',
     /** Which list a task on the Today strip came from. */
     inList: 'in {list}',
+    /** A linked list's count, when its provider did not answer. */
+    notLoaded: 'Not loaded',
 
     list: {
       addTask: 'Add a task…',
@@ -783,6 +785,14 @@ export const en = {
         'This list lives in {provider}. Gather can read it, but not write to it — so there is no composer here.',
       /** Only a provider-backed list has anything to pull for. */
       refreshed: 'Synced just now',
+      /** A linked list on its first fetch, before it has any rows to show. */
+      loading: 'Loading from {provider}…',
+      /** The provider refused the stored connection (ADR-0021). */
+      reconnect:
+        'Gather lost its connection to {provider}. Reconnect it in Gather on the web, then pull down to refresh.',
+      /** The provider did not answer; whatever rows were loaded before stay. */
+      failed:
+        'Could not load this list from {provider}. Pull down to try again.',
       /** The row's hold menu. */
       complete: 'Complete',
       uncomplete: 'Mark as not done',

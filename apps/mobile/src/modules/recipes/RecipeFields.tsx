@@ -26,7 +26,7 @@ import { PhotoField } from '../../components/PhotoField'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { NutritionFacts } from './NutritionFacts'
-import type { RecipeFormValues } from './recipeForm'
+import { lines, type RecipeFormValues, servingCount } from './recipeForm'
 import { StarRating } from './StarRating'
 
 export interface RecipeFieldsProps {
@@ -71,21 +71,16 @@ export function RecipeFields({
     value: RecipeFormValues[K],
   ) => onChange({ ...values, [key]: value })
 
-  const ingredientLines = values.ingredients
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
+  const ingredientLines = lines(values.ingredients)
 
   async function estimate() {
     if (!onEstimate) return
     setEstimating(true)
     setEstimateProblem(null)
     try {
-      const servings = Number(values.servings.trim())
       const facts = await onEstimate({
         ingredients: ingredientLines,
-        servings:
-          Number.isFinite(servings) && servings >= 1 ? servings : undefined,
+        servings: servingCount(values.servings),
       })
       onChange({
         ...values,
@@ -243,6 +238,46 @@ export function RecipeFields({
   )
 }
 
+/** The save at the foot of the form, the same for a new recipe and an edit. */
+export function SaveRecipeButton({
+  disabled,
+  saving,
+  onPress,
+}: {
+  disabled: boolean
+  saving: boolean
+  onPress: () => void
+}) {
+  const tokens = useTokens('kitchen')
+  const { t } = useI18n()
+  const text = t.recipes.form
+  const off = disabled || saving
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={text.save}
+      accessibilityState={{ disabled: off }}
+      testID="recipe-save"
+      disabled={off}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.save,
+        { backgroundColor: off ? tokens.tile : tokens.accent },
+        pressed && styles.savePressed,
+      ]}
+    >
+      <Text
+        style={[
+          styles.saveLabel,
+          { color: off ? tokens.muted : tokens.onAccent },
+        ]}
+      >
+        {saving ? text.saving : text.save}
+      </Text>
+    </Pressable>
+  )
+}
+
 function Field({
   label,
   hint,
@@ -312,4 +347,13 @@ const styles = StyleSheet.create({
   secondaryLabel: { fontSize: 15, fontWeight: '600' },
   problem: { fontSize: 13 },
   pressed: { opacity: 0.6 },
+  save: {
+    borderRadius: RADIUS.control,
+    minHeight: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  saveLabel: { fontSize: 16, fontWeight: '700' },
+  savePressed: { opacity: 0.7 },
 })

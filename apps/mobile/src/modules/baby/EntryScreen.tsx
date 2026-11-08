@@ -27,7 +27,6 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -36,13 +35,14 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { PhotoField } from '../../components/PhotoField'
 import { api, type Id } from '../../convex/api'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { DateTimeField } from './DateTimeField'
 import { EntryFields, fieldLabel, optionText } from './EntryFields'
+import { EntryPhotoField } from './EntryPhotoField'
 import { EVENT_ICONS } from './icons'
 import {
   buildSheetData,
@@ -62,7 +62,6 @@ export function EntryScreen() {
 
   const update = useMutation(api.babyEvents.update)
   const remove = useMutation(api.babyEvents.remove)
-  const generateUploadUrl = useMutation(api.babies.generateUploadUrl)
 
   const { entryId } = useLocalSearchParams<{ entryId?: string }>()
   const entry = useMemo(
@@ -152,31 +151,28 @@ export function EntryScreen() {
 
   function confirmDelete() {
     if (!entry) return
-    Alert.alert(
-      t.baby.log.timeline.deleteTitle,
-      fmt(t.baby.log.timeline.deleteEntry, { type: t.baby.eventTypes[type] }),
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: t.baby.log.timeline.deleteConfirm,
-          style: 'destructive',
-          onPress: async () => {
-            setBusy(true)
-            try {
-              await remove({
-                eventId: entry._id as Id<'babyEvents'>,
-                groupSlug: log.groupSlug,
-              })
-              router.back()
-            } catch {
-              haptics.actionFailed()
-              setFailure(t.baby.log.timeline.deleteFailed)
-              setBusy(false)
-            }
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: t.baby.log.timeline.deleteTitle,
+      message: fmt(t.baby.log.timeline.deleteEntry, {
+        type: t.baby.eventTypes[type],
+      }),
+      confirm: t.baby.log.timeline.deleteConfirm,
+      cancel: t.actions.cancel,
+      onConfirm: async () => {
+        setBusy(true)
+        try {
+          await remove({
+            eventId: entry._id as Id<'babyEvents'>,
+            groupSlug: log.groupSlug,
+          })
+          router.back()
+        } catch {
+          haptics.actionFailed()
+          setFailure(t.baby.log.timeline.deleteFailed)
+          setBusy(false)
+        }
+      },
+    })
   }
 
   /** The read view: every row this type has, with the value it holds. */
@@ -301,29 +297,13 @@ export function EntryScreen() {
               ]}
             />
 
-            {type === 'memory' ? (
-              <PhotoField
-                photoUrl={entry.photoUrl}
-                value={photoId}
-                onChange={setPhotoId}
-                generateUploadUrl={generateUploadUrl}
-                labels={{
-                  heading: t.baby.log.entry.photo,
-                  take: t.baby.log.entry.takePhoto,
-                  choose: t.baby.log.entry.choosePhoto,
-                  replace: t.baby.log.entry.replacePhoto,
-                  remove: t.baby.log.entry.removePhoto,
-                  uploading: t.baby.log.entry.photoUploading,
-                  denied: t.baby.log.entry.photoDenied,
-                  failed: t.baby.log.entry.photoFailed,
-                  alt: fmt(t.baby.log.entry.photoOf, {
-                    type: t.baby.eventTypes[type],
-                  }),
-                }}
-                preset="memoryPhoto"
-                disabled={busy}
-              />
-            ) : null}
+            <EntryPhotoField
+              type={type}
+              photoUrl={entry.photoUrl}
+              value={photoId}
+              onChange={setPhotoId}
+              disabled={busy}
+            />
 
             {missing ? (
               <Text style={[styles.error, { color: tokens.danger }]}>

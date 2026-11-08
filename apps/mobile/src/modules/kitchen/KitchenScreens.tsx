@@ -7,7 +7,6 @@ import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
 import { useMemo, useState } from 'react'
 import {
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -23,6 +22,7 @@ import { SearchField } from '../../components/SearchField'
 import { SwipeableRow } from '../../components/SwipeableRow'
 import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
@@ -114,25 +114,6 @@ function Composer({
   )
 }
 
-function ConfirmDelete(
-  labels: { cancel: string; delete: string },
-  {
-    title,
-    body,
-    onDelete,
-  }: {
-    title: string
-    body: string
-    onDelete: () => void
-  },
-) {
-  Alert.alert(title, body, [
-    { text: labels.cancel, style: 'cancel' },
-    { text: labels.delete, style: 'destructive', onPress: onDelete },
-  ])
-  return null
-}
-
 /** Dutch writes "maandag 21 sep"; as a label it wants only its first capital. */
 const sentenceCase = (text: string) =>
   text.charAt(0).toLocaleUpperCase() + text.slice(1)
@@ -168,6 +149,14 @@ export function MealPlannerScreen() {
   const addMeal = useMutation(api.kitchen.addMealEntry)
   const updateMeal = useMutation(api.kitchen.updateMealEntry)
   const removeMeal = useMutation(api.kitchen.removeMealEntry)
+  const confirmRemove = (entry: { _id: Id<'mealEntries'>; title: string }) =>
+    confirmDestructive({
+      title: fmt(t.kitchen.deleteTitle, { title: entry.title }),
+      message: t.kitchen.deleteBody,
+      confirm: t.actions.delete,
+      cancel: t.actions.cancel,
+      onConfirm: () => removeMeal({ groupSlug: group.slug, id: entry._id }),
+    })
   const setDinner = useMutation(api.kitchen.setDinner)
   const clearDinner = useMutation(api.kitchen.clearDinner)
   const candidates = useMemo(
@@ -417,23 +406,13 @@ export function MealPlannerScreen() {
           onAction={(action) => {
             if (action === 'edit') setEditing(entry._id)
             else
-              ConfirmDelete(t.actions, {
-                title: fmt(t.kitchen.deleteTitle, { title: entry.title }),
-                body: t.kitchen.deleteBody,
-                onDelete: () =>
-                  removeMeal({ groupSlug: group.slug, id: entry._id }),
-              })
+              confirmRemove(entry)
           }}
         >
           <SwipeableRow
             deleteLabel={t.actions.delete}
             onDelete={() =>
-              ConfirmDelete(t.actions, {
-                title: fmt(t.kitchen.deleteTitle, { title: entry.title }),
-                body: t.kitchen.deleteBody,
-                onDelete: () =>
-                  removeMeal({ groupSlug: group.slug, id: entry._id }),
-              })
+              confirmRemove(entry)
             }
           >
             <Pressable
@@ -643,6 +622,14 @@ export function PantryScreen() {
   const add = useMutation(api.kitchen.addPantryEntry)
   const update = useMutation(api.kitchen.updatePantryEntry)
   const remove = useMutation(api.kitchen.removePantryEntry)
+  const confirmRemove = (item: { _id: Id<'pantryEntries'>; title: string }) =>
+    confirmDestructive({
+      title: fmt(t.kitchen.deleteTitle, { title: item.title }),
+      message: t.kitchen.deleteBody,
+      confirm: t.actions.delete,
+      cancel: t.actions.cancel,
+      onConfirm: () => remove({ groupSlug: group.slug, id: item._id }),
+    })
   const [editing, setEditing] = useState<Id<'pantryEntries'> | null>(null)
   const entry = data?.pantry.find((item) => item._id === editing)
   return (
@@ -674,23 +661,13 @@ export function PantryScreen() {
             onAction={(action) =>
               action === 'edit'
                 ? setEditing(item._id)
-                : ConfirmDelete(t.actions, {
-                    title: fmt(t.kitchen.deleteTitle, { title: item.title }),
-                    body: t.kitchen.deleteBody,
-                    onDelete: () =>
-                      remove({ groupSlug: group.slug, id: item._id }),
-                  })
+                : confirmRemove(item)
             }
           >
             <SwipeableRow
               deleteLabel={t.actions.delete}
               onDelete={() =>
-                ConfirmDelete(t.actions, {
-                  title: fmt(t.kitchen.deleteTitle, { title: item.title }),
-                  body: t.kitchen.deleteBody,
-                  onDelete: () =>
-                    remove({ groupSlug: group.slug, id: item._id }),
-                })
+                confirmRemove(item)
               }
             >
               <Pressable

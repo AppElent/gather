@@ -8,15 +8,20 @@
  */
 
 import { isIsoDate } from '@gather/core/civil-date'
-import { calculationTotals, homeBuyingCosts } from '@gather/core/finance'
+import {
+  calculationTotals,
+  homeBuyingCosts,
+  parseCents,
+} from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, View } from 'react-native'
+import { View } from 'react-native'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
 import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
 import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
@@ -100,8 +105,8 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
       createCalculation({ houseId, groupSlug, name: value })
     }
     if (editing === 'value') {
-      const cents = Math.round(Number(value.replace(',', '.')) * 100)
-      if (!Number.isFinite(cents) || cents < 0) return
+      const cents = parseCents(value) ?? 0
+      if (cents < 0) return
       updateHouse({ id: houseId, groupSlug, valueCents: cents })
     }
     if (editing === 'bought') {
@@ -113,21 +118,16 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
   }
 
   function confirmDelete() {
-    Alert.alert(
-      fmt(text.errors.confirmDelete, { name: house?.name ?? '' }),
-      text.errors.confirmDeleteBody,
-      [
-        { text: text.actions.cancel, style: 'cancel' },
-        {
-          text: text.actions.delete,
-          style: 'destructive',
-          onPress: () => {
-            removeHouse({ id: houseId, groupSlug })
-            router.back()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(text.errors.confirmDelete, { name: house?.name ?? '' }),
+      message: text.errors.confirmDeleteBody,
+      confirm: text.actions.delete,
+      cancel: text.actions.cancel,
+      onConfirm: () => {
+        removeHouse({ id: houseId, groupSlug })
+        router.back()
+      },
+    })
   }
 
   return (

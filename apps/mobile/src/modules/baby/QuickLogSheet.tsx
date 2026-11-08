@@ -44,7 +44,6 @@ import {
   View,
 } from 'react-native'
 import { NativeSheet } from '../../components/NativeSheet'
-import { PhotoField } from '../../components/PhotoField'
 import { api, type Id } from '../../convex/api'
 import { haptics } from '../../feedback/haptics'
 import { fmt, plural, useI18n } from '../../i18n'
@@ -52,6 +51,7 @@ import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { DateTimeField } from './DateTimeField'
 import { EntryFields, fieldLabel } from './EntryFields'
+import { EntryPhotoField } from './EntryPhotoField'
 import { EVENT_ICONS } from './icons'
 import {
   buildSheetData,
@@ -111,7 +111,6 @@ export function QuickLogSheet({
     Partial<Record<BabyEventType, string | null>>
   >({})
 
-  const generateUploadUrl = useMutation(api.babies.generateUploadUrl)
 
   const fieldLabels = t.baby.log.fields as Record<string, string>
   const several = included.length > 1
@@ -364,33 +363,14 @@ export function QuickLogSheet({
               ]}
             />
 
-            {/* Only Memory offers a photo today. The control is general —
-                `photoId` is on the event, not inside a Memory's payload — so
-                the day a rash photo belongs on a Note this is one line. */}
-            {each === 'memory' ? (
-              <PhotoField
-                value={photos[each]}
-                onChange={(storageId) =>
-                  setPhotos((prev) => ({ ...prev, [each]: storageId }))
-                }
-                generateUploadUrl={generateUploadUrl}
-                labels={{
-                  heading: t.baby.log.entry.photo,
-                  take: t.baby.log.entry.takePhoto,
-                  choose: t.baby.log.entry.choosePhoto,
-                  replace: t.baby.log.entry.replacePhoto,
-                  remove: t.baby.log.entry.removePhoto,
-                  uploading: t.baby.log.entry.photoUploading,
-                  denied: t.baby.log.entry.photoDenied,
-                  failed: t.baby.log.entry.photoFailed,
-                  alt: fmt(t.baby.log.entry.photoOf, {
-                    type: t.baby.eventTypes[each],
-                  }),
-                }}
-                preset="memoryPhoto"
-                disabled={saving}
-              />
-            ) : null}
+            <EntryPhotoField
+              type={each}
+              value={photos[each]}
+              onChange={(storageId) =>
+                setPhotos((prev) => ({ ...prev, [each]: storageId }))
+              }
+              disabled={saving}
+            />
           </View>
         ))}
 

@@ -23,7 +23,7 @@
 import { useUser } from '@clerk/expo'
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { readThrown } from '../../../../../src/auth/clerkErrors'
 import { useSignOut } from '../../../../../src/auth/useSignOut'
@@ -33,6 +33,7 @@ import { AuthError } from '../../../../../src/components/AuthError'
 import { LoadingSkeleton } from '../../../../../src/components/LoadingSkeleton'
 import { api } from '../../../../../src/convex/api'
 import { useQuery } from '../../../../../src/convex/queries'
+import { confirmDestructive } from '../../../../../src/feedback/confirmDestructive'
 import { fmt, useI18n } from '../../../../../src/i18n'
 import { RADIUS, useTokens } from '../../../../../src/theme/tokens'
 
@@ -86,22 +87,17 @@ export default function DeleteAccount() {
   }
 
   function confirm() {
-    Alert.alert(
-      fmt(t.account.deleteAccount.confirmTitle, {
+    confirmDestructive({
+      title: fmt(t.account.deleteAccount.confirmTitle, {
         // Clerk first: the Convex mirror of the address is refreshed from the
         // JWT on mount, so it can be a token older than a change made here.
         email: user?.primaryEmailAddress?.emailAddress ?? preview?.email ?? '',
       }),
-      t.account.deleteAccount.confirmBody,
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: t.account.deleteAccount.confirm,
-          style: 'destructive',
-          onPress: () => void destroy(),
-        },
-      ],
-    )
+      message: t.account.deleteAccount.confirmBody,
+      confirm: t.account.deleteAccount.confirm,
+      cancel: t.actions.cancel,
+      onConfirm: () => void destroy(),
+    })
   }
 
   return (

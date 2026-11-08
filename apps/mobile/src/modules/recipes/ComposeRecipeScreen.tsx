@@ -60,7 +60,7 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { moduleHref } from '../moduleDestination'
-import { RecipeFields } from './RecipeFields'
+import { RecipeFields, SaveRecipeButton } from './RecipeFields'
 import {
   blankRecipeForm,
   recipeFieldsFrom,
@@ -354,31 +354,11 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
             </Text>
           ) : null}
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={text.form.save}
-            accessibilityState={{ disabled: Boolean(problem) || saving }}
-            testID="recipe-save"
-            disabled={Boolean(problem) || saving}
+          <SaveRecipeButton
+            disabled={Boolean(problem)}
+            saving={saving}
             onPress={save}
-            style={({ pressed }) => [
-              styles.save,
-              {
-                backgroundColor:
-                  problem || saving ? tokens.tile : tokens.accent,
-              },
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text
-              style={[
-                styles.saveLabel,
-                { color: problem || saving ? tokens.muted : tokens.onAccent },
-              ]}
-            >
-              {saving ? text.form.saving : text.form.save}
-            </Text>
-          </Pressable>
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </>
@@ -410,13 +390,5 @@ const styles = StyleSheet.create({
   importLabel: { fontSize: 15, fontWeight: '700' },
   note: { fontSize: 13, lineHeight: 19 },
   problem: { fontSize: 13, lineHeight: 19 },
-  save: {
-    borderRadius: RADIUS.control,
-    minHeight: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  saveLabel: { fontSize: 16, fontWeight: '700' },
   pressed: { opacity: 0.7 },
 })

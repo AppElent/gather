@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { homeBuyingCosts } from '../buyingCosts'
-import { formatMoney, roundCents, splitEvenly, toCents } from '../money'
+import {
+  formatMoney,
+  parseCents,
+  roundCents,
+  splitEvenly,
+  toCents,
+} from '../money'
 import { changeSince, netWorthTotals } from '../netWorth'
 import {
   holdingPosition,
@@ -23,6 +29,13 @@ describe('money', () => {
   it('rounds half away from zero, so a debt is never rounded to nothing', () => {
     expect(roundCents(0.5)).toBe(1)
     expect(roundCents(-0.5)).toBe(-1)
+  })
+
+  it('reads an amount box in either decimal mark, and a blank box as no amount', () => {
+    expect(parseCents('12,34')).toBe(1234)
+    expect(parseCents('0.1')).toBe(10)
+    expect(parseCents('')).toBeNull()
+    expect(parseCents('1,2,3')).toBeNull()
   })
 
   it('hands the remainder out rather than losing it', () => {

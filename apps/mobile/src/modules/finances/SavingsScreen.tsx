@@ -8,15 +8,16 @@
  */
 
 import { isIsoDate } from '@gather/core/civil-date'
-import { savingsProgress } from '@gather/core/finance'
+import { parseCents, savingsProgress } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
 import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
 import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
@@ -72,8 +73,8 @@ export function SavingsScreen() {
   }
 
   function save() {
-    const cents = Math.round(Number(target.replace(',', '.')) * 100)
-    if (!name.trim() || !Number.isFinite(cents) || cents <= 0) return
+    const cents = parseCents(target) ?? 0
+    if (!name.trim() || cents <= 0) return
     if (!isIsoDate(date)) return
     create({
       groupSlug,
@@ -214,8 +215,8 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
   const progress = savingsProgress(goal, today)
 
   function commit() {
-    const cents = Math.round(Number(draft.replace(',', '.')) * 100)
-    if (!Number.isFinite(cents) || cents < 0) {
+    const cents = parseCents(draft) ?? 0
+    if (cents < 0) {
       setEditing(null)
       return
     }
@@ -227,21 +228,16 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
   }
 
   function confirmDelete() {
-    Alert.alert(
-      fmt(text.errors.confirmDelete, { name: goal?.name ?? '' }),
-      text.errors.confirmDeleteBody,
-      [
-        { text: text.actions.cancel, style: 'cancel' },
-        {
-          text: text.actions.delete,
-          style: 'destructive',
-          onPress: () => {
-            remove({ id: goalId, groupSlug })
-            router.back()
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: fmt(text.errors.confirmDelete, { name: goal?.name ?? '' }),
+      message: text.errors.confirmDeleteBody,
+      confirm: text.actions.delete,
+      cancel: text.actions.cancel,
+      onConfirm: () => {
+        remove({ id: goalId, groupSlug })
+        router.back()
+      },
+    })
   }
 
   return (

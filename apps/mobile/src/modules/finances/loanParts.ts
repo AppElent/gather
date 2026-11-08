@@ -9,6 +9,7 @@
 
 import { localIsoDate, monthsUntil } from '@gather/core/civil-date'
 import type { LoanPart, LoanPartKind } from '@gather/core/finance'
+import { fmt } from '@gather/core/i18n'
 
 /** A loan part as `convex/loanParts` stores it. */
 export interface StoredLoanPart {
@@ -68,6 +69,6 @@ export function termWords(
   words: { years: string; months: string },
 ): string {
   if (months >= 24 && months % 12 === 0)
-    return words.years.replace('{years}', String(Math.round(months / 12)))
-  return words.months.replace('{months}', String(months))
+    return fmt(words.years, { years: Math.round(months / 12) })
+  return fmt(words.months, { months })
 }

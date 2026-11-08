@@ -16,6 +16,7 @@ import {
   calculationTotals,
   changeSince,
   netWorthTotals,
+  parseCents,
 } from '@gather/core/finance'
 import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
@@ -109,8 +110,8 @@ export function NetWorthScreen() {
   const change = changeSince(totals.netCents, previous?.netCents)
 
   function save() {
-    const cents = Math.round(Number(amount.replace(',', '.')) * 100)
-    if (!adding || !label.trim() || !Number.isFinite(cents) || cents < 0) return
+    const cents = parseCents(amount) ?? 0
+    if (!adding || !label.trim() || cents < 0) return
     addEntry({
       groupSlug,
       kind: adding,

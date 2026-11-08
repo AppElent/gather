@@ -85,11 +85,10 @@ export function ListsScreen() {
       >
         {listId ? (
           <Checklist
-            listId={listId as Id<'taskLists'>}
-            groupSlug={log.groupSlug}
+            listId={listId}
             title={title}
             addLabel={questions ? text.addQuestion : text.addTodo}
-            writable={found ? found.writable : true}
+            emptyLabel={t.baby.log.child.checklistEmpty}
             readOnlyReason={
               found
                 ? fmt(text.readOnlyBody, { provider: found.provider })

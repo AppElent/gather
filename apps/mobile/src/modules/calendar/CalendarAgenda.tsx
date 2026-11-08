@@ -10,7 +10,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SwipeableRow } from '../../components/SwipeableRow'
-import { useI18n } from '../../i18n'
+import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 
 export interface CalendarAgendaProps {
@@ -160,9 +160,10 @@ export function CalendarAgenda({
           accessibilityRole="button"
         >
           <Text style={[styles.gapText, { color: tokens.muted }]}>
-            {t.calendar.noEventsRange
-              .replace('{from}', shortDay(item.from))
-              .replace('{to}', shortDay(item.to))}
+            {fmt(t.calendar.noEventsRange, {
+              from: shortDay(item.from),
+              to: shortDay(item.to),
+            })}
           </Text>
         </Pressable>
       )

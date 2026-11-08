@@ -39,7 +39,6 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { openBrowserAsync } from 'expo-web-browser'
 import { useState } from 'react'
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -50,6 +49,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
@@ -157,28 +157,23 @@ export function RecipeScreen() {
   const id = recipe._id
 
   const confirmDelete = () => {
-    Alert.alert(
-      text.detail.deleteTitle,
-      fmt(text.detail.deleteBody, { title: recipe.title }),
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: t.actions.delete,
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await remove({ id })
-              // The screen changing is the confirmation; there is nothing left
-              // here to show a message on.
-              router.back()
-            } catch {
-              haptics.actionFailed()
-              setProblem(text.detail.deleteFailed)
-            }
-          },
-        },
-      ],
-    )
+    confirmDestructive({
+      title: text.detail.deleteTitle,
+      message: fmt(text.detail.deleteBody, { title: recipe.title }),
+      confirm: t.actions.delete,
+      cancel: t.actions.cancel,
+      onConfirm: async () => {
+        try {
+          await remove({ id })
+          // The screen changing is the confirmation; there is nothing left
+          // here to show a message on.
+          router.back()
+        } catch {
+          haptics.actionFailed()
+          setProblem(text.detail.deleteFailed)
+        }
+      },
+    })
   }
 
   const reEstimate = async () => {

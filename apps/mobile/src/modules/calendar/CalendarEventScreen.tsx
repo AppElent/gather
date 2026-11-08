@@ -1,19 +1,17 @@
 import { normalizeCalendarEvent } from '@gather/core/calendar'
 import { minutesToClock } from '@gather/core/civil-date'
-import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useAvailability } from '../../availability/AvailabilityProvider'
 import { api, type Id } from '../../convex/api'
 import { usePaginatedQuery, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { CalendarEditor } from '../calendar/CalendarEditor'
-import { useCalendarEditor } from '../calendar/useCalendarEditor'
+import { CalendarEditor } from './CalendarEditor'
+import { useCalendarEditor } from './useCalendarEditor'
 
 function time(value?: number) {
   return value === undefined ? null : minutesToClock(value)
@@ -34,49 +32,8 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
     { initialNumItems: 100 },
   )
   const members = useQuery(api.groups.members, { slug: group.slug })
-  const me = useQuery(api.users.me)
-  const { serviceActionsEnabled } = useAvailability()
-  const addEvent = useMutation(api.calendar.addCalendarEvent)
-  const updateEvent = useMutation(api.calendar.updateEvent)
-  const removeEvent = useMutation(api.calendar.removeCalendarEvent)
   const [editing, setEditing] = useState(false)
-  const controller = useCalendarEditor({
-    userId: me?._id ?? '',
-    groupId: group._id,
-    connected: serviceActionsEnabled && Boolean(me),
-    create: async (payload) => {
-      return await addEvent({
-        groupSlug: group.slug,
-        calendarId: payload.calendarId as never,
-        title: payload.title,
-        date: payload.date,
-        allDay: payload.allDay,
-        startMinutes: payload.startMinutes ?? undefined,
-        endMinutes: payload.endMinutes ?? undefined,
-        assigneeIds: payload.assigneeIds as Id<'users'>[],
-        location: payload.location ?? undefined,
-        notes: payload.notes ?? undefined,
-      })
-    },
-    update: async (id, revision, payload) =>
-      await updateEvent({
-        groupSlug: group.slug,
-        id: id as never,
-        expectedRevision: revision,
-        title: payload.title,
-        calendarId: payload.calendarId as never,
-        date: payload.date,
-        allDay: payload.allDay,
-        startMinutes: payload.startMinutes,
-        endMinutes: payload.endMinutes,
-        assigneeIds: payload.assigneeIds as Id<'users'>[],
-        location: payload.location,
-        notes: payload.notes,
-      }),
-    remove: async (id) => {
-      await removeEvent({ groupSlug: group.slug, id: id as never })
-    },
-  })
+  const controller = useCalendarEditor()
   useRecordRecent(
     event && event !== null
       ? {

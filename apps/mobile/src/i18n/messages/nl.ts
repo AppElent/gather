@@ -549,6 +549,7 @@ export const nl = {
     allDone: 'Alles af',
     linked: 'Gekoppeld',
     inList: 'in {list}',
+    notLoaded: 'Niet geladen',
 
     list: {
       addTask: 'Taak toevoegen…',
@@ -565,6 +566,11 @@ export const nl = {
       readOnly:
         'Deze lijst staat in {provider}. Gather kan hem lezen, maar er niet in schrijven — dus hier is geen invoerregel.',
       refreshed: 'Zojuist gesynchroniseerd',
+      loading: 'Laden uit {provider}…',
+      reconnect:
+        'Gather heeft geen verbinding meer met {provider}. Verbind opnieuw in Gather op het web en trek dan omlaag om te verversen.',
+      failed:
+        'Deze lijst kon niet uit {provider} worden geladen. Trek omlaag om het opnieuw te proberen.',
       complete: 'Afvinken',
       uncomplete: 'Weer openzetten',
       renameTask: 'Hernoemen',

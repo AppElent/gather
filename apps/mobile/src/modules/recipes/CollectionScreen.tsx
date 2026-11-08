@@ -35,7 +35,6 @@ import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import {
-  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -48,6 +47,7 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SearchField } from '../../components/SearchField'
 import { SwipeableRow } from '../../components/SwipeableRow'
 import { api, type Id } from '../../convex/api'
+import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
@@ -78,21 +78,16 @@ export function CollectionScreen() {
   const text = t.recipes.list
 
   function confirmDelete(recipe: ListedRecipe) {
-    Alert.alert(
-      t.recipes.detail.deleteTitle,
-      fmt(t.recipes.detail.deleteBody, { title: recipe.title }),
-      [
-        { text: t.actions.cancel, style: 'cancel' },
-        {
-          text: t.actions.delete,
-          style: 'destructive',
-          onPress: () =>
-            remove({ id: recipe._id as Id<'recipes'> }).catch(() =>
-              haptics.actionFailed(),
-            ),
-        },
-      ],
-    )
+    confirmDestructive({
+      title: t.recipes.detail.deleteTitle,
+      message: fmt(t.recipes.detail.deleteBody, { title: recipe.title }),
+      confirm: t.actions.delete,
+      cancel: t.actions.cancel,
+      onConfirm: () =>
+        remove({ id: recipe._id as Id<'recipes'> }).catch(() =>
+          haptics.actionFailed(),
+        ),
+    })
   }
 
   const openAdd = () => setAdding(true)
