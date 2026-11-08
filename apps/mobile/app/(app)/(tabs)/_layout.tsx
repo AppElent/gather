@@ -74,9 +74,9 @@ export default function TabsLayout() {
  * navigation does not re-render the five triggers and their native children.
  *
  * It watches the pathname rather than hanging off each trigger's `tabPress`,
- * because opening a search result is a `router.push` into the All tab — a tab
- * change with no press behind it, which a press-only recorder would miss and
- * then send you back one tab too far.
+ * because a tab also changes with no press behind it — a quick action, a Drop
+ * landing on what it made, a deep link — which a press-only recorder would
+ * miss and then send you back one tab too far.
  */
 function SearchOriginTracker() {
   const pathname = usePathname()

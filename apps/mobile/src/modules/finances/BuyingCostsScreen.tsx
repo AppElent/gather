@@ -19,15 +19,13 @@ import { useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
 import { FINANCE_ICONS } from './icons'
 import { termWords } from './loanParts'
-import type { FinanceBase } from './paths'
 import {
   AnswerBar,
   Card,
@@ -61,13 +59,7 @@ type Editing =
   | 'nhg'
   | null
 
-export function BuyingCostsScreen({
-  base: _base,
-  houseId,
-}: {
-  base: FinanceBase
-  houseId: Id<'houses'>
-}) {
+export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
   const tokens = useMoneyTokens()
   const { groupSlug, format, text } = useFinances()
   const house = useQuery(api.houses.get, { id: houseId, groupSlug })

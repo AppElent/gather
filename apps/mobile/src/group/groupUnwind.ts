@@ -29,8 +29,9 @@
  * Settings is not here: it is not Group-scoped, and keeps its place.
  */
 
-/** The tabs whose stacks show one Group's content. */
-const GROUP_SCOPED_TABS = ['home', 'all', 'search'] as const
+/** The tabs whose stacks show one Group's content: each draws
+ * `GroupScopedStack`. */
+export const GROUP_SCOPED_TABS = ['home', 'all', 'search'] as const
 
 /** The route every Group-scoped stack starts from: each layout declares it. */
 const ROOT_ROUTE = 'index'

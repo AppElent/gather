@@ -11,11 +11,6 @@
  * someone resetting one they think was stolen wants exactly that. Neither
  * default is right without asking, and asking is a question this prototype has
  * no answer for — see the resolution on #147.
- *
- * Clerk **Core 3**, the same generation as the web's forms in `src/lib/auth`
- * (ADR-0038): calls resolve to `{ error }`, and a finished attempt still needs
- * `finalize()`. The phone reads per-field errors off the hook's `errors`
- * signal, where the web shows one banner.
  */
 
 import { useSignIn } from '@clerk/expo'

@@ -10,9 +10,9 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
 import { useAvailability } from '../../availability/AvailabilityProvider'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api } from '../../convex/api'
 import { useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
 

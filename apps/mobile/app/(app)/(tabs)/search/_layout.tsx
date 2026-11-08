@@ -1,30 +1,7 @@
+import { GroupScopedStack } from '../../../../src/group/GroupScopedStack'
+
 /**
- * Search's stack, the same shape All and Home use, and reset on a Group switch
- * the same way (`src/group/groupUnwind.ts`, `GroupScoped`).
- *
- * The stack is not decoration: `Stack.SearchBar` on the screen below is the
- * native search bar, and it needs a native header to live in. `TabSafeArea` is
- * the other half — the iOS tab bar's height lands in the *screen's* safe area,
- * where a window-level reading cannot see it.
+ * Search's stack. It is not decoration: `Stack.SearchBar` on the screen below
+ * is the native search bar, and it needs a native header to live in.
  */
-import { Stack } from 'expo-router'
-
-import { GroupScoped } from '../../../../src/group/GroupProvider'
-import { TabSafeArea } from '../../../../src/shell/TabSafeArea'
-
-export default function SearchStackLayout() {
-  return (
-    <TabSafeArea>
-      <Stack
-        screenLayout={({ children }) => <GroupScoped>{children}</GroupScoped>}
-        screenOptions={{
-          headerShown: false,
-          headerBackButtonDisplayMode: 'minimal',
-          headerLargeTitle: true,
-        }}
-      >
-        <Stack.Screen name="index" />
-      </Stack>
-    </TabSafeArea>
-  )
-}
+export default GroupScopedStack

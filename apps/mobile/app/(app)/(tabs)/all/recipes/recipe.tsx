@@ -1,6 +1,6 @@
-/** One recipe, mounted under all. */
+/** One recipe. */
 import { RecipeScreen } from '../../../../../src/modules/recipes/RecipeScreen'
 
 export default function Recipe() {
-  return <RecipeScreen base="/all/recipes" />
+  return <RecipeScreen />
 }

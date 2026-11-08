@@ -1,5 +1,5 @@
 /**
- * One entry, mounted under all.
+ * One entry.
  *
  * The only screen in this Module the navigator presents as a sheet rather than
  * a push — see `EntryScreen` for why, and the stack layout for the options that

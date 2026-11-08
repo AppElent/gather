@@ -43,30 +43,23 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SearchField } from '../../components/SearchField'
 import { SwipeableRow } from '../../components/SwipeableRow'
+import { api, type Id } from '../../convex/api'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
+import { moduleHref } from '../moduleDestination'
 import { AddRecipeSheet } from './AddRecipeSheet'
 import { RECIPE_UI_ICONS } from './icons'
-import { type RecipeBase, recipeHref } from './paths'
 import { recipeCollection } from './recipeFilter'
 import { StarRating } from './StarRating'
 import { type ListedRecipe, useRecipes } from './useRecipes'
 
-export interface CollectionScreenProps {
-  /** Which tab stack this instance is mounted in (ADR-0023). */
-  base: RecipeBase
-}
-
-export function CollectionScreen({ base }: CollectionScreenProps) {
+export function CollectionScreen() {
   const tokens = useTokens('kitchen')
   const insets = useSafeAreaInsets()
   const router = useRouter()
@@ -105,11 +98,11 @@ export function CollectionScreen({ base }: CollectionScreenProps) {
   const openAdd = () => setAdding(true)
   const goImport = () => {
     setAdding(false)
-    router.push(recipeHref(base, '/import'))
+    router.push(moduleHref('/all/recipes/import'))
   }
   const goBlank = () => {
     setAdding(false)
-    router.push(recipeHref(base, '/new'))
+    router.push(moduleHref('/all/recipes/new'))
   }
 
   const header = (
@@ -243,10 +236,14 @@ export function CollectionScreen({ base }: CollectionScreenProps) {
           <RecipeRow
             recipe={item}
             onOpen={() =>
-              router.push(recipeHref(base, '/recipe', { recipeId: item._id }))
+              router.push(
+                moduleHref('/all/recipes/recipe', { recipeId: item._id }),
+              )
             }
             onEdit={() =>
-              router.push(recipeHref(base, '/edit', { recipeId: item._id }))
+              router.push(
+                moduleHref('/all/recipes/edit', { recipeId: item._id }),
+              )
             }
             onDelete={() => confirmDelete(item)}
           />

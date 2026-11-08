@@ -43,11 +43,9 @@ import {
   TextInput,
   View,
 } from 'react-native'
-
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { NativeSheet } from '../../components/NativeSheet'
 import { PhotoField } from '../../components/PhotoField'
+import { api, type Id } from '../../convex/api'
 import { haptics } from '../../feedback/haptics'
 import { fmt, plural, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'

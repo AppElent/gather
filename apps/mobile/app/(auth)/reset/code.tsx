@@ -4,24 +4,18 @@
  * A correct code moves `signIn.status` to `'needs_new_password'`. It does not
  * sign anyone in and must not look as though it has — hence a third screen
  * rather than revealing a password field in place.
- *
- * Clerk **Core 3**, the same generation as the web's forms in `src/lib/auth`
- * (ADR-0038): calls resolve to `{ error }`, and a finished attempt still needs
- * `finalize()`. The phone reads per-field errors off the hook's `errors`
- * signal, where the web shows one banner.
  */
 
 import { useSignIn } from '@clerk/expo'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { type CodedError, pickError } from '../../../src/auth/clerkErrors'
+import { CODE_LENGTH } from '../../../src/auth/codeLength'
 import { AuthButton } from '../../../src/components/AuthButton'
 import { AuthError } from '../../../src/components/AuthError'
 import { AuthField } from '../../../src/components/AuthField'
 import { AuthScreen } from '../../../src/components/AuthScreen'
 import { fmt, useI18n } from '../../../src/i18n'
-
-const CODE_LENGTH = 6
 
 export default function ResetCode() {
   const { t } = useI18n()

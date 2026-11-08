@@ -6,7 +6,7 @@ import {
 } from '@gather/core/calendar'
 import { addMonths, monthStart } from '@gather/core/civil-date'
 import { useCallback, useMemo, useState } from 'react'
-import { api } from '../../../../../convex/_generated/api'
+import { api } from '../../convex/api'
 import { usePaginatedQuery, useQuery } from '../../convex/queries'
 
 import type { CalendarScreenData } from './CalendarScreen'

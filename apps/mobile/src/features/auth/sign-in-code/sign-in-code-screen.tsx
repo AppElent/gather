@@ -20,6 +20,7 @@
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { StyleSheet, Text } from 'react-native'
+import { CODE_LENGTH } from '../../../auth/codeLength'
 import { AuthButton } from '../../../components/AuthButton'
 import { AuthError } from '../../../components/AuthError'
 import { AuthField } from '../../../components/AuthField'
@@ -31,7 +32,6 @@ import { TYPE, useTokens } from '../../../theme/tokens'
 import { useEmailCodeSignIn } from '../use-email-code-sign-in'
 import { useCooldown } from './use-cooldown'
 
-const CODE_LENGTH = 6
 const RESEND_COOLDOWN_SECONDS = 30
 /** Backup codes are eight characters; anything else is a code of this length. */
 const BACKUP_CODE_MAX_LENGTH = 16

@@ -30,21 +30,18 @@
  *
  * ## Routes
  *
- * A target carries a function rather than a path because most destinations are
- * only addressable once the write has happened — the note that was just made,
- * the list that was just picked. The cast inside each one is the same cast
- * `modules/recipes/paths.ts` explains: typed routes cannot check a template
- * string, so the assembly is confined to the files that own a Module's paths
- * and to this one.
+ * Every target carries its route, and `useDropCommit` asks it rather than
+ * building an address of its own. It is a function rather than a path because
+ * most destinations are only addressable once the write has happened — the
+ * note that was just made, the list that was just picked — and the two that
+ * write nothing yet are addressed by what the Drop hands their screen.
  */
 import { type DropKind, dropHostPreference } from '@gather/core/drop-rules'
 import type { ModuleIconName, ModuleId } from '@gather/core/modules'
 import type { TastingKind } from '@gather/core/tastings'
 import type { Href } from 'expo-router'
 
-import { babyHref } from '../modules/baby/paths'
-import { recipeHref } from '../modules/recipes/paths'
-import { tastingHref } from '../modules/tasting/paths'
+import { moduleHref } from '../modules/moduleDestination'
 
 export type DropTargetId =
   | 'recipe-import'
@@ -73,27 +70,45 @@ export type DropPick =
   | 'recipe'
   | 'tasting-subject'
 
-/** What a route needs to name the thing the Drop just became or joined. */
-export interface DropRouteParams {
-  /** The record the Drop landed on: a note, a list, a recipe, a subject. */
-  id: string
+/**
+ * What a route needs to name where the Drop went.
+ *
+ * Most targets name the record the Drop landed on — a note, a list, a recipe,
+ * a subject, a Child. The two recipe targets write nothing yet, so their
+ * screens are handed the Drop itself: the link to import, or the photo that is
+ * already uploaded (ADR-0010) and the local file it was prepared from.
+ */
+interface DropRouteParamsById {
+  'recipe-import': { link: string }
+  'recipe-new-photo': { photoId: string; photoUri: string }
 }
 
-export type DropTarget = {
+export type DropRouteParams<Id extends DropTargetId = DropTargetId> =
+  Id extends keyof DropRouteParamsById ? DropRouteParamsById[Id] : { id: string }
+
+interface DropTargetFields {
   module: ModuleId
   icon: ModuleIconName
   picks: DropPick
   /** Only a tasting target: which Kind stage two lists subjects from. */
   tastingKind?: TastingKind
-} & (
-  /** Their screens take the Drop itself as params, so `useDropCommit` addresses them. */
-  | { id: 'recipe-import' | 'recipe-new-photo' }
-  | {
-      id: Exclude<DropTargetId, 'recipe-import' | 'recipe-new-photo'>
-      /** Where the person is standing once the Drop is finished. */
-      route: (params: DropRouteParams) => Href
-    }
-)
+  /**
+   * The destination screen still has work to do, and can fail at it, so the
+   * Drop stays pending until that screen saves — and the chooser stays under
+   * it, so Back is somewhere else to put the Drop. That screen clears the Drop
+   * when it saves (`useDrop().clear`), as the chooser does for every other
+   * target. Only the importer: it reads the page on its own screen.
+   */
+  keepsDrop?: true
+}
+
+export type DropTarget = {
+  [Id in DropTargetId]: DropTargetFields & {
+    id: Id
+    /** Where the person is standing once the Drop is finished. */
+    route: (params: DropRouteParams<Id>) => Href
+  }
+}[DropTargetId]
 
 const RECIPES: DropTarget[] = [
   {
@@ -104,23 +119,27 @@ const RECIPES: DropTarget[] = [
     module: 'recipes',
     icon: 'ChefHat',
     picks: 'none',
+    keepsDrop: true,
+    route: ({ link }) => moduleHref('/all/recipes/import', { link }),
   },
   {
     id: 'recipe-new-photo',
     module: 'recipes',
     icon: 'ChefHat',
     picks: 'none',
+    route: ({ photoId, photoUri }) =>
+      moduleHref('/all/recipes/new', { photoId, photoUri }),
   },
   {
     id: 'recipe-photo',
     module: 'recipes',
     icon: 'ChefHat',
     picks: 'recipe',
-    route: ({ id }) => recipeHref('/all/recipes', '/recipe', { recipeId: id }),
+    route: ({ id }) => moduleHref('/all/recipes/recipe', { recipeId: id }),
   },
 ]
 
-const noteRoute = ({ id }: DropRouteParams): Href =>
+const noteRoute = ({ id }: { id: string }): Href =>
   ({ pathname: '/all/notes/[noteId]', params: { noteId: id } }) as Href
 
 const NOTES: DropTarget[] = [
@@ -162,7 +181,7 @@ const GROCERIES: DropTarget[] = [
     module: 'groceries',
     icon: 'ShoppingCart',
     picks: 'none',
-    route: () => '/all/groceries' as Href,
+    route: () => moduleHref('/all/groceries'),
   },
 ]
 
@@ -172,7 +191,7 @@ const BABY_LOG: DropTarget[] = [
     module: 'baby-log',
     icon: 'Baby',
     picks: 'none',
-    route: () => babyHref('/all/baby-log', '/timeline'),
+    route: () => moduleHref('/all/baby-log/timeline'),
   },
 ]
 
@@ -189,7 +208,7 @@ function tastingPhoto(
     picks: 'tasting-subject',
     tastingKind: kind,
     route: ({ id: subjectId }) =>
-      tastingHref('/all/tasting', kind, '/subject', { subjectId }),
+      moduleHref(`/all/tasting/${kind}/subject`, { subjectId }),
   }
 }
 

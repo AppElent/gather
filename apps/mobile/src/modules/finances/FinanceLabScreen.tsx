@@ -10,14 +10,14 @@ import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt, useI18n } from '../../i18n'
+import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
 import { toLoanParts } from './loanParts'
-import { type FinanceBase, financeHref } from './paths'
 import { portfolioTotalsFor } from './portfolioTotals'
 import {
   AddRow,
@@ -31,8 +31,6 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
-
-const BASE = '/settings/labs/finance' satisfies FinanceBase
 
 export function FinanceLabScreen() {
   const tokens = useMoneyTokens()
@@ -111,7 +109,9 @@ export function FinanceLabScreen() {
                 chevron
                 onPress={() =>
                   router.push(
-                    financeHref(BASE, '/house', { houseId: house._id }),
+                    moduleHref('/settings/labs/finance/house', {
+                      houseId: house._id,
+                    }),
                   )
                 }
               />
@@ -141,7 +141,9 @@ export function FinanceLabScreen() {
             }
             emphasis
             chevron
-            onPress={() => router.push(financeHref(BASE, '/portfolio'))}
+            onPress={() =>
+              router.push(moduleHref('/settings/labs/finance/portfolio'))
+            }
           />
           <Row
             leading={<Scale size={20} color={tint.fg} strokeWidth={1.8} />}
@@ -159,7 +161,9 @@ export function FinanceLabScreen() {
             emphasis
             chevron
             last
-            onPress={() => router.push(financeHref(BASE, '/net-worth'))}
+            onPress={() =>
+              router.push(moduleHref('/settings/labs/finance/net-worth'))
+            }
           />
         </Card>
         <Disclaimer />

@@ -44,32 +44,25 @@ import {
   Text,
   View,
 } from 'react-native'
-
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
+import { api, type Id } from '../../convex/api'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
+import { moduleHref } from '../moduleDestination'
 import { ChildSwitcher } from './ChildSwitcher'
 import { useMinuteClock } from './clock'
 import { FirstRun } from './FirstRun'
 import { BABY_UI_ICONS, EVENT_ICONS } from './icons'
 import { LogBar } from './LogBar'
 import { hideSlot, showAllSlots } from './logBarState'
-import { type BabyBase, babyHref } from './paths'
 import { type QuickListKind, QuickListSheet } from './QuickListSheet'
 import { QuickLogSheet } from './QuickLogSheet'
 import { TrendCard } from './TrendCard'
 import { tileStatus, tileTypes } from './todayStatus'
 import { useBabyLog } from './useBabyLog'
 
-export interface ChildScreenProps {
-  /** Which tab stack this instance is mounted in (ADR-0023). */
-  base: BabyBase
-}
-
-export function ChildScreen({ base }: ChildScreenProps) {
+export function ChildScreen() {
   const tokens = useTokens('home')
   const { t, locale } = useI18n()
   const router = useRouter()
@@ -93,7 +86,7 @@ export function ChildScreen({ base }: ChildScreenProps) {
         <LoadingSkeleton rows={5} label={t.actions.loading} />
       </View>
     )
-  if (!log.child) return <FirstRun base={base} groupName={log.groupName} />
+  if (!log.child) return <FirstRun groupName={log.groupName} />
 
   const child = log.child
   // The Module's own name, from the shared catalogue: the header must not
@@ -284,7 +277,9 @@ export function ChildScreen({ base }: ChildScreenProps) {
           events={events}
           title={t.baby.log.status.weight}
           onOpenAll={() =>
-            router.push(babyHref(base, '/trends', { childId: child._id }))
+            router.push(
+              moduleHref('/all/baby-log/trends', { childId: child._id }),
+            )
           }
         />
 
@@ -314,7 +309,10 @@ export function ChildScreen({ base }: ChildScreenProps) {
               accessibilityLabel={label}
               onPress={() =>
                 router.push(
-                  babyHref(base, '/lists', { childId: child._id, list }),
+                  moduleHref('/all/baby-log/lists', {
+                    childId: child._id,
+                    list,
+                  }),
                 )
               }
               style={({ pressed }) => [
@@ -342,7 +340,9 @@ export function ChildScreen({ base }: ChildScreenProps) {
         <Pressable
           accessibilityRole="button"
           onPress={() =>
-            router.push(babyHref(base, '/timeline', { childId: child._id }))
+            router.push(
+              moduleHref('/all/baby-log/timeline', { childId: child._id }),
+            )
           }
           style={({ pressed }) => [styles.seeAll, pressed && styles.pressed]}
         >
@@ -374,7 +374,7 @@ export function ChildScreen({ base }: ChildScreenProps) {
           }}
           onEdit={(id) => {
             setSwitching(false)
-            router.push(babyHref(base, '/settings', { childId: id }))
+            router.push(moduleHref('/all/baby-log/settings', { childId: id }))
           }}
           onDelete={(id) => {
             const childToDelete = log.children?.find((item) => item._id === id)
@@ -382,7 +382,7 @@ export function ChildScreen({ base }: ChildScreenProps) {
           }}
           onAdd={() => {
             setSwitching(false)
-            router.push(babyHref(base, '/new'))
+            router.push(moduleHref('/all/baby-log/new'))
           }}
           onClose={() => setSwitching(false)}
         />

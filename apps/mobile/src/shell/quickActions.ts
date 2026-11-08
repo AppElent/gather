@@ -2,7 +2,7 @@ import type { ModuleGroup, ModuleIconName } from '@gather/core/modules'
 import type { TastingKind } from '@gather/core/tastings'
 import type { Href } from 'expo-router'
 
-import { ADD_TAB_BASE, recipeHref } from '../modules/recipes/paths'
+import { moduleHref } from '../modules/moduleDestination'
 
 /**
  * How far a Module's quick action can proceed inside the launcher.
@@ -98,7 +98,7 @@ export const QUICK_ACTIONS = [
     group: 'kitchen',
     icon: 'ChefHat',
     kind: 'handoff',
-    href: recipeHref(ADD_TAB_BASE, '/import'),
+    href: moduleHref('/all/recipes/import'),
   },
   {
     id: 'meal-log',

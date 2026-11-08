@@ -13,15 +13,14 @@ import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Alert, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
+import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
 import { toLoanParts } from './loanParts'
-import { type FinanceBase, financeHref } from './paths'
 import {
   AddRow,
   Card,
@@ -39,13 +38,7 @@ import { useFinances } from './useFinances'
 
 type Editing = 'calculation' | 'value' | 'bought' | null
 
-export function HouseScreen({
-  base,
-  houseId,
-}: {
-  base: FinanceBase
-  houseId: Id<'houses'>
-}) {
+export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { groupSlug, format, text, today } = useFinances()
@@ -203,7 +196,7 @@ export function HouseScreen({
                 chevron
                 onPress={() =>
                   router.push(
-                    financeHref(base, '/mortgage', {
+                    moduleHref('/settings/labs/finance/mortgage', {
                       calculationId: calculation._id,
                     }),
                   )
@@ -275,7 +268,9 @@ export function HouseScreen({
             chevron
             last
             onPress={() =>
-              router.push(financeHref(base, '/buying-costs', { houseId }))
+              router.push(
+                moduleHref('/settings/labs/finance/buying-costs', { houseId }),
+              )
             }
           />
         </Card>

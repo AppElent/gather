@@ -12,8 +12,7 @@
 import { type RequestForQueries, useQueries } from 'convex/react'
 import { useMemo } from 'react'
 
-import { api } from '../../../../convex/_generated/api'
-import type { Doc } from '../../../../convex/_generated/dataModel'
+import { api, type Doc } from '../convex/api'
 import { SessionIdentityError } from './SessionIdentityBoundary'
 
 export function useViewer(enabled: boolean): Doc<'users'> | null | undefined {

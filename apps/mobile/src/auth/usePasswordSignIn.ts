@@ -24,11 +24,6 @@
  * quietly does nothing is the worst of the three outcomes. Hence the check
  * before `finalize()`: the person gets an honest error, and the log names the
  * status that needs a screen building.
- *
- * Clerk **Core 3**, the same generation as the web's forms in `src/lib/auth`
- * (ADR-0038): calls resolve to `{ error }`, and a finished attempt still needs
- * `finalize()`. The phone reads per-field errors off the hook's `errors`
- * signal, where the web shows one banner.
  */
 
 import { useSignIn } from '@clerk/expo'

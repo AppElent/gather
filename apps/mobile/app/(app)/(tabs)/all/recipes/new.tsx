@@ -1,6 +1,6 @@
-/** Writing a recipe out by hand, mounted under all. */
+/** Writing a recipe out by hand. */
 import { ComposeRecipeScreen } from '../../../../../src/modules/recipes/ComposeRecipeScreen'
 
 export default function NewRecipe() {
-  return <ComposeRecipeScreen base="/all/recipes" mode="new" />
+  return <ComposeRecipeScreen mode="new" />
 }

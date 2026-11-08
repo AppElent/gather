@@ -23,25 +23,23 @@ import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../convex/_generated/api'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { SearchField } from '../../components/SearchField'
+import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
+import { moduleHref } from '../moduleDestination'
 import { CaptureFlow, useCapture } from './CaptureFlow'
 import { KIND_ICONS, TASTING_UI_ICONS } from './icons'
-import type { TastingBase } from './paths'
-import { moduleIdOf, tastingHref } from './paths'
+import { moduleIdOf } from './paths'
 import { indexSummary, subjectFacts, tastingCount } from './summary'
 import { kindWords } from './words'
 
 export function IndexScreen({
-  base,
   kind,
 }: {
-  base: TastingBase
   kind: TastingKind
 }) {
   const tokens = useTokens('tasting')
@@ -50,7 +48,7 @@ export function IndexScreen({
   const { t, locale } = useI18n()
   const { group } = useGroup()
   const [query, setQuery] = useState('')
-  const capture = useCapture(base, kind)
+  const capture = useCapture(kind)
 
   const words = kindWords(t.tastings, kind)
   const Plus = TASTING_UI_ICONS.Plus
@@ -208,7 +206,7 @@ export function IndexScreen({
             accessibilityLabel={subject.name}
             onPress={() =>
               router.push(
-                tastingHref(base, kind, '/subject', {
+                moduleHref(`/all/tasting/${kind}/subject`, {
                   subjectId: subject._id,
                 }),
               )

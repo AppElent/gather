@@ -13,14 +13,13 @@ import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Alert, StyleSheet, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
+import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
-import { type FinanceBase, financeHref } from './paths'
 import {
   AddRow,
   Card,
@@ -37,7 +36,7 @@ import {
 } from './ui'
 import { useFinances } from './useFinances'
 
-export function SavingsScreen({ base }: { base: FinanceBase }) {
+export function SavingsScreen() {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { groupSlug, format, text, today } = useFinances()
@@ -124,7 +123,9 @@ export function SavingsScreen({ base }: { base: FinanceBase }) {
                   chevron
                   onPress={() =>
                     router.push(
-                      financeHref(base, '/goal', { goalId: goal._id }),
+                      moduleHref('/all/savings-goals/goal', {
+                        goalId: goal._id,
+                      }),
                     )
                   }
                 />
@@ -172,13 +173,7 @@ export function SavingsScreen({ base }: { base: FinanceBase }) {
 
 type Editing = 'saved' | 'monthly' | null
 
-export function SavingsGoalScreen({
-  base: _base,
-  goalId,
-}: {
-  base: FinanceBase
-  goalId: Id<'savingsGoals'>
-}) {
+export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { groupSlug, format, text, today } = useFinances()

@@ -2,6 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { useAvailability } from '../availability/AvailabilityProvider'
 import { NativeSheet } from '../components/NativeSheet'
+import type { Id } from '../convex/api'
 import { useGroup } from '../group/GroupProvider'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
@@ -15,7 +16,7 @@ export function GroupSwitcherSheet({ onClose }: { onClose: () => void }) {
   const { serviceActionsEnabled } = useAvailability()
   const Check = UI_ICONS.Check
 
-  function choose(groupId: string) {
+  function choose(groupId: Id<'groups'>) {
     if (groupId !== current._id) setGroup(groupId)
     onClose()
   }

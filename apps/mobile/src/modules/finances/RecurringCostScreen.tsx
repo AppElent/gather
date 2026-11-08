@@ -17,13 +17,11 @@ import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Alert, StyleSheet, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
-import type { FinanceBase } from './paths'
 import {
   Card,
   Chip,
@@ -42,10 +40,8 @@ import { useFinances } from './useFinances'
 type Editing = 'amount' | 'frequency' | 'category' | 'note' | 'split' | null
 
 export function RecurringCostScreen({
-  base: _base,
   costId,
 }: {
-  base: FinanceBase
   costId: Id<'recurringCosts'>
 }) {
   const tokens = useMoneyTokens()

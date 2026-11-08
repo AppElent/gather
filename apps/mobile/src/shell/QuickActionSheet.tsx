@@ -21,7 +21,7 @@ import {
 import { NativeSheet } from '../components/NativeSheet'
 import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
-import { TASTING_BASES, tastingHref } from '../modules/tasting/paths'
+import { moduleHref } from '../modules/moduleDestination'
 import { SubjectPickerSheet } from '../modules/tasting/SubjectPickerSheet'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
@@ -63,16 +63,6 @@ function SheetBody({
   const tokens = useTokens()
   const { t } = useI18n()
   const [openId, setOpenId] = useState<QuickActionId | null>(null)
-  /**
-   * Which tab stack a handoff is pushed into: **the one you are looking at**.
-   *
-   * The launcher floats over whichever tab is focused, and pushing into a
-   * different tab's stack is not merely disorienting — expo-router tears the
-   * unfocused stack down under you and the app goes with it. It is also the
-   * handoff rule (`apps/mobile/DESIGN_SYSTEM.md`): you pressed Add from All, so
-   * saving has to put you back in All.
-   */
-  const base = TASTING_BASES.all
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [added, setAdded] = useState<string[]>([])
   const text = t.shell.add
@@ -191,7 +181,7 @@ function SheetBody({
         onChoose={(choice) => {
           onClose()
           router.push(
-            tastingHref(base, composing, '/compose', {
+            moduleHref(`/all/tasting/${composing}/compose`, {
               mode: 'new',
               ...('subjectId' in choice
                 ? { subjectId: choice.subjectId }

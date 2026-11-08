@@ -66,6 +66,7 @@
     {
       "includes": ["apps/mobile/**"],
       "linter": {
+        "enabled": true,
         "rules": {
           "correctness": {
             "noReactNativeRawText": {
@@ -91,16 +92,49 @@
       "includes": [
         "apps/mobile/src/**",
         "apps/mobile/app/**",
-        "!**/*.test.*",
-        "!apps/mobile/src/convex/queries.ts",
-        "!apps/mobile/src/auth/useViewer.ts"
+        "!apps/mobile/src/convex/api.ts"
       ],
       "linter": {
+        "enabled": true,
         "rules": {
           "style": {
             "noRestrictedImports": {
               "level": "error",
               "options": {
+                "patterns": [
+                  {
+                    "group": ["**/convex/_generated", "**/convex/_generated/**"],
+                    "message": "Import api, Doc and Id from apps/mobile/src/convex/api (docs/standards/repo-layout.md)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/mobile/src/**",
+        "apps/mobile/app/**",
+        "!**/*.test.*",
+        "!apps/mobile/src/convex/queries.ts",
+        "!apps/mobile/src/auth/useViewer.ts",
+        "!apps/mobile/src/convex/api.ts"
+      ],
+      "linter": {
+        "enabled": true,
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["**/convex/_generated", "**/convex/_generated/**"],
+                    "message": "Import api, Doc and Id from apps/mobile/src/convex/api (docs/standards/repo-layout.md)."
+                  }
+                ],
                 "paths": {
                   "convex/react": {
                     "importNames": [

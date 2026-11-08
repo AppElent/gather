@@ -7,13 +7,14 @@
  * abandoned would leave the app standing somewhere the person never asked to
  * be, and ADR-0028 says an abandoned Drop leaves nothing behind.
  *
- * So this answers with a slug and changes nothing. The chooser holds it,
+ * So this answers with a Group id and changes nothing. The chooser holds it,
  * writes into it, and only then follows the Drop there — which is what
  * "confirming switches the app's Group as part of the save" means.
  */
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { NativeSheet } from '../components/NativeSheet'
+import type { Id } from '../convex/api'
 import { useGroup } from '../group/GroupProvider'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
@@ -24,9 +25,9 @@ export function DropGroupSheet({
   onSelect,
   onClose,
 }: {
-  /** The slug currently named, which is not necessarily the ambient Group. */
-  selected: string
-  onSelect: (slug: string) => void
+  /** The Group currently named, which is not necessarily the ambient one. */
+  selected: Id<'groups'>
+  onSelect: (groupId: Id<'groups'>) => void
   onClose: () => void
 }) {
   const tokens = useTokens()
@@ -42,14 +43,14 @@ export function DropGroupSheet({
     >
       <ScrollView contentContainerStyle={styles.content}>
         {groups.map((group) => {
-          const isSelected = group.slug === selected
+          const isSelected = group._id === selected
           return (
             <Pressable
-              key={group.slug}
+              key={group._id}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
               onPress={() => {
-                onSelect(group.slug)
+                onSelect(group._id)
                 onClose()
               }}
               style={({ pressed }) => [

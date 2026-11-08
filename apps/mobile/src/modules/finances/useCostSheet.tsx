@@ -19,9 +19,8 @@ import {
 import { useMutation } from 'convex/react'
 import { type ReactNode, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-
-import { api } from '../../../../../convex/_generated/api'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api } from '../../convex/api'
 import { useI18n } from '../../i18n'
 import { Chip, Field, PrimaryButton } from './ui'
 

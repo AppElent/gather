@@ -105,12 +105,12 @@ export function Notes() {
           actions={[
             {
               id: 'pin',
-              title: note.pinned ? t.labs.notes.unpin : t.labs.notes.pin,
+              title: note.pinned ? t.notes.unpin : t.notes.pin,
               image: 'pin',
             },
             {
               id: 'delete',
-              title: t.labs.notes.delete,
+              title: t.notes.delete,
               image: 'trash',
               attributes: { destructive: true },
             },
@@ -126,7 +126,7 @@ export function Notes() {
           <Pressable
             testID={`note-${note.id}`}
             accessibilityRole="button"
-            accessibilityLabel={note.title || t.labs.notes.untitled}
+            accessibilityLabel={note.title || t.notes.untitled}
             onPress={() => open(note.id)}
             android_ripple={{ color: tokens.tile }}
             style={({ pressed }) => [
@@ -145,7 +145,7 @@ export function Notes() {
                 numberOfLines={1}
                 style={[styles.noteTitle, { color: tokens.fg }]}
               >
-                {note.title || t.labs.notes.untitled}
+                {note.title || t.notes.untitled}
               </Text>
               <Text
                 numberOfLines={1}
@@ -155,7 +155,7 @@ export function Notes() {
               </Text>
             </View>
             <Text style={[styles.when, { color: tokens.muted }]}>
-              {noteWhen(note.updatedAt, locale, t.labs.task.today)}
+              {noteWhen(note.updatedAt, locale, t.notes.today)}
             </Text>
           </Pressable>
         </NativeContextMenu>
@@ -168,12 +168,12 @@ export function Notes() {
       <Stack.Screen
         options={{
           headerShown: true,
-          title: t.labs.notes.title,
+          title: t.notes.title,
           headerRight: () => (
             <Pressable
               testID="note-new"
               accessibilityRole="button"
-              accessibilityLabel={t.labs.notes.newNote}
+              accessibilityLabel={t.notes.newNote}
               hitSlop={12}
               onPress={async () => {
                 const id = await taskActions.addNote()
@@ -199,19 +199,19 @@ export function Notes() {
         <SearchField
           value={query}
           onChangeText={setQuery}
-          placeholder={t.labs.notes.search}
+          placeholder={t.notes.search}
           clearAccessibilityLabel={t.search.clear}
           testID="notes-search"
         />
 
         {state.notes.length === 0 ? (
           <Text style={[styles.empty, { color: tokens.muted }]}>
-            {t.labs.notes.empty}
+            {t.notes.empty}
           </Text>
         ) : matching.length === 0 ? (
           <View style={styles.notFound}>
             <Text style={[styles.empty, { color: tokens.muted }]}>
-              {fmt(t.labs.notes.noMatches, { query: query.trim() })}
+              {fmt(t.notes.noMatches, { query: query.trim() })}
             </Text>
             <Pressable
               testID="notes-clear-search"
@@ -233,13 +233,13 @@ export function Notes() {
           <>
             {pinned.length > 0 ? (
               <View style={styles.group}>
-                <SectionLabel>{t.labs.notes.pinned}</SectionLabel>
+                <SectionLabel>{t.notes.pinned}</SectionLabel>
                 {rows(pinned)}
               </View>
             ) : null}
             {rest.length > 0 ? (
               <View style={styles.group}>
-                <SectionLabel>{t.labs.notes.recent}</SectionLabel>
+                <SectionLabel>{t.notes.recent}</SectionLabel>
                 {rows(rest)}
               </View>
             ) : null}

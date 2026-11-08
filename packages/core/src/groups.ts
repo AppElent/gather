@@ -1,45 +1,42 @@
 /**
- * Which Group a client opens in, when nothing has said which one yet.
+ * Which Group a client opens in.
  *
- * Both clients ask this and they must answer it the same way — the web from a
- * URL that named no Group (`/`, or a link written before ADR-0002), the phone
- * from a slug it retained across a launch (ADR-0015). Neither reads a stored
- * *active* Group off the `users` row: that is the model ADR-0002 exists to
- * delete, and it is still deleted here. What the phone retains is a local
- * memory of where its one foreground session was, validated against the
- * Member's Groups on every read and never written anywhere the web can see.
+ * The Current Group is ambient on both clients (ADR-0031): each retains the id
+ * of the Group it was last in, locally, and both ask this function whether
+ * that id is still good, so they answer it the same way. Neither reads a
+ * stored *active* Group off the `users` row — there is no server-side default.
+ * What a client retains is a local memory of where it was, validated against
+ * the Member's Groups on every read and never written anywhere another client
+ * can see.
  */
 
 /** The Sample household's Group. Its name is how the seed finds it again. */
 export const SAMPLE_GROUP_NAME = 'Willow Street'
 
-/** Enough of a Group to choose one and address it. */
+/** Enough of a Group to choose one. */
 export interface LandingGroup {
   _id: string
 }
 
 /**
- * Which Group to send someone to when the address they arrived at names none —
- * `/`, or a link written before ADR-0002.
+ * Which Group to open when nothing was retained, or what was retained is no
+ * longer the Member's.
  *
  * Their Personal group, because everybody has one and it is the Group whose
  * content is certainly theirs; failing that, the first Group they belong to.
- * Null when they belong to none, which means there is nowhere to land and
- * `/groups` is the only honest answer.
+ * Null when they belong to none, which means there is nowhere to land and the
+ * join-or-create flow is the only honest answer.
  *
- * This is not the stored active Group coming back through the side door.
- * Nothing is written, nothing is remembered, and the next request resolves it
- * again from scratch. It decides one redirect, and the address that redirect
- * lands on says the Group out loud — so two tabs can still sit in two different
- * Groups, and the URL is still the only thing that says which one you are
- * reading (ADR-0002).
+ * This is not a stored active Group coming back through the side door: it is
+ * resolved from the membership list alone, and the client that asks retains
+ * the answer locally.
  */
 export function landingGroupId(groups: readonly LandingGroup[]): string | null {
   return groups[0]?._id ?? null
 }
 
 /**
- * The Group a phone reopens in: what it retained, if that is still a Group the
+ * The Group a client opens in: the id it retained, if that is still a Group the
  * Member is in, and the landing Group otherwise.
  *
  * Three answers and no fourth, because the caller genuinely has three different
@@ -51,12 +48,12 @@ export function landingGroupId(groups: readonly LandingGroup[]): string | null {
  * - `none` — the Member is in no Group. On a first-ever launch this is usually
  *   "not yet" rather than "none" (`ensureUser` inserts the Personal group on the
  *   same mount), so the caller holds it for a grace period before believing it.
- * - `ready` — a slug to open, and whether it was retained or fallen back to.
- *   `source` is what lets a caller notice that the retained Group went away —
- *   being removed from a Group is a real event — without having to compare
- *   slugs itself.
+ * - `ready` — the id of the Group to open, and whether it was retained or
+ *   fallen back to. `source` is what lets a caller notice that the retained
+ *   Group went away — being removed from a Group is a real event — without
+ *   having to compare ids itself.
  *
- * Validation is the point. A retained slug is a guess about a membership that
+ * Validation is the point. A retained id is a guess about a membership that
  * may have ended while the app was closed, so it is never handed back unchecked.
  */
 export type GroupSelection =

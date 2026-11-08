@@ -9,7 +9,7 @@
  */
 import { localIsoDate } from '@gather/core/civil-date'
 import { useMemo } from 'react'
-import { api } from '../../../../../convex/_generated/api'
+import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'

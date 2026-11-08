@@ -53,14 +53,13 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
+import { useDrop } from '../../drop/DropProvider'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import type { RecipeBase } from './paths'
-import { recipeHref } from './paths'
+import { moduleHref } from '../moduleDestination'
 import { RecipeFields } from './RecipeFields'
 import {
   blankRecipeForm,
@@ -71,13 +70,11 @@ import {
 import { useRecipes } from './useRecipes'
 
 export interface ComposeRecipeScreenProps {
-  /** Which tab stack this instance is mounted in (ADR-0023). */
-  base: RecipeBase
   /** `import` shows the link bar; `new` is the blank page behind it. */
   mode: 'import' | 'new'
 }
 
-export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
+export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
   const tokens = useTokens('kitchen')
   const insets = useSafeAreaInsets()
   const router = useRouter()
@@ -97,6 +94,11 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
     photoId?: string
     photoUri?: string
   }>()
+
+  // `recipe-import` keeps the Drop until here (`keepsDrop`): the page can
+  // still fail to read, and Back must find the chooser with the Drop pending.
+  const { pending: pendingDrop, clear: clearDrop } = useDrop()
+  const finishesDrop = Boolean(dropped.link && pendingDrop)
 
   const create = useMutation(api.recipes.create)
   const generateUploadUrl = useMutation(api.recipes.generateUploadUrl)
@@ -190,6 +192,14 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
         imageId: (photoId ?? undefined) as Id<'_storage'> | undefined,
       })
       haptics.itemSaved()
+      if (finishesDrop) {
+        // The save is the Drop's commit, finished the way every other target
+        // finishes one: clear it, leave the chooser, open what was made.
+        clearDrop()
+        router.dismissTo('/home')
+        router.push(moduleHref('/all/recipes/recipe', { recipeId: id }))
+        return
+      }
       // Land on the recipe, with the collection underneath it — never with
       // whatever happened to be there when the form was pushed.
       //
@@ -200,8 +210,8 @@ export function ComposeRecipeScreen({ base, mode }: ComposeRecipeScreenProps) {
       // way the recipe is pushed onto the collection, so Back from a recipe
       // you just made goes where a recipe lives rather than to the tab root
       // you happened to launch from.
-      router.dismissTo(recipeHref(base, ''))
-      router.push(recipeHref(base, '/recipe', { recipeId: id }))
+      router.dismissTo(moduleHref('/all/recipes'))
+      router.push(moduleHref('/all/recipes/recipe', { recipeId: id }))
     } catch (error) {
       haptics.actionFailed()
       setSaveProblem(refusalSentence(error) ?? text.form.saveFailed)

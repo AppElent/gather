@@ -116,8 +116,8 @@ export function TaskList({
 
   const confirmDeleteList = () => {
     Alert.alert(
-      fmt(t.labs.list.deleteTitle, { title: list.name }),
-      t.labs.list.deleteBody,
+      fmt(t.tasks.list.deleteTitle, { title: list.name }),
+      t.tasks.list.deleteBody,
       [
         { text: t.actions.cancel, style: 'cancel' },
         {
@@ -175,22 +175,22 @@ export function TaskList({
                 actions={[
                   {
                     id: 'display',
-                    title: t.labs.list.display,
+                    title: t.tasks.list.display,
                     displayInline: true,
                     subactions: [
                       {
                         id: 'due',
-                        title: t.labs.list.dueDates,
+                        title: t.tasks.list.dueDates,
                         state: list.display.due ? 'on' : 'off',
                       },
                       {
                         id: 'priority',
-                        title: t.labs.list.priority,
+                        title: t.tasks.list.priority,
                         state: list.display.priority ? 'on' : 'off',
                       },
                       {
                         id: 'labels',
-                        title: t.labs.list.labels,
+                        title: t.tasks.list.labels,
                         state: list.display.labels ? 'on' : 'off',
                       },
                     ],
@@ -203,7 +203,7 @@ export function TaskList({
                   },
                   {
                     id: 'rename',
-                    title: t.labs.list.rename,
+                    title: t.tasks.list.rename,
                     image: 'pencil',
                     attributes: { disabled: !list.writable },
                   },
@@ -214,7 +214,7 @@ export function TaskList({
                   })),
                   {
                     id: 'delete',
-                    title: t.labs.list.deleteList,
+                    title: t.tasks.list.deleteList,
                     image: 'trash',
                     attributes: { destructive: true },
                   },
@@ -288,8 +288,8 @@ export function TaskList({
                   importantForAccessibility="no"
                 />
                 <Text style={[styles.readOnlyText, { color: tokens.muted }]}>
-                  {fmt(t.labs.list.readOnly, { provider: list.provider })}
-                  {synced ? ` ${t.labs.list.refreshed}.` : ''}
+                  {fmt(t.tasks.list.readOnly, { provider: list.provider })}
+                  {synced ? ` ${t.tasks.list.refreshed}.` : ''}
                 </Text>
               </View>
             )}
@@ -298,7 +298,7 @@ export function TaskList({
               {active.length === 0 && completed.length === 0 ? (
                 <View style={styles.emptyRow}>
                   <Text style={[styles.empty, { color: tokens.muted }]}>
-                    {t.labs.list.empty}
+                    {t.tasks.list.empty}
                   </Text>
                 </View>
               ) : null}
@@ -378,10 +378,10 @@ export function TaskList({
                     value={draft}
                     onChangeText={setDraft}
                     onSubmitEditing={addTask}
-                    placeholder={addPlaceholder ?? t.labs.list.addTask}
+                    placeholder={addPlaceholder ?? t.tasks.list.addTask}
                     placeholderTextColor={tokens.muted}
                     returnKeyType="done"
-                    accessibilityLabel={addPlaceholder ?? t.labs.list.addTask}
+                    accessibilityLabel={addPlaceholder ?? t.tasks.list.addTask}
                     style={[styles.composerInput, { color: tokens.fg }]}
                   />
                 </View>
@@ -394,7 +394,7 @@ export function TaskList({
       {taskSheets.sheets}
       {renamingList ? (
         <RenameSheet
-          title={t.labs.list.rename}
+          title={t.tasks.list.rename}
           value={list.name}
           onSave={(next) => taskActions.renameList(list.id, next)}
           onClose={() => setRenamingList(false)}
@@ -504,8 +504,8 @@ function TaskRow({
                   ]}
                 >
                   {dueLabel(task.dueDate, today, locale, {
-                    today: t.labs.task.today,
-                    tomorrow: t.labs.task.tomorrow,
+                    today: t.tasks.task.today,
+                    tomorrow: t.tasks.task.tomorrow,
                   })}
                 </Text>
               </View>
@@ -531,7 +531,7 @@ function TaskRow({
                     },
                   ]}
                 >
-                  {t.labs.task.priorities[task.priority]}
+                  {t.tasks.task.priorities[task.priority]}
                 </Text>
               </View>
             ) : null}
@@ -585,7 +585,7 @@ function TaskRow({
           <View style={[styles.completeAction, { backgroundColor: '#3f7d4e' }]}>
             <TASK_ICONS.CircleCheck size={20} color="#ffffff" strokeWidth={2} />
             <Text style={styles.actionText}>
-              {task.done ? t.labs.list.uncomplete : t.labs.list.complete}
+              {task.done ? t.tasks.list.uncomplete : t.tasks.list.complete}
             </Text>
           </View>
         )

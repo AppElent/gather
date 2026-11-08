@@ -19,8 +19,8 @@ export default function SettingsLayout() {
       screenOptions={{
         headerShown: false,
         headerBackButtonDisplayMode: 'minimal',
-        // See the note in home/_layout.tsx: iOS-only, and paired with
-        // `contentInsetAdjustmentBehavior="automatic"` on each screen.
+        // iOS-only, and paired with `contentInsetAdjustmentBehavior="automatic"`
+        // on each screen.
         headerLargeTitle: true,
         contentStyle: { backgroundColor: tokens.bg },
       }}
@@ -63,20 +63,11 @@ export default function SettingsLayout() {
         options={{ headerShown: true, title: t.settings.language.title }}
       />
       {/*
-        Labs is declared unconditionally and *reached* only from a row the list
-        emits in a development build. A conditional `Stack.Screen` would change
-        the navigator's children between renders, which is a different and worse
-        bug than a route nothing links to.
+        Declared unconditionally: a conditional `Stack.Screen` would change the
+        navigator's children between renders. Labs guards itself
+        (`labs/_layout.tsx`) and draws its own headers.
       */}
-      <Stack.Screen
-        name="labs/index"
-        options={{ headerShown: true, title: t.labs.title }}
-      />
-      <Stack.Screen
-        name="labs/calendar"
-        options={{ headerShown: true, title: t.labs.calendar.title }}
-      />
-      <Stack.Screen name="labs/finance" options={{ headerShown: false }} />
+      <Stack.Screen name="labs" options={{ headerShown: false }} />
     </Stack>
   )
 }

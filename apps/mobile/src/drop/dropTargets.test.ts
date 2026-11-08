@@ -16,7 +16,12 @@ import { DROP_KINDS } from '@gather/core/drop-rules'
 import { MODULES } from '@gather/core/modules'
 import { describe, expect, test } from 'vitest'
 
-import { DROP_TARGETS, dropTargetById, targetsForDrop } from './dropTargets'
+import {
+  DROP_TARGETS,
+  type DropTarget,
+  dropTargetById,
+  targetsForDrop,
+} from './dropTargets'
 
 const idsFor = (kind: 'url' | 'text' | 'image', host?: string) =>
   targetsForDrop({ kind, host }).map((target) => target.id)
@@ -149,12 +154,24 @@ describe('the registry itself', () => {
 
   test('every target resolves to a screen', () => {
     for (const targets of Object.values(DROP_TARGETS)) {
-      for (const target of targets) {
-        if ('route' in target) {
-          expect(target.route({ id: 'seed' }), target.id).toBeTruthy()
-        }
+      for (const target of targets as readonly DropTarget[]) {
+        const href =
+          target.id === 'recipe-import'
+            ? target.route({ link: 'https://example.com' })
+            : target.id === 'recipe-new-photo'
+              ? target.route({ photoId: 'p', photoUri: 'file://p' })
+              : target.route({ id: 'seed' })
+        expect(href, target.id).toBeTruthy()
       }
     }
+  })
+
+  test('only the importer keeps the Drop past the chooser', () => {
+    const keeping = Object.values(DROP_TARGETS)
+      .flat()
+      .filter((target: DropTarget) => target.keepsDrop)
+      .map((target) => target.id)
+    expect(keeping).toEqual(['recipe-import'])
   })
 
   /**

@@ -16,17 +16,16 @@ import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
 import { RADIUS } from '../../theme/tokens'
+import { moduleHref } from '../moduleDestination'
 import { dateForMonth } from './format'
 import { FINANCE_ICONS } from './icons'
 import { termWords, toLoanParts } from './loanParts'
-import { type FinanceBase, financeHref } from './paths'
 import {
   AddRow,
   AnswerBar,
@@ -43,10 +42,8 @@ import {
 import { useFinances } from './useFinances'
 
 export function MortgageScreen({
-  base,
   calculationId,
 }: {
-  base: FinanceBase
   calculationId: Id<'mortgageCalculations'>
 }) {
   const tokens = useMoneyTokens()
@@ -160,7 +157,11 @@ export function MortgageScreen({
                 emphasis
                 chevron
                 onPress={() =>
-                  router.push(financeHref(base, '/part', { partId: part._id }))
+                  router.push(
+                    moduleHref('/settings/labs/finance/part', {
+                      partId: part._id,
+                    }),
+                  )
                 }
               />
             )
@@ -231,7 +232,9 @@ export function MortgageScreen({
                   last
                   onPress={() =>
                     router.push(
-                      financeHref(base, '/timeline', { calculationId }),
+                      moduleHref('/settings/labs/finance/timeline', {
+                        calculationId,
+                      }),
                     )
                   }
                 />

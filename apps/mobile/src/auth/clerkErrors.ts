@@ -10,11 +10,6 @@
  * A code we have not mapped falls back to `errors.generic`. That is the right
  * default and also the reason this file logs the unmapped code in development:
  * the mapping below can only grow by someone noticing a gap.
- *
- * Clerk **Core 3**, the same generation as the web's forms in `src/lib/auth`
- * (ADR-0038): calls resolve to `{ error }`, and a finished attempt still needs
- * `finalize()`. The phone reads per-field errors off the hook's `errors`
- * signal, where the web shows one banner.
  */
 import type { Messages } from '../i18n'
 

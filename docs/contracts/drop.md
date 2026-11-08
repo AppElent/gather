@@ -25,6 +25,12 @@ that already means making Group content visible to a second Group.
   the sheet. A stale rule then costs one extra tap rather than a dead end.
 - Confirming switches the app's Group to the chosen one and lands the person on
   what they made: the screen changing is the confirmation.
+- **The commit clears the Drop.** A target that has not written by the time it
+  navigates declares `keepsDrop` (today only `recipe-import`): its screen is
+  pushed over the chooser with the Drop still pending, so Back still has
+  somewhere else to put it, and that screen's own successful save clears the
+  Drop the way every other commit does. The Group a Drop is aimed at is held
+  as a Group id, and stage two lists and writes into that same Group.
 - **A Drop is native surface.** `expo-share-intent` is a config plugin, so
   touching it moves the fingerprint and the change cannot ship over the air
   ([ADR-0029](../adr/0029-a-javascript-change-ships-over-the-air-and-a-native-one-does-not.md)).

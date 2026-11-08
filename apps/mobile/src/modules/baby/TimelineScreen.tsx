@@ -25,23 +25,16 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SwipeableRow } from '../../components/SwipeableRow'
+import { api, type Id } from '../../convex/api'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { useTokens } from '../../theme/tokens'
+import { moduleHref } from '../moduleDestination'
 import { EVENT_ICONS } from './icons'
-import type { BabyBase } from './paths'
-import { babyHref } from './paths'
 import { useBabyLog } from './useBabyLog'
-
-export interface TimelineScreenProps {
-  /** Which tab stack this instance is mounted in (ADR-0023). */
-  base: BabyBase
-}
 
 /** A row has no notes line of its own, so a note's text is what the row says. */
 function rowDetail(
@@ -56,7 +49,7 @@ function rowDetail(
   return event.data.milestone ? `${summary} · ${text}` : text
 }
 
-export function TimelineScreen({ base }: TimelineScreenProps) {
+export function TimelineScreen() {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
   const router = useRouter()
@@ -155,7 +148,9 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
                 ]}
                 onAction={(action) => {
                   if (action === 'edit')
-                    router.push(babyHref(base, '/entry', { entryId: item._id }))
+                    router.push(
+                      moduleHref('/all/baby-log/entry', { entryId: item._id }),
+                    )
                   if (action === 'delete') confirmDelete(item)
                 }}
               >
@@ -165,7 +160,9 @@ export function TimelineScreen({ base }: TimelineScreenProps) {
                     type: t.baby.eventTypes[item.type],
                   })}
                   onPress={() =>
-                    router.push(babyHref(base, '/entry', { entryId: item._id }))
+                    router.push(
+                      moduleHref('/all/baby-log/entry', { entryId: item._id }),
+                    )
                   }
                   style={({ pressed }) => [
                     styles.row,

@@ -21,11 +21,16 @@
  *
  * ## The Drop names its Group
  *
- * `groupSlug` is a parameter rather than a read of the ambient Group. The
- * chooser lets somebody aim a Drop at a Group they are not standing in, and the
- * app follows it there **after** the write — so the write names its own
+ * `group` is a parameter rather than a read of the ambient Group. The chooser
+ * lets somebody aim a Drop at a Group they are not standing in, and the app
+ * follows it there **after** the write — so the write names its own
  * destination rather than depending on a switch having already happened
  * (ADR-0007).
+ *
+ * ## The target names its screen
+ *
+ * Where the person lands is the target's `route` (`dropTargets.ts`), for every
+ * target. This file only supplies what the route needs.
  *
  * ## A precondition is a sentence, not a dead end
  *
@@ -38,8 +43,8 @@ import { useConvex, useMutation } from 'convex/react'
 import type { Href } from 'expo-router'
 import { useCallback } from 'react'
 
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
+import { api, type Id } from '../convex/api'
+import type { AmbientGroup } from '../group/GroupProvider'
 import { resolveSelectedChild } from '../modules/baby/selectedChild'
 import { preparePhoto, uploadPhoto } from '../photo/pickPhoto'
 import { babyChildKey, readPreference } from '../prefs/localPreference'
@@ -73,7 +78,7 @@ export interface DropCommitInput {
   target: DropTarget
   drop: Drop
   /** The Group the Drop named on the chooser (ADR-0007). */
-  groupSlug: string
+  group: AmbientGroup
   /** What stage two picked, for the targets that ask. */
   pick?: DropPicked
 }
@@ -125,9 +130,10 @@ export function useDropCommit() {
     async function commit({
       target,
       drop,
-      groupSlug,
+      group,
       pick,
     }: DropCommitInput): Promise<DropCommit> {
+      const groupSlug = group.slug
       /**
        * Prepare, upload, and answer with the id plus the local file it came
        * from — the recipe form draws that while it has no row to read a stored
@@ -146,15 +152,12 @@ export function useDropCommit() {
       switch (target.id) {
         // Nothing is written here: the importer is the destination, and it
         // reads the page itself exactly as it does when somebody pastes a link
-        // into it. The Drop therefore stays pending until that screen saves —
-        // see the chooser, which does not clear it for this one target.
+        // into it. The target `keepsDrop`, so the Drop stays pending until
+        // that screen saves.
         case 'recipe-import':
           return {
             ok: true,
-            href: {
-              pathname: '/all/recipes/import',
-              params: { link: drop.kind === 'url' ? drop.url : '' },
-            } as Href,
+            href: target.route({ link: drop.kind === 'url' ? drop.url : '' }),
           }
 
         case 'recipe-new-photo': {
@@ -164,10 +167,7 @@ export function useDropCommit() {
           )
           return {
             ok: true,
-            href: {
-              pathname: '/all/recipes/new',
-              params: { photoId: storageId, photoUri: uri },
-            } as Href,
+            href: target.route({ photoId: storageId, photoUri: uri }),
           }
         }
 

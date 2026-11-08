@@ -1,6 +1,6 @@
-/** Importing a recipe from a link, mounted under all. */
+/** Importing a recipe from a link. */
 import { ComposeRecipeScreen } from '../../../../../src/modules/recipes/ComposeRecipeScreen'
 
 export default function ImportRecipe() {
-  return <ComposeRecipeScreen base="/all/recipes" mode="import" />
+  return <ComposeRecipeScreen mode="import" />
 }

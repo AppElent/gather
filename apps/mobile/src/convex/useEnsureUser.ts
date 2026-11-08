@@ -30,7 +30,7 @@ import { ACCOUNT_DELETED, refusalSentence } from '@gather/core/refusals'
 import { useConvexAuth, useMutation } from 'convex/react'
 import { useCallback, useEffect, useState } from 'react'
 
-import { api } from '../../../../convex/_generated/api'
+import { api } from './api'
 
 export interface Provisioning {
   /** The last attempt was refused for a reason other than a deletion. */

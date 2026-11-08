@@ -86,12 +86,12 @@ export function Note({ noteId }: { noteId: string }) {
               actions={[
                 {
                   id: 'pin',
-                  title: note.pinned ? t.labs.notes.unpin : t.labs.notes.pin,
+                  title: note.pinned ? t.notes.unpin : t.notes.pin,
                   image: 'pin',
                 },
                 {
                   id: 'delete',
-                  title: t.labs.notes.delete,
+                  title: t.notes.delete,
                   image: 'trash',
                   attributes: { destructive: true },
                 },
@@ -132,10 +132,10 @@ export function Note({ noteId }: { noteId: string }) {
             value={title.draft}
             onChangeText={title.change}
             onBlur={title.flush}
-            placeholder={t.labs.notes.titlePlaceholder}
+            placeholder={t.notes.titlePlaceholder}
             placeholderTextColor={tokens.muted}
             multiline
-            accessibilityLabel={t.labs.notes.titlePlaceholder}
+            accessibilityLabel={t.notes.titlePlaceholder}
             style={[styles.title, { color: tokens.fg }]}
           />
 
@@ -151,16 +151,11 @@ export function Note({ noteId }: { noteId: string }) {
             ) : null}
             <Text style={[styles.metaText, { color: tokens.muted }]}>
               {note.updatedByMe || note.updatedByName === null
-                ? fmt(
-                    note.updatedByMe
-                      ? t.labs.notes.editedByYou
-                      : t.labs.notes.edited,
-                    {
-                      when: noteWhen(note.updatedAt, locale, t.labs.task.today),
-                    },
-                  )
-                : fmt(t.labs.notes.editedBy, {
-                    when: noteWhen(note.updatedAt, locale, t.labs.task.today),
+                ? fmt(note.updatedByMe ? t.notes.editedByYou : t.notes.edited, {
+                    when: noteWhen(note.updatedAt, locale, t.notes.today),
+                  })
+                : fmt(t.notes.editedBy, {
+                    when: noteWhen(note.updatedAt, locale, t.notes.today),
                     name: note.updatedByName,
                   })}
             </Text>
@@ -171,15 +166,15 @@ export function Note({ noteId }: { noteId: string }) {
             value={body.draft}
             onChangeText={body.change}
             onBlur={body.flush}
-            placeholder={t.labs.notes.bodyPlaceholder}
+            placeholder={t.notes.bodyPlaceholder}
             placeholderTextColor={tokens.muted}
             multiline
-            accessibilityLabel={t.labs.notes.bodyPlaceholder}
+            accessibilityLabel={t.notes.bodyPlaceholder}
             style={[styles.body, { color: tokens.fg }]}
           />
 
           <Text style={[styles.footnote, { color: tokens.muted }]}>
-            {t.labs.notes.formatting}
+            {t.notes.formatting}
           </Text>
         </ScrollView>
 

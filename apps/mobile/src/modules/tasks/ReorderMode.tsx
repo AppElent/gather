@@ -144,7 +144,7 @@ export function ReorderMode({
           importantForAccessibility="no"
         />
         <Text style={[styles.hintText, { color: tint.fg }]}>
-          {t.labs.list.reorderHint}
+          {t.tasks.list.reorderHint}
         </Text>
       </View>
 
@@ -157,12 +157,12 @@ export function ReorderMode({
           const meta = [
             display.due && task.dueDate
               ? dueLabel(task.dueDate, today, locale, {
-                  today: t.labs.task.today,
-                  tomorrow: t.labs.task.tomorrow,
+                  today: t.tasks.task.today,
+                  tomorrow: t.tasks.task.tomorrow,
                 })
               : null,
             display.priority && task.priority
-              ? t.labs.task.priorities[task.priority]
+              ? t.tasks.task.priorities[task.priority]
               : null,
             display.labels && task.labels.length > 0
               ? task.labels.join(' · ')
@@ -233,7 +233,7 @@ export function ReorderMode({
       </Card>
 
       <Text style={[styles.note, { color: tokens.muted }]}>
-        {t.labs.list.reorderCompleted}
+        {t.tasks.list.reorderCompleted}
       </Text>
     </View>
   )

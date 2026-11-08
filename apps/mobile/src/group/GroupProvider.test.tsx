@@ -2,6 +2,9 @@
 import { act, useState } from 'react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
+import type { Id } from '../convex/api'
+import { GroupLinkHandoff } from '../shell/GroupLinkHandoff'
+import { rememberGroupLink } from '../shell/pendingGroupLink'
 import { mount } from '../testing/dom'
 import {
   type GroupContextValue,
@@ -10,11 +13,20 @@ import {
   useGroup,
 } from './GroupProvider'
 
-type Row = { _id: string; name: string; slug: string }
+type Row = { _id: Id<'groups'>; name: string; slug: string }
 
 const state = vi.hoisted(() => ({
   myGroups: undefined as Row[] | undefined,
   retained: null as string | null,
+  replaced: [] as unknown[],
+}))
+
+vi.mock('expo-router', () => ({
+  router: {
+    replace: (href: unknown) => {
+      state.replaced.push(href)
+    },
+  },
 }))
 
 vi.mock('@clerk/expo', () => ({ useAuth: () => ({ userId: 'user_a' }) }))
@@ -32,8 +44,16 @@ vi.mock('./retainedGroup', () => ({
   },
 }))
 
-const kitchen = { _id: 'g_kitchen', name: 'Kitchen', slug: 'kitchen' }
-const willow = { _id: 'g_willow', name: 'Willow Street', slug: 'willow' }
+const kitchen: Row = {
+  _id: 'g_kitchen' as Id<'groups'>,
+  name: 'Kitchen',
+  slug: 'kitchen',
+}
+const willow: Row = {
+  _id: 'g_willow' as Id<'groups'>,
+  name: 'Willow Street',
+  slug: 'willow',
+}
 
 /** Every render of a Group-scoped screen, and every unwind, in order. */
 let log: string[]
@@ -89,6 +109,7 @@ beforeEach(() => {
   seen.length = 0
   state.myGroups = [kitchen, willow]
   state.retained = kitchen._id
+  state.replaced = []
 })
 
 afterEach(() => {
@@ -164,5 +185,44 @@ describe('GroupProvider unwinds the stacks when the Group on screen changes', ()
 
     expect(unwinds()).toBe(2)
     expect(current().group).toEqual(kitchen)
+  })
+})
+
+describe('an old /g/<slug> link', () => {
+  function handoff() {
+    return (
+      <GroupProvider pending={null} none={null}>
+        <Chrome />
+        <GroupLinkHandoff />
+      </GroupProvider>
+    )
+  }
+
+  test('names its Group by slug and still switches to it', () => {
+    rememberGroupLink({ groupSlug: willow.slug, segments: ['cheeses'] })
+
+    mount(handoff())
+
+    expect(current().group).toEqual(willow)
+    expect(state.retained).toBe(willow._id)
+    expect(state.replaced).toEqual(['/all/tasting/cheese'])
+  })
+
+  test('to a Group the Member is not in leaves the Group alone', () => {
+    rememberGroupLink({ groupSlug: 'elsewhere', segments: ['cheeses'] })
+
+    mount(handoff())
+
+    expect(current().group).toEqual(kitchen)
+    expect(state.replaced).toEqual(['/home'])
+  })
+
+  test('to a screen the phone lacks leaves the Group alone', () => {
+    rememberGroupLink({ groupSlug: willow.slug, segments: ['spirits'] })
+
+    mount(handoff())
+
+    expect(current().group).toEqual(kitchen)
+    expect(state.replaced).toEqual(['/home'])
   })
 })

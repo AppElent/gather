@@ -21,14 +21,14 @@ import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
 import { Segmented } from '../../components/Segmented'
+import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
+import { moduleHref } from '../moduleDestination'
 import { FINANCE_ICONS } from './icons'
-import { type FinanceBase, financeHref } from './paths'
 import { portfolioTotalsFor } from './portfolioTotals'
 import {
   AddRow,
@@ -47,7 +47,7 @@ import {
 } from './ui'
 import { useFinances } from './useFinances'
 
-export function PortfolioScreen({ base }: { base: FinanceBase }) {
+export function PortfolioScreen() {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { groupSlug, format, text, currency, rates, today } = useFinances()
@@ -210,7 +210,7 @@ export function PortfolioScreen({ base }: { base: FinanceBase }) {
                     chevron
                     onPress={() =>
                       router.push(
-                        financeHref(base, '/holding', {
+                        moduleHref('/settings/labs/finance/holding', {
                           holdingId: holding._id,
                         }),
                       )

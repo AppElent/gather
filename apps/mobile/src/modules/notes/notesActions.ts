@@ -18,10 +18,10 @@ export function confirmDeleteNote(
   onDeleted?: () => void,
 ) {
   Alert.alert(
-    fmt(t.labs.notes.deleteTitle, {
-      title: note.title || t.labs.notes.untitled,
+    fmt(t.notes.deleteTitle, {
+      title: note.title || t.notes.untitled,
     }),
-    t.labs.list.deleteBody,
+    t.notes.deleteBody,
     [
       { text: t.actions.cancel, style: 'cancel' },
       {

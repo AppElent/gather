@@ -33,8 +33,8 @@ through every row in the same change as the Module.
 | `convex/maintenance.ts` `USER_REFERENCES` | Every column holding a `v.id('users')` | `pnpm typecheck` (derived from the schema) | [Migrations](../migrations/README.md) |
 | Message tables keyed by `NutrientKey`, `MealName`, `BabyEventType` | A new nutrient, meal or baby event type | `pnpm typecheck` | [Localization](../../CODING_STANDARDS.md#localization) |
 | `packages/core/src/babyEvents.ts` (`BabyEventDataByType`, `summarizeBabyEvent`) | A new baby event type | `pnpm typecheck` | [Localization](../../CODING_STANDARDS.md#localization) |
-| `src/lib/groupPaths.ts` (`GROUP_MODULE_INDEXES`, `MODULE_INDEX_SURFACES`) + a route file under `src/routes/_app/` | Every Module | `pnpm test` (`src/lib/modules.routes.test.ts`) | [Navigation](../contracts/navigation.md) |
-| `apps/mobile/src/modules/moduleDestination.ts` | When the Module gets native screens | **Silent**: Home and All keep opening the "planned" placeholder | — |
+| `src/lib/links.ts` `MODULE_ROUTES` + a route file under `src/routes/_app/` | Every Module | `pnpm typecheck` (`Record<ModuleId, …>`); `pnpm test` (`src/lib/modules.routes.test.ts`) for the route file | [Navigation](../contracts/navigation.md) |
+| `apps/mobile/src/modules/moduleDestination.ts` `NATIVE_MODULES` (and `ModulePath` for each screen pushed by name) | When the Module gets native screens | `pnpm test` (`moduleDestination.test.ts`: every Module's address must be a route file, and only a Module without screens may land on the placeholder) | — |
 | `apps/mobile/src/shell/quickActions.ts` `QUICK_ACTIONS` | When the Module has a capture verb for the Add tab | **Silent**: the verb is missing from Add | [Mobile design system](../../apps/mobile/DESIGN_SYSTEM.md#forms-and-quick-actions) |
 | Seed contribution in `convex/lib/seed/` | Every Module: a Catalog fixture if it needs reference data, Sample household fixtures always | **Silent**: previews and dev show an empty Module | [Seed data](../contracts/seed-data.md) |
 | `<Breadcrumbs>` trail | Every route below a Module's index | **Silent**: a page you can enter but not leave | [Navigation](../contracts/navigation.md) |
@@ -52,5 +52,5 @@ through every row in the same change as the Module.
 
 - `pnpm typecheck` and `pnpm test` pass.
 - `pnpm run seed:sample` (or Settings → Sample data) shows the Module populated.
-- The Module opens its real screen from Home and All on the phone, and every
+- The Module opens its real screen from All on the phone, and every
   nested web page has a trail back to the Module's index.

@@ -1,9 +1,9 @@
 /**
  * The door every tasting route comes through.
  *
- * Six route files — three screens under each of two tabs (ADR-0023) — and one
- * of these behind all of them, so a screen is written once and the route file
- * says only which tab it is mounted in and which screen it is.
+ * Three route files under All, plus Search's subject screen, and one of these
+ * behind all of them, so a screen is written once and the route file says
+ * only which screen it is.
  *
  * **The `[kind]` segment is validated here and nowhere else.** An unrecognised
  * segment is a redirect, never a default: falling back to cheese would make a
@@ -17,19 +17,17 @@
  * door.
  */
 import { Redirect, useLocalSearchParams } from 'expo-router'
-
+import { moduleHref } from '../moduleDestination'
 import { type ComposerMode, ComposerScreen } from './ComposerScreen'
 import { IndexScreen } from './IndexScreen'
-import { TASTING_BASES, type TastingTab, tastingKindFromRoute } from './paths'
+import { tastingKindFromRoute } from './paths'
 import { SubjectScreen } from './SubjectScreen'
 
 const MODES: ComposerMode[] = ['new', 'tasting', 'subject']
 
 export function TastingRoute({
-  tab,
   screen,
 }: {
-  tab: TastingTab
   screen: 'index' | 'subject' | 'compose'
 }) {
   const params = useLocalSearchParams<{
@@ -42,20 +40,17 @@ export function TastingRoute({
   }>()
 
   const kind = tastingKindFromRoute(params.kind)
-  const base = TASTING_BASES[tab]
   if (!kind) return <Redirect href="/all" />
 
-  if (screen === 'index') return <IndexScreen base={base} kind={kind} />
+  if (screen === 'index') return <IndexScreen kind={kind} />
 
   if (screen === 'subject') {
     // A subject screen with no subject is not a screen. Back to the index,
     // which is the parent this page's Back button points at anyway.
     if (!params.subjectId) {
-      return <Redirect href={`${base}/${kind}` as never} />
+      return <Redirect href={moduleHref(`/all/tasting/${kind}`)} />
     }
-    return (
-      <SubjectScreen base={base} kind={kind} subjectId={params.subjectId} />
-    )
+    return <SubjectScreen kind={kind} subjectId={params.subjectId} />
   }
 
   const mode = MODES.find((candidate) => candidate === params.mode) ?? 'new'

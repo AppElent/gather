@@ -8,11 +8,6 @@
  *
  * `autoComplete="new-password"` is what makes the platform offer to generate and
  * save one, which is the only reason the sign-in screen has anything to fill.
- *
- * Clerk **Core 3**, the same generation as the web's forms in `src/lib/auth`
- * (ADR-0038): calls resolve to `{ error }`, and a finished attempt still needs
- * `finalize()`. The phone reads per-field errors off the hook's `errors`
- * signal, where the web shows one banner.
  */
 
 import { useSignUp } from '@clerk/expo'

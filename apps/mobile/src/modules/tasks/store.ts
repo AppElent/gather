@@ -1,8 +1,7 @@
 import { localIsoDate } from '@gather/core/civil-date'
 import { useAction, useMutation } from 'convex/react'
 import { useEffect, useMemo, useState } from 'react'
-import { api } from '../../../../../convex/_generated/api'
-import type { Doc, Id } from '../../../../../convex/_generated/dataModel'
+import { api, type Doc, type Id } from '../../convex/api'
 import { useQueries, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import type {

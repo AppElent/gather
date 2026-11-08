@@ -10,11 +10,6 @@
  * lives on the Clerk client rather than in a param or a context. That is what
  * makes the back gesture work between them: going back a step does not discard
  * the attempt, it just stops looking at it.
- *
- * Clerk **Core 3**, the same generation as the web's forms in `src/lib/auth`
- * (ADR-0038): calls resolve to `{ error }`, and a finished attempt still needs
- * `finalize()`. The phone reads per-field errors off the hook's `errors`
- * signal, where the web shows one banner.
  */
 
 import { useSignIn } from '@clerk/expo'

@@ -41,20 +41,20 @@ export function taskMenuActions(
   return [
     {
       id: 'complete',
-      title: task.done ? t.labs.list.uncomplete : t.labs.list.complete,
+      title: task.done ? t.tasks.list.uncomplete : t.tasks.list.complete,
       image: 'checkmark.circle',
       attributes: { disabled: !writable },
     },
     {
       id: 'rename',
-      title: t.labs.list.renameTask,
+      title: t.tasks.list.renameTask,
       image: 'pencil',
       attributes: { disabled: !writable },
     },
-    { id: 'due', title: t.labs.list.dueDate, image: 'calendar' },
-    { id: 'priority', title: t.labs.list.priority, image: 'flag' },
-    { id: 'labels', title: t.labs.list.labels, image: 'tag' },
-    { id: 'move', title: t.labs.list.moveToList, image: 'tray' },
+    { id: 'due', title: t.tasks.list.dueDate, image: 'calendar' },
+    { id: 'priority', title: t.tasks.list.priority, image: 'flag' },
+    { id: 'labels', title: t.tasks.list.labels, image: 'tag' },
+    { id: 'move', title: t.tasks.list.moveToList, image: 'tray' },
     {
       id: 'reorder',
       title: t.actions.reorder,
@@ -90,8 +90,8 @@ export function useTaskSheets(onReorder?: () => void) {
 
   const confirmDelete = (task: Task) =>
     Alert.alert(
-      fmt(t.labs.list.deleteTitle, { title: task.title }),
-      t.labs.list.deleteBody,
+      fmt(t.tasks.list.deleteTitle, { title: task.title }),
+      t.tasks.list.deleteBody,
       [
         { text: t.actions.cancel, style: 'cancel' },
         {
@@ -140,7 +140,7 @@ export function useTaskSheets(onReorder?: () => void) {
       ) : null}
       {open.kind === 'rename' ? (
         <RenameSheet
-          title={t.labs.list.renameTask}
+          title={t.tasks.list.renameTask}
           value={
             state.tasks.find((each) => each.id === open.taskId)?.title ?? ''
           }

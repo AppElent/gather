@@ -68,9 +68,7 @@ export function TaskLists() {
 
   return (
     <>
-      <Stack.Screen
-        options={{ headerShown: true, title: t.labs.tasks.title }}
-      />
+      <Stack.Screen options={{ headerShown: true, title: t.tasks.title }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.bg }}
@@ -80,12 +78,12 @@ export function TaskLists() {
         ]}
       >
         <View style={styles.group}>
-          <SectionLabel>{t.labs.tasks.today}</SectionLabel>
+          <SectionLabel>{t.tasks.today}</SectionLabel>
           <Card>
             {due.length === 0 ? (
               <View style={styles.emptyRow}>
                 <Text style={[styles.empty, { color: tokens.muted }]}>
-                  {t.labs.tasks.todayEmpty}
+                  {t.tasks.todayEmpty}
                 </Text>
               </View>
             ) : (
@@ -114,7 +112,7 @@ export function TaskLists() {
         </View>
 
         <View style={styles.group}>
-          <SectionLabel>{t.labs.tasks.lists}</SectionLabel>
+          <SectionLabel>{t.tasks.lists}</SectionLabel>
           <Card>
             {lists.map((list, index) => {
               const open = state.tasks.filter(
@@ -127,8 +125,8 @@ export function TaskLists() {
                   accessibilityRole="button"
                   accessibilityLabel={`${list.name}, ${
                     open === 1
-                      ? t.labs.tasks.openOne
-                      : fmt(t.labs.tasks.open, { count: open })
+                      ? t.tasks.openOne
+                      : fmt(t.tasks.open, { count: open })
                   }`}
                   last={index === lists.length - 1}
                   onPress={() =>
@@ -157,17 +155,17 @@ export function TaskLists() {
                         <Text
                           style={[styles.badgeText, { color: tokens.muted }]}
                         >
-                          {t.labs.tasks.linked} · {list.provider}
+                          {t.tasks.linked} · {list.provider}
                         </Text>
                       </View>
                     )}
                   </View>
                   <Text style={[styles.count, { color: tokens.muted }]}>
                     {open === 0
-                      ? t.labs.tasks.allDone
+                      ? t.tasks.allDone
                       : open === 1
-                        ? t.labs.tasks.openOne
-                        : fmt(t.labs.tasks.open, { count: open })}
+                        ? t.tasks.openOne
+                        : fmt(t.tasks.open, { count: open })}
                   </Text>
                   <ChevronRight
                     size={18}
@@ -276,8 +274,8 @@ function TodayRow({
             ]}
           >
             {overdue
-              ? `${t.labs.task.overdue} \u00b7 ${fmt(t.labs.tasks.inList, { list: listName })}`
-              : fmt(t.labs.tasks.inList, { list: listName })}
+              ? `${t.tasks.task.overdue} \u00b7 ${fmt(t.tasks.inList, { list: listName })}`
+              : fmt(t.tasks.inList, { list: listName })}
           </Text>
         </View>
         <ChevronRight
@@ -315,7 +313,7 @@ function TodayRow({
         return (
           <View style={[styles.completeAction, { backgroundColor: '#3f7d4e' }]}>
             <TASK_ICONS.CircleCheck size={20} color="#ffffff" strokeWidth={2} />
-            <Text style={styles.actionText}>{t.labs.list.complete}</Text>
+            <Text style={styles.actionText}>{t.tasks.list.complete}</Text>
           </View>
         )
       }}

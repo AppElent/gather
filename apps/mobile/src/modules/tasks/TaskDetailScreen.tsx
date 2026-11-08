@@ -84,8 +84,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
   const confirmDelete = () =>
     Alert.alert(
-      fmt(t.labs.list.deleteTitle, { title: task.title }),
-      t.labs.list.deleteBody,
+      fmt(t.tasks.list.deleteTitle, { title: task.title }),
+      t.tasks.list.deleteBody,
       [
         { text: t.actions.cancel, style: 'cancel' },
         {
@@ -102,7 +102,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   return (
     <>
       <Stack.Screen
-        options={{ headerShown: true, title: list?.name ?? t.labs.tasks.title }}
+        options={{ headerShown: true, title: list?.name ?? t.tasks.title }}
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
@@ -141,10 +141,10 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             value={title.draft}
             onChangeText={title.change}
             onBlur={title.flush}
-            placeholder={t.labs.task.titlePlaceholder}
+            placeholder={t.tasks.task.titlePlaceholder}
             placeholderTextColor={tokens.muted}
             multiline
-            accessibilityLabel={t.labs.task.titlePlaceholder}
+            accessibilityLabel={t.tasks.task.titlePlaceholder}
             style={[
               styles.title,
               {
@@ -165,14 +165,14 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 strokeWidth={2}
               />
             }
-            label={t.labs.task.due}
+            label={t.tasks.task.due}
             value={
               task.dueDate
                 ? dueLabel(task.dueDate, state.today, locale, {
-                    today: t.labs.task.today,
-                    tomorrow: t.labs.task.tomorrow,
+                    today: t.tasks.task.today,
+                    tomorrow: t.tasks.task.tomorrow,
                   })
-                : t.labs.task.unset
+                : t.tasks.task.unset
             }
             danger={overdue}
             onPress={() => setSheet('due')}
@@ -188,11 +188,11 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 strokeWidth={2}
               />
             }
-            label={t.labs.task.priority}
+            label={t.tasks.task.priority}
             value={
               task.priority
-                ? t.labs.task.priorities[task.priority]
-                : t.labs.task.unset
+                ? t.tasks.task.priorities[task.priority]
+                : t.tasks.task.unset
             }
             onPress={() => setSheet('priority')}
           />
@@ -201,8 +201,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             icon={
               <TASK_ICONS.Tag size={18} color={tokens.muted} strokeWidth={2} />
             }
-            label={t.labs.task.labels}
-            value={task.labels.length === 0 ? t.labs.task.unset : undefined}
+            label={t.tasks.task.labels}
+            value={task.labels.length === 0 ? t.tasks.task.unset : undefined}
             trailing={
               task.labels.length > 0 ? (
                 <View style={styles.chips}>
@@ -236,7 +236,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                 />
               )
             }
-            label={t.labs.task.list}
+            label={t.tasks.task.list}
             value={list?.name ?? ''}
             onPress={() => setSheet('move')}
             last
@@ -249,22 +249,22 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             value={notes.draft}
             onChangeText={notes.change}
             onBlur={notes.flush}
-            placeholder={t.labs.task.notesPlaceholder}
+            placeholder={t.tasks.task.notesPlaceholder}
             placeholderTextColor={tokens.muted}
             multiline
-            accessibilityLabel={t.labs.task.notes}
+            accessibilityLabel={t.tasks.task.notes}
             style={[styles.notes, { color: tokens.fg }]}
           />
         </Card>
 
         <Text style={[styles.hint, { color: tokens.muted }]}>
-          {t.labs.task.autosaved}
+          {t.tasks.task.autosaved}
         </Text>
 
         <Pressable
           testID="detail-delete"
           accessibilityRole="button"
-          accessibilityLabel={t.labs.task.delete}
+          accessibilityLabel={t.tasks.task.delete}
           onPress={confirmDelete}
           style={({ pressed }) => [
             styles.delete,
@@ -280,7 +280,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             importantForAccessibility="no"
           />
           <Text style={[styles.deleteText, { color: tokens.danger }]}>
-            {t.labs.task.delete}
+            {t.tasks.task.delete}
           </Text>
         </Pressable>
       </ScrollView>

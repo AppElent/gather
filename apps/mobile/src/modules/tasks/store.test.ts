@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import type { Id } from '../../convex/api'
 
 vi.mock('../../group/GroupProvider', () => ({ useGroup: vi.fn() }))
 

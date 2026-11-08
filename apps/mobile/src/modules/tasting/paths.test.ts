@@ -1,19 +1,14 @@
 import { TASTING_KINDS } from '@gather/core/tastings'
 import { describe, expect, test } from 'vitest'
 
-import { isNativeModule, moduleDestination } from '../moduleDestination'
-import {
-  moduleIdOf,
-  TASTING_BASES,
-  tastingHref,
-  tastingKindFromRoute,
-} from './paths'
+import { isNativeModule, moduleHref } from '../moduleDestination'
+import { moduleIdOf, tastingKindFromRoute } from './paths'
 
 /**
  * The addresses, and the one guard on them.
  *
  * Three Modules share one implementation behind a `[kind]` segment, which buys
- * six route files instead of eighteen and costs exactly one thing: the segment
+ * three route files instead of nine and costs exactly one thing: the segment
  * has to be checked. This is that check, and the reason it is worth a test is
  * that the failure is silent — a bad segment that fell back to a default would
  * show somebody another Module's contents and look completely normal.
@@ -35,38 +30,20 @@ describe('the Kind a route names', () => {
 })
 
 describe('where a screen sends you', () => {
-  test('an index is the bare Kind in All', () => {
-    expect(tastingHref(TASTING_BASES.all, 'wine', '')).toBe('/all/tasting/wine')
-    expect(tastingHref(TASTING_BASES.all, 'beer', '')).toBe('/all/tasting/beer')
-  })
-
   test('params ride as an object, because a path cannot carry them', () => {
     expect(
-      tastingHref(TASTING_BASES.all, 'cheese', '/subject', { subjectId: 'x' }),
+      moduleHref('/all/tasting/cheese/subject', { subjectId: 'x' }),
     ).toEqual({
       pathname: '/all/tasting/cheese/subject',
       params: { subjectId: 'x' },
     })
   })
-
 })
 
 describe('opening a tasting Module', () => {
-  test('lands on the Kind segment, not on the Module id', () => {
-    // The one place a Module's route is not named after it — `cheeses` the
-    // Module is `cheese` the Kind in the path.
-    expect(moduleDestination('cheeses')).toBe('/all/tasting/cheese')
-    expect(moduleDestination('wines')).toBe('/all/tasting/wine')
-    expect(moduleDestination('beers')).toBe('/all/tasting/beer')
-  })
-
   test('every tasting Module is declared native, or it would show a placeholder', () => {
     for (const kind of TASTING_KINDS) {
       expect(isNativeModule(moduleIdOf(kind)), moduleIdOf(kind)).toBe(true)
     }
-  })
-
-  test('a non-tasting Module with native screens goes to its own route', () => {
-    expect(moduleDestination('groceries')).toBe('/all/groceries')
   })
 })

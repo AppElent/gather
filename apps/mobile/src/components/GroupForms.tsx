@@ -26,9 +26,8 @@
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-
-import { api } from '../../../../convex/_generated/api'
 import { useAvailability } from '../availability/AvailabilityProvider'
+import { api } from '../convex/api'
 import { writeRetainedGroup } from '../group/retainedGroup'
 import { useI18n } from '../i18n'
 import { RADIUS, useTokens } from '../theme/tokens'

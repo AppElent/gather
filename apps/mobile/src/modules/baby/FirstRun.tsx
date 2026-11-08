@@ -21,15 +21,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, useTokens } from '../../theme/tokens'
+import { moduleHref } from '../moduleDestination'
 import { BABY_UI_ICONS } from './icons'
-import { type BabyBase, babyHref } from './paths'
 
 export interface FirstRunProps {
-  base: BabyBase
   groupName: string
 }
 
-export function FirstRun({ base, groupName }: FirstRunProps) {
+export function FirstRun({ groupName }: FirstRunProps) {
   const tokens = useTokens('home')
   const { t } = useI18n()
   const router = useRouter()
@@ -54,7 +53,7 @@ export function FirstRun({ base, groupName }: FirstRunProps) {
       <View style={styles.actions}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push(babyHref(base, '/new'))}
+          onPress={() => router.push(moduleHref('/all/baby-log/new'))}
           style={({ pressed }) => [
             styles.action,
             { backgroundColor: tint.fg },

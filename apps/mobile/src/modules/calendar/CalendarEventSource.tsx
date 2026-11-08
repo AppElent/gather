@@ -4,7 +4,7 @@ import {
 } from '@gather/core/calendar'
 import { addMonths, monthStart } from '@gather/core/civil-date'
 import { useEffect } from 'react'
-import { api } from '../../../../../convex/_generated/api'
+import { api } from '../../convex/api'
 import { usePaginatedQuery } from '../../convex/queries'
 
 export function CalendarEventSource({

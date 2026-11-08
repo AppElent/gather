@@ -33,11 +33,11 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { api } from '../../../../convex/_generated/api'
 import { LoadingSkeleton } from '../components/LoadingSkeleton'
+import { api } from '../convex/api'
 import { useQuery } from '../convex/queries'
 import { haptics } from '../feedback/haptics'
-import { useGroup } from '../group/GroupProvider'
+import { type AmbientGroup, useGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
@@ -60,13 +60,17 @@ export function DropPickScreen() {
   const tokens = useTokens()
   const router = useRouter()
   const { t } = useI18n()
-  const { group } = useGroup()
+  const { group, groups, setGroup } = useGroup()
   const { pending, clear } = useDrop()
   const commit = useDropCommit()
-  const { target: targetId, groupSlug: namedGroup } = useLocalSearchParams<{
+  const { target: targetId, groupId } = useLocalSearchParams<{
     target: DropTargetId
-    groupSlug?: string
+    groupId?: string
   }>()
+  // The Group stage one named, which the candidates are listed from and the
+  // save goes into — one Group for both. An address naming a Group the Member
+  // is not in falls back to the one on screen.
+  const named = groups.find((each) => each._id === groupId) ?? group
 
   const [query, setQuery] = useState('')
   const [saving, setSaving] = useState<string | null>(null)
@@ -74,7 +78,7 @@ export function DropPickScreen() {
 
   const target = knownTarget(targetId)
   const drop = pending?.drop ?? null
-  const candidates = useCandidates(target)
+  const candidates = useCandidates(target, named)
   const text = t.drop
 
   // `picks: 'none'` never reaches this screen — the chooser finishes those
@@ -83,7 +87,6 @@ export function DropPickScreen() {
   // whole union.
   const ask = target && target.picks !== 'none' ? target.picks : null
   const asking = ask ? target : null
-  const groupSlug = namedGroup || group.slug
 
   async function choose(candidate: Candidate) {
     if (!asking || !drop || saving || candidate.readOnly) return
@@ -117,7 +120,7 @@ export function DropPickScreen() {
       const result = await commit({
         target: asking,
         drop,
-        groupSlug,
+        group: named,
         pick: candidate,
       })
       if (!result.ok) {
@@ -126,6 +129,8 @@ export function DropPickScreen() {
         return
       }
       haptics.itemSaved()
+      // Follow the Drop into the Group it named, as stage one does.
+      if (named._id !== group._id) setGroup(named._id)
       clear()
       router.dismissTo('/home')
       router.push(result.href)
@@ -262,8 +267,10 @@ function knownTarget(id: string | undefined): DropTarget | null {
  * the hook order never changes with the target — the rule React enforces, and
  * the reason this is one hook rather than four screens.
  */
-function useCandidates(target: DropTarget | null): Candidate[] | undefined {
-  const { group } = useGroup()
+function useCandidates(
+  target: DropTarget | null,
+  group: AmbientGroup,
+): Candidate[] | undefined {
   const groupSlug = group.slug
   const picks = target?.picks
 
@@ -290,7 +297,7 @@ function useCandidates(target: DropTarget | null): Candidate[] | undefined {
   if (picks === 'note') {
     return notes?.map((note) => ({
       id: note._id,
-      label: note.title || t.labs.notes.untitled,
+      label: note.title || t.notes.untitled,
       // Carried so the commit appends to what is on screen rather than reading
       // the note back to learn what somebody just pointed at.
       body: note.body,

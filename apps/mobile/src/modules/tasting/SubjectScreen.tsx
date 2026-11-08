@@ -50,10 +50,9 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
@@ -61,20 +60,17 @@ import { fmt, plural, useI18n } from '../../i18n'
 import { pickPhoto, uploadPhoto } from '../../photo/pickPhoto'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { RADIUS, useTokens } from '../../theme/tokens'
+import { moduleHref } from '../moduleDestination'
 import { TASTING_UI_ICONS } from './icons'
-import type { TastingBase } from './paths'
-import { tastingHref } from './paths'
 import { StarRating } from './StarRating'
 import { subjectFacts } from './summary'
 import { tastingFieldText } from './TastingField'
 import { fieldLabel, kindWords, term } from './words'
 
 export function SubjectScreen({
-  base,
   kind,
   subjectId,
 }: {
-  base: TastingBase
   kind: TastingKind
   subjectId: string
 }) {
@@ -143,7 +139,7 @@ export function SubjectScreen({
 
   function compose(mode: 'new' | 'subject' | 'tasting', tastingId?: string) {
     router.push(
-      tastingHref(base, kind, '/compose', {
+      moduleHref(`/all/tasting/${kind}/compose`, {
         mode,
         subjectId: subject._id,
         ...(tastingId ? { tastingId } : {}),

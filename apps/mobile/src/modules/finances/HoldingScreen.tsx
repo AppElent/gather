@@ -16,14 +16,12 @@ import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Alert, StyleSheet, View } from 'react-native'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeSheet } from '../../components/NativeSheet'
+import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { fmt } from '../../i18n'
 import { FINANCE_ICONS } from './icons'
-import type { FinanceBase } from './paths'
 import {
   AddRow,
   Card,
@@ -43,13 +41,7 @@ import { useFinances } from './useFinances'
 
 type TransactionKind = 'buy' | 'sell' | 'dividend' | 'fee' | 'adjustment'
 
-export function HoldingScreen({
-  base: _base,
-  holdingId,
-}: {
-  base: FinanceBase
-  holdingId: Id<'holdings'>
-}) {
+export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { groupSlug, format, text, today } = useFinances()
