@@ -7,31 +7,27 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { FoodThumbnail } from '../nutrition/FoodThumbnail'
 import { NutritionPanel } from './NutritionPanel'
 import { RecipeSharingPanel } from './RecipeSharingPanel'
-import type { RecipeNav } from './recipeNav'
 
 export interface RecipeDetailPageProps {
   recipeId: string
-  groupSlug: string
-  nav: RecipeNav
 }
 
 /**
- * One recipe, whole, as read from the Group in the URL.
+ * One recipe, whole, as read from the Current Group.
  *
  * A recipe that is not visible from this Group comes back as null from
  * `recipes.get` and renders as "not found" — the same answer for a deleted
  * recipe, for one that was never theirs, and for one they can see but only from
  * somewhere else. The page never says whether it exists.
  */
-export function RecipeDetailPage({
-  recipeId,
-  groupSlug,
-  nav,
-}: RecipeDetailPageProps) {
+export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
+  const { slug: groupSlug } = useRequiredCurrentGroup()
   const recipe = useQuery(api.recipes.get, {
     id: recipeId as Id<'recipes'>,
     groupSlug,
@@ -47,10 +43,10 @@ export function RecipeDetailPage({
   const { detail, form } = messages.recipes
 
   // Recipes → this recipe. A recipe read from a Group it was only shared into
-  // still belongs to that Group's list as far as navigation goes — `nav.list`
-  // is the list the URL is showing, which is where back has to land.
+  // still belongs to that Group's list as far as navigation goes, which is
+  // where back has to land.
   const trail: Crumb[] = [
-    { label: messages.modules.byId.recipes.label, link: nav.list },
+    { label: messages.modules.byId.recipes.label, link: linkTo('recipes') },
     ...(recipe ? [{ label: recipe.title }] : []),
   ]
 
@@ -85,7 +81,7 @@ export function RecipeDetailPage({
         {recipe.canEdit && (
           <div className="flex gap-2">
             <Link
-              {...nav.edit(recipeId)}
+              {...linkTo('editRecipe', { recipeId: recipeId })}
               aria-label={messages.common.actions.edit}
               className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border no-underline lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
             >
@@ -102,7 +98,7 @@ export function RecipeDetailPage({
                 setError(null)
                 try {
                   await remove({ id: recipe._id })
-                  navigate(nav.list)
+                  navigate(linkTo('recipes'))
                 } catch (err) {
                   setError(
                     err instanceof Error ? err.message : detail.deleteFailed,
@@ -208,7 +204,7 @@ export function RecipeDetailPage({
               </button>
             )}
             <Link
-              {...nav.edit(recipeId)}
+              {...linkTo('editRecipe', { recipeId: recipeId })}
               aria-label={detail.editManually}
               className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border border-amber-400 no-underline lg:gap-1 lg:px-2 lg:py-1 lg:text-xs lg:font-medium"
             >

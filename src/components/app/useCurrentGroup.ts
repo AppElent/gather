@@ -26,13 +26,13 @@ export interface ShellGroup {
   role: 'admin' | 'member'
 }
 
-interface CurrentGroupValue {
+export interface CurrentGroupValue {
   current: ShellGroup | null
   groups: ShellGroup[] | undefined
   setCurrentGroup: (groupId: string) => void
 }
 
-const CurrentGroupContext = createContext<CurrentGroupValue | null>(null)
+export const CurrentGroupContext = createContext<CurrentGroupValue | null>(null)
 
 function readRetainedGroup(): string | null {
   if (typeof window === 'undefined') return null

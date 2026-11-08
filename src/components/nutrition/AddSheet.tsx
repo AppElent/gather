@@ -11,11 +11,12 @@ import { computeRecipeEntryNutrition } from '../../../convex/lib/consumption'
 import type { OffSearchResult } from '../../../convex/lib/offMapping'
 import type { Serving } from '../../../convex/lib/servings'
 import { offeredServings, resolveAmount } from '../../../convex/lib/servings'
-import type { AppLink } from '../../lib/appLink'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
+import type { AppLink } from '../../lib/links'
 import { BarcodeScanner } from '../foods/BarcodeScanner'
 import { FoodForm } from '../foods/FoodForm'
+import { newFoodLink } from '../foods/foodNav'
 import { IconPicker } from '../foods/IconPicker'
 import { BottomSheet } from './BottomSheet'
 import { ComboCard, type ComboSummary } from './ComboCard'
@@ -28,7 +29,7 @@ import {
   parseDecimal,
   toNutrientInputs,
 } from './nutrientInputs'
-import type { NutritionNav } from './nutritionNav'
+import { addFoodLink } from './nutritionNav'
 import { ResultCard } from './ResultCard'
 import {
   initialSelection,
@@ -79,7 +80,6 @@ interface Props {
    * logging rather than a detour through the Catalog.
    */
   justAddedFoodId?: string
-  nav: NutritionNav
   onClose: () => void
 }
 
@@ -94,7 +94,7 @@ interface Props {
  * weight, while an empty result repeats both offers at the moment of highest
  * intent.
  */
-export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
+export function AddSheet({ date, meal, justAddedFoodId, onClose }: Props) {
   const search = useFoodSearch()
   const term = search.term.trim()
   const recipes = useQuery(api.recipes.listAcrossMyGroups, {})
@@ -180,7 +180,7 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
    * mapping, so an import is a *link to it*, not a copy of it.
    */
   function review(intent: { barcode?: string; name?: string }) {
-    return nav.createFood({ ...intent, returnTo: { date, meal } })
+    return newFoodLink({ ...intent, returnTo: { date, meal } })
   }
 
   /**
@@ -207,7 +207,7 @@ export function AddSheet({ date, meal, justAddedFoodId, nav, onClose }: Props) {
         nutritionSource: 'imported',
         ...(result.servings?.length ? { servings: result.servings } : {}),
       })
-      navigate(nav.addEntry(date, meal, id))
+      navigate(addFoodLink(date, meal, id))
       if (result.imageUrl) {
         void storeOffImage({ id, imageUrl: result.imageUrl }).catch(() => {
           // A picture is decoration. The food already exists and is ready to

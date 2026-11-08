@@ -25,12 +25,15 @@ export function useNavigation(): {
 } {
   const location = useLocation()
   const messages = useMessages()
-  const slug = useCurrentGroup().current?.slug ?? null
-  // Pins belong to a person *in a Group* (ADR-0005), so there is nothing to ask
-  // for until there is a Group to ask about — and `navItems` renders nothing
-  // without one either.
-  const pins = useQuery(api.users.myPins, slug ? { groupSlug: slug } : 'skip')
-  const items = navItems(pins ?? undefined, slug, messages)
+  const { current } = useCurrentGroup()
+  // Pins belong to a person *in a Group* (ADR-0005), and every item names a
+  // page of the Current Group, so without one there is nothing to ask for and
+  // nothing to list.
+  const pins = useQuery(
+    api.users.myPins,
+    current ? { groupSlug: current.slug } : 'skip',
+  )
+  const items = current ? navItems(pins ?? undefined, messages) : []
 
   return { items, activeId: activeNavItemId(location.pathname, items) }
 }

@@ -3,8 +3,8 @@ import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { errorMessage } from '../../lib/errorMessage'
-import { groupHref } from '../../lib/groupPaths'
 import { fmt, useMessages } from '../../lib/i18n'
+import { hrefTo } from '../../lib/links'
 import {
   newOAuthState,
   oauthRedirectUri,
@@ -56,10 +56,7 @@ export function ConnectionsSettings({
   const connections = useQuery(api.integrations.listConnections, { groupSlug })
   const { connections: connectionsText } = useMessages().settings
   const disconnect = useMutation(api.integrations.disconnect)
-  const connect = useConnectProvider(
-    groupSlug,
-    groupHref('settings', groupSlug),
-  )
+  const connect = useConnectProvider(groupSlug, hrefTo('groupSettings'))
   const { confirm, dialog } = useConfirmAction()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<ExternalProviderId | null>(null)

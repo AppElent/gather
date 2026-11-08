@@ -5,17 +5,17 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { FoodForm } from './FoodForm'
-import type { FoodNav } from './foodNav'
+import { newFoodLink } from './foodNav'
 
 export interface EditFoodPageProps {
   foodId: string
-  nav: FoodNav
 }
 
-/** Editing a Catalog food, whole. Shared by both edit routes. */
-export function EditFoodPage({ foodId, nav }: EditFoodPageProps) {
+/** Editing a Catalog food, whole. */
+export function EditFoodPage({ foodId }: EditFoodPageProps) {
   const food = useQuery(api.foods.get, { id: foodId as Id<'foods'> })
   const update = useMutation(api.foods.update)
   const navigate = useNavigate()
@@ -27,8 +27,8 @@ export function EditFoodPage({ foodId, nav }: EditFoodPageProps) {
   // Foods → this food → Edit. The middle step is the page this form saves back
   // to, so the trail and the save land in the same place.
   const trail: Crumb[] = [
-    { label: messages.foods.list.title, link: nav.list },
-    ...(food ? [{ label: food.name, link: nav.detail(foodId) }] : []),
+    { label: messages.foods.list.title, link: linkTo('foods') },
+    ...(food ? [{ label: food.name, link: linkTo('food', { foodId }) }] : []),
     { label: messages.common.actions.edit },
   ]
 
@@ -57,10 +57,7 @@ export function EditFoodPage({ foodId, nav }: EditFoodPageProps) {
         <h1 className="mb-4 text-2xl font-semibold">{food.name}</h1>
         <p className="text-sm opacity-60">
           {edit.builtInBefore}{' '}
-          {/* Through the Group in the address rather than the flat `/foods/new`
-              this arrived as: that route is gone (ADR-0002), and linking to it
-              would drop the reader out of the Group they were browsing. */}
-          <Link {...nav.create()} className="underline">
+          <Link {...newFoodLink()} className="underline">
             {detail.createYourOwn}
           </Link>{' '}
           {edit.builtInAfter}
@@ -102,7 +99,7 @@ export function EditFoodPage({ foodId, nav }: EditFoodPageProps) {
           setError(null)
           try {
             await update({ id: food._id, ...values })
-            navigate(nav.detail(foodId))
+            navigate(linkTo('food', { foodId }))
           } catch (err) {
             setError(
               err instanceof ConvexError

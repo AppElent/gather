@@ -1,19 +1,17 @@
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { groupLink } from '../../lib/groupPaths'
 import { useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useCurrentGroup } from '../app/useCurrentGroup'
 
 /**
- * Where the connections went.
+ * A way from your settings to each of your Groups' settings, where settings
+ * about a Group — such as its Notion and Todoist connections — live.
  *
- * Connecting Notion or Todoist used to be a row on this page, which read as a
- * setting about you; it is a setting about a Group, and now lives on each
- * Group's own settings page. Somebody who knows where it was should find it
- * rather than find it missing — so this says which Groups there are and links
- * to each one, instead of the section simply vanishing.
+ * A row's click handler makes that Group the Current Group; its link only
+ * says which page to open.
  */
 export function GroupSettingsLinks() {
   const groups = useQuery(api.groups.myGroups)
@@ -38,7 +36,7 @@ export function GroupSettingsLinks() {
           {groups.map((group) => (
             <li key={group._id}>
               <Link
-                {...groupLink('settings', group.slug)}
+                {...linkTo('groupSettings')}
                 onClick={() => setCurrentGroup(group._id)}
                 className="flex min-h-9 items-center justify-between gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 py-2 text-sm font-semibold no-underline"
               >

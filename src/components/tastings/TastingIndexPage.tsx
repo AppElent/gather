@@ -6,21 +6,14 @@ import { useMemo, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { fmt, plural, useI18n, useMessages } from '../../lib/i18n'
 import { SurfaceCard } from '../app/ShellPrimitives'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { TastingDialog } from './TastingDialog'
-import type { TastingNav } from './tastingNav'
+import { TASTING_LINKS } from './tastingNav'
 import { subjectFacts } from './tastingText'
 
-export function TastingIndexPage({
-  kind,
-  groupSlug,
-  groupName,
-  nav,
-}: {
-  kind: TastingKind
-  groupSlug: string
-  groupName: string
-  nav: TastingNav
-}) {
+export function TastingIndexPage({ kind }: { kind: TastingKind }) {
+  const { slug: groupSlug, name: groupName } = useRequiredCurrentGroup()
+  const nav = TASTING_LINKS[kind]
   const messages = useMessages()
   const { locale } = useI18n()
   const copy = messages.tastings

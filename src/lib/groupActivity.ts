@@ -5,8 +5,8 @@
  * decides how that becomes a sentence, which Module it belongs to and where it
  * links lives here — on the client, because all three are client concepts. The
  * Module catalog in particular is one `convex/schema.ts` says out loud the
- * backend must not know, and a URL is one `groupPaths.ts` type-checks against
- * the route tree, which Convex cannot do.
+ * backend must not know, and a URL is one `links.ts` type-checks against the
+ * route tree, which Convex cannot do.
  *
  * The words themselves come in as an argument rather than out of a hook: this
  * is a plain module over plain data, and it stays callable from a test without

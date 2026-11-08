@@ -4,19 +4,18 @@ import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { fmt, useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { FoodThumbnail } from '../nutrition/FoodThumbnail'
 import { BarcodeScanner } from './BarcodeScanner'
-import type { FoodNav } from './foodNav'
+import { newFoodLink } from './foodNav'
 
 /**
- * Searching the food Catalog, whole. Rendered by both `/foods` and
- * `/g/<slug>/foods`.
+ * Searching the food Catalog, whole.
  *
  * The Catalog belongs to nobody and reads the same for everybody, so there is
- * no Group-scoped visibility rule to apply here and none is invented: the Group
- * in the URL decides where the links go and nothing else.
+ * no Group-scoped visibility rule to apply here and none is invented.
  */
-export function FoodsPage({ nav }: { nav: FoodNav }) {
+export function FoodsPage() {
   const [term, setTerm] = useState('')
   const [debouncedTerm, setDebouncedTerm] = useState('')
   useEffect(() => {
@@ -44,7 +43,7 @@ export function FoodsPage({ nav }: { nav: FoodNav }) {
       <div className="mb-6 rounded-xl border p-4">
         <p className="mb-2 text-sm font-medium">{list.scanHeading}</p>
         <BarcodeScanner
-          onDetected={(barcode) => navigate(nav.create({ barcode }))}
+          onDetected={(barcode) => navigate(newFoodLink({ barcode }))}
         />
       </div>
 
@@ -59,7 +58,7 @@ export function FoodsPage({ nav }: { nav: FoodNav }) {
       </label>
 
       <Link
-        {...nav.create()}
+        {...newFoodLink()}
         aria-label={list.addManually}
         className="mb-4 inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] no-underline lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
       >
@@ -74,7 +73,7 @@ export function FoodsPage({ nav }: { nav: FoodNav }) {
         {results?.map((food) => (
           <li key={food._id}>
             <Link
-              {...nav.detail(food._id)}
+              {...linkTo('food', { foodId: food._id })}
               className="flex items-center gap-3 py-2 no-underline"
             >
               <FoodThumbnail src={food.imageUrl} icon={food.icon} />

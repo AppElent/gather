@@ -46,10 +46,10 @@ function OAuthCallback() {
       setFailure({ kind: 'invalid' })
       return
     }
-    // A connection belongs to a Group, and this page is not inside one: the
-    // only Group it can know about is the one the flow set out from. Without
-    // it there is nowhere to store the token, and picking a Group on the
-    // caller's behalf is the guess ADR-0002 exists to stop — so this fails.
+    // A connection belongs to the Group the flow set out from, which is not
+    // necessarily the Current Group now. Without it there is nowhere to store
+    // the token, and picking a Group on the caller's behalf would be a guess —
+    // so this fails.
     if (!consumed.groupSlug) {
       setFailure({ kind: 'noGroup' })
       return

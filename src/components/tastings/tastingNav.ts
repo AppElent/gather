@@ -1,35 +1,28 @@
 import type { TastingKind } from '@gather/core/tastings'
-import type { AppLink } from '../../lib/appLink'
-import { groupLink } from '../../lib/groupPaths'
+import { type AppLink, linkTo } from '../../lib/links'
 
-export interface TastingNav {
-  list: AppLink
-  subject: (subjectId: string) => AppLink
-  edit: (subjectId: string) => AppLink
-}
-
-export function groupTastingNav(
-  kind: TastingKind,
-  groupSlug: string,
-): TastingNav {
-  switch (kind) {
-    case 'cheese':
-      return {
-        list: groupLink('cheeses', groupSlug),
-        subject: (subjectId) => groupLink('cheese', groupSlug, { subjectId }),
-        edit: (subjectId) => groupLink('editCheese', groupSlug, { subjectId }),
-      }
-    case 'wine':
-      return {
-        list: groupLink('wines', groupSlug),
-        subject: (subjectId) => groupLink('wine', groupSlug, { subjectId }),
-        edit: (subjectId) => groupLink('editWine', groupSlug, { subjectId }),
-      }
-    case 'beer':
-      return {
-        list: groupLink('beers', groupSlug),
-        subject: (subjectId) => groupLink('beer', groupSlug, { subjectId }),
-        edit: (subjectId) => groupLink('editBeer', groupSlug, { subjectId }),
-      }
+/** Where each kind's pages live: one table, one row per kind. */
+export const TASTING_LINKS: Record<
+  TastingKind,
+  {
+    list: AppLink
+    subject: (subjectId: string) => AppLink
+    edit: (subjectId: string) => AppLink
   }
+> = {
+  cheese: {
+    list: linkTo('cheeses'),
+    subject: (subjectId) => linkTo('cheese', { subjectId }),
+    edit: (subjectId) => linkTo('editCheese', { subjectId }),
+  },
+  wine: {
+    list: linkTo('wines'),
+    subject: (subjectId) => linkTo('wine', { subjectId }),
+    edit: (subjectId) => linkTo('editWine', { subjectId }),
+  },
+  beer: {
+    list: linkTo('beers'),
+    subject: (subjectId) => linkTo('beer', { subjectId }),
+    edit: (subjectId) => linkTo('editBeer', { subjectId }),
+  },
 }

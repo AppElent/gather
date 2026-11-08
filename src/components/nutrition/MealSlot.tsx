@@ -1,18 +1,16 @@
 import type { MealName } from '@gather/core/domain'
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import type { AppLink } from '../../lib/appLink'
 import { fmt, useMessages } from '../../lib/i18n'
+import type { AppLink } from '../../lib/links'
 import type { ConsumptionEntryData } from './ConsumptionEntryRow'
 import { ConsumptionEntryRow } from './ConsumptionEntryRow'
 import { sumKcal } from './kcal'
-import type { NutritionNav } from './nutritionNav'
 import { SaveAsCombo } from './SaveAsCombo'
 
 interface Props {
   label: string
   entries: ConsumptionEntryData[]
-  nav: NutritionNav
   /** Where adding to this meal happens — an address now, not a dialog. */
   addLink: AppLink
   /**
@@ -39,7 +37,6 @@ interface Props {
 export function MealSlot({
   label,
   entries,
-  nav,
   addLink,
   onSaveAsCombo,
   onUpdateEntry,
@@ -82,7 +79,6 @@ export function MealSlot({
             <ConsumptionEntryRow
               key={entry._id}
               entry={entry}
-              nav={nav}
               selection={
                 selectedIds
                   ? {

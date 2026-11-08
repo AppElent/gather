@@ -9,10 +9,11 @@ import {
   activityPhrase,
   formatActivityTime,
 } from '../../lib/groupActivity'
-import { groupLink, moduleLink } from '../../lib/groupPaths'
 import { fmt, useI18n, useMessages } from '../../lib/i18n'
+import { linkTo, moduleLink } from '../../lib/links'
 import { Icon } from '../app/Icon'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 
 /**
  * A Group's Home: who is here, and what has been happening.
@@ -29,11 +30,6 @@ import { Pill, SurfaceCard } from '../app/ShellPrimitives'
  * flexible one that shows nothing.
  */
 
-export interface GroupHomeProps {
-  groupSlug: string
-  groupName: string
-}
-
 /**
  * The Modules worth pointing a brand-new Group at: live, and owned by the
  * Group. Nutrition is live too and is left out on purpose — it is Personal
@@ -44,7 +40,13 @@ const STARTERS = MODULES.filter(
   (module) => module.status === 'live' && module.scope === 'group',
 )
 
-function MemberList({ groupSlug, groupName }: GroupHomeProps) {
+function MemberList({
+  groupSlug,
+  groupName,
+}: {
+  groupSlug: string
+  groupName: string
+}) {
   const members = useQuery(api.groups.members, { slug: groupSlug })
   const messages = useMessages()
   const { home } = messages.shell
@@ -89,22 +91,16 @@ function MemberList({ groupSlug, groupName }: GroupHomeProps) {
 }
 
 /** The title of an entry, linked wherever the Module has a page for it. */
-function EntryTitle({
-  entry,
-  groupSlug,
-}: {
-  entry: GroupActivityEntry
-  groupSlug: string
-}) {
+function EntryTitle({ entry }: { entry: GroupActivityEntry }) {
   const messages = useMessages()
   const className = 'font-semibold text-[var(--app-fg)]'
 
-  // The URL is built here, through `groupPaths.ts`, from the row id the server
-  // sent — never assembled from a string, and never sent as one.
+  // The link is built here from the row id the server sent — never assembled
+  // from a string, and never sent as one.
   if (entry.kind === 'recipe' && entry.targetId) {
     return (
       <Link
-        {...groupLink('recipe', groupSlug, { recipeId: entry.targetId })}
+        {...linkTo('recipe', { recipeId: entry.targetId })}
         className={className}
       >
         {entry.title}
@@ -116,7 +112,7 @@ function EntryTitle({
     if (!entry.targetId) return <span className={className}>{word}</span>
     return (
       <Link
-        {...groupLink('child', groupSlug, { babyId: entry.targetId })}
+        {...linkTo('child', { babyId: entry.targetId })}
         className={className}
       >
         {word}
@@ -127,7 +123,7 @@ function EntryTitle({
     // Tasks has a page per Group and none per task, so this goes to the Module
     // rather than to an address that does not exist.
     return (
-      <Link {...groupLink('tasks', groupSlug)} className={className}>
+      <Link {...linkTo('tasks')} className={className}>
         {entry.title}
       </Link>
     )
@@ -135,13 +131,7 @@ function EntryTitle({
   return <span className={className}>{entry.title}</span>
 }
 
-function ActivityRow({
-  entry,
-  groupSlug,
-}: {
-  entry: GroupActivityEntry
-  groupSlug: string
-}) {
+function ActivityRow({ entry }: { entry: GroupActivityEntry }) {
   const { locale, messages } = useI18n()
   const phrase = activityPhrase(entry.kind, messages)
 
@@ -160,7 +150,7 @@ function ActivityRow({
           <span className="font-semibold">
             {entry.byName ?? messages.shell.activity.unknownActor}
           </span>{' '}
-          {phrase.verb} <EntryTitle entry={entry} groupSlug={groupSlug} />
+          {phrase.verb} <EntryTitle entry={entry} />
           {entry.context && phrase.connector
             ? ` ${phrase.connector} ${entry.context}`
             : null}
@@ -183,7 +173,7 @@ function ActivityRow({
  * the card above, and this says what to do next — so the first visit is worth
  * making even for a household that has just been created.
  */
-function NothingYet({ groupSlug, groupName }: GroupHomeProps) {
+function NothingYet({ groupName }: { groupName: string }) {
   const messages = useMessages()
   const { home } = messages.shell
 
@@ -196,7 +186,7 @@ function NothingYet({ groupSlug, groupName }: GroupHomeProps) {
         {STARTERS.map((module) => (
           <Link
             key={module.id}
-            {...moduleLink(module, groupSlug)}
+            {...moduleLink(module)}
             className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm font-semibold text-[var(--app-fg)] no-underline"
           >
             <Icon name={module.icon} className="h-4 w-4" />
@@ -210,7 +200,8 @@ function NothingYet({ groupSlug, groupName }: GroupHomeProps) {
   )
 }
 
-export function GroupHome({ groupSlug, groupName }: GroupHomeProps) {
+export function GroupHome() {
+  const { slug: groupSlug, name: groupName } = useRequiredCurrentGroup()
   const activity = useQuery(api.activity.forGroup, { groupSlug })
   const messages = useMessages()
   const { home } = messages.shell
@@ -247,11 +238,11 @@ export function GroupHome({ groupSlug, groupName }: GroupHomeProps) {
             {messages.common.errors.loading}
           </p>
         ) : activity.length === 0 ? (
-          <NothingYet groupSlug={groupSlug} groupName={groupName} />
+          <NothingYet groupName={groupName} />
         ) : (
           <ol className="m-0 grid list-none p-0">
             {activity.map((entry) => (
-              <ActivityRow key={entry.id} entry={entry} groupSlug={groupSlug} />
+              <ActivityRow key={entry.id} entry={entry} />
             ))}
           </ol>
         )}

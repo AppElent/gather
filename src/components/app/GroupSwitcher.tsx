@@ -1,7 +1,7 @@
 import { Link, useLocation } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
-import { groupIndexSurfaceOf, groupLink } from '../../lib/groupPaths'
 import { useMessages } from '../../lib/i18n'
+import { indexSurfaceOf, linkTo } from '../../lib/links'
 import { Icon } from './Icon'
 import { useCurrentGroup } from './useCurrentGroup'
 
@@ -17,15 +17,13 @@ export interface GroupSwitcherProps {
  * Group a thing you inferred from which row was highlighted; the first line of
  * the sidebar is where a reader already looks to answer "where am I?".
  *
- * Move between Groups by going somewhere, not by changing a setting. Switching
- * used to mean writing a default onto your account, which made the Group
- * invisible and global: two tabs could not disagree, and a link could not carry
- * it. These are ordinary links, so the Group lives in the URL and each tab keeps
- * its own (ADR-0002).
+ * A row does two things: its click handler makes that Group the Current Group
+ * (ADR-0031), and its link says where to land. No link names a Group, so the
+ * handler is what switches.
  *
- * Where a switch lands: the same Module in the chosen Group when that Module has
- * a Group-scoped route, and the Group's landing page otherwise — including from
- * any flat route, which has no Group in it to preserve.
+ * Where a switch lands: the same Module index in the chosen Group, and the
+ * Group's landing page from anywhere that is not under one, such as
+ * `/settings`.
  *
  * The Module's *index*, never the page you were on: a recipe id, a food id or a
  * child names something that lives in one Group, so carrying it into another
@@ -37,7 +35,7 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
   const { groupSwitcher } = messages.shell
   const { loading } = messages.common.errors
   const { current, groups, setCurrentGroup } = useCurrentGroup()
-  const surface = groupIndexSurfaceOf(location.pathname) ?? 'home'
+  const surface = indexSurfaceOf(location.pathname) ?? 'home'
 
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -106,7 +104,7 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
           {groups?.map((group) => (
             <Link
               key={group._id}
-              {...groupLink(surface, group.slug)}
+              {...linkTo(surface)}
               onClick={() => {
                 setCurrentGroup(group._id)
                 setOpen(false)

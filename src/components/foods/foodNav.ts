@@ -1,14 +1,5 @@
-import type { AppLink } from '../../lib/appLink'
-import { groupLink } from '../../lib/groupPaths'
+import { type AppLink, linkTo } from '../../lib/links'
 
-/**
- * Everywhere the Foods pages can send you.
- *
- * Foods are the Catalog — owned by nobody, readable by everybody (GLOSSARY.md) —
- * so which Group is in the URL changes nothing about *what* these pages show.
- * It still has to be carried, because leaving it out would silently drop
- * whoever followed the link out of the Group they were browsing.
- */
 /**
  * What is already known about the food somebody is about to add.
  *
@@ -28,34 +19,22 @@ export interface NewFoodIntent {
   returnTo?: { date: string; meal: string }
 }
 
-export interface FoodNav {
-  list: AppLink
-  /** Adding a food, optionally prefilled and optionally with a way back. */
-  create: (intent?: NewFoodIntent) => AppLink
-  detail: (foodId: string) => AppLink
-  edit: (foodId: string) => AppLink
-}
-
-export function groupFoodNav(groupSlug: string): FoodNav {
+/** Adding a food, optionally prefilled and optionally with a way back. */
+export function newFoodLink(intent?: NewFoodIntent): AppLink {
   return {
-    list: groupLink('foods', groupSlug),
+    ...linkTo('newFood'),
     // Only the parts there are: a key carrying `undefined` is a query parameter
     // in some serialisers and nothing in others, and `/foods/new` with no
     // intent is one address rather than four spellings of it.
-    create: (intent) => ({
-      ...groupLink('newFood', groupSlug),
-      search: {
-        ...(intent?.barcode ? { barcode: intent.barcode } : {}),
-        ...(intent?.name ? { name: intent.name } : {}),
-        ...(intent?.returnTo
-          ? {
-              returnDate: intent.returnTo.date,
-              returnMeal: intent.returnTo.meal,
-            }
-          : {}),
-      },
-    }),
-    detail: (foodId) => groupLink('food', groupSlug, { foodId }),
-    edit: (foodId) => groupLink('editFood', groupSlug, { foodId }),
+    search: {
+      ...(intent?.barcode ? { barcode: intent.barcode } : {}),
+      ...(intent?.name ? { name: intent.name } : {}),
+      ...(intent?.returnTo
+        ? {
+            returnDate: intent.returnTo.date,
+            returnMeal: intent.returnTo.meal,
+          }
+        : {}),
+    },
   }
 }

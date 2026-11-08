@@ -2,7 +2,6 @@ import { screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { NutritionPage } from './NutritionPage'
-import { groupNutritionNav } from './nutritionNav'
 
 /**
  * The diary is also where the two libraries beside it are reached from (#100).
@@ -58,27 +57,12 @@ vi.mock('@tanstack/react-router', () => ({
   },
 }))
 
-function renderDiary(groupSlug = 'jansen-household') {
-  renderWithI18n(
-    <NutritionPage
-      date="2026-07-18"
-      onDateChange={vi.fn()}
-      nav={groupNutritionNav(groupSlug)}
-    />,
-  )
+function renderDiary() {
+  renderWithI18n(<NutritionPage date="2026-07-18" onDateChange={vi.fn()} />)
 }
 
 test('offers the Foods catalog without anybody having to know its address', () => {
   renderDiary()
-
-  expect(screen.getByRole('link', { name: /foods/i })).toHaveAttribute(
-    'href',
-    '/foods',
-  )
-})
-
-test('keeps the Group that was open in the Foods address', () => {
-  renderDiary('wine-club')
 
   expect(screen.getByRole('link', { name: /foods/i })).toHaveAttribute(
     'href',

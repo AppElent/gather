@@ -7,10 +7,10 @@
  * and — since a connection belongs to a Group (ADR-0003) — which Group the
  * connection is being made for.
  *
- * The Group cannot be recovered any other way. The callback is not a Group
- * route, the provider does not carry it, and falling back to "a Group you are
- * in" is exactly the caller-wide guess the rebuild removes. A round trip that
- * comes back without one therefore fails visibly rather than picking one.
+ * The Group is written down rather than read from the Current Group on the way
+ * back: the provider does not carry it, and the Current Group may have changed
+ * in another tab while the provider's page was open. A round trip that comes
+ * back without one fails visibly rather than picking one.
  */
 
 import { EXTERNAL_PROVIDER_IDS, type ExternalProviderId } from '@gather/core/domain'

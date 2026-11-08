@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { MealSlot } from './MealSlot'
-import { groupNutritionNav } from './nutritionNav'
+import { addFoodLink } from './nutritionNav'
 
 // TanStack Router's <Link> requires a RouterProvider context to render (it
 // reads router state via useLinkProps); this component test renders in
@@ -37,8 +37,7 @@ vi.mock('@tanstack/react-router', () => ({
   },
 }))
 
-const nav = groupNutritionNav('jansen-household')
-const addLink = nav.addEntry('2026-07-18', 'breakfast')
+const addLink = addFoodLink('2026-07-18', 'breakfast')
 
 const entries = [
   {
@@ -68,7 +67,6 @@ const twoEntries = [
 test('shows a placeholder when there are no entries', () => {
   renderWithI18n(
     <MealSlot
-      nav={nav}
       label="Breakfast"
       entries={[]}
       addLink={addLink}
@@ -82,7 +80,6 @@ test('shows a placeholder when there are no entries', () => {
 test('renders entries, and + Add goes to the add sheet for this day and meal', () => {
   renderWithI18n(
     <MealSlot
-      nav={nav}
       label="Breakfast"
       entries={entries}
       addLink={addLink}
@@ -100,7 +97,6 @@ test('renders entries, and + Add goes to the add sheet for this day and meal', (
 test('shows a kcal subtotal for the meal, summing the entries on show', () => {
   renderWithI18n(
     <MealSlot
-      nav={nav}
       label="Breakfast"
       entries={[
         ...entries,
@@ -138,7 +134,6 @@ test('shows a kcal subtotal for the meal, summing the entries on show', () => {
 test('rounds the subtotal to a whole number rather than showing decimals', () => {
   renderWithI18n(
     <MealSlot
-      nav={nav}
       label="Breakfast"
       entries={[
         {
@@ -163,7 +158,6 @@ test('rounds the subtotal to a whole number rather than showing decimals', () =>
 test('shows no subtotal when nothing in the meal has calories', () => {
   renderWithI18n(
     <MealSlot
-      nav={nav}
       label="Breakfast"
       entries={[
         {
@@ -187,7 +181,6 @@ test('shows no subtotal when nothing in the meal has calories', () => {
 test('shows no subtotal for an empty meal', () => {
   renderWithI18n(
     <MealSlot
-      nav={nav}
       label="Breakfast"
       entries={[]}
       addLink={addLink}
@@ -206,7 +199,6 @@ test('shows no subtotal for an empty meal', () => {
 test('there are no selection controls until saving a combo is asked for', () => {
   renderWithI18n(
     <MealSlot
-      nav={nav}
       label="Breakfast"
       entries={twoEntries}
       addLink={addLink}
@@ -222,7 +214,6 @@ test('saving a combo saves only the ticked entries', async () => {
   const onSaveAsCombo = vi.fn().mockResolvedValue(undefined)
   renderWithI18n(
     <MealSlot
-      nav={nav}
       label="Breakfast"
       entries={twoEntries}
       addLink={addLink}
@@ -254,7 +245,6 @@ test('an empty selection cannot be saved', () => {
   const onSaveAsCombo = vi.fn()
   renderWithI18n(
     <MealSlot
-      nav={nav}
       label="Breakfast"
       entries={twoEntries}
       addLink={addLink}
@@ -280,7 +270,6 @@ test('an empty selection cannot be saved', () => {
 test('cancelling puts the selection controls away again', () => {
   renderWithI18n(
     <MealSlot
-      nav={nav}
       label="Breakfast"
       entries={twoEntries}
       addLink={addLink}
@@ -299,7 +288,6 @@ test('deleting an entry calls onDeleteEntry with its id', () => {
   const onDeleteEntry = vi.fn()
   renderWithI18n(
     <MealSlot
-      nav={nav}
       label="Breakfast"
       entries={entries}
       addLink={addLink}

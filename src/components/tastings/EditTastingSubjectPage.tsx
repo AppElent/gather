@@ -12,22 +12,21 @@ import type { Id } from '../../../convex/_generated/dataModel'
 import { useMessages } from '../../lib/i18n'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { ImageUploadField } from '../app/ImageUploadField'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { TastingFieldRenderer } from './TastingFieldRenderer'
-import type { TastingNav } from './tastingNav'
+import { TASTING_LINKS } from './tastingNav'
 
 type Attributes = Record<string, TastingAttributeValue>
 
 export function EditTastingSubjectPage({
   kind,
   subjectId,
-  groupSlug,
-  nav,
 }: {
   kind: TastingKind
   subjectId: string
-  groupSlug: string
-  nav: TastingNav
 }) {
+  const { slug: groupSlug } = useRequiredCurrentGroup()
+  const nav = TASTING_LINKS[kind]
   const id = subjectId as Id<'tastingSubjects'>
   const detail = useQuery(api.tastings.getSubject, { groupSlug, id, kind })
   const messages = useMessages()
@@ -67,7 +66,6 @@ export function EditTastingSubjectPage({
       kind={kind}
       groupSlug={groupSlug}
       subject={detail.subject}
-      nav={nav}
       trail={trail}
     />
   )
@@ -77,7 +75,6 @@ function EditSubjectForm({
   kind,
   groupSlug,
   subject,
-  nav,
   trail,
 }: {
   kind: TastingKind
@@ -88,9 +85,9 @@ function EditSubjectForm({
     attributes: Attributes
     photoUrl: string | null
   }
-  nav: TastingNav
   trail: readonly Crumb[]
 }) {
+  const nav = TASTING_LINKS[kind]
   const messages = useMessages()
   const copy = messages.tastings
   const update = useMutation(api.tastings.updateSubject)

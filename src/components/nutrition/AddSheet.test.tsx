@@ -2,7 +2,6 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
 import { AddSheet } from './AddSheet'
-import { groupNutritionNav } from './nutritionNav'
 
 /**
  * The add sheet's one rule: every row is a card, every card expands in place,
@@ -184,15 +183,12 @@ function href({
   return query ? `${path}?${query}` : path
 }
 
-const nav = groupNutritionNav('jansen-household')
-
 function renderSheet(onClose = vi.fn(), justAddedFoodId?: string) {
   renderWithI18n(
     <AddSheet
       date="2026-07-18"
       meal="breakfast"
       justAddedFoodId={justAddedFoodId}
-      nav={nav}
       onClose={onClose}
     />,
   )
@@ -530,7 +526,7 @@ test('the food a review form just saved comes back expanded and ready to log', a
 
 test('a food returned through the same add-sheet route opens after its search changes', async () => {
   const { rerender } = renderWithI18n(
-    <AddSheet date="2026-07-18" meal="breakfast" nav={nav} onClose={vi.fn()} />,
+    <AddSheet date="2026-07-18" meal="breakfast" onClose={vi.fn()} />,
   )
   justAddedFood.value = {
     _id: 'food9',
@@ -544,7 +540,6 @@ test('a food returned through the same add-sheet route opens after its search ch
       date="2026-07-18"
       meal="breakfast"
       justAddedFoodId="food9"
-      nav={nav}
       onClose={vi.fn()}
     />,
   )
@@ -574,7 +569,6 @@ test('returning from a second import starts with a fresh food card', async () =>
       date="2026-07-18"
       meal="breakfast"
       justAddedFoodId="food9"
-      nav={nav}
       onClose={vi.fn()}
     />,
   )
@@ -590,7 +584,6 @@ test('returning from a second import starts with a fresh food card', async () =>
       date="2026-07-18"
       meal="breakfast"
       justAddedFoodId="food9"
-      nav={nav}
       onClose={vi.fn()}
     />,
   )
@@ -610,7 +603,6 @@ test('returning from a second import starts with a fresh food card', async () =>
       date="2026-07-18"
       meal="breakfast"
       justAddedFoodId="food10"
-      nav={nav}
       onClose={vi.fn()}
     />,
   )

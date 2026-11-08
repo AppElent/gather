@@ -43,9 +43,7 @@ test('names no group off a group route, rather than inventing one', () => {
     />,
   )
 
-  // The shell passes the Group the address bar names, and there is none on
-  // Settings. This used to be the literal string "Preview group" on every
-  // route, which named a Group that has never existed.
+  // With no Current Group the panel names none rather than inventing one.
   expect(screen.getByText('No group')).toBeDefined()
 })
 

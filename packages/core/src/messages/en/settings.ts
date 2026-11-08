@@ -65,8 +65,6 @@ export const settings = {
     name: 'Name',
     rename: 'Rename',
     renameFailed: 'Could not rename this group.',
-    addressChanges:
-      'The address changes with the name, so old links to this group stop working.',
     inviteCode: 'Invite code',
     inviteCodeNote:
       'Anyone holding this code can join from Groups — share it only with people you want in this group.',

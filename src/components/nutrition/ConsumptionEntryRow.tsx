@@ -11,9 +11,9 @@ import {
   resolveAmount,
 } from '../../../convex/lib/servings'
 import { fmt, useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { FoodThumbnail, type ThumbnailKind } from './FoodThumbnail'
 import { roundKcal } from './kcal'
-import type { NutritionNav } from './nutritionNav'
 import {
   ServingPicker,
   type ServingSelection,
@@ -54,7 +54,6 @@ export interface ConsumptionEntryData {
 
 interface Props {
   entry: ConsumptionEntryData
-  nav: NutritionNav
   /**
    * Whether this row is going into the Combo being saved (#99). Absent the
    * rest of the time: the diary is for reading, and a permanent column of
@@ -212,7 +211,6 @@ function FoodEntryAmount({
 
 export function ConsumptionEntryRow({
   entry,
-  nav,
   selection,
   onUpdate,
   onDelete,
@@ -277,7 +275,7 @@ export function ConsumptionEntryRow({
             </span>
             {entry.recipeId && (
               <Link
-                {...nav.recipe(entry.recipeId)}
+                {...linkTo('recipe', { recipeId: entry.recipeId })}
                 className="ml-2 text-xs underline"
               >
                 {diary.entry.viewRecipe}
@@ -285,7 +283,7 @@ export function ConsumptionEntryRow({
             )}
             {entry.foodId && (
               <Link
-                {...nav.food(entry.foodId)}
+                {...linkTo('food', { foodId: entry.foodId })}
                 className="ml-2 text-xs underline"
               >
                 {diary.entry.viewFood}

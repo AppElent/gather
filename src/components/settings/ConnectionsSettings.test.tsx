@@ -83,7 +83,7 @@ describe('what the panel says', () => {
 })
 
 describe('what the panel does', () => {
-  test('disconnects from the Group in the address, not from wherever the connection is', async () => {
+  test('disconnects from the Group it is rendered for, not from wherever the connection is', async () => {
     connections.value = [NOTION]
     renderPanel()
 

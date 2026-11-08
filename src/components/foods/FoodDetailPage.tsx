@@ -4,19 +4,19 @@ import { Pencil, RefreshCw } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { FoodThumbnail } from '../nutrition/FoodThumbnail'
 import { NutritionPanel } from '../recipes/NutritionPanel'
-import type { FoodNav } from './foodNav'
+import { newFoodLink } from './foodNav'
 
 export interface FoodDetailPageProps {
   foodId: string
-  nav: FoodNav
 }
 
-/** One Catalog food, whole. Shared by both detail routes. */
-export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
+/** One Catalog food, whole. */
+export function FoodDetailPage({ foodId }: FoodDetailPageProps) {
   const food = useQuery(api.foods.get, { id: foodId as Id<'foods'> })
   const refreshFromOff = useAction(api.foodsLookup.refreshFromOff)
   const { confirm, dialog } = useConfirmAction()
@@ -27,7 +27,7 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
   // it is loading — and when it turns out not to exist — the trail is the
   // collection alone, which is still the way out of here.
   const trail: Crumb[] = [
-    { label: messages.foods.list.title, link: nav.list },
+    { label: messages.foods.list.title, link: linkTo('foods') },
     ...(food ? [{ label: food.name }] : []),
   ]
 
@@ -64,7 +64,7 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
         */}
         {food.seedKey === undefined ? (
           <Link
-            {...nav.edit(foodId)}
+            {...linkTo('editFood', { foodId })}
             aria-label={messages.common.actions.edit}
             className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border no-underline lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
           >
@@ -83,9 +83,7 @@ export function FoodDetailPage({ foodId, nav }: FoodDetailPageProps) {
       {food.seedKey !== undefined && (
         <p className="mb-4 text-sm opacity-60">
           {detail.builtInNote}{' '}
-          {/* Through the Group in the address; the flat `/foods/new` this
-              arrived as is gone (ADR-0002). */}
-          <Link {...nav.create()} className="underline">
+          <Link {...newFoodLink()} className="underline">
             {detail.createYourOwn}
           </Link>
           .

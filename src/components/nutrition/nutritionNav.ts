@@ -1,70 +1,23 @@
 import type { MealName } from '@gather/core/domain'
-import type { AppLink } from '../../lib/appLink'
-import { groupLink } from '../../lib/groupPaths'
-import { groupFoodNav, type NewFoodIntent } from '../foods/foodNav'
-import { groupRecipeNav } from '../recipes/recipeNav'
+import { type AppLink, linkTo } from '../../lib/links'
 
 /**
- * The links the Nutrition pages point *out* of themselves with.
+ * The add sheet, which is an address of its own carrying the day and the meal.
  *
- * A diary entry keeps provenance back to the recipe or food it came from
- * (GLOSSARY.md), and those are the only destinations Nutrition reaches. The
- * diary itself is Personal and identical in every Group; where its provenance
- * links land is not — they have to stay in the Group the reader opened — which
- * is why they arrive as props rather than being written inline in the page.
+ * `foodId` is the food a just-finished form handed back: the sheet opens with
+ * that card expanded and ready to log, which is what makes reviewing an import
+ * feel like a step in logging rather than a detour through the Catalog.
  */
-export interface NutritionNav {
-  recipe: (recipeId: string) => AppLink
-  food: (foodId: string) => AppLink
-  /**
-   * Adding a food the Catalog does not have yet — a scanned barcode, an Open
-   * Food Facts result being reviewed before it is saved (#93), or the words a
-   * search matched nothing for (#79). `returnTo` is what brings the person
-   * back to the meal they were adding to once it is saved.
-   */
-  createFood: (intent?: NewFoodIntent) => AppLink
-  /**
-   * The add sheet, which is an address of its own carrying the day and the
-   * meal. It is inside Nutrition rather than out of it, but it arrives the same
-   * way as the rest for the same reason: the page has no slug to build one
-   * with.
-   *
-   * `foodId` is the food a just-finished form handed back: the sheet opens with
-   * that card expanded and ready to log, which is what makes reviewing an
-   * import feel like a step in logging rather than a detour through the
-   * Catalog.
-   */
-  addEntry: (date: string, meal: MealName, foodId?: string) => AppLink
-  /**
-   * The two libraries beside the diary (#100).
-   *
-   * Neither one's *content* depends on the Group in the URL — the Catalog
-   * belongs to nobody and a Combo belongs to a person — but both addresses do,
-   * for the same reason every destination here does: a link that dropped the
-   * slug would move whoever followed it into some other Group (ADR-0002).
-   */
-  foods: AppLink
-  combos: AppLink
-  /** The diary itself — what the Combos library is a detour from, and back to. */
-  diary: AppLink
-}
-
-export function groupNutritionNav(groupSlug: string): NutritionNav {
-  const recipes = groupRecipeNav(groupSlug)
-  const foods = groupFoodNav(groupSlug)
+export function addFoodLink(
+  date: string,
+  meal: MealName,
+  foodId?: string,
+): AppLink {
   return {
-    recipe: recipes.detail,
-    food: foods.detail,
-    createFood: foods.create,
-    addEntry: (date, meal, foodId) => ({
-      ...groupLink('addFood', groupSlug),
-      // The food only when there is one: a key carrying `undefined` is a query
-      // parameter in some serialisers and nothing in others, and the sheet's
-      // address should not depend on which.
-      search: { date, meal, ...(foodId ? { food: foodId } : {}) },
-    }),
-    foods: foods.list,
-    combos: groupLink('combos', groupSlug),
-    diary: groupLink('nutrition', groupSlug),
+    ...linkTo('addFood'),
+    // The food only when there is one: a key carrying `undefined` is a query
+    // parameter in some serialisers and nothing in others, and the sheet's
+    // address should not depend on which.
+    search: { date, meal, ...(foodId ? { food: foodId } : {}) },
   }
 }

@@ -1,14 +1,14 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { MODULES } from '@gather/core/modules'
+import { MODULES, type ModuleId } from '@gather/core/modules'
 import { describe, expect, test } from 'vitest'
-import { moduleSegment } from './groupPaths'
+import { ROUTES } from './links'
 
 /**
  * Every Module is reachable at its one top-level address (ADR-0031).
  *
- * `moduleLink` builds a Module's destination from a table `Record<ModuleId, …>`
- * checked against the generated route tree by TypeScript. What TypeScript cannot
+ * `ROUTES` gives each Module its address from a `Record<ModuleId, …>` checked
+ * against the generated route tree by TypeScript. What TypeScript cannot
  * check is the route file being on disk at all, so that is asserted here.
  */
 describe('every Module at its ambient address', () => {
@@ -16,7 +16,7 @@ describe('every Module at its ambient address', () => {
 
   for (const module of MODULES) {
     test(`${module.id} has a route file under _app`, () => {
-      const segment = moduleSegment(module.id)
+      const segment = ROUTES[module.id as ModuleId].slice(1)
       expect(segment).not.toBe('')
       const candidates = [
         join(base, `${segment}.tsx`),

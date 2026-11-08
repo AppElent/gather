@@ -7,7 +7,7 @@ import { IconButton } from './ShellPrimitives'
 
 export interface TopbarProps {
   context: RouteContext
-  /** The Group the URL names, or null off any `/g/<slug>` route. */
+  /** The Current Group's name, or null when there is none. */
   groupName?: string | null
   onOpenNavigation: () => void
   onOpenGather: () => void

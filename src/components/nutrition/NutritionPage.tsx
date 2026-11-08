@@ -6,10 +6,11 @@ import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { sumFacts } from '../../../convex/lib/consumption'
 import { fmt, useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { DayTotals } from './DayTotals'
 import { sumKcal } from './kcal'
 import { MealSlot } from './MealSlot'
-import type { NutritionNav } from './nutritionNav'
+import { addFoodLink } from './nutritionNav'
 
 export interface NutritionSearch {
   date?: string
@@ -33,22 +34,17 @@ export interface NutritionPageProps {
   /** The day on show, as YYYY-MM-DD. Undefined means today. */
   date?: string
   onDateChange: (date: string) => void
-  /** Where the diary's provenance links go - see `nutritionNav.ts`. */
-  nav: NutritionNav
 }
 
 /**
  * The Nutrition day view, whole.
  *
  * A food diary is Personal (ADR-0003): it belongs to the person, not to the
- * Group in the URL, so it looks the same whichever Group it was opened from.
- * The route passes in only the date and the links, which is what keeps that
- * true — there is nothing else about it for a Group to change.
+ * Current Group, so it looks the same whichever Group it was opened from.
  */
 export function NutritionPage({
   date: dateParam,
   onDateChange,
-  nav,
 }: NutritionPageProps) {
   const date = dateParam || localIsoDate()
 
@@ -87,13 +83,13 @@ export function NutritionPage({
           desktop does. */}
       <nav aria-label={libraries.heading} className="mb-4 flex flex-wrap gap-2">
         <Link
-          {...nav.foods}
+          {...linkTo('foods')}
           className="inline-flex min-h-11 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm no-underline"
         >
           {libraries.foods}
         </Link>
         <Link
-          {...nav.combos}
+          {...linkTo('combos')}
           className="inline-flex min-h-11 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm no-underline"
         >
           {libraries.combos}
@@ -143,8 +139,7 @@ export function NutritionPage({
           key={`${date}-${meal}`}
           label={meals[meal]}
           entries={(entries ?? []).filter((e) => e.meal === meal)}
-          nav={nav}
-          addLink={nav.addEntry(date, meal)}
+          addLink={addFoodLink(date, meal)}
           // One call, because it is one transaction: the Combo, the entries it
           // takes the place of and the expansion that replaces them either all
           // happen or none of them do (#99).

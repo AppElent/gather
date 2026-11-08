@@ -12,23 +12,20 @@ import type { Id } from '../../../convex/_generated/dataModel'
 import { fmt, plural, useI18n, useMessages } from '../../lib/i18n'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { SurfaceCard } from '../app/ShellPrimitives'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { type EditableTasting, TastingDialog } from './TastingDialog'
-import type { TastingNav } from './tastingNav'
+import { TASTING_LINKS } from './tastingNav'
 import { tastingFieldValue } from './tastingText'
 
 export function TastingSubjectPage({
   kind,
   subjectId,
-  groupSlug,
-  groupName,
-  nav,
 }: {
   kind: TastingKind
   subjectId: string
-  groupSlug: string
-  groupName: string
-  nav: TastingNav
 }) {
+  const { slug: groupSlug, name: groupName } = useRequiredCurrentGroup()
+  const nav = TASTING_LINKS[kind]
   const id = subjectId as Id<'tastingSubjects'>
   const detail = useQuery(api.tastings.getSubject, { groupSlug, id, kind })
   const removeTasting = useMutation(api.tastings.removeTasting)

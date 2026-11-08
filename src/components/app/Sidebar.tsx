@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { NAV_ACTIVE_OPTIONS } from '../../lib/appNavigation'
 import { useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { GroupSwitcher } from './GroupSwitcher'
 import { Icon } from './Icon'
 import { Pill } from './ShellPrimitives'
@@ -23,10 +24,10 @@ const FOOTER_LINK =
  * everything stays available, and All is one click away at the bottom of this
  * same list.
  *
- * Off a Group route — Settings, Account, the Groups list — the list is drawn
- * for the Group you were last in, so stepping out to pick a Group does not
- * blank the shell on the way. Only somebody who has not been in one yet gets
- * the sentence instead, and the switcher above it says the same thing.
+ * On Settings, Account and the Groups list the list is still drawn for the
+ * Current Group, so stepping out to pick a Group does not blank the shell on
+ * the way. Only somebody with no Current Group gets the sentence instead, and
+ * the switcher above it says the same thing.
  *
  * At the bottom, the pages that are not a Module: Groups and your own Settings,
  * which are about you and read the same from everywhere. A Group's own settings
@@ -89,22 +90,19 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
         </nav>
       )}
 
-      {/* The pages that are not a Module. This used to be a card headed
-          "Preview group" over a sentence promising that group and member
-          details would appear once connected — a promise Home now keeps, on a
-          page, with real names on it. What was worth keeping is the links,
-          which are the only way to leave a Group from the sidebar.
-
-          A Group's own settings are no longer among them. A link that changes
-          destination depending on where you are standing, sitting a row above
-          one that never does and is called almost the same word, is two
-          meanings of "settings" in the same two inches. The Group's settings
-          hang off the Group instead: clicking it on Groups opens them. */}
+      {/* The pages that are not a Module, and the only way to leave a Group
+          from the sidebar. A Group's own settings hang off the Group on
+          Groups rather than sitting here a row from yours under almost the
+          same word. */}
       <nav className="mt-auto grid gap-1" aria-label={sidebar.footer}>
-        <Link to="/groups" onClick={onNavigate} className={FOOTER_LINK}>
+        <Link {...linkTo('groups')} onClick={onNavigate} className={FOOTER_LINK}>
           {nav.groups}
         </Link>
-        <Link to="/settings" onClick={onNavigate} className={FOOTER_LINK}>
+        <Link
+          {...linkTo('settings')}
+          onClick={onNavigate}
+          className={FOOTER_LINK}
+        >
           {nav.settings}
         </Link>
       </nav>

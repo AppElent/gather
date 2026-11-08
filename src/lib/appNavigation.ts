@@ -9,21 +9,20 @@
  * lists that have to agree eventually stop agreeing.
  *
  * Nothing here reads the URL for itself or talks to a backend — a caller hands
- * over the Group it is standing in and the Pins it was told about, and gets a
- * list back.
+ * over the Pins it was told about, and gets a list back.
  */
 
 import type { Messages } from '@gather/core/messages'
 import type { ModuleDef } from '@gather/core/modules'
 import { MODULES, moduleById, moduleText } from '@gather/core/modules'
 import { pinnedModules } from '@gather/core/pins'
-import type { LinkProps } from '@tanstack/react-router'
 import {
-  groupLink,
-  groupSurfaceSegment,
+  type AppLink,
+  indexSurfaceOf,
+  linkTo,
   moduleLink,
-  moduleSegment,
-} from './groupPaths'
+  ROUTES,
+} from './links'
 
 /**
  * The strings this file needs to say what it is returning.
@@ -35,18 +34,12 @@ import {
  */
 export type NavMessages = Pick<Messages, 'shell' | 'modules'>
 
-/** Where a navigation item points. */
-export type NavDestination = Pick<
-  LinkProps,
-  'to' | 'params' | 'search' | 'hash'
->
-
 export interface NavItem {
   /** `home`, `all`, or a Module's id — the same id the active route resolves to. */
   id: string
   label: string
   icon: string
-  link: NavDestination
+  link: AppLink
   /**
    * The Module's data is about you rather than the Group, so it reads the same
    * from every Group and nobody else can see it (ADR-0003). Marked wherever a
@@ -66,16 +59,6 @@ export interface RouteContext {
 const HOME = 'home'
 const ALL = 'all'
 
-/**
- * The Group's own settings page. Not a navigation item — the sidebar and the
- * dock are Home, your Pins and All, and nothing else — but it is somewhere the
- * palette can jump to and something the topbar has to be able to name.
- */
-const GROUP_SETTINGS = 'group-settings'
-
-/** Read off the surface, so the id and the URL cannot drift apart. */
-const GROUP_SETTINGS_SEGMENT = groupSurfaceSegment('settings')
-
 /** How many items the mobile dock has room for, Home and All included. */
 export const DOCK_SLOTS = 5
 
@@ -84,92 +67,55 @@ export const DOCK_SLOTS = 5
  * question this file already answers.
  *
  * TanStack's `Link` decides for itself whether it points at the current page,
- * and by default it does so by *prefix* (`activeOptions.exact ?? false`). Home
- * points at `/g/<slug>`, which is a prefix of every other page in the Group —
- * so on `/g/<slug>/tasks` the router considered Home active, and its
- * `STATIC_ACTIVE_PROPS` are spread after the caller's own props, forcing
- * `aria-current="page"` onto Home no matter what we passed. The desktop sidebar
- * hid this by colouring itself from `activeId` instead, but the dock styles
- * `aria-[current=page]:`, so Home sat lit under every Module a phone opened.
- *
+ * by *prefix* unless told otherwise, and its `STATIC_ACTIVE_PROPS` are spread
+ * after the caller's own props, so its answer wins `aria-current="page"`.
  * `exact` narrows the router's claim to the one case where it cannot be wrong —
  * the link *is* the page — and `activeNavItemId` keeps the rest, including the
- * two the router cannot know: `/g/<slug>/recipes/<id>` belongs to Recipes, and
- * a Module nobody pinned lights All.
+ * one the router cannot know: a Module nobody pinned lights All.
  */
 export const NAV_ACTIVE_OPTIONS = { exact: true } as const
 
-/**
- * Where Home points: the landing page of the Group you are standing in.
- *
- * There is no answer without a Group. Home is *a Group's* shared surface
- * (GLOSSARY.md), so a Home that belongs to no Group is not a page that was
- * removed — it is a page that never meant anything.
- */
-export function homeDestination(groupSlug: string): NavDestination {
-  return groupLink(HOME, groupSlug)
-}
-
-function allDestination(groupSlug: string): NavDestination {
-  return groupLink(ALL, groupSlug)
-}
-
-function moduleItem(
-  module: ModuleDef,
-  groupSlug: string,
-  messages: NavMessages,
-): NavItem {
+function moduleItem(module: ModuleDef, messages: NavMessages): NavItem {
   return {
     id: module.id,
     label: moduleText(module, messages).label,
     icon: module.icon,
-    // The shell renders above the route it is showing, so this is the one kind
-    // of link a route cannot build. `moduleLink` knows where each Module lives
-    // inside the Group it is given.
-    link: moduleLink(module, groupSlug),
+    link: moduleLink(module),
     personal: module.scope === 'personal',
     placeholder: module.status === 'placeholder',
   }
 }
 
 /**
- * The whole navigation, in order: Home, the caller's pinned Modules in their
- * own order, then All.
+ * The whole navigation of the Current Group, in order: Home, the caller's
+ * pinned Modules in their own order, then All.
  *
  * Takes the stored Pin ids rather than resolved Modules, so an id no Module
  * declares is dropped on the way in — a Pin left behind by a Module that no
  * longer exists cannot put a hole in somebody's sidebar.
  *
- * Empty off any Group route, and that is the honest answer rather than a
- * degraded one. Every item in this list — Home, a Module, All — names a page
- * inside a Group; with no Group named there is nothing here to point at, and
- * the surfaces that render it say so in words instead of showing rows that
- * would have to guess a Group to go to.
+ * Every item names a page of the Current Group, so with no Current Group there
+ * is no list: the caller renders none, and the surfaces say so in words.
  */
 export function navItems(
   pins: readonly string[] | undefined,
-  groupSlug: string | null,
   messages: NavMessages,
 ): NavItem[] {
-  if (!groupSlug) return []
-
   return [
     {
       id: HOME,
       label: messages.shell.nav.home,
       icon: 'Home',
-      link: homeDestination(groupSlug),
+      link: linkTo(HOME),
       personal: false,
       placeholder: false,
     },
-    ...pinnedModules(pins).map((module) =>
-      moduleItem(module, groupSlug, messages),
-    ),
+    ...pinnedModules(pins).map((module) => moduleItem(module, messages)),
     {
       id: ALL,
       label: messages.shell.nav.all,
       icon: 'Grid2X2',
-      link: allDestination(groupSlug),
+      link: linkTo(ALL),
       personal: false,
       placeholder: false,
     },
@@ -206,19 +152,6 @@ export function dockNavItems(
 }
 
 /**
- * The navigation item a route belongs to — `home`, `all`, a Module id, or null
- * for somewhere the navigation does not describe.
- */
-function navTargetOf(pathname: string): string | null {
-  const path = normalizePath(pathname)
-  const segment = path.split('/').filter(Boolean)[0] ?? ''
-  if (path === '/home') return HOME
-  if (path === '/all') return ALL
-  if (segment === GROUP_SETTINGS_SEGMENT) return GROUP_SETTINGS
-  return MODULES.find((m) => moduleSegment(m.id) === segment)?.id ?? null
-}
-
-/**
  * Which item to light up for a given route — the one predicate both the
  * sidebar and the dock call, so they cannot disagree about it.
  *
@@ -230,7 +163,7 @@ export function activeNavItemId(
   pathname: string,
   items: readonly NavItem[],
 ): string | null {
-  const target = navTargetOf(pathname)
+  const target = indexSurfaceOf(pathname)
   if (!target) return null
   if (items.some((item) => item.id === target)) return target
   if (!moduleById(target)) return null
@@ -241,52 +174,50 @@ export function activeNavItemId(
 export interface JumpTarget {
   id: string
   label: string
-  link: NavDestination
+  link: AppLink
 }
 
 /**
- * Everywhere the palette can jump to, from wherever you are standing.
+ * The pages that are about you rather than a Group — Settings and the Groups
+ * list — and read the same from everywhere. With no Current Group they are all
+ * the palette can offer.
+ */
+export function shellJumpTargets(messages: NavMessages): JumpTarget[] {
+  const nav = messages.shell.nav
+  return [
+    { id: 'settings', label: nav.settings, link: linkTo('settings') },
+    { id: 'groups', label: nav.groups, link: linkTo('groups') },
+  ]
+}
+
+/**
+ * Everywhere the palette can jump to inside the Current Group, then the shell
+ * pages.
  *
  * Every Module, not only the pinned ones — the palette is how you reach the
- * Module you did not pin without going through All first. Home and All come
- * from the same two functions the sidebar and dock use, so there is one
- * definition of where each points and the palette cannot drift from the
- * navigation beside it.
+ * Module you did not pin without going through All first. Home and All are
+ * the same links the sidebar and dock use.
  *
- * The shell's own pages carry no Module id and so stay flat wherever you are:
- * Settings, Account and the Groups list are about you and read the same from
- * everywhere. They are also all that is left to offer off a Group route — every
- * other target here would have to invent a Group to be in.
- *
- * A Group's *own* settings are a different page and are offered separately,
+ * A Group's *own* settings are a different page from yours and are offered
  * under a label that says whose settings they are, because the two would
  * otherwise be one word meaning two things.
  */
-export function jumpTargets(
-  groupSlug: string | null,
-  messages: NavMessages,
-): JumpTarget[] {
+export function jumpTargets(messages: NavMessages): JumpTarget[] {
   const nav = messages.shell.nav
-  const shellPages: JumpTarget[] = [
-    { id: 'settings', label: nav.settings, link: { to: '/settings' } },
-    { id: 'groups', label: nav.groups, link: { to: '/groups' } },
-  ]
-  if (!groupSlug) return shellPages
-
   return [
-    { id: HOME, label: nav.home, link: homeDestination(groupSlug) },
+    { id: HOME, label: nav.home, link: linkTo(HOME) },
     ...MODULES.map((module) => ({
       id: module.id,
       label: moduleText(module, messages).label,
-      link: moduleLink(module, groupSlug),
+      link: moduleLink(module),
     })),
-    { id: ALL, label: nav.all, link: allDestination(groupSlug) },
+    { id: ALL, label: nav.all, link: linkTo(ALL) },
     {
-      id: GROUP_SETTINGS,
+      id: 'groupSettings',
       label: nav.groupSettings,
-      link: groupLink('settings', groupSlug),
+      link: linkTo('groupSettings'),
     },
-    ...shellPages,
+    ...shellJumpTargets(messages),
   ]
 }
 
@@ -295,23 +226,15 @@ export function getRouteContext(
   messages: NavMessages,
 ): RouteContext {
   const routes = messages.shell.routes
-  const staticContext: Record<string, RouteContext> = {
-    '/groups': routes.groups,
-    '/settings': routes.settings,
-    '/account': routes.account,
-  }
-  const ownContext: Record<string, RouteContext> = {
-    [HOME]: routes.home,
-    [ALL]: routes.all,
-    [GROUP_SETTINGS]: routes.groupSettings,
-  }
+  const shellPage = (['settings', 'account', 'groups'] as const).find(
+    (surface) => ROUTES[surface] === normalizePath(pathname),
+  )
+  if (shellPage) return routes[shellPage]
 
-  const flat = staticContext[normalizePath(pathname)]
-  if (flat) return flat
-
-  const target = navTargetOf(pathname)
-  const own = target ? ownContext[target] : undefined
-  if (own) return own
+  const target = indexSurfaceOf(pathname)
+  if (target === HOME || target === ALL || target === 'groupSettings') {
+    return routes[target]
+  }
 
   const module = target ? moduleById(target) : undefined
   if (module) {

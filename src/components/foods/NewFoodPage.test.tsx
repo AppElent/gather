@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
-import { groupFoodNav } from './foodNav'
+import { linkTo } from '../../lib/links'
 import { NewFoodPage } from './NewFoodPage'
 
 /**
@@ -77,11 +77,10 @@ vi.mock('@tanstack/react-router', () => ({
   ),
 }))
 
-const nav = groupFoodNav('jansen-household')
-
-/** Where the add sheet for breakfast on the 18th sends somebody, and expects them back. */
+/** Where the add sheet for breakfast on the 18th expects somebody back. */
 const returnsToBreakfast = (foodId: string) => ({
   to: '/nutrition/add' as const,
+  params: {},
   search: { date: '2026-07-18', meal: 'breakfast' as const, food: foodId },
 })
 
@@ -93,21 +92,17 @@ beforeEach(() => {
 })
 
 test('says where the form sits, and offers the way back out of it', () => {
-  renderWithI18n(<NewFoodPage nav={nav} />)
+  renderWithI18n(<NewFoodPage />)
 
   const trail = screen.getByRole('navigation', { name: 'Breadcrumb' })
   expect(trail).toBeDefined()
-  // Back to the Catalog in the Group somebody is browsing, not to a `/foods`
-  // that would drop them out of it (ADR-0002).
   expect(
     screen.getByRole('link', { name: 'Back to Foods' }).getAttribute('href'),
   ).toBe('/foods')
 })
 
 test('the words a search found nothing for arrive as the name', async () => {
-  renderWithI18n(
-    <NewFoodPage name="hagelslag" after={returnsToBreakfast} nav={nav} />,
-  )
+  renderWithI18n(<NewFoodPage name="hagelslag" returnDate="2026-07-18" returnMeal="breakfast" />)
 
   // Prefilled, not decided: it is a starting point somebody can type over.
   expect(screen.getByLabelText('Name')).toHaveValue('hagelslag')
@@ -116,9 +111,7 @@ test('the words a search found nothing for arrive as the name', async () => {
 })
 
 test('saving hands the person back to the meal they were adding to', async () => {
-  renderWithI18n(
-    <NewFoodPage name="hagelslag" after={returnsToBreakfast} nav={nav} />,
-  )
+  renderWithI18n(<NewFoodPage name="hagelslag" returnDate="2026-07-18" returnMeal="breakfast" />)
   fireEvent.change(screen.getByLabelText('Calories (kcal)'), {
     target: { value: '500' },
   })
@@ -134,14 +127,14 @@ test('saving hands the person back to the meal they were adding to', async () =>
 
 test('with nowhere to go back to, a new food still lands on its own page', async () => {
   // The Foods module's own "add manually", unchanged by any of this.
-  renderWithI18n(<NewFoodPage nav={nav} />)
+  renderWithI18n(<NewFoodPage />)
   fireEvent.change(screen.getByLabelText('Name'), {
     target: { value: 'Hagelslag' },
   })
   fireEvent.click(screen.getByRole('button', { name: /save food/i }))
 
   await waitFor(() => expect(navigated.value).toHaveLength(1))
-  expect(navigated.value[0]).toEqual(nav.detail('food-new'))
+  expect(navigated.value[0]).toEqual(linkTo('food', { foodId: 'food-new' }))
 })
 
 test('an Open Food Facts import is written only by the save, picture and all', async () => {
@@ -153,11 +146,7 @@ test('an Open Food Facts import is written only by the save, picture and all', a
     imageUrl: 'https://images.openfoodfacts.org/images/products/front.jpg',
   }
   renderWithI18n(
-    <NewFoodPage
-      barcode="3017620422003"
-      after={returnsToBreakfast}
-      nav={nav}
-    />,
+    <NewFoodPage barcode="3017620422003" returnDate="2026-07-18" returnMeal="breakfast" />,
   )
 
   await waitFor(() => expect(screen.getByDisplayValue('Nutella')).toBeDefined())
@@ -191,7 +180,7 @@ test('a correction made while reviewing is what the import records', async () =>
     nutritionPer100: { calories: 539 },
     servings: [],
   }
-  renderWithI18n(<NewFoodPage barcode="3017620422003" nav={nav} />)
+  renderWithI18n(<NewFoodPage barcode="3017620422003" />)
   await waitFor(() => expect(screen.getByDisplayValue('Nutella')).toBeDefined())
 
   fireEvent.change(screen.getByLabelText('Calories (kcal)'), {
@@ -211,11 +200,7 @@ test('a correction made while reviewing is what the import records', async () =>
 test('a scanned barcode you already have skips the review it has nothing to review', async () => {
   existingFood.value = { _id: 'food9', name: 'Volle melk' }
   renderWithI18n(
-    <NewFoodPage
-      barcode="8712345678901"
-      after={returnsToBreakfast}
-      nav={nav}
-    />,
+    <NewFoodPage barcode="8712345678901" returnDate="2026-07-18" returnMeal="breakfast" />,
   )
 
   await waitFor(() => expect(navigated.value).toHaveLength(1))

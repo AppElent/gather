@@ -9,7 +9,7 @@ import { IconButton, Pill, SectionHeader, SurfaceCard } from './ShellPrimitives'
 
 export interface GatherPanelProps {
   open: boolean
-  /** The Group the URL names, or null off any `/g/<slug>` route. */
+  /** The Current Group's name, or null when there is none. */
   activeGroupName: string | null
   routeTitle: string
   onClose: () => void
@@ -105,8 +105,8 @@ export function GatherPanel({
       >
         <header className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            {/* Off a Group route there is no Group to name, and saying so is
-                the same answer the switcher gives rather than a guess at
+            {/* With no Current Group there is no Group to name, and saying so
+                is the same answer the switcher gives rather than a guess at
                 which Group the question is about. */}
             <p className="mb-1 text-xs font-semibold uppercase text-[var(--app-muted)]">
               {activeGroupName ?? groupSwitcher.none}

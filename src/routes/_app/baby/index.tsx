@@ -1,19 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useRequiredCurrentGroup } from '#/components/app/useCurrentGroup'
 import { BabyListPage } from '../../../components/baby/BabyListPage'
-import { groupBabyNav } from '../../../components/baby/babyNav'
 
-/**
- * The baby log inside a Group. Unlike Nutrition, this one really is that
- * Group's content: the slug goes to Convex as well as into the links, so the
- * page shows this household's children and no other household's.
- */
 export const Route = createFileRoute('/_app/baby/')({
-  component: GroupBabyList,
+  component: BabyListPage,
 })
-
-function GroupBabyList() {
-  const { slug: groupSlug } = useRequiredCurrentGroup()
-
-  return <BabyListPage groupSlug={groupSlug} nav={groupBabyNav(groupSlug)} />
-}

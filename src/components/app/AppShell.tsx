@@ -108,12 +108,9 @@ function AppShellBody({ children }: { children: ReactNode }) {
 
   return (
     <div className="app-shell">
-      {/* Two columns at every width above a phone. There used to be a third at
-          `xl` carrying a "Group overview" rail of invented content — active
-          modules, a meal-planning slot, "member details will appear here". Home
-          is the Group's surface now (#22) and says all of it for real, so a
-          permanent rail beside it would be a second copy to keep in step with
-          the first. */}
+      {/* Two columns at every width above a phone. No rail about the Group
+          beside them: Home is the Group's surface (#22), and a rail would be a
+          second copy to keep in step with it. */}
       <div className="grid min-h-svh md:grid-cols-[264px_minmax(0,1fr)]">
         <Sidebar />
         <div
@@ -167,10 +164,8 @@ function AppShellBody({ children }: { children: ReactNode }) {
       <MobileDock />
       <GatherPanel
         open={gatherOpen}
-        // The Group the address bar names, or none — the same answer the
-        // switcher at the top of the sidebar gives. It used to be the literal
-        // string "Preview group" on every route, which told a reader the panel
-        // was about a Group that does not exist.
+        // The Current Group, or none — the same answer the switcher at the top
+        // of the sidebar gives.
         activeGroupName={currentGroup?.name ?? null}
         routeTitle={context.title}
         onClose={() => setGatherOpen(false)}

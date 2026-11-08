@@ -5,25 +5,15 @@ import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { ImageUploadField } from '../app/ImageUploadField'
+import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { BabyForm, type BabyFormValues } from './BabyForm'
-import type { BabyNav } from './babyNav'
 
-export interface NewBabyPageProps {
-  /** The Group the child is being added to. */
-  groupSlug: string
-  nav: BabyNav
-}
-
-/**
- * Adding a child, whole.
- *
- * The Group goes to the mutation as well as into the links: a child added from
- * `/g/<slug>/baby/new` belongs to that household, and there is no default for
- * them to land in instead.
- */
-export function NewBabyPage({ groupSlug, nav }: NewBabyPageProps) {
+/** Adding a child to the Current Group, whole. */
+export function NewBabyPage() {
+  const { slug: groupSlug } = useRequiredCurrentGroup()
   const create = useMutation(api.babies.create)
   const generateUploadUrl = useMutation(api.babies.generateUploadUrl)
   const navigate = useNavigate()
@@ -35,7 +25,7 @@ export function NewBabyPage({ groupSlug, nav }: NewBabyPageProps) {
 
   /** Baby log → Add a child. */
   const trail: Crumb[] = [
-    { label: messages.modules.byId['baby-log'].label, link: nav.list },
+    { label: messages.modules.byId['baby-log'].label, link: linkTo('baby-log') },
     { label: form.createTitle },
   ]
 
@@ -65,7 +55,7 @@ export function NewBabyPage({ groupSlug, nav }: NewBabyPageProps) {
           setError(null)
           try {
             const id = await create({ ...values, photoId, groupSlug })
-            navigate(nav.detail(id))
+            navigate(linkTo('child', { babyId: id }))
           } catch (err) {
             setError(
               err instanceof ConvexError

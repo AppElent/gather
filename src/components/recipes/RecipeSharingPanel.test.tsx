@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { renderWithI18n } from '../../lib/i18n/testing'
+import { renderInGroup } from '../app/testing'
 import { RecipeSharingPanel } from './RecipeSharingPanel'
 
 /**
@@ -18,7 +18,7 @@ const myGroups = vi.hoisted(() => ({ value: [] as unknown }))
 const calls = vi.hoisted(() => ({
   value: {} as Record<string, unknown[]>,
 }))
-const navigations = vi.hoisted(() => ({ value: [] as unknown[] }))
+const switchedTo = vi.hoisted(() => ({ value: [] as string[] }))
 
 vi.mock('convex/react', () => ({
   useQuery: () => myGroups.value,
@@ -35,12 +35,6 @@ vi.mock('../../../convex/_generated/api', () => ({
       share: 'recipes:share',
       unshare: 'recipes:unshare',
     },
-  },
-}))
-
-vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => async (options: unknown) => {
-    navigations.value = [...navigations.value, options]
   },
 }))
 
@@ -68,19 +62,24 @@ const ALLOTMENT = {
 beforeEach(() => {
   myGroups.value = [HOUSEHOLD, CLUB, ALLOTMENT]
   calls.value = {}
-  navigations.value = []
+  switchedTo.value = []
 })
 
 function renderPanel(
   sharedGroups: Array<{ _id: Id<'groups'>; name: string; slug: string }> = [],
 ) {
-  renderWithI18n(
+  renderInGroup(
     <RecipeSharingPanel
       recipeId={RECIPE_ID}
       homeGroupName="Household"
       homeGroupSlug="household"
       sharedGroups={sharedGroups}
     />,
+    {
+      setCurrentGroup: (groupId) => {
+        switchedTo.value = [...switchedTo.value, groupId]
+      },
+    },
   )
 }
 
@@ -151,15 +150,11 @@ describe('what the panel does', () => {
         { id: RECIPE_ID, toGroupSlug: 'cooking-club' },
       ])
     })
-    // The address this page was opened at is inside the Group the recipe has
-    // just left, and no longer resolves to it.
+    // The page reads the recipe through the Current Group, which the recipe
+    // has just left: the Current Group has to follow it, or the page reads
+    // "not found".
     await waitFor(() => {
-      expect(navigations.value).toEqual([
-        {
-          to: '/recipes/$recipeId',
-          params: { recipeId: RECIPE_ID },
-        },
-      ])
+      expect(switchedTo.value).toEqual(['g_club'])
     })
   })
 
@@ -176,7 +171,7 @@ describe('what the panel does', () => {
         { id: RECIPE_ID, withGroupSlug: 'allotment' },
       ])
     })
-    expect(navigations.value).toEqual([])
+    expect(switchedTo.value).toEqual([])
   })
 
   test('an unshare names the Group whose row it sits on', async () => {
