@@ -10,10 +10,10 @@ import {
   taskListDisplayValidator,
   taskProviderValidator,
 } from './lib/taskFields'
-import { canWriteToList, getAdapter } from './lib/taskProviders'
+import { getAdapter } from './lib/taskProviders'
 import { ProviderAuthError, type UnifiedTask } from './lib/taskProviders/types'
 
-/** The lists of the Group in the URL, and of no other. */
+/** The lists of the named Group, and of no other. */
 export const list = query({
   args: { groupSlug: v.string() },
   handler: async (ctx, args) => {
@@ -30,11 +30,12 @@ export const list = query({
         provider: l.provider,
         order: l.order,
         display: l.display ?? { due: false, priority: false, labels: false },
-        // Whether this list can be added to from Gather, by any path.
+        // Whether this list can be added to from Gather: only a local list
+        // has `tasks` rows, and no provider write path exists (ADR-0021).
         // Callers that offer a list as somewhere to write — the baby log's
         // checklist cards, for one — need this before the person picks, not
         // after they try.
-        writable: canWriteToList(l.provider),
+        writable: l.provider === 'local',
       }))
   },
 })

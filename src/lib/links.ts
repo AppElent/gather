@@ -11,7 +11,7 @@
  */
 
 import type { MealName } from '@gather/core/domain'
-import type { ModuleId } from '@gather/core/modules'
+import { MODULES, type ModuleId } from '@gather/core/modules'
 import type { LinkProps } from '@tanstack/react-router'
 
 /** `<Link>` / `navigate` options, with `to` checked against the route tree. */
@@ -198,6 +198,24 @@ export function indexSurfaceOf(pathname: string): IndexSurface | null {
       return path === route || path.startsWith(`${route}/`)
     }) ?? null
   )
+}
+
+/**
+ * The front pages of a Personal Module and the libraries beside its diary.
+ * They belong to the person, not a Group, so they work for somebody in none.
+ */
+const PERSONAL_SURFACES: ReadonlySet<IndexSurface> = new Set<IndexSurface>([
+  ...MODULES.filter((module) => module.scope === 'personal').map(
+    (module) => module.id,
+  ),
+  'foods',
+  'combos',
+])
+
+/** Whether a page sits under one of the Current Group's front pages. */
+export function needsCurrentGroup(pathname: string): boolean {
+  const surface = indexSurfaceOf(pathname)
+  return surface !== null && !PERSONAL_SURFACES.has(surface)
 }
 
 /** Where a Module link goes. */

@@ -1,4 +1,8 @@
-import { refusalKind, refusalSentence } from '@gather/core/refusals'
+import {
+  readTastingAttributeProblem,
+  refusalKind,
+  refusalSentence,
+} from '@gather/core/refusals'
 import { ConvexError } from 'convex/values'
 
 /**
@@ -28,8 +32,5 @@ export function errorMessage(
 }
 
 function refusalKey(error: unknown): string | null {
-  const kind = refusalKind(error)
-  if (kind !== 'tastingAttribute') return kind
-  const { problem } = (error as { data: { problem?: unknown } }).data
-  return typeof problem === 'string' ? problem : kind
+  return readTastingAttributeProblem(error) ?? refusalKind(error)
 }

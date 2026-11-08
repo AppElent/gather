@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { getRouteContext } from '../../lib/appNavigation'
 import { useMessages } from '../../lib/i18n'
-import { indexSurfaceOf, linkTo } from '../../lib/links'
+import { linkTo, needsCurrentGroup } from '../../lib/links'
 import { CommandPalette } from './CommandPalette'
 import { GatherPanel } from './GatherPanel'
 import { IssueReporterModal } from './IssueReporterModal'
@@ -33,10 +33,10 @@ function AppShellBody({ children }: { children: ReactNode }) {
   const messages = useMessages()
   const context = getRouteContext(location.pathname, messages)
   const { current: currentGroup, groups } = useCurrentGroup()
-  // A page under one of the Current Group's front pages reads the Group with
-  // `useRequiredCurrentGroup`, so it is held here until the Groups arrive, and
-  // somebody in no Group is sent to make or join one.
-  const groupPage = indexSurfaceOf(location.pathname) !== null
+  // A Group page reads the Group with `useRequiredCurrentGroup`, so it is held
+  // here until the Groups arrive, and somebody in no Group is sent to make or
+  // join one. Personal pages need neither.
+  const groupPage = needsCurrentGroup(location.pathname)
   // The dock is only on screen when there is a navigation to put in it, and the
   // room reserved for it has to go when it does — asked of the same list the
   // dock renders, so the space and the bar cannot disagree.

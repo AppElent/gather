@@ -34,9 +34,10 @@ apply as written. Gather binds them:
   a provider sends anyone to. A link never names a Group: the Current Group is
   ambient ([ADR-0031](../adr/0031-the-current-group-is-ambient-on-web-and-mobile.md)),
   and pages read it with `useRequiredCurrentGroup()` rather than receiving it.
-  `AppShell` renders a page under an index surface only once there is a
+  `AppShell` renders a page under a Group index surface only once there is a
   Current Group: it shows loading until the Groups arrive and sends somebody in
-  no Group to Groups.
+  no Group to Groups. Personal pages (Nutrition, Foods, Combos) render without
+  one.
 - **Switching Group is `setCurrentGroup`, never a link.** A control that moves
   somebody into another Group calls `setCurrentGroup` in its click handler and
   links to a page without params (an index surface), because an id means

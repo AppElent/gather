@@ -14,6 +14,7 @@
  * since "is `tannin` a field?" depends on the Kind and the scope.
  */
 
+import { tastingAttributeRefusal } from '@gather/core/refusals'
 import {
   normalizeTastingAttributes,
   TASTING_KINDS,
@@ -60,12 +61,6 @@ export function checkedAttributes(
 ): Record<string, TastingAttributeValue> {
   const normalized = normalizeTastingAttributes(attributes ?? {})
   const [problem] = validateTastingAttributes(kind, scope, normalized)
-  if (problem) {
-    throw new ConvexError({
-      kind: 'tastingAttribute',
-      field: problem.field,
-      problem: problem.problem,
-    })
-  }
+  if (problem) throw new ConvexError(tastingAttributeRefusal(problem))
   return normalized
 }

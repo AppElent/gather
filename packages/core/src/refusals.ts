@@ -9,6 +9,7 @@
  * than through `ConvexError`.
  */
 import { CALENDAR_VALIDATION_KEYS } from './calendar'
+import type { TastingAttributeError, TastingAttributeProblem } from './tastings'
 
 export const TASTING_REFUSALS = [
   'needsScore',
@@ -44,6 +45,28 @@ export function refusal(
   kind: (typeof TASTING_REFUSALS | typeof COMBO_REFUSALS)[number],
 ): { kind: string } {
   return { kind }
+}
+
+/**
+ * A tasting attribute the Kind spec refused. It carries the field and what was
+ * wrong with it, so a reader can say which.
+ */
+export function tastingAttributeRefusal({
+  field,
+  problem,
+}: TastingAttributeError): { kind: string; field: string; problem: string } {
+  return { kind: 'tastingAttribute', field, problem }
+}
+
+/** What was wrong with a refused tasting attribute, when that is the refusal. */
+export function readTastingAttributeProblem(
+  error: unknown,
+): TastingAttributeProblem | null {
+  if (refusalKind(error) !== 'tastingAttribute') return null
+  const data = errorData(error) as { problem?: unknown }
+  return typeof data.problem === 'string'
+    ? (data.problem as TastingAttributeProblem)
+    : null
 }
 
 /**

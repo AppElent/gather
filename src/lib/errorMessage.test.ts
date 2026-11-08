@@ -1,5 +1,5 @@
 import { en, nl } from '@gather/core/messages'
-import { refusal } from '@gather/core/refusals'
+import { refusal, tastingAttributeRefusal } from '@gather/core/refusals'
 import { ConvexError } from 'convex/values'
 import { describe, expect, test } from 'vitest'
 import { errorMessage } from './errorMessage'
@@ -10,11 +10,9 @@ describe('a refused tasting', () => {
   const { problems } = en.tastings.composer
 
   test('reads as what was wrong with the attribute', () => {
-    const error = new ConvexError({
-      kind: 'tastingAttribute',
-      field: 'abv',
-      problem: 'outOfRange',
-    })
+    const error = new ConvexError(
+      tastingAttributeRefusal({ field: 'abv', problem: 'outOfRange' }),
+    )
 
     expect(errorMessage(error, FALLBACK, problems)).toBe(
       'That number is outside what this field allows.',
