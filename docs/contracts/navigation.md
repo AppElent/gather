@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a nested web route, breadcrumbs, a back link, or a Module's web address.
-version: 1.3.0
+version: 1.3.1
 status: current
 ---
 
@@ -25,11 +25,18 @@ apply as written. Gather binds them:
   the diary, and the OAuth callback.
 - **Content labels** (a food's name, a recipe's title) are never translated
   ([ADR-0011](../adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md)).
-- **Every in-app link is built with `linkTo` or `hrefTo` from `src/lib/links.ts`**,
-  whose `ROUTES` table names each destination once and is type-checked against
-  the route tree. A link never names a Group: the Current Group is ambient
-  ([ADR-0031](../adr/0031-the-current-group-is-ambient-on-web-and-mobile.md)),
+- **Every link to a page in the signed-in app is built with `linkTo` or
+  `hrefTo` from `src/lib/links.ts`**, whose `ROUTES` table names each such
+  destination once and is type-checked against the route tree. Three kinds of
+  address are not in `ROUTES`, and the few places that reach them write the
+  path: the landing address `/`, which only decides where to send you; the
+  sign-in, sign-up and forgot-password pages; and the OAuth callback, which only
+  a provider sends anyone to. A link never names a Group: the Current Group is
+  ambient ([ADR-0031](../adr/0031-the-current-group-is-ambient-on-web-and-mobile.md)),
   and pages read it with `useRequiredCurrentGroup()` rather than receiving it.
+  `AppShell` renders a page under an index surface only once there is a
+  Current Group: it shows loading until the Groups arrive and sends somebody in
+  no Group to Groups.
 - **Switching Group is `setCurrentGroup`, never a link.** A control that moves
   somebody into another Group calls `setCurrentGroup` in its click handler and
   links to a page without params (an index surface), because an id means

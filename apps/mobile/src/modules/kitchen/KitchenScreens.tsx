@@ -28,7 +28,7 @@ import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
-import { useTaskState } from '../tasks/store'
+import { useTaskLists } from '../tasks/store'
 import { TaskList } from '../tasks/TaskListScreen'
 
 function KitchenShell({
@@ -574,7 +574,7 @@ export function GroceriesScreen() {
   const { t } = useI18n()
   const data = useQuery(api.kitchen.overview, { groupSlug: group.slug })
   const set = useMutation(api.kitchen.setGroceryList)
-  const state = useTaskState()
+  const lists = useTaskLists()
   const selected = data?.groceryListId
   if (selected)
     return (
@@ -596,15 +596,14 @@ export function GroceriesScreen() {
   return (
     <KitchenShell title={t.modules.byId.groceries.label}>
       <Text>{t.kitchen.noGroceryList}</Text>
-      {state.lists.map((list) => (
+      {lists?.map((list) => (
         <Pressable
-          key={list.id}
+          key={list._id}
           style={styles.row}
           onPress={() =>
-            set({
-              groupSlug: group.slug,
-              listId: list.id as Id<'taskLists'>,
-            }).then(() => haptics.selectionChanged())
+            set({ groupSlug: group.slug, listId: list._id }).then(() =>
+              haptics.selectionChanged(),
+            )
           }
         >
           <Text>{list.name}</Text>

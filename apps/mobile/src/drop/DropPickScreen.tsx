@@ -37,7 +37,11 @@ import { api } from '../convex/api'
 import { useQuery } from '../convex/queries'
 import { confirmDestructive } from '../feedback/confirmDestructive'
 import { haptics } from '../feedback/haptics'
-import { type AmbientGroup, useGroup } from '../group/GroupProvider'
+import {
+  type AmbientGroup,
+  useGroup,
+  useOpenInGroup,
+} from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
@@ -60,7 +64,8 @@ export function DropPickScreen() {
   const tokens = useTokens()
   const router = useRouter()
   const { t } = useI18n()
-  const { group, groups, setGroup } = useGroup()
+  const { group, groups } = useGroup()
+  const openInGroup = useOpenInGroup()
   const { pending, clear } = useDrop()
   const commit = useDropCommit()
   const { target: targetId, groupId } = useLocalSearchParams<{
@@ -124,11 +129,13 @@ export function DropPickScreen() {
         return
       }
       haptics.itemSaved()
+      const { href } = result
       // Follow the Drop into the Group it named, as stage one does.
-      if (named._id !== group._id) setGroup(named._id)
-      clear()
-      router.dismissTo('/home')
-      router.push(result.href)
+      openInGroup(named._id, () => {
+        clear()
+        router.dismissTo('/home')
+        router.push(href)
+      })
     } catch {
       // Back is still the chooser and the Drop is still pending, so recovery
       // needs nothing of its own — see the chooser's note.

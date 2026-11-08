@@ -15,7 +15,11 @@
  * the address it answers is a real route file.
  */
 import type { ModuleId } from '@gather/core/modules'
-import { type TastingKind, tastingKindForModule } from '@gather/core/tastings'
+import {
+  type TASTING_KIND_SPECS,
+  type TastingKind,
+  tastingKindForModule,
+} from '@gather/core/tastings'
 import type { Href } from 'expo-router'
 
 /** Modules with real screens in the phone's route tree. */
@@ -55,9 +59,14 @@ export function moduleDestination(moduleId: string): Href {
   // place a Module's route is not named after it.
   const kind = tastingKindForModule(moduleId)
   if (kind) return moduleHref(`/all/tasting/${kind}`)
-  if (isNativeModule(moduleId)) return moduleHref(`/all/${moduleId}`)
+  // Not `moduleHref`: `ModulePath` leaves the tasting Modules out, and the
+  // check above does not narrow `moduleId`. The route-file test covers this.
+  if (isNativeModule(moduleId)) return `/all/${moduleId}` as Href
   return { pathname: '/all/[moduleId]', params: { moduleId } }
 }
+
+/** The Modules reached through the tasting `[kind]` route, not their own id. */
+type TastingModuleId = (typeof TASTING_KIND_SPECS)[TastingKind]['moduleId']
 
 /**
  * Every address below a Module's index that a screen pushes to by name.
@@ -66,7 +75,7 @@ export function moduleDestination(moduleId: string): Href {
  * caller. A screen a Module adds goes here with its route file.
  */
 export type ModulePath =
-  | `/all/${NativeModuleId}`
+  | `/all/${Exclude<NativeModuleId, TastingModuleId>}`
   | `/all/baby-log${'' | '/new' | '/settings' | '/timeline' | '/trends' | '/lists' | '/entry'}`
   | `/all/recipes${'' | '/recipe' | '/import' | '/new' | '/edit'}`
   | `/all/tasting/${TastingKind}${'' | '/subject' | '/compose'}`

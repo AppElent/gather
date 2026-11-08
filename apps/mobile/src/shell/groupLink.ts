@@ -59,29 +59,22 @@ export function nativeDestinationForGroupLink(
   return null
 }
 
-/** What the handoff does next with a pending link. */
-export type GroupLinkStep =
-  | { kind: 'refuse' }
-  | { kind: 'switch'; groupId: Id<'groups'> }
-  | { kind: 'open'; href: Href }
-
 /**
- * One step of the `/g/<slug>` handoff. The link names its Group by slug, which
- * is what the web's address carried; the app names Groups by id, so the slug
- * is resolved against the Member's own Groups here and nowhere else. A slug
- * that is not one of theirs, or a destination the phone does not have, is
- * refused before the Group changes.
+ * Where a `/g/<slug>` link opens: its Group and its screen, or `null` to
+ * refuse it. The link names its Group by slug, which is what the web's address
+ * carried; the app names Groups by id, so the slug is resolved against the
+ * Member's own Groups here and nowhere else. A slug that is not one of theirs,
+ * or a destination the phone does not have, is refused before the Group
+ * changes.
  */
-export function groupLinkStep(
+export function groupLinkTarget(
   link: PendingGroupLink | null,
-  current: Id<'groups'>,
   groups: readonly { _id: Id<'groups'>; slug: string }[],
-): GroupLinkStep {
+): { groupId: Id<'groups'>; href: Href } | null {
   const href = link ? nativeDestinationForGroupLink(link.segments) : null
   const target = link
     ? groups.find((candidate) => candidate.slug === link.groupSlug)
     : undefined
-  if (!href || !target) return { kind: 'refuse' }
-  if (target._id !== current) return { kind: 'switch', groupId: target._id }
-  return { kind: 'open', href }
+  if (!href || !target) return null
+  return { groupId: target._id, href }
 }

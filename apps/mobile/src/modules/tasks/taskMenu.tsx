@@ -21,7 +21,7 @@ import {
   PrioritySheet,
   RenameSheet,
 } from './sheets'
-import { useTaskActions, useTaskState } from './store'
+import { useTaskActions } from './store'
 import type { Task } from './types'
 
 /**
@@ -78,20 +78,26 @@ type TaskSheet = 'due' | 'priority' | 'labels' | 'move' | 'rename'
  * scroll view — a sheet inside one is a sheet that scrolls away.
  */
 export function useTaskSheets({
+  tasks,
   onReorder,
   onDeleted,
 }: {
+  /**
+   * The tasks the screen is showing, as it reads them: an open sheet draws
+   * its task from here, so it follows a write the sheet itself made.
+   */
+  tasks: readonly Task[]
   onReorder?: () => void
   /** For a screen that is about the task, and so has to leave with it. */
   onDeleted?: () => void
-} = {}) {
+}) {
   const { t } = useI18n()
-  const state = useTaskState()
   const actions = useTaskActions()
   const [open, setOpen] = useState<{ kind: TaskSheet; taskId: string } | null>(
     null,
   )
   const close = () => setOpen(null)
+  const task = open && tasks.find((each) => each.id === open.taskId)
 
   const confirmDelete = (task: Task) =>
     confirmDestructive({
@@ -127,27 +133,23 @@ export function useTaskSheets({
     }
   }
 
-  const sheets = !open ? null : (
+  const sheets = !open || !task ? null : (
     <>
-      {open.kind === 'due' ? (
-        <DueDateSheet taskId={open.taskId} onClose={close} />
-      ) : null}
+      {open.kind === 'due' ? <DueDateSheet task={task} onClose={close} /> : null}
       {open.kind === 'priority' ? (
-        <PrioritySheet taskId={open.taskId} onClose={close} />
+        <PrioritySheet task={task} onClose={close} />
       ) : null}
       {open.kind === 'labels' ? (
-        <LabelsSheet taskId={open.taskId} onClose={close} />
+        <LabelsSheet task={task} onClose={close} />
       ) : null}
       {open.kind === 'move' ? (
-        <MoveToListSheet taskId={open.taskId} onClose={close} />
+        <MoveToListSheet task={task} onClose={close} />
       ) : null}
       {open.kind === 'rename' ? (
         <RenameSheet
           title={t.tasks.list.renameTask}
-          value={
-            state.tasks.find((each) => each.id === open.taskId)?.title ?? ''
-          }
-          onSave={(next) => actions.renameTask(open.taskId, next)}
+          value={task.title}
+          onSave={(next) => actions.renameTask(task.id, next)}
           onClose={close}
         />
       ) : null}

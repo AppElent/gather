@@ -41,7 +41,7 @@ export function TaskLists() {
   const { t } = useI18n()
   const router = useRouter()
   const state = useTaskState()
-  const taskSheets = useTaskSheets()
+  const taskSheets = useTaskSheets({ tasks: state.tasks })
   const ChevronRight = UI_ICONS.ChevronRight
 
   const lists = [...state.lists].sort((a, b) => a.order - b.order)

@@ -1,8 +1,8 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
-import { type StubbedImagePipeline, stubImagePipeline } from './imagePipeline'
 import { PhotoPrepareDialog } from './PhotoPrepareDialog'
+import { type StubbedImagePipeline, stubImagePipeline } from './testing'
 
 /**
  * The framing step, checked at the only place its result is observable from a

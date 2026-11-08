@@ -1,12 +1,17 @@
 import {
   BABY_SEXES,
+  type BabyEventDataByType,
   DIAPER_KINDS,
   FEEDING_METHODS,
   FEEDING_SIDES,
   TEMPERATURE_METHODS,
 } from '@gather/core/baby-events'
-import { BABY_EVENT_TYPES } from '@gather/core/domain'
-import { v } from 'convex/values'
+import {
+  BABY_BAR_SHORTCUTS,
+  BABY_EVENT_TYPES,
+  type BabyEventType,
+} from '@gather/core/domain'
+import { type GenericValidator, type Infer, v } from 'convex/values'
 import { literals } from './validators'
 
 export const babyEventTypeValidator = literals(BABY_EVENT_TYPES)
@@ -19,8 +24,7 @@ export const babyEventTypeValidator = literals(BABY_EVENT_TYPES)
  */
 export const babyBarSlotValidator = v.union(
   babyEventTypeValidator,
-  v.literal('todo'),
-  v.literal('question'),
+  literals(BABY_BAR_SHORTCUTS),
 )
 
 export const babySexValidator = literals(BABY_SEXES)
@@ -111,3 +115,32 @@ export const babyEventDataValidator = v.union(
   noteDataValidator,
   memoryDataValidator,
 )
+
+// The screens read `data` through core's `BabyEventDataByType`. This stops
+// compiling, naming the type, the moment a payload validator above and that
+// type disagree about a field.
+type Same<A, B> =
+  (<X>() => X extends A ? 1 : 2) extends <X>() => X extends B ? 1 : 2
+    ? true
+    : false
+// `v.object({})` infers `{}` but refuses every field, which core spells
+// `Record<string, never>`.
+type Accepted<V extends GenericValidator> =
+  keyof Infer<V> extends never ? Record<string, never> : Infer<V>
+type DataValidatorByType = {
+  temperature: typeof temperatureDataValidator
+  feeding: typeof feedingDataValidator
+  diaper: typeof diaperDataValidator
+  sleep: typeof sleepDataValidator
+  growth: typeof growthDataValidator
+  medication: typeof medicationDataValidator
+  vaccination: typeof vaccinationDataValidator
+  note: typeof noteDataValidator
+  memory: typeof memoryDataValidator
+}
+;({}) as {
+  [T in keyof DataValidatorByType]: Same<
+    Accepted<DataValidatorByType[T]>,
+    BabyEventDataByType[T]
+  >
+} satisfies Record<BabyEventType, true>

@@ -2,6 +2,7 @@ import { localIsoDate } from '@gather/core/civil-date'
 import { MEAL_NAMES, type MealName } from '@gather/core/domain'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AddSheet } from '../../../components/nutrition/AddSheet'
+import { linkTo } from '../../../lib/links'
 
 /**
  * The meal being added to, defaulting to the first slot for a hand-typed URL,
@@ -43,7 +44,7 @@ function AddToMeal() {
       justAddedFoodId={food}
       onClose={() =>
         navigate({
-          to: '/nutrition',
+          ...linkTo('nutrition'),
           search: { date },
         })
       }

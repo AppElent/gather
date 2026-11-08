@@ -1,7 +1,6 @@
 import { photoPreset } from '@gather/core/photo-presets'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { initialCrop } from './cropFrame'
-import { type StubbedImagePipeline, stubImagePipeline } from './imagePipeline'
 import {
   type DecodedPhoto,
   decodePhoto,
@@ -10,6 +9,7 @@ import {
   PHOTO_PREPARE_ERROR,
   preparePhoto,
 } from './preparePhoto'
+import { type StubbedImagePipeline, stubImagePipeline } from './testing'
 
 /**
  * jsdom has neither `createImageBitmap` nor a 2D canvas, which is the honest

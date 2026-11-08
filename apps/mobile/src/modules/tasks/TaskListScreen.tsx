@@ -9,9 +9,9 @@
  *   line. That is what makes "rich vs plain" a setting instead of an argument.
  * - **Reorder is a mode**, reachable from both the row's hold menu and the
  *   list's ⋯ — see `ReorderMode.tsx`.
- * - **A list Gather cannot write to says so and hides its composer**
- *   (ADR-0021). It is also the only list here with pull-to-refresh, because it
- *   is the only one Convex is not keeping live.
+ * - **A linked list has pull-to-refresh and a sync notice**, because it is
+ *   the only kind Convex is not keeping live (ADR-0021). One Gather cannot
+ *   write to also says so and hides its composer.
  */
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
 import { Stack, useRouter } from 'expo-router'
@@ -78,7 +78,10 @@ export function TaskList({
 
   const [renamingList, setRenamingList] = useState(false)
   const [reordering, setReordering] = useState(false)
-  const taskSheets = useTaskSheets({ onReorder: () => setReordering(true) })
+  const taskSheets = useTaskSheets({
+    tasks,
+    onReorder: () => setReordering(true),
+  })
   const scrollRef = useRef<ScrollView>(null)
   const [dragging, setDragging] = useState(false)
   const [completedOpen, setCompletedOpen] = useState(false)
@@ -91,6 +94,12 @@ export function TaskList({
     // The only way here is deleting the list from its own screen, which pops.
     return <View style={{ flex: 1, backgroundColor: tokens.bg }} />
   }
+
+  // Whether a provider rather than Convex holds the rows. Not `!writable`:
+  // being linked and being read-only are separate facts that only coincide
+  // while every provider is read-only.
+  const linked = list.provider !== 'local'
+  const notice = linked ? syncNotice(list, refreshed, t) : null
 
   const confirmDeleteList = () => {
     confirmDestructive({
@@ -248,13 +257,13 @@ export function TaskList({
         refreshControl={
           // Only a provider-backed list has anything to fetch. Convex keeps
           // the rest live, and a spinner over live data is theatre.
-          list.writable ? undefined : (
+          linked ? (
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
               tintColor={tokens.muted}
             />
-          )
+          ) : undefined
         }
       >
         {reordering ? (
@@ -268,7 +277,7 @@ export function TaskList({
           />
         ) : (
           <>
-            {list.writable ? null : (
+            {notice === null ? null : (
               <View
                 style={[
                   styles.readOnly,
@@ -293,7 +302,7 @@ export function TaskList({
                     },
                   ]}
                 >
-                  {syncNotice(list, refreshed, t)}
+                  {notice}
                 </Text>
               </View>
             )}
@@ -302,7 +311,7 @@ export function TaskList({
               {active.length === 0 && completed.length === 0 ? (
                 <View style={styles.emptyRow}>
                   <Text style={[styles.empty, { color: tokens.muted }]}>
-                    {list.sync === 'loading'
+                    {linked && list.sync === 'loading'
                       ? fmt(t.tasks.list.loading, { provider: list.provider })
                       : t.tasks.list.empty}
                   </Text>
@@ -355,15 +364,22 @@ export function TaskList({
   )
 }
 
-/** What the banner over a linked list says about where its rows came from. */
-function syncNotice(list: TaskListModel, refreshed: boolean, t: Messages) {
+/**
+ * What the banner over a linked list says about where its rows came from, or
+ * `null` when there is nothing to say.
+ */
+function syncNotice(
+  list: TaskListModel,
+  refreshed: boolean,
+  t: Messages,
+): string | null {
   const provider = { provider: list.provider }
   if (list.sync === 'reconnect') return fmt(t.tasks.list.reconnect, provider)
   if (list.sync === 'failed') return fmt(t.tasks.list.failed, provider)
+  const synced = refreshed && list.sync === 'synced'
+  if (list.writable) return synced ? `${t.tasks.list.refreshed}.` : null
   const readOnly = fmt(t.tasks.list.readOnly, provider)
-  return refreshed && list.sync === 'synced'
-    ? `${readOnly} ${t.tasks.list.refreshed}.`
-    : readOnly
+  return synced ? `${readOnly} ${t.tasks.list.refreshed}.` : readOnly
 }
 
 /** The due date, priority and labels a list's display settings ask for. */

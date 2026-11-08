@@ -25,7 +25,6 @@ export const CALENDAR_REFUSAL_CODES = [
   'deleted',
   'conflict',
   'assignee-not-member',
-  'not-member',
   'person-not-member',
   ...CALENDAR_VALIDATION_KEYS,
 ] as const

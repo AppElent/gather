@@ -15,6 +15,7 @@
 import {
   addDays,
   addMonths,
+  localIsoDate,
   localMidnight,
   monthGrid,
   monthStart,
@@ -31,9 +32,9 @@ import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, useTokens } from '../../theme/tokens'
 import { Chip, priorityColor } from './components'
 import { TASK_ICONS } from './icons'
-import { useTaskActions, useTaskState } from './store'
+import { useTaskActions, useTaskLists, useTaskState } from './store'
 import { weekendFrom } from './taskDates'
-import { type Priority, SUGGESTED_LABELS } from './types'
+import { type Priority, SUGGESTED_LABELS, type Task } from './types'
 
 const PRIORITIES: Priority[] = [1, 2, 3, 4]
 
@@ -47,43 +48,32 @@ const PRIORITIES: Priority[] = [1, 2, 3, 4]
  * already know and useless for "the Tuesday after the bank holiday".
  */
 export function DueDateSheet({
-  taskId,
+  task,
   onClose,
 }: {
-  taskId: string
+  task: Task
   onClose: () => void
 }) {
   const tokens = useTokens('home')
   const tint = tokens.tintOf('home')
   const { t, locale } = useI18n()
-  const state = useTaskState()
   const actions = useTaskActions()
-  const task = state.tasks.find((each) => each.id === taskId)
-  const [month, setMonth] = useState(() =>
-    monthStart(task?.dueDate ?? state.today),
-  )
+  const today = localIsoDate()
+  const [month, setMonth] = useState(() => monthStart(task.dueDate ?? today))
 
   const grid = monthGrid(month)
-  const selected = task?.dueDate
+  const selected = task.dueDate
 
   const pick = (iso: string | undefined) => {
-    actions.setDue(taskId, iso)
+    actions.setDue(task.id, iso)
     haptics.selectionChanged()
     onClose()
   }
 
   const shortcuts: { id: string; label: string; iso: string | undefined }[] = [
-    { id: 'today', label: t.tasks.task.today, iso: state.today },
-    {
-      id: 'tomorrow',
-      label: t.tasks.task.tomorrow,
-      iso: addDays(state.today, 1),
-    },
-    {
-      id: 'weekend',
-      label: t.tasks.task.weekend,
-      iso: weekendFrom(state.today),
-    },
+    { id: 'today', label: t.tasks.task.today, iso: today },
+    { id: 'tomorrow', label: t.tasks.task.tomorrow, iso: addDays(today, 1) },
+    { id: 'weekend', label: t.tasks.task.weekend, iso: weekendFrom(today) },
     { id: 'none', label: t.tasks.task.clear, iso: undefined },
   ]
 
@@ -147,7 +137,7 @@ export function DueDateSheet({
         grid={grid}
         locale={locale}
         selected={selected}
-        today={state.today}
+        today={today}
         tint={tint.fg}
         onPick={pick}
         testIDPrefix="due-day"
@@ -157,20 +147,19 @@ export function DueDateSheet({
 }
 
 export function PrioritySheet({
-  taskId,
+  task,
   onClose,
 }: {
-  taskId: string
+  task: Task
   onClose: () => void
 }) {
   const tokens = useTokens('home')
   const { t } = useI18n()
-  const state = useTaskState()
   const actions = useTaskActions()
-  const current = state.tasks.find((each) => each.id === taskId)?.priority
+  const current = task.priority
 
   const choose = (priority: Priority | undefined) => {
-    actions.setPriority(taskId, priority)
+    actions.setPriority(task.id, priority)
     haptics.selectionChanged()
     onClose()
   }
@@ -244,22 +233,24 @@ export function PrioritySheet({
  * operation.
  */
 export function LabelsSheet({
-  taskId,
+  task,
   onClose,
 }: {
-  taskId: string
+  task: Task
   onClose: () => void
 }) {
   const tokens = useTokens('home')
   const { t } = useI18n()
+  // Every task in the Group, because the suggestions are every word anybody
+  // has typed, and there is no label table to ask instead. Mounted only while
+  // the sheet is open.
   const state = useTaskState()
   const actions = useTaskActions()
-  const task = state.tasks.find((each) => each.id === taskId)
   const [draft, setDraft] = useState('')
   /** The label being renamed, if the field is doing that instead of adding. */
   const [renaming, setRenaming] = useState<string | null>(null)
 
-  const labels = task?.labels ?? []
+  const labels = task.labels
   // Everything anybody has typed, minus what is already on this task, with a
   // few starters for a Group that has typed nothing yet.
   const elsewhere = Array.from(
@@ -271,7 +262,7 @@ export function LabelsSheet({
     .filter((label) => !labels.includes(label))
     .sort()
 
-  const setOwn = (next: string[]) => actions.setLabels(taskId, next)
+  const setOwn = (next: string[]) => actions.setLabels(task.id, next)
 
   const submit = () => {
     const value = draft.trim().toLowerCase()
@@ -417,21 +408,20 @@ export function LabelsSheet({
 }
 
 export function MoveToListSheet({
-  taskId,
+  task,
   onClose,
 }: {
-  taskId: string
+  task: Task
   onClose: () => void
 }) {
   const tokens = useTokens('home')
   const { t } = useI18n()
-  const state = useTaskState()
+  const lists = useTaskLists()
   const actions = useTaskActions()
-  const task = state.tasks.find((each) => each.id === taskId)
 
   return (
     <NativeSheet title={t.tasks.list.moveToList} onClose={onClose}>
-      {[...state.lists]
+      {[...(lists ?? [])]
         .sort((a, b) => a.order - b.order)
         .map((list, index, all) => {
           // A list Gather may not write to cannot be moved into: the write
@@ -439,18 +429,18 @@ export function MoveToListSheet({
           const disabled = !list.writable
           return (
             <Pressable
-              key={list.id}
-              testID={`move-${list.id}`}
+              key={list._id}
+              testID={`move-${list._id}`}
               accessibilityRole="button"
               accessibilityState={{
-                selected: list.id === task?.listId,
+                selected: list._id === task.listId,
                 disabled,
               }}
               accessibilityLabel={list.name}
               disabled={disabled}
               onPress={() => {
                 onClose()
-                actions.moveTask(taskId, list.id).then(
+                actions.moveTask(task.id, list._id).then(
                   () => haptics.itemSaved(),
                   () => haptics.actionFailed(),
                 )
@@ -472,7 +462,7 @@ export function MoveToListSheet({
                   color={tokens.muted}
                   strokeWidth={2.2}
                 />
-              ) : list.id === task?.listId ? (
+              ) : list._id === task.listId ? (
                 <UI_ICONS.Check size={18} color={tokens.fg} strokeWidth={2.6} />
               ) : null}
             </Pressable>

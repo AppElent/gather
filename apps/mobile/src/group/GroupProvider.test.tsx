@@ -11,6 +11,7 @@ import {
   GroupProvider,
   GroupScoped,
   useGroup,
+  useOpenInGroup,
 } from './GroupProvider'
 
 type Row = { _id: Id<'groups'>; name: string; slug: string }
@@ -188,24 +189,68 @@ describe('GroupProvider unwinds the stacks when the Group on screen changes', ()
   })
 })
 
+describe('opening something in another Group', () => {
+  let openInGroup: ReturnType<typeof useOpenInGroup>
+
+  /** Stands in for a Drop screen: above the tabs, so never Group-scoped. */
+  function Opener() {
+    openInGroup = useOpenInGroup()
+    return null
+  }
+
+  function opener() {
+    return (
+      <GroupProvider
+        pending={null}
+        none={null}
+        onSwitch={() => log.push('unwind')}
+      >
+        <Chrome />
+        <Opener />
+      </GroupProvider>
+    )
+  }
+
+  test('opens only after the switch has unwound the stacks', () => {
+    mount(opener())
+
+    act(() => openInGroup(willow._id, () => log.push(`open in ${current().group._id}`)))
+
+    expect(log).toEqual(['unwind', `open in ${willow._id}`])
+    expect(state.retained).toBe(willow._id)
+  })
+
+  test('in the Group already on screen, opens without unwinding', () => {
+    mount(opener())
+
+    act(() => openInGroup(kitchen._id, () => log.push('open')))
+
+    expect(log).toEqual(['open'])
+  })
+})
+
 describe('an old /g/<slug> link', () => {
   function handoff() {
     return (
-      <GroupProvider pending={null} none={null}>
+      <GroupProvider
+        pending={null}
+        none={null}
+        onSwitch={() => state.replaced.push('unwind')}
+      >
         <Chrome />
         <GroupLinkHandoff />
       </GroupProvider>
     )
   }
 
-  test('names its Group by slug and still switches to it', () => {
+  test('names its Group by slug, switches to it, then opens', () => {
     rememberGroupLink({ groupSlug: willow.slug, segments: ['cheeses'] })
 
     mount(handoff())
 
     expect(current().group).toEqual(willow)
     expect(state.retained).toBe(willow._id)
-    expect(state.replaced).toEqual(['/all/tasting/cheese'])
+    expect(state.replaced).toEqual(['unwind', '/all/tasting/cheese'])
   })
 
   test('to a Group the Member is not in leaves the Group alone', () => {

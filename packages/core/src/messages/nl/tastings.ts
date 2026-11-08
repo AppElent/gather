@@ -307,6 +307,7 @@ export const composer = {
     tooMany: 'Dat zijn er te veel.',
     needsName: 'Geef het eerst een naam.',
     needsScore: 'Geef het eerst een cijfer.',
+    notYourTasting: 'Alleen wie deze proeverij heeft vastgelegd, kan hem aanpassen.',
   },
 } satisfies typeof enComposer
 

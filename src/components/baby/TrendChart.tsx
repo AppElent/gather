@@ -6,10 +6,10 @@ interface TrendChartProps {
   unit: string
 }
 
-/** Minimal hand-rolled SVG line chart — no charting dependency, just enough
- * for temperature/growth trend lines over time. */
 const HEIGHT = 160
 
+/** Minimal hand-rolled SVG line chart — no charting dependency, just enough
+ * for temperature/growth trend lines over time. */
 export function TrendChart({ points, unit }: TrendChartProps) {
   const { child } = useMessages().baby.log
 

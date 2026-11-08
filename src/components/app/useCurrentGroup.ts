@@ -84,7 +84,10 @@ export function useCurrentGroup(): CurrentGroupValue {
   return value
 }
 
-/** A Group-scoped page cannot render without a resolved ambient Group. */
+/**
+ * A Group-scoped page cannot render without a resolved ambient Group;
+ * `AppShell` holds such pages until there is one.
+ */
 export function useRequiredCurrentGroup(): ShellGroup {
   const { current } = useCurrentGroup()
   if (!current) throw new Error('A Group-scoped page requires a Current Group')

@@ -24,6 +24,7 @@ import {
 } from '../lib/i18n'
 import { LanguageSync } from '../lib/i18n/LanguageSync'
 import { getSsrLocale } from '../lib/i18n/server'
+import { hrefTo } from '../lib/links'
 import appCss from '../styles.css?url'
 
 const authConfig: AuthConfig = {
@@ -33,7 +34,7 @@ const authConfig: AuthConfig = {
     signUp: '/sign-up',
     forgotPassword: '/forgot-password',
     afterAuth: '/',
-    account: '/account',
+    account: hrefTo('account'),
   },
   features: { forgotPassword: true },
   socialProviders: [],

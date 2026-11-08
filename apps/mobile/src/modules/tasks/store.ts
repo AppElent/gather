@@ -241,10 +241,18 @@ function useListsOf(lists: readonly ListRow[]) {
   return { ...mergeTasks(lists, local, linked), refresh }
 }
 
+/**
+ * The Current Group's lists as names and settings, without their tasks: no
+ * task subscription and no provider fetch. `undefined` until Convex answers.
+ */
+export function useTaskLists(): readonly ListRow[] | undefined {
+  const { group } = useGroup()
+  return useQuery(api.taskLists.list, { groupSlug: group.slug })
+}
+
 /** Every list in the Current Group, and every task on them. */
 export function useTaskState() {
-  const { group } = useGroup()
-  const lists = useQuery(api.taskLists.list, { groupSlug: group.slug })
+  const lists = useTaskLists()
   const state = useListsOf(lists ?? NO_LISTS)
   return { today: localIsoDate(), ...state }
 }
@@ -254,8 +262,7 @@ export function useTaskState() {
  * the Group's lists or asking any other provider.
  */
 export function useTaskList(listId: string) {
-  const { group } = useGroup()
-  const lists = useQuery(api.taskLists.list, { groupSlug: group.slug })
+  const lists = useTaskLists()
   const only = useMemo(
     () => (lists ?? NO_LISTS).filter((list) => list._id === listId),
     [lists, listId],

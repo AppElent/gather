@@ -48,7 +48,7 @@ import {
 } from 'react-native'
 
 import { haptics } from '../feedback/haptics'
-import { useGroup } from '../group/GroupProvider'
+import { useGroup, useOpenInGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
@@ -68,7 +68,8 @@ export function DropChooserScreen() {
   const tokens = useTokens()
   const router = useRouter()
   const { t } = useI18n()
-  const { group, groups, setGroup } = useGroup()
+  const { group, groups } = useGroup()
+  const openInGroup = useOpenInGroup()
   const { pending, clear, offer } = useDrop()
   const commit = useDropCommit()
   // The harness. `agent-device` cannot drive a share sheet, so
@@ -136,20 +137,21 @@ export function DropChooserScreen() {
         return
       }
 
+      const { href } = result
       // A target that has not written yet keeps the Drop and keeps this screen
       // underneath it. See the note at the top.
       if (chosen.keepsDrop) {
-        if (named._id !== group._id) setGroup(named._id)
-        router.push(result.href)
+        openInGroup(named._id, () => router.push(href))
         return
       }
 
       haptics.itemSaved()
       // Follow the Drop into the Group it named, now that the write is done.
-      if (named._id !== group._id) setGroup(named._id)
-      clear()
-      router.dismissTo('/home')
-      router.push(result.href)
+      openInGroup(named._id, () => {
+        clear()
+        router.dismissTo('/home')
+        router.push(href)
+      })
     } catch {
       haptics.actionFailed()
       setProblem('failed')

@@ -5,6 +5,7 @@ import { api } from '../../../convex/_generated/api'
 import { SurfaceCard } from '../../components/app/ShellPrimitives'
 import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { consumeOAuthState, oauthRedirectUri } from '../../lib/oauth'
 
 export const Route = createFileRoute('/_app/integrations/callback')({
@@ -77,7 +78,7 @@ function OAuthCallback() {
                 ? failure.message || oauthCallback.failed
                 : oauthCallback[failure.kind]}
             </p>
-            <Link to="/settings" className="text-sm font-semibold">
+            <Link {...linkTo('settings')} className="text-sm font-semibold">
               {oauthCallback.backToSettings}
             </Link>
           </div>

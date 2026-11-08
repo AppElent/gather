@@ -336,7 +336,10 @@ export const composer = {
   newHere: 'New in {group}',
   existing: '{count} tasting so far',
   existingOther: '{count} tastings so far',
-  /** The refusal keys `validateTastingAttributes` reports. */
+  /**
+   * What a refused save reads as: each problem `validateTastingAttributes`
+   * reports, and each tasting refusal (`TASTING_REFUSALS`).
+   */
   problems: {
     unknownField: 'That field is not part of this form.',
     wrongType: 'That is not a value this field can hold.',
@@ -346,6 +349,7 @@ export const composer = {
     tooMany: 'That is too many.',
     needsName: 'Give it a name first.',
     needsScore: 'Give it a score first.',
+    notYourTasting: 'Only whoever logged this tasting can change it.',
   },
 }
 

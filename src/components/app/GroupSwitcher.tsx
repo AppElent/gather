@@ -117,7 +117,7 @@ export function GroupSwitcher({ onNavigate }: GroupSwitcherProps) {
             </Link>
           ))}
           <Link
-            to="/groups"
+            {...linkTo('groups')}
             onClick={() => {
               setOpen(false)
               onNavigate?.()

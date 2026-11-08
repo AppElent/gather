@@ -114,7 +114,7 @@ function GroupsPage() {
                   .then((groupId) => {
                     setCurrentGroup(groupId)
                     setName('')
-                    return navigate({ to: '/home' })
+                    return navigate(linkTo('home'))
                   })
                   .catch((err) =>
                     setError(errorMessage(err, text.createFailed)),
@@ -151,7 +151,7 @@ function GroupsPage() {
                   .then((groupId) => {
                     setCurrentGroup(groupId)
                     setCode('')
-                    return navigate({ to: '/home' })
+                    return navigate(linkTo('home'))
                   })
                   .catch((err) => setError(errorMessage(err, text.joinFailed)))
             }}

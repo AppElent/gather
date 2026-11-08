@@ -228,6 +228,43 @@ export function GroupProvider({
   )
 }
 
+/**
+ * Open something in a Group that may not be the one on screen: switch to it,
+ * and call `open` once it is the Group on screen.
+ *
+ * Navigating in the same tick as `setGroup` loses the destination. The switch
+ * lands on the next render, and `onSwitch` then unwinds every Group-scoped
+ * stack from a navigation state that already holds the screen just pushed. By
+ * the time this effect sees the new Group, that unwind has run (a layout
+ * effect, flushed before passive ones), so what `open` pushes stays.
+ *
+ * The caller must stay mounted across the switch, so it cannot be a
+ * Group-scoped screen: the Group-link handoff and the Drop screens, which sit
+ * above the tabs.
+ */
+export function useOpenInGroup() {
+  const { group, setGroup } = useGroup()
+  const [pending, setPending] = useState<{
+    groupId: Id<'groups'>
+    open: () => void
+  } | null>(null)
+
+  useEffect(() => {
+    if (!pending) return
+    if (pending.groupId !== group._id) {
+      setGroup(pending.groupId)
+      return
+    }
+    setPending(null)
+    pending.open()
+  }, [pending, group._id, setGroup])
+
+  return useCallback(
+    (groupId: Id<'groups'>, open: () => void) => setPending({ groupId, open }),
+    [],
+  )
+}
+
 const UnwindingContext = createContext(false)
 
 /**

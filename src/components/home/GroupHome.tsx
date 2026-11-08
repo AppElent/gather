@@ -83,7 +83,7 @@ function MemberList({
           its own way without having to reproduce a `<Link>`. */}
       <p className="mt-3 mb-0 text-sm leading-6 text-[var(--app-muted)]">
         {fmt(note.before, { group: groupName })}{' '}
-        <Link to="/groups">{note.link}</Link>
+        <Link {...linkTo('groups')}>{note.link}</Link>
         {note.after}
       </p>
     </SurfaceCard>

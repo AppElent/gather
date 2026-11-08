@@ -6,7 +6,11 @@ const MAX_REDIRECTS = 5
 /** Long enough for a picture, short enough not to hold up an import. */
 const IMAGE_TIMEOUT_MS = 8_000
 
-/** The largest picture worth keeping off somebody else's server. */
+/**
+ * The largest picture worth keeping off somebody else's server. One cap for
+ * every caller, sized for the biggest: a recipe's hero image is often a few
+ * megabytes, and a lower cap would quietly import those recipes without one.
+ */
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
 // Blocks the obvious SSRF targets (loopback, RFC1918 private ranges,

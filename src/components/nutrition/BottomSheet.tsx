@@ -1,4 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import { useModalFocus } from '../app/useModalFocus'
 import { useScrollLock } from '../kitchen/useScrollLock'
 import {
   DETENTS,
@@ -99,7 +100,12 @@ export function BottomSheet({
     setFracState(next)
   }, [])
   const bodyRef = useRef<HTMLDivElement>(null)
-  const sheetRef = useRef<HTMLDivElement>(null)
+  // Focus stays where the page put it: focusing the search raises the sheet to
+  // full, so focusing anything on the way in would decide the detent.
+  const { ref: sheetRef, onKeyDown } = useModalFocus<HTMLElement>({
+    onClose,
+    initialFocus: false,
+  })
   const drag = useRef<{
     pointerId: number
     active: boolean
@@ -140,14 +146,6 @@ export function BottomSheet({
     setDetent('full')
     setFrac(DETENTS.full)
   }, [promoteToFull, setFrac])
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
 
   const settle = useCallback(
     (next: Detent) => {
@@ -290,7 +288,10 @@ export function BottomSheet({
       />
       <section
         ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
         aria-label={label}
+        onKeyDown={onKeyDown}
         className="absolute inset-x-0 bottom-0 flex h-[92%] flex-col rounded-t-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl"
         style={{
           transform: `translate3d(0, ${frac * 100}%, 0)`,

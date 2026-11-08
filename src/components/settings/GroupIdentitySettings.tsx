@@ -5,6 +5,7 @@ import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
+import { linkTo } from '../../lib/links'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { Pill, SurfaceCard } from '../app/ShellPrimitives'
 import type { ShellGroup } from '../app/useCurrentGroup'
@@ -172,7 +173,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
                   errorFallback: group_.leaveFailed,
                   run: async () => {
                     await leave({ groupId: group._id })
-                    await navigate({ to: '/groups' })
+                    await navigate(linkTo('groups'))
                   },
                 })
               }

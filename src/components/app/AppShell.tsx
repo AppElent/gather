@@ -1,8 +1,9 @@
-import { useLocation } from '@tanstack/react-router'
+import { Navigate, useLocation } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { getRouteContext } from '../../lib/appNavigation'
 import { useMessages } from '../../lib/i18n'
+import { indexSurfaceOf, linkTo } from '../../lib/links'
 import { CommandPalette } from './CommandPalette'
 import { GatherPanel } from './GatherPanel'
 import { IssueReporterModal } from './IssueReporterModal'
@@ -31,7 +32,11 @@ function AppShellBody({ children }: { children: ReactNode }) {
   const location = useLocation()
   const messages = useMessages()
   const context = getRouteContext(location.pathname, messages)
-  const { current: currentGroup } = useCurrentGroup()
+  const { current: currentGroup, groups } = useCurrentGroup()
+  // A page under one of the Current Group's front pages reads the Group with
+  // `useRequiredCurrentGroup`, so it is held here until the Groups arrive, and
+  // somebody in no Group is sent to make or join one.
+  const groupPage = indexSurfaceOf(location.pathname) !== null
   // The dock is only on screen when there is a navigation to put in it, and the
   // room reserved for it has to go when it does — asked of the same list the
   // dock renders, so the space and the bar cannot disagree.
@@ -66,7 +71,15 @@ function AppShellBody({ children }: { children: ReactNode }) {
             onReportIssue={() => setReporterOpen(true)}
           />
           <main className="min-w-0 flex-1 px-3 py-4 md:px-5 md:py-5">
-            {children}
+            {!groupPage || currentGroup ? (
+              children
+            ) : groups === undefined ? (
+              <p className="text-sm opacity-60">
+                {messages.common.errors.loading}
+              </p>
+            ) : (
+              <Navigate {...linkTo('groups')} replace />
+            )}
           </main>
         </div>
       </div>

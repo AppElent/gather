@@ -29,11 +29,19 @@ test('waits for the membership list', () => {
 test('opens ambient Home when a Current Group exists', () => {
   currentGroup.value = { current: { _id: 'g1' }, groups: [{}] }
   render(<LandingRedirect />)
-  expect(navigate).toHaveBeenCalledWith({ to: '/home', replace: true })
+  expect(navigate).toHaveBeenCalledWith({
+    to: '/home',
+    params: {},
+    replace: true,
+  })
 })
 
 test('opens onboarding when there are no memberships', () => {
   currentGroup.value = { current: null, groups: [] }
   render(<LandingRedirect />)
-  expect(navigate).toHaveBeenCalledWith({ to: '/groups', replace: true })
+  expect(navigate).toHaveBeenCalledWith({
+    to: '/groups',
+    params: {},
+    replace: true,
+  })
 })

@@ -9,7 +9,6 @@ import {
 } from './lib/groupAccess'
 import { nextOrder } from './lib/order'
 import { taskPriorityValidator } from './lib/taskFields'
-import { canWriteToList } from './lib/taskProviders'
 
 const byOpenThenOrder = (a: Doc<'tasks'>, b: Doc<'tasks'>) =>
   Number(a.done) - Number(b.done) || a.order - b.order
@@ -67,20 +66,23 @@ async function requireEditableTask(
   }
   const found = await findInGroup(ctx, groupSlug, task.listId)
   if (!found) throw new ConvexError('Task not found')
-  if (!canWriteToList(found.doc.provider)) {
+  if (found.doc.provider !== 'local') {
     throw new ConvexError('This list is read-only')
   }
   return task
 }
 
-/** A list of the named Group that Gather may write to (ADR-0021). */
-async function requireWritableList(
+/**
+ * A local list of the named Group. Only a local list has `tasks` rows; a write
+ * to an external list goes through its provider, not through these mutations.
+ */
+async function requireLocalList(
   ctx: MutationCtx,
   groupSlug: string,
   listId: Id<'taskLists'>,
 ) {
   const found = await requireInGroup(ctx, groupSlug, listId, 'List not found')
-  if (!canWriteToList(found.doc.provider)) {
+  if (found.doc.provider !== 'local') {
     throw new ConvexError('This list is read-only')
   }
   return found
@@ -105,7 +107,7 @@ export const add = mutation({
     labels: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const { user } = await requireWritableList(ctx, args.groupSlug, args.listId)
+    const { user } = await requireLocalList(ctx, args.groupSlug, args.listId)
     return await ctx.db.insert('tasks', {
       listId: args.listId,
       title: args.title,
@@ -166,7 +168,7 @@ export const reorder = mutation({
     ids: v.array(v.id('tasks')),
   },
   handler: async (ctx, args) => {
-    await requireWritableList(ctx, args.groupSlug, args.listId)
+    await requireLocalList(ctx, args.groupSlug, args.listId)
     const rows = await ctx.db
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
@@ -275,7 +277,7 @@ export const move = mutation({
   },
 })
 
-/** Into another writable list of the same Group, at its end. */
+/** Into another local list of the same Group, at its end. */
 export const moveToList = mutation({
   args: {
     taskId: v.id('tasks'),
@@ -285,7 +287,7 @@ export const moveToList = mutation({
   handler: async (ctx, args) => {
     const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
     if (task.listId === args.listId) return
-    await requireWritableList(ctx, args.groupSlug, args.listId)
+    await requireLocalList(ctx, args.groupSlug, args.listId)
     await ctx.db.patch(task._id, {
       listId: args.listId,
       order: await endOfList(ctx, args.listId),

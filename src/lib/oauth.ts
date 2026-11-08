@@ -19,6 +19,7 @@ import {
 } from '@gather/core/domain'
 import { useAction } from 'convex/react'
 import { api } from '../../convex/_generated/api'
+import { hrefTo } from './links'
 
 export const PROVIDER_LABELS: Record<ExternalProviderId, string> = {
   notion: 'Notion',
@@ -26,8 +27,8 @@ export const PROVIDER_LABELS: Record<ExternalProviderId, string> = {
 }
 
 /**
- * Starts the provider OAuth flow for one Group; shared with the Tasks add-list
- * flow, which connects from inside the Group it is adding a list to.
+ * Starts the provider OAuth flow for one Group; the caller picks where the round
+ * trip returns to.
  *
  * The Group is written down before leaving, because the callback comes back on
  * a fresh page load with nothing but what `sessionStorage` kept for it.
@@ -82,7 +83,7 @@ export function consumeOAuthState(state: string | undefined): {
   returnTo: string
 } | null {
   const stored = sessionStorage.getItem(STATE_KEY)
-  const returnTo = sessionStorage.getItem(RETURN_KEY) ?? '/settings'
+  const returnTo = sessionStorage.getItem(RETURN_KEY) ?? hrefTo('settings')
   const groupSlug = sessionStorage.getItem(GROUP_KEY)
   sessionStorage.removeItem(STATE_KEY)
   sessionStorage.removeItem(RETURN_KEY)

@@ -46,7 +46,10 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const router = useRouter()
   const state = useTaskState()
   const actions = useTaskActions()
-  const taskSheets = useTaskSheets({ onDeleted: () => router.back() })
+  const taskSheets = useTaskSheets({
+    tasks: state.tasks,
+    onDeleted: () => router.back(),
+  })
 
   const task = state.tasks.find((each) => each.id === taskId)
   const list = state.lists.find((each) => each.id === task?.listId)
