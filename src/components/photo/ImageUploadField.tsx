@@ -114,7 +114,7 @@ export function ImageUploadField({
         <div className="min-w-0 flex-1">
           {/* Visually hidden, not removed: it is still the field, still the
               thing the label above names, and still what a screen reader and a
-              keyboard reach. Only its rendering is ours now. */}
+              keyboard reach. Only its rendering is ours. */}
           <input
             ref={inputRef}
             id={fieldId}

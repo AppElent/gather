@@ -102,10 +102,8 @@ describe('what the panel does', () => {
   })
 
   /**
-   * The question used to be a `window.confirm`, which an embedded frame may
-   * suppress outright — the click then did nothing at all, silently, which is
-   * exactly how the delete-a-list bug presented. It is the app's own dialog
-   * now, so the asking is testable and cannot be taken away by the frame.
+   * The app's own dialog, not `window.confirm`, which an embedded frame may
+   * suppress outright so the click silently does nothing.
    */
   test('asks about this Group by name before disconnecting, and drops it on cancel', () => {
     connections.value = [NOTION]

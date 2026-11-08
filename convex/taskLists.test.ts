@@ -9,12 +9,12 @@ import { api } from './_generated/api'
  *
  * Lists are Group-scoped content, and so is the provider connection behind a
  * linked list — a Notion token belongs to the household that authorised it.
- * Under `/g/<slug>/tasks` both have to come from the Group in the URL, or the
- * page shows one household's lists at another household's address.
+ * Both have to come from the Group the caller names, or the page shows one
+ * household's lists in another household.
  *
- * The case worth stating twice is Alice's: she is in *both* households, which
- * is exactly what the old caller-wide helper got wrong. It asked "is this list
- * in any Group I am in", so for her the answer was yes at either address.
+ * The case worth stating twice is Alice's: she is in *both* households, so a
+ * caller-wide check ("is this list in any Group I am in") would answer yes for
+ * her under either Group.
  */
 
 
@@ -26,8 +26,8 @@ const JANSEN_TOKEN = 'jansen-notion-token'
 
 /**
  * Two households — Alice in both, Bob only in the second — and Carla, who is in
- * neither and has only her own Personal group, which is an ordinary Group with
- * one Member and is what "somewhere I am allowed to stand" means for a stranger.
+ * neither and has only a one-member Group of her own, which is what "somewhere
+ * I am allowed to stand" means for a stranger.
  *
  * Jansen holds a list with one task on it and a Notion connection; De Vries
  * holds a list of its own. `goneList` is an id whose row has been deleted, so a
@@ -277,7 +277,7 @@ describe('reaching one list', () => {
 })
 
 describe('the tasks inside a list', () => {
-  test('are added to the Group the URL named, and read back there', async () => {
+  test('are added to the Group the caller named, and read back there', async () => {
     const { t, devriesList } = await seed()
 
     await t.withIdentity(alice).mutation(api.tasks.add, {
@@ -564,7 +564,7 @@ describe('the access token', () => {
 })
 
 describe('adding a list from inside a Group', () => {
-  test('puts it in the Group the URL named', async () => {
+  test('puts it in the Group the caller named', async () => {
     const { t } = await seed()
 
     await t.withIdentity(alice).mutation(api.taskLists.create, {

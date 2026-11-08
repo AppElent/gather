@@ -39,20 +39,14 @@ vi.mock('@tanstack/react-router', () => ({
   useLocation: () => location,
   Link: ({
     children,
-    to,
-    params,
+    to: href,
     activeOptions,
     ...rest
   }: {
     children: React.ReactNode
     to: string
-    params?: Record<string, string>
     activeOptions?: { exact?: boolean }
   }) => {
-    const href = Object.entries(params ?? {}).reduce(
-      (path, [key, value]) => path.replace(`$${key}`, value),
-      to,
-    )
     const isActive = activeOptions?.exact
       ? location.pathname === href
       : location.pathname.startsWith(href)
@@ -118,12 +112,9 @@ describe('the sidebar', () => {
   })
 
   /**
-   * The footer used to carry a "Group settings" link whose destination changed
-   * with the address, directly above a "Settings" link whose destination never
-   * did — two meanings of the word in two inches. A Group's settings hang off
-   * the Group now: its row on `/groups` opens them. The assertion is kept and
-   * inverted rather than deleted, because "no Group settings link here" is the
-   * decision, and a deleted test would not notice it being undone.
+   * A "Group settings" link directly above "Settings" would be two meanings of
+   * the word in two inches. A Group's settings hang off the Group: its row on
+   * `/groups` opens them.
    */
   test('offers no Group settings link, in or out of a Group', () => {
     render(<Sidebar />)
@@ -165,27 +156,14 @@ describe('the sidebar', () => {
       screen.getByRole('link', { name: 'Settings' }).getAttribute('href'),
     ).toBe('/settings')
   })
-
-  test('says nothing about preview data any more', () => {
-    location.pathname = '/recipes'
-    const { container } = render(<Sidebar />)
-
-    // The footer used to be a card headed "Preview group" promising that group
-    // and member details would appear once connected. Home keeps that promise
-    // now, with real names on it.
-    expect(container.textContent).not.toMatch(/preview/i)
-  })
 })
 
 /**
  * Exactly one thing is the page you are on.
  *
- * Home's address is a prefix of every page in its Group, and the router marks a
- * link active on a prefix by default — so the dock, which colours itself from
- * `aria-current`, sat with Home lit under whichever Module was actually open.
- * The sidebar colours itself from `activeId` and so looked right while carrying
- * the same wrong attribute, which is the half a screen reader would have been
- * left with.
+ * The router marks a link active on a prefix by default, and the dock colours
+ * itself from `aria-current`; the sidebar colours itself from `activeId`, but a
+ * screen reader reads the attribute. Both must name the same single item.
  */
 describe('which item claims to be the page you are on', () => {
   test('the dock lights the Module, not Home above it', () => {

@@ -1,8 +1,8 @@
 /**
  * A fixed-height list of rows that can be dragged into a new order.
  *
- * Lifted, near enough whole, from `modules/tasks/ReorderMode.tsx`, and the
- * reasoning there is the reasoning here: rearranging is a **mode**, not a
+ * It follows `modules/tasks/ReorderMode.tsx`, and the reasoning there is the
+ * reasoning here: rearranging is a **mode**, not a
  * gesture, because hold already means "open the menu" everywhere in the app;
  * the arithmetic lives in `arrange/arrange.ts`; and the pan is attached to the
  * **grip alone** so the rest of the row is still free to scroll a list longer

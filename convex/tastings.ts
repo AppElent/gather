@@ -31,9 +31,9 @@ import {
  * The three tasting Modules, over one backend (#199, ADR-0024).
  *
  * Every function here is Group-scoped and authorises through
- * `requireGroupBySlug` — the Group arrives with the request (ADR-0002 on the
- * web, ambient and passed explicitly on the phone under ADR-0015), so a
- * Member of two Groups gets each Group's own cheeses and never a union.
+ * `requireGroupBySlug` — the Current Group arrives with the request
+ * (ADR-0031), so a Member of two Groups gets each Group's own cheeses and
+ * never a union.
  *
  * ## The Kind is an argument, and the route decides it
  *

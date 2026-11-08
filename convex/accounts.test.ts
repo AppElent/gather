@@ -226,8 +226,8 @@ describe('a Group nobody else is in', () => {
     expect(stillThere).toBe(false)
   })
 
-  // There is no Personal group any more (ADR-0030); a Group made through the
-  // app, rather than inserted by a fixture, is the one this has to reach.
+  // A Group made through the app, rather than inserted by a fixture, is the one
+  // this has to reach.
   test('includes one made through the app', async () => {
     const t = testConvex()
     await signUp(t, asAlice)

@@ -23,10 +23,8 @@ export interface GroupIdentitySettingsProps {
 /**
  * What a Group is, who can get in, and how to get out.
  *
- * Each control is offered only where it means something. A Personal group has
- * no second Member to invite, no name worth changing and nowhere to leave to,
- * so it gets none of them; renaming is an admin's to do. The mutations refuse
- * all of that again on the server — this only avoids showing a reader a button
+ * Renaming is an admin's to do, so only an admin is offered it. The mutation
+ * refuses it again on the server — this only avoids showing a reader a button
  * whose whole purpose is to tell them no.
  */
 export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {

@@ -11,9 +11,8 @@ import {
 /**
  * The client half of an activity entry: which Module it came from, and when.
  *
- * The words come in as an argument, so these read the same as they always did
- * — with `en` passed where the strings used to be hardcoded — and one case at
- * the end proves the argument is actually being used.
+ * The words come in as an argument: these pass `en`, and one case at the end
+ * proves the argument is actually being used.
  */
 
 const MINUTE = 60_000

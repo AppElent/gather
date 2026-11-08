@@ -5,8 +5,7 @@ import { NutritionPage } from './NutritionPage'
 
 /**
  * The diary is also where the two libraries beside it are reached from (#100).
- * Foods is the Catalog everybody shares; Combos is the person's own. Neither
- * had a way in from Nutrition before, so both were addresses you had to know.
+ * Foods is the Catalog everybody shares; Combos is the person's own.
  */
 
 vi.mock('convex/react', () => ({

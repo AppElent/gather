@@ -12,8 +12,8 @@
  *
  * That is the one place this design branches on content rather than on Kind,
  * and it is worth saying out loud because everything else here is Kind-blind —
- * the facts grid is whatever `subjectFields` declares, rendered by the same
- * five components the composer uses.
+ * the facts grid is whatever `subjectFields` declares, read out by
+ * `tastingFieldText` from the same field defs the composer draws.
  *
  * ## Attribution is on the row, not behind a tap
  *

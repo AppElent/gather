@@ -12,7 +12,7 @@ import { moduleHref } from '../modules/moduleDestination'
 /**
  * How far a Module's quick action can proceed inside the launcher.
  *
- * `compose` is the fourth, added by the tasting Modules (#199): the launcher
+ * `compose` is the tasting Modules' kind (#199): the launcher
  * carries the *first* step — choosing what you tasted, which is a search and a
  * list and wants a keyboard — and then hands off to a pushed screen for the
  * rating, which does not fit above one. Neither `sheet` nor `handoff` on its

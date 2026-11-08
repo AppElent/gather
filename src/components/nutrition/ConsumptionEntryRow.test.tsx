@@ -6,8 +6,7 @@ import { ConsumptionEntryRow } from './ConsumptionEntryRow'
 
 // TanStack Router's <Link> requires a RouterProvider context to render (it
 // reads router state via useLinkProps); this component test renders in
-// isolation, so mock it out to a plain anchor, matching the same pattern
-// used in AppShell.test.tsx / CommandFeed.test.tsx / PublicPageFrame.test.tsx.
+// isolation, so mock it out to a plain anchor.
 vi.mock('@tanstack/react-router', () => ({
   Link: ({
     children,
@@ -479,11 +478,9 @@ test('a food entry whose food is gone keeps the plain amount field', () => {
  * An entry counted in the food's *portions* rather than its base unit — the
  * shape the sample household seeds, and so the shape most people meet first.
  *
- * It used to keep the plain grams box, on the grounds that its number counts
- * something the chips do not. But a piece *is* an amount: `quantity` lots of
- * the food's first serving. Leaving it out meant the seeded diary showed the
- * old editor and a freshly logged food showed the new one, which is what was
- * reported on #126. It converts, so it is offered.
+ * A piece *is* an amount: `quantity` lots of the food's first serving. It
+ * converts, so it is offered, and the seeded diary edits like a freshly
+ * logged food (#126).
  */
 test('a food entry counted in pieces is offered the servings too', () => {
   food.value = CATALOG_BREAD

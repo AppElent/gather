@@ -17,10 +17,9 @@ const SEARCH_DEBOUNCE_MS = 250
  * search API; search-a-licious (the service this actually calls, see
  * offFetch.ts) publishes no separate limit, so treat 10/min as the ceiling.
  *
- * This used to be a 6.5s *minimum interval between calls*, which kept the
- * volume down by making the second thing you searched for sit there doing
- * nothing. A debounce spends the same budget without the stall: continuous
- * typing produces one request per pause rather than one per keystroke, the
+ * A debounce rather than a minimum interval between calls, so the second thing
+ * you search for never sits there waiting: continuous typing produces one
+ * request per pause rather than one per keystroke, the
  * three-character floor drops the first keystrokes of every term, and the
  * per-term cache means backspacing and retyping costs nothing. Naming a
  * product is a handful of requests, well inside the ceiling.
@@ -32,9 +31,8 @@ const OFF_SEARCH_DEBOUNCE_MS = 400
  *
  * Three characters, because a one- or two-character term is somebody still
  * typing and matches half the catalogue. Deliberately *not* conditioned on the
- * local results: local and external now run concurrently and both sections
- * render, where the external search used to be gated on local returning
- * exactly zero rows — one poor local match suppressed the whole catalogue.
+ * local results: one poor local match must not hide the whole catalogue, so
+ * local and external run concurrently and both sections render.
  */
 export function shouldSearchOff(term: string): boolean {
   return term.trim().length >= 3
@@ -74,8 +72,7 @@ export interface FoodSearch {
  * Searching for a food: your own rows and Open Food Facts, concurrently, with
  * the debounce, the per-term cache and the discarding of responses for a term
  * you have moved on from. Owns no notion of *choosing* one — that is the
- * caller's, and is why this is reusable between the add dialog and whatever
- * replaces it.
+ * caller's.
  */
 export function useFoodSearch(): FoodSearch {
   const { locale } = useI18n()

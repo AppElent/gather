@@ -17,28 +17,20 @@ export type BabyEventType = (typeof BABY_EVENT_TYPES)[number]
 /**
  * The event types one Child's log offers (ADR-0022).
  *
- * **What is stored is the refusals, not the acceptances**, and that is the
- * whole point. The field used to hold the types a household had said yes to,
- * which read naturally and was wrong in one specific way: a type added to the
- * catalogue *after* somebody made their choice is missing from their list, and
- * a list of acceptances cannot tell "they turned this off" apart from "this
- * did not exist when they were asked". Every Child on the deployment stopped
- * being offered Memory the day it shipped, and the only cure was for each
- * household to go and find it in settings.
- *
- * Storing the noes inverts that. A type nobody has refused is offered, so a
- * new one arrives switched on for everybody and stays on until someone says
- * otherwise. The cost is that the field no longer reads as the answer to the
- * question the settings screen asks — which is what `declinedEventTypes` is
- * for, and why nothing outside this module builds the array by hand.
+ * **What is stored is the refusals, not the acceptances.** A list of
+ * acceptances cannot tell "they turned this off" apart from "this did not
+ * exist when they were asked", so a type added to the catalogue later would be
+ * missing for every Child. A type nobody has refused is offered, so a new one
+ * arrives switched on for everybody and stays on until someone says otherwise.
+ * The cost is that the field does not read as the answer to the question the
+ * settings screen asks — which is what `declinedEventTypes` is for, and why
+ * nothing outside this module builds the array by hand.
  *
  * Absent means nothing has been refused. An array holding every type is a real
  * choice and offers nothing.
  *
- * **Order is not stored here.** It once was, and the settings screen wrote the
- * bar's arrangement into this array as a side effect of writing the set. That
- * is `barOrder`'s job now (see `babyBarSlots`), so this answers only the
- * question of membership and always answers it in catalogue order.
+ * **Order is not stored here**: that is `barOrder`'s job (see `babyBarSlots`),
+ * so this answers only the question of membership, in catalogue order.
  *
  * This decides what is *offered*, never what is shown: an entry of a type that
  * is no longer tracked stays in the timeline and stays editable.
@@ -99,8 +91,8 @@ export function isBabyBarShortcut(slot: BabyBarSlot): slot is BabyBarShortcut {
  *   arrangement.
  * - A tracked type the arrangement has never heard of is appended. That is
  *   what makes a type you just turned on appear, and it is what makes an
- *   absent `barOrder` mean "everything, in tracked order, shortcuts last" —
- *   which is what the bar did before the field existed, so no backfill.
+ *   absent `barOrder` mean "everything, in tracked order, shortcuts last", so
+ *   no backfill.
  * - A shortcut survives on its own say-so. Absent means somebody turned it
  *   off, which is a thing the settings screen can do and nothing else can.
  */

@@ -148,7 +148,7 @@ export const backfillFoodSearchText = internalMutation({
  *
  * The tightening commit removes `servingSize` and `servingLabel`, and
  * TypeScript then knows they cannot be there — so a migration that has to read
- * them says so itself, the way the pre-#17 group fields above do.
+ * them says so itself.
  */
 type LegacyFood = Doc<'foods'> & {
   servingSize?: number
@@ -164,8 +164,8 @@ type LegacyFood = Doc<'foods'> & {
  * `servingSize` would fail the deploy that removes it — which makes this a
  * prerequisite of that deploy rather than tidying afterwards.
  *
- * The conversion is the shim's, moved here as it was deleted: the label the
- * food carried, or its own amount when it carried none. A row that already has
+ * The conversion: the label the food carried, or its own amount when it
+ * carried none. A row that already has
  * a servings list keeps it — the list has always won over the pair.
  *
  * **End condition:** docs/migrations/0006-food-servings.md. The route actually

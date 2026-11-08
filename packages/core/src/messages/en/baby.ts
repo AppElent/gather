@@ -1,13 +1,10 @@
 import type { BabyEventType } from '../../domain'
 
 /**
- * The names of the eight things a log entry can be.
+ * The names of the things a log entry can be.
  *
- * They used to be `BABY_EVENT_LABELS` in `convex/lib/babyEvents.ts`, and unlike
- * the nutrient and meal labels one Convex function *did* read them —
- * `activity.ts` put one in each entry's `title`. That was the backend choosing
- * a display word, so it now sends the type key instead and the client looks it
- * up here (ADR-0011).
+ * The backend sends the type key and the client looks the word up here: a
+ * display word is the reader's language, not the server's (ADR-0011).
  */
 export const eventTypes = {
   temperature: 'Temperature',

@@ -122,9 +122,9 @@ export const list = query({
  * with figures of its own — so nothing you chose is silently dropped, and the
  * entries you did not tick are not touched at all.
  *
- * Then it *replaces* them (#99). Saving used to leave the originals behind, so
- * the shortcut's first use cost a round of deleting and re-logging what you
- * had just curated. The replacement is the Combo's own expansion — the same
+ * Then it *replaces* them (#99): leaving the originals behind would make the
+ * shortcut's first use cost a round of deleting and re-logging what you had
+ * just curated. The replacement is the Combo's own expansion — the same
  * pure function the card renders from, so what you get is exactly what logging
  * that Combo tomorrow will get you.
  *

@@ -60,8 +60,8 @@ const DANGER = { light: '#a4372c', dark: '#f0917f' } as const
  * default.
  *
  * The scheme comes from `useAppearance()` rather than from `useColorScheme()`
- * directly, because from #164 the device is only one of the two things that can
- * decide it: a Member who chose dark on a light phone is in dark everywhere,
+ * directly, because the device is only one of the two things that can decide
+ * it: a Member who chose dark on a light phone is in dark everywhere,
  * and a call site must not be able to reach past that choice to the device's.
  */
 export function useTokens(group?: ModuleGroup): Tokens {

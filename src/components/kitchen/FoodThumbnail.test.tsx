@@ -43,7 +43,7 @@ test('a photograph and nothing else is the photograph', () => {
     <FoodThumbnail src="https://example.test/nutella.jpg" />,
   )
 
-  expect(container.querySelector('img')).toBeDefined()
+  expect(container.querySelector('img')).not.toBeNull()
   expect(screen.queryByText(GLYPH)).toBeNull()
 })
 

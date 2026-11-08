@@ -130,7 +130,7 @@ describe('slugs', () => {
     }
   })
 
-  test('allows ordinary names without a Personal namespace', async () => {
+  test('escapes a name out of the `me-` prefix', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
     await t
@@ -185,9 +185,8 @@ describe('an ordinary Group', () => {
   })
 
   /**
-   * The settings page renaming a Group is standing on that Group's address,
-   * which the rename makes stop existing. It cannot work the new slug out for
-   * itself — `allocateGroupSlug` resolves collisions — so it has to be told.
+   * The renamer cannot work the new slug out for itself — `allocateGroupSlug`
+   * resolves collisions — so it has to be told.
    */
   test('hands back the slug it moved to, so the renamer can follow', async () => {
     const t = testConvex()
@@ -501,8 +500,8 @@ describe('an ordinary Group', () => {
 })
 
 /**
- * Resolving a Group from the slug in the URL (ADR-0002). This is the check every
- * Group-scoped route and function goes through, so what matters is not only that
+ * Resolving a Group from the slug the caller names. This is the check every
+ * Group-scoped function goes through, so what matters is not only that
  * the right people get in, but that the three ways of being kept out stay told
  * apart: a Group that does not exist, one that is not yours, and no session.
  */

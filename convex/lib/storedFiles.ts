@@ -18,13 +18,13 @@
  * caller here has already resolved the record and refused whoever may not write
  * it; there is deliberately no publicly callable form of this.
  *
- * **A blob goes when the *last* row lets go of it, not the first.** #38 assumed
- * no two rows ever hold one `_storage` id, and no gather code copies one — but
- * nothing enforces it at the door either. `imageId`/`photoId` are supplied by
+ * **A blob goes when the *last* row lets go of it, not the first.** No gather
+ * code copies a `_storage` id from one row to another, but nothing enforces it
+ * at the door either. `imageId`/`photoId` are supplied by
  * the client on create and update, and every read hands the id back, so a
  * Member of a Group a recipe was merely Shared into can put that id on a recipe
  * of their own. They still cannot write the original row, and unguarded, their
- * delete would have destroyed the original's picture (PR #58 review). So the
+ * delete would destroy the original's picture. So the
  * rule is asked rather than assumed: after the write that let go, is any row
  * still pointing at this blob? That also gives Copy a safe answer in advance —
  * two rows on one blob keep the picture until both are gone.
@@ -63,7 +63,7 @@ type FileHolder = {
 /**
  * Which field holds the file, per table that has one.
  *
- * Typed off the schema rather than written out, so adding a photo to a third
+ * Typed off the schema rather than written out, so adding a photo to another
  * Module fails to compile until it is registered here. A table missing from
  * this map is invisible to the reference check, and a blob it alone still
  * points at would be deleted out from under it — the one way this file can

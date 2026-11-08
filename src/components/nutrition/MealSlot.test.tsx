@@ -6,8 +6,7 @@ import { MealSlot } from './MealSlot'
 
 // TanStack Router's <Link> requires a RouterProvider context to render (it
 // reads router state via useLinkProps); this component test renders in
-// isolation, so mock it out to a plain anchor, matching the same pattern used
-// in ConsumptionEntryRow.test.tsx / AppShell.test.tsx.
+// isolation, so mock it out to a plain anchor.
 vi.mock('@tanstack/react-router', () => ({
   Link: ({
     children,

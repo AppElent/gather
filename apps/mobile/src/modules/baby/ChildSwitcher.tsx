@@ -13,7 +13,7 @@
  * Child's settings, which is the same screen Settings -> Modules -> Baby log
  * reaches (ADR-0022) rather than a second copy of it.
  *
- * The frame - drag-to-dismiss, close button, scrim - is `Sheet`'s.
+ * The frame - drag-to-dismiss, close button, scrim - is `NativeSheet`'s.
  */
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { NativeContextMenu } from '../../components/NativeContextMenu'

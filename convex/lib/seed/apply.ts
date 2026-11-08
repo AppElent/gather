@@ -373,9 +373,8 @@ export async function applySample(
     await ctx.db.insert('groups', {
       name: SAMPLE_GROUP_NAME,
       inviteCode: crypto.randomUUID().slice(0, 8),
-      // Allocated the same way a real Group's is, so the sample household has
-      // an address that behaves like every other (ADR-0002) — a hand-written
-      // slug here would be the one Group whose URL could collide.
+      // Allocated the same way a real Group's is: a hand-written slug here
+      // would be the one Group whose slug could collide.
       slug: await allocateGroupSlug(ctx, {
         name: SAMPLE_GROUP_NAME,
       }),

@@ -73,9 +73,7 @@ export function NutritionPage({
         {diary.personalNote}
       </p>
 
-      {/* The two libraries the diary draws on. Both were addresses you had to
-          know before (#100): the Catalog had no way in from here at all, and a
-          Combo could only be met inside the add sheet. They sit above the day
+      {/* The two libraries the diary draws on (#100). They sit above the day
           rather than in the shell because neither is a Module — Foods is
           Catalog and a Combo is Personal — so nothing in the sidebar or the
           dock claims a row for them, and a phone reaches them the same way a

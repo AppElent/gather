@@ -69,8 +69,8 @@ export default defineSchema({
   groups: defineTable({
     name: v.string(),
     inviteCode: v.string(),
-    // Globally unique, and readable so that the Group you are acting in is
-    // visible in the URL (ADR-0002).
+    // Globally unique: Group-scoped functions take the Current Group as
+    // `groupSlug` and resolve it by this.
     slug: v.string(),
     // Legacy only. New writes omit this; `removePersonalGroupSemantics`
     // removes it from existing rows before the next schema tightening.

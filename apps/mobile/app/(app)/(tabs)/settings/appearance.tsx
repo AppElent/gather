@@ -1,10 +1,9 @@
 /**
  * One setting, one screen.
  *
- * The old Settings screen stacked appearance, language and two rows onto one
- * surface, which worked while there were four of them. The tab's index is that
- * list now, so this is the leaf: the control, and the sentence saying what
- * choosing it actually does. No card title — the header already says the word.
+ * The tab's index is the list of settings, so this is the leaf: the control,
+ * and the sentence saying what choosing it actually does. No card title — the
+ * header already says the word.
  */
 import { ScrollView, StyleSheet, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'

@@ -1,11 +1,8 @@
 /**
  * Where a dragged row lands, in one dimension and in pixels.
  *
- * Shared, as of the All screen. It was written for the Tasks Module and said
- * so: *"two call sites is not a pattern, and the day the Tasks Module ships is
- * the day to decide whether one `arrange.ts` serves both."* The All screen's
- * Edit mode is the third, and it wants exactly these three functions, so this
- * is that day.
+ * Shared by the Tasks Module's reorder mode and the All screen's Edit mode,
+ * which want exactly these three functions.
  *
  * The horizontal twin, `modules/baby/logBarArrange.ts`, stays where it is. It
  * is a different axis with a different clamp, and folding it in here would

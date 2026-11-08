@@ -194,16 +194,14 @@ export const renameGroup = mutation({
     if (!isAdmin(membership)) {
       throw new Error('Only an admin can rename a group')
     }
-    // The slug follows the name, so the URL keeps telling you which Group you
-    // are in. Existing links to the old slug break — accepted in ADR-0002.
+    // The slug follows the name, and the old slug stops resolving.
     const slug = await allocateGroupSlug(ctx, {
       name: args.name,
       excludeGroupId: group._id,
     })
     await ctx.db.patch(group._id, { name: args.name, slug })
-    // Returned because the caller is standing on `/g/<old-slug>/settings` and
-    // has just made that address stop existing. It cannot work the new slug out
-    // for itself — `allocateGroupSlug` resolves collisions — so it is told.
+    // Returned because the caller cannot work the new slug out for itself:
+    // `allocateGroupSlug` resolves collisions.
     return slug
   },
 })

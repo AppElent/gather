@@ -484,11 +484,9 @@ test('a failed scanned import tells the person what happened', async () => {
 
 test('a scanned product with no name is asked about rather than imported as ""', async () => {
   // `mapOffProduct` maps a product with no `product_name` rather than
-  // rejecting it, deliberately leaving the name "to the user on the
-  // confirmation screen". This path used to have no confirmation screen, and
-  // sent the mapping straight to the import — silently saving a food called
-  // "". The review form *is* that screen, and its name field is required, so
-  // the name is supplied before anything is written.
+  // rejecting it, leaving the name "to the user on the confirmation screen".
+  // The review form *is* that screen, and its name field is required, so the
+  // name is supplied before anything is written.
   offProduct.value = { name: '', brand: 'Plus', nutritionPer100: {} }
   renderSheet()
   await scan('8712345678901')

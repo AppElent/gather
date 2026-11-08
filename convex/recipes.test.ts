@@ -201,11 +201,10 @@ describe('recipes.list', () => {
 })
 
 /**
- * Where a listed recipe lives, for a reader with no Group in their address bar.
+ * Where a listed recipe lives, for a reader who knows only their Current Group.
  *
- * The web puts the Group in the URL, so a page it drew is already an answer to
- * "whose collection is this". The phone's Group is ambient (ADR-0015), which
- * takes that cue away and leaves the row to carry it — so the row says whose it
+ * The Current Group is ambient (ADR-0031), so nothing on screen says "whose
+ * collection is this" and the row has to carry it — so the row says whose it
  * is, and only when the answer is somebody else's.
  */
 describe("a listed recipe says whose collection it came from, when it isn't this one", () => {
@@ -426,7 +425,7 @@ describe('recipes.get', () => {
 
   /**
    * Alice is in both Groups, and the roast lives in the household and was never
-   * shared. Reading it at the club's address must fail even for her: the URL is
+   * shared. Reading it under the club must fail even for her: the caller is
    * claiming the club can see this recipe, and the club cannot.
    */
   test('a recipe you can see, read from the wrong Group, is not found', async () => {

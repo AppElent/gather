@@ -12,8 +12,7 @@
  * `axes.ts`, and every combination of them renders here. See `../variants.ts`
  * for why a mix beats a set of finished screens.
  *
- * Everything is in memory. `prototypes/calendar/build-brief.md` lists the five
- * schema changes the real Module needs; all five are faked in `fixtures.ts`.
+ * Everything is in memory: the calendars and events are `fixtures.ts`.
  */
 
 import { MenuView } from '@expo/ui/community/menu'
@@ -372,8 +371,8 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
           // to say it twice.
           headerLargeTitle: false,
           // Add lives in the nav bar, which is where iOS puts it in every
-          // first-party app that has one. A `+` floating in the content was a
-          // toolbar this screen had drawn for itself next to a real one.
+          // first-party app that has one. A `+` floating in the content would be
+          // a toolbar this screen draws for itself next to a real one.
           headerRight: () => (
             <View style={styles.headerRight}>
               {nav === 'menu' ? (

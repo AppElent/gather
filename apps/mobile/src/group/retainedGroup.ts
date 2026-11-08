@@ -2,14 +2,12 @@
  * Where the phone remembers which Group it was last in.
  *
  * The store itself, and why it is local and synchronous, is
- * `prefs/localPreference.ts` — the retained Group was the first of the three
- * preferences that live there, and appearance and language joined it in #164
- * rather than each bringing its own persistence.
+ * `prefs/localPreference.ts`, shared with appearance and language.
  *
  * What is left here is the part that is about a Group: what is stored is the
  * Group's *id* — the same thing `setGroup` takes and `selectGroup` validates.
- * A slug is not a Group's identity any more (ADR-0031); an old `/g/<slug>`
- * link is resolved to an id before anything is retained.
+ * A slug is not a Group's identity (ADR-0031); an old `/g/<slug>` link is
+ * resolved to an id before anything is retained.
  */
 import {
   clearPreference,

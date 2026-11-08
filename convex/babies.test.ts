@@ -6,12 +6,12 @@ import type { Id } from './_generated/dataModel'
 /**
  * Who can read which household's baby log, asserted through the real queries.
  *
- * The baby log is Group-scoped content, so `/g/<slug>/baby` has two things to
- * get right and they are genuinely different: the caller must be a Member of
- * the Group in the URL, *and* the child in the URL must live in that Group. The
- * second is the one a route gate alone cannot give you — a person in two Groups
- * passes the gate for both, and without this check `/g/a/baby/<child-of-b>`
- * would happily render b's child under a's address.
+ * The baby log is Group-scoped content, so a read has two things to get right
+ * and they are genuinely different: the caller must be a Member of the Group
+ * they name, *and* the child must live in that Group. The second is the one a
+ * membership gate alone cannot give you — a person in two Groups passes the
+ * gate for both, and without this check asking under Group a would happily
+ * return b's child.
  */
 
 
@@ -147,9 +147,9 @@ describe('a deep link to one child', () => {
     expect(baby?.name).toBe('Noor')
   })
 
-  // Alice is a Member of both households, so the gate lets her onto either
-  // address. That is exactly why the child has to be checked against the Group
-  // as well: passing the gate is not the same as the URL telling the truth.
+  // Alice is a Member of both households, so the gate lets her name either.
+  // That is exactly why the child has to be checked against the Group as well:
+  // passing the gate is not the same as the child being in that Group.
   test('does not resolve a child from a different Group of your own', async () => {
     const { t, sam } = await seed()
 
@@ -172,7 +172,7 @@ describe('a deep link to one child', () => {
 })
 
 describe('adding a child from inside a Group', () => {
-  test('puts them in the Group the URL named', async () => {
+  test('puts them in the Group the caller named', async () => {
     const { t } = await seed()
 
     await t.withIdentity(alice).mutation(api.babies.create, {
@@ -206,8 +206,8 @@ describe('adding a child from inside a Group', () => {
 })
 
 /**
- * Editing a child is authorised the same way reading one is: from the Group in
- * the address. Alice is in both households, so "she can see this child from
+ * Editing a child is authorised the same way reading one is: from the Group the
+ * caller names. Alice is in both households, so "she can see this child from
  * somewhere" and "this child is in the Group she named" come apart here.
  */
 describe('editing a child under the wrong Group', () => {

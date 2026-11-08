@@ -96,10 +96,9 @@ export const getConnection = internalQuery({
 /**
  * A Group's connection for one provider, token and all.
  *
- * Named for the Group rather than for the caller on purpose: "my connection"
- * was the caller-wide framing this replaces, which read `defaultGroupId` and so
- * answered the same whichever Group's page had asked. The Group is authorised
- * here, and only a Member of it gets the row.
+ * Named for the Group rather than for the caller on purpose: a caller-wide "my
+ * connection" would answer the same whichever Group had asked. The Group is
+ * authorised here, and only a Member of it gets the row.
  */
 export const getGroupConnection = internalQuery({
   args: { groupSlug: v.string(), provider: externalProviderValidator },

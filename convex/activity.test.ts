@@ -8,12 +8,12 @@ import { GROUP_REFUSAL_MESSAGES } from './lib/groupAccess'
  * What a Group's Home says has been happening in it.
  *
  * The criterion is not "the row belongs to this Group" but "which Group's page
- * shows it", so everything below is asserted through the real query, at a
- * Group's own address, as a Member of that Group.
+ * shows it", so everything below is asserted through the real query, naming
+ * the Group, as a Member of that Group.
  *
  * Alice is the case that matters throughout: she is in both households, so a
- * stream derived from the *caller's* memberships rather than from the Group in
- * the URL would pass every other test here and fail hers.
+ * stream derived from the *caller's* memberships rather than from the Group
+ * she names would pass every other test here and fail hers.
  */
 
 
@@ -24,9 +24,8 @@ const ME_ALICE = 'me-alice'
 type Harness = ReturnType<typeof testConvex>
 
 /**
- * Two households and a Personal group. Alice is in both households and has her
- * own Personal group; Bob is only in the Jansens'; Carla is only in the
- * De Vrieses'.
+ * Two households and a one-member Group. Alice is in both households and alone
+ * in a third; Bob is only in the Jansens'; Carla is only in the De Vrieses'.
  */
 async function seed() {
   const t = testConvex()
@@ -130,7 +129,7 @@ async function activityIn(t: Harness, identity: typeof alice, slug: string) {
 const titles = (entries: GroupActivityEntry[]) =>
   entries.map((e) => (e.kind === 'babyEvent' ? e.eventType : e.title))
 
-describe('the stream belongs to the Group in the address', () => {
+describe('the stream belongs to the Group the caller names', () => {
   test("a Group's activity holds its own records and none of the other Group's", async () => {
     const { t } = await seed()
 
@@ -242,7 +241,7 @@ describe('a Personal record is in no Group', () => {
     expect(await activityIn(t, alice, DE_VRIES)).toEqual([])
   })
 
-  test('not even in the diarist’s own Personal group', async () => {
+  test('not even in a Group where the diarist is the only Member', async () => {
     const { t } = await seed()
 
     await t.withIdentity(alice).mutation(api.consumption.create, {
@@ -254,14 +253,14 @@ describe('a Personal record is in no Group', () => {
       nutrition: { calories: 300 },
     })
 
-    // The case someone will later read as an exception. A Personal group is an
-    // ordinary Group with one Member (GLOSSARY.md), and a Personal record
-    // belongs to no Group at all — so the rule is uniform and this is not a
-    // special case that got missed.
+    // The case someone will later read as an exception. A Group with one
+    // Member is an ordinary Group (ADR-0030), and a Personal record belongs to
+    // no Group at all — so the rule is uniform and this is not a special case
+    // that got missed.
     expect(await activityIn(t, alice, ME_ALICE)).toEqual([])
   })
 
-  test('a Personal group still carries its own Group-scoped content', async () => {
+  test('a one-member Group still carries its own Group-scoped content', async () => {
     const { t } = await seed()
 
     await addRecipe(t, alice, ME_ALICE, 'Just for me')
@@ -310,9 +309,8 @@ describe('the stream says who did it', () => {
     expect(entry.byName).toBe('Alice')
     expect(entry).not.toHaveProperty('byUserId')
     // The link the Module does have a page for comes back as a row id for the
-    // client to build a URL from, never as an assembled path.
+    // client to build a link from, never as an assembled path.
     expect(entry.targetId).toBe(noor)
-    expect(JSON.stringify(entry)).not.toContain('/g/')
   })
 })
 
@@ -447,7 +445,7 @@ describe('who is in the Group', () => {
     ])
   })
 
-  test('a Personal group has exactly its one Member', async () => {
+  test('a one-member Group lists exactly its one Member', async () => {
     const { t } = await seed()
 
     const members = await t

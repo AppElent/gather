@@ -4,8 +4,8 @@
  *
  * ## Why this is navigation state and not a `key`
  *
- * The stacks used to be keyed by the Group's slug, which remounted them. On
- * Android that is a native crash (#235): unmounting a `ScreenStack` clears
+ * Keying the stacks by Group remounts them, and on Android that is a native
+ * crash (#235): unmounting a `ScreenStack` clears
  * each screen's container before the stack's own detach cleanup runs, so that
  * cleanup skips the screen's fragment and leaves it in the tab's
  * `FragmentManager`. The next time the tab is selected Android tries to put

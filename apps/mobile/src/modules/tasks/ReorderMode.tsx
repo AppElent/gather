@@ -16,11 +16,11 @@
  * dependency: a fixed-height list that does not auto-scroll is short, and the
  * library is five hundred kilobytes and a native rebuild.
  *
- * The gesture is **`react-native-gesture-handler`, not `PanResponder`.** The
- * first attempt used `PanResponder`, copying the Baby log's arranging bar, and
- * it did not drag on either platform: that bar sits on a screen with nothing
- * scrolling behind it, and this list sits inside a `ScrollView`, which wins
- * every vertical touch. `PanResponder` has no way to say otherwise;
+ * The gesture is **`react-native-gesture-handler`, not `PanResponder`.**
+ * `PanResponder`, which the Baby log's arranging bar uses, does not drag here
+ * on either platform: that bar sits on a screen with nothing scrolling behind
+ * it, and this list sits inside a `ScrollView`, which wins every vertical
+ * touch. `PanResponder` has no way to say otherwise;
  * `blocksExternalGesture` does, and it is the same library the rows' own swipe
  * already goes through. The gesture is attached to the **grip alone** rather
  * than to the row, which is what leaves the rest of the row free to scroll a

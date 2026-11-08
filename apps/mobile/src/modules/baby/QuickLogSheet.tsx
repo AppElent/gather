@@ -23,11 +23,10 @@
  * The type you arrived with can be removed like any other, as long as one
  * remains: a save with nothing in it is not a thing to offer.
  *
- * With one type included — the ordinary case — this is exactly the sheet it was
- * before, and none of the above is visible.
+ * With one type included — the ordinary case — none of the above is visible.
  *
- * The frame — drag-to-dismiss, close button, scrim — is `Sheet`'s; this file is
- * only what the sheet asks.
+ * The frame — drag-to-dismiss, close button, scrim — is `NativeSheet`'s; this
+ * file is only what the sheet asks.
  */
 import { missingRequiredField } from '@gather/core/baby-events'
 import type { BabyEventType } from '@gather/core/domain'

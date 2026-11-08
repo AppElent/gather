@@ -7,8 +7,8 @@
  * inline `t.tastings.…[key]` expressions per component, each of which would
  * need its own cast.
  *
- * Plain functions taking the dictionary, not hooks: the same rule the rest of
- * `lib/` follows, so a helper stays callable from a test with no React tree.
+ * Plain functions taking the dictionary, not hooks, so a helper stays callable
+ * from a test with no React tree.
  *
  * **A tag is not always a key.** The vocabularies are prompts, not permission
  * lists (story 11), so `term()` answers with the raw string when it has no

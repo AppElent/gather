@@ -1,7 +1,7 @@
 /**
  * The catalogue as the band under the pitch, because the front door's job is to
  * say what gather is and the catalogue is the most honest answer available:
- * fifteen Modules, every one of them in every Group. The words lead, the tints
+ * every Module, in every Group. The words lead, the tints
  * confirm.
  *
  * It is not interactive. A chip that looked tappable and was not would be a

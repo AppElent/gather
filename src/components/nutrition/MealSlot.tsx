@@ -11,7 +11,7 @@ import { SaveAsCombo } from './SaveAsCombo'
 interface Props {
   label: string
   entries: ConsumptionEntryData[]
-  /** Where adding to this meal happens — an address now, not a dialog. */
+  /** Where adding to this meal happens: an address, not a dialog. */
   addLink: AppLink
   /**
    * Keeping some of this meal as a Combo, which also replaces those entries

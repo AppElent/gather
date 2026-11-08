@@ -5,7 +5,7 @@
  * ## Why this is a route rather than a sheet
  *
  * An entry has a stable address and can be opened cold. Fast in-context flows
- * use the shared native `BottomSheetModal`; this screen remains a destination.
+ * use `NativeSheet`; this screen remains a destination.
  *
  * ## Why editing happens here rather than reopening the log sheet
  *
@@ -447,8 +447,8 @@ export function EntryScreen() {
 
 const styles = StyleSheet.create({
   centre: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // No top padding of its own: the sheet's own bar is the top edge now, and
-  // adding a second one under it is what read as "not native".
+  // Barely any top padding: the header is the top edge, and a second one under
+  // it reads as "not native".
   content: { paddingHorizontal: 18, paddingTop: 4, gap: 14 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   glyph: {

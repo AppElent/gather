@@ -12,7 +12,7 @@
  *   app. The theme is built from the same tokens the screens use, so a header
  *   and the screen under it cannot disagree.
  * - **The status bar.** Set from the resolved scheme rather than left on
- *   `auto`, because `auto` reads the device and the device is no longer the
+ *   `auto`, because `auto` reads the device and the device is not the
  *   only thing that decides (see `theme/appearance.tsx`).
  * - **The window behind the tree.** The root view keeps its launch colour
  *   otherwise, which shows through as a pale band under a dark app while a

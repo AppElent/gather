@@ -205,8 +205,8 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
       //
       // `dismissTo` is what makes one line serve both doors. Opened from the
       // collection, the stack is [Recipes, form] and this pops back to
-      // Recipes; opened from the Add tab it is [Home, form], the collection is
-      // not in it, and `dismissTo` replaces the form with it instead. Either
+      // Recipes; opened from the Add tab the collection is not in the stack,
+      // and `dismissTo` replaces the form with it instead. Either
       // way the recipe is pushed onto the collection, so Back from a recipe
       // you just made goes where a recipe lives rather than to the tab root
       // you happened to launch from.

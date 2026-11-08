@@ -2,9 +2,8 @@
  * The rows an entry is made of: chips where there is a closed set, a stepper
  * where there is a number, a text box where there is neither.
  *
- * Lifted out of `QuickLogSheet` when the entry screen gained an edit mode.
- * There are now two places a person fills these in — creating an entry and
- * correcting one — and they have to be the same rows, in the same order, with
+ * Two places fill these in — creating an entry (`QuickLogSheet`) and correcting
+ * one (`EntryScreen`) — and they have to be the same rows, in the same order, with
  * the same words on them. Two copies would have drifted the first time a field
  * was added to one and not the other, and the drift would show up as an entry
  * you can create but not edit.

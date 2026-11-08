@@ -20,13 +20,7 @@ vi.mock('../lib/auth', () => ({
       <button type="button" onClick={onSuccess}>
         Sign in
       </button>
-      <button type="button">▶ Dev: log in as test user</button>
     </section>
-  ),
-  TestLoginButton: ({ onSuccess }: { onSuccess: () => void }) => (
-    <button type="button" onClick={onSuccess}>
-      ▶ Dev: log in as test user
-    </button>
   ),
   useAuthConfig: () => ({ paths: { afterAuth: '/' } }),
 }))
@@ -48,17 +42,6 @@ vi.mock('@tanstack/react-router', () => ({
   ),
   useNavigate: () => navigateMock,
 }))
-
-test('renders one dev login button from the sign-in form', () => {
-  authState.isLoaded = true
-  authState.isSignedIn = false
-
-  renderWithI18n(<SignInPage />)
-
-  expect(
-    screen.getAllByRole('button', { name: '▶ Dev: log in as test user' }),
-  ).toHaveLength(1)
-})
 
 test('redirects signed-in users away from the sign-in page', () => {
   authState.isLoaded = true

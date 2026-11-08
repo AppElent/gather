@@ -49,7 +49,7 @@ export const listByListInternal = internalQuery({
  * A task carries no `groupId` — it hangs off a list — so the Group is checked
  * on the list and the task follows from that. "No such task" and "that task is
  * in another Group's list" are one answer, including for the id of a real task
- * a Member of both Groups could reach at the other address, so neither can be
+ * a Member of both Groups could reach through the other Group, so neither can be
  * used to find out that a task exists somewhere. The Group itself is still
  * refused first and distinctly.
  */

@@ -45,18 +45,16 @@ describe('isUrlSafeToFetch', () => {
     expect(isUrlSafeToFetch('not a url')).toBe(false)
   })
 
-  // Regression test for bug 1: a bare `startsWith('fc'/'fd')` check applied
-  // to every hostname wrongly rejected real domains that merely start with
-  // those letters. The check must only apply to actual IPv6 literals.
+  // The `fc`/`fd` private-range check applies only to IPv6 literals, never to
+  // a hostname that merely starts with those letters.
   test('allows real hostnames that happen to start with fc/fd', () => {
     expect(isUrlSafeToFetch('https://fcbarcelona.com/news')).toBe(true)
     expect(isUrlSafeToFetch('https://fdic.gov/')).toBe(true)
   })
 
-  // Regression test for bug 2: Node's URL parser normalizes IPv4-mapped
-  // IPv6 addresses (e.g. ::ffff:127.0.0.1) to a hex form (::ffff:7f00:1)
-  // that didn't match any of the original loopback/private-range checks,
-  // letting a loopback address slip through.
+  // Node's URL parser normalizes IPv4-mapped IPv6 addresses (e.g.
+  // ::ffff:127.0.0.1) to a hex form (::ffff:7f00:1), which a check written
+  // for the dotted form would let through.
   test('blocks IPv4-mapped IPv6 loopback', () => {
     expect(isUrlSafeToFetch('http://[::ffff:127.0.0.1]/')).toBe(false)
   })

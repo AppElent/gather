@@ -64,12 +64,12 @@ describe('sharedSlugBase', () => {
     }
   })
 
-  test('escapes a name that would land in the Personal namespace', () => {
+  test('escapes a name that would land in the `me-` prefix', () => {
     expect(sharedSlugBase('Me and Bob')).toBe('g-me-and-bob')
     expect(sharedSlugBase('Me')).toBe('g-me')
   })
 
-  test('never produces a reserved segment or the Personal namespace', () => {
+  test('never produces a reserved segment or the `me-` prefix', () => {
     const names = ['settings', 'API', 'me', 'me-too', 'g', '', '???', 'Home']
     for (const name of names) {
       const slug = sharedSlugBase(name)

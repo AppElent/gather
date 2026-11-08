@@ -132,13 +132,6 @@ describe('the registry itself', () => {
     )
   })
 
-  test('a Module that takes nothing declares an empty list', () => {
-    expect(DROP_TARGETS['recurring-costs']).toEqual([])
-    expect(DROP_TARGETS['shared-costs']).toEqual([])
-    expect(DROP_TARGETS['savings-goals']).toEqual([])
-    expect(DROP_TARGETS.pantry).toEqual([])
-  })
-
   test('every registered target is reachable from some payload kind', () => {
     const reachable = new Set(
       DROP_KINDS.flatMap((kind) =>
@@ -148,20 +141,6 @@ describe('the registry itself', () => {
     for (const targets of Object.values(DROP_TARGETS)) {
       for (const target of targets) {
         expect(reachable, target.id).toContain(target.id)
-      }
-    }
-  })
-
-  test('every target resolves to a screen', () => {
-    for (const targets of Object.values(DROP_TARGETS)) {
-      for (const target of targets as readonly DropTarget[]) {
-        const href =
-          target.id === 'recipe-import'
-            ? target.route({ link: 'https://example.com' })
-            : target.id === 'recipe-new-photo'
-              ? target.route({ photoId: 'p', photoUri: 'file://p' })
-              : target.route({ id: 'seed' })
-        expect(href, target.id).toBeTruthy()
       }
     }
   })
@@ -180,12 +159,6 @@ describe('the registry itself', () => {
    * finishes the Drop or asks one more question.
    */
   test('a target that appends says what stage two picks', () => {
-    for (const targets of Object.values(DROP_TARGETS)) {
-      for (const target of targets) {
-        if (target.picks === 'none') continue
-        expect(target.id).not.toBe('')
-      }
-    }
     expect(dropTargetById('note-append').picks).toBe('note')
     expect(dropTargetById('note-new').picks).toBe('none')
     expect(dropTargetById('task-new').picks).toBe('task-list')

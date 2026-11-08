@@ -247,11 +247,6 @@ export function AddListFlow({ groupSlug, onDone }: AddListFlowProps) {
   )
 }
 
-/**
- * Takes its words as props rather than reading the context itself — it is
- * defined below its only caller and rendered by it alone, so threading them
- * through keeps the whole flow's strings resolved in one place.
- */
 const selectClass =
   'min-h-9 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-2 text-sm'
 
@@ -289,6 +284,11 @@ function MappingSelect({
   )
 }
 
+/**
+ * Takes its words as props rather than reading the context itself — it is
+ * defined below its only caller and rendered by it alone, so threading them
+ * through keeps the whole flow's strings resolved in one place.
+ */
 function NotionMappingForm({
   text,
   listNameLabel,

@@ -1,5 +1,5 @@
 /**
- * The weights of action the front door — and now Account — needs.
+ * The weights of action the front door and Account need.
  *
  * `primary` is ink, because the front door belongs to no Module and ADR-0017's
  * accent rule says the accent is ink where you are looking at everything. That

@@ -29,8 +29,8 @@ interface ModalFocusOptions {
 
 /**
  * A modal's keyboard contract: focus moves into it as it opens, Tab stays
- * inside it, Escape closes it (and only it), and focus goes back to whatever opened it once
- * it goes.
+ * inside it, Escape closes it (and only it), and focus goes back to whatever
+ * opened it once it goes.
  *
  * Put `ref` and `onKeyDown` on the dialog element.
  */

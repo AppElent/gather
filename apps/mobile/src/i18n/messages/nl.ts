@@ -1,9 +1,7 @@
 /**
  * Dutch. `satisfies typeof en` is what keeps this file honest about coverage —
  * a missing key fails `pnpm typecheck`. It cannot catch an empty string or a
- * dropped `{placeholder}`, which is what `__tests__/messages.test.ts` is for on
- * the web; the phone will want the same test once there is more than one
- * screen's worth of strings here.
+ * dropped `{placeholder}`.
  *
  * The shared strings (brand, the pitch, the Module names) are the web's own
  * Dutch, not a re-translation — see the glossary in ADR-0011. "Groep" is
@@ -710,7 +708,7 @@ export const nl = {
         notes: 'Notities',
         repeats: 'Herhaalt…',
       },
-      /** The panes those chips open, which used to be dead ends. */
+      /** The panes those chips open. */
       wherePlaceholder: 'Waar',
       notesPlaceholder: 'Notities',
       startsAt: 'Begint om',

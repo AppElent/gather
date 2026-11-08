@@ -1,7 +1,7 @@
 /**
  * The native destinations Gather accepts from an old `/g/<slug>/…` link.
  *
- * The web no longer has these addresses (ADR-0031), but links to them are
+ * The web does not have these addresses (ADR-0031), but links to them are
  * still in messages and bookmarks, and the phone keeps honouring the ones it
  * can. This map is deliberately strict: an unimplemented detail page is not
  * "close enough" to a tab root, because accepting it would make an invalid

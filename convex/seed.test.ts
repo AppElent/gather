@@ -16,14 +16,8 @@ import {
 /**
  * The Sample household, built against the Group boundary.
  *
- * It arrived on `main` written for the schema this branch replaced: Groups
- * carried a `type` instead of a slug, the owner's membership was `'owner'`, and
- * a recipe carried an `ownerId` and was merely *shared* into a Group. None of
- * that conflicted textually with the rebuild — it simply stopped compiling, and
- * a shape error is the only part of that a compiler can catch.
- *
- * These cover the part it cannot: that the household it builds obeys the same
- * rules a real one does. Nothing tested it before, on either branch.
+ * A compiler catches a shape error in the seed; these cover the part it
+ * cannot: that the household it builds obeys the same rules a real one does.
  */
 
 const owner = { clerkId: 'clerk_owner', name: 'Owner', email: 'o@example.test' }
@@ -52,15 +46,15 @@ async function sampleGroup(t: ReturnType<typeof testConvex>) {
 }
 
 describe('the Sample household', () => {
-  test('is an ordinary shared Group with a real address', async () => {
+  test('is an ordinary Group with an allocated slug', async () => {
     const t = testConvex()
     await buildSample(t)
 
     const group = await sampleGroup(t)
     expect(group).not.toBeNull()
     // Allocated rather than hand-written, so it cannot collide with a Group
-    // somebody actually made (ADR-0002).
-    expect(group?.slug).toBeTruthy()
+    // somebody actually made.
+    expect(group?.slug).toBe('willow-street')
   })
 
   test('makes its owner an admin, and the housemates members', async () => {
@@ -123,8 +117,8 @@ describe('the Sample household', () => {
       groups: (await ctx.db.query('groups').collect()).filter(
         (g) => g.name === SAMPLE_GROUP_NAME,
       ).length,
-      // A recipe whose home Group has gone is reachable by nobody — the reset
-      // used to keep it, back when a person owned it and a Group merely saw it.
+      // A recipe whose home Group has gone is reachable by nobody, so the reset
+      // takes it too.
       recipes: (await ctx.db.query('recipes').collect()).length,
     }))
 

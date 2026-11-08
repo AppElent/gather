@@ -1,10 +1,10 @@
 /**
  * Slug rules for Groups.
  *
- * A slug is the readable, globally unique name identifying a Group in a URL
- * (`/g/<slug>/…`, ADR-0002). Readability is the point: it is how someone
- * notices which Group they are acting in, which is why this normalises rather
- * than hashes, and why collisions get a numbered suffix instead of an error.
+ * A slug is the readable, globally unique name a Group is resolved by: every
+ * Group-scoped function takes the Current Group as `groupSlug`. This
+ * normalises rather than hashes, and collisions get a numbered suffix instead
+ * of an error.
  *
  * Pure logic only — nothing here touches Convex. Allocation against the
  * database lives in `groupSlugs.ts`.
@@ -28,13 +28,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'sign-up',
   'forgot-password',
   'integrations',
-  // The food Catalog. It has routes at both levels but is not a Module — no
-  // registry entry, no sidebar row — so nothing else claims the segment on its
-  // behalf, and `groupPaths.segments.test.ts` holds it here instead.
   'foods',
-  // The Combos library, reserved for the same reason as `foods` above: it has a
-  // Group-level route and is not a Module — a Combo is Personal (ADR-0012), so
-  // there is no registry entry to claim the segment on its behalf.
   'combos',
   'new',
   'all',
@@ -48,9 +42,9 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
 ])
 
 /**
- * Kept out of a new Group's slug so that a household named "Me and Bob" can never
- * take an address that reads like one person's, beside the existing Groups that
- * hold this prefix (ADR-0002).
+ * Kept out of a new Group's slug: former Personal groups (ADR-0030) still hold
+ * slugs with this prefix, and a household named "Me and Bob" must not read like
+ * one of them.
  */
 export const PERSONAL_SLUG_PREFIX = 'me-'
 

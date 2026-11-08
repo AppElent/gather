@@ -202,7 +202,7 @@ describe('ClerkConvexAuth', () => {
     const { client, seen, rerender, view } = renderWithClient()
     expect(client.setAuthCalls).toBe(0)
 
-    // Convex now reports "not loading, not authenticated" for the length of
+    // Convex then reports "not loading, not authenticated" for the length of
     // the handshake. That is not a client that has given up.
     harness.clerk.signedIn = true
     rerender()

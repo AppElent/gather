@@ -135,7 +135,7 @@ export const storeOffImage = action({
 })
 
 // Searches Open Food Facts by name, alongside the local search rather than
-// only when it returns nothing — one poor local match used to suppress the
+// only when it returns nothing, so one poor local match cannot suppress the
 // entire external catalogue. Best-effort: any OFF-side failure (network,
 // timeout, malformed response) surfaces as an empty array, never a thrown
 // error, matching lookupBarcode's contract — a failed OFF search just means

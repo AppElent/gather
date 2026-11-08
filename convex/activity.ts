@@ -63,8 +63,8 @@ interface ActivityEntryBase {
   /** Where it sits: the list a task is in, the child a log entry is about. */
   context: string | null
   /**
-   * The row a link can point at, for the client to build a URL from through
-   * `groupPaths.ts`. Never a path: assembling one here would put a route in a
+   * The row a link can point at, for the client to build a link from through
+   * `src/lib/links.ts`. Never a path: assembling one here would put a route in a
    * string the router never type-checks. Null where the Module has no page for
    * the individual thing.
    */

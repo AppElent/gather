@@ -24,9 +24,9 @@ import { auxListNames, insertLocalList } from './lib/taskLists'
 /**
  * The children in one household's log.
  *
- * The Group comes from the URL and nowhere else (ADR-0002): there is no
- * fallback to a stored default, so this answers for the Group the caller named
- * or refuses outright.
+ * The Group comes from `groupSlug` and nowhere else: there is no fallback to
+ * a stored default, so this answers for the Group the caller named or refuses
+ * outright.
  */
 export const list = query({
   args: { groupSlug: v.string() },
@@ -48,15 +48,14 @@ export const list = query({
 })
 
 /**
- * One child, read through the Group the URL claims they are in.
+ * One child, read through the Group the caller claims they are in.
  *
- * The child must live in *that* Group: a deep link to
- * /g/other-household/baby/<id> answers "not found" even when the caller can see
- * that child from a Group of their own, because the URL claims something about
- * this child and that Group which is not true.
+ * The child must live in *that* Group: naming another household answers "not
+ * found" even when the caller can see that child from a Group of their own.
  *
- * Not-a-member and no-such-child are the same answer on purpose, so the page
- * cannot be used to find out that a child exists somewhere.
+ * No-such-child and in-another-Group are the same answer on purpose
+ * (ADR-0009), so the page cannot be used to find out that a child exists
+ * somewhere.
  */
 export const get = query({
   args: { id: v.id('babies'), groupSlug: v.string() },

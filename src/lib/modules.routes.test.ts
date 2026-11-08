@@ -25,11 +25,4 @@ describe('every Module at its ambient address', () => {
       expect(candidates.some((path) => existsSync(path))).toBe(true)
     })
   }
-
-  // The `/g/<slug>/…` routes are gone and old URLs 404 rather than redirect,
-  // so there is no second place a Module could live and no way for the two to
-  // disagree about which one is current.
-  test('no Module has a route under a Group slug', () => {
-    expect(existsSync(join(base, 'g'))).toBe(false)
-  })
 })

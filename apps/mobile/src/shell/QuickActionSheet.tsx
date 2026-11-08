@@ -1,11 +1,10 @@
 /**
  * The add tab's launcher.
  *
- * It draws nothing of its own frame any more. Every sheet in the app is the
- * same `Sheet` — one drag gesture, one scrim, one answer to the keyboard — so a
- * fix to any of those is a fix to all four rather than to whichever copy
- * somebody happened to be looking at. This one only needs a Back button in the
- * heading, which is what `leading` is for.
+ * It draws nothing of its own frame. Every sheet in the app is the same
+ * `NativeSheet` — one drag gesture, one scrim, one answer to the keyboard — so
+ * a fix to any of those is a fix to all of them. This one only needs a Back
+ * button in the heading, which is what `leading` is for.
  */
 import { router } from 'expo-router'
 import { useState } from 'react'

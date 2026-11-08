@@ -546,9 +546,8 @@ describe('backfilling foods.searchText', () => {
  * lived in — the contract half of #68, and the thing that has to have run
  * before the deploy that removes the fields (docs/migrations/0006).
  *
- * Like the Group backfill above, this can only be tested against rows the
- * current schema no longer allows, so it builds its backend on the shape those
- * rows actually have on disk.
+ * This can only be tested against rows the current schema no longer allows,
+ * so it builds its backend on the shape those rows actually have on disk.
  */
 const legacyFoodSchema = defineSchema({
   ...schema.tables,

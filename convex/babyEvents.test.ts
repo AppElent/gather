@@ -14,7 +14,7 @@ import { api } from './_generated/api'
  * - someone in another Group reaches none of it, by any of the five entry
  *   points;
  * - being in the child's Group is not enough if you ask under a *different*
- *   Group's slug — the address has to be telling the truth.
+ *   Group's slug — the child has to be in the Group named.
  */
 
 
@@ -23,9 +23,8 @@ const DE_VRIES = 'de-vries-household'
 
 /**
  * One household with two parents in it, one child, and a second household with
- * a stranger — plus a Personal group for Alice, which is an ordinary Group with
- * one Member and is what a "different Group's slug" means for someone who *is*
- * in the child's household.
+ * a stranger — plus a one-member Group for Alice, which is what a "different
+ * Group's slug" means for someone who *is* in the child's household.
  */
 async function seed() {
   const t = testConvex()
@@ -159,7 +158,7 @@ describe('someone in another Group reaches none of it', () => {
     })
     const outsider = t.withIdentity(carla)
 
-    // The Group in the address is not hers, so all five say so.
+    // The Group she names is not hers, so all five say so.
     await expect(
       outsider.query(api.babies.list, { groupSlug: JANSEN }),
     ).rejects.toThrow(/Not a member/)
@@ -213,7 +212,7 @@ describe('someone in another Group reaches none of it', () => {
 })
 
 /**
- * The rule the old caller-wide check could not express: Alice really is in the
+ * The rule a caller-wide check cannot express: Alice really is in the
  * child's household, and really is a Member of the Group she named — and it is
  * still a refusal, because the child does not live in the Group she named.
  */

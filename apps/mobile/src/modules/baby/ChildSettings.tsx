@@ -6,10 +6,9 @@
  * drift, and Settings is an alternative way in rather than the other half of
  * the answer.
  *
- * Its first card is the Child themselves — name, birth date, sex. Those were
- * captured once by the create wizard and, until this card existed, could never
- * be corrected: a typo in a name, or a birth date a digit out (which quietly
- * moves every age on every screen), was permanent. The switcher's pencil is the
+ * Its first card is the Child themselves — name, birth date, sex. The create
+ * wizard captures them once, and a typo in a name, or a birth date a digit out
+ * (which quietly moves every age on every screen), has to be correctable. The switcher's pencil is the
  * door people actually find, since that is the only screen listing children.
  *
  * Tracked types are the substance. Turning one off shrinks what the log offers

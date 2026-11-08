@@ -26,7 +26,7 @@ import {
 // Gesture Handler's own ScrollView, not React Native's: reorder's drag names
 // this view in `blocksExternalGesture`, and only a scroll view the library
 // knows about can be told to stand down for one touch. Gesture Handler 3's
-// `ScrollView` no longer puts a handler tag on its ref, so this is the legacy one
+// `ScrollView` does not put a handler tag on its ref, so this is the legacy one
 // until reorder moves to the v3 gesture hooks.
 import { LegacyScrollView as ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'

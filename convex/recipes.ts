@@ -42,12 +42,9 @@ async function withImageUrl<T extends { imageId?: Id<'_storage'> }>(
  * shared into it from elsewhere.
  *
  * The slug is what makes the collection the *Group's* rather than the caller's,
- * so it is required. The slugless form this query used to have unioned in every
- * Group the caller belonged to, which showed two Members standing on the same
- * page different lists — the URL stopped deciding what you see, which is the
- * whole point of ADR-0002. #24 deleted the flat route that needed it and it is
- * gone with it; `listAcrossMyGroups` below is what is left, and it is not a
- * Group's collection and does not pretend to be one.
+ * so it is required: a caller-wide union would show two Members of the same
+ * Group different lists. `listAcrossMyGroups` below is caller-wide, and it is
+ * not a Group's collection and does not pretend to be one.
  */
 export const list = query({
   args: { groupSlug: v.string() },
@@ -76,7 +73,7 @@ export const list = query({
     // Where a shared-in recipe actually lives, and whether the caller may
     // change it — resolved here rather than left for the client to work out.
     //
-    // The phone has no Group in its address bar (ADR-0015), so "this one is a
+    // A client knows only its Current Group (ADR-0031), so "this one is a
     // friend's" has to be carried by the row itself, and the test of it is *a
     // name is present* rather than a comparison a client performs against a
     // Group id it would otherwise have no reason to know. The Group's own
@@ -123,7 +120,7 @@ export const list = query({
  *
  * Deliberately caller-wide, and deliberately not `list`. The food diary is a
  * Personal record that reads the same inside every Group (ADR-0003), so its
- * recipe picker cannot be narrowed to the Group in the URL without offering
+ * recipe picker cannot be narrowed to the Current Group without offering
  * different recipes depending on which Group the diary happened to be opened
  * from. Nothing that renders a *Group's* page may use this — `list` is that.
  */
@@ -143,17 +140,14 @@ export const listAcrossMyGroups = query({
 })
 
 /**
- * One recipe, read through the Group the URL claims can see it.
+ * One recipe, read through the Group the caller claims can see it.
  *
- * The recipe has to be visible *from that Group*: a deep link to
- * `/g/cooking-club/recipes/<id>` answers "not found" for a recipe the caller
- * can only reach through their household, because the URL is claiming something
- * about this recipe and that Group which is not true. Same rule as
- * `babies.get`; asking the caller's memberships instead is the caller-wide
- * shape ADR-0002 removes.
+ * The recipe has to be visible *from that Group*: naming the cooking club
+ * answers "not found" for a recipe the caller can only reach through their
+ * household. Same rule as `babies.get`.
  *
- * Not visible from here and no such recipe are the same answer, so the page
- * cannot be used to find out that a recipe exists somewhere.
+ * Not visible from here and no such recipe are the same answer (ADR-0009), so
+ * the page cannot be used to find out that a recipe exists somewhere.
  */
 export const get = query({
   args: { id: v.id('recipes'), groupSlug: v.string() },
@@ -211,10 +205,9 @@ export const generateUploadUrl = mutation({
  * added a recipe has exactly the standing of every other Member.
  *
  * A recipe the caller may not write and a recipe that is not there are the same
- * null. This used to throw "Not a member of that group", which confirmed that
- * the id was real — the leak #20 closed for babies and `recipes.get` already
- * avoided. Each caller then renders that one null however it renders a missing
- * recipe, and the two cases stay indistinguishable all the way out.
+ * null (ADR-0009): a distinct refusal would confirm that the id is real. Each
+ * caller renders that one null however it renders a missing recipe, and the
+ * two cases stay indistinguishable all the way out.
  */
 async function writableRecipe(
   ctx: QueryCtx,
@@ -240,7 +233,7 @@ export const create = mutation({
     const { groupSlug, ...fields } = args
     // The destination is the Group the caller asked for and nothing else. There
     // is deliberately no fallback to `defaultGroupId`: a recipe landing
-    // somewhere the caller did not name is the thing #19 exists to stop.
+    // somewhere the caller did not name is exactly what this prevents.
     const { user, group } = await requireGroupBySlug(ctx, groupSlug)
     return await ctx.db.insert('recipes', {
       groupId: group._id,

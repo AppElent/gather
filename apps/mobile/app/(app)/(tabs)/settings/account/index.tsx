@@ -1,12 +1,10 @@
 /**
  * Account: who you are, what can be changed about it, and the two ways out.
  *
- * It used to be a name, an email, a sentence saying the rest was managed on the
- * web, and Sign out. That stopped being defensible the moment the phone could
- * create an account — an app that signs people up has to let them delete the
- * account from inside it (App Store guideline 5.1.1(v)), and once deletion is
- * here, "your name is managed elsewhere" reads as an app that could not be
- * bothered rather than one that drew a line.
+ * An app that signs people up has to let them delete the account from inside
+ * it (App Store guideline 5.1.1(v)), and once deletion is here, "your name is
+ * managed elsewhere" reads as an app that could not be bothered rather than
+ * one that drew a line.
  *
  * So this is a hub in the shape Settings already uses: a picture and a name at
  * the top, then one row per thing you can change, each its own pushed screen.

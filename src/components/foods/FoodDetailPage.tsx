@@ -90,10 +90,9 @@ export function FoodDetailPage({ foodId }: FoodDetailPageProps) {
       )}
 
       {/*
-        The badge says where the *figures* came from, which the row now
-        records for itself. It used to be derived from `source` — where the
-        *row* came from — which answered the wrong question: an imported row
-        somebody had since typed over still read "Imported".
+        The badge says where the *figures* came from, which the row records
+        for itself — not `source`, where the *row* came from: an imported row
+        somebody has since typed over is not "Imported".
 
         A food that recorded nothing (anything older than the field, and every
         Catalog entry, whose figures are authored) gets no badge rather than a

@@ -7,8 +7,7 @@ import { api, internal } from './_generated/api'
  *
  * Foods is the one live Module with no Group-scoped rule to enforce, and this
  * says so as a fact rather than as a comment: two people who share no Group at
- * all still get the same food, so putting `/foods` under `/g/<slug>/` cannot
- * have narrowed anything. Signing in is the only bar.
+ * all still get the same food. Signing in is the only bar.
  */
 
 
@@ -252,7 +251,9 @@ describe('a food’s picture', () => {
 
     const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
     expect(food?.imageId).toBe(imageId)
-    expect(food?.imageUrl).toBeTruthy()
+    expect(food?.imageUrl).toBe(
+      await t.run(async (ctx) => ctx.storage.getUrl(imageId)),
+    )
   })
 
   test('a product with no picture imports perfectly well', async () => {
@@ -288,7 +289,9 @@ describe('a food’s picture', () => {
 
     const food = await t.withIdentity(asAlice).query(api.foods.get, { id })
     expect(food?.imageId).toBe(imageId)
-    expect(food?.imageUrl).toBeTruthy()
+    expect(food?.imageUrl).toBe(
+      await t.run(async (ctx) => ctx.storage.getUrl(imageId)),
+    )
   })
 
   test('a background OFF picture cannot overwrite a local edit', async () => {
@@ -345,7 +348,7 @@ describe('a food’s picture', () => {
   test('a picture another row still holds survives the food letting go of it', async () => {
     const t = testConvex()
     await t.withIdentity(asAlice).mutation(api.users.ensureUser, {})
-    // Signing up no longer provisions a Group (ADR-0030); the recipe needs one.
+    // Signing up provisions no Group (ADR-0030); the recipe needs one.
     await t
       .withIdentity(asAlice)
       .mutation(api.groups.createGroup, { name: 'Household' })
@@ -683,7 +686,7 @@ describe('reviewing an import before it is saved', () => {
       // what follows is about a lookup that worked, not one that quietly
       // did nothing.
       expect(mapped?.name).toBe('Nutella')
-      expect(mapped?.imageUrl).toBeTruthy()
+      expect(mapped?.imageUrl).toBe(product.product.image_front_small_url)
     } finally {
       vi.unstubAllGlobals()
     }

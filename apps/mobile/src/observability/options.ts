@@ -67,8 +67,9 @@ export function buildSentryOptions(config: {
 }
 
 /**
- * A route as its file pattern, never as an address: `/(app)/g/[groupId]/recipes`,
- * with the dynamic segments left as `[groupId]`. Concrete ids and query
+ * A route as its file pattern, never as an address:
+ * `/(app)/(tabs)/all/tasting/[kind]/subject`, with the dynamic segments left as
+ * `[kind]`. Concrete ids and query
  * strings are what `useSegments` already withholds, and what must not be sent.
  */
 export function routeName(segments: readonly string[]): string {

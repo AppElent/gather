@@ -44,19 +44,16 @@ const HOUSEHOLD = {
   _id: 'g_household',
   name: 'Household',
   slug: 'household',
-  isPersonal: false,
 }
 const CLUB = {
   _id: 'g_club',
   name: 'Cooking club',
   slug: 'cooking-club',
-  isPersonal: false,
 }
 const ALLOTMENT = {
   _id: 'g_allotment',
   name: 'Allotment',
   slug: 'allotment',
-  isPersonal: false,
 }
 
 beforeEach(() => {

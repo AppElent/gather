@@ -8,7 +8,6 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
 import { useTokens } from '../theme/tokens'
-import { nativeSheetLayout } from './nativeSheetLayout'
 
 export interface NativeSheetProps {
   title: string
@@ -42,7 +41,6 @@ export function NativeSheet({
   const tokens = useTokens()
   const { t } = useI18n()
   const Close = UI_ICONS.X
-  const layout = nativeSheetLayout(Platform.OS)
 
   useEffect(() => {
     const modal = ref.current
@@ -70,7 +68,7 @@ export function NativeSheet({
         style={[
           styles.content,
           fill && styles.fill,
-          { paddingTop: layout.paddingTop },
+          { paddingTop: Platform.OS === 'ios' ? 8 : 0 },
         ]}
       >
         <View style={styles.heading}>

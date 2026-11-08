@@ -5,7 +5,7 @@
  * one module that imports all 9,131 icons and Metro does not tree-shake it, so
  * the bundle carries exactly what is listed here.
  *
- * The lucide names are the web's (`src/lib/babyEventFields.ts`), because the
+ * The lucide names are the web's (`src/components/baby/babyEventFields.ts`), because the
  * glyph for a diaper should not depend on which client is asking (ADR-0017).
  * The SF Symbol beside each is the phone's own word for the same thing, and
  * only iOS ever sees it — see `theme/glyph.tsx`.

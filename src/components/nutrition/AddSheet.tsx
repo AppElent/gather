@@ -74,10 +74,9 @@ interface Props {
 /**
  * Adding food: one sheet, one list, no tabs.
  *
- * The dialog this replaces made you choose *what kind of thing* you were
- * logging — Recipes, Foods or Quick add — before you were allowed to search for
- * it. Here there is one search box and one list, with your foods, your Recipes
- * and Open Food Facts in labelled sections. Quick add is not a separate place:
+ * You never choose *what kind of thing* you are logging before you may search
+ * for it: one search box and one list, with your foods, your Recipes and Open
+ * Food Facts in labelled sections. Quick add is not a separate place:
  * the always-visible Add control gives it and adding to the foods library equal
  * weight, while an empty result repeats both offers at the moment of highest
  * intent.

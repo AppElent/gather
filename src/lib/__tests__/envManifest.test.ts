@@ -197,7 +197,6 @@ describe('values the deploy produces', () => {
 
 describe('the issue reporter', () => {
   it('lands on every Worker, including the per-PR one', () => {
-    // It previously ran on production alone, because nothing said otherwise.
     for (const environment of ENVIRONMENTS) {
       const workers = placementsFor(environment, { prNumber: '7' }).filter(
         (p) => p.entry.key === 'githubIssuesToken',

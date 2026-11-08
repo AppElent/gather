@@ -1,7 +1,7 @@
 /**
  * The renderer, and the whole reason the Kind spec is data.
  *
- * **This file has five components and never learns what a wine is.** It is
+ * **This file draws five field types and never learns what a wine is.** It is
  * handed a `TastingFieldDef` and a value, and it draws the control that field
  * type asks for. Cheese, wine and beer differ only in which defs arrive.
  *

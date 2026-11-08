@@ -13,8 +13,7 @@ import { en as coreEn } from '@gather/core/messages'
  *   `reset`, `fields`, `actions`, `errors`, `gate`. The web has no counterpart:
  *   its forms live in `src/lib/auth`, which is React-DOM only and never
  *   crosses. These are written here and belong here.
- * - **Shared words** — `brand`, `welcome.tagline/title/subtitle`, and the whole
- *   of `modules`. These are transcribed from the web's `src/lib/i18n/messages/`
+ * - **Shared words** — every value read from `coreEn` (`@gather/core/messages`),
  *   so the two clients make the same promise in the same words.
  */
 export const en = {
@@ -314,10 +313,8 @@ export const en = {
   /**
    * Who you are, what can be changed about it, and the two ways out.
    *
-   * It used to say all of this was managed on the web, which stopped being
-   * true the moment the phone could create an account: an app that signs
-   * people up has to let them leave from the same place (App Store guideline
-   * 5.1.1(v)).
+   * An app that signs people up has to let them leave from the same place
+   * (App Store guideline 5.1.1(v)).
    *
    * The hub is a list, like Settings itself, and each thing you can change is
    * its own screen. Only `email` is read-only, and it says so rather than
@@ -587,9 +584,8 @@ export const en = {
    * The ambient Group (ADR-0015) while it is being established, and the one
    * signed-in state where there is none to establish.
    *
-   * `noneBody` used to send people to the web, because the phone had no way to
-   * make a Group. It has one from #164, and the same two forms the Groups
-   * screen uses are rendered directly under this — a dead end that names
+   * The same two forms the Groups screen uses are rendered directly under
+   * `noneBody`, so it does not send people to the web: a dead end that names
    * another client is not an answer when the answer is on screen.
    */
   group: {
@@ -889,9 +885,7 @@ export const en = {
    *
    * Development builds only: `settings/labs/_layout.tsx` redirects in a release
    * and Settings lists the row only on `__DEV__`. A word a shipped Module uses
-   * does not belong here — the Tasks and Notes Modules' words started here as
-   * prototypes and now have their own trees above. These are still
-   * translated, for the reason ADR-0011 gives: an English literal in `src/` is
+   * does not belong here. These are still translated, for the reason ADR-0011 gives: an English literal in `src/` is
    * a habit, and the one place it would be excused is the place the next
    * screen gets copied from.
    *
@@ -993,7 +987,7 @@ export const en = {
         notes: 'Notes',
         repeats: 'Repeats…',
       },
-      /** The panes those chips open, which used to be dead ends. */
+      /** The panes those chips open. */
       wherePlaceholder: 'Where',
       notesPlaceholder: 'Notes',
       startsAt: 'Starts at',

@@ -83,8 +83,8 @@ export function initialEventValues(
     case 'feeding':
       return {
         method: seedString(event, 'method', 'feedingMethod', 'bottle'),
-        // Not an input any more (per-side minutes replaced it) — carried
-        // through so editing a pre-duration entry keeps its side.
+        // Not an input (per-side minutes cover it) — carried through so
+        // editing a pre-duration entry keeps its side.
         side: seedString(event, 'side'),
         amountMl: seedNumber(event, 'amountMl'),
         leftMin: seedNumber(event, 'leftMin'),

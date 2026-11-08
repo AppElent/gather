@@ -432,8 +432,7 @@ function CardComposer({
  * The picker, inside the card: `DueDateSheet`'s shortcuts over `MonthGridView`.
  *
  * Adopted rather than redrawn — a second month grid in this repo would be a bug
- * and not a variation, which is why the drawing moved to
- * `components/MonthGridView.tsx` and both callers point at it.
+ * and not a variation.
  */
 function DatePane({
   value,

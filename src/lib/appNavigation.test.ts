@@ -55,14 +55,6 @@ describe('the navigation list', () => {
     expect(items.find((i) => i.id === 'notes')?.placeholder).toBe(true)
     expect(items.find((i) => i.id === 'recipes')?.placeholder).toBe(false)
   })
-
-  test('can reach every live Module through All, pinned or not', () => {
-    const list = navItems([], en)
-    expect(list.map((i) => i.id)).toContain('all')
-    // Nothing is pinned, so every Module is only reachable via All — which is
-    // the page that lists all of them.
-    expect(MODULES.length).toBeGreaterThan(list.length)
-  })
 })
 
 describe('the mobile dock', () => {

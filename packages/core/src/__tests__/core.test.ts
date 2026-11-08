@@ -14,7 +14,7 @@ import {
 } from '../domain'
 import { fmt, isLocale, plural, resolveLocale } from '../i18n'
 import { en, nl } from '../messages'
-import { MODULE_GROUPS, MODULES, moduleText } from '../modules'
+import { MODULES, moduleText } from '../modules'
 import { DEFAULT_PINS, pinnedModuleIds } from '../pins'
 
 function leaves(value: unknown, path = ''): Map<string, string> {
@@ -34,9 +34,7 @@ function placeholders(text: string): string[] {
 }
 
 describe('the portable Gather catalogue', () => {
-  test('keeps the complete catalogue and its message join in one contract', () => {
-    expect(MODULES).toHaveLength(15)
-    expect(MODULE_GROUPS).toEqual(['kitchen', 'money', 'home', 'tasting'])
+  test('joins a Module to its name in the reader’s language', () => {
     expect(moduleText(MODULES[0], en).label).toBe('Recipes')
     expect(moduleText(MODULES[0], nl).label).toBe('Recepten')
   })

@@ -1,12 +1,12 @@
 /**
  * The one place a Group-scoped request is authorised.
  *
- * ADR-0002 puts the Group in the URL so that membership is checked once, at the
- * route boundary, instead of every function re-deriving "the active Group" from
- * hidden state on the user. This module is that check. Every Group-scoped query
+ * Membership is checked once, here, instead of every function re-deriving
+ * "the active Group" from hidden state on the user. Every Group-scoped query
  * and mutation resolves its Group through here, from the slug the caller asked
- * for — never from a stored default, and never falling back to a Group the
- * caller happens to belong to. A refusal is a refusal.
+ * for (the Current Group, ADR-0031) — never from a stored default, and never
+ * falling back to a Group the caller happens to belong to. A refusal is a
+ * refusal.
  *
  * Two entry points over one implementation:
  *

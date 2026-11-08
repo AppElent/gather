@@ -7,11 +7,10 @@ import { NewFoodPage } from './NewFoodPage'
 /**
  * The one food editor, reached from three directions.
  *
- * Adding a food from the Foods module lands here, and so now do both of the
- * routes the add sheet grew: reviewing an Open Food Facts result before it is
- * imported (#93) and adding a food a search matched nothing for (#79). No
- * second editor was built for either — what they supply is a prefill and a way
- * back, and this is where both are answered.
+ * Adding a food from the Foods module lands here, and so do both of the add
+ * sheet's routes: reviewing an Open Food Facts result before it is imported
+ * (#93) and adding a food a search matched nothing for (#79). What they supply
+ * is a prefill and a way back, and this is where both are answered.
  */
 
 /** What `foodsLookup.lookupBarcode` finds on Open Food Facts. */

@@ -6,7 +6,7 @@
  * hand and may be one the Group is only considering — there is no property
  * register behind any of this, and the value is whatever somebody last typed.
  *
- * The Group comes from the caller's request and nowhere else (ADR-0002).
+ * The Group comes from the caller's `groupSlug` and nowhere else.
  */
 
 import { v } from 'convex/values'

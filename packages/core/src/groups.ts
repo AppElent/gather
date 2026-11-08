@@ -22,10 +22,9 @@ export interface LandingGroup {
  * Which Group to open when nothing was retained, or what was retained is no
  * longer the Member's.
  *
- * Their Personal group, because everybody has one and it is the Group whose
- * content is certainly theirs; failing that, the first Group they belong to.
- * Null when they belong to none, which means there is nowhere to land and the
- * join-or-create flow is the only honest answer.
+ * The first Group they belong to. Null when they belong to none, which means
+ * there is nowhere to land and the join-or-create flow is the only honest
+ * answer.
  *
  * This is not a stored active Group coming back through the side door: it is
  * resolved from the membership list alone, and the client that asks retains
@@ -45,9 +44,7 @@ export function landingGroupId(groups: readonly LandingGroup[]): string | null {
  * - `pending` — the Groups have not arrived. An unanswered query is not an
  *   empty list, and choosing here means opening one Group and swapping it for
  *   another a round-trip later.
- * - `none` — the Member is in no Group. On a first-ever launch this is usually
- *   "not yet" rather than "none" (`ensureUser` inserts the Personal group on the
- *   same mount), so the caller holds it for a grace period before believing it.
+ * - `none` — the Member is in no Group.
  * - `ready` — the id of the Group to open, and whether it was retained or
  *   fallen back to. `source` is what lets a caller notice that the retained
  *   Group went away — being removed from a Group is a real event — without
