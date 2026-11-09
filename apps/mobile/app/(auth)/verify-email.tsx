@@ -18,13 +18,13 @@ import { useState } from 'react'
 import { StyleSheet, Text } from 'react-native'
 import { type CodedError, pickError } from '../../src/auth/clerkErrors'
 import { CODE_LENGTH } from '../../src/auth/codeLength'
-import { AuthButton } from '../../src/components/AuthButton'
 import { AuthError } from '../../src/components/AuthError'
-import { AuthField } from '../../src/components/AuthField'
 import { AuthLink } from '../../src/components/AuthLink'
 import { AuthScreen } from '../../src/components/AuthScreen'
 import { fmt, useI18n } from '../../src/i18n'
 import { useTokens } from '../../src/theme/tokens'
+import { Button } from '../../src/ui/button'
+import { Field } from '../../src/ui/field'
 
 
 export default function VerifyEmail() {
@@ -75,7 +75,7 @@ export default function VerifyEmail() {
       subtitle={fmt(t.verify.subtitle, { email: email ?? '' })}
       footer={<AuthLink label={t.actions.resend} onPress={resend} />}
     >
-      <AuthField
+      <Field
         label={t.fields.code}
         value={code}
         onChangeText={setCode}
@@ -91,7 +91,7 @@ export default function VerifyEmail() {
       <AuthError message={error} />
       {notice ? <AuthNotice message={notice} /> : null}
 
-      <AuthButton
+      <Button
         label={t.common.actions.confirm}
         busy={busy}
         disabled={code.length !== CODE_LENGTH}

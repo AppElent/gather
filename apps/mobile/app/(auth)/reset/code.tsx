@@ -11,11 +11,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { type CodedError, pickError } from '../../../src/auth/clerkErrors'
 import { CODE_LENGTH } from '../../../src/auth/codeLength'
-import { AuthButton } from '../../../src/components/AuthButton'
 import { AuthError } from '../../../src/components/AuthError'
-import { AuthField } from '../../../src/components/AuthField'
 import { AuthScreen } from '../../../src/components/AuthScreen'
 import { fmt, useI18n } from '../../../src/i18n'
+import { Button } from '../../../src/ui/button'
+import { Field } from '../../../src/ui/field'
 
 export default function ResetCode() {
   const { t } = useI18n()
@@ -50,7 +50,7 @@ export default function ResetCode() {
       heading={t.reset.code.heading}
       subtitle={fmt(t.reset.code.subtitle, { email: email ?? '' })}
     >
-      <AuthField
+      <Field
         label={t.fields.code}
         value={code}
         onChangeText={setCode}
@@ -65,7 +65,7 @@ export default function ResetCode() {
 
       <AuthError message={error} />
 
-      <AuthButton
+      <Button
         label={t.reset.code.submit}
         busy={busy}
         disabled={code.length !== CODE_LENGTH}

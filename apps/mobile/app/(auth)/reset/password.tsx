@@ -16,11 +16,11 @@
 import { useSignIn } from '@clerk/expo'
 import { useState } from 'react'
 import { type CodedError, pickError } from '../../../src/auth/clerkErrors'
-import { AuthButton } from '../../../src/components/AuthButton'
 import { AuthError } from '../../../src/components/AuthError'
-import { AuthField } from '../../../src/components/AuthField'
 import { AuthScreen } from '../../../src/components/AuthScreen'
 import { useI18n } from '../../../src/i18n'
+import { Button } from '../../../src/ui/button'
+import { Field } from '../../../src/ui/field'
 
 export default function ResetPassword() {
   const { t } = useI18n()
@@ -56,7 +56,7 @@ export default function ResetPassword() {
       heading={t.reset.password.heading}
       subtitle={t.reset.password.subtitle}
     >
-      <AuthField
+      <Field
         label={t.fields.newPassword}
         value={password}
         onChangeText={setPassword}
@@ -71,7 +71,7 @@ export default function ResetPassword() {
 
       <AuthError message={error} />
 
-      <AuthButton
+      <Button
         label={t.reset.password.submit}
         busy={busy}
         disabled={password.length === 0}

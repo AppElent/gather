@@ -21,14 +21,14 @@ import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { StyleSheet, Text } from 'react-native'
 import { CODE_LENGTH } from '../../../auth/codeLength'
-import { AuthButton } from '../../../components/AuthButton'
 import { AuthError } from '../../../components/AuthError'
-import { AuthField } from '../../../components/AuthField'
 import { AuthLink } from '../../../components/AuthLink'
 import { AuthScreen } from '../../../components/AuthScreen'
 import { haptics } from '../../../feedback/haptics'
 import { fmt, useI18n } from '../../../i18n'
 import { TYPE, useTokens } from '../../../theme/tokens'
+import { Button } from '../../../ui/button'
+import { Field } from '../../../ui/field'
 import { useEmailCodeSignIn } from '../use-email-code-sign-in'
 import { useCooldown } from './use-cooldown'
 
@@ -145,7 +145,7 @@ export function SignInCodeScreen({ email }: { email?: string }) {
         )
       }
     >
-      <AuthField
+      <Field
         key={secondFactor?.strategy ?? 'code'}
         testID="sign-in-code-input"
         label={isBackup ? second.backupCodeLabel : t.fields.code}
@@ -172,7 +172,7 @@ export function SignInCodeScreen({ email }: { email?: string }) {
         </Text>
       ) : null}
 
-      <AuthButton
+      <Button
         testID="sign-in-code-submit"
         label={secondFactor ? second.verify : t.signIn.submit}
         busy={busy}

@@ -16,11 +16,11 @@ import { ScrollView, StyleSheet, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAvailability } from '../../../availability/AvailabilityProvider'
-import { AuthButton } from '../../../components/AuthButton'
 import { AuthError } from '../../../components/AuthError'
 import { haptics } from '../../../feedback/haptics'
 import { fmt, useI18n } from '../../../i18n'
 import { TYPE, useTokens } from '../../../theme/tokens'
+import { Button } from '../../../ui/button'
 import {
   DataExportError,
   type ExportFailure,
@@ -68,7 +68,7 @@ export function AccountExportScreen() {
 
       <AuthError message={failed ? copy[failed] : null} />
 
-      <AuthButton
+      <Button
         testID="account-export-submit"
         label={copy.action}
         busy={progress !== null}

@@ -33,7 +33,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { readThrown } from '../../../auth/clerkErrors'
 import { useAvailability } from '../../../availability/AvailabilityProvider'
-import { AuthButton } from '../../../components/AuthButton'
 import { AuthError } from '../../../components/AuthError'
 import { LoadingSkeleton } from '../../../components/LoadingSkeleton'
 import { api } from '../../../convex/api'
@@ -42,6 +41,7 @@ import { confirmDestructive } from '../../../feedback/confirmDestructive'
 import { fmt, useI18n } from '../../../i18n'
 import { accountDeletion } from '../../../settings/accountDeletion'
 import { RADIUS, TYPE, useTokens } from '../../../theme/tokens'
+import { Button } from '../../../ui/button'
 import { useAccountDelete } from './account-delete-provider'
 
 export function AccountDeleteScreen() {
@@ -118,7 +118,7 @@ export function AccountDeleteScreen() {
         }
       />
 
-      <AuthButton
+      <Button
         testID="account-delete-submit"
         variant="danger"
         label={t.account.deleteAccount.submit}

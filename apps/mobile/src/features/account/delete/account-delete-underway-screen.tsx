@@ -11,10 +11,10 @@
  */
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 
-import { AuthButton } from '../../../components/AuthButton'
 import { AuthError } from '../../../components/AuthError'
 import { useI18n } from '../../../i18n'
 import { TYPE, useTokens } from '../../../theme/tokens'
+import { Button } from '../../../ui/button'
 import type { AccountDeleteValue } from './account-delete-provider'
 
 export function AccountDeleteUnderwayScreen({
@@ -36,12 +36,12 @@ export function AccountDeleteUnderwayScreen({
       {stranded ? (
         <View style={styles.actions}>
           <AuthError message={t.account.deleteAccount.partlyFailed} />
-          <AuthButton
+          <Button
             testID="account-delete-retry"
             label={t.common.actions.retry}
             onPress={retryLogin}
           />
-          <AuthButton
+          <Button
             variant="secondary"
             label={t.signedIn.signOut}
             onPress={onSignOut}

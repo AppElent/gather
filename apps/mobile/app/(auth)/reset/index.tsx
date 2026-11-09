@@ -16,11 +16,11 @@ import { useSignIn } from '@clerk/expo'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { type CodedError, pickError } from '../../../src/auth/clerkErrors'
-import { AuthButton } from '../../../src/components/AuthButton'
 import { AuthError } from '../../../src/components/AuthError'
-import { AuthField } from '../../../src/components/AuthField'
 import { AuthScreen } from '../../../src/components/AuthScreen'
 import { useI18n } from '../../../src/i18n'
+import { Button } from '../../../src/ui/button'
+import { Field } from '../../../src/ui/field'
 
 export default function ResetRequest() {
   const { t } = useI18n()
@@ -60,7 +60,7 @@ export default function ResetRequest() {
       heading={t.reset.request.heading}
       subtitle={t.reset.request.subtitle}
     >
-      <AuthField
+      <Field
         label={t.fields.email}
         value={email}
         onChangeText={setEmail}
@@ -76,7 +76,7 @@ export default function ResetRequest() {
 
       <AuthError message={error} />
 
-      <AuthButton
+      <Button
         label={t.reset.request.submit}
         busy={busy}
         disabled={!ready}
