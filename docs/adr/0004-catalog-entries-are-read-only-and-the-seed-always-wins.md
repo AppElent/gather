@@ -1,12 +1,16 @@
 ---
 type: decision
 description: Read before changing Catalog rows, their seed, or whether a person may edit them.
-version: 1.0.0
+version: 1.0.1
 status: accepted
 date: 2026-08-02
 ---
 
 # Catalog entries are read-only, and the seed always wins
+
+The food Catalog this describes was retired with the Nutrition Module
+([ADR-0041](0041-nutrition-is-retired-and-foundry-owns-it.md)); the rule stands
+for the Tasting catalog ([ADR-0024](0024-a-tasting-catalog-is-a-picker-and-tasting-it-makes-it-yours.md)).
 
 The **Catalog** — reference data owned by nobody, today just the food database
 — ships with the app and is present in every environment, production included.

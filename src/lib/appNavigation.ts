@@ -40,12 +40,6 @@ export interface NavItem {
   label: string
   icon: string
   link: AppLink
-  /**
-   * The Module's data is about you rather than the Group, so it reads the same
-   * from every Group and nobody else can see it (ADR-0003). Marked wherever a
-   * Module is listed, because "who can see this?" should never be a guess.
-   */
-  personal: boolean
   /** Declared but not built yet. */
   placeholder: boolean
 }
@@ -68,7 +62,6 @@ function moduleItem(module: ModuleDef, messages: NavMessages): NavItem {
     label: moduleText(module, messages).label,
     icon: module.icon,
     link: moduleLink(module),
-    personal: module.scope === 'personal',
     placeholder: module.status === 'placeholder',
   }
 }
@@ -94,7 +87,6 @@ export function navItems(
       label: messages.shell.nav.home,
       icon: 'Home',
       link: linkTo(HOME),
-      personal: false,
       placeholder: false,
     },
     ...pinnedModules(pins).map((module) => moduleItem(module, messages)),
@@ -103,7 +95,6 @@ export function navItems(
       label: messages.shell.nav.all,
       icon: 'Grid2X2',
       link: linkTo(ALL),
-      personal: false,
       placeholder: false,
     },
   ]

@@ -34,14 +34,6 @@ import { requireGroupBySlug } from './lib/groupAccess'
  *
  * Deliberately absent:
  *
- * - `consumptionEntries` — a food diary is **Personal** (ADR-0003). It is a
- *   record *about a person*, follows them across every Group and belongs to no
- *   Group's activity. Making it one would mean a diary entry showed up in a
- *   Group's stream, which is precisely the thing a Personal record is defined
- *   not to do.
- * - `foods` — **Catalog** (ADR-0003). It has no `groupId` at all: it is owned by
- *   nobody and readable by everybody, so there is no Group whose activity it
- *   could belong to.
  * - `taskLists` and `babies` — Group-scoped, but neither carries an attribution
  *   field, so "a list was added" and "a child was added" cannot say who did it.
  *   Adding a `createdBy` column to two tables for the sake of two lines in this

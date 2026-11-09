@@ -1,7 +1,7 @@
 import type { NutrientKey, NutritionSource } from '../../domain'
 
 /**
- * The nutrient names, shared by Recipes, Nutrition and Foods.
+ * The nutrient names on a Recipe's nutrition.
  *
  * The keys live in `domain.ts`, where the schema needs them; the words are the
  * reader's, so they live here (ADR-0011).

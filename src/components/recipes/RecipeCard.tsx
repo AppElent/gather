@@ -1,4 +1,4 @@
-import { FoodThumbnail } from '../kitchen/FoodThumbnail'
+import { RecipeThumbnail } from './RecipeThumbnail'
 
 export type RecipeViewMode = 'grid' | 'banner' | 'compact'
 
@@ -27,9 +27,8 @@ function Photo({
   className: string
 }) {
   return (
-    <FoodThumbnail
+    <RecipeThumbnail
       src={imageUrl}
-      kind="recipe"
       className={className}
       glyphClassName="text-4xl"
     />

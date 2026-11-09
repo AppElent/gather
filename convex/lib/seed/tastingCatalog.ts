@@ -4,17 +4,11 @@ import type { TastingKind } from '@gather/core/tastings'
  * The shipped list of well-known things, present in every environment
  * including production.
  *
- * **This is a picker, not a reference table (ADR-0024).** It behaves in the
- * opposite way to `catalogFoods.ts`, and a reader who knows that file will
- * guess wrong, so the difference is worth saying out loud once more here:
- *
- * - A **foods** Catalog row is a *fact*. A Group points at it forever and may
- *   never edit it.
- * - A **tasting** Catalog row is a *suggestion*. Choosing one copies its name
- *   and facts into the Group as that Group's own subject, keeping `catalogKey`
- *   as Provenance, and the row here is then irrelevant to it. Retiring an
- *   entry orphans nothing; a household correcting "its" Comté is correcting
- *   its own row.
+ * **This is a picker, not a reference table (ADR-0024).** A row is a
+ * *suggestion*: choosing one copies its name and facts into the Group as that
+ * Group's own subject, keeping `catalogKey` as Provenance, and the row here is
+ * then irrelevant to it. Retiring an entry orphans nothing; a household
+ * correcting "its" Comté is correcting its own row.
  *
  * `seedKey` is the stable identity across re-seeds and never changes once
  * shipped, even if `name` does — a renamed key orphans nothing here either,

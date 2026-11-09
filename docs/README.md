@@ -21,7 +21,7 @@ Design studies: [designs/](../designs/).
 
 ## Decisions
 
-A new ADR takes the number after the highest (0041 next).
+A new ADR takes the number after the highest (0042 next).
 
 | ID | Decision | Status | Domain | Key implementation references |
 | --- | --- | --- | --- | --- |
@@ -36,7 +36,7 @@ A new ADR takes the number after the highest (0041 next).
 | [0009](adr/0009-a-refusal-inside-a-group-never-says-which-refusal-it-is.md) | A refusal inside a Group never says which refusal it is | accepted | authorization | `convex/lib/groupAccess.ts` |
 | [0010](adr/0010-a-photo-is-stored-as-prepared-never-as-chosen.md) | A photo is stored as prepared, never as chosen | accepted | files | `packages/core/src/photoPresets.ts`, `convex/lib/storedFiles.ts` |
 | [0011](adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md) | The UI is English at the source, and translations are typed dictionaries | accepted | i18n | `packages/core/src/messages/`, `src/lib/i18n/` |
-| [0012](adr/0012-a-combo-is-a-personal-shortcut-and-not-a-recipe.md) | A Combo is a Personal shortcut, and not a kind of Recipe | accepted | nutrition | `convex/combos.ts` |
+| [0012](adr/0012-a-combo-is-a-personal-shortcut-and-not-a-recipe.md) | A Combo is a Personal shortcut, and not a kind of Recipe | superseded | nutrition | — |
 | [0013](adr/0013-staging-deploys-on-merge-production-deploys-on-a-click.md) | Staging deploys on merge, production deploys on a click | accepted | deployment | `.github/workflows/deploy.yml` |
 | [0014](adr/0014-a-variable-declares-its-consumer-not-its-destination.md) | A variable declares its consumer, not its destination | accepted | environment | `env.manifest.ts`, `scripts/env.mjs` |
 | [0015](adr/0015-the-group-is-addressed-on-the-web-and-ambient-on-the-phone.md) | The Group is addressed on the web and ambient on the phone | superseded | mobile navigation | `apps/mobile/src/group/GroupProvider.tsx`, `apps/mobile/app/g/` |
@@ -65,3 +65,4 @@ A new ADR takes the number after the highest (0041 next).
 | [0038](adr/0038-both-clients-speak-clerk-core-3.md) | Both clients speak Clerk Core 3 | accepted | auth | `src/lib/auth/`, `apps/mobile/src/auth/` |
 | [0039](adr/0039-staging-is-a-frontend-on-the-production-backend.md) | Staging is a frontend on the production backend | accepted | deployment | `.github/workflows/deploy.yml`, `env.manifest.ts` |
 | [0040](adr/0040-a-group-counts-in-euros.md) | A Group counts in euros | accepted | finances | `convex/holdings.ts`, ADR-0026 |
+| [0041](adr/0041-nutrition-is-retired-and-foundry-owns-it.md) | Nutrition is retired, and Foundry owns it | accepted | modules | `convex/maintenance.ts`, `packages/core/src/modules.ts` |

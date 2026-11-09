@@ -57,15 +57,14 @@ Content owned by a Group and visible to its Members — recipes, tasks, a baby's
 log, integration connections.
 
 **Personal**:
-Legacy scope for records *about a person* rather than content they authored.
-Personal records follow the person across every Group and belong to no Group;
-Nutrition currently uses this scope. The target model removes this scope from
-Gather, with Nutrition being deprecated separately. Pins are not Personal:
-they are one person's, but are about a Group and are kept per Group (ADR-0005).
+Retired scope for records *about a person* that followed them across every
+Group and belonged to none. Its last user, the Nutrition Module, is retired
+(ADR-0041), so nothing in Gather is Personal. Pins are one person's, but are
+about a Group and are kept per Group (ADR-0005).
 
 **Catalog**:
-Reference data owned by nobody and readable by everybody — the foods that ship
-with Gather, and the well-known cheeses (see **Tasting catalog**). Neither Group-scoped nor Personal. A Catalog entry has no author
+Reference data owned by nobody and readable by everybody — the well-known
+cheeses, wines and beers (see **Tasting catalog**). Not Group-scoped. A Catalog entry has no author
 and nobody may edit it; it changes only when a new version of Gather ships a
 different one.
 _Avoid_: Global data, Public data
@@ -225,14 +224,10 @@ preserves each holding's trading currency; one that is not the euro counts
 one-to-one and shows as a Stale valuation.
 _Avoid_: Base currency, Default currency
 
-A food *a person added themselves* is not Catalog. It sits alongside the
-Catalog and looks the same when you search, but it has Attribution and its
-creator can change it.
-
 ### Content
 
 **Module**:
-A feature area — Recipes, Tasks, Baby log, Nutrition. Every live Module is
+A feature area — Recipes, Tasks, Baby log, Pantry. Every live Module is
 available in every Group; a Group never enables or disables one. A Module with
 nothing in it is not *off* — it is **empty**, and an empty Module invites you to
 make its first thing rather than offering a switch (ADR-0022).
@@ -279,7 +274,7 @@ _Avoid_: Meal slot, Recipe copy
 **Pantry entry**:
 A Group's record that an item is in stock at home, with an optional quantity and
 free-text quantity/value. Its name is free text; it is an inventory reminder,
-not a purchase history or a food diary entry.
+not a purchase history.
 _Avoid_: Stock movement, Inventory transaction
 
 **Task list**:
@@ -404,9 +399,9 @@ which. Every Module declares its targets, including the ones that declare none.
 _Avoid_: Handler, Receiver, Intent
 
 **Provenance**:
-A reference back to what something was created from — a diary entry recording
-which recipe it came from, a copied recipe recording the one it was taken from,
-an imported recipe recording the address it was read off. Provenance never
+A reference back to what something was created from — a copied recipe
+recording the one it was taken from, an imported recipe recording the address it
+was read off. Provenance never
 grants access: it is checked on read, and it may point at something the reader
 can no longer see.
 
@@ -422,23 +417,6 @@ it, Gather shrinks it. What Gather keeps is the prepared photo; the file that wa
 chosen is never stored (ADR-0010). What preparing does depends on where the photo
 will be shown.
 _Avoid_: Resize, Compress, Optimise, Process
-
-**Combo** (Dutch: *Combinatie*):
-A named, reusable set of things you log together — the same lunch, again. It is
-**Personal**: it belongs to a person, follows them into every Group, belongs to
-none, and no other Member sees it. Made by *choosing entries from a meal you
-have already filled in*, never by opening a builder; saving replaces the
-entries it was made from with the Combo's own log and leaves the rest of the
-meal alone, and logging one afterwards never edits it (ADR-0012). An entry a
-Combo wrote is badged with its name — snapshotted, the way a Personal record
-snapshots everything it references, so renaming the Combo does not rewrite the
-day it was logged on. A Combo may contain a Recipe; it is not a kind of Recipe,
-and a Recipe is not a kind of Combo — they sit on opposite sides of the
-Group/Personal boundary.
-_Avoid_: **Food group** — an established nutrition term (grains, dairy,
-protein) that would actively mislead here. **Meal** — that word already names
-the breakfast/lunch/dinner/snack slot throughout the schema, and taking it would
-force a rename with nothing gained. Also avoid: Preset, Bundle, Template.
 
 **Child**:
 The person a Baby log is kept for. One Child belongs to one Group, and every
@@ -469,8 +447,7 @@ the same bottle rather than overwriting one figure. It is the thing a person
 *makes*: a Tasting subject comes into being because somebody logged a Tasting
 against it, never as a separate first step (ADR-0024). It carries the day it
 happened, which is not the day it was written down.
-_Avoid_: Rating, Review, Note, Entry (the Baby log and the food diary already
-have entries)
+_Avoid_: Rating, Review, Note, Entry (the Baby log already has entries)
 
 **Tasting subject**:
 The thing tasted — a cheese, a wine, a beer. Group-scoped, and the thing the
@@ -511,7 +488,7 @@ catalog.
 _Avoid_: Presets, Templates, Library
 
 **Sample household**:
-A complete, fake Group — members, recipes, tasks, a baby's log, a food diary —
+A complete, fake Group — members, recipes, tasks, a baby's log —
 that exists so a test or preview environment can be looked at. Never present in
 production. Not Catalog: the Catalog is real data everyone gets, the Sample
 household is pretend data nobody outside testing ever sees.

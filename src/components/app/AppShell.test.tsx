@@ -113,20 +113,18 @@ test('renders a page outside any Group without waiting for the Groups', () => {
 })
 
 test.each([
-  '/nutrition',
-  '/nutrition/add',
-  '/foods/f1',
-  '/combos',
-])('renders the Personal page %s for somebody in no Group', (pathname) => {
+  '/settings',
+  '/account',
+])('renders %s, which is under no Group, for somebody in no Group', (pathname) => {
   state.pathname = pathname
   state.groups = []
 
   renderWithI18n(
     <AppShell>
-      <p>Your diary</p>
+      <p>Your own page</p>
     </AppShell>,
   )
 
-  expect(screen.getByText('Your diary')).toBeInTheDocument()
+  expect(screen.getByText('Your own page')).toBeInTheDocument()
   expect(redirects).toEqual([])
 })

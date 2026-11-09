@@ -4,12 +4,9 @@ import {
   BABY_BAR_SHORTCUTS,
   BABY_EVENT_TYPES,
   babyBarSlots,
-  barcodeTerm,
   declinedEventTypes,
-  MEAL_NAMES,
   NUTRIENT_KEYS,
   offeredEventTypes,
-  QUANTITY_UNITS,
   trackedEventTypes,
 } from '../domain'
 import { fmt, isLocale, plural, resolveLocale } from '../i18n'
@@ -77,8 +74,6 @@ describe('the portable locale contract', () => {
 test('shares the domain vocabulary outside Convex validators', () => {
   expect(BABY_EVENT_TYPES).toContain('feeding')
   expect(NUTRIENT_KEYS).toContain('protein')
-  expect(MEAL_NAMES).toContain('lunch')
-  expect(QUANTITY_UNITS).toContain('serving')
 })
 
 describe("a Child's tracked types", () => {
@@ -219,43 +214,5 @@ describe('the daily AI cap on the wire', () => {
     expect(isAiLimitReached({ data: { kind: 'tastingAttribute' } })).toBe(false)
     expect(isAiLimitReached(null)).toBe(false)
     expect(isAiLimitReached(undefined)).toBe(false)
-  })
-})
-
-describe('barcodeTerm', () => {
-  test('reads the barcode out of a term that is one, ignoring the spaces around it', () => {
-    expect(barcodeTerm('8712345678901')).toBe('8712345678901')
-    expect(barcodeTerm('  8712345678901  ')).toBe('8712345678901')
-    // EAN-8 at one end, the longest code the lookup accepts at the other.
-    expect(barcodeTerm('12345678')).toBe('12345678')
-    expect(barcodeTerm('12345678901234')).toBe('12345678901234')
-  })
-
-  test('a number still being typed is not a barcode', () => {
-    // The point of the floor: the digits of a barcode arrive one at a time, and
-    // each prefix has to stay an ordinary search rather than a failed lookup.
-    for (const partial of [
-      '8',
-      '87',
-      '871',
-      '8712',
-      '87123',
-      '871234',
-      '8712345',
-    ]) {
-      expect(barcodeTerm(partial)).toBeNull()
-    }
-  })
-
-  test('a number longer than any barcode is not one either', () => {
-    expect(barcodeTerm('123456789012345')).toBeNull()
-  })
-
-  test('a name is not a barcode, however many digits are in it', () => {
-    expect(barcodeTerm('hagelslag')).toBeNull()
-    expect(barcodeTerm('')).toBeNull()
-    expect(barcodeTerm('cola zero 330 ml')).toBeNull()
-    expect(barcodeTerm('871234-5678901')).toBeNull()
-    expect(barcodeTerm('8712345678901 melk')).toBeNull()
   })
 })

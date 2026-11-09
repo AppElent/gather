@@ -18,9 +18,7 @@
  * Three tables are deliberately *not* in it, because they hang off a parent
  * rather than off a Group: `tasks` (a list), `calendarEvents` (a calendar) and
  * `babyEvents` (a baby). Each is deleted by the entry that owns its parent, so
- * the parent's rows are still there to be enumerated from. `comboItems` hangs
- * off a combo, which is a person's and not a Group's, and belongs to the
- * account purge instead.
+ * the parent's rows are still there to be enumerated from.
  *
  * ## Blobs come back rather than going here
  *

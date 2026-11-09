@@ -1,7 +1,7 @@
 import { type ModuleDef, moduleById } from './modules'
 import { expandRetiredModuleIds } from './retiredModules'
 
-export const DEFAULT_PINS: readonly string[] = ['recipes', 'tasks', 'nutrition']
+export const DEFAULT_PINS: readonly string[] = ['recipes', 'tasks']
 
 export function pinnedModuleIds(stored?: readonly string[]): string[] {
   const source = expandRetiredModuleIds(stored) ?? DEFAULT_PINS

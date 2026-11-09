@@ -389,49 +389,17 @@ async function household(t: Harness): Promise<Household> {
       updatedAt: 0,
     })
 
-    // Personal records — Alice's, and Bob's that must stay his.
+    // Records that are the person's own — Alice's, and Bob's that must stay his.
     for (const [userId, who] of [
       [alice, 'Alice'],
       [bob, 'Bob'],
     ] as const) {
-      await ctx.db.insert('consumptionEntries', {
+      await ctx.db.insert('aiUsage', {
         userId,
-        date: '2026-10-18',
-        meal: 'lunch',
-        label: `${who} diary lunch`,
-        quantity: 1,
-        quantityUnit: 'serving',
-        nutrition: { calories: 500 },
-      })
-      const comboId = await ctx.db.insert('combos', {
-        userId,
-        name: `${who} combo`,
-        order: 0,
-      })
-      await ctx.db.insert('comboItems', {
-        comboId,
-        label: `${who} combo item`,
-        quantity: 1,
-        quantityUnit: 'serving',
-      })
-      await ctx.db.insert('aiUsage', { userId, day: '2026-10-18', count: 3 })
-      await ctx.db.insert('foods', {
-        name: `${who} granola`,
-        baseUnit: 'g',
-        nutritionPer100: {},
-        source: 'manual',
-        createdBy: userId,
-        searchText: `${who} granola`,
+        day: who === 'Alice' ? '2026-10-18' : '2026-01-02',
+        count: 3,
       })
     }
-    // A Catalog food, which is nobody's.
-    await ctx.db.insert('foods', {
-      name: 'Apple',
-      baseUnit: 'g',
-      nutritionPer100: {},
-      source: 'seed',
-      seedKey: 'apple',
-    })
     await ctx.db.insert('tastingCatalog', {
       seedKey: 'gouda',
       kind: 'cheese',
@@ -528,15 +496,7 @@ describe('what the file contains', () => {
       email: 'alice@example.com',
       defaultGroupId: 'household',
     })
-    expect(data.account.consumptionEntries.map((e) => e.label)).toEqual([
-      'Alice diary lunch',
-    ])
-    expect(data.account.combos.map((c) => c.name)).toEqual(['Alice combo'])
-    expect(data.account.comboItems.map((c) => c.label)).toEqual([
-      'Alice combo item',
-    ])
     expect(data.account.aiUsage).toHaveLength(1)
-    expect(data.account.foods.map((f) => f.name)).toEqual(['Alice granola'])
   })
 
   test('people as display names and photos as links', async () => {
@@ -565,12 +525,10 @@ describe('what the file contains', () => {
 })
 
 describe('what the file holds back', () => {
-  test('another Member’s personal records', async () => {
+  test('another Member’s own records', async () => {
     const t = testConvex()
     const { text } = await exported(t)
-    expect(text).not.toContain('Bob diary lunch')
-    expect(text).not.toContain('Bob combo')
-    expect(text).not.toContain('Bob granola')
+    expect(text).not.toContain('2026-01-02')
   })
 
   test('another Member’s choices in a Group, but not that they are in it', async () => {
@@ -612,7 +570,6 @@ describe('what the file holds back', () => {
     const t = testConvex()
     const { data, text } = await exported(t)
     expect(text).not.toContain('Gouda')
-    expect(text).not.toContain('"Apple"')
     expect(groupOf(data, 'household').babies[0]).not.toHaveProperty(
       'trackedTypes',
     )
@@ -641,7 +598,7 @@ describe('reading a page', () => {
     ).rejects.toThrow('Not an exported table')
     await expect(
       as.query(api.dataExport.page, {
-        table: 'consumptionEntries',
+        table: 'aiUsage',
         groupSlug: 'household',
         cursor: null,
       }),

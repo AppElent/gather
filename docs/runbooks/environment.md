@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when adding or changing an environment variable, an Infisical value, a Convex deployment variable, or a generated env file.
-version: 1.0.0
+version: 1.0.1
 ---
 
 # Environment
@@ -43,7 +43,7 @@ here.
   stops anyone holding the deployment URL from calling the public
   `seed.loadSampleData` / `seed.resetSampleData`. Set it on dev and as a
   preview default (`convex env default set --type preview`). The internal
-  `seedCatalog` / `seedPreview` do not consult it. `VITE_ENABLE_SAMPLE_DATA`
+  `seedTastingCatalog` / `seedPreview` do not consult it. `VITE_ENABLE_SAMPLE_DATA`
   (the Settings panel) follows the same rule; `import.meta.env.DEV` implies it.
 - **Preview Convex backends inherit nothing** from dev or prod: each PR gets a
   fresh deployment, so a server variable a preview needs (`CLERK_JWT_ISSUER_DOMAIN`

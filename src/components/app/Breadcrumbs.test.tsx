@@ -8,8 +8,8 @@ import { Breadcrumbs, type Crumb, parentCrumb } from './Breadcrumbs'
  * The local hierarchy of a nested page, and the one way back out of it.
  *
  * The sidebar and the dock answer "which Module am I in?" and cannot answer
- * "where am I inside it?" — they render above the route and never see the food,
- * the recipe or the child the page is about. This is the piece that does, so
+ * "where am I inside it?" — they render above the route and never see the recipe,
+ * the subject or the child the page is about. This is the piece that does, so
  * everything it is asked to prove is about the trail it was handed: that the
  * order survives, that every link in it points at its step's page, and
  * that a phone gets a real, reachable back action rather than a chevron that
@@ -49,13 +49,13 @@ vi.mock('@tanstack/react-router', () => ({
   },
 }))
 
-const foods = linkTo('foods')
-const food = linkTo('food', { foodId: 'food_1' })
+const recipes = linkTo('recipes')
+const recipe = linkTo('recipe', { recipeId: 'recipe_1' })
 
-/** Foods → Hagelslag → Edit, the deepest trail the app has. */
+/** Recipes → Stamppot → Edit, the deepest trail the app has. */
 const editTrail: Crumb[] = [
-  { label: 'Foods', link: foods },
-  { label: 'Hagelslag', link: food },
+  { label: 'Recipes', link: recipes },
+  { label: 'Stamppot', link: recipe },
   { label: 'Edit' },
 ]
 
@@ -71,8 +71,8 @@ describe('the trail a nested page shows', () => {
 
     const items = within(crumbList()).getAllByRole('listitem')
     expect(items.map((item) => item.textContent)).toEqual([
-      'Foods',
-      'Hagelslag',
+      'Recipes',
+      'Stamppot',
       'Edit',
     ])
   })
@@ -81,8 +81,8 @@ describe('the trail a nested page shows', () => {
     renderWithI18n(<Breadcrumbs trail={editTrail} />)
     const list = crumbList()
 
-    expect(within(list).getByRole('link', { name: 'Foods' })).toBeDefined()
-    expect(within(list).getByRole('link', { name: 'Hagelslag' })).toBeDefined()
+    expect(within(list).getByRole('link', { name: 'Recipes' })).toBeDefined()
+    expect(within(list).getByRole('link', { name: 'Stamppot' })).toBeDefined()
     // The page you are on is not somewhere to go.
     expect(within(list).queryByRole('link', { name: 'Edit' })).toBeNull()
     expect(within(list).getByText('Edit').getAttribute('aria-current')).toBe(
@@ -95,13 +95,13 @@ describe('the trail a nested page shows', () => {
     const list = crumbList()
 
     expect(
-      within(list).getByRole('link', { name: 'Foods' }).getAttribute('href'),
-    ).toBe('/foods')
+      within(list).getByRole('link', { name: 'Recipes' }).getAttribute('href'),
+    ).toBe('/recipes')
     expect(
       within(list)
-        .getByRole('link', { name: 'Hagelslag' })
+        .getByRole('link', { name: 'Stamppot' })
         .getAttribute('href'),
-    ).toBe('/foods/food_1')
+    ).toBe('/recipes/recipe_1')
   })
 
   test('is nothing at all when there is no trail to draw', () => {
@@ -115,26 +115,26 @@ describe('the back action a phone gets', () => {
   test('is a real link to the immediate parent, named for it', () => {
     renderWithI18n(<Breadcrumbs trail={editTrail} />)
 
-    // Not the root: from Foods → Hagelslag → Edit, back is the food.
-    const back = screen.getByRole('link', { name: 'Back to Hagelslag' })
-    expect(back.getAttribute('href')).toBe('/foods/food_1')
+    // Not the root: from Recipes → Stamppot → Edit, back is the recipe.
+    const back = screen.getByRole('link', { name: 'Back to Stamppot' })
+    expect(back.getAttribute('href')).toBe('/recipes/recipe_1')
   })
 
   test('meets the touch-target size the app holds itself to', () => {
     renderWithI18n(<Breadcrumbs trail={editTrail} />)
 
-    const back = screen.getByRole('link', { name: 'Back to Hagelslag' })
+    const back = screen.getByRole('link', { name: 'Back to Stamppot' })
     expect(back.className).toContain('min-h-11')
   })
 
   test('falls back to the collection while the item is still loading', () => {
     // A detail page knows its Module before it knows what it is showing, and
     // that half-trail is the state somebody lands in on a slow connection.
-    renderWithI18n(<Breadcrumbs trail={[{ label: 'Foods', link: foods }]} />)
+    renderWithI18n(<Breadcrumbs trail={[{ label: 'Recipes', link: recipes }]} />)
 
     expect(
-      screen.getByRole('link', { name: 'Back to Foods' }).getAttribute('href'),
-    ).toBe('/foods')
+      screen.getByRole('link', { name: 'Back to Recipes' }).getAttribute('href'),
+    ).toBe('/recipes')
   })
 
   test('is left out when nothing in the trail is somewhere to go', () => {
@@ -151,24 +151,24 @@ describe('the words around it', () => {
 
     expect(screen.getByRole('navigation', { name: 'Kruimelpad' })).toBeDefined()
     expect(
-      screen.getByRole('link', { name: 'Terug naar Hagelslag' }),
+      screen.getByRole('link', { name: 'Terug naar Stamppot' }),
     ).toBeDefined()
   })
 })
 
 describe('parentCrumb', () => {
   test('is the last step that is somewhere to go', () => {
-    expect(parentCrumb(editTrail)?.label).toBe('Hagelslag')
+    expect(parentCrumb(editTrail)?.label).toBe('Stamppot')
   })
 
   test('skips a step the page could not link', () => {
     expect(
       parentCrumb([
-        { label: 'Foods', link: foods },
-        { label: 'Hagelslag' },
+        { label: 'Recipes', link: recipes },
+        { label: 'Stamppot' },
         { label: 'Edit' },
       ])?.label,
-    ).toBe('Foods')
+    ).toBe('Recipes')
   })
 
   test('is null when there is nowhere to go back to', () => {

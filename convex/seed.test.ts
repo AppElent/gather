@@ -6,12 +6,7 @@ import { testConvex } from '../test/convexHarness'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import type { GroupScopedTable } from './lib/groupAccess'
-import {
-  applyCatalog,
-  applySample,
-  ensureSeedUser,
-  resetSample,
-} from './lib/seed/apply'
+import { applySample, ensureSeedUser, resetSample } from './lib/seed/apply'
 
 /**
  * The Sample household, built against the Group boundary.
@@ -24,9 +19,6 @@ const owner = { clerkId: 'clerk_owner', name: 'Owner', email: 'o@example.test' }
 
 async function buildSample(t: ReturnType<typeof testConvex>) {
   return await t.run(async (ctx) => {
-    // The sample diary references Catalog foods by `seedKey`, so the Catalog
-    // has to exist first — the order both real entrypoints use.
-    await applyCatalog(ctx)
     const ownerId = await ensureSeedUser(
       ctx,
       owner.clerkId,
@@ -126,58 +118,6 @@ describe('the Sample household', () => {
     expect(left.recipes).toBe(0)
   })
 
-  /**
-   * A preview is where a distinction has to be visible before anything is
-   * built on it (#87, and #86's AI routes after it). Where a food's *figures*
-   * came from is invisible unless the sample contains foods that differ in
-   * it — and it is only obviously a separate question from where the *row*
-   * came from while at least one food answers the two differently.
-   */
-  test('contains foods carrying each answer about where their figures came from', async () => {
-    const t = testConvex()
-    await buildSample(t)
-
-    const userFoods = await t.run(async (ctx) =>
-      (await ctx.db.query('foods').collect()).filter(
-        (f) => f.seedKey === undefined,
-      ),
-    )
-
-    expect(new Set(userFoods.map((f) => f.nutritionSource))).toEqual(
-      new Set(['imported', 'ai', 'manual']),
-    )
-    // A review of a seeded preview must demonstrate the icon fallback without
-    // having to type a search first (#114).
-    expect(userFoods.every((f) => f.icon !== undefined)).toBe(true)
-    // Catalog foods claim nothing: their figures are authored (ADR 0004).
-    const catalog = await t.run(async (ctx) =>
-      (await ctx.db.query('foods').collect()).filter(
-        (f) => f.seedKey !== undefined,
-      ),
-    )
-    expect(catalog.every((f) => f.nutritionSource === undefined)).toBe(true)
-    // The two questions, answered differently by the same row.
-    expect(
-      userFoods.some(
-        (f) => f.source === 'manual' && f.nutritionSource === 'ai',
-      ),
-    ).toBe(true)
-  })
-
-  test('takes its user-created foods with it when it is reset', async () => {
-    const t = testConvex()
-    await buildSample(t)
-
-    await t.run(async (ctx) => await resetSample(ctx))
-
-    const left = await t.run(async (ctx) =>
-      (await ctx.db.query('foods').collect()).filter(
-        (f) => f.seedKey === undefined,
-      ),
-    )
-    expect(left).toEqual([])
-  })
-
   test('takes what the app added inside it with it when it is reset', async () => {
     const t = testConvex()
     const ownerId = await buildSample(t)
@@ -275,11 +215,6 @@ const subjectsOf =
  */
 const SAMPLE_CONTENT: Record<ModuleId, SampleContent> = {
   recipes: inGroup('recipes'),
-  // Personal: the diary belongs to the person the household is built around.
-  nutrition: async (ctx, { ownerId }) =>
-    (await ctx.db.query('consumptionEntries').collect()).filter(
-      (entry) => entry.userId === ownerId,
-    ),
   'meal-planner': inGroup('plannedDinners'),
   groceries: async (ctx, { group }) => {
     const listId = group.groceryListId

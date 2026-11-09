@@ -24,16 +24,6 @@ export const common = {
     didNotWork: 'Dat lukte niet — probeer het opnieuw.',
   },
 
-  icon: {
-    label: 'Icoon',
-    hint: 'Wordt getoond als er geen foto van is.',
-    choose: 'Icoon kiezen',
-    change: 'Icoon wijzigen',
-    chooseTitle: 'Kies een icoon',
-    close: 'Icoonkiezer sluiten',
-    none: 'Geen icoon',
-  },
-
   image: {
     label: 'Foto',
     choose: 'Foto kiezen',

@@ -78,7 +78,7 @@ export function migrateStoredArrangement<T extends StoredArrangement>(
  * The newcomer goes after the last **already-placed** row that canonically
  * precedes it, which is not the same thing as after its nearest canonical
  * neighbour. Anchoring on the neighbour looks equivalent and is not: given a
- * reader who deliberately moved Recipes below Nutrition, it wedges all three
+ * reader who deliberately moved Recipes below Meal planner, it wedges the two
  * unmentioned kitchen Modules between them and leaves Recipes at the bottom of
  * the section — undoing the one arrangement they actually made. Scanning for
  * the last placed predecessor instead can never move a row the reader placed.

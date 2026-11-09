@@ -13,7 +13,6 @@ const APP = join(process.cwd(), 'src/routes/_app')
 
 /** Nested routes with no trail, and why. */
 const WITHOUT_TRAIL: Record<string, string> = {
-  'nutrition/add': 'a sheet over the diary, which stays mounted under it',
   'integrations/callback': 'the OAuth return, not a page anyone navigates to',
 }
 

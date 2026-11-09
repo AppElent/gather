@@ -14,7 +14,7 @@
  */
 export const privacy = {
   title: 'Privacy statement',
-  updated: 'Last updated: 18 October 2026',
+  updated: 'Last updated: 9 November 2026',
   intro: {
     title: 'Who we are',
     body: {
@@ -38,8 +38,6 @@ export const privacy = {
       baby: 'Baby log: details about a child — name, date of birth and, if you enter it, sex — and what you log about them: feeding, diapers, sleep, temperature, growth, medication, vaccinations, notes and memories with photos. This includes health data about a child.',
       finances:
         'Household finances: recurring costs, shared-cost splits, savings goals, houses and mortgage calculations, investment holdings and transactions, and net-worth entries. Every figure is one a Member typed in; Gather never connects to a bank, broker or other financial account.',
-      nutrition:
-        'Nutrition: your food diary, foods you add, combos and nutrition targets. This can be health data.',
       tastings:
         'Tastings: the cheeses, wines and beers you log, with ratings and notes.',
       photos:
@@ -57,8 +55,6 @@ export const privacy = {
     body: {
       group:
         'What you add to a Group is visible to every Member of that Group. A recipe can also be shared into a second Group, which makes it visible to that Group’s Members too. Members see each other’s names, not email addresses.',
-      personal:
-        'Your food diary, combos and nutrition targets are personal: they follow you into every Group and are visible to no one else.',
       photos:
         'Photos are served from a link that is long and impossible to guess, but that does not require sign-in and does not expire. Anyone you pass such a link on to can open the photo.',
     },
@@ -69,7 +65,7 @@ export const privacy = {
       service:
         'We use your data to provide Gather: to keep your account, store what you and your Group add, sync it across devices and show it to the Members of your Group. This is necessary to perform our agreement with you.',
       health:
-        'We process health data — the baby log and your nutrition — based on explicit consent, given by entering it. Health data about a child should be entered only by a parent or guardian. You can withdraw consent at any time by deleting that data.',
+        'We process health data — the baby log — based on explicit consent, given by entering it. Health data about a child should be entered only by a parent or guardian. You can withdraw consent at any time by deleting that data.',
       reports:
         'We use problem reports and error reports to find and fix errors, based on our legitimate interest in a reliable app.',
       noAds:
@@ -97,8 +93,6 @@ export const privacy = {
     },
     integrations:
       'If a Member of your Group connects Notion or Todoist, the tasks in the connected list are read from and written to that service under that Member’s account there. Their own privacy policies apply to what they store.',
-    openFoodFacts:
-      'When you scan a barcode or search for a food, the barcode or search text is sent to Open Food Facts to look up product information. This request is not linked to your account.',
     recipeImport:
       'When you import a recipe from a web address, our server fetches that page. The website sees a request from our server, not from you.',
     transfers:
@@ -122,7 +116,7 @@ export const privacy = {
         'In the Gather mobile app, go to Settings → Account → Delete account. The app lists which Groups are deleted and which ones you only leave before you confirm. Your account is deleted right away, and your data within minutes.',
       noApp:
         'Without the app, email privacy@appelent.nl from the email address on your Gather account, with the subject “Delete my Gather account”. We confirm your request and delete your account and data within 30 days.',
-      what: 'Deleting your account deletes your account details, your personal nutrition data and every Group in which you are the only Member, including its baby log, finances and photos. What you added to a Group you share with others stays with that Group, as described above.',
+      what: 'Deleting your account deletes your account details, your AI request counts and every Group in which you are the only Member, including its baby log, finances and photos. What you added to a Group you share with others stays with that Group, as described above.',
     },
   },
   rights: {

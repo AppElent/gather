@@ -1,12 +1,16 @@
 ---
 type: decision
-description: Read before changing Combos or how they relate to Recipes and diary entries.
-version: 1.0.0
-status: accepted
+description: Read before changing Combos or how they relate to Recipes and diary entries (historical; superseded).
+version: 1.0.1
+status: superseded
 date: 2026-08-06
+superseded_by: 0041-nutrition-is-retired-and-foundry-owns-it.md
 ---
 
 # A Combo is a Personal shortcut, and not a kind of Recipe
+
+Superseded by [ADR-0041](0041-nutrition-is-retired-and-foundry-owns-it.md):
+Combos were retired with the Nutrition Module. Retained as historical context only.
 
 Amended in place (2026-08-10) by #99, which makes
 saving take a **selection** of a meal's entries, put the Combo in their place,

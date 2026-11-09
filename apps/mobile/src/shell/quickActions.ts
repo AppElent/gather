@@ -81,8 +81,6 @@ const ACTIONS_BY_MODULE: Record<ModuleId, readonly QuickActionDef[]> = {
       href: moduleHref('/all/recipes/import'),
     },
   ],
-  // The phone has no Nutrition screens, so there is nothing to log into.
-  nutrition: [],
   'meal-planner': [],
   groceries: [],
   pantry: [],

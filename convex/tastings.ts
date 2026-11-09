@@ -137,8 +137,8 @@ export const listByKind = query({
  * The shipped suggestions for one Kind.
  *
  * Public, signed-in-only and deliberately not Group-scoped: the catalog is the
- * same list for everybody, exactly like the foods Catalog, and unlike it these
- * rows are copied rather than referenced (ADR-0024). Wine and beer answer with
+ * same list for everybody, and its rows are copied rather than referenced
+ * (ADR-0024). Wine and beer answer with
  * an empty list, which the picker draws as no section at all rather than as an
  * empty one.
  *

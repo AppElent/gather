@@ -368,35 +368,6 @@ describe('recipes.rate', () => {
   })
 })
 
-/**
- * The diary's recipe picker, which is Personal and so reads across every Group
- * (ADR-0003). This is the one caller-wide list left, and it is not a Group's.
- */
-describe('recipes.listAcrossMyGroups', () => {
-  test('someone outside a Group sees none of its recipes', async () => {
-    const { t } = await seed()
-
-    const carols = await t
-      .withIdentity(asCarol)
-      .query(api.recipes.listAcrossMyGroups, {})
-    const bobs = await t
-      .withIdentity(asBob)
-      .query(api.recipes.listAcrossMyGroups, {})
-
-    // Carol is not in the household, so its collection is not hers to see —
-    // except the one recipe that was shared into her club.
-    expect(titles(carols)).toEqual(['Club sourdough', 'Pasta for a crowd'])
-    // And Bob is not in the club, so its recipe is not his.
-    expect(titles(bobs)).not.toContain('Club sourdough')
-  })
-
-  test('shows a signed-out caller nothing', async () => {
-    const { t } = await seed()
-    const rows = await t.query(api.recipes.listAcrossMyGroups, {})
-    expect(rows).toEqual([])
-  })
-})
-
 describe('recipes.get', () => {
   test('any Member of the home Group can read it', async () => {
     const { t, ids } = await seed()
@@ -501,17 +472,12 @@ describe('attribution grants nothing', () => {
       .query(api.recipes.get, { id: ids.roast, groupSlug: 'household' })
     expect(asSeenByBob?.addedByName).toBe('Alice')
 
-    // And it buys her nothing at all: she is refused the Group outright, and
-    // the diary's cross-Group list no longer holds anything of theirs.
+    // And it buys her nothing at all: she is refused the Group outright.
     await expect(
       t
         .withIdentity(asAlice)
         .query(api.recipes.get, { id: ids.roast, groupSlug: 'household' }),
     ).rejects.toThrow(/not a member/i)
-    const alicesList = await t
-      .withIdentity(asAlice)
-      .query(api.recipes.listAcrossMyGroups, {})
-    expect(alicesList).toEqual([])
   })
 
   test('a fellow Member can change what someone else added', async () => {

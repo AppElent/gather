@@ -218,48 +218,7 @@ describe('the stream belongs to the Group the caller names', () => {
   })
 })
 
-describe('a Personal record is in no Group', () => {
-  test('a food diary entry appears in no Group the person is in', async () => {
-    const { t } = await seed()
-
-    await t.withIdentity(alice).mutation(api.consumption.create, {
-      date: '2026-07-30',
-      meal: 'lunch',
-      label: 'Cheese sandwich',
-      quantity: 1,
-      quantityUnit: 'serving',
-      nutrition: { calories: 300 },
-    })
-
-    // It is really there to be found.
-    const diary = await t
-      .withIdentity(alice)
-      .query(api.consumption.listForDay, { date: '2026-07-30' })
-    expect(diary.map((e) => e.label)).toEqual(['Cheese sandwich'])
-
-    expect(await activityIn(t, alice, JANSEN)).toEqual([])
-    expect(await activityIn(t, alice, DE_VRIES)).toEqual([])
-  })
-
-  test('not even in a Group where the diarist is the only Member', async () => {
-    const { t } = await seed()
-
-    await t.withIdentity(alice).mutation(api.consumption.create, {
-      date: '2026-07-30',
-      meal: 'lunch',
-      label: 'Cheese sandwich',
-      quantity: 1,
-      quantityUnit: 'serving',
-      nutrition: { calories: 300 },
-    })
-
-    // The case someone will later read as an exception. A Group with one
-    // Member is an ordinary Group (ADR-0030), and a Personal record belongs to
-    // no Group at all — so the rule is uniform and this is not a special case
-    // that got missed.
-    expect(await activityIn(t, alice, ME_ALICE)).toEqual([])
-  })
-
+describe('a Group with one Member', () => {
   test('a one-member Group still carries its own Group-scoped content', async () => {
     const { t } = await seed()
 

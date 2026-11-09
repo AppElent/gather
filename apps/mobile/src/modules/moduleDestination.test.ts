@@ -89,7 +89,7 @@ describe('moduleDestination', () => {
     expect(moduleDestination('beers')).toBe('/all/tasting/beer')
   })
 
-  test('a Module without screens lands on the placeholder', () => {
+  test('a retired Module id lands on the placeholder, which sends it to All', () => {
     expect(moduleDestination('nutrition')).toEqual({
       pathname: '/all/[moduleId]',
       params: { moduleId: 'nutrition' },

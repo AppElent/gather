@@ -31,7 +31,6 @@ describe('an arrangement nobody has touched', () => {
     ])
     expect(kitchenOf({})).toEqual([
       'recipes',
-      'nutrition',
       'meal-planner',
       'groceries',
       'pantry',
@@ -54,19 +53,19 @@ describe('a Module that ships after somebody arranged their screen', () => {
   })
 
   test('lands at its canonical position in its section, not at the bottom', () => {
-    // 'pantry' is last in the catalogue's kitchen list and unmentioned here, so
-    // a naive append would put it last anyway. 'meal-planner' is the real test:
-    // it is unmentioned and canonically third, and it must land after
-    // 'nutrition' rather than being swept to the end.
-    expect(
-      kitchenOf({ order: ['pantry', 'recipes', 'nutrition', 'groceries'] }),
-    ).toEqual(['pantry', 'recipes', 'nutrition', 'meal-planner', 'groceries'])
+    // 'meal-planner' is unmentioned and canonically second, and it must land
+    // after 'recipes' rather than being swept to the end.
+    expect(kitchenOf({ order: ['pantry', 'recipes', 'groceries'] })).toEqual([
+      'pantry',
+      'recipes',
+      'meal-planner',
+      'groceries',
+    ])
   })
 
   test('lands at the front when nothing canonically precedes it', () => {
-    expect(kitchenOf({ order: ['nutrition', 'meal-planner'] })).toEqual([
+    expect(kitchenOf({ order: ['meal-planner', 'groceries'] })).toEqual([
       'recipes',
-      'nutrition',
       'meal-planner',
       'groceries',
       'pantry',
@@ -88,9 +87,9 @@ describe('a group order', () => {
 
 describe('what a stored order may contain', () => {
   test('drops an id that no longer names a Module', () => {
-    expect(kitchenOf({ order: ['sourdough', 'nutrition', 'recipes'] })).toEqual(
-      ['nutrition', 'recipes', 'meal-planner', 'groceries', 'pantry'],
-    )
+    expect(
+      kitchenOf({ order: ['sourdough', 'meal-planner', 'recipes'] }),
+    ).toEqual(['meal-planner', 'recipes', 'groceries', 'pantry'])
   })
 
   test('drops a hidden id that no longer names a Module', () => {
@@ -101,7 +100,6 @@ describe('what a stored order may contain', () => {
     expect(kitchenOf({ order: ['pantry', 'pantry', 'recipes'] })).toEqual([
       'pantry',
       'recipes',
-      'nutrition',
       'meal-planner',
       'groceries',
     ])
@@ -166,13 +164,12 @@ describe('writing an arrangement back', () => {
   })
 
   test('drops hidden Modules, so unhiding restores their canonical position', () => {
-    const hidden = ['nutrition']
+    const hidden = ['meal-planner']
     const flat = flattenModuleOrder(arrangeModules({ hidden }).groups)
-    expect(flat).not.toContain('nutrition')
-    // Read back with the refusal lifted: 'nutrition' returns to slot two.
+    expect(flat).not.toContain('meal-planner')
+    // Read back with the refusal lifted: 'meal-planner' returns to slot two.
     expect(kitchenOf({ order: flat })).toEqual([
       'recipes',
-      'nutrition',
       'meal-planner',
       'groceries',
       'pantry',
@@ -180,13 +177,7 @@ describe('writing an arrangement back', () => {
   })
 
   test('round-trips a rearrangement unchanged', () => {
-    const order = [
-      'pantry',
-      'recipes',
-      'nutrition',
-      'meal-planner',
-      'groceries',
-    ]
+    const order = ['pantry', 'recipes', 'meal-planner', 'groceries']
     const once = kitchenOf({ order })
     expect(
       kitchenOf({

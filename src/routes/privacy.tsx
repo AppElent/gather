@@ -39,7 +39,6 @@ export function PrivacyPage() {
           <p className="m-0">{copy.providers.intro}</p>
           <List items={copy.providers.items} />
           <p className="m-0">{copy.providers.integrations}</p>
-          <p className="m-0">{copy.providers.openFoodFacts}</p>
           <p className="m-0">{copy.providers.recipeImport}</p>
           <p className="m-0">{copy.providers.transfers}</p>
         </Section>

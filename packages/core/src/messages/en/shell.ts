@@ -64,8 +64,6 @@ export const shell = {
   /** The marks a Module carries wherever it is listed. */
   marks: {
     soon: 'Soon',
-    onlyYou: 'Only you',
-    onlyYouExplained: 'Only you can see this. It is the same in every group.',
   },
 
   /** Navigation item names that belong to no Module. */

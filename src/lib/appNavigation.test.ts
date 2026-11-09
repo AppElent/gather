@@ -24,9 +24,9 @@ function ids(pins: readonly string[] | undefined) {
 
 describe('the navigation list', () => {
   test('is Home, then my pins in my order, then All', () => {
-    expect(ids(['nutrition', 'recipes'])).toEqual([
+    expect(ids(['meal-planner', 'recipes'])).toEqual([
       'home',
-      'nutrition',
+      'meal-planner',
       'recipes',
       'all',
     ])
@@ -42,12 +42,6 @@ describe('the navigation list', () => {
 
   test('ignores a pin no Module declares rather than breaking', () => {
     expect(ids(['recipes', 'seances'])).toEqual(['home', 'recipes', 'all'])
-  })
-
-  test('marks a Module whose data is only ever mine', () => {
-    const items = navItems(['recipes', 'nutrition'], en)
-    const personal = items.filter((item) => item.personal).map((i) => i.id)
-    expect(personal).toEqual(['nutrition'])
   })
 
   test('marks a Module that is not built yet', () => {
@@ -70,7 +64,7 @@ describe('the mobile dock', () => {
 
   test('keeps Home and All at the ends and drops the overflowing pins', () => {
     const items = navItems(
-      ['recipes', 'tasks', 'nutrition', 'baby-log', 'wines'],
+      ['recipes', 'tasks', 'meal-planner', 'baby-log', 'wines'],
       en,
     )
     const shown = dockNavItems(items)
@@ -79,7 +73,7 @@ describe('the mobile dock', () => {
       'home',
       'recipes',
       'tasks',
-      'nutrition',
+      'meal-planner',
       'all',
     ])
   })
@@ -93,7 +87,7 @@ describe('the mobile dock', () => {
 })
 
 describe('which item is active', () => {
-  const pins = ['recipes', 'tasks', 'nutrition']
+  const pins = ['recipes', 'tasks', 'meal-planner']
   const items = navItems(pins, en)
 
   test('is Home on the Group landing page', () => {
@@ -108,7 +102,7 @@ describe('which item is active', () => {
     expect(activeNavItemId('/recipes', items)).toBe('recipes')
     expect(activeNavItemId('/recipes/r1', items)).toBe('recipes')
     expect(activeNavItemId('/recipes/r1/edit', items)).toBe('recipes')
-    expect(activeNavItemId('/nutrition', items)).toBe('nutrition')
+    expect(activeNavItemId('/meal-planner', items)).toBe('meal-planner')
   })
 
   test('is All inside a Module I have not pinned', () => {
@@ -117,7 +111,7 @@ describe('which item is active', () => {
 
   test('is nothing on a page the navigation does not describe', () => {
     expect(activeNavItemId('/settings', items)).toBeNull()
-    expect(activeNavItemId('/foods', items)).toBeNull()
+    expect(activeNavItemId('/account', items)).toBeNull()
   })
 
   test('never lights more than one item', () => {
@@ -150,7 +144,7 @@ describe('which item is active', () => {
    */
   test('is an item the dock still shows, however many pins there are', () => {
     const many = navItems(
-      ['recipes', 'tasks', 'nutrition', 'baby-log', 'wines'],
+      ['recipes', 'tasks', 'meal-planner', 'baby-log', 'wines'],
       en,
     )
     const paths = [
@@ -159,10 +153,9 @@ describe('which item is active', () => {
       '/recipes',
       '/recipes/r1',
       '/tasks',
-      '/nutrition',
+      '/meal-planner',
       // Pinned fifth, so it is past where the dock runs out of room.
       '/baby',
-      '/foods',
       '/settings',
     ]
     for (const path of paths) {
@@ -175,7 +168,7 @@ describe('which item is active', () => {
 
   test('keeps the active pin in the dock in place of one that fits', () => {
     const many = navItems(
-      ['recipes', 'tasks', 'nutrition', 'baby-log', 'wines'],
+      ['recipes', 'tasks', 'meal-planner', 'baby-log', 'wines'],
       en,
     )
     expect(dockNavItems(many, 'baby-log').map((i) => i.id)).toEqual([

@@ -29,17 +29,6 @@ export const Route = createFileRoute('/_app/all')({
   component: AllModulesPage,
 })
 
-/** Says who can see a Module's data, so nobody has to infer it from the URL. */
-function ScopeMark({ module }: { module: ModuleDef }) {
-  const { marks } = useMessages().shell
-  if (module.scope !== 'personal') return null
-  return (
-    <span title={marks.onlyYouExplained}>
-      <Pill>{marks.onlyYou}</Pill>
-    </span>
-  )
-}
-
 function ModuleFace({
   module,
   messages,
@@ -110,7 +99,6 @@ function AllModulesPage() {
               <div key={module.id} className={ROW}>
                 <div className="flex min-w-0 items-center gap-2">
                   <ModuleFace module={module} messages={messages} />
-                  <ScopeMark module={module} />
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <button
@@ -168,7 +156,6 @@ function AllModulesPage() {
                       {module.status === 'placeholder' ? (
                         <Pill>{marks.soon}</Pill>
                       ) : null}
-                      <ScopeMark module={module} />
                     </div>
                     <button
                       type="button"

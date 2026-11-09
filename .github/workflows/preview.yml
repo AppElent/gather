@@ -70,7 +70,7 @@ jobs:
       # time).
       #
       # --preview-run seeds the fresh backend: seed:seedPreview reconciles the
-      # food Catalog and rebuilds the Sample household around the shared Clerk
+      # Tasting catalog and rebuilds the Sample household around the shared Clerk
       # test user, so clicking test-login on the preview lands in a populated
       # household instead of an empty app. It is ignored on production deploys
       # by design, so this line can never fire against prod.

@@ -217,9 +217,6 @@ function tastingPhoto(
  */
 export const DROP_TARGETS = {
   recipes: RECIPES,
-  // Nutrition is a diary of what was eaten, and nothing arriving from another
-  // app is a meal that has been eaten yet.
-  nutrition: [],
   // Planning a dinner means choosing a day as well as a recipe, which is a
   // screen rather than a destination. A recipe Drop reaches the planner the
   // ordinary way, once it is a recipe.

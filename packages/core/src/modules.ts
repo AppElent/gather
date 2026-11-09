@@ -1,11 +1,9 @@
 export type ModuleStatus = 'live' | 'placeholder'
-export type ModuleScope = 'group' | 'personal'
 
 export const MODULE_GROUPS = ['kitchen', 'money', 'home', 'tasting'] as const
 export type ModuleGroup = (typeof MODULE_GROUPS)[number]
 
 export type ModuleIconName =
-  | 'Apple'
   | 'Baby'
   | 'Beer'
   | 'Calendar'
@@ -26,7 +24,6 @@ export interface ModuleDef {
   icon: ModuleIconName
   group: ModuleGroup
   status: ModuleStatus
-  scope: ModuleScope
 }
 
 export const MODULES = [
@@ -35,84 +32,66 @@ export const MODULES = [
     icon: 'ChefHat',
     group: 'kitchen',
     status: 'live',
-    scope: 'group',
-  },
-  {
-    id: 'nutrition',
-    icon: 'Apple',
-    group: 'kitchen',
-    status: 'live',
-    scope: 'personal',
   },
   {
     id: 'meal-planner',
     icon: 'CalendarHeart',
     group: 'kitchen',
     status: 'placeholder',
-    scope: 'group',
   },
   {
     id: 'groceries',
     icon: 'ShoppingCart',
     group: 'kitchen',
     status: 'placeholder',
-    scope: 'group',
   },
   {
     id: 'pantry',
     icon: 'Refrigerator',
     group: 'kitchen',
     status: 'placeholder',
-    scope: 'group',
   },
   {
     id: 'recurring-costs',
     icon: 'Repeat',
     group: 'money',
     status: 'placeholder',
-    scope: 'group',
   },
   {
     id: 'shared-costs',
     icon: 'Users',
     group: 'money',
     status: 'placeholder',
-    scope: 'group',
   },
   {
     id: 'savings-goals',
     icon: 'Target',
     group: 'money',
     status: 'placeholder',
-    scope: 'group',
   },
   {
     id: 'tasks',
     icon: 'ListChecks',
     group: 'home',
     status: 'live',
-    scope: 'group',
   },
   {
     id: 'baby-log',
     icon: 'Baby',
     group: 'home',
     status: 'live',
-    scope: 'group',
   },
   {
     id: 'calendar',
     icon: 'Calendar',
     group: 'home',
     status: 'placeholder',
-    scope: 'group',
   },
   {
     id: 'notes',
     icon: 'NotebookPen',
     group: 'home',
     status: 'placeholder',
-    scope: 'group',
   },
   /**
    * The three tasting Modules (#199, #203, ADR-0024). They share one backend,
@@ -125,14 +104,12 @@ export const MODULES = [
     icon: 'Grape',
     group: 'tasting',
     status: 'live',
-    scope: 'group',
   },
   {
     id: 'wines',
     icon: 'Wine',
     group: 'tasting',
     status: 'live',
-    scope: 'group',
   },
   /**
    * Beer is in at launch on purpose (#199). Two Kinds would let a per-Kind
@@ -144,7 +121,6 @@ export const MODULES = [
     icon: 'Beer',
     group: 'tasting',
     status: 'live',
-    scope: 'group',
   },
 ] as const satisfies readonly ModuleDef[]
 

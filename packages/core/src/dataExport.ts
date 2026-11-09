@@ -58,7 +58,7 @@ export const EXPORT_CONVENTIONS = {
  * reason as `ExportExclusion`.
  */
 export const EXPORT_NOT_INCLUDED = [
-  /** Other Members' diary, combos, AI usage and per-Group preferences. */
+  /** Other Members' AI usage and per-Group preferences. */
   'other-members-personal-records',
   /** Other Members' email addresses and account ids; their display name only. */
   'other-members-identifiers',

@@ -2,7 +2,7 @@ import type { privacy as enPrivacy } from '../en/privacy'
 
 export const privacy = {
   title: 'Privacyverklaring',
-  updated: 'Laatst bijgewerkt: 18 oktober 2026',
+  updated: 'Laatst bijgewerkt: 9 november 2026',
   intro: {
     title: 'Wie we zijn',
     body: {
@@ -26,8 +26,6 @@ export const privacy = {
       baby: 'Babylogboek: gegevens over een kind — naam, geboortedatum en, als je dat invult, geslacht — en wat je over het kind vastlegt: voedingen, luiers, slaap, temperatuur, groei, medicatie, vaccinaties, notities en herinneringen met foto’s. Dit omvat gezondheidsgegevens over een kind.',
       finances:
         'Huishoudfinanciën: vaste lasten, verdelingen van gedeelde kosten, spaardoelen, huizen en hypotheekberekeningen, beleggingen en transacties, en vermogensposten. Elk bedrag is door een Lid ingetypt; Gather koppelt nooit met een bank, broker of andere financiële rekening.',
-      nutrition:
-        'Voeding: je voedingsdagboek, voedingsmiddelen die je toevoegt, combinaties en voedingsdoelen. Dit kunnen gezondheidsgegevens zijn.',
       tastings:
         'Proeverijen: de kazen, wijnen en bieren die je vastlegt, met beoordelingen en notities.',
       photos:
@@ -45,8 +43,6 @@ export const privacy = {
     body: {
       group:
         'Wat je aan een Groep toevoegt, is zichtbaar voor alle Leden van die Groep. Een recept kun je ook delen met een tweede Groep; dan is het ook zichtbaar voor de Leden daarvan. Leden zien elkaars naam, niet elkaars e-mailadres.',
-      personal:
-        'Je voedingsdagboek, combinaties en voedingsdoelen zijn persoonlijk: ze gaan met je mee naar elke Groep en zijn voor niemand anders zichtbaar.',
       photos:
         'Foto’s worden geladen via een link die lang is en niet te raden, maar waarvoor je niet hoeft in te loggen en die niet verloopt. Iedereen aan wie je zo’n link doorgeeft, kan de foto openen.',
     },
@@ -57,7 +53,7 @@ export const privacy = {
       service:
         'We gebruiken je gegevens om Gather te leveren: om je account bij te houden, op te slaan wat jij en je Groep toevoegen, dat tussen toestellen te synchroniseren en het te tonen aan de Leden van je Groep. Dit is nodig om onze overeenkomst met jou uit te voeren.',
       health:
-        'We verwerken gezondheidsgegevens — het babylogboek en je voeding — op basis van uitdrukkelijke toestemming, die je geeft door ze in te voeren. Gezondheidsgegevens over een kind horen alleen door een ouder of verzorger te worden ingevoerd. Je kunt je toestemming altijd intrekken door die gegevens te verwijderen.',
+        'We verwerken gezondheidsgegevens — het babylogboek — op basis van uitdrukkelijke toestemming, die je geeft door ze in te voeren. Gezondheidsgegevens over een kind horen alleen door een ouder of verzorger te worden ingevoerd. Je kunt je toestemming altijd intrekken door die gegevens te verwijderen.',
       reports:
         'We gebruiken probleemmeldingen en foutrapporten om fouten te vinden en op te lossen, op basis van ons gerechtvaardigd belang bij een betrouwbare app.',
       noAds:
@@ -85,8 +81,6 @@ export const privacy = {
     },
     integrations:
       'Als een Lid van je Groep Notion of Todoist koppelt, worden de taken in de gekoppelde lijst gelezen uit en geschreven naar die dienst, onder het account van dat Lid daar. Voor wat zij opslaan geldt hun eigen privacybeleid.',
-    openFoodFacts:
-      'Als je een barcode scant of een voedingsmiddel zoekt, wordt de barcode of zoektekst naar Open Food Facts gestuurd om productinformatie op te halen. Dit verzoek is niet gekoppeld aan je account.',
     recipeImport:
       'Als je een recept importeert vanaf een webadres, haalt onze server die pagina op. De website ziet een verzoek van onze server, niet van jou.',
     transfers:
@@ -110,7 +104,7 @@ export const privacy = {
         'Ga in de mobiele app van Gather naar Instellingen → Account → Account verwijderen. Voordat je bevestigt, laat de app zien welke Groepen worden verwijderd en welke je alleen verlaat. Je account wordt direct verwijderd, en je gegevens binnen enkele minuten.',
       noApp:
         'Zonder de app: mail naar privacy@appelent.nl vanaf het e-mailadres van je Gather-account, met als onderwerp ‘Verwijder mijn Gather-account’. We bevestigen je verzoek en verwijderen je account en gegevens binnen 30 dagen.',
-      what: 'Als je je account verwijdert, worden je accountgegevens, je persoonlijke voedingsgegevens en elke Groep waarvan jij het enige Lid bent verwijderd, inclusief het babylogboek, de financiën en de foto’s daarin. Wat je hebt toegevoegd aan een Groep die je met anderen deelt, blijft bij die Groep, zoals hierboven beschreven.',
+      what: 'Als je je account verwijdert, worden je accountgegevens, je tellingen van AI-verzoeken en elke Groep waarvan jij het enige Lid bent verwijderd, inclusief het babylogboek, de financiën en de foto’s daarin. Wat je hebt toegevoegd aan een Groep die je met anderen deelt, blijft bij die Groep, zoals hierboven beschreven.',
     },
   },
   rights: {

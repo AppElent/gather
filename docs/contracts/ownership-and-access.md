@@ -1,7 +1,7 @@
 ---
 type: contract
-description: Read when changing who owns, sees, writes to, or is refused Group content or a Personal record, or how the Current Group is chosen.
-version: 1.1.0
+description: Read when changing who owns, sees, writes to, or is refused Group content, or how the Current Group is chosen.
+version: 2.0.0
 status: current
 ---
 
@@ -35,11 +35,9 @@ defined in the [glossary](../../GLOSSARY.md).
   reads it with that module's reader and resolves it in the reader's language
   ([ADR-0011](../adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md)).
   A plain `Error` will not do: production redacts its message.
-- **A Personal record snapshots what it references.** Provenance is
-  permission-checked on read and safe to dangle. A **Combo** is the deliberate
-  exception and says why: it is a shortcut for what will happen rather than a
-  record of what did, so it holds references and reads their current figures
-  ([ADR-0012](../adr/0012-a-combo-is-a-personal-shortcut-and-not-a-recipe.md)).
+- **Provenance is permission-checked on read and safe to dangle.** A copied
+  or planned recipe keeps what it needs to render when the recipe it points at
+  is gone or out of reach.
 
 ## Acceptance
 

@@ -3,8 +3,6 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { BabyDetailPage } from '../baby/BabyDetailPage'
 import { EditBabyPage } from '../baby/EditBabyPage'
 import { NewBabyPage } from '../baby/NewBabyPage'
-import { EditFoodPage } from '../foods/EditFoodPage'
-import { FoodDetailPage } from '../foods/FoodDetailPage'
 import { EditRecipePage } from '../recipes/EditRecipePage'
 import { NewRecipePage } from '../recipes/NewRecipePage'
 import { RecipeDetailPage } from '../recipes/RecipeDetailPage'
@@ -86,44 +84,6 @@ function backHref(name: string) {
 
 beforeEach(() => {
   docs.value = {}
-})
-
-describe('Foods', () => {
-  test('a food sits under the collection it came from', () => {
-    docs.value['foods:get'] = {
-      _id: 'food_1',
-      name: 'Hagelslag',
-      baseUnit: 'g',
-      nutritionPer100: { calories: 500 },
-      seedKey: undefined,
-    }
-    renderInGroup(<FoodDetailPage foodId="food_1" />)
-
-    expect(trailSteps()).toEqual(['Foods', 'Hagelslag'])
-    expect(backHref('Back to Foods')).toBe('/foods')
-  })
-
-  test('editing one sits under the food itself', () => {
-    docs.value['foods:get'] = {
-      _id: 'food_1',
-      name: 'Hagelslag',
-      baseUnit: 'g',
-      nutritionPer100: { calories: 500 },
-      seedKey: undefined,
-    }
-    renderInGroup(<EditFoodPage foodId="food_1" />)
-
-    expect(trailSteps()).toEqual(['Foods', 'Hagelslag', 'Edit'])
-    // One step up, not all the way out.
-    expect(backHref('Back to Hagelslag')).toBe('/foods/food_1')
-  })
-
-  test('a food that is not there still has a way out', () => {
-    docs.value['foods:get'] = null
-    renderInGroup(<FoodDetailPage foodId="food_1" />)
-
-    expect(backHref('Back to Foods')).toBe('/foods')
-  })
 })
 
 describe('Recipes', () => {
