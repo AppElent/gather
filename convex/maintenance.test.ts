@@ -809,6 +809,74 @@ describe('mergeDuplicateUsers', () => {
     ])
   })
 
+  test('one person named twice in a split becomes one entry with both shares', async () => {
+    const { t, keep, dupe } = await withDuplicate()
+    const bob = { name: 'Bob' }
+    const { cost, scenario } = await t.run(async (ctx) => {
+      const groupId = (await ctx.db.query('groups').first())!._id
+      const alice = { userId: keep, name: 'Alice' }
+      const alias = { userId: dupe, name: 'Alice' }
+      return {
+        cost: await ctx.db.insert('recurringCosts', {
+          groupId,
+          createdByUserId: keep,
+          name: 'Rent',
+          amountCents: 1000,
+          frequency: 'monthly',
+          category: 'housing',
+          split: [
+            { userId: keep, percent: 30 },
+            { userId: dupe, percent: 20 },
+          ],
+          order: 1,
+        }),
+        scenario: await ctx.db.insert('splitScenarios', {
+          groupId,
+          createdByUserId: dupe,
+          createdAt: 0,
+          name: 'Weekend',
+          payments: [
+            { party: alice, amountCents: 600 },
+            { party: alias, amountCents: 300 },
+          ],
+          participants: [alice, alias, bob],
+          mode: 'equal',
+          owed: [
+            { party: alice, amountCents: 300 },
+            { party: alias, amountCents: 300 },
+            { party: bob, amountCents: 300 },
+          ],
+          transfers: [
+            { from: alias, to: alice, amountCents: 100 },
+            { from: bob, to: alice, amountCents: 300 },
+          ],
+          totalCents: 900,
+        }),
+      }
+    })
+
+    await t.mutation(internal.maintenance.mergeDuplicateUsers, { apply: true })
+
+    const after = await t.run(async (ctx) => ({
+      cost: await ctx.db.get(cost),
+      scenario: await ctx.db.get(scenario),
+    }))
+    const alice = { userId: keep, name: 'Alice' }
+    expect(after.cost?.split).toEqual([{ userId: keep, percent: 50 }])
+    expect(after.scenario).toMatchObject({
+      payments: [
+        { party: alice, amountCents: 600 },
+        { party: alice, amountCents: 300 },
+      ],
+      participants: [alice, bob],
+      owed: [
+        { party: alice, amountCents: 600 },
+        { party: bob, amountCents: 300 },
+      ],
+      transfers: [{ from: bob, to: alice, amountCents: 300 }],
+    })
+  })
+
   test('only reports without apply', async () => {
     const { t, dupe, note } = await withDuplicate()
 
@@ -823,5 +891,46 @@ describe('mergeDuplicateUsers', () => {
     })
     const untouched = await t.run(async (ctx) => await ctx.db.get(note))
     expect(untouched?.createdBy).toBe(dupe)
+  })
+})
+
+describe('deleteFinanceSettings', () => {
+  async function withRows() {
+    const t = testConvex()
+    await t.run(async (ctx) => {
+      const groupId = await ctx.db.insert('groups', {
+        name: 'Household',
+        inviteCode: 'INVITE',
+        slug: 'household',
+      })
+      await ctx.db.insert('financeSettings', {
+        groupId,
+        homeCurrency: 'EUR',
+        rates: [{ currency: 'USD', rate: 0.9, asOf: 0 }],
+      })
+    })
+    const remaining = async () =>
+      (await t.run(async (ctx) => await ctx.db.query('financeSettings').collect()))
+        .length
+    return { t, remaining }
+  }
+
+  test('only reports without apply', async () => {
+    const { t, remaining } = await withRows()
+    expect(
+      await t.mutation(internal.maintenance.deleteFinanceSettings, {}),
+    ).toEqual({ apply: false, deleted: 1, more: false })
+    expect(await remaining()).toBe(1)
+  })
+
+  test('deletes every row, and finds none the second time', async () => {
+    const { t, remaining } = await withRows()
+    await t.mutation(internal.maintenance.deleteFinanceSettings, { apply: true })
+    expect(await remaining()).toBe(0)
+    expect(
+      await t.mutation(internal.maintenance.deleteFinanceSettings, {
+        apply: true,
+      }),
+    ).toEqual({ apply: true, deleted: 0, more: false })
   })
 })

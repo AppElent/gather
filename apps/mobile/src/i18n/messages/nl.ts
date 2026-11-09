@@ -26,6 +26,7 @@ export const nl = {
   },
 
   modules: coreNl.modules,
+  common: coreNl.common,
 
   baby: coreNl.baby,
   calendar: coreNl.calendar,
@@ -70,13 +71,9 @@ export const nl = {
       title: 'Toevoegen aan {group}',
       workingOnly: 'Alleen acties die vandaag werken.',
       back: 'Terug naar acties',
-      save: '{noun} opslaan',
       saved: 'Toegevoegd: {items}',
-      sheetHint:
-        'Opslaan houdt je in {group}. Met de pijl terug ga je naar de andere acties.',
       kinds: {
         row: 'in de rij',
-        sheet: 'in het blad',
         handoff: 'opent een formulier',
         compose: 'kies en beoordeel',
       },
@@ -84,38 +81,22 @@ export const nl = {
         'cheese-tasting': {
           label: coreNl.tastings.kinds.cheese.launcher,
           module: coreNl.modules.byId.cheeses.label,
-          fields: [],
-          noun: coreNl.tastings.kinds.cheese.one,
         },
         'wine-tasting': {
           label: coreNl.tastings.kinds.wine.launcher,
           module: coreNl.modules.byId.wines.label,
-          fields: [],
-          noun: coreNl.tastings.kinds.wine.one,
         },
         'beer-tasting': {
           label: coreNl.tastings.kinds.beer.launcher,
           module: coreNl.modules.byId.beers.label,
-          fields: [],
-          noun: coreNl.tastings.kinds.beer.one,
         },
         'task-new': {
           label: 'Taak toevoegen',
           module: coreNl.modules.byId.tasks.label,
-          fields: ['Wat moet er gebeuren?'],
-          noun: 'taak',
         },
         'recipe-import': {
           label: 'Importeren vanaf een link',
           module: coreNl.modules.byId.recipes.label,
-          fields: [],
-          noun: 'import',
-        },
-        'meal-log': {
-          label: 'Maaltijd loggen',
-          module: coreNl.modules.byId.nutrition.label,
-          fields: ['Voedingsmiddel', 'Hoeveel?'],
-          noun: 'maaltijd',
         },
       },
     },
@@ -163,6 +144,14 @@ export const nl = {
       ...coreNl.shell.groups,
       intro:
         'De huishoudens waar je in zit. Op Home wissel je tussen Groepen; hieronder begin je er een of doe je mee met die van iemand anders.',
+      delete: {
+        button: coreNl.settings.group.deleteButton,
+        title: coreNl.settings.group.deleteTitle,
+        body: coreNl.settings.group.deleteBody,
+        confirm: coreNl.settings.group.deleteConfirm,
+        failed: coreNl.settings.group.deleteFailed,
+        othersFirst: coreNl.settings.group.deleteOthersFirst,
+      },
     },
 
     openSettings: coreNl.shell.nav.settings,
@@ -253,7 +242,6 @@ export const nl = {
       change: 'Foto wijzigen',
       take: 'Foto maken',
       choose: 'Foto kiezen',
-      remove: 'Foto verwijderen',
       denied: 'Gather heeft toestemming nodig voor de camera of je foto’s.',
       failed: 'Die foto kon niet worden opgeslagen.',
     },
@@ -272,7 +260,6 @@ export const nl = {
       confirmTitle: '{email} verwijderen?',
       confirmBody:
         'Je account en alles wat alleen jij kon zien wordt definitief verwijderd.',
-      confirm: 'Verwijderen',
       partlyFailed:
         'Je gegevens zijn verwijderd, maar het account zelf niet. Neem contact op met support.',
       unavailable:
@@ -284,7 +271,6 @@ export const nl = {
   },
 
   kitchen: {
-    add: 'Toevoegen',
     name: 'Naam',
     quantity: 'Hoeveelheid (optioneel)',
     prepMinutes: 'Bereidingstijd in minuten',
@@ -330,11 +316,6 @@ export const nl = {
 
   actions: {
     resend: 'Stuur opnieuw',
-    save: 'Opslaan',
-    close: 'Sluiten',
-    cancel: 'Annuleren',
-    delete: 'Verwijderen',
-    edit: 'Bewerken',
     done: 'Klaar',
     completed: 'Voltooid ({count})',
     showCompleted: 'Voltooide taken tonen',
@@ -345,7 +326,6 @@ export const nl = {
     hide: 'Verbergen',
     showAll: 'Alles tonen',
     showLess: 'Minder tonen',
-    retry: 'Opnieuw proberen',
     loading: 'Laden',
   },
 
@@ -386,7 +366,6 @@ export const nl = {
   verify: {
     heading: 'Kijk in je e-mail',
     subtitle: 'We hebben een code van zes cijfers naar {email} gestuurd.',
-    submit: 'Bevestigen',
     resent: 'Verstuurd — kijk opnieuw in je e-mail.',
   },
 
@@ -464,7 +443,6 @@ export const nl = {
       text: 'Tekst',
       image: 'Foto',
     },
-    confirm: 'Opslaan',
     continue: 'Verder',
     cancel: 'Nu niet',
     targets: {
@@ -539,6 +517,13 @@ export const nl = {
 
   tasks: {
     title: 'Taken',
+    quickAdd: {
+      list: 'Op de lijst',
+      save: 'Taak toevoegen',
+      noList:
+        'Deze Groep heeft nog geen lijst waar Gather een taak aan kan toevoegen.',
+      failed: 'Die taak kon niet worden toegevoegd. Probeer het opnieuw.',
+    },
     today: 'Vandaag',
     todayEmpty: 'Niets wat vandaag af moet.',
     lists: 'Lijsten',
@@ -607,7 +592,6 @@ export const nl = {
       renameLabelEverywhere: 'Overal hernoemen',
       removeLabelEverywhere: 'Van elke taak verwijderen',
       renamingLabel: '{label} hernoemen naar',
-      renameLabelCancel: 'Annuleren',
       previousMonth: 'Vorige maand',
       nextMonth: 'Volgende maand',
       overdue: 'Te laat',

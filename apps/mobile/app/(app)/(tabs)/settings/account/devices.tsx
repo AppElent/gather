@@ -81,7 +81,7 @@ export default function Devices() {
       title: fmt(t.account.sessions.revokeTitle, { device: row.device }),
       message: t.account.sessions.revokeBody,
       confirm: t.account.sessions.signOutOf,
-      cancel: t.actions.cancel,
+      cancel: t.common.actions.cancel,
       onConfirm: () => {
         void (async () => {
           try {

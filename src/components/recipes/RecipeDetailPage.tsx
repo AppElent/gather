@@ -9,6 +9,7 @@ import { errorMessage } from '../../lib/errorMessage'
 import { fmt, useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
+import { useConfirmAction } from '../app/ConfirmAction'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { FoodThumbnail } from '../kitchen/FoodThumbnail'
 import { NutritionPanel } from '../kitchen/NutritionPanel'
@@ -34,6 +35,7 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
   })
   const remove = useMutation(api.recipes.remove)
   const navigate = useNavigate()
+  const { confirm, dialog } = useConfirmAction()
   const [error, setError] = useState<string | null>(null)
   const aiConfigured = useQuery(api.recipes.aiConfigured)
   const estimateNutrition = useAction(api.recipeNutrition.estimateNutrition)
@@ -94,15 +96,18 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
               type="button"
               aria-label={messages.common.actions.delete}
               className="inline-flex min-h-9 min-w-9 items-center justify-center rounded border lg:gap-2 lg:px-3 lg:py-1.5 lg:text-sm"
-              onClick={async () => {
-                setError(null)
-                try {
-                  await remove({ id: recipe._id })
-                  navigate(linkTo('recipes'))
-                } catch (err) {
-                  setError(errorMessage(err, detail.deleteFailed))
-                }
-              }}
+              onClick={() =>
+                confirm({
+                  title: detail.deleteTitle,
+                  body: fmt(detail.deleteBody, { title: recipe.title }),
+                  confirmLabel: messages.common.actions.delete,
+                  errorFallback: detail.deleteFailed,
+                  run: async () => {
+                    await remove({ id: recipe._id })
+                    await navigate(linkTo('recipes'))
+                  },
+                })
+              }
             >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
               <span className="hidden lg:inline">
@@ -243,6 +248,8 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
           <li key={idx}>{s}</li>
         ))}
       </ol>
+
+      {dialog}
     </article>
   )
 }

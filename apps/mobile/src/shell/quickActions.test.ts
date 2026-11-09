@@ -11,8 +11,13 @@ describe('the Add tab launcher', () => {
       { id: 'beer-tasting', kind: 'compose' },
       { id: 'task-new', kind: 'row' },
       { id: 'recipe-import', kind: 'handoff' },
-      { id: 'meal-log', kind: 'sheet' },
     ])
+  })
+
+  test('offers nothing for Nutrition, which has no phone screens', () => {
+    expect(
+      QUICK_ACTIONS.filter((action) => action.module === 'nutrition'),
+    ).toEqual([])
   })
 
   /**

@@ -34,18 +34,26 @@ import {
 } from './lib/groupAccess'
 import { nextOrder } from './lib/order'
 
-/** The Group's home currency, and the rates a Member entered to reach it. */
+/**
+ * The Group's home currency: always the euro, with no conversions.
+ *
+ * Kept, constant, because installed phones read it by name (ADR-0029). The
+ * `financeSettings` table that once answered it is retired; see the schema.
+ * Nothing in this repository reads it any more: delete it once the OTA whose
+ * phone stopped asking has reached every installed build
+ * (docs/migrations/README.md).
+ */
 export const settings = query({
   args: { groupSlug: v.string() },
+  returns: v.object({
+    homeCurrency: v.string(),
+    rates: v.array(
+      v.object({ currency: v.string(), rate: v.number(), asOf: v.number() }),
+    ),
+  }),
   handler: async (ctx, args) => {
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const row = await ctx.db
-      .query('financeSettings')
-      .withIndex('by_group', (q) => q.eq('groupId', group._id))
-      .unique()
-    // Euro until somebody says otherwise: the Module is Netherlands-first, and
-    // a Group with nothing to convert should not be asked to choose.
-    return row ?? { homeCurrency: 'EUR', rates: [] }
+    await requireGroupBySlug(ctx, args.groupSlug)
+    return { homeCurrency: 'EUR', rates: [] }
   },
 })
 

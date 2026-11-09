@@ -102,8 +102,8 @@ export function CalendarManagementSheet({
                       title: calendar.name,
                     }),
                     message: t.calendar.deleteCalendarBody,
-                    confirm: t.actions.delete,
-                    cancel: t.actions.cancel,
+                    confirm: t.common.actions.delete,
+                    cancel: t.common.actions.cancel,
                     onConfirm: () =>
                       void remove({ groupSlug, id: calendar.id as never }),
                   })

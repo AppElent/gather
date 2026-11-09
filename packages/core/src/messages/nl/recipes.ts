@@ -94,6 +94,8 @@ export const recipes = {
 
   detail: {
     notFound: 'Recept niet gevonden.',
+    deleteTitle: 'Recept verwijderen?',
+    deleteBody: '"{title}" verwijderen? Dit kan niet ongedaan worden gemaakt.',
     deleteFailed: 'Kon het recept niet verwijderen',
     addedBy: 'Toegevoegd door {name}',
     importedFrom: 'Geïmporteerd van',
@@ -108,8 +110,6 @@ export const recipes = {
     rate: '{title} beoordelen',
     rateFailed: 'Die beoordeling kon niet worden opgeslagen.',
     readOnly: 'Hoort bij {group}, dus hier alleen te lezen.',
-    deleteTitle: 'Recept verwijderen?',
-    deleteBody: '"{title}" verwijderen? Dit kan niet ongedaan worden gemaakt.',
     openSource: 'Origineel openen',
   },
 

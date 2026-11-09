@@ -62,19 +62,6 @@ const ALL = 'all'
 /** How many items the mobile dock has room for, Home and All included. */
 export const DOCK_SLOTS = 5
 
-/**
- * What every navigation `<Link>` must pass, so the router stops answering a
- * question this file already answers.
- *
- * TanStack's `Link` decides for itself whether it points at the current page,
- * by *prefix* unless told otherwise, and its `STATIC_ACTIVE_PROPS` are spread
- * after the caller's own props, so its answer wins `aria-current="page"`.
- * `exact` narrows the router's claim to the one case where it cannot be wrong —
- * the link *is* the page — and `activeNavItemId` keeps the rest, including the
- * one the router cannot know: a Module nobody pinned lights All.
- */
-export const NAV_ACTIVE_OPTIONS = { exact: true } as const
-
 function moduleItem(module: ModuleDef, messages: NavMessages): NavItem {
   return {
     id: module.id,
@@ -158,6 +145,14 @@ export function dockNavItems(
  * A Module nobody pinned is reached through All and listed on it, so All stays
  * lit while you are inside one. Pass the full list even from the dock: it is
  * the truncation, not the route, that the dock does differently.
+ *
+ * The router's `Link` makes its own claim on top: by default it marks a link
+ * `aria-current="page"` when its address is a segment prefix of this page, and
+ * that wins over the caller's props. It cannot light a second item, because
+ * every item's address is an index surface and no index surface sits below
+ * another, so a prefix match is always the item this function returns.
+ * Nesting one index under another (Home back at `/g/<slug>`, say) would break
+ * that; `Sidebar.test.tsx` models the router to catch it.
  */
 export function activeNavItemId(
   pathname: string,

@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { GroupForms } from '../../../../src/components/GroupForms'
+import { DeleteGroupSection } from '../../../../src/group/DeleteGroupSection'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { useI18n } from '../../../../src/i18n'
 import { UI_ICONS } from '../../../../src/theme/icons'
@@ -63,6 +64,8 @@ export default function Groups() {
         })}
       </View>
       <GroupForms />
+      {/* Destructive, so last: below everything that adds a Group. */}
+      <DeleteGroupSection />
     </ScrollView>
   )
 }

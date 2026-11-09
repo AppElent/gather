@@ -355,7 +355,6 @@ export const finances = {
       symbol: 'Ticker',
       name: 'Hoe het heet',
       exchange: 'Beurs',
-      currency: 'Valuta',
       unitsHeld: 'Aantal stuks',
       averageCost: 'Gemiddelde kostprijs',
       onInvested: 'op {amount} ingelegd',

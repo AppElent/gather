@@ -34,7 +34,7 @@ export function SearchError({ error, retry }: ErrorBoundaryProps) {
         ) : null}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t.actions.retry}
+          accessibilityLabel={t.common.actions.retry}
           onPress={() => {
             void retry()
           }}
@@ -45,7 +45,7 @@ export function SearchError({ error, retry }: ErrorBoundaryProps) {
           ]}
         >
           <Text style={[styles.retryText, { color: tokens.fg }]}>
-            {t.actions.retry}
+            {t.common.actions.retry}
           </Text>
         </Pressable>
       </View>

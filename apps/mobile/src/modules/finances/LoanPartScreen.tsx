@@ -47,6 +47,7 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
+import { useFinanceWrite } from './useFinanceWrite'
 
 type Editing =
   | 'amount'
@@ -76,6 +77,7 @@ export function LoanPartScreen({
   )
   const updatePart = useMutation(api.mortgages.updatePart)
   const removePart = useMutation(api.mortgages.removePart)
+  const { attempt, failure } = useFinanceWrite()
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
@@ -104,6 +106,7 @@ export function LoanPartScreen({
           options={{ headerShown: true, title: text.mortgage.parts }}
         />
         <ScreenScroll>
+          {failure}
           <Notice>{text.mortgage.noPartsBody}</Notice>
         </ScreenScroll>
       </>
@@ -115,25 +118,32 @@ export function LoanPartScreen({
   const schedule = schedulePart(toLoanPart(part, today))
   const allTotals = calculationTotals(toLoanParts(calculation.parts, today))
 
-  /** Every write sends the whole part, because `updatePart` takes the whole part. */
-  function write(patch: Partial<NonNullable<typeof part>>) {
+  /**
+   * Every write sends the whole part, because `updatePart` takes the whole part.
+   * `then` runs once the write has landed: a failed one leaves the sheet up.
+   */
+  function write(patch: Partial<NonNullable<typeof part>>, then?: () => void) {
     if (!part) return
-    updatePart({
-      id: partId,
-      groupSlug,
-      kind: patch.kind ?? part.kind,
-      principalCents: patch.principalCents ?? part.principalCents,
-      annualRatePercent: patch.annualRatePercent ?? part.annualRatePercent,
-      termMonths: patch.termMonths ?? part.termMonths,
-      fixedUntil: 'fixedUntil' in patch ? patch.fixedUntil : part.fixedUntil,
-      expiryRatePercent:
-        'expiryRatePercent' in patch
-          ? patch.expiryRatePercent
-          : part.expiryRatePercent,
-      expiryRateOptions: patch.expiryRateOptions ?? part.expiryRateOptions,
-      repayments: patch.repayments ?? part.repayments,
-      charge: 'charge' in patch ? patch.charge : part.charge,
-    })
+    attempt(
+      () =>
+        updatePart({
+          id: partId,
+          groupSlug,
+          kind: patch.kind ?? part.kind,
+          principalCents: patch.principalCents ?? part.principalCents,
+          annualRatePercent: patch.annualRatePercent ?? part.annualRatePercent,
+          termMonths: patch.termMonths ?? part.termMonths,
+          fixedUntil: 'fixedUntil' in patch ? patch.fixedUntil : part.fixedUntil,
+          expiryRatePercent:
+            'expiryRatePercent' in patch
+              ? patch.expiryRatePercent
+              : part.expiryRatePercent,
+          expiryRateOptions: patch.expiryRateOptions ?? part.expiryRateOptions,
+          repayments: patch.repayments ?? part.repayments,
+          charge: 'charge' in patch ? patch.charge : part.charge,
+        }),
+      then,
+    )
   }
 
   const numeric = () => parseDecimal(draft) ?? 0
@@ -144,20 +154,21 @@ export function LoanPartScreen({
 
   function save() {
     const value = draft.trim()
+    let patch: Partial<NonNullable<typeof part>> | null = null
     if (editing === 'amount') {
       const cents = parseCents(draft) ?? 0
-      if (cents > 0) write({ principalCents: cents })
+      if (cents > 0) patch = { principalCents: cents }
     }
     if (editing === 'rate') {
       const rate = numeric()
-      if (rate >= 0 && rate <= 100) write({ annualRatePercent: rate })
+      if (rate >= 0 && rate <= 100) patch = { annualRatePercent: rate }
     }
     if (editing === 'term') {
       const years = numeric()
-      if (years > 0) write({ termMonths: Math.round(years * 12) })
+      if (years > 0) patch = { termMonths: Math.round(years * 12) }
     }
     if (editing === 'fixedUntil') {
-      if (isIsoDate(value)) write({ fixedUntil: value })
+      if (isIsoDate(value)) patch = { fixedUntil: value }
     }
     if (editing === 'expiryRate') {
       const rate = numeric()
@@ -165,30 +176,34 @@ export function LoanPartScreen({
         const options = [
           ...new Set([...(current.expiryRateOptions ?? []), rate]),
         ]
-        write({ expiryRateOptions: options, expiryRatePercent: rate })
+        patch = { expiryRateOptions: options, expiryRatePercent: rate }
       }
     }
     if (editing === 'repayment') {
       const cents = parseCents(draft) ?? 0
       if (cents > 0) {
-        write({
+        patch = {
           repayments: [
             ...(current.repayments ?? []),
             { kind: repaymentKind, amountCents: cents, date: repaymentDate },
           ],
-        })
+        }
       }
     }
     if (editing === 'charge') {
-      write({
+      patch = {
         charge: {
           freeAnnualPercent: parseDecimal(freeAnnual) ?? 0,
           chargePercent: numeric(),
         },
-      })
+      }
     }
-    setDraft('')
-    setEditing(null)
+    const done = () => {
+      setDraft('')
+      setEditing(null)
+    }
+    if (patch) write(patch, done)
+    else done()
   }
 
   function removeRepayment(at: number) {
@@ -204,8 +219,10 @@ export function LoanPartScreen({
       confirm: text.actions.delete,
       cancel: text.actions.cancel,
       onConfirm: () => {
-        removePart({ id: partId, groupSlug })
-        router.back()
+        attempt(
+          () => removePart({ id: partId, groupSlug }),
+          () => router.back(),
+        )
       },
     })
   }
@@ -225,6 +242,7 @@ export function LoanPartScreen({
     <>
       <Stack.Screen options={{ headerShown: true, title }} />
       <ScreenScroll bottomInset={90}>
+        {failure}
         <View style={styles.segment}>
           <Segmented<LoanPartKind>
             options={LOAN_PART_KINDS.map((kind) => ({
@@ -394,6 +412,7 @@ export function LoanPartScreen({
             />
           }
         >
+          {failure}
           {editing === 'repayment' ? (
             <View style={styles.segment}>
               <Segmented<'once' | 'monthly'>

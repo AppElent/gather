@@ -570,3 +570,30 @@ export function buildSheetData(
   if (type === 'vaccination') return { name: picks.name?.trim() ?? '' }
   return {}
 }
+
+/**
+ * What an entry holds that no phone field edits, and an edit must carry over.
+ *
+ * The web can mark a note as a milestone; the phone's note sheet has no fields
+ * at all. Rebuilding a note's `data` from the sheet alone would quietly clear
+ * the flag every time somebody fixed its time on the phone.
+ */
+const KEPT_ON_EDIT: Partial<Record<BabyEventType, readonly string[]>> = {
+  note: ['milestone'],
+}
+
+/**
+ * The `data` payload for `babyEvents.update`: what the sheet builds, on top of
+ * whatever the entry carries that the sheet has no field for.
+ */
+export function buildEditedData(
+  type: BabyEventType,
+  picks: Record<string, string>,
+  previous: Record<string, unknown>,
+): Record<string, unknown> {
+  const kept: Record<string, unknown> = {}
+  for (const key of KEPT_ON_EDIT[type] ?? []) {
+    if (previous[key] !== undefined) kept[key] = previous[key]
+  }
+  return { ...kept, ...buildSheetData(type, picks) }
+}

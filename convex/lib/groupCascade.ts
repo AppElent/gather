@@ -67,6 +67,44 @@ export async function purgeTasksOfList(
   )
 }
 
+/**
+ * Delete one list, its tasks, and every pointer at it: the Group's grocery
+ * list and a child's to-do and questions cards. Both are set through
+ * `requireInGroup`, so they live in the list's own Group. A card that lost its
+ * list also loses `…Chosen`, so the list `babies.ensureAuxLists` gives it next
+ * dies with the child.
+ */
+export async function deleteTaskList(
+  ctx: MutationCtx,
+  listId: Id<'taskLists'>,
+) {
+  const list = await ctx.db.get(listId)
+  if (!list) return
+  await purgeTasksOfList(ctx, listId)
+  await ctx.db.delete(listId)
+
+  const group = await ctx.db.get(list.groupId)
+  if (group?.groceryListId === listId) {
+    await ctx.db.patch(group._id, { groceryListId: undefined })
+  }
+  const babies = await ctx.db
+    .query('babies')
+    .withIndex('by_group', (q) => q.eq('groupId', list.groupId))
+    .collect()
+  for (const baby of babies) {
+    const patch: Partial<Doc<'babies'>> = {}
+    if (baby.taskListId === listId) {
+      patch.taskListId = undefined
+      patch.taskListChosen = undefined
+    }
+    if (baby.questionsListId === listId) {
+      patch.questionsListId = undefined
+      patch.questionsListChosen = undefined
+    }
+    if (Object.keys(patch).length > 0) await ctx.db.patch(baby._id, patch)
+  }
+}
+
 /** Delete a calendar's events: the only way to find them is through it. */
 export async function purgeEventsOfCalendar(
   ctx: MutationCtx,
@@ -315,6 +353,7 @@ const GROUP_CONTENT: {
         .collect(),
     ),
 
+  // Retired table; this entry goes with it (see the schema).
   financeSettings: async (ctx, groupId) =>
     purge(
       ctx,

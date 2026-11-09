@@ -34,6 +34,12 @@ export const en = {
   modules: coreEn.modules,
 
   /**
+   * Generic words (Save, Cancel, Delete, Back…) are the shared tree's `common`,
+   * never a second copy here.
+   */
+  common: coreEn.common,
+
+  /**
    * The Baby log's words, taken whole from the shared tree rather than
    * retyped: the phone owns its look and shares its words (ADR-0017), and a
    * second English for "Diaper" is the failure that rule names.
@@ -111,13 +117,9 @@ export const en = {
       title: 'Add to {group}',
       workingOnly: 'Only actions that work today.',
       back: 'Back to actions',
-      save: 'Save {noun}',
       saved: 'Added: {items}',
-      sheetHint:
-        'Saving keeps you in {group}. The back arrow returns to the other actions.',
       kinds: {
         row: 'in the row',
-        sheet: 'in the sheet',
         handoff: 'opens a form',
         compose: 'pick, then rate',
       },
@@ -125,38 +127,22 @@ export const en = {
         'cheese-tasting': {
           label: coreEn.tastings.kinds.cheese.launcher,
           module: coreEn.modules.byId.cheeses.label,
-          fields: [],
-          noun: coreEn.tastings.kinds.cheese.one,
         },
         'wine-tasting': {
           label: coreEn.tastings.kinds.wine.launcher,
           module: coreEn.modules.byId.wines.label,
-          fields: [],
-          noun: coreEn.tastings.kinds.wine.one,
         },
         'beer-tasting': {
           label: coreEn.tastings.kinds.beer.launcher,
           module: coreEn.modules.byId.beers.label,
-          fields: [],
-          noun: coreEn.tastings.kinds.beer.one,
         },
         'task-new': {
           label: 'Add a task',
           module: coreEn.modules.byId.tasks.label,
-          fields: ['What needs doing?'],
-          noun: 'task',
         },
         'recipe-import': {
           label: 'Import from a link',
           module: coreEn.modules.byId.recipes.label,
-          fields: [],
-          noun: 'import',
-        },
-        'meal-log': {
-          label: 'Log a meal',
-          module: coreEn.modules.byId.nutrition.label,
-          fields: ['Food', 'How much?'],
-          noun: 'meal',
         },
       },
     },
@@ -236,6 +222,18 @@ export const en = {
        */
       intro:
         'The households you are in. Home is where you switch between them; start another one or join somebody else’s below.',
+      /**
+       * Deleting the Current Group, in the web's words (`settings.group`). The
+       * server allows it only to an admin who is its last Member.
+       */
+      delete: {
+        button: coreEn.settings.group.deleteButton,
+        title: coreEn.settings.group.deleteTitle,
+        body: coreEn.settings.group.deleteBody,
+        confirm: coreEn.settings.group.deleteConfirm,
+        failed: coreEn.settings.group.deleteFailed,
+        othersFirst: coreEn.settings.group.deleteOthersFirst,
+      },
     },
 
     /** The way into the utility surfaces that sit above the tabs. */
@@ -380,7 +378,6 @@ export const en = {
       change: 'Change photo',
       take: 'Take a photo',
       choose: 'Choose a photo',
-      remove: 'Remove photo',
       denied: 'Gather needs permission to use the camera or your photos.',
       failed: 'That photo could not be saved.',
     },
@@ -404,7 +401,6 @@ export const en = {
       confirmTitle: 'Delete {email}?',
       confirmBody:
         'Your account and everything only you could see is deleted for good.',
-      confirm: 'Delete',
       /**
        * The half-way failure, which is real: Convex is purged before Clerk,
        * because the purge needs a signed-in caller and there is none once the
@@ -427,7 +423,6 @@ export const en = {
   },
 
   kitchen: {
-    add: 'Add',
     name: 'Name',
     quantity: 'Quantity (optional)',
     prepMinutes: 'Preparation time in minutes',
@@ -482,11 +477,6 @@ export const en = {
 
   actions: {
     resend: 'Send it again',
-    save: 'Save',
-    close: 'Close',
-    cancel: 'Cancel',
-    delete: 'Delete',
-    edit: 'Edit',
     done: 'Done',
     completed: 'Completed ({count})',
     showCompleted: 'Show completed tasks',
@@ -496,7 +486,6 @@ export const en = {
     hide: 'Hide',
     showAll: 'Show all',
     showLess: 'Show less',
-    retry: 'Try again',
     loading: 'Loading',
   },
 
@@ -545,7 +534,6 @@ export const en = {
     heading: 'Check your email',
     /** `{email}` is the address the code went to. */
     subtitle: 'We sent a six-digit code to {email}.',
-    submit: 'Confirm',
     resent: 'Sent — check your email again.',
   },
 
@@ -597,7 +585,7 @@ export const en = {
 
   /**
    * The signed-in tree could not confirm who is signed in: `users.me` failed
-   * (`SessionIdentityBoundary`). The actions reuse `actions.retry` and
+   * (`SessionIdentityBoundary`). The actions reuse `common.actions.retry` and
    * `signedIn.signOut`.
    */
   session: {
@@ -657,7 +645,6 @@ export const en = {
       text: 'Text',
       image: 'Photo',
     },
-    confirm: 'Save',
     /** Confirm, for a destination that still has to ask which one. */
     continue: 'Continue',
     cancel: 'Not now',
@@ -747,6 +734,15 @@ export const en = {
    */
   tasks: {
     title: 'Tasks',
+
+    /** The Add tab's "Add a task": a title, a list, and a save. */
+    quickAdd: {
+      /** Above the lists it can go on. Only lists Gather can write to. */
+      list: 'On the list',
+      save: 'Add task',
+      noList: 'This group has no list Gather can add a task to yet.',
+      failed: 'That task could not be added. Try again.',
+    },
     today: 'Today',
     todayEmpty: 'Nothing due today.',
     lists: 'Lists',
@@ -842,7 +838,6 @@ export const en = {
       removeLabelEverywhere: 'Remove from every task',
       /** The field, while it is renaming a label rather than adding one. */
       renamingLabel: 'Rename {label} to',
-      renameLabelCancel: 'Cancel',
       /** Announced on the calendar's month arrows. */
       previousMonth: 'Previous month',
       nextMonth: 'Next month',

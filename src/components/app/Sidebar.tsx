@@ -1,5 +1,4 @@
 import { Link } from '@tanstack/react-router'
-import { NAV_ACTIVE_OPTIONS } from '../../lib/appNavigation'
 import { useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { GroupSwitcher } from './GroupSwitcher'
@@ -58,10 +57,8 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
               key={item.id}
               {...item.link}
               onClick={onNavigate}
-              // Colouring comes from `activeId` below, but a screen reader reads
-              // `aria-current`, so the router must not set it by prefix — see
-              // `NAV_ACTIVE_OPTIONS`.
-              activeOptions={NAV_ACTIVE_OPTIONS}
+              // The router also marks a link `aria-current` when its address
+              // prefixes this page; see `activeNavItemId` for why the two agree.
               aria-current={item.id === activeId ? 'page' : undefined}
               className={`grid min-h-10 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-[var(--app-radius)] border border-transparent px-2 text-sm font-semibold text-[var(--app-fg)] no-underline ${
                 item.id === activeId

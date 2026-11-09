@@ -81,8 +81,8 @@ export function CollectionScreen() {
     confirmDestructive({
       title: t.recipes.detail.deleteTitle,
       message: fmt(t.recipes.detail.deleteBody, { title: recipe.title }),
-      confirm: t.actions.delete,
-      cancel: t.actions.cancel,
+      confirm: t.common.actions.delete,
+      cancel: t.common.actions.cancel,
       onConfirm: () =>
         remove({ id: recipe._id as Id<'recipes'> }).catch(() =>
           haptics.actionFailed(),
@@ -354,13 +354,13 @@ function RecipeRow({
   if (!recipe.canEdit) return row
 
   return (
-    <SwipeableRow deleteLabel={t.actions.delete} onDelete={onDelete}>
+    <SwipeableRow deleteLabel={t.common.actions.delete} onDelete={onDelete}>
       <NativeContextMenu
         actions={[
-          { id: 'edit', title: t.actions.edit },
+          { id: 'edit', title: t.common.actions.edit },
           {
             id: 'delete',
-            title: t.actions.delete,
+            title: t.common.actions.delete,
             attributes: { destructive: true },
           },
         ]}

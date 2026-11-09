@@ -18,7 +18,6 @@ import {
   SAMPLE_BUYING_COSTS,
   SAMPLE_COMBOS,
   SAMPLE_DIARY,
-  SAMPLE_FINANCE_SETTINGS,
   SAMPLE_HOLDINGS,
   SAMPLE_HOUSE,
   SAMPLE_HOUSEMATES,
@@ -929,18 +928,6 @@ export async function applySample(
     )
   }
 
-  rec.track(
-    await ctx.db.insert('financeSettings', {
-      groupId,
-      homeCurrency: SAMPLE_FINANCE_SETTINGS.homeCurrency,
-      rates: SAMPLE_FINANCE_SETTINGS.rates.map((rate) => ({
-        currency: rate.currency,
-        rate: rate.rate,
-        asOf: now - rate.hoursAgo * 60 * 60 * 1000,
-      })),
-    }),
-  )
-
   let holdingTransactions = 0
   for (const [order, holding] of SAMPLE_HOLDINGS.entries()) {
     const holdingId = rec.track(
@@ -1066,7 +1053,6 @@ export async function applySample(
     counts.recurringCosts +
     counts.savingsGoals +
     counts.splitScenarios +
-    1 + // the Group's finance settings
     counts.holdings +
     counts.holdingTransactions +
     counts.netWorthEntries

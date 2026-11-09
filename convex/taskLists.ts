@@ -3,7 +3,7 @@ import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { action, internalQuery, mutation, query } from './_generated/server'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
-import { purgeTasksOfList } from './lib/groupCascade'
+import { deleteTaskList } from './lib/groupCascade'
 import { nextOrder } from './lib/order'
 import {
   providerConfigValidator,
@@ -117,8 +117,7 @@ export const remove = mutation({
   args: { listId: v.id('taskLists'), groupSlug: v.string() },
   handler: async (ctx, args) => {
     await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
-    await purgeTasksOfList(ctx, args.listId)
-    await ctx.db.delete(args.listId)
+    await deleteTaskList(ctx, args.listId)
   },
 })
 

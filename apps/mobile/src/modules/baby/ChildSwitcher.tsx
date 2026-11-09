@@ -65,10 +65,10 @@ export function ChildSwitcher({
             <NativeContextMenu
               key={item._id}
               actions={[
-                { id: 'edit', title: t.actions.edit },
+                { id: 'edit', title: t.common.actions.edit },
                 {
                   id: 'delete',
-                  title: t.actions.delete,
+                  title: t.common.actions.delete,
                   attributes: { destructive: true },
                 },
               ]}

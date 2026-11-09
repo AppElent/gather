@@ -23,33 +23,20 @@ const groups = vi.hoisted(() => ({ value: [] as unknown }))
 /**
  * The router's `Link`, modelled rather than stubbed.
  *
- * A plain `<a>` would miss the thing that actually broke. TanStack's `Link`
- * decides for itself whether it points at the current page — by *prefix* unless
- * `activeOptions.exact` says otherwise — and when it decides yes it spreads
- * `{ 'data-status': 'active', 'aria-current': 'page' }` *after* the caller's own
- * props, so it wins.
+ * A plain `<a>` would miss the thing that once broke. TanStack's `Link` decides
+ * for itself whether it points at the current page — by segment prefix — and
+ * when it decides yes it spreads `{ 'data-status': 'active', 'aria-current':
+ * 'page' }` *after* the caller's own props, so it wins.
  *
  * This reproduces exactly that: the prefix rule, and the router's props landing
- * last. No nav item is a prefix of another Module's page, so removing
- * `activeOptions` does not fail these tests on its own — they pin down that
- * exactly one item is lit, whichever of the two mechanisms would light a
- * second.
+ * last. The shell passes no `activeOptions`, so the tests below hold only while
+ * no nav item's address is a prefix of another item's page.
  */
 vi.mock('@tanstack/react-router', () => ({
   useLocation: () => location,
-  Link: ({
-    children,
-    to: href,
-    activeOptions,
-    ...rest
-  }: {
-    children: React.ReactNode
-    to: string
-    activeOptions?: { exact?: boolean }
-  }) => {
-    const isActive = activeOptions?.exact
-      ? location.pathname === href
-      : location.pathname.startsWith(href)
+  Link: ({ children, to: href, ...rest }: { children: React.ReactNode; to: string }) => {
+    const path = location.pathname
+    const isActive = path === href || path.startsWith(`${href}/`)
 
     return (
       <a
@@ -183,13 +170,22 @@ describe('which item claims to be the page you are on', () => {
   })
 
   test('a Module page below its index still belongs to that Module', () => {
-    // `/recipes/<id>` is Recipes, which only `activeNavItemId` knows — the
-    // router sees a link to `/recipes` that is not this page.
+    // `/recipes/<id>` is Recipes, and the router's prefix rule agrees with
+    // `activeNavItemId` about it.
     location.pathname = '/recipes/rec_1'
     render(<MobileDock />)
 
     const current = screen.getAllByRole('link', { current: 'page' })
     expect(current.map((el) => el.textContent)).toEqual(['Recipes'])
+  })
+
+  test('a page of a Module nobody pinned lights All alone', () => {
+    pins.value = ['tasks']
+    location.pathname = '/recipes/rec_1'
+    render(<Sidebar />)
+
+    const current = screen.getAllByRole('link', { current: 'page' })
+    expect(current.map((el) => el.textContent)).toEqual(['All'])
   })
 
   test('Home is lit on Home, and only there', () => {

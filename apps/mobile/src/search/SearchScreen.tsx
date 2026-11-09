@@ -257,7 +257,7 @@ export function SearchScreen() {
       <Stack.SearchBar
         ref={searchRef}
         placeholder={t.search.placeholder}
-        cancelButtonText={t.actions.cancel}
+        cancelButtonText={t.common.actions.cancel}
         autoFocus
         autoCapitalize="none"
         hideNavigationBar={false}

@@ -523,8 +523,11 @@ export default defineSchema({
     .index('by_group', ['groupId'])
     .index('by_holding', ['holdingId']),
 
-  // The Group's home currency, and the conversions a Member entered for the
-  // currencies their holdings trade in.
+  // Retired: a Group counts in euros only, and `holdings.settings` no longer
+  // reads this. Nothing writes it. Kept only because existing rows would block
+  // a deploy that dropped it: run `maintenance:deleteFinanceSettings` with
+  // `{"apply":true}` in every deployment, then delete this table, its
+  // `GROUP_CONTENT` entry and that mutation (docs/migrations/README.md).
   financeSettings: defineTable({
     groupId: v.id('groups'),
     homeCurrency: v.string(),

@@ -133,6 +133,8 @@ export const recipes = {
 
   detail: {
     notFound: 'Recipe not found.',
+    deleteTitle: 'Delete recipe?',
+    deleteBody: 'Delete "{title}"? This cannot be undone.',
     deleteFailed: 'Could not delete recipe',
     addedBy: 'Added by {name}',
     importedFrom: 'Imported from',
@@ -152,8 +154,6 @@ export const recipes = {
     rate: 'Rate {title}',
     rateFailed: 'That rating could not be saved.',
     readOnly: 'Lives in {group}, so it is read-only here.',
-    deleteTitle: 'Delete recipe?',
-    deleteBody: 'Delete "{title}"? This cannot be undone.',
     openSource: 'Open the original',
   },
 

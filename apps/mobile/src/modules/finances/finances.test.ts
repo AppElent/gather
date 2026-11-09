@@ -147,36 +147,20 @@ describe('a stored holding becomes one the seam can value', () => {
   }
 
   it('has no quote at all when nobody has entered a price', () => {
-    const [valued] = valuedHoldings(
-      [{ ...holding, lastPriceCents: undefined, lastPriceAt: undefined }],
-      'EUR',
-      [],
-    )
+    const [valued] = valuedHoldings([
+      { ...holding, lastPriceCents: undefined, lastPriceAt: undefined },
+    ])
     expect(valued.quote).toBeNull()
   })
 
-  it('needs no conversion in the Group home currency', () => {
-    expect(valuedHoldings([holding], 'EUR', [])[0].fx).toBeNull()
+  it('needs no conversion in euros, the only home currency', () => {
+    expect(valuedHoldings([holding])[0].fx).toBeNull()
+    expect(portfolioTotalsFor([holding], now).stale).toBe(false)
   })
 
-  it('is stale when its currency has no conversion entered', () => {
-    const totals = portfolioTotalsFor(
-      [{ ...holding, currency: 'USD' }],
-      'EUR',
-      [],
-      now,
-    )
+  it('counts an older holding in another currency one-to-one, and stale', () => {
+    const totals = portfolioTotalsFor([{ ...holding, currency: 'USD' }], now)
     expect(totals.stale).toBe(true)
-  })
-
-  it('converts with the rate a Member entered', () => {
-    const totals = portfolioTotalsFor(
-      [{ ...holding, currency: 'USD' }],
-      'EUR',
-      [{ currency: 'USD', rate: 0.9, asOf: now - 1000 }],
-      now,
-    )
-    expect(totals.stale).toBe(false)
-    expect(totals.totalValueCents).toBe(Math.round(12 * 65_100 * 0.9))
+    expect(totals.totalValueCents).toBe(12 * 65_100)
   })
 })

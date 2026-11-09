@@ -1,7 +1,7 @@
 /**
  * What every Finances screen needs before it can draw a single figure: the
- * Group it is in, the currency that Group counts in, and formatters bound to
- * both that and the reader's language.
+ * Group it is in, and formatters bound to the euro — every Group counts in
+ * euros — and the reader's language.
  *
  * The Group is ambient on the phone (ADR-0015) but every Convex function in
  * this Module still takes a `groupSlug`, because a write happens at the address
@@ -9,29 +9,25 @@
  */
 import { localIsoDate } from '@gather/core/civil-date'
 import { useMemo } from 'react'
-import { api } from '../../convex/api'
-import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'
 import { formatters } from './format'
+import { HOME_CURRENCY } from './portfolioView'
 
 export function useFinances() {
   const { group } = useGroup()
   const { t, locale } = useI18n()
   const groupSlug = group.slug
 
-  const settings = useQuery(api.holdings.settings, { groupSlug })
-  const currency = settings?.homeCurrency ?? 'EUR'
+  const currency = HOME_CURRENCY
 
-  const format = useMemo(() => formatters(locale, currency), [locale, currency])
+  const format = useMemo(() => formatters(locale, HOME_CURRENCY), [locale])
 
   return {
     groupSlug,
     groupName: group.name,
     locale,
     currency,
-    /** The manual conversions a Member entered, for foreign holdings. */
-    rates: settings?.rates ?? [],
     format,
     text: t.finances,
     /** Read once per render rather than per row: every screen dates from it. */

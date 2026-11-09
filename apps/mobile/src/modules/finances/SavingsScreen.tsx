@@ -36,6 +36,7 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
+import { useFinanceWrite } from './useFinanceWrite'
 
 export function SavingsScreen() {
   const tokens = useMoneyTokens()
@@ -43,6 +44,7 @@ export function SavingsScreen() {
   const { groupSlug, format, text, today } = useFinances()
   const goals = useQuery(api.savingsGoals.list, { groupSlug })
   const create = useMutation(api.savingsGoals.create)
+  const { attempt, failure } = useFinanceWrite()
 
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
@@ -76,13 +78,16 @@ export function SavingsScreen() {
     const cents = parseCents(target) ?? 0
     if (!name.trim() || cents <= 0) return
     if (!isIsoDate(date)) return
-    create({
-      groupSlug,
-      name: name.trim(),
-      targetCents: cents,
-      targetDate: date,
-    })
-    setAdding(false)
+    attempt(
+      () =>
+        create({
+          groupSlug,
+          name: name.trim(),
+          targetCents: cents,
+          targetDate: date,
+        }),
+      () => setAdding(false),
+    )
   }
 
   return (
@@ -91,6 +96,7 @@ export function SavingsScreen() {
         options={{ headerShown: true, title: text.savings.title }}
       />
       <ScreenScroll>
+        {failure}
         {goals.length === 0 ? (
           <EmptyState
             icon={<Target size={34} color={tint.fg} strokeWidth={1.6} />}
@@ -146,6 +152,7 @@ export function SavingsScreen() {
           onClose={() => setAdding(false)}
           footer={<PrimaryButton label={text.actions.save} onPress={save} />}
         >
+          {failure}
           <Field
             label={text.house.nameLabel}
             value={name}
@@ -181,6 +188,7 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
   const goal = useQuery(api.savingsGoals.get, { id: goalId, groupSlug })
   const update = useMutation(api.savingsGoals.update)
   const remove = useMutation(api.savingsGoals.remove)
+  const { attempt, failure } = useFinanceWrite()
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
@@ -206,6 +214,7 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
           options={{ headerShown: true, title: text.savings.title }}
         />
         <ScreenScroll>
+          {failure}
           <Notice>{text.savings.emptyBody}</Notice>
         </ScreenScroll>
       </>
@@ -220,11 +229,15 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
       setEditing(null)
       return
     }
+    const close = () => setEditing(null)
     if (editing === 'saved')
-      update({ id: goalId, groupSlug, savedCents: cents })
-    if (editing === 'monthly')
-      update({ id: goalId, groupSlug, monthlyCents: cents })
-    setEditing(null)
+      attempt(() => update({ id: goalId, groupSlug, savedCents: cents }), close)
+    else if (editing === 'monthly')
+      attempt(
+        () => update({ id: goalId, groupSlug, monthlyCents: cents }),
+        close,
+      )
+    else close()
   }
 
   function confirmDelete() {
@@ -234,8 +247,10 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
       confirm: text.actions.delete,
       cancel: text.actions.cancel,
       onConfirm: () => {
-        remove({ id: goalId, groupSlug })
-        router.back()
+        attempt(
+          () => remove({ id: goalId, groupSlug }),
+          () => router.back(),
+        )
       },
     })
   }
@@ -244,6 +259,7 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
     <>
       <Stack.Screen options={{ headerShown: true, title: goal.name }} />
       <ScreenScroll>
+        {failure}
         <Card padded>
           <Figure
             amount={format.money(goal.savedCents, { decimals: false })}
@@ -385,6 +401,7 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
           onClose={() => setEditing(null)}
           footer={<PrimaryButton label={text.actions.save} onPress={commit} />}
         >
+          {failure}
           <Field
             label={
               editing === 'saved'

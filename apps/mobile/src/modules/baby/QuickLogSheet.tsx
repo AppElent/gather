@@ -238,7 +238,7 @@ export function QuickLogSheet({
             >
               {several
                 ? plural(locale, included.length, t.baby.log.multi.save)
-                : t.actions.save}
+                : t.common.actions.save}
             </Text>
           )}
         </Pressable>
@@ -319,7 +319,7 @@ export function QuickLogSheet({
                 </Text>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={t.actions.delete}
+                  accessibilityLabel={t.common.actions.delete}
                   onPress={() => toggle(each)}
                   hitSlop={10}
                   style={({ pressed }) => [

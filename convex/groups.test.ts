@@ -1,9 +1,9 @@
+import { ConvexError } from 'convex/values'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { alice as asAlice, bob as asBob, carol as asCarol, testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { requireGroupBySlug } from './lib/groupAccess'
-import { RESERVED_SLUGS } from './lib/slugs'
 
 /**
  * What a person can see and do with Groups, asserted through the real queries
@@ -116,28 +116,14 @@ describe('slugs', () => {
     expect(bySlug.get(second)).toBe('wine-club-2')
   })
 
-  test('never equals a reserved route segment', async () => {
-    const t = testConvex()
-    await signUp(t, asAlice)
-    for (const reserved of RESERVED_SLUGS) {
-      await t
-        .withIdentity(asAlice)
-        .mutation(api.groups.createGroup, { name: reserved })
-    }
-
-    for (const group of await allGroups(t)) {
-      expect(RESERVED_SLUGS.has(group.slug ?? '')).toBe(false)
-    }
-  })
-
-  test('escapes a name out of the `me-` prefix', async () => {
+  test('takes the name as it is, with nothing reserved or escaped', async () => {
     const t = testConvex()
     await signUp(t, asAlice)
     await t
       .withIdentity(asAlice)
       .mutation(api.groups.createGroup, { name: 'Me and Bob' })
 
-    expect((await groupsOf(t, asAlice))[0].slug).toBe('g-me-and-bob')
+    expect((await groupsOf(t, asAlice))[0].slug).toBe('me-and-bob')
   })
 
   test('does not reserve a name for a later account', async () => {
@@ -182,21 +168,6 @@ describe('an ordinary Group', () => {
     const renamed = (await groupsOf(t, asAlice)).find((g) => g._id === groupId)
     expect(renamed?.name).toBe('Wine club')
     expect(renamed?.slug).toBe('wine-club')
-  })
-
-  /**
-   * The renamer cannot work the new slug out for itself — `allocateGroupSlug`
-   * resolves collisions — so it has to be told.
-   */
-  test('hands back the slug it moved to, so the renamer can follow', async () => {
-    const t = testConvex()
-    const groupId = await household(t)
-
-    const slug = await t
-      .withIdentity(asAlice)
-      .mutation(api.groups.renameGroup, { groupId, name: 'Wine club' })
-
-    expect(slug).toBe('wine-club')
   })
 
   test('cannot be renamed by a plain member', async () => {
@@ -496,6 +467,24 @@ describe('an ordinary Group', () => {
     await expect(
       t.withIdentity(asBob).mutation(api.groups.deleteGroup, { groupId }),
     ).rejects.toThrow(/admin/i)
+  })
+
+  /** Production redacts a plain `Error`'s message; a `ConvexError` reaches the reader. */
+  test('refuses in sentences the client still receives in production', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+
+    for (const [identity, sentence] of [
+      [asBob, 'Only an admin can delete a group'],
+      [asAlice, 'Remove the other members before deleting this group'],
+    ] as const) {
+      const refusal = await t
+        .withIdentity(identity)
+        .mutation(api.groups.deleteGroup, { groupId })
+        .catch((error: unknown) => error)
+      expect(refusal).toBeInstanceOf(ConvexError)
+      expect((refusal as ConvexError<string>).data).toBe(sentence)
+    }
   })
 })
 

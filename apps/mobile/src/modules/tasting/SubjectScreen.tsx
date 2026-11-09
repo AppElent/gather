@@ -155,7 +155,7 @@ export function SubjectScreen({
           ? copy.deleteSubjectBodyEmpty
           : plural(locale, subject.count, copy.deleteSubjectBody),
       confirm: copy.delete,
-      cancel: t.actions.cancel,
+      cancel: t.common.actions.cancel,
       onConfirm: async () => {
         await removeSubject({
           groupSlug: group.slug,
@@ -172,7 +172,7 @@ export function SubjectScreen({
       title: copy.deleteTastingTitle,
       message: copy.deleteTastingBody,
       confirm: copy.delete,
-      cancel: t.actions.cancel,
+      cancel: t.common.actions.cancel,
       onConfirm: async () => {
         await removeTasting({
           groupSlug: group.slug,

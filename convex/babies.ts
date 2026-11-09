@@ -12,7 +12,7 @@ import {
   requireGroupBySlug,
   requireInGroup,
 } from './lib/groupAccess'
-import { purgeEventsOfBaby, purgeTasksOfList } from './lib/groupCascade'
+import { deleteTaskList, purgeEventsOfBaby } from './lib/groupCascade'
 import { nextOrder } from './lib/order'
 import {
   deleteStoredFile,
@@ -275,8 +275,8 @@ async function deleteAuxTaskList(
   chosen: boolean | undefined,
 ) {
   if (!taskListId || chosen) return
-  await purgeTasksOfList(ctx, taskListId)
-  await ctx.db.delete(taskListId)
+  // Another child or the grocery list may have chosen it.
+  await deleteTaskList(ctx, taskListId)
 }
 
 export const remove = mutation({

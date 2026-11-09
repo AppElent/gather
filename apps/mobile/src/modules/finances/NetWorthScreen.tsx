@@ -46,16 +46,18 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
+import { useFinanceWrite } from './useFinanceWrite'
 
 export function NetWorthScreen() {
   const tokens = useMoneyTokens()
-  const { groupSlug, format, text, currency, rates, today } = useFinances()
+  const { groupSlug, format, text, today } = useFinances()
   const houses = useQuery(api.houses.list, { groupSlug })
   const holdings = useQuery(api.holdings.list, { groupSlug })
   const entries = useQuery(api.netWorth.entries, { groupSlug })
   const snapshots = useQuery(api.netWorth.snapshots, { groupSlug })
   const addEntry = useMutation(api.netWorth.addEntry)
   const take = useMutation(api.netWorth.take)
+  const { attempt, failure } = useFinanceWrite()
 
   const [adding, setAdding] = useState<'asset' | 'liability' | null>(null)
   const [label, setLabel] = useState('')
@@ -78,7 +80,7 @@ export function NetWorthScreen() {
   }
 
   const portfolio = holdings
-    ? portfolioTotalsFor(holdings, currency, rates)
+    ? portfolioTotalsFor(holdings)
     : null
   const rows = netWorthRows({
     houses: houses.map((house) => ({
@@ -112,15 +114,21 @@ export function NetWorthScreen() {
   function save() {
     const cents = parseCents(amount) ?? 0
     if (!adding || !label.trim() || cents < 0) return
-    addEntry({
-      groupSlug,
-      kind: adding,
-      label: label.trim(),
-      amountCents: cents,
-    })
-    setLabel('')
-    setAmount('')
-    setAdding(null)
+    const kind = adding
+    attempt(
+      () =>
+        addEntry({
+          groupSlug,
+          kind,
+          label: label.trim(),
+          amountCents: cents,
+        }),
+      () => {
+        setLabel('')
+        setAmount('')
+        setAdding(null)
+      },
+    )
   }
 
   const assets = rows.filter((row) => row.kind === 'asset')
@@ -132,6 +140,7 @@ export function NetWorthScreen() {
         options={{ headerShown: true, title: text.netWorth.title }}
       />
       <ScreenScroll>
+        {failure}
         {rows.length === 0 ? (
           <EmptyState
             icon={<Scale size={34} color={tint.fg} strokeWidth={1.6} />}
@@ -209,7 +218,9 @@ export function NetWorthScreen() {
 
             <PrimaryButton
               label={text.netWorth.takeSnapshot}
-              onPress={() => take({ groupSlug, takenOn: today, rows })}
+              onPress={() =>
+                attempt(() => take({ groupSlug, takenOn: today, rows }))
+              }
             />
             <Notice>{text.netWorth.snapshotBody}</Notice>
           </>
@@ -253,6 +264,7 @@ export function NetWorthScreen() {
           onClose={() => setAdding(null)}
           footer={<PrimaryButton label={text.actions.save} onPress={save} />}
         >
+          {failure}
           <Field
             label={text.netWorth.label}
             value={label}

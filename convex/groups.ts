@@ -29,9 +29,9 @@ async function requireMembership(
 }> {
   const user = await requireCurrentUser(ctx)
   const group = await ctx.db.get(groupId)
-  if (!group) throw new Error('Group not found')
+  if (!group) throw new ConvexError('Group not found')
   const membership = await getMembership(ctx, groupId, user._id)
-  if (!membership) throw new Error('Not a member of that group')
+  if (!membership) throw new ConvexError('Not a member of that group')
   return { user, group, membership }
 }
 
@@ -189,10 +189,11 @@ export const createGroup = mutation({
 
 export const renameGroup = mutation({
   args: { groupId: v.id('groups'), name: v.string() },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const { group, membership } = await requireMembership(ctx, args.groupId)
     if (!isAdmin(membership)) {
-      throw new Error('Only an admin can rename a group')
+      throw new ConvexError('Only an admin can rename a group')
     }
     // The slug follows the name, and the old slug stops resolving.
     const slug = await allocateGroupSlug(ctx, {
@@ -200,9 +201,7 @@ export const renameGroup = mutation({
       excludeGroupId: group._id,
     })
     await ctx.db.patch(group._id, { name: args.name, slug })
-    // Returned because the caller cannot work the new slug out for itself:
-    // `allocateGroupSlug` resolves collisions.
-    return slug
+    return null
   },
 })
 
@@ -219,7 +218,7 @@ export const updateAppearance = mutation({
   },
   handler: async (ctx, args) => {
     const { group, membership } = await requireMembership(ctx, args.groupId)
-    if (!isAdmin(membership)) throw new Error('Only an admin can edit a group')
+    if (!isAdmin(membership)) throw new ConvexError('Only an admin can edit a group')
     const imageId = args.imageId
     await ctx.db.patch(group._id, {
       ...(args.icon === undefined ? {} : { icon: args.icon ?? undefined }),
@@ -237,7 +236,7 @@ export const joinByInvite = mutation({
       .query('groups')
       .withIndex('by_inviteCode', (q) => q.eq('inviteCode', args.inviteCode))
       .unique()
-    if (!group) throw new Error('Invalid invite code')
+    if (!group) throw new ConvexError('Invalid invite code')
 
     const already = await getMembership(ctx, group._id, user._id)
     if (!already) {
@@ -328,10 +327,11 @@ export const leaveGroup = mutation({
 
 export const deleteGroup = mutation({
   args: { groupId: v.id('groups') },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const { group, membership } = await requireMembership(ctx, args.groupId)
     if (!isAdmin(membership)) {
-      throw new Error('Only an admin can delete a group')
+      throw new ConvexError('Only an admin can delete a group')
     }
 
     const memberships = await ctx.db
@@ -342,9 +342,10 @@ export const deleteGroup = mutation({
     // their content with it; removing them first is a decision for a person,
     // not for this mutation.
     if (memberships.some((m) => m._id !== membership._id)) {
-      throw new Error('Remove the other members before deleting this group')
+      throw new ConvexError('Remove the other members before deleting this group')
     }
 
     await destroyGroup(ctx, group._id)
+    return null
   },
 })

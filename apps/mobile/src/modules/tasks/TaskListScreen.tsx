@@ -105,8 +105,8 @@ export function TaskList({
     confirmDestructive({
       title: fmt(t.tasks.list.deleteTitle, { title: list.name }),
       message: t.tasks.list.deleteBody,
-      confirm: t.actions.delete,
-      cancel: t.actions.cancel,
+      confirm: t.common.actions.delete,
+      cancel: t.common.actions.cancel,
       onConfirm: () => {
         actions.deleteList(list.id)
         router.back()

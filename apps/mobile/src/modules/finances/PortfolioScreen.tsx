@@ -47,19 +47,20 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
+import { useFinanceWrite } from './useFinanceWrite'
 
 export function PortfolioScreen() {
   const tokens = useMoneyTokens()
   const router = useRouter()
-  const { groupSlug, format, text, currency, rates, today } = useFinances()
+  const { groupSlug, format, text, currency, today } = useFinances()
   const holdings = useQuery(api.holdings.list, { groupSlug })
   const create = useMutation(api.holdings.create)
+  const { attempt, failure } = useFinanceWrite()
 
   const [adding, setAdding] = useState(false)
   const [symbol, setSymbol] = useState('')
   const [name, setName] = useState('')
   const [exchange, setExchange] = useState('')
-  const [holdingCurrency, setHoldingCurrency] = useState(currency)
   const [kind, setKind] = useState<'stock' | 'etf'>('etf')
   const [units, setUnits] = useState('')
   const [price, setPrice] = useState('')
@@ -81,13 +82,12 @@ export function PortfolioScreen() {
     )
   }
 
-  const totals = portfolioTotalsFor(holdings, currency, rates)
+  const totals = portfolioTotalsFor(holdings)
 
   function open() {
     setSymbol('')
     setName('')
     setExchange('')
-    setHoldingCurrency(currency)
     setUnits('')
     setPrice('')
     setAsAt(today)
@@ -106,19 +106,24 @@ export function PortfolioScreen() {
 
   function save() {
     if (!valid) return
-    create({
-      groupSlug,
-      kind,
-      symbol: symbol.trim(),
-      name: name.trim(),
-      exchange: exchange.trim() || undefined,
-      currency: holdingCurrency.trim() || currency,
-      openingDate: asAt,
-      openingUnits: unitCount,
-      openingAverageCostCents: cents,
-      lastPriceCents: cents,
-    })
-    setAdding(false)
+    const openingUnits = unitCount
+    attempt(
+      () =>
+        create({
+          groupSlug,
+          kind,
+          symbol: symbol.trim(),
+          name: name.trim(),
+          exchange: exchange.trim() || undefined,
+          // Every Group counts in euros, and nothing converts.
+          currency,
+          openingDate: asAt,
+          openingUnits,
+          openingAverageCostCents: cents,
+          lastPriceCents: cents,
+        }),
+      () => setAdding(false),
+    )
   }
 
   return (
@@ -127,6 +132,7 @@ export function PortfolioScreen() {
         options={{ headerShown: true, title: text.portfolio.title }}
       />
       <ScreenScroll>
+        {failure}
         {holdings.length === 0 ? (
           <EmptyState
             icon={<Chart size={34} color={tint.fg} strokeWidth={1.6} />}
@@ -262,6 +268,7 @@ export function PortfolioScreen() {
             />
           }
         >
+          {failure}
           <View style={styles.segment}>
             <Segmented<'stock' | 'etf'>
               options={[
@@ -287,11 +294,6 @@ export function PortfolioScreen() {
             label={text.portfolio.holding.exchange}
             value={exchange}
             onChangeText={setExchange}
-          />
-          <Field
-            label={text.portfolio.holding.currency}
-            value={holdingCurrency}
-            onChangeText={setHoldingCurrency}
           />
           <Field
             label={text.portfolio.holding.units}

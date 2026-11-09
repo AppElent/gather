@@ -31,12 +31,13 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
+import { useFinanceWrite } from './useFinanceWrite'
 
 export function FinanceLabScreen() {
   const tokens = useMoneyTokens()
   const router = useRouter()
   const { t } = useI18n()
-  const { groupSlug, format, text, currency, rates } = useFinances()
+  const { groupSlug, format, text } = useFinances()
   const [naming, setNaming] = useState(false)
   const [name, setName] = useState('')
 
@@ -44,6 +45,7 @@ export function FinanceLabScreen() {
   const holdings = useQuery(api.holdings.list, { groupSlug })
   const snapshots = useQuery(api.netWorth.snapshots, { groupSlug })
   const createHouse = useMutation(api.houses.create)
+  const { attempt, failure } = useFinanceWrite()
 
   const tint = tokens.tintOf('money')
   const HouseIcon = FINANCE_ICONS.House
@@ -65,21 +67,26 @@ export function FinanceLabScreen() {
     )
   }
 
-  const portfolio = portfolioTotalsFor(holdings, currency, rates)
+  const portfolio = portfolioTotalsFor(holdings)
   const latestSnapshot = snapshots[0]
 
   function addHouse() {
     const trimmed = name.trim()
     if (!trimmed) return
-    createHouse({ groupSlug, name: trimmed })
-    setName('')
-    setNaming(false)
+    attempt(
+      () => createHouse({ groupSlug, name: trimmed }),
+      () => {
+        setName('')
+        setNaming(false)
+      },
+    )
   }
 
   return (
     <>
       <Stack.Screen options={{ title: t.labs.finance.title }} />
       <ScreenScroll>
+        {failure}
         <Section title={text.index.houses} />
         <Card>
           {houses.map((house) => {
@@ -182,6 +189,7 @@ export function FinanceLabScreen() {
             />
           }
         >
+          {failure}
           <Field
             label={text.house.nameLabel}
             value={name}

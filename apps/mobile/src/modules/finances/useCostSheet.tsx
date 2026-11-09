@@ -24,6 +24,7 @@ import { NativeSheet } from '../../components/NativeSheet'
 import { api } from '../../convex/api'
 import { useI18n } from '../../i18n'
 import { Chip, Field, PrimaryButton } from './ui'
+import { useFinanceWrite } from './useFinanceWrite'
 
 export function useCostSheet(groupSlug: string): {
   open: () => void
@@ -32,6 +33,7 @@ export function useCostSheet(groupSlug: string): {
   const { t } = useI18n()
   const text = t.finances
   const create = useMutation(api.recurringCosts.create)
+  const { attempt, failure } = useFinanceWrite()
 
   const [showing, setShowing] = useState(false)
   const [name, setName] = useState('')
@@ -52,14 +54,18 @@ export function useCostSheet(groupSlug: string): {
 
   function save() {
     if (!valid) return
-    create({
-      groupSlug,
-      name: name.trim(),
-      amountCents: cents,
-      frequency,
-      category,
-    })
-    setShowing(false)
+    const amountCents = cents
+    attempt(
+      () =>
+        create({
+          groupSlug,
+          name: name.trim(),
+          amountCents,
+          frequency,
+          category,
+        }),
+      () => setShowing(false),
+    )
   }
 
   return {
@@ -76,6 +82,7 @@ export function useCostSheet(groupSlug: string): {
           />
         }
       >
+        {failure}
         <Field
           label={text.recurringCosts.cost.theCost}
           value={name}

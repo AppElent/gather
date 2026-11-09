@@ -88,7 +88,7 @@ export function NativeSheet({
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t.actions.close}
+            accessibilityLabel={t.common.actions.close}
             onPress={dismiss}
             hitSlop={12}
             style={({ pressed }) => [

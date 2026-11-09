@@ -449,7 +449,7 @@ export const unshare = mutation({
     // not a Share to withdraw, and a recipe visible in no Group at all is not a
     // thing this app can express. Deleting or moving it is the honest answer.
     if (group && group._id === recipe.groupId) {
-      throw new Error('A recipe cannot be unshared from the Group it lives in')
+      throw new ConvexError('A recipe cannot be unshared from the Group it lives in')
     }
     // Nothing to withdraw — an unknown slug and a Group it was never shared
     // with land in the same place a second unshare does.

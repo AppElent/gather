@@ -78,6 +78,15 @@ export const settings = {
       'Je ziet dan niets meer van wat erin zit. Wat je hebt toegevoegd blijft bij de Groep.',
     leaveConfirm: 'Groep verlaten',
     leaveFailed: 'Kon deze Groep niet verlaten.',
+    delete: 'Verwijderen',
+    deleteButton: 'Deze Groep verwijderen',
+    deleteTitle: '{group} verwijderen?',
+    deleteBody:
+      'Alles erin wordt voorgoed verwijderd, samen met de Groep zelf. Dit kan niet ongedaan worden gemaakt.',
+    deleteConfirm: 'Groep verwijderen',
+    deleteFailed: 'Kon deze Groep niet verwijderen.',
+    deleteOthersFirst:
+      'Pas mogelijk als alle anderen de Groep hebben verlaten.',
   },
 
   members: {

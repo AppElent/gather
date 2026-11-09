@@ -537,12 +537,26 @@ describe('holdings', () => {
     ).toBe(0)
   })
 
-  test('a Group with no settings still has a home currency', async () => {
-    const { t } = await seed()
+  test('every Group counts in euros, whatever a retired row still says', async () => {
+    const { t, jansen } = await seed()
+    await t.run(async (ctx) => {
+      await ctx.db.insert('financeSettings', {
+        groupId: jansen,
+        homeCurrency: 'USD',
+        rates: [{ currency: 'GBP', rate: 1.2, asOf: 0 }],
+      })
+    })
     const value = await t
       .withIdentity(alice)
       .query(api.holdings.settings, { groupSlug: 'jansen' })
-    expect(value.homeCurrency).toBe('EUR')
+    expect(value).toEqual({ homeCurrency: 'EUR', rates: [] })
+  })
+
+  test('the home currency is refused outside the Group', async () => {
+    const { t } = await seed()
+    await expect(
+      t.withIdentity(bob).query(api.holdings.settings, { groupSlug: 'jansen' }),
+    ).rejects.toThrow(/Not a member/)
   })
 })
 

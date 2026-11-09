@@ -394,12 +394,12 @@ export function LabelsSheet({
         <Pressable
           testID="label-rename-cancel"
           accessibilityRole="button"
-          accessibilityLabel={t.tasks.task.renameLabelCancel}
+          accessibilityLabel={t.common.actions.cancel}
           onPress={cancelRename}
           style={styles.renameCancel}
         >
           <Text style={[styles.renameCancelText, { color: tokens.accent }]}>
-            {t.tasks.task.renameLabelCancel}
+            {t.common.actions.cancel}
           </Text>
         </Pressable>
       ) : null}
@@ -509,7 +509,7 @@ export function RenameSheet({
           testID="rename-save"
           accessibilityRole="button"
           accessibilityState={{ disabled: !valid }}
-          accessibilityLabel={t.actions.save}
+          accessibilityLabel={t.common.actions.save}
           disabled={!valid}
           onPress={save}
           style={({ pressed }) => [
@@ -520,7 +520,7 @@ export function RenameSheet({
           ]}
         >
           <Text style={[styles.saveText, { color: tokens.surface }]}>
-            {t.actions.save}
+            {t.common.actions.save}
           </Text>
         </Pressable>
       }

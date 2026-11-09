@@ -1,7 +1,7 @@
 ---
 type: decision
 description: Read before changing the Portfolio overview or anything that could read as financial advice.
-version: 1.0.0
+version: 1.0.1
 status: accepted
 date: 2026-08-24
 ---
@@ -22,3 +22,6 @@ provider action. It has no historical portfolio-value chart. It excludes broker
 connections, live prices, tax reporting, asset classes beyond stocks and ETFs,
 price predictions, and buy/sell recommendations; it informs a household's
 conversations without acting as an investment adviser.
+
+The home-currency translation and exchange rate are replaced by
+[ADR-0040](./0040-a-group-counts-in-euros.md).

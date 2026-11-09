@@ -75,6 +75,14 @@ export const settings = {
       'You stop seeing everything in it. Anything you added stays with the group.',
     leaveConfirm: 'Leave group',
     leaveFailed: 'Could not leave this group.',
+    delete: 'Delete',
+    deleteButton: 'Delete this group',
+    deleteTitle: 'Delete {group}?',
+    deleteBody:
+      'Everything in it is deleted for good, along with the group itself. This cannot be undone.',
+    deleteConfirm: 'Delete group',
+    deleteFailed: 'Could not delete this group.',
+    deleteOthersFirst: 'Only possible once everyone else has left the group.',
   },
 
   members: {

@@ -1,5 +1,5 @@
 import { NUTRIENT_KEYS, type NutritionFacts } from '@gather/core/domain'
-import { type ObjectType, v } from 'convex/values'
+import { ConvexError, type ObjectType, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
@@ -23,7 +23,7 @@ function assertValidNutrition(nutrition: NutritionFacts) {
   for (const key of NUTRIENT_KEYS) {
     const value = nutrition[key]
     if (value !== undefined && (!Number.isFinite(value) || value < 0)) {
-      throw new Error(`${key} must be a non-negative number`)
+      throw new ConvexError(`${key} must be a non-negative number`)
     }
   }
 }
@@ -135,9 +135,9 @@ export const loggedAmountsForFood = query({
 
 function assertValidItem(item: ObjectType<typeof diaryItemFields>) {
   if (item.recipeId && item.foodId) {
-    throw new Error('An entry cannot reference both a recipe and a food')
+    throw new ConvexError('An entry cannot reference both a recipe and a food')
   }
-  if (item.quantity <= 0) throw new Error('Quantity must be positive')
+  if (item.quantity <= 0) throw new ConvexError('Quantity must be positive')
   assertValidNutrition(item.nutrition)
 }
 
@@ -260,8 +260,8 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx)
     const entry = await ctx.db.get(args.id)
-    if (!entry) throw new Error('Entry not found')
-    if (entry.userId !== user._id) throw new Error('Not the owner')
+    if (!entry) throw new ConvexError('Entry not found')
+    if (entry.userId !== user._id) throw new ConvexError('Not the owner')
 
     let nutrition = entry.nutrition
     let quantity = entry.quantity
@@ -274,7 +274,7 @@ export const update = mutation({
       unit !== entry.quantityUnit
     ) {
       quantity = args.quantity ?? entry.quantity
-      if (quantity <= 0) throw new Error('Quantity must be positive')
+      if (quantity <= 0) throw new ConvexError('Quantity must be positive')
       const viewerGroupIds = await getMyGroupIds(ctx, user._id)
       const recomputed = await recomputeFromSource(
         ctx,
@@ -310,7 +310,7 @@ export const remove = mutation({
     const user = await requireCurrentUser(ctx)
     const entry = await ctx.db.get(args.id)
     if (!entry) return
-    if (entry.userId !== user._id) throw new Error('Not the owner')
+    if (entry.userId !== user._id) throw new ConvexError('Not the owner')
     await ctx.db.delete(args.id)
   },
 })
