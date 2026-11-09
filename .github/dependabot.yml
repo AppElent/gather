@@ -48,10 +48,6 @@ updates:
       # with the SDK.
       - dependency-name: "@sentry/react-native"
         update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
-      # Pinned: the newest release whose `convex` peer accepts the installed
-      # convex (CODING_STANDARDS.md, Convex query caching).
-      - dependency-name: "convex-helpers"
-        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
 
   - package-ecosystem: github-actions
     directory: "/"

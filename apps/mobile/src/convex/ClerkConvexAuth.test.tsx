@@ -61,10 +61,10 @@ type FetchToken = (args: {
 
 /**
  * The parts of `ConvexReactClient` the provider touches, with the behaviour of
- * convex 1.42's `AuthenticationManager` that matters here: `setAuth` tries a
- * cached token and then a forced one; a failed refresh reports `false` and
- * forgets the token fetcher; a reconnect does not bring it back. Only
- * `setAuth` does, and answers for a replaced config are dropped.
+ * convex's `AuthenticationManager` (unchanged from 1.42 to 1.49) that matters
+ * here: `setAuth` tries a cached token and then a forced one; a failed refresh
+ * reports `false` and forgets the token fetcher; a reconnect does not bring it
+ * back. Only `setAuth` does, and answers for a replaced config are dropped.
  */
 class FakeClient {
   setAuthCalls = 0
