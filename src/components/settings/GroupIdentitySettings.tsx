@@ -14,6 +14,9 @@ import { ImageUploadField } from '../photo/ImageUploadField'
 const buttonClass =
   'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold'
 
+const dangerButtonClass =
+  'inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 text-sm font-semibold text-[var(--app-danger)] disabled:opacity-60'
+
 const inputClass =
   'min-h-9 w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-transparent px-3 text-sm'
 
@@ -24,14 +27,21 @@ export interface GroupIdentitySettingsProps {
 /**
  * What a Group is, who can get in, and how to get out.
  *
- * Renaming is an admin's to do, so only an admin is offered it. The mutation
- * refuses it again on the server — this only avoids showing a reader a button
- * whose whole purpose is to tell them no.
+ * Renaming and deleting are an admin's to do, so only an admin is offered
+ * them. The mutations refuse them again on the server — this only avoids
+ * showing a reader a button whose whole purpose is to tell them no.
+ *
+ * Deleting is allowed only to the last Member, and here the button says so
+ * before it is pressed rather than letting the server refuse it, unlike Leave:
+ * Leave's refusal names a fix on this page (make somebody else an admin), but
+ * nothing on the web removes another Member, so a refusal to delete would only
+ * explain a dead end after asking about it.
  */
 export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
   const navigate = useNavigate()
   const rename = useMutation(api.groups.renameGroup)
   const leave = useMutation(api.groups.leaveGroup)
+  const deleteGroup = useMutation(api.groups.deleteGroup)
   const updateAppearance = useMutation(api.groups.updateAppearance)
   const generateImageUploadUrl = useMutation(api.groups.generateImageUploadUrl)
   const { confirm, dialog } = useConfirmAction()
@@ -46,7 +56,13 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
     group.imageId,
   )
 
-  const canRename = group.role === 'admin'
+  const isAdmin = group.role === 'admin'
+  // The same subscription as the Members card below, so no second read.
+  const members = useQuery(
+    api.groups.members,
+    isAdmin ? { slug: group.slug } : 'skip',
+  )
+  const othersRemain = members !== undefined && members.length > 1
 
   async function submitRename(e: React.FormEvent) {
     e.preventDefault()
@@ -93,7 +109,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
       )}
 
       <div className="grid gap-4">
-        {canRename ? (
+        {isAdmin ? (
           <form onSubmit={(e) => void submitRename(e)} className="grid gap-2">
             <label htmlFor="group-name" className="text-sm font-semibold">
               {group_.name}
@@ -116,7 +132,7 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
           </form>
         ) : null}
 
-        {canRename ? (
+        {isAdmin ? (
           <div className="grid gap-2">
             <label htmlFor="group-icon" className="text-sm font-semibold">
               Icon
@@ -182,6 +198,45 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
             </button>
           </div>
         </div>
+
+        {isAdmin ? (
+          <div className="grid gap-2">
+            <span className="text-sm font-semibold">{group_.delete}</span>
+            <div>
+              <button
+                type="button"
+                className={dangerButtonClass}
+                disabled={members === undefined || othersRemain}
+                aria-describedby={
+                  othersRemain ? 'group-delete-note' : undefined
+                }
+                onClick={() =>
+                  confirm({
+                    title: fmt(group_.deleteTitle, { group: group.name }),
+                    body: group_.deleteBody,
+                    confirmLabel: group_.deleteConfirm,
+                    errorFallback: group_.deleteFailed,
+                    // Where leaving goes: the Current Group is gone either way.
+                    run: async () => {
+                      await deleteGroup({ groupId: group._id })
+                      await navigate(linkTo('groups'))
+                    },
+                  })
+                }
+              >
+                {group_.deleteButton}
+              </button>
+            </div>
+            {othersRemain ? (
+              <p
+                id="group-delete-note"
+                className="m-0 text-xs text-[var(--app-muted)]"
+              >
+                {group_.deleteOthersFirst}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {dialog}
