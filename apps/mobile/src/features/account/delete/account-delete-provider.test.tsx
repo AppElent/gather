@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, useEffect, useState } from 'react'
+import { act, useState } from 'react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { mount, settle } from '../../../testing/dom'
@@ -50,22 +50,13 @@ function GroupGate() {
 }
 
 let deletion: AccountDeleteValue
-let screenMounted = false
 function DeleteScreen() {
   deletion = useAccountDelete()
-  useEffect(() => {
-    screenMounted = true
-    return () => {
-      screenMounted = false
-    }
-  }, [])
   const { state: current } = deletion
   return (
     <p>
       delete screen:{' '}
-      {current.step === 'idle' && current.refused !== null
-        ? 'purge refused'
-        : current.step}
+{current.step}
     </p>
   )
 }
@@ -115,7 +106,6 @@ describe('deleting the account', () => {
       purge.resolve()
     })
     await settle()
-    expect(screenMounted).toBe(false)
     expect(view.container.textContent).toBe('underway: deletingLogin')
 
     clerk.reject(new Error('Clerk refused'))
@@ -153,6 +143,33 @@ describe('deleting the account', () => {
     expect(state.signedOut).toBe(1)
   })
 
+  test('a second Try again tap before the first has rendered asks Clerk once', async () => {
+    let attempts = 0
+    const clerk = deferred()
+    state.user = {
+      deleteSelfEnabled: true,
+      delete: () => {
+        attempts += 1
+        return attempts === 1
+          ? Promise.reject(new Error('network'))
+          : clerk.promise
+      },
+    }
+    view = render()
+    act(() => deletion.start())
+    await settle()
+
+    const { retryLogin } = deletion
+    act(() => {
+      retryLogin()
+      retryLogin()
+    })
+    clerk.resolve()
+    await settle()
+    expect(attempts).toBe(2)
+    expect(state.signedOut).toBe(1)
+  })
+
   test('Clerk agreeing signs out', async () => {
     view = render()
     act(() => deletion.start())
@@ -174,7 +191,7 @@ describe('deleting the account', () => {
 
     act(() => deletion.start())
     await settle()
-    expect(view.container.textContent).toBe('delete screen: purge refused')
+    expect(view.container.textContent).toBe('delete screen: refused')
     expect(attempts).toBe(0)
     expect(state.signedOut).toBe(0)
   })

@@ -48,9 +48,13 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   above the session and Group gates, and once the purge has started it draws
   the deletion in place of the signed-in tree: a refusal there offers Try
   again (Clerk only) and Sign out (`apps/mobile/src/features/account/delete/`).
+  The refusal is held in memory, so it lasts while the app is open and signed
+  in.
 
 ## Acceptance
 
 - Deleting a Group leaves no row with its `groupId` and no blob only it held.
 - Deleting an account removes its solo Groups, leaves shared Groups intact
   without the person, and finally removes the Clerk user.
+- On the phone, a Clerk refusal after the purge has started stays on screen,
+  with Try again and Sign out, until one of them succeeds.

@@ -21,7 +21,9 @@ export function AccountDeleteUnderwayScreen({
   state,
   retryLogin,
   onSignOut,
-}: AccountDeleteValue & { onSignOut: () => void }) {
+}: Pick<AccountDeleteValue, 'state' | 'retryLogin'> & {
+  onSignOut: () => void
+}) {
   const tokens = useTokens()
   const { t } = useI18n()
   const stranded = state.step === 'stranded'

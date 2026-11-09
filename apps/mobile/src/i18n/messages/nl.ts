@@ -267,7 +267,7 @@ export const nl = {
       confirmBody:
         'Je account en alles wat alleen jij kon zien wordt definitief verwijderd.',
       partlyFailed:
-        'Je gegevens zijn verwijderd, maar het account zelf niet. Neem contact op met support.',
+        'Je gegevens zijn verwijderd, maar het account zelf niet. Probeer het opnieuw, of neem contact op met support als het blijft mislukken.',
       underway: 'Je account wordt verwijderd…',
       unavailable:
         'Dit account kan niet vanuit de app worden verwijderd. Neem contact op met support.',

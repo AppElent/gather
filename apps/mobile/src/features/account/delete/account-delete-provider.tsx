@@ -17,6 +17,9 @@
  * the gap the purge leaves (`users.deletedAt` goes with the `users` row). From
  * then on the only ways out are Clerk agreeing, which signs out, or the
  * person signing out themselves.
+ *
+ * The stranded state is held in memory, so it lasts while the app is open and
+ * signed in. Quitting the app, or Clerk ending the session, loses it.
  */
 import { useUser } from '@clerk/expo'
 import { useMutation } from 'convex/react'
@@ -37,18 +40,25 @@ import { accountDeletion } from '../../../settings/accountDeletion'
 /**
  * Where a deletion is.
  *
- * - **idle** — nothing has been deleted. `refused` is the purge's refusal, if
- *   the last attempt had one, and saying "nothing happened" is still true.
+ * - **idle** — nothing has been asked for.
  * - **purging** — waiting for `accounts.deleteAccount`.
+ * - **refused** — the purge refused. Nothing has been deleted, and the delete
+ *   screen is still there to say so.
  * - **deletingLogin** — the purge is scheduled; waiting for Clerk.
  * - **stranded** — Clerk refused after the purge: the data is going and the
  *   login is not.
  */
 export type AccountDeleteState =
-  | { step: 'idle'; refused: unknown }
+  | { step: 'idle' }
   | { step: 'purging' }
+  | { step: 'refused'; cause: unknown }
   | { step: 'deletingLogin' }
   | { step: 'stranded' }
+
+/** Whether the purge has started, after which the signed-in tree is gone. */
+export function purgeStarted(state: AccountDeleteState): boolean {
+  return state.step === 'deletingLogin' || state.step === 'stranded'
+}
 
 export interface AccountDeleteValue {
   state: AccountDeleteState
@@ -76,8 +86,6 @@ export interface AccountDeleteProviderProps {
   underway: (value: AccountDeleteValue) => ReactNode
 }
 
-const IDLE: AccountDeleteState = { step: 'idle', refused: null }
-
 export function AccountDeleteProvider({
   children,
   underway,
@@ -85,19 +93,26 @@ export function AccountDeleteProvider({
   const { user } = useUser()
   const deleteAccount = useMutation(api.accounts.deleteAccount)
   const signOut = useSignOut()
-  const [state, setState] = useState<AccountDeleteState>(IDLE)
-  // A ref as well as the state, so a second tap in the same frame cannot
-  // start a second run before the first one's state has rendered.
+  const [state, setState] = useState<AccountDeleteState>({ step: 'idle' })
+  // Refs as well as the state, so a second tap in the same frame cannot start
+  // a second run, or a second Clerk call, before the first has rendered.
   const running = useRef(false)
+  const askingClerk = useRef(false)
 
   const deleteLogin = useCallback(async () => {
-    if (!user) return
+    if (askingClerk.current) return
+    askingClerk.current = true
     setState({ step: 'deletingLogin' })
     try {
+      // No user here would leave the purge running with nobody told; it is
+      // the same outcome as a refusal, and says so.
+      if (!user) throw new Error('No Clerk user to delete')
       await user.delete()
     } catch {
       setState({ step: 'stranded' })
       return
+    } finally {
+      askingClerk.current = false
     }
     signOut()
   }, [user, signOut])
@@ -111,7 +126,7 @@ export function AccountDeleteProvider({
         await deleteAccount({})
       } catch (cause) {
         running.current = false
-        setState({ step: 'idle', refused: cause })
+        setState({ step: 'refused', cause })
         return
       }
       await deleteLogin()
@@ -127,10 +142,9 @@ export function AccountDeleteProvider({
     [state, start, retryLogin],
   )
 
-  const begun = state.step === 'deletingLogin' || state.step === 'stranded'
   return (
     <AccountDeleteContext value={value}>
-      {begun ? underway(value) : children}
+      {purgeStarted(state) ? underway(value) : children}
     </AccountDeleteContext>
   )
 }

@@ -44,8 +44,12 @@ export default function AppLayout() {
 
   return (
     <AccountDeleteProvider
-      underway={(deletion) => (
-        <AccountDeleteUnderwayScreen {...deletion} onSignOut={signOut} />
+      underway={({ state, retryLogin }) => (
+        <AccountDeleteUnderwayScreen
+          state={state}
+          retryLogin={retryLogin}
+          onSignOut={signOut}
+        />
       )}
     >
       <ConvexSessionGate pending={<GroupPending />} onSignOut={signOut}>

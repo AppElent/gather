@@ -53,11 +53,8 @@ export function AccountDeleteScreen() {
   const { state, start } = useAccountDelete()
 
   const preview = useQuery(api.accounts.deletionPreview, {})
-  const busy = state.step !== 'idle'
-  const error =
-    state.step === 'idle' && state.refused !== null
-      ? readThrown(state.refused, t)
-      : null
+  const busy = state.step === 'purging'
+  const error = state.step === 'refused' ? readThrown(state.cause, t) : null
 
   // Clerk refuses self-deletion unless the instance allows it, and a button
   // that purges the household and then fails is the worst outcome available.
