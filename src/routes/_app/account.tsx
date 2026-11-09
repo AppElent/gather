@@ -8,11 +8,12 @@ export const Route = createFileRoute('/_app/account')({
 })
 
 function AccountPage() {
-  const { shell } = useMessages()
+  const messages = useMessages()
+
   return (
     <div className="mx-auto grid max-w-2xl gap-6">
       <h1 className="m-0 mb-4 text-xl font-semibold">
-        {shell.routes.account.title}
+        {messages.shell.routes.account.title}
       </h1>
       <ProfilePanel />
       <DataExportSettings />
