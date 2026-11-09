@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a Convex table, changing what "Export your data" contains, or changing who may see a row or column.
-version: 1.1.0
+version: 1.2.0
 status: current
 ---
 
@@ -50,8 +50,10 @@ everything user-owned belongs to a Group or to a person
 - **Bounded reads, assembled on the client.** `dataExport.manifest` names the
   tables and Groups; `dataExport.page` returns at most `PAGE_SIZE` rows of one
   table from one index range. A child table is paged across its parents with a
-  compound cursor. `collectExport` in `@gather/core/data-export` drains them in
-  order, so web and phone write the same file.
+  compound cursor that names the parent by id, so a parent deleted mid-export
+  never skips a later parent's rows. `collectExport` in
+  `@gather/core/data-export` drains them in order, so web and phone write the
+  same file.
 - **The file is versioned.** It opens with `format: "gather.data-export"` and
   `version`, then `conventions`, `notIncluded`, `excludedTables` and
   `omittedFields`. Bump `EXPORT_VERSION` when a reader of the previous version

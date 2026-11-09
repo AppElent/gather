@@ -32,7 +32,9 @@
  * One page is one bounded server read: `PAGE_SIZE` rows from one index range.
  * A child table (tasks, calendar events, baby events, combo items) is paged
  * across its parents with a compound cursor, because Convex allows one
- * `paginate` per query and the parents are few.
+ * `paginate` per query and the parents are few. The cursor names its parent
+ * by id, not by position, so a parent deleted mid-export cannot shift a later
+ * one out of the file.
  */
 
 import type {
@@ -277,10 +279,21 @@ function scopeRange(ctx: QueryCtx, table: TableNames, index: string, s: Scope) {
   return tableQuery(ctx, table).withIndex(index, (q) => q.eq(field, value))
 }
 
-/** A compound cursor: which parent, and where inside its children. */
+/**
+ * A compound cursor: which parent, and where inside its children.
+ *
+ * The parent is named by id, with its creation time for when it is gone: a
+ * parent range is one `by_group` or `by_user` value, so it is in creation
+ * order, and the first parent created after a deleted one is where to go on.
+ */
 interface ParentCursor {
-  parent: number
+  parent: string
+  createdAt: number
   inner: string | null
+}
+
+function parentCursor(parent: Row, inner: string | null): ParentCursor {
+  return { parent: parent._id, createdAt: parent._creationTime, inner }
 }
 
 async function readRaw(
@@ -322,21 +335,30 @@ async function readRaw(
       parentTreatment.index,
       s,
     ).collect()
-    const at: ParentCursor = cursor
-      ? (JSON.parse(cursor) as ParentCursor)
-      : { parent: 0, inner: null }
-    const parent = parents[at.parent]
+    const at = cursor ? (JSON.parse(cursor) as ParentCursor) : null
+    let index = 0
+    let inner: string | null = null
+    if (at) {
+      index = parents.findIndex((p) => p._id === at.parent)
+      if (index >= 0) inner = at.inner
+      // Deleted since the last page: go on with the next one created.
+      else index = parents.findIndex((p) => p._creationTime > at.createdAt)
+    }
+    const parent = index >= 0 ? parents[index] : undefined
     if (!parent) return { rows: [], cursor: null, isDone: true }
     const page = await tableQuery(ctx, table)
       .withIndex(treatment.index, (q) => q.eq(treatment.field, parent._id))
-      .paginate({ numItems: PAGE_SIZE, cursor: at.inner })
-    const next: ParentCursor = page.isDone
-      ? { parent: at.parent + 1, inner: null }
-      : { parent: at.parent, inner: page.continueCursor }
+      .paginate({ numItems: PAGE_SIZE, cursor: inner })
+    const following = parents[index + 1]
+    const next = !page.isDone
+      ? parentCursor(parent, page.continueCursor)
+      : following
+        ? parentCursor(following, null)
+        : null
     return {
       rows: page.page,
-      cursor: JSON.stringify(next),
-      isDone: next.parent >= parents.length,
+      cursor: next && JSON.stringify(next),
+      isDone: next === null,
     }
   }
 

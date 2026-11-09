@@ -1,4 +1,8 @@
-import { collectExport, type GatherExport } from '@gather/core/data-export'
+import {
+  collectExport,
+  type ExportPage,
+  type GatherExport,
+} from '@gather/core/data-export'
 import { describe, expect, test } from 'vitest'
 import { testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
@@ -661,4 +665,48 @@ describe('reading a page', () => {
     // The household's tasks need more than one page per list.
     expect(pages()).toBeGreaterThan(oneEach)
   })
+
+  // Chores holds PAGE_SIZE + 2 tasks, so page 1 ends inside it and page 2
+  // finishes it; Errands holds the other three.
+  test.each([
+    ['the list it just finished', 2],
+    ['the list it is in the middle of', 1],
+  ])(
+    'skips nothing when another Member deletes %s between pages',
+    async (_, deleteAfter) => {
+      const t = testConvex()
+      await household(t)
+      const as = t.withIdentity(asAlice)
+      const titles: string[] = []
+      let cursor: string | null = null
+      for (let n = 1; ; n++) {
+        const page: ExportPage = await as.query(api.dataExport.page, {
+          table: 'tasks',
+          groupSlug: 'household',
+          cursor,
+        })
+        titles.push(...page.rows.map((row) => String(row.title)))
+        if (n === deleteAfter) {
+          await t.run(async (ctx) => {
+            const chores = await ctx.db
+              .query('taskLists')
+              .filter((q) => q.eq(q.field('name'), 'Chores'))
+              .unique()
+            if (!chores) throw new Error('no Chores list')
+            const tasks = await ctx.db
+              .query('tasks')
+              .withIndex('by_list', (q) => q.eq('listId', chores._id))
+              .collect()
+            for (const task of tasks) await ctx.db.delete(task._id)
+            await ctx.db.delete(chores._id)
+          })
+        }
+        if (page.isDone) break
+        cursor = page.cursor
+      }
+      const errands = [2, 3, 4].map((i) => `Task ${PAGE_SIZE + i}`)
+      expect(titles).toEqual(expect.arrayContaining(errands))
+      expect(new Set(titles).size).toBe(titles.length)
+    },
+  )
 })
