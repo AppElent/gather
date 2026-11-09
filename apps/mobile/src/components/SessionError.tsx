@@ -12,8 +12,8 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../i18n'
 import { useTokens } from '../theme/tokens'
+import { Button } from '../ui/button'
 import { useHideSplash } from '../useHideSplash'
-import { AuthButton } from './AuthButton'
 
 export function SessionError({
   onRetry,
@@ -45,8 +45,8 @@ export function SessionError({
         {t.session.body}
       </Text>
       <View style={styles.actions}>
-        <AuthButton label={t.common.actions.retry} onPress={onRetry} />
-        <AuthButton
+        <Button label={t.common.actions.retry} onPress={onRetry} />
+        <Button
           variant="secondary"
           label={t.signedIn.signOut}
           onPress={onSignOut}

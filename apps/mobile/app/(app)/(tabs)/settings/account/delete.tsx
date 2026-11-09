@@ -29,7 +29,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { readThrown } from '../../../../../src/auth/clerkErrors'
 import { useSignOut } from '../../../../../src/auth/useSignOut'
 import { useAvailability } from '../../../../../src/availability/AvailabilityProvider'
-import { AuthButton } from '../../../../../src/components/AuthButton'
 import { AuthError } from '../../../../../src/components/AuthError'
 import { LoadingSkeleton } from '../../../../../src/components/LoadingSkeleton'
 import { api } from '../../../../../src/convex/api'
@@ -38,6 +37,7 @@ import { confirmDestructive } from '../../../../../src/feedback/confirmDestructi
 import { fmt, useI18n } from '../../../../../src/i18n'
 import { accountDeletion } from '../../../../../src/settings/accountDeletion'
 import { RADIUS, useTokens } from '../../../../../src/theme/tokens'
+import { Button } from '../../../../../src/ui/button'
 
 export default function DeleteAccount() {
   const tokens = useTokens()
@@ -146,7 +146,7 @@ export default function DeleteAccount() {
         }
       />
 
-      <AuthButton
+      <Button
         testID="account-delete-submit"
         variant="danger"
         label={t.account.deleteAccount.submit}

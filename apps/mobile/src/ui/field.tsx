@@ -1,7 +1,8 @@
 /**
- * A labelled text field.
+ * A labelled text field, the app's one: sign-in, Account and the Group forms
+ * all use it.
  *
- * ADR-0017 keeps auth inputs as a plain React Native `TextInput` — no wrapper
+ * ADR-0017 keeps text inputs as a plain React Native `TextInput` — no wrapper
  * library, no web parity. What that costs is that the platform affordances are
  * ours to remember, so they are props with defaults here rather than something
  * each screen re-derives: `autoComplete` is what makes Android's password
@@ -22,7 +23,7 @@ import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
 
-interface AuthFieldProps extends Omit<TextInputProps, 'style'> {
+interface FieldProps extends Omit<TextInputProps, 'style'> {
   label: string
   /** Renders the reveal toggle and starts obscured. */
   secure?: boolean
@@ -30,8 +31,8 @@ interface AuthFieldProps extends Omit<TextInputProps, 'style'> {
   invalid?: boolean
 }
 
-export const AuthField = forwardRef<TextInputInstance, AuthFieldProps>(
-  function AuthField({ label, secure, invalid, ...props }, ref) {
+export const Field = forwardRef<TextInputInstance, FieldProps>(
+  function Field({ label, secure, invalid, ...props }, ref) {
     const tokens = useTokens()
     const { t } = useI18n()
     const [focused, setFocused] = useState(false)

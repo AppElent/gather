@@ -14,8 +14,6 @@
 import { useMutation } from 'convex/react'
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-
-import { AuthButton } from '../components/AuthButton'
 import { AuthError } from '../components/AuthError'
 import { api, type Id } from '../convex/api'
 import { useQuery } from '../convex/queries'
@@ -23,6 +21,7 @@ import { confirmDestructive } from '../feedback/confirmDestructive'
 import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
 import { useTokens } from '../theme/tokens'
+import { Button } from '../ui/button'
 import { useGroup } from './GroupProvider'
 
 export function DeleteGroupSection() {
@@ -75,7 +74,7 @@ export function DeleteGroupSection() {
         {group.name}
       </Text>
       <AuthError message={failed ? text.failed : null} />
-      <AuthButton
+      <Button
         label={text.button}
         variant="danger"
         busy={busy}

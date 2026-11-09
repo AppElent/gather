@@ -1,5 +1,6 @@
 /**
- * The weights of action the front door and Account need.
+ * The app's button: the weights of action a screen needs, from the front door
+ * to Account and the Group forms. Reach for this before writing another.
  *
  * `primary` is ink, because the front door belongs to no Module and ADR-0017's
  * accent rule says the accent is ink where you are looking at everything. That
@@ -27,7 +28,7 @@ import {
 
 import { RADIUS, useTokens } from '../theme/tokens'
 
-interface AuthButtonProps {
+interface ButtonProps {
   label: string
   onPress: () => void
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -38,7 +39,7 @@ interface AuthButtonProps {
   testID?: string
 }
 
-export function AuthButton({
+export function Button({
   label,
   onPress,
   variant = 'primary',
@@ -46,7 +47,7 @@ export function AuthButton({
   disabled = false,
   style,
   testID,
-}: AuthButtonProps) {
+}: ButtonProps) {
   const tokens = useTokens()
   const inert = disabled || busy
 

@@ -15,13 +15,13 @@ import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import type { TextInputInstance } from 'react-native'
 import { type CodedError, pickError } from '../../src/auth/clerkErrors'
-import { AuthButton } from '../../src/components/AuthButton'
 import { AuthError } from '../../src/components/AuthError'
-import { AuthField } from '../../src/components/AuthField'
 import { AuthLink } from '../../src/components/AuthLink'
 import { AuthScreen } from '../../src/components/AuthScreen'
 import { SocialSoon } from '../../src/components/SocialSoon'
 import { useI18n } from '../../src/i18n'
+import { Button } from '../../src/ui/button'
+import { Field } from '../../src/ui/field'
 
 export default function SignUp() {
   const { t } = useI18n()
@@ -76,7 +76,7 @@ export default function SignUp() {
         />
       }
     >
-      <AuthField
+      <Field
         label={t.fields.email}
         value={email}
         onChangeText={setEmail}
@@ -89,7 +89,7 @@ export default function SignUp() {
         submitBehavior="submit"
         onSubmitEditing={() => passwordRef.current?.focus()}
       />
-      <AuthField
+      <Field
         ref={passwordRef}
         label={t.fields.password}
         value={password}
@@ -104,7 +104,7 @@ export default function SignUp() {
 
       <AuthError message={error} />
 
-      <AuthButton
+      <Button
         label={t.signUp.submit}
         busy={busy}
         disabled={!ready}
