@@ -51,4 +51,5 @@ When the table below records a zero run on production, delete
 | Deployment | Run on | Dry run | Final run |
 | ---------- | ------ | ------- | --------- |
 | dev (`basic-ibex-235`) | 2026-11-09 | `deleted: { comboItems: 6, combos: 2, consumptionEntries: 28, foods: 34 }, images: 0, nutritionTargets: 1, more: false` | all zero |
+| preview (`pr-261`) | 2026-11-09 | all zero (the tables never existed there) | all zero |
 | production | | | |
