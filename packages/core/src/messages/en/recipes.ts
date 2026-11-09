@@ -14,14 +14,19 @@ export const recipes = {
     emptyAction: 'Add your first recipe',
 
     /**
-     * The phone's collection screen. It filters what it already has rather
-     * than asking the server again, so "nothing found" is about the words
-     * somebody typed and never about the connection.
+     * The collection's search, on the phone and the web. It filters what it
+     * already has rather than asking the server again, so "nothing found" is
+     * about the words somebody typed and never about the connection.
      */
     search: 'Search recipes',
     clearSearch: 'Clear search',
     noResultsTitle: 'Nothing found',
     noResultsBody: 'No recipe here matches "{query}".',
+    /** The web list's tag control; it narrows the list to one tag. */
+    tagFilter: 'Filter by tag',
+    allTags: 'All tags',
+    noResultsTaggedBody: 'No recipe tagged "{tag}" matches "{query}".',
+    clearFilters: 'Clear filters',
     /** The badge on a row that lives in another Group and was shared into this one. */
     livesIn: 'From {group}',
     /** The accessible name of a row; `{title}` is the recipe's own words. */
