@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { useI18n } from '../i18n'
 import { useTokens } from '../theme/tokens'
 import { useHideSplash } from '../useHideSplash'
-import { AuthButton } from './AuthButton'
+import { Button } from './Button'
 
 export function AuthUnavailable({
   onRetry,
@@ -32,7 +32,7 @@ export function AuthUnavailable({
       >
         {t.gate.offline}
       </Text>
-      <AuthButton
+      <Button
         label={t.gate.retry}
         busy={retrying}
         disabled={retrying}

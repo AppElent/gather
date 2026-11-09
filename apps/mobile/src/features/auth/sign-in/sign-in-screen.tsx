@@ -19,11 +19,11 @@ import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import type { TextInputInstance } from 'react-native'
 import { usePasswordSignIn } from '../../../auth/usePasswordSignIn'
-import { AuthButton } from '../../../components/AuthButton'
 import { AuthError } from '../../../components/AuthError'
-import { AuthField } from '../../../components/AuthField'
 import { AuthLink } from '../../../components/AuthLink'
 import { AuthScreen } from '../../../components/AuthScreen'
+import { Button } from '../../../components/Button'
+import { Field } from '../../../components/Field'
 import { SocialSoon } from '../../../components/SocialSoon'
 import { haptics } from '../../../feedback/haptics'
 import { useI18n } from '../../../i18n'
@@ -72,7 +72,7 @@ export function SignInScreen() {
         />
       }
     >
-      <AuthField
+      <Field
         label={t.fields.email}
         value={email}
         onChangeText={setEmail}
@@ -85,7 +85,7 @@ export function SignInScreen() {
         submitBehavior="submit"
         onSubmitEditing={() => passwordRef.current?.focus()}
       />
-      <AuthField
+      <Field
         ref={passwordRef}
         label={t.fields.password}
         value={password}
@@ -100,14 +100,14 @@ export function SignInScreen() {
 
       <AuthError message={error} />
 
-      <AuthButton
+      <Button
         testID="sign-in-submit"
         label={t.signIn.submit}
         busy={passwordSignIn.busy}
         disabled={!ready || emailCode.busy}
         onPress={signInWithPassword}
       />
-      <AuthButton
+      <Button
         testID="sign-in-email-code"
         variant="secondary"
         label={t.signIn.emailCode.send}

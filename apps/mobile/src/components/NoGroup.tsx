@@ -23,7 +23,7 @@ import { useAvailability } from '../availability/AvailabilityProvider'
 import { useI18n } from '../i18n'
 import { useTokens } from '../theme/tokens'
 import { useHideSplash } from '../useHideSplash'
-import { AuthButton } from './AuthButton'
+import { Button } from './Button'
 import { GroupForms } from './GroupForms'
 
 export function NoGroup({ onSignOut }: { onSignOut: () => void }) {
@@ -57,7 +57,7 @@ export function NoGroup({ onSignOut }: { onSignOut: () => void }) {
 
       <GroupForms />
 
-      <AuthButton
+      <Button
         variant="secondary"
         label={t.signedIn.signOut}
         disabled={!serviceActionsEnabled}

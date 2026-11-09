@@ -32,7 +32,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { isTestAccount } from '../../../../../src/auth/config'
 import { useSignOut } from '../../../../../src/auth/useSignOut'
 import { useAvailability } from '../../../../../src/availability/AvailabilityProvider'
-import { AuthButton } from '../../../../../src/components/AuthButton'
+import { Button } from '../../../../../src/components/Button'
 import { useI18n } from '../../../../../src/i18n'
 import { identityInitial } from '../../../../../src/settings/identity'
 import { setProfilePhoto } from '../../../../../src/settings/profilePhoto'
@@ -108,7 +108,7 @@ export default function Account() {
         />
       </View>
 
-      <AuthButton
+      <Button
         variant="secondary"
         label={t.signedIn.signOut}
         disabled={!serviceActionsEnabled}

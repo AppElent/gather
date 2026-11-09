@@ -31,8 +31,8 @@ import { api } from '../convex/api'
 import { writeRetainedGroup } from '../group/retainedGroup'
 import { useI18n } from '../i18n'
 import { RADIUS, useTokens } from '../theme/tokens'
-import { AuthButton } from './AuthButton'
-import { AuthField } from './AuthField'
+import { Button } from './Button'
+import { Field } from './Field'
 
 type Form = 'create' | 'join'
 
@@ -111,7 +111,7 @@ export function GroupForms() {
         <Text style={[styles.body, { color: tokens.muted }]}>
           {text.createBody}
         </Text>
-        <AuthField
+        <Field
           label={text.createLabel}
           value={name}
           onChangeText={setName}
@@ -121,7 +121,7 @@ export function GroupForms() {
           onSubmitEditing={submitCreate}
           editable={serviceActionsEnabled}
         />
-        <AuthButton
+        <Button
           label={text.create}
           busy={busy === 'create'}
           disabled={!serviceActionsEnabled || !name.trim() || busy !== null}
@@ -152,7 +152,7 @@ export function GroupForms() {
         <Text style={[styles.body, { color: tokens.muted }]}>
           {text.joinBody}
         </Text>
-        <AuthField
+        <Field
           label={text.joinLabel}
           value={code}
           onChangeText={setCode}
@@ -165,7 +165,7 @@ export function GroupForms() {
           onSubmitEditing={submitJoin}
           editable={serviceActionsEnabled}
         />
-        <AuthButton
+        <Button
           variant="secondary"
           label={text.join}
           busy={busy === 'join'}

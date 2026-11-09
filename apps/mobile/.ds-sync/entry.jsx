@@ -24,9 +24,9 @@ import {
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AvailabilityProvider } from '../src/availability/AvailabilityProvider'
-import { AuthButton } from '../src/components/AuthButton'
+import { Button } from '../src/components/Button'
 import { AuthError } from '../src/components/AuthError'
-import { AuthField } from '../src/components/AuthField'
+import { Field } from '../src/components/Field'
 import { AuthLink } from '../src/components/AuthLink'
 import { AuthScreen } from '../src/components/AuthScreen'
 import { AuthUnavailable } from '../src/components/AuthUnavailable'
@@ -97,9 +97,9 @@ export function mount(container, element, options = {}) {
 
 export {
   // Auth
-  AuthButton,
+  Button,
   AuthError,
-  AuthField,
+  Field,
   AuthLink,
   AuthScreen,
   AuthUnavailable,

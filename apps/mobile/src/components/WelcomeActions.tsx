@@ -18,8 +18,8 @@ import { devLogin } from '../auth/config'
 import { usePasswordSignIn } from '../auth/usePasswordSignIn'
 import { useI18n } from '../i18n'
 import { useTokens } from '../theme/tokens'
-import { AuthButton } from './AuthButton'
 import { AuthError } from './AuthError'
+import { Button } from './Button'
 
 export function WelcomeActions() {
   const router = useRouter()
@@ -35,11 +35,11 @@ export function WelcomeActions() {
     <View style={styles.wrap}>
       <AuthError message={error} />
 
-      <AuthButton
+      <Button
         label={t.welcome.signIn}
         onPress={() => router.push('/sign-in')}
       />
-      <AuthButton
+      <Button
         variant="secondary"
         label={t.welcome.createAccount}
         onPress={() => router.push('/sign-up')}
@@ -54,7 +54,7 @@ export function WelcomeActions() {
                 {t.welcome.devBadge}
               </Text>
             </View>
-            <AuthButton
+            <Button
               variant="ghost"
               busy={busy}
               label={t.welcome.devSignIn}

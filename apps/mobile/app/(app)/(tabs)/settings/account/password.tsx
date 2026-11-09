@@ -25,9 +25,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { readThrown } from '../../../../../src/auth/clerkErrors'
-import { AuthButton } from '../../../../../src/components/AuthButton'
 import { AuthError } from '../../../../../src/components/AuthError'
-import { AuthField } from '../../../../../src/components/AuthField'
+import { Button } from '../../../../../src/components/Button'
+import { Field } from '../../../../../src/components/Field'
 import { SettingsCard } from '../../../../../src/components/SettingsCard'
 import { useI18n } from '../../../../../src/i18n'
 import { useTokens } from '../../../../../src/theme/tokens'
@@ -94,7 +94,7 @@ export default function ChangePassword() {
       >
         <SettingsCard description={t.account.changePassword.description}>
           <View style={styles.fields}>
-            <AuthField
+            <Field
               testID="account-current-password"
               label={t.account.changePassword.current}
               value={current}
@@ -106,7 +106,7 @@ export default function ChangePassword() {
               returnKeyType="next"
               onSubmitEditing={() => next.current?.focus()}
             />
-            <AuthField
+            <Field
               ref={next}
               testID="account-new-password"
               label={t.account.changePassword.next}
@@ -124,7 +124,7 @@ export default function ChangePassword() {
 
         <AuthError message={error} />
 
-        <AuthButton
+        <Button
           label={t.account.changePassword.submit}
           busy={busy}
           disabled={!ready}

@@ -16,25 +16,25 @@ const box = (height, child) =>
 export const COMPONENTS = [
   // ─────────────────────────────────────────────────────────── Auth ──
   {
-    name: 'AuthButton',
+    name: 'Button',
     group: 'Auth',
     summary:
       'The three weights of action the front door needs — primary (ink), secondary (outlined), ghost.',
     pad: 24,
     specimen: `G.h(G.React.Fragment, null,
-      G.h(G.AuthButton, { label: 'Sign in', onPress: function () {} }),
+      G.h(G.Button, { label: 'Sign in', onPress: function () {} }),
       G.h('div', { style: { height: 10 } }),
-      G.h(G.AuthButton, { label: 'Create an account', variant: 'secondary', onPress: function () {} }),
+      G.h(G.Button, { label: 'Create an account', variant: 'secondary', onPress: function () {} }),
       G.h('div', { style: { height: 10 } }),
-      G.h(G.AuthButton, { label: 'Continue as guest', variant: 'ghost', onPress: function () {} }),
+      G.h(G.Button, { label: 'Continue as guest', variant: 'ghost', onPress: function () {} }),
       G.h('div', { style: { height: 10 } }),
-      G.h(G.AuthButton, { label: 'Signing in', busy: true, onPress: function () {} }),
+      G.h(G.Button, { label: 'Signing in', busy: true, onPress: function () {} }),
       G.h('div', { style: { height: 10 } }),
-      G.h(G.AuthButton, { label: 'Unavailable', disabled: true, onPress: function () {} })
+      G.h(G.Button, { label: 'Unavailable', disabled: true, onPress: function () {} })
     )`,
     types: `import type { StyleProp, ViewStyle } from 'react-native'
 
-export interface AuthButtonProps {
+export interface ButtonProps {
   label: string
   onPress: () => void
   /**
@@ -50,16 +50,16 @@ export interface AuthButtonProps {
   style?: StyleProp<ViewStyle>
 }
 
-export declare function AuthButton(props: AuthButtonProps): JSX.Element
+export declare function Button(props: ButtonProps): JSX.Element
 `,
-    prompt: `# AuthButton
+    prompt: `# Button
 
 The three weights of action the front door needs.
 
 \`\`\`jsx
-<AuthButton label="Sign in" onPress={submit} />
-<AuthButton label="Create an account" variant="secondary" onPress={goToSignUp} />
-<AuthButton label="Forgot password" variant="ghost" onPress={goToReset} />
+<Button label="Sign in" onPress={submit} />
+<Button label="Create an account" variant="secondary" onPress={goToSignUp} />
+<Button label="Forgot password" variant="ghost" onPress={goToReset} />
 \`\`\`
 
 ## Variants
@@ -80,13 +80,13 @@ The three weights of action the front door needs.
 - \`busy\` implies inert — you do not also need \`disabled\` while submitting.
 - The label is the accessible name; there is no separate \`accessibilityLabel\`.
 `,
-    usage: `import { AuthButton } from '@gather/mobile'
+    usage: `import { Button } from '@gather/mobile'
 
 export function SignInActions({ submit, busy, goToSignUp }) {
   return (
     <>
-      <AuthButton label="Sign in" busy={busy} onPress={submit} />
-      <AuthButton
+      <Button label="Sign in" busy={busy} onPress={submit} />
+      <Button
         label="Create an account"
         variant="secondary"
         onPress={goToSignUp}
@@ -98,21 +98,21 @@ export function SignInActions({ submit, busy, goToSignUp }) {
   },
 
   {
-    name: 'AuthField',
+    name: 'Field',
     group: 'Auth',
     summary:
       'A labelled TextInput, with the platform autofill affordances as props and a reveal toggle for passwords.',
     pad: 24,
     specimen: `G.h(G.React.Fragment, null,
-      G.h(G.AuthField, { label: 'Email', value: 'sam@example.com', placeholder: 'you@example.com', onChangeText: function () {} }),
+      G.h(G.Field, { label: 'Email', value: 'sam@example.com', placeholder: 'you@example.com', onChangeText: function () {} }),
       G.h('div', { style: { height: 16 } }),
-      G.h(G.AuthField, { label: 'Password', value: 'hunter2hunter2', secure: true, onChangeText: function () {} }),
+      G.h(G.Field, { label: 'Password', value: 'hunter2hunter2', secure: true, onChangeText: function () {} }),
       G.h('div', { style: { height: 16 } }),
-      G.h(G.AuthField, { label: 'Invite code', value: 'nope', invalid: true, onChangeText: function () {} })
+      G.h(G.Field, { label: 'Invite code', value: 'nope', invalid: true, onChangeText: function () {} })
     )`,
     types: `import type { TextInput, TextInputProps } from 'react-native'
 
-export interface AuthFieldProps extends Omit<TextInputProps, 'style'> {
+export interface FieldProps extends Omit<TextInputProps, 'style'> {
   label: string
   /** Renders the reveal toggle and starts obscured. */
   secure?: boolean
@@ -120,17 +120,17 @@ export interface AuthFieldProps extends Omit<TextInputProps, 'style'> {
   invalid?: boolean
 }
 
-export declare const AuthField: React.ForwardRefExoticComponent<
-  AuthFieldProps & React.RefAttributes<TextInput>
+export declare const Field: React.ForwardRefExoticComponent<
+  FieldProps & React.RefAttributes<TextInput>
 >
 `,
-    prompt: `# AuthField
+    prompt: `# Field
 
 A labelled text field. Plain React Native \`TextInput\` underneath — no wrapper
 library — so the platform affordances are yours to pass.
 
 \`\`\`jsx
-<AuthField
+<Field
   label="Email"
   value={email}
   onChangeText={setEmail}
@@ -140,7 +140,7 @@ library — so the platform affordances are yours to pass.
   autoCapitalize="none"
 />
 
-<AuthField label="Password" secure value={password} onChangeText={setPassword} />
+<Field label="Password" secure value={password} onChangeText={setPassword} />
 \`\`\`
 
 ## Rules
@@ -163,14 +163,14 @@ For an invite code, turn the keyboard's helpfulness off — it is generated hex,
 not a word: \`autoCapitalize="none"\` and \`autoCorrect={false}\`.
 `,
     usage: `import { useRef } from 'react'
-import { AuthField } from '@gather/mobile'
+import { Field } from '@gather/mobile'
 
 export function Credentials({ email, setEmail, password, setPassword, submit }) {
   const passwordRef = useRef(null)
 
   return (
     <>
-      <AuthField
+      <Field
         label="Email"
         value={email}
         onChangeText={setEmail}
@@ -181,7 +181,7 @@ export function Credentials({ email, setEmail, password, setPassword, submit }) 
         returnKeyType="next"
         onSubmitEditing={() => passwordRef.current?.focus()}
       />
-      <AuthField
+      <Field
         ref={passwordRef}
         label="Password"
         secure
@@ -232,13 +232,13 @@ One failure, stated above the actions.
   reader has to work out which control each belongs to.
 - The message is prose you supply, already in the reader's language.
 `,
-    usage: `import { AuthError, AuthButton } from '@gather/mobile'
+    usage: `import { AuthError, Button } from '@gather/mobile'
 
 export function SubmitRow({ error, submit, busy }) {
   return (
     <>
       <AuthError message={error} />
-      <AuthButton label="Sign in" busy={busy} onPress={submit} />
+      <Button label="Sign in" busy={busy} onPress={submit} />
     </>
   )
 }
@@ -315,9 +315,9 @@ export function SignIn({ goToSignUp, children }) {
       subtitle: 'Sign in to get back to your household.',
       footer: G.h(G.AuthLink, { prompt: "Don't have an account?", label: 'Create one', onPress: function () {} })
     },
-      G.h(G.AuthField, { label: 'Email', value: 'sam@example.com', onChangeText: function () {} }),
-      G.h(G.AuthField, { label: 'Password', secure: true, value: 'hunter2hunter2', onChangeText: function () {} }),
-      G.h(G.AuthButton, { label: 'Sign in', onPress: function () {} })
+      G.h(G.Field, { label: 'Email', value: 'sam@example.com', onChangeText: function () {} }),
+      G.h(G.Field, { label: 'Password', secure: true, value: 'hunter2hunter2', onChangeText: function () {} }),
+      G.h(G.Button, { label: 'Sign in', onPress: function () {} })
     )`,
     types: `import type { ReactNode } from 'react'
 
@@ -342,10 +342,10 @@ the heading block; you supply the fields and the actions.
   subtitle="Sign in to get back to your household."
   footer={<AuthLink prompt="New here?" label="Create an account" onPress={goToSignUp} />}
 >
-  <AuthField label="Email" value={email} onChangeText={setEmail} />
-  <AuthField label="Password" secure value={password} onChangeText={setPassword} />
+  <Field label="Email" value={email} onChangeText={setEmail} />
+  <Field label="Password" secure value={password} onChangeText={setPassword} />
   <AuthError message={error} />
-  <AuthButton label="Sign in" busy={busy} onPress={submit} />
+  <Button label="Sign in" busy={busy} onPress={submit} />
 </AuthScreen>
 \`\`\`
 
@@ -361,7 +361,7 @@ the heading block; you supply the fields and the actions.
   \`keyboardShouldPersistTaps="handled"\` — the latter is why the submit button
   works on the first tap while a field has focus. Do not nest another ScrollView.
 `,
-    usage: `import { AuthScreen, AuthField, AuthError, AuthButton, AuthLink } from '@gather/mobile'
+    usage: `import { AuthScreen, Field, AuthError, Button, AuthLink } from '@gather/mobile'
 
 export function SignInScreen(props) {
   return (
@@ -370,10 +370,10 @@ export function SignInScreen(props) {
       subtitle="Sign in to get back to your household."
       footer={<AuthLink prompt="New here?" label="Create an account" onPress={props.goToSignUp} />}
     >
-      <AuthField label="Email" value={props.email} onChangeText={props.setEmail} />
-      <AuthField label="Password" secure value={props.password} onChangeText={props.setPassword} />
+      <Field label="Email" value={props.email} onChangeText={props.setEmail} />
+      <Field label="Password" secure value={props.password} onChangeText={props.setPassword} />
       <AuthError message={props.error} />
-      <AuthButton label="Sign in" busy={props.busy} onPress={props.submit} />
+      <Button label="Sign in" busy={props.busy} onPress={props.submit} />
     </AuthScreen>
   )
 }

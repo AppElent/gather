@@ -24,9 +24,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { readThrown } from '../../../../../src/auth/clerkErrors'
-import { AuthButton } from '../../../../../src/components/AuthButton'
 import { AuthError } from '../../../../../src/components/AuthError'
-import { AuthField } from '../../../../../src/components/AuthField'
+import { Button } from '../../../../../src/components/Button'
+import { Field } from '../../../../../src/components/Field'
 import { SettingsCard } from '../../../../../src/components/SettingsCard'
 import { useI18n } from '../../../../../src/i18n'
 import { useTokens } from '../../../../../src/theme/tokens'
@@ -73,7 +73,7 @@ export default function EditName() {
       >
         <SettingsCard description={t.account.editName.description}>
           <View style={styles.fields}>
-            <AuthField
+            <Field
               testID="account-first-name"
               label={t.account.editName.first}
               value={first}
@@ -84,7 +84,7 @@ export default function EditName() {
               returnKeyType="next"
               onSubmitEditing={() => last.current?.focus()}
             />
-            <AuthField
+            <Field
               ref={last}
               testID="account-last-name"
               label={t.account.editName.last}
@@ -101,7 +101,7 @@ export default function EditName() {
 
         <AuthError message={error} />
 
-        <AuthButton
+        <Button
           label={t.common.actions.save}
           busy={busy}
           onPress={() => void save()}
