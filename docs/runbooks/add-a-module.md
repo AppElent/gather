@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when adding a Module, a nested web route, a Convex table with a groupId, a _storage column, a photo preset, or a schema-keyed message.
-version: 1.2.0
+version: 1.3.0
 ---
 
 # Add a Module
@@ -29,6 +29,7 @@ the same change as the Module.
 | `packages/core/src/messages/{en,nl}/modules.ts` | Every Module: label and description, English first | `pnpm typecheck` (`satisfies Record<ModuleId, …>`) | [Localization](../../CODING_STANDARDS.md#localization) |
 | `apps/mobile/src/drop/dropTargets.ts` `DROP_TARGETS` | Every Module; an empty list if it accepts no Drop | `pnpm typecheck` (`Record<ModuleId, …>`) | [Drop](../contracts/drop.md) |
 | `convex/lib/groupCascade.ts` `GROUP_CONTENT` | Every table with a `groupId` | `pnpm typecheck` (derived from the schema) | [Account deletion](../contracts/account-deletion.md) |
+| `convex/lib/dataExport.ts` `EXPORT_TABLES` | Every Convex table | `pnpm typecheck` (keyed by every schema table) | [Data export](../contracts/data-export.md) |
 | `convex/lib/storedFiles.ts` `FILE_HOLDERS` | Every `_storage` column | `pnpm typecheck` (typed off the schema) | [Stored files](../contracts/stored-files.md) |
 | `convex/maintenance.ts` `USER_REFERENCES` | Every column holding a `v.id('users')` | `pnpm typecheck` (derived from the schema) | [Migrations](../migrations/README.md) |
 | Message tables keyed by `NutrientKey`, `MealName`, `BabyEventType` | A new nutrient, meal or baby event type | `pnpm typecheck` | [Localization](../../CODING_STANDARDS.md#localization) |

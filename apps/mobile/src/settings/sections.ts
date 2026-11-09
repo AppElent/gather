@@ -27,6 +27,7 @@ export type SettingsEntryId =
   | 'account-password'
   | 'account-email'
   | 'account-devices'
+  | 'account-export'
   | 'account-delete'
   | 'groups'
   | 'appearance'
@@ -41,6 +42,7 @@ export type SettingsHref =
   | '/settings/account/password'
   | '/settings/account/email'
   | '/settings/account/devices'
+  | '/settings/account/export'
   | '/settings/account/delete'
   | '/settings/groups'
   | '/settings/appearance'
@@ -142,6 +144,11 @@ export function settingsSections(
               id: 'account-devices',
               label: t.account.devices,
               href: '/settings/account/devices',
+            },
+            {
+              id: 'account-export',
+              label: t.account.dataExport.title,
+              href: '/settings/account/export',
             },
             {
               id: 'account-delete',

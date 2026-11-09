@@ -326,6 +326,9 @@ export const en = {
     email: 'Email',
     devices: 'Devices',
 
+    /** The row and the screen that writes the person's data to a file. */
+    dataExport: coreEn.settings.dataExport,
+
     /** Changing the name Clerk holds. Both halves, because Clerk stores both. */
     editName: {
       title: 'Name',

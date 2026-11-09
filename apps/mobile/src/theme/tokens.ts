@@ -83,4 +83,7 @@ export function useTokens(group?: ModuleGroup): Tokens {
 export const RADIUS = { tile: 13, card: 16, control: 12 }
 
 /** Shared text styles; feature screens use these, not a literal fontSize (scripts/check-mobile-structure.mjs). */
-export const TYPE = { body: { fontSize: 14, lineHeight: 20 } }
+export const TYPE = {
+  lead: { fontSize: 17, lineHeight: 23 },
+  body: { fontSize: 14, lineHeight: 20 },
+}

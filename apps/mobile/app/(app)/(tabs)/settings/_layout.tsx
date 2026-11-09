@@ -47,6 +47,10 @@ export default function SettingsLayout() {
         options={{ headerShown: true, title: t.account.sessions.title }}
       />
       <Stack.Screen
+        name="account/export"
+        options={{ headerShown: true, title: t.account.dataExport.title }}
+      />
+      <Stack.Screen
         name="account/delete"
         options={{ headerShown: true, title: t.account.deleteAccount.title }}
       />

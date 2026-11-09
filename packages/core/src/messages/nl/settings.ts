@@ -24,6 +24,20 @@ export const settings = {
     },
   },
 
+  dataExport: {
+    title: 'Je gegevens exporteren',
+    description:
+      'Eén JSON-bestand met je account, je voedingsdagboek, voedingsmiddelen en combinaties, en alles in elke Groep waarvan je lid bent.',
+    leftOut:
+      'Andere leden staan er alleen met hun naam in: hun dagboek, combinaties en keuzes blijven van hen. Koppelingstokens en uitnodigingscodes worden weggelaten.',
+    photos:
+      'Foto’s staan erin als links, niet als bestanden. Iedereen aan wie je het bestand geeft, kan die links openen.',
+    action: 'Exporteren',
+    busy: 'Exporteren… {done} van {total}',
+    failed: 'Je gegevens konden niet worden geëxporteerd. Probeer het opnieuw.',
+    unavailable: 'Dit apparaat kan het bestand nergens heen delen.',
+  },
+
   nutritionTargets: {
     title: 'Dagdoelen',
     description:
