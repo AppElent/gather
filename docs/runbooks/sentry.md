@@ -46,7 +46,8 @@ privacy change: update this table and the privacy statement.
 ## Source maps
 
 `vite.config.ts` emits hidden maps and uploads them only when `SENTRY_AUTH_TOKEN`
-is set (from the process environment, else `.env.local` — Vite reads dotenv files
+is set (in CI from the job env; by hand through `pnpm deploy:<environment>`,
+which runs under `env:exec`; the token never lands in `.env.local`. Vite reads dotenv files
 only after the config is evaluated, so the config loads just the four Sentry
 names itself; the process environment wins); the plugin deletes `dist/**/*.map` after upload. Without the token the
 build emits no maps at all. A failed upload is logged by the plugin and does not
@@ -55,14 +56,16 @@ own maps.
 
 ## Phone source maps and symbols
 
-An over-the-air update is published only through `pnpm update:preview` /
-`update:prod` (`apps/mobile/scripts/publish-update.mjs`): `eas update` with its
+An over-the-air update is published only through `pnpm mobile:update:preview` /
+`mobile:update:production` from the repo root, which run
+`apps/mobile/scripts/publish-update.mjs` under `env:exec` with that channel's
+EAS values (`SENTRY_*` included): `eas update` with its
 `--environment`, then `sentry-expo-upload-sourcemaps dist` for that same
 export. **Production refuses to publish without `SENTRY_AUTH_TOKEN`** (plus
 org and project: `SENTRY_ORG`/`SENTRY_PROJECT`, else the web's `VITE_SENTRY_*`,
 read from the process or the root `.env.local`). Preview publishes without them
 and says so, because preview is where the pipeline is tried. If the update
-publishes and the upload fails, run `pnpm update:prod --upload-only` (it
+publishes and the upload fails, run `pnpm mobile:update:production --upload-only` (it
 re-uploads the last `dist/`; it never publishes again).
 
 A store or internal build uploads its own bundle map and native symbols from the

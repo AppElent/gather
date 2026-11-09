@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when changing the PR preview workflow, its secrets, or what a preview seeds.
-version: 2.0.0
+version: 3.0.0
 ---
 
 # Previews
@@ -16,25 +16,27 @@ labelled `preview:web` gets its own Convex backend and Worker.
 | Workflow | `.github/workflows/preview.yml` |
 | Trigger | Opt-in: adding the `preview:web` label deploys, pushes redeploy while it stays; removing the label or closing the PR deletes the Worker |
 | Backend | `convex deploy --preview-create pr-<N> --preview-run seed:seedPreview` |
-| Worker | `gather-pr-<N>`, URL posted as a PR comment |
-| Repo-scoped names | Carry the `PREVIEW_` prefix (`PREVIEW_CONVEX_DEPLOY_KEY`, `PREVIEW_VITE_CLERK_PUBLISHABLE_KEY`, `PREVIEW_VITE_TEST_USER_*`, `PREVIEW_VITE_SENTRY_*`, `PREVIEW_SENTRY_AUTH_TOKEN`, `PREVIEW_GITHUB_ISSUES_TOKEN`) so they cannot shadow or be shadowed by `stg`/`production` Environment values |
-| Test login | `VITE_TEST_USER_*` are build-time only and inlined into the client bundle, so the test user lives on the Clerk *test* instance |
+| Worker | `gather-pr-<N>`, built with `CLOUDFLARE_ENV=pr` (the route-free Wrangler env), URL posted as a PR comment |
+| Repository-scope names | `PREVIEW_<name>`, written by `pnpm env:apply preview --only github` from Infisical `staging`, so they cannot shadow or be shadowed by `staging`/`production` Environment values. The workflow maps each back to `<name>`: secrets from `secrets.`, public values from `vars.` |
+| Worker runtime values | The issue reporter's token and repository name land on `workflow` for preview too; the `Apply Worker runtime values` step writes them to the per-PR Worker with `env.mjs apply preview --ci --only worker --pr <N>`. `GITHUB_REPOSITORY_OWNER` is the runner's own |
+| Auth | Production Clerk (`pk_live_`), like the installed preview app; the test-login button needs `pk_test_` and test-user values never reach previews |
 
 ## Hazards
 
 - **`--preview-run` takes no arguments.** `seedPreview` therefore hardcodes the
-  Clerk test user's subject as `PREVIEW_TEST_USER` in `convex/seed.ts`. If that
-  Clerk user is ever recreated, update the constant or previews seed a
-  household nobody can sign into.
+  Clerk test user's subject as `PREVIEW_TEST_USER` in `convex/seed.ts`. Previews
+  now sign in through production Clerk, where that test user does not exist,
+  so its seeded household is unreachable until the seed changes.
 - **`preview.yml` declares no `environment:`.** That is what keeps preview,
-  `stg` and `production` values apart; giving the job one would point every PR
-  preview at a real backend without failing.
+  `staging` and `production` values apart; giving the job one would point every
+  PR preview at a real backend without failing.
+- **The preview backend must trust the production issuer.** Its
+  `CLERK_JWT_ISSUER_DOMAIN` is a Convex preview default, written by
+  `pnpm env:apply preview --only convex`.
 - **A preview backend inherits no Convex variables** — server values come from
   preview defaults ([environment](environment.md#hazards)).
-- The `|| secrets.<old name>` fallbacks in the workflow are a transition shim;
-  they go once `pnpm env:check preview` reports no missing values.
 
 ## Verify
 
-- The PR comment links a Worker where test login lands in a populated Sample
-  household.
+- The PR comment links a Worker where a production Clerk account signs in.
+- `jq .routes dist/server/wrangler.json` after a preview build shows no routes.

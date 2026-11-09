@@ -12,7 +12,9 @@ Read it before adding a screen. The research behind it is in
 
 ## Run locally
 
-1. Copy `.env.example` to `.env.local` and provide the Clerk and Convex values.
+1. `.env.local` is generated: a new worktree gets it from the `t3.json` setup
+   hook, and `pnpm env:apply local --only file` (from the repository root)
+   rewrites it from Infisical. Never edit it by hand.
 2. From the repository root, run `pnpm --filter @gather/mobile start`.
 3. Open the development build on a device, or start the Android or iOS target
    with `pnpm --filter @gather/mobile android` or
