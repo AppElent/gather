@@ -37,5 +37,11 @@ Apply the shared [mobile coding](../../docs/standards/mobile-coding.md),
   [mobile structure](../../docs/standards/mobile-structure.md) says
   (`card.tsx`, `use-debounced-text.ts`), and imports no Module.
   `src/components/` is the older shared folder, kept until its files change.
+- **File names: an exception to kebab-case.** Most files under `src/` predate
+  [mobile structure](../../docs/standards/mobile-structure.md) and keep their
+  camelCase and PascalCase names. Renaming them all at once would conflict with
+  every open phone branch. A new folder, and `src/ui/`, use kebab-case. A new
+  file in an existing folder follows that folder's names. Rename a folder in
+  its own commit once no open branch depends on its file names.
 - **Tests** run in the root Vitest `mobile` project (`src/**/*.test.ts`), and
   `pnpm --filter @gather/mobile typecheck` covers the app.
