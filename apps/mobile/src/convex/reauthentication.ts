@@ -2,9 +2,10 @@
  * When to ask Convex to authenticate again, kept free of React so the Node
  * suite can check it.
  *
- * The installed client (convex 1.42) gives up on authentication for good after
- * one failed token fetch: `AuthenticationManager.refetchToken` clears the auth,
- * reports `isAuthenticated: false`, and parks in `noAuth`, where nothing ever
+ * The installed client (convex 1.49; its `AuthenticationManager` is unchanged
+ * since 1.42) gives up on authentication for good after one failed token
+ * fetch: `AuthenticationManager.refetchToken` clears the auth, reports
+ * `isAuthenticated: false`, and parks in `noAuth`, where nothing ever
  * fetches a token again. A websocket reconnect does not retry it either — the
  * socket comes back anonymous. The scheduled refresh fails exactly that way
  * when Clerk cannot be reached, so a phone that was offline past its token's
