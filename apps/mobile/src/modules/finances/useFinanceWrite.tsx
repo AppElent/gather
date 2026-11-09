@@ -10,9 +10,12 @@
  * the top of its scroll and inside any sheet a write can fail from, so the
  * draft that did not save is still on screen beside the reason.
  *
- * One write at a time: while one is in flight a second tap is ignored, since
- * the sheet that used to vanish on the first tap now waits for the answer and
- * a second Save would otherwise add the same thing twice.
+ * A write that moves on afterwards (one with `then`: a sheet's Save, a delete
+ * that goes back) runs one at a time: the sheet that used to vanish on the
+ * first tap now waits for the answer, so a second Save tap would otherwise
+ * add the same thing twice, and is ignored. A plain edit with no `then` (a
+ * chip, a segment) always runs: each tap is a distinct choice, and dropping
+ * one would lose it without a word.
  *
  * The words are `common.errors.didNotWork`: there is nothing more specific to
  * say about a refusal this Module never expects.
@@ -30,16 +33,17 @@ export function useFinanceWrite() {
 
   const attempt = useCallback(
     <T,>(write: () => Promise<T>, then?: (value: T) => void) => {
-      if (inFlight.current) return
-      inFlight.current = true
+      const guarded = then !== undefined
+      if (guarded && inFlight.current) return
+      if (guarded) inFlight.current = true
       setFailed(false)
       write().then(
         (value) => {
-          inFlight.current = false
+          if (guarded) inFlight.current = false
           then?.(value)
         },
         () => {
-          inFlight.current = false
+          if (guarded) inFlight.current = false
           haptics.actionFailed()
           setFailed(true)
         },
