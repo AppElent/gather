@@ -32,7 +32,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { isTestAccount } from '../../../../../src/auth/config'
 import { useSignOut } from '../../../../../src/auth/useSignOut'
 import { useAvailability } from '../../../../../src/availability/AvailabilityProvider'
-import { Button } from '../../../../../src/components/Button'
 import { useI18n } from '../../../../../src/i18n'
 import { identityInitial } from '../../../../../src/settings/identity'
 import { setProfilePhoto } from '../../../../../src/settings/profilePhoto'
@@ -40,6 +39,7 @@ import type { SettingsHref } from '../../../../../src/settings/sections'
 import type { Glyph } from '../../../../../src/theme/glyph'
 import { UI_ICONS } from '../../../../../src/theme/icons'
 import { RADIUS, useTokens } from '../../../../../src/theme/tokens'
+import { Button } from '../../../../../src/ui/button'
 
 export default function Account() {
   const tokens = useTokens()

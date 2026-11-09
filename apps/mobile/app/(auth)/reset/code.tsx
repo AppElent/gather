@@ -13,9 +13,9 @@ import { type CodedError, pickError } from '../../../src/auth/clerkErrors'
 import { CODE_LENGTH } from '../../../src/auth/codeLength'
 import { AuthError } from '../../../src/components/AuthError'
 import { AuthScreen } from '../../../src/components/AuthScreen'
-import { Button } from '../../../src/components/Button'
-import { Field } from '../../../src/components/Field'
 import { fmt, useI18n } from '../../../src/i18n'
+import { Button } from '../../../src/ui/button'
+import { Field } from '../../../src/ui/field'
 
 export default function ResetCode() {
   const { t } = useI18n()

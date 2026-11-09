@@ -17,10 +17,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAvailability } from '../../../availability/AvailabilityProvider'
 import { AuthError } from '../../../components/AuthError'
-import { Button } from '../../../components/Button'
 import { haptics } from '../../../feedback/haptics'
 import { fmt, useI18n } from '../../../i18n'
 import { TYPE, useTokens } from '../../../theme/tokens'
+import { Button } from '../../../ui/button'
 import {
   DataExportError,
   type ExportFailure,

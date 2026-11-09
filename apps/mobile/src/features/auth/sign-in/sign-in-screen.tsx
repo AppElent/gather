@@ -22,11 +22,11 @@ import { usePasswordSignIn } from '../../../auth/usePasswordSignIn'
 import { AuthError } from '../../../components/AuthError'
 import { AuthLink } from '../../../components/AuthLink'
 import { AuthScreen } from '../../../components/AuthScreen'
-import { Button } from '../../../components/Button'
-import { Field } from '../../../components/Field'
 import { SocialSoon } from '../../../components/SocialSoon'
 import { haptics } from '../../../feedback/haptics'
 import { useI18n } from '../../../i18n'
+import { Button } from '../../../ui/button'
+import { Field } from '../../../ui/field'
 import { useEmailCodeSignIn } from '../use-email-code-sign-in'
 
 export function SignInScreen() {

@@ -18,10 +18,10 @@ import { type CodedError, pickError } from '../../src/auth/clerkErrors'
 import { AuthError } from '../../src/components/AuthError'
 import { AuthLink } from '../../src/components/AuthLink'
 import { AuthScreen } from '../../src/components/AuthScreen'
-import { Button } from '../../src/components/Button'
-import { Field } from '../../src/components/Field'
 import { SocialSoon } from '../../src/components/SocialSoon'
 import { useI18n } from '../../src/i18n'
+import { Button } from '../../src/ui/button'
+import { Field } from '../../src/ui/field'
 
 export default function SignUp() {
   const { t } = useI18n()

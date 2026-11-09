@@ -18,8 +18,8 @@ import { devLogin } from '../auth/config'
 import { usePasswordSignIn } from '../auth/usePasswordSignIn'
 import { useI18n } from '../i18n'
 import { useTokens } from '../theme/tokens'
+import { Button } from '../ui/button'
 import { AuthError } from './AuthError'
-import { Button } from './Button'
 
 export function WelcomeActions() {
   const router = useRouter()

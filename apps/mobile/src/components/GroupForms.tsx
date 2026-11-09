@@ -31,8 +31,8 @@ import { api } from '../convex/api'
 import { writeRetainedGroup } from '../group/retainedGroup'
 import { useI18n } from '../i18n'
 import { RADIUS, useTokens } from '../theme/tokens'
-import { Button } from './Button'
-import { Field } from './Field'
+import { Button } from '../ui/button'
+import { Field } from '../ui/field'
 
 type Form = 'create' | 'join'
 

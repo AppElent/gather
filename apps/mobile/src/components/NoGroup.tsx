@@ -22,8 +22,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAvailability } from '../availability/AvailabilityProvider'
 import { useI18n } from '../i18n'
 import { useTokens } from '../theme/tokens'
+import { Button } from '../ui/button'
 import { useHideSplash } from '../useHideSplash'
-import { Button } from './Button'
 import { GroupForms } from './GroupForms'
 
 export function NoGroup({ onSignOut }: { onSignOut: () => void }) {

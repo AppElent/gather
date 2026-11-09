@@ -7,19 +7,19 @@
  * specimens are written without JSX.
  */
 
-export const GROUPS = ['Auth', 'Groups', 'Shell', 'Settings']
+export const GROUPS = ['Controls', 'Auth', 'Groups', 'Shell', 'Settings']
 
 /** Wrap a specimen in a fixed-height box, for components that position absolutely. */
 const box = (height, child) =>
   `G.h(G.React.Fragment, null, G.h('div', { style: { position: 'relative', height: ${height}, width: '100%' } }, ${child}))`
 
 export const COMPONENTS = [
-  // ─────────────────────────────────────────────────────────── Auth ──
+  // ─────────────────────────────────────────────────────── Controls ──
   {
     name: 'Button',
-    group: 'Auth',
+    group: 'Controls',
     summary:
-      'The three weights of action the front door needs — primary (ink), secondary (outlined), ghost.',
+      "The app's button, on every screen — primary (ink), secondary (outlined), ghost, and danger for deleting what cannot come back.",
     pad: 24,
     specimen: `G.h(G.React.Fragment, null,
       G.h(G.Button, { label: 'Sign in', onPress: function () {} }),
@@ -39,11 +39,11 @@ export interface ButtonProps {
   onPress: () => void
   /**
    * \`primary\` is ink — the front door belongs to no Module, and the accent rule
-   * makes the accent ink where you are looking at everything. None of the three
+   * makes the accent ink where you are looking at everything. None of them
    * take a tint: a tinted "Sign in" claims the person is somewhere they have
-   * not arrived yet.
+   * not arrived yet. \`danger\` is filled, for deleting what cannot come back.
    */
-  variant?: 'primary' | 'secondary' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   /** Adds a spinner beside the label. The label stays, so width does not jump. */
   busy?: boolean
   disabled?: boolean
@@ -54,7 +54,8 @@ export declare function Button(props: ButtonProps): JSX.Element
 `,
     prompt: `# Button
 
-The three weights of action the front door needs.
+The app's button. Use it for every action, on the front door or in a Module;
+do not write another.
 
 \`\`\`jsx
 <Button label="Sign in" onPress={submit} />
@@ -69,10 +70,11 @@ The three weights of action the front door needs.
 | \`primary\` (default) | Solid \`tokens.accent\`, label in \`tokens.onAccent\` | The one action the screen exists for |
 | \`secondary\` | Transparent with a \`tokens.border\` hairline | The real alternative to it |
 | \`ghost\` | Transparent, no border, tighter padding | Anything below those two |
+| \`danger\` | Solid \`tokens.danger\` | Deleting what cannot come back: an account, a Group |
 
 ## Rules
 
-- **Never pass a Module tint to an auth button.** \`primary\` is ink by design
+- **Never pass a Module tint to a button.** \`primary\` is ink by design
   (the accent rule): a tinted "Sign in" claims the reader is inside a Module
   they have not reached yet.
 - **Use \`busy\`, not a swapped label.** It keeps the label and adds a spinner
@@ -99,7 +101,7 @@ export function SignInActions({ submit, busy, goToSignUp }) {
 
   {
     name: 'Field',
-    group: 'Auth',
+    group: 'Controls',
     summary:
       'A labelled TextInput, with the platform autofill affordances as props and a reveal toggle for passwords.',
     pad: 24,
@@ -198,6 +200,7 @@ export function Credentials({ email, setEmail, password, setPassword, submit }) 
 `,
   },
 
+  // ─────────────────────────────────────────────────────────── Auth ──
   {
     name: 'AuthError',
     group: 'Auth',

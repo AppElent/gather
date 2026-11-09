@@ -12,8 +12,8 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../i18n'
 import { useTokens } from '../theme/tokens'
+import { Button } from '../ui/button'
 import { useHideSplash } from '../useHideSplash'
-import { Button } from './Button'
 
 export function SessionError({
   onRetry,

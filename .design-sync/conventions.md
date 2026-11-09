@@ -111,5 +111,5 @@ function AppearanceScreen({ preference, setPreference }) {
 ```
 
 Prefer a library component over your own: `SettingsCard` for any utility
-surface, `AuthButton` for actions, `AuthField` for text entry, `Segmented` for a
+surface, `Button` for actions, `Field` for text entry, `Segmented` for a
 small exclusive choice. Reach for raw elements only for layout glue between them.

@@ -21,10 +21,10 @@ import { CODE_LENGTH } from '../../src/auth/codeLength'
 import { AuthError } from '../../src/components/AuthError'
 import { AuthLink } from '../../src/components/AuthLink'
 import { AuthScreen } from '../../src/components/AuthScreen'
-import { Button } from '../../src/components/Button'
-import { Field } from '../../src/components/Field'
 import { fmt, useI18n } from '../../src/i18n'
 import { useTokens } from '../../src/theme/tokens'
+import { Button } from '../../src/ui/button'
+import { Field } from '../../src/ui/field'
 
 
 export default function VerifyEmail() {

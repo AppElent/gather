@@ -25,11 +25,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { readThrown } from '../../../../../src/auth/clerkErrors'
 import { AuthError } from '../../../../../src/components/AuthError'
-import { Button } from '../../../../../src/components/Button'
-import { Field } from '../../../../../src/components/Field'
 import { SettingsCard } from '../../../../../src/components/SettingsCard'
 import { useI18n } from '../../../../../src/i18n'
 import { useTokens } from '../../../../../src/theme/tokens'
+import { Button } from '../../../../../src/ui/button'
+import { Field } from '../../../../../src/ui/field'
 
 export default function EditName() {
   const tokens = useTokens()
