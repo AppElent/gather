@@ -415,7 +415,9 @@ export const en = {
        * would be a lie.
        */
       partlyFailed:
-        'Your data was deleted, but the account itself could not be. Please contact support.',
+        'Your data was deleted, but the account itself could not be. Try again, or contact support if it keeps failing.',
+      /** On screen in place of the app while Clerk deletes the login. */
+      underway: 'Deleting your account…',
       /** Clerk refuses self-deletion unless the instance allows it. */
       unavailable:
         'This account cannot be deleted from the app. Please contact support.',
