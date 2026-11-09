@@ -1,19 +1,23 @@
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { Plus } from 'lucide-react'
+import { Plus, Search, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import { useMessages } from '../../lib/i18n'
+import { fmt, useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { fieldClass } from '../kitchen/fields'
 import { RecipeCard } from './RecipeCard'
+import { filterRecipes, recipeTags, sameTag } from './recipeFilter'
 import { useRecipeViewMode } from './useRecipeViewMode'
 import { ViewModeToggle } from './ViewModeToggle'
 
 /**
  * The recipe list, whole: exactly what the Current Group can see — its own
  * recipes and the ones shared into it, never the caller's other Groups', so two
- * Members of one Group see one collection.
+ * Members of one Group see one collection. Searching by title and picking a
+ * tag narrow what is already loaded; neither asks the server again.
  */
 export function RecipesPage() {
   const { slug: groupSlug } = useRequiredCurrentGroup()
@@ -21,6 +25,21 @@ export function RecipesPage() {
   const [viewMode, setViewMode] = useRecipeViewMode()
   const messages = useMessages()
   const { list } = messages.recipes
+  const [query, setQuery] = useState('')
+  const [pickedTag, setPickedTag] = useState('')
+  const tags = useMemo(() => recipeTags(recipes ?? []), [recipes])
+  // A tag whose last recipe was deleted or retagged stops filtering, and is
+  // forgotten so it does not quietly filter again if it comes back.
+  const tag = (pickedTag && tags.find((t) => sameTag(t, pickedTag))) || ''
+  if (pickedTag && !tag) setPickedTag('')
+  const shown = useMemo(
+    () => filterRecipes(recipes ?? [], { query, tag }),
+    [recipes, query, tag],
+  )
+  const clearFilters = () => {
+    setQuery('')
+    setPickedTag('')
+  }
 
   return (
     <div className="mx-auto grid max-w-5xl gap-4">
@@ -73,23 +92,91 @@ export function RecipesPage() {
           </div>
         </SurfaceCard>
       ) : (
-        <div
-          className={
-            viewMode === 'compact'
-              ? 'flex flex-col gap-2'
-              : 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3'
-          }
-        >
-          {recipes.map((r) => (
-            <Link
-              key={r._id}
-              {...linkTo('recipe', { recipeId: r._id })}
-              className="block no-underline transition hover:opacity-90"
+        <>
+          <div className="flex flex-wrap gap-2">
+            <label className="relative block min-w-0 flex-1 basis-60">
+              <span className="sr-only">{list.search}</span>
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--app-muted)]"
+                aria-hidden="true"
+              />
+              <input
+                className={`${fieldClass} w-full pl-10 pr-10 sm:text-sm`}
+                type="search"
+                placeholder={list.search}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              {query ? (
+                <button
+                  type="button"
+                  aria-label={list.clearSearch}
+                  className="absolute right-1 top-1/2 grid min-h-9 min-w-9 -translate-y-1/2 place-items-center"
+                  onClick={() => setQuery('')}
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
+              ) : null}
+            </label>
+            {tags.length > 0 ? (
+              <select
+                aria-label={list.tagFilter}
+                className={`${fieldClass} sm:text-sm`}
+                value={tag}
+                onChange={(event) => setPickedTag(event.target.value)}
+              >
+                <option value="">{list.allTags}</option>
+                {tags.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+          </div>
+          {shown.length === 0 ? (
+            <SurfaceCard>
+              <div className="grid gap-3 text-center">
+                <h3 className="m-0 text-base font-semibold">
+                  {list.noResultsTitle}
+                </h3>
+                <p className="m-0 text-sm text-[var(--app-muted)]">
+                  {tag
+                    ? fmt(list.noResultsTaggedBody, {
+                        query: query.trim(),
+                        tag,
+                      })
+                    : fmt(list.noResultsBody, { query: query.trim() })}
+                </p>
+                <button
+                  type="button"
+                  className="mx-auto inline-flex min-h-9 items-center justify-center rounded-[var(--app-radius)] border border-[var(--app-border)] px-3 text-sm font-semibold"
+                  onClick={clearFilters}
+                >
+                  {list.clearFilters}
+                </button>
+              </div>
+            </SurfaceCard>
+          ) : (
+            <div
+              className={
+                viewMode === 'compact'
+                  ? 'flex flex-col gap-2'
+                  : 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3'
+              }
             >
-              <RecipeCard recipe={r} mode={viewMode} />
-            </Link>
-          ))}
-        </div>
+              {shown.map((r) => (
+                <Link
+                  key={r._id}
+                  {...linkTo('recipe', { recipeId: r._id })}
+                  className="block no-underline transition hover:opacity-90"
+                >
+                  <RecipeCard recipe={r} mode={viewMode} />
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

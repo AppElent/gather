@@ -13,6 +13,11 @@ export const recipes = {
     clearSearch: 'Zoekopdracht wissen',
     noResultsTitle: 'Niets gevonden',
     noResultsBody: 'Geen recept hier komt overeen met "{query}".',
+    tagFilter: 'Filteren op label',
+    allTags: 'Alle labels',
+    noResultsTaggedBody:
+      'Geen recept met het label "{tag}" komt overeen met "{query}".',
+    clearFilters: 'Filters wissen',
     livesIn: 'Van {group}',
     openRecipe: '{title} openen',
   },
