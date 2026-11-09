@@ -23,7 +23,7 @@ import type { ConvexReactClient } from 'convex/react'
 import { File, Paths } from 'expo-file-system'
 import * as Sharing from 'expo-sharing'
 
-import { api } from '../../../../../../convex/_generated/api'
+import { api } from '../../../convex/api'
 
 /** Why an export did not reach the share sheet, for the screen to say. */
 export type ExportFailure = 'unavailable' | 'failed'

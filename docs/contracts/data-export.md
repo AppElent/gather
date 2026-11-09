@@ -20,7 +20,7 @@ everything user-owned belongs to a Group or to a person
   every table in the schema, so a new table fails `pnpm typecheck` until it
   states a treatment: read for the person, read per Group, or excluded with a
   reason. A table with a `groupId` (`GroupScopedTable`, derived in
-  `groupCascade.ts`) may only be read per Group or excluded, and a table with a
+  `groupAccess.ts`) may only be read per Group or excluded, and a table with a
   `userId` and no `groupId` only for the person.
 - **Scope is the person's account and every Group they are a Member of.** A
   Group's content goes in whole, because a Group's Members can already see all

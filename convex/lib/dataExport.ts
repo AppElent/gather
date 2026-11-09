@@ -8,9 +8,9 @@
  * the person, read per Group, or excluded with a reason. It is the third
  * registry built this way, after `GROUP_CONTENT` (`groupCascade.ts`) and
  * `FILE_HOLDERS` (`storedFiles.ts`), and it leans on both: a table with a
- * `groupId` (`GroupScopedTable`, the cascade's own derivation) may only be read
- * per Group or excluded, and a photo column is found through `storedFileIdOf`
- * rather than by guessing at `imageId ?? photoId`.
+ * `groupId` (`GroupScopedTable`, which also keys the cascade) may only be
+ * read per Group or excluded, and a photo column is found through
+ * `storedFileIdOf` rather than by guessing at `imageId ?? photoId`.
  *
  * ## Whose rows, and how much of them
  *

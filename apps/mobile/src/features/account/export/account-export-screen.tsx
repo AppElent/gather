@@ -20,7 +20,7 @@ import { AuthButton } from '../../../components/AuthButton'
 import { AuthError } from '../../../components/AuthError'
 import { haptics } from '../../../feedback/haptics'
 import { fmt, useI18n } from '../../../i18n'
-import { useTokens } from '../../../theme/tokens'
+import { TYPE, useTokens } from '../../../theme/tokens'
 import {
   DataExportError,
   type ExportFailure,
@@ -90,6 +90,6 @@ export function AccountExportScreen() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 16, gap: 16 },
-  lead: { fontSize: 17, lineHeight: 23, fontWeight: '600' },
-  body: { fontSize: 14, lineHeight: 20 },
+  lead: { ...TYPE.lead, fontWeight: '600' },
+  body: TYPE.body,
 })
