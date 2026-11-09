@@ -114,7 +114,8 @@ haptics off, or while the camera or dictation is active.
   field submits; the primary action is disabled until valid and submitting
   twice saves once. A validator returns a message key, not a sentence.
 - Quick action kinds are ADR-0018's: `row` grows a field in the launcher,
-  `sheet` swaps its body, `handoff` pushes the Module's own screen.
+  `handoff` pushes the Module's own screen. There is no `sheet` kind any more:
+  "Log a meal", its only user, left the Add tab.
 - **A quick capture returns you where you started.** **A review-and-save lands
   you on what you made** (recipe import), and the form leaves the stack so Back
   cannot reach something that would save a second copy.

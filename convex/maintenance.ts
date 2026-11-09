@@ -70,19 +70,29 @@ export const removePersonalGroupSemantics = internalMutation({
  * euros only, with no conversions, and `holdings.settings` answers that
  * without reading it. Nothing writes the table any more.
  *
- * Run with `{ apply: true }` in every deployment and confirm `deleted` is zero
- * on a second run; then delete the table from the schema, its
- * `GROUP_CONTENT` entry, and this operation.
+ * One bounded batch per call. Run with `{ apply: true }` in every deployment
+ * until `more` is false and a further run reports `deleted` zero; then delete
+ * the table from the schema, its `GROUP_CONTENT` entry, and this operation.
+ * Each applied call deletes what it read, so the next call resumes after it.
  */
+const FINANCE_SETTINGS_BATCH = 200
+
 export const deleteFinanceSettings = internalMutation({
   args: { apply: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     const apply = args.apply ?? false
-    const rows = await ctx.db.query('financeSettings').collect()
+    const rows = await ctx.db
+      .query('financeSettings')
+      .take(FINANCE_SETTINGS_BATCH + 1)
+    const batch = rows.slice(0, FINANCE_SETTINGS_BATCH)
     if (apply) {
-      for (const row of rows) await ctx.db.delete(row._id)
+      for (const row of batch) await ctx.db.delete(row._id)
     }
-    return { apply, deleted: rows.length }
+    return {
+      apply,
+      deleted: batch.length,
+      more: rows.length > FINANCE_SETTINGS_BATCH,
+    }
   },
 })
 

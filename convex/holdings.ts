@@ -39,6 +39,9 @@ import { nextOrder } from './lib/order'
  *
  * Kept, constant, because installed phones read it by name (ADR-0029). The
  * `financeSettings` table that once answered it is retired; see the schema.
+ * Nothing in this repository reads it any more: delete it once the OTA whose
+ * phone stopped asking has reached every installed build
+ * (docs/migrations/README.md).
  */
 export const settings = query({
   args: { groupSlug: v.string() },

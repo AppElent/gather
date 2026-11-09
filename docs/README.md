@@ -21,7 +21,7 @@ Design studies: [designs/](../designs/).
 
 ## Decisions
 
-A new ADR takes the number after the highest (0038 next).
+A new ADR takes the number after the highest (0041 next).
 
 | ID | Decision | Status | Domain | Key implementation references |
 | --- | --- | --- | --- | --- |

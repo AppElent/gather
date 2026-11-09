@@ -919,7 +919,7 @@ describe('deleteFinanceSettings', () => {
     const { t, remaining } = await withRows()
     expect(
       await t.mutation(internal.maintenance.deleteFinanceSettings, {}),
-    ).toEqual({ apply: false, deleted: 1 })
+    ).toEqual({ apply: false, deleted: 1, more: false })
     expect(await remaining()).toBe(1)
   })
 
@@ -931,6 +931,6 @@ describe('deleteFinanceSettings', () => {
       await t.mutation(internal.maintenance.deleteFinanceSettings, {
         apply: true,
       }),
-    ).toEqual({ apply: true, deleted: 0 })
+    ).toEqual({ apply: true, deleted: 0, more: false })
   })
 })
