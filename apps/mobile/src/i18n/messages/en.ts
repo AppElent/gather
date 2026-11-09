@@ -55,7 +55,7 @@ export const en = {
    */
   recipes: coreEn.recipes,
 
-  /** Shared by Recipes' nutrition panel and by the food diary when it lands. */
+  /** Recipes' nutrition panel. */
   nutrients: coreEn.nutrients,
 
   /**

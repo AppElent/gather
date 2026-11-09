@@ -31,14 +31,9 @@ import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
  */
 
 /**
- * The Modules worth pointing a brand-new Group at: live, and owned by the
- * Group. Nutrition is live too and is left out on purpose — it is Personal
- * (ADR-0003), so adding to it would put nothing in this Group's stream and
- * offering it here would say otherwise.
+ * The Modules worth pointing a brand-new Group at: the live ones.
  */
-const STARTERS = MODULES.filter(
-  (module) => module.status === 'live' && module.scope === 'group',
-)
+const STARTERS = MODULES.filter((module) => module.status === 'live')
 
 function MemberList({
   groupSlug,

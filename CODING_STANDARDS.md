@@ -1,5 +1,5 @@
 ---
-version: 4.2.0
+version: 4.2.1
 description: Coding rules and task-specific implementation references.
 ---
 
@@ -123,7 +123,7 @@ and the Dutch glossary are [ADR-0011](docs/adr/0011-the-ui-is-english-at-the-sou
 
 The [i18n](docs/standards/i18n.md) rules on backend and data-file text,
 validators and effects apply as written. Gather's schema unions are `ModuleId`,
-`NutrientKey`, `MealName` and `BabyEventType`: add both locales' entries in the
+`NutrientKey` and `BabyEventType`: add both locales' entries in the
 same change as a new member. Pure modules that take messages as a trailing
 parameter include `navItems`, `getRouteContext`, `formatActivityTime`,
 `formatAge` and `summarizeBabyEvent`.

@@ -1,7 +1,6 @@
 import { ConvexError } from 'convex/values'
 import { internalMutation, mutation } from './_generated/server'
 import {
-  applyCatalog,
   applySample,
   applyTastingCatalog,
   ensureSeedUser,
@@ -13,9 +12,9 @@ import { requireCurrentUser } from './lib/sharing'
  * Seed entrypoints. Two mechanisms with deliberately opposite rules, kept as
  * two plain functions rather than one abstraction (ADR 0004):
  *
- * - **Catalog** (`seedCatalog`) — reference data the app needs to work, in
- *   every environment including production. Reconciled by `seedKey`; the seed
- *   always wins.
+ * - **Catalog** (`seedTastingCatalog`) — reference data the app needs to
+ *   work, in every environment including production. Reconciled by `seedKey`;
+ *   the seed always wins.
  * - **Sample household** (`seedPreview`, `loadSampleData`) — fake content for
  *   dev and preview only. Wiped and recreated on every run so its dates stay
  *   anchored to now.
@@ -42,24 +41,10 @@ const PREVIEW_TEST_USER = {
 }
 
 /**
- * Reconcile the food Catalog. Safe and expected to run in production — it is
- * a step in `deploy:prod` / `deploy:dev`, since Convex offers no post-deploy
- * hook outside previews.
- */
-export const seedCatalog = internalMutation({
-  args: {},
-  handler: async (ctx) => await applyCatalog(ctx),
-})
-
-/**
  * Reconcile the tasting Catalog — the well-known cheeses the subject picker
- * offers (#199, ADR-0024). Production too, and for the same reason: it is
- * reference data the Module needs to work, and it is a step in `deploy:dev` /
- * `deploy:prod` beside `seedCatalog`.
- *
- * A second entrypoint rather than a line inside `seedCatalog`, because the two
- * catalogs are different kinds of thing and a deploy should be able to say
- * which one it just reconciled.
+ * offers (#199, ADR-0024). Safe and expected to run in production: it is
+ * reference data the Module needs to work, and a step in `deploy:dev` /
+ * `deploy:prod`, since Convex offers no post-deploy hook outside previews.
  */
 export const seedTastingCatalog = internalMutation({
   args: {},
@@ -74,7 +59,6 @@ export const seedTastingCatalog = internalMutation({
 export const seedPreview = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const catalog = await applyCatalog(ctx)
     const tastingCatalog = await applyTastingCatalog(ctx)
     const reset = await resetSample(ctx)
     const ownerId = await ensureSeedUser(
@@ -84,7 +68,7 @@ export const seedPreview = internalMutation({
       PREVIEW_TEST_USER.email,
     )
     const sample = await applySample(ctx, ownerId, Date.now())
-    return { catalog, tastingCatalog, reset, sample }
+    return { tastingCatalog, reset, sample }
   },
 })
 
@@ -113,11 +97,10 @@ export const loadSampleData = mutation({
   handler: async (ctx) => {
     requireSampleDataEnabled()
     const user = await requireCurrentUser(ctx)
-    const catalog = await applyCatalog(ctx)
     const tastingCatalog = await applyTastingCatalog(ctx)
     const reset = await resetSample(ctx)
     const sample = await applySample(ctx, user._id, Date.now())
-    return { catalog, tastingCatalog, reset, sample }
+    return { tastingCatalog, reset, sample }
   },
 })
 

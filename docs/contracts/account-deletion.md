@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 1.3.0
+version: 2.0.0
 status: current
 ---
 
@@ -21,11 +21,10 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   a Group, deleting an account and resetting the Sample household all go through
   it.
 - `tasks`, `calendarEvents` and `babyEvents` hang off a parent rather than a
-  Group, so each is deleted inside its parent's entry. `comboItems` belong to a
-  person's combo and go with the account purge.
-- Personal tables (`userId`, no `groupId`: `combos`, `consumptionEntries`,
-  `aiUsage`) are not in the cascade; `cascade.finishAccount` deletes them by
-  index, so a new one is added there by hand. [Data export](data-export.md)
+  Group, so each is deleted inside its parent's entry.
+- A table of a person's own rows (`userId`, no `groupId`: today only `aiUsage`)
+  is not in the cascade; `cascade.finishAccount` deletes it by index, so a new
+  one is added there by hand. [Data export](data-export.md)
   reads the same tables, and its registry fails `pnpm typecheck` for a new one.
 - Storage ids are collected by the cascade and deleted by scheduled work, so a
   large Group survives the one-transaction limit ([stored files](stored-files.md)).

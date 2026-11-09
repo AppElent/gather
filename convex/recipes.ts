@@ -15,11 +15,7 @@ import {
   nutritionValidator,
 } from './lib/nutrition'
 import { recipeFields } from './lib/recipeFields'
-import {
-  getCurrentUser,
-  getMyGroupIds,
-  requireCurrentUser,
-} from './lib/sharing'
+import { requireCurrentUser } from './lib/sharing'
 import {
   deleteStoredFile,
   replaceStoredFile,
@@ -43,8 +39,7 @@ async function withImageUrl<T extends { imageId?: Id<'_storage'> }>(
  *
  * The slug is what makes the collection the *Group's* rather than the caller's,
  * so it is required: a caller-wide union would show two Members of the same
- * Group different lists. `listAcrossMyGroups` below is caller-wide, and it is
- * not a Group's collection and does not pretend to be one.
+ * Group different lists.
  */
 export const list = query({
   args: { groupSlug: v.string() },
@@ -112,30 +107,6 @@ export const list = query({
         canEdit: homeGroups.get(r.groupId)?.member ?? false,
       })),
     ])
-  },
-})
-
-/**
- * Every recipe the caller can reach, across all of their Groups.
- *
- * Deliberately caller-wide, and deliberately not `list`. The food diary is a
- * Personal record that reads the same inside every Group (ADR-0003), so its
- * recipe picker cannot be narrowed to the Current Group without offering
- * different recipes depending on which Group the diary happened to be opened
- * from. Nothing that renders a *Group's* page may use this — `list` is that.
- */
-export const listAcrossMyGroups = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx)
-    if (!user) return []
-    const viewerGroupIds = await getMyGroupIds(ctx, user._id)
-    const all = await ctx.db.query('recipes').collect()
-    return await Promise.all(
-      all
-        .filter((r) => isVisibleToGroups(r, viewerGroupIds))
-        .map((r) => withImageUrl(ctx, r)),
-    )
   },
 })
 

@@ -11,9 +11,9 @@ import { linkTo } from '../../lib/links'
 import { Breadcrumbs, type Crumb } from '../app/Breadcrumbs'
 import { useConfirmAction } from '../app/ConfirmAction'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
-import { FoodThumbnail } from '../kitchen/FoodThumbnail'
-import { NutritionPanel } from '../kitchen/NutritionPanel'
+import { NutritionPanel } from './NutritionPanel'
 import { RecipeSharingPanel } from './RecipeSharingPanel'
+import { RecipeThumbnail } from './RecipeThumbnail'
 
 export interface RecipeDetailPageProps {
   recipeId: string
@@ -124,9 +124,8 @@ export function RecipeDetailPage({ recipeId }: RecipeDetailPageProps) {
         </p>
       )}
 
-      <FoodThumbnail
+      <RecipeThumbnail
         src={recipe.imageUrl}
-        kind="recipe"
         className="mb-4 h-64 w-full"
         glyphClassName="text-6xl"
       />

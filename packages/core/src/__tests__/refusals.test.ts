@@ -2,7 +2,6 @@ import { describe, expect, test } from 'vitest'
 import { AI_LIMIT_KIND, isAiLimitReached } from '../aiLimit'
 import {
   ACCOUNT_DELETED,
-  COMBO_REFUSALS,
   calendarRefusal,
   readCalendarRefusal,
   readRefusal,
@@ -18,7 +17,7 @@ describe('reading a refusal off a thrown value', () => {
   test('finds the kind in its own vocabulary, and only there', () => {
     const error = thrown(refusal('notYourTasting'))
     expect(readRefusal(error, TASTING_REFUSALS)).toBe('notYourTasting')
-    expect(readRefusal(error, COMBO_REFUSALS)).toBeNull()
+    expect(readRefusal(error, ['someOtherRefusal'] as const)).toBeNull()
   })
 
   test('a calendar code comes back without its wire prefix', () => {

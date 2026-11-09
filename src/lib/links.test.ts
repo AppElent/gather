@@ -20,7 +20,7 @@ describe('in-app links', () => {
 
   test('finds the module index from a detail route', () => {
     expect(indexSurfaceOf('/recipes/r1/edit')).toBe('recipes')
-    expect(indexSurfaceOf('/nutrition')).toBe('nutrition')
+    expect(indexSurfaceOf('/meal-planner')).toBe('meal-planner')
     expect(indexSurfaceOf('/settings')).toBeNull()
     expect(indexSurfaceOf('/g/old-group/recipes')).toBeNull()
   })

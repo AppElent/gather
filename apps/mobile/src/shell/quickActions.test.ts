@@ -14,12 +14,6 @@ describe('the Add tab launcher', () => {
     ])
   })
 
-  test('offers nothing for Nutrition, which has no phone screens', () => {
-    expect(
-      QUICK_ACTIONS.filter((action) => action.module === 'nutrition'),
-    ).toEqual([])
-  })
-
   /**
    * Three rows, one per Kind — the launcher is a flat list of verbs, and a
    * Kind chooser inside one "Tasting" row would cost everyone a tap to save

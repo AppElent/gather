@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when adding a Module, a nested web route, a Convex table with a groupId, a _storage column, a photo preset, or a schema-keyed message.
-version: 1.3.0
+version: 1.3.1
 ---
 
 # Add a Module
@@ -32,7 +32,7 @@ the same change as the Module.
 | `convex/lib/dataExport.ts` `EXPORT_TABLES` | Every Convex table | `pnpm typecheck` (keyed by every schema table) | [Data export](../contracts/data-export.md) |
 | `convex/lib/storedFiles.ts` `FILE_HOLDERS` | Every `_storage` column | `pnpm typecheck` (typed off the schema) | [Stored files](../contracts/stored-files.md) |
 | `convex/maintenance.ts` `USER_REFERENCES` | Every column holding a `v.id('users')` | `pnpm typecheck` (derived from the schema) | [Migrations](../migrations/README.md) |
-| Message tables keyed by `NutrientKey`, `MealName`, `BabyEventType` | A new nutrient, meal or baby event type | `pnpm typecheck` | [Localization](../../CODING_STANDARDS.md#localization) |
+| Message tables keyed by `NutrientKey`, `BabyEventType` | A new nutrient or baby event type | `pnpm typecheck` | [Localization](../../CODING_STANDARDS.md#localization) |
 | `packages/core/src/babyEvents.ts` (`BabyEventDataByType`, `summarizeBabyEvent`), and the matching payload validator in `convex/lib/babyEvents.ts` (`DataValidatorByType`, `babyEventDataValidator`) | A new baby event type | `pnpm typecheck` (the payload validator and `BabyEventDataByType` must agree field for field) | [Localization](../../CODING_STANDARDS.md#localization) |
 | `src/lib/links.ts` `MODULE_ROUTES` + a route file under `src/routes/_app/` | Every Module | `pnpm typecheck` (`Record<ModuleId, …>`); `pnpm test` (`src/lib/modules.routes.test.ts`) for the route file | [Navigation](../contracts/navigation.md) |
 | `apps/mobile/src/modules/moduleDestination.ts` `NATIVE_MODULES` (and `ModulePath` for each screen pushed by name) | When the Module gets native screens | `pnpm test` (`moduleDestination.test.ts`: every Module's address must be a route file, and only a Module without screens may land on the placeholder) | — |

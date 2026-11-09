@@ -62,15 +62,15 @@ This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) an
 - **staging** — every merge to `main` deploys the `gather-stg` Worker automatically, at `gather-stg.appelent.nl`. It runs on the production Convex deployment and real data ([ADR 0039](docs/adr/0039-staging-is-a-frontend-on-the-production-backend.md)).
 - **production** — **Actions → Deploy → Run workflow** on `main`. The click is the gate for both the Worker and every Convex change; there is no separate approval step.
 
-Both run `check` / `typecheck` / `test` first. Production then runs `convex deploy`, `convex run seed:seedCatalog` and `wrangler deploy`; staging builds and runs `wrangler deploy` only, so a staging feature that needs new Convex functions fails until production deploys. Both build with `pnpm build`: staging runs the same production bundle prod does, and sample data and the test-login button are absent from both. Credentials live in the `stg` and `production` GitHub Environments (see [deploy](docs/runbooks/deploy.md)).
+Both run `check` / `typecheck` / `test` first. Production then runs `convex deploy`, `convex run seed:seedTastingCatalog` and `wrangler deploy`; staging builds and runs `wrangler deploy` only, so a staging feature that needs new Convex functions fails until production deploys. Both build with `pnpm build`: staging runs the same production bundle prod does, and sample data and the test-login button are absent from both. Credentials live in the `stg` and `production` GitHub Environments (see [deploy](docs/runbooks/deploy.md)).
 
 **Dev is local.** There is no deployed dev environment — dev is `pnpm dev` against your own `convex dev` deployment. The `gather-dev` Worker and `deploy:dev` script below still work, but nothing automated touches them.
 
 Deploying by hand is still possible and is what the npm scripts are for:
 
 1. Authenticate: `pnpm exec wrangler login`
-2. Deploy to prod: `pnpm run deploy:prod` (runs `convex deploy && convex run seed:seedCatalog --prod && pnpm run build && wrangler deploy`)
-3. Deploy to dev: `pnpm run deploy:dev` (runs `convex dev --once && convex run seed:seedCatalog && CLOUDFLARE_ENV=dev pnpm run build:development && wrangler deploy`)
+2. Deploy to prod: `pnpm run deploy:prod` (runs `convex deploy && convex run seed:seedTastingCatalog --prod && pnpm run build && wrangler deploy`)
+3. Deploy to dev: `pnpm run deploy:dev` (runs `convex dev --once && convex run seed:seedTastingCatalog && CLOUDFLARE_ENV=dev pnpm run build:development && wrangler deploy`)
 
 Both read `VITE_*` from your `.env.local`, and `deploy:dev` needs an interactive Convex login — which is why CI reimplements the pipeline instead of calling these.
 

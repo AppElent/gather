@@ -11,8 +11,6 @@ import {
   calendarPeopleFilterValidator,
   calendarViewValidator,
 } from './lib/calendar'
-import { comboComponentFields } from './lib/combos'
-import { diaryItemFields, mealValidator } from './lib/consumption'
 import {
   buyingCostLinesValidator,
   holdingFields,
@@ -24,10 +22,9 @@ import {
   splitScenarioFields,
   transferTaxBandValidator,
 } from './lib/finance'
-import { foodFields } from './lib/foodFields'
 import { groupRoleValidator } from './lib/groupAccess'
 import { quickLimitValidator } from './lib/kitchen'
-import { nutritionSourceValidator, nutritionValidator } from './lib/nutrition'
+import { nutritionValidator } from './lib/nutrition'
 import { recipeFields } from './lib/recipeFields'
 import {
   externalProviderValidator,
@@ -54,6 +51,10 @@ export default defineSchema({
     // nothing it owns does — and `ensureUser` runs on every app mount and
     // would otherwise hand the account straight back. This is what stops it.
     deletedAt: v.optional(v.number()),
+    // Retired with the Nutrition Module (ADR-0041): read and written by
+    // nothing. It stays declared only so a deployment whose users still carry
+    // it accepts the schema; `maintenance:retireNutrition` unsets it, and
+    // docs/migrations/0008 says when this line goes.
     nutritionTargets: v.optional(nutritionValidator),
     // Where Pins used to live, back when one person had one set of them for
     // every Group at once. They are per Group now and live on the membership
@@ -214,60 +215,6 @@ export default defineSchema({
     connectedBy: v.id('users'),
   }).index('by_group_provider', ['groupId', 'provider']),
 
-  foods: defineTable({
-    ...foodFields,
-    barcode: v.optional(v.string()),
-    source: v.union(
-      v.literal('openfoodfacts'),
-      v.literal('manual'),
-      v.literal('seed'),
-    ),
-    // Where the *figures* came from, which is a different question from where
-    // the *row* came from (`source`, above): a food somebody added by hand can
-    // later be corrected off a packet, and an imported row can be typed over.
-    // Conflating the two loses both answers.
-    //
-    // The same union Recipes carry, rather than a second, finer vocabulary
-    // meaning nearly the same thing: an Open Food Facts record is `imported`,
-    // a model's guess is `ai`, typed figures are `manual`.
-    //
-    // Optional, and nothing backfills it — a food that predates the field
-    // simply does not claim a source. Absent on Catalog rows too: their
-    // figures are authored, and "Built-in" already says so.
-    nutritionSource: v.optional(nutritionSourceValidator),
-    localEdited: v.optional(v.boolean()),
-    // Absent on Catalog entries — seeded reference data is owned by nobody
-    // (GLOSSARY.md, "Catalog"). Present on every row a person created.
-    createdBy: v.optional(v.id('users')),
-    // Stable identity for a Catalog entry across re-seeds. Absent on
-    // user-created rows, which the seed must never touch. See ADR 0004.
-    seedKey: v.optional(v.string()),
-    // Name and brand as one field, because a search index has exactly one
-    // full-text field and a brand on the carton has to match (see
-    // `lib/foodSearchText.ts`). Optional only until the backfill has run
-    // everywhere — docs/migrations/0005 says what makes it required.
-    searchText: v.optional(v.string()),
-    // The product's own picture, fetched from Open Food Facts at import and
-    // stored here so it does not depend on their servers later. Never a
-    // photograph a person took: that would need the prepare-on-upload pipeline
-    // (ADR-0010) and is deliberately not offered.
-    imageId: v.optional(v.id('_storage')),
-    // An emoji somebody picked, for a food with no picture behind it (#94).
-    // Content, not a display string, so it is stored rather than translated
-    // (ADR-0011) — exactly like a serving's `label`. Optional and nothing
-    // backfills it: a food with none renders the generic glyph it always did.
-    // A tile prefers the photograph, then this, then that glyph.
-    icon: v.optional(v.string()),
-  })
-    .index('by_barcode', ['barcode'])
-    .index('by_seedKey', ['seedKey'])
-    // Browsing reads a page of the Catalog in name order. Without this the
-    // page would be whatever the table happened to hand back and only then be
-    // sorted, which is not the first page alphabetically the moment there are
-    // more foods than fit on one (#100 review).
-    .index('by_name', ['name'])
-    .searchIndex('search_by_text', { searchField: 'searchText' }),
-
   /**
    * How many AI calls a person has made on a UTC day — the one counter behind
    * every action that reaches Anthropic (`lib/aiUsage.ts`).
@@ -285,58 +232,6 @@ export default defineSchema({
     day: v.string(),
     count: v.number(),
   }).index('by_user_and_day', ['userId', 'day']),
-
-  consumptionEntries: defineTable({
-    userId: v.id('users'),
-    date: v.string(),
-    meal: mealValidator,
-    ...diaryItemFields,
-    // Which Combo wrote this entry, and what that Combo was called when it
-    // did (#99). Absent on everything logged one thing at a time.
-    //
-    // Both, and for the reason the entry already keeps a `label` beside its
-    // `foodId`: a Personal record snapshots what it references, and its
-    // provenance is allowed to dangle (ADR-0003). The name is therefore the
-    // name at the time — renaming a Combo does not rewrite last Tuesday, and
-    // deleting one does not blank what it left behind. The id is what makes
-    // two Combos that happen to share a name still two Combos.
-    comboId: v.optional(v.id('combos')),
-    comboLabel: v.optional(v.string()),
-  })
-    .index('by_user_date', ['userId', 'date'])
-    // "Which amounts of this food have I logged before?" — read to offer them
-    // back as servings, and the reason this is an index rather than a scan of
-    // every entry the person has ever written.
-    .index('by_user_food', ['userId', 'foodId']),
-
-  /**
-   * A named, reusable set of things logged together — the same lunch, again
-   * (ADR-0012).
-   *
-   * **Personal** in the sense of ADR-0003: it belongs to a person, follows
-   * them into every Group and belongs to none, which is why there is a
-   * `userId` here and no `groupId` anywhere near it.
-   */
-  combos: defineTable({
-    userId: v.id('users'),
-    name: v.string(),
-    order: v.number(),
-  }).index('by_user', ['userId']),
-
-  /**
-   * One thing inside a Combo — exactly a diary entry minus the date, the meal
-   * and the person.
-   *
-   * **References, not figures**: `foodId` / `recipeId` say what this is, so
-   * correcting a food's nutrition corrects every future log of every Combo
-   * containing it. `label` is a snapshot so a reference that has become
-   * unreachable still has something to render, and `nutrition` is present only
-   * for a one-off, which has nothing behind it to read figures from.
-   */
-  comboItems: defineTable({
-    comboId: v.id('combos'),
-    ...comboComponentFields,
-  }).index('by_combo', ['comboId']),
 
   babies: defineTable({
     groupId: v.id('groups'),
@@ -650,12 +545,10 @@ export default defineSchema({
   /**
    * The shipped list of well-known things, as a **picker** (ADR-0024).
    *
-   * This is the opposite of the foods Catalog and a reader who knows that one
-   * will guess wrong, so: a `tastingCatalog` row is a *suggestion*. Choosing
+   * A `tastingCatalog` row is a *suggestion*, not a referenced fact. Choosing
    * one copies it into the Group as that Group's own subject and the catalog
    * row is then irrelevant to it forever — retiring an entry cannot orphan
    * anything, and a household editing "its" Comté is editing its own row.
-   * The foods Catalog is the other kind: a *fact*, referenced and read-only.
    *
    * Reconciled by `seedKey` under ADR-0004 like every other seeded table, and
    * read-only through every public function. Cheese ships entries; wine and

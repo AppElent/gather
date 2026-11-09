@@ -16,10 +16,6 @@ export const byId = {
     label: 'Recipes',
     description: 'Keep and rate the dishes you cook.',
   },
-  nutrition: {
-    label: 'Nutrition',
-    description: 'Log what you eat and track daily targets.',
-  },
   'meal-planner': {
     label: 'Meal planner',
     description: 'Plan the week’s meals.',

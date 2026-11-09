@@ -26,28 +26,20 @@ export const settings = {
   /**
    * "Export your data" — on the web's Account page and the phone's Account
    * screen. What it holds back is stated before the button, because it is
-   * the answer to "is my partner's diary in my file?"
+   * the answer to "is my partner's stuff in my file?"
    */
   dataExport: {
     title: 'Export your data',
     description:
-      'One JSON file with your account, your food diary, foods and combos, and everything in each group you are a member of.',
+      'One JSON file with your account and everything in each group you are a member of.',
     leftOut:
-      'Other members appear by name only: their diary, combos and choices stay theirs. Connection tokens and invite codes are left out.',
+      'Other members appear by name only: their own records and choices stay theirs. Connection tokens and invite codes are left out.',
     photos:
       'Photos are included as links, not as files. Anyone you give the file to can open those links.',
     action: 'Export',
     busy: 'Exporting… {done} of {total}',
     failed: 'Could not export your data. Try again.',
     unavailable: 'This device has nowhere to share the file to.',
-  },
-
-  nutritionTargets: {
-    title: 'Daily targets',
-    description:
-      'What you are aiming for in a day. Your food diary shows the day against these; leave one blank and it is simply not tracked.',
-    save: 'Save targets',
-    saveFailed: 'Could not save targets',
   },
 
   groupSettings: {
@@ -124,15 +116,15 @@ export const settings = {
       'Rebuilds a sample household around your account, with dates anchored to today. Both actions remove the sample household completely —',
     descriptionStrong: 'including anything you added inside it',
     descriptionAfter:
-      ', such as a task on a sample list. Your own groups, your food diary and recipes you own are left alone, and your default group is put back. Not available in production.',
+      ', such as a task on a sample list. Your own groups and recipes you own are left alone, and your default group is put back. Not available in production.',
     load: 'Load sample data',
     loading: 'Loading…',
     remove: 'Remove sample data',
     removing: 'Removing…',
     confirmRemove:
-      'Remove the sample household, including anything you added inside it? Your own groups, diary and recipes are left alone.',
+      'Remove the sample household, including anything you added inside it? Your own groups and recipes are left alone.',
     loaded:
-      'Loaded {recipes} recipes, {tasks} tasks, {babyEvents} baby events and {diaryEntries} diary entries into “{group}”.',
+      'Loaded {recipes} recipes, {tasks} tasks and {babyEvents} baby events into “{group}”.',
     removed: 'Removed {deleted} sample rows.',
     removedWithOrphans: {
       one: 'Removed {deleted} sample rows and {count} row added inside them.',

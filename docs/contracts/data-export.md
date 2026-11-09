@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when adding a Convex table, changing what "Export your data" contains, or changing who may see a row or column.
-version: 1.2.0
+version: 2.0.0
 status: current
 ---
 
@@ -27,9 +27,8 @@ everything user-owned belongs to a Group or to a person
   of it ([ownership and access](ownership-and-access.md)). Recipes Shared *into*
   one of their Groups are not included: they belong to, and are exported with,
   their home Group.
-- **Another Member's own records stay theirs.** Personal tables (`consumptionEntries`,
-  `combos`, `comboItems`, `aiUsage`) and authored `foods` are read by the
-  caller's own id and nothing else. Another Member's `memberships` row keeps
+- **Another Member's own records stay theirs.** A person's own tables (today
+  only `aiUsage`) are read by the caller's own id and nothing else. Another Member's `memberships` row keeps
   only who they are and their role; their Pins and calendar choices are theirs
   ([ADR-0005](../adr/0005-pins-belong-to-a-person-in-a-group.md)).
 - **People by display name, never by identifier.** Every user id anywhere in a
@@ -81,5 +80,5 @@ everything user-owned belongs to a Group or to a person
 
 - Every table in the schema is either in the manifest or in `excludedTables`.
 - An export by one Member of a shared Group contains the Group's content and
-  the other Member's display name, and none of the other Member's diary,
-  combos, foods, Pins, email or ids, and no access token or invite code.
+  the other Member's display name, and none of the other Member's AI usage,
+  Pins, email or ids, and no access token or invite code.

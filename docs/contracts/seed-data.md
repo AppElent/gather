@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the Catalog, the tasting Catalog, the Sample household, or any seed entrypoint.
-version: 2.2.0
+version: 3.0.0
 status: current
 ---
 
@@ -14,22 +14,14 @@ callable functions, because every export under `convex/` is deployed API.
 
 ## Behavior
 
-- **A Catalog entry is a fact or a suggestion, and which one decides whether
-  anything may point at it.** A Food is a fact, so a diary entry references the
-  Catalog row and the row stays read-only forever. A **Tasting catalog** entry
-  is a suggestion, so nothing references it: tasting it makes a copy that is
-  yours, and the shipped row is never seen again
+- **A Catalog entry is a suggestion, so nothing references it.** Tasting a
+  **Tasting catalog** entry makes a copy that is yours, and the shipped row is
+  never seen again
   ([ADR-0024](../adr/0024-a-tasting-catalog-is-a-picker-and-tasting-it-makes-it-yours.md)).
+  The food Catalog, whose rows a diary referenced, was retired with the
+  Nutrition Module ([ADR-0041](../adr/0041-nutrition-is-retired-and-foundry-owns-it.md)).
 - **The Catalog is read-only and always reflects the shipped version.** A
   person who needs a different entry creates their own alongside it.
-- **Food Catalog** (`seedCatalog`, `catalogFoods.ts`) is reference data the
-  app needs in every environment, production included, and every diary entry
-  references its rows directly ([ADR-0004](../adr/0004-catalog-entries-are-read-only-and-the-seed-always-wins.md)).
-  It is reconciled by `seedKey` in the shared `foods` table: the seed always
-  wins, retired fixtures are deleted, and rows without a `seedKey` are
-  user-created and never touched. Catalog Foods are read-only in the app,
-  enforced server-side on every write path (`assertNotCatalog` in
-  `convex/foods.ts`) as well as in the UI.
 - **Tasting catalog** (`seedTastingCatalog`, `tastingCatalog.ts`) is a picker,
   not a reference ([ADR-0024](../adr/0024-a-tasting-catalog-is-a-picker-and-tasting-it-makes-it-yours.md)).
   Its own `tastingCatalog` table holds only seeded rows, reconciled by `seedKey`
@@ -39,7 +31,7 @@ callable functions, because every export under `convex/` is deployed API.
   (`convex/tastings.ts`). From then on the subject belongs to the Group: any
   Member may edit it, a later seed never rewrites it, and its `catalogKey` is
   Provenance only — allowed to dangle when the entry is retired.
-- Deploys run both Catalog seeds ([deploy](../runbooks/deploy.md#seeding-is-a-deploy-step)).
+- Deploys run the Tasting catalog seed ([deploy](../runbooks/deploy.md#seeding-is-a-deploy-step)).
 - **Sample household** (`seedPreview`, `loadSampleData`, `sampleHousehold.ts`)
   is fake content for dev and previews only. It is wiped and recreated on every
   run, tracked in the `seedRuns` table, with every date anchored to the run.
@@ -63,8 +55,8 @@ callable functions, because every export under `convex/` is deployed API.
 
 - Every Module contributes Sample household fixtures, and a Catalog fixture
   when it needs reference data ([add a Module](../runbooks/add-a-module.md)).
-- Running `seedCatalog` or `seedTastingCatalog` twice changes nothing the
-  second time, and neither changes a Group's tasting subjects.
+- Running `seedTastingCatalog` twice changes nothing the second time, and it
+  never changes a Group's tasting subjects.
 - The Sample household is *not* idempotent: every run wipes it and builds a
   new one dated from that run. A reset leaves no unreachable rows, and content
   the Sample Group only referenced survives: a real person's recipe is

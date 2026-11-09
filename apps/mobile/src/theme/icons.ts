@@ -20,7 +20,6 @@
  */
 
 import type { ModuleIconName } from '@gather/core/modules'
-import Apple from 'lucide-react-native/icons/apple'
 import ArrowUp from 'lucide-react-native/icons/arrow-up'
 import Baby from 'lucide-react-native/icons/baby'
 import Beer from 'lucide-react-native/icons/beer'
@@ -79,7 +78,6 @@ import { type Glyph, glyph } from './glyph'
  * which client is asking.
  */
 export const MODULE_ICONS = {
-  Apple: glyph(Apple, 'carrot'),
   Baby: glyph(Baby, 'figure.and.child.holdinghands'),
   // Beers. `mug.fill` is the nearest the SF catalogue has and it means a mug
   // of something hot, so this keeps the lucide glyph for `Grape`'s reason:

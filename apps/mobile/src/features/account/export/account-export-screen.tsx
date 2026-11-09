@@ -3,7 +3,7 @@
  * file (docs/contracts/data-export.md).
  *
  * A screen rather than a row that just does it, because what the file holds
- * back has to be readable before the button — "is my partner's diary in this?"
+ * back has to be readable before the button — "is my partner's stuff in this?"
  * is the question it answers. The button is the only action, and the platform
  * draws everything after it: the system share sheet, on iOS and Android alike
  * (`account-export.ts`). The sheet appearing is the confirmation, so

@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'vitest'
-import { MODULES } from '../modules'
 import {
   DEFAULT_PINS,
   isPinned,
@@ -15,7 +14,6 @@ describe('what a person has pinned', () => {
     expect(pinnedModules(undefined).map((m) => m.id)).toEqual([
       'recipes',
       'tasks',
-      'nutrition',
     ])
   })
 
@@ -31,8 +29,8 @@ describe('what a person has pinned', () => {
   })
 
   test('is their order, not the catalog order', () => {
-    expect(pinnedModuleIds(['nutrition', 'baby-log', 'recipes'])).toEqual([
-      'nutrition',
+    expect(pinnedModuleIds(['notes', 'baby-log', 'recipes'])).toEqual([
+      'notes',
       'baby-log',
       'recipes',
     ])
@@ -60,15 +58,11 @@ describe('what a person has pinned', () => {
     expect(isPinned(undefined, DEFAULT_PINS[0])).toBe(true)
   })
 
-  test('marks which Modules hold Personal data', () => {
-    const nutrition = pinnedModules(['nutrition'])[0]
-    const recipes = pinnedModules(['recipes'])[0]
-    expect(nutrition.scope).toBe('personal')
-    expect(recipes.scope).toBe('group')
-    // Every Module declares a scope, so nothing can be listed unmarked.
-    for (const module of MODULES) {
-      expect(['group', 'personal']).toContain(module.scope)
-    }
+  test('drops a Pin left behind by the retired Nutrition Module', () => {
+    expect(pinnedModuleIds(['recipes', 'nutrition', 'tasks'])).toEqual([
+      'recipes',
+      'tasks',
+    ])
   })
 })
 

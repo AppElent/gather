@@ -46,9 +46,6 @@ export const shell = {
 
   marks: {
     soon: 'Binnenkort',
-    onlyYou: 'Alleen jij',
-    onlyYouExplained:
-      'Alleen jij kunt dit zien. Het is in elke Groep hetzelfde.',
   },
 
   nav: {

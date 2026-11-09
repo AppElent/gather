@@ -16,10 +16,6 @@ export const TASTING_REFUSALS = [
   'needsName',
   'notYourTasting',
 ] as const
-export const COMBO_REFUSALS = [
-  'comboNothingSelected',
-  'comboComponentUnavailable',
-] as const
 
 export const CALENDAR_REFUSAL_CODES = [
   'not-found',
@@ -42,7 +38,7 @@ export type CalendarRefusalCode = (typeof CALENDAR_REFUSAL_CODES)[number]
 export const ACCOUNT_DELETED = 'Account deleted'
 
 export function refusal(
-  kind: (typeof TASTING_REFUSALS | typeof COMBO_REFUSALS)[number],
+  kind: (typeof TASTING_REFUSALS)[number],
 ): { kind: string } {
   return { kind }
 }

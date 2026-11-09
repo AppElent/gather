@@ -2,22 +2,14 @@ import { declinedEventTypes } from '@gather/core/domain'
 import { SAMPLE_GROUP_NAME } from '@gather/core/groups'
 import type { Id, TableNames } from '../../_generated/dataModel'
 import type { MutationCtx } from '../../_generated/server'
-import {
-  computeFoodEntryNutrition,
-  computeRecipeEntryNutrition,
-} from '../consumption'
-import { foodSearchText } from '../foodSearchText'
 import { destroyGroup } from '../groupCascade'
 import { allocateGroupSlug } from '../groupSlugs'
 import { getUserByClerkId } from '../sharing'
 import { auxListNames } from '../taskLists'
-import { CATALOG_FOODS } from './catalogFoods'
 import {
   SAMPLE_BABY,
   SAMPLE_BABY_EVENTS,
   SAMPLE_BUYING_COSTS,
-  SAMPLE_COMBOS,
-  SAMPLE_DIARY,
   SAMPLE_HOLDINGS,
   SAMPLE_HOUSE,
   SAMPLE_HOUSEMATES,
@@ -31,7 +23,6 @@ import {
   SAMPLE_SPLIT_SCENARIOS,
   SAMPLE_TASK_LISTS,
   SAMPLE_TASTING_SUBJECTS,
-  SAMPLE_USER_FOODS,
   type SampleAuthor,
 } from './sampleHousehold'
 import { TASTING_CATALOG } from './tastingCatalog'
@@ -97,91 +88,13 @@ class Recorder {
 // ---------------------------------------------------------------------------
 
 /**
- * Reconcile the `foods` Catalog against `CATALOG_FOODS`.
- *
- * The seed always wins (ADR 0004): a re-run overwrites a Catalog row even if
- * somebody edited it, and drops rows whose `seedKey` is no longer shipped.
- * Rows without a `seedKey` are user-created and never touched.
- *
- * Dropping a retired Catalog row can leave a `consumptionEntries.foodId`
- * dangling. That is by design — Provenance is permission-checked on read and
- * safe to dangle, and the entry already snapshots its own nutrition.
- */
-export async function applyCatalog(ctx: MutationCtx) {
-  const wanted = new Set(CATALOG_FOODS.map((f) => f.seedKey))
-  let inserted = 0
-  let updated = 0
-  let deduped = 0
-
-  for (const food of CATALOG_FOODS) {
-    const matches = await ctx.db
-      .query('foods')
-      .withIndex('by_seedKey', (q) => q.eq('seedKey', food.seedKey))
-      .collect()
-
-    const fields = {
-      name: food.name,
-      icon: food.icon,
-      baseUnit: food.baseUnit,
-      nutritionPer100: food.nutritionPer100,
-      servings: food.servings,
-      searchText: foodSearchText(food),
-      source: 'seed' as const,
-      seedKey: food.seedKey,
-    }
-
-    const [keep, ...extras] = matches
-    // A duplicated seedKey is a data bug, not a reason to fail the deploy —
-    // collapse it rather than throwing, the way pickCanonicalUser does.
-    for (const extra of extras) {
-      await ctx.db.delete(extra._id)
-      deduped++
-    }
-
-    if (keep) {
-      await ctx.db.replace(keep._id, fields)
-      updated++
-    } else {
-      await ctx.db.insert('foods', fields)
-      inserted++
-    }
-  }
-
-  // Retired fixtures: a row still carrying a seedKey we no longer ship.
-  const all = await ctx.db.query('foods').collect()
-  let retired = 0
-  for (const row of all) {
-    if (row.seedKey !== undefined && !wanted.has(row.seedKey)) {
-      await ctx.db.delete(row._id)
-      retired++
-    }
-  }
-
-  const catalogRows = (await ctx.db.query('foods').collect()).filter(
-    (f) => f.seedKey !== undefined,
-  ).length
-  if (catalogRows !== CATALOG_FOODS.length) {
-    throw new Error(
-      `Catalog seed self-check failed: ${catalogRows} Catalog rows for ${CATALOG_FOODS.length} fixtures`,
-    )
-  }
-
-  return { inserted, updated, retired, deduped, catalogRows }
-}
-
-/**
  * Reconcile the `tastingCatalog` against `TASTING_CATALOG` (#199).
  *
- * Same ADR-0004 rules as the food Catalog — the seed always wins, retired
- * fixtures go, a duplicated `seedKey` collapses rather than failing a deploy —
- * and deliberately a separate function rather than a generalisation of it.
- * The two catalogs mean opposite things (a fact versus a suggestion,
- * ADR-0024), and an abstraction over both would be an invitation to give them
- * the same rules next time somebody touches it.
- *
- * Retiring an entry here is safe in a way retiring a food is not: nothing in a
- * Group ever points at one of these rows. A household that materialised it
- * keeps its own copy, `catalogKey` and all.
+ * ADR-0004's rules: the seed always wins, retired fixtures go, and a
+ * duplicated `seedKey` collapses rather than failing a deploy. Retiring an
+ * entry is safe: nothing in a Group ever points at one of these rows
+ * (ADR-0024). A household that materialised it keeps its own copy,
+ * `catalogKey` and all.
  */
 export async function applyTastingCatalog(ctx: MutationCtx) {
   const wanted = new Set(TASTING_CATALOG.map((entry) => entry.seedKey))
@@ -248,11 +161,11 @@ export async function applyTastingCatalog(ctx: MutationCtx) {
  * baby's lazily-created lists — is not in `documentIds`, and would be left in
  * the database but unreachable. So a recorded Group goes through `destroyGroup`,
  * which reaches everything it contains, and then the rest of the recorded rows
- * go by id: the housemates, their foods and their diaries.
+ * go by id: the housemates.
  *
  * Content that is *not* contained by the Sample household survives: a recipe
  * living in a real Group is only un-shared from the deleted one, and a real
- * person's Personal records belong to them rather than to a Group.
+ * person's own account is left alone.
  */
 export async function resetSample(ctx: MutationCtx) {
   const runs = await ctx.db
@@ -276,31 +189,11 @@ export async function resetSample(ctx: MutationCtx) {
     if (await alive(id)) await ctx.db.delete(id)
   }
 
-  // What a deleted housemate leaves behind outside the Sample Group. A dangling
-  // recipeId/foodId inside a surviving record is fine: provenance is allowed to
-  // dangle (ADR 0003).
+  // What a deleted housemate leaves behind outside the Sample Group.
   let orphaned = 0
   for (const membership of await ctx.db.query('memberships').collect()) {
     if (!(await alive(membership.userId))) {
       await ctx.db.delete(membership._id)
-      orphaned++
-    }
-  }
-  for (const entry of await ctx.db.query('consumptionEntries').collect()) {
-    if (!(await alive(entry.userId))) {
-      await ctx.db.delete(entry._id)
-      orphaned++
-    }
-  }
-  for (const combo of await ctx.db.query('combos').collect()) {
-    if (!(await alive(combo.userId))) {
-      await ctx.db.delete(combo._id)
-      orphaned++
-    }
-  }
-  for (const item of await ctx.db.query('comboItems').collect()) {
-    if (!(await alive(item.comboId))) {
-      await ctx.db.delete(item._id)
       orphaned++
     }
   }
@@ -638,20 +531,6 @@ export async function applySample(
     )
   }
 
-  // --- User-created foods, for contrast with the read-only Catalog ---------
-  // One per `nutritionSource`, so a preview shows what each of them looks
-  // like on a food — and that it is a separate answer from `source`, which
-  // each fixture carries in its own right.
-  for (const food of SAMPLE_USER_FOODS) {
-    rec.track(
-      await ctx.db.insert('foods', {
-        ...food,
-        searchText: foodSearchText(food),
-        createdBy: authors.nora,
-      }),
-    )
-  }
-
   // --- Tastings ------------------------------------------------------------
   // Written straight to the tables rather than through `logTasting`, like
   // every other fixture here — but in the same order the mutation writes them
@@ -684,108 +563,6 @@ export async function applySample(
       )
       tastings++
     }
-  }
-
-  // --- Food diary ----------------------------------------------------------
-  const catalogByKey = new Map(
-    (await ctx.db.query('foods').collect())
-      .filter((f) => f.seedKey !== undefined)
-      .map((f) => [f.seedKey as string, f]),
-  )
-
-  let diaryEntries = 0
-  for (const entry of SAMPLE_DIARY) {
-    const date = isoDate(now, entry.daysAgo)
-    if (entry.kind === 'recipe') {
-      const recipeId = recipeIds.get(entry.recipeKey)
-      const recipe = SAMPLE_RECIPES.find((r) => r.key === entry.recipeKey)
-      if (!recipeId || !recipe) {
-        throw new Error(
-          `Sample diary references unknown recipe ${entry.recipeKey}`,
-        )
-      }
-      rec.track(
-        await ctx.db.insert('consumptionEntries', {
-          userId: ownerUserId,
-          date,
-          meal: entry.meal,
-          recipeId,
-          label: entry.label,
-          quantity: entry.servings,
-          quantityUnit: 'serving',
-          nutrition: computeRecipeEntryNutrition(
-            recipe.nutrition,
-            entry.servings,
-          ),
-        }),
-      )
-    } else {
-      const food = catalogByKey.get(entry.seedKey)
-      if (!food) {
-        throw new Error(
-          `Sample diary references unknown Catalog food ${entry.seedKey} — run the Catalog seed first`,
-        )
-      }
-      rec.track(
-        await ctx.db.insert('consumptionEntries', {
-          userId: ownerUserId,
-          date,
-          meal: entry.meal,
-          foodId: food._id,
-          label: entry.label,
-          quantity: entry.quantity,
-          quantityUnit: entry.unit,
-          nutrition: computeFoodEntryNutrition(
-            food,
-            entry.quantity,
-            entry.unit,
-          ),
-        }),
-      )
-    }
-    diaryEntries++
-  }
-
-  // --- Combos ---------------------------------------------------------------
-  // Personal, like the diary: they belong to the person the sample household is
-  // built around, not to the Group (ADR-0012).
-  let combos = 0
-  for (const [order, combo] of SAMPLE_COMBOS.entries()) {
-    const comboId = rec.track(
-      await ctx.db.insert('combos', {
-        userId: ownerUserId,
-        name: combo.name,
-        order,
-      }),
-    )
-    for (const item of combo.items) {
-      const food = item.seedKey ? catalogByKey.get(item.seedKey) : undefined
-      if (item.seedKey && !food) {
-        throw new Error(
-          `Sample combo references unknown Catalog food ${item.seedKey}`,
-        )
-      }
-      const recipeId = item.recipeKey
-        ? recipeIds.get(item.recipeKey)
-        : undefined
-      if (item.recipeKey && !recipeId) {
-        throw new Error(
-          `Sample combo references unknown recipe ${item.recipeKey}`,
-        )
-      }
-      rec.track(
-        await ctx.db.insert('comboItems', {
-          comboId,
-          foodId: food?._id,
-          recipeId,
-          label: item.label,
-          quantity: item.quantity,
-          quantityUnit: item.unit,
-          nutrition: item.nutrition,
-        }),
-      )
-    }
-    combos++
   }
 
   // --- Finances -------------------------------------------------------------
@@ -1004,10 +781,7 @@ export async function applySample(
     ),
     babyTasks: SAMPLE_BABY.todos.length + SAMPLE_BABY.questions.length,
     babyEvents: SAMPLE_BABY_EVENTS.length,
-    diaryEntries,
-    combos,
     housemates: SAMPLE_HOUSEMATES.length,
-    userFoods: SAMPLE_USER_FOODS.length,
     mortgages: SAMPLE_MORTGAGES.length,
     loanParts,
     recurringCosts: SAMPLE_RECURRING_COSTS.length,
@@ -1040,12 +814,8 @@ export async function applySample(
     2 + // the baby's own two lists
     counts.babyTasks +
     counts.babyEvents +
-    counts.userFoods +
     counts.tastingSubjects +
     counts.tastings +
-    counts.diaryEntries +
-    counts.combos +
-    SAMPLE_COMBOS.reduce((n, combo) => n + combo.items.length, 0) +
     1 + // the house
     counts.mortgages +
     counts.loanParts +
@@ -1059,11 +829,6 @@ export async function applySample(
   if (rec.ids.length !== expectedTracked) {
     throw new Error(
       `Sample seed self-check failed: recorded ${rec.ids.length} rows, expected ${expectedTracked}`,
-    )
-  }
-  if (diaryEntries !== SAMPLE_DIARY.length) {
-    throw new Error(
-      `Sample seed self-check failed: ${diaryEntries} diary entries for ${SAMPLE_DIARY.length} fixtures`,
     )
   }
 

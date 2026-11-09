@@ -2,11 +2,9 @@ import { ACCOUNT_DELETED } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { requireGroupBySlug } from './lib/groupAccess'
-import { nutritionValidator } from './lib/nutrition'
 import {
   getCurrentUser,
   getUserByClerkId,
-  requireCurrentUser,
   requireIdentity,
 } from './lib/sharing'
 
@@ -120,10 +118,3 @@ export const setPins = mutation({
   },
 })
 
-export const setNutritionTargets = mutation({
-  args: { targets: nutritionValidator },
-  handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx)
-    await ctx.db.patch(user._id, { nutritionTargets: args.targets })
-  },
-})

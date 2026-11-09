@@ -1,14 +1,14 @@
 ---
 type: contract
 description: Read when adding a nested web route, breadcrumbs, a back link, or a Module's web address.
-version: 1.3.1
+version: 2.0.0
 status: current
 ---
 
 # Web navigation
 
 The shell keeps global navigation; a page owns its local hierarchy, because
-the page is the only thing that knows which food this is
+the page is the only thing that knows which recipe this is
 ([ADR-0036](../adr/0036-a-nested-page-carries-its-own-trail.md)). The phone has
 no breadcrumbs ([mobile design system](../../apps/mobile/DESIGN_SYSTEM.md#chrome)).
 
@@ -19,11 +19,10 @@ apply as written. Gather binds them:
 
 - **Every route below an index renders `<Breadcrumbs>`**
   (`src/components/app/Breadcrumbs.tsx`) with the trail from that index down to
-  itself — Foods → *Hagelslag* → Edit, and the same for Recipes and the Baby log.
-  `Breadcrumbs.routes.test.ts` walks `src/routes/_app/` for it. The two
-  exceptions are the add sheet over the nutrition diary, which closes back to
-  the diary, and the OAuth callback.
-- **Content labels** (a food's name, a recipe's title) are never translated
+  itself — Recipes → *Stamppot* → Edit, and the same for the Baby log and the
+  tasting Modules. `Breadcrumbs.routes.test.ts` walks `src/routes/_app/` for it.
+  The one exception is the OAuth callback.
+- **Content labels** (a recipe's title, a cheese's name) are never translated
   ([ADR-0011](../adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md)).
 - **Every link to a page in the signed-in app is built with `linkTo` or
   `hrefTo` from `src/lib/links.ts`**, whose `ROUTES` table names each such
@@ -36,8 +35,7 @@ apply as written. Gather binds them:
   and pages read it with `useRequiredCurrentGroup()` rather than receiving it.
   `AppShell` renders a page under a Group index surface only once there is a
   Current Group: it shows loading until the Groups arrive and sends somebody in
-  no Group to Groups. Personal pages (Nutrition, Foods, Combos) render without
-  one.
+  no Group to Groups.
 - **Switching Group is `setCurrentGroup`, never a link.** A control that moves
   somebody into another Group calls `setCurrentGroup` in its click handler and
   links to a page without params (an index surface), because an id means

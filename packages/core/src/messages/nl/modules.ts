@@ -9,10 +9,6 @@ export const byId = {
     label: 'Recepten',
     description: 'Bewaar en beoordeel de gerechten die je kookt.',
   },
-  nutrition: {
-    label: 'Voeding',
-    description: 'Houd bij wat je eet en volg je dagdoelen.',
-  },
   'meal-planner': {
     label: 'Maaltijdplanner',
     description: 'Plan de maaltijden van de week.',

@@ -18,8 +18,8 @@
  * (docs/contracts/data-export.md). Inside a Group everything is shared by its
  * Members (ADR-0030), so a Group's content goes in whole. Three things do not:
  *
- * - **Another Member's personal records.** The diary, combos and AI counter are
- *   read by the caller's own `userId` and nothing else, and another Member's
+ * - **Another Member's personal records.** The AI counter is read by the
+ *   caller's own `userId` and nothing else, and another Member's
  *   membership row keeps only who they are and their role — their pins and
  *   calendar choices are theirs (ADR-0005).
  * - **Identifiers beyond a display name.** Every user id anywhere in a row is
@@ -30,7 +30,7 @@
  * ## Paging
  *
  * One page is one bounded server read: `PAGE_SIZE` rows from one index range.
- * A child table (tasks, calendar events, baby events, combo items) is paged
+ * A child table (tasks, calendar events, baby events) is paged
  * across its parents with a compound cursor, because Convex allows one
  * `paginate` per query and the parents are few. The cursor names its parent
  * by id, not by position, so a parent deleted mid-export cannot shift a later
@@ -50,12 +50,6 @@ import { storedFileIdOf } from './storedFiles'
 
 /** Rows read per page. Small enough for any table's largest row. */
 export const PAGE_SIZE = 200
-
-/**
- * Rows scanned per page when the table has no index on the person — only
- * `foods`, which is mostly the Catalog and other people's imports.
- */
-const SCAN_ROWS_PER_PAGE = 2000
 
 export type ExportScope = 'account' | 'group'
 
@@ -97,17 +91,11 @@ type ByParent<T extends TableNames> = Shape<T> & {
 /** The one row the scope *is*: the person, or the Group. */
 type Self<T extends TableNames> = Shape<T> & { scope: ExportScope; self: true }
 
-/** Every row the person created, found by scanning. */
-type Authored<T extends TableNames> = Shape<T> & {
-  scope: 'account'
-  authoredBy: Field<T>
-}
-
 type ExportTreatment<T extends TableNames> = T extends GroupScopedTable
   ? ByScope<T, 'group'> | Excluded
   : T extends PersonalTable
     ? ByScope<T, 'account'> | Excluded
-    : ByParent<T> | Self<T> | Authored<T> | Excluded
+    : ByParent<T> | Self<T> | Excluded
 
 /**
  * Every table, and what the export does with it. Declaration order is file
@@ -122,21 +110,7 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
     // Clerk — and `deletedAt` is only ever set on an account mid-purge.
     omit: ['clerkId', 'deletedAt'],
   },
-  consumptionEntries: { scope: 'account', index: 'by_user_date' },
-  combos: { scope: 'account', index: 'by_user' },
-  comboItems: {
-    scope: 'account',
-    parent: 'combos',
-    index: 'by_combo',
-    field: 'comboId',
-  },
   aiUsage: { scope: 'account', index: 'by_user_and_day' },
-  // Foods belong to nobody's Group: a person's own are the ones they created.
-  foods: {
-    scope: 'account',
-    authoredBy: 'createdBy',
-    omit: ['searchText', 'seedKey'],
-  },
 
   // -- Each Group ----------------------------------------------------------
   groups: { scope: 'group', self: true, omit: ['inviteCode', 'isPersonal'] },
@@ -310,18 +284,6 @@ async function readRaw(
       cursor: null,
       isDone: true,
     }
-  }
-
-  if ('authoredBy' in treatment) {
-    const field = treatment.authoredBy
-    const page = await tableQuery(ctx, table)
-      .filter((q) => q.eq(q.field(field), s.me._id))
-      .paginate({
-        numItems: PAGE_SIZE,
-        cursor,
-        maximumRowsRead: SCAN_ROWS_PER_PAGE,
-      })
-    return { rows: page.page, cursor: page.continueCursor, isDone: page.isDone }
   }
 
   if ('parent' in treatment) {

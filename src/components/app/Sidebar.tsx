@@ -72,11 +72,6 @@ export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
               <span className="truncate">{item.label}</span>
               <span className="flex shrink-0 items-center gap-1">
                 {item.placeholder ? <Pill>{marks.soon}</Pill> : null}
-                {item.personal ? (
-                  <span title={marks.onlyYouExplained}>
-                    <Pill>{marks.onlyYou}</Pill>
-                  </span>
-                ) : null}
               </span>
             </Link>
           ))}

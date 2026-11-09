@@ -373,55 +373,6 @@ describe('a Group somebody else is in', () => {
 })
 
 describe('what belongs to the person rather than a Group', () => {
-  test('the diary and its combos go', async () => {
-    const t = testConvex()
-    await signUp(t, asAlice)
-    await signUp(t, asBob)
-    const alice = await userId(t, asAlice)
-    const bob = await userId(t, asBob)
-    await t.run(async (ctx) => {
-      const comboId = await ctx.db.insert('combos', {
-        userId: alice,
-        name: 'Breakfast',
-        order: 0,
-      })
-      await ctx.db.insert('comboItems', {
-        comboId,
-        label: 'Oats',
-        quantity: 50,
-        quantityUnit: 'g',
-      })
-      await ctx.db.insert('consumptionEntries', {
-        userId: alice,
-        date: '2026-09-01',
-        meal: 'breakfast',
-        label: 'Oats',
-        quantity: 50,
-        quantityUnit: 'g',
-        nutrition: { calories: 180 },
-      })
-      // Bob's, and none of Alice's business.
-      await ctx.db.insert('consumptionEntries', {
-        userId: bob,
-        date: '2026-09-01',
-        meal: 'lunch',
-        label: 'Soup',
-        quantity: 1,
-        quantityUnit: 'piece',
-        nutrition: { calories: 200 },
-      })
-    })
-
-    await deleteAccount(t, asAlice)
-
-    const left = await t.run(async (ctx) => ({
-      combos: (await ctx.db.query('combos').collect()).length,
-      comboItems: (await ctx.db.query('comboItems').collect()).length,
-      entries: (await ctx.db.query('consumptionEntries').collect()).length,
-    }))
-    expect(left).toEqual({ combos: 0, comboItems: 0, entries: 1 })
-  })
-
   test('the AI usage counter goes, and only theirs', async () => {
     const t = testConvex()
     await signUp(t, asAlice)

@@ -27,23 +27,15 @@ export const settings = {
   dataExport: {
     title: 'Je gegevens exporteren',
     description:
-      'Eén JSON-bestand met je account, je voedingsdagboek, voedingsmiddelen en combinaties, en alles in elke Groep waarvan je lid bent.',
+      'Eén JSON-bestand met je account en alles in elke Groep waarvan je lid bent.',
     leftOut:
-      'Andere leden staan er alleen met hun naam in: hun dagboek, combinaties en keuzes blijven van hen. Koppelingstokens en uitnodigingscodes worden weggelaten.',
+      'Andere leden staan er alleen met hun naam in: hun eigen gegevens en keuzes blijven van hen. Koppelingstokens en uitnodigingscodes worden weggelaten.',
     photos:
       'Foto’s staan erin als links, niet als bestanden. Iedereen aan wie je het bestand geeft, kan die links openen.',
     action: 'Exporteren',
     busy: 'Exporteren… {done} van {total}',
     failed: 'Je gegevens konden niet worden geëxporteerd. Probeer het opnieuw.',
     unavailable: 'Dit apparaat kan het bestand nergens heen delen.',
-  },
-
-  nutritionTargets: {
-    title: 'Dagdoelen',
-    description:
-      'Waar je per dag naar streeft. Je voedingsdagboek zet de dag hiertegen af; laat je er een leeg, dan wordt die simpelweg niet bijgehouden.',
-    save: 'Doelen opslaan',
-    saveFailed: 'Kon de doelen niet opslaan',
   },
 
   groupSettings: {
@@ -123,15 +115,15 @@ export const settings = {
       'Bouwt een voorbeeldhuishouden rond je account, met datums rond vandaag. Beide acties verwijderen dat huishouden volledig —',
     descriptionStrong: 'inclusief alles wat je er zelf in hebt gezet',
     descriptionAfter:
-      ', zoals een taak op een voorbeeldlijst. Je eigen Groepen, je voedingsdagboek en je eigen recepten blijven ongemoeid, en je standaard-Groep wordt teruggezet. Niet beschikbaar in productie.',
+      ', zoals een taak op een voorbeeldlijst. Je eigen Groepen en je eigen recepten blijven ongemoeid, en je standaard-Groep wordt teruggezet. Niet beschikbaar in productie.',
     load: 'Voorbeeldgegevens laden',
     loading: 'Laden…',
     remove: 'Voorbeeldgegevens verwijderen',
     removing: 'Verwijderen…',
     confirmRemove:
-      'Het voorbeeldhuishouden verwijderen, inclusief alles wat je er zelf in hebt gezet? Je eigen Groepen, dagboek en recepten blijven ongemoeid.',
+      'Het voorbeeldhuishouden verwijderen, inclusief alles wat je er zelf in hebt gezet? Je eigen Groepen en recepten blijven ongemoeid.',
     loaded:
-      '{recipes} recepten, {tasks} taken, {babyEvents} babynotities en {diaryEntries} dagboekregels geladen in “{group}”.',
+      '{recipes} recepten, {tasks} taken en {babyEvents} babynotities geladen in “{group}”.',
     removed: '{deleted} voorbeeldregels verwijderd.',
     removedWithOrphans: {
       one: '{deleted} voorbeeldregels verwijderd, plus {count} regel die je er zelf in had gezet.',

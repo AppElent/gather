@@ -1,9 +1,12 @@
-import type { WithoutSystemFields } from 'convex/server'
+import type {
+  AnyDataModel,
+  GenericDatabaseWriter,
+  WithoutSystemFields,
+} from 'convex/server'
 import { v } from 'convex/values'
 import type { Doc, Id, TableNames } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation, internalQuery } from './_generated/server'
-import { foodSearchText } from './lib/foodSearchText'
 import { pickCanonicalUser } from './lib/sharing'
 import { stableDigest } from './lib/stableDigest'
 import schema from './schema'
@@ -97,6 +100,86 @@ export const deleteFinanceSettings = internalMutation({
 })
 
 /**
+ * The tables the Nutrition Module kept, which left the schema with it
+ * (ADR-0041). Child rows first, so an interrupted run never leaves a Combo's
+ * items without the Combo they would be found through.
+ */
+const RETIRED_NUTRITION_TABLES = [
+  'comboItems',
+  'combos',
+  'consumptionEntries',
+  'foods',
+] as const
+
+const RETIRED_NUTRITION_BATCH = 200
+
+/**
+ * Empties what the retired Nutrition Module left behind: every row of
+ * `comboItems`, `combos`, `consumptionEntries` and `foods`, the product
+ * pictures `foods.imageId` held, and `users.nutritionTargets`.
+ *
+ * The four tables are no longer in the schema, so they are read through an
+ * untyped handle: Convex keeps a dropped table's rows until something deletes
+ * them, and a deployment that never had the table reads it as empty.
+ *
+ * One bounded batch per call, across the tables in order. Dry by default; run
+ * with `{ apply: true }` until `more` is false, then once more to see zero
+ * everywhere. **End condition:** docs/migrations/0008-retire-nutrition.md —
+ * once it records a zero run on every deployment, delete this, its test and
+ * `users.nutritionTargets`.
+ */
+export const retireNutrition = internalMutation({
+  args: { apply: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const db = ctx.db as unknown as GenericDatabaseWriter<AnyDataModel>
+    const deleted: Record<(typeof RETIRED_NUTRITION_TABLES)[number], number> = {
+      comboItems: 0,
+      combos: 0,
+      consumptionEntries: 0,
+      foods: 0,
+    }
+    let images = 0
+    let budget = RETIRED_NUTRITION_BATCH
+    let more = false
+
+    for (const table of RETIRED_NUTRITION_TABLES) {
+      if (budget === 0) {
+        if (await db.query(table).first()) more = true
+        continue
+      }
+      const rows = await db.query(table).take(budget + 1)
+      const batch = rows.slice(0, budget)
+      if (rows.length > budget) more = true
+      for (const row of batch) {
+        const imageId = (row as { imageId?: Id<'_storage'> }).imageId
+        if (imageId) {
+          images++
+          // A picture can already be gone; that is the state being asked for.
+          if (apply && (await ctx.db.system.get(imageId))) {
+            await ctx.storage.delete(imageId)
+          }
+        }
+        if (apply) await db.delete(row._id)
+      }
+      deleted[table] = batch.length
+      budget -= batch.length
+    }
+
+    const targets = (await ctx.db.query('users').collect()).filter(
+      (user) => user.nutritionTargets !== undefined,
+    )
+    if (apply) {
+      for (const user of targets) {
+        await ctx.db.patch(user._id, { nutritionTargets: undefined })
+      }
+    }
+
+    return { apply, deleted, images, nutritionTargets: targets.length, more }
+  },
+})
+
+/**
  * Collapse duplicate `users` rows — several rows sharing one `clerkId` — onto
  * the oldest row for that subject.
  *
@@ -135,111 +218,6 @@ export const mergeDuplicateUsers = internalMutation({
     }
 
     return { apply, duplicateSubjects: plans.length, plans }
-  },
-})
-
-/**
- * Give every food the `searchText` the search index now reads.
- *
- * The expand half of expand–contract: `foods.searchText` lands optional, every
- * write path fills it in, and this fills in the rows written before it existed.
- * Until it has run, `foods.search` finds nothing at all on a deployment's older
- * rows — the index has no value to match — so this is not optional housekeeping
- * on the way to brand search, it is what makes search work again.
- *
- * **End condition:** delete this once
- * docs/migrations/0005-food-search-text.md records it as run on dev and prod.
- * `searchText` becoming required in the schema is the same moment.
- *
- * Dry run by default — pass `{ apply: true }` to write. Idempotent: it only
- * writes a row whose stored value differs from the one its name and brand
- * produce, so a second run reports zero.
- */
-export const backfillFoodSearchText = internalMutation({
-  args: { apply: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
-    const apply = args.apply ?? false
-    const foods = await ctx.db.query('foods').collect()
-
-    let updated = 0
-    for (const food of foods) {
-      const wanted = foodSearchText(food)
-      if (food.searchText === wanted) continue
-      updated++
-      if (apply) await ctx.db.patch(food._id, { searchText: wanted })
-    }
-
-    return { apply, foods: foods.length, updated }
-  },
-})
-
-/**
- * A food as it may still exist on disk: with the single serving the schema no
- * longer describes.
- *
- * The tightening commit removes `servingSize` and `servingLabel`, and
- * TypeScript then knows they cannot be there — so a migration that has to read
- * them says so itself.
- */
-type LegacyFood = Doc<'foods'> & {
-  servingSize?: number
-  servingLabel?: string
-}
-
-/**
- * Carry a food's single serving into its servings list, and drop the two
- * fields it lived in.
- *
- * The contract half of #68's expand–contract. Convex rejects a document
- * carrying a field the schema does not describe, so a row still holding
- * `servingSize` would fail the deploy that removes it — which makes this a
- * prerequisite of that deploy rather than tidying afterwards.
- *
- * The conversion: the label the food carried, or its own amount when it
- * carried none. A row that already has
- * a servings list keeps it — the list has always won over the pair.
- *
- * **End condition:** docs/migrations/0006-food-servings.md. The route actually
- * taken there clears the `foods` table from the dashboard instead of running
- * this — which is the only thing that works when the backfill ships inside the
- * very push the legacy rows are blocking. This survives for a deployment whose
- * foods are worth keeping, which needs the branch split into two deploys, and
- * is deleted with that document if no such deployment appears.
- *
- * Dry run by default — pass `{ apply: true }` to write. Idempotent: a row with
- * neither legacy field present is left alone, so a second run reports zero.
- */
-export const backfillFoodServings = internalMutation({
-  args: { apply: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
-    const apply = args.apply ?? false
-    const foods = (await ctx.db.query('foods').collect()) as LegacyFood[]
-
-    let converted = 0
-    let stripped = 0
-    for (const food of foods) {
-      const hasLegacy = 'servingSize' in food || 'servingLabel' in food
-      if (!hasLegacy) continue
-      stripped++
-      const { servingSize, servingLabel, ...rest } = food
-      const carried =
-        food.servings?.length || servingSize === undefined || !(servingSize > 0)
-          ? food.servings
-          : [
-              {
-                label:
-                  servingLabel?.trim() || `${servingSize} ${food.baseUnit}`,
-                amount: servingSize,
-              },
-            ]
-      if (carried !== food.servings) converted++
-      // `replace` rather than `patch`: the point is the fields being gone from
-      // the document, and a patch cannot remove what the schema no longer
-      // describes.
-      if (apply) await ctx.db.replace(food._id, { ...rest, servings: carried })
-    }
-
-    return { apply, foods: foods.length, stripped, converted }
   },
 })
 
@@ -477,7 +455,6 @@ const USER_REFERENCES: {
   aiUsage: { userId: 'own rule' },
   recipes: { createdByUserId: 'repoint' },
   tasks: { createdBy: 'repoint' },
-  foods: { createdBy: 'repoint' },
   notes: { createdBy: 'repoint', updatedBy: 'repoint' },
   mealEntries: { createdBy: 'repoint' },
   pantryEntries: { createdBy: 'repoint' },
@@ -485,8 +462,6 @@ const USER_REFERENCES: {
   calendarEvents: { createdBy: 'repoint', assigneeIds: 'repoint' },
   integrationConnections: { connectedBy: 'repoint' },
   babyEvents: { loggedBy: 'repoint' },
-  consumptionEntries: { userId: 'repoint' },
-  combos: { userId: 'repoint' },
   houses: { createdByUserId: 'repoint' },
   mortgageCalculations: {
     createdByUserId: 'repoint',

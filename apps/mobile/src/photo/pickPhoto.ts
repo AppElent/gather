@@ -38,7 +38,7 @@
  *
  * The cost is an orphan: bytes uploaded for a save that is then abandoned sit
  * in storage referenced by nothing. That is #41, and it is the same hole the
- * web's recipe and food images already have. Recipes' review-before-save
+ * web's recipe images already have. Recipes' review-before-save
  * import makes abandoning the *expected* way to reject a bad parse, so the
  * hole is reachable on purpose rather than only by accident.
  *

@@ -51,7 +51,6 @@ export function SampleDataSettings() {
             recipes: out.sample.recipes,
             tasks: out.sample.tasks,
             babyEvents: out.sample.babyEvents,
-            diaryEntries: out.sample.diaryEntries,
             group: SAMPLE_GROUP_NAME,
           }),
         )

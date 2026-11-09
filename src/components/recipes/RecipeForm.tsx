@@ -4,12 +4,12 @@ import type { NutritionFacts, NutritionSource } from '@gather/core/domain'
 import { useState } from 'react'
 import { errorMessage } from '../../lib/errorMessage'
 import { useMessages } from '../../lib/i18n'
-import { inputClass } from '../kitchen/fields'
-import { NutrientInputGrid } from '../kitchen/NutrientInputGrid'
-import { useNutritionInputs } from '../kitchen/useNutritionInputs'
+import { inputClass } from './fields'
+import { NutrientInputGrid } from './NutrientInputGrid'
 import { RecipeDestinationNotice } from './RecipeDestinationNotice'
 import type { RecipeDestination } from './recipeDestination'
 import { StarRating } from './StarRating'
+import { useNutritionInputs } from './useNutritionInputs'
 
 export interface RecipeFormValues {
   title: string

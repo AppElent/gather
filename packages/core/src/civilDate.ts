@@ -2,7 +2,7 @@
  * Civil dates: a day on the calendar, written `YYYY-MM-DD`, with no moment and
  * no time zone attached.
  *
- * Due dates, event days, tastings, the diary and finance targets all store this
+ * Due dates, event days, tastings and finance targets all store this
  * shape, because nobody means "23:59:59 in whichever timezone the server is in".
  * `new Date('2026-08-22')` parses as midnight *UTC*, and `toISOString()` writes
  * UTC back out: either one is the wrong day for somebody near midnight. So the
