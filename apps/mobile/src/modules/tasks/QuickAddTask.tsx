@@ -10,7 +10,7 @@
  * A failed save keeps the title and says so under the button; the launcher is
  * told only about a save that happened.
  */
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -41,6 +41,9 @@ export function QuickAddTask({
   const [title, setTitle] = useState('')
   const [pickedId, setPickedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  // `saving` reaches the next render only; a second tap in the same turn is
+  // stopped by this, so submitting twice saves once.
+  const inFlight = useRef(false)
   const [failed, setFailed] = useState(false)
 
   const offered = lists ? quickAddLists(lists) : undefined
@@ -49,11 +52,12 @@ export function QuickAddTask({
   const ready = Boolean(trimmed && target && !saving)
 
   async function save() {
-    if (saving) return
+    if (inFlight.current) return
     if (!trimmed || !target) {
       haptics.actionFailed()
       return
     }
+    inFlight.current = true
     setSaving(true)
     setFailed(false)
     try {
@@ -65,6 +69,7 @@ export function QuickAddTask({
       haptics.actionFailed()
       setFailed(true)
     } finally {
+      inFlight.current = false
       setSaving(false)
     }
   }
