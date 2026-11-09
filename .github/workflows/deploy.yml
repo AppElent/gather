@@ -1,11 +1,12 @@
 name: Deploy
 
-# Merge to main -> stg. Manual "Run workflow" -> production. There is no
+# Adapted from docs/standards/deployments/templates/deploy.yml.
+# Merge to main -> staging. Manual "Run workflow" -> production. There is no
 # deployed dev environment: dev is `pnpm dev` against your own convex dev
 # deployment, which is why nothing here can push schema out from under it.
 #
-# stg is a frontend on the production Convex deployment (ADR 0039): a merge ships
-# the gather-stg Worker and nothing else. Backend changes ship on the click.
+# staging is a frontend on the production Convex deployment (ADR 0039): a merge
+# ships the gather-stg Worker and nothing else. Backend changes ship on the click.
 on:
   push:
     branches: [main]
@@ -13,7 +14,7 @@ on:
 
 # Never cancel a deploy mid-flight; queue behind the previous one instead.
 concurrency:
-  group: deploy-${{ github.event_name == 'workflow_dispatch' && 'production' || 'stg' }}
+  group: deploy-${{ github.event_name == 'workflow_dispatch' && 'production' || 'staging' }}
   cancel-in-progress: false
 
 jobs:
@@ -26,21 +27,22 @@ jobs:
   deploy:
     needs: checks
     runs-on: ubuntu-latest
-    # push to main -> stg; manual Run workflow -> production.
-    environment: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'stg' }}
+    # push to main -> staging; manual Run workflow -> production.
+    environment: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'staging' }}
     permissions: { contents: read }
     env:
-      # Every secret and variable below is environment-scoped: the `stg` and
+      # Every secret and variable below is environment-scoped: the `staging` and
       # `production` GitHub Environments hold their own copies, so this file
       # names each once and never selects between them. Which of them exist in
       # which environment is declared in env.manifest.ts and verified by the
       # `Check environment` step below, before anything ships.
-      ENVIRONMENT_NAME: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'stg' }}
-      # Production only. A stg job also inherits any repo secret of this name, so
-      # withholding it here is what stops a merge changing the backend (ADR 0039).
+      ENVIRONMENT_NAME: ${{ github.event_name == 'workflow_dispatch' && 'production' || 'staging' }}
+      # Production only. A staging job would also inherit any repo secret of this
+      # name, so withholding it here is what stops a merge changing the backend
+      # (ADR 0039), whatever repository scope holds.
       CONVEX_DEPLOY_KEY: ${{ github.event_name == 'workflow_dispatch' && secrets.CONVEX_DEPLOY_KEY || '' }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       # Public values are GitHub *variables*, not secrets: the build inlines
       # them into a downloadable bundle.
@@ -49,13 +51,14 @@ jobs:
       VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
       VITE_SENTRY_ORG: ${{ vars.VITE_SENTRY_ORG }}
       VITE_SENTRY_PROJECT: ${{ vars.VITE_SENTRY_PROJECT }}
-      # wrangler.jsonc: top-level = `gather` (prod), env.stg = `gather-stg`. The
-      # Cloudflare Vite plugin picks the Worker at build time from CLOUDFLARE_ENV
-      # and writes it to dist/server/wrangler.json; `wrangler deploy --env` is
-      # ignored after such a build. Written `!= … && 'stg' || ''` because the
-      # other polarity would make production's empty string fall through to 'stg'.
-      CLOUDFLARE_ENV: ${{ github.event_name != 'workflow_dispatch' && 'stg' || '' }}
-      WORKER_NAME: ${{ github.event_name != 'workflow_dispatch' && 'gather-stg' || 'gather' }}
+      # wrangler.jsonc: top-level = `gather` (prod), env.staging = `gather-stg`.
+      # The Cloudflare Vite plugin picks the Worker at build time from
+      # CLOUDFLARE_ENV and writes it to dist/server/wrangler.json; `wrangler
+      # deploy --env` is ignored after such a build. Written `!= … && 'staging'
+      # || ''` because the other polarity would make production's empty string
+      # fall through to 'staging'.
+      CLOUDFLARE_ENV: ${{ github.event_name != 'workflow_dispatch' && 'staging' || '' }}
+      EXPECTED_WORKER: ${{ github.event_name == 'workflow_dispatch' && 'gather' || 'gather-stg' }}
     steps:
       # workflow_dispatch lets the operator pick any branch in the UI. Production
       # ships from main only; fail loudly rather than skipping silently.
@@ -107,18 +110,21 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: pnpm exec convex run seed:seedTastingCatalog
 
-      # VITE_CONVEX_URL comes from the stg Environment, as the production URL.
+      # VITE_CONVEX_URL comes from the staging Environment, as the production URL.
       - name: Build staging
         if: github.event_name != 'workflow_dispatch'
         run: pnpm build
 
-      # Without the name check, a build without CLOUDFLARE_ENV would silently
-      # replace the production Worker from a staging deploy.
-      - name: Deploy Worker
+      # A build for the wrong env would replace another environment's Worker:
+      # without this, a build without CLOUDFLARE_ENV would silently replace the
+      # production Worker from a staging deploy.
+      - name: Guard Worker name
         run: |
           built=$(jq -r .name dist/server/wrangler.json)
-          if [ "$built" != "$WORKER_NAME" ]; then
-            echo "::error::Build targets Worker '$built', expected '$WORKER_NAME'."
+          if [ "$built" != "$EXPECTED_WORKER" ]; then
+            echo "::error::Built Worker is $built, expected $EXPECTED_WORKER. Check CLOUDFLARE_ENV."
             exit 1
           fi
-          pnpm exec wrangler deploy
+
+      - name: Deploy Worker
+        run: pnpm exec wrangler deploy
