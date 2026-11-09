@@ -21,7 +21,7 @@ callable functions, because every export under `convex/` is deployed API.
   The food Catalog, whose rows a diary referenced, was retired with the
   Nutrition Module ([ADR-0041](../adr/0041-nutrition-is-retired-and-foundry-owns-it.md)).
 - **The Catalog is read-only and always reflects the shipped version.** A
-  person who needs a different entry creates their own alongside it.
+  Group that wants a different entry edits its own copy.
 - **Tasting catalog** (`seedTastingCatalog`, `tastingCatalog.ts`) is a picker,
   not a reference ([ADR-0024](../adr/0024-a-tasting-catalog-is-a-picker-and-tasting-it-makes-it-yours.md)).
   Its own `tastingCatalog` table holds only seeded rows, reconciled by `seedKey`

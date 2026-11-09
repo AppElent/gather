@@ -122,8 +122,10 @@ const RETIRED_NUTRITION_BATCH = 200
  * untyped handle: Convex keeps a dropped table's rows until something deletes
  * them, and a deployment that never had the table reads it as empty.
  *
- * One bounded batch per call, across the tables in order. Dry by default; run
- * with `{ apply: true }` until `more` is false, then once more to see zero
+ * One batch of at most 200 rows per call, across the tables in order, so a
+ * dry run reports that batch, not the total: `more` says there is more. The
+ * user pass reads every user, which is fine at Gather's size. Dry by default;
+ * run with `{ apply: true }` until `more` is false, then once more to see zero
  * everywhere. **End condition:** docs/migrations/0008-retire-nutrition.md —
  * once it records a zero run on every deployment, delete this, its test and
  * `users.nutritionTargets`.

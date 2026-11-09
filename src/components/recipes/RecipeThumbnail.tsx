@@ -30,7 +30,7 @@ export function RecipeThumbnail({
           className="h-full w-full object-cover"
         />
       ) : (
-        <span aria-hidden="true" className={`${glyphClassName} opacity-40`}>
+        <span className={`${glyphClassName} opacity-40`}>
           🍲
         </span>
       )}

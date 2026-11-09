@@ -79,8 +79,9 @@ export const purgeAccount = internalMutation({
 /**
  * Everything of theirs that is not a Group's, and then the row itself.
  *
- * The AI usage counter is personal by design and is reached by index. What is left in the Groups they shared
- * is deliberately *not* deleted: `createdBy` and its siblings are attribution and never conferred
+ * The AI usage counter belongs to the person rather than to a Group and is
+ * reached by index. What is left in the Groups they shared is deliberately
+ * *not* deleted: `createdBy` and its siblings are attribution and never conferred
  * access, so a dangling one costs nothing and the household keeps what it was
  * given. The two exceptions are handled here because they are not attribution
  * — a cost split naming somebody who is gone would go on allocating a share to

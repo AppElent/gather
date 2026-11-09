@@ -18,7 +18,8 @@ Each run deletes up to 200 rows across `comboItems`, `combos`,
 `consumptionEntries` and `foods` (in that order), deletes the product photo of
 every deleted food that had one, and unsets `nutritionTargets` on every user.
 It is dry unless called with `{"apply":true}`, and returns
-`{ apply, deleted, images, nutritionTargets, more }`. On a deployment that never
+`{ apply, deleted, images, nutritionTargets, more }`. A dry run counts only the
+batch it would delete; `more: true` means there are more rows than that. On a deployment that never
 had the tables it reads as empty.
 
 ## Running it
@@ -33,6 +34,10 @@ on the production deployment (ADR-0039).
    repeated while `more` is true.
 4. Run step 3 once more and confirm every count is zero.
 5. Record the dry run and the zero run below.
+
+Migrations 0005 and 0006 (the `foods` search-text and servings backfills)
+were never run on production and are withdrawn with this one: it empties the
+table they would have backfilled.
 
 Until step 3 runs, deleting an account leaves that person's diary rows behind;
 this run removes them. Preview deployments seed their own household and start

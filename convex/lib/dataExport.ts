@@ -18,7 +18,7 @@
  * (docs/contracts/data-export.md). Inside a Group everything is shared by its
  * Members (ADR-0030), so a Group's content goes in whole. Three things do not:
  *
- * - **Another Member's personal records.** The AI counter is read by the
+ * - **Another Member's own records.** The AI counter is read by the
  *   caller's own `userId` and nothing else, and another Member's
  *   membership row keeps only who they are and their role — their pins and
  *   calendar choices are theirs (ADR-0005).
@@ -54,7 +54,7 @@ export const PAGE_SIZE = 200
 export type ExportScope = 'account' | 'group'
 
 /** Every table whose rows belong to one person rather than to a Group. */
-type PersonalTable = {
+type OwnTable = {
   [T in TableNames]: Doc<T> extends { userId: Id<'users'> }
     ? Doc<T> extends { groupId: Id<'groups'> }
       ? never
@@ -93,7 +93,7 @@ type Self<T extends TableNames> = Shape<T> & { scope: ExportScope; self: true }
 
 type ExportTreatment<T extends TableNames> = T extends GroupScopedTable
   ? ByScope<T, 'group'> | Excluded
-  : T extends PersonalTable
+  : T extends OwnTable
     ? ByScope<T, 'account'> | Excluded
     : ByParent<T> | Self<T> | Excluded
 

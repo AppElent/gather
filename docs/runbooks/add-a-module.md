@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when adding a Module, a nested web route, a Convex table with a groupId, a _storage column, a photo preset, or a schema-keyed message.
-version: 1.3.1
+version: 2.0.0
 ---
 
 # Add a Module
@@ -13,7 +13,7 @@ the same change as the Module.
 
 ## Prerequisites
 
-- The Module's id, group (`kitchen`, `money`, `home`, `tasting`) and scope
+- The Module's id and group (`kitchen`, `money`, `home`, `tasting`)
   decided. A fifth group is a design decision: it needs a contrast-safe tint on
   both themes ([ADR-0017](../adr/0017-the-phone-owns-its-look-and-shares-its-words.md)).
 - Its domain terms in [GLOSSARY.md](../../GLOSSARY.md).
