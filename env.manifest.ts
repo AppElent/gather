@@ -1,249 +1,41 @@
 /**
- * Every environment variable gather needs, and who reads it.
+ * Every environment variable gather reads, and who reads it.
  *
- * An entry declares its **consumer** — who reads the value — never its
- * destination. `destinationFor()` below derives the destination from
- * (consumer, environment). That table is the knowledge this file exists to
- * hold: before it, every place a variable had to be written was re-derived
- * from memory, and the wrong answers are still visible in git history.
+ * Data only: an entry names its Infisical key and which consumer reads it under
+ * which name in which environments. The shared routing in
+ * docs/standards/environments.md (scripts/lib/env/routing.mjs) picks the
+ * destination, so this file holds no destination table of its own
+ * (ADR-0014's rule, now owned by the toolkit).
  *
- * See docs/adr/0014-a-variable-declares-its-consumer-not-its-destination.md
+ * Gather-specific shape, all expressed through ENV_CONFIG rather than routing
+ * overrides:
+ * - `staging` is a frontend on the production Convex deployment (ADR-0039), so
+ *   it has no `convex.deployments.staging`: no Convex variables and no deploy
+ *   key reach it.
+ * - The staging Worker keeps its live name `gather-stg`, which serves the
+ *   `gather-stg.appelent.nl` custom domain.
  */
+import type { EnvironmentEntry } from './scripts/lib/env/types.ts'
 
-/**
- * Source configuration for the env CLI (`scripts/env.mjs`); `/gather` overrides
- * a same-named root value.
- */
 export const ENV_CONFIG = {
   appName: 'gather',
-  source: {
-    environments: {
-      local: 'dev',
-      preview: 'staging',
-      stg: 'staging',
-      production: 'prod',
-    },
-    paths: ['/', '/gather'],
+  // `/gather` overrides a same-named root value.
+  source: { paths: ['/', '/gather'] },
+  convex: {
+    project: 'eric-jansen:gather',
+    deployments: { production: 'limitless-bulldog-972' },
   },
+  worker: { name: 'gather', names: { staging: 'gather-stg' } },
   mobile: { path: 'apps/mobile' },
   github: { repository: 'AppElent/gather' },
 } as const
 
-export const ENVIRONMENTS = ['local', 'preview', 'stg', 'production'] as const
-export type Environment = (typeof ENVIRONMENTS)[number]
-
-/**
- * Who reads a value. Two pairs look redundant and are not:
- *
- * - `vite-build` is inlined into the client bundle and is therefore public.
- *   `build-tooling` is read by the build and never inlined (it has no `VITE_`
- *   prefix), so it may be secret. Same destinations, opposite secrecy rules.
- * - `local-tooling` is read by a CLI on a developer's machine and has no
- *   remote destination at all.
- */
-export const CONSUMERS = [
-  'vite-build',
-  'build-tooling',
-  'local-tooling',
-  'worker-runtime',
-  'convex-functions',
-  'workflow',
-  'expo-build',
-  'eas-tooling',
-  'expo-local',
+export const ENVIRONMENTS = [
+  'local',
+  'preview',
+  'staging',
+  'production',
 ] as const
-export type Consumer = (typeof CONSUMERS)[number]
-
-export type Destination =
-  | { kind: 'file'; path: string }
-  | {
-      kind: 'convex'
-      target: 'dev' | 'preview-default' | 'production'
-    }
-  | { kind: 'worker'; worker: string }
-  | { kind: 'github'; scope: 'repo' | 'stg' | 'production' }
-  | { kind: 'eas'; environment: 'development' | 'preview' | 'production' }
-
-/**
- * A repo-scoped GitHub name is prefixed, an environment-scoped one is not.
- *
- * This is a safety rule, not a style: an environment secret silently shadows a
- * repo secret of the same name, so if `production`'s copy were ever missing,
- * an unprefixed name would fall back to preview's value and deploy the wrong
- * thing while reporting success — the trap ADR-0013 flags as invisible in the
- * file. Different names make the fallback impossible rather than detectable.
- */
-export const REPO_SCOPE_PREFIX = 'PREVIEW_'
-
-export function githubName(name: string, scope: 'repo' | 'stg' | 'production') {
-  return scope === 'repo' ? `${REPO_SCOPE_PREFIX}${name}` : name
-}
-
-/**
- * Where a consumer reads its environment from, per environment. `null` means
- * the consumer does not exist there — not that we forgot it.
- *
- * `preview`'s Worker is per-PR, so it needs the PR number; callers that touch
- * a preview Worker must pass one.
- */
-export function destinationFor(
-  consumer: Consumer,
-  environment: Environment,
-  context: { prNumber?: string } = {},
-): Destination | null {
-  switch (consumer) {
-    // Inlined into the bundle at build time. Locally the build reads a file;
-    // everywhere else the build runs in CI and reads the job env.
-    case 'vite-build':
-    case 'build-tooling':
-      switch (environment) {
-        case 'local':
-          return { kind: 'file', path: '.env.local' }
-        case 'preview':
-          return { kind: 'github', scope: 'repo' }
-        case 'stg':
-          return { kind: 'github', scope: 'stg' }
-        case 'production':
-          return { kind: 'github', scope: 'production' }
-      }
-      break
-
-    // A CLI on somebody's machine. There is nowhere remote to put it.
-    case 'local-tooling':
-      return environment === 'local'
-        ? { kind: 'file', path: '.env.local' }
-        : null
-
-    // Read at request time by a server function on the Worker.
-    case 'worker-runtime':
-      switch (environment) {
-        case 'local':
-          return { kind: 'file', path: '.dev.vars' }
-        case 'preview':
-          return context.prNumber
-            ? { kind: 'worker', worker: `gather-pr-${context.prNumber}` }
-            : null
-        case 'stg':
-          return { kind: 'worker', worker: 'gather-stg' }
-        case 'production':
-          return { kind: 'worker', worker: 'gather' }
-      }
-      break
-
-    // Read by a Convex function. Locally that is the developer's own `convex
-    // dev` deployment — every developer has a different one.
-    case 'convex-functions':
-      switch (environment) {
-        case 'local':
-          return { kind: 'convex', target: 'dev' }
-        case 'preview':
-          return { kind: 'convex', target: 'preview-default' }
-        // Staging runs on the production deployment, whose variables belong to
-        // `production` (ADR 0039). A second writer would be a way to set
-        // ENABLE_SAMPLE_DATA on real households.
-        case 'stg':
-          return null
-        case 'production':
-          return { kind: 'convex', target: 'production' }
-      }
-      break
-
-    // Read by the workflow itself, to authenticate to something.
-    case 'workflow':
-      switch (environment) {
-        case 'local':
-          return null
-        case 'preview':
-          return { kind: 'github', scope: 'repo' }
-        case 'stg':
-          return { kind: 'github', scope: 'stg' }
-        case 'production':
-          return { kind: 'github', scope: 'production' }
-      }
-      break
-
-    // Expo inlines EXPO_PUBLIC_* at bundle/update time. EAS development is a
-    // real cloud environment even though it uses the same source as local dev.
-    case 'expo-build':
-    case 'eas-tooling':
-      switch (environment) {
-        case 'local':
-          return { kind: 'eas', environment: 'development' }
-        case 'preview':
-        case 'stg':
-          return { kind: 'eas', environment: 'preview' }
-        case 'production':
-          return { kind: 'eas', environment: 'production' }
-      }
-      break
-
-    // Metro reads a file and only exists for local development.
-    case 'expo-local':
-      return environment === 'local'
-        ? { kind: 'file', path: 'apps/mobile/.env.local' }
-        : null
-  }
-  return null
-}
-
-type Landing = {
-  /** The variable's name as this consumer reads it. */
-  name: string
-  /** The environments this consumer needs it in. Absent means absent by design. */
-  environments: readonly Environment[]
-  /**
-   * Environments where the deploy produces the value rather than a file
-   * holding it. The value maps to a note on what produces it. `check` verifies
-   * the wiring exists; it can never verify the value.
-   */
-  suppliedIn?: Partial<Record<Environment, string>>
-}
-
-/**
- * Vite only exposes prefixed variables to the bundle, so a `vite-build` landing
- * whose name lacks the prefix is silently never delivered — the app boots and
- * reads `undefined`. Requiring the prefix in the type turns that into a compile
- * error.
- */
-type ViteLanding = Landing & { name: `VITE_${string}` }
-type ExpoLanding = Landing & { name: `EXPO_PUBLIC_${string}` }
-
-type Lands = Partial<
-  Record<Exclude<Consumer, 'vite-build' | 'expo-build' | 'expo-local'>, Landing>
-> & {
-  'vite-build'?: ViteLanding
-  'expo-build'?: ExpoLanding
-  'expo-local'?: ExpoLanding
-}
-
-type BaseEntry = {
-  /** Stable identity of the logical value, independent of any variable name. */
-  key: string
-  /** Canonical key in Infisical's / or /gather folder. */
-  infisicalKey: string
-  description: string
-  /** `check` reports a missing optional value without failing. */
-  optional?: true
-  lands: Lands
-}
-
-/**
- * A value the Vite build reads cannot be secret — the build inlines it into a
- * bundle anyone can download, so calling it confidential is a false claim, and
- * this repo is public. The type makes that a compile error rather than a
- * comment. (`build-tooling` is the escape hatch for a build-time value that is
- * genuinely never inlined.)
- */
-export type Entry =
-  | (BaseEntry & { secret: false })
-  | (BaseEntry & {
-      secret: true
-      lands: Omit<Lands, 'vite-build' | 'expo-build' | 'expo-local'> & {
-        'vite-build'?: never
-        'expo-build'?: never
-        'expo-local'?: never
-      }
-    })
 
 export const ENTRIES = [
   // ---------- Clerk ----------
@@ -251,16 +43,16 @@ export const ENTRIES = [
     key: 'clerkPublishableKey',
     infisicalKey: 'clerk-publishable-key',
     description:
-      'Clerk publishable key. Published by design. Staging uses the production key because it shares the production Convex deployment, which trusts one issuer (ADR 0039).',
+      'Clerk publishable key: pk_test_ locally, pk_live_ in preview, staging and production. Published by design.',
     secret: false,
     lands: {
       'vite-build': {
         name: 'VITE_CLERK_PUBLISHABLE_KEY',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'staging', 'production'],
       },
       'expo-build': {
         name: 'EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'production'],
       },
       'expo-local': {
         name: 'EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY',
@@ -286,17 +78,15 @@ export const ENTRIES = [
   {
     key: 'convexUrl',
     infisicalKey: 'convex-url',
-    description: 'Convex deployment URL the client connects to.',
+    description:
+      'Convex deployment URL the client connects to. Staging and the mobile preview app store the production URL (ADR-0039).',
     secret: false,
     lands: {
       'vite-build': {
         name: 'VITE_CONVEX_URL',
-        environments: ['local', 'preview', 'stg', 'production'],
-        // A build that deploys a backend learns the URL from that deploy, via
-        // `convex deploy --cmd-url-env-var-name CONVEX_URL`. There is no value
-        // to store, and on preview there could not be — Convex mints a backend
-        // per PR. Staging deploys no backend, so it stores the production URL
-        // (ADR 0039).
+        environments: ['local', 'preview', 'staging', 'production'],
+        // A build that deploys a backend learns the URL from that deploy. On
+        // preview there is nothing to store: Convex mints a backend per PR.
         suppliedIn: {
           preview: 'convex deploy --cmd-url-env-var-name CONVEX_URL',
           production: 'convex deploy --cmd-url-env-var-name CONVEX_URL',
@@ -304,7 +94,7 @@ export const ENTRIES = [
       },
       'expo-build': {
         name: 'EXPO_PUBLIC_CONVEX_URL',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'production'],
       },
       'expo-local': {
         name: 'EXPO_PUBLIC_CONVEX_URL',
@@ -316,7 +106,7 @@ export const ENTRIES = [
     key: 'convexDeployment',
     infisicalKey: 'convex-deployment',
     description:
-      'Which Convex deployment the local CLI talks to. Written by `convex dev`; differs per developer.',
+      'Which Convex deployment the local CLI talks to. Written by `convex dev`.',
     secret: false,
     lands: {
       'local-tooling': { name: 'CONVEX_DEPLOYMENT', environments: ['local'] },
@@ -326,7 +116,7 @@ export const ENTRIES = [
     key: 'convexDeployKey',
     infisicalKey: 'convex-deploy-key',
     description:
-      'Deploy key scoping every `convex` command in CI to one deployment. Its prefix (`preview:` / `prod:`) picks the target. Absent from stg by design: a merge must not be able to change the production backend (ADR 0039).',
+      'Deploy key scoping every `convex` command in CI: preview kind in Infisical staging, prod: in prod. Absent from staging by design: a merge must not change the production backend (ADR-0039).',
     secret: true,
     lands: {
       workflow: {
@@ -341,7 +131,7 @@ export const ENTRIES = [
     key: 'sampleDataEnabled',
     infisicalKey: 'enable-sample-data',
     description:
-      'Whether the Sample household can be loaded. Two names, one decision: the Convex copy gates the mutation, the Vite copy shows the panel. Never production or stg, which share a deployment — its absence there is what keeps fake households out of real data.',
+      'Whether the Sample household can be loaded. The Convex copy gates the mutation, the Vite copy shows the panel. Never staging or production, which share a deployment.',
     secret: false,
     lands: {
       'convex-functions': {
@@ -358,14 +148,11 @@ export const ENTRIES = [
     key: 'testUserEmail',
     infisicalKey: 'test-user-email',
     description:
-      "Shared Clerk test-instance user for the sign-in page's one-click test login. Published, not secret: the build inlines it into a bundle served at a public URL.",
+      "Shared Clerk test-instance user for the sign-in page's one-click test login. Published: the build inlines it.",
     optional: true,
     secret: false,
     lands: {
-      'vite-build': {
-        name: 'VITE_TEST_USER_EMAIL',
-        environments: ['local', 'preview'],
-      },
+      'vite-build': { name: 'VITE_TEST_USER_EMAIL', environments: ['local'] },
       'expo-local': {
         name: 'EXPO_PUBLIC_TEST_USER_EMAIL',
         environments: ['local'],
@@ -376,13 +163,13 @@ export const ENTRIES = [
     key: 'testUserPassword',
     infisicalKey: 'test-user-password',
     description:
-      'Password for that test user. Published for the same reason, which is why the account must never exist outside the Clerk test instance.',
+      'Password for that test user. Published for the same reason, so the account must never exist outside the Clerk test instance.',
     optional: true,
     secret: false,
     lands: {
       'vite-build': {
         name: 'VITE_TEST_USER_PASSWORD',
-        environments: ['local', 'preview'],
+        environments: ['local'],
       },
       'expo-local': {
         name: 'EXPO_PUBLIC_TEST_USER_PASSWORD',
@@ -395,20 +182,18 @@ export const ENTRIES = [
   {
     key: 'sentryDsn',
     infisicalKey: 'sentry-dsn',
-    description:
-      'Sentry DSN. A DSN is public by design — it only accepts events.',
+    description: 'Sentry DSN. Public by design: it only accepts events.',
     optional: true,
     secret: false,
     lands: {
       'vite-build': {
         name: 'VITE_SENTRY_DSN',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'staging', 'production'],
       },
-      // The phone initialises Sentry only in a release build, so the EAS
-      // development environment (a dev client) has no use for it.
+      // The phone initialises Sentry only in a release build.
       'expo-build': {
         name: 'EXPO_PUBLIC_SENTRY_DSN',
-        environments: ['preview', 'stg', 'production'],
+        environments: ['preview', 'production'],
       },
     },
   },
@@ -421,13 +206,12 @@ export const ENTRIES = [
     lands: {
       'vite-build': {
         name: 'VITE_SENTRY_ORG',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'staging', 'production'],
       },
-      // Read by `@sentry/react-native`'s native build steps on EAS, which
-      // upload the debug symbols and bundle map for the binary being built.
+      // `@sentry/react-native`'s EAS build steps and the OTA publish wrapper.
       'eas-tooling': {
         name: 'SENTRY_ORG',
-        environments: ['preview', 'stg', 'production'],
+        environments: ['preview', 'production'],
       },
     },
   },
@@ -440,13 +224,11 @@ export const ENTRIES = [
     lands: {
       'vite-build': {
         name: 'VITE_SENTRY_PROJECT',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'staging', 'production'],
       },
-      // Read by `@sentry/react-native`'s native build steps on EAS, which
-      // upload the debug symbols and bundle map for the binary being built.
       'eas-tooling': {
         name: 'SENTRY_PROJECT',
-        environments: ['preview', 'stg', 'production'],
+        environments: ['preview', 'production'],
       },
     },
   },
@@ -454,19 +236,17 @@ export const ENTRIES = [
     key: 'sentryAuthToken',
     infisicalKey: 'sentry-auth-token',
     description:
-      'Uploads source maps and debug symbols at build time (web build, EAS native build) and when publishing a mobile update. Build-time but never inlined — it has no VITE_ prefix, which is the whole reason `build-tooling` exists as a separate consumer.',
+      'Uploads source maps and debug symbols: web builds in CI and `deploy:<environment>` (through env:exec), EAS native builds, and OTA publishes (`mobile:update:<channel>`). Never written to a local file.',
     optional: true,
     secret: true,
     lands: {
-      'build-tooling': {
+      workflow: {
         name: 'SENTRY_AUTH_TOKEN',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['preview', 'staging', 'production'],
       },
-      // The native build steps on EAS need it too. OTA publishes run on a
-      // developer machine and read the `build-tooling` copy above.
       'eas-tooling': {
         name: 'SENTRY_AUTH_TOKEN',
-        environments: ['preview', 'stg', 'production'],
+        environments: ['preview', 'production'],
       },
     },
   },
@@ -476,7 +256,7 @@ export const ENTRIES = [
     key: 'anthropicApiKey',
     infisicalKey: 'anthropic-api-key',
     description:
-      "The recipe URL-import action's AI fallback. Optional: JSON-LD imports work without it, and a page with no matching JSON-LD simply fails to import.",
+      "The recipe URL-import action's AI fallback. Optional: JSON-LD imports work without it.",
     optional: true,
     secret: true,
     lands: {
@@ -492,7 +272,7 @@ export const ENTRIES = [
     key: 'notionClientId',
     infisicalKey: 'notion-client-id',
     description:
-      'Notion OAuth client ID. Public — it travels in the authorize URL.',
+      'Notion OAuth client ID. Public: it travels in the authorize URL.',
     optional: true,
     secret: false,
     lands: {
@@ -519,7 +299,7 @@ export const ENTRIES = [
     key: 'todoistClientId',
     infisicalKey: 'todoist-client-id',
     description:
-      'Todoist OAuth client ID. Public — it travels in the authorize URL.',
+      'Todoist OAuth client ID. Public: it travels in the authorize URL.',
     optional: true,
     secret: false,
     lands: {
@@ -544,9 +324,11 @@ export const ENTRIES = [
   },
 
   // ---------- In-app issue reporter ----------
-  // These three were set on production only, because nothing declared that the
-  // preview and dev Workers needed them too. The reporter answered "not
-  // configured" everywhere else, and no test could notice.
+  // A per-PR Worker starts empty, so preview.yml applies these after deploying
+  // it (`env.mjs apply preview --ci --only worker`). The `workflow` landings
+  // give that step their values as repository-scope PREVIEW_<name>. The owner
+  // has none: GitHub reserves GITHUB_REPOSITORY_OWNER and the runner already
+  // sets it to this repository's owner.
   {
     key: 'githubIssuesToken',
     infisicalKey: 'github-issues-token',
@@ -557,8 +339,9 @@ export const ENTRIES = [
     lands: {
       'worker-runtime': {
         name: 'GITHUB_ISSUES_TOKEN',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'staging', 'production'],
       },
+      workflow: { name: 'GITHUB_ISSUES_TOKEN', environments: ['preview'] },
     },
   },
   {
@@ -570,7 +353,7 @@ export const ENTRIES = [
     lands: {
       'worker-runtime': {
         name: 'GITHUB_REPOSITORY_OWNER',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'staging', 'production'],
       },
     },
   },
@@ -583,8 +366,9 @@ export const ENTRIES = [
     lands: {
       'worker-runtime': {
         name: 'GITHUB_REPOSITORY_NAME',
-        environments: ['local', 'preview', 'stg', 'production'],
+        environments: ['local', 'preview', 'staging', 'production'],
       },
+      workflow: { name: 'GITHUB_REPOSITORY_NAME', environments: ['preview'] },
     },
   },
 
@@ -598,7 +382,7 @@ export const ENTRIES = [
     lands: {
       workflow: {
         name: 'CLOUDFLARE_API_TOKEN',
-        environments: ['preview', 'stg', 'production'],
+        environments: ['preview', 'staging', 'production'],
       },
     },
   },
@@ -606,55 +390,13 @@ export const ENTRIES = [
     key: 'cloudflareAccountId',
     infisicalKey: 'cloudflare-account-id',
     description:
-      'Cloudflare account ID. An identifier rather than a credential, but kept secret so it stays out of the public workflow logs this repo produces.',
-    secret: true,
+      'Cloudflare account for Worker deploys. An identifier, not a credential: workflows read it from vars.',
+    secret: false,
     lands: {
       workflow: {
         name: 'CLOUDFLARE_ACCOUNT_ID',
-        environments: ['preview', 'stg', 'production'],
+        environments: ['preview', 'staging', 'production'],
       },
     },
   },
-] as const satisfies readonly Entry[]
-
-export type EntryKey = (typeof ENTRIES)[number]['key']
-
-/** One variable, in one place, in one environment — what check and apply act on. */
-export type Placement = {
-  entry: Entry
-  consumer: Consumer
-  environment: Environment
-  /** The name at this destination, already scope-prefixed where that applies. */
-  name: string
-  destination: Destination
-  /** Non-null when the deploy produces the value: nothing to store, nothing to write. */
-  suppliedBy: string | null
-}
-
-/** Every placement for an environment, in manifest order. */
-export function placementsFor(
-  environment: Environment,
-  context: { prNumber?: string } = {},
-): Placement[] {
-  const placements: Placement[] = []
-  for (const entry of ENTRIES as readonly Entry[]) {
-    for (const consumer of CONSUMERS) {
-      const landing = entry.lands[consumer]
-      if (!landing?.environments.includes(environment)) continue
-      const destination = destinationFor(consumer, environment, context)
-      if (!destination) continue
-      placements.push({
-        entry,
-        consumer,
-        environment,
-        name:
-          destination.kind === 'github'
-            ? githubName(landing.name, destination.scope)
-            : landing.name,
-        destination,
-        suppliedBy: landing.suppliedIn?.[environment] ?? null,
-      })
-    }
-  }
-  return placements
-}
+] as const satisfies readonly EnvironmentEntry[]

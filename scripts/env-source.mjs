@@ -1,4 +1,5 @@
-import { ENV_CONFIG } from '../env.manifest.ts'
+import * as manifest from '../env.manifest.ts'
+import { resolveEnvironmentManifest } from './lib/env/index.mjs'
 
 export {
   mergeInfisicalFolders,
@@ -6,4 +7,8 @@ export {
   readInfisicalConfig,
 } from './lib/env/index.mjs'
 
-export const INFISICAL_ENVIRONMENTS = ENV_CONFIG.source.environments
+/** env.manifest.ts with the shared routing filled in, as `scripts/env.mjs` loads it. */
+export const RESOLVED_MANIFEST = resolveEnvironmentManifest({ ...manifest })
+
+export const INFISICAL_ENVIRONMENTS =
+  RESOLVED_MANIFEST.ENV_CONFIG.source.environments

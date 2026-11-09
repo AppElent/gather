@@ -1,8 +1,10 @@
-// Publishes an over-the-air update and uploads its source maps.
+// Publishes an over-the-air update and uploads its source maps. Run it from the
+// repo root through env:exec, which adds the channel's EAS values (the Sentry
+// token among them) to this process without writing them to a file:
 //
-//   pnpm update:preview --message "…"
-//   pnpm update:prod    --message "…"
-//   pnpm update:prod --upload-only      (retry the upload for the last export)
+//   pnpm mobile:update:preview    --message "…"
+//   pnpm mobile:update:production --message "…"
+//   pnpm mobile:update:production --upload-only   (retry the upload for the last export)
 //
 // `eas update` always carries `--environment`: EXPO_PUBLIC_* values are inlined
 // at publish time, and a bare publish would bake in this machine's .env.local.
@@ -29,8 +31,8 @@ if (!channels.includes(channel)) {
 const uploadOnly = rest.includes('--upload-only')
 const easArgs = rest.filter((arg) => arg !== '--upload-only')
 
-// The web build keeps these in the repo-root .env.local (VITE_SENTRY_* names).
-// Read just the names this script needs; a real environment variable wins.
+// env:exec supplies SENTRY_*; the repo-root .env.local (VITE_SENTRY_* names) is
+// a fallback for the org and project. A real environment variable wins.
 function readDotenv(path) {
   if (!existsSync(path)) return {}
   const values = {}

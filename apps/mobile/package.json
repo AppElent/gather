@@ -15,8 +15,6 @@
     "deploy:preview": "eas build --platform ios --profile preview --auto-submit",
     "deploy:prod": "eas build --platform ios --profile production",
     "build:preview:android": "eas build --platform android --profile preview-internal",
-    "update:preview": "node scripts/publish-update.mjs preview",
-    "update:prod": "node scripts/publish-update.mjs production",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

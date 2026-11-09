@@ -1,125 +1,62 @@
 import { describe, expect, it } from 'vitest'
-import {
-  CONSUMERS,
-  destinationFor,
-  ENTRIES,
-  ENVIRONMENTS,
-  type Entry,
-  githubName,
-  placementsFor,
-  REPO_SCOPE_PREFIX,
-} from '../../../env.manifest.ts'
+import { ENTRIES, ENVIRONMENTS } from '../../../env.manifest.ts'
+import { RESOLVED_MANIFEST } from '../../../scripts/env-source.mjs'
+import type { EnvironmentEntry } from '../../../scripts/lib/env/types.ts'
 
-const entries = ENTRIES as readonly Entry[]
+// The routing itself is the toolkit's (docs/standards/environments.md) and is
+// tested there. These tests pin what gather's data must keep true under it.
+const entries = ENTRIES as readonly EnvironmentEntry[]
 const byKey = (key: string) => entries.find((entry) => entry.key === key)
-
-describe('the destination table', () => {
-  it('answers for every consumer in every environment', () => {
-    // A missing cell is the bug this whole file exists to prevent, so the table
-    // must be total: every pair either resolves or says "not here" deliberately.
-    for (const consumer of CONSUMERS) {
-      for (const environment of ENVIRONMENTS) {
-        expect(() =>
-          destinationFor(consumer, environment, { prNumber: '1' }),
-        ).not.toThrow()
-      }
-    }
-  })
-
-  it('has no remote destination for a local-only consumer', () => {
-    expect(destinationFor('local-tooling', 'local')).toEqual({
-      kind: 'file',
-      path: '.env.local',
-    })
-    for (const environment of ['preview', 'stg', 'production'] as const) {
-      expect(destinationFor('local-tooling', environment)).toBeNull()
-    }
-    expect(destinationFor('workflow', 'local')).toBeNull()
-  })
-
-  it('names the per-PR Worker from the PR number, and refuses without one', () => {
-    expect(
-      destinationFor('worker-runtime', 'preview', { prNumber: '42' }),
-    ).toEqual({
-      kind: 'worker',
-      worker: 'gather-pr-42',
-    })
-    expect(destinationFor('worker-runtime', 'preview')).toBeNull()
-  })
-
-  it('sends deployed builds to GitHub and local ones to a file', () => {
-    expect(destinationFor('vite-build', 'local')).toEqual({
-      kind: 'file',
-      path: '.env.local',
-    })
-    expect(destinationFor('vite-build', 'stg')).toEqual({
-      kind: 'github',
-      scope: 'stg',
-    })
-    expect(destinationFor('vite-build', 'preview')).toEqual({
-      kind: 'github',
-      scope: 'repo',
-    })
-  })
-})
-
-describe('GitHub scoping', () => {
-  it('prefixes repo scope and leaves environment scope alone', () => {
-    // Distinct names are what stop an environment secret shadowing a repo one:
-    // a missing production value must fail, not quietly resolve to preview's.
-    expect(githubName('CONVEX_DEPLOY_KEY', 'repo')).toBe(
-      `${REPO_SCOPE_PREFIX}CONVEX_DEPLOY_KEY`,
-    )
-    expect(githubName('CONVEX_DEPLOY_KEY', 'stg')).toBe('CONVEX_DEPLOY_KEY')
-    expect(githubName('CONVEX_DEPLOY_KEY', 'production')).toBe(
-      'CONVEX_DEPLOY_KEY',
-    )
-  })
-
-  it('never gives one name to two GitHub scopes', () => {
-    const repo = new Set(
-      placementsFor('preview', { prNumber: '1' })
-        .filter((p) => p.destination.kind === 'github')
-        .map((p) => p.name),
-    )
-    for (const environment of ['stg', 'production'] as const) {
-      for (const placement of placementsFor(environment)) {
-        if (placement.destination.kind !== 'github') continue
-        expect(repo.has(placement.name)).toBe(false)
-      }
-    }
-  })
-})
+const placementsFor = (environment: string, prNumber = '1') =>
+  RESOLVED_MANIFEST.placementsFor(environment, { prNumber })
+const namesIn = (environment: string) =>
+  placementsFor(environment).map((placement) => placement.name)
 
 describe('the manifest', () => {
-  it('never marks a value the Vite build reads as secret', () => {
+  it('uses only standard environment names', () => {
+    expect(ENVIRONMENTS).toEqual(['local', 'preview', 'staging', 'production'])
+  })
+
+  it('is data only: the shared routing supplies consumers and placements', async () => {
+    const manifest = await import('../../../env.manifest.ts')
+    expect(Object.keys(manifest).sort()).toEqual([
+      'ENTRIES',
+      'ENVIRONMENTS',
+      'ENV_CONFIG',
+    ])
+  })
+
+  it('never marks a value a client bundle reads as secret', () => {
     // The build inlines it into a bundle anyone can download, and this repo is
-    // public. The type forbids this; the test covers a manifest edited as JS.
+    // public.
     for (const entry of entries) {
-      if (entry.lands['vite-build']) expect(entry.secret).toBe(false)
-    }
-  })
-
-  it('prefixes every name the Vite build reads', () => {
-    for (const entry of entries) {
-      const landing = entry.lands['vite-build']
-      if (landing) expect(landing.name.startsWith('VITE_')).toBe(true)
-    }
-  })
-
-  it('gives every entry somewhere to land', () => {
-    for (const entry of entries) {
-      expect(Object.keys(entry.lands).length).toBeGreaterThan(0)
-      for (const landing of Object.values(entry.lands)) {
-        expect(landing.environments.length).toBeGreaterThan(0)
+      for (const consumer of ['vite-build', 'expo-build', 'expo-local']) {
+        if (entry.lands[consumer]) expect(entry.secret).toBe(false)
       }
     }
+  })
+
+  it('prefixes every name a client bundle reads', () => {
+    for (const entry of entries) {
+      const vite = entry.lands['vite-build']
+      if (vite) expect(vite.name.startsWith('VITE_')).toBe(true)
+      for (const consumer of ['expo-build', 'expo-local']) {
+        const expo = entry.lands[consumer]
+        if (expo) expect(expo.name.startsWith('EXPO_PUBLIC_')).toBe(true)
+      }
+    }
+  })
+
+  it('gives every logical value one unique canonical Infisical key', () => {
+    const keys = entries.map((entry) => entry.infisicalKey)
+    expect(keys.every(Boolean)).toBe(true)
+    expect(new Set(keys).size).toBe(keys.length)
   })
 
   it('claims each name at each destination exactly once', () => {
     for (const environment of ENVIRONMENTS) {
       const claimed = new Map<string, string>()
-      for (const placement of placementsFor(environment, { prNumber: '1' })) {
+      for (const placement of placementsFor(environment)) {
         const slot = `${JSON.stringify(placement.destination)}/${placement.name}`
         const previous = claimed.get(slot)
         if (previous) expect(previous).toBe(placement.entry.key)
@@ -129,58 +66,101 @@ describe('the manifest', () => {
   })
 })
 
-describe('what production may not have', () => {
-  const productionNames = placementsFor('production').map((p) => p.name)
+describe('GitHub scoping', () => {
+  it('prefixes every repository-scope name, so preview never shadows an Environment', () => {
+    const repo = placementsFor('preview').filter(
+      (p) => p.destination.kind === 'github',
+    )
+    expect(repo.length).toBeGreaterThan(0)
+    for (const placement of repo) {
+      expect(placement.name).toBe(`PREVIEW_${placement.variable}`)
+    }
+  })
 
+  it('never gives one name to two GitHub scopes', () => {
+    const repo = new Set(
+      placementsFor('preview')
+        .filter((p) => p.destination.kind === 'github')
+        .map((p) => p.name),
+    )
+    for (const environment of ['staging', 'production']) {
+      for (const placement of placementsFor(environment)) {
+        if (placement.destination.kind !== 'github') continue
+        expect(placement.destination).toEqual({
+          kind: 'github',
+          scope: environment,
+        })
+        expect(repo.has(placement.name)).toBe(false)
+      }
+    }
+  })
+})
+
+describe('test-user values', () => {
+  it('land only locally', () => {
+    for (const environment of ['preview', 'staging', 'production']) {
+      expect(
+        namesIn(environment).some((name) => name.includes('TEST_USER')),
+      ).toBe(false)
+    }
+    expect(namesIn('local')).toEqual(
+      expect.arrayContaining([
+        'VITE_TEST_USER_EMAIL',
+        'VITE_TEST_USER_PASSWORD',
+        'EXPO_PUBLIC_TEST_USER_EMAIL',
+        'EXPO_PUBLIC_TEST_USER_PASSWORD',
+      ]),
+    )
+  })
+})
+
+describe('what production may not have', () => {
   it('excludes the sample household by declaration, not by omission', () => {
     // Its absence is the entire mechanism keeping fake households out of real
     // data — there is no runtime check behind it.
     expect(
       byKey('sampleDataEnabled')?.lands['convex-functions']?.environments,
     ).not.toContain('production')
-    expect(productionNames).not.toContain('ENABLE_SAMPLE_DATA')
-    expect(productionNames).not.toContain('VITE_ENABLE_SAMPLE_DATA')
+    expect(namesIn('production')).not.toContain('ENABLE_SAMPLE_DATA')
+    expect(namesIn('production')).not.toContain('VITE_ENABLE_SAMPLE_DATA')
   })
-
-  it('excludes the published test-user credentials', () => {
-    expect(productionNames).not.toContain('VITE_TEST_USER_EMAIL')
-    expect(productionNames).not.toContain('VITE_TEST_USER_PASSWORD')
-  })
-
 })
 
-describe('what stg may not have', () => {
-  // stg is a frontend on the production Convex deployment (ADR 0039).
-  const stgNames = placementsFor('stg').map((p) => p.name)
+describe('what staging may not have', () => {
+  // staging is a frontend on the production Convex deployment (ADR 0039).
+  const staging = placementsFor('staging')
 
-  it('excludes the sample household and the test user, like production', () => {
-    expect(stgNames).not.toContain('ENABLE_SAMPLE_DATA')
-    expect(stgNames).not.toContain('VITE_ENABLE_SAMPLE_DATA')
-    expect(stgNames).not.toContain('VITE_TEST_USER_EMAIL')
-    expect(stgNames).not.toContain('VITE_TEST_USER_PASSWORD')
+  it('excludes the sample household, like production', () => {
+    expect(namesIn('staging')).not.toContain('ENABLE_SAMPLE_DATA')
+    expect(namesIn('staging')).not.toContain('VITE_ENABLE_SAMPLE_DATA')
   })
 
   it('cannot change the production backend', () => {
-    expect(stgNames).not.toContain('CONVEX_DEPLOY_KEY')
-    expect(destinationFor('convex-functions', 'stg')).toBeNull()
+    expect(namesIn('staging')).not.toContain('CONVEX_DEPLOY_KEY')
+    expect(staging.some((p) => p.destination.kind === 'convex')).toBe(false)
   })
 
   it('stores the Convex URL, because no deploy produces it', () => {
-    const url = placementsFor('stg').find(
-      (p) => p.entry.key === 'convexUrl' && p.name === 'VITE_CONVEX_URL',
-    )
+    const url = staging.find((p) => p.name === 'VITE_CONVEX_URL')
     expect(url?.suppliedBy).toBeNull()
+  })
+
+  it('keeps the live gather-stg Worker', () => {
+    const worker = staging.find((p) => p.destination.kind === 'worker')
+    expect(worker?.destination).toEqual({
+      kind: 'worker',
+      worker: 'gather-stg',
+    })
   })
 })
 
 describe('values the deploy produces', () => {
   it('marks the deployed Convex URL as supplied rather than missing', () => {
     // Convex mints a backend per PR, so on preview there is no value anyone
-    // could have stored. Without this, `check` would report a permanent and
-    // unfixable failure.
-    for (const environment of ['preview', 'production'] as const) {
-      const supplied = placementsFor(environment, { prNumber: '1' }).find(
-        (p) => p.entry.key === 'convexUrl',
+    // could have stored.
+    for (const environment of ['preview', 'production']) {
+      const supplied = placementsFor(environment).find((p) =>
+        p.name.endsWith('VITE_CONVEX_URL'),
       )
       expect(supplied?.suppliedBy).toContain('convex deploy')
     }
@@ -188,7 +168,7 @@ describe('values the deploy produces', () => {
 
   it('stores it locally, where no deploy exists to produce it', () => {
     const local = placementsFor('local').find(
-      (p) => p.entry.key === 'convexUrl',
+      (p) => p.name === 'VITE_CONVEX_URL',
     )
     expect(local?.suppliedBy).toBeNull()
     expect(local?.destination).toEqual({ kind: 'file', path: '.env.local' })
@@ -197,65 +177,51 @@ describe('values the deploy produces', () => {
 
 describe('the issue reporter', () => {
   it('lands on every Worker, including the per-PR one', () => {
+    const workers: Record<string, string> = {}
     for (const environment of ENVIRONMENTS) {
-      const workers = placementsFor(environment, { prNumber: '7' }).filter(
-        (p) => p.entry.key === 'githubIssuesToken',
-      )
-      expect(workers).toHaveLength(1)
+      const destination = placementsFor(environment, '7').find(
+        (p) =>
+          p.entry.key === 'githubIssuesToken' &&
+          p.consumer === 'worker-runtime',
+      )?.destination
+      workers[environment] =
+        destination?.kind === 'worker'
+          ? destination.worker
+          : String(destination?.kind)
     }
-    expect(
-      placementsFor('preview', { prNumber: '7' }).find(
-        (p) => p.entry.key === 'githubIssuesToken',
-      )?.destination,
-    ).toEqual({ kind: 'worker', worker: 'gather-pr-7' })
+    expect(workers).toEqual({
+      local: 'file',
+      preview: 'gather-pr-7',
+      staging: 'gather-stg',
+      production: 'gather',
+    })
+  })
+
+  it('reaches the preview workflow, which applies it to the per-PR Worker', () => {
+    const names = namesIn('preview')
+    expect(names).toContain('PREVIEW_GITHUB_ISSUES_TOKEN')
+    expect(names).toContain('PREVIEW_GITHUB_REPOSITORY_NAME')
   })
 })
 
-describe('Infisical and Expo declarations', () => {
-  it('gives every logical value one unique canonical Infisical key', () => {
-    const keys = entries.map((entry) => entry.infisicalKey)
-    expect(keys.every(Boolean)).toBe(true)
-    expect(new Set(keys).size).toBe(keys.length)
-  })
-
-  it('routes mobile values to a local file and EAS environments', () => {
-    expect(destinationFor('expo-build', 'local')).toEqual({
-      kind: 'eas',
-      environment: 'development',
-    })
-    expect(destinationFor('expo-local', 'local')).toEqual({
-      kind: 'file',
-      path: 'apps/mobile/.env.local',
-    })
-    expect(destinationFor('expo-build', 'preview')).toEqual({
-      kind: 'eas',
-      environment: 'preview',
-    })
-    expect(destinationFor('expo-build', 'stg')).toEqual({
-      kind: 'eas',
-      environment: 'preview',
-    })
-    expect(destinationFor('expo-build', 'production')).toEqual({
-      kind: 'eas',
-      environment: 'production',
-    })
-    expect(destinationFor('eas-tooling', 'production')).toEqual({
-      kind: 'eas',
-      environment: 'production',
-    })
-  })
-
-  it('uses static Expo public aliases for the shared Clerk and Convex values', () => {
-    const localNames = placementsFor('local')
-      .filter(
-        (placement) =>
-          placement.consumer === 'expo-build' ||
-          placement.consumer === 'expo-local',
-      )
-      .map((placement) => placement.name)
-    expect(localNames).toContain('EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY')
-    expect(localNames).toContain('EXPO_PUBLIC_CONVEX_URL')
-    expect(localNames).toContain('EXPO_PUBLIC_TEST_USER_EMAIL')
-    expect(localNames).toContain('EXPO_PUBLIC_TEST_USER_PASSWORD')
+describe('mobile', () => {
+  it('routes mobile values to the local file and EAS environments', () => {
+    const destinations = (environment: string) =>
+      placementsFor(environment)
+        .filter((p) => p.name === 'EXPO_PUBLIC_CONVEX_URL')
+        .map((p) => p.destination)
+    expect(destinations('local')).toEqual(
+      expect.arrayContaining([
+        { kind: 'eas', environment: 'development' },
+        { kind: 'file', path: 'apps/mobile/.env.local' },
+      ]),
+    )
+    expect(destinations('preview')).toEqual([
+      { kind: 'eas', environment: 'preview' },
+    ])
+    expect(destinations('staging')).toEqual([])
+    expect(destinations('production')).toEqual([
+      { kind: 'eas', environment: 'production' },
+    ])
   })
 })

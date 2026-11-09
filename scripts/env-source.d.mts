@@ -1,9 +1,16 @@
-export const INFISICAL_ENVIRONMENTS: Readonly<{
-  local: 'dev'
-  preview: 'staging'
-  stg: 'staging'
-  production: 'prod'
-}>
+import type {
+  EnvironmentManifest,
+  EnvironmentPlacement,
+} from './lib/env/types.ts'
+
+export const RESOLVED_MANIFEST: EnvironmentManifest & {
+  placementsFor(
+    environment: string,
+    context?: { prNumber?: string },
+  ): EnvironmentPlacement[]
+}
+
+export const INFISICAL_ENVIRONMENTS: Readonly<Record<string, string>>
 
 export type InfisicalConfig = {
   workspaceId?: string
