@@ -8,6 +8,7 @@ Only unfinished work belongs in this index. A release owner records command outp
 | 0006 | active: production table-clear and deploy outstanding | release owner with Convex production access | `maintenance:backfillFoodServings` | follow the production clear/deploy record; use the backfill only for a preserved legacy deployment | production result is recorded; remove the unused legacy route/test/schema compatibility |
 | 0007 | active: production apply outstanding | release owner with Convex production access | `migrations:declineByOmission` | run once on dev and once with `--prod` (it has no dry mode), recording `{ total, migrated, skipped }` | dev and production results are recorded; delete mutation and `babies.trackedTypes` |
 | `removePersonalGroupSemantics` | active: dev and production apply outstanding | release owner with Convex production access | `maintenance:removePersonalGroupSemantics` | run dry and `{"apply":true}` in every deployment, then confirm `converted` is zero on a second run | both results are recorded; delete mutation/test and `groups.isPersonal` |
+| `deleteFinanceSettings` | active: dev and production apply outstanding | release owner with Convex production access | `maintenance:deleteFinanceSettings` | run dry and `{"apply":true}` in every deployment, then confirm `deleted` is zero on a second run | both results are recorded; delete mutation/test, the `financeSettings` table and its `GROUP_CONTENT` entry |
 | `kitchen` calendar aliases | active: installed phones still call `kitchen.*` by name | mobile release owner | `convex/kitchen.ts` aliases of `addCalendar`, `removeCalendar`, `addCalendarEvent`, `getCalendarEvent`, `removeCalendarEvent`, `setCalendarVisibility` | ship the OTA that calls `calendar.*` | after the next OTA reached all installed builds, delete the aliases and their test |
 
 ## `convex/maintenance.ts` audit
@@ -19,5 +20,6 @@ Only unfinished work belongs in this index. A release owner records command outp
 | `backfillFoodSearchText` | active migration 0005 | release owner | 0005 retirement condition |
 | `backfillFoodServings` | active migration 0006 | release owner | 0006 retirement condition |
 | `removePersonalGroupSemantics` | active migration | release owner | its retirement condition above |
+| `deleteFinanceSettings` | active migration (retires `financeSettings`) | release owner | its retirement condition above |
 | `verifyBabyLogScope` | active operational verification | baby-log owner | retain while owner-directed Group-scope moves are supported |
 | `moveBabyToGroup` | active operational repair | baby-log owner | retain while owner-directed Group-scope moves are supported |

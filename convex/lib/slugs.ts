@@ -13,44 +13,6 @@
 /** Longest slug this will ever produce, suffixes aside. */
 export const MAX_SLUG_LENGTH = 48
 
-/**
- * Segments a slug may never equal, because each one either is or could become a
- * Group-level or top-level route. A name that would land on one is escaped
- * rather than rejected — see `sharedSlugBase`.
- */
-export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
-  'g',
-  'api',
-  'about',
-  'account',
-  'settings',
-  'sign-in',
-  'sign-up',
-  'forgot-password',
-  'integrations',
-  'foods',
-  'combos',
-  'new',
-  'all',
-  'home',
-  'group-settings',
-  'me',
-  'admin',
-  'groups',
-  'invite',
-  'join',
-])
-
-/**
- * Kept out of a new Group's slug: former Personal groups (ADR-0030) still hold
- * slugs with this prefix, and a household named "Me and Bob" must not read like
- * one of them.
- */
-export const PERSONAL_SLUG_PREFIX = 'me-'
-
-/** Prefix escaping a Group out of a reserved or `me-` slug. */
-const SHARED_ESCAPE_PREFIX = 'g-'
-
 /** Slug for a Group whose name carries nothing sluggable at all. */
 const EMPTY_SLUG_FALLBACK = 'group'
 
@@ -76,42 +38,27 @@ function cap(slug: string): string {
 }
 
 /**
- * The sluggable part of a name, or the empty string when there is none.
- * `normaliseSlug` is the same thing with a fallback; the callers that need to
- * tell "nothing usable" apart from a Group genuinely named "Group" use this.
+ * A name reduced to slug characters: lowercase, unaccented, hyphen-separated,
+ * capped in length. Returns `group` when nothing usable survives.
+ *
+ * No segment is reserved and no prefix escaped: the Group is not in a web URL
+ * (ADR-0031), and the phone's `gather://g/<slug>/…` link has the slug in a
+ * segment of its own.
  */
-function sluggablePart(name: string): string {
+export function normaliseSlug(name: string): string {
   let slug = name.normalize('NFKD').toLowerCase()
   for (const [pattern, replacement] of TRANSLITERATIONS) {
     slug = slug.replace(pattern, replacement)
   }
-  return cap(
-    slug
-      // Combining marks left behind by NFKD — the accents themselves.
-      .replace(/\p{M}+/gu, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, ''),
+  return (
+    cap(
+      slug
+        // Combining marks left behind by NFKD — the accents themselves.
+        .replace(/\p{M}+/gu, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, ''),
+    ) || EMPTY_SLUG_FALLBACK
   )
-}
-
-/**
- * A name reduced to slug characters: lowercase, unaccented, hyphen-separated,
- * capped in length. Returns `group` when nothing usable survives.
- */
-export function normaliseSlug(name: string): string {
-  return sluggablePart(name) || EMPTY_SLUG_FALLBACK
-}
-
-/**
- * The slug a Group starts from, escaped out of the reserved segments and the
- * `me-` prefix so the ladder below can only ever produce a usable
- * slug. "Me and Bob" becomes `g-me-and-bob`, not `me-and-bob`.
- */
-export function sharedSlugBase(name: string): string {
-  const slug = normaliseSlug(name)
-  const collides =
-    RESERVED_SLUGS.has(slug) || slug.startsWith(PERSONAL_SLUG_PREFIX)
-  return collides ? cap(`${SHARED_ESCAPE_PREFIX}${slug}`) : slug
 }
 
 /**

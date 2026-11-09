@@ -1,6 +1,6 @@
 import type { Id } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
-import { nthSlugCandidate, sharedSlugBase } from './slugs'
+import { normaliseSlug, nthSlugCandidate } from './slugs'
 
 interface AllocateArgs {
   /** The Group's name, as a person typed it. */
@@ -25,7 +25,7 @@ export async function allocateGroupSlug(
   ctx: MutationCtx,
   { name, excludeGroupId, taken }: AllocateArgs,
 ): Promise<string> {
-  const base = sharedSlugBase(name)
+  const base = normaliseSlug(name)
 
   for (let n = 1; ; n++) {
     const candidate = nthSlugCandidate(base, n)

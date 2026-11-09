@@ -1712,12 +1712,12 @@ export const SAMPLE_HOLDINGS: SampleHolding[] = [
     author: 'nora',
   },
   {
-    // A foreign holding, so the preview shows a conversion and its own age.
+    // Euro-traded: a Group counts in euros only, with no conversions.
     kind: 'stock',
     symbol: 'AAPL',
     name: 'Apple Inc.',
-    exchange: 'NASDAQ',
-    currency: 'USD',
+    exchange: 'XETRA',
+    currency: 'EUR',
     openingDaysAgo: 300,
     openingUnits: 9,
     openingAverageCostCents: 25_000,
@@ -1735,12 +1735,6 @@ export const SAMPLE_HOLDINGS: SampleHolding[] = [
     author: 'sam',
   },
 ]
-
-/** The Group counts in euros, and one manual conversion for the dollar holding. */
-export const SAMPLE_FINANCE_SETTINGS = {
-  homeCurrency: 'EUR',
-  rates: [{ currency: 'USD', rate: 0.873, hoursAgo: 8 }],
-}
 
 export const SAMPLE_NET_WORTH_ENTRIES: {
   kind: 'asset' | 'liability'

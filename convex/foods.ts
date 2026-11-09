@@ -200,7 +200,7 @@ export const update = mutation({
     const user = await requireCurrentUser(ctx)
     const { id, icon, ...rest } = args
     const food = await ctx.db.get(id)
-    if (!food) throw new Error('Food not found')
+    if (!food) throw new ConvexError('Food not found')
     const refusal = editRefusal(food, user._id)
     if (refusal) throw new ConvexError(refusal)
     await ctx.db.patch(id, {
@@ -331,7 +331,7 @@ export const applyOffRefresh = internalMutation({
     await requireCurrentUser(ctx)
     const { id, ...rest } = args
     const food = await ctx.db.get(id)
-    if (!food) throw new Error('Food not found')
+    if (!food) throw new ConvexError('Food not found')
     assertNotCatalog(food)
     await ctx.db.patch(id, {
       ...rest,

@@ -1,11 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import {
-  MAX_SLUG_LENGTH,
-  normaliseSlug,
-  nthSlugCandidate,
-  RESERVED_SLUGS,
-  sharedSlugBase,
-} from './slugs'
+import { MAX_SLUG_LENGTH, normaliseSlug, nthSlugCandidate } from './slugs'
 
 describe('normaliseSlug', () => {
   test('lowercases and hyphenates words', () => {
@@ -50,38 +44,6 @@ describe('normaliseSlug', () => {
   test('transliterates letters that carry no combining mark to strip', () => {
     expect(normaliseSlug('Straße')).toBe('strasse')
     expect(normaliseSlug('Œuf')).toBe('oeuf')
-  })
-})
-
-describe('sharedSlugBase', () => {
-  test('leaves an ordinary household name alone', () => {
-    expect(sharedSlugBase('Jansen Household')).toBe('jansen-household')
-  })
-
-  test('escapes a name that would land on a reserved segment', () => {
-    for (const reserved of RESERVED_SLUGS) {
-      expect(sharedSlugBase(reserved)).toBe(`g-${reserved}`)
-    }
-  })
-
-  test('escapes a name that would land in the `me-` prefix', () => {
-    expect(sharedSlugBase('Me and Bob')).toBe('g-me-and-bob')
-    expect(sharedSlugBase('Me')).toBe('g-me')
-  })
-
-  test('never produces a reserved segment or the `me-` prefix', () => {
-    const names = ['settings', 'API', 'me', 'me-too', 'g', '', '???', 'Home']
-    for (const name of names) {
-      const slug = sharedSlugBase(name)
-      expect(RESERVED_SLUGS.has(slug)).toBe(false)
-      expect(slug.startsWith('me-')).toBe(false)
-    }
-  })
-
-  test('stays within the maximum slug length after escaping', () => {
-    expect(sharedSlugBase(`Me ${'a'.repeat(80)}`).length).toBeLessThanOrEqual(
-      MAX_SLUG_LENGTH,
-    )
   })
 })
 

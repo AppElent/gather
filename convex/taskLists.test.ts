@@ -608,3 +608,72 @@ describe('adding a list from inside a Group', () => {
     ).rejects.toThrow(/Not a member/)
   })
 })
+
+describe('deleting a list', () => {
+  test('un-points the grocery list and the checklist cards that named it', async () => {
+    const { t, jansen, jansenList } = await seed()
+    const { keep, noor } = await t.run(async (ctx) => {
+      const keep = await ctx.db.insert('taskLists', {
+        groupId: jansen,
+        name: 'Questions',
+        provider: 'local',
+        order: 1,
+      })
+      await ctx.db.patch(jansen, { groceryListId: jansenList })
+      const noor = await ctx.db.insert('babies', {
+        groupId: jansen,
+        name: 'Noor',
+        birthDate: '2026-01-05',
+        order: 0,
+        taskListId: jansenList,
+        taskListChosen: true,
+        questionsListId: keep,
+        questionsListChosen: true,
+      })
+      return { keep, noor }
+    })
+
+    await t.withIdentity(alice).mutation(api.taskLists.remove, {
+      listId: jansenList,
+      groupSlug: JANSEN,
+    })
+
+    await t.run(async (ctx) => {
+      expect((await ctx.db.get(jansen))?.groceryListId).toBeUndefined()
+      const baby = await ctx.db.get(noor)
+      expect(baby?.taskListId).toBeUndefined()
+      expect(baby?.taskListChosen).toBeUndefined()
+      expect(baby?.questionsListId).toBe(keep)
+      expect(baby?.questionsListChosen).toBe(true)
+      expect(
+        await ctx.db
+          .query('tasks')
+          .withIndex('by_list', (q) => q.eq('listId', jansenList))
+          .collect(),
+      ).toEqual([])
+    })
+  })
+
+  test('a child deleted with its given list un-points the grocery list', async () => {
+    const { t, jansen, jansenList } = await seed()
+    const noor = await t.run(async (ctx) => {
+      await ctx.db.patch(jansen, { groceryListId: jansenList })
+      return await ctx.db.insert('babies', {
+        groupId: jansen,
+        name: 'Noor',
+        birthDate: '2026-01-05',
+        order: 0,
+        taskListId: jansenList,
+      })
+    })
+
+    await t
+      .withIdentity(alice)
+      .mutation(api.babies.remove, { id: noor, groupSlug: JANSEN })
+
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(jansenList)).toBeNull()
+      expect((await ctx.db.get(jansen))?.groceryListId).toBeUndefined()
+    })
+  })
+})

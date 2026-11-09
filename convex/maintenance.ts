@@ -66,6 +66,27 @@ export const removePersonalGroupSemantics = internalMutation({
 })
 
 /**
+ * Deletes every `financeSettings` row. The table is retired: a Group counts in
+ * euros only, with no conversions, and `holdings.settings` answers that
+ * without reading it. Nothing writes the table any more.
+ *
+ * Run with `{ apply: true }` in every deployment and confirm `deleted` is zero
+ * on a second run; then delete the table from the schema, its
+ * `GROUP_CONTENT` entry, and this operation.
+ */
+export const deleteFinanceSettings = internalMutation({
+  args: { apply: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const rows = await ctx.db.query('financeSettings').collect()
+    if (apply) {
+      for (const row of rows) await ctx.db.delete(row._id)
+    }
+    return { apply, deleted: rows.length }
+  },
+})
+
+/**
  * Collapse duplicate `users` rows — several rows sharing one `clerkId` — onto
  * the oldest row for that subject.
  *
@@ -504,6 +525,75 @@ function repointUserIds(
   return value
 }
 
+/** Fold entries that name the same person into the first; keyless ones stay. */
+function foldBy<T>(
+  items: T[],
+  key: (item: T) => string | undefined,
+  merge: (into: T, item: T) => T,
+): T[] {
+  const folded: T[] = []
+  const at = new Map<string, number>()
+  for (const item of items) {
+    const k = key(item)
+    const index = k === undefined ? undefined : at.get(k)
+    if (index !== undefined) {
+      folded[index] = merge(folded[index], item)
+      continue
+    }
+    if (k !== undefined) at.set(k, folded.length)
+    folded.push(item)
+  }
+  return folded
+}
+
+const addCents = <T extends { amountCents: number }>(into: T, item: T): T => ({
+  ...into,
+  amountCents: into.amountCents + item.amountCents,
+})
+
+/**
+ * After a repoint, the entries of one list that now name one person, made one.
+ * Plain id lists are deduplicated by `repointUserIds` itself; these are the
+ * object lists where the duplicate carries a share. Payments stay separate:
+ * one person paying twice is two payments.
+ */
+const FOLD_DUPLICATES: {
+  [T in TableHoldingUsers]?: {
+    [K in UserColumn<T>]?: (value: Doc<T>[K]) => Doc<T>[K]
+  }
+} = {
+  recurringCosts: {
+    split: (shares) =>
+      shares &&
+      foldBy(
+        shares,
+        (share) => share.userId,
+        (into, share) => ({ ...into, percent: into.percent + share.percent }),
+      ),
+  },
+  splitScenarios: {
+    participants: (parties) =>
+      foldBy(
+        parties,
+        (party) => party.userId,
+        (into) => into,
+      ),
+    owed: (rows) => foldBy(rows, (row) => row.party.userId, addCents),
+    // A transfer from a person to themselves settles nothing.
+    transfers: (rows) =>
+      foldBy(
+        rows.filter(
+          (row) => !row.from.userId || row.from.userId !== row.to.userId,
+        ),
+        (row) =>
+          row.from.userId && row.to.userId
+            ? `${row.from.userId}>${row.to.userId}`
+            : undefined,
+        addCents,
+      ),
+  },
+}
+
 /**
  * Repoint every `v.id('users')` reference from `drop` onto `keep`. A reference
  * left on a deleted row is attribution that reads as nobody, a split that no
@@ -600,13 +690,17 @@ async function mergeUserInto(
       .filter(([, rule]) => rule === 'repoint')
       .map(([column]) => column)
     if (columns.length === 0) continue
+    const folds = (FOLD_DUPLICATES[table] ?? {}) as Record<
+      string,
+      ((value: unknown) => unknown) | undefined
+    >
     for (const row of await ctx.db.query(table).collect()) {
       const patch: Record<string, unknown> = {}
       for (const column of columns) {
         const before = (row as Record<string, unknown>)[column]
         const after = repointUserIds(before, dropIds, keep._id)
         if (JSON.stringify(before) !== JSON.stringify(after)) {
-          patch[column] = after
+          patch[column] = folds[column]?.(after) ?? after
         }
       }
       if (Object.keys(patch).length === 0) continue

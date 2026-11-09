@@ -219,9 +219,10 @@ fresh data could not be retrieved. Its timestamp and age remain visible.
 _Avoid_: Current price, Missing value
 
 **Group home currency**:
-The currency a Group selects for combined money totals. A Portfolio overview
-preserves each holding's trading currency and translates the total using an
-exchange rate whose timestamp is shown.
+The currency of a Group's combined money totals: always the euro
+([ADR-0040](docs/adr/0040-a-group-counts-in-euros.md)). A Portfolio overview
+preserves each holding's trading currency; one that is not the euro counts
+one-to-one and shows as a Stale valuation.
 _Avoid_: Base currency, Default currency
 
 A food *a person added themselves* is not Catalog. It sits alongside the
