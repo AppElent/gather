@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 1.2.0
+version: 1.3.0
 status: current
 ---
 
@@ -42,6 +42,12 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   household for an account Clerk then refuses to delete is the worst outcome
   available, so the button is withheld rather than allowed to fail. The flag is
   the Clerk Dashboard setting "Delete self"; the app cannot turn it on.
+- **On the phone, a Clerk refusal outlives the purge.** The purge empties the
+  Group list, and `GroupProvider` then unmounts everything Group-scoped,
+  including the delete screen. So the run lives in `AccountDeleteProvider`,
+  above the session and Group gates, and once the purge has started it draws
+  the deletion in place of the signed-in tree: a refusal there offers Try
+  again (Clerk only) and Sign out (`apps/mobile/src/features/account/delete/`).
 
 ## Acceptance
 

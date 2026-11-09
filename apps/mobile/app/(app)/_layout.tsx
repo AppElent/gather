@@ -7,7 +7,9 @@
  *
  * Three gates, outermost first: Clerk decides whether you are here at all,
  * Convex decides whether anything may query (`ConvexSessionGate`), and the
- * Group decides what everything is scoped to.
+ * Group decides what everything is scoped to. Account deletion sits above the
+ * last two, because its first step takes both away while its second is still
+ * running (`AccountDeleteProvider`).
  */
 import { useAuth } from '@clerk/expo'
 import { Redirect, Stack, useNavigationContainerRef } from 'expo-router'
@@ -18,6 +20,8 @@ import { useSignOut } from '../../src/auth/useSignOut'
 import { GroupPending } from '../../src/components/GroupPending'
 import { NoGroup } from '../../src/components/NoGroup'
 import { DropGate } from '../../src/drop/DropGate'
+import { AccountDeleteProvider } from '../../src/features/account/delete/account-delete-provider'
+import { AccountDeleteUnderwayScreen } from '../../src/features/account/delete/account-delete-underway-screen'
 import { GroupProvider } from '../../src/group/GroupProvider'
 import { groupUnwindActions, type NavState } from '../../src/group/groupUnwind'
 import { useTokens } from '../../src/theme/tokens'
@@ -39,27 +43,33 @@ export default function AppLayout() {
   if (!isSignedIn) return <Redirect href="/" />
 
   return (
-    <ConvexSessionGate pending={<GroupPending />} onSignOut={signOut}>
-      <GroupProvider
-        pending={<GroupPending />}
-        none={<NoGroup onSignOut={signOut} />}
-        onSwitch={unwindTabStacks}
-      >
-        {/* Inside both gates, because the chooser needs the Group and needs this
-            stack to be pushed onto. The Drop itself was captured further up. */}
-        <DropGate />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            headerBackButtonDisplayMode: 'minimal',
-            contentStyle: { backgroundColor: tokens.bg },
-          }}
+    <AccountDeleteProvider
+      underway={(deletion) => (
+        <AccountDeleteUnderwayScreen {...deletion} onSignOut={signOut} />
+      )}
+    >
+      <ConvexSessionGate pending={<GroupPending />} onSignOut={signOut}>
+        <GroupProvider
+          pending={<GroupPending />}
+          none={<NoGroup onSignOut={signOut} />}
+          onSwitch={unwindTabStacks}
         >
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="deep-link" />
-          <Stack.Screen name="drop" />
-        </Stack>
-      </GroupProvider>
-    </ConvexSessionGate>
+          {/* Inside both gates, because the chooser needs the Group and needs this
+              stack to be pushed onto. The Drop itself was captured further up. */}
+          <DropGate />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              headerBackButtonDisplayMode: 'minimal',
+              contentStyle: { backgroundColor: tokens.bg },
+            }}
+          >
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="deep-link" />
+            <Stack.Screen name="drop" />
+          </Stack>
+        </GroupProvider>
+      </ConvexSessionGate>
+    </AccountDeleteProvider>
   )
 }
