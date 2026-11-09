@@ -43,12 +43,12 @@ export const ENTRIES = [
     key: 'clerkPublishableKey',
     infisicalKey: 'clerk-publishable-key',
     description:
-      'Clerk publishable key: pk_test_ locally, pk_live_ in preview, staging and production. Published by design.',
+      'Clerk publishable key: pk_test_ locally, pk_live_ for staging web, the installed preview app and production. Web PR previews read prClerkPublishableKey instead. Published by design.',
     secret: false,
     lands: {
       'vite-build': {
         name: 'VITE_CLERK_PUBLISHABLE_KEY',
-        environments: ['local', 'preview', 'staging', 'production'],
+        environments: ['local', 'staging', 'production'],
       },
       'expo-build': {
         name: 'EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY',
@@ -64,12 +64,40 @@ export const ENTRIES = [
     key: 'clerkJwtIssuerDomain',
     infisicalKey: 'clerk-jwt-issuer-domain',
     description:
-      'Clerk JWT issuer domain, the Clerk↔Convex auth bridge. A Convex deployment without it refuses every authenticated call.',
+      'Clerk JWT issuer domain, the Clerk↔Convex auth bridge. A Convex deployment without it refuses every authenticated call. Per-PR backends read prClerkJwtIssuerDomain instead.',
     secret: false,
     lands: {
       'convex-functions': {
         name: 'CLERK_JWT_ISSUER_DOMAIN',
-        environments: ['local', 'preview', 'production'],
+        environments: ['local', 'production'],
+      },
+    },
+  },
+  // Auth follows lifetime: web PR previews are short-lived, so they use the
+  // Clerk development instance. In Infisical `staging` both keys are secret
+  // references to the matching `dev` values.
+  {
+    key: 'prClerkPublishableKey',
+    infisicalKey: 'pr-clerk-publishable-key',
+    description:
+      'Reference to the dev pk_test_ key: web PR previews are short-lived.',
+    secret: false,
+    lands: {
+      'vite-build': {
+        name: 'VITE_CLERK_PUBLISHABLE_KEY',
+        environments: ['preview'],
+      },
+    },
+  },
+  {
+    key: 'prClerkJwtIssuerDomain',
+    infisicalKey: 'pr-clerk-jwt-issuer-domain',
+    description: 'Reference to the dev issuer the per-PR backend trusts.',
+    secret: false,
+    lands: {
+      'convex-functions': {
+        name: 'CLERK_JWT_ISSUER_DOMAIN',
+        environments: ['preview'],
       },
     },
   },

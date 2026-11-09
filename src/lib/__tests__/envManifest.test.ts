@@ -154,6 +154,32 @@ describe('what staging may not have', () => {
   })
 })
 
+describe('auth follows lifetime', () => {
+  const clerk = (environment: string) =>
+    placementsFor(environment)
+      .filter((p) => p.name.includes('CLERK'))
+      .map((p) => `${p.consumer} ${p.entry.infisicalKey}`)
+
+  it('gives short-lived web previews the development instance', () => {
+    expect(clerk('preview')).toEqual([
+      'expo-build clerk-publishable-key',
+      'vite-build pr-clerk-publishable-key',
+      'convex-functions pr-clerk-jwt-issuer-domain',
+    ])
+  })
+
+  it('keeps long-lived deployments on the production instance', () => {
+    // Staging web serves gather-stg.appelent.nl, a host the production
+    // instance accepts.
+    for (const environment of ['staging', 'production']) {
+      expect(clerk(environment)).not.toContainEqual(
+        expect.stringContaining('pr-clerk'),
+      )
+    }
+    expect(clerk('staging')).toEqual(['vite-build clerk-publishable-key'])
+  })
+})
+
 describe('values the deploy produces', () => {
   it('marks the deployed Convex URL as supplied rather than missing', () => {
     // Convex mints a backend per PR, so on preview there is no value anyone

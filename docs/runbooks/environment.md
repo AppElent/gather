@@ -58,9 +58,15 @@ the manifest and `.env.example`, not here.
 - **`VITE_*` and `EXPO_PUBLIC_*` are public**: inlined into bundles. Test-user
   credentials therefore belong to the Clerk *test* instance only, and land only
   in `local` (apply and exec refuse any other landing).
-- **Previews use production auth.** Preview builds read `pk_live_` from Infisical
-  `staging`, so the preview Convex default `CLERK_JWT_ISSUER_DOMAIN` must be the
-  production issuer (`pnpm env:apply preview --only convex`).
+- **Auth follows lifetime.** Local and web PR previews (short-lived) use the
+  Clerk development instance; staging web, the installed preview app and
+  production (long-lived) use production. Web PR previews read
+  `pr-clerk-publishable-key` and `pr-clerk-jwt-issuer-domain`, which Infisical
+  `staging` holds as secret references to the `dev` values, so the preview
+  Convex default `CLERK_JWT_ISSUER_DOMAIN` is the development issuer
+  (`pnpm env:apply preview --only convex`). Staging web can use production auth
+  because it serves `gather-stg.appelent.nl`: a production instance signs in
+  only on its own domain and subdomains, never on `workers.dev`.
 - **OAuth providers** (Notion, Todoist) register the redirect URI
   `<app-origin>/integrations/callback` (`http://localhost:3000/integrations/callback`
   in dev). Without their client id/secret, connecting fails with a clear
