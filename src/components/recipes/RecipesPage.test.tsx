@@ -128,6 +128,21 @@ describe('RecipesPage filtering', () => {
     )
   })
 
+  test('a picked tag that leaves the collection is dropped, not revived', () => {
+    const { rerender } = renderInGroup(<RecipesPage />)
+    fireEvent.change(tagPicker(), { target: { value: 'soup' } })
+    expect(shownTitles()).toEqual(['Pea soup', 'Gazpacho'])
+
+    loaded.value = [RECIPES[0]]
+    rerender(<RecipesPage />)
+    expect(shownTitles()).toEqual(['Stamppot'])
+
+    loaded.value = RECIPES
+    rerender(<RecipesPage />)
+    expect(tagPicker()).toHaveValue('')
+    expect(shownTitles()).toEqual(['Stamppot', 'Pea soup', 'Gazpacho'])
+  })
+
   test('without tags there is no tag picker', () => {
     loaded.value = [{ _id: 'r9', title: 'Pancakes', tags: [], imageUrl: null }]
     renderInGroup(<RecipesPage />)

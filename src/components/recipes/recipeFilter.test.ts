@@ -21,6 +21,15 @@ describe('recipeTags', () => {
     ])
   })
 
+  test('offers a tag spelled in two cases once, as first met', () => {
+    expect(
+      recipeTags([
+        { title: 'A', tags: ['Soup'] },
+        { title: 'B', tags: ['soup', 'SOUP'] },
+      ]),
+    ).toEqual(['Soup'])
+  })
+
   test('is empty for a collection without tags', () => {
     expect(recipeTags([{ title: 'Pancakes', tags: [] }])).toEqual([])
   })
@@ -43,6 +52,19 @@ describe('filterRecipes', () => {
 
   test('a tag keeps the recipes carrying it', () => {
     expect(titles('', 'soup')).toEqual(['Pea soup', 'Gazpacho'])
+  })
+
+  test('a tag matches its other spellings', () => {
+    expect(
+      filterRecipes(
+        [
+          { title: 'A', tags: ['Soup'] },
+          { title: 'B', tags: ['soup'] },
+          { title: 'C', tags: [] },
+        ],
+        { query: '', tag: 'Soup' },
+      ).map((r) => r.title),
+    ).toEqual(['A', 'B'])
   })
 
   test('search and tag both have to match', () => {

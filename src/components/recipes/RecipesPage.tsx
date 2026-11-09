@@ -7,8 +7,9 @@ import { fmt, useMessages } from '../../lib/i18n'
 import { linkTo } from '../../lib/links'
 import { SurfaceCard } from '../app/ShellPrimitives'
 import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
+import { fieldClass } from '../kitchen/fields'
 import { RecipeCard } from './RecipeCard'
-import { filterRecipes, recipeTags } from './recipeFilter'
+import { filterRecipes, recipeTags, sameTag } from './recipeFilter'
 import { useRecipeViewMode } from './useRecipeViewMode'
 import { ViewModeToggle } from './ViewModeToggle'
 
@@ -27,8 +28,10 @@ export function RecipesPage() {
   const [query, setQuery] = useState('')
   const [pickedTag, setPickedTag] = useState('')
   const tags = useMemo(() => recipeTags(recipes ?? []), [recipes])
-  // A tag whose last recipe was deleted or retagged stops filtering.
-  const tag = tags.includes(pickedTag) ? pickedTag : ''
+  // A tag whose last recipe was deleted or retagged stops filtering, and is
+  // forgotten so it does not quietly filter again if it comes back.
+  const tag = (pickedTag && tags.find((t) => sameTag(t, pickedTag))) || ''
+  if (pickedTag && !tag) setPickedTag('')
   const shown = useMemo(
     () => filterRecipes(recipes ?? [], { query, tag }),
     [recipes, query, tag],
@@ -98,7 +101,7 @@ export function RecipesPage() {
                 aria-hidden="true"
               />
               <input
-                className="min-h-11 w-full rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] pl-10 pr-10 text-[16px] sm:text-sm"
+                className={`${fieldClass} w-full pl-10 pr-10 sm:text-sm`}
                 type="search"
                 placeholder={list.search}
                 value={query}
@@ -118,7 +121,7 @@ export function RecipesPage() {
             {tags.length > 0 ? (
               <select
                 aria-label={list.tagFilter}
-                className="min-h-11 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-[16px] sm:text-sm"
+                className={`${fieldClass} sm:text-sm`}
                 value={tag}
                 onChange={(event) => setPickedTag(event.target.value)}
               >
