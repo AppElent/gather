@@ -9,17 +9,11 @@
 import type { PortfolioTotals } from '@gather/core/finance'
 import { portfolioTotals } from '@gather/core/finance'
 
-import {
-  type StoredHolding,
-  type StoredRate,
-  valuedHoldings,
-} from './portfolioView'
+import { type StoredHolding, valuedHoldings } from './portfolioView'
 
 export function portfolioTotalsFor(
   holdings: readonly StoredHolding[],
-  homeCurrency: string,
-  rates: readonly StoredRate[],
   now: number = Date.now(),
 ): PortfolioTotals {
-  return portfolioTotals(valuedHoldings(holdings, homeCurrency, rates), now)
+  return portfolioTotals(valuedHoldings(holdings), now)
 }

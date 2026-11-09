@@ -45,7 +45,7 @@ export function SessionError({
         {t.session.body}
       </Text>
       <View style={styles.actions}>
-        <AuthButton label={t.actions.retry} onPress={onRetry} />
+        <AuthButton label={t.common.actions.retry} onPress={onRetry} />
         <AuthButton
           variant="secondary"
           label={t.signedIn.signOut}

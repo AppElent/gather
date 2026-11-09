@@ -160,8 +160,8 @@ export function RecipeScreen() {
     confirmDestructive({
       title: text.detail.deleteTitle,
       message: fmt(text.detail.deleteBody, { title: recipe.title }),
-      confirm: t.actions.delete,
-      cancel: t.actions.cancel,
+      confirm: t.common.actions.delete,
+      cancel: t.common.actions.cancel,
       onConfirm: async () => {
         try {
           await remove({ id })
@@ -207,7 +207,7 @@ export function RecipeScreen() {
             ? () => (
                 <View style={styles.headerActions}>
                   <HeaderButton
-                    label={t.actions.edit}
+                    label={t.common.actions.edit}
                     testID="recipe-edit"
                     onPress={() =>
                       router.push(
@@ -222,7 +222,7 @@ export function RecipeScreen() {
                     />
                   </HeaderButton>
                   <HeaderButton
-                    label={t.actions.delete}
+                    label={t.common.actions.delete}
                     testID="recipe-delete"
                     onPress={confirmDelete}
                   >

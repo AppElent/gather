@@ -104,7 +104,7 @@ export function DropPickScreen() {
         title: fmt(text.replaceTitle, { name: candidate.label }),
         message: text.replaceBody,
         confirm: text.replace,
-        cancel: t.actions.cancel,
+        cancel: t.common.actions.cancel,
         onConfirm: () => void save(candidate),
       })
       return

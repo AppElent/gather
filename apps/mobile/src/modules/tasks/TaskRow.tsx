@@ -224,7 +224,7 @@ export function TaskRow({
           <Pressable
             testID={`delete-${task.id}`}
             accessibilityRole="button"
-            accessibilityLabel={t.actions.delete}
+            accessibilityLabel={t.common.actions.delete}
             onPress={() => {
               methods.close()
               menu.onAction('delete')
@@ -232,7 +232,7 @@ export function TaskRow({
             style={styles.actionPress}
           >
             <TASK_ICONS.Trash2 size={19} color="#ffffff" strokeWidth={2} />
-            <Text style={styles.actionText}>{t.actions.delete}</Text>
+            <Text style={styles.actionText}>{t.common.actions.delete}</Text>
           </Pressable>
         </View>
       )}

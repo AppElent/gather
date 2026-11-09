@@ -41,6 +41,7 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
+import { useFinanceWrite } from './useFinanceWrite'
 
 type Editing = 'amount' | 'frequency' | 'category' | 'note' | 'split' | null
 
@@ -56,6 +57,7 @@ export function RecurringCostScreen({
   const members = useQuery(api.groups.members, { slug: groupSlug })
   const update = useMutation(api.recurringCosts.update)
   const remove = useMutation(api.recurringCosts.remove)
+  const { attempt, failure } = useFinanceWrite()
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
@@ -80,6 +82,7 @@ export function RecurringCostScreen({
           options={{ headerShown: true, title: text.recurringCosts.title }}
         />
         <ScreenScroll>
+          {failure}
           <Notice>{text.recurringCosts.emptyBody}</Notice>
         </ScreenScroll>
       </>
@@ -93,18 +96,25 @@ export function RecurringCostScreen({
   }))
   const shares = shareOf(perMonth, split)
 
-  function write(patch: Partial<NonNullable<typeof cost>>) {
+  const close = () => setEditing(null)
+
+  /** `then` runs once the write has landed: a failed one leaves the sheet up. */
+  function write(patch: Partial<NonNullable<typeof cost>>, then?: () => void) {
     if (!cost) return
-    update({
-      id: costId,
-      groupSlug,
-      name: patch.name ?? cost.name,
-      amountCents: patch.amountCents ?? cost.amountCents,
-      frequency: patch.frequency ?? cost.frequency,
-      category: patch.category ?? cost.category,
-      note: 'note' in patch ? patch.note : cost.note,
-      split: patch.split ?? cost.split,
-    })
+    attempt(
+      () =>
+        update({
+          id: costId,
+          groupSlug,
+          name: patch.name ?? cost.name,
+          amountCents: patch.amountCents ?? cost.amountCents,
+          frequency: patch.frequency ?? cost.frequency,
+          category: patch.category ?? cost.category,
+          note: 'note' in patch ? patch.note : cost.note,
+          split: patch.split ?? cost.split,
+        }),
+      then,
+    )
   }
 
   function saveSplit() {
@@ -123,8 +133,7 @@ export function RecurringCostScreen({
       )
     )
       return
-    write({ split: next })
-    setEditing(null)
+    write({ split: next }, close)
   }
 
   function confirmDelete() {
@@ -134,8 +143,10 @@ export function RecurringCostScreen({
       confirm: text.actions.delete,
       cancel: text.actions.cancel,
       onConfirm: () => {
-        remove({ id: costId, groupSlug })
-        router.back()
+        attempt(
+          () => remove({ id: costId, groupSlug }),
+          () => router.back(),
+        )
       },
     })
   }
@@ -149,6 +160,7 @@ export function RecurringCostScreen({
     <>
       <Stack.Screen options={{ headerShown: true, title: cost.name }} />
       <ScreenScroll>
+        {failure}
         <Card padded>
           <View style={styles.headline}>
             <View style={styles.half}>
@@ -253,6 +265,7 @@ export function RecurringCostScreen({
           }
           onClose={() => setEditing(null)}
         >
+          {failure}
           <View style={styles.chips}>
             {editing === 'frequency'
               ? COST_FREQUENCIES.map((option) => (
@@ -260,10 +273,7 @@ export function RecurringCostScreen({
                     key={option}
                     label={text.frequencies[option]}
                     selected={cost.frequency === option}
-                    onPress={() => {
-                      write({ frequency: option })
-                      setEditing(null)
-                    }}
+                    onPress={() => write({ frequency: option }, close)}
                   />
                 ))
               : COST_CATEGORIES.map((option) => (
@@ -271,10 +281,7 @@ export function RecurringCostScreen({
                     key={option}
                     label={text.categories[option]}
                     selected={cost.category === option}
-                    onPress={() => {
-                      write({ category: option })
-                      setEditing(null)
-                    }}
+                    onPress={() => write({ category: option }, close)}
                   />
                 ))}
           </View>
@@ -294,6 +301,7 @@ export function RecurringCostScreen({
             />
           }
         >
+          {failure}
           {(members ?? []).map((member) => (
             <Field
               key={member.userId}
@@ -326,15 +334,16 @@ export function RecurringCostScreen({
               onPress={() => {
                 if (editing === 'amount') {
                   const cents = parseCents(draft) ?? 0
-                  if (cents > 0) write({ amountCents: cents })
+                  if (cents > 0) write({ amountCents: cents }, close)
+                  else close()
                 } else {
-                  write({ note: draft.trim() || undefined })
+                  write({ note: draft.trim() || undefined }, close)
                 }
-                setEditing(null)
               }}
             />
           }
         >
+          {failure}
           <Field
             label={
               editing === 'amount'

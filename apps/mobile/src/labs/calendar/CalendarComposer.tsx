@@ -194,7 +194,7 @@ function CardComposer({
       <Pressable
         testID="composer-scrim"
         accessibilityRole="button"
-        accessibilityLabel={t.actions.close}
+        accessibilityLabel={t.common.actions.close}
         onPress={onClose}
         style={[StyleSheet.absoluteFill, styles.scrim]}
       />

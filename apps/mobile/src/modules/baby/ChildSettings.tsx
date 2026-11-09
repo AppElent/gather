@@ -236,7 +236,7 @@ export function ChildSettings({ childId }: { childId: string }) {
       title: fmt(t.baby.log.form.deleteTitle, { name: record.name }),
       message: t.baby.log.form.deleteBody,
       confirm: fmt(t.baby.log.form.deleteConfirm, { name: record.name }),
-      cancel: t.actions.cancel,
+      cancel: t.common.actions.cancel,
       onConfirm: async () => {
         await remove({ id: record._id, groupSlug })
         router.back()
@@ -294,7 +294,7 @@ export function ChildSettings({ childId }: { childId: string }) {
           />
           {pendingName ? (
             <SaveEdit
-              label={t.actions.save}
+              label={t.common.actions.save}
               busy={busy}
               onPress={() => saveDetails({ name: draftName ?? record.name })}
             />
@@ -322,7 +322,7 @@ export function ChildSettings({ childId }: { childId: string }) {
           />
           {pendingBirthDate ? (
             <SaveEdit
-              label={t.actions.save}
+              label={t.common.actions.save}
               busy={busy}
               onPress={() =>
                 saveDetails({ birthDate: draftBirthDate ?? record.birthDate })

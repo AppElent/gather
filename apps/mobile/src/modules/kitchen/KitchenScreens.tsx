@@ -153,8 +153,8 @@ export function MealPlannerScreen() {
     confirmDestructive({
       title: fmt(t.kitchen.deleteTitle, { title: entry.title }),
       message: t.kitchen.deleteBody,
-      confirm: t.actions.delete,
-      cancel: t.actions.cancel,
+      confirm: t.common.actions.delete,
+      cancel: t.common.actions.cancel,
       onConfirm: () => removeMeal({ groupSlug: group.slug, id: entry._id }),
     })
   const setDinner = useMutation(api.kitchen.setDinner)
@@ -382,7 +382,7 @@ export function MealPlannerScreen() {
         labels={{
           name: t.kitchen.name,
           extra: t.kitchen.prepMinutes,
-          add: t.kitchen.add,
+          add: t.common.actions.add,
         }}
         onSave={(title, prep) =>
           addMeal({
@@ -396,10 +396,10 @@ export function MealPlannerScreen() {
         <NativeContextMenu
           key={entry._id}
           actions={[
-            { id: 'edit', title: t.actions.edit },
+            { id: 'edit', title: t.common.actions.edit },
             {
               id: 'delete',
-              title: t.actions.delete,
+              title: t.common.actions.delete,
               attributes: { destructive: true },
             },
           ]}
@@ -410,7 +410,7 @@ export function MealPlannerScreen() {
           }}
         >
           <SwipeableRow
-            deleteLabel={t.actions.delete}
+            deleteLabel={t.common.actions.delete}
             onDelete={() =>
               confirmRemove(entry)
             }
@@ -559,10 +559,10 @@ function EditMeal({
           style={[styles.input, { color: tokens.fg }]}
         />
         <Pressable onPress={() => onSave(id, title, Number(prep) || undefined)}>
-          <Text style={{ color: tokens.accent }}>{t.actions.save}</Text>
+          <Text style={{ color: tokens.accent }}>{t.common.actions.save}</Text>
         </Pressable>
         <Pressable onPress={onClose}>
-          <Text style={{ color: tokens.muted }}>{t.actions.cancel}</Text>
+          <Text style={{ color: tokens.muted }}>{t.common.actions.cancel}</Text>
         </Pressable>
       </View>
     </View>
@@ -625,8 +625,8 @@ export function PantryScreen() {
     confirmDestructive({
       title: fmt(t.kitchen.deleteTitle, { title: item.title }),
       message: t.kitchen.deleteBody,
-      confirm: t.actions.delete,
-      cancel: t.actions.cancel,
+      confirm: t.common.actions.delete,
+      cancel: t.common.actions.cancel,
       onConfirm: () => remove({ groupSlug: group.slug, id: item._id }),
     })
   const [editing, setEditing] = useState<Id<'pantryEntries'> | null>(null)
@@ -637,7 +637,7 @@ export function PantryScreen() {
         labels={{
           name: t.kitchen.name,
           extra: t.kitchen.quantity,
-          add: t.kitchen.add,
+          add: t.common.actions.add,
         }}
         onSave={(title, quantity) =>
           add({ groupSlug: group.slug, title, quantity })
@@ -650,10 +650,10 @@ export function PantryScreen() {
           <NativeContextMenu
             key={item._id}
             actions={[
-              { id: 'edit', title: t.actions.edit },
+              { id: 'edit', title: t.common.actions.edit },
               {
                 id: 'delete',
-                title: t.actions.delete,
+                title: t.common.actions.delete,
                 attributes: { destructive: true },
               },
             ]}
@@ -664,7 +664,7 @@ export function PantryScreen() {
             }
           >
             <SwipeableRow
-              deleteLabel={t.actions.delete}
+              deleteLabel={t.common.actions.delete}
               onDelete={() =>
                 confirmRemove(item)
               }
@@ -740,10 +740,10 @@ function PantryEditor({
           style={[styles.input, { color: tokens.fg }]}
         />
         <Pressable onPress={() => onSave(title, quantity)}>
-          <Text style={{ color: tokens.accent }}>{t.actions.save}</Text>
+          <Text style={{ color: tokens.accent }}>{t.common.actions.save}</Text>
         </Pressable>
         <Pressable onPress={onClose}>
-          <Text>{t.actions.cancel}</Text>
+          <Text>{t.common.actions.cancel}</Text>
         </Pressable>
       </View>
     </View>

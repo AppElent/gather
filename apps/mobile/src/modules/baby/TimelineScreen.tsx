@@ -66,7 +66,7 @@ export function TimelineScreen() {
         type: t.baby.eventTypes[item.type],
       }),
       confirm: t.baby.log.timeline.deleteConfirm,
-      cancel: t.actions.cancel,
+      cancel: t.common.actions.cancel,
       onConfirm: () =>
         remove({
           eventId: item._id as Id<'babyEvents'>,
@@ -129,15 +129,15 @@ export function TimelineScreen() {
           const Icon = EVENT_ICONS[item.type]
           return (
             <SwipeableRow
-              deleteLabel={t.actions.delete}
+              deleteLabel={t.common.actions.delete}
               onDelete={() => confirmDelete(item)}
             >
               <NativeContextMenu
                 actions={[
-                  { id: 'edit', title: t.actions.edit },
+                  { id: 'edit', title: t.common.actions.edit },
                   {
                     id: 'delete',
-                    title: t.actions.delete,
+                    title: t.common.actions.delete,
                     attributes: { destructive: true },
                   },
                 ]}

@@ -40,6 +40,7 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
+import { useFinanceWrite } from './useFinanceWrite'
 
 type Editing = 'calculation' | 'value' | 'bought' | null
 
@@ -51,6 +52,7 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
   const createCalculation = useMutation(api.mortgages.create)
   const updateHouse = useMutation(api.houses.update)
   const removeHouse = useMutation(api.houses.remove)
+  const { attempt, failure } = useFinanceWrite()
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
@@ -81,6 +83,7 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
           options={{ headerShown: true, title: text.house.fallbackName }}
         />
         <ScreenScroll>
+          {failure}
           <Notice>{text.errors.confirmDeleteBody}</Notice>
         </ScreenScroll>
       </>
@@ -100,21 +103,36 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
 
   function save() {
     const value = draft.trim()
+    const done = () => {
+      setDraft('')
+      setEditing(null)
+    }
     if (editing === 'calculation') {
       if (!value) return
-      createCalculation({ houseId, groupSlug, name: value })
+      attempt(
+        () => createCalculation({ houseId, groupSlug, name: value }),
+        done,
+      )
+      return
     }
     if (editing === 'value') {
       const cents = parseCents(value) ?? 0
       if (cents < 0) return
-      updateHouse({ id: houseId, groupSlug, valueCents: cents })
+      attempt(
+        () => updateHouse({ id: houseId, groupSlug, valueCents: cents }),
+        done,
+      )
+      return
     }
     if (editing === 'bought') {
       if (!isIsoDate(value)) return
-      updateHouse({ id: houseId, groupSlug, boughtOn: value })
+      attempt(
+        () => updateHouse({ id: houseId, groupSlug, boughtOn: value }),
+        done,
+      )
+      return
     }
-    setDraft('')
-    setEditing(null)
+    done()
   }
 
   function confirmDelete() {
@@ -124,8 +142,10 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
       confirm: text.actions.delete,
       cancel: text.actions.cancel,
       onConfirm: () => {
-        removeHouse({ id: houseId, groupSlug })
-        router.back()
+        attempt(
+          () => removeHouse({ id: houseId, groupSlug }),
+          () => router.back(),
+        )
       },
     })
   }
@@ -134,6 +154,7 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
     <>
       <Stack.Screen options={{ headerShown: true, title: house.name }} />
       <ScreenScroll>
+        {failure}
         {totals ? (
           <Card padded>
             <Figure
@@ -298,6 +319,7 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
             />
           }
         >
+          {failure}
           <Field
             label={
               editing === 'calculation'

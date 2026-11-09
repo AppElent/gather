@@ -234,7 +234,7 @@ export function DropChooserScreen() {
               <Text style={[styles.confirmLabel, { color: tokens.onAccent }]}>
                 {chosen && chosen.picks !== 'none'
                   ? text.continue
-                  : text.confirm}
+                  : t.common.actions.save}
               </Text>
             )}
           </Pressable>

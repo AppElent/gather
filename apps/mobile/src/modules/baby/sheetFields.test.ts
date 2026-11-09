@@ -2,6 +2,7 @@ import { missingRequiredField } from '@gather/core/baby-events'
 import { describe, expect, test } from 'vitest'
 
 import {
+  buildEditedData,
   buildSheetData,
   endTimestampFor,
   fieldsFor,
@@ -250,5 +251,27 @@ describe('a memory', () => {
     expect(buildSheetData('memory', { what: '  First laugh  ' })).toEqual({
       what: 'First laugh',
     })
+  })
+})
+
+describe('editing an entry', () => {
+  test('keeps a milestone the phone has no field for', () => {
+    expect(buildEditedData('note', {}, { milestone: true })).toEqual({
+      milestone: true,
+    })
+  })
+
+  test('a plain note stays plain', () => {
+    expect(buildEditedData('note', {}, {})).toEqual({})
+  })
+
+  test('carries nothing over that the sheet edits', () => {
+    expect(
+      buildEditedData(
+        'feeding',
+        { method: 'bottle', amountMl: '90' },
+        { method: 'breast', side: 'left', leftMin: 10 },
+      ),
+    ).toEqual({ method: 'bottle', amountMl: 90 })
   })
 })

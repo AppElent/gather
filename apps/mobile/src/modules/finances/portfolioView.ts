@@ -7,9 +7,11 @@
  * - **A price and its age travel together.** A holding with no price has no
  *   quote at all rather than a quote of zero, which is what lets the screen say
  *   "no price yet" instead of drawing a holding as worthless.
- * - **A foreign holding needs a conversion the Group entered**, and its own
- *   age. A holding already in the home currency needs none — passing an
- *   identity rate would give the total a staleness it does not have.
+ * - **The home currency is always the euro, and nothing converts.** A euro
+ *   holding needs no rate — passing an identity rate would give the total a
+ *   staleness it does not have. A holding stored in another currency from
+ *   before that was settled is counted one-to-one and drawn stale, which is
+ *   the honest reading of a figure nobody can convert.
  */
 
 import type { FxRate, ValuedHolding } from '@gather/core/finance'
@@ -35,28 +37,17 @@ export interface StoredHolding {
   }[]
 }
 
-export interface StoredRate {
-  currency: string
-  rate: number
-  asOf: number
-}
+/** Every Group counts in euros; there is no setting and no conversion. */
+export const HOME_CURRENCY = 'EUR'
+
+/** One-to-one with an age of nothing: drawn, and drawn stale. */
+const UNCONVERTED: FxRate = { rate: 1, asOf: 0 }
 
 export function valuedHoldings(
   holdings: readonly StoredHolding[],
-  homeCurrency: string,
-  rates: readonly StoredRate[],
 ): ValuedHolding[] {
   return holdings.map((holding) => {
-    const fx: FxRate | null =
-      holding.currency === homeCurrency
-        ? null
-        : (rates.find((rate) => rate.currency === holding.currency) ?? {
-            // No conversion entered yet. One-to-one with an age of nothing is
-            // the honest placeholder: the total is drawn, and it is drawn
-            // stale, which is exactly what a missing rate means.
-            rate: 1,
-            asOf: 0,
-          })
+    const fx = holding.currency === HOME_CURRENCY ? null : UNCONVERTED
 
     return {
       id: holding._id,

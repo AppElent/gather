@@ -9,10 +9,11 @@
  * `busy` keeps the label in place and swaps in a spinner beside it rather than
  * replacing the text — the button must not change width mid-tap.
  *
- * `danger` is the fourth, and it exists for exactly one action: deleting your
- * account. It is filled rather than outlined because it is the last thing on
- * that screen and it must not read as the quiet way out; it is also the only
- * button in the app that takes the accent away from ink on purpose.
+ * `danger` is the fourth, and it exists for deleting what cannot come back:
+ * your account, or a Group. It is filled rather than outlined because it is
+ * the last thing on its screen and it must not read as the quiet way out; it is
+ * also the only button in the app that takes the accent away from ink on
+ * purpose.
  */
 import {
   ActivityIndicator,

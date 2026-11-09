@@ -109,7 +109,7 @@ export function QuickListSheet({
                 { color: ready ? tokens.surface : tokens.muted },
               ]}
             >
-              {t.actions.save}
+              {t.common.actions.save}
             </Text>
           )}
         </Pressable>

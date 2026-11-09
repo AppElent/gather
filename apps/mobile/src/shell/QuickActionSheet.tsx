@@ -8,19 +8,12 @@
  */
 import { router } from 'expo-router'
 import { useState } from 'react'
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { NativeSheet } from '../components/NativeSheet'
-import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
 import { moduleHref } from '../modules/moduleDestination'
+import { QuickAddTask } from '../modules/tasks/QuickAddTask'
 import { SubjectPickerSheet } from '../modules/tasting/SubjectPickerSheet'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
 import { RADIUS, useTokens } from '../theme/tokens'
@@ -29,15 +22,6 @@ import {
   type QuickAction,
   type QuickActionId,
 } from './quickActions'
-
-/**
- * "{noun} opslaan" with a lowercase noun starts the button in lowercase; a
- * button label starts with a capital in both languages.
- */
-function saveLabel(template: string, noun: string) {
-  const label = fmt(template, { noun })
-  return label.charAt(0).toLocaleUpperCase() + label.slice(1)
-}
 
 export function QuickActionSheet({
   visible,
@@ -62,13 +46,13 @@ function SheetBody({
   const tokens = useTokens()
   const { t } = useI18n()
   const [openId, setOpenId] = useState<QuickActionId | null>(null)
-  const [draft, setDraft] = useState<Record<string, string>>({})
+  // What this launcher has saved since it opened. A haptic is never the only
+  // confirmation (`feedback/haptics.ts`), so each save is named here.
   const [added, setAdded] = useState<string[]>([])
   const text = t.shell.add
   const Back = UI_ICONS.ChevronLeft
   const Chevron = UI_ICONS.ChevronRight
   const openAction = QUICK_ACTIONS.find((action) => action.id === openId)
-  const inSheetCapture = openAction?.kind === 'sheet'
   // The tasting Modules' first step lives in the launcher and their second
   // does not: this swaps the whole sheet for the subject picker, which then
   // pushes the composer. See `QuickActionKind`'s `compose`.
@@ -82,78 +66,26 @@ function SheetBody({
       return
     }
 
-    setDraft({})
     setOpenId(action.id)
   }
 
   const actionText = (action: QuickAction) => text.actions[action.id]
 
-  const save = (action: QuickAction) => {
-    const fields = actionText(action).fields
-    const first = draft[fields[0]]?.trim()
-    if (!first) {
-      haptics.actionFailed()
-      return
-    }
-
-    haptics.itemSaved()
-    setAdded((items) => [...items, `${first} — ${actionText(action).noun}`])
-    setDraft({})
-    setOpenId(null)
-  }
-
+  /** The form a `row` action expands into, under its row. */
   const capture = (action: QuickAction) => {
-    const copy = actionText(action)
-    const ready = Boolean(draft[copy.fields[0]]?.trim())
-
-    return (
-      <View style={styles.capture}>
-        {copy.fields.map((field, index) => (
-          <TextInput
-            key={field}
-            autoFocus={index === 0}
-            value={draft[field] ?? ''}
-            onChangeText={(value) =>
-              setDraft((current) => ({ ...current, [field]: value }))
-            }
-            placeholder={field}
-            placeholderTextColor={tokens.muted}
-            returnKeyType={index === copy.fields.length - 1 ? 'done' : 'next'}
-            onSubmitEditing={() => {
-              if (index === copy.fields.length - 1) save(action)
+    switch (action.id) {
+      case 'task-new':
+        return (
+          <QuickAddTask
+            onSaved={(title, list) => {
+              setAdded((items) => [...items, `${title} — ${list}`])
+              setOpenId(null)
             }}
-            style={[
-              styles.input,
-              {
-                color: tokens.fg,
-                backgroundColor: tokens.bg,
-                borderColor: tokens.border,
-              },
-            ]}
           />
-        ))}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={saveLabel(text.save, copy.noun)}
-          onPress={() => save(action)}
-          disabled={!ready}
-          style={({ pressed }) => [
-            styles.saveButton,
-            { backgroundColor: ready ? tokens.fg : tokens.tile },
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text
-            style={[
-              styles.saveLabel,
-              { color: ready ? tokens.bg : tokens.muted },
-            ]}
-          >
-            {saveLabel(text.save, copy.noun)}
-          </Text>
-        </Pressable>
-      </View>
-    )
+        )
+      default:
+        return null
+    }
   }
 
   const backButton = (
@@ -200,73 +132,55 @@ function SheetBody({
 
   return (
     <NativeSheet
-      title={
-        inSheetCapture && openAction
-          ? actionText(openAction).label
-          : fmt(text.title, { group: groupName })
-      }
+      title={fmt(text.title, { group: groupName })}
       subtitle={
         added.length
           ? fmt(text.saved, { items: added.join(', ') })
-          : // The launcher's own note; a form opened from it has nothing to
-            // add under its title.
-            inSheetCapture && openAction
-            ? undefined
-            : text.workingOnly
+          : text.workingOnly
       }
       onClose={onClose}
-      leading={inSheetCapture ? backButton : null}
     >
       <ScrollView keyboardShouldPersistTaps="handled">
-        {inSheetCapture && openAction ? (
-          <View style={styles.sheetCapture}>
-            {capture(openAction)}
-            <Text style={[styles.hint, { color: tokens.muted }]}>
-              {fmt(text.sheetHint, { group: groupName })}
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.rows}>
-            {QUICK_ACTIONS.map((action) => {
-              const copy = actionText(action)
-              const tint = tokens.tintOf(action.group)
-              const Icon = MODULE_ICONS[action.icon]
-              const expanded = action.kind === 'row' && openId === action.id
+        <View style={styles.rows}>
+          {QUICK_ACTIONS.map((action) => {
+            const copy = actionText(action)
+            const tint = tokens.tintOf(action.group)
+            const Icon = MODULE_ICONS[action.icon]
+            const expanded = action.kind === 'row' && openId === action.id
 
-              return (
-                <View key={action.id}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={copy.label}
-                    onPress={() => choose(action)}
-                    style={({ pressed }) => [
-                      styles.row,
-                      pressed && styles.pressed,
-                    ]}
+            return (
+              <View key={action.id}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={copy.label}
+                  onPress={() => choose(action)}
+                  style={({ pressed }) => [
+                    styles.row,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <View
+                    style={[styles.rowIcon, { backgroundColor: tint.bg }]}
                   >
-                    <View
-                      style={[styles.rowIcon, { backgroundColor: tint.bg }]}
-                    >
-                      <Icon size={20} color={tint.fg} strokeWidth={1.8} />
-                    </View>
-                    <View style={styles.rowText}>
-                      <Text style={[styles.rowLabel, { color: tokens.fg }]}>
-                        {copy.label}
-                      </Text>
-                      <Text style={[styles.rowModule, { color: tokens.muted }]}>
-                        {copy.module} · {text.kinds[action.kind]}
-                      </Text>
-                    </View>
-                    {action.kind === 'handoff' || action.kind === 'compose' ? (
-                      <Chevron size={18} color={tokens.muted} />
-                    ) : null}
-                  </Pressable>
-                  {expanded ? capture(action) : null}
-                </View>
-              )
-            })}
-          </View>
-        )}
+                    <Icon size={20} color={tint.fg} strokeWidth={1.8} />
+                  </View>
+                  <View style={styles.rowText}>
+                    <Text style={[styles.rowLabel, { color: tokens.fg }]}>
+                      {copy.label}
+                    </Text>
+                    <Text style={[styles.rowModule, { color: tokens.muted }]}>
+                      {copy.module} · {text.kinds[action.kind]}
+                    </Text>
+                  </View>
+                  {action.kind === 'handoff' || action.kind === 'compose' ? (
+                    <Chevron size={18} color={tokens.muted} />
+                  ) : null}
+                </Pressable>
+                {expanded ? capture(action) : null}
+              </View>
+            )
+          })}
+        </View>
       </ScrollView>
     </NativeSheet>
   )
@@ -297,21 +211,5 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: 1 },
   rowLabel: { fontSize: 16, fontWeight: '600' },
   rowModule: { fontSize: 13 },
-  sheetCapture: { gap: 10, paddingBottom: 8 },
-  capture: { gap: 8, paddingBottom: 8 },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    fontSize: 16,
-  },
-  saveButton: {
-    borderRadius: RADIUS.control,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  saveLabel: { fontSize: 15, fontWeight: '700' },
-  hint: { fontSize: 13, lineHeight: 19 },
   pressed: { opacity: 0.6 },
 })

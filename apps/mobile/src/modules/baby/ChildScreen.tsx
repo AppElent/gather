@@ -118,7 +118,7 @@ export function ChildScreen() {
       confirm: fmt(t.baby.log.form.deleteConfirm, {
         name: childToDelete.name,
       }),
-      cancel: t.actions.cancel,
+      cancel: t.common.actions.cancel,
       onConfirm: () =>
         removeChild({
           id: childToDelete._id as Id<'babies'>,

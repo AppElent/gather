@@ -100,7 +100,7 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
           }}
           style={[styles.edit, { borderColor: tokens.border }]}
         >
-          <Text style={{ color: tokens.accent }}>{t.actions.edit}</Text>
+          <Text style={{ color: tokens.accent }}>{t.common.actions.edit}</Text>
         </Pressable>
         <View
           style={[

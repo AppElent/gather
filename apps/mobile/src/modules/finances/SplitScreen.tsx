@@ -43,6 +43,7 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
+import { useFinanceWrite } from './useFinanceWrite'
 
 interface Payment {
   memberId: string
@@ -56,6 +57,7 @@ export function SplitScreen() {
   const members = useQuery(api.groups.members, { slug: groupSlug })
   const saved = useQuery(api.splitScenarios.list, { groupSlug })
   const saveScenario = useMutation(api.splitScenarios.save)
+  const { attempt, failure } = useFinanceWrite()
 
   const [what, setWhat] = useState('')
   const [payments, setPayments] = useState<Payment[]>([])
@@ -128,41 +130,46 @@ export function SplitScreen() {
     if (!trimmed || payments.length === 0) return
     if (!allocationBalances) return
     const ids = participantIds
-    saveScenario({
-      groupSlug,
-      name: trimmed,
-      payments: payments.map((payment) => ({
-        party: {
-          userId: payment.memberId as never,
-          name: nameOf(payment.memberId),
-        },
-        amountCents: payment.amountCents,
-        label: payment.label,
-      })),
-      participants: ids.map((id) => ({
-        userId: id as never,
-        name: nameOf(id),
-      })),
-      mode,
-      owed: ids.map((id) => ({
-        party: { userId: id as never, name: nameOf(id) },
-        amountCents: result.owedCents.get(id) ?? 0,
-      })),
-      transfers: result.transfers.map((transfer) => ({
-        from: {
-          userId: transfer.fromMemberId as never,
-          name: nameOf(transfer.fromMemberId),
-        },
-        to: {
-          userId: transfer.toMemberId as never,
-          name: nameOf(transfer.toMemberId),
-        },
-        amountCents: transfer.amountCents,
-      })),
-      totalCents: result.totalCents,
-    })
-    setSaving(false)
-    setName('')
+    attempt(
+      () =>
+        saveScenario({
+          groupSlug,
+          name: trimmed,
+          payments: payments.map((payment) => ({
+            party: {
+              userId: payment.memberId as never,
+              name: nameOf(payment.memberId),
+            },
+            amountCents: payment.amountCents,
+            label: payment.label,
+          })),
+          participants: ids.map((id) => ({
+            userId: id as never,
+            name: nameOf(id),
+          })),
+          mode,
+          owed: ids.map((id) => ({
+            party: { userId: id as never, name: nameOf(id) },
+            amountCents: result.owedCents.get(id) ?? 0,
+          })),
+          transfers: result.transfers.map((transfer) => ({
+            from: {
+              userId: transfer.fromMemberId as never,
+              name: nameOf(transfer.fromMemberId),
+            },
+            to: {
+              userId: transfer.toMemberId as never,
+              name: nameOf(transfer.toMemberId),
+            },
+            amountCents: transfer.amountCents,
+          })),
+          totalCents: result.totalCents,
+        }),
+      () => {
+        setSaving(false)
+        setName('')
+      },
+    )
   }
 
   // "Each" is only a fair word for an equal split. A custom one has no single
@@ -176,6 +183,7 @@ export function SplitScreen() {
     <>
       <Stack.Screen options={{ headerShown: true, title: text.split.title }} />
       <ScreenScroll bottomInset={payments.length > 0 ? 90 : 24}>
+        {failure}
         <Card padded>
           <Field
             label={text.split.what}
@@ -374,6 +382,7 @@ export function SplitScreen() {
             />
           }
         >
+          {failure}
           <View style={styles.chips}>
             {members.map((member) => (
               <Chip
@@ -412,6 +421,7 @@ export function SplitScreen() {
             />
           }
         >
+          {failure}
           {participantIds.map((id) => (
             <Field
               key={id}
@@ -439,6 +449,7 @@ export function SplitScreen() {
             />
           }
         >
+          {failure}
           <Field
             label={text.split.saveName}
             value={name}

@@ -168,13 +168,13 @@ function Identity({ locked }: { locked: boolean }) {
       ...(photo
         ? [
             {
-              text: t.account.picture.remove,
+              text: t.common.image.remove,
               style: 'destructive' as const,
               onPress: () => void change('remove'),
             },
           ]
         : []),
-      { text: t.actions.cancel, style: 'cancel' as const },
+      { text: t.common.actions.cancel, style: 'cancel' as const },
     ])
   }
 

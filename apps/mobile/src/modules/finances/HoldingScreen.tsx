@@ -40,6 +40,7 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
+import { useFinanceWrite } from './useFinanceWrite'
 
 type TransactionKind = 'buy' | 'sell' | 'dividend' | 'fee' | 'adjustment'
 
@@ -51,6 +52,7 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
   const addTransaction = useMutation(api.holdings.addTransaction)
   const setPrice = useMutation(api.holdings.setPrice)
   const remove = useMutation(api.holdings.remove)
+  const { attempt, failure } = useFinanceWrite()
 
   const [adding, setAdding] = useState(false)
   const [pricing, setPricing] = useState(false)
@@ -85,6 +87,7 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
           options={{ headerShown: true, title: text.portfolio.title }}
         />
         <ScreenScroll>
+          {failure}
           <Notice>{text.portfolio.emptyBody}</Notice>
         </ScreenScroll>
       </>
@@ -108,28 +111,33 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
     const unitCount = parseDecimal(units) ?? 0
     const cents = parseCents(price) ?? 0
     const feeCents = parseCents(fee) ?? undefined
-    addTransaction({
-      holdingId,
-      groupSlug,
-      kind,
-      date,
-      units:
-        kind === 'buy' || kind === 'sell' || kind === 'adjustment'
-          ? unitCount
-          : undefined,
-      pricePerUnitCents:
-        kind === 'buy' || kind === 'sell' || kind === 'adjustment'
-          ? cents
-          : undefined,
-      perUnitCents: kind === 'dividend' ? cents : undefined,
-      feeCents,
-      note: note.trim() || undefined,
-    })
-    setAdding(false)
-    setUnits('')
-    setPriceDraft('')
-    setFee('')
-    setNote('')
+    attempt(
+      () =>
+        addTransaction({
+          holdingId,
+          groupSlug,
+          kind,
+          date,
+          units:
+            kind === 'buy' || kind === 'sell' || kind === 'adjustment'
+              ? unitCount
+              : undefined,
+          pricePerUnitCents:
+            kind === 'buy' || kind === 'sell' || kind === 'adjustment'
+              ? cents
+              : undefined,
+          perUnitCents: kind === 'dividend' ? cents : undefined,
+          feeCents,
+          note: note.trim() || undefined,
+        }),
+      () => {
+        setAdding(false)
+        setUnits('')
+        setPriceDraft('')
+        setFee('')
+        setNote('')
+      },
+    )
   }
 
   function confirmDelete() {
@@ -139,8 +147,10 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
       confirm: text.actions.delete,
       cancel: text.actions.cancel,
       onConfirm: () => {
-        remove({ id: holdingId, groupSlug })
-        router.back()
+        attempt(
+          () => remove({ id: holdingId, groupSlug }),
+          () => router.back(),
+        )
       },
     })
   }
@@ -149,6 +159,7 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
     <>
       <Stack.Screen options={{ headerShown: true, title: holding.symbol }} />
       <ScreenScroll>
+        {failure}
         <Card padded>
           <Figure
             caption={`${holding.name} · ${holding.currency}`}
@@ -277,6 +288,7 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
           onClose={() => setAdding(false)}
           footer={<PrimaryButton label={text.actions.save} onPress={save} />}
         >
+          {failure}
           {kind === 'adjustment' ? null : (
             <View style={styles.chips}>
               {(['buy', 'sell', 'dividend', 'fee'] as const).map((option) => (
@@ -344,17 +356,24 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
               label={text.actions.save}
               onPress={() => {
                 const cents = parseCents(newPrice) ?? 0
-                if (cents >= 0)
-                  setPrice({
-                    id: holdingId,
-                    groupSlug,
-                    pricePerUnitCents: cents,
-                  })
-                setPricing(false)
+                if (cents < 0) {
+                  setPricing(false)
+                  return
+                }
+                attempt(
+                  () =>
+                    setPrice({
+                      id: holdingId,
+                      groupSlug,
+                      pricePerUnitCents: cents,
+                    }),
+                  () => setPricing(false),
+                )
               }}
             />
           }
         >
+          {failure}
           <Field
             label={text.portfolio.holding.price}
             value={newPrice}

@@ -41,6 +41,7 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
+import { useFinanceWrite } from './useFinanceWrite'
 
 export function MortgageScreen({
   calculationId,
@@ -57,6 +58,7 @@ export function MortgageScreen({
   const addPart = useMutation(api.mortgages.addPart)
   const duplicate = useMutation(api.mortgages.duplicate)
   const remove = useMutation(api.mortgages.remove)
+  const { attempt, failure } = useFinanceWrite()
 
   const [copyName, setCopyName] = useState<string | null>(null)
   const Clock = FINANCE_ICONS.Clock
@@ -81,6 +83,7 @@ export function MortgageScreen({
           options={{ headerShown: true, title: text.mortgage.parts }}
         />
         <ScreenScroll>
+          {failure}
           <Notice>{text.mortgage.noPartsBody}</Notice>
         </ScreenScroll>
       </>
@@ -97,14 +100,16 @@ export function MortgageScreen({
    * so the sheet would be a second, worse copy of it.
    */
   function addBlankPart() {
-    addPart({
-      calculationId,
-      groupSlug,
-      kind: 'annuity',
-      principalCents: 10_000_00,
-      annualRatePercent: 4,
-      termMonths: 360,
-    })
+    attempt(() =>
+      addPart({
+        calculationId,
+        groupSlug,
+        kind: 'annuity',
+        principalCents: 10_000_00,
+        annualRatePercent: 4,
+        termMonths: 360,
+      }),
+    )
   }
 
   function confirmDelete() {
@@ -114,8 +119,10 @@ export function MortgageScreen({
       confirm: text.actions.delete,
       cancel: text.actions.cancel,
       onConfirm: () => {
-        remove({ id: calculationId, groupSlug })
-        router.back()
+        attempt(
+          () => remove({ id: calculationId, groupSlug }),
+          () => router.back(),
+        )
       },
     })
   }
@@ -129,6 +136,7 @@ export function MortgageScreen({
     <>
       <Stack.Screen options={{ headerShown: true, title: calculation.name }} />
       <ScreenScroll bottomInset={90}>
+        {failure}
         <Section title={text.mortgage.parts} />
         <Card>
           {calculation.parts.map((part, index) => {
@@ -295,13 +303,16 @@ export function MortgageScreen({
               onPress={() => {
                 const name = copyName.trim()
                 if (!name) return
-                duplicate({ id: calculationId, groupSlug, name })
-                setCopyName(null)
+                attempt(
+                  () => duplicate({ id: calculationId, groupSlug, name }),
+                  () => setCopyName(null),
+                )
               }}
               disabled={copyName.trim().length === 0}
             />
           }
         >
+          {failure}
           <Field
             label={text.house.nameLabel}
             value={copyName}

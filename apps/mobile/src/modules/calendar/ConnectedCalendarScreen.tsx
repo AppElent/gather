@@ -116,7 +116,7 @@ export function ConnectedCalendarScreen() {
           confirmDestructive({
             title: fmt(t.calendar.confirmDelete, { title: event.title }),
             confirm: t.calendar.deleteEvent,
-            cancel: t.actions.cancel,
+            cancel: t.common.actions.cancel,
             onConfirm: () => void editor.deleteForEvent(event.id),
           })
         }

@@ -94,8 +94,8 @@ export default function DeleteAccount() {
         email: user?.primaryEmailAddress?.emailAddress ?? preview?.email ?? '',
       }),
       message: t.account.deleteAccount.confirmBody,
-      confirm: t.account.deleteAccount.confirm,
-      cancel: t.actions.cancel,
+      confirm: t.common.actions.delete,
+      cancel: t.common.actions.cancel,
       onConfirm: () => void destroy(),
     })
   }

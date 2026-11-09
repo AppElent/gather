@@ -19,23 +19,23 @@ import { moduleHref } from '../modules/moduleDestination'
  * own describes that, and calling it either would have made the launcher lie
  * about where you are about to end up.
  */
-export type QuickActionKind = 'row' | 'sheet' | 'handoff' | 'compose'
+export type QuickActionKind = 'row' | 'handoff' | 'compose'
 
 export type QuickActionId =
   | 'task-new'
   | 'recipe-import'
-  | 'meal-log'
   | 'cheese-tasting'
   | 'wine-tasting'
   | 'beer-tasting'
 
 /**
  * The action owns its kind; the launcher only supplies the presentation that
- * kind asks for. Copy and fields are resolved by the mobile message tree so
+ * kind asks for. Copy is resolved by the mobile message tree so
  * this portable seam remains data, not an English-only UI description.
  */
 type QuickActionDef = { id: QuickActionId } & (
-  | { kind: 'row' | 'sheet' }
+  /** `row` expands into its form under the row, in the launcher. */
+  | { kind: 'row' }
   /** `tastingKind` is which Kind the subject step is picking. */
   | { kind: 'compose'; tastingKind: TastingKind }
   /** `href` is the Module's own screen, which the launcher hands over to. */
@@ -81,7 +81,8 @@ const ACTIONS_BY_MODULE: Record<ModuleId, readonly QuickActionDef[]> = {
       href: moduleHref('/all/recipes/import'),
     },
   ],
-  nutrition: [{ id: 'meal-log', kind: 'sheet' }],
+  // The phone has no Nutrition screens, so there is nothing to log into.
+  nutrition: [],
   'meal-planner': [],
   groceries: [],
   pantry: [],

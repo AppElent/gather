@@ -1005,7 +1005,7 @@ function EventRow({
   return (
     <NativeContextMenu
       actions={[
-        { id: 'edit', title: t.actions.edit },
+        { id: 'edit', title: t.common.actions.edit },
         { id: 'duplicate', title: t.labs.calendar.duplicate },
         {
           id: 'delete',
@@ -1020,7 +1020,7 @@ function EventRow({
       }}
     >
       <SwipeableRow
-        deleteLabel={t.actions.delete}
+        deleteLabel={t.common.actions.delete}
         onDelete={() => onDelete(event.id)}
       >
         {row}

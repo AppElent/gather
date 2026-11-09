@@ -102,7 +102,7 @@ export default function EditName() {
         <AuthError message={error} />
 
         <AuthButton
-          label={t.actions.save}
+          label={t.common.actions.save}
           busy={busy}
           onPress={() => void save()}
         />

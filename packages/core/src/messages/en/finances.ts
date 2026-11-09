@@ -425,7 +425,6 @@ export const finances = {
       symbol: 'Ticker',
       name: 'What it is called',
       exchange: 'Exchange',
-      currency: 'Currency',
       unitsHeld: 'Units held',
       averageCost: 'Average cost',
       /** `{amount}` invested. */

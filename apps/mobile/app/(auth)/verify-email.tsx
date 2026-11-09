@@ -92,7 +92,7 @@ export default function VerifyEmail() {
       {notice ? <AuthNotice message={notice} /> : null}
 
       <AuthButton
-        label={t.verify.submit}
+        label={t.common.actions.confirm}
         busy={busy}
         disabled={code.length !== CODE_LENGTH}
         onPress={submit}

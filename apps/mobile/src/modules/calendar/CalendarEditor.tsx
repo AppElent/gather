@@ -56,7 +56,7 @@ export function CalendarEditor({
       confirmDestructive({
         title: fmt(t.calendar.confirmDelete, { title: draft.values.title }),
         confirm: t.calendar.deleteEvent,
-        cancel: t.actions.cancel,
+        cancel: t.common.actions.cancel,
         onConfirm: () => void controller.delete(),
       }),
     saving: draft.status === 'saving',

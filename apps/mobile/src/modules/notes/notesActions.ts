@@ -18,8 +18,8 @@ export function confirmDeleteNote(
   confirmDestructive({
     title: fmt(t.notes.deleteTitle, { title: note.title || t.notes.untitled }),
     message: t.notes.deleteBody,
-    confirm: t.actions.delete,
-    cancel: t.actions.cancel,
+    confirm: t.common.actions.delete,
+    cancel: t.common.actions.cancel,
     onConfirm: onDelete,
   })
 }

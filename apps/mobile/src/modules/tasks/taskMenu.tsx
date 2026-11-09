@@ -62,7 +62,7 @@ export function taskMenuActions(
     },
     {
       id: 'delete',
-      title: t.actions.delete,
+      title: t.common.actions.delete,
       image: 'trash',
       attributes: { destructive: true },
     },
@@ -103,8 +103,8 @@ export function useTaskSheets({
     confirmDestructive({
       title: fmt(t.tasks.list.deleteTitle, { title: task.title }),
       message: t.tasks.list.deleteBody,
-      confirm: t.actions.delete,
-      cancel: t.actions.cancel,
+      confirm: t.common.actions.delete,
+      cancel: t.common.actions.cancel,
       onConfirm: () => {
         actions.deleteTask(task.id)
         onDeleted?.()

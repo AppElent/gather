@@ -44,6 +44,7 @@ import {
   useMoneyTokens,
 } from './ui'
 import { useFinances } from './useFinances'
+import { useFinanceWrite } from './useFinanceWrite'
 
 type Editing =
   | BuyingCostLine
@@ -59,6 +60,7 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
   const { groupSlug, format, text } = useFinances()
   const house = useQuery(api.houses.get, { id: houseId, groupSlug })
   const save = useMutation(api.houses.saveBuyingCosts)
+  const { attempt, failure } = useFinanceWrite()
 
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
@@ -82,17 +84,19 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
   const stored = house?.buyingCosts ?? null
 
   function start() {
-    save({
-      houseId,
-      groupSlug,
-      purchasePriceCents: 0,
-      ownMoneyCents: 0,
-      mortgageCents: 0,
-      mortgageRatePercent: 4,
-      mortgageTermMonths: 360,
-      transferTaxBand: 'ownHome',
-      transferTaxPercent: TRANSFER_TAX_PERCENT.ownHome,
-    })
+    attempt(() =>
+      save({
+        houseId,
+        groupSlug,
+        purchasePriceCents: 0,
+        ownMoneyCents: 0,
+        mortgageCents: 0,
+        mortgageRatePercent: 4,
+        mortgageTermMonths: 360,
+        transferTaxBand: 'ownHome',
+        transferTaxPercent: TRANSFER_TAX_PERCENT.ownHome,
+      }),
+    )
   }
 
   if (!stored) {
@@ -102,6 +106,7 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
           options={{ headerShown: true, title: text.buyingCosts.title }}
         />
         <ScreenScroll>
+          {failure}
           <EmptyState
             icon={<Key size={34} color={tint.fg} strokeWidth={1.6} />}
             title={text.buyingCosts.title}
@@ -117,10 +122,14 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
 
   const result = homeBuyingCosts(stored)
 
-  function write(patch: Partial<NonNullable<typeof stored>>) {
+  /** `then` runs once the write has landed: a failed one leaves the sheet up. */
+  function write(
+    patch: Partial<NonNullable<typeof stored>>,
+    then?: () => void,
+  ) {
     if (!stored) return
     const { _id, _creationTime, groupId, updatedByUserId, ...rest } = stored
-    save({ ...rest, ...patch, houseId, groupSlug })
+    attempt(() => save({ ...rest, ...patch, houseId, groupSlug }), then)
   }
 
   function commit() {
@@ -130,15 +139,20 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
       return
     }
     const cents = toCents(value)
-    if (editing === 'price') write({ purchasePriceCents: cents })
-    if (editing === 'ownMoney') write({ ownMoneyCents: cents })
-    if (editing === 'mortgage') write({ mortgageCents: cents })
-    if (editing === 'rate') write({ mortgageRatePercent: value })
-    if (editing === 'nhg') write({ nhgPercent: value })
+    let patch: Partial<NonNullable<typeof stored>> | null = null
+    if (editing === 'price') patch = { purchasePriceCents: cents }
+    if (editing === 'ownMoney') patch = { ownMoneyCents: cents }
+    if (editing === 'mortgage') patch = { mortgageCents: cents }
+    if (editing === 'rate') patch = { mortgageRatePercent: value }
+    if (editing === 'nhg') patch = { nhgPercent: value }
     if (editing && (BUYING_COST_LINES as readonly string[]).includes(editing))
-      write({ lines: { ...stored?.lines, [editing]: cents } })
-    setDraft('')
-    setEditing(null)
+      patch = { lines: { ...stored?.lines, [editing]: cents } }
+    const done = () => {
+      setDraft('')
+      setEditing(null)
+    }
+    if (patch) write(patch, done)
+    else done()
   }
 
   const short = result.shortCents
@@ -149,6 +163,7 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
         options={{ headerShown: true, title: text.buyingCosts.title }}
       />
       <ScreenScroll bottomInset={90}>
+        {failure}
         <Section title={text.buyingCosts.purchase} />
         <Card>
           <Row
@@ -297,6 +312,7 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
           onClose={() => setEditing(null)}
           footer={<PrimaryButton label={text.actions.save} onPress={commit} />}
         >
+          {failure}
           <Field
             label={sheetTitle(editing, text)}
             value={draft}

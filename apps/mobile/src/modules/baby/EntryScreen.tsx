@@ -45,7 +45,7 @@ import { EntryFields, fieldLabel, optionText } from './EntryFields'
 import { EntryPhotoField } from './EntryPhotoField'
 import { EVENT_ICONS } from './icons'
 import {
-  buildSheetData,
+  buildEditedData,
   editPicks,
   endTimestampFor,
   fieldsFor,
@@ -138,7 +138,7 @@ export function EntryScreen() {
         endTimestamp: endTimestampFor(type, draft, draftTime) ?? null,
         notes: notes?.trim() || null,
         photoId: photoId as Id<'_storage'> | null | undefined,
-        data: buildSheetData(type, draft) as never,
+        data: buildEditedData(type, draft, entry.data) as never,
       })
       haptics.itemSaved()
       setEditing(false)
@@ -157,7 +157,7 @@ export function EntryScreen() {
         type: t.baby.eventTypes[type],
       }),
       confirm: t.baby.log.timeline.deleteConfirm,
-      cancel: t.actions.cancel,
+      cancel: t.common.actions.cancel,
       onConfirm: async () => {
         setBusy(true)
         try {
@@ -372,7 +372,7 @@ export function EntryScreen() {
                 ]}
               >
                 <Text style={[styles.buttonText, { color: tokens.fg }]}>
-                  {t.actions.cancel}
+                  {t.common.actions.cancel}
                 </Text>
               </Pressable>
               <Pressable
@@ -396,7 +396,7 @@ export function EntryScreen() {
                       { color: blocked ? tokens.muted : tokens.surface },
                     ]}
                   >
-                    {t.actions.save}
+                    {t.common.actions.save}
                   </Text>
                 )}
               </Pressable>
@@ -415,7 +415,7 @@ export function EntryScreen() {
                 ]}
               >
                 <Text style={[styles.buttonText, { color: tokens.danger }]}>
-                  {t.actions.delete}
+                  {t.common.actions.delete}
                 </Text>
               </Pressable>
               <Pressable
@@ -434,7 +434,7 @@ export function EntryScreen() {
                 ]}
               >
                 <Text style={[styles.buttonText, { color: tokens.surface }]}>
-                  {t.actions.edit}
+                  {t.common.actions.edit}
                 </Text>
               </Pressable>
             </>
