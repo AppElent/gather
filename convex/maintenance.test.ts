@@ -516,6 +516,34 @@ describe('retireNutrition', () => {
     return { t, ids, left }
   }
 
+  test('keeps a picture a surviving recipe was handed too', async () => {
+    const { t, ids } = await withNutrition()
+    await t.run(async (ctx) => {
+      const groupId = await ctx.db.insert('groups', {
+        name: 'Household',
+        inviteCode: 'household-code',
+        slug: 'household',
+      })
+      await ctx.db.insert('recipes', {
+        groupId,
+        sharedGroupIds: [],
+        createdByUserId: ids.userId,
+        title: 'Granola bars',
+        imageId: ids.imageId,
+        ingredients: ['granola'],
+        steps: ['bake'],
+        tags: [],
+      })
+    })
+
+    await t.mutation(internal.maintenance.retireNutrition, { apply: true })
+
+    const kept = await t.run(
+      async (ctx) => (await ctx.storage.getUrl(ids.imageId)) !== null,
+    )
+    expect(kept).toBe(true)
+  })
+
   const everything = {
     comboItems: 2,
     combos: 1,

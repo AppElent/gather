@@ -9,6 +9,7 @@ import type { MutationCtx } from './_generated/server'
 import { internalMutation, internalQuery } from './_generated/server'
 import { pickCanonicalUser } from './lib/sharing'
 import { stableDigest } from './lib/stableDigest'
+import { deleteStoredFile } from './lib/storedFiles'
 import schema from './schema'
 
 /**
@@ -155,14 +156,12 @@ export const retireNutrition = internalMutation({
       if (rows.length > budget) more = true
       for (const row of batch) {
         const imageId = (row as { imageId?: Id<'_storage'> }).imageId
-        if (imageId) {
-          images++
-          // A picture can already be gone; that is the state being asked for.
-          if (apply && (await ctx.db.system.get(imageId))) {
-            await ctx.storage.delete(imageId)
-          }
-        }
-        if (apply) await db.delete(row._id)
+        if (imageId) images++
+        if (!apply) continue
+        await db.delete(row._id)
+        // After the row lets go, and only if no surviving row (a recipe that
+        // was handed the same id) still shows it.
+        await deleteStoredFile(ctx, imageId)
       }
       deleted[table] = batch.length
       budget -= batch.length
