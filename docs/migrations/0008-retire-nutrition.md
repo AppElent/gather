@@ -16,7 +16,8 @@ shows, the data export leaves out and account deletion no longer reaches.
 
 Each run deletes up to 200 rows across `comboItems`, `combos`,
 `consumptionEntries` and `foods` (in that order), deletes the product photo of
-every deleted food that had one, and unsets `nutritionTargets` on every user.
+every deleted food that had one unless a surviving record (a recipe handed the
+same id) still shows it, and unsets `nutritionTargets` on every user.
 It is dry unless called with `{"apply":true}`, and returns
 `{ apply, deleted, images, nutritionTargets, more }`. A dry run counts only the
 batch it would delete; `more: true` means there are more rows than that. On a deployment that never
