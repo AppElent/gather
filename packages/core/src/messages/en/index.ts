@@ -8,6 +8,7 @@ import { modules } from './modules'
 import { notes } from './notes'
 import { nutrients } from './nutrients'
 import { nutrition } from './nutrition'
+import { privacy } from './privacy'
 import { recipes } from './recipes'
 import { settings } from './settings'
 import { shell } from './shell'
@@ -39,6 +40,7 @@ export const en = {
   tastings,
   settings,
   auth,
+  privacy,
 }
 
 /**
