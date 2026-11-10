@@ -14,6 +14,16 @@ updates:
     commit-message: { prefix: "chore(deps)" }
     labels: [dependencies]
     groups:
+      # Each update joins the first group it matches, so packages linked by a peer
+      # dependency share a group listed before the dependency-type groups; split
+      # across dev and prod, each PR fails CI. Ignore entries still apply inside a
+      # group.
+      cloudflare:
+        patterns: ["wrangler", "@cloudflare/*"]
+        update-types: [minor, patch]
+      convex:
+        patterns: ["convex", "convex-test", "convex-helpers"]
+        update-types: [minor, patch]
       dev-minor-patch:
         dependency-type: development
         update-types: [minor, patch]
@@ -47,10 +57,6 @@ updates:
       # Excluded from `expo install` in apps/mobile/package.json; moved by hand
       # with the SDK.
       - dependency-name: "@sentry/react-native"
-        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
-      # Pinned: the newest release whose `convex` peer accepts the installed
-      # convex (CODING_STANDARDS.md, Convex query caching).
-      - dependency-name: "convex-helpers"
         update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
 
   - package-ecosystem: github-actions
