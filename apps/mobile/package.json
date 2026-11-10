@@ -20,7 +20,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/expo": "^4.14.4",
+    "@clerk/expo": "^4.15.1",
     "@expo/metro-runtime": "58.0.15",
     "@expo/ui": "^58.0.25",
     "@expo/vector-icons": "^15.0.3",
@@ -51,7 +51,7 @@
     "expo-system-ui": "~58.0.7",
     "expo-updates": "~58.0.19",
     "expo-web-browser": "~58.0.7",
-    "lucide-react-native": "^1.31.0",
+    "lucide-react-native": "^1.70.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
