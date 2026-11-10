@@ -6,7 +6,7 @@ name: Deploy
 # deployment, which is why nothing here can push schema out from under it.
 #
 # staging is a frontend on the production Convex deployment (ADR 0039): a merge
-# ships the gather-stg Worker and nothing else. Backend changes ship on the click.
+# ships the gather-staging Worker and nothing else. Backend changes ship on the click.
 on:
   push:
     branches: [main]
@@ -51,14 +51,14 @@ jobs:
       VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
       VITE_SENTRY_ORG: ${{ vars.VITE_SENTRY_ORG }}
       VITE_SENTRY_PROJECT: ${{ vars.VITE_SENTRY_PROJECT }}
-      # wrangler.jsonc: top-level = `gather` (prod), env.staging = `gather-stg`.
+      # wrangler.jsonc: top-level = `gather` (prod), env.staging = `gather-staging`.
       # The Cloudflare Vite plugin picks the Worker at build time from
       # CLOUDFLARE_ENV and writes it to dist/server/wrangler.json; `wrangler
       # deploy --env` is ignored after such a build. Written `!= … && 'staging'
       # || ''` because the other polarity would make production's empty string
       # fall through to 'staging'.
       CLOUDFLARE_ENV: ${{ github.event_name != 'workflow_dispatch' && 'staging' || '' }}
-      EXPECTED_WORKER: ${{ github.event_name == 'workflow_dispatch' && 'gather' || 'gather-stg' }}
+      EXPECTED_WORKER: ${{ github.event_name == 'workflow_dispatch' && 'gather' || 'gather-staging' }}
     steps:
       # workflow_dispatch lets the operator pick any branch in the UI. Production
       # ships from main only; fail loudly rather than skipping silently.

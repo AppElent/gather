@@ -10,12 +10,12 @@
   // the top-level config, not an env block.
   "env": {
     "dev": { "name": "gather-dev", "workers_dev": true },
-    // Keeps the live Worker name `gather-stg` (env.manifest.ts
-    // `worker.names.staging`). A custom domain, because the production Clerk
+    // The standard `<worker>-staging` name (docs/standards/environments.md) on
+    // the `gather-stg.appelent.nl` custom domain, because the production Clerk
     // instance staging signs in through refuses origins outside appelent.nl
     // (ADR 0039).
     "staging": {
-      "name": "gather-stg",
+      "name": "gather-staging",
       "workers_dev": true,
       "routes": [{ "pattern": "gather-stg.appelent.nl", "custom_domain": true }]
     },

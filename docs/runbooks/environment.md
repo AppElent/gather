@@ -25,7 +25,7 @@ the manifest and `.env.example`, not here.
 | Environments → Infisical environment | `local` → `dev`, `preview` → `staging`, `staging` and `production` → `prod` (the standard map) |
 | `staging` holds no Convex deploy key or Convex variables | It runs on the production deployment, which `production` configures ([ADR-0039](../adr/0039-staging-is-a-frontend-on-the-production-backend.md)); the manifest names no `convex.deployments.staging` |
 | Convex | Project `eric-jansen:gather`; production deployment `limitless-bulldog-972`; `local` writes to the deployment the Convex CLI selects |
-| Workers | `gather` (production), `gather-stg` (staging, kept by `worker.names.staging`), `gather-pr-<N>` (preview, needs `--pr <N>`) |
+| Workers | `gather` (production), `gather-staging` (staging), `gather-pr-<N>` (preview, needs `--pr <N>`) |
 | Infisical folders | `/` then `/gather`; `/gather` overrides a same-named root value. `.infisical.json` holds the project reference only |
 | Local apply writes | `.env.local`, `.dev.vars`, `apps/mobile/.env.local` |
 | Remote apply routes to | GitHub (repository scope holds only `PREVIEW_<name>`; `staging`/`production` Environments), Convex, Workers, EAS (`development` from `local`, `preview` from `staging`, `production`) |

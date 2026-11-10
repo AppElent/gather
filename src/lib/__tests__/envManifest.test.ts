@@ -145,11 +145,11 @@ describe('what staging may not have', () => {
     expect(url?.suppliedBy).toBeNull()
   })
 
-  it('keeps the live gather-stg Worker', () => {
+  it('deploys to the standard gather-staging Worker', () => {
     const worker = staging.find((p) => p.destination.kind === 'worker')
     expect(worker?.destination).toEqual({
       kind: 'worker',
-      worker: 'gather-stg',
+      worker: 'gather-staging',
     })
   })
 })
@@ -217,7 +217,7 @@ describe('the issue reporter', () => {
     expect(workers).toEqual({
       local: 'file',
       preview: 'gather-pr-7',
-      staging: 'gather-stg',
+      staging: 'gather-staging',
       production: 'gather',
     })
   })

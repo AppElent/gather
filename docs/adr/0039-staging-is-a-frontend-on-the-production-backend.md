@@ -8,7 +8,8 @@ date: 2026-11-06
 
 # Staging is a frontend on the production backend
 
-`gather-stg` talks to the production Convex deployment. A merge to `main` builds
+The staging Worker (`gather-staging`, on `gather-stg.appelent.nl`) talks to the
+production Convex deployment. A merge to `main` builds
 and ships that Worker and nothing else. `convex deploy` and the Catalog seeds run
 only on the production click.
 
