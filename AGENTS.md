@@ -28,7 +28,9 @@ Before the task, read the matching project doc:
 | Adding or changing an environment variable or secret | [Environment](docs/runbooks/environment.md) |
 | Deploying, or changing the deploy or preview workflows | [Deploy](docs/runbooks/deploy.md), [Previews](docs/runbooks/previews.md) |
 | Changing error reporting (web or phone), the privacy scrubber, source maps, or the `*_SENTRY_*` variables | [Sentry](docs/runbooks/sentry.md) |
-| Upgrading dependencies | [`upgrade-deps`](.claude/commands/upgrade-deps.md); never weaken or skip a test to make an upgrade pass — stop and report |
+| Upgrading dependencies | The `upgrade-dependencies` skill; never weaken or skip a test to make an upgrade pass — stop and report |
+| Watching a pull request through CI and review | The `babysit-pr` skill |
+| Reviewing the running app, alone or in a session the owner drives | The `review-app` skill, with [Verification](docs/runbooks/verification.md) for how to run it |
 
 Domain terms: [GLOSSARY.md](GLOSSARY.md). Decisions: [ADR index](docs/README.md#decisions).
 Adding, moving, or finding docs: [docs map](docs/README.md). Issues are GitHub
