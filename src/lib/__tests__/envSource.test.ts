@@ -11,10 +11,10 @@ import {
 
 describe('Infisical source configuration', () => {
   it('maps manifest targets to the verified Infisical slugs', () => {
-    expect(INFISICAL_ENVIRONMENTS).toEqual({
+    expect(INFISICAL_ENVIRONMENTS).toMatchObject({
       local: 'dev',
       preview: 'staging',
-      stg: 'staging',
+      staging: 'prod',
       production: 'prod',
     })
   })

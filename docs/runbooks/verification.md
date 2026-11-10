@@ -34,8 +34,9 @@ commit and report the pre-existing failures with evidence.
 
 `pnpm dev:watch` runs Vite with continuous Convex sync; `pnpm dev:all` pushes
 once. Confirm which Convex deployment `.env.local` points at before runtime
-writes: worktrees share the main checkout's dev deployment. Test login needs a
-`pk_test_…` Clerk key and `VITE_TEST_USER_*`; Settings → Sample data (dev and
-previews) loads the Sample household around the signed-in account.
+writes: every worktree shares the dev deployment named in Infisical `dev`. Test
+login needs a `pk_test_…` Clerk key and `VITE_TEST_USER_*` (local only);
+Settings → Sample data (dev, and previews while `enable-sample-data` is `true` in
+Infisical `staging`) loads the Sample household around the signed-in account.
 
 Documentation-only changes need the checks and a link check, not a runtime pass.

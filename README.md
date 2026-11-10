@@ -17,13 +17,15 @@ no token is needed. Then:
 ```bash
 pnpm install
 infisical login              # select EU Cloud (first use only)
-pnpm run env:apply local     # writes web/mobile local files and .dev.vars
+pnpm run env:apply local --only file   # writes web/mobile local files and .dev.vars
 pnpm dev
 ```
 
-`.env.local`, `apps/mobile/.env.local`, and `.dev.vars` are generated. Edit values
-in the Infisical project selected by the committed `.infisical.json`, then rerun
-`env:apply`. To find missing source or destination values, run
+`.env.local`, `apps/mobile/.env.local`, and `.dev.vars` are generated. A new
+worktree gets them from the `t3.json` setup hook
+(`node scripts/workspace.mjs prepare --editor t3`), never by copying another
+checkout's files. Edit values in the Infisical project selected by the committed
+`.infisical.json`, then rerun `env:apply`. To find missing source or destination values, run
 `pnpm run env:check local`. See "Environment variables" below.
 
 `pnpm dev` starts only the Vite frontend. Use `pnpm dev:watch` to run Convex
@@ -55,26 +57,24 @@ pnpm run check
 
 ## Deploy to Cloudflare Workers
 
-This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) and `wrangler.jsonc`. The worker is named `gather` in production and `gather-stg` for staging.
+This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) and `wrangler.jsonc`. The worker is named `gather` in production and `gather-stg` for staging (Wrangler env `staging`).
 
 **CI is the normal path** — see `.github/workflows/deploy.yml`:
 
 - **staging** — every merge to `main` deploys the `gather-stg` Worker automatically, at `gather-stg.appelent.nl`. It runs on the production Convex deployment and real data ([ADR 0039](docs/adr/0039-staging-is-a-frontend-on-the-production-backend.md)).
 - **production** — **Actions → Deploy → Run workflow** on `main`. The click is the gate for both the Worker and every Convex change; there is no separate approval step.
 
-Both run `check` / `typecheck` / `test` first. Production then runs `convex deploy`, `convex run seed:seedTastingCatalog` and `wrangler deploy`; staging builds and runs `wrangler deploy` only, so a staging feature that needs new Convex functions fails until production deploys. Both build with `pnpm build`: staging runs the same production bundle prod does, and sample data and the test-login button are absent from both. Credentials live in the `stg` and `production` GitHub Environments (see [deploy](docs/runbooks/deploy.md)).
+Both run `check` / `typecheck` / `test` first. Production then runs `convex deploy`, `convex run seed:seedTastingCatalog` and `wrangler deploy`; staging builds and runs `wrangler deploy` only, so a staging feature that needs new Convex functions fails until production deploys. Both build with `pnpm build`: staging runs the same production bundle prod does, and sample data and the test-login button are absent from both. Credentials live in the `staging` and `production` GitHub Environments (see [deploy](docs/runbooks/deploy.md)).
 
 **Dev is local.** There is no deployed dev environment — dev is `pnpm dev` against your own `convex dev` deployment. The `gather-dev` Worker and `deploy:dev` script below still work, but nothing automated touches them.
 
-Deploying by hand is still possible and is what the npm scripts are for:
+Deploying by hand is still possible and is what the npm scripts are for. `deploy:staging` and `deploy:production` run the same steps as `deploy.yml` through `node scripts/env.mjs exec <environment> --only github`, which adds that GitHub Environment's values from Infisical to the one command and writes no file:
 
-1. Authenticate: `pnpm exec wrangler login`
-2. Deploy to prod: `pnpm run deploy:prod` (runs `convex deploy && convex run seed:seedTastingCatalog --prod && pnpm run build && wrangler deploy`)
-3. Deploy to dev: `pnpm run deploy:dev` (runs `convex dev --once && convex run seed:seedTastingCatalog && CLOUDFLARE_ENV=dev pnpm run build:development && wrangler deploy`)
+1. Deploy to staging: `pnpm run deploy:staging` (`CLOUDFLARE_ENV=staging pnpm build && wrangler deploy`)
+2. Deploy to prod: `pnpm run deploy:production` (`convex deploy` building with the deployed URL, then `convex run seed:seedTastingCatalog` and `wrangler deploy`)
+3. Deploy to dev: `pnpm run deploy:dev` (runs `convex dev --once && convex run seed:seedTastingCatalog && CLOUDFLARE_ENV=dev pnpm run build:development && wrangler deploy`). There is no `dev` environment, so it reads `VITE_*` from your `.env.local` and needs `wrangler login` and an interactive Convex login.
 
-Both read `VITE_*` from your `.env.local`, and `deploy:dev` needs an interactive Convex login — which is why CI reimplements the pipeline instead of calling these.
-
-There is deliberately no `deploy:stg` script, for the same reason: it would build against whatever `VITE_CONVEX_URL` your `.env.local` happens to hold. To reach staging by hand, run the same steps `deploy.yml` does — `CLOUDFLARE_ENV=stg VITE_CONVEX_URL=<production URL> pnpm build`, then `wrangler deploy` (the build, not `--env`, picks the Worker).
+`exec` sets every `.env.local` name it does not supply to `""`, so the sample-data flag and the test-user values can't reach a deployed bundle.
 
 Don't set Worker secrets or Convex env vars by hand — `pnpm run env:apply <environment>` writes both, along with the GitHub secrets and variables, from `env.manifest.ts`. `wrangler.jsonc` has no `vars` block: everything the client needs is a `VITE_*` var inlined into the bundle at build time, so a Worker runtime binding would never be read.
 
@@ -108,26 +108,29 @@ shows a "Dev: log in as test user" button on the sign-in screen.
 
 `env.manifest.ts` is the single source of truth. An entry declares **who reads**
 a value — the Vite build, a Worker server function, a Convex function, the
-workflow — and which environments need it; a table in that file derives *where*
-it has to be written. `.env.example` is generated from it.
+workflow — and which environments need it; the shared routing in
+[environments](docs/standards/environments.md) derives *where* it has to be
+written. `.env.example` is generated from it.
 
 ```bash
 pnpm run env:check                 # manifest consistency + .env.example freshness
 pnpm run env:check local           # what's missing, and where
 pnpm run env:plan local --only file # inspect local file writes without applying
-pnpm run env:apply local           # write it everywhere it belongs
+pnpm run env:apply local --only file # rewrite the generated local files
+pnpm run env:plan preview --pr 12  # preview Worker values need the PR number
 pnpm run env:generate              # regenerate .env.example
+pnpm run env:exec production --only github -- <command>  # one command with deployed values
 ```
 
 Values live in the Infisical project linked by `.infisical.json`. Shared values
 are in project root; Gather-specific values are under `/gather` and override a
-same-named root value. `local` reads Infisical `dev`, `preview` and `stg` read
+same-named root value. `local` reads Infisical `dev`, `preview` and `staging` read
 `staging`, and `production` reads `prod`. `apply` never writes an empty value
 and never deletes without `--prune`.
 
 The commands run `scripts/env.mjs`, the engine vendored from developer-tools
 (`scripts/lib/env/`, refreshed by `node scripts/sync-devtools.mjs`). Gather owns the
-entries, source mapping, and routing in `env.manifest.ts`; the engine owns source
+entries and config in `env.manifest.ts`; the engine owns the shared routing, source
 parsing, validation, planning, and destination writers. Infisical JSON is captured in
 memory; no Infisical-generated dotenv files or raw export files are created.
 Use `pnpm run env:apply local --only file` when shared EAS/GitHub settings must

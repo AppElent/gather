@@ -1,8 +1,21 @@
 {
+  "schemaVersion": 1,
   "envManifest": "env.manifest.ts",
-  "features": {
-    "baseline": { "version": 5, "steps": [6, 9, 14, 15] },
-    "auth": { "version": 1 },
-    "i18n": { "version": 1, "options": { "locales": ["en", "nl"] } }
+  "workspace": {
+    "backend": {
+      "mode": "none",
+      "project": "eric-jansen:gather"
+    },
+    "install": false,
+    "buildScripts": [],
+    "outputs": {
+      "rootEnv": ".env.local",
+      "mobileEnv": "apps/mobile/.env.local",
+      "mobileUrlName": "EXPO_PUBLIC_CONVEX_URL"
+    },
+    "ports": {
+      "web": 3000,
+      "mobile": 8081
+    }
   }
 }

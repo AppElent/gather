@@ -20,11 +20,13 @@ judgement call — `expo-updates` decides it mechanically. See
 asset: a screen, a string, a Convex query, an image in `assets/`. Publish it:
 
 ```
-pnpm update:preview --message "what changed"
-pnpm update:prod    --message "what changed"
+pnpm mobile:update:preview    --message "what changed"
+pnpm mobile:update:production --message "what changed"
 ```
 
-Each script runs `apps/mobile/scripts/publish-update.mjs`, which pairs
+Run them from the repo root. Each runs `apps/mobile/scripts/publish-update.mjs`
+through `env:exec`, which adds the channel's EAS values (the Sentry token among
+them) without writing a file; the wrapper pairs
 `--channel` with `--environment`, as the
 [mobile baseline](../standards/mobile-baseline.md#build-and-release-boundaries)
 requires; publish only through them. Here a bare publish would point
@@ -92,8 +94,8 @@ neither reaches out and fixes a phone that is sitting in someone's pocket.
 | Channel | Fed by | Built by |
 | --- | --- | --- |
 | `development` | `eas update --channel development --environment development` | `devbuild:android:eas` |
-| `preview` | `pnpm update:preview` | `deploy:preview` (iOS, store), `build:preview:android` (APK) |
-| `production` | `pnpm update:prod` | `deploy:prod` |
+| `preview` | `pnpm mobile:update:preview` | `deploy:preview` (iOS, store), `build:preview:android` (APK) |
+| `production` | `pnpm mobile:update:production` | `deploy:prod` |
 
 A channel is baked into a binary at build time and cannot be changed
 afterwards. A build made without one — every gather binary produced before this

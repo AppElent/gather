@@ -1,5 +1,6 @@
 name: PR Preview
 
+# Adapted from docs/standards/previews/templates/preview.yml.
 # Opt-in: deploys only while the PR carries the `preview:web` label; pushes
 # redeploy, and removing the label or closing the PR deletes the Worker. Close
 # always cleans up, so Workers deployed before the label gate are not left behind.
@@ -25,35 +26,23 @@ jobs:
     env:
       WORKER_NAME: gather-pr-${{ github.event.pull_request.number }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-      # This job declares no `environment:`, so every name here resolves at repo
-      # scope. Repo-scoped names carry the PREVIEW_ prefix (env.manifest.ts's
-      # REPO_SCOPE_PREFIX) precisely so they cannot be the same names the `stg`
-      # and `production` Environments hold: an environment secret shadows a repo
-      # secret of the same name, and identical names would make a missing
-      # production value fall back to preview's rather than fail.
-      #
-      # The `|| secrets.<old name>` fallbacks are a transition shim. Renaming a
-      # GitHub secret needs a repo-settings change no pull request can make, so
-      # without them this PR's own preview cannot build — and every *other* open
-      # PR's preview would break the moment this merges, before anyone had a
-      # chance to add the new names.
-      #
-      # Retire them once `pnpm run env:check preview` reports no missing values,
-      # which is precisely when the new names exist. Delete the four `||`
-      # clauses and the four old repo secrets together; leaving the old secrets
-      # in place is what would let a fallback silently mask a missing new value.
-      CONVEX_DEPLOY_KEY: ${{ secrets.PREVIEW_CONVEX_DEPLOY_KEY || secrets.CONVEX_DEPLOY_KEY }}
+      # This job declares no `environment:`, so every value comes from repository
+      # scope, where `pnpm env:apply preview` writes it as PREVIEW_<name>. The
+      # prefix keeps preview values from ever standing in for a missing
+      # `staging` or `production` Environment value (environments.md).
+      # Secret entries come from `secrets.`, public ones from `vars.`.
+      CLOUDFLARE_API_TOKEN: ${{ secrets.PREVIEW_CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.PREVIEW_CLOUDFLARE_ACCOUNT_ID }}
+      CONVEX_DEPLOY_KEY: ${{ secrets.PREVIEW_CONVEX_DEPLOY_KEY }}
       SENTRY_AUTH_TOKEN: ${{ secrets.PREVIEW_SENTRY_AUTH_TOKEN }}
-      # Published, not secret: Vite inlines every VITE_* into a bundle served at
-      # a public preview URL, so calling these confidential would be a false
-      # claim. The test user must therefore exist only on the Clerk test
-      # instance — that, not secrecy, is what contains the blast radius.
-      VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.PREVIEW_VITE_CLERK_PUBLISHABLE_KEY || secrets.PREVIEW_CLERK_PUBLISHABLE_KEY }}
-      VITE_TEST_USER_EMAIL: ${{ vars.PREVIEW_VITE_TEST_USER_EMAIL || secrets.VITE_TEST_USER_EMAIL }}
-      VITE_TEST_USER_PASSWORD: ${{ vars.PREVIEW_VITE_TEST_USER_PASSWORD || secrets.VITE_TEST_USER_PASSWORD }}
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.PREVIEW_VITE_CLERK_PUBLISHABLE_KEY }}
+      VITE_ENABLE_SAMPLE_DATA: ${{ vars.PREVIEW_VITE_ENABLE_SAMPLE_DATA }}
       VITE_SENTRY_DSN: ${{ vars.PREVIEW_VITE_SENTRY_DSN }}
       VITE_SENTRY_ORG: ${{ vars.PREVIEW_VITE_SENTRY_ORG }}
       VITE_SENTRY_PROJECT: ${{ vars.PREVIEW_VITE_SENTRY_PROJECT }}
+      # The Cloudflare Vite plugin picks the wrangler env at build time. `pr`
+      # clears routes, so a preview never claims a custom domain.
+      CLOUDFLARE_ENV: pr
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -67,20 +56,12 @@ jobs:
       # Convex provisions/refreshes preview backend pr-<N>, exposes its URL as
       # $CONVEX_URL inside --cmd, then runs the build (bridge CONVEX_URL ->
       # VITE_CONVEX_URL since the app reads the Vite-prefixed var at build
-      # time).
+      # time). Every other VITE_* is already on the job env.
       #
       # --preview-run seeds the fresh backend: seed:seedPreview reconciles the
-      # Tasting catalog and rebuilds the Sample household around the shared Clerk
-      # test user, so clicking test-login on the preview lands in a populated
-      # household instead of an empty app. It is ignored on production deploys
-      # by design, so this line can never fire against prod.
-      # Every VITE_* is already on the job env and Vite reads prefixed vars from
-      # process.env, so --cmd only has to bridge the one value the deploy itself
-      # produces. It used to re-list four of them, which meant adding a variable
-      # required editing this string as well as the job env.
+      # Tasting catalog and rebuilds the Sample household. It is ignored on
+      # production deploys by design, so this line can never fire against prod.
       - name: Convex preview deploy + build
-        env:
-          VITE_ENABLE_SAMPLE_DATA: 'true'
         run: |
           pnpm exec convex deploy \
             --preview-create pr-${{ github.event.pull_request.number }} \
@@ -90,38 +71,31 @@ jobs:
 
       - name: Deploy Worker (per-PR)
         id: deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
-          # No --var here. There used to be two, justified by a comment about
-          # wrangler.jsonc's top-level `vars` baking production values onto the
-          # preview Worker — but wrangler.jsonc has no `vars` block, and nothing
-          # in src/ reads a Worker binding for a VITE_* name: all three reads go
-          # through import.meta.env, i.e. inlined at build time. The flag set a
-          # binding nobody read, to counteract a mechanism that did not exist.
-          pnpm exec wrangler deploy \
-            --name "$WORKER_NAME" \
-            2>&1 | tee /tmp/wrangler-deploy.log
-          URL=$(grep -oE 'https://[^ ]+workers\.dev' /tmp/wrangler-deploy.log | head -1)
-          echo "url=$URL" >> $GITHUB_OUTPUT
+          pnpm exec wrangler deploy --name "$WORKER_NAME" 2>&1 | tee "$RUNNER_TEMP/wrangler-deploy.log"
+          URL=$(grep -oE 'https://[^ ]+workers\.dev' "$RUNNER_TEMP/wrangler-deploy.log" | head -1)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
 
-      # A per-PR Worker starts with no secrets, so until now every preview
-      # answered "GitHub issue reporter is not configured." Nothing declared that
-      # the preview Worker needed those three values, so nothing noticed. The
-      # manifest declares it; this step is what makes the declaration true.
-      #
+      # A per-PR Worker starts with no secrets. The manifest lands the issue
+      # reporter's values on the preview Worker and on `workflow`, so they are
+      # here as PREVIEW_<name>; GITHUB_REPOSITORY_OWNER is the runner's own.
       # Runs after the deploy because a Worker must exist before it can hold a
-      # secret. `env:apply` skips anything it has no value for, so a repo without
-      # PREVIEW_GITHUB_ISSUES_TOKEN configured still deploys — the reporter just
-      # stays off, and `env:check preview` says so.
-      - name: Apply Worker secrets (per-PR)
+      # secret. `apply` skips anything it has no value for, so the reporter just
+      # stays off when a value is missing.
+      - name: Apply Worker runtime values
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GITHUB_ISSUES_TOKEN: ${{ secrets.PREVIEW_GITHUB_ISSUES_TOKEN }}
+          GITHUB_REPOSITORY_NAME: ${{ vars.PREVIEW_GITHUB_REPOSITORY_NAME }}
         run: node scripts/env.mjs apply preview --ci --only worker --pr "$PR_NUMBER"
+
+      # A preview that inherits production routes takes over the production domain.
+      - name: Guard against custom domains
+        run: |
+          if grep -qi 'custom domain' "$RUNNER_TEMP/wrangler-deploy.log"; then
+            echo "::error::The preview Worker claimed a custom domain. Redeploy production, then fix the wrangler pr env."
+            exit 1
+          fi
 
       - name: Upsert PR comment
         uses: actions/github-script@v7
@@ -153,6 +127,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.PREVIEW_CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.PREVIEW_CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -162,9 +139,6 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Delete Worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler delete --name "gather-pr-${{ github.event.pull_request.number }}" || true
+        run: pnpm exec wrangler delete --force --name "gather-pr-${{ github.event.pull_request.number }}" || true
       # Convex preview deployments idle-expire automatically (~14 days).
       # No reliable CLI delete today; prune from the dashboard if needed.
