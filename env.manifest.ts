@@ -12,8 +12,8 @@
  * - `staging` is a frontend on the production Convex deployment (ADR-0039), so
  *   it has no `convex.deployments.staging`: no Convex variables and no deploy
  *   key reach it.
- * - The staging Worker keeps its live name `gather-stg`, which serves the
- *   `gather-stg.appelent.nl` custom domain.
+ * - The staging Worker takes the standard name `gather-staging` and serves the
+ *   `gather-stg.appelent.nl` custom domain (wrangler.jsonc).
  */
 import type { EnvironmentEntry } from './scripts/lib/env/types.ts'
 
@@ -25,7 +25,7 @@ export const ENV_CONFIG = {
     project: 'eric-jansen:gather',
     deployments: { production: 'limitless-bulldog-972' },
   },
-  worker: { name: 'gather', names: { staging: 'gather-stg' } },
+  worker: { name: 'gather' },
   mobile: { path: 'apps/mobile' },
   github: { repository: 'AppElent/gather' },
 } as const

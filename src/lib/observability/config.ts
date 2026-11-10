@@ -17,14 +17,15 @@ export function isLocalReportingUrl(url: string): boolean {
 
 /**
  * The deployment a hostname belongs to. Worker names are the identity
- * (`wrangler.jsonc`, `preview.yml`): `gather-pr-<N>` previews, `gather-stg`,
- * `gather-dev`, and the bare `gather` Worker plus any custom domain, which is
- * production. Build mode says nothing here — staging ships the production bundle.
+ * (`wrangler.jsonc`, `preview.yml`): `gather-pr-<N>` previews, `gather-staging`
+ * and its `gather-stg.appelent.nl` custom domain, `gather-dev`, and the bare
+ * `gather` Worker plus any other custom domain, which is production. Build mode
+ * says nothing here — staging ships the production bundle.
  */
 export function environmentFromHostname(hostname: string): string {
   const name = hostname.toLowerCase().split('.')[0] ?? ''
   if (/^gather-pr-\d+$/.test(name)) return 'preview'
-  if (name === 'gather-stg') return 'staging'
+  if (name === 'gather-staging' || name === 'gather-stg') return 'staging'
   if (name === 'gather-dev') return 'development'
   return 'production'
 }

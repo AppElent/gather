@@ -28,7 +28,8 @@ describe('isLocalReportingUrl', () => {
 describe('environmentFromHostname', () => {
   it.each([
     ['gather-pr-216.example.workers.dev', 'preview'],
-    ['gather-stg.example.workers.dev', 'staging'],
+    ['gather-staging.example.workers.dev', 'staging'],
+    ['gather-stg.appelent.nl', 'staging'],
     ['gather-dev.example.workers.dev', 'development'],
     ['gather.example.workers.dev', 'production'],
     ['gather.example.com', 'production'],

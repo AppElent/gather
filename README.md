@@ -57,11 +57,11 @@ pnpm run check
 
 ## Deploy to Cloudflare Workers
 
-This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) and `wrangler.jsonc`. The worker is named `gather` in production and `gather-stg` for staging (Wrangler env `staging`).
+This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) and `wrangler.jsonc`. The worker is named `gather` in production and `gather-staging` for staging (Wrangler env `staging`).
 
 **CI is the normal path** — see `.github/workflows/deploy.yml`:
 
-- **staging** — every merge to `main` deploys the `gather-stg` Worker automatically, at `gather-stg.appelent.nl`. It runs on the production Convex deployment and real data ([ADR 0039](docs/adr/0039-staging-is-a-frontend-on-the-production-backend.md)).
+- **staging** — every merge to `main` deploys the `gather-staging` Worker automatically, at `gather-stg.appelent.nl`. It runs on the production Convex deployment and real data ([ADR 0039](docs/adr/0039-staging-is-a-frontend-on-the-production-backend.md)).
 - **production** — **Actions → Deploy → Run workflow** on `main`. The click is the gate for both the Worker and every Convex change; there is no separate approval step.
 
 Both run `check` / `typecheck` / `test` first. Production then runs `convex deploy`, `convex run seed:seedTastingCatalog` and `wrangler deploy`; staging builds and runs `wrangler deploy` only, so a staging feature that needs new Convex functions fails until production deploys. Both build with `pnpm build`: staging runs the same production bundle prod does, and sample data and the test-login button are absent from both. Credentials live in the `staging` and `production` GitHub Environments (see [deploy](docs/runbooks/deploy.md)).
