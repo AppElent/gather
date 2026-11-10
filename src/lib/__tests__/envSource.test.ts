@@ -14,7 +14,7 @@ describe('Infisical source configuration', () => {
     expect(INFISICAL_ENVIRONMENTS).toMatchObject({
       local: 'dev',
       preview: 'staging',
-      staging: 'staging',
+      staging: 'prod',
       production: 'prod',
     })
   })

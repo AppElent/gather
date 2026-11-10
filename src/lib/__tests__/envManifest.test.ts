@@ -160,23 +160,22 @@ describe('auth follows lifetime', () => {
       .filter((p) => p.name.includes('CLERK'))
       .map((p) => `${p.consumer} ${p.entry.infisicalKey}`)
 
-  it('gives short-lived web previews the development instance', () => {
+  // The tier decides the instance: Infisical staging holds the development
+  // key and issuer, Infisical prod the production ones (environments.md).
+  it('gives short-lived web previews the regular Clerk entries', () => {
     expect(clerk('preview')).toEqual([
-      'expo-build clerk-publishable-key',
-      'vite-build pr-clerk-publishable-key',
-      'convex-functions pr-clerk-jwt-issuer-domain',
+      'vite-build clerk-publishable-key',
+      'convex-functions clerk-jwt-issuer-domain',
     ])
   })
 
-  it('keeps long-lived deployments on the production instance', () => {
+  it('gives staging web and the installed preview app the production tier', () => {
     // Staging web serves gather-stg.appelent.nl, a host the production
-    // instance accepts.
-    for (const environment of ['staging', 'production']) {
-      expect(clerk(environment)).not.toContainEqual(
-        expect.stringContaining('pr-clerk'),
-      )
-    }
-    expect(clerk('staging')).toEqual(['vite-build clerk-publishable-key'])
+    // instance accepts. EAS preview is written from staging.
+    expect(clerk('staging')).toEqual([
+      'vite-build clerk-publishable-key',
+      'expo-build clerk-publishable-key',
+    ])
   })
 })
 
@@ -242,10 +241,12 @@ describe('mobile', () => {
         { kind: 'file', path: 'apps/mobile/.env.local' },
       ]),
     )
-    expect(destinations('preview')).toEqual([
+    // The installed preview app is long-lived, so EAS preview is written
+    // from staging, never from short-lived web previews.
+    expect(destinations('preview')).toEqual([])
+    expect(destinations('staging')).toEqual([
       { kind: 'eas', environment: 'preview' },
     ])
-    expect(destinations('staging')).toEqual([])
     expect(destinations('production')).toEqual([
       { kind: 'eas', environment: 'production' },
     ])

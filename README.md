@@ -74,7 +74,7 @@ Deploying by hand is still possible and is what the npm scripts are for. `deploy
 2. Deploy to prod: `pnpm run deploy:production` (`convex deploy` building with the deployed URL, then `convex run seed:seedTastingCatalog` and `wrangler deploy`)
 3. Deploy to dev: `pnpm run deploy:dev` (runs `convex dev --once && convex run seed:seedTastingCatalog && CLOUDFLARE_ENV=dev pnpm run build:development && wrangler deploy`). There is no `dev` environment, so it reads `VITE_*` from your `.env.local` and needs `wrangler login` and an interactive Convex login.
 
-Until the developer-tools #53 sync, Vite still fills any `VITE_*` the selected environment does not set from `.env.local`. After it, `exec` sets every `.env.local` name it does not supply to `""`, so the sample-data flag and the test-user values can't reach a deployed bundle.
+`exec` sets every `.env.local` name it does not supply to `""`, so the sample-data flag and the test-user values can't reach a deployed bundle.
 
 Don't set Worker secrets or Convex env vars by hand — `pnpm run env:apply <environment>` writes both, along with the GitHub secrets and variables, from `env.manifest.ts`. `wrangler.jsonc` has no `vars` block: everything the client needs is a `VITE_*` var inlined into the bundle at build time, so a Worker runtime binding would never be read.
 

@@ -22,15 +22,15 @@ the manifest and `.env.example`, not here.
 
 | Fact | Value |
 | --- | --- |
-| Environments → Infisical environment | `local` → `dev`, `preview` and `staging` → `staging`, `production` → `prod` (the standard map) |
+| Environments → Infisical environment | `local` → `dev`, `preview` → `staging`, `staging` and `production` → `prod` (the standard map) |
 | `staging` holds no Convex deploy key or Convex variables | It runs on the production deployment, which `production` configures ([ADR-0039](../adr/0039-staging-is-a-frontend-on-the-production-backend.md)); the manifest names no `convex.deployments.staging` |
 | Convex | Project `eric-jansen:gather`; production deployment `limitless-bulldog-972`; `local` writes to the deployment the Convex CLI selects |
 | Workers | `gather` (production), `gather-stg` (staging, kept by `worker.names.staging`), `gather-pr-<N>` (preview, needs `--pr <N>`) |
 | Infisical folders | `/` then `/gather`; `/gather` overrides a same-named root value. `.infisical.json` holds the project reference only |
 | Local apply writes | `.env.local`, `.dev.vars`, `apps/mobile/.env.local` |
-| Remote apply routes to | GitHub (repository scope holds only `PREVIEW_<name>`; `staging`/`production` Environments), Convex, Workers, EAS (`development` from `local`, `preview`, `production`) |
+| Remote apply routes to | GitHub (repository scope holds only `PREVIEW_<name>`; `staging`/`production` Environments), Convex, Workers, EAS (`development` from `local`, `preview` from `staging`, `production`) |
 | Worktrees | The `t3.json` hook runs `node scripts/workspace.mjs prepare --editor t3`, which writes the three local files from Infisical ([workspaces](../standards/workspaces.md)) |
-| Commands needing deployed values | `pnpm deploy:staging`, `pnpm deploy:production`, `pnpm mobile:update:<channel>`: each runs through `env.mjs exec`, which adds the values to that one command and writes no file |
+| Commands needing deployed values | `pnpm deploy:staging`, `pnpm deploy:production`, `pnpm mobile:update:<channel>`: each runs through `env.mjs exec`, which adds the values to that one command and writes no file. The `preview` channel reads `staging` |
 
 ## Steps
 
@@ -58,15 +58,17 @@ the manifest and `.env.example`, not here.
 - **`VITE_*` and `EXPO_PUBLIC_*` are public**: inlined into bundles. Test-user
   credentials therefore belong to the Clerk *test* instance only, and land only
   in `local` (apply and exec refuse any other landing).
-- **Auth follows lifetime.** Local and web PR previews (short-lived) use the
-  Clerk development instance; staging web, the installed preview app and
-  production (long-lived) use production. Web PR previews read
-  `pr-clerk-publishable-key` and `pr-clerk-jwt-issuer-domain`, which Infisical
-  `staging` holds as secret references to the `dev` values, so the preview
-  Convex default `CLERK_JWT_ISSUER_DOMAIN` is the development issuer
-  (`pnpm env:apply preview --only convex`). Staging web can use production auth
-  because it serves `gather-stg.appelent.nl`: a production instance signs in
-  only on its own domain and subdomains, never on `workers.dev`.
+- **Auth follows the Infisical tier.** Local and web PR previews (short-lived)
+  use the Clerk development instance; staging web, the installed preview app and
+  production (long-lived) use production. Infisical `staging` holds
+  `clerk-publishable-key` and `clerk-jwt-issuer-domain` as secret references to
+  the `dev` values, so the preview Convex default `CLERK_JWT_ISSUER_DOMAIN` is the
+  development issuer (`pnpm env:apply preview --only convex`). Staging web can
+  use production auth because it serves `gather-stg.appelent.nl`: a production
+  instance signs in only on its own domain and subdomains, never on `workers.dev`.
+- **Staging and production share Infisical `prod`.** Staging web reads the
+  production values (the backend URL above all, [ADR-0039](../adr/0039-staging-is-a-frontend-on-the-production-backend.md)).
+  A value that must differ for staging gets its own Infisical key.
 - **OAuth providers** (Notion, Todoist) register the redirect URI
   `<app-origin>/integrations/callback` (`http://localhost:3000/integrations/callback`
   in dev). Without their client id/secret, connecting fails with a clear
