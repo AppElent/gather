@@ -15,13 +15,13 @@ concurrency:
   cancel-in-progress: true
 jobs:
   label:
-    # fetch-metadata refuses to run for any other actor.
+    # Skip when anyone other than Dependabot opened the PR or triggered the run.
     if: >-
       github.event.pull_request.user.login == 'dependabot[bot]' &&
       github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     # Dependabot's token is read-only unless the workflow asks for more.
-    permissions: { contents: read, pull-requests: write, issues: write }
+    permissions: { contents: read, pull-requests: write }
     steps:
       - id: meta
         uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
