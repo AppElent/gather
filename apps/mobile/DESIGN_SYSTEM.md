@@ -10,6 +10,13 @@ The phone owns its look and shares its words ([ADR-0017](../../docs/adr/0017-the
 `src/theme/` owns typography, neutrals, spacing, radii and glyphs; module tints
 and every user-visible word come from `@gather/core`.
 
+**Visual direction: Tiles & Today.** The tokens, type scale, component guidelines
+and previews live in the [Gather design system](https://claude.ai/artifact/Rwyfbq38b6YcreQMScCZgy).
+The boards it was drawn from, and the council notes, are on the
+[directions canvas](https://claude.ai/artifact/RoKALMenqvjekPVR9BcHqv). The
+direction is approved but not built yet: `src/theme/tokens.ts` and
+`MODULE_TINTS` still hold the previous palette until it is implemented.
+
 ## Interaction vocabulary
 
 What a press does, what a swipe does, what buzzes, what appears while things
