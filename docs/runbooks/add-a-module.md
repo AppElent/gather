@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when adding a Module, a nested web route, a Convex table with a groupId, a _storage column, a photo preset, or a schema-keyed message.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Add a Module
@@ -38,6 +38,7 @@ the same change as the Module.
 | `apps/mobile/src/modules/moduleDestination.ts` `NATIVE_MODULES` (and `ModulePath` for each screen pushed by name) | When the Module gets native screens | `pnpm test` (`moduleDestination.test.ts`: every Module's address must be a route file, and only a Module without screens may land on the placeholder) | — |
 | `apps/mobile/src/shell/quickActions.ts` `ACTIONS_BY_MODULE` | Every Module; an empty list if it has no capture verb for the Add tab | `pnpm typecheck` (`Record<ModuleId, …>`) | [Mobile design system](../../apps/mobile/DESIGN_SYSTEM.md#forms-and-quick-actions) |
 | Seed contribution in `convex/lib/seed/`, and the Module's row in `SAMPLE_CONTENT` (`convex/seed.test.ts`) | Every Module: a Catalog fixture if it needs reference data, Sample household fixtures always | `pnpm typecheck` (`SAMPLE_CONTENT` is a `Record<ModuleId, …>`); `pnpm test` when the Sample household has no rows for it | [Seed data](../contracts/seed-data.md) |
+| `packages/core/src/features.ts` `FEATURES` | Every route file on either platform, and every Module (its platforms and why) | `pnpm test` (`scripts/feature-manifest.test.ts`: every route file belongs to a feature, every pattern matches a file) | [ADR-0042](../adr/0042-the-phone-leads-and-the-web-is-where-a-household-is-managed.md) |
 | `<Breadcrumbs>` trail | Every route below an index | `pnpm test` (`src/components/app/Breadcrumbs.routes.test.ts` walks `src/routes/_app/`; an exception needs an entry with its reason) | [Navigation](../contracts/navigation.md) |
 | `packages/core/src/photoPresets.ts` `PHOTO_PRESETS` | A new kind of photo | Silent drift: a dimension written at a call site | [Stored files](../contracts/stored-files.md) |
 

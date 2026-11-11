@@ -12,7 +12,8 @@ gates still apply — every preview is rendered and graded before it uploads.
 ## react-native-web is the whole mechanism
 
 Claude Design renders React in a browser, so every component goes through
-`react-native-web` (already a dependency, for `expo start --web`).
+`react-native-web`, a phone dev dependency kept for this sync only: Expo web
+is not a target ([ADR-0042](../docs/adr/0042-the-phone-leads-and-the-web-is-where-a-household-is-managed.md)).
 
 - **`Appearance.setColorScheme` does not exist in react-native-web.**
   `AppearanceProvider` calls it in a `useEffect` to move the *platform's* idea of

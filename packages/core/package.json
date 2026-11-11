@@ -13,6 +13,7 @@
     "./data-export": "./src/dataExport.ts",
     "./decimal": "./src/decimal.ts",
     "./domain": "./src/domain.ts",
+    "./features": "./src/features.ts",
     "./drop-rules": "./src/dropRules.ts",
     "./finance": "./src/finance/index.ts",
     "./groups": "./src/groups.ts",
