@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running gather's checks, starting the web app, or verifying a web change.
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Verify gather
@@ -12,15 +12,22 @@ phone changes continue in [mobile verification](mobile-verification.md).
 
 ## Checks
 
-From the repository root:
+From the repository root, run the local gate:
 
 ```sh
-pnpm check
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm --filter @gather/mobile typecheck
+pnpm verify
 ```
+
+`pnpm verify` runs, in order and stopping at the first failure:
+
+1. `pnpm check`: `biome check` plus `scripts/check-mobile-structure.mjs`.
+2. `pnpm typecheck`: the root `tsc` run (web, Convex, core).
+3. `pnpm --filter @gather/mobile typecheck`: the phone app's own `tsconfig`,
+   which the root run does not use.
+4. `pnpm test`.
+
+It does not build. Run `pnpm build` separately when a change touches the build,
+Vite config, or anything CI's `build` step would catch.
 
 `pnpm test` runs the `web`, `convex`, `core` and `mobile` Vitest projects.
 CI (`.github/workflows/ci.yml`) runs `check`, `env:check`, `typecheck`, `test`
