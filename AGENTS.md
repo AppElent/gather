@@ -33,12 +33,13 @@ Before the task, read the matching project doc:
 | Reviewing the running app, alone or in a session the owner drives | The `review-app` skill, with [Verification](docs/runbooks/verification.md) for how to run it |
 
 Domain terms: [GLOSSARY.md](GLOSSARY.md). Decisions: [ADR index](docs/README.md#decisions).
-Adding, moving, or finding docs: [docs map](docs/README.md). Issues are GitHub
-Issues on `AppElent/gather`; engineering skills read [docs/agents/](docs/agents/issue-tracker.md).
+Adding, moving, or finding docs: [docs map](docs/README.md). Work lives in
+Linear (team AppElent, project Gather, label `app:gather`), not GitHub Issues.
+Engineering skills read [docs/agents/](docs/agents/issue-tracker.md).
 
 ## Factory workflow
 
-Linear (workspace `appelent`, team AppElent, key `APP`) is the source of truth. Work is a Linear issue with an app label and a blast radius.
+Linear (workspace `appelent`, team AppElent, key `APP`, project Gather, label `app:gather`) is the source of truth. New work lives in Linear, not GitHub Issues. A Gather issue has the app label and a blast radius.
 
 - `ready-for-agent`: the issue has sharp, testable acceptance criteria and a blast radius, so an agent can pick it up.
 - `ready-for-human`: Eric must do or decide something. Add a comment saying what, where, and roughly how long.
