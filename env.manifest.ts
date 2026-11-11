@@ -195,6 +195,8 @@ export const ENTRIES = [
         name: 'EXPO_PUBLIC_SENTRY_DSN',
         environments: ['staging', 'production'],
       },
+      // scripts/convex-sentry.mjs, run through `pnpm env:exec local`.
+      'local-tooling': { name: 'SENTRY_CONVEX_DSN', environments: ['local'] },
     },
   },
   {

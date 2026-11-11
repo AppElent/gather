@@ -55,6 +55,15 @@ export default defineConfig({
           exclude,
         },
       },
+      {
+        test: {
+          name: 'scripts',
+          environment: 'node',
+          globals: true,
+          include: ['scripts/*.test.mjs'],
+          exclude,
+        },
+      },
     ],
   },
 })
