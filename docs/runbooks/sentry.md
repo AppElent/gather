@@ -1,13 +1,13 @@
 ---
 type: runbook
 description: Read when changing web or phone error reporting, the privacy scrubber, source-map upload, or the Sentry variables.
-version: 1.0.1
+version: 1.1.0
 ---
 
 # Sentry (web and phone)
 
-Implements [Sentry monitoring](../standards/sentry-monitoring.md) for the web app
-and the Expo phone app. Convex is **not covered** (see Coverage).
+Implements [Sentry monitoring](../standards/sentry-monitoring.md) for the web app,
+the Expo phone app, and Convex through a log forwarder (see [Convex forwarder](#convex-forwarder)).
 
 ## Project facts
 
@@ -22,6 +22,7 @@ and the Expo phone app. Convex is **not covered** (see Coverage).
 | Project | Browser and Worker share one Sentry project, told apart by the `app` tag |
 | Phone | `apps/mobile/src/observability/` (`init.ts` imported first by `app/_layout.tsx`; `options.ts` is the policy as plain data). Initialises only with `EXPO_PUBLIC_SENTRY_DSN` in a release bundle (`__DEV__` is off unless `EXPO_PUBLIC_SENTRY_DEBUG=1`). Tag `app=gather-mobile`; environment is the update channel (`preview` / `production`), `development` otherwise. Release is the SDK default (`com.appelent.gather@<version>+<build>`) plus the OTA runtime version and update id; maps match by Metro debug ID (`apps/mobile/metro.config.js`), not by release |
 | Phone errors | The root `ErrorBoundary` in `app/_layout.tsx` renders Expo Router's own error screen and reports once (`report.ts`, once per error object); the Search tab's boundary reports the same way. Anything no boundary catches reaches the SDK's global handler. `Sentry.wrap` is **not** used: errors-only needs nothing from it, and its touch boundary would create the `ui.*` breadcrumbs the scrubber exists to drop |
+| Convex | `scripts/convex-sentry.mjs` (`pnpm sentry:convex`) forwards failed executions from `convex logs --jsonl`. Tag `app=gather-convex` (from the package name). Test: `scripts/convex-sentry.test.mjs` |
 | Variables | `VITE_SENTRY_DSN`, `VITE_SENTRY_ORG`, `VITE_SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`, and for the phone `EXPO_PUBLIC_SENTRY_DSN` (EAS `preview`/`production`) plus `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` on EAS for native builds ([environment](environment.md), `env.manifest.ts`). The phone shares the web's Sentry project, told apart by the `app` tag |
 
 ## What is sent, and what never is
@@ -75,6 +76,53 @@ sets `SENTRY_DISABLE_AUTO_UPLOAD=true` to skip the upload. What a cloud build
 does with the token missing, and whether its upload resolves a native stack, has
 not been verified.
 
+## Convex forwarder
+
+The free plan has no managed Convex integration, so a reader forwards failed
+executions (queries, mutations, actions, HTTP actions and scheduled functions) to
+the web's Sentry project. The script is the toolkit's forwarder
+([example](../standards/sentry-monitoring/examples/convex-sentry.mjs)), copied as
+Arcade Club ships it. It sends only the sanitized error stack and structural tags
+(`app`, `func`, `func_type`, `caller`, `request_id`): never log lines, arguments,
+return values or the caller's identity. It replays the last 100 entries on
+restart, skips failures Convex will retry, and deduplicates by a stable event id.
+There is no durable queue, so failures older than the replay are lost while it is
+down. Run one reader per deployment.
+
+**Locally, against your dev deployment:**
+
+```sh
+pnpm env:exec local -- pnpm sentry:convex
+pnpm env:exec local -- pnpm sentry:convex --deployment <dev-deployment-name>
+```
+
+`env:exec local` sets `SENTRY_CONVEX_DSN` (Infisical `sentry-dsn`, the same public
+value as `VITE_SENTRY_DSN`) and `CONVEX_DEPLOYMENT`, which the script uses when no
+`--deployment` is given. The environment tag is `development`.
+
+**Production** (`eric-jansen:gather`, deployment `limitless-bulldog-972`) with a
+logged-in Convex CLI (`pnpm exec convex login`):
+
+```sh
+pnpm env:exec production --only github -- sh -c 'unset CONVEX_DEPLOY_KEY; SENTRY_CONVEX_DSN="$VITE_SENTRY_DSN" SENTRY_ENVIRONMENT=production pnpm sentry:convex --deployment eric-jansen:gather:prod'
+```
+
+- **Deploy-key permission gap:** the production `CONVEX_DEPLOY_KEY` may lack
+  `deployment:logs:view`, and the Convex CLI prefers a deploy key over the login
+  when both exist. The command unsets it so `convex logs` uses your login. Never
+  copy the deploy key onto the forwarder host.
+- `SENTRY_ENVIRONMENT=production` is needed because only `--prod` implies it;
+  `--deployment` alone tags `development`.
+- The DSN is not a secret, but the command still reads it at run time rather than
+  writing it to a file.
+
+**Always-on host (later):** like the other apps, the forwarder will run from a
+dedicated always-on clone under `~/Developer/.services` through the
+`convex-sentry-run` wrapper, as the launchd unit `com.appelent.convex-sentry.gather`
+logging to `~/Library/Logs/convex-sentry-gather.log`. That unit is installed after
+the forwarder lands on `main`; until then production failures reach Sentry only
+while someone runs the command above.
+
 ## Local reporting is off
 
 Any request or page on `localhost`, `*.localhost`, `127.*`, `[::1]` or `0.0.0.0`
@@ -92,8 +140,10 @@ listener. A Metro-served bundle also attaches the source lines around each frame
 - **Web browser and Worker:** active once `VITE_SENTRY_DSN` is set per environment.
 - **SSR errors:** the 5xx fallback carries no original stack; the framework has
   already swallowed the exception.
-- **Convex:** inactive. No managed integration or log forwarder is set up, so
-  unattended backend failures are unobserved.
+- **Convex:** failed executions, including scheduled functions, while the
+  forwarder runs ([Convex forwarder](#convex-forwarder)). Best effort: no durable
+  queue, and production is covered only once the launchd unit is installed (or
+  while someone runs it by hand). Console output and successful calls are never sent.
 - **Phone:** active once `EXPO_PUBLIC_SENTRY_DSN` is set in an EAS environment
   and a build containing the SDK is installed. The SDK is **native**: it moves
   the `fingerprint` runtime version, so it ships only with the next native build

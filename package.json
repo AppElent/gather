@@ -33,6 +33,7 @@
     "env:apply": "node scripts/env.mjs apply",
     "env:generate": "node scripts/env.mjs generate",
     "env:exec": "node scripts/env.mjs exec",
+    "sentry:convex": "node scripts/convex-sentry.mjs",
     "mobile:update:preview": "node scripts/env.mjs exec staging --only eas -- node apps/mobile/scripts/publish-update.mjs preview",
     "mobile:update:production": "node scripts/env.mjs exec production --only eas -- node apps/mobile/scripts/publish-update.mjs production"
   },
@@ -60,6 +61,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.6.6",
     "@edge-runtime/vm": "^5.0.0",
+    "@sentry/node": "11.11.0",
     "@sentry/vite-plugin": "11.11.0",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "^0.8.6",
