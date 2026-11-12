@@ -20,19 +20,16 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run check
       # Manifest-only: internal consistency plus a stale .env.example. Needs no
       # credentials, so it runs on every PR including one from a fork.
       - run: pnpm run env:check
       # Toolkit conformance (docs/standards/baseline.md): fails on any warning, so
       # new drift blocks the PR.
       - run: node scripts/check-project.mjs --strict
-      - run: pnpm run typecheck
-      # apps/mobile has its own tsconfig (React Native types, Expo Router); the
-      # root `tsc` run above does not use it. Its tests already run under the
-      # `mobile` project of the root vitest config, so `pnpm test` covers those.
-      - run: pnpm --filter @gather/mobile typecheck
-      - run: pnpm test
+      # The local gate (docs/runbooks/verification.md): check, root typecheck,
+      # the phone app's own typecheck, and every Vitest project. Running the
+      # same script keeps "green locally" and "green in CI" the same thing.
+      - run: pnpm verify
       # Build catches bundling/plugin/SSR-compile breakage that typecheck + tests
       # miss. preview.yml builds only for labelled PRs, so this keeps the build
       # signal on every PR. No SENTRY_AUTH_TOKEN: a check build uploads no maps.

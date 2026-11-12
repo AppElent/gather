@@ -30,9 +30,9 @@ It does not build. Run `pnpm build` separately when a change touches the build,
 Vite config, or anything CI's `build` step would catch.
 
 `pnpm test` runs the `web`, `convex`, `core` and `mobile` Vitest projects.
-CI (`.github/workflows/ci.yml`) runs `check`, `env:check`, `typecheck`, `test`
-and `build` on pull requests only; `main` is gated by the same suite in
-`deploy.yml`'s `checks` job.
+CI (`.github/workflows/ci.yml`) runs `env:check`,
+`check-project.mjs --strict`, `pnpm verify` and `pnpm build` on pull requests
+only; `main` is gated by the same suite in `deploy.yml`'s `checks` job.
 Toolkit-owned `scripts/` files and `docs/standards/` are excluded from Biome
 and `tsc`. When a gate is already red on `main`, compare against the base
 commit and report the pre-existing failures with evidence.
