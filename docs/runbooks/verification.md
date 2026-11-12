@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running gather's checks, starting the web app, or verifying a web change.
-version: 1.1.0
+version: 1.1.1
 ---
 
 # Verify gather
@@ -31,8 +31,9 @@ Vite config, or anything CI's `build` step would catch.
 
 `pnpm test` runs the `web`, `convex`, `core` and `mobile` Vitest projects.
 CI (`.github/workflows/ci.yml`) runs `env:check`,
-`node scripts/check-project.mjs --strict`, `pnpm verify` and `pnpm build` on pull requests
-only; `main` is gated by the same suite in `deploy.yml`'s `checks` job.
+`node scripts/check-project.mjs --strict`, `pnpm verify` and `pnpm build` on
+pull requests only; `main` is gated by the same suite in `deploy.yml`'s
+`checks` job.
 Toolkit-owned `scripts/` files and `docs/standards/` are excluded from Biome
 and `tsc`. When a gate is already red on `main`, compare against the base
 commit and report the pre-existing failures with evidence.
