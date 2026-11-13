@@ -1,5 +1,5 @@
-// Copy to scripts/feature-manifest-check.ts and call it from a Vitest test
-// (see the platform-parity standard). listRouteFiles lists route files under a
+// Copied from the platform-parity standard (AppElent/developer-home#2) and
+// called from scripts/feature-manifest.test.ts. listRouteFiles lists route files under a
 // route root, relative and without extension, skipping tests, layouts, and
 // framework files. checkFeatureManifest returns one message per problem:
 // an unmapped route, a stale pattern, a status that contradicts the
@@ -30,9 +30,9 @@ const PLATFORMS: readonly Platform[] = ['web', 'mobile']
 const IGNORED = [
   /(^|\/)__tests__\//,
   /\.(test|spec)$/,
-  /(^|\/)-[^/]*$/, // TanStack Router ignores files that start with "-"
+  /(^|\/)-[^/]*(\/|$)/, // TanStack Router ignores files and folders that start with "-"
   /(^|\/)__root$/,
-  /(^|\/)_[^/]*$/, // Expo _layout and TanStack pathless layouts (_app, _authed)
+  /(^|\/)_[^/.]*$/, // Expo _layout and TanStack pathless layouts (_app, _authed), not flat routes (_app.x)
   /(^|\/)\+(html|not-found|native-intent)$/,
   /(^|\/)routeTree\.gen$/,
 ]

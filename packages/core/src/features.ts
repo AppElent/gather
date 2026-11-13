@@ -1,8 +1,8 @@
 // Which feature ships on which platform, and why (docs/adr/0042, the parity
-// ADR; the platform-parity standard, AppElent/developer-tools#63). Pure data:
+// ADR; the platform-parity standard, AppElent/developer-home#2). Pure data:
 // no imports, so it runs on web, Worker, Convex, and Hermes.
 // scripts/feature-manifest.test.ts checks it against both route trees in CI.
-// FU-n placeholders name the follow-up issue that moves a feature.
+// APP-n names the Linear follow-up issue that moves a feature.
 
 export type Platform = 'web' | 'mobile'
 
@@ -67,7 +67,8 @@ export const FEATURES = defineFeatures([
     kind: 'floor',
     status: 'parity',
     platforms: ['web', 'mobile'],
-    // Name and password on both; the email address is read-only on both.
+    // Name and password on both; the email address is read-only on both (the
+    // phone's "add it on the web" copy is stale; see the ADR).
     routes: {
       web: ['_app/account'],
       mobile: [
@@ -84,7 +85,7 @@ export const FEATURES = defineFeatures([
     status: 'pending-port',
     platforms: ['mobile'],
     reason:
-      'Only the phone lists the sessions signed in to the account and signs one out. The web gets it in FU-4.',
+      'Only the phone lists the sessions signed in to the account and signs one out. The web gets it in APP-82.',
     routes: { mobile: [`${ACCOUNT}/devices`] },
   },
   {
@@ -102,7 +103,7 @@ export const FEATURES = defineFeatures([
     status: 'pending-port',
     platforms: ['mobile'],
     reason:
-      'ADR-0032 put deletion in the app for App Store 5.1.1(v); the web has no way to start it. The web gets the same cascade in FU-1.',
+      'ADR-0032 put deletion in the app for App Store 5.1.1(v); the web has no way to start it. The web gets the same cascade in APP-85.',
     routes: { mobile: [`${ACCOUNT}/delete`] },
   },
   {
@@ -139,7 +140,7 @@ export const FEATURES = defineFeatures([
     status: 'pending-port',
     platforms: ['web'],
     reason:
-      'Leaving a Group is account management. Only the web offers it (Group settings); on the phone the only way out of a household is deleting the account. FU-2.',
+      'Leaving a Group is account management. Only the web offers it (Group settings); on the phone the only way out of a household is deleting the account. APP-80.',
     routes: { web: ['_app/group-settings'] },
   },
 
@@ -159,7 +160,7 @@ export const FEATURES = defineFeatures([
     status: 'pending-port',
     platforms: ['web'],
     reason:
-      'Any Member may invite (ADR-0006), but only the web shows the invite code (groups.inviteCode), so nobody can invite from the phone. FU-2.',
+      'Any Member may invite (ADR-0006), but only the web shows the invite code (groups.inviteCode), so nobody can invite from the phone. APP-80.',
     routes: { web: ['_app/group-settings'] },
   },
 
@@ -200,7 +201,7 @@ export const FEATURES = defineFeatures([
     kind: 'product',
     status: 'parity',
     platforms: ['web', 'mobile'],
-    // Your Groups: list, switch, create, delete.
+    // Your Groups: list, create, delete. On the web, delete is in Group settings.
     routes: { web: ['_app/groups'], mobile: ['(app)/(tabs)/settings/groups'] },
   },
   {
@@ -267,7 +268,7 @@ export const FEATURES = defineFeatures([
     status: 'exclusive',
     platforms: ['mobile'],
     reason:
-      'Consumes old gather://g/<slug>/… links (ADR-0015, superseded by ADR-0031). Nothing produces them any more and the web 404s /g/ by ADR-0031, so FU-3 retires the handler.',
+      'Consumes old gather://g/<slug>/… links (ADR-0015, superseded by ADR-0031). Nothing produces them any more and the web 404s /g/ by ADR-0031, so APP-81 retires the handler.',
     routes: { mobile: ['g/[groupSlug]/[...rest]', '(app)/deep-link'] },
   },
   {
@@ -415,7 +416,7 @@ export const FEATURES = defineFeatures([
     kind: 'product',
     status: 'exclusive',
     platforms: ['web'],
-    reason: `Placeholders for phone Modules, pending a decision per Module to build it on the web or remove the page (FU-5, ${ADR}).`,
+    reason: `Placeholders for phone Modules, pending a decision per Module to build it on the web or remove the page (APP-83, ${ADR}).`,
     routes: {
       web: [
         '_app/calendar',
