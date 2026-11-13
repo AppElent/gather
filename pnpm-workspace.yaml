@@ -33,6 +33,7 @@ allowBuilds:
   dtrace-provider: false # optional native tracing; EAS CLI runs without it
   node-datachannel: true # installs the native WebRTC binary used by Expo Device Hub
   lefthook: true # postinstall installs the git hooks from lefthook.yml
+  protobufjs: false # postinstall only warns about version schemes, no native binary (pulled in by eas-cli via centrifuge); drop when eas-cli no longer depends on it
 
 minimumReleaseAge: 4320 # 3 days — blocks the worm/account-takeover window
 
@@ -41,6 +42,14 @@ overrides:
   # @clerk/react, and pnpm auto-installs optional peers. The web is on
   # @clerk/react (Clerk Core 3), so keep the old package out of the graph.
   "convex>@clerk/clerk-react": "-"
+  # APP-79: solid-js <1.9.18 pins seroval ~1.5.x (critical/high Dependabot
+  # alerts GHSA-p6vx-979v-rg4c, GHSA-jp82-f5mq-hwhp, GHSA-97r2-qh9m-474h and
+  # friends; fixed in seroval 1.6.10+). It reaches us only through the TanStack
+  # devtools (@tanstack/react-devtools > @tanstack/devtools ^1.9.13), whose range
+  # already allows 1.9.18 but pnpm keeps the locked 1.9.15. Exact rather than
+  # ^1.9.18: with 1.9.19 still inside minimumReleaseAge, a range left 1.9.15 in
+  # place. Remove once the lockfile resolves solid-js >=1.9.18 without this entry.
+  "solid-js@<1.9.18": "1.9.18"
 
 # @clerk/expo's config plugin imports @expo/config-plugins at runtime but only
 # declares it as a devDependency. EAS loads the plugin without pnpm's NODE_PATH
