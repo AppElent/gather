@@ -14,6 +14,7 @@
     "./decimal": "./src/decimal.ts",
     "./domain": "./src/domain.ts",
     "./drop-rules": "./src/dropRules.ts",
+    "./features": "./src/features.ts",
     "./finance": "./src/finance/index.ts",
     "./groups": "./src/groups.ts",
     "./i18n": "./src/i18n.ts",
