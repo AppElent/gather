@@ -33,7 +33,7 @@ allowBuilds:
   dtrace-provider: false # optional native tracing; EAS CLI runs without it
   node-datachannel: true # installs the native WebRTC binary used by Expo Device Hub
   lefthook: true # postinstall installs the git hooks from lefthook.yml
-  protobufjs: false # postinstall only warns about version schemes, no native binary (pulled in by eas-cli via centrifuge)
+  protobufjs: false # postinstall only warns about version schemes, no native binary (pulled in by eas-cli via centrifuge); drop when eas-cli no longer depends on it
 
 minimumReleaseAge: 4320 # 3 days — blocks the worm/account-takeover window
 
