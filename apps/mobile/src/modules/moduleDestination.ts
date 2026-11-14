@@ -38,6 +38,7 @@ export const NATIVE_MODULES = [
   'recurring-costs',
   'shared-costs',
   'savings-goals',
+  'loyalty-cards',
 ] as const satisfies readonly ModuleId[]
 
 export type NativeModuleId = (typeof NATIVE_MODULES)[number]
@@ -81,6 +82,7 @@ export type ModulePath =
   | `/all/tasting/${TastingKind}${'' | '/subject' | '/compose'}`
   | `/all/recurring-costs${'' | '/cost'}`
   | `/all/savings-goals${'' | '/goal'}`
+  | `/all/loyalty-cards${'' | '/card' | '/new' | '/edit'}`
   | `/settings/labs/finance${
       | ''
       | '/house'

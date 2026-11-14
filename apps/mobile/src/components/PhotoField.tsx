@@ -78,6 +78,11 @@ export interface PhotoFieldProps {
   /** The Module's tint, so the row belongs to the screen it is on (ADR-0017). */
   group?: ModuleGroup
   disabled?: boolean
+  /**
+   * Told when an upload starts and ends, so a form can hold its Save until the
+   * photo it shows is the photo it sends.
+   */
+  onBusyChange?: (busy: boolean) => void
   /** Prefix for the controls' `testID`s, so a verification run can reach them. */
   testID?: string
 }
@@ -91,6 +96,7 @@ export function PhotoField({
   labels,
   group = 'home',
   disabled,
+  onBusyChange,
   testID,
 }: PhotoFieldProps) {
   const tokens = useTokens(group)
@@ -121,6 +127,7 @@ export function PhotoField({
     // second of blank space while the bytes go up reads as nothing happening.
     setPreview(picked.uri)
     setBusy(true)
+    onBusyChange?.(true)
     try {
       const storageId = await uploadPhoto(picked.uri, await generateUploadUrl())
       onChange(storageId)
@@ -129,6 +136,7 @@ export function PhotoField({
       setProblem(labels.failed)
     } finally {
       setBusy(false)
+      onBusyChange?.(false)
     }
   }
 

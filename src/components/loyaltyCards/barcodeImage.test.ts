@@ -6,7 +6,7 @@ import {
   MAX_LINEAR_CARD_NUMBER_LENGTH,
 } from '@gather/core/barcodes'
 import { describe, expect, test } from 'vitest'
-import { barcodeOptions, renderBarcodeSvg, svgDataUrl } from './barcodeImage'
+import { renderBarcodeSvg, svgDataUrl } from './barcodeImage'
 
 /**
  * Every format the core accepts must draw, through the real bwip-js, so a card
@@ -70,20 +70,6 @@ describe('drawing a barcode', () => {
       expect(svg).toMatch(/^<svg/)
     },
   )
-
-  test('draws black on white with no printed text, whatever the theme', () => {
-    expect(barcodeOptions('EAN_13', '2620187342052')).toMatchObject({
-      bcid: 'ean13',
-      backgroundcolor: 'FFFFFF',
-      barcolor: '000000',
-      includetext: false,
-    })
-  })
-
-  test('gives Codabar start and stop characters only when it has none', () => {
-    expect(barcodeOptions('CODABAR', '12345').text).toBe('A12345A')
-    expect(barcodeOptions('CODABAR', 'B12345C').text).toBe('B12345C')
-  })
 
   test('refuses a number its encoder cannot draw', async () => {
     await expect(renderBarcodeSvg('EAN_13', 'not a number')).rejects.toThrow()

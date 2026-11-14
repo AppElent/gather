@@ -74,6 +74,53 @@ export const en = {
    */
   finances: coreEn.finances,
 
+  /**
+   * Loyalty cards: the shared tree, plus the words only the phone says —
+   * the camera scanner and the till screen have no web counterpart.
+   */
+  loyaltyCards: {
+    ...coreEn.loyaltyCards,
+    scan: {
+      title: 'Scan the card',
+      hint: 'Hold the card’s barcode inside the frame.',
+      typeInstead: 'Type the number instead',
+      askTitle: 'Scan the card with the camera',
+      askBody:
+        'Gather uses the camera only to read the card’s barcode. Nothing is recorded or kept.',
+      allow: 'Use the camera',
+      denied:
+        'Gather may not use the camera. Turn it on in Settings to scan, or type the number.',
+      openSettings: 'Open Settings',
+      unavailable:
+        'The camera is not available on this device. Type the number instead.',
+      scanned: 'Scanned {format}: {number}',
+      scanAgain: 'Scan again',
+      suggestion: 'This looks like a {store} card.',
+      useSuggestion: 'Use {store}',
+      frame: 'Camera view for scanning a barcode',
+    },
+    till: {
+      edit: 'Edit card',
+      delete: 'Delete card',
+      front: 'Front of the {store} card',
+      back: 'Back of the {store} card',
+    },
+    list: {
+      /** When a card was last shown, in Home's activity words. */
+      when: coreEn.shell.activity,
+    },
+    form: {
+      ...coreEn.loyaltyCards.form,
+      chooseFormat: 'Choose the barcode type',
+      takePhoto: 'Take a photo',
+      choosePhoto: 'Choose a photo',
+      replacePhoto: 'Replace',
+      removePhoto: 'Remove',
+      photoDenied: 'Gather may not use the camera or photos. Turn it on in Settings.',
+      photoFailed: 'That photo could not be added.',
+    },
+  },
+
   search: {
     title: 'Search',
     placeholder: 'Search this Group',
@@ -143,6 +190,10 @@ export const en = {
         'recipe-import': {
           label: 'Import from a link',
           module: coreEn.modules.byId.recipes.label,
+        },
+        'loyalty-card-add': {
+          label: 'Add loyalty card',
+          module: coreEn.modules.byId['loyalty-cards'].label,
         },
       },
     },

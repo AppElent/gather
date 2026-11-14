@@ -24,6 +24,7 @@ export type QuickActionKind = 'row' | 'handoff' | 'compose'
 export type QuickActionId =
   | 'task-new'
   | 'recipe-import'
+  | 'loyalty-card-add'
   | 'cheese-tasting'
   | 'wine-tasting'
   | 'beer-tasting'
@@ -88,9 +89,15 @@ const ACTIONS_BY_MODULE: Record<ModuleId, readonly QuickActionDef[]> = {
   'shared-costs': [],
   'savings-goals': [],
   'baby-log': [],
-  // Adding a card is scanning one, which arrives with the phone screens
-  // (APP-142); until then there is no verb to launch.
-  'loyalty-cards': [],
+  // A card in the hand is capture: the launcher hands over to the scanner,
+  // which is a whole screen of camera and does not fit under a row.
+  'loyalty-cards': [
+    {
+      id: 'loyalty-card-add',
+      kind: 'handoff',
+      href: moduleHref('/all/loyalty-cards/new'),
+    },
+  ],
   calendar: [],
   notes: [],
 }

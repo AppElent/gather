@@ -48,9 +48,18 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Gather uses your photos so you can add one to a recipe, a baby-log memory, a tasting or your profile.",
-          "cameraPermission": "Gather uses the camera so you can take a photo for a recipe, a baby-log memory, a tasting or your profile.",
+          "photosPermission": "Gather uses your photos so you can add one to a recipe, a loyalty card, a baby-log memory, a tasting or your profile.",
+          "cameraPermission": "Gather uses the camera so you can scan a loyalty card’s barcode, or take a photo for a recipe, a loyalty card, a baby-log memory, a tasting or your profile.",
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Gather uses the camera so you can scan a loyalty card’s barcode, or take a photo for a recipe, a loyalty card, a baby-log memory, a tasting or your profile.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": true
         }
       ],
       [

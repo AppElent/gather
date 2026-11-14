@@ -2,10 +2,13 @@ import { describe, expect, test } from 'vitest'
 
 import {
   BARCODE_FORMATS,
+  BWIP_ENCODERS,
+  barcodeRenderOptions,
   barcodeShape,
   checkCardNumber,
   gs1CheckDigit,
   isBarcodeFormat,
+  isDigitsOnlyFormat,
   MAX_CARD_NUMBER_LENGTH,
   MAX_LINEAR_CARD_NUMBER_LENGTH,
 } from './barcodes'
@@ -174,8 +177,42 @@ describe('format helpers', () => {
     expect(barcodeShape('CODABAR')).toBe('linear')
   })
 
+  test('know which formats hold digits only', () => {
+    expect(isDigitsOnlyFormat('EAN_13')).toBe(true)
+    expect(isDigitsOnlyFormat('ITF')).toBe(true)
+    expect(isDigitsOnlyFormat('CODE_128')).toBe(false)
+    expect(isDigitsOnlyFormat('QR')).toBe(false)
+  })
+
   test('recognise a format name', () => {
     expect(isBarcodeFormat('EAN_13')).toBe(true)
     expect(isBarcodeFormat('QR_CODE')).toBe(false)
+  })
+})
+
+describe('barcodeRenderOptions', () => {
+  test('draws black on white with no printed text, whatever the theme', () => {
+    expect(barcodeRenderOptions('EAN_13', '2620187342052')).toMatchObject({
+      bcid: 'ean13',
+      backgroundcolor: 'FFFFFF',
+      barcolor: '000000',
+      includetext: false,
+    })
+  })
+
+  test('gives Codabar start and stop characters only when it has none', () => {
+    expect(barcodeRenderOptions('CODABAR', '12345').text).toBe('A12345A')
+    expect(barcodeRenderOptions('CODABAR', 'B12345C').text).toBe('B12345C')
+  })
+
+  test('draws linear codes short and wide, matrix codes square', () => {
+    expect(barcodeRenderOptions('CODE_128', 'x').height).toBe(18)
+    expect(barcodeRenderOptions('QR', 'x').height).toBeUndefined()
+  })
+
+  test('names an encoder for every format', () => {
+    for (const format of BARCODE_FORMATS) {
+      expect(BWIP_ENCODERS[format]).toMatch(/^[a-zA-Z0-9]+$/)
+    }
   })
 })
