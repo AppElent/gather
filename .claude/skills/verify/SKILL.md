@@ -8,8 +8,16 @@ description: Verify that a code change actually does what it's supposed to by ex
 Checks, web runtime and backend identity: [verification runbook](../../../docs/runbooks/verification.md).
 Phone changes: [mobile verification](../../../docs/runbooks/mobile-verification.md).
 
-Local-first. On web (no dev server / no Convex+Clerk runtime creds), fall back to the
-static suite: `pnpm run typecheck`, `pnpm run check`, `pnpm test`, `pnpm build`.
+Local-first. Always run the same static checks as the CI `check` job, in this order:
+
+1. `pnpm run env:check`
+2. `node scripts/check-project.mjs --strict`
+3. `pnpm verify` (Biome, root typecheck, mobile typecheck, tests)
+4. `pnpm build`
+
+Do not pick individual checks instead: `pnpm verify` is the one list, so it stays in
+step with CI. On web (no dev server / no Convex+Clerk runtime creds), these static checks
+are the fallback; otherwise also drive the flow below.
 
 ## Route → module map
 
