@@ -13,6 +13,7 @@ Before the task, read the matching project doc:
 | When you are… | Read |
 | --- | --- |
 | Adding a Module, a nested web route, a Convex table with `groupId`, a `_storage` column, a photo size, or a message key | [Add a Module](docs/runbooks/add-a-module.md) — every registry it must reach |
+| Deciding which platform a feature ships on, or adding, moving or removing a web or phone route | [ADR-0042](docs/adr/0042-the-phone-leads-and-the-web-is-where-a-household-is-managed.md) and its entry in `packages/core/src/features.ts` |
 | Changing who owns, sees, or may write Group content, a refusal, or how the Current Group is chosen | [Ownership and access](docs/contracts/ownership-and-access.md) |
 | Changing seeds, the Catalog, or the Sample household | [Seed data](docs/contracts/seed-data.md) |
 | Storing, replacing, or deleting a photo or file | [Stored files](docs/contracts/stored-files.md) |

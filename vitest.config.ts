@@ -60,7 +60,7 @@ export default defineConfig({
           name: 'scripts',
           environment: 'node',
           globals: true,
-          include: ['scripts/*.test.mjs'],
+          include: ['scripts/*.test.{mjs,ts}'],
           exclude,
         },
       },
