@@ -14,10 +14,11 @@ date: 2026-08-25
 policy, and each base EAS build profile (`development`, `preview`,
 `production`) declares a channel named after itself. `preview-internal` extends
 `preview` and inherits its `preview` channel on purpose, so the internal ad hoc
-builds receive preview updates. A JavaScript-only change is published to a channel and applied silently on the
-next launch; a change to the native surface produces a different fingerprint and
-is therefore never offered to a build that could not run it. The app gains no
-update UI and no source file imports `expo-updates`.
+builds receive preview updates. A JavaScript-only change is published to a
+channel and applied silently on the next launch; a change to the native surface
+produces a different fingerprint and is therefore never offered to a build that
+could not run it. The app gains no update UI and no source file imports
+`expo-updates`.
 
 Every publish pairs `--channel` with `--environment`, because `EXPO_PUBLIC_*`
 values are inlined into the bundle at publish time rather than read at runtime.
