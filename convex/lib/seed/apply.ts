@@ -6,6 +6,7 @@ import { destroyGroup } from '../groupCascade'
 import { allocateGroupSlug } from '../groupSlugs'
 import { getUserByClerkId } from '../sharing'
 import { auxListNames } from '../taskLists'
+import { RETAILER_CATALOG } from './retailerCatalog'
 import {
   SAMPLE_BABY,
   SAMPLE_BABY_EVENTS,
@@ -14,6 +15,7 @@ import {
   SAMPLE_HOUSE,
   SAMPLE_HOUSEMATES,
   SAMPLE_KITCHEN,
+  SAMPLE_LOYALTY_CARDS,
   SAMPLE_MORTGAGES,
   SAMPLE_NET_WORTH_ENTRIES,
   SAMPLE_NOTES,
@@ -143,6 +145,70 @@ export async function applyTastingCatalog(ctx: MutationCtx) {
   if (rows !== TASTING_CATALOG.length) {
     throw new Error(
       `Tasting catalog seed self-check failed: ${rows} rows for ${TASTING_CATALOG.length} fixtures`,
+    )
+  }
+
+  return { inserted, updated, retired, deduped, rows }
+}
+
+/**
+ * Reconcile the `retailerCatalog` against `RETAILER_CATALOG` (APP-141), by
+ * the same rules as the tasting Catalog: the seed always wins, retired rows
+ * go, duplicates collapse. Retiring a retailer is safe, because a card keeps
+ * its own copy of everything it took from the row (ADR-0043).
+ */
+export async function applyRetailerCatalog(ctx: MutationCtx) {
+  const wanted = new Set(RETAILER_CATALOG.map((entry) => entry.seedKey))
+  let inserted = 0
+  let updated = 0
+  let deduped = 0
+
+  for (const entry of RETAILER_CATALOG) {
+    const matches = await ctx.db
+      .query('retailerCatalog')
+      .withIndex('by_seedKey', (q) => q.eq('seedKey', entry.seedKey))
+      .collect()
+
+    const fields = {
+      seedKey: entry.seedKey,
+      name: entry.name,
+      aliases: entry.aliases,
+      category: entry.category,
+      brandColor: entry.brandColor,
+      domain: entry.domain,
+      barcodeFormat: entry.barcodeFormat,
+      formatConfidence: entry.formatConfidence,
+      numberLength: entry.numberLength,
+      numberPrefix: entry.numberPrefix,
+    }
+
+    const [keep, ...extras] = matches
+    for (const extra of extras) {
+      await ctx.db.delete(extra._id)
+      deduped++
+    }
+
+    if (keep) {
+      await ctx.db.replace(keep._id, fields)
+      updated++
+    } else {
+      await ctx.db.insert('retailerCatalog', fields)
+      inserted++
+    }
+  }
+
+  let retired = 0
+  for (const row of await ctx.db.query('retailerCatalog').collect()) {
+    if (!wanted.has(row.seedKey)) {
+      await ctx.db.delete(row._id)
+      retired++
+    }
+  }
+
+  const rows = (await ctx.db.query('retailerCatalog').collect()).length
+  if (rows !== RETAILER_CATALOG.length) {
+    throw new Error(
+      `Retailer catalog seed self-check failed: ${rows} rows for ${RETAILER_CATALOG.length} fixtures`,
     )
   }
 
@@ -565,6 +631,28 @@ export async function applySample(
     }
   }
 
+  // --- Loyalty cards -------------------------------------------------------
+  for (const card of SAMPLE_LOYALTY_CARDS) {
+    rec.track(
+      await ctx.db.insert('loyaltyCards', {
+        groupId,
+        storeName: card.storeName,
+        catalogKey: card.catalogKey,
+        brandColor: card.brandColor,
+        domain: card.domain,
+        cardNumber: card.cardNumber,
+        barcodeFormat: card.barcodeFormat,
+        holder: card.holder,
+        note: card.note,
+        lastUsedAt:
+          card.lastUsedDaysAgo === undefined
+            ? undefined
+            : now - card.lastUsedDaysAgo * DAY_MS,
+        createdByUserId: authors[card.author],
+      }),
+    )
+  }
+
   // --- Finances -------------------------------------------------------------
   // The House is the container for what a home costs (ADR-0025), so it is
   // seeded first and everything about the mortgage hangs off it.
@@ -792,6 +880,7 @@ export async function applySample(
     netWorthEntries: SAMPLE_NET_WORTH_ENTRIES.length,
     tastingSubjects: SAMPLE_TASTING_SUBJECTS.length,
     tastings,
+    loyaltyCards: SAMPLE_LOYALTY_CARDS.length,
   }
 
   // Self-check: the run recorded every row it created. Anything missing here
@@ -816,6 +905,7 @@ export async function applySample(
     counts.babyEvents +
     counts.tastingSubjects +
     counts.tastings +
+    counts.loyaltyCards +
     1 + // the house
     counts.mortgages +
     counts.loanParts +

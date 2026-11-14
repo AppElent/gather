@@ -18,8 +18,9 @@ no blob outlives the last row that points at it.
   sites name a preset and pass nothing else; a new kind of photo is a new
   preset there, never a number at a call site.
 - **A stored file is registered** in `FILE_HOLDERS` (`convex/lib/storedFiles.ts`),
-  typed off the schema, so a new `_storage` column fails to compile until it is
-  listed. That registry is what stops a blob being deleted from under a table
+  typed off the schema, as a list of its table's `_storage` columns, so a new
+  column fails to compile until it is listed — including a second column on a
+  table already listed (a Loyalty card's front and back photos). That registry is what stops a blob being deleted from under a table
   nobody registered.
 - **A stored file lives exactly as long as some row points at it.** Every
   path that orphans a file calls `deleteStoredFile` / `replaceStoredFile`

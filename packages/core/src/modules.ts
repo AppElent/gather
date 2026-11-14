@@ -9,6 +9,7 @@ export type ModuleIconName =
   | 'Calendar'
   | 'CalendarHeart'
   | 'ChefHat'
+  | 'CreditCard'
   | 'Grape'
   | 'ListChecks'
   | 'NotebookPen'
@@ -92,6 +93,17 @@ export const MODULES = [
     icon: 'NotebookPen',
     group: 'home',
     status: 'placeholder',
+  },
+  /**
+   * A Group's store cards (APP-140). In `home` because a card is something
+   * the household keeps and reaches for, like its lists and its calendar; it
+   * is not spending, so `money` would be the wrong neighbour.
+   */
+  {
+    id: 'loyalty-cards',
+    icon: 'CreditCard',
+    group: 'home',
+    status: 'live',
   },
   /**
    * The three tasting Modules (#199, #203, ADR-0024). They share one backend,

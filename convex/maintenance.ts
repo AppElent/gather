@@ -484,6 +484,7 @@ const USER_REFERENCES: {
   netWorthSnapshots: { takenByUserId: 'repoint' },
   tastingSubjects: { createdByUserId: 'repoint' },
   tastings: { createdByUserId: 'repoint' },
+  loyaltyCards: { createdByUserId: 'repoint' },
   seedRuns: { restoreDefaultGroup: 'repoint' },
 }
 

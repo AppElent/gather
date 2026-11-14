@@ -1646,3 +1646,57 @@ export const SAMPLE_TASTING_SUBJECTS: SampleTastingSubject[] = [
     ],
   },
 ]
+
+/**
+ * Loyalty cards (APP-141): two from the Retailer catalog, one typed as "Other
+ * store", so the list shows a brand tile, a second card from the same store
+ * under another holder, and the monogram fallback. Colours and domains are
+ * written out as the Catalog's copy would have left them (ADR-0043), so the
+ * fixture does not depend on the Catalog being seeded first. Card numbers are
+ * made up but valid for their format.
+ */
+export interface SampleLoyaltyCard {
+  storeName: string
+  catalogKey?: string
+  brandColor?: string
+  domain?: string
+  cardNumber: string
+  barcodeFormat: 'EAN_13' | 'CODE_128' | 'QR'
+  holder?: string
+  note?: string
+  /** Days since it was last shown at a till; absent for never. */
+  lastUsedDaysAgo?: number
+  author: SampleAuthor
+}
+
+export const SAMPLE_LOYALTY_CARDS: SampleLoyaltyCard[] = [
+  {
+    storeName: 'Albert Heijn',
+    catalogKey: 'albert-heijn',
+    brandColor: '#00a0e2',
+    domain: 'ah.nl',
+    cardNumber: '2620187342052',
+    barcodeFormat: 'EAN_13',
+    holder: 'Nora',
+    lastUsedDaysAgo: 1,
+    author: 'nora',
+  },
+  {
+    storeName: 'Albert Heijn',
+    catalogKey: 'albert-heijn',
+    brandColor: '#00a0e2',
+    domain: 'ah.nl',
+    cardNumber: '2620194503163',
+    barcodeFormat: 'EAN_13',
+    holder: 'Sam',
+    lastUsedDaysAgo: 6,
+    author: 'sam',
+  },
+  {
+    storeName: 'Bakkerij De Graaf',
+    cardNumber: 'DG-004217',
+    barcodeFormat: 'CODE_128',
+    note: 'Tenth loaf free. The stamp card is in the kitchen drawer.',
+    author: 'owner',
+  },
+]

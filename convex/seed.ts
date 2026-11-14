@@ -1,6 +1,7 @@
 import { ConvexError } from 'convex/values'
 import { internalMutation, mutation } from './_generated/server'
 import {
+  applyRetailerCatalog,
   applySample,
   applyTastingCatalog,
   ensureSeedUser,
@@ -12,7 +13,7 @@ import { requireCurrentUser } from './lib/sharing'
  * Seed entrypoints. Two mechanisms with deliberately opposite rules, kept as
  * two plain functions rather than one abstraction (ADR 0004):
  *
- * - **Catalog** (`seedTastingCatalog`) — reference data the app needs to
+ * - **Catalogs** (`seedTastingCatalog`, `seedRetailerCatalog`) — reference data the app needs to
  *   work, in every environment including production. Reconciled by `seedKey`;
  *   the seed always wins.
  * - **Sample household** (`seedPreview`, `loadSampleData`) — fake content for
@@ -52,7 +53,17 @@ export const seedTastingCatalog = internalMutation({
 })
 
 /**
- * The preview entrypoint, named in `--preview-run`. Reconciles the Catalog,
+ * Reconcile the Retailer catalog — the Dutch stores the Loyalty card picker
+ * offers (APP-141, ADR-0043). Like the tasting Catalog, a deploy step: it is
+ * reference data the Module needs, in production too.
+ */
+export const seedRetailerCatalog = internalMutation({
+  args: {},
+  handler: async (ctx) => await applyRetailerCatalog(ctx),
+})
+
+/**
+ * The preview entrypoint, named in `--preview-run`. Reconciles the Catalogs,
  * then rebuilds the Sample household against the shared test user so that
  * clicking test-login on a PR preview lands in a populated household.
  */
@@ -60,6 +71,7 @@ export const seedPreview = internalMutation({
   args: {},
   handler: async (ctx) => {
     const tastingCatalog = await applyTastingCatalog(ctx)
+    const retailerCatalog = await applyRetailerCatalog(ctx)
     const reset = await resetSample(ctx)
     const ownerId = await ensureSeedUser(
       ctx,
@@ -68,7 +80,7 @@ export const seedPreview = internalMutation({
       PREVIEW_TEST_USER.email,
     )
     const sample = await applySample(ctx, ownerId, Date.now())
-    return { tastingCatalog, reset, sample }
+    return { tastingCatalog, retailerCatalog, reset, sample }
   },
 })
 
@@ -98,9 +110,10 @@ export const loadSampleData = mutation({
     requireSampleDataEnabled()
     const user = await requireCurrentUser(ctx)
     const tastingCatalog = await applyTastingCatalog(ctx)
+    const retailerCatalog = await applyRetailerCatalog(ctx)
     const reset = await resetSample(ctx)
     const sample = await applySample(ctx, user._id, Date.now())
-    return { tastingCatalog, reset, sample }
+    return { tastingCatalog, retailerCatalog, reset, sample }
   },
 })
 

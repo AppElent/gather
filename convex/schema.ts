@@ -24,6 +24,11 @@ import {
 } from './lib/finance'
 import { groupRoleValidator } from './lib/groupAccess'
 import { quickLimitValidator } from './lib/kitchen'
+import {
+  barcodeFormatValidator,
+  formatConfidenceValidator,
+  retailerCategoryValidator,
+} from './lib/loyaltyCards'
 import { nutritionValidator } from './lib/nutrition'
 import { recipeFields } from './lib/recipeFields'
 import {
@@ -562,6 +567,60 @@ export default defineSchema({
   })
     .index('by_kind', ['kind'])
     .index('by_seedKey', ['seedKey']),
+
+  /**
+   * A store or loyalty card the Group keeps (APP-141). Group-scoped and shared
+   * by every Member (APP-140 decision 1); `holder` says whose card it is, as
+   * free text, because a card belongs to a person who may not be a Member.
+   *
+   * A card picked from the Retailer catalog is a copy, not a reference
+   * (ADR-0043, after ADR-0024): name, brand colour, domain and barcode format
+   * are written onto the card and `catalogKey` stays only as Provenance —
+   * safe to dangle, never read back. Unlike a tasting subject, two cards may
+   * share a `catalogKey`: two people in one household can both have a
+   * Bonuskaart.
+   */
+  loyaltyCards: defineTable({
+    groupId: v.id('groups'),
+    /** Content, as the store writes itself. Never translated. */
+    storeName: v.string(),
+    catalogKey: v.optional(v.string()),
+    /** `#rrggbb`, copied from the Catalog or absent for a custom store. */
+    brandColor: v.optional(v.string()),
+    /** The store's primary domain, for a logo later. */
+    domain: v.optional(v.string()),
+    /** What the till scans, already normalized for `barcodeFormat`. */
+    cardNumber: v.string(),
+    barcodeFormat: barcodeFormatValidator,
+    holder: v.optional(v.string()),
+    note: v.optional(v.string()),
+    frontPhotoId: v.optional(v.id('_storage')),
+    backPhotoId: v.optional(v.id('_storage')),
+    /** Set by `markUsed` when the card is shown; absent until then. */
+    lastUsedAt: v.optional(v.number()),
+    /** Attribution only. Confers no ownership and no access (GLOSSARY.md). */
+    createdByUserId: v.id('users'),
+  }).index('by_group', ['groupId']),
+
+  /**
+   * The Retailer catalog: Dutch stores a card can be picked from (APP-141).
+   *
+   * Seeded reference data, reconciled by `seedKey` like the tasting Catalog
+   * (ADR-0004), and a picker, never a reference (ADR-0043). Fixtures live in
+   * `lib/seed/retailerCatalog.ts`.
+   */
+  retailerCatalog: defineTable({
+    seedKey: v.string(),
+    name: v.string(),
+    aliases: v.array(v.string()),
+    category: retailerCategoryValidator,
+    brandColor: v.string(),
+    domain: v.string(),
+    barcodeFormat: barcodeFormatValidator,
+    formatConfidence: formatConfidenceValidator,
+    numberLength: v.optional(v.number()),
+    numberPrefix: v.optional(v.string()),
+  }).index('by_seedKey', ['seedKey']),
 
   // Bookkeeping for the Sample household seed, which wipes and recreates on
   // every run: one row per run, listing exactly the documents that run

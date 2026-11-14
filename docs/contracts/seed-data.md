@@ -1,6 +1,6 @@
 ---
 type: contract
-description: Read when changing the Catalog, the tasting Catalog, the Sample household, or any seed entrypoint.
+description: Read when changing the Catalog, the tasting or Retailer Catalog, the Sample household, or any seed entrypoint.
 version: 3.0.0
 status: current
 ---
@@ -31,7 +31,15 @@ callable functions, because every export under `convex/` is deployed API.
   (`convex/tastings.ts`). From then on the subject belongs to the Group: any
   Member may edit it, a later seed never rewrites it, and its `catalogKey` is
   Provenance only — allowed to dangle when the entry is retired.
-- Deploys run the Tasting catalog seed ([deploy](../runbooks/deploy.md#seeding-is-a-deploy-step)).
+- **Retailer catalog** (`seedRetailerCatalog`, `retailerCatalog.ts`) is a
+  picker by the same rules, minus the one-per-key lookup: a household may hold
+  two cards from one store, so choosing a retailer always creates a new
+  `loyaltyCards` row with the retailer's colour, domain and format copied onto
+  it and its `seedKey` kept as `catalogKey` Provenance
+  ([ADR-0043](../adr/0043-a-retailer-catalog-is-a-picker-and-a-card-keeps-its-own-copy.md)).
+  Every fixture carries a source comment; an unsourced barcode format is
+  `CODE_128` with `formatConfidence: 'guess'`.
+- Deploys run both Catalog seeds ([deploy](../runbooks/deploy.md#seeding-is-a-deploy-step)).
 - **Sample household** (`seedPreview`, `loadSampleData`, `sampleHousehold.ts`)
   is fake content for dev and previews only. It is wiped and recreated on every
   run, tracked in the `seedRuns` table, with every date anchored to the run.
@@ -57,6 +65,8 @@ callable functions, because every export under `convex/` is deployed API.
   when it needs reference data ([add a Module](../runbooks/add-a-module.md)).
 - Running `seedTastingCatalog` twice changes nothing the second time, and it
   never changes a Group's tasting subjects.
+- Running `seedRetailerCatalog` twice inserts and retires nothing the second
+  time, and it never changes a Group's Loyalty cards.
 - The Sample household is *not* idempotent: every run wipes it and builds a
   new one dated from that run. A reset leaves no unreachable rows, and content
   the Sample Group only referenced survives: a real person's recipe is

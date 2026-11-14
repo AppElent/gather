@@ -8,6 +8,7 @@
  * Dependency-free on purpose (ADR-0016): errors are read structurally rather
  * than through `ConvexError`.
  */
+import type { BarcodeProblem } from './barcodes'
 import { CALENDAR_VALIDATION_KEYS } from './calendar'
 import type { TastingAttributeError, TastingAttributeProblem } from './tastings'
 
@@ -77,6 +78,41 @@ function errorData(error: unknown): unknown {
   return typeof error === 'object' && error !== null && 'data' in error
     ? error.data
     : undefined
+}
+
+/**
+ * Why a Loyalty card write was refused. `notFound` covers "no such card" and
+ * "a card in another Group" alike (ADR-0009); the `cardNumber:*` codes are the
+ * barcode validator's problems, so the form can say what is wrong.
+ */
+export const LOYALTY_CARD_REFUSAL_CODES = [
+  'notFound',
+  'needsStore',
+  'tooLong',
+  'brandColor',
+  'unknownRetailer',
+  'cardNumber:empty',
+  'cardNumber:characters',
+  'cardNumber:length',
+  'cardNumber:checkDigit',
+] as const satisfies readonly (string | `cardNumber:${BarcodeProblem}`)[]
+export type LoyaltyCardRefusalCode = (typeof LOYALTY_CARD_REFUSAL_CODES)[number]
+
+/** Namespaced on the wire, like the calendar's, so kinds cannot collide. */
+export function loyaltyCardRefusal(code: LoyaltyCardRefusalCode): {
+  kind: string
+} {
+  return { kind: `loyalty:${code}` }
+}
+
+export function readLoyaltyCardRefusal(
+  error: unknown,
+): LoyaltyCardRefusalCode | null {
+  const kind = refusalKind(error)
+  return (
+    LOYALTY_CARD_REFUSAL_CODES.find((code) => `loyalty:${code}` === kind) ??
+    null
+  )
 }
 
 /** The `kind` a thrown value carries, whichever vocabulary it comes from. */

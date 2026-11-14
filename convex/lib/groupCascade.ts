@@ -33,7 +33,7 @@ import { internal } from '../_generated/api'
 import type { Doc, Id, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import type { GroupScopedTable } from './groupAccess'
-import { storedFileIdOf } from './storedFiles'
+import { storedFileIdsOf } from './storedFiles'
 
 /** Delete these rows, handing back the stored files they were holding. */
 async function purge<T extends TableNames>(
@@ -43,8 +43,7 @@ async function purge<T extends TableNames>(
 ): Promise<Id<'_storage'>[]> {
   const files: Id<'_storage'>[] = []
   for (const row of rows) {
-    const file = storedFileIdOf(table, row)
-    if (file) files.push(file)
+    files.push(...storedFileIdsOf(table, row))
     await ctx.db.delete(row._id)
   }
   return files
@@ -247,6 +246,16 @@ const GROUP_CONTENT: {
       'tastings',
       await ctx.db
         .query('tastings')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  loyaltyCards: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'loyaltyCards',
+      await ctx.db
+        .query('loyaltyCards')
         .withIndex('by_group', (q) => q.eq('groupId', groupId))
         .collect(),
     ),

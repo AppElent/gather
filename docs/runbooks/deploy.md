@@ -29,12 +29,13 @@ Commands for a deploy by hand are in the [README](../../README.md#deploy-to-clou
 Convex has no post-deploy hook outside previews, so the Catalog seed is a
 separate step after `convex deploy` and before the Worker flips — the only
 deterministic place for it. `pnpm deploy:dev` / `deploy:production` and `pnpm seed`
-run `seed:seedTastingCatalog`, as does the seed step in `deploy.yml`, which runs
-on production only. Reference data a new Module needs gets its own seed step here and
+run `seed:seedTastingCatalog` and `seed:seedRetailerCatalog`, as do the seed
+steps in `deploy.yml`, which run on production only. Reference data a new Module needs gets its own seed step here and
 in the scripts ([seed data](../contracts/seed-data.md)).
 
 ## Verify
 
 - The workflow run is green and the Worker URL serves the new build.
-- `pnpm exec convex run seed:seedTastingCatalog --prod` is idempotent: rerunning it
-  reports no changes.
+- `pnpm exec convex run seed:seedTastingCatalog --prod` and
+  `seed:seedRetailerCatalog --prod` are idempotent: rerunning either reports
+  no inserts or retirements.

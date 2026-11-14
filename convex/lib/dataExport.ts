@@ -10,7 +10,7 @@
  * `FILE_HOLDERS` (`storedFiles.ts`), and it leans on both: a table with a
  * `groupId` (`GroupScopedTable`, which also keys the cascade) may only be
  * read per Group or excluded, and a photo column is found through
- * `storedFileIdOf` rather than by guessing at `imageId ?? photoId`.
+ * `storedFileIdsOf` rather than by guessing at `imageId ?? photoId`.
  *
  * ## Whose rows, and how much of them
  *
@@ -46,7 +46,7 @@ import type { PaginationOptions } from 'convex/server'
 import type { DataModel, Doc, Id, TableNames } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import type { GroupScopedTable } from './groupAccess'
-import { storedFileIdOf } from './storedFiles'
+import { storedFileIdsOf } from './storedFiles'
 
 /** Rows read per page. Small enough for any table's largest row. */
 export const PAGE_SIZE = 200
@@ -152,6 +152,7 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   },
   tastingSubjects: { scope: 'group', index: 'by_group' },
   tastings: { scope: 'group', index: 'by_group' },
+  loyaltyCards: { scope: 'group', index: 'by_group' },
   houses: { scope: 'group', index: 'by_group' },
   mortgageCalculations: { scope: 'group', index: 'by_group' },
   loanParts: { scope: 'group', index: 'by_group' },
@@ -173,6 +174,7 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
 
   // -- Not exported --------------------------------------------------------
   tastingCatalog: { exclude: 'reference-data' },
+  retailerCatalog: { exclude: 'reference-data' },
   seedRuns: { exclude: 'bookkeeping' },
 }
 
@@ -414,7 +416,10 @@ async function project(
 
   const implied = s.scope === 'group' ? 'groupId' : 'userId'
   const omit = new Set<string>(treatment.omit ?? [])
-  const file = storedFileIdOf(table, row as unknown as Doc<typeof table>)
+  const files: unknown[] = storedFileIdsOf(
+    table,
+    row as unknown as Doc<typeof table>,
+  )
   const out: ExportRow = {
     id: row._id,
     addedAt: new Date(row._creationTime).toISOString(),
@@ -422,8 +427,10 @@ async function project(
   for (const [key, value] of Object.entries(row)) {
     if (key === '_id' || key === '_creationTime' || key === implied) continue
     if (omit.has(key)) continue
-    if (file && value === file) {
-      out[key.replace(/Id$/, 'Url')] = await ctx.storage.getUrl(file)
+    if (files.includes(value)) {
+      out[key.replace(/Id$/, 'Url')] = await ctx.storage.getUrl(
+        value as Id<'_storage'>,
+      )
       continue
     }
     const next = rewrite(ctx, refs, value)

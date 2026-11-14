@@ -61,28 +61,53 @@ type FileHolder = {
 }[TableNames]
 
 /**
- * Which field holds the file, per table that has one.
+ * Which fields hold a file, per table that has any.
  *
  * Typed off the schema rather than written out, so adding a photo to another
  * Module fails to compile until it is registered here. A table missing from
  * this map is invisible to the reference check, and a blob it alone still
  * points at would be deleted out from under it — the one way this file can
  * destroy a live photo, and worth a type error rather than vigilance.
+ *
+ * A table may hold more than one file (a Loyalty card has a front and a back),
+ * so each entry is a list, and `EveryFileFieldListed` below fails to compile
+ * when a second column on an already-registered table is left out.
  */
-const FILE_HOLDERS: { [T in FileHolder]: StoredFileField<T> } = {
-  babies: 'photoId',
-  babyEvents: 'photoId',
-  recipes: 'imageId',
-  groups: 'imageId',
-  tastingSubjects: 'photoId',
+const FILE_HOLDERS = {
+  babies: ['photoId'],
+  babyEvents: ['photoId'],
+  recipes: ['imageId'],
+  groups: ['imageId'],
+  tastingSubjects: ['photoId'],
+  loyaltyCards: ['frontPhotoId', 'backPhotoId'],
+} as const satisfies { [T in FileHolder]: readonly StoredFileField<T>[] }
+
+type UnlistedFileField = {
+  [T in FileHolder]: Exclude<
+    StoredFileField<T>,
+    (typeof FILE_HOLDERS)[T][number]
+  >
+}[FileHolder]
+type EveryFileFieldListed = [UnlistedFileField] extends [never] ? true : never
+const everyFileFieldListed: EveryFileFieldListed = true
+void everyFileFieldListed
+
+function fileFieldsOf(table: TableNames): readonly string[] {
+  return (FILE_HOLDERS as Record<string, readonly string[] | undefined>)[
+    table
+  ] ?? []
 }
 
 /** Is any row — in any table — still pointing at this file? */
 async function isStillReferenced(ctx: MutationCtx, id: Id<'_storage'>) {
   for (const table of Object.keys(FILE_HOLDERS) as FileHolder[]) {
-    const field = FILE_HOLDERS[table]
+    const fields = fileFieldsOf(table)
     const rows = await ctx.db.query(table as TableNames).collect()
-    if (rows.some((row) => (row as Record<string, unknown>)[field] === id)) {
+    if (
+      rows.some((row) =>
+        fields.some((field) => (row as Record<string, unknown>)[field] === id),
+      )
+    ) {
       return true
     }
   }
@@ -133,20 +158,23 @@ export async function replaceStoredFile(
 }
 
 /**
- * The stored file one row holds, if its table holds files at all.
+ * The stored files one row holds, if its table holds files at all.
  *
- * The registry above is the only thing that knows which column that is, so
+ * The registry above is the only thing that knows which columns those are, so
  * anything enumerating rows in order to delete them — a Group cascade, an
  * account purge — asks here rather than reaching for `imageId ?? photoId` and
  * quietly missing the next table the day it arrives.
  */
-export function storedFileIdOf<T extends TableNames>(
+export function storedFileIdsOf<T extends TableNames>(
   table: T,
   row: Doc<T>,
-): Id<'_storage'> | undefined {
-  const field = (FILE_HOLDERS as Record<string, string | undefined>)[table]
-  if (!field) return undefined
-  return (row as Record<string, unknown>)[field] as Id<'_storage'> | undefined
+): Id<'_storage'>[] {
+  const ids: Id<'_storage'>[] = []
+  for (const field of fileFieldsOf(table)) {
+    const id = (row as Record<string, unknown>)[field]
+    if (typeof id === 'string') ids.push(id as Id<'_storage'>)
+  }
+  return ids
 }
 
 /** The handler behind every Module's public upload mutation. */

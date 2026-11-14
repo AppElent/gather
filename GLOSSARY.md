@@ -64,7 +64,8 @@ about a Group and are kept per Group (ADR-0005).
 
 **Catalog**:
 Reference data owned by nobody and readable by everybody — the well-known
-cheeses, wines and beers (see **Tasting catalog**). Not Group-scoped. A Catalog entry has no author
+cheeses, wines and beers (see **Tasting catalog**) and the shops a
+Loyalty card comes from (see **Retailer catalog**). Not Group-scoped. A Catalog entry has no author
 and nobody may edit it; it changes only when a new version of Gather ships a
 different one.
 _Avoid_: Global data, Public data
@@ -486,6 +487,24 @@ and aroma descriptors its fields offer. Those ship too, but they are field
 options rather than subjects, and every Kind has them even when it has no
 catalog.
 _Avoid_: Presets, Templates, Library
+
+**Loyalty card**:
+A store card a Group keeps — the Bonuskaart, the Kruidvat card — with the
+number its barcode encodes, the barcode format, who holds it, and photos of
+both sides. Group content: any Member may show, edit or delete it, and showing
+it at the till moves it to the top of the list. Two cards may come from the same
+store; they are told apart by holder and number.
+_Avoid_: Membership card, Customer card, Pass, Wallet card
+
+**Retailer catalog**:
+The shops active in the Netherlands that Gather ships for the Loyalty cards
+Module, each with its brand colour, domain, aliases and the barcode format its
+card prints. Catalog in the established sense: owned by nobody, read-only,
+reconciled by `seedKey`. Like the **Tasting catalog** it is a **picker and not
+a store**: choosing a retailer copies it onto a new Loyalty card, and the card
+keeps only its key as Provenance (ADR-0043). A format no public source confirms
+is marked a guess.
+_Avoid_: Store list, Brands, Merchants
 
 **Sample household**:
 A complete, fake Group — members, recipes, tasks, a baby's log —

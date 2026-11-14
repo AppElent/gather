@@ -12,10 +12,19 @@ describe('photo presets', () => {
     expect(Object.keys(PHOTO_PRESETS).sort()).toEqual([
       'childPhoto',
       'groupPhoto',
+      'loyaltyCardPhoto',
       'memoryPhoto',
       'profilePhoto',
       'recipePhoto',
     ])
+  })
+
+  test('a Loyalty card photo is framed like a bank card, no larger than 1200px', () => {
+    expect(photoPreset('loyaltyCardPhoto')).toEqual({
+      aspect: 85.6 / 54,
+      maxEdge: 1200,
+      quality: 0.82,
+    })
   })
 
   test("a child's photo is a square no larger than 512px", () => {
