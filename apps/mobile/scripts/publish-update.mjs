@@ -54,6 +54,10 @@ const pick = (...names) => {
 const token = pick('SENTRY_AUTH_TOKEN')
 const org = pick('SENTRY_ORG', 'VITE_SENTRY_ORG')
 const project = pick('SENTRY_PROJECT', 'VITE_SENTRY_PROJECT')
+// The uploader reads the Sentry host from SENTRY_URL or the Expo config, and the
+// @sentry/react-native plugin entry in app.json has no options. Gather's org is
+// in the US region, so default to sentry.io instead of failing after a publish.
+const url = pick('SENTRY_URL', 'VITE_SENTRY_URL') || 'https://sentry.io/'
 const upload = Boolean(token && org && project)
 
 if (!upload) {
@@ -72,7 +76,7 @@ if (!upload) {
 
 const env = {
   ...process.env,
-  ...(upload && { SENTRY_AUTH_TOKEN: token, SENTRY_ORG: org, SENTRY_PROJECT: project }),
+  ...(upload && { SENTRY_AUTH_TOKEN: token, SENTRY_ORG: org, SENTRY_PROJECT: project, SENTRY_URL: url }),
 }
 
 function run(command, args) {
