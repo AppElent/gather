@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running gather's checks, starting the web app, or verifying a web change.
-version: 1.1.1
+version: 1.2.0
 ---
 
 # Verify gather
@@ -26,8 +26,15 @@ pnpm verify
    which the root run does not use.
 4. `pnpm test`.
 
-It does not build. Run `pnpm build` separately when a change touches the build,
-Vite config, or anything CI's `build` step would catch.
+It does not build. Always run `pnpm build` after `pnpm verify`, as CI's
+`check` job does. To match CI fully, run the same sequence:
+
+```sh
+pnpm run env:check
+node scripts/check-project.mjs --strict
+pnpm verify
+pnpm build
+```
 
 `pnpm test` runs the `web`, `convex`, `core`, `mobile` and `scripts` Vitest
 projects; `scripts` holds the feature-manifest route-drift check.
