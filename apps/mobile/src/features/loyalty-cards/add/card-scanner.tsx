@@ -10,8 +10,8 @@
  * first good read wins: the camera reports the same code many times a second.
  */
 import { CameraView, useCameraPermissions } from 'expo-camera'
-import { useRef, useState } from 'react'
-import { Linking, StyleSheet, Text, View } from 'react-native'
+import { type ReactNode, useRef, useState } from 'react'
+import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { haptics } from '../../../feedback/haptics'
 import { useI18n } from '../../../i18n'
@@ -50,10 +50,7 @@ export function CardScanner({
   if (!permission.granted || unavailable) {
     const denied = !permission.granted && !permission.canAskAgain
     return (
-      <View
-        testID="loyalty-card-scan-ask"
-        style={[styles.fill, styles.ask, { backgroundColor: tokens.bg }]}
-      >
+      <Screen background={tokens.bg} centred testID="loyalty-card-scan-ask">
         <View style={[styles.askIcon, { backgroundColor: tokens.tile }]}>
           <LOYALTY_CARD_ICONS.ScanBarcode
             size={34}
@@ -94,12 +91,12 @@ export function CardScanner({
           )}
           {typeInstead}
         </View>
-      </View>
+      </Screen>
     )
   }
 
   return (
-    <View style={[styles.fill, { backgroundColor: tokens.bg }]}>
+    <Screen background={tokens.bg}>
       <View style={styles.cameraWrap}>
         <CameraView
           style={styles.camera}
@@ -124,12 +121,41 @@ export function CardScanner({
         </Text>
         {typeInstead}
       </View>
-    </View>
+    </Screen>
+  )
+}
+
+/**
+ * The step's page: a scroll view, so the platform insets it below the
+ * navigation bar and above the tab bar (a plain view runs under both), and so
+ * larger text can still reach "Type the number instead".
+ */
+function Screen({
+  background,
+  centred,
+  testID,
+  children,
+}: {
+  background: string
+  centred?: boolean
+  testID?: string
+  children: ReactNode
+}) {
+  return (
+    <ScrollView
+      testID={testID}
+      contentInsetAdjustmentBehavior="automatic"
+      style={{ backgroundColor: background }}
+      contentContainerStyle={[styles.page, centred && styles.ask]}
+    >
+      {children}
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  page: { flexGrow: 1, paddingVertical: 16, gap: 16 },
   ask: {
     alignItems: 'stretch',
     justifyContent: 'center',
@@ -147,9 +173,12 @@ const styles = StyleSheet.create({
   askActions: { gap: 10, marginTop: 8 },
   center: { textAlign: 'center' },
   bold: { fontWeight: '700' },
+  // A card's barcode is wider than tall; a 4:5 window leaves room for the
+  // hint and the way out below it on the smallest phones.
   cameraWrap: {
-    flex: 1,
-    margin: 16,
+    aspectRatio: 4 / 5,
+    maxHeight: 520,
+    marginHorizontal: 16,
     borderRadius: RADIUS.card,
     overflow: 'hidden',
     backgroundColor: '#000000',
@@ -165,5 +194,5 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
     borderRadius: RADIUS.card,
   },
-  below: { gap: 12, paddingHorizontal: 16, paddingBottom: 16 },
+  below: { gap: 12, paddingHorizontal: 16 },
 })
