@@ -41,12 +41,13 @@ export function isHexColor(value: string): boolean {
 
 /**
  * Lowercase, accents stripped, and only letters and digits kept, so "Hema",
- * "HEMA" and "héma" are one thing and "C&A" matches "ca" and "c en a".
+ * "HEMA" and "héma" are one thing and "C&A" matches "c en a". (It folds
+ * to "cena"; "ca" finds C&A through its alias.)
  */
 export function foldForSearch(value: string): string {
   return value
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/&/g, 'en')
     .replace(/[^a-z0-9]+/g, ' ')
@@ -113,7 +114,7 @@ export function searchRetailers<T extends SearchableRetailer>(
 /**
  * One or two letters for a store tile with no logo: the initials of the
  * first two words, or the first letter of a one-word name. "Albert Heijn" is
- * AH, "Kruidvat" is K, "C&A" is C.
+ * AH, "Kruidvat" is K, "C&A" is CA.
  */
 export function storeMonogram(name: string): string {
   const words = name

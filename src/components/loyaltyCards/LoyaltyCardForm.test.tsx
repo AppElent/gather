@@ -133,6 +133,24 @@ describe('the barcode type', () => {
   })
 })
 
+test('saving without a store name says so and goes to the field', () => {
+  const onSubmit = renderForm({
+    retailer: undefined,
+    customStore: true,
+    initial: { ...EMPTY, storeName: '', barcodeFormat: 'CODE_128' },
+  })
+  fireEvent.change(screen.getByLabelText('Card number'), {
+    target: { value: 'DG-004217' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Save card' }))
+
+  const store = screen.getByLabelText('Store')
+  expect(onSubmit).not.toHaveBeenCalled()
+  expect(store).toHaveAttribute('aria-invalid', 'true')
+  expect(store).toHaveAccessibleDescription('Enter the store’s name.')
+  expect(store).toHaveFocus()
+})
+
 test('a store typed by hand chooses its own colour', () => {
   const onSubmit = renderForm({
     retailer: undefined,

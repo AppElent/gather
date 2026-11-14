@@ -59,6 +59,7 @@ export function LoyaltyCardForm({
   const copy = messages.loyaltyCards.form
   const ids = {
     store: useId(),
+    storeError: useId(),
     number: useId(),
     numberHelp: useId(),
     numberError: useId(),
@@ -83,6 +84,7 @@ export function LoyaltyCardForm({
   const [frontUrl, setFrontUrl] = useState(photoUrls?.front ?? null)
   const [backUrl, setBackUrl] = useState(photoUrls?.back ?? null)
   const [numberTouched, setNumberTouched] = useState(false)
+  const [storeTouched, setStoreTouched] = useState(false)
   // Saving while a photo is still on its way would store the card without it,
   // and the blob that lands afterwards would belong to nothing.
   const [frontUploading, setFrontUploading] = useState(false)
@@ -91,6 +93,7 @@ export function LoyaltyCardForm({
 
   const check = checkCardNumber(barcodeFormat, cardNumber)
   const showProblem = numberTouched && !check.ok
+  const storeMissing = storeTouched && !storeName.trim()
   const formatIsGuess =
     retailer?.formatConfidence === 'guess' &&
     barcodeFormat === retailer.barcodeFormat
@@ -111,7 +114,15 @@ export function LoyaltyCardForm({
       onSubmit={(event) => {
         event.preventDefault()
         setNumberTouched(true)
-        if (uploading || !check.ok || !storeName.trim()) return
+        setStoreTouched(true)
+        if (uploading) return
+        // `noValidate` hands checking to this form, so it also says what is
+        // wrong and takes the person there, first field first.
+        if (!storeName.trim() || !check.ok) {
+          const first = !storeName.trim() ? ids.store : ids.number
+          document.getElementById(first)?.focus()
+          return
+        }
         onSubmit({
           storeName: storeName.trim(),
           brandColor: customStore ? brandColor : undefined,
@@ -135,8 +146,16 @@ export function LoyaltyCardForm({
             value={storeName}
             maxLength={LOYALTY_CARD_LIMITS.storeName}
             required
+            aria-invalid={storeMissing}
+            aria-describedby={storeMissing ? ids.storeError : undefined}
             onChange={(event) => setStoreName(event.target.value)}
+            onBlur={() => setStoreTouched(true)}
           />
+          {storeMissing ? (
+            <p id={ids.storeError} className="m-0 text-[var(--app-danger)]">
+              {messages.loyaltyCards.refusals['loyalty:needsStore']}
+            </p>
+          ) : null}
         </div>
         {customStore ? (
           <div className="grid gap-1 text-sm">

@@ -585,7 +585,10 @@ export default defineSchema({
     /** Content, as the store writes itself. Never translated. */
     storeName: v.string(),
     catalogKey: v.optional(v.string()),
-    /** `#rrggbb`, copied from the Catalog or absent for a custom store. */
+    /**
+     * `#rrggbb`: copied from the Catalog, or the colour the form chose (its
+     * default included) for a store typed by hand.
+     */
     brandColor: v.optional(v.string()),
     /** The store's primary domain, for a logo later. */
     domain: v.optional(v.string()),

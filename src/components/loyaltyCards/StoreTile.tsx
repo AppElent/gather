@@ -27,7 +27,7 @@ export function StoreTile({
   return (
     <span
       aria-hidden="true"
-      className={`${SIZES[size]} grid shrink-0 place-items-center rounded-[var(--app-radius)] font-bold tracking-tight shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)]`}
+      className={`${SIZES[size]} grid shrink-0 place-items-center rounded-[var(--app-radius)] font-bold tracking-tight shadow-[inset_0_0_0_1px_var(--app-border)]`}
       style={{ backgroundColor: background, color: textOnBrand(background) }}
     >
       {storeMonogram(name)}

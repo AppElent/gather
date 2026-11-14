@@ -69,6 +69,15 @@ export function RetailerPicker({
         </span>
       </button>
 
+      {/* Always present, so a screen reader hears the list change as the
+          person types; the visible list says the same thing to the eye. */}
+      <p className="sr-only" role="status">
+        {shown === undefined
+          ? ''
+          : shown.length === 0
+            ? fmt(copy.noMatches, { query })
+            : fmt(copy.matchCount, { count: shown.length })}
+      </p>
       {shown === undefined ? (
         <div className="grid gap-2" aria-hidden="true">
           {[0, 1, 2, 3].map((key) => (
@@ -79,7 +88,7 @@ export function RetailerPicker({
           ))}
         </div>
       ) : shown.length === 0 ? (
-        <p className="m-0 text-sm text-[var(--app-muted)]" role="status">
+        <p className="m-0 text-sm text-[var(--app-muted)]" aria-hidden="true">
           {fmt(copy.noMatches, { query })}
         </p>
       ) : (

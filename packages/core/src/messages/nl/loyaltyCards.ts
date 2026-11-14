@@ -19,6 +19,7 @@ export const loyaltyCards = {
     searchLabel: 'Zoek je winkel',
     searchPlaceholder: 'Albert Heijn, Kruidvat, IKEA…',
     noMatches: 'Geen winkel gevonden voor “{query}”.',
+    matchCount: 'Winkels gevonden: {count}.',
     otherStore: 'Andere winkel',
     otherStoreHint: 'Staat hij er niet bij? Voeg hem toe met de naam.',
     changeStore: 'Andere winkel kiezen',
