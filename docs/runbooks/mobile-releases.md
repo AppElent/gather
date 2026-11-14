@@ -43,9 +43,17 @@ exactly those inputs, so a native change produces a different fingerprint and
 installed builds simply never see the update. They stay on the bundle they
 shipped with rather than loading one their native code cannot run.
 
+Every PR that touches `apps/mobile/`, `packages/`, `patches/`, the root
+`package.json`, the lockfile or `pnpm-workspace.yaml` gets a **Mobile runtime**
+comment (`.github/workflows/mobile-runtime.yml`) saying, per platform, whether
+the native fingerprint changed. A "yes" means: after merging, make a new
+`preview-internal` build before the next over-the-air update. The check never
+fails a PR.
+
 To see the current fingerprint, or why it moved:
 
 ```
+node apps/mobile/scripts/fingerprint.mjs          # from the repo root, both platforms
 pnpm exec expo-updates runtimeversion:resolve --platform android
 pnpm exec eas fingerprint:compare
 ```
