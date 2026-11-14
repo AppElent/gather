@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running gather's checks, starting the web app, or verifying a web change.
-version: 1.1.0
+version: 2.0.0
 ---
 
 # Verify gather
@@ -26,13 +26,22 @@ pnpm verify
    which the root run does not use.
 4. `pnpm test`.
 
-It does not build. Run `pnpm build` separately when a change touches the build,
-Vite config, or anything CI's `build` step would catch.
+It does not build. Always run `pnpm build` after `pnpm verify`, as CI's
+`check` job does. To match CI fully, run the same sequence:
 
-`pnpm test` runs the `web`, `convex`, `core` and `mobile` Vitest projects.
-CI (`.github/workflows/ci.yml`) runs `check`, `env:check`, `typecheck`, `test`
-and `build` on pull requests only; `main` is gated by the same suite in
-`deploy.yml`'s `checks` job.
+```sh
+pnpm run env:check
+node scripts/check-project.mjs --strict
+pnpm verify
+pnpm build
+```
+
+`pnpm test` runs the `web`, `convex`, `core`, `mobile` and `scripts` Vitest
+projects; `scripts` holds the feature-manifest route-drift check.
+CI (`.github/workflows/ci.yml`) runs `env:check`,
+`node scripts/check-project.mjs --strict`, `pnpm verify` and `pnpm build` on
+pull requests only; `main` is gated by the same suite in `deploy.yml`'s
+`checks` job.
 Toolkit-owned `scripts/` files and `docs/standards/` are excluded from Biome
 and `tsc`. When a gate is already red on `main`, compare against the base
 commit and report the pre-existing failures with evidence.

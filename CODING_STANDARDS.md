@@ -1,5 +1,5 @@
 ---
-version: 4.2.2
+version: 4.2.3
 description: Coding rules and task-specific implementation references.
 ---
 
@@ -57,8 +57,8 @@ Project decisions below select implementations and explain deviations from share
 | `apps/mobile/` | Expo app; read [mobile standards](apps/mobile/CODING_STANDARDS.md) before native changes |
 | `packages/core/` | `@gather/core`: dependency-free domain code, Module metadata, message trees, photo presets ([ADR-0016](docs/adr/0016-shared-code-crosses-as-a-package-with-no-dependencies.md)) |
 
-One Vitest run covers all four (`vitest.config.ts` projects `web`, `convex`,
-`core`, `mobile`); root `pnpm typecheck` covers everything but `docs/standards`.
+One Vitest run covers all four, plus the repo scripts (`vitest.config.ts`
+projects `web`, `convex`, `core`, `mobile`, `scripts`); root `pnpm typecheck` covers everything but `docs/standards`.
 Run the [project checks](docs/runbooks/verification.md) for every affected target.
 
 ## Domain documentation
@@ -93,7 +93,7 @@ and EAS. These bindings deviate from or narrow the shared guidance:
 | Pre-commit hook | `lefthook.yml` runs `biome check --staged` before a commit, from the [baseline](docs/standards/baseline.md) template; the root `lefthook` dev dependency installs it on `pnpm install`. Skip one commit with `git commit --no-verify` or `LEFTHOOK=0`. |
 | React version | Web and phone pin the same exact `react` and `react-dom` (19.3.0, the version Expo SDK 58 bundles), so the workspace holds one React. Bump them together with the Expo SDK. |
 | Dependency updates | `.github/dependabot.yml`: cooldown 3 days, the same as `minimumReleaseAge`; besides the Expo, React Native and React family it ignores `@sentry/react-native` (excluded from `expo install`). Alerts and security updates are on. |
-| Package manager and CI | `pnpm-workspace.yaml` follows the [baseline template](docs/standards/baseline/templates/pnpm-workspace.yaml) except `verifyDepsBeforeRun: false`, whose reason and retirement condition are in that file. `ci.yml` runs the template's steps, except: no `push` trigger (`deploy.yml` calls it through `workflow_call` before deploying `main`), no separate core typecheck (the root `tsc` covers `packages/core`), and no mobile Jest step (see Mobile tests). `pnpm check` runs Biome and `scripts/check-mobile-structure.mjs`. |
+| Package manager and CI | `pnpm-workspace.yaml` follows the [baseline template](docs/standards/baseline/templates/pnpm-workspace.yaml) except `verifyDepsBeforeRun: false`, whose reason and retirement condition are in that file. `ci.yml` runs the template's steps, except: no `push` trigger (`deploy.yml` calls it through `workflow_call` before deploying `main`), no separate core typecheck (the root `tsc` covers `packages/core`), no mobile Jest step (see Mobile tests), and the check, typecheck (root and mobile) and Vitest steps run as one `pnpm verify` step, so CI runs the local gate ([verification](docs/runbooks/verification.md)). `pnpm check` runs Biome and `scripts/check-mobile-structure.mjs`. |
 | Deploys | `deploy.yml` follows [deployments](docs/standards/deployments.md), except that staging deploys no backend ([ADR-0039](docs/adr/0039-staging-is-a-frontend-on-the-production-backend.md)): staging has no `CONVEX_DEPLOY_KEY`, the job withholds that secret outside production, and only production runs `convex deploy` and the Catalog seed. Its `checks` job calls `ci.yml`. `deploy:dev` (the manual `gather-dev` Worker) builds from local values, because there is no `dev` environment. |
 
 ### Deferred toolkit adoption
