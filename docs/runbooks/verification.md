@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running gather's checks, starting the web app, or verifying a web change.
-version: 1.2.0
+version: 2.0.0
 ---
 
 # Verify gather
