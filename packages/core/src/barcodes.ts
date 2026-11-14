@@ -33,8 +33,9 @@ export type BarcodeShape = 'linear' | 'matrix'
 
 /**
  * Whether a Catalog entry's format came from a public source or is the
- * fallback. A guess is CODE_128, which encodes any number a till prints, so a
- * wrong guess still scans at most tills; the person can change it on the card.
+ * fallback. A guess is CODE_128, which can encode any number a card prints.
+ * It is an editable fallback, not a promise the till accepts it: the form says
+ * the type was guessed, and the person can change it on the card.
  */
 export const FORMAT_CONFIDENCES = ['sourced', 'guess'] as const
 export type FormatConfidence = (typeof FORMAT_CONFIDENCES)[number]

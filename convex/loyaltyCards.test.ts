@@ -113,16 +113,10 @@ describe('the Retailer catalog', () => {
     expect((await search('ALBERT HEIJN'))[0]).toBe('albert-heijn')
     // An alias: the Bonuskaart is Albert Heijn's card.
     expect(await search('bonuskaart')).toContain('albert-heijn')
-    // Accents fold both ways.
-    const accented = RETAILER_CATALOG.find((entry) =>
-      /[À-ſ]/.test(entry.name),
-    )
-    if (accented) {
-      const plain = accented.name
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
-      expect(await search(plain)).toContain(accented.seedKey)
-    }
+    // Accents fold both ways: typed where the name has none, and left out
+    // where it has one.
+    expect(await search('hémá')).toContain('hema')
+    expect(await search('HUNKEMOLLER')).toContain('hunkemoller')
     expect(await search('zzzz-no-such-store')).toEqual([])
     // An empty query lists the whole Catalog.
     expect((await search('')).length).toBe(RETAILER_CATALOG.length)
@@ -198,6 +192,10 @@ describe('adding a card', () => {
     await expect(
       addAhCard(t, { catalogKey: 'no-such-store' }),
     ).rejects.toMatchObject({ data: { kind: 'loyalty:unknownRetailer' } })
+    // An empty key is not "no Catalog entry"; it would be kept as Provenance.
+    await expect(addAhCard(t, { catalogKey: '' })).rejects.toMatchObject({
+      data: { kind: 'loyalty:unknownRetailer' },
+    })
     await expect(addAhCard(t, { storeName: '   ' })).rejects.toMatchObject({
       data: { kind: 'loyalty:needsStore' },
     })

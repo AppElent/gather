@@ -37,9 +37,9 @@ household routinely holds two Bonuskaarten, one per adult, and both are
 - **Name and barcode format come from the form.** The form prefills both from
   the row and lets the person correct either, because a Catalog format can be a
   guess: when no public source says what a retailer's card prints, the entry is
-  `CODE_128` with `formatConfidence: 'guess'`. CODE_128 encodes anything a till
-  prints, so a wrong guess still scans at most tills, and the form says it was a
-  guess.
+  `CODE_128` with `formatConfidence: 'guess'`. CODE_128 can encode any number a
+  card prints, but a till may still expect another symbology, so the guess is an
+  editable fallback: the form says it was a guess and the person can change it.
 - **The card number is never in the Catalog.** An entry may carry a length and
   a prefix as hints for the form; neither is enforced, since retailers reissue
   cards in new ranges.

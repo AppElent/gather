@@ -229,7 +229,7 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   { seedKey: 'bever', name: 'Bever', aliases: ['Bever Card', 'Buitenvriend', 'Buitenlid'], category: 'sports', brandColor: '#2C4D4B', domain: 'bever.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
   // Source: jdsports.nl/customer-service/privacy (purchases "waarbij je de JD Status App in de winkel gebruikt"); format unknown;
   // CODE_128 guess. Colour: JD logo black.
-  { seedKey: 'jd-sports', name: 'JD Sports', aliases: ['JD', 'JD STATUS'], category: 'sports', brandColor: '#000000', domain: 'jdsports.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
+  { seedKey: 'jd-sports', name: 'JD Sports', aliases: ['JD'], category: 'sports', brandColor: '#000000', domain: 'jdsports.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
   // Source: adidas.nl/adiclubrewards and adidas.nl adiClub FAQ (store points need the adidas app); format unknown; CODE_128 guess. Colour: logo black.
   { seedKey: 'adidas', name: 'adidas', aliases: ['adiClub'], category: 'sports', brandColor: '#000000', domain: 'adidas.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
 
@@ -268,7 +268,7 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Colour: Commons Shell_wordmark_2019.svg.
   { seedKey: 'shell', name: 'Shell', aliases: ['Shell GO+', 'Shell App', 'Shell GO plus'], category: 'fuel', brandColor: '#DD1D21', domain: 'shell.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
   // Source: essoextras.nl and App Store "Esso spaarprogramma" (digital or plastic Extras card); format unknown; CODE_128 guess. Colour: Commons Esso_textlogo.svg.
-  { seedKey: 'esso', name: 'Esso', aliases: ['Esso Extras', 'Esso spaarprogramma', 'Extras'], category: 'fuel', brandColor: '#DA0013', domain: 'esso.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
+  { seedKey: 'esso', name: 'Esso', aliases: ['Esso Extras', 'Esso spaarprogramma'], category: 'fuel', brandColor: '#DA0013', domain: 'esso.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
   // Source: circlek.nl/reward-club (Reward Club, formerly Club TotalEnergies, "digitale pas"); format unknown; CODE_128 guess.
   // Colour: Circle K red (not machine-checked, site page empty).
   { seedKey: 'circle-k', name: 'Circle K', aliases: ['Circle K Reward Club', 'Club TotalEnergies', 'TotalEnergies', 'Total'], category: 'fuel', brandColor: '#EE2722', domain: 'circlek.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },

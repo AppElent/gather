@@ -199,7 +199,7 @@ export const create = mutation({
 
     let brandColor = checkedBrandColor(args.brandColor)
     let domain: string | undefined
-    if (args.catalogKey) {
+    if (args.catalogKey !== undefined) {
       const retailer = await ctx.db
         .query('retailerCatalog')
         .withIndex('by_seedKey', (q) =>
