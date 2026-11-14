@@ -66,10 +66,12 @@ jobs:
           retention-days: 1
 
   # Runs no PR code: it only turns the Markdown above into one sticky comment.
-  # Dependabot and fork runs get a read-only token; the summary still has it.
+  # Dependabot's token takes the write permission below, so its dependency bumps,
+  # the likeliest native changes, get the comment too. A fork's token stays
+  # read-only whatever this asks, so forks skip it; the summary still has it.
   comment:
     needs: fingerprint
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions: { pull-requests: write }
     steps:
