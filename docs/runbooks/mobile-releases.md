@@ -97,6 +97,10 @@ neither reaches out and fixes a phone that is sitting in someone's pocket.
 | `preview` | `pnpm mobile:update:preview` | `deploy:preview` (iOS, store), `build:preview:android` (APK) |
 | `production` | `pnpm mobile:update:production` | `deploy:prod` |
 
+Each base profile in `apps/mobile/eas.json` declares its own channel.
+`preview-internal` extends `preview` and shares the `preview` channel, so it has
+no row of its own and receives the same updates.
+
 A channel is baked into a binary at build time and cannot be changed
 afterwards. A build made without one — every gather binary produced before this
 was set up — can never receive an update at all.

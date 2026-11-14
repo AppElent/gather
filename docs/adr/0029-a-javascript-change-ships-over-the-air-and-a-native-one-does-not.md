@@ -11,8 +11,10 @@ date: 2026-08-25
 ## Decision
 
 `apps/mobile` carries `expo-updates` with the `fingerprint` runtime-version
-policy, and every EAS build profile declares a channel named after itself. A
-JavaScript-only change is published to a channel and applied silently on the
+policy, and each base EAS build profile (`development`, `preview`,
+`production`) declares a channel named after itself. `preview-internal` extends
+`preview` and inherits its `preview` channel on purpose, so the internal ad hoc
+builds receive preview updates. A JavaScript-only change is published to a channel and applied silently on the
 next launch; a change to the native surface produces a different fingerprint and
 is therefore never offered to a build that could not run it. The app gains no
 update UI and no source file imports `expo-updates`.
@@ -56,7 +58,9 @@ The `--environment` pairing is enforced by only ever publishing through the
 carry both flags.
 
 `preview-internal` extends `preview` rather than replacing it, so the
-store-distribution profile that feeds TestFlight keeps its behaviour.
+store-distribution profile that feeds TestFlight keeps its behaviour. It
+declares no channel of its own: it shares `preview`, and one `preview` publish
+reaches both the TestFlight and the ad hoc builds.
 
 ## Reopen when
 
