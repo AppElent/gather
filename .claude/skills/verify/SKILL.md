@@ -12,7 +12,7 @@ Local-first. Always run the same static checks as the CI `check` job, in this or
 
 1. `pnpm run env:check`
 2. `node scripts/check-project.mjs --strict`
-3. `pnpm verify` (Biome, root typecheck, mobile typecheck, tests)
+3. `pnpm verify` (`pnpm check`, root typecheck, mobile typecheck, tests)
 4. `pnpm build`
 
 Do not pick individual checks instead: `pnpm verify` is the one list, so it stays in
