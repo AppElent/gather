@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when publishing an over-the-air update, making a store or internal build, or rolling an update back.
-version: 1.2.0
+version: 1.3.0
 ---
 
 # Mobile releases
@@ -67,6 +67,16 @@ runtime version on a Windows machine and another on the EAS builder, and the bui
 configure EAS Update. `virtualStoreDirMaxLength: 60` in `pnpm-workspace.yaml`
 is what keeps the two honest. If a fingerprint ever splits between machines
 again, suspect a path before you suspect a dependency.
+
+The CLI resolves the runtime version from your `node_modules`, while the build
+resolves it from a fresh install of the committed lockfile. If your
+`node_modules` is older than the lockfile, the two disagree and the build stops
+at `CONFIGURE_EXPO_UPDATES` with "Runtime version mismatch". Before any build,
+local or cloud, run `pnpm install` at the repo root, then run `pnpm exec eas`
+from `apps/mobile`. From the repo root, `pnpm exec eas` silently falls back to
+whatever global `eas` is installed instead of the version pinned in
+`apps/mobile`. A leftover `apps/mobile/ios` or `android` folder from a
+development build is gitignored and does not change the runtime version.
 
 `expo-updates` is inert in a debug build, so the dev client cannot verify any
 of this; a release APK from `pnpm build:preview:android` (profile
