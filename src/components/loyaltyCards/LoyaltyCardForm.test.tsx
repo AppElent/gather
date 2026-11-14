@@ -1,7 +1,8 @@
-import { fireEvent, screen } from '@testing-library/react'
-import { describe, expect, test, vi } from 'vitest'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 import type { RetailerSuggestion } from '../../../convex/loyaltyCards'
 import { renderWithI18n } from '../../lib/i18n/testing'
+import { stubImagePipeline } from '../photo/testing'
 import { LoyaltyCardForm, type LoyaltyCardFormValues } from './LoyaltyCardForm'
 
 /**
@@ -154,4 +155,53 @@ test('a store typed by hand chooses its own colour', () => {
       brandColor: '#aa3300',
     }),
   )
+})
+
+describe('a photo still uploading', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  test('holds the save until it has landed, then saves it with the card', async () => {
+    stubImagePipeline({ width: 1200, height: 756 })
+    let land: () => void = () => {}
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            land = () =>
+              resolve({
+                ok: true,
+                json: async () => ({ storageId: 'kg2front' }),
+              } as Response)
+          }),
+      ),
+    )
+    const onSubmit = renderForm()
+    fireEvent.change(screen.getByLabelText('Card number'), {
+      target: { value: '2620187342052' },
+    })
+    fireEvent.change(screen.getByLabelText('Front of the card'), {
+      target: { files: [new File(['card'], 'front.jpg', { type: 'image/jpeg' })] },
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'Use photo' }))
+
+    const waiting = await screen.findByRole('button', {
+      name: 'Waiting for the photo…',
+    })
+    expect(waiting).toBeDisabled()
+    // Submitting the form another way (Enter in a field) is held too.
+    fireEvent.submit(waiting.closest('form') as HTMLFormElement)
+    expect(onSubmit).not.toHaveBeenCalled()
+
+    land()
+    const save = await screen.findByRole('button', { name: 'Save card' })
+    await waitFor(() => expect(save).toBeEnabled())
+    fireEvent.click(save)
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ frontPhotoId: 'kg2front' }),
+    )
+  })
 })

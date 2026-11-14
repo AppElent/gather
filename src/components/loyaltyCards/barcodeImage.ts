@@ -41,7 +41,7 @@ export function barcodeOptions(
   // Codabar needs start and stop characters; a number typed without them gets
   // the common `A…A` pair.
   const text =
-    format === 'CODABAR' && !/^[A-D].*[A-D]$/i.test(value)
+    format === 'CODABAR' && !/^[A-D].*[A-D]$/.test(value)
       ? `A${value}A`
       : value
   const linear = barcodeShape(format) === 'linear'

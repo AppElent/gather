@@ -50,6 +50,7 @@ export const loyaltyCards = {
     backPhoto: 'Back of the card',
     preview: 'Preview',
     save: 'Save card',
+    waitingForPhoto: 'Waiting for the photo…',
     saveFailed: 'The card could not be saved.',
     deleteTitle: 'Delete the {store} card?',
     deleteBody:

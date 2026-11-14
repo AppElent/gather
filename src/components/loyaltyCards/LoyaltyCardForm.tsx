@@ -83,6 +83,11 @@ export function LoyaltyCardForm({
   const [frontUrl, setFrontUrl] = useState(photoUrls?.front ?? null)
   const [backUrl, setBackUrl] = useState(photoUrls?.back ?? null)
   const [numberTouched, setNumberTouched] = useState(false)
+  // Saving while a photo is still on its way would store the card without it,
+  // and the blob that lands afterwards would belong to nothing.
+  const [frontUploading, setFrontUploading] = useState(false)
+  const [backUploading, setBackUploading] = useState(false)
+  const uploading = frontUploading || backUploading
 
   const check = checkCardNumber(barcodeFormat, cardNumber)
   const showProblem = numberTouched && !check.ok
@@ -106,7 +111,7 @@ export function LoyaltyCardForm({
       onSubmit={(event) => {
         event.preventDefault()
         setNumberTouched(true)
-        if (!check.ok || !storeName.trim()) return
+        if (uploading || !check.ok || !storeName.trim()) return
         onSubmit({
           storeName: storeName.trim(),
           brandColor: customStore ? brandColor : undefined,
@@ -267,6 +272,7 @@ export function LoyaltyCardForm({
           preset="loyaltyCardPhoto"
           generateUploadUrl={generateUploadUrl}
           fieldId="loyalty-card-front-photo"
+          onUploadingChange={setFrontUploading}
           onChange={(id) => {
             setFrontPhotoId(id)
             if (id === undefined) setFrontUrl(null)
@@ -278,6 +284,7 @@ export function LoyaltyCardForm({
           preset="loyaltyCardPhoto"
           generateUploadUrl={generateUploadUrl}
           fieldId="loyalty-card-back-photo"
+          onUploadingChange={setBackUploading}
           onChange={(id) => {
             setBackPhotoId(id)
             if (id === undefined) setBackUrl(null)
@@ -288,10 +295,14 @@ export function LoyaltyCardForm({
       <div>
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || uploading}
           className="min-h-11 rounded-[var(--app-radius)] border border-[var(--app-fg)] bg-[var(--app-fg)] px-4 text-sm font-semibold text-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {submitting ? messages.common.actions.saving : copy.save}
+          {submitting
+            ? messages.common.actions.saving
+            : uploading
+              ? copy.waitingForPhoto
+              : copy.save}
         </button>
       </div>
     </form>

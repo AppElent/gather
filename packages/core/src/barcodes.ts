@@ -69,8 +69,31 @@ export type BarcodeCheck =
   | { ok: true; value: string }
   | { ok: false; problem: BarcodeProblem }
 
-/** The longest number Gather accepts on any card, linear or matrix. */
+/**
+ * The most a card can carry, in UTF-8 bytes, which is what a matrix code
+ * stores. 512 bytes fits every matrix format the renderer draws, PDF417 with
+ * multi-byte text included.
+ */
 export const MAX_CARD_NUMBER_LENGTH = 512
+
+/**
+ * The longest linear barcode Gather accepts, in characters. The renderer can
+ * draw longer ones (Code 128 and Code 39 to 500), but a linear code that long
+ * no longer fits a phone screen at a width a till can read, and no loyalty card
+ * prints one. Kept well inside every encoder's own limit, so a number that
+ * passes here always draws.
+ */
+export const MAX_LINEAR_CARD_NUMBER_LENGTH = 80
+
+/** Bytes in the UTF-8 encoding of a string, without TextEncoder. */
+function utf8Length(value: string): number {
+  let bytes = 0
+  for (const char of value) {
+    const code = char.codePointAt(0) ?? 0
+    bytes += code < 0x80 ? 1 : code < 0x800 ? 2 : code < 0x10000 ? 3 : 4
+  }
+  return bytes
+}
 
 /**
  * The GS1 mod-10 check digit for a run of digits without its check digit:
@@ -131,8 +154,9 @@ function digitsOfLength(value: string, length: number): BarcodeCheck | null {
  * can encode it.
  *
  * Normalizing is deliberately small: numeric formats drop spaces and dashes
- * (people copy "2620 0123 4567 8" off the card), CODE_39 is upper-cased
- * because it has no lower case, and everything is trimmed. Nothing else is
+ * (people copy "2620 0123 4567 8" off the card), Code 39, Code 93 and
+ * Codabar are upper-cased because they have no lower case (Codabar's start and
+ * stop letters are A–D), and everything is trimmed. Nothing else is
  * rewritten — a card number is what the till scans, so a validator that
  * "fixed" it would be inventing one.
  */
@@ -142,9 +166,15 @@ export function checkCardNumber(
 ): BarcodeCheck {
   let value = raw.trim()
   if (NUMERIC.has(format)) value = value.replace(/[\s-]/g, '')
-  if (format === 'CODE_39' || format === 'CODE_93') value = value.toUpperCase()
+  if (format === 'CODE_39' || format === 'CODE_93' || format === 'CODABAR') {
+    value = value.toUpperCase()
+  }
   if (!value) return { ok: false, problem: 'empty' }
-  if (value.length > MAX_CARD_NUMBER_LENGTH) {
+  if (
+    barcodeShape(format) === 'linear'
+      ? value.length > MAX_LINEAR_CARD_NUMBER_LENGTH
+      : utf8Length(value) > MAX_CARD_NUMBER_LENGTH
+  ) {
     return { ok: false, problem: 'length' }
   }
 
@@ -186,7 +216,7 @@ export function checkCardNumber(
         : { ok: false, problem: 'characters' }
     case 'CODABAR': {
       // Optional A–D start and stop characters around the body.
-      const body = /^[A-D].*[A-D]$/i.test(value) ? value.slice(1, -1) : value
+      const body = /^[A-D].*[A-D]$/.test(value) ? value.slice(1, -1) : value
       return body && CODABAR_BODY.test(body)
         ? { ok: true, value }
         : { ok: false, problem: 'characters' }

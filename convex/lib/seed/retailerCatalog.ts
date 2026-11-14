@@ -207,9 +207,6 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
 
   // Source: mediamarkt.nl/en/service/customer-service/mymediamarkt ("myMediaMarkt QR code in Dutch MediaMarkt stores"). Colour: Commons Media_Markt_logo.svg.
   { seedKey: 'mediamarkt', name: 'MediaMarkt', aliases: ['Media Markt', 'myMediaMarkt'], category: 'electronics', brandColor: '#D9222A', domain: 'mediamarkt.nl', barcodeFormat: 'QR', formatConfidence: 'sourced' },
-  // Source: gamemania.nl/info/Klantenkaart (free klantenkaart on first store purchase; now branded Game Mania XP); format unknown; CODE_128 guess.
-  // Colour: gamemania.nl CSS.
-  { seedKey: 'game-mania', name: 'Game Mania', aliases: ['Game Mania XP', 'GameMania'], category: 'electronics', brandColor: '#35A731', domain: 'gamemania.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
 
   // --- Books ---
 

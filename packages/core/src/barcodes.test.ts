@@ -7,6 +7,7 @@ import {
   gs1CheckDigit,
   isBarcodeFormat,
   MAX_CARD_NUMBER_LENGTH,
+  MAX_LINEAR_CARD_NUMBER_LENGTH,
 } from './barcodes'
 
 describe('the GS1 check digit', () => {
@@ -74,13 +75,26 @@ describe('checkCardNumber', () => {
     }
   })
 
-  test('caps every format at the same length', () => {
-    const long = '1'.repeat(MAX_CARD_NUMBER_LENGTH + 1)
-    expect(checkCardNumber('QR', long)).toEqual({
-      ok: false,
-      problem: 'length',
-    })
-    expect(checkCardNumber('CODE_128', long)).toEqual({
+  test('caps linear codes at what fits a screen and a till', () => {
+    const longest = 'x'.repeat(MAX_LINEAR_CARD_NUMBER_LENGTH)
+    expect(checkCardNumber('CODE_128', longest).ok).toBe(true)
+    for (const format of ['CODE_128', 'CODE_39', 'CODABAR', 'ITF'] as const) {
+      expect(
+        checkCardNumber(format, '1'.repeat(MAX_LINEAR_CARD_NUMBER_LENGTH + 2)),
+      ).toEqual({ ok: false, problem: 'length' })
+    }
+  })
+
+  test('caps matrix codes by the bytes they store, not the characters', () => {
+    expect(checkCardNumber('QR', 'x'.repeat(MAX_CARD_NUMBER_LENGTH)).ok).toBe(
+      true,
+    )
+    expect(
+      checkCardNumber('QR', 'x'.repeat(MAX_CARD_NUMBER_LENGTH + 1)),
+    ).toEqual({ ok: false, problem: 'length' })
+    // Three bytes each in UTF-8: 171 of them is 513 bytes.
+    expect(checkCardNumber('PDF417', '漢'.repeat(170)).ok).toBe(true)
+    expect(checkCardNumber('PDF417', '漢'.repeat(171))).toEqual({
       ok: false,
       problem: 'length',
     })
@@ -117,6 +131,11 @@ describe('checkCardNumber', () => {
   test('Codabar allows A–D start and stop characters around its body', () => {
     expect(checkCardNumber('CODABAR', '12345-$').ok).toBe(true)
     expect(checkCardNumber('CODABAR', 'A12345B').ok).toBe(true)
+    // Start and stop letters typed in lower case are the same letters.
+    expect(checkCardNumber('CODABAR', 'a12345b')).toEqual({
+      ok: true,
+      value: 'A12345B',
+    })
     expect(checkCardNumber('CODABAR', 'AB')).toEqual({
       ok: false,
       problem: 'characters',

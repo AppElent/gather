@@ -41,6 +41,7 @@ export const loyaltyCards = {
     backPhoto: 'Achterkant van de kaart',
     preview: 'Voorbeeld',
     save: 'Kaart opslaan',
+    waitingForPhoto: 'Wachten op de foto…',
     saveFailed: 'De kaart kon niet worden opgeslagen.',
     deleteTitle: 'De kaart van {store} verwijderen?',
     deleteBody:
