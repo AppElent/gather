@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when publishing an over-the-air update, making a store or internal build, or rolling an update back.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Mobile releases
@@ -43,9 +43,19 @@ exactly those inputs, so a native change produces a different fingerprint and
 installed builds simply never see the update. They stay on the bundle they
 shipped with rather than loading one their native code cannot run.
 
+Every PR from a branch of this repository (Dependabot's included) that touches
+`apps/mobile/`, `packages/`, `patches/`, the root `package.json`, the lockfile
+or `pnpm-workspace.yaml` gets a **Mobile runtime** comment
+(`.github/workflows/mobile-runtime.yml`) saying, per platform, whether the
+native fingerprint changed. A "yes" means: after merging, make a new
+`preview-internal` build before the next over-the-air update. The check never
+fails a PR for a native change. A fork's PR gets no comment (its token is
+read-only); the run summary has the same table.
+
 To see the current fingerprint, or why it moved:
 
 ```
+node apps/mobile/scripts/fingerprint.mjs          # from the repo root, both platforms
 pnpm exec expo-updates runtimeversion:resolve --platform android
 pnpm exec eas fingerprint:compare
 ```
