@@ -54,6 +54,10 @@ const pick = (...names) => {
 const token = pick('SENTRY_AUTH_TOKEN')
 const org = pick('SENTRY_ORG', 'VITE_SENTRY_ORG')
 const project = pick('SENTRY_PROJECT', 'VITE_SENTRY_PROJECT')
+// The uploader falls back to the Expo config unless SENTRY_ORG, SENTRY_PROJECT and
+// SENTRY_URL are all set, and the bare @sentry/react-native/expo plugin entry in
+// app.json gives it nothing to read. Default to sentry.io, the uploader's own default.
+const url = pick('SENTRY_URL') || 'https://sentry.io/'
 const upload = Boolean(token && org && project)
 
 if (!upload) {
@@ -72,7 +76,7 @@ if (!upload) {
 
 const env = {
   ...process.env,
-  ...(upload && { SENTRY_AUTH_TOKEN: token, SENTRY_ORG: org, SENTRY_PROJECT: project }),
+  ...(upload && { SENTRY_AUTH_TOKEN: token, SENTRY_ORG: org, SENTRY_PROJECT: project, SENTRY_URL: url }),
 }
 
 function run(command, args) {
