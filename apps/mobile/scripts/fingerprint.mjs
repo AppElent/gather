@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 
 export const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 export const PLATFORMS = ['ios', 'android']
+const MAX_SOURCES = 100
 const RUNBOOK = 'docs/runbooks/mobile-releases.md#over-the-air-or-a-new-build'
 
 /** `{ hash, sources }` for one platform of the app at `root`. */
@@ -94,7 +95,13 @@ function diff(baseRepo) {
       '',
       '<details><summary>Changed fingerprint sources</summary>',
       '',
-      ...[...sources].sort().map((key) => `- \`${key}\``),
+      // Capped: an SDK bump moves hundreds of sources, and a PR comment is
+      // limited to 65,536 characters.
+      ...[...sources]
+        .sort()
+        .slice(0, MAX_SOURCES)
+        .map((key) => `- \`${key}\``),
+      ...(sources.size > MAX_SOURCES ? [`- …and ${sources.size - MAX_SOURCES} more`] : []),
       '',
       '</details>',
     )

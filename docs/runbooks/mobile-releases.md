@@ -45,8 +45,9 @@ shipped with rather than loading one their native code cannot run.
 
 Every PR from a branch of this repository (Dependabot's included) that touches
 `apps/mobile/`, `packages/`, `patches/`, the root `package.json`, the lockfile
-or `pnpm-workspace.yaml` gets a **Mobile runtime** comment (`.github/workflows/mobile-runtime.yml`) saying, per platform, whether
-the native fingerprint changed. A "yes" means: after merging, make a new
+or `pnpm-workspace.yaml` gets a **Mobile runtime** comment
+(`.github/workflows/mobile-runtime.yml`) saying, per platform, whether the
+native fingerprint changed. A "yes" means: after merging, make a new
 `preview-internal` build before the next over-the-air update. The check never
 fails a PR for a native change. A fork's PR gets no comment (its token is
 read-only); the run summary has the same table.
