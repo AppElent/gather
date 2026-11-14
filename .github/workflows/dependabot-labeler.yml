@@ -1,0 +1,49 @@
+name: Dependabot labeler
+# Factory playbook 0b: label each Dependabot PR with its blast radius. A patch
+# update is blast-radius:low; minor, major, or an unknown update type is
+# blast-radius:med. A grouped PR takes the highest update type in the group.
+# The job runs only when Dependabot opened the PR and triggered this run, so
+# no other PR's labels are touched, and a human or other bot pushing to a
+# Dependabot PR skips it instead of failing. If fetch-metadata still fails, the
+# job leaves the labels alone and stays green. It never downgrades a PR someone
+# marked blast-radius:high. It checks out no PR code.
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+concurrency:
+  group: dependabot-labeler-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  label:
+    # Skip when anyone other than Dependabot opened the PR or triggered the run.
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    # Dependabot's token is read-only unless the workflow asks for more.
+    permissions: { contents: read, pull-requests: write }
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+        continue-on-error: true
+      - name: Apply blast-radius label
+        if: >-
+          steps.meta.outcome == 'success' &&
+          !contains(github.event.pull_request.labels.*.name, 'blast-radius:high')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+          HAS_LOW: ${{ contains(github.event.pull_request.labels.*.name, 'blast-radius:low') }}
+          HAS_MED: ${{ contains(github.event.pull_request.labels.*.name, 'blast-radius:med') }}
+        run: |
+          if [ "$UPDATE_TYPE" = "version-update:semver-patch" ]; then
+            want=blast-radius:low; stale=blast-radius:med; has_stale=$HAS_MED
+          else
+            want=blast-radius:med; stale=blast-radius:low; has_stale=$HAS_LOW
+          fi
+          echo "update-type '${UPDATE_TYPE}' -> ${want}"
+          args=(--add-label "$want")
+          # A later push can widen a grouped PR from patch to minor.
+          [ "$has_stale" = true ] && args+=(--remove-label "$stale")
+          gh pr edit "$PR_URL" "${args[@]}"
