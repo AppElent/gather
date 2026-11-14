@@ -29,7 +29,8 @@ pnpm verify
 It does not build. Run `pnpm build` separately when a change touches the build,
 Vite config, or anything CI's `build` step would catch.
 
-`pnpm test` runs the `web`, `convex`, `core` and `mobile` Vitest projects.
+`pnpm test` runs the `web`, `convex`, `core`, `mobile` and `scripts` Vitest
+projects; `scripts` holds the feature-manifest route-drift check.
 CI (`.github/workflows/ci.yml`) runs `env:check`,
 `node scripts/check-project.mjs --strict`, `pnpm verify` and `pnpm build` on
 pull requests only; `main` is gated by the same suite in `deploy.yml`'s

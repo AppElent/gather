@@ -57,8 +57,8 @@ Project decisions below select implementations and explain deviations from share
 | `apps/mobile/` | Expo app; read [mobile standards](apps/mobile/CODING_STANDARDS.md) before native changes |
 | `packages/core/` | `@gather/core`: dependency-free domain code, Module metadata, message trees, photo presets ([ADR-0016](docs/adr/0016-shared-code-crosses-as-a-package-with-no-dependencies.md)) |
 
-One Vitest run covers all four (`vitest.config.ts` projects `web`, `convex`,
-`core`, `mobile`); root `pnpm typecheck` covers everything but `docs/standards`.
+One Vitest run covers all four, plus the repo scripts (`vitest.config.ts`
+projects `web`, `convex`, `core`, `mobile`, `scripts`); root `pnpm typecheck` covers everything but `docs/standards`.
 Run the [project checks](docs/runbooks/verification.md) for every affected target.
 
 ## Domain documentation
