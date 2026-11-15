@@ -1,4 +1,4 @@
 {
-  "NSCameraUsageDescription": "Gather uses the camera so you can take a photo for a recipe, a baby-log memory, a tasting or your profile.",
-  "NSPhotoLibraryUsageDescription": "Gather uses your photos so you can add one to a recipe, a baby-log memory, a tasting or your profile."
+  "NSCameraUsageDescription": "Gather uses the camera so you can scan a loyalty card’s barcode, or take a photo for a recipe, a loyalty card, a baby-log memory, a tasting or your profile.",
+  "NSPhotoLibraryUsageDescription": "Gather uses your photos so you can add one to a recipe, a loyalty card, a baby-log memory, a tasting or your profile."
 }

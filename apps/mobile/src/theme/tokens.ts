@@ -84,6 +84,10 @@ export const RADIUS = { tile: 13, card: 16, control: 12 }
 
 /** Shared text styles; feature screens use these, not a literal fontSize (scripts/check-mobile-structure.mjs). */
 export const TYPE = {
+  title: { fontSize: 22, lineHeight: 28 },
   lead: { fontSize: 17, lineHeight: 23 },
   body: { fontSize: 14, lineHeight: 20 },
+  label: { fontSize: 13, lineHeight: 18 },
+  /** A number somebody reads out or types in: large, with room between digits. */
+  number: { fontSize: 24, lineHeight: 30, letterSpacing: 1.5 },
 }

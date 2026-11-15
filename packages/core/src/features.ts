@@ -340,12 +340,11 @@ export const FEATURES = defineFeatures([
   {
     id: 'loyalty-cards',
     kind: 'product',
-    status: 'pending-port',
-    platforms: ['web'],
-    reason:
-      'The phone leads here (scan and show at the till, APP-140), and its screens are the next issue (APP-142). The web lands first because it carries the Catalog, data model and API the phone builds on.',
+    status: 'parity',
+    platforms: ['web', 'mobile'],
     routes: {
       web: ['_app/loyalty-cards/**'],
+      mobile: ['(app)/(tabs)/all/loyalty-cards/**'],
     },
   },
 

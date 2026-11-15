@@ -64,6 +64,14 @@ const NUMERIC: ReadonlySet<BarcodeFormat> = new Set([
   'ITF',
 ])
 
+/**
+ * Whether a format holds digits only, so a client can offer a number pad.
+ * Spaces and dashes typed into one are dropped by `checkCardNumber`.
+ */
+export function isDigitsOnlyFormat(format: BarcodeFormat): boolean {
+  return NUMERIC.has(format)
+}
+
 export type BarcodeProblem = 'empty' | 'characters' | 'length' | 'checkDigit'
 
 export type BarcodeCheck =
@@ -232,5 +240,77 @@ export function checkCardNumber(
     case 'DATA_MATRIX':
       // Matrix codes carry any text; the length cap above is the only rule.
       return { ok: true, value }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Drawing
+// ---------------------------------------------------------------------------
+
+/**
+ * The bwip-js encoder per format. Both clients draw with bwip-js — the web
+ * through `bwip-js/browser`, the phone through `bwip-js/generic` into
+ * react-native-svg — so a card looks and scans the same on either. The core
+ * names the encoders and options but never imports the library (ADR-0016).
+ */
+export const BWIP_ENCODERS: Record<BarcodeFormat, string> = {
+  EAN_13: 'ean13',
+  EAN_8: 'ean8',
+  UPC_A: 'upca',
+  UPC_E: 'upce',
+  CODE_128: 'code128',
+  CODE_39: 'code39',
+  CODE_93: 'code93',
+  CODABAR: 'rationalizedCodabar',
+  ITF: 'interleaved2of5',
+  QR: 'qrcode',
+  PDF417: 'pdf417',
+  AZTEC: 'azteccode',
+  DATA_MATRIX: 'datamatrix',
+}
+
+/**
+ * The bwip-js render options a card is drawn with: the subset of bwip-js's
+ * `RenderOptions` used here, so either client can pass it straight through.
+ */
+export interface BarcodeRenderOptions {
+  bcid: string
+  text: string
+  scale: number
+  height?: number
+  includetext: boolean
+  paddingwidth: number
+  paddingheight: number
+  backgroundcolor: string
+  barcolor: string
+}
+
+/**
+ * The render options for one card. Black on white whatever the theme, with a
+ * quiet zone around it, because a till's scanner needs both. The number is
+ * printed by the screen under the code rather than by the encoder, so it stays
+ * real text a cashier can read out or type.
+ */
+export function barcodeRenderOptions(
+  format: BarcodeFormat,
+  value: string,
+): BarcodeRenderOptions {
+  // Codabar needs start and stop characters; a number typed without them gets
+  // the common `A…A` pair.
+  const text =
+    format === 'CODABAR' && !/^[A-D].*[A-D]$/.test(value)
+      ? `A${value}A`
+      : value
+  const linear = barcodeShape(format) === 'linear'
+  return {
+    bcid: BWIP_ENCODERS[format],
+    text,
+    scale: 3,
+    ...(linear ? { height: 18 } : {}),
+    includetext: false,
+    paddingwidth: linear ? 12 : 4,
+    paddingheight: 4,
+    backgroundcolor: 'FFFFFF',
+    barcolor: '000000',
   }
 }

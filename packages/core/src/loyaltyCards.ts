@@ -177,3 +177,32 @@ export function compareLoyaltyCards(
     (a.holder ?? '').localeCompare(b.holder ?? '')
   )
 }
+
+export interface HintedRetailer {
+  numberLength?: number
+  numberPrefix?: string
+}
+
+/**
+ * The retailers whose card-number hint a number fits, in the order given.
+ *
+ * Only a retailer with a prefix hint can be suggested: a length on its own
+ * fits every EAN-13 card in the country, so it narrows nothing. When the
+ * retailer also has a length, the number must have it too. Spaces and dashes
+ * are ignored, as people copy "2620 0123 4567 8" off the card. Used after a
+ * scan, so a scanned Bonuskaart offers Albert Heijn without a search.
+ */
+export function retailersMatchingNumber<T extends HintedRetailer>(
+  retailers: readonly T[],
+  cardNumber: string,
+): T[] {
+  const value = cardNumber.replace(/[\s-]/g, '')
+  if (!value) return []
+  return retailers.filter(
+    (retailer) =>
+      Boolean(retailer.numberPrefix) &&
+      value.startsWith(retailer.numberPrefix as string) &&
+      (retailer.numberLength === undefined ||
+        value.length === retailer.numberLength),
+  )
+}
