@@ -19,6 +19,9 @@ const state = vi.hoisted(() => ({
   } | null,
   created: [] as unknown[],
   replaced: [] as unknown[],
+  focused: true,
+  permissionReads: 0,
+  appState: null as null | ((state: string) => void),
 }))
 
 vi.mock('react-native', async () => {
@@ -89,6 +92,12 @@ vi.mock('react-native', async () => {
     FlatList,
     StyleSheet: { create: <T,>(styles: T) => styles, hairlineWidth: 1 },
     Linking: { openSettings: async () => {} },
+    AppState: {
+      addEventListener: (_: string, listener: (next: string) => void) => {
+        state.appState = listener
+        return { remove: () => (state.appState = null) }
+      },
+    },
     AccessibilityInfo: { announceForAccessibility: () => {} },
     Platform: { OS: 'ios', select: (choices: { ios: unknown }) => choices.ios },
   }
@@ -97,7 +106,14 @@ vi.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }))
 vi.mock('expo-camera', () => ({
-  useCameraPermissions: () => [state.permission, async () => state.permission],
+  useCameraPermissions: () => [
+    state.permission,
+    async () => state.permission,
+    async () => {
+      state.permissionReads += 1
+      return state.permission
+    },
+  ],
   CameraView: ({
     onBarcodeScanned,
   }: {
@@ -112,6 +128,7 @@ vi.mock('expo-router', () => {
   Stack.Screen = () => null
   return {
     Stack,
+    useIsFocused: () => state.focused,
     useRouter: () => ({
       replace: (href: unknown) => state.replaced.push(href),
       push: () => {},
@@ -204,6 +221,9 @@ beforeEach(() => {
   state.permission = { granted: true, canAskAgain: true }
   state.created = []
   state.replaced = []
+  state.focused = true
+  state.permissionReads = 0
+  state.appState = null
 })
 
 test('a scanned card suggests its store and saves with the scanned number', async () => {
@@ -284,5 +304,24 @@ test('a refused camera says how to turn it on, and typing still works', async ()
   expect(
     byTestId(view.container, 'loyalty-card-number-problem')?.textContent,
   ).toBe('Enter the card number.')
+  view.unmount()
+})
+
+test('the camera is off while the scan step is not on screen', () => {
+  state.focused = false
+  const view = mount(<LoyaltyCardAddScreen />)
+  expect(byTestId(view.container, 'camera')).toBeNull()
+  expect(byTestId(view.container, 'loyalty-card-type-instead')).not.toBeNull()
+  view.unmount()
+})
+
+test('coming back from Settings reads the camera permission again', async () => {
+  state.permission = { granted: false, canAskAgain: false }
+  const view = mount(<LoyaltyCardAddScreen />)
+  expect(state.permissionReads).toBe(0)
+  state.appState?.('background')
+  state.appState?.('active')
+  await settle()
+  expect(state.permissionReads).toBe(1)
   view.unmount()
 })

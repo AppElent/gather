@@ -8,10 +8,23 @@
  *
  * Only the barcode types a card can carry are scanned (`SCAN_TYPES`), and the
  * first good read wins: the camera reports the same code many times a second.
+ *
+ * The camera runs only while this step is on screen: a tab switch keeps the
+ * screen mounted, and a mounted `CameraView` keeps the capture session (and
+ * the camera indicator) on. Coming back from Settings reads the permission
+ * again, since the hook reads it once.
  */
 import { CameraView, useCameraPermissions } from 'expo-camera'
-import { type ReactNode, useRef, useState } from 'react'
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useIsFocused } from 'expo-router'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
+import {
+  AppState,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 
 import { haptics } from '../../../feedback/haptics'
 import { useI18n } from '../../../i18n'
@@ -30,9 +43,17 @@ export function CardScanner({
   const tokens = useTokens('home')
   const { t } = useI18n()
   const words = t.loyaltyCards.scan
-  const [permission, requestPermission] = useCameraPermissions()
+  const [permission, requestPermission, getPermission] = useCameraPermissions()
   const [unavailable, setUnavailable] = useState(false)
   const done = useRef(false)
+  const focused = useIsFocused()
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') getPermission().catch(() => {})
+    })
+    return () => subscription.remove()
+  }, [getPermission])
 
   const typeInstead = (
     <Button
@@ -98,21 +119,23 @@ export function CardScanner({
   return (
     <Screen background={tokens.bg}>
       <View style={styles.cameraWrap}>
-        <CameraView
-          style={styles.camera}
-          facing="back"
-          accessibilityLabel={words.frame}
-          barcodeScannerSettings={{ barcodeTypes: [...SCAN_TYPES] }}
-          onMountError={() => setUnavailable(true)}
-          onBarcodeScanned={(result) => {
-            if (done.current) return
-            const card = cardFromScan(result)
-            if (!card) return
-            done.current = true
-            haptics.selectionChanged()
-            onScanned(card)
-          }}
-        />
+        {focused ? (
+          <CameraView
+            style={styles.camera}
+            facing="back"
+            accessibilityLabel={words.frame}
+            barcodeScannerSettings={{ barcodeTypes: [...SCAN_TYPES] }}
+            onMountError={() => setUnavailable(true)}
+            onBarcodeScanned={(result) => {
+              if (done.current) return
+              const card = cardFromScan(result)
+              if (!card) return
+              done.current = true
+              haptics.selectionChanged()
+              onScanned(card)
+            }}
+          />
+        ) : null}
         <View pointerEvents="none" style={styles.frame} />
       </View>
       <View style={styles.below}>

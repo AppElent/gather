@@ -86,3 +86,21 @@ test('Android: hands the window back to the system setting', async () => {
   await settle()
   expect(state.calls).toEqual(['set 1', 'restore system'])
 })
+
+function Shown({ shown }: { shown: boolean }) {
+  useTillBrightness(shown)
+  return null
+}
+
+test('gives the brightness back when the card stops being shown but stays mounted', async () => {
+  const view = mount(<Shown shown />)
+  await settle()
+  expect(state.calls).toEqual(['set 1'])
+  // Another tab, or Edit pushed on top.
+  view.rerender(<Shown shown={false} />)
+  await settle()
+  expect(state.calls).toEqual(['set 1', 'set 0.4'])
+  view.unmount()
+  await settle()
+  expect(state.calls).toEqual(['set 1', 'set 0.4'])
+})

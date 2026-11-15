@@ -104,6 +104,9 @@ export function CardBarcode({
         <Text
           testID="loyalty-card-number"
           selectable
+          // Read digit by digit, as a cashier would type it, not as one
+          // number in the trillions.
+          accessibilityLabel={value.split('').join(' ')}
           style={[TYPE.number, styles.number, { color: PANEL.ink }]}
         >
           {value}

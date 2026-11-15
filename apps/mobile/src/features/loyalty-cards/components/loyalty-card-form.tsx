@@ -3,9 +3,10 @@
  *
  * The number is checked against its barcode type as it is typed, by the rule
  * Convex applies (`checkCardDraft`), and the barcode is previewed once it is
- * valid, so a wrong digit shows here and not at a till. Save stays off until
- * the draft is one the server takes, and while a photo is still uploading:
- * a card saved then would go without the photo it shows.
+ * valid, so a wrong digit shows here and not at a till. Save on a draft the
+ * server would refuse names each problem under its field instead of sending
+ * it, and Save stays off while a photo is still uploading: a card saved then
+ * would go without the photo it shows.
  *
  * A Catalog store keeps its own name and colour; a store typed by hand gets
  * the server's default colour (the phone has no colour picker yet).
@@ -124,7 +125,11 @@ export function LoyaltyCardForm({
   function submit() {
     setNumberTouched(true)
     setStoreTouched(true)
-    if (!check.ok || uploading || submitting) return
+    if (uploading || submitting) return
+    if (!check.ok) {
+      haptics.actionFailed()
+      return
+    }
     onSubmit({ ...check.values, frontPhotoId: front, backPhotoId: back })
   }
 

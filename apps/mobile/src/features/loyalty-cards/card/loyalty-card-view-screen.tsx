@@ -3,13 +3,13 @@
  *
  * The barcode leads, as large as the screen allows, on a white panel in light
  * and dark mode alike, with the number under it for a cashier to type. While
- * the card is open the screen is at full brightness (`useTillBrightness`) and
- * stays awake (`useKeepAwake`), and both are given back on the way out.
+ * the card is on screen it is at full brightness (`useTillBrightness`) and
+ * stays awake (`useKeepAwakeWhile`). Both follow focus, not mount: switching
+ * tab or opening Edit keeps this screen mounted, and gives both back.
  * Opening it counts as using it, once (`useMarkUsedOnce`).
  */
 import { Image } from 'expo-image'
-import { useKeepAwake } from 'expo-keep-awake'
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useIsFocused, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -27,6 +27,7 @@ import { HeaderIconButton } from '../components/header-icon-button'
 import { StoreTile } from '../components/store-tile'
 import { LOYALTY_CARD_ICONS } from '../loyalty-card-icons'
 import { useDeleteLoyaltyCard } from '../use-delete-loyalty-card'
+import { useKeepAwakeWhile } from './use-keep-awake-while'
 import { useMarkUsedOnce } from './use-mark-used-once'
 import { useTillBrightness } from './use-till-brightness'
 
@@ -48,8 +49,9 @@ export function LoyaltyCardViewScreen({
   const deleteCard = useDeleteLoyaltyCard(group.slug)
   const [problem, setProblem] = useState<string | null>(null)
 
-  useKeepAwake()
-  useTillBrightness(Boolean(card))
+  const shown = useIsFocused() && Boolean(card)
+  useKeepAwakeWhile(shown)
+  useTillBrightness(shown)
   useMarkUsedOnce(group.slug, cardId)
 
   const moduleTitle = t.modules.byId['loyalty-cards'].label
