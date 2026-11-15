@@ -4,6 +4,7 @@ import {
   compareLoyaltyCards,
   foldForSearch,
   isHexColor,
+  retailersMatchingNumber,
   searchRetailers,
   storeMonogram,
   textOnBrand,
@@ -138,5 +139,40 @@ describe('loyalty card refusals', () => {
     expect(readLoyaltyCardRefusal({ data: { kind: 'notFound' } })).toBeNull()
     expect(readLoyaltyCardRefusal(new Error('loyalty:notFound'))).toBeNull()
     expect(readLoyaltyCardRefusal(null)).toBeNull()
+  })
+})
+
+describe('retailersMatchingNumber', () => {
+  const HINTED = [
+    { key: 'ah', numberPrefix: '262', numberLength: 13 },
+    { key: 'jumbo', numberLength: 13 },
+    { key: 'prefix-only', numberPrefix: '99' },
+    { key: 'none' },
+  ]
+  const keys = (number: string) =>
+    retailersMatchingNumber(HINTED, number).map((retailer) => retailer.key)
+
+  test('suggests the retailer whose prefix and length the number fits', () => {
+    expect(keys('2620187342052')).toEqual(['ah'])
+  })
+
+  test('ignores spaces and dashes copied off the card', () => {
+    expect(keys('2620 1873-4205 2')).toEqual(['ah'])
+  })
+
+  test('needs the length when the retailer has one', () => {
+    expect(keys('262018734205')).toEqual([])
+  })
+
+  test('never suggests on a length alone', () => {
+    expect(keys('1234567890128')).toEqual([])
+  })
+
+  test('takes any length for a prefix with no length hint', () => {
+    expect(keys('99123')).toEqual(['prefix-only'])
+  })
+
+  test('suggests nothing for an empty number', () => {
+    expect(keys('  ')).toEqual([])
   })
 })

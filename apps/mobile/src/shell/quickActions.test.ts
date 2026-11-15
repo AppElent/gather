@@ -11,6 +11,7 @@ describe('the Add tab launcher', () => {
       { id: 'beer-tasting', kind: 'compose' },
       { id: 'task-new', kind: 'row' },
       { id: 'recipe-import', kind: 'handoff' },
+      { id: 'loyalty-card-add', kind: 'handoff' },
     ])
   })
 

@@ -39,6 +39,50 @@ export const nl = {
 
   finances: coreNl.finances,
 
+  loyaltyCards: {
+    ...coreNl.loyaltyCards,
+    scan: {
+      title: 'Scan de kaart',
+      hint: 'Houd de barcode van de kaart in het kader.',
+      typeInstead: 'Typ het nummer',
+      askTitle: 'Scan de kaart met de camera',
+      askBody:
+        'Gather gebruikt de camera alleen om de barcode van de kaart te lezen. Er wordt niets opgenomen of bewaard.',
+      allow: 'Camera gebruiken',
+      denied:
+        'Gather mag de camera niet gebruiken. Zet het aan in Instellingen om te scannen, of typ het nummer.',
+      openSettings: 'Open Instellingen',
+      unavailable:
+        'De camera is niet beschikbaar op dit apparaat. Typ het nummer.',
+      scanned: '{format} gescand: {number}',
+      scanAgain: 'Opnieuw scannen',
+      suggestion: 'Dit lijkt een kaart van {store}.',
+      useSuggestion: '{store} gebruiken',
+      frame: 'Camerabeeld om een barcode te scannen',
+    },
+    till: {
+      edit: 'Kaart bewerken',
+      delete: 'Kaart verwijderen',
+      front: 'Voorkant van de kaart van {store}',
+      back: 'Achterkant van de kaart van {store}',
+    },
+    list: {
+      /** When a card was last shown, in Home's activity words. */
+      when: coreNl.shell.activity,
+    },
+    form: {
+      ...coreNl.loyaltyCards.form,
+      chooseFormat: 'Kies de soort barcode',
+      takePhoto: 'Foto maken',
+      choosePhoto: 'Foto kiezen',
+      replacePhoto: 'Vervangen',
+      removePhoto: 'Verwijderen',
+      photoDenied:
+        'Gather mag de camera of foto’s niet gebruiken. Zet het aan in Instellingen.',
+      photoFailed: 'Die foto kon niet worden toegevoegd.',
+    },
+  },
+
   search: {
     title: 'Zoeken',
     placeholder: 'Deze Groep doorzoeken',
@@ -97,6 +141,10 @@ export const nl = {
         'recipe-import': {
           label: 'Importeren vanaf een link',
           module: coreNl.modules.byId.recipes.label,
+        },
+        'loyalty-card-add': {
+          label: 'Klantkaart toevoegen',
+          module: coreNl.modules.byId['loyalty-cards'].label,
         },
       },
     },
