@@ -116,7 +116,12 @@ export function LoyaltyCardsPage() {
                     {...linkTo('loyaltyCard', { cardId: card._id })}
                     className="flex min-h-20 items-center gap-3 rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-3 text-[var(--app-fg)] no-underline hover:bg-[var(--app-surface-muted)]"
                   >
-                    <StoreTile name={card.storeName} color={card.brandColor} />
+                    <StoreTile
+                      name={card.storeName}
+                      color={card.brandColor}
+                      catalogKey={card.catalogKey}
+                      decorative
+                    />
                     <span className="min-w-0">
                       <span className="block truncate font-semibold">
                         {card.storeName}

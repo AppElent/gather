@@ -61,6 +61,7 @@ export function NewLoyaltyCardPage() {
                 <StoreTile
                   name={retailer.name}
                   color={retailer.brandColor}
+                  catalogKey={retailer.seedKey}
                   size="small"
                 />
               ) : null}

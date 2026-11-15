@@ -1,6 +1,7 @@
 import type { Messages } from '../en'
 
 export const loyaltyCards = {
+  logoAlt: 'Logo van {store}',
   index: {
     subtitle: 'Klantkaarten die het hele huishouden kan gebruiken.',
     add: 'Kaart toevoegen',

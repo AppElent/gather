@@ -71,7 +71,11 @@ export function LoyaltyCardPage({ cardId }: { cardId: string }) {
 
       <header className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <StoreTile name={card.storeName} color={card.brandColor} />
+          <StoreTile
+            name={card.storeName}
+            color={card.brandColor}
+            catalogKey={card.catalogKey}
+          />
           <div className="min-w-0">
             <h2 className="m-0 truncate text-2xl font-semibold">
               {card.storeName}

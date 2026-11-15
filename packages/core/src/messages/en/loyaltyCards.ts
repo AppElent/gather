@@ -10,6 +10,8 @@ import type { LoyaltyCardRefusalCode } from '../../refusals'
  * Barcode format names are technical labels printed the same everywhere.
  */
 export const loyaltyCards = {
+  /** A store tile's logo, for a screen reader. `{store}` is the store's name. */
+  logoAlt: '{store} logo',
   index: {
     subtitle: 'Store cards the whole household can use.',
     add: 'Add card',
