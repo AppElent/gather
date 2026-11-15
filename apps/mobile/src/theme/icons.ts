@@ -37,6 +37,7 @@ import CircleEllipsis from 'lucide-react-native/icons/circle-ellipsis'
 import CircleMinus from 'lucide-react-native/icons/circle-minus'
 import CirclePlus from 'lucide-react-native/icons/circle-plus'
 import Clock from 'lucide-react-native/icons/clock'
+import CreditCard from 'lucide-react-native/icons/credit-card'
 import Download from 'lucide-react-native/icons/download'
 import Ellipsis from 'lucide-react-native/icons/ellipsis'
 import ExternalLink from 'lucide-react-native/icons/external-link'
@@ -86,6 +87,7 @@ export const MODULE_ICONS = {
   Calendar: glyph(Calendar, 'calendar'),
   CalendarHeart: glyph(CalendarHeart, 'menucard'),
   ChefHat: glyph(ChefHat, 'fork.knife'),
+  CreditCard: glyph(CreditCard, 'creditcard'),
   // Cheeses. The key is the web's lucide name (`Grape`, until lucide draws a
   // cheese); the phone draws a wedge, because a bunch of grapes reads as Wine.
   Grape: CheeseWedge as Glyph,

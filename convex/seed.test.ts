@@ -231,6 +231,7 @@ const SAMPLE_CONTENT: Record<ModuleId, SampleContent> = {
   'baby-log': inGroup('babies'),
   calendar: inGroup('calendars'),
   notes: inGroup('notes'),
+  'loyalty-cards': inGroup('loyaltyCards'),
   cheeses: subjectsOf('cheese'),
   wines: subjectsOf('wine'),
   beers: subjectsOf('beer'),

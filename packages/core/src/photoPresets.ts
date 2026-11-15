@@ -62,6 +62,13 @@ export const PHOTO_PRESETS = {
    * card, and the member list a Group draws.
    */
   profilePhoto: { aspect: 1, maxEdge: 512, quality: 0.82 },
+  /**
+   * The front or back of a Loyalty card (APP-141): a record of the card
+   * itself, for the printed number or the terms on the back. Locked to the
+   * ID-1 card shape (85.6 × 54 mm) so a sloppy phone photo is cropped to the
+   * card, and large enough to read small print on the back.
+   */
+  loyaltyCardPhoto: { aspect: 85.6 / 54, maxEdge: 1200, quality: 0.82 },
 } as const satisfies Record<string, PhotoPreset>
 
 export type PhotoPresetName = keyof typeof PHOTO_PRESETS

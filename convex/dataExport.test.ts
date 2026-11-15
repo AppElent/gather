@@ -263,6 +263,21 @@ async function household(t: Harness): Promise<Household> {
       createdByUserId: bob,
     })
 
+    // A Loyalty card, with both photos.
+    await ctx.db.insert('loyaltyCards', {
+      groupId: household,
+      storeName: 'Albert Heijn',
+      catalogKey: 'albert-heijn',
+      brandColor: '#00a0e2',
+      domain: 'ah.nl',
+      cardNumber: '2620187342052',
+      barcodeFormat: 'EAN_13',
+      holder: 'Bob',
+      frontPhotoId: await ctx.storage.store(new Blob(['front'])),
+      backPhotoId: await ctx.storage.store(new Blob(['back'])),
+      createdByUserId: bob,
+    })
+
     // Money.
     const houseId = await ctx.db.insert('houses', {
       groupId: household,
@@ -406,6 +421,16 @@ async function household(t: Harness): Promise<Household> {
       name: 'Gouda',
       attributes: {},
     })
+    await ctx.db.insert('retailerCatalog', {
+      seedKey: 'kruidvat',
+      name: 'Kruidvat',
+      aliases: [],
+      category: 'drugstore',
+      brandColor: '#e3007b',
+      domain: 'kruidvat.nl',
+      barcodeFormat: 'EAN_13',
+      formatConfidence: 'sourced',
+    })
 
     return { alice, bob, household, allotment }
   })
@@ -459,6 +484,7 @@ describe('what the file contains', () => {
     expect(data.exportedAt).toBe('2026-10-18T12:00:00.000Z')
     expect(data.excludedTables).toEqual([
       { table: 'tastingCatalog', reason: 'reference-data' },
+      { table: 'retailerCatalog', reason: 'reference-data' },
       { table: 'seedRuns', reason: 'bookkeeping' },
     ])
     expect(data.omittedFields.integrationConnections).toEqual(['accessToken'])
@@ -515,6 +541,11 @@ describe('what the file contains', () => {
     expect(household.groups[0].imageUrl).toEqual(
       expect.stringContaining('http'),
     )
+    const [card] = household.loyaltyCards
+    expect(card).not.toHaveProperty('frontPhotoId')
+    expect(card).not.toHaveProperty('backPhotoId')
+    expect(card.frontPhotoUrl).toEqual(expect.stringContaining('http'))
+    expect(card.backPhotoUrl).toEqual(expect.stringContaining('http'))
     // Carol is no Member of the household, so she is nobody here.
     expect(household.calendarEvents[0].assigneeIds).toEqual(['Bob', null])
     expect(household.recurringCosts[0].split).toEqual([
@@ -570,6 +601,7 @@ describe('what the file holds back', () => {
     const t = testConvex()
     const { data, text } = await exported(t)
     expect(text).not.toContain('Gouda')
+    expect(text).not.toContain('Kruidvat')
     expect(groupOf(data, 'household').babies[0]).not.toHaveProperty(
       'trackedTypes',
     )

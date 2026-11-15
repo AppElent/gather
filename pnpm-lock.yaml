@@ -44,6 +44,9 @@ importers:
       '@tanstack/react-start':
         specifier: ^1.169.4
         version: 1.169.4(esbuild@0.28.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(rolldown@1.2.16)(rollup@4.62.2)(vite@8.3.6(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
+      bwip-js:
+        specifier: 4.11.4
+        version: 4.11.4
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -4506,6 +4509,10 @@ packages:
   bunyan@1.8.15:
     resolution: {integrity: sha512-0tECWShh6wUysgucJcBAoYegf3JJoZWibxdqhTm7OHPeT42qdjkZ29QCMcKwbgU1kiH+auSIasNRXMLWXafXig==}
     engines: {'0': node >=0.10.0}
+    hasBin: true
+
+  bwip-js@4.11.4:
+    resolution: {integrity: sha512-FOXnOQkinxog8FwxdnPB+8k2wRqwPnqXwxX37KcXOtMNW+9CinOkGv9MtIoRC4HX/UyogT0/9lIp6FDm2DcquQ==}
     hasBin: true
 
   bytes@3.1.2:
@@ -13180,6 +13187,8 @@ snapshots:
       moment: 2.31.0
       mv: 2.1.1
       safe-json-stringify: 1.2.0
+
+  bwip-js@4.11.4: {}
 
   bytes@3.1.2: {}
 

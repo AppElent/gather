@@ -67,3 +67,4 @@ A new ADR takes the number after the highest (0043 next).
 | [0040](adr/0040-a-group-counts-in-euros.md) | A Group counts in euros | accepted | finances | `convex/holdings.ts`, ADR-0026 |
 | [0041](adr/0041-nutrition-is-retired-and-foundry-owns-it.md) | Nutrition is retired, and Foundry owns it | accepted | modules | `convex/maintenance.ts`, `packages/core/src/modules.ts` |
 | [0042](adr/0042-the-phone-leads-and-the-web-is-where-a-household-is-managed.md) | The phone leads, and the web is where a household is managed | accepted | platforms | `packages/core/src/features.ts`, `scripts/feature-manifest.test.ts` |
+| [0043](adr/0043-a-retailer-catalog-is-a-picker-and-a-card-keeps-its-own-copy.md) | A Retailer catalog is a picker, and a card keeps its own copy | accepted | loyalty cards | `convex/loyaltyCards.ts`, `convex/lib/seed/retailerCatalog.ts` |

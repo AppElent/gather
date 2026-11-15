@@ -88,6 +88,9 @@ const ACTIONS_BY_MODULE: Record<ModuleId, readonly QuickActionDef[]> = {
   'shared-costs': [],
   'savings-goals': [],
   'baby-log': [],
+  // Adding a card is scanning one, which arrives with the phone screens
+  // (APP-142); until then there is no verb to launch.
+  'loyalty-cards': [],
   calendar: [],
   notes: [],
 }

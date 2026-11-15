@@ -56,6 +56,10 @@ export const byId = {
     label: 'Notes',
     description: 'Quick shared notes.',
   },
+  'loyalty-cards': {
+    label: 'Loyalty cards',
+    description: 'Your store cards, ready at the till.',
+  },
   cheeses: {
     label: 'Cheeses',
     description: 'Rate the cheeses you try.',

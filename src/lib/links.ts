@@ -32,6 +32,7 @@ const MODULE_ROUTES = {
   'savings-goals': '/savings-goals',
   calendar: '/calendar',
   notes: '/notes',
+  'loyalty-cards': '/loyalty-cards',
   cheeses: '/cheeses',
   wines: '/wines',
   beers: '/beers',
@@ -62,6 +63,10 @@ export const ROUTES = {
   newChild: '/baby/new',
   child: '/baby/$babyId',
   editChild: '/baby/$babyId/edit',
+
+  newLoyaltyCard: '/loyalty-cards/new',
+  loyaltyCard: '/loyalty-cards/$cardId',
+  editLoyaltyCard: '/loyalty-cards/$cardId/edit',
 
   cheese: '/cheeses/$subjectId',
   editCheese: '/cheeses/$subjectId/edit',

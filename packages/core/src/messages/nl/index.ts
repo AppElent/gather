@@ -4,6 +4,7 @@ import { baby } from './baby'
 import { calendar } from './calendar'
 import { common } from './common'
 import { finances } from './finances'
+import { loyaltyCards } from './loyaltyCards'
 import { modules } from './modules'
 import { notes } from './notes'
 import { nutrients } from './nutrients'
@@ -26,6 +27,7 @@ export const nl = {
   baby,
   calendar,
   tastings,
+  loyaltyCards,
   settings,
   auth,
   privacy,

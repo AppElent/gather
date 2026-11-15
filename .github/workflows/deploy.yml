@@ -110,6 +110,10 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: pnpm exec convex run seed:seedTastingCatalog
 
+      - name: Seed Retailer catalog
+        if: github.event_name == 'workflow_dispatch'
+        run: pnpm exec convex run seed:seedRetailerCatalog
+
       # VITE_CONVEX_URL comes from the staging Environment, as the production URL.
       - name: Build staging
         if: github.event_name != 'workflow_dispatch'

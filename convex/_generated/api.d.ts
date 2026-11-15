@@ -31,6 +31,7 @@ import type * as lib_groupAccess from "../lib/groupAccess.js";
 import type * as lib_groupCascade from "../lib/groupCascade.js";
 import type * as lib_groupSlugs from "../lib/groupSlugs.js";
 import type * as lib_kitchen from "../lib/kitchen.js";
+import type * as lib_loyaltyCards from "../lib/loyaltyCards.js";
 import type * as lib_nutrition from "../lib/nutrition.js";
 import type * as lib_nutritionAiEstimate from "../lib/nutritionAiEstimate.js";
 import type * as lib_order from "../lib/order.js";
@@ -39,6 +40,7 @@ import type * as lib_recipeFields from "../lib/recipeFields.js";
 import type * as lib_recipeParsing from "../lib/recipeParsing.js";
 import type * as lib_safeFetch from "../lib/safeFetch.js";
 import type * as lib_seed_apply from "../lib/seed/apply.js";
+import type * as lib_seed_retailerCatalog from "../lib/seed/retailerCatalog.js";
 import type * as lib_seed_sampleHousehold from "../lib/seed/sampleHousehold.js";
 import type * as lib_seed_tastingCatalog from "../lib/seed/tastingCatalog.js";
 import type * as lib_sharing from "../lib/sharing.js";
@@ -53,6 +55,7 @@ import type * as lib_taskProviders_todoist from "../lib/taskProviders/todoist.js
 import type * as lib_taskProviders_types from "../lib/taskProviders/types.js";
 import type * as lib_tastings from "../lib/tastings.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as loyaltyCards from "../loyaltyCards.js";
 import type * as maintenance from "../maintenance.js";
 import type * as migrations from "../migrations.js";
 import type * as mortgages from "../mortgages.js";
@@ -101,6 +104,7 @@ declare const fullApi: ApiFromModules<{
   "lib/groupCascade": typeof lib_groupCascade;
   "lib/groupSlugs": typeof lib_groupSlugs;
   "lib/kitchen": typeof lib_kitchen;
+  "lib/loyaltyCards": typeof lib_loyaltyCards;
   "lib/nutrition": typeof lib_nutrition;
   "lib/nutritionAiEstimate": typeof lib_nutritionAiEstimate;
   "lib/order": typeof lib_order;
@@ -109,6 +113,7 @@ declare const fullApi: ApiFromModules<{
   "lib/recipeParsing": typeof lib_recipeParsing;
   "lib/safeFetch": typeof lib_safeFetch;
   "lib/seed/apply": typeof lib_seed_apply;
+  "lib/seed/retailerCatalog": typeof lib_seed_retailerCatalog;
   "lib/seed/sampleHousehold": typeof lib_seed_sampleHousehold;
   "lib/seed/tastingCatalog": typeof lib_seed_tastingCatalog;
   "lib/sharing": typeof lib_sharing;
@@ -123,6 +128,7 @@ declare const fullApi: ApiFromModules<{
   "lib/taskProviders/types": typeof lib_taskProviders_types;
   "lib/tastings": typeof lib_tastings;
   "lib/validators": typeof lib_validators;
+  loyaltyCards: typeof loyaltyCards;
   maintenance: typeof maintenance;
   migrations: typeof migrations;
   mortgages: typeof mortgages;

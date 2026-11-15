@@ -211,3 +211,44 @@ describe('sanitizeEvent', () => {
     }
   })
 })
+
+/**
+ * A Loyalty card's number is a working credential at the till (APP-141): it
+ * must not reach Sentry by any route the card screens open.
+ */
+describe('a Loyalty card number', () => {
+  const NUMBER = '2620187342052'
+
+  it('never survives in a breadcrumb', () => {
+    const crumbs: ScrubbableBreadcrumb[] = [
+      // Copying the number, or clicking the barcode whose alt text holds it.
+      { category: 'ui.click', message: `img[alt="Barcode ${NUMBER}"]` },
+      { category: 'ui.input', message: `input[value="${NUMBER}"]` },
+      { category: 'console', message: `saving card ${NUMBER}` },
+      // A request that carried it as a body or query parameter.
+      {
+        category: 'fetch',
+        data: {
+          url: `https://example.convex.cloud/api/mutation?cardNumber=${NUMBER}`,
+          body: JSON.stringify({ cardNumber: NUMBER }),
+          method: 'POST',
+        },
+      },
+    ]
+    const kept = crumbs.map((crumb) => sanitizeBreadcrumb(crumb))
+    expect(JSON.stringify(kept)).not.toContain(NUMBER)
+  })
+
+  it('never survives in a Convex error about the card', () => {
+    const event: ScrubbableEvent = {
+      exception: {
+        values: [
+          {
+            value: `[CONVEX M(loyaltyCards:create)] [Request ID: abc] Server Error\nUncaught ConvexError: {"kind":"loyalty:cardNumber:checkDigit","cardNumber":"${NUMBER}"}`,
+          },
+        ],
+      },
+    }
+    expect(JSON.stringify(sanitizeEvent(event))).not.toContain(NUMBER)
+  })
+})

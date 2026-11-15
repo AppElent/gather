@@ -47,6 +47,11 @@ interface ImageUploadFieldProps {
   /** Overrides the default "Photo" where a caller has a better word for it. */
   label?: string
   fieldId?: string
+  /**
+   * Told when an upload starts and ends, so a form can hold its save until the
+   * photo it is about to store has an id.
+   */
+  onUploadingChange?: (uploading: boolean) => void
 }
 
 export function ImageUploadField({
@@ -56,6 +61,7 @@ export function ImageUploadField({
   preset,
   label,
   fieldId = 'image-upload',
+  onUploadingChange,
 }: ImageUploadFieldProps) {
   const image = useMessages().common.image
   const [uploading, setUploading] = useState(false)
@@ -73,6 +79,7 @@ export function ImageUploadField({
 
   const upload = async (prepared: PreparedPhoto) => {
     setUploading(true)
+    onUploadingChange?.(true)
     setError(null)
     try {
       const uploadUrl = await generateUploadUrl()
@@ -91,6 +98,7 @@ export function ImageUploadField({
       setError(image.failed)
     } finally {
       setUploading(false)
+      onUploadingChange?.(false)
     }
   }
 
