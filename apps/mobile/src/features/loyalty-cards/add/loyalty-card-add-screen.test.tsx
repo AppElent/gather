@@ -315,13 +315,19 @@ test('the camera is off while the scan step is not on screen', () => {
   view.unmount()
 })
 
-test('coming back from Settings reads the camera permission again', async () => {
+test('coming back from Settings with the camera allowed opens the camera', async () => {
   state.permission = { granted: false, canAskAgain: false }
   const view = mount(<LoyaltyCardAddScreen />)
+  expect(byTestId(view.container, 'camera')).toBeNull()
   expect(state.permissionReads).toBe(0)
+
+  // Allowed in Settings, then back in the app.
+  state.permission = { granted: true, canAskAgain: true }
   state.appState?.('background')
   state.appState?.('active')
   await settle()
   expect(state.permissionReads).toBe(1)
+  view.rerender(<LoyaltyCardAddScreen />)
+  expect(byTestId(view.container, 'camera')).not.toBeNull()
   view.unmount()
 })
