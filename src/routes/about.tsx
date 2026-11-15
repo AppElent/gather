@@ -18,6 +18,7 @@ export function AboutPage() {
       <div className="grid gap-3 text-sm leading-6 text-[var(--app-muted)]">
         <p className="m-0">{about.modules}</p>
         <p className="m-0">{about.pins}</p>
+        <p className="m-0 text-xs">{about.trademarks}</p>
       </div>
     </PublicPageFrame>
   )

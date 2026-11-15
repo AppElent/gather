@@ -106,6 +106,8 @@ export function RetailerPicker({
                 <StoreTile
                   name={retailer.name}
                   color={retailer.brandColor}
+                  catalogKey={retailer.seedKey}
+                  decorative
                   size="small"
                 />
                 <span className="min-w-0">

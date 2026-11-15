@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { cleanup, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../lib/i18n/testing'
 import { NotFoundPage } from './__root'
@@ -62,6 +62,19 @@ test('about page uses Gather-specific copy in the public frame', () => {
   ).toBeDefined()
   expect(screen.queryByText(/small starter/i)).toBeNull()
   expect(screen.queryByText(/TanStack Start/i)).toBeNull()
+})
+
+test('about page says store names and logos are their owners’ trademarks', () => {
+  renderWithI18n(<AboutPage />)
+  expect(
+    screen.getByText(/store names and logos .* trademarks of their owners/i),
+  ).toBeDefined()
+
+  cleanup()
+  renderWithI18n(<AboutPage />, { locale: 'nl' })
+  expect(
+    screen.getByText(/winkelnamen en logo’s .* handelsmerken/i),
+  ).toBeDefined()
 })
 
 test('not found page is styled and gives a recovery path', () => {

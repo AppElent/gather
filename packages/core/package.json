@@ -28,6 +28,7 @@
     "./photo-presets": "./src/photoPresets.ts",
     "./pins": "./src/pins.ts",
     "./refusals": "./src/refusals.ts",
+    "./retailer-logos": "./src/retailerLogos.ts",
     "./sentry-privacy": "./src/sentryPrivacy.ts",
     "./tastings": "./src/tastings.ts"
   },

@@ -163,6 +163,8 @@ export const shell = {
     modules:
       'Recepten en Voeding werken vandaag al, en de modules eromheen staan klaar zodat een Groep kan doorgroeien naar maaltijdplanning, boodschappen, voorraad, vaste lasten, kosten delen, spaardoelen, taken, agenda, notities, kazen en wijnen zonder van app te wisselen.',
     pins: 'Elke module is in elke Groep beschikbaar. Je zet de modules die je gebruikt vast in je eigen navigatie, de rest blijft één klik weg — je keuzes zijn alleen van jou en verplaatsen die van niemand anders.',
+    trademarks:
+      'Winkelnamen en logo’s in Klantkaarten zijn handelsmerken van hun eigenaars en worden alleen gebruikt om te laten zien bij welke winkel een kaart hoort.',
   },
 
   publicFrame: {

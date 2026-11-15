@@ -39,6 +39,15 @@ callable functions, because every export under `convex/` is deployed API.
   ([ADR-0043](../adr/0043-a-retailer-catalog-is-a-picker-and-a-card-keeps-its-own-copy.md)).
   Every fixture carries a source comment; an unsourced barcode format is
   `CODE_128` with `formatConfidence: 'guess'`.
+- **Retailer logos** ship with the clients, not in Convex: each Catalog
+  `seedKey` is either in `RETAILER_LOGOS` (with its source and licence) or in
+  `RETAILERS_WITHOUT_LOGO` (with the reason) in
+  `packages/core/src/retailerLogos.ts`, and its WebP files sit in
+  `packages/core/assets/retailer-logos/`. Adding, renaming or retiring an
+  entry updates that manifest and re-runs `scripts/prepare-retailer-logos.mjs`
+  in the same change; `scripts/retailer-logos.test.ts` fails otherwise. A card
+  finds its logo by `catalogKey`, so a retired entry's cards fall back to the
+  monogram.
 - Deploys run both Catalog seeds ([deploy](../runbooks/deploy.md#seeding-is-a-deploy-step)).
 - **Sample household** (`seedPreview`, `loadSampleData`, `sampleHousehold.ts`)
   is fake content for dev and previews only. It is wiped and recreated on every
