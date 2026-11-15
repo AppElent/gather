@@ -50,6 +50,9 @@ const DOWNLOAD_TIMEOUT_MS = 30_000
 const args = process.argv.slice(2)
 const cacheFlag = args.indexOf('--cache')
 const cacheArg = cacheFlag >= 0 ? args.splice(cacheFlag, 2)[1] : undefined
+if (cacheFlag >= 0 && (!cacheArg || cacheArg.startsWith('--'))) {
+  throw new Error('--cache needs a folder: --cache <dir>')
+}
 const only = new Set(args)
 const keys = Object.keys(RETAILER_LOGOS).filter(
   (key) => only.size === 0 || only.has(key),

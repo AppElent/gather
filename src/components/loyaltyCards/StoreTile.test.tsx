@@ -45,6 +45,15 @@ describe('a Catalog store with a logo', () => {
     expect(screen.queryByRole('img')).toBeNull()
     expect(screen.getByText('AH')).toBeTruthy()
   })
+
+  test('shows the next store’s logo after one failed', () => {
+    const { rerender } = renderWithI18n(
+      <StoreTile name="Albert Heijn" catalogKey="albert-heijn" />,
+    )
+    fireEvent.error(screen.getByRole('img'))
+    rerender(<StoreTile name="HEMA" catalogKey="hema" />)
+    expect(screen.getByRole('img', { name: 'HEMA logo' })).toBeTruthy()
+  })
 })
 
 describe('the monogram', () => {
