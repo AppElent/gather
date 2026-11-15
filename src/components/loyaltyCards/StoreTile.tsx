@@ -54,7 +54,9 @@ export function StoreTile({
           sizes={SIZES[size].px}
           alt={fmt(messages.loyaltyCards.logoAlt, { store: name })}
           className="h-full w-full object-cover"
-          loading="lazy"
+          // Decorative tiles are the rows of a list or picker, so they wait
+          // until scrolled to; a named tile heads its page and loads at once.
+          loading={decorative ? 'lazy' : 'eager'}
           decoding="async"
           onError={() => setFailedSrc(logo.src)}
         />

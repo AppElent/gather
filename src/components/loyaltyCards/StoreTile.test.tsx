@@ -19,6 +19,8 @@ describe('a Catalog store with a logo', () => {
       /albert-heijn-96\.webp\S* 96w, \S*albert-heijn-192\.webp\S* 192w/,
     )
     expect(screen.queryByText('AH')).toBeNull()
+    // It heads its page, so it loads at once.
+    expect(logo.getAttribute('loading')).toBe('eager')
   })
 
   test('names it in Dutch too', () => {
@@ -29,8 +31,12 @@ describe('a Catalog store with a logo', () => {
   })
 
   test('stays silent when the store is already named beside it', () => {
-    renderWithI18n(<StoreTile name="HEMA" catalogKey="hema" decorative />)
+    const { container } = renderWithI18n(
+      <StoreTile name="HEMA" catalogKey="hema" decorative />,
+    )
     expect(screen.queryByRole('img')).toBeNull()
+    // One row of many: it waits until scrolled to.
+    expect(container.querySelector('img')?.getAttribute('loading')).toBe('lazy')
   })
 
   test('falls back to the monogram when the file fails to load', () => {

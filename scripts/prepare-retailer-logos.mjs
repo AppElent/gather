@@ -16,18 +16,26 @@
 //
 // Without --cache the downloads go to a temporary folder that is deleted at the
 // end. Node 23.6 or later reads the TypeScript manifest directly.
+import { createHash } from 'node:crypto'
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
-import {
+
+const [major, minor] = process.versions.node.split('.').map(Number)
+if (major < 23 || (major === 23 && minor < 6)) {
+  throw new Error(
+    `prepare-retailer-logos needs Node 23.6 or later to read the TypeScript manifest; this is ${process.version}.`,
+  )
+}
+const {
   RETAILER_LOGO_MAX_BYTES,
   RETAILER_LOGO_PADDING,
   RETAILER_LOGO_SIZES,
   RETAILER_LOGOS,
   retailerLogoFileName,
-} from '../packages/core/src/retailerLogos.ts'
+} = await import('../packages/core/src/retailerLogos.ts')
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const outDir = join(root, 'packages/core/assets/retailer-logos')
@@ -37,6 +45,7 @@ const COMMONS_AGENT = 'GatherLogoPrep/1.0 (https://github.com/AppElent/gather)'
 const BROWSER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15'
 const QUALITIES = [86, 80, 72, 64, 56, 48, 40]
+const DOWNLOAD_TIMEOUT_MS = 30_000
 
 const args = process.argv.slice(2)
 const cacheFlag = args.indexOf('--cache')
@@ -56,13 +65,16 @@ await mkdir(outDir, { recursive: true })
 
 /** The source file's bytes, downloaded once into the cache folder. */
 async function source(key, url) {
-  const cached = join(cacheDir, key)
+  // Keyed by URL, so pointing an entry at a new file downloads it again.
+  const hash = createHash('sha256').update(url).digest('hex').slice(0, 16)
+  const cached = join(cacheDir, `${key}-${hash}`)
   try {
     return await readFile(cached)
   } catch {}
   const commons = new URL(url).host === 'upload.wikimedia.org'
   const response = await fetch(url, {
     headers: { 'User-Agent': commons ? COMMONS_AGENT : BROWSER_AGENT },
+    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
   })
   const type = response.headers.get('content-type') ?? ''
   if (!response.ok || type.includes('html')) {
@@ -106,15 +118,19 @@ async function tile(bytes, size, { background = '#ffffff', padding }) {
 }
 
 let total = 0
-for (const key of keys) {
-  const entry = RETAILER_LOGOS[key]
-  const bytes = await source(key, entry.url)
-  const padding = entry.padding ?? RETAILER_LOGO_PADDING
-  for (const size of RETAILER_LOGO_SIZES) {
-    const webp = await tile(bytes, size, { ...entry, padding })
-    await writeFile(join(outDir, retailerLogoFileName(key, size)), webp)
-    total += webp.length
+try {
+  for (const key of keys) {
+    const entry = RETAILER_LOGOS[key]
+    const bytes = await source(key, entry.url)
+    const padding = entry.padding ?? RETAILER_LOGO_PADDING
+    for (const size of RETAILER_LOGO_SIZES) {
+      const webp = await tile(bytes, size, { ...entry, padding })
+      await writeFile(join(outDir, retailerLogoFileName(key, size)), webp)
+      total += webp.length
+    }
   }
+} finally {
+  if (!cacheArg) await rm(cacheDir, { recursive: true, force: true })
 }
 
 if (only.size === 0) {
@@ -127,8 +143,6 @@ if (only.size === 0) {
     if (!wanted.has(file)) await rm(join(outDir, file))
   }
 }
-if (!cacheArg) await rm(cacheDir, { recursive: true, force: true })
-
 console.log(
   `prepare-retailer-logos: ${keys.length} logos, ${(total / 1024).toFixed(1)} KB`,
 )
