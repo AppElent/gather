@@ -97,7 +97,9 @@ export function writeEntry(key: string, value: Value) {
     // Any eviction will do for a disposable copy; no LRU bookkeeping.
     for (const old of others.slice(0, Math.max(0, others.length - MAX_ENTRIES + 1)))
       store().removeItemSync(old)
-    // Synchronous, so no write can land after sign-out has cleared the store.
+    // A screen still mounted during sign-out can write after the clear. That
+    // entry is unreadable offline (the marker is gone), and the clear on
+    // confirmed sign-out, or the next account's confirmation, removes it.
     store().setItemSync(key, raw)
   } catch {
     // A miss next time, nothing worse.

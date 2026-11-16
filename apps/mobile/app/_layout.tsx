@@ -35,7 +35,7 @@ import { BottomSheetModalProvider } from '@expo/ui/community/bottom-sheet'
 import type { ErrorBoundaryProps } from 'expo-router'
 import { ErrorBoundary as RouterErrorBoundary, Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { LogBox, StyleSheet, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -153,23 +153,29 @@ function RootNavigator() {
     () => (unavailable ? offlineCards(userId) : []),
     [unavailable, userId],
   )
+  // Try again goes back to the splash for up to `SPLASH_TIMEOUT_MS`. A card
+  // open at the till stays on screen through it instead of blanking.
+  const [holding, setHolding] = useState<typeof cards>([])
+  if (unavailable && cards.length > 0 && holding !== cards) setHolding(cards)
+  if (!unavailable && mode !== 'splash' && holding.length > 0) setHolding([])
+  const retryingOffline = mode === 'splash' && holding.length > 0
 
   // Still behind the splash. Rendering nothing is the point.
-  if (mode === 'splash') return null
+  if (mode === 'splash' && !retryingOffline) return null
 
-  if (unavailable) {
+  if (unavailable || retryingOffline) {
     const gate = <AuthUnavailable onRetry={retry} retrying={retrying} />
     // The gate's offline fallback (APP-143): display-only views of the saved
     // Loyalty cards, which make no Convex calls. Every protected screen stays
     // behind the gate; once Convex authenticates, `mode` leaves `unavailable`
     // and the router below replaces this.
-    if (cards.length === 0) return gate
+    if (holding.length === 0) return gate
     return (
       <OfflineCopyBoundary fallback={gate}>
         <OfflineLoyaltyCards
-          cards={cards}
+          cards={holding}
           onRetry={retry}
-          retrying={retrying}
+          retrying={retrying || retryingOffline}
         />
       </OfflineCopyBoundary>
     )
