@@ -263,7 +263,6 @@ export function ModuleTile({
           <Text
             // Two lines rather than one: "Meal planner" and "Baby log" wrap at
             // Dynamic Type XL, and a clipped Module name is not a Module name.
-            numberOfLines={2}
             style={[styles.tileTitle, { color: tokens.ink }]}
           >
             {text.label}

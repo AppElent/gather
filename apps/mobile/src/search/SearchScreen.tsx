@@ -195,12 +195,11 @@ export function SearchScreen() {
         ]}
       >
         <View style={styles.rowText}>
-          <Text numberOfLines={1} style={[styles.title, { color: tokens.ink }]}>
+          <Text style={[styles.title, { color: tokens.ink }]}>
             {record.title}
           </Text>
           {record.detail ? (
             <Text
-              numberOfLines={1}
               style={[styles.detail, { color: tokens.muted }]}
             >
               {record.detail}
@@ -390,7 +389,7 @@ const styles = StyleSheet.create({
   },
   headerAction: { ...TYPE.bodyStrong },
   chevronUp: { transform: [{ rotate: '180deg' }] },
-  sectionTitle: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  sectionTitle: { ...TYPE.footnoteStrong },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,

@@ -38,7 +38,7 @@ export function CalendarFilters({
             style={[
               styles.check,
               {
-                color: peopleFilter === null ? tokens.accentText : tokens.muted,
+                color: peopleFilter === null ? tokens.ink : tokens.muted,
               },
             ]}
           >
@@ -68,7 +68,7 @@ export function CalendarFilters({
               <Text
                 style={[
                   styles.check,
-                  { color: selected ? tokens.accentText : tokens.muted },
+                  { color: selected ? tokens.ink : tokens.muted },
                 ]}
               >
                 {selected ? '✓' : '○'}
@@ -99,7 +99,7 @@ export function CalendarFilters({
               styles.check,
               {
                 color: peopleFilter?.includeUnassigned
-                  ? tokens.accentText
+                  ? tokens.ink
                   : tokens.muted,
               },
             ]}

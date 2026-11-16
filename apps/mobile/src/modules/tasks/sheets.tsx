@@ -582,7 +582,6 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   groupLabel: {
     ...TYPE.footnoteStrong,
-    letterSpacing: 0.8,
     marginBottom: 8,
   },
   groupEmpty: { ...TYPE.subhead, marginBottom: 14 },

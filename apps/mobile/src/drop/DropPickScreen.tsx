@@ -217,7 +217,6 @@ export function DropPickScreen() {
                     >
                       <Text
                         style={[styles.rowLabel, { color: tokens.ink }]}
-                        numberOfLines={1}
                       >
                         {candidate.label}
                       </Text>

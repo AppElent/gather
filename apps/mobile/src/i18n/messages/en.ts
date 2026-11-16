@@ -793,6 +793,8 @@ export const en = {
    * type error, so the two cannot be confused silently.
    */
   tasks: {
+    /** The summary under a task screen's large title. */
+    count: coreEn.tasks.count,
     title: 'Tasks',
 
     /** The Add tab's "Add a task": a title, a list, and a save. */

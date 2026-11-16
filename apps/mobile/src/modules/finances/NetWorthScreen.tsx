@@ -63,7 +63,6 @@ export function NetWorthScreen() {
   const [label, setLabel] = useState('')
   const [amount, setAmount] = useState('')
 
-  const tint = tokens.tintOf('money')
   const Scale = FINANCE_ICONS.Scale
 
   if (houses === undefined || entries === undefined) {
@@ -143,7 +142,7 @@ export function NetWorthScreen() {
         {failure}
         {rows.length === 0 ? (
           <EmptyState
-            icon={<Scale size={34} color={tint.text} strokeWidth={1.6} />}
+            glyph={Scale}
             title={text.netWorth.emptyTitle}
             body={text.netWorth.emptyBody}
             actionLabel={text.netWorth.addAsset}

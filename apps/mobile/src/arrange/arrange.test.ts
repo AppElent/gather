@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { dropIndex, movedTo, shiftFor } from './arrange'
+import { dropIndex, dropIndexAcross, movedTo, shiftFor } from './arrange'
 
 describe('task reorder helpers', () => {
   test('clamps a drag to the open rows', () => {
@@ -27,5 +27,28 @@ describe('task reorder helpers', () => {
     const order = ['a', 'b', 'c', 'd']
     expect(movedTo(order, 0, 9)).toEqual(order)
     expect(movedTo(order, -1, 2)).toEqual(order)
+  })
+
+  test('rows of different heights swap at half of the neighbour', () => {
+    const heights = [50, 120, 50, 50]
+    expect(dropIndexAcross(heights, 0, 59)).toBe(0)
+    expect(dropIndexAcross(heights, 0, 60)).toBe(1)
+    expect(dropIndexAcross(heights, 0, 144)).toBe(1)
+    expect(dropIndexAcross(heights, 0, 145)).toBe(2)
+    expect(dropIndexAcross(heights, 3, -24)).toBe(3)
+    expect(dropIndexAcross(heights, 3, -110)).toBe(1)
+  })
+
+  test('a drag past either end clamps to it', () => {
+    expect(dropIndexAcross([50, 80, 50], 0, -500)).toBe(0)
+    expect(dropIndexAcross([50, 80, 50], 0, 500)).toBe(2)
+    expect(dropIndexAcross([50, 80, 50], 0, 0)).toBe(0)
+  })
+
+  test('equal heights agree with the fixed-height version', () => {
+    const heights = [50, 50, 50, 50, 50]
+    for (const dy of [-180, -90, -30, 0, 30, 90, 180]) {
+      expect(dropIndexAcross(heights, 2, dy)).toBe(dropIndex(5, 2, dy, 50))
+    }
   })
 })

@@ -21,6 +21,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { fmt, useI18n } from '../../i18n'
 import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { ModuleTile } from '../../ui/module-tile'
 import { moduleHref } from '../moduleDestination'
 import { BABY_UI_ICONS } from './icons'
 
@@ -32,15 +33,12 @@ export function FirstRun({ groupName }: FirstRunProps) {
   const tokens = useTokens('home')
   const { t } = useI18n()
   const router = useRouter()
-  const tint = tokens.tintOf('home')
   const text = t.baby.log.firstRun
 
   return (
     <View style={[styles.screen, { backgroundColor: tokens.ground }]}>
       <View style={styles.hero}>
-        <View style={[styles.glyph, { backgroundColor: tint.fill }]}>
-          <BABY_UI_ICONS.Baby size={50} color={tint.on} strokeWidth={1.5} />
-        </View>
+        <ModuleTile group="home" glyph={BABY_UI_ICONS.Baby} size="l" />
         <Text
           accessibilityRole="header"
           style={[styles.title, { color: tokens.ink }]}
@@ -86,13 +84,6 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
   },
   hero: { alignItems: 'center', gap: 18 },
-  glyph: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   title: { ...TYPE.title2, letterSpacing: -0.7 },
   body: { ...TYPE.subhead, textAlign: 'center' },
   actions: { gap: 12 },

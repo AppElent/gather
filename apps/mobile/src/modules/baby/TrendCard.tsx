@@ -67,7 +67,7 @@ export function TrendCard({
     <View style={styles.wrap}>
       <View style={styles.head}>
         <Text style={[styles.title, { color: tokens.muted }]}>
-          {title.toUpperCase()}
+          {title}
         </Text>
         {onOpenAll ? (
           <Pressable
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  title: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  title: { ...TYPE.footnoteStrong },
   link: { minHeight: 32, justifyContent: 'center' },
   linkText: { ...TYPE.footnoteStrong },
   card: {

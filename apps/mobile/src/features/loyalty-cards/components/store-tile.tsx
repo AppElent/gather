@@ -20,6 +20,10 @@ import { RETAILER_LOGO_FILES } from './retailer-logo-files'
  *
  * Decorative — the store's name is always written beside it, so screen
  * readers skip the tile, logo and all.
+ *
+ * The monogram scales with Dynamic Type like every other word, but the tile is
+ * a fixed size on the tile scale, so at the largest sizes the two letters
+ * shrink back to fit inside it rather than spilling over its edge.
  */
 export function StoreTile({
   name,
@@ -80,7 +84,8 @@ export function StoreTile({
       style={frame}
     >
       <Text
-        allowFontScaling={false}
+        numberOfLines={1}
+        adjustsFontSizeToFit
         style={[
           size === 'large' ? TYPE.title2 : TYPE.bodyStrong,
           { color: textOnBrand(background) },

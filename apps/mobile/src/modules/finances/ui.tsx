@@ -1,7 +1,7 @@
 /**
  * The shapes every Finances screen is made of.
  *
- * Grouped lists, exactly as Settings draws them: a small uppercase section
+ * Grouped lists, exactly as Settings draws them: a small sentence-case section
  * title, a hairline-bordered card, and rows inside it that are 48pt tall and
  * separated by a hairline. The phone owns its look and these are plain React
  * Native primitives styled from `theme/tokens` (ADR-0017) — the point is that
@@ -27,8 +27,10 @@ import {
 } from 'react-native'
 
 import { useI18n } from '../../i18n'
+import type { Glyph } from '../../theme/glyph'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { ModuleTile } from '../../ui/module-tile'
 import { FINANCE_ICONS } from './icons'
 
 /** The Module's accent. Money is one of the four catalogue groups. */
@@ -43,7 +45,7 @@ export function Section({ title }: { title: string }) {
       accessibilityRole="header"
       style={[styles.section, { color: tokens.muted }]}
     >
-      {title.toUpperCase()}
+      {title}
     </Text>
   )
 }
@@ -114,11 +116,11 @@ export function Row({
     <>
       {leading ? <View style={styles.leading}>{leading}</View> : null}
       <View style={styles.rowText}>
-        <Text numberOfLines={1} style={[styles.rowLabel, { color: tokens.ink }]}>
+        <Text style={[styles.rowLabel, { color: tokens.ink }]}>
           {label}
         </Text>
         {sub ? (
-          <Text numberOfLines={2} style={[styles.sub, { color: tokens.muted }]}>
+          <Text style={[styles.sub, { color: tokens.muted }]}>
             {sub}
           </Text>
         ) : null}
@@ -126,7 +128,6 @@ export function Row({
       {value ? (
         <View style={styles.rowValue}>
           <Text
-            numberOfLines={1}
             style={[
               styles.value,
               { color: emphasis ? tokens.ink : tokens.muted },
@@ -294,17 +295,20 @@ export function StaleBanner({
 /**
  * Nothing yet, and one button that makes the first thing.
  *
+ * The glyph sits on the Module's `tile-l` tile, like the tile under any
+ * Module screen's title, never bare in a group colour.
+ *
  * Empty is never off: there is no switch anywhere in Finances (ADR-0022), so
  * an empty screen invites rather than explains its own absence.
  */
 export function EmptyState({
-  icon,
+  glyph,
   title,
   body,
   actionLabel,
   onAction,
 }: {
-  icon: ReactNode
+  glyph: Glyph
   title: string
   body: string
   actionLabel?: string
@@ -313,7 +317,7 @@ export function EmptyState({
   const tokens = useMoneyTokens()
   return (
     <View style={styles.empty}>
-      {icon}
+      <ModuleTile group="money" glyph={glyph} size="l" />
       <Text
         accessibilityRole="header"
         style={[styles.emptyTitle, { color: tokens.ink }]}
@@ -509,7 +513,6 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 8 },
   section: {
     ...TYPE.footnoteStrong,
-    letterSpacing: 0.8,
     marginTop: 14,
     marginBottom: 2,
     marginLeft: 4,
@@ -531,14 +534,14 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: 2 },
   rowLabel: { ...TYPE.body },
   rowValue: { alignItems: 'flex-end' },
-  value: { ...TYPE.subhead, ...TABULAR, maxWidth: 160 },
+  value: { ...TYPE.subhead, ...TABULAR, maxWidth: 160, textAlign: 'right' },
   valueSub: { ...TYPE.footnote, ...TABULAR },
   sub: { ...TYPE.footnote },
   leading: { width: 24, alignItems: 'center' },
   pressed: { opacity: 0.7 },
   disabled: { opacity: 0.45 },
   figure: { gap: 3 },
-  caption: { ...TYPE.footnoteStrong, letterSpacing: 0.6 },
+  caption: { ...TYPE.footnoteStrong },
   figureLarge: { ...TYPE.numeralL, letterSpacing: -0.8 },
   figureSmall: { ...TYPE.title2, ...TABULAR, letterSpacing: -0.4 },
   notice: { ...TYPE.footnote, marginTop: 10, paddingHorizontal: 4 },

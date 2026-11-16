@@ -311,12 +311,12 @@ export function ComposerScreen({
         {showFacts ? (
           <>
             <Text style={[styles.heading, { color: tokens.muted }]}>
-              {words.facts.toUpperCase()}
+              {words.facts}
             </Text>
 
             <View style={styles.field}>
               <Text style={[styles.fieldLabel, { color: tokens.muted }]}>
-                {composer.name.toUpperCase()}
+                {composer.name}
               </Text>
               <TextInput
                 value={name}
@@ -355,7 +355,7 @@ export function ComposerScreen({
         {showTasting ? (
           <>
             <Text style={[styles.heading, { color: tokens.muted }]}>
-              {composer.myTasting.toUpperCase()}
+              {composer.myTasting}
             </Text>
 
             <StarRating value={rating} onChange={setRating} />
@@ -455,9 +455,9 @@ const styles = StyleSheet.create({
   subjectText: { flex: 1, gap: 1 },
   subjectName: { ...TYPE.bodyStrong },
   subjectNote: { ...TYPE.footnote },
-  heading: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  heading: { ...TYPE.footnoteStrong },
   field: { gap: 7 },
-  fieldLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  fieldLabel: { ...TYPE.footnoteStrong },
   nameInput: {
     ...TYPE.body,
     minHeight: 48,

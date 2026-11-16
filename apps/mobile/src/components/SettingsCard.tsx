@@ -80,7 +80,7 @@ export function SettingsRow({
         disabled && styles.disabled,
       ]}
     >
-      <Text numberOfLines={1} style={[styles.rowLabel, { color: tokens.ink }]}>
+      <Text style={[styles.rowLabel, { color: tokens.ink }]}>
         {label}
       </Text>
       <ChevronRight

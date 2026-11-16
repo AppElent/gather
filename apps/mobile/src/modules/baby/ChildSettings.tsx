@@ -45,7 +45,7 @@ import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { ListPicker, type PickedList } from './ListPicker'
 import { LogBar, slotIcon, slotLabel } from './LogBar'
 import { useWriteChildBar } from './useWriteChildBar'
@@ -268,7 +268,7 @@ export function ChildSettings({ childId }: { childId: string }) {
       <Text style={[styles.group, { color: tokens.muted }]}>{group.name}</Text>
 
       <Text style={[styles.sectionTitle, { color: tokens.muted }]}>
-        {t.baby.log.form.detailsTitle.toUpperCase()}
+        {t.baby.log.form.detailsTitle}
       </Text>
       <View
         style={[
@@ -358,9 +358,9 @@ export function ChildSettings({ childId }: { childId: string }) {
                   ]}
                 >
                   <Text
-                    numberOfLines={1}
                     style={[
                       on ? TYPE.footnoteStrong : TYPE.footnote,
+                      styles.segmentLabel,
                       { color: on ? tokens.onInk : tokens.ink },
                     ]}
                   >
@@ -379,7 +379,7 @@ export function ChildSettings({ childId }: { childId: string }) {
       ) : null}
 
       <Text style={[styles.sectionTitle, { color: tokens.muted }]}>
-        {t.baby.log.tracked.title.toUpperCase()}
+        {t.baby.log.tracked.title}
       </Text>
       <Pressable
         accessibilityRole="button"
@@ -556,7 +556,6 @@ const styles = StyleSheet.create({
   group: { ...TYPE.footnote, marginBottom: 8 },
   sectionTitle: {
     ...TYPE.footnoteStrong,
-    letterSpacing: 0.8,
     marginTop: 8,
   },
   card: {
@@ -600,12 +599,15 @@ const styles = StyleSheet.create({
   },
   sexRow: { paddingVertical: 12, gap: 8 },
   segments: { flexDirection: 'row', gap: 8 },
+  segmentLabel: { textAlign: 'center' },
+  // "Prefer not to say" wraps at a large text size; the segment grows.
   segment: {
     flex: 1,
-    minHeight: 44,
+    minHeight: SIZE.hitMin,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: SPACE[1],
+    paddingVertical: SPACE[1],
     borderWidth: 1,
     borderRadius: RADIUS.pill,
   },

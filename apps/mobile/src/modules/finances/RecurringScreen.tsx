@@ -47,7 +47,6 @@ export function RecurringScreen() {
   const [period, setPeriod] = useState<'month' | 'year'>('month')
   const sheet = useCostSheet(groupSlug)
 
-  const tint = tokens.tintOf('money')
   const Repeat = FINANCE_ICONS.Repeat
 
   if (costs === undefined) {
@@ -96,7 +95,7 @@ export function RecurringScreen() {
       <ScreenScroll>
         {costs.length === 0 ? (
           <EmptyState
-            icon={<Repeat size={34} color={tint.text} strokeWidth={1.6} />}
+            glyph={Repeat}
             title={text.recurringCosts.emptyTitle}
             body={text.recurringCosts.emptyBody}
             actionLabel={text.recurringCosts.addCost}

@@ -722,7 +722,6 @@ function SheetRow({
         {label}
       </Text>
       <Text
-        numberOfLines={1}
         style={[styles.sheetRowValue, { color: tokens.muted }]}
       >
         {value}
@@ -1220,9 +1219,7 @@ const styles = StyleSheet.create({
   pane: { paddingHorizontal: 4, paddingBottom: 6, gap: 6 },
   paneLabel: {
     ...TYPE.footnoteStrong,
-    letterSpacing: 0.8,
     paddingHorizontal: 8,
-    textTransform: 'uppercase',
   },
   paneField: {
     ...TYPE.body,
@@ -1291,7 +1288,12 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   sheetRowLabel: { ...TYPE.body, flex: 1 },
-  sheetRowValue: { ...TYPE.subhead, maxWidth: 170 },
+  sheetRowValue: {
+    ...TYPE.subhead,
+    maxWidth: 170,
+    flexShrink: 1,
+    textAlign: 'right',
+  },
   sheetSave: {
     minHeight: 48,
     alignItems: 'center',

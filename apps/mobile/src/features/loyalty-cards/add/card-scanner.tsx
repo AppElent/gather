@@ -99,6 +99,7 @@ export function CardScanner({
               onPress={() => {
                 Linking.openSettings().catch(() => {})
               }}
+              group="home"
               testID="loyalty-card-open-settings"
             />
           ) : (
@@ -107,6 +108,7 @@ export function CardScanner({
               onPress={() => {
                 requestPermission().catch(() => {})
               }}
+              group="home"
               testID="loyalty-card-allow-camera"
             />
           )}

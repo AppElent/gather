@@ -96,6 +96,11 @@ export const SIZE = {
   tileS: 28,
   tileM: 36,
   tileL: 56,
+  /**
+   * A photo thumbnail beside a row (`radius-thumb`'s "46 pt photo
+   * thumbnail"). A photo-less row centres its `tile-s` in the same column.
+   */
+  thumb: 46,
   /** The minimum height of every control; smaller visuals get hitSlop 12. */
   hitMin: 44,
   /** The minimum height of an inset-list row. */

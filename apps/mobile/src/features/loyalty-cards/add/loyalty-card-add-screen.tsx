@@ -159,7 +159,6 @@ export function LoyaltyCardAddScreen() {
             />
           ) : null}
           <Text
-            numberOfLines={2}
             style={[TYPE.bodyStrong, styles.storeName, { color: tokens.ink }]}
           >
             {retailer ? retailer.name : words.picker.otherStore}

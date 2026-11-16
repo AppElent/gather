@@ -246,7 +246,7 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
           {mode === 'import' ? (
             <View style={styles.field}>
               <Text style={[styles.label, { color: tokens.muted }]}>
-                {text.create.linkLabel.toUpperCase()}
+                {text.create.linkLabel}
               </Text>
               <View style={styles.linkRow}>
                 <TextInput
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 14 },
   field: { gap: 6 },
-  label: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  label: { ...TYPE.footnoteStrong },
   linkRow: { flexDirection: 'row', gap: 8 },
   linkInput: { flex: 1 },
   input: {

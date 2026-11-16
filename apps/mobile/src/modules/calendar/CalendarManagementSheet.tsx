@@ -59,7 +59,7 @@ export function CalendarManagementSheet({
                 onPress={() => onVisibility(calendar.id, !visible)}
               >
                 <Text
-                  style={{ color: visible ? tokens.accentText : tokens.muted }}
+                  style={{ color: visible ? tokens.ink : tokens.muted }}
                 >
                   {visible ? '✓' : '○'}
                 </Text>

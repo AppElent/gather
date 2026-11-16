@@ -51,7 +51,6 @@ export function SavingsScreen() {
   const [target, setTarget] = useState('')
   const [date, setDate] = useState('')
 
-  const tint = tokens.tintOf('money')
   const Target = FINANCE_ICONS.Target
 
   if (goals === undefined) {
@@ -99,7 +98,7 @@ export function SavingsScreen() {
         {failure}
         {goals.length === 0 ? (
           <EmptyState
-            icon={<Target size={34} color={tint.text} strokeWidth={1.6} />}
+            glyph={Target}
             title={text.savings.emptyTitle}
             body={text.savings.emptyBody}
             actionLabel={text.savings.addGoal}

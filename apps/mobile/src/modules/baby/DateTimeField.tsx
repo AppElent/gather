@@ -71,7 +71,7 @@ export function DateTimeField({
     return (
       <View style={[styles.stepperWrap, { flex: grow }]}>
         <Text style={[styles.stepperLabel, { color: tokens.muted }]}>
-          {label.toUpperCase()}
+          {label}
         </Text>
         <View
           style={[
@@ -88,7 +88,6 @@ export function DateTimeField({
             <Text style={[styles.stepGlyph, { color: tint.text }]}>−</Text>
           </Pressable>
           <Text
-            numberOfLines={1}
             style={[styles.stepValue, { color: tokens.ink }]}
           >
             {display}
@@ -186,7 +185,7 @@ const styles = StyleSheet.create({
   editor: { borderTopWidth: StyleSheet.hairlineWidth, padding: 12, gap: 12 },
   steppers: { flexDirection: 'row', gap: 8 },
   stepperWrap: { gap: 5 },
-  stepperLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.6 },
+  stepperLabel: { ...TYPE.footnoteStrong },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -75,7 +75,6 @@ export function SplitScreen() {
   const [label, setLabel] = useState('')
   const [name, setName] = useState('')
 
-  const tint = tokens.tintOf('money')
   const Users = FINANCE_ICONS.Users
 
   if (members === undefined) {
@@ -218,7 +217,7 @@ export function SplitScreen() {
 
         {payments.length === 0 ? (
           <EmptyState
-            icon={<Users size={34} color={tint.text} strokeWidth={1.6} />}
+            glyph={Users}
             title={text.split.emptyTitle}
             body={text.split.emptyBody}
           />

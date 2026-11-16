@@ -12,9 +12,11 @@
  * You rearrange by recognising the row, and stripping it back to a title is
  * what makes that harder.
  *
- * The arithmetic is `arrange/arrange.ts`. There is no drag-and-drop
- * dependency: a fixed-height list that does not auto-scroll is short, and the
- * library is five hundred kilobytes and a native rebuild.
+ * The arithmetic is `arrange/arrange.ts`. Rows wrap their title under Dynamic
+ * Type, so each row is measured as it lays out and the drop arithmetic walks
+ * those heights rather than dividing by one. There is no drag-and-drop
+ * dependency: a list that does not auto-scroll is short, and the library is
+ * five hundred kilobytes and a native rebuild.
  *
  * The gesture is **`react-native-gesture-handler`, not `PanResponder`.**
  * `PanResponder`, which the Baby log's arranging bar uses, does not drag here
@@ -33,18 +35,15 @@ import {
   GestureDetector,
   type LegacyScrollView as GestureScrollView,
 } from 'react-native-gesture-handler'
-import { dropIndex, movedTo, shiftFor } from '../../arrange/arrange'
+import { dropIndexAcross, movedTo, shiftFor } from '../../arrange/arrange'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
 import { priorityColor } from './components'
 import { dueLabel } from './taskDates'
 import type { ListDisplay, Task } from './types'
-
-/** Fixed, because the drop arithmetic is a division by it. */
-const ROW = 62
 
 /** What a grip needs to talk to the list it belongs to. */
 interface DragHandlers {
@@ -89,6 +88,11 @@ export function ReorderMode({
   // stale render's values.
   const live = useRef({ order, drag })
   live.current = { order, drag }
+  // Each row's laid-out height, by task id. A row that has not laid out yet
+  // counts as the shortest a row can be.
+  const heights = useRef(new Map<string, number>())
+  const heightOf = (id: string | undefined) =>
+    (id && heights.current.get(id)) || SIZE.rowMin
 
   // The handlers are held in a ref because a grip's gesture is built once per
   // index and must not close over the arrangement as it was three drops ago.
@@ -108,7 +112,11 @@ export function ReorderMode({
       lift.setValue(dy)
       const current = live.current.drag
       if (!current) return
-      const to = dropIndex(live.current.order.length, current.from, dy, ROW)
+      const to = dropIndexAcross(
+        live.current.order.map(heightOf),
+        current.from,
+        dy,
+      )
       if (to !== current.to) {
         setDrag({ from: current.from, to })
         // One notch per row crossed: this is the only way to feel where the
@@ -151,7 +159,9 @@ export function ReorderMode({
       <Card style={styles.dragCard}>
         {rows.map((task, index) => {
           const dragging = drag?.from === index
-          const shift = drag ? shiftFor(index, drag.from, drag.to, ROW) : 0
+          const shift = drag
+            ? shiftFor(index, drag.from, drag.to, heightOf(rows[drag.from]?.id))
+            : 0
           const meta = [
             display.due && task.dueDate
               ? dueLabel(task.dueDate, today, locale, {
@@ -174,6 +184,9 @@ export function ReorderMode({
               key={task.id}
               testID={`reorder-${task.id}`}
               accessibilityLabel={task.title}
+              onLayout={(event) => {
+                heights.current.set(task.id, event.nativeEvent.layout.height)
+              }}
               style={[
                 styles.row,
                 {
@@ -210,17 +223,11 @@ export function ReorderMode({
                 ]}
               />
               <View style={styles.text}>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.title, { color: tokens.ink }]}
-                >
+                <Text style={[styles.title, { color: tokens.ink }]}>
                   {task.title}
                 </Text>
                 {meta ? (
-                  <Text
-                    numberOfLines={1}
-                    style={[styles.meta, { color: tokens.muted }]}
-                  >
+                  <Text style={[styles.meta, { color: tokens.muted }]}>
                     {meta}
                   </Text>
                 ) : null}
@@ -300,7 +307,8 @@ const styles = StyleSheet.create({
   },
   hintText: { ...TYPE.footnote, flex: 1 },
   row: {
-    height: ROW,
+    minHeight: SIZE.rowMin,
+    paddingVertical: SPACE[2],
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,

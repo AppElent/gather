@@ -80,14 +80,14 @@ export function LabsScreen() {
           </Text>
 
           <Text style={[styles.sectionLabel, { color: tokens.muted }]}>
-            {t.labs.entry.question.toUpperCase()}
+            {t.labs.entry.question}
           </Text>
           <Text style={[styles.body, { color: tokens.ink }]}>
             {t.labs[entry.id].question}
           </Text>
 
           <Text style={[styles.sectionLabel, { color: tokens.muted }]}>
-            {t.labs.entry.verdict.toUpperCase()}
+            {t.labs.entry.verdict}
           </Text>
           <Text style={[styles.body, { color: tokens.muted }]}>
             {entry.verdict === null
@@ -110,7 +110,7 @@ export function LabsScreen() {
           </Link>
 
           <Text style={[styles.sectionLabel, { color: tokens.muted }]}>
-            {t.labs.entry.variants.toUpperCase()}
+            {t.labs.entry.variants}
           </Text>
           <View style={styles.links}>
             {entry.links.map((link) => {
@@ -159,7 +159,6 @@ const styles = StyleSheet.create({
   name: { ...TYPE.bodyStrong, letterSpacing: -0.3 },
   sectionLabel: {
     ...TYPE.footnoteStrong,
-    letterSpacing: 0.8,
     marginTop: 10,
   },
   body: { ...TYPE.subhead },

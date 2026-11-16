@@ -107,13 +107,11 @@ export function Notes() {
           >
             <View style={styles.rowText}>
               <Text
-                numberOfLines={1}
                 style={[styles.noteTitle, { color: tokens.ink }]}
               >
                 {note.title || t.notes.untitled}
               </Text>
               <Text
-                numberOfLines={1}
                 style={[styles.notePreview, { color: tokens.muted }]}
               >
                 {preview(note.body)}
