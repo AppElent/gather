@@ -18,8 +18,16 @@ vi.mock('convex/react', () => {
   return { useMutation: () => markUsed }
 })
 
-function Card({ id, tick }: { id: string; tick: number }) {
-  useMarkUsedOnce('home', id as Id<'loyaltyCards'>)
+function Card({
+  id,
+  tick,
+  justAdded,
+}: {
+  id: string
+  tick: number
+  justAdded?: boolean
+}) {
+  useMarkUsedOnce('home', id as Id<'loyaltyCards'>, justAdded)
   return <p>{tick}</p>
 }
 
@@ -59,4 +67,24 @@ test('opening the card again is a new use', async () => {
   mount(<Card id="card-1" tick={0} />).unmount()
   await settle()
   expect(calls).toHaveLength(2)
+})
+
+test('the open right after adding the card is not a use; the next open is', async () => {
+  const view = mount(
+    <StrictMode>
+      <Card id="card-1" tick={0} justAdded />
+    </StrictMode>,
+  )
+  view.rerender(
+    <StrictMode>
+      <Card id="card-1" tick={1} justAdded />
+    </StrictMode>,
+  )
+  await settle()
+  expect(calls).toEqual([])
+  view.unmount()
+
+  mount(<Card id="card-1" tick={0} />).unmount()
+  await settle()
+  expect(calls).toEqual([{ groupSlug: 'home', id: 'card-1' }])
 })

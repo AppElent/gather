@@ -87,6 +87,7 @@ export function NewLoyaltyCardPage() {
             key={retailer?.seedKey ?? 'other'}
             retailer={retailer}
             customStore={!retailer}
+            focusOnOpen={retailer ? 'cardNumber' : 'storeName'}
             initial={{
               storeName: retailer?.name ?? '',
               cardNumber: '',
@@ -112,7 +113,10 @@ export function NewLoyaltyCardPage() {
                   frontPhotoId: values.frontPhotoId,
                   backPhotoId: values.backPhotoId,
                 })
-                navigate(linkTo('loyaltyCard', { cardId: id }))
+                navigate({
+                  ...linkTo('loyaltyCard', { cardId: id }),
+                  search: { saved: true },
+                })
               } catch (caught) {
                 setError(
                   errorMessage(caught, copy.form.saveFailed, copy.refusals),

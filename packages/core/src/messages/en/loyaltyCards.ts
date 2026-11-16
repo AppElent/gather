@@ -72,7 +72,6 @@ export const loyaltyCards = {
     notFound: 'This card is not in this household.',
     showAtTill: 'Show this at the till',
     cardNumber: 'Card number',
-    holder: 'Whose card',
     note: 'Note',
     photos: 'Photos',
     lastUsed: 'Last used',

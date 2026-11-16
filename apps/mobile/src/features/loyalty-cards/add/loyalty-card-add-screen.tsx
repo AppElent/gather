@@ -113,7 +113,9 @@ export function LoyaltyCardAddScreen() {
           | undefined,
       })
       haptics.itemSaved()
-      router.replace(moduleHref('/all/loyalty-cards/card', { cardId: id }))
+      router.replace(
+        moduleHref('/all/loyalty-cards/card', { cardId: id, justAdded: '1' }),
+      )
     } catch (error) {
       haptics.actionFailed()
       setProblem(

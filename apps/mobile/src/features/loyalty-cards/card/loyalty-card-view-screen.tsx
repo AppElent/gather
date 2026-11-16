@@ -6,7 +6,8 @@
  * the card is on screen it is at full brightness (`useTillBrightness`) and
  * stays awake (`useKeepAwakeWhile`). Both follow focus, not mount: switching
  * tab or opening Edit keeps this screen mounted, and gives both back.
- * Opening it counts as using it, once (`useMarkUsedOnce`).
+ * Opening it counts as using it, once (`useMarkUsedOnce`), except the open
+ * that follows adding the card (`justAdded`).
  */
 import { Image } from 'expo-image'
 import { Stack, useIsFocused, useRouter } from 'expo-router'
@@ -33,8 +34,10 @@ import { useTillBrightness } from './use-till-brightness'
 
 export function LoyaltyCardViewScreen({
   cardId,
+  justAdded = false,
 }: {
   cardId: Id<'loyaltyCards'>
+  justAdded?: boolean
 }) {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
@@ -52,7 +55,7 @@ export function LoyaltyCardViewScreen({
   const shown = useIsFocused() && Boolean(card)
   useKeepAwakeWhile(shown)
   useTillBrightness(shown)
-  useMarkUsedOnce(group.slug, cardId)
+  useMarkUsedOnce(group.slug, cardId, justAdded)
 
   const moduleTitle = t.modules.byId['loyalty-cards'].label
 

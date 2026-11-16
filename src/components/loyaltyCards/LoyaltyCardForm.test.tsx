@@ -223,3 +223,36 @@ describe('a photo still uploading', () => {
     )
   })
 })
+
+describe('after a store is picked', () => {
+  test('the cursor goes to the card number when the store came from the list', () => {
+    renderForm({ focusOnOpen: 'cardNumber' })
+    expect(screen.getByLabelText('Card number')).toHaveFocus()
+  })
+
+  test('the cursor goes to the store name for another store', () => {
+    renderForm({
+      retailer: undefined,
+      customStore: true,
+      initial: { ...EMPTY, storeName: '' },
+      focusOnOpen: 'storeName',
+    })
+    expect(screen.getByLabelText('Store')).toHaveFocus()
+  })
+
+  test('editing a card leaves the cursor where it was', () => {
+    renderForm()
+    expect(screen.getByLabelText('Card number')).not.toHaveFocus()
+    expect(screen.getByLabelText('Store')).not.toHaveFocus()
+  })
+})
+
+test('a digits-only barcode type offers a number pad, and others do not', () => {
+  renderForm()
+  const number = screen.getByLabelText('Card number')
+  expect(number).toHaveAttribute('inputmode', 'numeric')
+  fireEvent.change(screen.getByLabelText('Barcode type'), {
+    target: { value: 'CODE_128' },
+  })
+  expect(number).toHaveAttribute('inputmode', 'text')
+})

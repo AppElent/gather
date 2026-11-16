@@ -268,7 +268,10 @@ test('a scanned card suggests its store and saves with the scanned number', asyn
     },
   ])
   expect(state.replaced).toEqual([
-    { pathname: '/all/loyalty-cards/card', params: { cardId: 'card-1' } },
+    {
+      pathname: '/all/loyalty-cards/card',
+      params: { cardId: 'card-1', justAdded: '1' },
+    },
   ])
   view.unmount()
 })

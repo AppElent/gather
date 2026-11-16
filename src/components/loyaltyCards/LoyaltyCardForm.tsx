@@ -2,12 +2,13 @@ import {
   BARCODE_FORMATS,
   type BarcodeFormat,
   checkCardNumber,
+  isDigitsOnlyFormat,
 } from '@gather/core/barcodes'
 import {
   DEFAULT_STORE_COLOR,
   LOYALTY_CARD_LIMITS,
 } from '@gather/core/loyalty-cards'
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import type { Id } from '../../../convex/_generated/dataModel'
 import type { RetailerSuggestion } from '../../../convex/loyaltyCards'
 import { fmt, useMessages } from '../../lib/i18n'
@@ -37,6 +38,12 @@ interface LoyaltyCardFormProps {
   generateUploadUrl: () => Promise<string>
   submitting: boolean
   onSubmit: (values: LoyaltyCardFormValues) => void
+  /**
+   * The field to put the cursor in when the form appears: the first one left
+   * to fill after a store was picked. Unset when editing, where nothing was
+   * just picked and the page opens at its top.
+   */
+  focusOnOpen?: 'storeName' | 'cardNumber'
 }
 
 /**
@@ -54,6 +61,7 @@ export function LoyaltyCardForm({
   generateUploadUrl,
   submitting,
   onSubmit,
+  focusOnOpen,
 }: LoyaltyCardFormProps) {
   const messages = useMessages()
   const copy = messages.loyaltyCards.form
@@ -70,6 +78,14 @@ export function LoyaltyCardForm({
     note: useId(),
     color: useId(),
   }
+
+  // Picking a store unmounts the picker that had focus; without this the
+  // cursor falls back to the page and the keyboard user starts over.
+  const focusId = focusOnOpen === 'storeName' ? ids.store : ids.number
+  const focusOnMount = focusOnOpen !== undefined
+  useEffect(() => {
+    if (focusOnMount) document.getElementById(focusId)?.focus()
+  }, [focusOnMount, focusId])
 
   const [storeName, setStoreName] = useState(initial.storeName)
   const [brandColor, setBrandColor] = useState(
@@ -181,11 +197,7 @@ export function LoyaltyCardForm({
           id={ids.number}
           className={`${inputClass} font-mono tracking-wider`}
           value={cardNumber}
-          inputMode={
-            ['EAN_13', 'EAN_8', 'UPC_A', 'UPC_E', 'ITF'].includes(barcodeFormat)
-              ? 'numeric'
-              : 'text'
-          }
+          inputMode={isDigitsOnlyFormat(barcodeFormat) ? 'numeric' : 'text'}
           autoComplete="off"
           spellCheck={false}
           required

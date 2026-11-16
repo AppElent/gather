@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { Pencil } from 'lucide-react'
 import { useEffect, useRef } from 'react'
@@ -12,16 +12,42 @@ import { useRequiredCurrentGroup } from '../app/useCurrentGroup'
 import { Barcode } from './Barcode'
 import { StoreTile } from './StoreTile'
 
+export interface LoyaltyCardSearch {
+  /** Arrived straight from saving the card, which is not showing it. */
+  saved?: true
+}
+
+export function validateLoyaltyCardSearch(
+  search: Record<string, unknown>,
+): LoyaltyCardSearch {
+  return search.saved === true ? { saved: true } : {}
+}
+
 /**
  * One card, ready for the till: the barcode large, the number under it, and
  * the card's details below. Opening it counts as using it (`markUsed`), which
  * is what moves the card to the top of the list.
+ *
+ * Landing here from saving the card (`justSaved`, `?saved=true`) does not:
+ * adding or editing a card is not showing it at a till (APP-153). The flag
+ * is dropped from the address straight away, so a reload or a later visit to
+ * this page counts as usual.
  */
-export function LoyaltyCardPage({ cardId }: { cardId: string }) {
+export function LoyaltyCardPage({
+  cardId,
+  justSaved = false,
+}: {
+  cardId: string
+  justSaved?: boolean
+}) {
   const { slug: groupSlug } = useRequiredCurrentGroup()
   const id = cardId as Id<'loyaltyCards'>
   const card = useQuery(api.loyaltyCards.get, { groupSlug, id })
   const markUsed = useMutation(api.loyaltyCards.markUsed)
+  const navigate = useNavigate()
+  // Read once, on arrival: the flag leaves the address below, and that must
+  // not turn this same visit into a use.
+  const savedCardId = useRef(justSaved ? cardId : null)
   const { locale, messages } = useI18n()
   const copy = messages.loyaltyCards.detail
   // `lastUsedAt` from before this visit, so the page does not report the
@@ -35,11 +61,16 @@ export function LoyaltyCardPage({ cardId }: { cardId: string }) {
 
   const loadedId = card?._id
   useEffect(() => {
-    if (!loadedId) return
+    if (!loadedId || savedCardId.current === loadedId) return
     // Best effort: the sort order is not worth an error on the page that is
     // being shown at a till.
     markUsed({ groupSlug, id: loadedId }).catch(() => {})
   }, [groupSlug, loadedId, markUsed])
+
+  useEffect(() => {
+    if (!justSaved) return
+    navigate({ ...linkTo('loyaltyCard', { cardId }), replace: true })
+  }, [justSaved, cardId, navigate])
 
   const moduleCrumb: Crumb = {
     label: messages.modules.byId['loyalty-cards'].label,
