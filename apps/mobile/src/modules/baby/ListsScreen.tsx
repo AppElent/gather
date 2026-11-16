@@ -26,15 +26,19 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
-import { fmt, useI18n } from '../../i18n'
-import { useTokens } from '../../theme/tokens'
+import { fmt, plural, useI18n } from '../../i18n'
+import { SPACE, useTokens } from '../../theme/tokens'
+import { moduleTile } from '../../ui/module-tile'
+import { washScreenOptions } from '../../ui/screen-header'
+import { WashHeader } from '../../ui/wash-header'
 import { Checklist } from '../tasks/Checklist'
+import { taskSections, useTaskList } from '../tasks/store'
 import { useBabyLog } from './useBabyLog'
 
 export function ListsScreen() {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const log = useBabyLog()
   const lists = useQuery(api.taskLists.list, { groupSlug: log.groupSlug })
   const ensureLists = useMutation(api.babies.ensureAuxLists)
@@ -69,44 +73,56 @@ export function ListsScreen() {
   const listId = questions ? child?.questionsListId : child?.taskListId
   const found = lists?.find((each) => each._id === listId)
   const title = questions ? text.questions : text.todos
+  const { tasks } = useTaskList(listId ?? '')
+  const open = taskSections(tasks).active.length
+  const tile = moduleTile('baby-log')
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title }} />
+      <Stack.Screen options={washScreenOptions(title)} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + 24 },
-        ]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         keyboardShouldPersistTaps="handled"
       >
-        {listId ? (
-          <Checklist
-            listId={listId}
-            title={title}
-            addLabel={questions ? text.addQuestion : text.addTodo}
-            emptyLabel={t.baby.log.child.checklistEmpty}
-            readOnlyReason={
-              found
-                ? fmt(text.readOnlyBody, { provider: found.provider })
-                : undefined
-            }
+        {tile ? (
+          <WashHeader
+            group={tile.group}
+            glyph={tile.glyph}
+            summary={{
+              count: plural(locale, open, t.tasks.count.open),
+              scope: child?.name,
+            }}
           />
-        ) : (
-          <View style={styles.empty}>
-            <Text style={{ color: tokens.muted }}>
-              {t.baby.log.child.checklistEmpty}
-            </Text>
-          </View>
-        )}
+        ) : null}
+        <View style={styles.content}>
+          {listId ? (
+            <Checklist
+              listId={listId}
+              title={title}
+              addLabel={questions ? text.addQuestion : text.addTodo}
+              emptyLabel={t.baby.log.child.checklistEmpty}
+              readOnlyReason={
+                found
+                  ? fmt(text.readOnlyBody, { provider: found.provider })
+                  : undefined
+              }
+            />
+          ) : (
+            <View style={styles.empty}>
+              <Text style={{ color: tokens.muted }}>
+                {t.baby.log.child.checklistEmpty}
+              </Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </>
   )
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 16, paddingTop: 14, gap: 14 },
+  content: { paddingHorizontal: SPACE[4], gap: 14 },
   empty: { alignItems: 'center', paddingVertical: 40 },
 })

@@ -3,6 +3,7 @@ import type { Messages } from '../en'
 export const loyaltyCards = {
   logoAlt: 'Logo van {store}',
   index: {
+    count: { one: '{count} kaart', other: '{count} kaarten' },
     subtitle: 'Klantkaarten die het hele huishouden kan gebruiken.',
     add: 'Kaart toevoegen',
     filter: 'Kaarten filteren',

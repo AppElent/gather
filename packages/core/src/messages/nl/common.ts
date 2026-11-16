@@ -17,6 +17,7 @@ export const common = {
     retry: 'Opnieuw proberen',
     back: 'Terug',
   },
+  completed: 'Voltooid',
   errors: {
     somethingWentWrong: 'Er ging iets mis. Probeer het opnieuw.',
     notFound: 'Niet gevonden.',

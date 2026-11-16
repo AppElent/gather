@@ -3,12 +3,14 @@
  *
  * ## One screen, two chromes, decided by content
  *
- * A subject **with a photo** is a Detail screen (`apps/mobile/DESIGN_SYSTEM.md`):
- * no title in the bar, the photo and the name pinned, only the tastings
- * scrolling. You recognise this record by its picture, which is the whole
- * test. The same subject **without** one is Pushed: title in the bar,
- * everything scrolls, and the empty photo tile sits in the body as an ordinary
- * invitation.
+ * A subject **with a photo** opens on it (`PhotoHeader`): the photo full-bleed
+ * under the transparent bar, the Module's eyebrow and the name, then a
+ * `FactsStrip` of the average and how many tastings it rests on. The native
+ * inline title appears once the name has scrolled under the bar. You
+ * recognise this record by its picture, which is the whole test. The same
+ * subject **without** one opens on the group's wash under the native large
+ * title (`WashHeader`) — never a placeholder picture; adding a photo is in the
+ * `⋯` menu.
  *
  * That is the one place this design branches on content rather than on Kind,
  * and it is worth saying out loud because everything else here is Kind-blind —
@@ -37,7 +39,6 @@ import { localMidnight } from '@gather/core/civil-date'
 import type { TastingAttributeValue, TastingKind } from '@gather/core/tastings'
 import { tastingFields } from '@gather/core/tastings'
 import { useMutation } from 'convex/react'
-import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
@@ -59,11 +60,22 @@ import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
 import { pickPhoto, uploadPhoto } from '../../photo/pickPhoto'
 import { useRecordRecent } from '../../search/recentRecordsStore'
-import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { RADIUS, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { FactsStrip } from '../../ui/facts-strip'
+import { moduleTile } from '../../ui/module-tile'
+import { PhotoHeader, usePhotoTitle } from '../../ui/photo-header'
+import {
+  pendingScreenOptions,
+  photoScreenOptions,
+  washScreenOptions,
+} from '../../ui/screen-header'
+import { SectionLabel } from '../../ui/section-label'
+import { WashHeader } from '../../ui/wash-header'
 import { moduleHref } from '../moduleDestination'
-import { TASTING_UI_ICONS } from './icons'
+import { KIND_ICONS, TASTING_UI_ICONS } from './icons'
+import { moduleIdOf } from './paths'
 import { StarRating } from './StarRating'
-import { subjectFacts } from './summary'
+import { subjectFacts, tastingCount } from './summary'
 import { tastingFieldText } from './TastingField'
 import { fieldLabel, kindWords, term } from './words'
 
@@ -79,6 +91,7 @@ export function SubjectScreen({
   const router = useRouter()
   const { t, locale } = useI18n()
   const { group } = useGroup()
+  const photoTitle = usePhotoTitle()
 
   const removeSubject = useMutation(api.tastings.removeSubject)
   const removeTasting = useMutation(api.tastings.removeTasting)
@@ -111,13 +124,23 @@ export function SubjectScreen({
   const copy = t.tastings.subject
   const Ellipsis = TASTING_UI_ICONS.Ellipsis
   const Plus = TASTING_UI_ICONS.Plus
-  const PhotoIcon = TASTING_UI_ICONS.ImagePlus
+  const moduleId = moduleIdOf(kind)
+  const tile = moduleTile(moduleId) ?? {
+    group: 'tasting' as const,
+    glyph: KIND_ICONS[kind],
+  }
+  const moduleLabel =
+    (t.modules.byId as Record<string, { label: string }>)[moduleId]?.label ??
+    words.many
 
   if (page === undefined) {
     return (
-      <View style={[styles.centre, { backgroundColor: tokens.ground }]}>
-        <ActivityIndicator color={tokens.muted} />
-      </View>
+      <>
+        <Stack.Screen options={pendingScreenOptions(moduleLabel)} />
+        <View style={[styles.centre, { backgroundColor: tokens.ground }]}>
+          <ActivityIndicator color={tokens.muted} />
+        </View>
+      </>
     )
   }
 
@@ -125,7 +148,7 @@ export function SubjectScreen({
     // Deleted from another device while this was open, or a stale deep link.
     return (
       <>
-        <Stack.Screen options={{ headerShown: true, title: words.many }} />
+        <Stack.Screen options={pendingScreenOptions(words.many)} />
         <View style={[styles.centre, { backgroundColor: tokens.ground }]}>
           <Text style={{ color: tokens.muted }}>{copy.noTastings}</Text>
         </View>
@@ -331,42 +354,14 @@ export function SubjectScreen({
 
   const body = (
     <>
-      {/* Pushed only: the photo tile is an ordinary invitation in the body,
-        because there is no pinned region for it to live in. */}
-      {!detail ? (
-        <View style={styles.pushedHeader}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={copy.takePhoto}
-            disabled={uploading}
-            onPress={addPhoto}
-            style={({ pressed }) => [
-              styles.photoTile,
-              { backgroundColor: tokens.surface2, borderColor: tokens.hair },
-              pressed && styles.pressed,
-            ]}
-          >
-            {uploading ? (
-              <ActivityIndicator color={tokens.muted} />
-            ) : (
-              <>
-                <PhotoIcon size={20} color={tokens.muted} strokeWidth={1.8} />
-                <Text style={[styles.photoLabel, { color: tokens.muted }]}>
-                  {copy.addPhoto}
-                </Text>
-              </>
-            )}
-          </Pressable>
-          <View style={styles.pushedMeta}>
-            <StarRating
-              value={subject.average}
-              size={18}
-              count={subject.count}
-            />
-            {logButton}
-          </View>
-        </View>
-      ) : null}
+      <View style={styles.meta}>
+        {detail ? null : (
+          <StarRating value={subject.average} size={18} count={subject.count} />
+        )}
+        <View style={styles.spacer} />
+        {uploading ? <ActivityIndicator color={tokens.muted} /> : null}
+        {logButton}
+      </View>
 
       {photoProblem ? (
         <Text style={[styles.problem, { color: tokens.danger }]}>
@@ -382,7 +377,7 @@ export function SubjectScreen({
               style={[styles.fact, { backgroundColor: tokens.surface }]}
             >
               <Text style={[styles.factLabel, { color: tokens.muted }]}>
-                {fieldLabel(t.tastings, field).toUpperCase()}
+                {fieldLabel(t.tastings, field)}
               </Text>
               <Text style={[styles.factValue, { color: tokens.ink }]}>
                 {text}
@@ -392,9 +387,7 @@ export function SubjectScreen({
         </View>
       ) : null}
 
-      <Text style={[styles.heading, { color: tokens.muted }]}>
-        {copy.tastings.toUpperCase()}
-      </Text>
+      <SectionLabel>{copy.tastings}</SectionLabel>
 
       {tastings.length === 0 ? (
         <Text style={[styles.problem, { color: tokens.muted }]}>
@@ -520,77 +513,91 @@ export function SubjectScreen({
     </>
   )
 
+  const factsLine = subjectFacts(t.tastings, kind, subject.attributes)
+
   if (!detail) {
     return (
       <>
         <Stack.Screen
-          options={{ headerShown: true, title: subject.name, headerRight }}
+          options={{ ...washScreenOptions(subject.name), headerRight }}
         />
         <ScrollView
           // Without it the body starts under the large title and draws over it.
           contentInsetAdjustmentBehavior="automatic"
           style={{ backgroundColor: tokens.ground }}
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: insets.bottom + 32 },
-          ]}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
         >
-          {body}
+          <WashHeader
+            group={tile.group}
+            glyph={tile.glyph}
+            summary={{
+              count: tastingCount(t, locale, subject.count),
+              scope: factsLine || undefined,
+            }}
+          />
+          <View style={styles.content}>{body}</View>
         </ScrollView>
         {menu}
       </>
     )
   }
 
-  /**
-   * Detail: a fixed region, not a collapse. The photo and the name are laid
-   * out as ordinary pinned views above a `ScrollView` that holds only the
-   * body, so none of the Index screen's scroll-linked machinery applies. The
-   * `title` is still set even though nothing draws it — it is the only thing
-   * VoiceOver and the app switcher have to name the screen with.
-   */
   return (
     <>
       <Stack.Screen
-        options={{ headerShown: true, title: subject.name, headerRight }}
+        options={{
+          ...photoScreenOptions(subject.name, photoTitle.shown, tokens.ink),
+          headerRight,
+        }}
       />
-      <View style={{ flex: 1, backgroundColor: tokens.ground }}>
-        <Image
-          source={{ uri: subject.photoUrl ?? undefined }}
-          style={styles.hero}
-          contentFit="cover"
-          accessibilityLabel={fmt(copy.photoOf, { name: subject.name })}
-          accessibilityIgnoresInvertColors
+      <ScrollView
+        // The photo starts under the status bar and the transparent bar.
+        contentInsetAdjustmentBehavior="automatic"
+        onScroll={photoTitle.onScroll}
+        scrollEventThrottle={16}
+        style={{ backgroundColor: tokens.ground }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+      >
+        <PhotoHeader
+          photo={{
+            uri: subject.photoUrl ?? '',
+            alt: fmt(copy.photoOf, { name: subject.name }),
+          }}
+          group={tile.group}
+          glyph={tile.glyph}
+          eyebrow={moduleLabel}
+          title={subject.name}
+          onTitleBottom={photoTitle.onTitleBottom}
         />
-        <View style={[styles.pinned, { borderBottomColor: tokens.hair }]}>
-          <Text
-            accessibilityRole="header"
-            style={[styles.pinnedName, { color: tokens.ink }]}
-          >
-            {subject.name}
-          </Text>
-          <Text style={[styles.pinnedFacts, { color: tokens.muted }]}>
-            {subjectFacts(t.tastings, kind, subject.attributes)}
-          </Text>
-          <View style={styles.pinnedMeta}>
-            <StarRating
-              value={subject.average}
-              size={18}
-              count={subject.count}
-            />
-            <View style={styles.spacer} />
-            {logButton}
-          </View>
-        </View>
-        <ScrollView
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: insets.bottom + 32 },
-          ]}
-        >
+        <View style={styles.content}>
+          {factsLine ? (
+            <Text style={[styles.factsLine, { color: tokens.muted }]}>
+              {factsLine}
+            </Text>
+          ) : null}
+          <FactsStrip
+            facts={[
+              subject.average === null
+                ? null
+                : {
+                    value: subject.average.toFixed(1),
+                    unit: copy.factUnits.average,
+                  },
+              subject.count > 0
+                ? {
+                    value: String(subject.count),
+                    unit: plural(
+                      locale,
+                      subject.count,
+                      copy.factUnits.tastings,
+                    ),
+                  }
+                : null,
+            ]}
+          />
           {body}
-        </ScrollView>
-      </View>
+        </View>
+      </ScrollView>
       {menu}
     </>
   )
@@ -611,37 +618,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   menuLabel: { ...TYPE.body },
-  content: { paddingHorizontal: 16, paddingTop: 14, gap: 14 },
-  hero: { width: '100%', height: 200 },
-  pinned: {
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  pinnedName: { ...TYPE.recordTitle, letterSpacing: -0.7 },
-  pinnedFacts: { ...TYPE.footnote },
+  content: { paddingHorizontal: SPACE[4], paddingTop: SPACE[3], gap: 14 },
+  factsLine: { ...TYPE.footnote },
   // Wraps: at 17 pt (and larger Dynamic Type) the button no longer fits
   // beside the stars on a narrow phone, so it drops to its own line.
-  pinnedMeta: {
+  meta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 12,
   },
-  pushedHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  pushedMeta: { flex: 1, gap: 8 },
-  photoTile: {
-    width: 76,
-    height: 76,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    borderRadius: RADIUS.card,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-  },
-  photoLabel: { ...TYPE.footnote },
   problem: { ...TYPE.footnote },
   logButton: {
     flexDirection: 'row',
@@ -661,9 +647,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   fact: { width: '50%', gap: 2, padding: 11 },
-  factLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.6 },
+  factLabel: { ...TYPE.footnoteStrong },
   factValue: { ...TYPE.subhead },
-  heading: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   tasting: {
     gap: 7,
     paddingVertical: 12,

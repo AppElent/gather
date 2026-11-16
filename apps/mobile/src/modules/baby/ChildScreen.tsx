@@ -34,19 +34,18 @@ import { useMutation } from 'convex/react'
 import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { api, type Id } from '../../convex/api'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { RADIUS, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { InsetList, InsetRow } from '../../ui/inset-list'
+import { moduleTile } from '../../ui/module-tile'
+import { washScreenOptions } from '../../ui/screen-header'
+import { SectionLabel } from '../../ui/section-label'
+import { WashHeader } from '../../ui/wash-header'
 import { moduleHref } from '../moduleDestination'
 import { ChildSwitcher } from './ChildSwitcher'
 import { useMinuteClock } from './clock'
@@ -57,7 +56,7 @@ import { hideSlot, showAllSlots } from './logBarState'
 import { type QuickListKind, QuickListSheet } from './QuickListSheet'
 import { QuickLogSheet } from './QuickLogSheet'
 import { TrendCard } from './TrendCard'
-import { tileStatus, tileTypes } from './todayStatus'
+import { startOfDay, tileStatus, tileTypes } from './todayStatus'
 import { useBabyLog } from './useBabyLog'
 import { useWriteChildBar } from './useWriteChildBar'
 
@@ -94,6 +93,11 @@ export function ChildScreen() {
   const moduleLabel = babyModule ? moduleText(babyModule, t).label : ''
   const age = formatAge(child.birthDate, t.baby.log.child.age, locale, now)
   const tint = tokens.tintOf('home')
+  const tile = moduleTile('baby-log')
+  const dayStart = startOfDay(now)
+  const loggedToday = events.filter(
+    (event) => event.timestamp >= dayStart,
+  ).length
 
   const statusMessages = {
     ago: (duration: string) => fmt(t.baby.log.status.ago, { duration }),
@@ -138,7 +142,7 @@ export function ChildScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: moduleLabel }} />
+      <Stack.Screen options={washScreenOptions(moduleLabel)} />
       {/* First view in the screen, deliberately: UIKit only honours
         `contentInsetAdjustmentBehavior="automatic"` — and so only collapses the
         large title against a scroll view — when that scroll view is the *first*
@@ -149,167 +153,171 @@ export function ChildScreen() {
       <ScrollView
         style={[styles.fill, { backgroundColor: tokens.ground }]}
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.content}
+        contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.baby.log.child.switch}
-          onPress={() => setSwitching(true)}
-          style={({ pressed }) => [styles.identity, pressed && styles.pressed]}
-        >
-          {child.photoUrl ? (
-            <Image
-              source={{ uri: child.photoUrl }}
-              style={styles.avatar}
-              contentFit="cover"
-              accessibilityIgnoresInvertColors
-            />
-          ) : (
-            <View style={[styles.avatar, { backgroundColor: tint.fill }]}>
-              <BABY_UI_ICONS.Baby size={27} color={tint.on} strokeWidth={1.7} />
-            </View>
-          )}
-          <View style={styles.identityText}>
-            <View style={styles.nameRow}>
-              <Text style={[styles.name, { color: tokens.ink }]}>
-                {child.name}
-              </Text>
-              <UI_ICONS.ChevronDown
-                size={19}
-                color={tokens.muted}
-                strokeWidth={2.4}
+        {tile ? (
+          <WashHeader
+            group={tile.group}
+            glyph={tile.glyph}
+            summary={{
+              count: fmt(t.baby.log.status.countToday, {
+                count: loggedToday,
+              }),
+              scope: child.name,
+            }}
+          />
+        ) : null}
+        <View style={styles.content}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.baby.log.child.switch}
+            onPress={() => setSwitching(true)}
+            style={({ pressed }) => [
+              styles.identity,
+              pressed && styles.pressed,
+            ]}
+          >
+            {child.photoUrl ? (
+              <Image
+                source={{ uri: child.photoUrl }}
+                style={styles.avatar}
+                contentFit="cover"
+                accessibilityIgnoresInvertColors
               />
-            </View>
-            <Text style={[styles.age, { color: tokens.muted }]}>{age}</Text>
-          </View>
-        </Pressable>
-
-        <Text style={[styles.sectionTitle, { color: tokens.muted }]}>
-          {t.baby.log.status.today.toUpperCase()}
-        </Text>
-
-        <View style={styles.tiles}>
-          {tiles.map((type) => {
-            const status = tileStatus(type, events, now, statusMessages)
-            const Icon = EVENT_ICONS[type]
-            return (
-              <Pressable
-                key={type}
-                accessibilityRole="button"
-                accessibilityLabel={fmt(t.baby.log.entry.logTitle, {
-                  type: t.baby.eventTypes[type],
-                })}
-                onPress={() => setLogging(type)}
-                style={({ pressed }) => [
-                  styles.tile,
-                  {
-                    backgroundColor: tokens.surface,
-                    borderColor: tokens.hair,
-                  },
-                  pressed && styles.pressed,
-                ]}
+            ) : (
+              // A person, not a Module: no group fill behind them.
+              <View
+                style={[styles.avatar, { backgroundColor: tokens.surface2 }]}
               >
-                <View style={styles.tileHead}>
-                  <Icon size={17} color={tokens.muted} strokeWidth={1.9} />
-                  <Text
-                    numberOfLines={1}
-                    style={[styles.tileLabel, { color: tokens.muted }]}
-                  >
-                    {t.baby.eventTypes[type].toUpperCase()}
-                  </Text>
-                </View>
-                <Text style={[styles.tileValue, { color: tokens.ink }]}>
-                  {status.headline ?? '—'}
+                <BABY_UI_ICONS.Baby
+                  size={27}
+                  color={tokens.muted}
+                  strokeWidth={1.7}
+                />
+              </View>
+            )}
+            <View style={styles.identityText}>
+              <View style={styles.nameRow}>
+                <Text style={[styles.name, { color: tokens.ink }]}>
+                  {child.name}
                 </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.tileDetail, { color: tokens.muted }]}
+                <UI_ICONS.ChevronDown
+                  size={19}
+                  color={tokens.muted}
+                  strokeWidth={2.4}
+                />
+              </View>
+              <Text style={[styles.age, { color: tokens.muted }]}>{age}</Text>
+            </View>
+          </Pressable>
+
+          <View style={styles.sectionTitle}>
+            <SectionLabel>{t.baby.log.status.today}</SectionLabel>
+          </View>
+
+          <View style={styles.tiles}>
+            {tiles.map((type) => {
+              const status = tileStatus(type, events, now, statusMessages)
+              const Icon = EVENT_ICONS[type]
+              return (
+                <Pressable
+                  key={type}
+                  accessibilityRole="button"
+                  accessibilityLabel={fmt(t.baby.log.entry.logTitle, {
+                    type: t.baby.eventTypes[type],
+                  })}
+                  onPress={() => setLogging(type)}
+                  style={({ pressed }) => [
+                    styles.tile,
+                    {
+                      backgroundColor: tokens.surface,
+                      borderColor: tokens.hair,
+                    },
+                    pressed && styles.pressed,
+                  ]}
                 >
-                  {status.detail ?? ''}
-                </Text>
-              </Pressable>
-            )
-          })}
-        </View>
+                  <View style={styles.tileHead}>
+                    <Icon size={17} color={tokens.muted} strokeWidth={1.9} />
+                    <Text style={[styles.tileLabel, { color: tokens.muted }]}>
+                      {t.baby.eventTypes[type]}
+                    </Text>
+                  </View>
+                  <Text style={[styles.tileValue, { color: tokens.ink }]}>
+                    {status.headline ?? '—'}
+                  </Text>
+                  <Text style={[styles.tileDetail, { color: tokens.muted }]}>
+                    {status.detail ?? ''}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
 
-        <TrendCard
-          events={events}
-          title={t.baby.log.status.weight}
-          onOpenAll={() =>
-            router.push(
-              moduleHref('/all/baby-log/trends', { childId: child._id }),
-            )
-          }
-        />
+          <TrendCard
+            events={events}
+            title={t.baby.log.status.weight}
+            onOpenAll={() =>
+              router.push(
+                moduleHref('/all/baby-log/trends', { childId: child._id }),
+              )
+            }
+          />
 
-        <Text style={[styles.sectionTitle, { color: tokens.muted }]}>
-          {t.baby.log.lists.title.toUpperCase()}
-        </Text>
+          <View style={styles.sectionTitle}>
+            <SectionLabel>{t.baby.log.lists.title}</SectionLabel>
+          </View>
 
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: tokens.surface, borderColor: tokens.hair },
-          ]}
-        >
-          {(
-            [
-              ['todos', t.baby.log.lists.todos, BABY_UI_ICONS.ListChecks],
+          <InsetList>
+            {(
               [
-                'questions',
-                t.baby.log.lists.questions,
-                BABY_UI_ICONS.CircleQuestionMark,
-              ],
-            ] as const
-          ).map(([list, label, Icon], index) => (
-            <Pressable
-              key={list}
-              accessibilityRole="button"
-              accessibilityLabel={label}
-              onPress={() =>
-                router.push(
-                  moduleHref('/all/baby-log/lists', {
-                    childId: child._id,
-                    list,
-                  }),
-                )
-              }
-              style={({ pressed }) => [
-                styles.row,
-                index > 0 && {
-                  borderTopWidth: StyleSheet.hairlineWidth,
-                  borderTopColor: tokens.hair,
-                },
-                pressed && styles.pressed,
-              ]}
-            >
-              <Icon size={18} color={tokens.ink} strokeWidth={1.9} />
-              <Text style={[styles.rowLabel, { color: tokens.ink }]}>
-                {label}
-              </Text>
-              <UI_ICONS.ChevronRight
-                size={18}
-                color={tokens.muted}
-                strokeWidth={2.2}
+                ['todos', t.baby.log.lists.todos, BABY_UI_ICONS.ListChecks],
+                [
+                  'questions',
+                  t.baby.log.lists.questions,
+                  BABY_UI_ICONS.CircleQuestionMark,
+                ],
+              ] as const
+            ).map(([list, label, Icon]) => (
+              <InsetRow
+                key={list}
+                title={label}
+                chevron
+                leading={
+                  <Icon
+                    size={20}
+                    color={tokens.ink}
+                    strokeWidth={1.9}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no"
+                  />
+                }
+                onPress={() =>
+                  router.push(
+                    moduleHref('/all/baby-log/lists', {
+                      childId: child._id,
+                      list,
+                    }),
+                  )
+                }
               />
-            </Pressable>
-          ))}
-        </View>
+            ))}
+          </InsetList>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() =>
-            router.push(
-              moduleHref('/all/baby-log/timeline', { childId: child._id }),
-            )
-          }
-          style={({ pressed }) => [styles.seeAll, pressed && styles.pressed]}
-        >
-          <Text style={[styles.seeAllText, { color: tint.text }]}>
-            {fmt(t.baby.log.status.seeAll, { count: events.length })}
-          </Text>
-        </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() =>
+              router.push(
+                moduleHref('/all/baby-log/timeline', { childId: child._id }),
+              )
+            }
+            style={({ pressed }) => [styles.seeAll, pressed && styles.pressed]}
+          >
+            <Text style={[styles.seeAllText, { color: tint.text }]}>
+              {fmt(t.baby.log.status.seeAll, { count: events.length })}
+            </Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       <LogBar
@@ -381,7 +389,8 @@ export function ChildScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20, gap: 9 },
+  scroll: { paddingBottom: 20 },
+  content: { paddingHorizontal: SPACE[4], gap: 9 },
   identity: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -399,11 +408,7 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   name: { ...TYPE.title2, letterSpacing: -0.7 },
   age: { ...TYPE.footnote },
-  sectionTitle: {
-    ...TYPE.footnoteStrong,
-    letterSpacing: 0.8,
-    marginTop: 6,
-  },
+  sectionTitle: { marginTop: 6 },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   tile: {
     // Two per row at every phone width, without measuring: half the content
@@ -416,17 +421,9 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   tileHead: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  tileLabel: { ...TYPE.footnoteStrong, flex: 1, letterSpacing: 0.4 },
+  tileLabel: { ...TYPE.footnoteStrong, flex: 1 },
   tileValue: { ...TYPE.numeralL, letterSpacing: -0.6 },
   tileDetail: { ...TYPE.footnote, ...TABULAR },
-  card: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.card,
-    paddingHorizontal: 14,
-    overflow: 'hidden',
-  },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
-  rowLabel: { ...TYPE.body, flex: 1 },
   seeAll: { alignItems: 'center', minHeight: 44, justifyContent: 'center' },
   seeAllText: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.6 },

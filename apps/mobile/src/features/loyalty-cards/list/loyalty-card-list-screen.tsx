@@ -8,22 +8,24 @@
  */
 import { foldForSearch } from '@gather/core/loyalty-cards'
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { type ComponentProps, useState } from 'react'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { LoadingSkeleton } from '../../../components/LoadingSkeleton'
-import { NativeContextMenu } from '../../../components/NativeContextMenu'
 import { SearchField } from '../../../components/SearchField'
 import { api } from '../../../convex/api'
 import { useQuery } from '../../../convex/queries'
 import { useGroup } from '../../../group/GroupProvider'
-import { fmt, useI18n } from '../../../i18n'
+import { fmt, plural, useI18n } from '../../../i18n'
 import { moduleHref } from '../../../modules/moduleDestination'
 import { UI_ICONS } from '../../../theme/icons'
-import { TYPE, useTokens } from '../../../theme/tokens'
+import { SPACE, TYPE, useTokens } from '../../../theme/tokens'
 import { Button } from '../../../ui/button'
-import { Card } from '../../../ui/card'
+import { InsetList, InsetRow } from '../../../ui/inset-list'
+import { moduleTile } from '../../../ui/module-tile'
+import { washScreenOptions } from '../../../ui/screen-header'
+import { WashHeader } from '../../../ui/wash-header'
 import { HeaderIconButton } from '../components/header-icon-button'
 import { StoreTile } from '../components/store-tile'
 import type { ListedCard } from '../loyalty-card-types'
@@ -51,6 +53,7 @@ export function LoyaltyCardListScreen() {
   )
 
   const add = () => router.push(moduleHref('/all/loyalty-cards/new'))
+  const tile = moduleTile('loyalty-cards')
   const open = (card: ListedCard) =>
     router.push(moduleHref('/all/loyalty-cards/card', { cardId: card._id }))
 
@@ -58,8 +61,7 @@ export function LoyaltyCardListScreen() {
     <>
       <Stack.Screen
         options={{
-          headerShown: true,
-          title: t.modules.byId['loyalty-cards'].label,
+          ...washScreenOptions(t.modules.byId['loyalty-cards'].label),
           headerRight: () => (
             <HeaderIconButton
               label={words.index.add}
@@ -75,92 +77,76 @@ export function LoyaltyCardListScreen() {
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + 24 },
-        ]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       >
-        {cards === undefined ? (
-          <LoadingSkeleton rows={4} label={t.actions.loading} />
-        ) : cards.length === 0 ? (
-          <View testID="loyalty-card-empty" style={styles.empty}>
-            <Text
-              accessibilityRole="header"
-              style={[TYPE.title2, styles.center, { color: tokens.ink }]}
-            >
-              {words.index.emptyTitle}
-            </Text>
-            <Text style={[TYPE.body, styles.center, { color: tokens.muted }]}>
-              {fmt(words.index.emptyBody, { group: group.name })}
-            </Text>
-            <Button
-              label={words.index.emptyAction}
-              onPress={add}
-              testID="loyalty-card-add-first"
-            />
-          </View>
-        ) : (
-          <>
-            <SearchField
-              value={query}
-              onChangeText={setQuery}
-              placeholder={words.index.filter}
-              clearAccessibilityLabel={words.index.clearFilter}
-              testID="loyalty-card-filter"
-            />
-            {problem ? (
+        {tile && cards !== undefined ? (
+          <WashHeader
+            group={tile.group}
+            glyph={tile.glyph}
+            summary={{
+              count: plural(locale, cards.length, words.index.count),
+              scope: group.name,
+            }}
+          />
+        ) : null}
+        <View style={styles.content}>
+          {cards === undefined ? (
+            <LoadingSkeleton rows={4} label={t.actions.loading} />
+          ) : cards.length === 0 ? (
+            <View testID="loyalty-card-empty" style={styles.empty}>
               <Text
-                accessibilityRole="alert"
-                style={[TYPE.subhead, { color: tokens.danger }]}
+                accessibilityRole="header"
+                style={[TYPE.title2, styles.center, { color: tokens.ink }]}
               >
-                {problem}
+                {words.index.emptyTitle}
               </Text>
-            ) : null}
-            {matching.length === 0 ? (
-              <View style={styles.notFound}>
+              <Text style={[TYPE.body, styles.center, { color: tokens.muted }]}>
+                {fmt(words.index.emptyBody, { group: group.name })}
+              </Text>
+              <Button
+                label={words.index.emptyAction}
+                group="home"
+                onPress={add}
+                testID="loyalty-card-add-first"
+              />
+            </View>
+          ) : (
+            <>
+              <SearchField
+                value={query}
+                onChangeText={setQuery}
+                placeholder={words.index.filter}
+                clearAccessibilityLabel={words.index.clearFilter}
+                testID="loyalty-card-filter"
+              />
+              {problem ? (
                 <Text
-                  style={[TYPE.body, styles.center, { color: tokens.muted }]}
+                  accessibilityRole="alert"
+                  style={[TYPE.subhead, { color: tokens.danger }]}
                 >
-                  {words.index.filterEmpty}
+                  {problem}
                 </Text>
-                <Button
-                  label={t.actions.showAll}
-                  variant="secondary"
-                  onPress={() => setQuery('')}
-                  testID="loyalty-card-clear-filter"
-                />
-              </View>
-            ) : (
-              <Card>
-                {matching.map((card, index) => (
-                  <NativeContextMenu
-                    key={card._id}
-                    actions={[
-                      { id: 'edit', title: words.till.edit, image: 'pencil' },
-                      {
-                        id: 'delete',
-                        title: words.till.delete,
-                        image: 'trash',
-                        attributes: { destructive: true },
-                      },
-                    ]}
-                    onAction={(action) => {
-                      if (action === 'edit') {
-                        router.push(
-                          moduleHref('/all/loyalty-cards/edit', {
-                            cardId: card._id,
-                          }),
-                        )
-                      }
-                      if (action === 'delete') {
-                        setProblem(null)
-                        deleteCard(card, { onFailed: setProblem })
-                      }
-                    }}
+              ) : null}
+              {matching.length === 0 ? (
+                <View style={styles.notFound}>
+                  <Text
+                    style={[TYPE.body, styles.center, { color: tokens.muted }]}
                   >
+                    {words.index.filterEmpty}
+                  </Text>
+                  <Button
+                    label={t.actions.showAll}
+                    variant="secondary"
+                    onPress={() => setQuery('')}
+                    testID="loyalty-card-clear-filter"
+                  />
+                </View>
+              ) : (
+                <InsetList>
+                  {matching.map((card) => (
                     <CardRow
+                      key={card._id}
                       card={card}
-                      last={index === matching.length - 1}
                       used={
                         card.lastUsedAt
                           ? fmt(words.index.usedAt, {
@@ -173,13 +159,41 @@ export function LoyaltyCardListScreen() {
                           : words.index.neverUsed
                       }
                       onPress={() => open(card)}
+                      menu={{
+                        actions: [
+                          {
+                            id: 'edit',
+                            title: words.till.edit,
+                            image: 'pencil',
+                          },
+                          {
+                            id: 'delete',
+                            title: words.till.delete,
+                            image: 'trash',
+                            attributes: { destructive: true },
+                          },
+                        ],
+                        onAction: (action) => {
+                          if (action === 'edit') {
+                            router.push(
+                              moduleHref('/all/loyalty-cards/edit', {
+                                cardId: card._id,
+                              }),
+                            )
+                          }
+                          if (action === 'delete') {
+                            setProblem(null)
+                            deleteCard(card, { onFailed: setProblem })
+                          }
+                        },
+                      }}
                     />
-                  </NativeContextMenu>
-                ))}
-              </Card>
-            )}
-          </>
-        )}
+                  ))}
+                </InsetList>
+              )}
+            </>
+          )}
+        </View>
       </ScrollView>
     </>
   )
@@ -187,68 +201,40 @@ export function LoyaltyCardListScreen() {
 
 function CardRow({
   card,
-  last,
   used,
   onPress,
+  menu,
 }: {
   card: ListedCard
-  last: boolean
   used: string
   onPress: () => void
+  menu: ComponentProps<typeof InsetRow>['menu']
 }) {
-  const tokens = useTokens('home')
   const detail = [card.holder, used].filter(Boolean).join(' · ')
   return (
-    <Pressable
+    <InsetRow
       testID={`loyalty-card-${card._id}`}
-      accessibilityRole="button"
       accessibilityLabel={`${card.storeName}, ${detail}`}
       onPress={onPress}
-      android_ripple={{ color: tokens.surface2 }}
-      style={({ pressed }) => [
-        styles.row,
-        {
-          backgroundColor: tokens.surface,
-          borderBottomColor: tokens.hair,
-          borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
-        },
-        pressed && { backgroundColor: tokens.surface2 },
-      ]}
-    >
-      <StoreTile
-        name={card.storeName}
-        color={card.brandColor}
-        catalogKey={card.catalogKey}
-        size="medium"
-      />
-      <View style={styles.rowText}>
-        <Text
-          numberOfLines={1}
-          style={[TYPE.bodyStrong, { color: tokens.ink }]}
-        >
-          {card.storeName}
-        </Text>
-        <Text numberOfLines={2} style={[TYPE.footnote, { color: tokens.muted }]}>
-          {detail}
-        </Text>
-      </View>
-      <UI_ICONS.ChevronRight size={18} color={tokens.muted} />
-    </Pressable>
+      menu={menu}
+      chevron
+      leading={
+        <StoreTile
+          name={card.storeName}
+          color={card.brandColor}
+          catalogKey={card.catalogKey}
+          size="medium"
+        />
+      }
+      title={card.storeName}
+      subtitle={detail}
+    />
   )
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 16, paddingTop: 12, gap: 16 },
+  content: { paddingHorizontal: SPACE[4], gap: SPACE[4] },
   empty: { gap: 14, paddingTop: 48, paddingHorizontal: 8 },
   notFound: { gap: 14, paddingVertical: 20 },
   center: { textAlign: 'center' },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    minHeight: 68,
-    marginHorizontal: -14,
-    paddingHorizontal: 14,
-  },
-  rowText: { flex: 1, gap: 2, paddingVertical: 10 },
 })

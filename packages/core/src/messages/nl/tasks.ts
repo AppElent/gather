@@ -1,6 +1,11 @@
 import type { tasks as enTasks } from '../en/tasks'
 
 export const tasks = {
+  count: {
+    open: { one: '{count} open', other: '{count} open' },
+    lists: { one: '{count} lijst', other: '{count} lijsten' },
+  },
+
   page: {
     subtitle:
       'Gedeelde lijsten — lokale staan hier, gekoppelde spiegelen Notion of Todoist.',

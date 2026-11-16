@@ -21,14 +21,18 @@ import ReanimatedSwipeable, {
 
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
-import { fmt, useI18n } from '../../i18n'
+import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { TYPE, useTokens } from '../../theme/tokens'
+import { SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
+import { useInsetSeparator } from '../../ui/inset-list'
 import { Checkbox } from './components'
 import { TASK_ICONS } from './icons'
 import { useTaskActions } from './store'
 import { taskMenuActions } from './taskMenu'
 import type { Task } from './types'
+
+/** The check ring's diameter (`components/InsetList`). */
+const CHECK_RING = 24
 
 /**
  * One task.
@@ -42,7 +46,6 @@ import type { Task } from './types'
 export function TaskRow({
   task,
   writable,
-  last,
   onOpen,
   menu,
   bar,
@@ -52,7 +55,6 @@ export function TaskRow({
 }: {
   task: Task
   writable: boolean
-  last: boolean
   onOpen?: () => void
   /** The hold menu and both swipes. Reorder appears only inside a list. */
   menu?: { reorder: boolean; onAction: (action: string) => void }
@@ -68,6 +70,8 @@ export function TaskRow({
   const { t } = useI18n()
   const actions = useTaskActions()
   const swipe = useRef<SwipeableMethods | null>(null)
+  // Rows sit in an `InsetList`: the hairline starts at the text column.
+  const separator = useInsetSeparator()
 
   const toggle = () => {
     if (!task.done) haptics.itemCompleted()
@@ -82,7 +86,6 @@ export function TaskRow({
 
   const title = (
     <Text
-      numberOfLines={onOpen ? 1 : undefined}
       style={[
         styles.title,
         {
@@ -98,16 +101,7 @@ export function TaskRow({
   const box = <Checkbox checked={task.done} />
 
   const row = (
-    <View
-      style={[
-        styles.row,
-        {
-          backgroundColor: tokens.surface,
-          borderBottomColor: tokens.hair,
-          borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
-        },
-      ]}
-    >
+    <View style={[styles.row, { backgroundColor: tokens.surface }]}>
       {bar === undefined ? null : (
         <View style={[styles.bar, { backgroundColor: bar }]} />
       )}
@@ -121,6 +115,7 @@ export function TaskRow({
             disabled={!writable}
             hitSlop={12}
             onPress={toggle}
+            style={styles.box}
           >
             {box}
           </Pressable>
@@ -132,6 +127,7 @@ export function TaskRow({
             onPress={onOpen}
             style={({ pressed }) => [
               styles.open,
+              separator,
               pressed &&
                 Platform.OS !== 'android' && {
                   backgroundColor: tokens.surface2,
@@ -144,9 +140,9 @@ export function TaskRow({
             </View>
             {chevron ? (
               <UI_ICONS.ChevronRight
-                size={18}
+                size={17}
                 color={tokens.muted}
-                strokeWidth={1.8}
+                strokeWidth={2.2}
                 accessibilityElementsHidden
                 importantForAccessibility="no"
               />
@@ -161,12 +157,14 @@ export function TaskRow({
           accessibilityLabel={task.title}
           disabled={!writable}
           onPress={toggle}
-          style={({ pressed }) => [styles.open, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.whole, pressed && styles.pressed]}
         >
-          {box}
-          <View style={styles.text}>
-            {title}
-            {meta}
+          <View style={styles.box}>{box}</View>
+          <View style={[styles.open, separator]}>
+            <View style={styles.text}>
+              {title}
+              {meta}
+            </View>
           </View>
         </Pressable>
       )}
@@ -259,43 +257,6 @@ export function TaskRow({
   )
 }
 
-/** The fold between a list's open tasks and its completed ones. */
-export function CompletedToggle({
-  count,
-  open,
-  onPress,
-}: {
-  count: number
-  open: boolean
-  onPress: () => void
-}) {
-  const tokens = useTokens('home')
-  const { t } = useI18n()
-  return (
-    <Pressable
-      testID="completed-toggle"
-      accessibilityRole="button"
-      accessibilityState={{ expanded: open }}
-      accessibilityLabel={
-        open ? t.actions.hideCompleted : t.actions.showCompleted
-      }
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.completedToggle,
-        { borderTopColor: tokens.hair },
-        pressed && { backgroundColor: tokens.surface2 },
-      ]}
-    >
-      <Text style={[styles.completedLabel, { color: tokens.muted }]}>
-        {fmt(t.actions.completed, { count })}
-      </Text>
-      <View style={open ? styles.flipped : undefined}>
-        <UI_ICONS.ChevronDown size={18} color={tokens.muted} />
-      </View>
-    </Pressable>
-  )
-}
-
 /** The line at the bottom of a writable list that adds to it. */
 export function TaskComposer({
   listId,
@@ -306,6 +267,7 @@ export function TaskComposer({
 }) {
   const tokens = useTokens('home')
   const actions = useTaskActions()
+  const separator = useInsetSeparator()
   const [draft, setDraft] = useState('')
 
   const add = () => {
@@ -321,14 +283,16 @@ export function TaskComposer({
   }
 
   return (
-    <View style={styles.composer}>
-      <UI_ICONS.Plus
-        size={17}
-        color={tokens.accentText}
-        strokeWidth={2.2}
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-      />
+    <View style={styles.row}>
+      <View style={styles.box}>
+        <UI_ICONS.Plus
+          size={20}
+          color={tokens.accentText}
+          strokeWidth={2.2}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        />
+      </View>
       <TextInput
         testID="task-composer"
         value={draft}
@@ -338,36 +302,43 @@ export function TaskComposer({
         placeholderTextColor={tokens.muted}
         returnKeyType="done"
         accessibilityLabel={placeholder}
-        style={[styles.composerInput, { color: tokens.ink }]}
+        style={[styles.composerInput, separator, { color: tokens.ink }]}
       />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  // The `InsetList` row: the leading box, then a text column that carries the
+  // separator, so the hairline starts where the text does.
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
-    minHeight: 50,
-    marginHorizontal: -14,
-    paddingHorizontal: 14,
+    paddingLeft: SPACE[4],
   },
+  whole: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   bar: {
+    position: 'absolute',
+    left: SPACE[1] + 2,
+    top: SPACE[3],
+    bottom: SPACE[3],
     width: 3,
     borderRadius: 2,
-    alignSelf: 'stretch',
-    marginVertical: 12,
-    marginLeft: -8,
+  },
+  box: {
+    width: CHECK_RING,
+    marginRight: SPACE[3],
+    alignItems: 'center',
   },
   open: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
-    minHeight: 50,
+    gap: SPACE[3],
+    minHeight: SIZE.rowMin,
+    paddingRight: SPACE[4],
   },
-  text: { flex: 1, gap: 5, paddingVertical: 9 },
+  text: { flex: 1, gap: SPACE[1], paddingVertical: SPACE[2] },
   title: { ...TYPE.body },
   pressed: { opacity: 0.6 },
   completeAction: {
@@ -386,24 +357,11 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   actionText: { ...TYPE.footnoteStrong },
-  completedToggle: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    marginHorizontal: -14,
-    paddingHorizontal: 14,
+  composerInput: {
+    ...TYPE.body,
+    flex: 1,
+    minHeight: SIZE.rowMin,
+    paddingVertical: SPACE[3],
+    paddingRight: SPACE[4],
   },
-  completedLabel: { ...TYPE.bodyStrong },
-  flipped: { transform: [{ rotate: '180deg' }] },
-  composer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    minHeight: 50,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'transparent',
-  },
-  composerInput: { ...TYPE.body, flex: 1, paddingVertical: 12 },
 })

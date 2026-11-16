@@ -219,6 +219,8 @@ export const log = {
   },
 
   timeline: {
+    /** The summary under the timeline's large title. */
+    count: { one: '{count} entry', other: '{count} entries' },
     /** Everything ever logged, which is emphatically not "Today". */
     title: 'All entries',
     empty: 'No entries yet — log the first one above.',

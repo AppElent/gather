@@ -13,6 +13,8 @@ export const loyaltyCards = {
   /** A store tile's logo, for a screen reader. `{store}` is the store's name. */
   logoAlt: '{store} logo',
   index: {
+    /** The summary under the index's large title. */
+    count: { one: '{count} card', other: '{count} cards' },
     subtitle: 'Store cards the whole household can use.',
     add: 'Add card',
     filter: 'Filter cards',

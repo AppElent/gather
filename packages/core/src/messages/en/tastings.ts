@@ -358,6 +358,11 @@ export const subject = {
   facts: 'Facts',
   tastings: 'Tastings',
   noTastings: 'Nobody has tasted this yet.',
+  /** The facts strip's unit words on a subject with a photo. */
+  factUnits: {
+    average: 'average',
+    tastings: { one: 'tasting', other: 'tastings' },
+  },
   logTasting: 'Log a tasting',
   addPhoto: 'Label',
   photoOf: 'Photo of {name}',
