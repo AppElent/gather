@@ -73,8 +73,10 @@ export function LoyaltyCardAddScreen() {
   const [submitting, setSubmitting] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
 
-  // Nothing beneath this screen: it was opened from a link.
-  const alone = !navigation.canGoBack()
+  // Nothing beneath this screen in its own stack: it was opened from a link.
+  // Not `canGoBack()`, which also asks the tabs, and they can always go back
+  // to Home.
+  const alone = (navigation.getState()?.index ?? 0) === 0
   const leave = () => router.replace(moduleDestination('loyalty-cards'))
 
   /** One step back; false when there is no step left and back should leave. */

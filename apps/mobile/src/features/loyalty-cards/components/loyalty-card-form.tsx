@@ -401,7 +401,7 @@ function ColorSwatches({
             key={preset.id}
             accessibilityRole="radio"
             accessibilityLabel={names[preset.id]}
-            accessibilityState={{ selected, checked: selected }}
+            accessibilityState={{ checked: selected }}
             testID={`loyalty-card-color-${preset.id}`}
             hitSlop={4}
             onPress={() => {
@@ -414,7 +414,13 @@ function ColorSwatches({
               pressed && styles.pressed,
             ]}
           >
-            <View style={[styles.swatch, { backgroundColor: preset.hex }]}>
+            <View
+              style={[
+                styles.swatch,
+                // A hairline keeps light presets (yellow) visible on a light page.
+                { backgroundColor: preset.hex, borderColor: tokens.hair },
+              ]}
+            >
               {selected ? (
                 <UI_ICONS.Check
                   size={18}
@@ -522,6 +528,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: RADIUS.pill,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },

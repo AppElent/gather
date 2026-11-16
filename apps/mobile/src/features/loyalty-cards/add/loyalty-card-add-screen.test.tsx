@@ -22,7 +22,7 @@ const state = vi.hoisted(() => ({
   focused: true,
   permissionReads: 0,
   appState: null as null | ((state: string) => void),
-  canGoBack: true,
+  stackIndex: 1,
   options: {} as Record<string, unknown>,
   hardwareBack: null as null | (() => boolean),
   photoMounts: 0,
@@ -142,7 +142,12 @@ vi.mock('expo-router', () => {
   return {
     Stack,
     useIsFocused: () => state.focused,
-    useNavigation: () => ({ canGoBack: () => state.canGoBack }),
+    // The tabs above can always go back (to Home); only the stack's own
+    // index says whether a screen is beneath.
+    useNavigation: () => ({
+      canGoBack: () => true,
+      getState: () => ({ index: state.stackIndex }),
+    }),
     useRouter: () => ({
       replace: (href: unknown) => state.replaced.push(href),
       push: () => {},
@@ -254,7 +259,7 @@ beforeEach(() => {
   state.focused = true
   state.permissionReads = 0
   state.appState = null
-  state.canGoBack = true
+  state.stackIndex = 1
   state.options = {}
   state.hardwareBack = null
   state.photoMounts = 0
@@ -447,7 +452,7 @@ test('"Change store" keeps the holder, the note and the photos', async () => {
 })
 
 test('opened from a link, the screen has a back button to the list', async () => {
-  state.canGoBack = false
+  state.stackIndex = 0
   const view = mount(<LoyaltyCardAddScreen />)
   const headerLeft = state.options.headerLeft as () => ReactNode
   expect(headerLeft).toBeTypeOf('function')
