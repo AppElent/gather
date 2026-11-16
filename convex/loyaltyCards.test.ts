@@ -1,3 +1,4 @@
+import { retailersMatchingNumber } from '@gather/core/loyalty-cards'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   alice,
@@ -9,6 +10,7 @@ import {
 } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
+import { applyRetailerCatalog } from './lib/seed/apply'
 import { RETAILER_CATALOG } from './lib/seed/retailerCatalog'
 
 /**
@@ -90,15 +92,127 @@ describe('the Retailer catalog', () => {
     }
   })
 
-  test('seeding twice changes nothing the second time', async () => {
+  test('seeding twice writes nothing the second time', async () => {
     const { t } = await seed()
     const again = await t.mutation(internal.seed.seedRetailerCatalog, {})
-    expect(again).toMatchObject({
+    expect(again).toEqual({
       inserted: 0,
+      updated: 0,
+      unchanged: RETAILER_CATALOG.length,
       retired: 0,
       deduped: 0,
       rows: RETAILER_CATALOG.length,
     })
+  })
+
+  test('a re-seed writes only the rows that changed', async () => {
+    const { t } = await seed()
+    const changed = RETAILER_CATALOG.map((entry) =>
+      entry.seedKey === 'hema' ? { ...entry, brandColor: '#123456' } : entry,
+    )
+    const result = await t.run((ctx) => applyRetailerCatalog(ctx, changed))
+    expect(result).toMatchObject({
+      inserted: 0,
+      updated: 1,
+      unchanged: RETAILER_CATALOG.length - 1,
+      retired: 0,
+    })
+    const hema = await t.run((ctx) =>
+      ctx.db
+        .query('retailerCatalog')
+        .withIndex('by_seedKey', (q) => q.eq('seedKey', 'hema'))
+        .unique(),
+    )
+    expect(hema?.brandColor).toBe('#123456')
+  })
+
+  test('a re-seed leaves existing cards unchanged, even when their entry is corrected or retired', async () => {
+    const { t, homeId } = await seed()
+    const ahCard = await addAhCard(t)
+    const jumboCard = await t
+      .withIdentity(alice)
+      .mutation(api.loyaltyCards.create, {
+        ...HOME,
+        catalogKey: 'jumbo',
+        storeName: 'Jumbo',
+        cardNumber: AH_NUMBER,
+        barcodeFormat: 'EAN_13',
+      })
+    const cards = () =>
+      t.run((ctx) =>
+        ctx.db
+          .query('loyaltyCards')
+          .withIndex('by_group', (q) => q.eq('groupId', homeId))
+          .collect(),
+      )
+    const before = await cards()
+
+    // Albert Heijn corrected, Jumbo retired: the Catalog changes, the cards do not.
+    const corrected = RETAILER_CATALOG.filter(
+      (entry) => entry.seedKey !== 'jumbo',
+    ).map((entry) =>
+      entry.seedKey === 'albert-heijn'
+        ? { ...entry, brandColor: '#000000', barcodeFormat: 'QR' as const }
+        : entry,
+    )
+    const result = await t.run((ctx) => applyRetailerCatalog(ctx, corrected))
+    expect(result).toMatchObject({ updated: 1, retired: 1 })
+
+    expect(await cards()).toEqual(before)
+    // The retired entry's Provenance dangles, and the card still reads.
+    const jumbo = await t
+      .withIdentity(alice)
+      .query(api.loyaltyCards.get, { ...HOME, id: jumboCard })
+    expect(jumbo).toMatchObject({ catalogKey: 'jumbo', storeName: 'Jumbo' })
+    const ah = await t
+      .withIdentity(alice)
+      .query(api.loyaltyCards.get, { ...HOME, id: ahCard })
+    expect(ah).toMatchObject({ barcodeFormat: 'EAN_13' })
+    expect(ah?.brandColor).not.toBe('#000000')
+  })
+
+  test('health, wholesale and liquor stores have their own categories', () => {
+    const category = (key: string) =>
+      RETAILER_CATALOG.find((entry) => entry.seedKey === key)?.category
+    expect(['holland-and-barrett', 'vitaminstore'].map(category)).toEqual([
+      'health',
+      'health',
+    ])
+    expect(['makro', 'sligro', 'hanos'].map(category)).toEqual([
+      'wholesale',
+      'wholesale',
+      'wholesale',
+    ])
+    expect(['gall-en-gall', 'mitra'].map(category)).toEqual([
+      'liquor',
+      'liquor',
+    ])
+  })
+
+  test('Trekpleister, Blokker and Tango are retired', () => {
+    const keys = RETAILER_CATALOG.map((entry) => entry.seedKey)
+    for (const key of ['trekpleister', 'blokker', 'tango']) {
+      expect(keys).not.toContain(key)
+    }
+  })
+
+  test('a scanned number suggests the retailers whose prefix it carries', () => {
+    const suggest = (number: string) =>
+      retailersMatchingNumber(RETAILER_CATALOG, number).map(
+        (entry) => entry.seedKey,
+      )
+    expect(suggest(AH_NUMBER)).toEqual(['albert-heijn'])
+    // Circle K Reward Club: 13 digits starting 9902 (shop.reward-club.nl).
+    expect(suggest('9902123456789')).toEqual(['circle-k'])
+    expect(suggest('990212345678')).toEqual([])
+  })
+
+  test('at least 42 barcode formats come from a public source', () => {
+    // APP-152 sourced 31 more; a later pass may raise this, never lower it.
+    const sourced = RETAILER_CATALOG.filter(
+      (entry) => entry.formatConfidence === 'sourced',
+    )
+    expect(sourced.length).toBeGreaterThanOrEqual(42)
   })
 
   test('search matches name and aliases, ignoring case and accents', async () => {

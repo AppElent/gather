@@ -88,8 +88,11 @@ export const loyaltyCards = {
   },
   categories: {
     supermarket: 'Supermarkt',
+    wholesale: 'Groothandel',
+    liquor: 'Slijterij',
     drugstore: 'Drogisterij',
     pharmacy: 'Apotheek',
+    health: 'Gezondheidswinkel',
     beauty: 'Beauty',
     diy: 'Doe-het-zelf',
     garden: 'Tuin',

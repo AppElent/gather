@@ -1,12 +1,12 @@
 import { declinedEventTypes } from '@gather/core/domain'
 import { SAMPLE_GROUP_NAME } from '@gather/core/groups'
-import type { Id, TableNames } from '../../_generated/dataModel'
+import type { Doc, Id, TableNames } from '../../_generated/dataModel'
 import type { MutationCtx } from '../../_generated/server'
 import { destroyGroup } from '../groupCascade'
 import { allocateGroupSlug } from '../groupSlugs'
 import { getUserByClerkId } from '../sharing'
 import { auxListNames } from '../taskLists'
-import { RETAILER_CATALOG } from './retailerCatalog'
+import { RETAILER_CATALOG, type RetailerCatalogEntry } from './retailerCatalog'
 import {
   SAMPLE_BABY,
   SAMPLE_BABY_EVENTS,
@@ -151,36 +151,72 @@ export async function applyTastingCatalog(ctx: MutationCtx) {
   return { inserted, updated, retired, deduped, rows }
 }
 
+/** The columns of a `retailerCatalog` row, as the seed writes them. */
+function retailerRow(entry: RetailerCatalogEntry) {
+  return {
+    seedKey: entry.seedKey,
+    name: entry.name,
+    aliases: entry.aliases,
+    category: entry.category,
+    brandColor: entry.brandColor,
+    domain: entry.domain,
+    barcodeFormat: entry.barcodeFormat,
+    formatConfidence: entry.formatConfidence,
+    numberLength: entry.numberLength,
+    numberPrefix: entry.numberPrefix,
+  }
+}
+
+type RetailerRow = ReturnType<typeof retailerRow>
+
+/** Whether a stored row already holds exactly what the seed would write. */
+function sameRetailerRow(
+  stored: Doc<'retailerCatalog'>,
+  wanted: RetailerRow,
+): boolean {
+  return (
+    stored.seedKey === wanted.seedKey &&
+    stored.name === wanted.name &&
+    stored.aliases.length === wanted.aliases.length &&
+    stored.aliases.every((alias, index) => alias === wanted.aliases[index]) &&
+    stored.category === wanted.category &&
+    stored.brandColor === wanted.brandColor &&
+    stored.domain === wanted.domain &&
+    stored.barcodeFormat === wanted.barcodeFormat &&
+    stored.formatConfidence === wanted.formatConfidence &&
+    stored.numberLength === wanted.numberLength &&
+    stored.numberPrefix === wanted.numberPrefix
+  )
+}
+
 /**
  * Reconcile the `retailerCatalog` against `RETAILER_CATALOG` (APP-141), by
  * the same rules as the tasting Catalog: the seed always wins, retired rows
  * go, duplicates collapse. Retiring a retailer is safe, because a card keeps
  * its own copy of everything it took from the row (ADR-0043).
+ *
+ * Only a row that differs from its fixture is written (APP-152), so a deploy
+ * that changes nothing writes nothing: `inserted + updated + retired +
+ * deduped` is 0 and every row counts as `unchanged`. `catalog` is the fixture
+ * list, replaceable only so a test can seed a changed Catalog.
  */
-export async function applyRetailerCatalog(ctx: MutationCtx) {
-  const wanted = new Set(RETAILER_CATALOG.map((entry) => entry.seedKey))
+export async function applyRetailerCatalog(
+  ctx: MutationCtx,
+  catalog: readonly RetailerCatalogEntry[] = RETAILER_CATALOG,
+) {
+  const wanted = new Set(catalog.map((entry) => entry.seedKey))
   let inserted = 0
   let updated = 0
+  let unchanged = 0
   let deduped = 0
 
-  for (const entry of RETAILER_CATALOG) {
+  for (const entry of catalog) {
     const matches = await ctx.db
       .query('retailerCatalog')
       .withIndex('by_seedKey', (q) => q.eq('seedKey', entry.seedKey))
       .collect()
 
-    const fields = {
-      seedKey: entry.seedKey,
-      name: entry.name,
-      aliases: entry.aliases,
-      category: entry.category,
-      brandColor: entry.brandColor,
-      domain: entry.domain,
-      barcodeFormat: entry.barcodeFormat,
-      formatConfidence: entry.formatConfidence,
-      numberLength: entry.numberLength,
-      numberPrefix: entry.numberPrefix,
-    }
+    const fields = retailerRow(entry)
 
     const [keep, ...extras] = matches
     for (const extra of extras) {
@@ -188,12 +224,14 @@ export async function applyRetailerCatalog(ctx: MutationCtx) {
       deduped++
     }
 
-    if (keep) {
-      await ctx.db.replace(keep._id, fields)
-      updated++
-    } else {
+    if (!keep) {
       await ctx.db.insert('retailerCatalog', fields)
       inserted++
+    } else if (sameRetailerRow(keep, fields)) {
+      unchanged++
+    } else {
+      await ctx.db.replace(keep._id, fields)
+      updated++
     }
   }
 
@@ -206,13 +244,13 @@ export async function applyRetailerCatalog(ctx: MutationCtx) {
   }
 
   const rows = (await ctx.db.query('retailerCatalog').collect()).length
-  if (rows !== RETAILER_CATALOG.length) {
+  if (rows !== catalog.length) {
     throw new Error(
-      `Retailer catalog seed self-check failed: ${rows} rows for ${RETAILER_CATALOG.length} fixtures`,
+      `Retailer catalog seed self-check failed: ${rows} rows for ${catalog.length} fixtures`,
     )
   }
 
-  return { inserted, updated, retired, deduped, rows }
+  return { inserted, updated, unchanged, retired, deduped, rows }
 }
 
 // ---------------------------------------------------------------------------
