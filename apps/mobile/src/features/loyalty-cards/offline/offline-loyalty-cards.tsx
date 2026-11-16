@@ -5,8 +5,8 @@
  * Display only. It reads the saved copy and nothing else: no Convex call, no
  * router, no Group. It offers no add, edit, delete or photo, and says it is
  * offline. When Convex authenticates, the gate replaces it with the normal
- * screens. It shows the store, its tile, the holder and the barcode, and
- * nothing more.
+ * screens. It shows the store, its logo (bundled, found by `catalogKey`),
+ * the holder and the barcode, and nothing more.
  */
 import { Component, type ReactNode, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
@@ -117,6 +117,7 @@ export function OfflineLoyaltyCards({
                 <StoreTile
                   name={card.storeName}
                   color={card.brandColor}
+                  catalogKey={card.catalogKey}
                   size="medium"
                 />
                 <View style={styles.rowText}>
@@ -155,7 +156,12 @@ function OfflineCardView({ card }: { card: OfflineCard }) {
   return (
     <View style={styles.card} testID="loyalty-card-offline-card">
       <View style={styles.store}>
-        <StoreTile name={card.storeName} color={card.brandColor} size="large" />
+        <StoreTile
+          name={card.storeName}
+          color={card.brandColor}
+          catalogKey={card.catalogKey}
+          size="large"
+        />
         <View style={styles.rowText}>
           <Text
             accessibilityRole="header"
