@@ -546,7 +546,12 @@ export function SubjectScreen({
     <>
       <Stack.Screen
         options={{
-          ...photoScreenOptions(subject.name, photoTitle.shown, tokens.ink),
+          ...photoScreenOptions(
+            subject.name,
+            photoTitle.shown,
+            tokens.ink,
+            photoTitle.laidOut,
+          ),
           headerRight,
         }}
       />

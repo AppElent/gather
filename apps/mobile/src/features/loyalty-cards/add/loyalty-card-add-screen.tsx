@@ -38,8 +38,8 @@ import {
 } from '../../../modules/moduleDestination'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../../theme/tokens'
+import { HeaderIconButton } from '../../../ui/header-icon-button'
 import { cardSaveProblem } from '../components/card-save-problem'
-import { HeaderIconButton } from '../components/header-icon-button'
 import {
   type CardSubmission,
   LoyaltyCardForm,

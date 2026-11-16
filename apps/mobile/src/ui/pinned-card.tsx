@@ -6,7 +6,8 @@
  *   `surface` under it. Nothing laid over the photo.
  * - **Fill card:** the group's fill, a 30 pt glyph top left and the label in
  *   `card-label` and the group's `on` colour bottom left. The label wraps; the
- *   card is at least `pinned-min-height` and grows with Dynamic Type.
+ *   card is at least `pinned-min-height` and grows with Dynamic Type. A word
+ *   too long for the card shrinks rather than breaking mid-word.
  *
  * Holding a card opens the native context menu (Unpin, Open), whose actions
  * the caller supplies. No counts and no badges.
@@ -80,7 +81,16 @@ export function PinnedCard({
           accessibilityElementsHidden
           importantForAccessibility="no"
         />
-        <Text style={[styles.label, { color: tint.on }]}>{title}</Text>
+        <Text
+          // One line per word at most, shrinking to fit: a long compound
+          // ("Babylogboek") gets smaller rather than split mid-word.
+          numberOfLines={wordCount(title)}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+          style={[styles.label, { color: tint.on }]}
+        >
+          {title}
+        </Text>
       </View>
     )
   }
@@ -107,6 +117,10 @@ export function PinnedCard({
       {card}
     </NativeContextMenu>
   )
+}
+
+function wordCount(text: string): number {
+  return Math.max(1, text.trim().split(/\s+/).length)
 }
 
 /**

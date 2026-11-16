@@ -26,7 +26,7 @@ import {
 } from '@gather/core/module-arrangement'
 import type { ModuleGroup } from '@gather/core/modules'
 import { pinnedModuleIds, togglePin } from '@gather/core/pins'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import {
   allArrangementKey,
@@ -88,8 +88,16 @@ function readStored(groupSlug: string): StoredAll {
   }
 }
 
+/**
+ * Every mounted reader of an arrangement, so a change made on one screen
+ * reaches the others: Home's Pinned row and All's Pinned section are the same
+ * list, and both tabs stay mounted.
+ */
+const changed = new Set<(groupSlug: string) => void>()
+
 function writeStored(groupSlug: string, value: StoredAll) {
   writePreference(allArrangementKey(groupSlug), JSON.stringify(value))
+  for (const listener of changed) listener(groupSlug)
 }
 
 function readAllView(): AllView {
@@ -131,6 +139,16 @@ export function useModuleArrangement(groupSlug: string): ModuleArrangement {
     setState({ slug: groupSlug, stored: readStored(groupSlug) })
   }
   const stored = state.slug === groupSlug ? state.stored : readStored(groupSlug)
+
+  useEffect(() => {
+    const listener = (slug: string) => {
+      if (slug === groupSlug) setState({ slug, stored: readStored(slug) })
+    }
+    changed.add(listener)
+    return () => {
+      changed.delete(listener)
+    }
+  }, [groupSlug])
 
   const arrangement = useMemo(() => arrangeModules(stored), [stored])
   const collapsed = stored.collapsed ?? []

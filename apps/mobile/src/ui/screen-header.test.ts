@@ -46,6 +46,27 @@ describe('photoScreenOptions', () => {
     const shown = photoScreenOptions('Lasagne', true, '#111')
     expect(shown.headerTitleStyle).toEqual({ color: '#111' })
   })
+
+  test('hides the top scroll-edge blur only while the photo is under the bar', () => {
+    // Before layout the effect is the default, so hiding it is a change
+    // react-native-screens applies to the mounted scroll view.
+    expect(
+      photoScreenOptions('Lasagne', false, '#111', false).scrollEdgeEffects
+        .top,
+    ).toBe('automatic')
+    // The inline title needs the blur back to stay legible.
+    expect(
+      photoScreenOptions('Lasagne', true, '#111', true).scrollEdgeEffects.top,
+    ).toBe('automatic')
+    expect(
+      photoScreenOptions('Lasagne', false, '#111', true).scrollEdgeEffects,
+    ).toEqual({
+      top: 'hidden',
+      bottom: 'automatic',
+      left: 'automatic',
+      right: 'automatic',
+    })
+  })
 })
 
 describe('inlineTitleShown', () => {

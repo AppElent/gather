@@ -232,6 +232,40 @@ export const shell = {
     unreachable: 'Could not reach the server.',
   },
 
+  /**
+   * The phone's Home, "Today" (Tiles & Today): what is due, what happened
+   * today, and the Member's Pins. Durations here are written "2 h 10 min",
+   * with spaces, unlike the baby log's shared `status.duration`.
+   */
+  today: {
+    /** Under the Group's name: the date, then how many Members. */
+    date: '{weekday} {day} {month}',
+    members: { one: '{count} member', other: '{count} members' },
+    heading: 'Today',
+    anytime: 'Anytime today',
+    pinned: 'Pinned',
+    /** The Now card, shown only while a task is past its due date. */
+    overdue: {
+      caption: 'Overdue tasks',
+      inList: 'in {list}',
+      acrossLists: 'across {count} lists',
+      openList: 'Open {list}',
+      openTasks: 'Open tasks',
+    },
+    /** The Today rail: a past entry's line, and where now is. */
+    entry: '{summary} \u00b7 {child}',
+    now: 'Now \u00b7 {time}',
+    duration: {
+      minutes: '{minutes} min',
+      hours: '{hours} h',
+      hoursMinutes: '{hours} h {minutes} min',
+      days: '{days} d',
+    },
+    sideMinutes: '{side} {minutes} min',
+    open: 'Open',
+    unpin: 'Unpin',
+  },
+
   home: {
     sharedSubtitle: 'What everyone in this group has been up to.',
     whoIsHere: 'Who is here',

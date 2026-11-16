@@ -21,7 +21,14 @@
 import type { TastingKind } from '@gather/core/tastings'
 import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { SearchField } from '../../components/SearchField'
@@ -34,6 +41,7 @@ import { InsetList, InsetRow } from '../../ui/inset-list'
 import { ModuleTile, moduleTile } from '../../ui/module-tile'
 import { RecordThumb } from '../../ui/record-thumb'
 import { washScreenOptions } from '../../ui/screen-header'
+import { isAccessibilityTextSize } from '../../ui/text-scale'
 import { WashHeader } from '../../ui/wash-header'
 import { moduleHref } from '../moduleDestination'
 import { CaptureFlow, useCapture } from './CaptureFlow'
@@ -50,8 +58,34 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
   const { group } = useGroup()
   const [query, setQuery] = useState('')
   const capture = useCapture(kind)
+  // At accessibility sizes the score moves under the subtitle: beside it, the
+  // score column squeezed a long subtitle until it broke mid-word.
+  const stacked = isAccessibilityTextSize(useWindowDimensions().fontScale)
 
   const words = kindWords(t.tastings, kind)
+
+  const score = (subject: { average: number | null; count: number }) => (
+    <View style={stacked ? styles.rowScoreStacked : styles.rowScore}>
+      {subject.average === null ? (
+        <Text
+          style={[styles.rowCount, { color: tokens.muted }]}
+        >
+          {t.tastings.index.noScore}
+        </Text>
+      ) : (
+        <>
+          <Text style={[styles.score, { color: tokens.ink }]}>
+            {subject.average.toFixed(1)}
+          </Text>
+          <Text
+            style={[styles.rowCount, { color: tokens.muted }]}
+          >
+            {tastingCount(t, locale, subject.count)}
+          </Text>
+        </>
+      )}
+    </View>
+  )
   const Plus = TASTING_UI_ICONS.Plus
   const tile = moduleTile(moduleIdOf(kind)) ?? {
     group: 'tasting' as const,
@@ -228,29 +262,10 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
                     subjectFacts(t.tastings, kind, subject.attributes) ||
                     undefined
                   }
-                  trailing={
-                    <View style={styles.rowScore}>
-                      {subject.average === null ? (
-                        <Text
-                          style={[styles.rowCount, { color: tokens.muted }]}
-                        >
-                          {t.tastings.index.noScore}
-                        </Text>
-                      ) : (
-                        <>
-                          <Text style={[styles.score, { color: tokens.ink }]}>
-                            {subject.average.toFixed(1)}
-                          </Text>
-                          <Text
-                            style={[styles.rowCount, { color: tokens.muted }]}
-                          >
-                            {tastingCount(t, locale, subject.count)}
-                          </Text>
-                        </>
-                      )}
-                    </View>
-                  }
-                />
+                  trailing={stacked ? undefined : score(subject)}
+                >
+                  {stacked ? score(subject) : null}
+                </InsetRow>
               ))}
             </InsetList>
           )}
@@ -267,6 +282,12 @@ const styles = StyleSheet.create({
   noResults: { gap: 6, paddingVertical: 12 },
   clear: { ...TYPE.bodyStrong },
   rowScore: { alignItems: 'flex-end', gap: 2 },
+  rowScoreStacked: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    columnGap: SPACE[2],
+  },
   score: { ...TYPE.bodyStrong, ...TABULAR },
   rowCount: { ...TYPE.footnote },
   emptyScreen: {

@@ -258,6 +258,21 @@ export function useTaskState() {
 }
 
 /**
+ * Every local list in the Current Group, and every task on them, without
+ * asking Notion or Todoist for anything: Home reads only what Convex already
+ * holds (ADR-0021 keeps a provider fetch behind opening its list).
+ */
+export function useLocalTaskState() {
+  const lists = useTaskLists()
+  const local = useMemo(
+    () => (lists ?? NO_LISTS).filter((list) => list.provider === 'local'),
+    [lists],
+  )
+  const state = useListsOf(local)
+  return { today: localIsoDate(), loaded: lists !== undefined, ...state }
+}
+
+/**
  * One list and its tasks in their order, without subscribing to the rest of
  * the Group's lists or asking any other provider.
  */

@@ -31,7 +31,8 @@ The building blocks are in `src/ui/`, one per component guideline:
 `ModuleTile` (four sizes; `moduleTile(id)` reads a Module's group and glyph from
 the catalogue), `WashHeader`, `PhotoHeader` with `usePhotoTitle`, `FactsStrip`,
 `InsetList` / `InsetListItem` / `InsetRow` / `InsetAddRow`, `CompletedSection`,
-`PinnedCard` / `PinnedRow` and `RecordThumb`. Their native-stack options are
+`PinnedCard` / `PinnedRow`, `RecordThumb`, Home's `NowCard` and `TodayRail`,
+and `HeaderIconButton` for an icon bar button. Their native-stack options are
 `washScreenOptions` and `photoScreenOptions` in `src/ui/screen-header.ts`.
 
 ## Interaction vocabulary
