@@ -621,7 +621,14 @@ const styles = StyleSheet.create({
   },
   pinnedName: { ...TYPE.recordTitle, letterSpacing: -0.7 },
   pinnedFacts: { ...TYPE.footnote },
-  pinnedMeta: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  // Wraps: at 17 pt (and larger Dynamic Type) the button no longer fits
+  // beside the stars on a narrow phone, so it drops to its own line.
+  pinnedMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 12,
+  },
   pushedHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   pushedMeta: { flex: 1, gap: 8 },
   photoTile: {
