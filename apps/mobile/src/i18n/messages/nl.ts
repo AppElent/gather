@@ -66,6 +66,10 @@ export const nl = {
       front: 'Voorkant van de kaart van {store}',
       back: 'Achterkant van de kaart van {store}',
     },
+    offline: {
+      notice: 'Offline. Dit zijn je kaarten zoals ze op deze telefoon bewaard zijn.',
+      back: 'Alle kaarten',
+    },
     list: {
       /** When a card was last shown, in Home's activity words. */
       when: coreNl.shell.activity,

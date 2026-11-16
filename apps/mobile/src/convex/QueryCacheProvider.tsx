@@ -1,6 +1,10 @@
 /**
- * Retention for every query the phone reads through `queries.ts`: the
- * `QueryCacheProvider` of the standard's `retention` starter.
+ * Retention for every query the phone reads through `queries.ts`, and the disk
+ * scope of its last-known copy: the `QueryCacheProvider` of the standard's
+ * `retention` starter, plus `last-known`'s scope and confirmed-account marker.
+ * It stays inside the gate (the `last-known` starter mounts above it): the
+ * offline fallback reads the copy itself, so nothing here has to live while
+ * the gate is closed.
  *
  * `ConvexSessionGate` mounts it once it has confirmed the account, keyed by
  * it, so sign-out or an account switch drops every retained subscription with
@@ -24,10 +28,11 @@
 import { useConvexAuth } from 'convex/react'
 import { ConvexQueryCacheProvider } from 'convex-helpers/react/cache'
 import { ConvexQueryCacheContext } from 'convex-helpers/react/cache/provider'
-import { type ReactNode, useContext, useEffect } from 'react'
+import { type ReactNode, useContext, useEffect, useLayoutEffect } from 'react'
 import { AppState } from 'react-native'
 
-import { EXPIRATION_MS, MAX_IDLE_ENTRIES } from './queries'
+import { confirmAccount, diskScope } from './lastKnown'
+import { DiskScopeContext, EXPIRATION_MS, MAX_IDLE_ENTRIES } from './queries'
 
 function CacheLifecycle({ children }: { children: ReactNode }) {
   const { registry } = useContext(ConvexQueryCacheContext)
@@ -91,14 +96,21 @@ export function QueryCacheProvider({
   children: ReactNode
 }) {
   const ready = useAccountReady(account, confirmedAccount)
+  // Before any child's effect can write: remember the confirmed account for
+  // the offline fallback, and drop every other account's or bundle's copy.
+  useLayoutEffect(() => {
+    if (ready) confirmAccount(account)
+  }, [ready, account])
   if (!ready) return fallback
   return (
-    <ConvexQueryCacheProvider
-      key={account}
-      expiration={EXPIRATION_MS}
-      maxIdleEntries={MAX_IDLE_ENTRIES}
-    >
-      <CacheLifecycle>{children}</CacheLifecycle>
-    </ConvexQueryCacheProvider>
+    <DiskScopeContext value={diskScope(account)}>
+      <ConvexQueryCacheProvider
+        key={account}
+        expiration={EXPIRATION_MS}
+        maxIdleEntries={MAX_IDLE_ENTRIES}
+      >
+        <CacheLifecycle>{children}</CacheLifecycle>
+      </ConvexQueryCacheProvider>
+    </DiskScopeContext>
   )
 }

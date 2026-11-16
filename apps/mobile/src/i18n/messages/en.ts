@@ -105,6 +105,11 @@ export const en = {
       front: 'Front of the {store} card',
       back: 'Back of the {store} card',
     },
+    /** The auth gate's offline fallback: a saved copy, shown without Gather. */
+    offline: {
+      notice: 'Offline. These are your cards as saved on this phone.',
+      back: 'All cards',
+    },
     list: {
       /** When a card was last shown, in Home's activity words. */
       when: coreEn.shell.activity,
