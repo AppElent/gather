@@ -157,6 +157,9 @@ export function useQueries(
 ): ReturnType<typeof useRetainedQueries> {
   const live = useLiveQueries(queries)
   const scope = useDiskScope()
+  // `queries` is a new object every render. The keys, and which of them still
+  // wait for a live answer, are reduced to JSON strings so the memos below
+  // re-read disk only when one of those actually changes.
   const keySignature = JSON.stringify(
     Object.entries(queries).map(([id, { query, args }]) => [
       id,

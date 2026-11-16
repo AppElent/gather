@@ -43,13 +43,13 @@ export const MAX_VALUE_LENGTH = 100_000
 /** At most this many entries; recorded in `CODING_STANDARDS.md`. */
 export const MAX_ENTRIES = 50
 
+let bundle: string | undefined
 /**
  * The JS bundle this code shipped in: the native runtime (a fingerprint, so a
  * new native build changes it) plus the over-the-air update id. A copy written
- * by any other bundle is never read.
+ * by any other bundle is never read. Fixed for the life of the bundle, so it
+ * is read once.
  */
-/** Fixed for the life of the JS bundle, so read once. */
-let bundle: string | undefined
 export function bundleVersion(): string {
   if (bundle === undefined) {
     try {
