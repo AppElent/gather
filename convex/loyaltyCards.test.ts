@@ -285,6 +285,32 @@ describe('reading cards', () => {
     })
   })
 
+  test('adding or editing a card is not using it (APP-153)', async () => {
+    const { t } = await seed()
+    const fresh = await addAhCard(t, { holder: 'Nora' })
+    const older = await addAhCard(t, { holder: 'Sam' })
+    await t
+      .withIdentity(alice)
+      .mutation(api.loyaltyCards.markUsed, { ...HOME, id: older })
+    await t.withIdentity(alice).mutation(api.loyaltyCards.update, {
+      ...HOME,
+      id: fresh,
+      storeName: 'Albert Heijn',
+      cardNumber: AH_NUMBER,
+      barcodeFormat: 'EAN_13',
+      holder: 'Nora',
+      note: 'Edited',
+    })
+
+    const cards = await t
+      .withIdentity(alice)
+      .query(api.loyaltyCards.list, HOME)
+    expect(cards.map((card) => [card.holder, card.lastUsedAt])).toEqual([
+      ['Sam', expect.any(Number)],
+      ['Nora', undefined],
+    ])
+  })
+
   test('markUsed on another Group’s card does nothing, quietly', async () => {
     const { t } = await seed()
     const id = await addAhCard(t)

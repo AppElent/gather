@@ -142,7 +142,10 @@ function EditForm({
               frontPhotoId: values.frontPhotoId ?? null,
               backPhotoId: values.backPhotoId ?? null,
             })
-            navigate(linkTo('loyaltyCard', { cardId: card._id }))
+            navigate({
+              ...linkTo('loyaltyCard', { cardId: card._id }),
+              search: { saved: true },
+            })
           } catch (caught) {
             setError(
               errorMessage(caught, copy.saveFailed, messages.loyaltyCards.refusals),

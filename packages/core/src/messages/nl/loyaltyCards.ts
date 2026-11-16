@@ -62,7 +62,6 @@ export const loyaltyCards = {
     notFound: 'Deze kaart hoort niet bij dit huishouden.',
     showAtTill: 'Laat dit zien bij de kassa',
     cardNumber: 'Kaartnummer',
-    holder: 'Van wie',
     note: 'Notitie',
     photos: 'Foto’s',
     lastUsed: 'Laatst gebruikt',
