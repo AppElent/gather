@@ -17,7 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/expo": "^4.15.1",
+    "@clerk/expo": "^4.16.0",
     "@expo/metro-runtime": "58.0.15",
     "@expo/ui": "^58.0.25",
     "@expo/vector-icons": "^15.0.3",
