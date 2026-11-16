@@ -267,7 +267,7 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // --- Books ---
 
   // Source: Commons 'Primera_spaarpas,_Oude_Pekela_(2019)' photos and App Store 'Primera' (id1387440754) both decode as EAN-13. Colour: primera.nl
-  // CSS.
+  // CSS accent yellow; the site's header logo sits on its blue (#134395), so the logo tile keeps that blue and the card keeps the yellow.
   { seedKey: 'primera', name: 'Primera', aliases: ['PrimeraPas', 'Primera spaarpas'], category: 'books', brandColor: '#FFD500', domain: 'primera.nl', barcodeFormat: 'EAN_13', formatConfidence: 'sourced', numberLength: 13 },
   // Programme: Folderz store page (free The Read Shop klantenkaart). Format unknown: readshop.nl refuses fetches; no image of the card. CODE_128
   // guess. Colour: readshop.nl icon (green 'R' mark, the shipped logo).

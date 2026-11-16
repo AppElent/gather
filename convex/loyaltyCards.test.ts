@@ -126,6 +126,24 @@ describe('the Retailer catalog', () => {
     expect(hema?.brandColor).toBe('#123456')
   })
 
+  test('a re-seed counts a dropped hint or reordered aliases as a change', async () => {
+    const { t } = await seed()
+    const changed = RETAILER_CATALOG.map((entry) => {
+      if (entry.seedKey === 'circle-k') return { ...entry, numberPrefix: undefined }
+      if (entry.seedKey === 'albert-heijn') return { ...entry, aliases: [...entry.aliases].reverse() }
+      return entry
+    })
+    const result = await t.run((ctx) => applyRetailerCatalog(ctx, changed))
+    expect(result).toMatchObject({ updated: 2, unchanged: RETAILER_CATALOG.length - 2 })
+    const circleK = await t.run((ctx) =>
+      ctx.db
+        .query('retailerCatalog')
+        .withIndex('by_seedKey', (q) => q.eq('seedKey', 'circle-k'))
+        .unique(),
+    )
+    expect(circleK?.numberPrefix).toBeUndefined()
+  })
+
   test('a re-seed leaves existing cards unchanged, even when their entry is corrected or retired', async () => {
     const { t, homeId } = await seed()
     const ahCard = await addAhCard(t)
