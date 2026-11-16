@@ -23,7 +23,7 @@ import { LoadingSkeleton } from '../../../components/LoadingSkeleton'
 import { SearchField } from '../../../components/SearchField'
 import { fmt, useI18n } from '../../../i18n'
 import { UI_ICONS } from '../../../theme/icons'
-import { RADIUS, TYPE, useTokens } from '../../../theme/tokens'
+import { RADIUS, SIZE, TYPE, useTokens } from '../../../theme/tokens'
 import { StoreTile } from '../components/store-tile'
 import { LOYALTY_CARD_ICONS } from '../loyalty-card-icons'
 import type { Retailer } from '../loyalty-card-types'
@@ -86,7 +86,7 @@ export function RetailerPicker({
               onPress={onScanAgain}
               style={({ pressed }) => pressed && styles.pressed}
             >
-              <Text style={[TYPE.footnoteStrong, styles.bold, { color: tokens.ink }]}>
+              <Text style={[TYPE.footnoteStrong, { color: tokens.ink }]}>
                 {words.scan.scanAgain}
               </Text>
             </Pressable>
@@ -95,7 +95,7 @@ export function RetailerPicker({
       ) : null}
       {suggestion ? (
         <View style={styles.suggestion}>
-          <Text style={[TYPE.footnoteStrong, styles.caps, { color: tokens.muted }]}>
+          <Text style={[TYPE.footnoteStrong, { color: tokens.muted }]}>
             {fmt(words.scan.suggestion, { store: suggestion.name })}
           </Text>
           <StoreRow
@@ -127,13 +127,13 @@ export function RetailerPicker({
       >
         <View style={[styles.otherIcon, { backgroundColor: tokens.surface2 }]}>
           <LOYALTY_CARD_ICONS.Store
-            size={22}
+            size={20}
             color={tokens.ink}
             strokeWidth={1.9}
           />
         </View>
         <View style={styles.rowText}>
-          <Text style={[TYPE.bodyStrong, styles.bold, { color: tokens.ink }]}>
+          <Text style={[TYPE.bodyStrong, { color: tokens.ink }]}>
             {words.picker.otherStore}
           </Text>
           <Text style={[TYPE.footnote, { color: tokens.muted }]}>
@@ -211,7 +211,7 @@ function StoreRow({
         size="medium"
       />
       <View style={styles.rowText}>
-        <Text style={[TYPE.bodyStrong, styles.bold, { color: tokens.ink }]}>
+        <Text style={[TYPE.bodyStrong, { color: tokens.ink }]}>
           {label}
         </Text>
         {detail ? (
@@ -229,7 +229,6 @@ const styles = StyleSheet.create({
   suggestion: { gap: 6 },
   scanned: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   scannedText: { flex: 1 },
-  caps: { fontWeight: '700' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -241,11 +240,12 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.card,
   },
   rowText: { flex: 1, gap: 2 },
-  bold: { fontWeight: '600' },
+  // The same tile as a store's StoreTile beside it.
   otherIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: SIZE.tileM,
+    height: SIZE.tileM,
+    borderRadius: RADIUS.tileM,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },

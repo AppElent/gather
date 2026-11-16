@@ -81,7 +81,7 @@ export function CardScanner({
         </View>
         <Text
           accessibilityRole="header"
-          style={[TYPE.title2, styles.center, styles.bold, { color: tokens.ink }]}
+          style={[TYPE.title2, styles.center, { color: tokens.ink }]}
         >
           {words.askTitle}
         </Text>
@@ -195,7 +195,6 @@ const styles = StyleSheet.create({
   },
   askActions: { gap: 10, marginTop: 8 },
   center: { textAlign: 'center' },
-  bold: { fontWeight: '700' },
   // A card's barcode is wider than tall; a 4:5 window leaves room for the
   // hint and the way out below it on the smallest phones.
   cameraWrap: {

@@ -133,9 +133,5 @@ const styles = StyleSheet.create({
   },
   centered: { textAlign: 'center', paddingVertical: 16 },
   code: { width: '100%', alignSelf: 'center' },
-  number: {
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
-    textAlign: 'center',
-  },
+  number: { textAlign: 'center' },
 })

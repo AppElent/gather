@@ -386,7 +386,7 @@ function FormatSelect({
 const styles = StyleSheet.create({
   form: { gap: 18 },
   field: { gap: 6 },
-  label: { fontWeight: '600', letterSpacing: 0.2 },
+  label: { letterSpacing: 0.2 },
   select: {
     flexDirection: 'row',
     alignItems: 'center',

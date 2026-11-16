@@ -146,7 +146,7 @@ export function LoyaltyCardViewScreen({
           <View style={styles.storeText}>
             <Text
               accessibilityRole="header"
-              style={[TYPE.title2, styles.storeName, { color: tokens.ink }]}
+              style={[TYPE.title2, { color: tokens.ink }]}
             >
               {store}
             </Text>
@@ -229,10 +229,9 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 16 },
   store: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   storeText: { flex: 1, gap: 2 },
-  storeName: { fontWeight: '700' },
   hint: { textAlign: 'center' },
   section: { gap: 8 },
-  label: { fontWeight: '700', letterSpacing: 0.8 },
+  label: { letterSpacing: 0.8 },
   photos: { flexDirection: 'row', gap: 10 },
   photo: { flex: 1, aspectRatio: 1.586, borderRadius: RADIUS.card },
 })

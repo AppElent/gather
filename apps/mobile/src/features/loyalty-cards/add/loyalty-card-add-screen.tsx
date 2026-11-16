@@ -179,7 +179,7 @@ export function LoyaltyCardAddScreen() {
               pressed && styles.pressed,
             ]}
           >
-            <Text style={[TYPE.footnoteStrong, styles.bold, { color: tokens.ink }]}>
+            <Text style={[TYPE.footnoteStrong, { color: tokens.ink }]}>
               {words.picker.changeStore}
             </Text>
           </Pressable>
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
   },
-  storeName: { flex: 1, fontWeight: '600' },
+  storeName: { flex: 1 },
   change: {
     minHeight: 36,
     justifyContent: 'center',
@@ -226,6 +226,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: RADIUS.pill,
   },
-  bold: { fontWeight: '600' },
   pressed: { opacity: 0.6 },
 })

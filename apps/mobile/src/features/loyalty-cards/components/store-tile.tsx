@@ -83,7 +83,6 @@ export function StoreTile({
         allowFontScaling={false}
         style={[
           size === 'large' ? TYPE.title2 : TYPE.bodyStrong,
-          styles.monogram,
           { color: textOnBrand(background) },
         ]}
       >
@@ -104,5 +103,4 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   logo: { width: '100%', height: '100%' },
-  monogram: { fontWeight: '700' },
 })

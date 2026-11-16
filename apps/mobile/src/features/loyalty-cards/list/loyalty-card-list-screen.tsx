@@ -86,7 +86,7 @@ export function LoyaltyCardListScreen() {
           <View testID="loyalty-card-empty" style={styles.empty}>
             <Text
               accessibilityRole="header"
-              style={[TYPE.title2, styles.bold, styles.center, { color: tokens.ink }]}
+              style={[TYPE.title2, styles.center, { color: tokens.ink }]}
             >
               {words.index.emptyTitle}
             </Text>
@@ -224,7 +224,7 @@ function CardRow({
       <View style={styles.rowText}>
         <Text
           numberOfLines={1}
-          style={[TYPE.bodyStrong, styles.bold, { color: tokens.ink }]}
+          style={[TYPE.bodyStrong, { color: tokens.ink }]}
         >
           {card.storeName}
         </Text>
@@ -242,7 +242,6 @@ const styles = StyleSheet.create({
   empty: { gap: 14, paddingTop: 48, paddingHorizontal: 8 },
   notFound: { gap: 14, paddingVertical: 20 },
   center: { textAlign: 'center' },
-  bold: { fontWeight: '600' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
