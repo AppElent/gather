@@ -9,7 +9,8 @@
  *
  *   node apps/mobile/scripts/generate-retailer-logo-files.mjs
  *
- * `retailer-logo-files.test.ts` fails while the committed file is stale.
+ * `scripts/mobile-retailer-logo-files.test.ts` fails while the committed file
+ * is stale.
  */
 import fs from 'node:fs'
 import path from 'node:path'

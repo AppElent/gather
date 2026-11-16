@@ -209,8 +209,11 @@ vi.mock('../components/card-barcode', () => ({
   CardBarcode: ({ value }: { value: string }) =>
     createElement('div', { 'data-testid': 'preview' }, value),
 }))
-// The tile's logo files are Metro assets; its own test covers it.
-vi.mock('../components/store-tile', () => ({ StoreTile: () => null }))
+// The generated logo list `require`s images only Metro can load.
+vi.mock('../components/retailer-logo-files', () => ({
+  RETAILER_LOGO_FILES: {},
+}))
+vi.mock('expo-image', () => ({ Image: () => null }))
 vi.mock('@expo/ui/community/menu', () => ({
   MenuView: ({ children }: { children: ReactNode }) => children,
 }))
