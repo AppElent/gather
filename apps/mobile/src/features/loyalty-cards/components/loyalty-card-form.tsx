@@ -226,7 +226,7 @@ export function LoyaltyCardForm({
 
       {colorPickable ? (
         <View style={styles.field}>
-          <Text style={[TYPE.footnoteStrong, styles.label, { color: tokens.muted }]}>
+          <Text style={[TYPE.footnoteStrong, { color: tokens.muted }]}>
             {words.color}
           </Text>
           <ColorSwatches value={color} onChange={setColor} />
