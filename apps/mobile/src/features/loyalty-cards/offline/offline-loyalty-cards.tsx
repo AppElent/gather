@@ -45,7 +45,7 @@ export function OfflineLoyaltyCards({
     <View
       testID="loyalty-card-offline"
       onLayout={onLayout}
-      style={[styles.fill, { backgroundColor: tokens.bg }]}
+      style={[styles.fill, { backgroundColor: tokens.ground }]}
     >
       <ScrollView
         contentContainerStyle={[
@@ -61,25 +61,25 @@ export function OfflineLoyaltyCards({
             hitSlop={12}
             style={styles.back}
           >
-            <UI_ICONS.ChevronLeft size={20} color={tokens.accent} />
-            <Text style={[TYPE.lead, { color: tokens.accent }]}>
+            <UI_ICONS.ChevronLeft size={20} color={tokens.ink} />
+            <Text style={[TYPE.body, { color: tokens.ink }]}>
               {t.loyaltyCards.offline.back}
             </Text>
           </Pressable>
         ) : (
           <Text
             accessibilityRole="header"
-            style={[TYPE.title, styles.bold, { color: tokens.fg }]}
+            style={[TYPE.title2, { color: tokens.ink }]}
           >
             {t.modules.byId['loyalty-cards'].label}
           </Text>
         )}
 
         <View
-          style={[styles.notice, { backgroundColor: tokens.tile }]}
+          style={[styles.notice, { backgroundColor: tokens.surface2 }]}
           accessibilityLiveRegion="polite"
         >
-          <Text style={[TYPE.body, styles.noticeText, { color: tokens.fg }]}>
+          <Text style={[TYPE.body, styles.noticeText, { color: tokens.ink }]}>
             {t.loyaltyCards.offline.notice}
           </Text>
           <Button
@@ -108,8 +108,8 @@ export function OfflineLoyaltyCards({
                 style={({ pressed }) => [
                   styles.row,
                   {
-                    backgroundColor: pressed ? tokens.tile : tokens.surface,
-                    borderBottomColor: tokens.border,
+                    backgroundColor: pressed ? tokens.surface2 : tokens.surface,
+                    borderBottomColor: tokens.hair,
                     borderBottomWidth:
                       index === cards.length - 1 ? 0 : StyleSheet.hairlineWidth,
                   },
@@ -124,14 +124,14 @@ export function OfflineLoyaltyCards({
                 <View style={styles.rowText}>
                   <Text
                     numberOfLines={1}
-                    style={[TYPE.lead, styles.bold, { color: tokens.fg }]}
+                    style={[TYPE.bodyStrong, { color: tokens.ink }]}
                   >
                     {card.storeName}
                   </Text>
                   {card.holder ? (
                     <Text
                       numberOfLines={1}
-                      style={[TYPE.label, { color: tokens.muted }]}
+                      style={[TYPE.footnote, { color: tokens.muted }]}
                     >
                       {card.holder}
                     </Text>
@@ -166,12 +166,12 @@ function OfflineCardView({ card }: { card: OfflineCard }) {
         <View style={styles.rowText}>
           <Text
             accessibilityRole="header"
-            style={[TYPE.title, styles.storeName, { color: tokens.fg }]}
+            style={[TYPE.title2, { color: tokens.ink }]}
           >
             {card.storeName}
           </Text>
           {card.holder ? (
-            <Text style={[TYPE.body, { color: tokens.muted }]}>
+            <Text style={[TYPE.subhead, { color: tokens.muted }]}>
               {card.holder}
             </Text>
           ) : null}
@@ -185,7 +185,7 @@ function OfflineCardView({ card }: { card: OfflineCard }) {
           store: card.storeName,
         })}
       />
-      <Text style={[TYPE.label, styles.hint, { color: tokens.muted }]}>
+      <Text style={[TYPE.footnote, styles.hint, { color: tokens.muted }]}>
         {words.detail.showAtTill} · {formatName}
       </Text>
     </View>
@@ -218,7 +218,6 @@ export class OfflineCopyBoundary extends Component<
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   content: { paddingHorizontal: 16, gap: 16 },
-  bold: { fontWeight: '600' },
   back: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44 },
   notice: { borderRadius: RADIUS.card, padding: 14, gap: 12 },
   noticeText: { textAlign: 'center' },
@@ -233,6 +232,5 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: 2, paddingVertical: 10 },
   card: { gap: 16 },
   store: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  storeName: { fontWeight: '700' },
   hint: { textAlign: 'center' },
 })
