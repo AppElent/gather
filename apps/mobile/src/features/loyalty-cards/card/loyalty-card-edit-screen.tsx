@@ -4,6 +4,7 @@
  * The store's name stays editable, as on the web — a Catalog store can be
  * renamed for this household ("AH Kerkstraat") and keeps its colour. A photo
  * left alone is sent as `undefined` and stays; one taken off is `null`.
+ * A store typed by hand can be recoloured here; a Catalog one keeps its own.
  */
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
@@ -88,6 +89,7 @@ export function LoyaltyCardEditScreen({
         groupSlug: group.slug,
         id: card._id,
         storeName: values.storeName,
+        brandColor: card.catalogKey ? undefined : values.brandColor,
         cardNumber: values.cardNumber,
         barcodeFormat: values.barcodeFormat,
         holder: values.holder,
@@ -132,6 +134,8 @@ export function LoyaltyCardEditScreen({
           // The hints arrive with the Catalog; the fields keep what was typed.
           store={store}
           storeFixed={false}
+          colorPickable={!card.catalogKey}
+          initialColor={card.brandColor}
           initial={{
             storeName: card.storeName,
             cardNumber: card.cardNumber,

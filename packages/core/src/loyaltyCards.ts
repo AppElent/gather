@@ -156,6 +156,26 @@ export function textOnBrand(hex: string): '#000000' | '#ffffff' {
 /** The tile colour of a custom store with no brand colour: a neutral slate. */
 export const DEFAULT_STORE_COLOR = '#475569'
 
+/**
+ * The colours a store typed by hand can take (APP-160): the phone offers
+ * these as swatches and the web's colour input suggests them, so a colour
+ * chosen on either looks the same on both. Lowercase, as Convex stores them.
+ */
+export const STORE_COLOR_PRESETS = [
+  { id: 'slate', hex: DEFAULT_STORE_COLOR },
+  { id: 'red', hex: '#dc2626' },
+  { id: 'orange', hex: '#ea580c' },
+  { id: 'yellow', hex: '#facc15' },
+  { id: 'green', hex: '#16a34a' },
+  { id: 'teal', hex: '#0d9488' },
+  { id: 'blue', hex: '#2563eb' },
+  { id: 'purple', hex: '#7c3aed' },
+  { id: 'pink', hex: '#db2777' },
+  { id: 'brown', hex: '#78350f' },
+] as const
+
+export type StoreColorPreset = (typeof STORE_COLOR_PRESETS)[number]
+
 export interface SortableLoyaltyCard {
   storeName: string
   holder?: string

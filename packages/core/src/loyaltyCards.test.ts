@@ -5,6 +5,7 @@ import {
   foldForSearch,
   isHexColor,
   retailersMatchingNumber,
+  STORE_COLOR_PRESETS,
   searchRetailers,
   storeMonogram,
   textOnBrand,
@@ -100,6 +101,16 @@ describe('textOnBrand', () => {
     expect(isHexColor('#00A0E2')).toBe(true)
     expect(isHexColor('#0af')).toBe(false)
     expect(isHexColor('00a0e2')).toBe(false)
+  })
+
+  test('store colour presets are distinct lowercase #rrggbb, the default first', () => {
+    expect(STORE_COLOR_PRESETS[0].hex).toBe('#475569')
+    const hexes = STORE_COLOR_PRESETS.map((preset) => preset.hex)
+    expect(new Set(hexes).size).toBe(hexes.length)
+    for (const hex of hexes) {
+      expect(isHexColor(hex)).toBe(true)
+      expect(hex).toBe(hex.toLowerCase())
+    }
   })
 })
 

@@ -256,3 +256,38 @@ test('a digits-only barcode type offers a number pad, and others do not', () => 
   })
   expect(number).toHaveAttribute('inputmode', 'text')
 })
+
+describe('a custom store colour', () => {
+  test('offers the phone’s preset colours and saves the one picked', () => {
+    const onSubmit = renderForm({
+      retailer: undefined,
+      customStore: true,
+      initial: { ...EMPTY, storeName: 'Bakker Jan', barcodeFormat: 'CODE_128' },
+    })
+    const color = screen.getByLabelText('Colour')
+    const presets = document.getElementById(
+      color.getAttribute('list') ?? '',
+    )?.querySelectorAll('option')
+    expect([...(presets ?? [])].map((option) => option.value)).toEqual([
+      '#475569',
+      '#dc2626',
+      '#ea580c',
+      '#facc15',
+      '#16a34a',
+      '#0d9488',
+      '#2563eb',
+      '#7c3aed',
+      '#db2777',
+      '#78350f',
+    ])
+
+    fireEvent.change(color, { target: { value: '#16a34a' } })
+    fireEvent.change(screen.getByLabelText('Card number'), {
+      target: { value: 'JAN-42' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save card' }))
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ brandColor: '#16a34a' }),
+    )
+  })
+})

@@ -47,6 +47,9 @@ function detailOf(result: QueryResult, t: Messages) {
       return result.excerpt
     case 'tasting':
       return isTastingKind(result.kind) ? t.search.kinds[result.kind] : ''
+    case 'loyaltyCard':
+      // The holder, so two Bonuskaarten in one household tell apart.
+      return result.excerpt
     default: {
       const start = clock(result.startMinutes)
       const end = clock(result.endMinutes)
@@ -102,6 +105,11 @@ export function hrefFor(record: RecentRecordInput): Href | null {
             params: { kind: record.kind, subjectId: record.id },
           }
         : null
+    case 'loyaltyCard':
+      return {
+        pathname: '/search/loyalty-cards/card',
+        params: { cardId: record.id },
+      }
     default:
       return {
         pathname: '/search/calendar/[eventId]',
