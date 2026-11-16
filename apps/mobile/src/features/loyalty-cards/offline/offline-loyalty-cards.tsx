@@ -13,6 +13,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { fmt, useI18n } from '../../../i18n'
+import { reportError } from '../../../observability/report'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../../theme/tokens'
 import { Button } from '../../../ui/button'
@@ -203,6 +204,10 @@ export class OfflineCopyBoundary extends Component<
 
   static getDerivedStateFromError() {
     return { failed: true }
+  }
+
+  componentDidCatch(error: Error) {
+    reportError(error)
   }
 
   render() {

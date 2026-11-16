@@ -35,7 +35,7 @@ import { BottomSheetModalProvider } from '@expo/ui/community/bottom-sheet'
 import type { ErrorBoundaryProps } from 'expo-router'
 import { ErrorBoundary as RouterErrorBoundary, Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect } from 'react'
 import { LogBox, StyleSheet, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -49,11 +49,11 @@ import { ConnectionLostBanner } from '../src/components/ConnectionLostBanner'
 import { clearLastKnown } from '../src/convex/lastKnown'
 import { AppConvexProvider } from '../src/convex/provider'
 import { DropProvider } from '../src/drop/DropProvider'
-import { offlineCards } from '../src/features/loyalty-cards/offline/offline-cards'
 import {
   OfflineCopyBoundary,
   OfflineLoyaltyCards,
 } from '../src/features/loyalty-cards/offline/offline-loyalty-cards'
+import { useOfflineCards } from '../src/features/loyalty-cards/offline/use-offline-cards'
 import { LocaleProvider } from '../src/i18n'
 import { useNavigationBreadcrumbs } from '../src/observability/navigation'
 import { reportError } from '../src/observability/report'
@@ -147,35 +147,25 @@ function RootNavigator() {
     if (signedOut) clearLastKnown()
   }, [signedOut])
 
-  // The offline fallback's copy, read once each time Gather is unreachable.
-  const unavailable = mode === 'unavailable'
-  const cards = useMemo(
-    () => (unavailable ? offlineCards(userId) : []),
-    [unavailable, userId],
-  )
-  // Try again goes back to the splash for up to `SPLASH_TIMEOUT_MS`. A card
-  // open at the till stays on screen through it instead of blanking.
-  const [holding, setHolding] = useState<typeof cards>([])
-  if (unavailable && cards.length > 0 && holding !== cards) setHolding(cards)
-  if (!unavailable && mode !== 'splash' && holding.length > 0) setHolding([])
-  const retryingOffline = mode === 'splash' && holding.length > 0
+  // The offline fallback's cards, held through a Try again (APP-143).
+  const offline = useOfflineCards(mode, userId)
 
   // Still behind the splash. Rendering nothing is the point.
-  if (mode === 'splash' && !retryingOffline) return null
+  if (mode === 'splash' && !offline.retrying) return null
 
-  if (unavailable || retryingOffline) {
+  if (mode === 'unavailable' || offline.retrying) {
     const gate = <AuthUnavailable onRetry={retry} retrying={retrying} />
     // The gate's offline fallback (APP-143): display-only views of the saved
     // Loyalty cards, which make no Convex calls. Every protected screen stays
     // behind the gate; once Convex authenticates, `mode` leaves `unavailable`
     // and the router below replaces this.
-    if (holding.length === 0) return gate
+    if (offline.cards.length === 0) return gate
     return (
       <OfflineCopyBoundary fallback={gate}>
         <OfflineLoyaltyCards
-          cards={holding}
+          cards={offline.cards}
           onRetry={retry}
-          retrying={retrying || retryingOffline}
+          retrying={retrying || offline.retrying}
         />
       </OfflineCopyBoundary>
     )

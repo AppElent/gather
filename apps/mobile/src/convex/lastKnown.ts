@@ -48,13 +48,18 @@ export const MAX_ENTRIES = 50
  * new native build changes it) plus the over-the-air update id. A copy written
  * by any other bundle is never read.
  */
+/** Fixed for the life of the JS bundle, so read once. */
+let bundle: string | undefined
 export function bundleVersion(): string {
-  try {
-    const Updates: typeof import('expo-updates') = require('expo-updates')
-    return `${Updates.runtimeVersion ?? 'dev'}+${Updates.updateId ?? 'embedded'}`
-  } catch {
-    return 'unknown'
+  if (bundle === undefined) {
+    try {
+      const Updates: typeof import('expo-updates') = require('expo-updates')
+      bundle = `${Updates.runtimeVersion ?? 'dev'}+${Updates.updateId ?? 'embedded'}`
+    } catch {
+      bundle = 'unknown'
+    }
   }
+  return bundle
 }
 
 /** The key prefix for one account's entries in this bundle. */
