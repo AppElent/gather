@@ -5,7 +5,7 @@
  * scan prefills the number and type, the number's pattern suggests its store,
  * and saving creates the card from both and opens it.
  */
-import { act, createElement, type ReactNode } from 'react'
+import { act, createElement, type ReactElement, type ReactNode } from 'react'
 import { beforeEach, expect, test, vi } from 'vitest'
 
 import { mount, settle } from '../../../testing/dom'
@@ -451,7 +451,7 @@ test('opened from a link, the screen has a back button to the list', async () =>
   const view = mount(<LoyaltyCardAddScreen />)
   const headerLeft = state.options.headerLeft as () => ReactNode
   expect(headerLeft).toBeTypeOf('function')
-  const button = mount(<>{headerLeft()}</>)
+  const button = mount(headerLeft() as ReactElement)
   expect(
     byTestId(button.container, 'loyalty-card-add-back')?.getAttribute(
       'aria-label',
