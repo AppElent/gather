@@ -152,6 +152,7 @@ export function LoyaltyCardAddScreen() {
             <StoreTile
               name={retailer.name}
               color={retailer.brandColor}
+              catalogKey={retailer.seedKey}
               size="medium"
             />
           ) : null}

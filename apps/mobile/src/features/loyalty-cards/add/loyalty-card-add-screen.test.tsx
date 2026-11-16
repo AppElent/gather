@@ -209,6 +209,8 @@ vi.mock('../components/card-barcode', () => ({
   CardBarcode: ({ value }: { value: string }) =>
     createElement('div', { 'data-testid': 'preview' }, value),
 }))
+// The tile's logo files are Metro assets; its own test covers it.
+vi.mock('../components/store-tile', () => ({ StoreTile: () => null }))
 vi.mock('@expo/ui/community/menu', () => ({
   MenuView: ({ children }: { children: ReactNode }) => children,
 }))

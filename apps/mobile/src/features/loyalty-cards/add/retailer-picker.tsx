@@ -204,7 +204,12 @@ function StoreRow({
         pressed && styles.pressed,
       ]}
     >
-      <StoreTile name={retailer.name} color={retailer.brandColor} size="medium" />
+      <StoreTile
+        name={retailer.name}
+        color={retailer.brandColor}
+        catalogKey={retailer.seedKey}
+        size="medium"
+      />
       <View style={styles.rowText}>
         <Text style={[TYPE.lead, styles.bold, { color: tokens.fg }]}>
           {label}
