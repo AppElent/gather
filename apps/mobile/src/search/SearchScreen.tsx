@@ -28,6 +28,7 @@ import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import {
   type RecentRecordInput,
   recordsForGroup,
+  SEARCH_RECORD_TYPES,
   type SearchRecordType,
 } from './recentRecords'
 import {
@@ -103,7 +104,13 @@ export function SearchScreen() {
   const settled = debounced.trim() === trimmed
   const results = useQuery(
     api.search.group,
-    ready && settled ? { groupSlug: group.slug, query: debounced } : 'skip',
+    ready && settled
+      ? {
+          groupSlug: group.slug,
+          query: debounced,
+          accepts: [...SEARCH_RECORD_TYPES],
+        }
+      : 'skip',
   )
   const groupRecents = useMemo(
     () => recordsForGroup(recents, group.slug),

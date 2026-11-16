@@ -28,7 +28,8 @@
 // First, so a crash while the rest of the module graph loads is still reported.
 import '../src/observability/init'
 
-import { ClerkProvider } from '@clerk/expo'
+import { ClerkProvider, useAuth, useClerk } from '@clerk/expo'
+import { resourceCache } from '@clerk/expo/resource-cache'
 import { tokenCache } from '@clerk/expo/token-cache'
 import { BottomSheetModalProvider } from '@expo/ui/community/bottom-sheet'
 import type { ErrorBoundaryProps } from 'expo-router'
@@ -45,8 +46,14 @@ import {
 } from '../src/availability/AvailabilityProvider'
 import { AuthUnavailable } from '../src/components/AuthUnavailable'
 import { ConnectionLostBanner } from '../src/components/ConnectionLostBanner'
+import { clearLastKnown } from '../src/convex/lastKnown'
 import { AppConvexProvider } from '../src/convex/provider'
 import { DropProvider } from '../src/drop/DropProvider'
+import {
+  OfflineCopyBoundary,
+  OfflineLoyaltyCards,
+} from '../src/features/loyalty-cards/offline/offline-loyalty-cards'
+import { useOfflineCards } from '../src/features/loyalty-cards/offline/use-offline-cards'
 import { LocaleProvider } from '../src/i18n'
 import { useNavigationBreadcrumbs } from '../src/observability/navigation'
 import { reportError } from '../src/observability/report'
@@ -97,6 +104,11 @@ export default function RootLayout() {
           <ClerkProvider
             publishableKey={publishableKey}
             tokenCache={tokenCache}
+            // Clerk restores the signed-in session from this phone when it
+            // cannot reach its servers, so the offline fallback below knows
+            // whose saved Loyalty cards it may show (APP-143). Clerk's own
+            // offline support; Convex still checks every token it is given.
+            __experimental_resourceCache={resourceCache}
           >
             {/* Above the router, like Clerk itself: the client holds one websocket
               and its authentication follows the session, so it must not be torn
@@ -124,13 +136,39 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const { mode, retry, retrying } = useAvailability()
+  const { userId } = useAuth()
+  const { status } = useClerk()
   useNavigationBreadcrumbs()
 
-  // Still behind the splash. Rendering nothing is the point.
-  if (mode === 'splash') return null
+  // Confirmed sign-out, however it happened (here, another device, an expired
+  // session): the saved copy and the confirmed-account marker go with it.
+  const signedOut = mode === 'signed-out' && status === 'ready'
+  useEffect(() => {
+    if (signedOut) clearLastKnown()
+  }, [signedOut])
 
-  if (mode === 'unavailable') {
-    return <AuthUnavailable onRetry={retry} retrying={retrying} />
+  // The offline fallback's cards, held through a Try again (APP-143).
+  const offline = useOfflineCards(mode, userId)
+
+  // Still behind the splash. Rendering nothing is the point.
+  if (mode === 'splash' && !offline.retrying) return null
+
+  if (mode === 'unavailable' || offline.retrying) {
+    const gate = <AuthUnavailable onRetry={retry} retrying={retrying} />
+    // The gate's offline fallback (APP-143): display-only views of the saved
+    // Loyalty cards, which make no Convex calls. Every protected screen stays
+    // behind the gate; once Convex authenticates, `mode` leaves `unavailable`
+    // and the router below replaces this.
+    if (offline.cards.length === 0) return gate
+    return (
+      <OfflineCopyBoundary fallback={gate}>
+        <OfflineLoyaltyCards
+          cards={offline.cards}
+          onRetry={retry}
+          retrying={retrying || offline.retrying}
+        />
+      </OfflineCopyBoundary>
+    )
   }
 
   return (

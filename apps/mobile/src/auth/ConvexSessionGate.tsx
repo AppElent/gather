@@ -42,8 +42,11 @@
  *
  * The query module (`convex/queries.ts`) is the one place that could hold
  * same-account results through an auth loss, because it sits in front of every
- * subscription. It does not: it is the `retention` flavor, mounted inside the
- * open gate, so it goes with the tree.
+ * subscription. It does not: its provider is mounted inside the open gate, so
+ * it goes with the tree, and its last-known copy is read only while Convex is
+ * authenticated and connected. The one thing drawn without Convex, the saved
+ * Loyalty cards, is the root gate's offline fallback (`app/_layout.tsx`), not
+ * anything below this gate.
  *
  * If `users.me` itself fails, `SessionIdentityBoundary` catches it and draws
  * `SessionError` — try again or sign out — rather than letting the throw reach

@@ -66,6 +66,10 @@ export const nl = {
       front: 'Voorkant van de kaart van {store}',
       back: 'Achterkant van de kaart van {store}',
     },
+    offline: {
+      notice: 'Offline. Dit zijn je kaarten zoals ze op deze telefoon bewaard zijn.',
+      back: 'Alle kaarten',
+    },
     list: {
       /** When a card was last shown, in Home's activity words. */
       when: coreNl.shell.activity,
@@ -80,6 +84,18 @@ export const nl = {
       photoDenied:
         'Gather mag de camera of foto’s niet gebruiken. Zet het aan in Instellingen.',
       photoFailed: 'Die foto kon niet worden toegevoegd.',
+      colors: {
+        slate: 'Leisteen',
+        red: 'Rood',
+        orange: 'Oranje',
+        yellow: 'Geel',
+        green: 'Groen',
+        teal: 'Blauwgroen',
+        blue: 'Blauw',
+        purple: 'Paars',
+        pink: 'Roze',
+        brown: 'Bruin',
+      },
     },
   },
 
@@ -98,6 +114,7 @@ export const nl = {
       note: 'Notitie',
       tasting: 'Proeverij',
       calendarEvent: 'Afspraak',
+      loyaltyCard: 'Klantkaart',
     },
     kinds: { cheese: 'Kaas', wine: 'Wijn', beer: 'Bier' },
   },

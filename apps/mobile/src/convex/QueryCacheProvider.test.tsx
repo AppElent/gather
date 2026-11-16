@@ -6,13 +6,14 @@
  */
 import { ConvexProvider, ConvexReactClient } from 'convex/react'
 import { getFunctionName, makeFunctionReference } from 'convex/server'
-import { act, type ReactNode, useState } from 'react'
+import { act, type ReactNode, useContext, useState } from 'react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { mount } from '../testing/dom'
 
 const harness = vi.hoisted(() => ({
   isAuthenticated: true,
+  connected: true,
   appState: 'active' as string,
   listeners: new Set<(state: string) => void>(),
 }))
@@ -35,11 +36,21 @@ vi.mock('convex/react', async (original) => ({
     isAuthenticated: harness.isAuthenticated,
     isLoading: false,
   }),
+  useConvexConnectionState: () => ({
+    isWebSocketConnected: harness.connected,
+  }),
 }))
 
 const { QueryCacheProvider } = await import('./QueryCacheProvider')
-const { EXPIRATION_MS, MAX_IDLE_ENTRIES, useQueries, useQuery } = await import(
-  './queries'
+const {
+  DiskScopeContext,
+  EXPIRATION_MS,
+  MAX_IDLE_ENTRIES,
+  useQueries,
+  useQuery,
+} = await import('./queries')
+const { confirmedAccount, diskScope, setStoreForTests } = await import(
+  './lastKnown'
 )
 
 const recipes = makeFunctionReference<'query', { groupId: string }, string>(
@@ -158,6 +169,7 @@ describe('QueryCacheProvider', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     harness.isAuthenticated = true
+    harness.connected = true
     harness.appState = 'active'
     renders.length = 0
   })
@@ -312,5 +324,62 @@ describe('QueryCacheProvider', () => {
     expect(remote.open).toBe(1)
     view.unmount()
     expect(remote.open).toBe(0)
+  })
+})
+
+describe('QueryCacheProvider and the last-known copy', () => {
+  const stored = new Map<string, string>()
+  beforeEach(() => {
+    stored.clear()
+    harness.isAuthenticated = true
+    harness.connected = true
+    setStoreForTests({
+      getItemSync: (k: string) => stored.get(k) ?? null,
+      setItemSync: (k: string, v: string) => void stored.set(k, v),
+      removeItemSync: (k: string) => void stored.delete(k),
+      getAllKeysSync: () => [...stored.keys()],
+    } as never)
+  })
+  afterEach(() => {
+    setStoreForTests(undefined)
+    document.body.innerHTML = ''
+  })
+
+  function Scope() {
+    return <p>{useContext(DiskScopeContext) ?? 'none'}</p>
+  }
+
+  function draw(confirmed: string | null) {
+    return (
+      <ConvexProvider client={transport().client}>
+        <QueryCacheProvider
+          account="user_A"
+          confirmedAccount={confirmed}
+          fallback={<p>waiting</p>}
+        >
+          <Scope />
+        </QueryCacheProvider>
+      </ConvexProvider>
+    )
+  }
+
+  test('confirms the account and gives the scope only once Convex agrees', () => {
+    stored.set(`${diskScope('user_B')}loyaltyCards:list|{}`, '[]')
+    const view = mount(draw(null))
+    expect(view.container.textContent).toBe('waiting')
+    expect(confirmedAccount()).toBeNull()
+
+    view.rerender(draw('user_A'))
+    expect(view.container.textContent).toBe(diskScope('user_A'))
+    expect(confirmedAccount()).toBe('user_A')
+    expect([...stored.keys()]).toEqual(['qc|confirmed-account'])
+    view.unmount()
+  })
+
+  test('gives no scope while the socket is down', () => {
+    harness.connected = false
+    const view = mount(draw('user_A'))
+    expect(view.container.textContent).toBe('none')
+    view.unmount()
   })
 })

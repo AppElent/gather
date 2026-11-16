@@ -9,12 +9,20 @@ import { isTastingKind, type TastingKind } from '@gather/core/tastings'
 
 const MAXIMUM_PER_GROUP = 10
 
-export type SearchRecordType =
-  | 'recipe'
-  | 'task'
-  | 'note'
-  | 'tasting'
-  | 'calendarEvent'
+/**
+ * Every type this app can open. Sent to `search.group` as `accepts`, which
+ * keeps a type added on the server away from builds that cannot route it.
+ */
+export const SEARCH_RECORD_TYPES = [
+  'recipe',
+  'task',
+  'note',
+  'tasting',
+  'calendarEvent',
+  'loyaltyCard',
+] as const
+
+export type SearchRecordType = (typeof SEARCH_RECORD_TYPES)[number]
 
 export type RecentRecord = {
   groupSlug: string
@@ -82,6 +90,7 @@ export function isRecentRecord(value: unknown): value is RecentRecord {
     case 'task':
     case 'note':
     case 'calendarEvent':
+    case 'loyaltyCard':
       return true
     default:
       return false

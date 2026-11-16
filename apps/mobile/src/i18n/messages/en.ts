@@ -105,6 +105,11 @@ export const en = {
       front: 'Front of the {store} card',
       back: 'Back of the {store} card',
     },
+    /** The auth gate's offline fallback: a saved copy, shown without Gather. */
+    offline: {
+      notice: 'Offline. These are your cards as saved on this phone.',
+      back: 'All cards',
+    },
     list: {
       /** When a card was last shown, in Home's activity words. */
       when: coreEn.shell.activity,
@@ -118,6 +123,19 @@ export const en = {
       removePhoto: 'Remove',
       photoDenied: 'Gather may not use the camera or photos. Turn it on in Settings.',
       photoFailed: 'That photo could not be added.',
+      /** The store colour swatches' spoken names (`STORE_COLOR_PRESETS`). */
+      colors: {
+        slate: 'Slate',
+        red: 'Red',
+        orange: 'Orange',
+        yellow: 'Yellow',
+        green: 'Green',
+        teal: 'Teal',
+        blue: 'Blue',
+        purple: 'Purple',
+        pink: 'Pink',
+        brown: 'Brown',
+      },
     },
   },
 
@@ -137,6 +155,7 @@ export const en = {
       note: 'Note',
       tasting: 'Tasting',
       calendarEvent: 'Event',
+      loyaltyCard: 'Loyalty card',
     },
     kinds: { cheese: 'Cheese', wine: 'Wine', beer: 'Beer' },
   },

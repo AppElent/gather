@@ -5,7 +5,7 @@
  * scan prefills the number and type, the number's pattern suggests its store,
  * and saving creates the card from both and opens it.
  */
-import { createElement, type ReactNode } from 'react'
+import { act, createElement, type ReactElement, type ReactNode } from 'react'
 import { beforeEach, expect, test, vi } from 'vitest'
 
 import { mount, settle } from '../../../testing/dom'
@@ -22,6 +22,10 @@ const state = vi.hoisted(() => ({
   focused: true,
   permissionReads: 0,
   appState: null as null | ((state: string) => void),
+  stackIndex: 1,
+  options: {} as Record<string, unknown>,
+  hardwareBack: null as null | (() => boolean),
+  photoMounts: 0,
 }))
 
 vi.mock('react-native', async () => {
@@ -99,6 +103,12 @@ vi.mock('react-native', async () => {
       },
     },
     AccessibilityInfo: { announceForAccessibility: () => {} },
+    BackHandler: {
+      addEventListener: (_: string, listener: () => boolean) => {
+        state.hardwareBack = listener
+        return { remove: () => (state.hardwareBack = null) }
+      },
+    },
     Platform: { OS: 'ios', select: (choices: { ios: unknown }) => choices.ios },
   }
 })
@@ -125,10 +135,19 @@ vi.mock('expo-camera', () => ({
 }))
 vi.mock('expo-router', () => {
   const Stack = () => null
-  Stack.Screen = () => null
+  Stack.Screen = ({ options }: { options: Record<string, unknown> }) => {
+    state.options = options
+    return null
+  }
   return {
     Stack,
     useIsFocused: () => state.focused,
+    // The tabs above can always go back (to Home); only the stack's own
+    // index says whether a screen is beneath.
+    useNavigation: () => ({
+      canGoBack: () => true,
+      getState: () => ({ index: state.stackIndex }),
+    }),
     useRouter: () => ({
       replace: (href: unknown) => state.replaced.push(href),
       push: () => {},
@@ -200,7 +219,18 @@ vi.mock('../loyalty-card-icons', () => ({
 vi.mock('../../../feedback/haptics', () => ({
   haptics: new Proxy({}, { get: () => () => {} }),
 }))
-vi.mock('../../../components/PhotoField', () => ({ PhotoField: () => null }))
+// Counts mounts: a photo lives in its PhotoField, so a remount would lose it.
+vi.mock('../../../components/PhotoField', async () => {
+  const React = await import('react')
+  return {
+    PhotoField: () => {
+      React.useEffect(() => {
+        state.photoMounts += 1
+      }, [])
+      return null
+    },
+  }
+})
 vi.mock('../../../components/LoadingSkeleton', () => ({
   LoadingSkeleton: () => null,
 }))
@@ -229,6 +259,10 @@ beforeEach(() => {
   state.focused = true
   state.permissionReads = 0
   state.appState = null
+  state.stackIndex = 1
+  state.options = {}
+  state.hardwareBack = null
+  state.photoMounts = 0
 })
 
 test('a scanned card suggests its store and saves with the scanned number', async () => {
@@ -337,5 +371,110 @@ test('coming back from Settings with the camera allowed opens the camera', async
   expect(state.permissionReads).toBe(1)
   view.rerender(<LoyaltyCardAddScreen />)
   expect(byTestId(view.container, 'camera')).not.toBeNull()
+  view.unmount()
+})
+
+const typeInto = (container: HTMLElement, id: string, value: string) => {
+  const input = byTestId(container, id) as HTMLInputElement
+  const setter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    'value',
+  )?.set
+  setter?.call(input, value)
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+}
+
+test('Android back steps back through the flow, and leaves only from the camera', async () => {
+  const view = mount(<LoyaltyCardAddScreen />)
+  await settle()
+  byTestId(view.container, 'loyalty-card-type-instead')?.click()
+  await settle()
+  byTestId(view.container, 'loyalty-card-other-store')?.click()
+  await settle()
+  const fields = () => byTestId(view.container, 'loyalty-card-fields')
+  const picker = () => byTestId(view.container, 'loyalty-card-other-store')
+  expect(fields()).not.toBeNull()
+  expect(picker()).toBeNull()
+
+  await act(async () => {
+    expect(state.hardwareBack?.()).toBe(true)
+  })
+  expect(picker()).not.toBeNull()
+  await act(async () => {
+    expect(state.hardwareBack?.()).toBe(true)
+  })
+  expect(picker()).toBeNull()
+  expect(byTestId(view.container, 'loyalty-card-type-instead')).not.toBeNull()
+  // Nothing left to step back to: the stack's own back takes over.
+  expect(state.hardwareBack?.()).toBe(false)
+  view.unmount()
+})
+
+test('"Change store" keeps the holder, the note and the photos', async () => {
+  const view = mount(<LoyaltyCardAddScreen />)
+  await settle()
+  state.scan?.({ type: 'ean13', data: '2620000000008' })
+  await settle()
+  byTestId(view.container, 'loyalty-card-suggestion')?.click()
+  await settle()
+  typeInto(view.container, 'loyalty-card-holder', 'Sam')
+  typeInto(view.container, 'loyalty-card-note', 'Blue keyring')
+  await settle()
+  const photoMounts = state.photoMounts
+  expect(photoMounts).toBe(2)
+
+  byTestId(view.container, 'loyalty-card-change-store')?.click()
+  await settle()
+  byTestId(view.container, 'loyalty-card-other-store')?.click()
+  await settle()
+  expect(state.photoMounts).toBe(photoMounts)
+  typeInto(view.container, 'loyalty-card-store-name', 'Bakker Jan')
+  await settle()
+  byTestId(view.container, 'loyalty-card-color-green')?.click()
+  await settle()
+  byTestId(view.container, 'loyalty-card-save')?.click()
+  await settle()
+  expect(state.created).toEqual([
+    {
+      groupSlug: 'home',
+      catalogKey: undefined,
+      storeName: 'Bakker Jan',
+      brandColor: '#16a34a',
+      cardNumber: '2620000000008',
+      barcodeFormat: 'EAN_13',
+      holder: 'Sam',
+      note: 'Blue keyring',
+      frontPhotoId: undefined,
+      backPhotoId: undefined,
+    },
+  ])
+  view.unmount()
+})
+
+test('opened from a link, the screen has a back button to the list', async () => {
+  state.stackIndex = 0
+  const view = mount(<LoyaltyCardAddScreen />)
+  const headerLeft = state.options.headerLeft as () => ReactNode
+  expect(headerLeft).toBeTypeOf('function')
+  const button = mount(headerLeft() as ReactElement)
+  expect(
+    byTestId(button.container, 'loyalty-card-add-back')?.getAttribute(
+      'aria-label',
+    ),
+  ).toBe('Loyalty cards')
+  byTestId(button.container, 'loyalty-card-add-back')?.click()
+  expect(state.replaced).toEqual(['/all/loyalty-cards'])
+  // And Android back at the first step goes there too, rather than closing.
+  await act(async () => {
+    expect(state.hardwareBack?.()).toBe(true)
+  })
+  expect(state.replaced).toEqual(['/all/loyalty-cards', '/all/loyalty-cards'])
+  button.unmount()
+  view.unmount()
+})
+
+test('with a screen beneath it, the stack draws its own back button', () => {
+  const view = mount(<LoyaltyCardAddScreen />)
+  expect(state.options.headerLeft).toBeUndefined()
   view.unmount()
 })

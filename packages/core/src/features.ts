@@ -344,7 +344,10 @@ export const FEATURES = defineFeatures([
     platforms: ['web', 'mobile'],
     routes: {
       web: ['_app/loyalty-cards/**'],
-      mobile: ['(app)/(tabs)/all/loyalty-cards/**'],
+      mobile: [
+        '(app)/(tabs)/all/loyalty-cards/**',
+        '(app)/(tabs)/search/loyalty-cards/**',
+      ],
     },
   },
 

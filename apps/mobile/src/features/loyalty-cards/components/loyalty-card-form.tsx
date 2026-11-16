@@ -8,14 +8,24 @@
  * it, and Save stays off while a photo is still uploading: a card saved then
  * would go without the photo it shows.
  *
- * A Catalog store keeps its own name and colour; a store typed by hand gets
- * the server's default colour (the phone has no colour picker yet).
+ * A Catalog store keeps its own name and colour; a store typed by hand picks
+ * one of `STORE_COLOR_PRESETS`, the same colours the web suggests (APP-160).
+ *
+ * The add flow keeps this form mounted while its store is changed, so the
+ * holder, the note and the photos survive "Change store"; `storeSeed` hands
+ * it the new store's fields to take over.
  */
 import { MenuView } from '@expo/ui/community/menu'
 import { BARCODE_FORMATS, type BarcodeFormat } from '@gather/core/barcodes'
+import {
+  DEFAULT_STORE_COLOR,
+  STORE_COLOR_PRESETS,
+  textOnBrand,
+} from '@gather/core/loyalty-cards'
 import { useMutation } from 'convex/react'
 import { useRef, useState } from 'react'
 import {
+  Pressable,
   StyleSheet,
   Text,
   type TextInputInstance,
@@ -57,14 +67,30 @@ export interface StoreHints {
 export type PhotoChange = string | null | undefined
 
 export interface CardSubmission extends CardValues {
+  /** Only for a store typed by hand; a Catalog store keeps its own colour. */
+  brandColor?: string
   frontPhotoId: PhotoChange
   backPhotoId: PhotoChange
+}
+
+/**
+ * A new store for a form that is already filled in. Each field present
+ * replaces the one typed; absent ones stay. `key` changes once per new store.
+ */
+export interface StoreSeed {
+  key: number
+  storeName?: string
+  cardNumber?: string
+  barcodeFormat?: BarcodeFormat
 }
 
 export function LoyaltyCardForm({
   initial,
   store,
   storeFixed,
+  colorPickable = false,
+  initialColor,
+  storeSeed,
   photoUrls,
   submitting,
   problem,
@@ -75,6 +101,10 @@ export function LoyaltyCardForm({
   store?: StoreHints
   /** Whether the store's name is the Catalog's, and so not typed here. */
   storeFixed: boolean
+  /** Whether the store's colour is chosen here: only for a store typed by hand. */
+  colorPickable?: boolean
+  initialColor?: string
+  storeSeed?: StoreSeed
   photoUrls?: { front: string | null; back: string | null }
   submitting: boolean
   /** Why the last save failed, already in words. */
@@ -87,6 +117,19 @@ export function LoyaltyCardForm({
   const generateUploadUrl = useMutation(api.loyaltyCards.generateUploadUrl)
 
   const [draft, setDraft] = useState(initial)
+  const [color, setColor] = useState(initialColor ?? DEFAULT_STORE_COLOR)
+  const [seedKey, setSeedKey] = useState(storeSeed?.key)
+  if (storeSeed && storeSeed.key !== seedKey) {
+    // A new store, chosen while this form kept everything else.
+    setSeedKey(storeSeed.key)
+    const { key: _key, ...fields } = storeSeed
+    setDraft((current) => ({
+      ...current,
+      ...Object.fromEntries(
+        Object.entries(fields).filter(([, value]) => value !== undefined),
+      ),
+    }))
+  }
   const [front, setFront] = useState<PhotoChange>(undefined)
   const [back, setBack] = useState<PhotoChange>(undefined)
   const [uploads, setUploads] = useState({ front: false, back: false })
@@ -130,7 +173,12 @@ export function LoyaltyCardForm({
       haptics.actionFailed()
       return
     }
-    onSubmit({ ...check.values, frontPhotoId: front, backPhotoId: back })
+    onSubmit({
+      ...check.values,
+      brandColor: colorPickable ? color : undefined,
+      frontPhotoId: front,
+      backPhotoId: back,
+    })
   }
 
   function photoLabels(heading: string, alt: string) {
@@ -175,6 +223,15 @@ export function LoyaltyCardForm({
           ) : null}
         </View>
       )}
+
+      {colorPickable ? (
+        <View style={styles.field}>
+          <Text style={[TYPE.footnoteStrong, styles.label, { color: tokens.muted }]}>
+            {words.color}
+          </Text>
+          <ColorSwatches value={color} onChange={setColor} />
+        </View>
+      ) : null}
 
       <View style={styles.field}>
         <Field
@@ -319,6 +376,68 @@ export function LoyaltyCardForm({
 }
 
 /**
+ * The store's colour, as a row of swatches: few enough to take in at a
+ * glance, and the same set the web suggests. One is always chosen.
+ */
+function ColorSwatches({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (hex: string) => void
+}) {
+  const tokens = useTokens('home')
+  const { t } = useI18n()
+  const names = t.loyaltyCards.form.colors
+  return (
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel={t.loyaltyCards.form.color}
+      style={styles.swatches}
+    >
+      {STORE_COLOR_PRESETS.map((preset) => {
+        const selected = preset.hex === value.toLowerCase()
+        return (
+          <Pressable
+            key={preset.id}
+            accessibilityRole="radio"
+            accessibilityLabel={names[preset.id]}
+            accessibilityState={{ checked: selected }}
+            testID={`loyalty-card-color-${preset.id}`}
+            hitSlop={4}
+            onPress={() => {
+              haptics.selectionChanged()
+              onChange(preset.hex)
+            }}
+            style={({ pressed }) => [
+              styles.swatchRing,
+              { borderColor: selected ? tokens.ink : 'transparent' },
+              pressed && styles.pressed,
+            ]}
+          >
+            <View
+              style={[
+                styles.swatch,
+                // A hairline keeps light presets (yellow) visible on a light page.
+                { backgroundColor: preset.hex, borderColor: tokens.hair },
+              ]}
+            >
+              {selected ? (
+                <UI_ICONS.Check
+                  size={18}
+                  color={textOnBrand(preset.hex)}
+                  strokeWidth={2.4}
+                />
+              ) : null}
+            </View>
+          </Pressable>
+        )
+      })}
+    </View>
+  )
+}
+
+/**
  * The barcode type, as a field that opens the platform menu on a tap. The
  * menu's iOS host sizes itself to its children, so the field is measured
  * first and handed its width (as `NativeContextMenu` does for rows).
@@ -399,4 +518,19 @@ const styles = StyleSheet.create({
   },
   selectText: { flex: 1 },
   selectSlot: { alignSelf: 'stretch' },
+  swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  swatchRing: {
+    padding: 3,
+    borderWidth: 2,
+    borderRadius: RADIUS.pill,
+  },
+  swatch: {
+    width: 34,
+    height: 34,
+    borderRadius: RADIUS.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pressed: { opacity: 0.6 },
 })

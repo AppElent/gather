@@ -49,6 +49,7 @@ describe('Reading a stored record back', () => {
     expect(isRecentRecord(stored)).toBe(true)
     expect(isRecentRecord({ ...stored, type: 'note' })).toBe(true)
     expect(isRecentRecord({ ...stored, type: 'calendarEvent' })).toBe(true)
+    expect(isRecentRecord({ ...stored, type: 'loyaltyCard' })).toBe(true)
     expect(isRecentRecord({ ...stored, type: 'tasting', kind: 'cheese' })).toBe(
       true,
     )

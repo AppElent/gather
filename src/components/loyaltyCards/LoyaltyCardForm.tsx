@@ -7,6 +7,7 @@ import {
 import {
   DEFAULT_STORE_COLOR,
   LOYALTY_CARD_LIMITS,
+  STORE_COLOR_PRESETS,
 } from '@gather/core/loyalty-cards'
 import { useEffect, useId, useState } from 'react'
 import type { Id } from '../../../convex/_generated/dataModel'
@@ -77,6 +78,7 @@ export function LoyaltyCardForm({
     holderHelp: useId(),
     note: useId(),
     color: useId(),
+    colorPresets: useId(),
   }
 
   // Picking a store unmounts the picker that had focus; without this the
@@ -183,8 +185,16 @@ export function LoyaltyCardForm({
               type="color"
               className="h-10 w-16 cursor-pointer rounded-[var(--app-radius)] border border-[var(--app-border)] bg-[var(--app-surface)] p-1"
               value={brandColor}
+              // The phone's swatches, offered first here, so a colour picked
+              // on either looks the same on both (APP-160).
+              list={ids.colorPresets}
               onChange={(event) => setBrandColor(event.target.value)}
             />
+            <datalist id={ids.colorPresets}>
+              {STORE_COLOR_PRESETS.map((preset) => (
+                <option key={preset.id} value={preset.hex} />
+              ))}
+            </datalist>
           </div>
         ) : null}
       </div>
