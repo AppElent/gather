@@ -223,7 +223,12 @@ export function RecipeScreen() {
           // group's wash under the native large title. Either way the title is
           // drawn once.
           ...(photo
-            ? photoScreenOptions(recipe.title, photoTitle.shown, tokens.ink)
+            ? photoScreenOptions(
+                recipe.title,
+                photoTitle.shown,
+                tokens.ink,
+                photoTitle.laidOut,
+              )
             : washScreenOptions(recipe.title)),
           headerRight: recipe.canEdit
             ? () => (

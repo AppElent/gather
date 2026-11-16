@@ -224,7 +224,8 @@ export const en = {
     home: {
       /** The accessible name of the Group button; `{group}` is its name. */
       switchFrom: 'Group: {group}. {action}',
-      intro: 'Welcome to Gather. Find every module for this group in All.',
+      /** Today: the date, the Now card, the rail, Anytime today and Pinned. */
+      today: coreEn.shell.today,
     },
 
     /**

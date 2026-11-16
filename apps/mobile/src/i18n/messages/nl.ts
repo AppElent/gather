@@ -168,8 +168,7 @@ export const nl = {
 
     home: {
       switchFrom: 'Groep: {group}. {action}',
-      intro:
-        'Welkom bij Gather. Je vindt alle modules voor deze Groep bij Alles.',
+      today: coreNl.shell.today,
     },
 
     all: {

@@ -55,11 +55,23 @@ export function pendingScreenOptions(title: string) {
  * in-content title has scrolled under the bar: the header `title` stays set
  * throughout (VoiceOver and the app switcher read it), and only its ink is
  * withheld, so there is never a second visible title.
+ *
+ * iOS 26 blurs scrolling content under the status bar and the bar. Over the
+ * photo that blur reads as a smudge, so the top edge effect is hidden while
+ * the photo is under the bar, and returns to the system default once the
+ * inline title has taken over.
+ *
+ * react-native-screens applies `scrollEdgeEffects` only when the option
+ * changes, to the scroll view mounted at that moment; a record that arrives
+ * after its loading state would miss it. So the effect is hidden only once the
+ * content has laid out (`laidOut`), which is a change after the scroll view
+ * exists.
  */
 export function photoScreenOptions(
   title: string,
   titleShown: boolean,
   ink: string,
+  laidOut = true,
 ) {
   return {
     headerShown: true,
@@ -68,6 +80,12 @@ export function photoScreenOptions(
     headerLargeTitle: false,
     headerShadowVisible: false,
     headerTitleStyle: { color: titleShown ? ink : 'transparent' },
+    scrollEdgeEffects: {
+      top: laidOut && !titleShown ? 'hidden' : 'automatic',
+      bottom: 'automatic',
+      left: 'automatic',
+      right: 'automatic',
+    },
   } as const
 }
 

@@ -55,7 +55,13 @@ export function usePhotoTitle() {
     [titleBottom, headerHeight],
   )
 
-  return { shown, onScroll, onTitleBottom: setTitleBottom }
+  return {
+    shown,
+    /** The in-content title has laid out, so the scroll view is mounted. */
+    laidOut: titleBottom !== null,
+    onScroll,
+    onTitleBottom: setTitleBottom,
+  }
 }
 
 export function PhotoHeader({

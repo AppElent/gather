@@ -206,6 +206,32 @@ export const shell = {
     unreachable: 'Kon de server niet bereiken.',
   },
 
+  today: {
+    date: '{weekday} {day} {month}',
+    members: { one: '{count} lid', other: '{count} leden' },
+    heading: 'Vandaag',
+    anytime: 'Ergens vandaag',
+    pinned: 'Vastgezet',
+    overdue: {
+      caption: 'Te late taken',
+      inList: 'in {list}',
+      acrossLists: 'in {count} lijsten',
+      openList: '{list} openen',
+      openTasks: 'Taken openen',
+    },
+    entry: '{summary} \u00b7 {child}',
+    now: 'Nu \u00b7 {time}',
+    duration: {
+      minutes: '{minutes} min',
+      hours: '{hours} u',
+      hoursMinutes: '{hours} u {minutes} min',
+      days: '{days} d',
+    },
+    sideMinutes: '{side} {minutes} min',
+    open: 'Openen',
+    unpin: 'Losmaken',
+  },
+
   home: {
     sharedSubtitle: 'Wat iedereen in deze Groep heeft gedaan.',
     whoIsHere: 'Wie er zijn',
