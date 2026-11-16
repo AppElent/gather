@@ -315,6 +315,10 @@ export const subject = {
   facts: 'Gegevens',
   tastings: 'Proeverijen',
   noTastings: 'Nog niemand heeft dit geproefd.',
+  factUnits: {
+    average: 'gemiddeld',
+    tastings: { one: 'proeverij', other: 'proeverijen' },
+  },
   logTasting: 'Proeverij vastleggen',
   addPhoto: 'Etiket',
   photoOf: 'Foto van {name}',

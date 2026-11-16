@@ -32,7 +32,10 @@ import { useQuery } from '../../../convex/queries'
 import { haptics } from '../../../feedback/haptics'
 import { useGroup } from '../../../group/GroupProvider'
 import { fmt, useI18n } from '../../../i18n'
-import { moduleDestination, moduleHref } from '../../../modules/moduleDestination'
+import {
+  moduleDestination,
+  moduleHref,
+} from '../../../modules/moduleDestination'
 import { UI_ICONS } from '../../../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../../theme/tokens'
 import { cardSaveProblem } from '../components/card-save-problem'
@@ -99,9 +102,8 @@ export function LoyaltyCardAddScreen() {
 
   useEffect(() => {
     if (!focused) return
-    const subscription = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => stepBackRef.current(),
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () =>
+      stepBackRef.current(),
     )
     return () => subscription.remove()
   }, [focused])
@@ -220,7 +222,6 @@ export function LoyaltyCardAddScreen() {
               />
             ) : null}
             <Text
-              numberOfLines={2}
               style={[TYPE.bodyStrong, styles.storeName, { color: tokens.ink }]}
             >
               {retailer ? retailer.name : words.picker.otherStore}

@@ -82,7 +82,7 @@ export function EntryFields({ type, picks, onChange }: EntryFieldsProps) {
     return (
       <View key={field.key} style={styles.field}>
         <Text style={[styles.fieldLabel, { color: tokens.muted }]}>
-          {name.toUpperCase()}
+          {name}
         </Text>
 
         {field.input === 'number' ? (
@@ -148,7 +148,7 @@ export function EntryFields({ type, picks, onChange }: EntryFieldsProps) {
 
 const styles = StyleSheet.create({
   field: { gap: 7 },
-  fieldLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  fieldLabel: { ...TYPE.footnoteStrong },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     minHeight: 44,

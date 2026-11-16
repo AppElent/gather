@@ -1,4 +1,9 @@
-import { addDays, localIsoDate, localMidnight, mondayStart } from '@gather/core/civil-date'
+import {
+  addDays,
+  localIsoDate,
+  localMidnight,
+  mondayStart,
+} from '@gather/core/civil-date'
 import {
   eligibleDinnerCandidates,
   randomDinner,
@@ -25,21 +30,48 @@ import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
-import { fmt, useI18n } from '../../i18n'
+import { fmt, plural, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { RADIUS, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { InsetList, InsetRow } from '../../ui/inset-list'
+import { moduleTile } from '../../ui/module-tile'
+import { washScreenOptions } from '../../ui/screen-header'
+import { WashHeader, type WashSummary } from '../../ui/wash-header'
 import { useTaskLists } from '../tasks/store'
 import { TaskList } from '../tasks/TaskListScreen'
 
 function KitchenShell({
   title,
+  wash,
   children,
 }: {
   title: string
+  /** The group's wash, the Module's tile and a summary line on top. */
+  wash?: { moduleId: string; summary: WashSummary }
   children: React.ReactNode
 }) {
   const tokens = useTokens('kitchen')
   const insets = useSafeAreaInsets()
+  const tile = wash ? moduleTile(wash.moduleId) : null
+  if (wash && tile) {
+    return (
+      <>
+        <Stack.Screen options={washScreenOptions(title)} />
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          style={{ backgroundColor: tokens.ground }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        >
+          <WashHeader
+            group={tile.group}
+            glyph={tile.glyph}
+            summary={wash.summary}
+          />
+          <View style={styles.washContent}>{children}</View>
+        </ScrollView>
+      </>
+    )
+  }
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title }} />
@@ -417,15 +449,12 @@ export function MealPlannerScreen() {
           ]}
           onAction={(action) => {
             if (action === 'edit') setEditing(entry._id)
-            else
-              confirmRemove(entry)
+            else confirmRemove(entry)
           }}
         >
           <SwipeableRow
             deleteLabel={t.common.actions.delete}
-            onDelete={() =>
-              confirmRemove(entry)
-            }
+            onDelete={() => confirmRemove(entry)}
           >
             <Pressable
               onPress={() => setEditing(entry._id)}
@@ -591,7 +620,8 @@ function EditMeal({
 
 export function GroceriesScreen() {
   const { group } = useGroup()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const tokens = useTokens('kitchen')
   const data = useQuery(api.kitchen.overview, { groupSlug: group.slug })
   const set = useMutation(api.kitchen.setGroceryList)
   const lists = useTaskLists()
@@ -600,6 +630,7 @@ export function GroceriesScreen() {
     return (
       <TaskList
         listId={selected}
+        moduleId="groceries"
         addPlaceholder={t.kitchen.addGroceryItem}
         menuExtras={[
           {
@@ -614,21 +645,34 @@ export function GroceriesScreen() {
       />
     )
   return (
-    <KitchenShell title={t.modules.byId.groceries.label}>
-      <Text>{t.kitchen.noGroceryList}</Text>
-      {lists?.map((list) => (
-        <Pressable
-          key={list._id}
-          style={styles.row}
-          onPress={() =>
-            set({ groupSlug: group.slug, listId: list._id }).then(() =>
-              haptics.selectionChanged(),
-            )
-          }
-        >
-          <Text>{list.name}</Text>
-        </Pressable>
-      ))}
+    <KitchenShell
+      title={t.modules.byId.groceries.label}
+      wash={{
+        moduleId: 'groceries',
+        summary: {
+          count: plural(locale, lists?.length ?? 0, t.tasks.count.lists),
+          scope: group.name,
+        },
+      }}
+    >
+      <Text style={[TYPE.subhead, { color: tokens.muted }]}>
+        {t.kitchen.noGroceryList}
+      </Text>
+      {lists && lists.length > 0 ? (
+        <InsetList>
+          {lists.map((list) => (
+            <InsetRow
+              key={list._id}
+              title={list.name}
+              onPress={() =>
+                set({ groupSlug: group.slug, listId: list._id }).then(() =>
+                  haptics.selectionChanged(),
+                )
+              }
+            />
+          ))}
+        </InsetList>
+      ) : null}
     </KitchenShell>
   )
 }
@@ -678,16 +722,12 @@ export function PantryScreen() {
               },
             ]}
             onAction={(action) =>
-              action === 'edit'
-                ? setEditing(item._id)
-                : confirmRemove(item)
+              action === 'edit' ? setEditing(item._id) : confirmRemove(item)
             }
           >
             <SwipeableRow
               deleteLabel={t.common.actions.delete}
-              onDelete={() =>
-                confirmRemove(item)
-              }
+              onDelete={() => confirmRemove(item)}
             >
               <Pressable
                 onPress={() => setEditing(item._id)}
@@ -780,6 +820,7 @@ function PantryEditor({
 
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 10 },
+  washContent: { paddingHorizontal: SPACE[4], gap: SPACE[3] },
   composer: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,

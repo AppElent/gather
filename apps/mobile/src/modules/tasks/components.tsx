@@ -1,6 +1,6 @@
 /**
- * The handful of pieces every Tasks screen is made of besides `Card`: a 21px
- * box with a 1.6 stroke, chips, and pressable rows.
+ * The handful of pieces every Tasks screen is made of besides `InsetList`: the
+ * check ring, chips, and pressable rows.
  *
  * `PressRow` highlights with a background fill and an Android ripple rather
  * than `opacity: 0.6`; `apps/mobile/DESIGN_SYSTEM.md` calls the opacity
@@ -76,9 +76,10 @@ export function PressRow({
 }
 
 /**
- * The 21px box, ticked or not. Its ring is the group's text colour, the one
- * place a task row carries the group; ticked, it fills with the group's fill
- * and the tick is the label on that fill.
+ * The check ring, ticked or not: 24 pt round with a 2 pt border in the group's
+ * `text` colour, the one place a task row carries the group
+ * (`components/InsetList`). Ticked, it fills with the group's fill and the
+ * tick is the label on that fill.
  */
 export function Checkbox({ checked }: { checked: boolean }) {
   const tokens = useTokens('home')
@@ -174,10 +175,10 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   box: {
-    width: 21,
-    height: 21,
-    borderRadius: 6,
-    borderWidth: 1.6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

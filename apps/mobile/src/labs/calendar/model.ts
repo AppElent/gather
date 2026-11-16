@@ -173,7 +173,8 @@ export function timeLabel(event: LabEvent, allDayWord: string): string {
 }
 
 /**
- * The heading over a day in the agenda — "TODAY · WEDNESDAY 2 SEPTEMBER".
+ * The heading over a day in the agenda — "Today · Wednesday 2 September",
+ * in sentence case: the first letter up, the locale's own case after it.
  *
  * The locale is the app's, never the device's (ADR-0011), and it is passed in
  * rather than read, so this stays callable from a test with no React tree.
@@ -189,7 +190,7 @@ export function dayHeading(
     day: 'numeric',
     month: 'long',
   })
-  return daysBetween(today, iso) === 0
-    ? `${words.today} · ${long}`.toUpperCase()
-    : long.toUpperCase()
+  const heading =
+    daysBetween(today, iso) === 0 ? `${words.today} · ${long}` : long
+  return heading.charAt(0).toLocaleUpperCase(locale) + heading.slice(1)
 }

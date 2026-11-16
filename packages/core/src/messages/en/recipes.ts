@@ -7,6 +7,8 @@
  */
 export const recipes = {
   list: {
+    /** The summary under the recipe index's large title. */
+    count: { one: '{count} recipe', other: '{count} recipes' },
     subtitle: 'Keep and rate the dishes this group cooks.',
     add: 'Add recipe',
     emptyTitle: 'No recipes yet',
@@ -142,6 +144,16 @@ export const recipes = {
     deleteBody: 'Delete "{title}"? This cannot be undone.',
     deleteFailed: 'Could not delete recipe',
     addedBy: 'Added by {name}',
+    /** After the Module's name in a record's eyebrow: "Recipes · added by Sanne". */
+    byLine: 'added by {name}',
+    /** The facts strip's unit words, under each number. */
+    facts: {
+      servings: { one: 'serving', other: 'servings' },
+      ingredients: { one: 'ingredient', other: 'ingredients' },
+      steps: { one: 'step', other: 'steps' },
+    },
+    /** The summary under a recipe without a photo. */
+    ingredientCount: { one: '{count} ingredient', other: '{count} ingredients' },
     importedFrom: 'Imported from',
     staleNutrition:
       'Ingredients changed since nutrition was calculated — re-estimate?',

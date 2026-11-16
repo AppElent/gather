@@ -36,7 +36,7 @@ import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { babyChildKey, writePreference } from '../../prefs/localPreference'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { EVENT_ICONS } from './icons'
 import { ListPicker, type PickedList } from './ListPicker'
 
@@ -212,6 +212,7 @@ export function CreateChild() {
                       <Text
                         style={[
                           on ? TYPE.footnoteStrong : TYPE.footnote,
+                          styles.segmentLabel,
                           { color: on ? tokens.onInk : tokens.ink },
                         ]}
                       >
@@ -350,7 +351,7 @@ function Field({
   return (
     <View style={styles.field}>
       <Text style={[styles.fieldLabel, { color: tokens.muted }]}>
-        {label.toUpperCase()}
+        {label}
       </Text>
       {children}
     </View>
@@ -373,7 +374,7 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 20 },
   intro: { ...TYPE.subhead },
   field: { gap: 8 },
-  fieldLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  fieldLabel: { ...TYPE.footnoteStrong },
   input: {
     ...TYPE.bodyStrong,
     minHeight: 48,
@@ -382,11 +383,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   segments: { flexDirection: 'row', gap: 8 },
+  segmentLabel: { textAlign: 'center' },
+  // "Prefer not to say" wraps at a large text size; the segment grows.
   segment: {
     flex: 1,
-    minHeight: 46,
+    minHeight: SIZE.hitMin,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: SPACE[1],
+    paddingVertical: SPACE[1],
     borderWidth: 1,
     borderRadius: RADIUS.pill,
   },

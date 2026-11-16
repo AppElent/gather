@@ -68,7 +68,6 @@ export function DeleteGroupSection() {
     <View style={styles.section}>
       <Text
         accessibilityRole="header"
-        numberOfLines={1}
         style={[styles.heading, { color: tokens.ink }]}
       >
         {group.name}

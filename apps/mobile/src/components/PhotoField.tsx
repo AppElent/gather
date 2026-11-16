@@ -149,7 +149,7 @@ export function PhotoField({
   return (
     <View style={styles.field}>
       <Text style={[styles.label, { color: tokens.muted }]}>
-        {labels.heading.toUpperCase()}
+        {labels.heading}
       </Text>
 
       {shown ? (
@@ -256,7 +256,7 @@ function PhotoButton({
       ]}
     >
       {Icon ? <Icon size={16} color={color} strokeWidth={1.9} /> : null}
-      <Text numberOfLines={1} style={[styles.buttonText, { color }]}>
+      <Text style={[styles.buttonText, { color }]}>
         {label}
       </Text>
     </Pressable>
@@ -265,7 +265,7 @@ function PhotoButton({
 
 const styles = StyleSheet.create({
   field: { gap: 8 },
-  label: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  label: { ...TYPE.footnoteStrong },
   preview: {
     width: '100%',
     aspectRatio: 4 / 3,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.pill,
   },
-  buttonText: { ...TYPE.bodyStrong },
+  buttonText: { ...TYPE.bodyStrong, flexShrink: 1, textAlign: 'center' },
   status: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusText: { ...TYPE.footnote },
   pressed: { opacity: 0.6 },

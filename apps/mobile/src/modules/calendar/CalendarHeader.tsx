@@ -6,7 +6,13 @@ import {
   visibleMarksForDate,
 } from '@gather/core/calendar'
 import { monthGrid, weekOf } from '@gather/core/civil-date'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import {
+  type LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
   interpolate,
@@ -18,7 +24,7 @@ import Animated, {
 import { WeekdayStrip } from '../../components/MonthGridView'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 
 export interface CalendarHeaderProps {
   activeDate: string
@@ -243,13 +249,27 @@ export function CalendarHeader(props: CalendarHeaderProps) {
         runOnJS(props.onToggle)()
       }
     })
-  const animatedStyle = useAnimatedStyle(() => ({
-    maxHeight: interpolate(
-      dragging.value ? dragProgress.value : props.progress,
-      [0, 1],
-      [202, 392],
-    ),
-  }))
+  // The header's two resting heights are measured, never assumed: at a large
+  // text size the month grid is far taller than any fixed number, and a clip
+  // would cut off its last weeks. At rest nothing clips; only a drag
+  // interpolates between the week and month heights last laid out.
+  const weekHeight = useSharedValue(0)
+  const monthHeight = useSharedValue(0)
+  const onLayout = (event: LayoutChangeEvent) => {
+    if (dragging.value) return
+    const height = event.nativeEvent.layout.height
+    if (props.presentation === 'month') monthHeight.value = height
+    else if (props.presentation === 'week') weekHeight.value = height
+  }
+  const animatedStyle = useAnimatedStyle(() => {
+    if (!dragging.value) return { maxHeight: undefined }
+    const known = Math.max(weekHeight.value, monthHeight.value)
+    const collapsed = weekHeight.value || known
+    const expanded = monthHeight.value || known
+    return {
+      maxHeight: interpolate(dragProgress.value, [0, 1], [collapsed, expanded]),
+    }
+  })
   const title = displayDate(props.activeDate, locale, {
     month: 'long',
     year: 'numeric',
@@ -257,6 +277,7 @@ export function CalendarHeader(props: CalendarHeaderProps) {
 
   return (
     <Animated.View
+      onLayout={onLayout}
       style={[
         styles.container,
         { backgroundColor: tokens.ground, paddingTop: props.topInset ?? 0 },
@@ -279,6 +300,7 @@ export function CalendarHeader(props: CalendarHeaderProps) {
           accessibilityRole="button"
           accessibilityLabel={title}
           onPress={() => props.onSelectDate(props.activeDate)}
+          style={styles.titleButton}
         >
           <Text style={[styles.title, { color: tokens.ink }]}>{title}</Text>
         </Pressable>
@@ -377,21 +399,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
   },
-  today: { minWidth: 54, minHeight: 44, justifyContent: 'center' },
+  today: { minWidth: 54, minHeight: SIZE.hitMin, justifyContent: 'center' },
   todayText: { ...TYPE.bodyStrong },
+  titleButton: { flexShrink: 1, minHeight: SIZE.hitMin, justifyContent: 'center' },
   title: { ...TYPE.title2, textTransform: 'capitalize' },
   actions: { flexDirection: 'row', gap: 7 },
   iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: SIZE.hitMin,
+    height: SIZE.hitMin,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  handleArea: { height: 26, alignItems: 'center', justifyContent: 'center' },
+  handleArea: { minHeight: 26, alignItems: 'center', justifyContent: 'center' },
   handle: { width: 42, height: 5, borderRadius: 3 },
   pager: { flexDirection: 'row', alignItems: 'center' },
-  arrow: { width: 26, alignItems: 'center', justifyContent: 'center' },
+  arrow: { minWidth: 26, alignItems: 'center', justifyContent: 'center' },
   arrowText: { ...TYPE.title2 },
   gridWrap: { flex: 1 },
   week: { flexDirection: 'row' },

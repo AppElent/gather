@@ -330,7 +330,7 @@ export function EntryScreen() {
             {entry.notes ? (
               <View style={styles.field}>
                 <Text style={[styles.fieldLabel, { color: tokens.muted }]}>
-                  {t.baby.log.entry.notes.toUpperCase()}
+                  {t.baby.log.entry.notes}
                 </Text>
                 <Text style={[styles.notesRead, { color: tokens.ink }]}>
                   {entry.notes}
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   detailName: { ...TYPE.subhead, flex: 1 },
   detailValue: { ...TYPE.bodyStrong, ...TABULAR },
   field: { gap: 6 },
-  fieldLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  fieldLabel: { ...TYPE.footnoteStrong },
   notesRead: { ...TYPE.subhead },
   photo: { width: '100%', aspectRatio: 4 / 3, borderRadius: RADIUS.card },
   notes: {

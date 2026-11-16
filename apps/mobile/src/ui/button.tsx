@@ -5,7 +5,9 @@
  * Every variant is a pill (`RADIUS.pill`).
  *
  * `primary` is filled with `tokens.accent` and labelled in `tokens.onAccent`.
- * It takes no group, so that is ink with an `onInk` label: the front door
+ * On a Module's screen it takes that Module's `group`, so its primary button
+ * is the group's fill — one of the three places group colour may appear.
+ * Without a group it is ink with an `onInk` label: the front door
  * belongs to no Module, and ADR-0017's accent rule says the accent is ink
  * where you are looking at everything. A tinted Sign in would be claiming the
  * person is somewhere they have not arrived yet.
@@ -28,7 +30,7 @@ import {
   type ViewStyle,
 } from 'react-native'
 
-import { RADIUS, TYPE, useTokens } from '../theme/tokens'
+import { type ModuleGroup, RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 interface ButtonProps {
   label: string
@@ -37,6 +39,8 @@ interface ButtonProps {
   busy?: boolean
   disabled?: boolean
   style?: StyleProp<ViewStyle>
+  /** The Module whose primary button this is; ink where there is none. */
+  group?: ModuleGroup
   /** So a verification run can reach the button without matching its words. */
   testID?: string
 }
@@ -48,9 +52,10 @@ export function Button({
   busy = false,
   disabled = false,
   style,
+  group,
   testID,
 }: ButtonProps) {
-  const tokens = useTokens()
+  const tokens = useTokens(group)
   const inert = disabled || busy
 
   const surface =

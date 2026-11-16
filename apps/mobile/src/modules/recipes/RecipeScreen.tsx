@@ -33,7 +33,6 @@
  */
 import { isAiLimitReached } from '@gather/core/ai-limit'
 import { useAction, useMutation } from 'convex/react'
-import { Image } from 'expo-image'
 import { useKeepAwake } from 'expo-keep-awake'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { openBrowserAsync } from 'expo-web-browser'
@@ -45,10 +44,20 @@ import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
-import { fmt, useI18n } from '../../i18n'
+import { fmt, plural, useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
-import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { MODULE_ICONS, UI_ICONS } from '../../theme/icons'
+import { RADIUS, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { FactsStrip } from '../../ui/facts-strip'
+import { InsetList, InsetRow } from '../../ui/inset-list'
+import { PhotoHeader, usePhotoTitle } from '../../ui/photo-header'
+import {
+  pendingScreenOptions,
+  photoScreenOptions,
+  washScreenOptions,
+} from '../../ui/screen-header'
+import { SectionLabel } from '../../ui/section-label'
+import { WashHeader } from '../../ui/wash-header'
 import { moduleHref } from '../moduleDestination'
 import { RECIPE_UI_ICONS } from './icons'
 import { NutritionFacts } from './NutritionFacts'
@@ -62,8 +71,9 @@ export function RecipeScreen() {
   const tint = tokens.tintOf('kitchen')
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { groupSlug } = useRecipes()
+  const photoTitle = usePhotoTitle()
   const { recipeId } = useLocalSearchParams<{ recipeId: string }>()
 
   const recipe = useQuery(
@@ -123,11 +133,14 @@ export function RecipeScreen() {
     return (
       <>
         <Stack.Screen
-          options={{ headerShown: true, title: t.modules.byId.recipes.label }}
+          options={pendingScreenOptions(t.modules.byId.recipes.label)}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          style={{ backgroundColor: tokens.ground }}
+        >
           <LoadingSkeleton rows={4} label={t.actions.loading} />
-        </View>
+        </ScrollView>
       </>
     )
 
@@ -135,7 +148,7 @@ export function RecipeScreen() {
     return (
       <>
         <Stack.Screen
-          options={{ headerShown: true, title: t.modules.byId.recipes.label }}
+          options={pendingScreenOptions(t.modules.byId.recipes.label)}
         />
         <View style={[styles.fill, { backgroundColor: tokens.ground }]}>
           <Text
@@ -191,12 +204,27 @@ export function RecipeScreen() {
     }
   }
 
+  const photo = recipe.imageUrl
+  const byLine = recipe.addedByName
+    ? fmt(text.detail.byLine, { name: recipe.addedByName })
+    : undefined
+  const moduleLabel = t.modules.byId.recipes.label
+  const fact = (
+    count: number | undefined,
+    unit: { one: string; other: string },
+  ) =>
+    count ? { value: String(count), unit: plural(locale, count, unit) } : null
+
   return (
     <>
       <Stack.Screen
         options={{
-          headerShown: true,
-          title: recipe.title,
+          // A recipe with a photo opens on it; one without opens on the
+          // group's wash under the native large title. Either way the title is
+          // drawn once.
+          ...(photo
+            ? photoScreenOptions(recipe.title, photoTitle.shown, tokens.ink)
+            : washScreenOptions(recipe.title)),
           headerRight: recipe.canEdit
             ? () => (
                 <View style={styles.headerActions}>
@@ -233,244 +261,240 @@ export function RecipeScreen() {
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
+        onScroll={photo ? photoTitle.onScroll : undefined}
+        scrollEventThrottle={16}
         style={{ backgroundColor: tokens.ground }}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + 32 },
-        ]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
       >
-        {recipe.imageUrl ? (
-          <Image
-            source={{ uri: recipe.imageUrl }}
-            style={[styles.hero, { backgroundColor: tokens.surface2 }]}
-            contentFit="cover"
-            accessibilityLabel={fmt(text.form.photoOf, { title: recipe.title })}
-            accessibilityIgnoresInvertColors
-          />
-        ) : (
-          <View
-            style={[
-              styles.hero,
-              styles.heroEmpty,
-              { backgroundColor: tint.wash },
-            ]}
-          >
-            {/* No photo is no picture: the wash carries the group's tile,
-                never a group-coloured glyph of its own. */}
-            <View style={[styles.heroTile, { backgroundColor: tint.fill }]}>
-              <RECIPE_UI_ICONS.ChefHat
-                size={28}
-                color={tint.on}
-                strokeWidth={1.8}
+        {photo ? (
+          <>
+            <PhotoHeader
+              photo={{
+                uri: photo,
+                alt: fmt(text.form.photoOf, { title: recipe.title }),
+              }}
+              group="kitchen"
+              glyph={MODULE_ICONS.ChefHat}
+              eyebrow={byLine ? `${moduleLabel} · ${byLine}` : moduleLabel}
+              title={recipe.title}
+              onTitleBottom={photoTitle.onTitleBottom}
+            />
+            <View style={styles.facts}>
+              <FactsStrip
+                facts={[
+                  fact(recipe.servings, text.detail.facts.servings),
+                  fact(
+                    recipe.ingredients.length,
+                    text.detail.facts.ingredients,
+                  ),
+                  fact(recipe.steps.length, text.detail.facts.steps),
+                ]}
               />
             </View>
-          </View>
+          </>
+        ) : (
+          <WashHeader
+            group="kitchen"
+            glyph={MODULE_ICONS.ChefHat}
+            summary={{
+              count: plural(
+                locale,
+                recipe.ingredients.length,
+                text.detail.ingredientCount,
+              ),
+              scope: byLine,
+            }}
+          />
         )}
 
-        <Text
-          accessibilityRole="header"
-          style={[styles.title, { color: tokens.ink }]}
-        >
-          {recipe.title}
-        </Text>
+        <View style={styles.content}>
+          <StarRating
+            value={recipe.rating}
+            testID="recipe-rating"
+            accessibilityLabel={fmt(text.detail.rate, { title: recipe.title })}
+            onChange={
+              recipe.canEdit
+                ? (rating) => {
+                    haptics.selectionChanged()
+                    setProblem(null)
+                    rate({ id, rating: rating ?? null }).catch(() => {
+                      haptics.actionFailed()
+                      setProblem(text.detail.rateFailed)
+                    })
+                  }
+                : undefined
+            }
+          />
 
-        <StarRating
-          value={recipe.rating}
-          testID="recipe-rating"
-          accessibilityLabel={fmt(text.detail.rate, { title: recipe.title })}
-          onChange={
-            recipe.canEdit
-              ? (rating) => {
-                  haptics.selectionChanged()
-                  setProblem(null)
-                  rate({ id, rating: rating ?? null }).catch(() => {
-                    haptics.actionFailed()
-                    setProblem(text.detail.rateFailed)
-                  })
-                }
-              : undefined
-          }
-        />
-
-        {recipe.description ? (
-          <Text style={[styles.body, { color: tokens.ink }]}>
-            {recipe.description}
-          </Text>
-        ) : null}
-
-        {recipe.tags.length ? (
-          <View style={styles.tags}>
-            {recipe.tags.map((tag) => (
-              <Text
-                key={tag}
-                style={[
-                  styles.tag,
-                  { color: tokens.ink, backgroundColor: tokens.surface2 },
-                ]}
-              >
-                {tag}
-              </Text>
-            ))}
-          </View>
-        ) : null}
-
-        {/* Where it lives, said only when that is somewhere else. This is the
-            reason the stars above are inert and Edit is not in the bar. */}
-        {!recipe.canEdit && recipe.homeGroupName ? (
-          <Text
-            testID="recipe-read-only"
-            style={[styles.meta, { color: tokens.muted }]}
-          >
-            {fmt(text.detail.readOnly, { group: recipe.homeGroupName })}
-          </Text>
-        ) : null}
-
-        {recipe.addedByName ? (
-          <Text style={[styles.meta, { color: tokens.muted }]}>
-            {fmt(text.detail.addedBy, { name: recipe.addedByName })}
-          </Text>
-        ) : null}
-
-        {recipe.sourceUrl ? (
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={text.detail.openSource}
-            testID="recipe-source"
-            onPress={() => {
-              const url = recipe.sourceUrl
-              if (url) openBrowserAsync(url).catch(() => {})
-            }}
-            style={({ pressed }) => [styles.source, pressed && styles.pressed]}
-          >
-            <RECIPE_UI_ICONS.ExternalLink
-              size={15}
-              color={tint.text}
-              strokeWidth={1.9}
-            />
-            <Text style={[styles.sourceLabel, { color: tint.text }]}>
-              {`${text.detail.importedFrom} ${hostOf(recipe.sourceUrl)}`}
+          {recipe.description ? (
+            <Text style={[styles.body, { color: tokens.ink }]}>
+              {recipe.description}
             </Text>
-          </Pressable>
-        ) : null}
+          ) : null}
 
-        {problem ? (
-          <Text
-            testID="recipe-problem"
-            style={[styles.meta, { color: tokens.danger }]}
-          >
-            {problem}
-          </Text>
-        ) : null}
+          {recipe.tags.length ? (
+            <View style={styles.tags}>
+              {recipe.tags.map((tag) => (
+                <Text
+                  key={tag}
+                  style={[
+                    styles.tag,
+                    { color: tokens.ink, backgroundColor: tokens.surface2 },
+                  ]}
+                >
+                  {tag}
+                </Text>
+              ))}
+            </View>
+          ) : null}
 
-        {/* Offered to whoever may change the recipe, which is every Member of
+          {/* Where it lives, said only when that is somewhere else. This is the
+            reason the stars above are inert and Edit is not in the bar. */}
+          {!recipe.canEdit && recipe.homeGroupName ? (
+            <Text
+              testID="recipe-read-only"
+              style={[styles.meta, { color: tokens.muted }]}
+            >
+              {fmt(text.detail.readOnly, { group: recipe.homeGroupName })}
+            </Text>
+          ) : null}
+
+          {recipe.sourceUrl ? (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={text.detail.openSource}
+              testID="recipe-source"
+              onPress={() => {
+                const url = recipe.sourceUrl
+                if (url) openBrowserAsync(url).catch(() => {})
+              }}
+              style={({ pressed }) => [
+                styles.source,
+                pressed && styles.pressed,
+              ]}
+            >
+              <RECIPE_UI_ICONS.ExternalLink
+                size={15}
+                color={tint.text}
+                strokeWidth={1.9}
+              />
+              <Text style={[styles.sourceLabel, { color: tint.text }]}>
+                {`${text.detail.importedFrom} ${hostOf(recipe.sourceUrl)}`}
+              </Text>
+            </Pressable>
+          ) : null}
+
+          {problem ? (
+            <Text
+              testID="recipe-problem"
+              style={[styles.meta, { color: tokens.danger }]}
+            >
+              {problem}
+            </Text>
+          ) : null}
+
+          {/* Offered to whoever may change the recipe, which is every Member of
             the Group it lives in — and only where the deployment can actually
             estimate. */}
-        {recipe.nutritionStale && recipe.canEdit ? (
-          <View
-            style={[
-              styles.stale,
-              { borderColor: tokens.hair, backgroundColor: tokens.surface },
-            ]}
-          >
-            <Text style={[styles.body, { color: tokens.ink }]}>
-              {text.detail.staleNutrition}
-            </Text>
-            <View style={styles.staleActions}>
-              {aiConfigured ? (
+          {recipe.nutritionStale && recipe.canEdit ? (
+            <View
+              style={[
+                styles.stale,
+                { borderColor: tokens.hair, backgroundColor: tokens.surface },
+              ]}
+            >
+              <Text style={[styles.body, { color: tokens.ink }]}>
+                {text.detail.staleNutrition}
+              </Text>
+              <View style={styles.staleActions}>
+                {aiConfigured ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={text.detail.reEstimate}
+                    testID="recipe-reestimate"
+                    disabled={estimating}
+                    onPress={reEstimate}
+                    style={({ pressed }) => [
+                      styles.secondary,
+                      { borderColor: tokens.hair },
+                      (pressed || estimating) && styles.pressed,
+                    ]}
+                  >
+                    <Text
+                      style={[styles.secondaryLabel, { color: tokens.ink }]}
+                    >
+                      {estimating
+                        ? text.form.estimating
+                        : text.detail.reEstimate}
+                    </Text>
+                  </Pressable>
+                ) : null}
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={text.detail.reEstimate}
-                  testID="recipe-reestimate"
-                  disabled={estimating}
-                  onPress={reEstimate}
+                  accessibilityLabel={text.detail.editManually}
+                  onPress={() =>
+                    router.push(
+                      moduleHref('/all/recipes/edit', { recipeId: id }),
+                    )
+                  }
                   style={({ pressed }) => [
                     styles.secondary,
                     { borderColor: tokens.hair },
-                    (pressed || estimating) && styles.pressed,
+                    pressed && styles.pressed,
                   ]}
                 >
                   <Text style={[styles.secondaryLabel, { color: tokens.ink }]}>
-                    {estimating ? text.form.estimating : text.detail.reEstimate}
+                    {text.detail.editManually}
                   </Text>
                 </Pressable>
-              ) : null}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={text.detail.editManually}
-                onPress={() =>
-                  router.push(moduleHref('/all/recipes/edit', { recipeId: id }))
-                }
-                style={({ pressed }) => [
-                  styles.secondary,
-                  { borderColor: tokens.hair },
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={[styles.secondaryLabel, { color: tokens.ink }]}>
-                  {text.detail.editManually}
-                </Text>
-              </Pressable>
+              </View>
             </View>
-          </View>
-        ) : null}
+          ) : null}
 
-        {recipe.nutrition ? (
-          <NutritionFacts
-            nutrition={recipe.nutrition}
-            unitLabel={
-              recipe.servings
-                ? fmt(text.detail.perServingOf, { count: recipe.servings })
-                : text.detail.perServing
-            }
-            source={recipe.nutritionSource}
-          />
-        ) : null}
+          {recipe.nutrition ? (
+            <NutritionFacts
+              nutrition={recipe.nutrition}
+              unitLabel={
+                recipe.servings
+                  ? fmt(text.detail.perServingOf, { count: recipe.servings })
+                  : text.detail.perServing
+              }
+              source={recipe.nutritionSource}
+            />
+          ) : null}
 
-        {recipe.ingredients.length ? (
-          <View style={styles.section}>
-            <Text
-              accessibilityRole="header"
-              style={[styles.sectionTitle, { color: tokens.muted }]}
-            >
-              {text.form.ingredients.toUpperCase()}
-            </Text>
-            {recipe.ingredients.map((ingredient, index) => (
-              <View key={`${index}-${ingredient}`} style={styles.line}>
-                <View
-                  style={[styles.bullet, { backgroundColor: tokens.muted }]}
-                />
-                <Text
-                  style={[styles.body, styles.lineText, { color: tokens.ink }]}
-                >
-                  {ingredient}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
+          {recipe.ingredients.length ? (
+            <View style={styles.section}>
+              <SectionLabel>{text.form.ingredients}</SectionLabel>
+              <InsetList>
+                {recipe.ingredients.map((ingredient, index) => (
+                  <InsetRow key={`${index}-${ingredient}`} title={ingredient} />
+                ))}
+              </InsetList>
+            </View>
+          ) : null}
 
-        {recipe.steps.length ? (
-          <View style={styles.section}>
-            <Text
-              accessibilityRole="header"
-              style={[styles.sectionTitle, { color: tokens.muted }]}
-            >
-              {text.form.steps.toUpperCase()}
-            </Text>
-            {recipe.steps.map((step, index) => (
-              <View key={`${index}-${step}`} style={styles.line}>
-                <Text style={[styles.stepNumber, { color: tokens.ink }]}>
-                  {index + 1}
-                </Text>
-                <Text
-                  style={[styles.body, styles.lineText, { color: tokens.ink }]}
-                >
-                  {step}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
+          {recipe.steps.length ? (
+            <View style={styles.section}>
+              <SectionLabel>{text.form.steps}</SectionLabel>
+              <InsetList>
+                {recipe.steps.map((step, index) => (
+                  <InsetRow
+                    key={`${index}-${step}`}
+                    leading={
+                      <Text
+                        style={[styles.stepNumber, { color: tokens.muted }]}
+                      >
+                        {index + 1}
+                      </Text>
+                    }
+                    title={step}
+                  />
+                ))}
+              </InsetList>
+            </View>
+          ) : null}
+        </View>
       </ScrollView>
     </>
   )
@@ -514,18 +538,8 @@ function hostOf(url: string): string {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  content: { paddingHorizontal: 16, paddingTop: 12, gap: 10 },
-  hero: { width: '100%', aspectRatio: 4 / 3, borderRadius: RADIUS.card },
-  heroEmpty: { alignItems: 'center', justifyContent: 'center' },
-  heroTile: {
-    width: SIZE.tileL,
-    height: SIZE.tileL,
-    borderRadius: RADIUS.tileL,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { ...TYPE.recordTitle, letterSpacing: -0.6 },
+  content: { paddingHorizontal: SPACE[4], paddingTop: SPACE[3], gap: 10 },
+  facts: { paddingHorizontal: SPACE[4], paddingTop: SPACE[4] },
   body: { ...TYPE.subhead },
   meta: { ...TYPE.footnote },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -554,13 +568,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   secondaryLabel: { ...TYPE.bodyStrong },
-  section: { gap: 7, marginTop: 6 },
-  sectionTitle: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
-  line: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  // Ingredient and step lines read at body size; a description stays a
-  // summary.
-  lineText: { ...TYPE.body, flex: 1 },
-  bullet: { width: 5, height: 5, borderRadius: 3, marginTop: 9 },
+  section: { gap: SPACE[2], marginTop: SPACE[2] },
   stepNumber: { ...TYPE.bodyStrong, ...TABULAR, minWidth: 18 },
   headerActions: { flexDirection: 'row', gap: 4 },
   headerButton: { padding: 6 },

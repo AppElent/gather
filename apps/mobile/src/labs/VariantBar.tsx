@@ -120,7 +120,6 @@ export function VariantBar({ axes }: { axes: VariantBarAxis[] }) {
         ]}
       >
         <Text
-          numberOfLines={1}
           style={[styles.pillLabel, { color: tokens.onInk }]}
         >
           {summary}
@@ -156,9 +155,7 @@ const styles = StyleSheet.create({
   axis: { gap: 5 },
   axisLabel: {
     ...TYPE.footnoteStrong,
-    letterSpacing: 0.8,
     opacity: 0.7,
-    textTransform: 'uppercase',
   },
   options: { flexDirection: 'row', gap: 6, paddingRight: 4 },
   option: {
@@ -180,6 +177,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     borderRadius: RADIUS.pill,
   },
-  pillLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.2 },
+  pillLabel: { ...TYPE.footnoteStrong, flexShrink: 1 },
   pressed: { opacity: 0.75 },
 })

@@ -192,13 +192,13 @@ describe('how a row reads', () => {
     // The day order is the locale's own — `en` is US-ordered, `nl` is not —
     // because the app's locale decides, never the device's (ADR-0011).
     expect(dayHeading(TODAY, TODAY, 'en', { today: 'Today' })).toBe(
-      'TODAY · WEDNESDAY, SEPTEMBER 2',
+      'Today · Wednesday, September 2',
     )
     expect(dayHeading(addDays(TODAY, 1), TODAY, 'en', { today: 'Today' })).toBe(
-      'THURSDAY, SEPTEMBER 3',
+      'Thursday, September 3',
     )
     expect(dayHeading(TODAY, TODAY, 'nl', { today: 'Vandaag' })).toBe(
-      'VANDAAG · WOENSDAG 2 SEPTEMBER',
+      'Vandaag · woensdag 2 september',
     )
   })
 })

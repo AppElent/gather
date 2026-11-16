@@ -16,22 +16,18 @@ import { asBabyEvent, summarizeBabyEvent } from '@gather/core/baby-events'
 import type { Messages } from '@gather/core/messages'
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
-import {
-  Pressable,
-  SectionList,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
+import { SectionList, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { NativeContextMenu } from '../../components/NativeContextMenu'
-import { SwipeableRow } from '../../components/SwipeableRow'
 import { api, type Id } from '../../convex/api'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
-import { fmt, useI18n } from '../../i18n'
-import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { fmt, plural, useI18n } from '../../i18n'
+import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { InsetListItem, InsetRow } from '../../ui/inset-list'
+import { ModuleTile, moduleTile } from '../../ui/module-tile'
+import { washScreenOptions } from '../../ui/screen-header'
+import { SectionLabel } from '../../ui/section-label'
+import { WashHeader } from '../../ui/wash-header'
 import { moduleHref } from '../moduleDestination'
 import { EVENT_ICONS } from './icons'
 import { useBabyLog } from './useBabyLog'
@@ -56,7 +52,7 @@ export function TimelineScreen() {
   const { t, locale } = useI18n()
   const log = useBabyLog()
   const events = log.events
-  const tint = tokens.tintOf('home')
+  const tile = moduleTile('baby-log')
   const remove = useMutation(api.babyEvents.remove)
 
   function confirmDelete(item: NonNullable<typeof log.events>[number]) {
@@ -102,94 +98,88 @@ export function TimelineScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{ headerShown: true, title: t.baby.log.timeline.title }}
-      />
+      <Stack.Screen options={washScreenOptions(t.baby.log.timeline.title)} />
       <SectionList
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + 24 },
-        ]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         sections={sections}
         keyExtractor={(item) => item._id}
         stickySectionHeadersEnabled={false}
+        ListHeaderComponent={
+          tile ? (
+            <WashHeader
+              group={tile.group}
+              glyph={tile.glyph}
+              summary={{
+                count: plural(
+                  locale,
+                  events?.length ?? 0,
+                  t.baby.log.timeline.count,
+                ),
+                scope: log.child?.name,
+              }}
+            />
+          ) : undefined
+        }
         ListEmptyComponent={
           <Text style={[styles.empty, { color: tokens.muted }]}>
             {t.baby.log.timeline.empty}
           </Text>
         }
         renderSectionHeader={({ section }) => (
-          <Text style={[styles.day, { color: tokens.muted }]}>
-            {section.title.toUpperCase()}
-          </Text>
+          <View style={styles.day}>
+            <SectionLabel>{section.title}</SectionLabel>
+          </View>
         )}
-        renderItem={({ item }) => {
-          const Icon = EVENT_ICONS[item.type]
+        renderItem={({ item, index, section }) => {
+          const open = () =>
+            router.push(
+              moduleHref('/all/baby-log/entry', { entryId: item._id }),
+            )
           return (
-            <SwipeableRow
-              deleteLabel={t.common.actions.delete}
-              onDelete={() => confirmDelete(item)}
-            >
-              <NativeContextMenu
-                actions={[
-                  { id: 'edit', title: t.common.actions.edit },
-                  {
-                    id: 'delete',
-                    title: t.common.actions.delete,
-                    attributes: { destructive: true },
+            <InsetListItem index={index} count={section.data.length}>
+              <InsetRow
+                accessibilityLabel={fmt(t.baby.log.timeline.openEntry, {
+                  type: t.baby.eventTypes[item.type],
+                })}
+                onPress={open}
+                onDelete={() => confirmDelete(item)}
+                deleteLabel={t.common.actions.delete}
+                menu={{
+                  actions: [
+                    { id: 'edit', title: t.common.actions.edit },
+                    {
+                      id: 'delete',
+                      title: t.common.actions.delete,
+                      attributes: { destructive: true },
+                    },
+                  ],
+                  onAction: (action) => {
+                    if (action === 'edit') open()
+                    if (action === 'delete') confirmDelete(item)
                   },
-                ]}
-                onAction={(action) => {
-                  if (action === 'edit')
-                    router.push(
-                      moduleHref('/all/baby-log/entry', { entryId: item._id }),
-                    )
-                  if (action === 'delete') confirmDelete(item)
                 }}
-              >
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={fmt(t.baby.log.timeline.openEntry, {
-                    type: t.baby.eventTypes[item.type],
-                  })}
-                  onPress={() =>
-                    router.push(
-                      moduleHref('/all/baby-log/entry', { entryId: item._id }),
-                    )
-                  }
-                  style={({ pressed }) => [
-                    styles.row,
-                    { borderBottomColor: tokens.hair },
-                    pressed && styles.pressed,
-                  ]}
-                >
+                leading={
+                  <ModuleTile
+                    group="home"
+                    glyph={EVENT_ICONS[item.type]}
+                    size="s"
+                  />
+                }
+                title={t.baby.eventTypes[item.type]}
+                subtitle={rowDetail(item, t.baby.log)}
+                trailing={
                   <Text style={[styles.time, { color: tokens.muted }]}>
                     {new Date(item.timestamp).toLocaleTimeString(locale, {
                       hour: '2-digit',
                       minute: '2-digit',
                     })}
                   </Text>
-                  <View style={[styles.glyph, { backgroundColor: tint.fill }]}>
-                    <Icon size={17} color={tint.on} strokeWidth={1.9} />
-                  </View>
-                  <View style={styles.text}>
-                    <Text style={[styles.title, { color: tokens.ink }]}>
-                      {t.baby.eventTypes[item.type]}
-                    </Text>
-                    <Text style={[styles.detail, { color: tokens.muted }]}>
-                      {rowDetail(item, t.baby.log)}
-                    </Text>
-                  </View>
-                  <UI_ICONS.ChevronRight
-                    size={17}
-                    color={tokens.muted}
-                    strokeWidth={2.2}
-                  />
-                </Pressable>
-              </NativeContextMenu>
-            </SwipeableRow>
+                }
+                chevron
+              />
+            </InsetListItem>
           )
         }}
       />
@@ -198,34 +188,11 @@ export function TimelineScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 16, paddingTop: 12 },
   day: {
-    ...TYPE.footnoteStrong,
-    letterSpacing: 0.8,
-    paddingTop: 14,
-    paddingBottom: 8,
+    paddingHorizontal: SPACE[4],
+    paddingTop: SPACE[4],
+    paddingBottom: SPACE[2],
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    minHeight: 56,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  // Wide enough for a 12-hour clock: "9:18 AM" wrapped to two lines at the
-  // width a 24-hour "09:18" needs, and the locale decides which one this is.
-  time: { ...TYPE.footnote, ...TABULAR, width: 62 },
-  glyph: {
-    width: SIZE.tileS,
-    height: SIZE.tileS,
-    borderRadius: RADIUS.tileS,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: { flex: 1, gap: 1 },
-  title: { ...TYPE.bodyStrong },
-  detail: { ...TYPE.footnote },
+  time: { ...TYPE.footnote, ...TABULAR },
   empty: { ...TYPE.subhead, textAlign: 'center', paddingVertical: 40 },
-  pressed: { opacity: 0.6 },
 })

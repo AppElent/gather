@@ -61,7 +61,6 @@ export function Segmented<Value extends string>({
             ]}
           >
             <Text
-              numberOfLines={1}
               style={[styles.label, { color: tokens.ink }]}
             >
               {option.label}
@@ -80,14 +79,17 @@ const styles = StyleSheet.create({
     padding: SPACE[1],
     borderRadius: RADIUS.pill,
   },
+  // A label wraps rather than truncating ("Prefer not to say" at a large text
+  // size), and the option grows to hold it.
   option: {
     flex: 1,
     minHeight: SIZE.hitMin,
+    paddingVertical: SPACE[1],
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 10,
     borderRadius: RADIUS.pill,
   },
-  label: { ...TYPE.bodyStrong },
+  label: { ...TYPE.bodyStrong, textAlign: 'center' },
   pressed: { opacity: 0.75 },
 })

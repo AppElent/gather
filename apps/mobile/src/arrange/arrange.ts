@@ -30,6 +30,37 @@ export function dropIndex(
   return Math.min(count - 1, Math.max(0, fromIndex + shift))
 }
 
+/**
+ * `dropIndex` for rows that are not all one height: rows that wrap their
+ * text under Dynamic Type grow, so the list measures each row and passes the
+ * heights here instead of dividing by one.
+ *
+ * The rule is the same: the dragged row moves past a neighbour once the
+ * finger has travelled more than half of that neighbour's height (plus the
+ * whole of every neighbour already passed).
+ */
+export function dropIndexAcross(
+  heights: readonly number[],
+  fromIndex: number,
+  dy: number,
+): number {
+  if (fromIndex < 0 || fromIndex >= heights.length) return fromIndex
+  const step = dy > 0 ? 1 : -1
+  const distance = Math.abs(dy)
+  let passed = 0
+  let to = fromIndex
+  for (
+    let index = fromIndex + step;
+    index >= 0 && index < heights.length;
+    index += step
+  ) {
+    if (distance < passed + heights[index] / 2) break
+    passed += heights[index]
+    to = index
+  }
+  return to
+}
+
 /** The list with one item lifted out and put back at another index. */
 export function movedTo<T>(order: readonly T[], from: number, to: number): T[] {
   if (
@@ -51,7 +82,8 @@ export function movedTo<T>(order: readonly T[], from: number, to: number): T[] {
  * How far a row that is not the dragged one has been pushed aside.
  *
  * Every row between the origin and the target shuffles by exactly one row
- * height, in the direction that opens the gap. Returning a number rather than
+ * height, in the direction that opens the gap. Where rows differ in height,
+ * pass the dragged row's own: that is the gap it leaves and the gap it needs. Returning a number rather than
  * a style keeps the animation in the component and the arithmetic here.
  */
 export function shiftFor(

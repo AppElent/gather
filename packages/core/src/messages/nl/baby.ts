@@ -201,6 +201,7 @@ export const log = {
   },
 
   timeline: {
+    count: { one: '{count} item', other: '{count} items' },
     title: 'Tijdlijn',
     empty: 'Nog niets genoteerd — noteer hierboven het eerste.',
     openEntry: '{type} openen',

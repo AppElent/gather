@@ -65,7 +65,6 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
 
-  const tint = tokens.tintOf('money')
   const Key = FINANCE_ICONS.Key
 
   if (house === undefined) {
@@ -108,7 +107,7 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
         <ScreenScroll>
           {failure}
           <EmptyState
-            icon={<Key size={34} color={tint.text} strokeWidth={1.6} />}
+            glyph={Key}
             title={text.buyingCosts.title}
             body={text.buyingCosts.emptyBody}
             actionLabel={text.buyingCosts.start}

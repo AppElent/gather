@@ -6,6 +6,12 @@
  * to the other app, and gather only reads them.
  */
 export const tasks = {
+  /** The summary under a task screen's large title. */
+  count: {
+    open: { one: '{count} open', other: '{count} open' },
+    lists: { one: '{count} list', other: '{count} lists' },
+  },
+
   page: {
     subtitle:
       'Shared lists — local ones live here, linked ones mirror Notion or Todoist.',

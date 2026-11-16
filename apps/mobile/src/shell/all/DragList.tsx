@@ -1,5 +1,5 @@
 /**
- * A fixed-height list of rows that can be dragged into a new order.
+ * A list of rows that can be dragged into a new order.
  *
  * It follows `modules/tasks/ReorderMode.tsx`, and the reasoning there is the
  * reasoning here: rearranging is a **mode**, not a
@@ -9,12 +9,13 @@
  * than the screen. `blocksExternalGesture` is what makes the enclosing
  * `ScrollView` stand down for that one touch, which `PanResponder` cannot say.
  *
- * `ROW` is fixed because the drop arithmetic divides by it. That is also why
- * the All screen reorders its categories through a separate, compact list of
- * four names rather than by dragging the section headers themselves: a section
- * is as tall as its contents, so there is no single row height to divide by.
- * The alternative was a drag-and-drop dependency, which the Tasks Module
- * already weighed and turned down.
+ * A row's label wraps under Dynamic Type, so each row is measured as it lays
+ * out and the drop arithmetic walks those heights. The All screen still
+ * reorders its categories through a separate, compact list of four names
+ * rather than by dragging the section headers themselves: a section moves its
+ * whole contents, which is a different interaction from moving one row. The
+ * alternative was a drag-and-drop dependency, which the Tasks Module already
+ * weighed and turned down.
  */
 import { useMemo, useRef, useState } from 'react'
 import { Animated, StyleSheet, Text, View } from 'react-native'
@@ -24,7 +25,7 @@ import {
   type LegacyScrollView as GestureScrollView,
 } from 'react-native-gesture-handler'
 
-import { dropIndex, movedTo, shiftFor } from '../../arrange/arrange'
+import { dropIndexAcross, movedTo, shiftFor } from '../../arrange/arrange'
 import { haptics } from '../../feedback/haptics'
 import type { GlyphProps } from '../../theme/glyph'
 import { UI_ICONS } from '../../theme/icons'
@@ -32,11 +33,11 @@ import {
   type ModuleGroup,
   RADIUS,
   SIZE,
+  SPACE,
   TYPE,
   useTokens,
 } from '../../theme/tokens'
-
-export const ROW = 56
+import { ModuleTile } from '../../ui/module-tile'
 
 export interface DragItem {
   id: string
@@ -96,6 +97,11 @@ export function DragList({
   const lift = useRef(new Animated.Value(0)).current
   const live = useRef({ ids, drag })
   live.current = { ids, drag }
+  // Each row's laid-out height, by id; one not laid out yet counts as the
+  // shortest a row can be.
+  const heights = useRef(new Map<string, number>())
+  const heightOf = (id: string | undefined) =>
+    (id && heights.current.get(id)) || SIZE.rowMin
 
   const handlers = useRef<DragHandlers>({
     begin: () => {},
@@ -113,7 +119,11 @@ export function DragList({
       lift.setValue(dy)
       const current = live.current.drag
       if (!current) return
-      const to = dropIndex(live.current.ids.length, current.from, dy, ROW)
+      const to = dropIndexAcross(
+        live.current.ids.map(heightOf),
+        current.from,
+        dy,
+      )
       if (to !== current.to) {
         setDrag({ from: current.from, to })
         // One notch per row crossed: the only way to feel where the row will
@@ -149,12 +159,17 @@ export function DragList({
     >
       {rows.map((item, index) => {
         const dragging = drag?.from === index
-        const shift = drag ? shiftFor(index, drag.from, drag.to, ROW) : 0
+        const shift = drag
+          ? shiftFor(index, drag.from, drag.to, heightOf(rows[drag.from]?.id))
+          : 0
         const Icon = item.icon
         return (
           <Animated.View
             key={item.id}
             testID={`all-edit-${item.id}`}
+            onLayout={(event) => {
+              heights.current.set(item.id, event.nativeEvent.layout.height)
+            }}
             style={[
               styles.row,
               {
@@ -181,25 +196,9 @@ export function DragList({
               testID={`all-grip-${item.id}`}
             />
             {Icon && item.group ? (
-              <View
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-                style={[
-                  styles.glyphTile,
-                  { backgroundColor: tokens.tintOf(item.group).fill },
-                ]}
-              >
-                <Icon
-                  size={16}
-                  color={tokens.tintOf(item.group).on}
-                  strokeWidth={1.9}
-                />
-              </View>
+              <ModuleTile group={item.group} glyph={Icon} size="s" />
             ) : null}
-            <Text
-              numberOfLines={1}
-              style={[styles.label, { color: tokens.ink }]}
-            >
+            <Text style={[styles.label, { color: tokens.ink }]}>
               {item.label}
             </Text>
             {trailing?.(item)}
@@ -263,7 +262,8 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   row: {
-    height: ROW,
+    minHeight: SIZE.rowMin,
+    paddingVertical: SPACE[2],
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -271,13 +271,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   grip: { paddingVertical: 12, paddingRight: 2 },
-  glyphTile: {
-    width: SIZE.tileS,
-    height: SIZE.tileS,
-    borderRadius: RADIUS.tileS,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   label: { ...TYPE.subhead, flex: 1 },
 })

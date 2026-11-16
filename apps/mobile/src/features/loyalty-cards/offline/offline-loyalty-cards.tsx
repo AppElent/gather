@@ -122,17 +122,11 @@ export function OfflineLoyaltyCards({
                   size="medium"
                 />
                 <View style={styles.rowText}>
-                  <Text
-                    numberOfLines={1}
-                    style={[TYPE.bodyStrong, { color: tokens.ink }]}
-                  >
+                  <Text style={[TYPE.bodyStrong, { color: tokens.ink }]}>
                     {card.storeName}
                   </Text>
                   {card.holder ? (
-                    <Text
-                      numberOfLines={1}
-                      style={[TYPE.footnote, { color: tokens.muted }]}
-                    >
+                    <Text style={[TYPE.footnote, { color: tokens.muted }]}>
                       {card.holder}
                     </Text>
                   ) : null}

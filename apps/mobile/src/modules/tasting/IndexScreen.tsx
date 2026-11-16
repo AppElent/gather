@@ -14,11 +14,11 @@
  * **The average never appears without its count**: 5.0 from one person is not
  * 5.0 from four. A subject nobody has rated yet shows neither.
  *
- * Rows with no photo keep the 48px tile rather than reflowing, so the list does
- * not comb.
+ * The top is the group's wash with the Module's tile and the count. Rows sit
+ * in an `InsetList`; a row with no photo carries the Module's `tile-s` in the
+ * thumbnail's column, so the list does not comb.
  */
 import type { TastingKind } from '@gather/core/tastings'
-import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
@@ -28,13 +28,18 @@ import { SearchField } from '../../components/SearchField'
 import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
-import { fmt, useI18n } from '../../i18n'
-import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { fmt, plural, useI18n } from '../../i18n'
+import { RADIUS, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { InsetList, InsetRow } from '../../ui/inset-list'
+import { ModuleTile, moduleTile } from '../../ui/module-tile'
+import { RecordThumb } from '../../ui/record-thumb'
+import { washScreenOptions } from '../../ui/screen-header'
+import { WashHeader } from '../../ui/wash-header'
 import { moduleHref } from '../moduleDestination'
 import { CaptureFlow, useCapture } from './CaptureFlow'
 import { KIND_ICONS, TASTING_UI_ICONS } from './icons'
 import { moduleIdOf } from './paths'
-import { indexSummary, subjectFacts, tastingCount } from './summary'
+import { subjectFacts, tastingCount } from './summary'
 import { kindWords } from './words'
 
 export function IndexScreen({ kind }: { kind: TastingKind }) {
@@ -48,9 +53,10 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
 
   const words = kindWords(t.tastings, kind)
   const Plus = TASTING_UI_ICONS.Plus
-  const Photo = TASTING_UI_ICONS.Image
-  const KindIcon = KIND_ICONS[kind]
-  const tint = tokens.tintOf('tasting')
+  const tile = moduleTile(moduleIdOf(kind)) ?? {
+    group: 'tasting' as const,
+    glyph: KIND_ICONS[kind],
+  }
 
   // The Module's own name from the shared catalogue: the header must not
   // invent a second word for a Module the rest of the app already names.
@@ -80,8 +86,7 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
   const header = (
     <Stack.Screen
       options={{
-        headerShown: true,
-        title,
+        ...washScreenOptions(title),
         headerRight: () => (
           <Pressable
             accessibilityRole="button"
@@ -118,9 +123,7 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
       <>
         {header}
         <View style={[styles.emptyScreen, { backgroundColor: tokens.ground }]}>
-          <View style={[styles.emptyIcon, { backgroundColor: tint.fill }]}>
-            <KindIcon size={28} color={tint.on} strokeWidth={1.6} />
-          </View>
+          <ModuleTile group={tile.group} glyph={tile.glyph} size="l" />
           <Text style={[styles.emptyTitle, { color: tokens.ink }]}>
             {fmt(t.tastings.empty.title, { kind: words.many })}
           </Text>
@@ -160,99 +163,98 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: tokens.ground }}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + 32 },
-        ]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
       >
-        <SearchField
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t.tastings.index.search}
-          clearAccessibilityLabel={t.tastings.index.clearSearch}
+        <WashHeader
+          group={tile.group}
+          glyph={tile.glyph}
+          summary={{
+            count: plural(
+              locale,
+              subjects.length,
+              t.tastings.index.subjectCount,
+            ),
+            scope: tastingCount(t, locale, totalTastings),
+          }}
         />
 
-        <Text style={[styles.summary, { color: tokens.muted }]}>
-          {indexSummary(t, locale, subjects.length, totalTastings)}
-        </Text>
+        <View style={styles.content}>
+          <SearchField
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t.tastings.index.search}
+            clearAccessibilityLabel={t.tastings.index.clearSearch}
+          />
 
-        {rows.length === 0 ? (
-          /* *Nothing found* — a way to clear the search, never an add button. */
-          <View style={styles.noResults}>
-            <Text style={[styles.summary, { color: tokens.muted }]}>
-              {t.tastings.index.searchEmpty}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.tastings.index.clearSearch}
-              onPress={() => setQuery('')}
-              style={({ pressed }) => [pressed && styles.pressed]}
-            >
-              <Text style={[styles.clear, { color: tokens.accentText }]}>
-                {t.tastings.index.clearSearch}
+          {rows.length === 0 ? (
+            /* *Nothing found* — a way to clear the search, never an add button. */
+            <View style={styles.noResults}>
+              <Text style={[styles.summary, { color: tokens.muted }]}>
+                {t.tastings.index.searchEmpty}
               </Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {rows.map((subject) => (
-          <Pressable
-            key={subject._id}
-            accessibilityRole="button"
-            accessibilityLabel={subject.name}
-            onPress={() =>
-              router.push(
-                moduleHref(`/all/tasting/${kind}/subject`, {
-                  subjectId: subject._id,
-                }),
-              )
-            }
-            style={({ pressed }) => [
-              styles.row,
-              { borderBottomColor: tokens.hair },
-              pressed && { backgroundColor: tokens.surface2 },
-            ]}
-          >
-            {subject.photoUrl ? (
-              <Image
-                source={{ uri: subject.photoUrl }}
-                style={[styles.thumb, { backgroundColor: tokens.surface2 }]}
-                contentFit="cover"
-                accessibilityIgnoresInvertColors
-              />
-            ) : (
-              <View
-                style={[styles.thumb, { backgroundColor: tokens.surface2 }]}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.tastings.index.clearSearch}
+                onPress={() => setQuery('')}
+                style={({ pressed }) => [pressed && styles.pressed]}
               >
-                <Photo size={20} color={tokens.muted} strokeWidth={1.8} />
-              </View>
-            )}
-            <View style={styles.rowText}>
-              <Text style={[styles.rowName, { color: tokens.ink }]}>
-                {subject.name}
-              </Text>
-              <Text style={[styles.rowFacts, { color: tokens.muted }]}>
-                {subjectFacts(t.tastings, kind, subject.attributes)}
-              </Text>
-            </View>
-            <View style={styles.rowScore}>
-              {subject.average === null ? (
-                <Text style={[styles.rowCount, { color: tokens.muted }]}>
-                  {t.tastings.index.noScore}
+                <Text style={[styles.clear, { color: tokens.accentText }]}>
+                  {t.tastings.index.clearSearch}
                 </Text>
-              ) : (
-                <>
-                  <Text style={[styles.score, { color: tokens.ink }]}>
-                    {subject.average.toFixed(1)}
-                  </Text>
-                  <Text style={[styles.rowCount, { color: tokens.muted }]}>
-                    {tastingCount(t, locale, subject.count)}
-                  </Text>
-                </>
-              )}
+              </Pressable>
             </View>
-          </Pressable>
-        ))}
+          ) : (
+            <InsetList>
+              {rows.map((subject) => (
+                <InsetRow
+                  key={subject._id}
+                  accessibilityLabel={subject.name}
+                  onPress={() =>
+                    router.push(
+                      moduleHref(`/all/tasting/${kind}/subject`, {
+                        subjectId: subject._id,
+                      }),
+                    )
+                  }
+                  leading={
+                    <RecordThumb
+                      uri={subject.photoUrl}
+                      group={tile.group}
+                      glyph={tile.glyph}
+                    />
+                  }
+                  title={subject.name}
+                  subtitle={
+                    subjectFacts(t.tastings, kind, subject.attributes) ||
+                    undefined
+                  }
+                  trailing={
+                    <View style={styles.rowScore}>
+                      {subject.average === null ? (
+                        <Text
+                          style={[styles.rowCount, { color: tokens.muted }]}
+                        >
+                          {t.tastings.index.noScore}
+                        </Text>
+                      ) : (
+                        <>
+                          <Text style={[styles.score, { color: tokens.ink }]}>
+                            {subject.average.toFixed(1)}
+                          </Text>
+                          <Text
+                            style={[styles.rowCount, { color: tokens.muted }]}
+                          >
+                            {tastingCount(t, locale, subject.count)}
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                  }
+                />
+              ))}
+            </InsetList>
+          )}
+        </View>
       </ScrollView>
       <CaptureFlow capture={capture} />
     </>
@@ -260,27 +262,10 @@ export function IndexScreen({ kind }: { kind: TastingKind }) {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 16, paddingTop: 8, gap: 10 },
+  content: { paddingHorizontal: SPACE[4], gap: SPACE[3] },
   summary: { ...TYPE.footnote },
   noResults: { gap: 6, paddingVertical: 12 },
   clear: { ...TYPE.bodyStrong },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    minHeight: 70,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  thumb: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.thumb,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowText: { flex: 1, gap: 2 },
-  rowName: { ...TYPE.bodyStrong },
-  rowFacts: { ...TYPE.footnote },
   rowScore: { alignItems: 'flex-end', gap: 2 },
   score: { ...TYPE.bodyStrong, ...TABULAR },
   rowCount: { ...TYPE.footnote },
@@ -291,14 +276,6 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 40,
     paddingBottom: 60,
-  },
-  emptyIcon: {
-    width: SIZE.tileL,
-    height: SIZE.tileL,
-    borderRadius: RADIUS.tileL,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   emptyTitle: { ...TYPE.title2, letterSpacing: -0.4 },
   emptyBody: { ...TYPE.subhead, textAlign: 'center' },

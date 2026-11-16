@@ -588,6 +588,7 @@ export const nl = {
   },
 
   tasks: {
+    count: coreNl.tasks.count,
     title: 'Taken',
     quickAdd: {
       list: 'Op de lijst',

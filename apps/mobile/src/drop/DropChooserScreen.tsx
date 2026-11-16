@@ -289,7 +289,6 @@ function DropPreview({ drop }: { drop: Drop }) {
         <>
           <Text
             style={[styles.previewTitle, { color: tokens.ink }]}
-            numberOfLines={2}
           >
             {dropDisplayTitle(drop)}
           </Text>
@@ -350,7 +349,7 @@ function TargetRow({
           {copy.detail}
         </Text>
       </View>
-      {selected ? <Check size={18} color={tokens.accentText} /> : null}
+      {selected ? <Check size={18} color={tokens.ink} /> : null}
     </Pressable>
   )
 }
@@ -365,8 +364,6 @@ const styles = StyleSheet.create({
   },
   previewKind: {
     ...TYPE.footnote,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
   },
   previewTitle: { ...TYPE.bodyStrong },
   previewMeta: { ...TYPE.footnote },

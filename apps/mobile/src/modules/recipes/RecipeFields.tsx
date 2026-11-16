@@ -190,7 +190,7 @@ export function RecipeFields({
 
       <View style={styles.field}>
         <Text style={[styles.label, { color: tokens.muted }]}>
-          {t.recipes.rating.label.toUpperCase()}
+          {t.recipes.rating.label}
         </Text>
         <StarRating
           value={values.rating}
@@ -294,7 +294,7 @@ function Field({
   return (
     <View style={styles.field}>
       <Text style={[styles.label, { color: tokens.muted }]}>
-        {label.toUpperCase()}
+        {label}
         {hint ? <Text style={styles.hint}>{`  ${hint}`}</Text> : null}
       </Text>
       {children}
@@ -330,8 +330,8 @@ function Input({
 const styles = StyleSheet.create({
   fields: { gap: 14 },
   field: { gap: 6 },
-  label: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
-  hint: { ...TYPE.footnote, letterSpacing: 0 },
+  label: { ...TYPE.footnoteStrong },
+  hint: { ...TYPE.footnote },
   input: {
     ...TYPE.body,
     borderWidth: StyleSheet.hairlineWidth,

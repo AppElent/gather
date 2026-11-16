@@ -226,7 +226,7 @@ export function LoyaltyCardForm({
 
       {colorPickable ? (
         <View style={styles.field}>
-          <Text style={[TYPE.footnoteStrong, styles.label, { color: tokens.muted }]}>
+          <Text style={[TYPE.footnoteStrong, { color: tokens.muted }]}>
             {words.color}
           </Text>
           <ColorSwatches value={color} onChange={setColor} />
@@ -270,7 +270,7 @@ export function LoyaltyCardForm({
       </View>
 
       <View style={styles.field}>
-        <Text style={[TYPE.footnoteStrong, styles.label, { color: tokens.muted }]}>
+        <Text style={[TYPE.footnoteStrong, { color: tokens.muted }]}>
           {words.barcodeFormat}
         </Text>
         <FormatSelect
@@ -286,7 +286,7 @@ export function LoyaltyCardForm({
 
       {check.ok ? (
         <View style={styles.field}>
-          <Text style={[TYPE.footnoteStrong, styles.label, { color: tokens.muted }]}>
+          <Text style={[TYPE.footnoteStrong, { color: tokens.muted }]}>
             {words.preview}
           </Text>
           <CardBarcode
@@ -368,6 +368,7 @@ export function LoyaltyCardForm({
         onPress={submit}
         busy={submitting}
         disabled={uploading}
+        group="home"
         testID="loyalty-card-save"
       />
     </View>
@@ -505,7 +506,6 @@ function FormatSelect({
 const styles = StyleSheet.create({
   form: { gap: 18 },
   field: { gap: 6 },
-  label: { letterSpacing: 0.2 },
   select: {
     flexDirection: 'row',
     alignItems: 'center',

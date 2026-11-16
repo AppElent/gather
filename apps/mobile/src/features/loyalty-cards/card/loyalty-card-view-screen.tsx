@@ -181,8 +181,8 @@ export function LoyaltyCardViewScreen({
 
         {card.note ? (
           <View style={styles.section}>
-            <Text style={[TYPE.footnoteStrong, styles.label, { color: tokens.muted }]}>
-              {words.detail.note.toUpperCase()}
+            <Text style={[TYPE.footnoteStrong, { color: tokens.muted }]}>
+              {words.detail.note}
             </Text>
             <Text selectable style={[TYPE.subhead, { color: tokens.ink }]}>
               {card.note}
@@ -192,8 +192,8 @@ export function LoyaltyCardViewScreen({
 
         {card.frontPhotoUrl || card.backPhotoUrl ? (
           <View style={styles.section}>
-            <Text style={[TYPE.footnoteStrong, styles.label, { color: tokens.muted }]}>
-              {words.detail.photos.toUpperCase()}
+            <Text style={[TYPE.footnoteStrong, { color: tokens.muted }]}>
+              {words.detail.photos}
             </Text>
             <View style={styles.photos}>
               {card.frontPhotoUrl ? (
@@ -231,7 +231,6 @@ const styles = StyleSheet.create({
   storeText: { flex: 1, gap: 2 },
   hint: { textAlign: 'center' },
   section: { gap: 8 },
-  label: { letterSpacing: 0.8 },
   photos: { flexDirection: 'row', gap: 10 },
   photo: { flex: 1, aspectRatio: 1.586, borderRadius: RADIUS.card },
 })

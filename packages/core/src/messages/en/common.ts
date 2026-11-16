@@ -23,6 +23,8 @@ export const common = {
     retry: 'Try again',
     back: 'Back',
   },
+  /** Where a list puts what is done: "Completed (3)". */
+  completed: 'Completed',
   errors: {
     somethingWentWrong: 'Something went wrong. Please try again.',
     notFound: 'Not found.',

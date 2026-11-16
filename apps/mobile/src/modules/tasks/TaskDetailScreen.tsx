@@ -309,7 +309,6 @@ function PropertyRow({
       {trailing ??
         (value ? (
           <Text
-            numberOfLines={1}
             style={[
               styles.propertyValue,
               { color: danger ? tokens.danger : tokens.muted },
@@ -353,7 +352,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   propertyLabel: { ...TYPE.body, flex: 1 },
-  propertyValue: { ...TYPE.subhead, maxWidth: 170 },
+  propertyValue: {
+    ...TYPE.subhead,
+    maxWidth: 170,
+    flexShrink: 1,
+    textAlign: 'right',
+  },
   chips: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   more: { ...TYPE.footnoteStrong, ...TABULAR },
   notes: {

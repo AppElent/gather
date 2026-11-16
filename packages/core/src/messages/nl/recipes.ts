@@ -2,6 +2,7 @@ import type { recipes as enRecipes } from '../en/recipes'
 
 export const recipes = {
   list: {
+    count: { one: '{count} recept', other: '{count} recepten' },
     subtitle: 'Bewaar en beoordeel de gerechten die deze Groep kookt.',
     add: 'Recept toevoegen',
     emptyTitle: 'Nog geen recepten',
@@ -103,6 +104,13 @@ export const recipes = {
     deleteBody: '"{title}" verwijderen? Dit kan niet ongedaan worden gemaakt.',
     deleteFailed: 'Kon het recept niet verwijderen',
     addedBy: 'Toegevoegd door {name}',
+    byLine: 'toegevoegd door {name}',
+    facts: {
+      servings: { one: 'portie', other: 'porties' },
+      ingredients: { one: 'ingrediënt', other: 'ingrediënten' },
+      steps: { one: 'stap', other: 'stappen' },
+    },
+    ingredientCount: { one: '{count} ingrediënt', other: '{count} ingrediënten' },
     importedFrom: 'Geïmporteerd van',
     staleNutrition:
       'De ingrediënten zijn gewijzigd sinds de voedingswaarde is berekend — opnieuw schatten?',

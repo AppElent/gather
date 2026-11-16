@@ -31,21 +31,23 @@
  * never handed a Delete that could only be refused.
  */
 import { useMutation } from 'convex/react'
-import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
-import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SearchField } from '../../components/SearchField'
-import { SwipeableRow } from '../../components/SwipeableRow'
 import { api, type Id } from '../../convex/api'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
-import { fmt, useI18n } from '../../i18n'
-import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, SIZE, TYPE, useTokens } from '../../theme/tokens'
+import { useGroup } from '../../group/GroupProvider'
+import { fmt, plural, useI18n } from '../../i18n'
+import { RADIUS, SPACE, TYPE, useTokens } from '../../theme/tokens'
+import { InsetListItem, InsetRow } from '../../ui/inset-list'
+import { moduleTile } from '../../ui/module-tile'
+import { RecordThumb } from '../../ui/record-thumb'
+import { washScreenOptions } from '../../ui/screen-header'
+import { WashHeader } from '../../ui/wash-header'
 import { moduleHref } from '../moduleDestination'
 import { AddRecipeSheet } from './AddRecipeSheet'
 import { RECIPE_UI_ICONS } from './icons'
@@ -57,7 +59,8 @@ export function CollectionScreen() {
   const tokens = useTokens('kitchen')
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const { group } = useGroup()
   const { recipes, loading } = useRecipes()
   const remove = useMutation(api.recipes.remove)
 
@@ -97,8 +100,7 @@ export function CollectionScreen() {
   const header = (
     <Stack.Screen
       options={{
-        headerShown: true,
-        title: t.modules.byId.recipes.label,
+        ...washScreenOptions(t.modules.byId.recipes.label),
         headerRight: () => (
           <Pressable
             accessibilityRole="button"
@@ -133,6 +135,7 @@ export function CollectionScreen() {
     )
 
   const collectionIsEmpty = (recipes ?? []).length === 0
+  const tile = moduleTile('recipes')
 
   return (
     <>
@@ -148,19 +151,31 @@ export function CollectionScreen() {
         keyExtractor={(item) => item._id}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
-          // Hidden while the collection is empty: a search field over nothing
-          // is a control that cannot do anything, and the empty state below
-          // already says what to do instead.
-          collectionIsEmpty ? undefined : (
-            <SearchField
-              value={query}
-              onChangeText={setQuery}
-              placeholder={text.search}
-              clearAccessibilityLabel={text.clearSearch}
-              testID="recipes-search"
-              style={styles.search}
-            />
-          )
+          <>
+            {tile ? (
+              <WashHeader
+                group={tile.group}
+                glyph={tile.glyph}
+                summary={{
+                  count: plural(locale, (recipes ?? []).length, text.count),
+                  scope: group.name,
+                }}
+              />
+            ) : null}
+            {/* Hidden while the collection is empty: a search field over
+                nothing is a control that cannot do anything, and the empty
+                state below already says what to do instead. */}
+            {collectionIsEmpty ? null : (
+              <SearchField
+                value={query}
+                onChangeText={setQuery}
+                placeholder={text.search}
+                clearAccessibilityLabel={text.clearSearch}
+                testID="recipes-search"
+                style={styles.search}
+              />
+            )}
+          </>
         }
         ListEmptyComponent={
           collectionIsEmpty ? (
@@ -221,21 +236,23 @@ export function CollectionScreen() {
             </View>
           )
         }
-        renderItem={({ item }) => (
-          <RecipeRow
-            recipe={item}
-            onOpen={() =>
-              router.push(
-                moduleHref('/all/recipes/recipe', { recipeId: item._id }),
-              )
-            }
-            onEdit={() =>
-              router.push(
-                moduleHref('/all/recipes/edit', { recipeId: item._id }),
-              )
-            }
-            onDelete={() => confirmDelete(item)}
-          />
+        renderItem={({ item, index }) => (
+          <InsetListItem index={index} count={shown.length}>
+            <RecipeRow
+              recipe={item}
+              onOpen={() =>
+                router.push(
+                  moduleHref('/all/recipes/recipe', { recipeId: item._id }),
+                )
+              }
+              onEdit={() =>
+                router.push(
+                  moduleHref('/all/recipes/edit', { recipeId: item._id }),
+                )
+              }
+              onDelete={() => confirmDelete(item)}
+            />
+          </InsetListItem>
         )}
       />
 
@@ -262,63 +279,63 @@ function RecipeRow({
   onDelete: () => void
 }) {
   const tokens = useTokens('kitchen')
-  const tint = tokens.tintOf('kitchen')
   const { t } = useI18n()
+  const tile = moduleTile('recipes')
 
-  const row = (
-    <Pressable
-      accessibilityRole="button"
+  // A recipe you may only read has neither gesture: both of them end in a
+  // write, and offering one that can only be refused is worse than not.
+  const writes = recipe.canEdit
+    ? {
+        onDelete,
+        deleteLabel: t.common.actions.delete,
+        menu: {
+          actions: [
+            { id: 'edit', title: t.common.actions.edit },
+            {
+              id: 'delete',
+              title: t.common.actions.delete,
+              attributes: { destructive: true },
+            },
+          ],
+          onAction: (action: string) => {
+            if (action === 'edit') onEdit()
+            if (action === 'delete') onDelete()
+          },
+        },
+      }
+    : {}
+
+  return (
+    <InsetRow
+      testID={`recipe-row-${recipe._id}`}
       accessibilityLabel={fmt(t.recipes.list.openRecipe, {
         title: recipe.title,
       })}
-      testID={`recipe-row-${recipe._id}`}
       onPress={onOpen}
-      style={({ pressed }) => [
-        styles.row,
-        { backgroundColor: tokens.ground, borderBottomColor: tokens.hair },
-        pressed && styles.pressed,
-      ]}
-    >
-      {recipe.imageUrl ? (
-        <Image
-          source={{ uri: recipe.imageUrl }}
-          style={[styles.thumb, { backgroundColor: tokens.surface2 }]}
-          contentFit="cover"
-          accessibilityIgnoresInvertColors
-        />
-      ) : (
-        // #114: a recipe with no picture gets the Module's glyph rather than
-        // an empty block, so a row is never a hole in the list.
-        <View
-          style={[
-            styles.thumb,
-            styles.thumbEmpty,
-            { backgroundColor: tint.fill },
-          ]}
-        >
-          <RECIPE_UI_ICONS.ChefHat
-            size={22}
-            color={tint.on}
-            strokeWidth={1.6}
+      chevron
+      // #114: a recipe with no picture gets the Module's tile rather than an
+      // empty block, so a row is never a hole in the list.
+      leading={
+        tile ? (
+          <RecordThumb
+            uri={recipe.imageUrl}
+            group={tile.group}
+            glyph={tile.glyph}
           />
-        </View>
-      )}
-      <View style={styles.rowText}>
-        <Text
-          numberOfLines={2}
-          style={[styles.rowTitle, { color: tokens.ink }]}
-        >
-          {recipe.title}
-        </Text>
-        {recipe.rating != null ? (
-          <StarRating value={recipe.rating} size={14} />
-        ) : null}
+        ) : null
+      }
+      title={recipe.title}
+      {...writes}
+    >
+      {recipe.rating != null ? (
+        <StarRating value={recipe.rating} size={14} />
+      ) : null}
+      {recipe.homeGroupName || recipe.tags.length ? (
         <View style={styles.rowMeta}>
           {/* Whose collection this came from, said only when it is not this
               one — the cue an ambient Group takes away (ADR-0015). */}
           {recipe.homeGroupName ? (
             <Text
-              numberOfLines={1}
               testID="recipe-row-shared-in"
               style={[
                 styles.badge,
@@ -331,7 +348,6 @@ function RecipeRow({
           {recipe.tags.slice(0, 3).map((tag) => (
             <Text
               key={tag}
-              numberOfLines={1}
               style={[
                 styles.badge,
                 { color: tokens.muted, backgroundColor: tokens.surface2 },
@@ -341,59 +357,15 @@ function RecipeRow({
             </Text>
           ))}
         </View>
-      </View>
-      <UI_ICONS.ChevronRight size={17} color={tokens.muted} strokeWidth={2.2} />
-    </Pressable>
-  )
-
-  // A recipe you may only read has neither gesture: both of them end in a
-  // write, and offering one that can only be refused is worse than not.
-  if (!recipe.canEdit) return row
-
-  return (
-    <SwipeableRow deleteLabel={t.common.actions.delete} onDelete={onDelete}>
-      <NativeContextMenu
-        actions={[
-          { id: 'edit', title: t.common.actions.edit },
-          {
-            id: 'delete',
-            title: t.common.actions.delete,
-            attributes: { destructive: true },
-          },
-        ]}
-        onAction={(action) => {
-          if (action === 'edit') onEdit()
-          if (action === 'delete') onDelete()
-        }}
-      >
-        {row}
-      </NativeContextMenu>
-    </SwipeableRow>
+      ) : null}
+    </InsetRow>
   )
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 8 },
+  content: {},
   headerButton: { padding: 6 },
-  search: { marginHorizontal: 16, marginBottom: 6 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    minHeight: 76,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  thumb: { width: SIZE.tileL, height: SIZE.tileL, borderRadius: RADIUS.thumb },
-  thumbEmpty: {
-    borderRadius: RADIUS.tileL,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowText: { flex: 1, gap: 3 },
-  rowTitle: { ...TYPE.bodyStrong, letterSpacing: -0.2 },
+  search: { marginHorizontal: SPACE[4], marginBottom: SPACE[3] },
   rowMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   badge: {
     ...TYPE.footnoteStrong,

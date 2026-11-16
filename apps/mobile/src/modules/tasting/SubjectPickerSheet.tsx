@@ -137,7 +137,7 @@ export function SubjectPickerSheet({
             <Text style={[styles.heading, { color: tokens.muted }]}>
               {fmt(t.tastings.picker.mine, {
                 group: group.name,
-              }).toUpperCase()}
+              })}
             </Text>
             {mine.map((subject) => (
               <Pressable
@@ -175,7 +175,7 @@ export function SubjectPickerSheet({
         {shipped.length > 0 ? (
           <>
             <Text style={[styles.heading, { color: tokens.muted }]}>
-              {words.catalogHeading.toUpperCase()}
+              {words.catalogHeading}
             </Text>
             {shipped.map((entry) => (
               <Pressable
@@ -261,7 +261,6 @@ const styles = StyleSheet.create({
   list: { marginTop: 12 },
   heading: {
     ...TYPE.footnoteStrong,
-    letterSpacing: 0.8,
     paddingBottom: 6,
     paddingTop: 10,
   },

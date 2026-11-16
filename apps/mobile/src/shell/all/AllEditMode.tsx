@@ -218,7 +218,6 @@ export function AllEditMode({
                     />
                   </View>
                   <Text
-                    numberOfLines={1}
                     style={[styles.hiddenLabel, { color: tokens.ink }]}
                   >
                     {label}

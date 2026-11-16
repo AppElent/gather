@@ -131,7 +131,7 @@ function Row({
     >
       <Text style={[styles.rowLabel, { color: tokens.ink }]}>{label}</Text>
       {on ? (
-        <Check size={18} color={tokens.accentText} strokeWidth={2.4} />
+        <Check size={18} color={tokens.ink} strokeWidth={2.4} />
       ) : null}
     </Pressable>
   )

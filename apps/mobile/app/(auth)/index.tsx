@@ -90,10 +90,7 @@ const styles = StyleSheet.create({
   },
   subtitle: { ...TYPE.subhead, marginTop: 6 },
   catalogue: { gap: 12 },
-  eyebrow: {
-    ...TYPE.footnoteStrong,
-    letterSpacing: 0.9,
-    textTransform: 'uppercase',
-  },
+  // Sentence case, as written: section labels are never uppercased.
+  eyebrow: { ...TYPE.footnoteStrong },
   actions: { paddingHorizontal: 24, paddingBottom: 12 },
 })

@@ -21,7 +21,7 @@
  */
 import { localMidnight } from '@gather/core/civil-date'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { TABULAR, TYPE, useTokens } from '../theme/tokens'
+import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../theme/tokens'
 
 export interface MonthGridViewProps {
   /** Six rows of seven from `monthGrid`. */
@@ -143,10 +143,12 @@ const styles = StyleSheet.create({
   weekday: { ...TYPE.footnoteStrong, flex: 1, textAlign: 'center' },
   week: { flexDirection: 'row' },
   day: { flex: 1, alignItems: 'center', paddingVertical: 2 },
+  // A minimum, not a size: the date grows with Dynamic Type and the disc
+  // grows around it rather than clipping it.
   dayInner: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    minWidth: SIZE.hitMin,
+    minHeight: SIZE.hitMin,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },

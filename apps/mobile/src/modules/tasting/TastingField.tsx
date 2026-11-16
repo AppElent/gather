@@ -66,7 +66,7 @@ export function TastingField({
   return (
     <View style={styles.field}>
       <Text style={[styles.label, { color: tokens.muted }]}>
-        {fieldLabel(t.tastings, field).toUpperCase()}
+        {fieldLabel(t.tastings, field)}
       </Text>
       <Control
         field={field}
@@ -460,7 +460,7 @@ export function tastingFieldText(
 
 const styles = StyleSheet.create({
   field: { gap: 7 },
-  label: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  label: { ...TYPE.footnoteStrong },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   chip: {
     flexDirection: 'row',

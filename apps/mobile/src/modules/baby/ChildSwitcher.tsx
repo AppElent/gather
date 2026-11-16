@@ -100,7 +100,7 @@ export function ChildSwitcher({
                   {selected ? (
                     <UI_ICONS.Check
                       size={20}
-                      color={tint.text}
+                      color={tokens.ink}
                       strokeWidth={2.4}
                     />
                   ) : null}

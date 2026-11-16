@@ -61,7 +61,6 @@ export function DropGroupSheet({
             >
               <View style={styles.rowText}>
                 <Text
-                  numberOfLines={1}
                   style={[styles.name, { color: tokens.ink }]}
                 >
                   {group.name}

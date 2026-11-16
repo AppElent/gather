@@ -23,12 +23,13 @@ import { Stack, useRouter } from 'expo-router'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { fmt, type Messages, useI18n } from '../../i18n'
-import { UI_ICONS } from '../../theme/icons'
-import { TABULAR, TYPE, useTokens } from '../../theme/tokens'
-import { Card } from '../../ui/card'
+import { fmt, type Messages, plural, useI18n } from '../../i18n'
+import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { InsetList, InsetRow } from '../../ui/inset-list'
+import { moduleTile } from '../../ui/module-tile'
+import { washScreenOptions } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
-import { PressRow } from './components'
+import { WashHeader } from '../../ui/wash-header'
 import { TASK_ICONS } from './icons'
 import { useTaskState } from './store'
 import { TaskRow } from './TaskRow'
@@ -38,11 +39,11 @@ import type { Task, TaskList } from './types'
 export function TaskLists() {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const router = useRouter()
   const state = useTaskState()
   const taskSheets = useTaskSheets({ tasks: state.tasks })
-  const ChevronRight = UI_ICONS.ChevronRight
+  const tile = moduleTile('tasks')
 
   const lists = [...state.lists].sort((a, b) => a.order - b.order)
   const listOf = (id: string) => lists.find((list) => list.id === id)
@@ -54,95 +55,101 @@ export function TaskLists() {
     .filter((task) => !task.done && task.dueDate && task.dueDate <= state.today)
     .sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''))
 
+  const openTotal = state.tasks.filter((task) => !task.done).length
+
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: t.tasks.title }} />
+      <Stack.Screen options={washScreenOptions(t.tasks.title)} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + 24 },
-        ]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       >
-        <View style={styles.group}>
-          <SectionLabel>{t.tasks.today}</SectionLabel>
-          <Card>
-            {due.length === 0 ? (
-              <View style={styles.emptyRow}>
-                <Text style={[styles.empty, { color: tokens.muted }]}>
-                  {t.tasks.todayEmpty}
-                </Text>
-              </View>
-            ) : (
-              due.map((task, index) => {
-                const overdue = (task.dueDate ?? '') < state.today
-                const inList = fmt(t.tasks.inList, {
-                  list: listOf(task.listId)?.name ?? '',
+        {tile ? (
+          <WashHeader
+            group={tile.group}
+            glyph={tile.glyph}
+            summary={{
+              count: plural(locale, openTotal, t.tasks.count.open),
+              scope: plural(locale, lists.length, t.tasks.count.lists),
+            }}
+          />
+        ) : null}
+        <View style={styles.content}>
+          <View style={styles.group}>
+            <SectionLabel>{t.tasks.today}</SectionLabel>
+            <InsetList>
+              {due.length === 0 ? (
+                <View style={styles.emptyRow}>
+                  <Text style={[styles.empty, { color: tokens.muted }]}>
+                    {t.tasks.todayEmpty}
+                  </Text>
+                </View>
+              ) : (
+                due.map((task) => {
+                  const overdue = (task.dueDate ?? '') < state.today
+                  const inList = fmt(t.tasks.inList, {
+                    list: listOf(task.listId)?.name ?? '',
+                  })
+                  return (
+                    <TaskRow
+                      key={task.id}
+                      task={task}
+                      writable={listOf(task.listId)?.writable ?? false}
+                      chevron
+                      meta={
+                        <Text
+                          style={[
+                            styles.meta,
+                            { color: overdue ? tokens.danger : tokens.muted },
+                          ]}
+                        >
+                          {overdue
+                            ? `${t.tasks.task.overdue} \u00b7 ${inList}`
+                            : inList}
+                        </Text>
+                      }
+                      onOpen={() =>
+                        router.push({
+                          pathname: '/all/tasks/task/[taskId]',
+                          params: { taskId: task.id },
+                        })
+                      }
+                      menu={{
+                        reorder: false,
+                        onAction: (action) => taskSheets.onAction(task, action),
+                      }}
+                    />
+                  )
                 })
+              )}
+            </InsetList>
+          </View>
+
+          <View style={styles.group}>
+            <SectionLabel>{t.tasks.lists}</SectionLabel>
+            <InsetList>
+              {lists.map((list) => {
+                const count = openCount(list, state.tasks, t)
                 return (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    writable={listOf(task.listId)?.writable ?? false}
-                    last={index === due.length - 1}
+                  <InsetRow
+                    key={list.id}
+                    testID={`list-${list.id}`}
+                    accessibilityLabel={`${list.name}, ${count}`}
+                    title={list.name}
                     chevron
-                    meta={
-                      <Text
-                        numberOfLines={1}
-                        style={[
-                          styles.meta,
-                          { color: overdue ? tokens.danger : tokens.muted },
-                        ]}
-                      >
-                        {overdue
-                          ? `${t.tasks.task.overdue} \u00b7 ${inList}`
-                          : inList}
+                    trailing={
+                      <Text style={[styles.count, { color: tokens.muted }]}>
+                        {count}
                       </Text>
                     }
-                    onOpen={() =>
+                    onPress={() =>
                       router.push({
-                        pathname: '/all/tasks/task/[taskId]',
-                        params: { taskId: task.id },
+                        pathname: '/all/tasks/[listId]',
+                        params: { listId: list.id },
                       })
                     }
-                    menu={{
-                      reorder: false,
-                      onAction: (action) => taskSheets.onAction(task, action),
-                    }}
-                  />
-                )
-              })
-            )}
-          </Card>
-        </View>
-
-        <View style={styles.group}>
-          <SectionLabel>{t.tasks.lists}</SectionLabel>
-          <Card>
-            {lists.map((list, index) => {
-              const count = openCount(list, state.tasks, t)
-              return (
-                <PressRow
-                  key={list.id}
-                  testID={`list-${list.id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${list.name}, ${count}`}
-                  last={index === lists.length - 1}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/all/tasks/[listId]',
-                      params: { listId: list.id },
-                    })
-                  }
-                >
-                  <View style={styles.listText}>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.listName, { color: tokens.ink }]}
-                    >
-                      {list.name}
-                    </Text>
+                  >
                     {list.provider === 'local' ? null : (
                       <View style={styles.badge}>
                         <TASK_ICONS.Link
@@ -159,21 +166,11 @@ export function TaskLists() {
                         </Text>
                       </View>
                     )}
-                  </View>
-                  <Text style={[styles.count, { color: tokens.muted }]}>
-                    {count}
-                  </Text>
-                  <ChevronRight
-                    size={18}
-                    color={tokens.muted}
-                    strokeWidth={1.8}
-                    accessibilityElementsHidden
-                    importantForAccessibility="no"
-                  />
-                </PressRow>
-              )
-            })}
-          </Card>
+                  </InsetRow>
+                )
+              })}
+            </InsetList>
+          </View>
         </View>
       </ScrollView>
 
@@ -200,13 +197,15 @@ function openCount(
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 16, paddingTop: 12, gap: 18 },
-  group: { gap: 8 },
-  emptyRow: { minHeight: 50, justifyContent: 'center' },
+  content: { paddingHorizontal: SPACE[4], gap: SPACE[5] },
+  group: { gap: SPACE[2] },
+  emptyRow: {
+    minHeight: 52,
+    justifyContent: 'center',
+    paddingHorizontal: SPACE[4],
+  },
   empty: { ...TYPE.subhead },
   meta: { ...TYPE.footnoteStrong },
-  listText: { flex: 1, gap: 3, paddingVertical: 7 },
-  listName: { ...TYPE.body },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   badgeText: { ...TYPE.footnoteStrong },
   count: { ...TYPE.footnote, ...TABULAR },

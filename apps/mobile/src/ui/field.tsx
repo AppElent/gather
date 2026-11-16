@@ -31,58 +31,59 @@ interface FieldProps extends Omit<TextInputProps, 'style'> {
   invalid?: boolean
 }
 
-export const Field = forwardRef<TextInputInstance, FieldProps>(
-  function Field({ label, secure, invalid, ...props }, ref) {
-    const tokens = useTokens()
-    const { t } = useI18n()
-    const [focused, setFocused] = useState(false)
-    const [revealed, setRevealed] = useState(false)
+export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
+  { label, secure, invalid, ...props },
+  ref,
+) {
+  const tokens = useTokens()
+  const { t } = useI18n()
+  const [focused, setFocused] = useState(false)
+  const [revealed, setRevealed] = useState(false)
 
-    const Reveal = revealed ? UI_ICONS.EyeOff : UI_ICONS.Eye
-    const borderColor = invalid
-      ? tokens.danger
-      : focused
-        ? tokens.ink
-        : tokens.hair
+  const Reveal = revealed ? UI_ICONS.EyeOff : UI_ICONS.Eye
+  const borderColor = invalid
+    ? tokens.danger
+    : focused
+      ? tokens.ink
+      : tokens.hair
 
-    return (
-      <View style={styles.wrap}>
-        <Text style={[styles.label, { color: tokens.muted }]}>{label}</Text>
-        <View
-          style={[
-            styles.box,
-            { borderColor, backgroundColor: tokens.surface },
-            focused && styles.boxFocused,
-          ]}
-        >
-          <TextInput
-            ref={ref}
-            style={[styles.input, { color: tokens.ink }]}
-            placeholderTextColor={tokens.muted}
-            secureTextEntry={secure && !revealed}
-            accessibilityLabel={label}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            {...props}
-          />
-          {secure ? (
-            <Pressable
-              onPress={() => setRevealed((r) => !r)}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel={
-                revealed ? t.fields.hidePassword : t.fields.showPassword
-              }
-              style={styles.reveal}
-            >
-              <Reveal size={19} color={tokens.muted} strokeWidth={1.75} />
-            </Pressable>
-          ) : null}
-        </View>
+  return (
+    <View style={styles.wrap}>
+      <Text style={[styles.label, { color: tokens.muted }]}>{label}</Text>
+      <View
+        style={[
+          styles.box,
+          { borderColor, backgroundColor: tokens.surface },
+          focused && styles.boxFocused,
+        ]}
+      >
+        <TextInput
+          ref={ref}
+          style={[styles.input, { color: tokens.ink }]}
+          placeholderTextColor={tokens.muted}
+          secureTextEntry={secure && !revealed}
+          accessibilityLabel={label}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          {...props}
+        />
+        {secure ? (
+          <Pressable
+            onPress={() => setRevealed((r) => !r)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={
+              revealed ? t.fields.hidePassword : t.fields.showPassword
+            }
+            style={styles.reveal}
+          >
+            <Reveal size={19} color={tokens.muted} strokeWidth={1.75} />
+          </Pressable>
+        ) : null}
       </View>
-    )
-  },
-)
+    </View>
+  )
+})
 
 const styles = StyleSheet.create({
   wrap: { gap: 6 },

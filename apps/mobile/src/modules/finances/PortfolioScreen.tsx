@@ -66,7 +66,6 @@ export function PortfolioScreen() {
   const [price, setPrice] = useState('')
   const [asAt, setAsAt] = useState(today)
 
-  const tint = tokens.tintOf('money')
   const Chart = FINANCE_ICONS.Chart
 
   if (holdings === undefined) {
@@ -135,7 +134,7 @@ export function PortfolioScreen() {
         {failure}
         {holdings.length === 0 ? (
           <EmptyState
-            icon={<Chart size={34} color={tint.text} strokeWidth={1.6} />}
+            glyph={Chart}
             title={text.portfolio.emptyTitle}
             body={text.portfolio.emptyBody}
             actionLabel={text.portfolio.addHolding}

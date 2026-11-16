@@ -977,7 +977,7 @@ function EventRow({
           </Text>
         ))}
       </View>
-      <Text numberOfLines={2} style={[styles.eventTitle, { color: tokens.ink }]}>
+      <Text style={[styles.eventTitle, { color: tokens.ink }]}>
         {event.title}
       </Text>
       <View style={styles.eventWho}>
@@ -1058,7 +1058,6 @@ const styles = StyleSheet.create({
     ...TYPE.footnoteStrong,
     flex: 1,
     textAlign: 'center',
-    letterSpacing: 0.6,
   },
   weekRow: { flexDirection: 'row', paddingHorizontal: 8 },
   cell: {
@@ -1122,7 +1121,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 15,
     paddingBottom: 5,
-    letterSpacing: 0.7,
   },
   empty: { ...TYPE.subhead, paddingHorizontal: 16, paddingVertical: 10 },
   gap: { paddingHorizontal: 16, paddingVertical: 18 },

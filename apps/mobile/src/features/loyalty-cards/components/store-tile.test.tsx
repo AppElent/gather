@@ -41,8 +41,25 @@ vi.mock('react-native', () => ({
       },
       children,
     ),
-  Text: ({ children }: { children?: ReactNode }) =>
-    createElement('span', { 'data-testid': 'monogram' }, children),
+  // Keeps how the monogram answers Dynamic Type.
+  Text: ({
+    children,
+    allowFontScaling,
+    adjustsFontSizeToFit,
+  }: {
+    children?: ReactNode
+    allowFontScaling?: boolean
+    adjustsFontSizeToFit?: boolean
+  }) =>
+    createElement(
+      'span',
+      {
+        'data-testid': 'monogram',
+        'data-allow-font-scaling': String(allowFontScaling ?? true),
+        'data-fits': String(Boolean(adjustsFontSizeToFit)),
+      },
+      children,
+    ),
 }))
 vi.mock('expo-image', () => ({
   Image: ({
@@ -137,4 +154,10 @@ test("a failed logo does not hide the next store's", () => {
   })
   rerender(<StoreTile name="Jumbo" catalogKey="jumbo" />)
   expect(logo()?.getAttribute('data-source')).toBe('102')
+})
+
+test('the monogram scales with Dynamic Type and shrinks back to fit its tile', () => {
+  render()
+  expect(monogram()?.getAttribute('data-allow-font-scaling')).toBe('true')
+  expect(monogram()?.getAttribute('data-fits')).toBe('true')
 })

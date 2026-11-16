@@ -263,7 +263,7 @@ export function QuickLogSheet({
         {tracked.length > 1 ? (
           <View style={styles.field}>
             <Text style={[styles.fieldLabel, { color: tokens.muted }]}>
-              {t.baby.log.multi.include.toUpperCase()}
+              {t.baby.log.multi.include}
             </Text>
             <View style={styles.chips}>
               {tracked.map((each) => {
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   body: { gap: 14, paddingBottom: 14 },
   field: { gap: 7 },
-  fieldLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  fieldLabel: { ...TYPE.footnoteStrong },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   section: { gap: 12 },
   sectionHead: {

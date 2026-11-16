@@ -27,16 +27,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
-import { fmt, type Messages, useI18n } from '../../i18n'
+import { useGroup } from '../../group/GroupProvider'
+import { fmt, type Messages, plural, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
-import { Card } from '../../ui/card'
+import { RADIUS, SPACE, TYPE, useTokens } from '../../theme/tokens'
+import { CompletedSection } from '../../ui/completed-section'
+import { InsetList } from '../../ui/inset-list'
+import { moduleTile } from '../../ui/module-tile'
+import { washScreenOptions } from '../../ui/screen-header'
+import { WashHeader } from '../../ui/wash-header'
 import { Chip, priorityColor } from './components'
 import { TASK_ICONS } from './icons'
 import { ReorderMode } from './ReorderMode'
 import { RenameSheet } from './sheets'
 import { taskSections, useTaskActions, useTaskList } from './store'
-import { CompletedToggle, TaskComposer, TaskRow } from './TaskRow'
+import { TaskComposer, TaskRow } from './TaskRow'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
 import type { ListDisplay, Task, TaskList as TaskListModel } from './types'
@@ -51,10 +56,13 @@ export interface ListMenuExtra {
 
 export function TaskList({
   listId,
+  moduleId = 'tasks',
   menuExtras = [],
   addPlaceholder,
 }: {
   listId: string
+  /** The Module whose tile heads the list: Tasks, or the one that owns it. */
+  moduleId?: string
   /**
    * What an owning module adds to the list's own menu. Never the back button:
    * the system Back is the one way out of a pushed screen.
@@ -65,7 +73,8 @@ export function TaskList({
 }) {
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const { group } = useGroup()
   const router = useRouter()
   const { list, tasks, today, refresh } = useTaskList(listId)
   const actions = useTaskActions()
@@ -78,7 +87,6 @@ export function TaskList({
   })
   const scrollRef = useRef<ScrollView>(null)
   const [dragging, setDragging] = useState(false)
-  const [completedOpen, setCompletedOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshed, setRefreshed] = useState(false)
 
@@ -135,12 +143,13 @@ export function TaskList({
       params: { taskId: task.id },
     })
 
-  const row = (task: Task, last: boolean) => (
+  const tile = moduleTile(moduleId)
+
+  const row = (task: Task) => (
     <TaskRow
       key={task.id}
       task={task}
       writable={list.writable}
-      last={last}
       bar={
         (list.display.priority && priorityColor(task.priority, tokens)) ||
         'transparent'
@@ -158,8 +167,7 @@ export function TaskList({
     <>
       <Stack.Screen
         options={{
-          headerShown: true,
-          title: list.name,
+          ...washScreenOptions(list.name),
           headerRight: () =>
             reordering ? (
               <Pressable
@@ -243,10 +251,7 @@ export function TaskList({
         style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
         scrollEnabled={!dragging}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + 24 },
-        ]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         refreshControl={
           // Only a provider-backed list has anything to fetch. Convex keeps
           // the rest live, and a spinner over live data is theatre.
@@ -259,92 +264,90 @@ export function TaskList({
           ) : undefined
         }
       >
-        {reordering ? (
-          <ReorderMode
-            tasks={active}
-            display={list.display}
-            today={today}
-            scrollRef={scrollRef}
-            onDragging={setDragging}
-            onCommit={(ids) => actions.reorderTasks(list.id, ids)}
+        {tile ? (
+          <WashHeader
+            group={tile.group}
+            glyph={tile.glyph}
+            summary={{
+              count: plural(locale, active.length, t.tasks.count.open),
+              scope: group.name,
+            }}
           />
-        ) : (
-          <>
-            {notice === null ? null : (
-              <View
-                style={[
-                  styles.readOnly,
-                  {
-                    backgroundColor: tokens.surface2,
-                    borderColor: tokens.hair,
-                  },
-                ]}
-              >
-                <TASK_ICONS.Link
-                  size={16}
-                  color={tokens.muted}
-                  strokeWidth={2.2}
-                  accessibilityElementsHidden
-                  importantForAccessibility="no"
-                />
-                <Text
+        ) : null}
+        <View style={styles.content}>
+          {reordering ? (
+            <ReorderMode
+              tasks={active}
+              display={list.display}
+              today={today}
+              scrollRef={scrollRef}
+              onDragging={setDragging}
+              onCommit={(ids) => actions.reorderTasks(list.id, ids)}
+            />
+          ) : (
+            <>
+              {notice === null ? null : (
+                <View
                   style={[
-                    styles.readOnlyText,
+                    styles.readOnly,
                     {
-                      color:
-                        list.sync === 'reconnect' || list.sync === 'failed'
-                          ? tokens.danger
-                          : tokens.muted,
+                      backgroundColor: tokens.surface2,
+                      borderColor: tokens.hair,
                     },
                   ]}
                 >
-                  {notice}
-                </Text>
-              </View>
-            )}
-
-            <Card>
-              {active.length === 0 && completed.length === 0 ? (
-                <View style={styles.emptyRow}>
-                  <Text style={[styles.empty, { color: tokens.muted }]}>
-                    {linked && list.sync === 'loading'
-                      ? fmt(t.tasks.list.loading, { provider: list.provider })
-                      : t.tasks.list.empty}
+                  <TASK_ICONS.Link
+                    size={16}
+                    color={tokens.muted}
+                    strokeWidth={2.2}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no"
+                  />
+                  <Text
+                    style={[
+                      styles.readOnlyText,
+                      {
+                        color:
+                          list.sync === 'reconnect' || list.sync === 'failed'
+                            ? tokens.danger
+                            : tokens.muted,
+                      },
+                    ]}
+                  >
+                    {notice}
                   </Text>
                 </View>
-              ) : null}
-
-              {active.map((task, index) =>
-                row(
-                  task,
-                  index === active.length - 1 &&
-                    completed.length === 0 &&
-                    !list.writable,
-                ),
               )}
 
-              {completed.length > 0 ? (
-                <>
-                  <CompletedToggle
-                    count={completed.length}
-                    open={completedOpen}
-                    onPress={() => setCompletedOpen((open) => !open)}
+              <InsetList>
+                {active.length === 0 && completed.length === 0 ? (
+                  <View style={styles.emptyRow}>
+                    <Text style={[styles.empty, { color: tokens.muted }]}>
+                      {linked && list.sync === 'loading'
+                        ? fmt(t.tasks.list.loading, { provider: list.provider })
+                        : t.tasks.list.empty}
+                    </Text>
+                  </View>
+                ) : null}
+                {active.map(row)}
+                {list.writable ? (
+                  <TaskComposer
+                    listId={list.id}
+                    placeholder={addPlaceholder ?? t.tasks.list.addTask}
                   />
-                  {completedOpen
-                    ? completed.map((task) => row(task, false))
-                    : null}
-                </>
-              ) : null}
+                ) : null}
+              </InsetList>
 
-              {list.writable ? (
-                <TaskComposer
-                  listId={list.id}
-                  placeholder={addPlaceholder ?? t.tasks.list.addTask}
-                />
-              ) : null}
-            </Card>
-          </>
-        )}
+              <CompletedSection
+                count={completed.length}
+                group="home"
+                label={t.common.completed}
+              >
+                <InsetList>{completed.map(row)}</InsetList>
+              </CompletedSection>
+            </>
+          )}
+        </View>
       </ScrollView>
 
       {taskSheets.sheets}
@@ -445,7 +448,7 @@ function TaskMeta({
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 16, paddingTop: 12, gap: 14 },
+  content: { paddingHorizontal: SPACE[4], gap: SPACE[4] },
   headerButton: { paddingHorizontal: 6, paddingVertical: 6 },
   /**
    * A navigation-bar action, dressed the way the platform dresses one: 17pt
@@ -469,7 +472,11 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.card,
   },
   readOnlyText: { ...TYPE.footnote, flex: 1 },
-  emptyRow: { minHeight: 50, justifyContent: 'center' },
+  emptyRow: {
+    minHeight: 52,
+    justifyContent: 'center',
+    paddingHorizontal: SPACE[4],
+  },
   empty: { ...TYPE.subhead },
   metaRow: {
     flexDirection: 'row',

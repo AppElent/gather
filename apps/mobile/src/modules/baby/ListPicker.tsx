@@ -59,7 +59,7 @@ export function ListPicker({
   return (
     <View style={styles.wrap}>
       <Text style={[styles.title, { color: tokens.muted }]}>
-        {title.toUpperCase()}
+        {title}
       </Text>
 
       <View
@@ -69,7 +69,7 @@ export function ListPicker({
         ]}
       >
         <View style={[styles.row, { borderBottomColor: tokens.hair }]}>
-          <Text style={[styles.name, { color: tokens.ink }]} numberOfLines={1}>
+          <Text style={[styles.name, { color: tokens.ink }]}>
             {chosen ? chosen.name : defaultName}
           </Text>
           <View
@@ -180,7 +180,6 @@ function Option({
   onPress: () => void
 }) {
   const tokens = useTokens('home')
-  const tint = tokens.tintOf('home')
   return (
     <Pressable
       accessibilityRole="button"
@@ -204,7 +203,7 @@ function Option({
         </Text>
       </View>
       {selected ? (
-        <UI_ICONS.Check size={19} color={tint.text} strokeWidth={2.4} />
+        <UI_ICONS.Check size={19} color={tokens.ink} strokeWidth={2.4} />
       ) : null}
     </Pressable>
   )
@@ -212,7 +211,7 @@ function Option({
 
 const styles = StyleSheet.create({
   wrap: { gap: 8 },
-  title: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  title: { ...TYPE.footnoteStrong },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
