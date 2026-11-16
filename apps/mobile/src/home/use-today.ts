@@ -56,11 +56,14 @@ export function useToday() {
   )
   const events = useQueries(eventQueries)
 
+  // The cutoff is read fresh whenever the entries change, not only from the
+  // minute clock: an entry logged at 21:11:30 arrives after the clock said
+  // 21:11:00, and must show at once rather than a minute later.
   const rail = useMemo(
     () =>
       railEntries(children ?? [], events, {
         dayStart,
-        now,
+        now: Math.max(now, Date.now()),
         babyLog: t.baby.log,
         words: t.shell.home.today,
       }),

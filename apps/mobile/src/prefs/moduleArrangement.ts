@@ -91,13 +91,15 @@ function readStored(groupSlug: string): StoredAll {
 /**
  * Every mounted reader of an arrangement, so a change made on one screen
  * reaches the others: Home's Pinned row and All's Pinned section are the same
- * list, and both tabs stay mounted.
+ * list, and both tabs stay mounted. The listeners get the committed value
+ * itself rather than re-reading storage: the write is best effort, and a
+ * failed one must not hand back the previous arrangement and undo the change.
  */
-const changed = new Set<(groupSlug: string) => void>()
+const changed = new Set<(groupSlug: string, value: StoredAll) => void>()
 
 function writeStored(groupSlug: string, value: StoredAll) {
   writePreference(allArrangementKey(groupSlug), JSON.stringify(value))
-  for (const listener of changed) listener(groupSlug)
+  for (const listener of changed) listener(groupSlug, value)
 }
 
 function readAllView(): AllView {
@@ -141,8 +143,8 @@ export function useModuleArrangement(groupSlug: string): ModuleArrangement {
   const stored = state.slug === groupSlug ? state.stored : readStored(groupSlug)
 
   useEffect(() => {
-    const listener = (slug: string) => {
-      if (slug === groupSlug) setState({ slug, stored: readStored(slug) })
+    const listener = (slug: string, value: StoredAll) => {
+      if (slug === groupSlug) setState({ slug, stored: value })
     }
     changed.add(listener)
     return () => {
