@@ -17,8 +17,8 @@ export const TILE = '#f1f2f0'
 export const FG = '#1f2421'
 export const MUTED = '#79807b'
 export const BORDER = '#e8e7e3'
-export const TINT = '#8a6a33' // MODULE_TINTS.light.home[1]
-export const TINT_BG = '#f2ece0' // MODULE_TINTS.light.home[0]
+export const TINT = '#8a6a33' // the pre-Tiles & Today home text colour; MODULE_TINTS now has { fill, on, text, wash }
+export const TINT_BG = '#f2ece0' // the pre-Tiles & Today home wash
 export const DANGER = '#a4372c'
 
 /* ── the calendars ───────────────────────────────────────────────────────
