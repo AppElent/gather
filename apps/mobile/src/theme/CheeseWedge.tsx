@@ -11,6 +11,7 @@ export function CheeseWedge({
   size = 24,
   color = 'currentColor',
   strokeWidth = 2,
+  weight: _weight,
   ...rest
 }: GlyphProps) {
   return (

@@ -58,6 +58,12 @@ export type GlyphProps = AccessibilityProps & {
    * as two entries in the icon map. Android has one icon and this prop.
    */
   fill?: string
+  /**
+   * The SF Symbol weight, where a call site needs one the stroke mapping
+   * cannot say: a Module tile's glyph is `medium` (Tiles & Today). Android's
+   * lucide icon keeps `strokeWidth`.
+   */
+  weight?: 'regular' | 'medium' | 'semibold'
 }
 
 export type Glyph = ComponentType<GlyphProps>
@@ -76,6 +82,7 @@ export function glyph(fallback: LucideIcon, symbol: SymbolName | null): Glyph {
     color,
     strokeWidth,
     fill,
+    weight,
     ...rest
   }: GlyphProps) {
     return (
@@ -84,7 +91,9 @@ export function glyph(fallback: LucideIcon, symbol: SymbolName | null): Glyph {
         name={symbol}
         size={size}
         tintColor={color}
-        weight={(strokeWidth ?? 1.8) >= 2.2 ? 'semibold' : 'regular'}
+        weight={
+          weight ?? ((strokeWidth ?? 1.8) >= 2.2 ? 'semibold' : 'regular')
+        }
         resizeMode="scaleAspectFit"
         style={{ width: size, height: size }}
         fallback={

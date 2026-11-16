@@ -21,9 +21,18 @@ The tokens live in `src/theme/`: neutrals in `palette.ts`; text styles
 `on`, `text`, `wash`) are `MODULE_TINTS` in `@gather/core/module-tints`.
 `src/theme/contrast.test.ts` holds every allowed text pair to 4.5:1 in both
 themes, and `scripts/check-mobile-structure.mjs` rejects a literal `fontSize`
-anywhere outside `src/theme/`. Group colour goes only on tiles and a Module's
-primary button (`accent`/`onAccent`); group-coloured text (`accentText`, a
-group's `text`) sits on `ground` or `surface`, never on a wash.
+anywhere outside `src/theme/`. Group colour goes only on tiles, a photo-less
+pinned card and a Module's primary button (`Button` with `group`); never on
+rows, lists, selected states or the tab bar. Group-coloured text (`accentText`,
+a group's `text`) and check rings sit on `ground` or `surface`, never on a
+wash. Section labels are sentence case, never uppercased.
+
+The building blocks are in `src/ui/`, one per component guideline:
+`ModuleTile` (four sizes; `moduleTile(id)` reads a Module's group and glyph from
+the catalogue), `WashHeader`, `PhotoHeader` with `usePhotoTitle`, `FactsStrip`,
+`InsetList` / `InsetListItem` / `InsetRow` / `InsetAddRow`, `CompletedSection`,
+`PinnedCard` / `PinnedRow` and `RecordThumb`. Their native-stack options are
+`washScreenOptions` and `photoScreenOptions` in `src/ui/screen-header.ts`.
 
 ## Interaction vocabulary
 
@@ -112,8 +121,17 @@ haptics off, or while the camera or dictation is active.
   `headerLargeTitle` plus `contentInsetAdjustmentBehavior="automatic"` on a
   scroll view that is **the screen's first subview** — nested one level down it
   silently stops collapsing; make the scroll view and any pinned bar siblings.
-  *Detail*, a record recognised by its picture, shows no bar title and pins the
-  header and media above a scrolling body.
+  A Module screen without a photo is *Wash*: `washScreenOptions(title)` (a
+  transparent bar and the native large title) and a `WashHeader` as the first
+  thing inside the scroll view, with no horizontal padding around it — the
+  Module's `tile-l` and a one-line summary (the count in `ink` 700, the scope in
+  `muted`). A record with a photo is *Photo*: `photoScreenOptions`, a scroll
+  view with `contentInsetAdjustmentBehavior="automatic"` (native tabs override
+  `"never"`), and a `PhotoHeader` (the photo pulled up by the header's height
+  to run full-bleed under the bar, an eyebrow and the record title) wired to
+  `usePhotoTitle()` so the native inline title appears only once the in-content
+  one has scrolled under the bar. Nothing is laid on the photo. The same record
+  without a photo is *Wash* with its group tile, never a placeholder picture.
 - **Getting out:** the native back button and edge swipe. No breadcrumbs on the
   phone; the web's rule that back goes to the parent, never to history, still
   holds, so every deep-linkable screen opens cold with a working parent.
