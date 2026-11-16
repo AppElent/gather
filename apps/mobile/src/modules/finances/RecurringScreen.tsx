@@ -56,7 +56,7 @@ export function RecurringScreen() {
         <Stack.Screen
           options={{ headerShown: true, title: text.recurringCosts.title }}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={5} label={text.actions.loading} />
         </View>
       </>
@@ -96,7 +96,7 @@ export function RecurringScreen() {
       <ScreenScroll>
         {costs.length === 0 ? (
           <EmptyState
-            icon={<Repeat size={34} color={tint.fg} strokeWidth={1.6} />}
+            icon={<Repeat size={34} color={tint.text} strokeWidth={1.6} />}
             title={text.recurringCosts.emptyTitle}
             body={text.recurringCosts.emptyBody}
             actionLabel={text.recurringCosts.addCost}

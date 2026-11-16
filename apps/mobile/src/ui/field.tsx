@@ -21,7 +21,7 @@ import {
 } from 'react-native'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 interface FieldProps extends Omit<TextInputProps, 'style'> {
   label: string
@@ -42,8 +42,8 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(
     const borderColor = invalid
       ? tokens.danger
       : focused
-        ? tokens.fg
-        : tokens.border
+        ? tokens.ink
+        : tokens.hair
 
     return (
       <View style={styles.wrap}>
@@ -57,7 +57,7 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(
         >
           <TextInput
             ref={ref}
-            style={[styles.input, { color: tokens.fg }]}
+            style={[styles.input, { color: tokens.ink }]}
             placeholderTextColor={tokens.muted}
             secureTextEntry={secure && !revealed}
             accessibilityLabel={label}
@@ -86,17 +86,17 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(
 
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
-  label: { fontSize: 13, fontWeight: '600', letterSpacing: 0.2 },
+  label: { ...TYPE.footnoteStrong, letterSpacing: 0.2 },
   box: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 14,
   },
   // A focused field gets a second hairline rather than a glow — a shadow reads
   // as elevation on Android and this is not a raised surface.
   boxFocused: { borderWidth: 1.75, paddingHorizontal: 13.25 },
-  input: { flex: 1, paddingVertical: 13, fontSize: 16 },
+  input: { ...TYPE.body, flex: 1, paddingVertical: 13 },
   reveal: { paddingLeft: 10, paddingVertical: 8 },
 })

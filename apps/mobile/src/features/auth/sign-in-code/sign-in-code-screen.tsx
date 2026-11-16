@@ -184,5 +184,5 @@ export function SignInCodeScreen({ email }: { email?: string }) {
 }
 
 const styles = StyleSheet.create({
-  notice: TYPE.body,
+  notice: TYPE.subhead,
 })

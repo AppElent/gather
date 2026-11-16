@@ -12,7 +12,7 @@ import ReanimatedSwipeable, {
 } from 'react-native-gesture-handler/ReanimatedSwipeable'
 
 import { haptics } from '../feedback/haptics'
-import { useTokens } from '../theme/tokens'
+import { TYPE, useTokens } from '../theme/tokens'
 
 /** Swipe-left exposes, but never immediately performs, a permanent delete. */
 export function SwipeableRow({
@@ -44,7 +44,7 @@ export function SwipeableRow({
             }}
             style={styles.action}
           >
-            <Text style={[styles.label, { color: tokens.surface }]}>
+            <Text style={[styles.label, { color: tokens.onInk }]}>
               {deleteLabel}
             </Text>
           </Pressable>
@@ -68,5 +68,5 @@ const styles = StyleSheet.create<{
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
-  label: { fontSize: 15, fontWeight: '700' },
+  label: { ...TYPE.bodyStrong },
 })

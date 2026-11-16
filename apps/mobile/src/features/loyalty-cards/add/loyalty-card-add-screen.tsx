@@ -138,7 +138,7 @@ export function LoyaltyCardAddScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 32 },
@@ -147,7 +147,7 @@ export function LoyaltyCardAddScreen() {
         <View
           style={[
             styles.store,
-            { backgroundColor: tokens.surface, borderColor: tokens.border },
+            { backgroundColor: tokens.surface, borderColor: tokens.hair },
           ]}
         >
           {retailer ? (
@@ -160,7 +160,7 @@ export function LoyaltyCardAddScreen() {
           ) : null}
           <Text
             numberOfLines={2}
-            style={[TYPE.lead, styles.storeName, { color: tokens.fg }]}
+            style={[TYPE.bodyStrong, styles.storeName, { color: tokens.ink }]}
           >
             {retailer ? retailer.name : words.picker.otherStore}
           </Text>
@@ -175,11 +175,11 @@ export function LoyaltyCardAddScreen() {
             }}
             style={({ pressed }) => [
               styles.change,
-              { borderColor: tokens.border },
+              { borderColor: tokens.hair },
               pressed && styles.pressed,
             ]}
           >
-            <Text style={[TYPE.label, styles.bold, { color: tokens.fg }]}>
+            <Text style={[TYPE.footnoteStrong, styles.bold, { color: tokens.ink }]}>
               {words.picker.changeStore}
             </Text>
           </Pressable>
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
   bold: { fontWeight: '600' },
   pressed: { opacity: 0.6 },

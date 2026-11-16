@@ -29,7 +29,7 @@ import { NativeSheet } from '../../components/NativeSheet'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { Chip, priorityColor } from './components'
 import { TASK_ICONS } from './icons'
 import { useTaskActions, useTaskLists, useTaskState } from './store'
@@ -55,7 +55,6 @@ export function DueDateSheet({
   onClose: () => void
 }) {
   const tokens = useTokens('home')
-  const tint = tokens.tintOf('home')
   const { t, locale } = useI18n()
   const actions = useTaskActions()
   const today = localIsoDate()
@@ -89,11 +88,11 @@ export function DueDateSheet({
             onPress={() => pick(shortcut.iso)}
             style={({ pressed }) => [
               styles.shortcut,
-              { borderColor: tokens.border, backgroundColor: tokens.surface },
-              pressed && { backgroundColor: tokens.tile },
+              { borderColor: tokens.hair, backgroundColor: tokens.surface },
+              pressed && { backgroundColor: tokens.surface2 },
             ]}
           >
-            <Text style={[styles.shortcutText, { color: tokens.fg }]}>
+            <Text style={[styles.shortcutText, { color: tokens.ink }]}>
               {shortcut.label}
             </Text>
           </Pressable>
@@ -108,9 +107,13 @@ export function DueDateSheet({
           hitSlop={12}
           onPress={() => setMonth(addMonths(month, -1))}
         >
-          <UI_ICONS.ChevronLeft size={20} color={tokens.fg} strokeWidth={2.2} />
+          <UI_ICONS.ChevronLeft
+            size={20}
+            color={tokens.ink}
+            strokeWidth={2.2}
+          />
         </Pressable>
-        <Text style={[styles.monthName, { color: tokens.fg }]}>
+        <Text style={[styles.monthName, { color: tokens.ink }]}>
           {localMidnight(month).toLocaleDateString(locale, {
             month: 'long',
             year: 'numeric',
@@ -125,7 +128,7 @@ export function DueDateSheet({
         >
           <UI_ICONS.ChevronRight
             size={20}
-            color={tokens.fg}
+            color={tokens.ink}
             strokeWidth={2.2}
           />
         </Pressable>
@@ -138,7 +141,6 @@ export function DueDateSheet({
         locale={locale}
         selected={selected}
         today={today}
-        tint={tint.fg}
         onPick={pick}
         testIDPrefix="due-day"
       />
@@ -176,22 +178,22 @@ export function PrioritySheet({
           onPress={() => choose(priority)}
           style={({ pressed }) => [
             styles.optionRow,
-            { borderBottomColor: tokens.border },
-            pressed && { backgroundColor: tokens.tile },
+            { borderBottomColor: tokens.hair },
+            pressed && { backgroundColor: tokens.surface2 },
           ]}
         >
           <TASK_ICONS.Flag
             size={17}
-            color={priorityColor(priority, tokens.danger) ?? tokens.muted}
+            color={priorityColor(priority, tokens) ?? tokens.muted}
             strokeWidth={2.2}
             accessibilityElementsHidden
             importantForAccessibility="no"
           />
-          <Text style={[styles.optionText, { color: tokens.fg }]}>
+          <Text style={[styles.optionText, { color: tokens.ink }]}>
             {t.tasks.task.priorities[priority]}
           </Text>
           {priority === current ? (
-            <UI_ICONS.Check size={18} color={tokens.fg} strokeWidth={2.6} />
+            <UI_ICONS.Check size={18} color={tokens.ink} strokeWidth={2.6} />
           ) : null}
         </Pressable>
       ))}
@@ -203,7 +205,7 @@ export function PrioritySheet({
         style={({ pressed }) => [
           styles.optionRow,
           styles.lastOption,
-          pressed && { backgroundColor: tokens.tile },
+          pressed && { backgroundColor: tokens.surface2 },
         ]}
       >
         <Text style={[styles.optionText, { color: tokens.muted }]}>
@@ -358,7 +360,7 @@ export function LabelsSheet({
       <View
         style={[
           styles.field,
-          { borderColor: tokens.border, backgroundColor: tokens.surface },
+          { borderColor: tokens.hair, backgroundColor: tokens.surface },
         ]}
       >
         <TASK_ICONS.Tag
@@ -387,7 +389,7 @@ export function LabelsSheet({
               ? fmt(t.tasks.task.renamingLabel, { label: renaming })
               : t.tasks.task.addLabel
           }
-          style={[styles.fieldInput, { color: tokens.fg }]}
+          style={[styles.fieldInput, { color: tokens.ink }]}
         />
       </View>
       {renaming ? (
@@ -398,7 +400,7 @@ export function LabelsSheet({
           onPress={cancelRename}
           style={styles.renameCancel}
         >
-          <Text style={[styles.renameCancelText, { color: tokens.accent }]}>
+          <Text style={[styles.renameCancelText, { color: tokens.accentText }]}>
             {t.common.actions.cancel}
           </Text>
         </Pressable>
@@ -448,12 +450,12 @@ export function MoveToListSheet({
               style={({ pressed }) => [
                 styles.optionRow,
                 index === all.length - 1 && styles.lastOption,
-                { borderBottomColor: tokens.border },
+                { borderBottomColor: tokens.hair },
                 disabled && styles.disabled,
-                pressed && { backgroundColor: tokens.tile },
+                pressed && { backgroundColor: tokens.surface2 },
               ]}
             >
-              <Text style={[styles.optionText, { color: tokens.fg }]}>
+              <Text style={[styles.optionText, { color: tokens.ink }]}>
                 {list.name}
               </Text>
               {disabled ? (
@@ -463,7 +465,11 @@ export function MoveToListSheet({
                   strokeWidth={2.2}
                 />
               ) : list._id === task.listId ? (
-                <UI_ICONS.Check size={18} color={tokens.fg} strokeWidth={2.6} />
+                <UI_ICONS.Check
+                  size={18}
+                  color={tokens.ink}
+                  strokeWidth={2.6}
+                />
               ) : null}
             </Pressable>
           )
@@ -485,7 +491,6 @@ export function RenameSheet({
   onClose: () => void
 }) {
   const tokens = useTokens('home')
-  const tint = tokens.tintOf('home')
   const { t } = useI18n()
   const [draft, setDraft] = useState(value)
   const valid = draft.trim().length > 0
@@ -514,12 +519,12 @@ export function RenameSheet({
           onPress={save}
           style={({ pressed }) => [
             styles.save,
-            { backgroundColor: tint.fg },
+            { backgroundColor: tokens.accent },
             !valid && styles.disabled,
             pressed && styles.pressed,
           ]}
         >
-          <Text style={[styles.saveText, { color: tokens.surface }]}>
+          <Text style={[styles.saveText, { color: tokens.onAccent }]}>
             {t.common.actions.save}
           </Text>
         </Pressable>
@@ -528,7 +533,7 @@ export function RenameSheet({
       <View
         style={[
           styles.field,
-          { borderColor: tokens.border, backgroundColor: tokens.surface },
+          { borderColor: tokens.hair, backgroundColor: tokens.surface },
         ]}
       >
         <TextInput
@@ -539,7 +544,7 @@ export function RenameSheet({
           autoFocus
           returnKeyType="done"
           accessibilityLabel={title}
-          style={[styles.fieldInput, { color: tokens.fg }]}
+          style={[styles.fieldInput, { color: tokens.ink }]}
         />
       </View>
     </NativeSheet>
@@ -553,9 +558,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  shortcutText: { fontSize: 14.5, fontWeight: '600' },
+  shortcutText: { ...TYPE.bodyStrong },
   monthBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -564,7 +569,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     marginBottom: 6,
   },
-  monthName: { fontSize: 16, fontWeight: '700' },
+  monthName: { ...TYPE.bodyStrong },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -573,17 +578,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   lastOption: { borderBottomWidth: 0 },
-  optionText: { flex: 1, fontSize: 16 },
+  optionText: { ...TYPE.body, flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   groupLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+    ...TYPE.footnoteStrong,
     letterSpacing: 0.8,
     marginBottom: 8,
   },
-  groupEmpty: { fontSize: 14, marginBottom: 14 },
+  groupEmpty: { ...TYPE.subhead, marginBottom: 14 },
   renameCancel: { alignSelf: 'flex-start', paddingVertical: 10 },
-  renameCancelText: { fontSize: 15, fontWeight: '600' },
+  renameCancelText: { ...TYPE.bodyStrong },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -591,16 +595,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     minHeight: 46,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
   },
-  fieldInput: { flex: 1, fontSize: 16, paddingVertical: 10 },
+  fieldInput: { ...TYPE.body, flex: 1, paddingVertical: 10 },
   save: {
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  saveText: { fontSize: 16, fontWeight: '700' },
+  saveText: { ...TYPE.bodyStrong },
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.8 },
 })

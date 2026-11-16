@@ -18,7 +18,7 @@ import type { Id } from '../convex/api'
 import { useGroup } from '../group/GroupProvider'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 export function DropGroupSheet({
   selected,
@@ -55,14 +55,14 @@ export function DropGroupSheet({
               }}
               style={({ pressed }) => [
                 styles.row,
-                { backgroundColor: tokens.surface, borderColor: tokens.border },
+                { backgroundColor: tokens.surface, borderColor: tokens.hair },
                 pressed && styles.pressed,
               ]}
             >
               <View style={styles.rowText}>
                 <Text
                   numberOfLines={1}
-                  style={[styles.name, { color: tokens.fg }]}
+                  style={[styles.name, { color: tokens.ink }]}
                 >
                   {group.name}
                 </Text>
@@ -70,7 +70,7 @@ export function DropGroupSheet({
                   {t.shell.switcher.shared}
                 </Text>
               </View>
-              {isSelected ? <Check size={20} color={tokens.fg} /> : null}
+              {isSelected ? <Check size={20} color={tokens.ink} /> : null}
             </Pressable>
           )
         })}
@@ -85,13 +85,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
   rowText: { flex: 1, gap: 2 },
-  name: { fontSize: 16, fontWeight: '600' },
-  meta: { fontSize: 13 },
+  name: { ...TYPE.bodyStrong },
+  meta: { ...TYPE.footnote },
   pressed: { opacity: 0.75 },
 })

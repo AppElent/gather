@@ -27,7 +27,7 @@ import { SearchField } from '../../components/SearchField'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
 import { SectionLabel } from '../../ui/section-label'
 import { confirmDeleteNote } from './notesActions'
@@ -93,22 +93,22 @@ export function Notes() {
             accessibilityRole="button"
             accessibilityLabel={note.title || t.notes.untitled}
             onPress={() => open(note.id)}
-            android_ripple={{ color: tokens.tile }}
+            android_ripple={{ color: tokens.surface2 }}
             style={({ pressed }) => [
               styles.row,
               {
                 backgroundColor: tokens.surface,
-                borderBottomColor: tokens.border,
+                borderBottomColor: tokens.hair,
                 borderBottomWidth:
                   index === shown.length - 1 ? 0 : StyleSheet.hairlineWidth,
               },
-              pressed && { backgroundColor: tokens.tile },
+              pressed && { backgroundColor: tokens.surface2 },
             ]}
           >
             <View style={styles.rowText}>
               <Text
                 numberOfLines={1}
-                style={[styles.noteTitle, { color: tokens.fg }]}
+                style={[styles.noteTitle, { color: tokens.ink }]}
               >
                 {note.title || t.notes.untitled}
               </Text>
@@ -147,14 +147,14 @@ export function Notes() {
               }}
               style={styles.headerButton}
             >
-              <UI_ICONS.Plus size={22} color={tokens.fg} strokeWidth={2.2} />
+              <UI_ICONS.Plus size={22} color={tokens.ink} strokeWidth={2.2} />
             </Pressable>
           ),
         }}
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.content,
@@ -185,11 +185,11 @@ export function Notes() {
               onPress={() => setQuery('')}
               style={({ pressed }) => [
                 styles.clear,
-                { borderColor: tokens.border },
-                pressed && { backgroundColor: tokens.tile },
+                { borderColor: tokens.hair },
+                pressed && { backgroundColor: tokens.surface2 },
               ]}
             >
-              <Text style={[styles.clearText, { color: tokens.fg }]}>
+              <Text style={[styles.clearText, { color: tokens.ink }]}>
                 {t.actions.showAll}
               </Text>
             </Pressable>
@@ -228,17 +228,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   rowText: { flex: 1, gap: 3, paddingVertical: 10 },
-  noteTitle: { fontSize: 16, fontWeight: '600' },
-  notePreview: { fontSize: 13.5 },
-  when: { fontSize: 12.5 },
-  empty: { fontSize: 15, textAlign: 'center' },
+  noteTitle: { ...TYPE.bodyStrong },
+  notePreview: { ...TYPE.footnote },
+  when: { ...TYPE.footnote, ...TABULAR },
+  empty: { ...TYPE.subhead, textAlign: 'center' },
   notFound: { gap: 14, paddingVertical: 20, alignItems: 'center' },
   clear: {
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 18,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  clearText: { fontSize: 15, fontWeight: '600' },
+  clearText: { ...TYPE.bodyStrong },
 })

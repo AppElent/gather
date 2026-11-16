@@ -18,7 +18,7 @@ import { DateTimePicker } from '@expo/ui/community/datetime-picker'
 import { Platform, Pressable, StyleSheet, Text } from 'react-native'
 
 import { useI18n } from '../i18n'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../theme/tokens'
 
 type Mode = 'date' | 'time'
 
@@ -61,13 +61,14 @@ export function DateTimeChip({
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
-        { backgroundColor: tokens.tile },
+        { backgroundColor: open ? tokens.ink : tokens.surface2 },
         pressed && styles.pressed,
       ]}
     >
-      {/* The open chip takes the accent, as iOS marks the row it is editing. */}
+      {/* The open chip is marked in ink, as iOS marks the row it is editing: a
+          selected state is never a group colour (ADR-0017). */}
       <Text
-        style={[styles.chipText, { color: open ? tokens.accent : tokens.fg }]}
+        style={[styles.chipText, { color: open ? tokens.onInk : tokens.ink }]}
       >
         {label}
       </Text>
@@ -100,7 +101,7 @@ export function DateTimeWheel({
         mode={mode}
         display={mode === 'date' ? 'inline' : 'spinner'}
         locale={PICKER_LOCALE[locale]}
-        accentColor={tokens.accent}
+        accentColor={tokens.ink}
         onValueChange={(_, next) => onChange(next)}
       />
     )
@@ -111,7 +112,7 @@ export function DateTimeWheel({
       value={value}
       mode={mode}
       is24Hour={locale === 'nl'}
-      accentColor={tokens.accent}
+      accentColor={tokens.ink}
       onValueChange={(_, next) => {
         onClose()
         onChange(next)
@@ -126,8 +127,8 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
   pressed: { opacity: 0.6 },
-  chipText: { fontSize: 17, fontVariant: ['tabular-nums'] },
+  chipText: { ...TYPE.body, ...TABULAR },
 })

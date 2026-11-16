@@ -10,7 +10,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../i18n'
 import { reportError } from '../observability/report'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 export function SearchError({ error, retry }: ErrorBoundaryProps) {
   const tokens = useTokens()
@@ -23,8 +23,8 @@ export function SearchError({ error, retry }: ErrorBoundaryProps) {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: t.search.title }} />
-      <View style={[styles.screen, { backgroundColor: tokens.bg }]}>
-        <Text style={[styles.message, { color: tokens.fg }]}>
+      <View style={[styles.screen, { backgroundColor: tokens.ground }]}>
+        <Text style={[styles.message, { color: tokens.ink }]}>
           {t.search.failed}
         </Text>
         {__DEV__ ? (
@@ -40,11 +40,11 @@ export function SearchError({ error, retry }: ErrorBoundaryProps) {
           }}
           style={({ pressed }) => [
             styles.retry,
-            { borderColor: tokens.border },
-            pressed && { backgroundColor: tokens.tile },
+            { borderColor: tokens.hair },
+            pressed && { backgroundColor: tokens.surface2 },
           ]}
         >
-          <Text style={[styles.retryText, { color: tokens.fg }]}>
+          <Text style={[styles.retryText, { color: tokens.ink }]}>
             {t.common.actions.retry}
           </Text>
         </Pressable>
@@ -61,14 +61,14 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 24,
   },
-  message: { fontSize: 16, fontWeight: '600', textAlign: 'center' },
-  detail: { fontSize: 13, textAlign: 'center' },
+  message: { ...TYPE.bodyStrong, textAlign: 'center' },
+  detail: { ...TYPE.footnote, textAlign: 'center' },
   retry: {
     minHeight: 48,
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 20,
   },
-  retryText: { fontWeight: '600' },
+  retryText: { ...TYPE.bodyStrong },
 })

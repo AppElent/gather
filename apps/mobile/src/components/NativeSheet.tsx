@@ -7,7 +7,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
-import { useTokens } from '../theme/tokens'
+import { TYPE, useTokens } from '../theme/tokens'
 
 export interface NativeSheetProps {
   title: string
@@ -76,7 +76,7 @@ export function NativeSheet({
           <View style={styles.headingText}>
             <Text
               accessibilityRole="header"
-              style={[styles.title, { color: tokens.fg }]}
+              style={[styles.title, { color: tokens.ink }]}
             >
               {title}
             </Text>
@@ -93,7 +93,7 @@ export function NativeSheet({
             hitSlop={12}
             style={({ pressed }) => [
               styles.close,
-              { backgroundColor: tokens.tile },
+              { backgroundColor: tokens.surface2 },
               pressed && styles.pressed,
             ]}
           >
@@ -117,8 +117,8 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   headingText: { flex: 1, gap: 2 },
-  title: { fontSize: 21, fontWeight: '700', letterSpacing: -0.4 },
-  subtitle: { fontSize: 13 },
+  title: { ...TYPE.title2, letterSpacing: -0.4 },
+  subtitle: { ...TYPE.footnote },
   footer: { paddingTop: 4 },
   close: {
     width: 32,

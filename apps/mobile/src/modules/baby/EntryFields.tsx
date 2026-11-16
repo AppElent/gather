@@ -16,7 +16,7 @@ import type { BabyEventType } from '@gather/core/domain'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { fmt, useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { NumberField } from './NumberField'
 import { fieldsFor, type SheetField } from './sheetFields'
 
@@ -71,7 +71,6 @@ export interface EntryFieldsProps {
 export function EntryFields({ type, picks, onChange }: EntryFieldsProps) {
   const tokens = useTokens('home')
   const { t } = useI18n()
-  const tint = tokens.tintOf('home')
 
   const labels = t.baby.log.fields as Record<string, string>
   const options = t.baby.log.options
@@ -103,9 +102,9 @@ export function EntryFields({ type, picks, onChange }: EntryFieldsProps) {
             style={[
               styles.textField,
               {
-                borderColor: tokens.border,
-                backgroundColor: tokens.bg,
-                color: tokens.fg,
+                borderColor: tokens.hair,
+                backgroundColor: tokens.ground,
+                color: tokens.ink,
               },
             ]}
           />
@@ -122,18 +121,15 @@ export function EntryFields({ type, picks, onChange }: EntryFieldsProps) {
                   style={[
                     styles.chip,
                     {
-                      borderColor: on ? tokens.accent : tokens.border,
-                      backgroundColor: on ? tint.bg : tokens.bg,
+                      borderColor: on ? tokens.ink : tokens.hair,
+                      backgroundColor: on ? tokens.ink : tokens.ground,
                     },
                   ]}
                 >
                   <Text
                     style={[
-                      styles.chipText,
-                      {
-                        color: on ? tokens.accent : tokens.fg,
-                        fontWeight: on ? '700' : '500',
-                      },
+                      on ? TYPE.bodyStrong : TYPE.body,
+                      { color: on ? tokens.onInk : tokens.ink },
                     ]}
                   >
                     {optionText(type, field.key, option, options)}
@@ -152,21 +148,20 @@ export function EntryFields({ type, picks, onChange }: EntryFieldsProps) {
 
 const styles = StyleSheet.create({
   field: { gap: 7 },
-  fieldLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  fieldLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  chipText: { fontSize: 15 },
   textField: {
+    ...TYPE.body,
     minHeight: 48,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 14,
-    fontSize: 16,
   },
 })

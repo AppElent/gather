@@ -84,7 +84,7 @@ export function SplitScreen() {
         <Stack.Screen
           options={{ headerShown: true, title: text.split.title }}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={4} label={text.actions.loading} />
         </View>
       </>
@@ -218,7 +218,7 @@ export function SplitScreen() {
 
         {payments.length === 0 ? (
           <EmptyState
-            icon={<Users size={34} color={tint.fg} strokeWidth={1.6} />}
+            icon={<Users size={34} color={tint.text} strokeWidth={1.6} />}
             title={text.split.emptyTitle}
             body={text.split.emptyBody}
           />

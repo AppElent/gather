@@ -14,7 +14,7 @@ import { NativeSheet } from '../../components/NativeSheet'
 import { api } from '../../convex/api'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt, useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 
 export function CalendarManagementSheet({
   groupSlug,
@@ -52,13 +52,15 @@ export function CalendarManagementSheet({
           return (
             <View
               key={calendar.id}
-              style={[styles.row, { borderColor: tokens.border }]}
+              style={[styles.row, { borderColor: tokens.hair }]}
             >
               <Pressable
                 disabled={!serviceActionsEnabled}
                 onPress={() => onVisibility(calendar.id, !visible)}
               >
-                <Text style={{ color: visible ? tokens.accent : tokens.muted }}>
+                <Text
+                  style={{ color: visible ? tokens.accentText : tokens.muted }}
+                >
                   {visible ? '✓' : '○'}
                 </Text>
               </Pressable>
@@ -66,11 +68,11 @@ export function CalendarManagementSheet({
                 style={[
                   styles.swatch,
                   {
-                    backgroundColor: tokens.tintOf(calendar.color ?? 'home').fg,
+                    backgroundColor: tokens.tintOf(calendar.color ?? 'home').fill,
                   },
                 ]}
               />
-              <Text style={[styles.name, { color: tokens.fg }]}>
+              <Text style={[styles.name, { color: tokens.ink }]}>
                 {calendar.name}
               </Text>
               <View style={styles.colorChoices}>
@@ -88,8 +90,11 @@ export function CalendarManagementSheet({
                     }}
                     style={[
                       styles.color,
-                      { backgroundColor: tokens.tintOf(color).fg },
-                      calendar.color === color && styles.chosen,
+                      { backgroundColor: tokens.tintOf(color).fill },
+                      calendar.color === color && [
+                        styles.chosen,
+                        { borderColor: tokens.ink },
+                      ],
                     ]}
                   />
                 ))}
@@ -114,13 +119,13 @@ export function CalendarManagementSheet({
             </View>
           )
         })}
-        <View style={[styles.add, { borderColor: tokens.border }]}>
+        <View style={[styles.add, { borderColor: tokens.hair }]}>
           <TextInput
             value={name}
             onChangeText={setName}
             placeholder={t.calendar.addCalendar}
             placeholderTextColor={tokens.muted}
-            style={[styles.input, { color: tokens.fg }]}
+            style={[styles.input, { color: tokens.ink }]}
           />
           <Pressable
             disabled={!serviceActionsEnabled || !name.trim()}
@@ -131,7 +136,7 @@ export function CalendarManagementSheet({
               })
             }}
           >
-            <Text style={{ color: tokens.accent }}>
+            <Text style={{ color: tokens.accentText }}>
               {t.calendar.addCalendar}
             </Text>
           </Pressable>
@@ -146,24 +151,24 @@ const styles = StyleSheet.create({
   row: {
     minHeight: 58,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   swatch: { width: 10, height: 10, borderRadius: 5 },
-  name: { flex: 1, fontSize: 15 },
+  name: { ...TYPE.subhead, flex: 1 },
   colorChoices: { flexDirection: 'row', gap: 4 },
   color: { width: 18, height: 18, borderRadius: 9 },
-  chosen: { borderColor: '#000', borderWidth: 2 },
+  chosen: { borderWidth: 2 },
   add: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 12,
   },
-  input: { flex: 1, minHeight: 48, fontSize: 16 },
+  input: { ...TYPE.body, flex: 1, minHeight: 48 },
 })

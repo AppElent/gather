@@ -20,7 +20,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
-import { useTokens } from '../../theme/tokens'
+import { TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { TASTING_UI_ICONS } from './icons'
 
 const STARS = [1, 2, 3, 4, 5]
@@ -46,7 +46,6 @@ export function StarRating({
 }: StarRatingProps) {
   const tokens = useTokens('tasting')
   const { t } = useI18n()
-  const tint = tokens.tintOf('tasting')
   const Star = TASTING_UI_ICONS.Star
   const score = value ?? 0
   const words = t.tastings.composer
@@ -78,13 +77,13 @@ export function StarRating({
           const width = filled >= 1 ? size : filled >= 0.5 ? size / 2 : 0
           return (
             <View key={n} style={{ width: size, height: size }}>
-              <Star size={size} color={tokens.border} strokeWidth={1.5} />
+              <Star size={size} color={tokens.muted} strokeWidth={1.5} />
               {width > 0 ? (
                 <View
                   style={[styles.fill, { width, height: size }]}
                   pointerEvents="none"
                 >
-                  <Star size={size} color={tint.fg} strokeWidth={1.5} />
+                  <Star size={size} color={tokens.ink} strokeWidth={1.5} />
                 </View>
               ) : null}
               {onChange ? (
@@ -121,8 +120,10 @@ export function StarRating({
       {showValue && value !== null ? (
         <Text
           style={[
-            styles.value,
-            { color: tokens.fg, fontSize: Math.round(size * 0.62) },
+            // Text, not a glyph: the big composer stars take a heading-sized
+            // score, a row's small stars a footnote-sized one.
+            size >= 24 ? styles.valueLarge : styles.valueSmall,
+            { color: tokens.ink },
           ]}
         >
           {value.toFixed(1)}
@@ -145,6 +146,7 @@ const styles = StyleSheet.create({
   stars: { flexDirection: 'row', gap: 3 },
   fill: { position: 'absolute', left: 0, top: 0, overflow: 'hidden' },
   half: { position: 'absolute', left: 0, top: -5 },
-  value: { fontWeight: '700', letterSpacing: -0.5 },
-  count: { fontSize: 13 },
+  valueLarge: { ...TYPE.title2, ...TABULAR, letterSpacing: -0.5 },
+  valueSmall: { ...TYPE.footnoteStrong, ...TABULAR },
+  count: { ...TYPE.footnote },
 })

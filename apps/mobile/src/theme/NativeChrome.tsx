@@ -33,11 +33,11 @@ function navigationTheme(tokens: Tokens): Theme {
       ...base.colors,
       // The header's back chevron and title tint. Ink, not a Module tint: the
       // shell belongs to no Module (ADR-0017's accent rule).
-      primary: tokens.accent,
-      background: tokens.bg,
+      primary: tokens.ink,
+      background: tokens.ground,
       card: tokens.surface,
-      text: tokens.fg,
-      border: tokens.border,
+      text: tokens.ink,
+      border: tokens.hair,
       notification: tokens.danger,
     },
   }
@@ -48,8 +48,8 @@ export function NativeChrome({ children }: { children: ReactNode }) {
   const theme = navigationTheme(tokens)
 
   useEffect(() => {
-    void SystemUI.setBackgroundColorAsync(tokens.bg)
-  }, [tokens.bg])
+    void SystemUI.setBackgroundColorAsync(tokens.ground)
+  }, [tokens.ground])
 
   return (
     <ThemeProvider value={theme}>

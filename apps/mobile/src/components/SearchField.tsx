@@ -15,7 +15,7 @@ import type { StyleProp, TextInputProps, ViewStyle } from 'react-native'
 import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native'
 
 import { UI_ICONS } from '../theme/icons'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 export function SearchField({
   value,
@@ -53,8 +53,8 @@ export function SearchField({
       style={[
         styles.field,
         {
-          backgroundColor: tone === 'inset' ? tokens.bg : tokens.surface,
-          borderColor: tokens.border,
+          backgroundColor: tone === 'inset' ? tokens.ground : tokens.surface,
+          borderColor: tokens.hair,
         },
         style,
       ]}
@@ -79,7 +79,7 @@ export function SearchField({
         autoCapitalize="none"
         returnKeyType="search"
         clearButtonMode={nativeClear ? 'while-editing' : 'never'}
-        style={[styles.input, { color: tokens.fg }]}
+        style={[styles.input, { color: tokens.ink }]}
       />
       {!nativeClear && value ? (
         <Pressable
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  input: { flex: 1, fontSize: 16, paddingVertical: 9 },
+  input: { ...TYPE.body, flex: 1, paddingVertical: 9 },
 })

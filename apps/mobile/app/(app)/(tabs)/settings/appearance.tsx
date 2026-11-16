@@ -14,7 +14,7 @@ import {
   APPEARANCE_PREFERENCES,
   useAppearance,
 } from '../../../../src/theme/appearance'
-import { useTokens } from '../../../../src/theme/tokens'
+import { TYPE, useTokens } from '../../../../src/theme/tokens'
 
 export default function Appearance() {
   const tokens = useTokens()
@@ -26,7 +26,7 @@ export default function Appearance() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.content,
         { paddingBottom: insets.bottom + 24 },
@@ -50,5 +50,5 @@ export default function Appearance() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 20, gap: 16 },
-  description: { fontSize: 14, lineHeight: 20 },
+  description: { ...TYPE.subhead },
 })

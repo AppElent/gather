@@ -20,7 +20,7 @@ import { useRouter } from 'expo-router'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { fmt, useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { moduleHref } from '../moduleDestination'
 import { BABY_UI_ICONS } from './icons'
 
@@ -36,14 +36,14 @@ export function FirstRun({ groupName }: FirstRunProps) {
   const text = t.baby.log.firstRun
 
   return (
-    <View style={[styles.screen, { backgroundColor: tokens.bg }]}>
+    <View style={[styles.screen, { backgroundColor: tokens.ground }]}>
       <View style={styles.hero}>
-        <View style={[styles.glyph, { backgroundColor: tint.bg }]}>
-          <BABY_UI_ICONS.Baby size={50} color={tint.fg} strokeWidth={1.5} />
+        <View style={[styles.glyph, { backgroundColor: tint.fill }]}>
+          <BABY_UI_ICONS.Baby size={50} color={tint.on} strokeWidth={1.5} />
         </View>
         <Text
           accessibilityRole="header"
-          style={[styles.title, { color: tokens.fg }]}
+          style={[styles.title, { color: tokens.ink }]}
         >
           {text.title}
         </Text>
@@ -56,16 +56,16 @@ export function FirstRun({ groupName }: FirstRunProps) {
           onPress={() => router.push(moduleHref('/all/baby-log/new'))}
           style={({ pressed }) => [
             styles.action,
-            { backgroundColor: tint.fg },
+            { backgroundColor: tokens.accent },
             pressed && styles.pressed,
           ]}
         >
           <BABY_UI_ICONS.Plus
             size={19}
-            color={tokens.surface}
+            color={tokens.onAccent}
             strokeWidth={2.2}
           />
-          <Text style={[styles.actionText, { color: tokens.surface }]}>
+          <Text style={[styles.actionText, { color: tokens.onAccent }]}>
             {text.action}
           </Text>
         </Pressable>
@@ -93,18 +93,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 27, fontWeight: '700', letterSpacing: -0.7 },
-  body: { fontSize: 15.5, lineHeight: 23, textAlign: 'center' },
+  title: { ...TYPE.title2, letterSpacing: -0.7 },
+  body: { ...TYPE.subhead, textAlign: 'center' },
   actions: { gap: 12 },
   action: {
     minHeight: 52,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  actionText: { fontSize: 16.5, fontWeight: '700' },
-  goesIn: { fontSize: 13, textAlign: 'center' },
+  actionText: { ...TYPE.bodyStrong },
+  goesIn: { ...TYPE.footnote, textAlign: 'center' },
   pressed: { opacity: 0.7 },
 })

@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAvailability } from '../availability/AvailabilityProvider'
 import { useI18n } from '../i18n'
-import { useTokens } from '../theme/tokens'
+import { TYPE, useTokens } from '../theme/tokens'
 import { Button } from '../ui/button'
 import { useHideSplash } from '../useHideSplash'
 import { GroupForms } from './GroupForms'
@@ -36,7 +36,7 @@ export function NoGroup({ onSignOut }: { onSignOut: () => void }) {
   return (
     <ScrollView
       onLayout={onLayout}
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.content,
         { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 16 },
@@ -46,7 +46,7 @@ export function NoGroup({ onSignOut }: { onSignOut: () => void }) {
       <View style={styles.body}>
         <Text
           accessibilityRole="header"
-          style={[styles.heading, { color: tokens.fg }]}
+          style={[styles.heading, { color: tokens.ink }]}
         >
           {t.group.noneTitle}
         </Text>
@@ -70,6 +70,6 @@ export function NoGroup({ onSignOut }: { onSignOut: () => void }) {
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 24, gap: 20 },
   body: { gap: 10 },
-  heading: { fontSize: 27, fontWeight: '700', letterSpacing: -0.5 },
-  text: { fontSize: 15, lineHeight: 22 },
+  heading: { ...TYPE.title2, letterSpacing: -0.5 },
+  text: { ...TYPE.subhead },
 })

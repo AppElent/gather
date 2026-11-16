@@ -37,7 +37,7 @@ import { dropIndex, movedTo, shiftFor } from '../../arrange/arrange'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
 import { priorityColor } from './components'
 import { dueLabel } from './taskDates'
@@ -75,7 +75,6 @@ export function ReorderMode({
   onCommit: (ids: string[]) => void
 }) {
   const tokens = useTokens('home')
-  const tint = tokens.tintOf('home')
   const { t, locale } = useI18n()
 
   // The arrangement while the mode is open. Committed on every drop rather
@@ -135,14 +134,14 @@ export function ReorderMode({
 
   return (
     <View style={styles.wrap}>
-      <View style={[styles.hint, { backgroundColor: tint.bg }]}>
+      <View style={[styles.hint, { backgroundColor: tokens.surface2 }]}>
         <UI_ICONS.GripVertical
           size={17}
-          color={tint.fg}
+          color={tokens.ink}
           accessibilityElementsHidden
           importantForAccessibility="no"
         />
-        <Text style={[styles.hintText, { color: tint.fg }]}>
+        <Text style={[styles.hintText, { color: tokens.ink }]}>
           {t.tasks.list.reorderHint}
         </Text>
       </View>
@@ -178,14 +177,14 @@ export function ReorderMode({
               style={[
                 styles.row,
                 {
-                  borderBottomColor: tokens.border,
+                  borderBottomColor: tokens.hair,
                   borderBottomWidth:
                     index === rows.length - 1 ? 0 : StyleSheet.hairlineWidth,
                 },
                 dragging
                   ? {
                       transform: [{ translateY: lift }],
-                      backgroundColor: tokens.tile,
+                      backgroundColor: tokens.surface2,
                       zIndex: 2,
                       elevation: 4,
                     }
@@ -196,7 +195,7 @@ export function ReorderMode({
                 index={index}
                 handlers={handlers}
                 scrollRef={scrollRef}
-                color={dragging ? tint.fg : tokens.muted}
+                color={dragging ? tokens.ink : tokens.muted}
                 label={task.title}
               />
               <View
@@ -205,7 +204,7 @@ export function ReorderMode({
                   {
                     backgroundColor:
                       (display.priority &&
-                        priorityColor(task.priority, tokens.danger)) ||
+                        priorityColor(task.priority, tokens)) ||
                       'transparent',
                   },
                 ]}
@@ -213,7 +212,7 @@ export function ReorderMode({
               <View style={styles.text}>
                 <Text
                   numberOfLines={1}
-                  style={[styles.title, { color: tokens.fg }]}
+                  style={[styles.title, { color: tokens.ink }]}
                 >
                   {task.title}
                 </Text>
@@ -297,9 +296,9 @@ const styles = StyleSheet.create({
     gap: 9,
     alignItems: 'flex-start',
     padding: 11,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
   },
-  hintText: { flex: 1, fontSize: 13, lineHeight: 19 },
+  hintText: { ...TYPE.footnote, flex: 1 },
   row: {
     height: ROW,
     flexDirection: 'row',
@@ -311,7 +310,7 @@ const styles = StyleSheet.create({
   grip: { paddingVertical: 12, paddingRight: 2 },
   bar: { width: 3, borderRadius: 2, alignSelf: 'stretch', marginVertical: 14 },
   text: { flex: 1, gap: 4 },
-  title: { fontSize: 15.5 },
-  meta: { fontSize: 12, fontWeight: '700' },
-  note: { fontSize: 12.5, lineHeight: 18, paddingHorizontal: 4 },
+  title: { ...TYPE.body },
+  meta: { ...TYPE.footnoteStrong },
+  note: { ...TYPE.footnote, paddingHorizontal: 4 },
 })

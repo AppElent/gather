@@ -72,14 +72,14 @@ export function CardBarcode({
       {drawn === null ? (
         <View style={styles.pending}>
           <ActivityIndicator color={PANEL.muted} />
-          <Text style={[TYPE.body, { color: PANEL.muted }]}>
+          <Text style={[TYPE.subhead, { color: PANEL.muted }]}>
             {words.drawing}
           </Text>
         </View>
       ) : 'failed' in drawn ? (
         <Text
           accessibilityRole="alert"
-          style={[TYPE.body, styles.centered, { color: PANEL.danger }]}
+          style={[TYPE.subhead, styles.centered, { color: PANEL.danger }]}
         >
           {words.drawFailed}
         </Text>
@@ -107,7 +107,7 @@ export function CardBarcode({
           // Read digit by digit, as a cashier would type it, not as one
           // number in the trillions.
           accessibilityLabel={value.split('').join(' ')}
-          style={[TYPE.number, styles.number, { color: PANEL.ink }]}
+          style={[TYPE.numeralL, styles.number, { color: PANEL.ink }]}
         >
           {value}
         </Text>

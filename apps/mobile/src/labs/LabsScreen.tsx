@@ -15,7 +15,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { fmt, useI18n } from '../i18n'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import { LABS_ENTRIES } from './entries'
 import { describeCombination } from './variants'
 
@@ -27,7 +27,7 @@ export function LabsScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.content,
         { paddingBottom: insets.bottom + 32 },
@@ -40,12 +40,12 @@ export function LabsScreen() {
       <View
         style={[
           styles.card,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
         ]}
       >
         <Text
           accessibilityRole="header"
-          style={[styles.name, { color: tokens.fg }]}
+          style={[styles.name, { color: tokens.ink }]}
         >
           {t.labs.finance.title}
         </Text>
@@ -57,7 +57,7 @@ export function LabsScreen() {
           accessibilityLabel={t.labs.finance.open}
           style={[
             styles.link,
-            { borderColor: tokens.border, color: tokens.fg },
+            { borderColor: tokens.hair, color: tokens.ink },
           ]}
         >
           {t.labs.finance.open}
@@ -69,12 +69,12 @@ export function LabsScreen() {
           key={entry.id}
           style={[
             styles.card,
-            { backgroundColor: tokens.surface, borderColor: tokens.border },
+            { backgroundColor: tokens.surface, borderColor: tokens.hair },
           ]}
         >
           <Text
             accessibilityRole="header"
-            style={[styles.name, { color: tokens.fg }]}
+            style={[styles.name, { color: tokens.ink }]}
           >
             {t.labs.entries[entry.id]}
           </Text>
@@ -82,7 +82,7 @@ export function LabsScreen() {
           <Text style={[styles.sectionLabel, { color: tokens.muted }]}>
             {t.labs.entry.question.toUpperCase()}
           </Text>
-          <Text style={[styles.body, { color: tokens.fg }]}>
+          <Text style={[styles.body, { color: tokens.ink }]}>
             {t.labs[entry.id].question}
           </Text>
 
@@ -103,7 +103,7 @@ export function LabsScreen() {
             accessibilityLabel={t.labs.calendar.productionPreview}
             style={[
               styles.link,
-              { borderColor: tokens.border, color: tokens.fg },
+              { borderColor: tokens.hair, color: tokens.ink },
             ]}
           >
             {t.labs.calendar.productionPreview}
@@ -123,7 +123,7 @@ export function LabsScreen() {
                   accessibilityLabel={`${t.labs.entry.open}: ${label}`}
                   style={[
                     styles.link,
-                    { borderColor: tokens.border, color: tokens.fg },
+                    { borderColor: tokens.hair, color: tokens.ink },
                   ]}
                 >
                   {label}
@@ -149,30 +149,28 @@ export function LabsScreen() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 14 },
-  intro: { fontSize: 13, lineHeight: 19 },
+  intro: { ...TYPE.footnote },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
     padding: 14,
     gap: 4,
   },
-  name: { fontSize: 17, fontWeight: '700', letterSpacing: -0.3 },
+  name: { ...TYPE.bodyStrong, letterSpacing: -0.3 },
   sectionLabel: {
-    fontSize: 10.5,
-    fontWeight: '700',
+    ...TYPE.footnoteStrong,
     letterSpacing: 0.8,
     marginTop: 10,
   },
-  body: { fontSize: 14, lineHeight: 20 },
+  body: { ...TYPE.subhead },
   links: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   link: {
-    fontSize: 12.5,
-    fontWeight: '600',
+    ...TYPE.footnoteStrong,
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 12,
     paddingVertical: 9,
     overflow: 'hidden',
   },
-  built: { fontSize: 11.5, marginTop: 12 },
+  built: { ...TYPE.footnote, marginTop: 12 },
 })

@@ -38,13 +38,7 @@ import { useKeepAwake } from 'expo-keep-awake'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { openBrowserAsync } from 'expo-web-browser'
 import { useState } from 'react'
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { api, type Id } from '../../convex/api'
@@ -54,7 +48,7 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { moduleHref } from '../moduleDestination'
 import { RECIPE_UI_ICONS } from './icons'
 import { NutritionFacts } from './NutritionFacts'
@@ -131,7 +125,7 @@ export function RecipeScreen() {
         <Stack.Screen
           options={{ headerShown: true, title: t.modules.byId.recipes.label }}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={4} label={t.actions.loading} />
         </View>
       </>
@@ -143,7 +137,7 @@ export function RecipeScreen() {
         <Stack.Screen
           options={{ headerShown: true, title: t.modules.byId.recipes.label }}
         />
-        <View style={[styles.fill, { backgroundColor: tokens.bg }]}>
+        <View style={[styles.fill, { backgroundColor: tokens.ground }]}>
           <Text
             testID="recipe-not-found"
             style={[styles.missing, { color: tokens.muted }]}
@@ -217,7 +211,7 @@ export function RecipeScreen() {
                   >
                     <UI_ICONS.Pencil
                       size={19}
-                      color={tokens.fg}
+                      color={tokens.ink}
                       strokeWidth={1.9}
                     />
                   </HeaderButton>
@@ -239,7 +233,7 @@ export function RecipeScreen() {
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 32 },
@@ -248,7 +242,7 @@ export function RecipeScreen() {
         {recipe.imageUrl ? (
           <Image
             source={{ uri: recipe.imageUrl }}
-            style={[styles.hero, { backgroundColor: tokens.tile }]}
+            style={[styles.hero, { backgroundColor: tokens.surface2 }]}
             contentFit="cover"
             accessibilityLabel={fmt(text.form.photoOf, { title: recipe.title })}
             accessibilityIgnoresInvertColors
@@ -258,20 +252,24 @@ export function RecipeScreen() {
             style={[
               styles.hero,
               styles.heroEmpty,
-              { backgroundColor: tint.bg },
+              { backgroundColor: tint.wash },
             ]}
           >
-            <RECIPE_UI_ICONS.ChefHat
-              size={44}
-              color={tint.fg}
-              strokeWidth={1.5}
-            />
+            {/* No photo is no picture: the wash carries the group's tile,
+                never a group-coloured glyph of its own. */}
+            <View style={[styles.heroTile, { backgroundColor: tint.fill }]}>
+              <RECIPE_UI_ICONS.ChefHat
+                size={28}
+                color={tint.on}
+                strokeWidth={1.8}
+              />
+            </View>
           </View>
         )}
 
         <Text
           accessibilityRole="header"
-          style={[styles.title, { color: tokens.fg }]}
+          style={[styles.title, { color: tokens.ink }]}
         >
           {recipe.title}
         </Text>
@@ -295,7 +293,7 @@ export function RecipeScreen() {
         />
 
         {recipe.description ? (
-          <Text style={[styles.body, { color: tokens.fg }]}>
+          <Text style={[styles.body, { color: tokens.ink }]}>
             {recipe.description}
           </Text>
         ) : null}
@@ -307,7 +305,7 @@ export function RecipeScreen() {
                 key={tag}
                 style={[
                   styles.tag,
-                  { color: tint.fg, backgroundColor: tint.bg },
+                  { color: tokens.ink, backgroundColor: tokens.surface2 },
                 ]}
               >
                 {tag}
@@ -346,10 +344,10 @@ export function RecipeScreen() {
           >
             <RECIPE_UI_ICONS.ExternalLink
               size={15}
-              color={tint.fg}
+              color={tint.text}
               strokeWidth={1.9}
             />
-            <Text style={[styles.sourceLabel, { color: tint.fg }]}>
+            <Text style={[styles.sourceLabel, { color: tint.text }]}>
               {`${text.detail.importedFrom} ${hostOf(recipe.sourceUrl)}`}
             </Text>
           </Pressable>
@@ -371,10 +369,10 @@ export function RecipeScreen() {
           <View
             style={[
               styles.stale,
-              { borderColor: tokens.border, backgroundColor: tokens.surface },
+              { borderColor: tokens.hair, backgroundColor: tokens.surface },
             ]}
           >
-            <Text style={[styles.body, { color: tokens.fg }]}>
+            <Text style={[styles.body, { color: tokens.ink }]}>
               {text.detail.staleNutrition}
             </Text>
             <View style={styles.staleActions}>
@@ -387,11 +385,11 @@ export function RecipeScreen() {
                   onPress={reEstimate}
                   style={({ pressed }) => [
                     styles.secondary,
-                    { borderColor: tokens.border },
+                    { borderColor: tokens.hair },
                     (pressed || estimating) && styles.pressed,
                   ]}
                 >
-                  <Text style={[styles.secondaryLabel, { color: tokens.fg }]}>
+                  <Text style={[styles.secondaryLabel, { color: tokens.ink }]}>
                     {estimating ? text.form.estimating : text.detail.reEstimate}
                   </Text>
                 </Pressable>
@@ -404,11 +402,11 @@ export function RecipeScreen() {
                 }
                 style={({ pressed }) => [
                   styles.secondary,
-                  { borderColor: tokens.border },
+                  { borderColor: tokens.hair },
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={[styles.secondaryLabel, { color: tokens.fg }]}>
+                <Text style={[styles.secondaryLabel, { color: tokens.ink }]}>
                   {text.detail.editManually}
                 </Text>
               </Pressable>
@@ -438,9 +436,11 @@ export function RecipeScreen() {
             </Text>
             {recipe.ingredients.map((ingredient, index) => (
               <View key={`${index}-${ingredient}`} style={styles.line}>
-                <View style={[styles.bullet, { backgroundColor: tint.fg }]} />
+                <View
+                  style={[styles.bullet, { backgroundColor: tokens.muted }]}
+                />
                 <Text
-                  style={[styles.body, styles.lineText, { color: tokens.fg }]}
+                  style={[styles.body, styles.lineText, { color: tokens.ink }]}
                 >
                   {ingredient}
                 </Text>
@@ -459,11 +459,11 @@ export function RecipeScreen() {
             </Text>
             {recipe.steps.map((step, index) => (
               <View key={`${index}-${step}`} style={styles.line}>
-                <Text style={[styles.stepNumber, { color: tint.fg }]}>
+                <Text style={[styles.stepNumber, { color: tokens.ink }]}>
                   {index + 1}
                 </Text>
                 <Text
-                  style={[styles.body, styles.lineText, { color: tokens.fg }]}
+                  style={[styles.body, styles.lineText, { color: tokens.ink }]}
                 >
                   {step}
                 </Text>
@@ -517,20 +517,27 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 10 },
   hero: { width: '100%', aspectRatio: 4 / 3, borderRadius: RADIUS.card },
   heroEmpty: { alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 26, fontWeight: '700', letterSpacing: -0.6 },
-  body: { fontSize: 15, lineHeight: 22 },
-  meta: { fontSize: 13 },
+  heroTile: {
+    width: SIZE.tileL,
+    height: SIZE.tileL,
+    borderRadius: RADIUS.tileL,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: { ...TYPE.recordTitle, letterSpacing: -0.6 },
+  body: { ...TYPE.subhead },
+  meta: { ...TYPE.footnote },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   tag: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    borderRadius: 999,
+    ...TYPE.footnoteStrong,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
     overflow: 'hidden',
   },
   source: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36 },
-  sourceLabel: { fontSize: 13, fontWeight: '600' },
+  sourceLabel: { ...TYPE.footnoteStrong },
   stale: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
@@ -540,21 +547,23 @@ const styles = StyleSheet.create({
   staleActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   secondary: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     minHeight: 40,
     paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryLabel: { fontSize: 14, fontWeight: '600' },
+  secondaryLabel: { ...TYPE.bodyStrong },
   section: { gap: 7, marginTop: 6 },
-  sectionTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  sectionTitle: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   line: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  lineText: { flex: 1 },
+  // Ingredient and step lines read at body size; a description stays a
+  // summary.
+  lineText: { ...TYPE.body, flex: 1 },
   bullet: { width: 5, height: 5, borderRadius: 3, marginTop: 9 },
-  stepNumber: { width: 18, fontSize: 15, fontWeight: '700', lineHeight: 22 },
+  stepNumber: { ...TYPE.bodyStrong, ...TABULAR, minWidth: 18 },
   headerActions: { flexDirection: 'row', gap: 4 },
   headerButton: { padding: 6 },
-  missing: { fontSize: 15, textAlign: 'center', paddingVertical: 40 },
+  missing: { ...TYPE.subhead, textAlign: 'center', paddingVertical: 40 },
   pressed: { opacity: 0.6 },
 })

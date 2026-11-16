@@ -28,7 +28,7 @@ import { readThrown } from '../../../../../src/auth/clerkErrors'
 import { AuthError } from '../../../../../src/components/AuthError'
 import { SettingsCard } from '../../../../../src/components/SettingsCard'
 import { useI18n } from '../../../../../src/i18n'
-import { useTokens } from '../../../../../src/theme/tokens'
+import { TYPE, useTokens } from '../../../../../src/theme/tokens'
 import { Button } from '../../../../../src/ui/button'
 import { Field } from '../../../../../src/ui/field'
 
@@ -68,7 +68,7 @@ export default function ChangePassword() {
     return (
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={styles.content}
       >
         <Text style={[styles.note, { color: tokens.muted }]}>
@@ -86,7 +86,7 @@ export default function ChangePassword() {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 24 },
@@ -139,5 +139,5 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 16, gap: 16 },
   fields: { gap: 12 },
-  note: { fontSize: 15, lineHeight: 21 },
+  note: { ...TYPE.subhead },
 })

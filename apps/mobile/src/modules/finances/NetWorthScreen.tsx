@@ -1,7 +1,7 @@
 /**
  * What the household owns and owes today, and the days it chose to remember.
  *
- * The tinted rows are calculated rather than typed — the House's value, that
+ * The shaded rows are calculated rather than typed — the House's value, that
  * House's mortgage balance, and the Portfolio (ADR-0025). That is the point of
  * the screen: a household that has already modelled its mortgage part by part
  * should not be asked to type a balance and get a different number.
@@ -72,7 +72,7 @@ export function NetWorthScreen() {
         <Stack.Screen
           options={{ headerShown: true, title: text.netWorth.title }}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={5} label={text.actions.loading} />
         </View>
       </>
@@ -143,7 +143,7 @@ export function NetWorthScreen() {
         {failure}
         {rows.length === 0 ? (
           <EmptyState
-            icon={<Scale size={34} color={tint.fg} strokeWidth={1.6} />}
+            icon={<Scale size={34} color={tint.text} strokeWidth={1.6} />}
             title={text.netWorth.emptyTitle}
             body={text.netWorth.emptyBody}
             actionLabel={text.netWorth.addAsset}

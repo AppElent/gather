@@ -137,7 +137,7 @@ function Gate({
   if (next !== confirmation) setConfirmation(next)
 
   const open = isSessionOpen(input, next)
-  const quiet = <View style={{ flex: 1, backgroundColor: tokens.bg }} />
+  const quiet = <View style={{ flex: 1, backgroundColor: tokens.ground }} />
 
   // Re-armed every time the gate closes, so a later wait starts quiet again.
   const [revealed, setRevealed] = useState(false)

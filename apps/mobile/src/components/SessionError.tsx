@@ -11,7 +11,7 @@
 import { StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../i18n'
-import { useTokens } from '../theme/tokens'
+import { TYPE, useTokens } from '../theme/tokens'
 import { Button } from '../ui/button'
 import { useHideSplash } from '../useHideSplash'
 
@@ -30,11 +30,11 @@ export function SessionError({
     <View
       testID="session-error"
       onLayout={onLayout}
-      style={[styles.wrap, { backgroundColor: tokens.bg }]}
+      style={[styles.wrap, { backgroundColor: tokens.ground }]}
     >
       <Text
         accessibilityRole="header"
-        style={[styles.title, { color: tokens.fg }]}
+        style={[styles.title, { color: tokens.ink }]}
       >
         {t.session.title}
       </Text>
@@ -65,11 +65,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 44,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...TYPE.title2,
     letterSpacing: -0.4,
     textAlign: 'center',
   },
-  text: { fontSize: 15, lineHeight: 22, textAlign: 'center' },
+  text: { ...TYPE.subhead, textAlign: 'center' },
   actions: { alignSelf: 'stretch', gap: 12 },
 })

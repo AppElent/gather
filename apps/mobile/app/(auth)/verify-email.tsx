@@ -22,7 +22,7 @@ import { AuthError } from '../../src/components/AuthError'
 import { AuthLink } from '../../src/components/AuthLink'
 import { AuthScreen } from '../../src/components/AuthScreen'
 import { fmt, useI18n } from '../../src/i18n'
-import { useTokens } from '../../src/theme/tokens'
+import { TYPE, useTokens } from '../../src/theme/tokens'
 import { Button } from '../../src/ui/button'
 import { Field } from '../../src/ui/field'
 
@@ -115,5 +115,5 @@ function AuthNotice({ message }: { message: string }) {
 }
 
 const noticeStyles = StyleSheet.create({
-  text: { fontSize: 14, lineHeight: 20 },
+  text: { ...TYPE.subhead },
 })

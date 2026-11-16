@@ -34,13 +34,7 @@ import { useMutation } from 'convex/react'
 import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LoadingSkeleton } from '../../components/LoadingSkeleton'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
@@ -51,7 +45,7 @@ import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, TYPE, useTokens } from '../../theme/tokens'
 import { moduleHref } from '../moduleDestination'
 import { AddRecipeSheet } from './AddRecipeSheet'
 import { RECIPE_UI_ICONS } from './icons'
@@ -119,7 +113,7 @@ export function CollectionScreen() {
           >
             <RECIPE_UI_ICONS.Plus
               size={22}
-              color={tokens.fg}
+              color={tokens.ink}
               strokeWidth={2.1}
             />
           </Pressable>
@@ -132,7 +126,7 @@ export function CollectionScreen() {
     return (
       <>
         {header}
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={5} label={t.actions.loading} />
         </View>
       </>
@@ -145,7 +139,7 @@ export function CollectionScreen() {
       {header}
       <FlatList
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 24 },
@@ -173,7 +167,7 @@ export function CollectionScreen() {
             // *Nothing yet*: a Module with nothing in it is empty, not off, so
             // it invites you to make its first thing (ADR-0022).
             <View style={styles.empty} testID="recipes-empty">
-              <Text style={[styles.emptyTitle, { color: tokens.fg }]}>
+              <Text style={[styles.emptyTitle, { color: tokens.ink }]}>
                 {text.emptyTitle}
               </Text>
               <Text style={[styles.emptyBody, { color: tokens.muted }]}>
@@ -201,7 +195,7 @@ export function CollectionScreen() {
             // *Nothing found*: about the words somebody typed, and it offers
             // the way back out of them.
             <View style={styles.empty} testID="recipes-no-results">
-              <Text style={[styles.emptyTitle, { color: tokens.fg }]}>
+              <Text style={[styles.emptyTitle, { color: tokens.ink }]}>
                 {text.noResultsTitle}
               </Text>
               <Text style={[styles.emptyBody, { color: tokens.muted }]}>
@@ -281,14 +275,14 @@ function RecipeRow({
       onPress={onOpen}
       style={({ pressed }) => [
         styles.row,
-        { backgroundColor: tokens.bg, borderBottomColor: tokens.border },
+        { backgroundColor: tokens.ground, borderBottomColor: tokens.hair },
         pressed && styles.pressed,
       ]}
     >
       {recipe.imageUrl ? (
         <Image
           source={{ uri: recipe.imageUrl }}
-          style={[styles.thumb, { backgroundColor: tokens.tile }]}
+          style={[styles.thumb, { backgroundColor: tokens.surface2 }]}
           contentFit="cover"
           accessibilityIgnoresInvertColors
         />
@@ -299,18 +293,21 @@ function RecipeRow({
           style={[
             styles.thumb,
             styles.thumbEmpty,
-            { backgroundColor: tint.bg },
+            { backgroundColor: tint.fill },
           ]}
         >
           <RECIPE_UI_ICONS.ChefHat
             size={22}
-            color={tint.fg}
+            color={tint.on}
             strokeWidth={1.6}
           />
         </View>
       )}
       <View style={styles.rowText}>
-        <Text numberOfLines={2} style={[styles.rowTitle, { color: tokens.fg }]}>
+        <Text
+          numberOfLines={2}
+          style={[styles.rowTitle, { color: tokens.ink }]}
+        >
           {recipe.title}
         </Text>
         {recipe.rating != null ? (
@@ -325,7 +322,7 @@ function RecipeRow({
               testID="recipe-row-shared-in"
               style={[
                 styles.badge,
-                { color: tint.fg, backgroundColor: tint.bg },
+                { color: tokens.ink, backgroundColor: tokens.surface2 },
               ]}
             >
               {fmt(t.recipes.list.livesIn, { group: recipe.homeGroupName })}
@@ -337,7 +334,7 @@ function RecipeRow({
               numberOfLines={1}
               style={[
                 styles.badge,
-                { color: tokens.muted, backgroundColor: tokens.tile },
+                { color: tokens.muted, backgroundColor: tokens.surface2 },
               ]}
             >
               {tag}
@@ -388,29 +385,33 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  thumb: { width: 56, height: 56, borderRadius: RADIUS.tile },
-  thumbEmpty: { alignItems: 'center', justifyContent: 'center' },
+  thumb: { width: SIZE.tileL, height: SIZE.tileL, borderRadius: RADIUS.thumb },
+  thumbEmpty: {
+    borderRadius: RADIUS.tileL,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   rowText: { flex: 1, gap: 3 },
-  rowTitle: { fontSize: 16, fontWeight: '600', letterSpacing: -0.2 },
+  rowTitle: { ...TYPE.bodyStrong, letterSpacing: -0.2 },
   rowMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   badge: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    borderRadius: 999,
+    ...TYPE.footnoteStrong,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 8,
     paddingVertical: 2,
     overflow: 'hidden',
   },
   empty: { paddingHorizontal: 24, paddingVertical: 48, gap: 10 },
-  emptyTitle: { fontSize: 19, fontWeight: '700', letterSpacing: -0.3 },
-  emptyBody: { fontSize: 14, lineHeight: 20 },
+  emptyTitle: { ...TYPE.title2, letterSpacing: -0.3 },
+  emptyBody: { ...TYPE.subhead },
   emptyButton: {
     marginTop: 8,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyButtonLabel: { fontSize: 15, fontWeight: '700' },
+  emptyButtonLabel: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.6 },
 })

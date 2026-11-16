@@ -38,7 +38,7 @@ import { setProfilePhoto } from '../../../../../src/settings/profilePhoto'
 import type { SettingsHref } from '../../../../../src/settings/sections'
 import type { Glyph } from '../../../../../src/theme/glyph'
 import { UI_ICONS } from '../../../../../src/theme/icons'
-import { RADIUS, useTokens } from '../../../../../src/theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../../../../src/theme/tokens'
 import { Button } from '../../../../../src/ui/button'
 
 export default function Account() {
@@ -56,7 +56,7 @@ export default function Account() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.content,
         { paddingBottom: insets.bottom + 24 },
@@ -73,7 +73,7 @@ export default function Account() {
       <View
         style={[
           styles.card,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
         ]}
       >
         <Row
@@ -119,7 +119,7 @@ export default function Account() {
         style={[
           styles.card,
           styles.danger,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
         ]}
       >
         <Row
@@ -194,7 +194,7 @@ function Identity({ locked }: { locked: boolean }) {
         onPress={choose}
         style={({ pressed }) => [
           styles.avatar,
-          { backgroundColor: tokens.tile },
+          { backgroundColor: tokens.surface2 },
           pressed && styles.pressed,
         ]}
       >
@@ -209,7 +209,7 @@ function Identity({ locked }: { locked: boolean }) {
             importantForAccessibility="no"
           />
         ) : initial ? (
-          <Text style={[styles.initial, { color: tokens.fg }]}>{initial}</Text>
+          <Text style={[styles.initial, { color: tokens.ink }]}>{initial}</Text>
         ) : (
           <User
             size={30}
@@ -221,7 +221,7 @@ function Identity({ locked }: { locked: boolean }) {
         )}
       </Pressable>
       {name ? (
-        <Text selectable style={[styles.name, { color: tokens.fg }]}>
+        <Text selectable style={[styles.name, { color: tokens.ink }]}>
           {name}
         </Text>
       ) : null}
@@ -253,7 +253,7 @@ function Row({
   const tokens = useTokens()
   const Icon = icon
   const ChevronRight = UI_ICONS.ChevronRight
-  const color = destructive ? tokens.danger : tokens.fg
+  const color = destructive ? tokens.danger : tokens.ink
 
   return (
     <Pressable
@@ -267,7 +267,7 @@ function Row({
         styles.row,
         !first && {
           borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: tokens.border,
+          borderTopColor: tokens.hair,
         },
         pressed && !disabled && styles.pressed,
         disabled && styles.disabled,
@@ -315,10 +315,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatarImage: { width: '100%', height: '100%' },
-  initial: { fontSize: 32, fontWeight: '700' },
-  name: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
-  email: { fontSize: 15 },
-  note: { fontSize: 13, lineHeight: 18, paddingHorizontal: 4 },
+  initial: { ...TYPE.title2 },
+  name: { ...TYPE.title2, letterSpacing: -0.3 },
+  email: { ...TYPE.subhead },
+  note: { ...TYPE.footnote, paddingHorizontal: 4 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
@@ -334,8 +334,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingVertical: 4,
   },
-  rowLabel: { flex: 1, fontSize: 16 },
-  rowValue: { fontSize: 15, maxWidth: 150 },
+  rowLabel: { ...TYPE.body, flex: 1 },
+  rowValue: { ...TYPE.subhead, maxWidth: 150 },
   pressed: { opacity: 0.6 },
   disabled: { opacity: 0.45 },
 })

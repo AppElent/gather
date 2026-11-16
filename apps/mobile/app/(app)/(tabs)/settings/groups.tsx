@@ -6,7 +6,7 @@ import { DeleteGroupSection } from '../../../../src/group/DeleteGroupSection'
 import { useGroup } from '../../../../src/group/GroupProvider'
 import { useI18n } from '../../../../src/i18n'
 import { UI_ICONS } from '../../../../src/theme/icons'
-import { RADIUS, useTokens } from '../../../../src/theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../../../src/theme/tokens'
 
 export default function Groups() {
   const tokens = useTokens()
@@ -19,7 +19,7 @@ export default function Groups() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.content,
         { paddingBottom: insets.bottom + 24 },
@@ -30,7 +30,7 @@ export default function Groups() {
       <View style={styles.list}>
         <Text
           accessibilityRole="header"
-          style={[styles.sectionTitle, { color: tokens.fg }]}
+          style={[styles.sectionTitle, { color: tokens.ink }]}
         >
           {text.yours}
         </Text>
@@ -41,14 +41,14 @@ export default function Groups() {
               key={group.slug}
               style={[
                 styles.row,
-                { backgroundColor: tokens.surface, borderColor: tokens.border },
+                { backgroundColor: tokens.surface, borderColor: tokens.hair },
               ]}
             >
               <View style={styles.rowText}>
                 <Text
                   numberOfLines={1}
                   selectable
-                  style={[styles.name, { color: tokens.fg }]}
+                  style={[styles.name, { color: tokens.ink }]}
                 >
                   {group.name}
                 </Text>
@@ -58,7 +58,7 @@ export default function Groups() {
                     : t.shell.switcher.shared}
                 </Text>
               </View>
-              {isCurrent ? <Check size={20} color={tokens.fg} /> : null}
+              {isCurrent ? <Check size={20} color={tokens.ink} /> : null}
             </View>
           )
         })}
@@ -72,19 +72,19 @@ export default function Groups() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 16, gap: 16 },
-  intro: { fontSize: 15, lineHeight: 22 },
+  intro: { ...TYPE.subhead },
   list: { gap: 8 },
-  sectionTitle: { fontSize: 16, fontWeight: '700' },
+  sectionTitle: { ...TYPE.bodyStrong },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 14,
     minHeight: 56,
   },
   rowText: { flex: 1, gap: 2 },
-  name: { fontSize: 15, fontWeight: '600' },
-  meta: { fontSize: 11 },
+  name: { ...TYPE.bodyStrong },
+  meta: { ...TYPE.footnote },
 })

@@ -9,7 +9,7 @@ import { Image } from 'expo-image'
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
-import { RADIUS, TYPE, useTokens } from '../../../theme/tokens'
+import { RADIUS, SIZE, TYPE, useTokens } from '../../../theme/tokens'
 import { RETAILER_LOGO_FILES } from './retailer-logo-files'
 
 /**
@@ -39,10 +39,16 @@ export function StoreTile({
   // another store tries that store's logo afresh.
   const [failedKey, setFailedKey] = useState<string | null>(null)
   const background = color && isHexColor(color) ? color : DEFAULT_STORE_COLOR
-  const dimension = size === 'large' ? 56 : 42
+  const dimension = size === 'large' ? SIZE.tileL : SIZE.tileM
+  const radius = size === 'large' ? RADIUS.tileL : RADIUS.tileM
   const frame = [
     styles.tile,
-    { backgroundColor: background, width: dimension, height: dimension },
+    {
+      backgroundColor: background,
+      width: dimension,
+      height: dimension,
+      borderRadius: radius,
+    },
   ]
 
   if (key && file !== undefined && key !== failedKey) {
@@ -52,7 +58,7 @@ export function StoreTile({
         importantForAccessibility="no-hide-descendants"
         accessibilityElementsHidden
         // A white logo tile needs an edge on a white card.
-        style={[frame, styles.logoFrame, { borderColor: tokens.border }]}
+        style={[frame, styles.logoFrame, { borderColor: tokens.hair }]}
       >
         <Image
           source={file}
@@ -76,7 +82,7 @@ export function StoreTile({
       <Text
         allowFontScaling={false}
         style={[
-          size === 'large' ? TYPE.title : TYPE.lead,
+          size === 'large' ? TYPE.title2 : TYPE.bodyStrong,
           styles.monogram,
           { color: textOnBrand(background) },
         ]}
@@ -89,7 +95,7 @@ export function StoreTile({
 
 const styles = StyleSheet.create({
   tile: {
-    borderRadius: RADIUS.tile,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },

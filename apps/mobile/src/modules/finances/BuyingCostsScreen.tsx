@@ -74,7 +74,7 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
         <Stack.Screen
           options={{ headerShown: true, title: text.buyingCosts.title }}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={4} label={text.actions.loading} />
         </View>
       </>
@@ -108,7 +108,7 @@ export function BuyingCostsScreen({ houseId }: { houseId: Id<'houses'> }) {
         <ScreenScroll>
           {failure}
           <EmptyState
-            icon={<Key size={34} color={tint.fg} strokeWidth={1.6} />}
+            icon={<Key size={34} color={tint.text} strokeWidth={1.6} />}
             title={text.buyingCosts.title}
             body={text.buyingCosts.emptyBody}
             actionLabel={text.buyingCosts.start}

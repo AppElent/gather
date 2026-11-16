@@ -69,7 +69,7 @@ export function RecurringCostScreen({
         <Stack.Screen
           options={{ headerShown: true, title: text.recurringCosts.title }}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={4} label={text.actions.loading} />
         </View>
       </>

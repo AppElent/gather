@@ -50,7 +50,7 @@ export function LoyaltyCardEditScreen({
         <Stack.Screen
           options={{ headerShown: true, title: words.till.edit }}
         />
-        <View style={[styles.fill, { backgroundColor: tokens.bg }]}>
+        <View style={[styles.fill, { backgroundColor: tokens.ground }]}>
           <LoadingSkeleton rows={4} label={t.actions.loading} />
         </View>
       </>
@@ -63,10 +63,10 @@ export function LoyaltyCardEditScreen({
         <Stack.Screen
           options={{ headerShown: true, title: words.till.edit }}
         />
-        <View style={[styles.fill, { backgroundColor: tokens.bg }]}>
+        <View style={[styles.fill, { backgroundColor: tokens.ground }]}>
           <Text
             testID="loyalty-card-not-found"
-            style={[TYPE.lead, styles.missing, { color: tokens.muted }]}
+            style={[TYPE.body, styles.missing, { color: tokens.muted }]}
           >
             {words.detail.notFound}
           </Text>
@@ -122,7 +122,7 @@ export function LoyaltyCardEditScreen({
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 32 },

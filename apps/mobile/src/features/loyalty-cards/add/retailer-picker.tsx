@@ -74,7 +74,7 @@ export function RetailerPicker({
         <View style={styles.scanned}>
           <Text
             testID="loyalty-card-scanned"
-            style={[TYPE.body, styles.scannedText, { color: tokens.muted }]}
+            style={[TYPE.subhead, styles.scannedText, { color: tokens.muted }]}
           >
             {scannedLine}
           </Text>
@@ -86,7 +86,7 @@ export function RetailerPicker({
               onPress={onScanAgain}
               style={({ pressed }) => pressed && styles.pressed}
             >
-              <Text style={[TYPE.label, styles.bold, { color: tokens.fg }]}>
+              <Text style={[TYPE.footnoteStrong, styles.bold, { color: tokens.ink }]}>
                 {words.scan.scanAgain}
               </Text>
             </Pressable>
@@ -95,7 +95,7 @@ export function RetailerPicker({
       ) : null}
       {suggestion ? (
         <View style={styles.suggestion}>
-          <Text style={[TYPE.label, styles.caps, { color: tokens.muted }]}>
+          <Text style={[TYPE.footnoteStrong, styles.caps, { color: tokens.muted }]}>
             {fmt(words.scan.suggestion, { store: suggestion.name })}
           </Text>
           <StoreRow
@@ -121,22 +121,22 @@ export function RetailerPicker({
         onPress={onOtherStore}
         style={({ pressed }) => [
           styles.row,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
           pressed && styles.pressed,
         ]}
       >
-        <View style={[styles.otherIcon, { backgroundColor: tokens.tile }]}>
+        <View style={[styles.otherIcon, { backgroundColor: tokens.surface2 }]}>
           <LOYALTY_CARD_ICONS.Store
             size={22}
-            color={tokens.fg}
+            color={tokens.ink}
             strokeWidth={1.9}
           />
         </View>
         <View style={styles.rowText}>
-          <Text style={[TYPE.lead, styles.bold, { color: tokens.fg }]}>
+          <Text style={[TYPE.bodyStrong, styles.bold, { color: tokens.ink }]}>
             {words.picker.otherStore}
           </Text>
-          <Text style={[TYPE.label, { color: tokens.muted }]}>
+          <Text style={[TYPE.footnote, { color: tokens.muted }]}>
             {words.picker.otherStoreHint}
           </Text>
         </View>
@@ -145,7 +145,7 @@ export function RetailerPicker({
       {retailers === undefined ? (
         <LoadingSkeleton rows={4} label={t.actions.loading} />
       ) : query.trim() && shown.length === 0 ? (
-        <Text style={[TYPE.body, styles.empty, { color: tokens.muted }]}>
+        <Text style={[TYPE.subhead, styles.empty, { color: tokens.muted }]}>
           {fmt(words.picker.noMatches, { query: query.trim() })}
         </Text>
       ) : null}
@@ -160,7 +160,7 @@ export function RetailerPicker({
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.list,
         { paddingBottom: insets.bottom + 24 },
@@ -200,7 +200,7 @@ function StoreRow({
       onPress={onPress}
       style={({ pressed }) => [
         styles.row,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        { backgroundColor: tokens.surface, borderColor: tokens.hair },
         pressed && styles.pressed,
       ]}
     >
@@ -211,11 +211,11 @@ function StoreRow({
         size="medium"
       />
       <View style={styles.rowText}>
-        <Text style={[TYPE.lead, styles.bold, { color: tokens.fg }]}>
+        <Text style={[TYPE.bodyStrong, styles.bold, { color: tokens.ink }]}>
           {label}
         </Text>
         {detail ? (
-          <Text style={[TYPE.label, { color: tokens.muted }]}>{detail}</Text>
+          <Text style={[TYPE.footnote, { color: tokens.muted }]}>{detail}</Text>
         ) : null}
       </View>
       <UI_ICONS.ChevronRight size={18} color={tokens.muted} />

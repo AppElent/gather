@@ -16,7 +16,7 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { type SheetField, stepValue } from './sheetFields'
 
 export interface NumberFieldProps {
@@ -56,18 +56,15 @@ export function NumberField({
                 style={[
                   styles.chip,
                   {
-                    borderColor: on ? tokens.accent : tokens.border,
-                    backgroundColor: on ? tint.bg : tokens.bg,
+                    borderColor: on ? tokens.ink : tokens.hair,
+                    backgroundColor: on ? tokens.ink : tokens.ground,
                   },
                 ]}
               >
                 <Text
                   style={[
-                    styles.chipText,
-                    {
-                      color: on ? tokens.accent : tokens.fg,
-                      fontWeight: on ? '700' : '500',
-                    },
+                    on ? TYPE.bodyStrong : TYPE.body,
+                    { color: on ? tokens.onInk : tokens.ink },
                   ]}
                 >
                   {option}
@@ -81,7 +78,7 @@ export function NumberField({
       <View
         style={[
           styles.stepper,
-          { borderColor: tokens.border, backgroundColor: tokens.bg },
+          { borderColor: tokens.hair, backgroundColor: tokens.ground },
         ]}
       >
         <Pressable
@@ -93,7 +90,7 @@ export function NumberField({
           }}
           style={({ pressed }) => [styles.step, pressed && styles.pressed]}
         >
-          <Text style={[styles.stepGlyph, { color: tint.fg }]}>−</Text>
+          <Text style={[styles.stepGlyph, { color: tint.text }]}>−</Text>
         </Pressable>
 
         <TextInput
@@ -104,7 +101,7 @@ export function NumberField({
           accessibilityLabel={label}
           placeholder={field.fallback || '—'}
           placeholderTextColor={tokens.muted}
-          style={[styles.value, { color: tokens.fg }]}
+          style={[styles.value, { color: tokens.ink }]}
         />
         {field.unit ? (
           <Text style={[styles.unit, { color: tokens.muted }]}>
@@ -121,7 +118,7 @@ export function NumberField({
           }}
           style={({ pressed }) => [styles.step, pressed && styles.pressed]}
         >
-          <Text style={[styles.stepGlyph, { color: tint.fg }]}>+</Text>
+          <Text style={[styles.stepGlyph, { color: tint.text }]}>+</Text>
         </Pressable>
       </View>
     </View>
@@ -136,14 +133,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  chipText: { fontSize: 15 },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     overflow: 'hidden',
   },
   step: {
@@ -152,14 +148,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepGlyph: { fontSize: 26, fontWeight: '600', lineHeight: 30 },
+  stepGlyph: { ...TYPE.title2 },
   value: {
+    ...TYPE.title2,
+    ...TABULAR,
     flex: 1,
     textAlign: 'center',
-    fontSize: 21,
-    fontWeight: '700',
     paddingVertical: 0,
   },
-  unit: { fontSize: 14, paddingRight: 4 },
+  unit: { ...TYPE.subhead, paddingRight: 4 },
   pressed: { opacity: 0.5 },
 })

@@ -13,7 +13,7 @@
  */
 import { Pressable, StyleSheet, View } from 'react-native'
 
-import { type ModuleGroup, useTokens } from '../../theme/tokens'
+import { useTokens } from '../../theme/tokens'
 import { RECIPE_UI_ICONS } from './icons'
 
 const STARS = [1, 2, 3, 4, 5] as const
@@ -23,7 +23,6 @@ export interface StarRatingProps {
   /** Absent for a recipe you may only read. */
   onChange?: (rating: number | undefined) => void
   size?: number
-  group?: ModuleGroup
   /** Resolved by the caller: "Rate Sunday roast", already in the reader's language. */
   accessibilityLabel?: string
   testID?: string
@@ -33,12 +32,10 @@ export function StarRating({
   value,
   onChange,
   size = 22,
-  group = 'kitchen',
   accessibilityLabel,
   testID,
 }: StarRatingProps) {
-  const tokens = useTokens(group)
-  const tint = tokens.tintOf(group)
+  const tokens = useTokens()
 
   return (
     <View
@@ -54,8 +51,8 @@ export function StarRating({
         const glyph = (
           <Star
             size={size}
-            color={filled ? tint.fg : tokens.border}
-            fill={filled ? tint.fg : 'none'}
+            color={filled ? tokens.ink : tokens.muted}
+            fill={filled ? tokens.ink : 'none'}
             strokeWidth={1.8}
           />
         )

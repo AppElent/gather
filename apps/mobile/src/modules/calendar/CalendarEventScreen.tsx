@@ -9,7 +9,7 @@ import { usePaginatedQuery, useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { CalendarEditor } from './CalendarEditor'
 import { useCalendarEditor } from './useCalendarEditor'
 
@@ -46,14 +46,14 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
   )
 
   if (event === undefined)
-    return <View style={{ flex: 1, backgroundColor: tokens.bg }} />
+    return <View style={{ flex: 1, backgroundColor: tokens.ground }} />
   if (event === null)
     return (
       <>
         <Stack.Screen
           options={{ headerShown: true, title: t.modules.byId.calendar.label }}
         />
-        <View style={[styles.center, { backgroundColor: tokens.bg }]}>
+        <View style={[styles.center, { backgroundColor: tokens.ground }]}>
           <Text style={{ color: tokens.muted }}>{t.search.noResults}</Text>
         </View>
       </>
@@ -80,7 +80,7 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
       <Stack.Screen options={{ headerShown: true, title: event.title }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 24 },
@@ -88,7 +88,7 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
       >
         <Text
           accessibilityRole="header"
-          style={[styles.title, { color: tokens.fg }]}
+          style={[styles.title, { color: tokens.ink }]}
         >
           {event.title}
         </Text>
@@ -98,28 +98,30 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
             controller.openEdit(model)
             setEditing(true)
           }}
-          style={[styles.edit, { borderColor: tokens.border }]}
+          style={[styles.edit, { borderColor: tokens.hair }]}
         >
-          <Text style={{ color: tokens.accent }}>{t.common.actions.edit}</Text>
+          <Text style={{ color: tokens.accentText }}>
+            {t.common.actions.edit}
+          </Text>
         </Pressable>
         <View
           style={[
             styles.card,
-            { backgroundColor: tokens.surface, borderColor: tokens.border },
+            { backgroundColor: tokens.surface, borderColor: tokens.hair },
           ]}
         >
           <Text style={[styles.label, { color: tokens.muted }]}>
             {event.calendarName}
           </Text>
-          <Text style={[styles.value, { color: tokens.fg }]}>{when}</Text>
-          <Text style={[styles.value, { color: tokens.fg }]}>
+          <Text style={[styles.value, { color: tokens.ink }]}>{when}</Text>
+          <Text style={[styles.value, { color: tokens.ink }]}>
             {event.allDay
               ? t.calendar.allDay
               : start && end
                 ? `${start}–${end}`
                 : t.calendar.time}
           </Text>
-          <Text style={[styles.value, { color: tokens.fg }]}>
+          <Text style={[styles.value, { color: tokens.ink }]}>
             {event.assigneeIds.length
               ? event.assigneeIds
                   .map(
@@ -131,12 +133,12 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
               : t.calendar.unassigned}
           </Text>
           {event.location ? (
-            <Text style={[styles.value, { color: tokens.fg }]}>
+            <Text style={[styles.value, { color: tokens.ink }]}>
               {event.location}
             </Text>
           ) : null}
           {event.notes ? (
-            <Text style={[styles.value, { color: tokens.fg }]}>
+            <Text style={[styles.value, { color: tokens.ink }]}>
               {event.notes}
             </Text>
           ) : null}
@@ -163,7 +165,7 @@ export function CalendarEventScreen({ eventId }: { eventId: string }) {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 14 },
-  title: { fontSize: 26, fontWeight: '700', letterSpacing: -0.6 },
+  title: { ...TYPE.title2, letterSpacing: -0.6 },
   card: {
     gap: 8,
     borderWidth: StyleSheet.hairlineWidth,
@@ -173,10 +175,10 @@ const styles = StyleSheet.create({
   edit: {
     minHeight: 44,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  label: { fontSize: 13.5 },
-  value: { fontSize: 16 },
+  label: { ...TYPE.footnote },
+  value: { ...TYPE.body },
 })

@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Segmented } from '../../../../src/components/Segmented'
 import { SUPPORTED_LOCALES, useI18n } from '../../../../src/i18n'
-import { useTokens } from '../../../../src/theme/tokens'
+import { TYPE, useTokens } from '../../../../src/theme/tokens'
 
 export default function Language() {
   const tokens = useTokens()
@@ -19,7 +19,7 @@ export default function Language() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.content,
         { paddingBottom: insets.bottom + 24 },
@@ -42,5 +42,5 @@ export default function Language() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 20, gap: 16 },
-  description: { fontSize: 14, lineHeight: 20 },
+  description: { ...TYPE.subhead },
 })

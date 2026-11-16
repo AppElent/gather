@@ -78,13 +78,13 @@ export function AccountDeleteScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.content,
         { paddingBottom: insets.bottom + 24 },
       ]}
     >
-      <Text style={[styles.lead, { color: tokens.fg }]}>
+      <Text style={[styles.lead, { color: tokens.ink }]}>
         {t.account.deleteAccount.lead}
       </Text>
 
@@ -151,7 +151,7 @@ function Consequence({
         accessibilityRole="header"
         style={[
           styles.heading,
-          { color: tone === 'danger' ? tokens.danger : tokens.fg },
+          { color: tone === 'danger' ? tokens.danger : tokens.ink },
         ]}
       >
         {heading}
@@ -160,7 +160,7 @@ function Consequence({
       <View
         style={[
           styles.list,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
         ]}
       >
         {groups.map((name, index) => (
@@ -168,10 +168,10 @@ function Consequence({
             key={name}
             style={[
               styles.group,
-              { color: tokens.fg },
+              { color: tokens.ink },
               index > 0 && {
                 borderTopWidth: StyleSheet.hairlineWidth,
-                borderTopColor: tokens.border,
+                borderTopColor: tokens.hair,
               },
             ]}
           >
@@ -185,15 +185,15 @@ function Consequence({
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 16, gap: 20 },
-  lead: { ...TYPE.lead, fontWeight: '600' },
+  lead: TYPE.bodyStrong,
   block: { gap: 8 },
-  heading: { ...TYPE.lead, fontWeight: '700' },
-  body: TYPE.body,
+  heading: TYPE.bodyStrong,
+  body: TYPE.subhead,
   list: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
     paddingHorizontal: 14,
     overflow: 'hidden',
   },
-  group: { ...TYPE.lead, paddingVertical: 12 },
+  group: { ...TYPE.body, paddingVertical: 12 },
 })

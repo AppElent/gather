@@ -28,16 +28,25 @@ import { dropIndex, movedTo, shiftFor } from '../../arrange/arrange'
 import { haptics } from '../../feedback/haptics'
 import type { GlyphProps } from '../../theme/glyph'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import {
+  type ModuleGroup,
+  RADIUS,
+  SIZE,
+  TYPE,
+  useTokens,
+} from '../../theme/tokens'
 
 export const ROW = 56
 
 export interface DragItem {
   id: string
   label: string
-  /** The Module's own glyph, in the Module's own tint. Absent for a category. */
+  /**
+   * The Module's own glyph, drawn on its group's tile. Absent for a category.
+   */
   icon?: React.ComponentType<GlyphProps>
-  iconColor?: string
+  /** The group whose `fill` the glyph tile takes. */
+  group?: ModuleGroup
 }
 
 interface DragHandlers {
@@ -135,7 +144,7 @@ export function DragList({
       testID={testID}
       style={[
         styles.card,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        { backgroundColor: tokens.surface, borderColor: tokens.hair },
       ]}
     >
       {rows.map((item, index) => {
@@ -149,14 +158,14 @@ export function DragList({
             style={[
               styles.row,
               {
-                borderBottomColor: tokens.border,
+                borderBottomColor: tokens.hair,
                 borderBottomWidth:
                   index === rows.length - 1 ? 0 : StyleSheet.hairlineWidth,
               },
               dragging
                 ? {
                     transform: [{ translateY: lift }],
-                    backgroundColor: tokens.tile,
+                    backgroundColor: tokens.surface2,
                     zIndex: 2,
                     elevation: 4,
                   }
@@ -167,22 +176,29 @@ export function DragList({
               index={index}
               handlers={handlers}
               scrollRef={scrollRef}
-              color={dragging ? tokens.fg : tokens.muted}
+              color={dragging ? tokens.ink : tokens.muted}
               label={dragLabel(item.label)}
               testID={`all-grip-${item.id}`}
             />
-            {Icon ? (
-              <Icon
-                size={20}
-                color={item.iconColor ?? tokens.fg}
-                strokeWidth={1.75}
+            {Icon && item.group ? (
+              <View
                 accessibilityElementsHidden
-                importantForAccessibility="no"
-              />
+                importantForAccessibility="no-hide-descendants"
+                style={[
+                  styles.glyphTile,
+                  { backgroundColor: tokens.tintOf(item.group).fill },
+                ]}
+              >
+                <Icon
+                  size={16}
+                  color={tokens.tintOf(item.group).on}
+                  strokeWidth={1.9}
+                />
+              </View>
             ) : null}
             <Text
               numberOfLines={1}
-              style={[styles.label, { color: tokens.fg }]}
+              style={[styles.label, { color: tokens.ink }]}
             >
               {item.label}
             </Text>
@@ -255,5 +271,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   grip: { paddingVertical: 12, paddingRight: 2 },
-  label: { flex: 1, fontSize: 15.5 },
+  glyphTile: {
+    width: SIZE.tileS,
+    height: SIZE.tileS,
+    borderRadius: RADIUS.tileS,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  label: { ...TYPE.subhead, flex: 1 },
 })

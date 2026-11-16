@@ -25,7 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { fmt, type Messages, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { useTokens } from '../../theme/tokens'
+import { TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
 import { SectionLabel } from '../../ui/section-label'
 import { PressRow } from './components'
@@ -59,7 +59,7 @@ export function TaskLists() {
       <Stack.Screen options={{ headerShown: true, title: t.tasks.title }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 24 },
@@ -139,7 +139,7 @@ export function TaskLists() {
                   <View style={styles.listText}>
                     <Text
                       numberOfLines={1}
-                      style={[styles.listName, { color: tokens.fg }]}
+                      style={[styles.listName, { color: tokens.ink }]}
                     >
                       {list.name}
                     </Text>
@@ -203,11 +203,11 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 18 },
   group: { gap: 8 },
   emptyRow: { minHeight: 50, justifyContent: 'center' },
-  empty: { fontSize: 14 },
-  meta: { fontSize: 12, fontWeight: '700' },
+  empty: { ...TYPE.subhead },
+  meta: { ...TYPE.footnoteStrong },
   listText: { flex: 1, gap: 3, paddingVertical: 7 },
-  listName: { fontSize: 16 },
+  listName: { ...TYPE.body },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  badgeText: { fontSize: 11.5, fontWeight: '700' },
-  count: { fontSize: 13.5 },
+  badgeText: { ...TYPE.footnoteStrong },
+  count: { ...TYPE.footnote, ...TABULAR },
 })

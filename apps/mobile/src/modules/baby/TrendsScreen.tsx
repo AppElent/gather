@@ -15,7 +15,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useI18n } from '../../i18n'
-import { useTokens } from '../../theme/tokens'
+import { TYPE, useTokens } from '../../theme/tokens'
 import { TREND_METRICS, TrendCard } from './TrendCard'
 import { useBabyLog } from './useBabyLog'
 
@@ -42,7 +42,7 @@ export function TrendsScreen() {
       <Stack.Screen options={{ headerShown: true, title: text.allTrends }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 24 },
@@ -71,6 +71,6 @@ export function TrendsScreen() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 14 },
-  subject: { fontSize: 13, marginBottom: 4 },
+  subject: { ...TYPE.footnote, marginBottom: 4 },
   cards: { gap: 10 },
 })

@@ -40,7 +40,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { TASTING_UI_ICONS } from './icons'
 import { VocabularySheet } from './VocabularySheet'
 import { fieldLabel, type TastingWords, term, unitLabel } from './words'
@@ -107,7 +107,6 @@ function Chip({
   onPress: () => void
 }) {
   const tokens = useTokens('tasting')
-  const tint = tokens.tintOf('tasting')
   return (
     <Pressable
       accessibilityRole="button"
@@ -121,17 +120,15 @@ function Chip({
       style={({ pressed }) => [
         styles.chip,
         {
-          backgroundColor: on ? tint.bg : tokens.surface,
-          borderColor: on ? tint.fg : tokens.border,
+          backgroundColor: on ? tokens.ink : tokens.surface,
+          borderColor: on ? tokens.ink : tokens.hair,
         },
         pressed && styles.pressed,
       ]}
     >
+      {/* The ink fill is the selection; the label keeps one weight. */}
       <Text
-        style={[
-          styles.chipText,
-          { color: on ? tint.fg : tokens.fg, fontWeight: on ? '700' : '400' },
-        ]}
+        style={[styles.chipText, { color: on ? tokens.onInk : tokens.ink }]}
       >
         {label}
       </Text>
@@ -184,14 +181,14 @@ function SelectField({ field, value, onChange, disabled }: TastingFieldProps) {
         onPress={() => setPicking(true)}
         style={({ pressed }) => [
           styles.row,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
           pressed && styles.pressed,
         ]}
       >
         <Text
           style={[
             styles.rowValue,
-            { color: current ? tokens.fg : tokens.muted },
+            { color: current ? tokens.ink : tokens.muted },
           ]}
         >
           {current
@@ -226,7 +223,6 @@ function SelectField({ field, value, onChange, disabled }: TastingFieldProps) {
 function TagsField({ field, value, onChange, disabled }: TastingFieldProps) {
   const tokens = useTokens('tasting')
   const { t } = useI18n()
-  const tint = tokens.tintOf('tasting')
   const [typing, setTyping] = useState(false)
   const [draft, setDraft] = useState('')
   const Plus = TASTING_UI_ICONS.Plus
@@ -283,8 +279,8 @@ function TagsField({ field, value, onChange, disabled }: TastingFieldProps) {
             styles.chipInput,
             {
               backgroundColor: tokens.surface,
-              borderColor: tint.fg,
-              color: tokens.fg,
+              borderColor: tokens.ink,
+              color: tokens.ink,
             },
           ]}
         />
@@ -297,7 +293,7 @@ function TagsField({ field, value, onChange, disabled }: TastingFieldProps) {
           style={({ pressed }) => [
             styles.chip,
             styles.chipDashed,
-            { borderColor: tokens.border },
+            { borderColor: tokens.hair },
             pressed && styles.pressed,
           ]}
         >
@@ -320,7 +316,6 @@ function TagsField({ field, value, onChange, disabled }: TastingFieldProps) {
 function ScaleField({ field, value, onChange, disabled }: TastingFieldProps) {
   const tokens = useTokens('tasting')
   const { t } = useI18n()
-  const tint = tokens.tintOf('tasting')
   const current = typeof value === 'number' ? value : undefined
 
   return (
@@ -341,8 +336,8 @@ function ScaleField({ field, value, onChange, disabled }: TastingFieldProps) {
             style={({ pressed }) => [
               styles.scaleCell,
               {
-                backgroundColor: on ? tint.bg : tokens.surface,
-                borderColor: on ? tint.fg : tokens.border,
+                backgroundColor: on ? tokens.ink : tokens.surface,
+                borderColor: on ? tokens.ink : tokens.hair,
               },
               pressed && styles.pressed,
             ]}
@@ -350,10 +345,7 @@ function ScaleField({ field, value, onChange, disabled }: TastingFieldProps) {
             <Text
               style={[
                 styles.scaleText,
-                {
-                  color: on ? tint.fg : tokens.fg,
-                  fontWeight: on ? '700' : '400',
-                },
+                { color: on ? tokens.onInk : tokens.ink },
               ]}
             >
               {step}
@@ -385,7 +377,7 @@ function NumberField({ field, value, onChange, disabled }: TastingFieldProps) {
     <View
       style={[
         styles.row,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        { backgroundColor: tokens.surface, borderColor: tokens.hair },
       ]}
     >
       <TextInput
@@ -399,7 +391,7 @@ function NumberField({ field, value, onChange, disabled }: TastingFieldProps) {
         placeholder={t.tastings.composer.none}
         placeholderTextColor={tokens.muted}
         accessibilityLabel={fieldLabel(t.tastings, field)}
-        style={[styles.numberInput, { color: tokens.fg }]}
+        style={[styles.numberInput, { color: tokens.ink }]}
       />
       {unit ? (
         <Text style={[styles.unit, { color: tokens.muted }]}>{unit}</Text>
@@ -432,8 +424,8 @@ function TextField({ field, value, onChange, disabled }: TastingFieldProps) {
         multiline ? styles.textArea : styles.textLine,
         {
           backgroundColor: tokens.surface,
-          borderColor: tokens.border,
-          color: tokens.fg,
+          borderColor: tokens.hair,
+          color: tokens.ink,
         },
       ]}
     />
@@ -468,7 +460,7 @@ export function tastingFieldText(
 
 const styles = StyleSheet.create({
   field: { gap: 7 },
-  label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  label: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   chip: {
     flexDirection: 'row',
@@ -476,29 +468,29 @@ const styles = StyleSheet.create({
     gap: 5,
     minHeight: 40,
     paddingHorizontal: 15,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     borderWidth: StyleSheet.hairlineWidth,
   },
   chipDashed: { borderStyle: 'dashed', borderWidth: 1 },
-  chipInput: { minWidth: 140, fontSize: 14, borderWidth: 1 },
-  chipText: { fontSize: 14 },
+  chipInput: { ...TYPE.subhead, minWidth: 140, borderWidth: 1 },
+  chipText: { ...TYPE.subhead },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 48,
     paddingHorizontal: 14,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  rowValue: { flex: 1, fontSize: 16 },
-  numberInput: { flex: 1, fontSize: 16 },
-  unit: { fontSize: 15 },
-  textLine: { fontSize: 16 },
+  rowValue: { ...TYPE.body, flex: 1 },
+  numberInput: { ...TYPE.body, flex: 1 },
+  unit: { ...TYPE.subhead },
+  textLine: { ...TYPE.body },
   textArea: {
+    ...TYPE.subhead,
     minHeight: 74,
     paddingTop: 13,
     paddingBottom: 13,
-    fontSize: 15,
     alignItems: 'flex-start',
     textAlignVertical: 'top',
   },
@@ -508,9 +500,9 @@ const styles = StyleSheet.create({
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  scaleText: { fontSize: 15 },
+  scaleText: { ...TYPE.subhead },
   pressed: { opacity: 0.6 },
 })

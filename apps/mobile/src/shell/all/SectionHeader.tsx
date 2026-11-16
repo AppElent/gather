@@ -14,7 +14,7 @@ import { Platform, Pressable, StyleSheet, Text } from 'react-native'
 
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 
 export function SectionHeader({
   title,
@@ -33,7 +33,7 @@ export function SectionHeader({
 
   if (collapsed === undefined || !onToggle) {
     return (
-      <Text testID={testID} style={[styles.title, { color: tokens.fg }]}>
+      <Text testID={testID} style={[styles.title, { color: tokens.ink }]}>
         {title}
       </Text>
     )
@@ -49,15 +49,15 @@ export function SectionHeader({
       accessibilityLabel={action.replace('{section}', title)}
       accessibilityState={{ expanded: !collapsed }}
       onPress={onToggle}
-      android_ripple={{ color: tokens.border }}
+      android_ripple={{ color: tokens.hair }}
       style={({ pressed }) => [
         styles.header,
         pressed && Platform.OS === 'ios'
-          ? { backgroundColor: tokens.tile }
+          ? { backgroundColor: tokens.surface2 }
           : null,
       ]}
     >
-      <Text style={[styles.title, { color: tokens.fg }]}>{title}</Text>
+      <Text style={[styles.title, { color: tokens.ink }]}>{title}</Text>
       <Chevron
         size={17}
         color={tokens.muted}
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 7,
     minHeight: 44,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
   },
-  title: { fontSize: 17, fontWeight: '700' },
+  title: { ...TYPE.bodyStrong },
 })

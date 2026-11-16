@@ -51,7 +51,7 @@ import { haptics } from '../feedback/haptics'
 import { useGroup, useOpenInGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, SIZE, TYPE, useTokens } from '../theme/tokens'
 import { DropGroupSheet } from './DropGroupSheet'
 import { useDrop } from './DropProvider'
 import {
@@ -169,10 +169,10 @@ export function DropChooserScreen() {
     <>
       <Stack.Screen options={{ headerShown: true, title: text.title }} />
       {!drop ? (
-        <View style={{ flex: 1, backgroundColor: tokens.bg }} />
+        <View style={{ flex: 1, backgroundColor: tokens.ground }} />
       ) : (
         <ScrollView
-          style={{ backgroundColor: tokens.bg }}
+          style={{ backgroundColor: tokens.ground }}
           contentContainerStyle={styles.content}
         >
           <DropPreview drop={drop} />
@@ -183,14 +183,14 @@ export function DropChooserScreen() {
             onPress={() => setNaming(true)}
             style={({ pressed }) => [
               styles.groupRow,
-              { backgroundColor: tokens.surface, borderColor: tokens.border },
+              { backgroundColor: tokens.surface, borderColor: tokens.hair },
               pressed && styles.pressed,
             ]}
           >
-            <Text style={[styles.groupText, { color: tokens.fg }]}>
+            <Text style={[styles.groupText, { color: tokens.ink }]}>
               {fmt(text.savingTo, { group: named.name })}
             </Text>
-            <Text style={[styles.change, { color: tokens.accent }]}>
+            <Text style={[styles.change, { color: tokens.accentText }]}>
               {text.changeGroup}
             </Text>
           </Pressable>
@@ -273,7 +273,7 @@ function DropPreview({ drop }: { drop: Drop }) {
     <View
       style={[
         styles.preview,
-        { backgroundColor: tokens.tile, borderColor: tokens.border },
+        { backgroundColor: tokens.surface2, borderColor: tokens.hair },
       ]}
     >
       <Text style={[styles.previewKind, { color: tokens.muted }]}>
@@ -288,7 +288,7 @@ function DropPreview({ drop }: { drop: Drop }) {
       ) : (
         <>
           <Text
-            style={[styles.previewTitle, { color: tokens.fg }]}
+            style={[styles.previewTitle, { color: tokens.ink }]}
             numberOfLines={2}
           >
             {dropDisplayTitle(drop)}
@@ -330,23 +330,27 @@ function TargetRow({
         styles.row,
         {
           backgroundColor: tokens.surface,
-          borderColor: selected ? tokens.accent : tokens.border,
+          borderColor: selected ? tokens.ink : tokens.hair,
         },
         pressed && styles.pressed,
       ]}
     >
-      <View style={[styles.rowIcon, { backgroundColor: tint.bg }]}>
-        <Icon size={20} color={tint.fg} strokeWidth={1.8} />
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[styles.rowIcon, { backgroundColor: tint.fill }]}
+      >
+        <Icon size={20} color={tint.on} strokeWidth={1.8} />
       </View>
       <View style={styles.rowText}>
-        <Text style={[styles.rowLabel, { color: tokens.fg }]}>
+        <Text style={[styles.rowLabel, { color: tokens.ink }]}>
           {copy.label}
         </Text>
         <Text style={[styles.rowDetail, { color: tokens.muted }]}>
           {copy.detail}
         </Text>
       </View>
-      {selected ? <Check size={18} color={tokens.accent} /> : null}
+      {selected ? <Check size={18} color={tokens.accentText} /> : null}
     </Pressable>
   )
 }
@@ -359,21 +363,25 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 6,
   },
-  previewKind: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 },
-  previewTitle: { fontSize: 16, fontWeight: '600' },
-  previewMeta: { fontSize: 13 },
-  previewImage: { width: '100%', height: 160, borderRadius: RADIUS.control },
+  previewKind: {
+    ...TYPE.footnote,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  previewTitle: { ...TYPE.bodyStrong },
+  previewMeta: { ...TYPE.footnote },
+  previewImage: { width: '100%', height: 160, borderRadius: RADIUS.thumb },
   groupRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
-  groupText: { fontSize: 15, flexShrink: 1 },
-  change: { fontSize: 15, fontWeight: '600' },
+  groupText: { ...TYPE.subhead, flexShrink: 1 },
+  change: { ...TYPE.bodyStrong },
   rows: { gap: 8 },
   row: {
     flexDirection: 'row',
@@ -384,24 +392,25 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   rowIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.tile,
+    width: SIZE.tileM,
+    height: SIZE.tileM,
+    borderRadius: RADIUS.tileM,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowText: { flex: 1, gap: 2 },
-  rowLabel: { fontSize: 16, fontWeight: '600' },
-  rowDetail: { fontSize: 13 },
+  rowLabel: { ...TYPE.bodyStrong },
+  rowDetail: { ...TYPE.footnote },
   pressed: { opacity: 0.75 },
-  problem: { fontSize: 14, lineHeight: 20 },
+  problem: { ...TYPE.subhead },
   confirm: {
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  confirmLabel: { fontSize: 16, fontWeight: '700' },
+  confirmLabel: { ...TYPE.bodyStrong },
   cancel: { alignItems: 'center', paddingVertical: 6 },
-  cancelLabel: { fontSize: 15 },
+  cancelLabel: { ...TYPE.subhead },
 })

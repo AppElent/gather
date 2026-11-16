@@ -23,14 +23,12 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { useTokens } from '../../theme/tokens'
+import { TYPE, useTokens } from '../../theme/tokens'
 import { Checkbox } from './components'
 import { TASK_ICONS } from './icons'
 import { useTaskActions } from './store'
 import { taskMenuActions } from './taskMenu'
 import type { Task } from './types'
-
-const COMPLETE_GREEN = '#3f7d4e'
 
 /**
  * One task.
@@ -88,7 +86,7 @@ export function TaskRow({
       style={[
         styles.title,
         {
-          color: task.done ? tokens.muted : tokens.fg,
+          color: task.done ? tokens.muted : tokens.ink,
           textDecorationLine: task.done ? 'line-through' : 'none',
         },
       ]}
@@ -105,7 +103,7 @@ export function TaskRow({
         styles.row,
         {
           backgroundColor: tokens.surface,
-          borderBottomColor: tokens.border,
+          borderBottomColor: tokens.hair,
           borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
         },
       ]}
@@ -130,12 +128,14 @@ export function TaskRow({
             testID={`task-${task.id}`}
             accessibilityRole="button"
             accessibilityLabel={task.title}
-            android_ripple={{ color: tokens.tile }}
+            android_ripple={{ color: tokens.surface2 }}
             onPress={onOpen}
             style={({ pressed }) => [
               styles.open,
               pressed &&
-                Platform.OS !== 'android' && { backgroundColor: tokens.tile },
+                Platform.OS !== 'android' && {
+                  backgroundColor: tokens.surface2,
+                },
             ]}
           >
             <View style={styles.text}>
@@ -210,10 +210,14 @@ export function TaskRow({
         swipe.current = methods
         return (
           <View
-            style={[styles.completeAction, { backgroundColor: COMPLETE_GREEN }]}
+            style={[styles.completeAction, { backgroundColor: tokens.accent }]}
           >
-            <TASK_ICONS.CircleCheck size={20} color="#ffffff" strokeWidth={2} />
-            <Text style={styles.actionText}>
+            <TASK_ICONS.CircleCheck
+              size={20}
+              color={tokens.onAccent}
+              strokeWidth={2}
+            />
+            <Text style={[styles.actionText, { color: tokens.onAccent }]}>
               {task.done ? t.tasks.list.uncomplete : t.tasks.list.complete}
             </Text>
           </View>
@@ -231,8 +235,10 @@ export function TaskRow({
             }}
             style={styles.actionPress}
           >
-            <TASK_ICONS.Trash2 size={19} color="#ffffff" strokeWidth={2} />
-            <Text style={styles.actionText}>{t.common.actions.delete}</Text>
+            <TASK_ICONS.Trash2 size={19} color={tokens.onInk} strokeWidth={2} />
+            <Text style={[styles.actionText, { color: tokens.onInk }]}>
+              {t.common.actions.delete}
+            </Text>
           </Pressable>
         </View>
       )}
@@ -276,8 +282,8 @@ export function CompletedToggle({
       onPress={onPress}
       style={({ pressed }) => [
         styles.completedToggle,
-        { borderTopColor: tokens.border },
-        pressed && { backgroundColor: tokens.tile },
+        { borderTopColor: tokens.hair },
+        pressed && { backgroundColor: tokens.surface2 },
       ]}
     >
       <Text style={[styles.completedLabel, { color: tokens.muted }]}>
@@ -318,7 +324,7 @@ export function TaskComposer({
     <View style={styles.composer}>
       <UI_ICONS.Plus
         size={17}
-        color={tokens.tintOf('home').fg}
+        color={tokens.accentText}
         strokeWidth={2.2}
         accessibilityElementsHidden
         importantForAccessibility="no"
@@ -332,7 +338,7 @@ export function TaskComposer({
         placeholderTextColor={tokens.muted}
         returnKeyType="done"
         accessibilityLabel={placeholder}
-        style={[styles.composerInput, { color: tokens.fg }]}
+        style={[styles.composerInput, { color: tokens.ink }]}
       />
     </View>
   )
@@ -362,7 +368,7 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   text: { flex: 1, gap: 5, paddingVertical: 9 },
-  title: { fontSize: 15.5 },
+  title: { ...TYPE.body },
   pressed: { opacity: 0.6 },
   completeAction: {
     flexDirection: 'row',
@@ -379,7 +385,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignSelf: 'stretch',
   },
-  actionText: { fontSize: 12.5, fontWeight: '700', color: '#ffffff' },
+  actionText: { ...TYPE.footnoteStrong },
   completedToggle: {
     minHeight: 48,
     flexDirection: 'row',
@@ -389,7 +395,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -14,
     paddingHorizontal: 14,
   },
-  completedLabel: { fontSize: 15, fontWeight: '600' },
+  completedLabel: { ...TYPE.bodyStrong },
   flipped: { transform: [{ rotate: '180deg' }] },
   composer: {
     flexDirection: 'row',
@@ -399,5 +405,5 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'transparent',
   },
-  composerInput: { flex: 1, fontSize: 15.5, paddingVertical: 12 },
+  composerInput: { ...TYPE.body, flex: 1, paddingVertical: 12 },
 })

@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAvailability } from '../availability/AvailabilityProvider'
 import { useI18n } from '../i18n'
-import { useTokens } from '../theme/tokens'
+import { TYPE, useTokens } from '../theme/tokens'
 
 export function ConnectionLostBanner() {
   const tokens = useTokens()
@@ -18,12 +18,12 @@ export function ConnectionLostBanner() {
         styles.banner,
         {
           backgroundColor: tokens.surface,
-          borderBottomColor: tokens.border,
+          borderBottomColor: tokens.hair,
           paddingTop: insets.top + 8,
         },
       ]}
     >
-      <Text style={[styles.message, { color: tokens.fg }]}>
+      <Text style={[styles.message, { color: tokens.ink }]}>
         {t.gate.connectionLost}
       </Text>
       <Pressable
@@ -33,7 +33,7 @@ export function ConnectionLostBanner() {
         onPress={retry}
         style={({ pressed }) => [pressed && !retrying && styles.pressed]}
       >
-        <Text style={[styles.retry, { color: tokens.accent }]}>
+        <Text style={[styles.retry, { color: tokens.accentText }]}>
           {t.gate.retry}
         </Text>
       </Pressable>
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  message: { flex: 1, fontSize: 13, lineHeight: 18 },
-  retry: { fontSize: 13, fontWeight: '700' },
+  message: { ...TYPE.footnote, flex: 1 },
+  retry: { ...TYPE.footnoteStrong },
   pressed: { opacity: 0.65 },
 })

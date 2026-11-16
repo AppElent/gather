@@ -47,7 +47,6 @@ export function FinanceLabScreen() {
   const createHouse = useMutation(api.houses.create)
   const { attempt, failure } = useFinanceWrite()
 
-  const tint = tokens.tintOf('money')
   const HouseIcon = FINANCE_ICONS.House
   const Chart = FINANCE_ICONS.Chart
   const Scale = FINANCE_ICONS.Scale
@@ -60,7 +59,7 @@ export function FinanceLabScreen() {
     return (
       <>
         <Stack.Screen options={{ title: t.labs.finance.title }} />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={5} label={text.actions.loading} />
         </View>
       </>
@@ -95,7 +94,7 @@ export function FinanceLabScreen() {
               <Row
                 key={house._id}
                 leading={
-                  <HouseIcon size={21} color={tint.fg} strokeWidth={1.8} />
+                  <HouseIcon size={21} color={tokens.ink} strokeWidth={1.8} />
                 }
                 label={house.name}
                 sub={
@@ -130,7 +129,7 @@ export function FinanceLabScreen() {
         <Section title={text.index.overviews} />
         <Card>
           <Row
-            leading={<Chart size={20} color={tint.fg} strokeWidth={1.8} />}
+            leading={<Chart size={20} color={tokens.ink} strokeWidth={1.8} />}
             label={text.index.portfolio}
             sub={
               holdings.length > 0
@@ -153,7 +152,7 @@ export function FinanceLabScreen() {
             }
           />
           <Row
-            leading={<Scale size={20} color={tint.fg} strokeWidth={1.8} />}
+            leading={<Scale size={20} color={tokens.ink} strokeWidth={1.8} />}
             label={text.index.netWorth}
             sub={
               latestSnapshot

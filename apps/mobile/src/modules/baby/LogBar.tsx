@@ -57,7 +57,7 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
 import { fmt, type Messages, useI18n } from '../../i18n'
 import type { Glyph } from '../../theme/glyph'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { BABY_UI_ICONS, EVENT_ICONS } from './icons'
 import { dragTarget, residualOffset } from './logBarArrange'
 
@@ -191,7 +191,7 @@ export function LogBar({
           styles.bar,
           {
             backgroundColor: tokens.surface,
-            borderTopColor: tokens.border,
+            borderTopColor: tokens.hair,
             paddingBottom: barBottom(insets.bottom),
           },
         ]}
@@ -206,11 +206,11 @@ export function LogBar({
             hitSlop={10}
             style={({ pressed }) => [
               styles.done,
-              { backgroundColor: tint.bg },
+              { backgroundColor: tokens.surface2 },
               pressed && styles.pressed,
             ]}
           >
-            <Text style={[styles.doneText, { color: tint.fg }]}>
+            <Text style={[styles.doneText, { color: tokens.ink }]}>
               {t.actions.done}
             </Text>
           </Pressable>
@@ -240,7 +240,7 @@ export function LogBar({
         styles.bar,
         {
           backgroundColor: tokens.surface,
-          borderTopColor: tokens.border,
+          borderTopColor: tokens.hair,
           paddingBottom: barBottom(insets.bottom),
         },
       ]}
@@ -284,13 +284,13 @@ export function LogBar({
                   style={[
                     styles.circle,
                     shortcut
-                      ? [styles.circleDashed, { borderColor: tokens.border }]
-                      : { backgroundColor: tint.bg },
+                      ? [styles.circleDashed, { borderColor: tokens.hair }]
+                      : { backgroundColor: tint.fill },
                   ]}
                 >
                   {createElement(slotIcon(slot), {
                     size: 21,
-                    color: shortcut ? tokens.muted : tint.fg,
+                    color: shortcut ? tokens.muted : tint.on,
                     strokeWidth: 1.9,
                   })}
                 </View>
@@ -429,14 +429,14 @@ function ArrangeItem({
         style={[
           styles.circle,
           shortcut
-            ? [styles.circleDashed, { borderColor: tokens.border }]
-            : { backgroundColor: tint.bg },
-          lifted && { borderColor: tokens.accent, borderWidth: 2 },
+            ? [styles.circleDashed, { borderColor: tokens.hair }]
+            : { backgroundColor: tint.fill },
+          lifted && { borderColor: tokens.ink, borderWidth: 2 },
         ]}
       >
         {createElement(slotIcon(slot), {
           size: 21,
-          color: shortcut ? tokens.muted : tint.fg,
+          color: shortcut ? tokens.muted : tint.on,
           strokeWidth: 1.9,
         })}
       </View>
@@ -452,37 +452,40 @@ const styles = StyleSheet.create({
   },
   row: { gap: 0 },
   item: {
-    // Fixed rather than flexed: the bar holds every tracked type, so past six
-    // it must scroll instead of shrinking below a 44px target.
-    width: ITEM_WIDTH,
+    // A minimum rather than flexed: the bar holds every tracked type, so past
+    // six it must scroll instead of shrinking below a 44px target. A minimum,
+    // not a fixed width, so a longer or larger label widens its button.
+    minWidth: ITEM_WIDTH,
+    paddingHorizontal: SPACE[1],
     alignItems: 'center',
     gap: 5,
   },
   circle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: SIZE.tileM,
+    height: SIZE.tileM,
+    borderRadius: RADIUS.tileM,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },
   // What separates "record what happened" from "remind me later" in a shared
   // row and arrangement.
   circleDashed: { borderWidth: 1, borderStyle: 'dashed' },
-  label: { fontSize: 10.5 },
+  label: { ...TYPE.footnote },
   arrangeHead: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     paddingBottom: 8,
   },
-  arrangeHint: { flex: 1, fontSize: 12.5 },
+  arrangeHint: { ...TYPE.footnote, flex: 1 },
   done: {
     minHeight: 32,
     justifyContent: 'center',
     paddingHorizontal: 14,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  doneText: { fontSize: 14, fontWeight: '700' },
+  doneText: { ...TYPE.bodyStrong },
   arrangeRow: { flexDirection: 'row', alignItems: 'center' },
   arrangeItem: { alignItems: 'center', paddingVertical: 4 },
   arrangeLifted: { zIndex: 2 },

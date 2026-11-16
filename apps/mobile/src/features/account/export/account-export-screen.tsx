@@ -19,7 +19,7 @@ import { useAvailability } from '../../../availability/AvailabilityProvider'
 import { AuthError } from '../../../components/AuthError'
 import { haptics } from '../../../feedback/haptics'
 import { fmt, useI18n } from '../../../i18n'
-import { TYPE, useTokens } from '../../../theme/tokens'
+import { TABULAR, TYPE, useTokens } from '../../../theme/tokens'
 import { Button } from '../../../ui/button'
 import {
   DataExportError,
@@ -54,13 +54,13 @@ export function AccountExportScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.content,
         { paddingBottom: insets.bottom + 24 },
       ]}
     >
-      <Text style={[styles.lead, { color: tokens.fg }]}>
+      <Text style={[styles.lead, { color: tokens.ink }]}>
         {copy.description}
       </Text>
       <Text style={[styles.body, { color: tokens.muted }]}>{copy.leftOut}</Text>
@@ -79,7 +79,7 @@ export function AccountExportScreen() {
       {progress && progress.total > 0 ? (
         <Text
           accessibilityLiveRegion="polite"
-          style={[styles.body, { color: tokens.muted }]}
+          style={[styles.progress, { color: tokens.muted }]}
         >
           {fmt(copy.busy, { done: progress.done, total: progress.total })}
         </Text>
@@ -90,6 +90,7 @@ export function AccountExportScreen() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 16, gap: 16 },
-  lead: { ...TYPE.lead, fontWeight: '600' },
-  body: TYPE.body,
+  lead: TYPE.bodyStrong,
+  body: TYPE.subhead,
+  progress: { ...TYPE.subhead, ...TABULAR },
 })

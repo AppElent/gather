@@ -16,7 +16,7 @@ export default function DropLayout() {
       screenOptions={{
         headerShown: true,
         headerBackButtonDisplayMode: 'minimal',
-        contentStyle: { backgroundColor: tokens.bg },
+        contentStyle: { backgroundColor: tokens.ground },
       }}
     />
   )

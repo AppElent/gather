@@ -31,7 +31,7 @@ import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { moduleHref } from '../moduleDestination'
 import { EVENT_ICONS } from './icons'
 import { useBabyLog } from './useBabyLog'
@@ -107,7 +107,7 @@ export function TimelineScreen() {
       />
       <SectionList
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 24 },
@@ -161,7 +161,7 @@ export function TimelineScreen() {
                   }
                   style={({ pressed }) => [
                     styles.row,
-                    { borderBottomColor: tokens.border },
+                    { borderBottomColor: tokens.hair },
                     pressed && styles.pressed,
                   ]}
                 >
@@ -171,11 +171,11 @@ export function TimelineScreen() {
                       minute: '2-digit',
                     })}
                   </Text>
-                  <View style={[styles.glyph, { backgroundColor: tint.bg }]}>
-                    <Icon size={17} color={tint.fg} strokeWidth={1.9} />
+                  <View style={[styles.glyph, { backgroundColor: tint.fill }]}>
+                    <Icon size={17} color={tint.on} strokeWidth={1.9} />
                   </View>
                   <View style={styles.text}>
-                    <Text style={[styles.title, { color: tokens.fg }]}>
+                    <Text style={[styles.title, { color: tokens.ink }]}>
                       {t.baby.eventTypes[item.type]}
                     </Text>
                     <Text style={[styles.detail, { color: tokens.muted }]}>
@@ -200,8 +200,7 @@ export function TimelineScreen() {
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12 },
   day: {
-    fontSize: 12,
-    fontWeight: '700',
+    ...TYPE.footnoteStrong,
     letterSpacing: 0.8,
     paddingTop: 14,
     paddingBottom: 8,
@@ -215,17 +214,18 @@ const styles = StyleSheet.create({
   },
   // Wide enough for a 12-hour clock: "9:18 AM" wrapped to two lines at the
   // width a 24-hour "09:18" needs, and the locale decides which one this is.
-  time: { width: 62, fontSize: 13 },
+  time: { ...TYPE.footnote, ...TABULAR, width: 62 },
   glyph: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: SIZE.tileS,
+    height: SIZE.tileS,
+    borderRadius: RADIUS.tileS,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },
   text: { flex: 1, gap: 1 },
-  title: { fontSize: 15, fontWeight: '600' },
-  detail: { fontSize: 13 },
-  empty: { fontSize: 15, textAlign: 'center', paddingVertical: 40 },
+  title: { ...TYPE.bodyStrong },
+  detail: { ...TYPE.footnote },
+  empty: { ...TYPE.subhead, textAlign: 'center', paddingVertical: 40 },
   pressed: { opacity: 0.6 },
 })

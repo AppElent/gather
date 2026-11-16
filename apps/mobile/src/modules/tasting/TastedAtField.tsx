@@ -19,7 +19,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { TASTING_UI_ICONS } from './icons'
 
 /** The same day, `days` later or earlier. Never past today. */
@@ -41,7 +41,6 @@ export function TastedAtField({
 }) {
   const tokens = useTokens('tasting')
   const { t, locale } = useI18n()
-  const tint = tokens.tintOf('tasting')
   const words = t.tastings.composer
   const Calendar = TASTING_UI_ICONS.Calendar
 
@@ -69,14 +68,14 @@ export function TastedAtField({
     <View
       style={[
         styles.row,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        { backgroundColor: tokens.surface, borderColor: tokens.hair },
       ]}
     >
       <Calendar size={17} color={tokens.muted} strokeWidth={1.9} />
       <Text style={[styles.label, { color: tokens.muted }]}>
         {words.tastedAt}
       </Text>
-      <Text style={[styles.value, { color: tokens.fg }]}>{label}</Text>
+      <Text style={[styles.value, { color: tokens.ink }]}>{label}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={words.earlierDay}
@@ -85,7 +84,7 @@ export function TastedAtField({
         hitSlop={8}
         style={({ pressed }) => [styles.step, pressed && styles.pressed]}
       >
-        <Text style={[styles.glyph, { color: tint.fg }]}>−</Text>
+        <Text style={[styles.glyph, { color: tokens.accentText }]}>−</Text>
       </Pressable>
       <Pressable
         accessibilityRole="button"
@@ -98,7 +97,7 @@ export function TastedAtField({
           (pressed || value === today) && styles.pressed,
         ]}
       >
-        <Text style={[styles.glyph, { color: tint.fg }]}>+</Text>
+        <Text style={[styles.glyph, { color: tokens.accentText }]}>+</Text>
       </Pressable>
     </View>
   )
@@ -112,17 +111,17 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingLeft: 14,
     paddingRight: 4,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  label: { fontSize: 15 },
-  value: { flex: 1, textAlign: 'right', fontSize: 16, fontWeight: '600' },
+  label: { ...TYPE.subhead },
+  value: { ...TYPE.bodyStrong, flex: 1, textAlign: 'right' },
   step: {
     width: 40,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  glyph: { fontSize: 22, fontWeight: '600', lineHeight: 26 },
+  glyph: { ...TYPE.title2 },
   pressed: { opacity: 0.5 },
 })

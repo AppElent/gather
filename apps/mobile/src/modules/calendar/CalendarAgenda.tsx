@@ -11,7 +11,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SwipeableRow } from '../../components/SwipeableRow'
 import { fmt, useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 
 export interface CalendarAgendaProps {
   from: string
@@ -105,14 +105,14 @@ export function CalendarAgenda({
             onPress={() => onEvent(event)}
             style={({ pressed }) => [
               styles.event,
-              { backgroundColor: tokens.surface, borderColor: tokens.border },
+              { backgroundColor: tokens.surface, borderColor: tokens.hair },
               pressed && styles.pressed,
             ]}
           >
             <View
               style={[
                 styles.colorBar,
-                { backgroundColor: tokens.tintOf(event.color).fg },
+                { backgroundColor: tokens.tintOf(event.color).fill },
               ]}
             />
             <View style={styles.eventBody}>
@@ -124,7 +124,7 @@ export function CalendarAgenda({
                   {event.calendarName ?? event.calendarId}
                 </Text>
               </View>
-              <Text style={[styles.eventTitle, { color: tokens.fg }]}>
+              <Text style={[styles.eventTitle, { color: tokens.ink }]}>
                 {event.title}
               </Text>
               {who ? (
@@ -156,7 +156,7 @@ export function CalendarAgenda({
         <Pressable
           testID={`calendar-gap-${item.from}`}
           onPress={() => onExpandGap?.(item.dates)}
-          style={[styles.gap, { borderColor: tokens.border }]}
+          style={[styles.gap, { borderColor: tokens.hair }]}
           accessibilityRole="button"
         >
           <Text style={[styles.gapText, { color: tokens.muted }]}>
@@ -182,12 +182,13 @@ export function CalendarAgenda({
           style={styles.dayHeading}
           accessibilityRole="header"
         >
-          {/* The selected day takes the accent; the long label already says
-              which day it is, so there is no second, ISO copy of it. */}
+          {/* The selected day is set in ink and the others in muted; the long
+              label already says which day it is, so there is no second, ISO
+              copy of it. */}
           <Text
             style={[
               styles.dayTitle,
-              { color: item.date === selectedDate ? tokens.accent : tokens.fg },
+              { color: item.date === selectedDate ? tokens.ink : tokens.muted },
             ]}
           >
             {item.date === today ? `${t.calendar.today} · ${label}` : label}
@@ -232,12 +233,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  dayTitle: { fontSize: 16, fontWeight: '700', textTransform: 'capitalize' },
-  empty: { paddingHorizontal: 8, paddingBottom: 12, fontSize: 13 },
+  dayTitle: { ...TYPE.bodyStrong, textTransform: 'capitalize' },
+  empty: { ...TYPE.footnote, paddingHorizontal: 8, paddingBottom: 12 },
   event: {
     minHeight: 68,
     flexDirection: 'row',
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     borderWidth: StyleSheet.hairlineWidth,
     marginBottom: 8,
     overflow: 'hidden',
@@ -245,10 +246,10 @@ const styles = StyleSheet.create({
   colorBar: { width: 4 },
   eventBody: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, gap: 3 },
   eventTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  when: { fontSize: 12, fontWeight: '600' },
-  calendar: { fontSize: 11, flexShrink: 1 },
-  eventTitle: { fontSize: 16, fontWeight: '600' },
-  meta: { fontSize: 12 },
+  when: { ...TYPE.footnoteStrong, ...TABULAR },
+  calendar: { ...TYPE.footnote, flexShrink: 1 },
+  eventTitle: { ...TYPE.bodyStrong },
+  meta: { ...TYPE.footnote },
   gap: {
     minHeight: 48,
     justifyContent: 'center',
@@ -257,6 +258,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     marginVertical: 8,
   },
-  gapText: { fontSize: 13 },
+  gapText: { ...TYPE.footnote },
   pressed: { opacity: 0.7 },
 })

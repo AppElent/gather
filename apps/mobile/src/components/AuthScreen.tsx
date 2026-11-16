@@ -21,7 +21,7 @@ import {
   View,
 } from 'react-native'
 
-import { useTokens } from '../theme/tokens'
+import { TYPE, useTokens } from '../theme/tokens'
 
 interface AuthScreenProps {
   heading: string
@@ -41,7 +41,7 @@ export function AuthScreen({
 
   return (
     <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: tokens.bg }]}
+      style={[styles.flex, { backgroundColor: tokens.ground }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
@@ -52,7 +52,7 @@ export function AuthScreen({
         <View style={styles.head}>
           <Text
             accessibilityRole="header"
-            style={[styles.heading, { color: tokens.fg }]}
+            style={[styles.heading, { color: tokens.ink }]}
           >
             {heading}
           </Text>
@@ -75,8 +75,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40, gap: 26 },
   head: { gap: 8 },
-  heading: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
-  subtitle: { fontSize: 15, lineHeight: 22 },
+  heading: { ...TYPE.title2, letterSpacing: -0.5 },
+  subtitle: { ...TYPE.subhead },
   body: { gap: 18 },
   footer: { alignItems: 'center' },
 })

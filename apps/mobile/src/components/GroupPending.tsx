@@ -13,7 +13,7 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../i18n'
-import { useTokens } from '../theme/tokens'
+import { TYPE, useTokens } from '../theme/tokens'
 import { useHideSplash } from '../useHideSplash'
 
 export function GroupPending() {
@@ -24,7 +24,7 @@ export function GroupPending() {
   return (
     <View
       onLayout={onLayout}
-      style={[styles.wrap, { backgroundColor: tokens.bg }]}
+      style={[styles.wrap, { backgroundColor: tokens.ground }]}
     >
       <ActivityIndicator color={tokens.muted} />
       <Text
@@ -45,5 +45,5 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 44,
   },
-  text: { fontSize: 15, lineHeight: 22, textAlign: 'center' },
+  text: { ...TYPE.subhead, textAlign: 'center' },
 })

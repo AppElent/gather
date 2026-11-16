@@ -58,7 +58,7 @@ import { useQuery } from '../../convex/queries'
 import { useDrop } from '../../drop/DropProvider'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { moduleHref } from '../moduleDestination'
 import { RecipeFields, SaveRecipeButton } from './RecipeFields'
 import {
@@ -172,7 +172,7 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
       setImportProblem(
         isAiLimitReached(error)
           ? text.form.aiLimitReached
-          : refusalSentence(error) ?? text.create.importFailed,
+          : (refusalSentence(error) ?? text.create.importFailed),
       )
     } finally {
       setImporting(false)
@@ -230,12 +230,12 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
       />
       <KeyboardAvoidingView
         // Solid, or the collection behind shows through above the keyboard.
-        style={[styles.fill, { backgroundColor: tokens.bg }]}
+        style={[styles.fill, { backgroundColor: tokens.ground }]}
         behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          style={{ backgroundColor: tokens.bg }}
+          style={{ backgroundColor: tokens.ground }}
           contentContainerStyle={[
             styles.content,
             { paddingBottom: insets.bottom + 32 },
@@ -270,9 +270,9 @@ export function ComposeRecipeScreen({ mode }: ComposeRecipeScreenProps) {
                     styles.input,
                     styles.linkInput,
                     {
-                      color: tokens.fg,
+                      color: tokens.ink,
                       backgroundColor: tokens.surface,
-                      borderColor: tokens.border,
+                      borderColor: tokens.hair,
                     },
                   ]}
                 />
@@ -369,26 +369,26 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 14 },
   field: { gap: 6 },
-  label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  label: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   linkRow: { flexDirection: 'row', gap: 8 },
   linkInput: { flex: 1 },
   input: {
+    ...TYPE.body,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 13,
     paddingVertical: 12,
-    fontSize: 16,
     minHeight: 46,
   },
   importButton: {
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 16,
     minHeight: 46,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  importLabel: { fontSize: 15, fontWeight: '700' },
-  note: { fontSize: 13, lineHeight: 19 },
-  problem: { fontSize: 13, lineHeight: 19 },
+  importLabel: { ...TYPE.bodyStrong },
+  note: { ...TYPE.footnote },
+  problem: { ...TYPE.footnote },
   pressed: { opacity: 0.7 },
 })

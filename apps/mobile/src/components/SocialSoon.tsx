@@ -25,7 +25,7 @@
  */
 import { StyleSheet, Text, View } from 'react-native'
 import { fmt, useI18n } from '../i18n'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 const PROVIDERS = ['apple', 'microsoft', 'google'] as const
 
@@ -38,11 +38,11 @@ export function SocialSoon() {
   return (
     <View style={styles.wrap}>
       <View style={styles.headingRow}>
-        <View style={[styles.rule, { backgroundColor: tokens.border }]} />
+        <View style={[styles.rule, { backgroundColor: tokens.hair }]} />
         <Text style={[styles.heading, { color: tokens.muted }]}>
           {t.social.heading}
         </Text>
-        <View style={[styles.rule, { backgroundColor: tokens.border }]} />
+        <View style={[styles.rule, { backgroundColor: tokens.hair }]} />
       </View>
 
       {PROVIDERS.map((provider) => (
@@ -55,13 +55,13 @@ export function SocialSoon() {
           })}
           style={[
             styles.row,
-            { borderColor: tokens.border, backgroundColor: tokens.surface },
+            { borderColor: tokens.hair, backgroundColor: tokens.surface },
           ]}
         >
           <Text style={[styles.label, { color: tokens.muted }]}>
             {t.social[provider]}
           </Text>
-          <View style={[styles.badge, { borderColor: tokens.border }]}>
+          <View style={[styles.badge, { borderColor: tokens.hair }]}>
             <Text style={[styles.badgeText, { color: tokens.muted }]}>
               {t.social.soon}
             </Text>
@@ -81,25 +81,25 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   rule: { flex: 1, height: StyleSheet.hairlineWidth },
-  heading: { fontSize: 12.5, fontWeight: '600' },
+  heading: { ...TYPE.footnoteStrong },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
     borderWidth: 1,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     paddingVertical: 13,
     paddingHorizontal: 16,
     // Half-strength, so the row reads as staged at a glance and not merely quiet.
     opacity: 0.62,
   },
-  label: { fontSize: 15.5, fontWeight: '600' },
+  label: { ...TYPE.bodyStrong },
   badge: {
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 7,
     paddingVertical: 1.5,
   },
-  badgeText: { fontSize: 10.5, fontWeight: '700', letterSpacing: 0.3 },
+  badgeText: { ...TYPE.footnoteStrong, letterSpacing: 0.3 },
 })

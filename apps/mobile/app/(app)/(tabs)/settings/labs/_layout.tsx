@@ -20,7 +20,7 @@ export default function LabsLayout() {
         headerShown: false,
         headerBackButtonDisplayMode: 'minimal',
         headerLargeTitle: true,
-        contentStyle: { backgroundColor: tokens.bg },
+        contentStyle: { backgroundColor: tokens.ground },
       }}
     >
       <Stack.Screen

@@ -52,7 +52,7 @@ import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, TYPE, useTokens } from '../../theme/tokens'
 import { StarRating } from './StarRating'
 import { subjectFacts } from './summary'
 import { TastedAtField } from './TastedAtField'
@@ -163,7 +163,7 @@ export function ComposerScreen({
 
   if (loading) {
     return (
-      <View style={[styles.centre, { backgroundColor: tokens.bg }]}>
+      <View style={[styles.centre, { backgroundColor: tokens.ground }]}>
         <ActivityIndicator color={tokens.muted} />
       </View>
     )
@@ -172,7 +172,7 @@ export function ComposerScreen({
   if (subjectId && page === null) {
     // Deleted from another device, or a stale deep link.
     return (
-      <View style={[styles.centre, { backgroundColor: tokens.bg }]}>
+      <View style={[styles.centre, { backgroundColor: tokens.ground }]}>
         <Text style={{ color: tokens.muted }}>{t.tastings.index.noScore}</Text>
       </View>
     )
@@ -280,7 +280,7 @@ export function ComposerScreen({
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 32 },
@@ -290,12 +290,14 @@ export function ComposerScreen({
           <View
             style={[
               styles.subjectRow,
-              { backgroundColor: tokens.surface, borderColor: tokens.border },
+              { backgroundColor: tokens.surface, borderColor: tokens.hair },
             ]}
           >
-            <View style={[styles.thumb, { backgroundColor: tokens.tile }]} />
+            <View
+              style={[styles.thumb, { backgroundColor: tokens.surface2 }]}
+            />
             <View style={styles.subjectText}>
-              <Text style={[styles.subjectName, { color: tokens.fg }]}>
+              <Text style={[styles.subjectName, { color: tokens.ink }]}>
                 {page.subject.name}
               </Text>
               <Text style={[styles.subjectNote, { color: tokens.muted }]}>
@@ -327,8 +329,8 @@ export function ComposerScreen({
                   styles.nameInput,
                   {
                     backgroundColor: tokens.surface,
-                    borderColor: tokens.border,
-                    color: tokens.fg,
+                    borderColor: tokens.hair,
+                    color: tokens.ink,
                   },
                 ]}
               />
@@ -347,7 +349,7 @@ export function ComposerScreen({
         ) : null}
 
         {showFacts && showTasting ? (
-          <View style={[styles.rule, { backgroundColor: tokens.border }]} />
+          <View style={[styles.rule, { backgroundColor: tokens.hair }]} />
         ) : null}
 
         {showTasting ? (
@@ -391,11 +393,11 @@ export function ComposerScreen({
             style={({ pressed }) => [
               styles.button,
               styles.secondary,
-              { borderColor: tokens.border },
+              { borderColor: tokens.hair },
               pressed && styles.pressed,
             ]}
           >
-            <Text style={[styles.buttonText, { color: tokens.fg }]}>
+            <Text style={[styles.buttonText, { color: tokens.ink }]}>
               {composer.cancel}
             </Text>
           </Pressable>
@@ -408,20 +410,18 @@ export function ComposerScreen({
             style={({ pressed }) => [
               styles.button,
               {
-                backgroundColor: blocked
-                  ? tokens.tile
-                  : tokens.tintOf('tasting').fg,
+                backgroundColor: blocked ? tokens.surface2 : tokens.accent,
               },
               pressed && styles.pressed,
             ]}
           >
             {busy ? (
-              <ActivityIndicator color={tokens.surface} />
+              <ActivityIndicator color={tokens.onAccent} />
             ) : (
               <Text
                 style={[
                   styles.buttonText,
-                  { color: blocked ? tokens.muted : tokens.surface },
+                  { color: blocked ? tokens.muted : tokens.onAccent },
                 ]}
               >
                 {editing ? composer.saveEdit : composer.save}
@@ -446,31 +446,36 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.card,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  thumb: { width: 36, height: 36, borderRadius: 11 },
+  thumb: {
+    width: SIZE.tileM,
+    height: SIZE.tileM,
+    borderRadius: RADIUS.tileM,
+    borderCurve: 'continuous',
+  },
   subjectText: { flex: 1, gap: 1 },
-  subjectName: { fontSize: 16, fontWeight: '600' },
-  subjectNote: { fontSize: 13 },
-  heading: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  subjectName: { ...TYPE.bodyStrong },
+  subjectNote: { ...TYPE.footnote },
+  heading: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   field: { gap: 7 },
-  fieldLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  fieldLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   nameInput: {
+    ...TYPE.body,
     minHeight: 48,
     paddingHorizontal: 14,
-    fontSize: 16,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     borderWidth: StyleSheet.hairlineWidth,
   },
   rule: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
-  error: { fontSize: 13 },
+  error: { ...TYPE.footnote },
   buttons: { flexDirection: 'row', gap: 10, marginTop: 8 },
   button: {
     flex: 1,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
   secondary: { borderWidth: StyleSheet.hairlineWidth },
-  buttonText: { fontSize: 15, fontWeight: '700' },
+  buttonText: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.6 },
 })

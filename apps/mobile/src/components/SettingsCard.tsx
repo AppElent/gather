@@ -11,7 +11,7 @@ import type { ReactNode } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { UI_ICONS } from '../theme/icons'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 export function SettingsCard({
   title,
@@ -29,13 +29,13 @@ export function SettingsCard({
     <View
       style={[
         styles.card,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        { backgroundColor: tokens.surface, borderColor: tokens.hair },
       ]}
     >
       {title ? (
         <Text
           accessibilityRole="header"
-          style={[styles.title, { color: tokens.fg }]}
+          style={[styles.title, { color: tokens.ink }]}
         >
           {title}
         </Text>
@@ -80,7 +80,7 @@ export function SettingsRow({
         disabled && styles.disabled,
       ]}
     >
-      <Text numberOfLines={1} style={[styles.rowLabel, { color: tokens.fg }]}>
+      <Text numberOfLines={1} style={[styles.rowLabel, { color: tokens.ink }]}>
         {label}
       </Text>
       <ChevronRight
@@ -101,15 +101,15 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
   },
-  title: { fontSize: 16, fontWeight: '700' },
-  description: { fontSize: 14, lineHeight: 20 },
+  title: { ...TYPE.bodyStrong },
+  description: { ...TYPE.subhead },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     minHeight: 44,
   },
-  rowLabel: { flex: 1, fontSize: 16, fontWeight: '600' },
+  rowLabel: { ...TYPE.bodyStrong, flex: 1 },
   pressed: { opacity: 0.7 },
   disabled: { opacity: 0.45 },
 })

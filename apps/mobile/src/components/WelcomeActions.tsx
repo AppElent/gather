@@ -17,7 +17,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { devLogin } from '../auth/config'
 import { usePasswordSignIn } from '../auth/usePasswordSignIn'
 import { useI18n } from '../i18n'
-import { useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import { Button } from '../ui/button'
 import { AuthError } from './AuthError'
 
@@ -47,9 +47,9 @@ export function WelcomeActions() {
 
       {shortcut ? (
         <View style={styles.dev}>
-          <View style={[styles.rule, { backgroundColor: tokens.border }]} />
+          <View style={[styles.rule, { backgroundColor: tokens.hair }]} />
           <View style={styles.devRow}>
-            <View style={[styles.badge, { borderColor: tokens.border }]}>
+            <View style={[styles.badge, { borderColor: tokens.hair }]}>
               <Text style={[styles.badgeText, { color: tokens.muted }]}>
                 {t.welcome.devBadge}
               </Text>
@@ -80,9 +80,9 @@ const styles = StyleSheet.create({
   devButton: { paddingHorizontal: 10 },
   badge: {
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  badgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
+  badgeText: { ...TYPE.footnoteStrong, letterSpacing: 0.3 },
 })

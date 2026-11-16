@@ -75,7 +75,7 @@ export function ListsScreen() {
       <Stack.Screen options={{ headerShown: true, title }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 24 },

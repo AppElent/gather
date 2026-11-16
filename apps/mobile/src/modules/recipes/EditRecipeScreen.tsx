@@ -27,7 +27,7 @@ import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
-import { useTokens } from '../../theme/tokens'
+import { TYPE, useTokens } from '../../theme/tokens'
 import { RecipeFields, SaveRecipeButton } from './RecipeFields'
 import {
   type RecipeFormValues,
@@ -117,12 +117,12 @@ export function EditRecipeScreen() {
     <>
       <Stack.Screen options={{ headerShown: true, title: text.edit.title }} />
       <KeyboardAvoidingView
-        style={[styles.fill, { backgroundColor: tokens.bg }]}
+        style={[styles.fill, { backgroundColor: tokens.ground }]}
         behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          style={{ backgroundColor: tokens.bg }}
+          style={{ backgroundColor: tokens.ground }}
           contentContainerStyle={[
             styles.content,
             { paddingBottom: insets.bottom + 32 },
@@ -168,6 +168,6 @@ export function EditRecipeScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 14 },
-  missing: { fontSize: 15, textAlign: 'center', paddingVertical: 40 },
-  problem: { fontSize: 13, lineHeight: 19 },
+  missing: { ...TYPE.subhead, textAlign: 'center', paddingVertical: 40 },
+  problem: { ...TYPE.footnote },
 })

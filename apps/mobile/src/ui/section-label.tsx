@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { StyleSheet, Text } from 'react-native'
 
-import { useTokens } from '../theme/tokens'
+import { TYPE, useTokens } from '../theme/tokens'
 
 /** The section heading above a `Card`. */
 export function SectionLabel({ children }: { children: ReactNode }) {
@@ -15,8 +15,7 @@ export function SectionLabel({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+    ...TYPE.footnoteStrong,
     letterSpacing: 0.8,
     paddingHorizontal: 4,
   },

@@ -2,19 +2,21 @@
  * The app's button: the weights of action a screen needs, from the front door
  * to Account and the Group forms. Reach for this before writing another.
  *
- * `primary` is ink, because the front door belongs to no Module and ADR-0017's
- * accent rule says the accent is ink where you are looking at everything. That
- * is also why none of these take a tint: a tinted Sign in would be claiming the
+ * Every variant is a pill (`RADIUS.pill`).
+ *
+ * `primary` is filled with `tokens.accent` and labelled in `tokens.onAccent`.
+ * It takes no group, so that is ink with an `onInk` label: the front door
+ * belongs to no Module, and ADR-0017's accent rule says the accent is ink
+ * where you are looking at everything. A tinted Sign in would be claiming the
  * person is somewhere they have not arrived yet.
  *
  * `busy` keeps the label in place and swaps in a spinner beside it rather than
  * replacing the text — the button must not change width mid-tap.
  *
  * `danger` is the fourth, and it exists for deleting what cannot come back:
- * your account, or a Group. It is filled rather than outlined because it is
- * the last thing on its screen and it must not read as the quiet way out; it is
- * also the only button in the app that takes the accent away from ink on
- * purpose.
+ * your account, or a Group. It is filled with `tokens.danger` and labelled in
+ * `tokens.onInk`, rather than outlined, because it is the last thing on its
+ * screen and it must not read as the quiet way out.
  */
 import {
   ActivityIndicator,
@@ -26,7 +28,7 @@ import {
   type ViewStyle,
 } from 'react-native'
 
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 interface ButtonProps {
   label: string
@@ -60,12 +62,16 @@ export function Button({
           ? {
               backgroundColor: 'transparent',
               borderWidth: 1,
-              borderColor: tokens.border,
+              borderColor: tokens.hair,
             }
           : { backgroundColor: 'transparent' }
 
   const color =
-    variant === 'primary' || variant === 'danger' ? tokens.onAccent : tokens.fg
+    variant === 'primary'
+      ? tokens.onAccent
+      : variant === 'danger'
+        ? tokens.onInk
+        : tokens.ink
 
   return (
     <Pressable
@@ -93,14 +99,14 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     paddingVertical: 15,
     paddingHorizontal: 18,
     alignItems: 'center',
   },
   ghost: { paddingVertical: 11 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  label: { fontSize: 16, fontWeight: '600' },
+  label: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.82 },
   inert: { opacity: 0.5 },
 })

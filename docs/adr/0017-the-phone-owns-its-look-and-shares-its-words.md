@@ -18,7 +18,7 @@ Mobile owns its native layout, typography, neutrals, spacing, and controls. Both
 
 ## Enforcement
 
-`packages/core/src/moduleTints.ts` is keyed by `ModuleGroup`; `apps/mobile/src/theme/` consumes it through typed tokens. Message parity and core typechecks prevent shared vocabulary from drifting. See [`apps/mobile/DESIGN_SYSTEM.md`](../../apps/mobile/DESIGN_SYSTEM.md#interaction-vocabulary) for interaction conventions.
+`packages/core/src/moduleTints.ts` is keyed by `ModuleGroup` and gives each group four roles per theme (`fill`, `on`, `text`, `wash`); `apps/mobile/src/theme/` consumes it through typed tokens. The web does not read `MODULE_TINTS`. Message parity and core typechecks prevent shared vocabulary from drifting. See [`apps/mobile/DESIGN_SYSTEM.md`](../../apps/mobile/DESIGN_SYSTEM.md#interaction-vocabulary) for interaction conventions.
 
 ## Reopen when
 

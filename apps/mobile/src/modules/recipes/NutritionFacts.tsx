@@ -8,11 +8,14 @@
  * came from an import or from an estimate somebody asked for, and the badge
  * says which (ADR-0011's `nutrients.sources`).
  */
-import { type NutritionFacts as Facts, NUTRIENT_KEYS } from '@gather/core/domain'
+import {
+  type NutritionFacts as Facts,
+  NUTRIENT_KEYS,
+} from '@gather/core/domain'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 
 export interface NutritionFactsProps {
   nutrition: Facts
@@ -35,13 +38,13 @@ export function NutritionFacts({
     <View
       style={[
         styles.card,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        { backgroundColor: tokens.surface, borderColor: tokens.hair },
       ]}
     >
       <View style={styles.head}>
         <Text
           accessibilityRole="header"
-          style={[styles.title, { color: tokens.fg }]}
+          style={[styles.title, { color: tokens.ink }]}
         >
           {t.recipes.detail.nutrition}
         </Text>
@@ -49,7 +52,7 @@ export function NutritionFacts({
           <Text
             style={[
               styles.badge,
-              { color: tokens.muted, borderColor: tokens.border },
+              { color: tokens.muted, borderColor: tokens.hair },
             ]}
           >
             {t.nutrients.sources[source]}
@@ -63,7 +66,7 @@ export function NutritionFacts({
             <Text style={[styles.label, { color: tokens.muted }]}>
               {t.nutrients.labels[key]}
             </Text>
-            <Text style={[styles.value, { color: tokens.fg }]}>
+            <Text style={[styles.value, { color: tokens.ink }]}>
               {nutrition[key]}
             </Text>
           </View>
@@ -81,18 +84,18 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { flex: 1, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 },
+  title: { ...TYPE.bodyStrong, flex: 1, letterSpacing: -0.2 },
   badge: {
-    fontSize: 12,
+    ...TYPE.footnote,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  unit: { fontSize: 12.5, marginBottom: 6 },
+  unit: { ...TYPE.footnote, marginBottom: 6 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 10, columnGap: 12 },
   // Two per row at every phone width, without measuring.
   cell: { flexBasis: '46%', flexGrow: 1, gap: 1 },
-  label: { fontSize: 12 },
-  value: { fontSize: 16, fontWeight: '600' },
+  label: { ...TYPE.footnote },
+  value: { ...TYPE.bodyStrong, ...TABULAR },
 })
