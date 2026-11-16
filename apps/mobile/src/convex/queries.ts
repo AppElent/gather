@@ -26,7 +26,7 @@
  * provider lives in its own file because it needs React Native's `AppState`.
  */
 import type { OptionalRestArgsOrSkip, RequestForQueries } from 'convex/react'
-import { useConvexAuth, useConvexConnectionState } from 'convex/react'
+import { useConvexAuth } from 'convex/react'
 import type { FunctionReference, FunctionReturnType } from 'convex/server'
 import { getFunctionName } from 'convex/server'
 import type { Value } from 'convex/values'
@@ -75,6 +75,12 @@ function pick(fields: readonly string[]): Shape {
  * The persisted functions, each with what its screen draws. A function not
  * named here never touches disk. `loyaltyCards:get` is left out on purpose:
  * it carries photo URLs, and the list already holds every card's drawn fields.
+ *
+ * Until the live answer arrives, `useQuery` returns this trimmed copy under
+ * the function's full return type: every field not kept here (a card's
+ * `lastUsedAt`, `note`, `hasPhotos`) is briefly `undefined`. A screen that
+ * must not draw without such a field reads it with `useLiveQuery`, or the
+ * field is added here.
  */
 export const PERSISTED: Record<string, Shape> = {
   'loyaltyCards:list': pick(DRAWN_CARD_FIELDS),
@@ -83,7 +89,13 @@ export const PERSISTED: Record<string, Shape> = {
 /** Backend modules the offline fallback may read. Each is also persisted. */
 export const OFFLINE_READABLE = new Set(['loyaltyCards'])
 
-/** The disk scope of the confirmed account, set by `QueryCacheProvider`. */
+/** Whether the offline fallback may read this function's copy. */
+export function isOfflineReadable(name: string) {
+  return Boolean(PERSISTED[name]) && OFFLINE_READABLE.has(name.split(':')[0])
+}
+
+/** The disk scope of the confirmed account, set by `QueryCacheProvider` only
+ * while the socket is connected; `undefined` otherwise. */
 export const DiskScopeContext = createContext<string | undefined>(undefined)
 
 function cacheKey(
@@ -102,12 +114,13 @@ function cacheKey(
   }
 }
 
-/** Disk is read only while Convex is authenticated and connected. */
+/** Disk is read only while Convex is authenticated and connected. The
+ * provider follows the connection, so a screen does not re-render on every
+ * request count the connection state carries. */
 function useDiskScope() {
   const scope = useContext(DiskScopeContext)
   const { isAuthenticated } = useConvexAuth()
-  const { isWebSocketConnected } = useConvexConnectionState()
-  return isAuthenticated && isWebSocketConnected ? scope : undefined
+  return isAuthenticated ? scope : undefined
 }
 
 /** Live-only: retained subscriptions, never disk values. For forms, and for

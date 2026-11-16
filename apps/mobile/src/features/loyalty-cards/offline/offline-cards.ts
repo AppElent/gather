@@ -10,6 +10,9 @@
 import { type BarcodeFormat, isBarcodeFormat } from '@gather/core/barcodes'
 
 import { readOfflineEntries } from '../../../convex/lastKnown'
+import { isOfflineReadable } from '../../../convex/queries'
+
+const LIST = 'loyaltyCards:list'
 
 /** What an offline card draws: `DRAWN_CARD_FIELDS` in `convex/queries.ts`. */
 export interface OfflineCard {
@@ -46,11 +49,11 @@ function isOfflineCard(value: unknown): value is OfflineCard {
  * each, in the server's order. Empty means: show nothing, wait for Gather.
  */
 export function offlineCards(account: string | null | undefined): OfflineCard[] {
-  if (!account) return []
+  if (!account || !isOfflineReadable(LIST)) return []
   try {
     const seen = new Set<string>()
     const cards: OfflineCard[] = []
-    for (const list of readOfflineEntries(account, 'loyaltyCards:list')) {
+    for (const list of readOfflineEntries(account, LIST)) {
       if (!Array.isArray(list)) continue
       for (const card of list) {
         if (!isOfflineCard(card) || seen.has(card._id)) continue

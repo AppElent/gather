@@ -25,7 +25,7 @@
  * `idle`, `timeout`, `maxIdleEntries`); verify those still exist when
  * upgrading `convex-helpers`.
  */
-import { useConvexAuth } from 'convex/react'
+import { useConvexAuth, useConvexConnectionState } from 'convex/react'
 import { ConvexQueryCacheProvider } from 'convex-helpers/react/cache'
 import { ConvexQueryCacheContext } from 'convex-helpers/react/cache/provider'
 import { type ReactNode, useContext, useEffect, useLayoutEffect } from 'react'
@@ -66,6 +66,24 @@ function CacheLifecycle({ children }: { children: ReactNode }) {
   return children
 }
 
+/** The disk scope, only while the socket is connected. Only this component
+ * re-renders on connection-state changes; the context value is a string, so
+ * readers re-render only when it flips. */
+function DiskScope({
+  account,
+  children,
+}: {
+  account: string
+  children: ReactNode
+}) {
+  const { isWebSocketConnected } = useConvexConnectionState()
+  return (
+    <DiskScopeContext value={isWebSocketConnected ? diskScope(account) : undefined}>
+      {children}
+    </DiskScopeContext>
+  )
+}
+
 /** A live backend identity must match the locally selected account. */
 function useAccountReady(
   account: string | null | undefined,
@@ -103,7 +121,7 @@ export function QueryCacheProvider({
   }, [ready, account])
   if (!ready) return fallback
   return (
-    <DiskScopeContext value={diskScope(account)}>
+    <DiskScope account={account}>
       <ConvexQueryCacheProvider
         key={account}
         expiration={EXPIRATION_MS}
@@ -111,6 +129,6 @@ export function QueryCacheProvider({
       >
         <CacheLifecycle>{children}</CacheLifecycle>
       </ConvexQueryCacheProvider>
-    </DiskScopeContext>
+    </DiskScope>
   )
 }

@@ -10,14 +10,12 @@ import { mount } from '../testing/dom'
 
 const harness = vi.hoisted(() => ({
   isAuthenticated: true,
-  connected: true,
   live: new Map<string, unknown>(),
 }))
 
 vi.mock('convex/react', async (original) => ({
   ...(await original<typeof import('convex/react')>()),
   useConvexAuth: () => ({ isAuthenticated: harness.isAuthenticated, isLoading: false }),
-  useConvexConnectionState: () => ({ isWebSocketConnected: harness.connected }),
 }))
 
 vi.mock('convex-helpers/react/cache', () => ({
@@ -37,7 +35,8 @@ vi.mock('convex/server', async (original) => {
   }
 })
 
-const { DiskScopeContext, useLiveQuery, useQueries, useQuery } = await import('./queries')
+const { DiskScopeContext, isOfflineReadable, useLiveQuery, useQueries, useQuery } =
+  await import('./queries')
 const { diskScope, entryKey, setStoreForTests } = await import('./lastKnown')
 
 const list = Object.assign(
@@ -65,7 +64,6 @@ beforeEach(() => {
   map.clear()
   harness.live.clear()
   harness.isAuthenticated = true
-  harness.connected = true
   setStoreForTests({
     getItemSync: (k: string) => map.get(k) ?? null,
     setItemSync: (k: string, v: string) => void map.set(k, v),
@@ -75,14 +73,14 @@ beforeEach(() => {
 })
 afterEach(() => setStoreForTests(undefined))
 
-function render(read: () => unknown) {
+function render(read: () => unknown, at: string | null = scope) {
   const seen: unknown[] = []
   function Probe() {
     seen.push(read())
     return null
   }
   const view = mount(
-    <DiskScopeContext value={scope}>
+    <DiskScopeContext value={at ?? undefined}>
       <Probe />
     </DiskScopeContext>,
   )
@@ -109,11 +107,10 @@ describe('useQuery', () => {
 
   test('never shows the copy while disconnected or unauthenticated', () => {
     map.set(listKey, JSON.stringify([{ _id: 'k1' }]))
-    harness.connected = false
-    const a = render(() => useQuery(list, { groupSlug: 'home' }))
+    // Disconnected: the provider gives no scope.
+    const a = render(() => useQuery(list, { groupSlug: 'home' }), null)
     expect(a.seen.at(-1)).toBeUndefined()
     a.view.unmount()
-    harness.connected = true
     harness.isAuthenticated = false
     const b = render(() => useQuery(list, { groupSlug: 'home' }))
     expect(b.seen.at(-1)).toBeUndefined()
@@ -133,6 +130,12 @@ describe('useQuery', () => {
     expect(seen.at(-1)).toBeUndefined()
     view.unmount()
   })
+})
+
+test('only persisted functions of offline-readable modules are offline-readable', () => {
+  expect(isOfflineReadable('loyaltyCards:list')).toBe(true)
+  expect(isOfflineReadable('loyaltyCards:get')).toBe(false)
+  expect(isOfflineReadable('recipes:list')).toBe(false)
 })
 
 describe('useQueries', () => {
