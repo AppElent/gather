@@ -62,9 +62,10 @@ vi.mock('expo-image', () => ({
     }),
 }))
 vi.mock('../../../theme/tokens', () => ({
-  RADIUS: { tile: 13 },
-  TYPE: { title: {}, lead: {} },
-  useTokens: () => ({ border: '#e8e7e3' }),
+  RADIUS: { tileM: 11, tileL: 17 },
+  SIZE: { tileM: 36, tileL: 56 },
+  TYPE: { title2: {}, bodyStrong: {} },
+  useTokens: () => ({ hair: '#DFE2DE' }),
 }))
 // Stands in for the generated list, whose `require`s only Metro can load.
 vi.mock('./retailer-logo-files', () => ({
@@ -97,7 +98,7 @@ test('a Catalog store with a shipped logo shows it', () => {
   render('albert-heijn')
   expect(logo()?.getAttribute('data-source')).toBe('101')
   expect(logo()?.getAttribute('data-recycling-key')).toBe('albert-heijn')
-  expect(tile()?.getAttribute('data-border-color')).toBe('#e8e7e3')
+  expect(tile()?.getAttribute('data-border-color')).toBe('#DFE2DE')
   expect(monogram()).toBeNull()
   expectHiddenFromScreenReaders()
 })
