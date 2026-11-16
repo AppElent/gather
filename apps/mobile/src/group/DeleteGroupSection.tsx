@@ -20,7 +20,7 @@ import { useQuery } from '../convex/queries'
 import { confirmDestructive } from '../feedback/confirmDestructive'
 import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
-import { useTokens } from '../theme/tokens'
+import { TYPE, useTokens } from '../theme/tokens'
 import { Button } from '../ui/button'
 import { useGroup } from './GroupProvider'
 
@@ -69,7 +69,7 @@ export function DeleteGroupSection() {
       <Text
         accessibilityRole="header"
         numberOfLines={1}
-        style={[styles.heading, { color: tokens.fg }]}
+        style={[styles.heading, { color: tokens.ink }]}
       >
         {group.name}
       </Text>
@@ -100,6 +100,6 @@ export function DeleteGroupSection() {
 
 const styles = StyleSheet.create({
   section: { gap: 8 },
-  heading: { fontSize: 16, fontWeight: '700' },
-  note: { fontSize: 13, lineHeight: 19 },
+  heading: { ...TYPE.bodyStrong },
+  note: { ...TYPE.footnote },
 })

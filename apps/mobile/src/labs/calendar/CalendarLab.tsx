@@ -36,7 +36,7 @@ import { SwipeableRow } from '../../components/SwipeableRow'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { PrototypeBanner } from '../PrototypeBanner'
 import type {
   CalendarView,
@@ -395,23 +395,23 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
                 onPress={() => openNew()}
                 style={styles.headerButton}
               >
-                <UI_ICONS.Plus size={23} color={tint.fg} strokeWidth={2.3} />
+                <UI_ICONS.Plus size={23} color={tint.text} strokeWidth={2.3} />
               </Pressable>
             </View>
           ),
         }}
       />
 
-      <View style={[styles.fill, { backgroundColor: tokens.bg }]}>
+      <View style={[styles.fill, { backgroundColor: tokens.ground }]}>
         <PrototypeBanner />
 
         <View style={styles.titleRow}>
           <Text
             accessibilityRole="header"
-            style={[styles.month, { color: tokens.fg }]}
+            style={[styles.month, { color: tokens.ink }]}
           >
             {monthName}
-            <Text style={{ color: tokens.muted, fontWeight: '400' }}>
+            <Text style={{ color: tokens.muted }}>
               {` ${yearName}`}
             </Text>
           </Text>
@@ -422,7 +422,7 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
             hitSlop={10}
             onPress={goToday}
           >
-            <Text style={[styles.todayLink, { color: tint.fg }]}>
+            <Text style={[styles.todayLink, { color: tint.text }]}>
               {t.labs.calendar.today}
             </Text>
           </Pressable>
@@ -464,7 +464,7 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
             <Animated.View
               style={[
                 styles.fluidBody,
-                { top: WEEKDAY_STRIP, backgroundColor: tokens.bg },
+                { top: WEEKDAY_STRIP, backgroundColor: tokens.ground },
                 agendaSlide,
               ]}
             >
@@ -476,10 +476,10 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
                 <View
                   testID="calendar-grab"
                   accessibilityLabel={t.labs.calendar.dragHint}
-                  style={[styles.grabRow, { backgroundColor: tokens.bg }]}
+                  style={[styles.grabRow, { backgroundColor: tokens.ground }]}
                 >
                   <View
-                    style={[styles.grabber, { backgroundColor: tokens.border }]}
+                    style={[styles.grabber, { backgroundColor: tokens.hair }]}
                   />
                 </View>
               </GestureDetector>
@@ -515,7 +515,7 @@ export function CalendarLab({ nav, cell, composer }: CalendarLabProps) {
                     <View
                       style={[
                         styles.grabber,
-                        { backgroundColor: tokens.border },
+                        { backgroundColor: tokens.hair },
                       ]}
                     />
                     <Pressable
@@ -646,7 +646,7 @@ function ViewMenu({
         accessibilityLabel={t.labs.calendar.viewMenu}
         style={styles.headerButton}
       >
-        <UI_ICONS.CircleEllipsis size={23} color={tint.fg} strokeWidth={1.9} />
+        <UI_ICONS.CircleEllipsis size={23} color={tint.text} strokeWidth={1.9} />
       </View>
     </MenuView>
   )
@@ -703,7 +703,6 @@ function DayCell({
   onHold: (iso: string) => void
 }) {
   const tokens = useTokens('home')
-  const tint = tokens.tintOf('home')
   const { t } = useI18n()
   const isToday = iso === today
   const isSelected = iso === selected
@@ -738,14 +737,14 @@ function DayCell({
       }}
       style={[
         styles.cell,
-        isSelected && { backgroundColor: tokens.tile, borderColor: tint.fg },
+        isSelected && { backgroundColor: tokens.surface2, borderColor: tokens.ink },
       ]}
     >
-      <View style={[styles.dayNumber, isToday && { backgroundColor: tint.fg }]}>
+      <View style={[styles.dayNumber, isToday && { backgroundColor: tokens.ink }]}>
         <Text
           style={[
             styles.dayNumberText,
-            { color: isToday ? tokens.surface : tokens.muted },
+            { color: isToday ? tokens.onInk : tokens.muted },
           ]}
         >
           {localMidnight(iso).getDate()}
@@ -762,14 +761,14 @@ function DayCell({
             return mark.kind === 'nobody' ? (
               <View
                 key={mark.key}
-                style={[styles.dot, { backgroundColor: colours.fg }]}
+                style={[styles.dot, { backgroundColor: colours.fill }]}
               />
             ) : (
               <View
                 key={mark.key}
-                style={[styles.initial, { backgroundColor: colours.bg }]}
+                style={[styles.initial, { backgroundColor: colours.fill }]}
               >
-                <Text style={[styles.initialText, { color: colours.fg }]}>
+                <Text style={[styles.initialText, { color: colours.on }]}>
                   {mark.initial}
                 </Text>
               </View>
@@ -791,7 +790,7 @@ function DayCell({
             return (
               <View
                 key={event.id}
-                style={[styles.bar, { backgroundColor: colours.fg }]}
+                style={[styles.bar, { backgroundColor: colours.fill }]}
               />
             )
           })}
@@ -883,7 +882,7 @@ function Agenda({
   return (
     <ScrollView
       testID="calendar-agenda"
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={styles.listContent}
     >
       {rows.length === 0 ? (
@@ -961,11 +960,11 @@ function EventRow({
       onLongPress={() => {}}
       style={({ pressed }) => [
         styles.eventRow,
-        { borderBottomColor: tokens.border },
-        pressed && { backgroundColor: tokens.tile },
+        { borderBottomColor: tokens.hair },
+        pressed && { backgroundColor: tokens.surface2 },
       ]}
     >
-      <View style={[styles.eventBar, { backgroundColor: colours.fg }]} />
+      <View style={[styles.eventBar, { backgroundColor: colours.fill }]} />
       {/* Two lines, deliberately, rather than letting a 52-point column wrap a
           range wherever it likes — "14:30–1 / 5:15" is what that produced. */}
       <View style={styles.eventTime}>
@@ -978,7 +977,7 @@ function EventRow({
           </Text>
         ))}
       </View>
-      <Text numberOfLines={2} style={[styles.eventTitle, { color: tokens.fg }]}>
+      <Text numberOfLines={2} style={[styles.eventTitle, { color: tokens.ink }]}>
         {event.title}
       </Text>
       <View style={styles.eventWho}>
@@ -987,9 +986,15 @@ function EventRow({
           return (
             <View
               key={memberId}
-              style={[styles.whoRing, { borderColor: colours.fg }]}
+              style={[
+                styles.whoRing,
+                {
+                  backgroundColor: tokens.surface2,
+                  borderColor: tokens.surface2,
+                },
+              ]}
             >
-              <Text style={[styles.whoText, { color: colours.fg }]}>
+              <Text style={[styles.whoText, { color: tokens.ink }]}>
                 {member?.initial ?? '?'}
               </Text>
             </View>
@@ -1040,8 +1045,8 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 10,
   },
-  month: { flex: 1, fontSize: 26, fontWeight: '800', letterSpacing: -0.7 },
-  todayLink: { fontSize: 15.5, fontWeight: '600' },
+  month: { ...TYPE.title2, flex: 1, letterSpacing: -0.7 },
+  todayLink: { ...TYPE.bodyStrong },
   segmented: { paddingHorizontal: 16, paddingBottom: 10 },
   header: { paddingBottom: 2, overflow: 'hidden' },
   weekdays: {
@@ -1050,10 +1055,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   weekdayName: {
+    ...TYPE.footnoteStrong,
     flex: 1,
     textAlign: 'center',
-    fontSize: 11,
-    fontWeight: '700',
     letterSpacing: 0.6,
   },
   weekRow: { flexDirection: 'row', paddingHorizontal: 8 },
@@ -1063,18 +1067,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 5,
     gap: 4,
-    borderRadius: RADIUS.tile,
+    borderRadius: RADIUS.tileM,
     borderWidth: 1.6,
     borderColor: 'transparent',
   },
   dayNumber: {
-    width: 21,
-    height: 21,
-    borderRadius: 11,
+    minWidth: 21,
+    minHeight: 21,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dayNumberText: { fontSize: 12.5, fontWeight: '600' },
+  dayNumberText: { ...TYPE.footnoteStrong, ...TABULAR },
   marks: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1084,14 +1088,14 @@ const styles = StyleSheet.create({
   },
   dot: { width: 8, height: 8, borderRadius: 4 },
   initial: {
-    width: 19,
-    height: 19,
-    borderRadius: 10,
+    minWidth: 19,
+    minHeight: 19,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  initialText: { fontSize: 10, fontWeight: '700' },
-  overflow: { fontSize: 10, fontWeight: '700' },
+  initialText: { ...TYPE.footnoteStrong },
+  overflow: { ...TYPE.footnoteStrong, ...TABULAR },
   bars: { alignSelf: 'stretch', paddingHorizontal: 7, gap: 3 },
   bar: { height: 4, borderRadius: 2 },
   monthNav: {
@@ -1114,16 +1118,15 @@ const styles = StyleSheet.create({
   fluidBody: { position: 'absolute', left: 0, right: 0, bottom: -900, top: 0 },
   listContent: { paddingBottom: 160 },
   dayHeading: {
+    ...TYPE.footnoteStrong,
     paddingHorizontal: 16,
     paddingTop: 15,
     paddingBottom: 5,
-    fontSize: 12,
-    fontWeight: '700',
     letterSpacing: 0.7,
   },
-  empty: { paddingHorizontal: 16, paddingVertical: 10, fontSize: 15 },
+  empty: { ...TYPE.subhead, paddingHorizontal: 16, paddingVertical: 10 },
   gap: { paddingHorizontal: 16, paddingVertical: 18 },
-  gapText: { fontSize: 13, fontStyle: 'italic' },
+  gapText: { ...TYPE.footnote, fontStyle: 'italic' },
   eventRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1138,17 +1141,17 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     borderRadius: 2,
   },
-  eventTime: { width: 52 },
-  eventTimeText: { fontSize: 12.5, fontWeight: '600' },
-  eventTitle: { flex: 1, fontSize: 15.5, paddingVertical: 8 },
+  eventTime: { minWidth: 52 },
+  eventTimeText: { ...TYPE.footnoteStrong, ...TABULAR },
+  eventTitle: { ...TYPE.subhead, flex: 1, paddingVertical: 8 },
   eventWho: { flexDirection: 'row', gap: 3 },
   whoRing: {
-    width: 21,
-    height: 21,
-    borderRadius: 11,
+    minWidth: 21,
+    minHeight: 21,
+    borderRadius: RADIUS.pill,
     borderWidth: 1.4,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  whoText: { fontSize: 11, fontWeight: '700' },
+  whoText: { ...TYPE.footnoteStrong },
 })

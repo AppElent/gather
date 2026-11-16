@@ -36,7 +36,7 @@ import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { babyChildKey, writePreference } from '../../prefs/localPreference'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { EVENT_ICONS } from './icons'
 import { ListPicker, type PickedList } from './ListPicker'
 
@@ -113,20 +113,20 @@ export function CreateChild() {
     step === 1 ? trimmed.length > 0 && birthDate.length > 0 : true
 
   return (
-    <View style={[styles.screen, { backgroundColor: tokens.bg }]}>
+    <View style={[styles.screen, { backgroundColor: tokens.ground }]}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
         <Pressable
           accessibilityRole="button"
           onPress={() => (step === 1 ? router.back() : setStep(step - 1))}
           style={styles.headerSide}
         >
-          <Text style={[styles.headerAction, { color: tint.fg }]}>
+          <Text style={[styles.headerAction, { color: tint.text }]}>
             {step === 1 ? text.cancel : text.back}
           </Text>
         </Pressable>
         <Text
           accessibilityRole="header"
-          style={[styles.headerTitle, { color: tokens.fg }]}
+          style={[styles.headerTitle, { color: tokens.ink }]}
         >
           {step === 1
             ? text.aboutTitle
@@ -161,9 +161,9 @@ export function CreateChild() {
                 style={[
                   styles.input,
                   {
-                    borderColor: tokens.border,
+                    borderColor: tokens.hair,
                     backgroundColor: tokens.surface,
-                    color: tokens.fg,
+                    color: tokens.ink,
                   },
                 ]}
               />
@@ -178,9 +178,9 @@ export function CreateChild() {
                 style={[
                   styles.input,
                   {
-                    borderColor: tokens.border,
+                    borderColor: tokens.hair,
                     backgroundColor: tokens.surface,
-                    color: tokens.fg,
+                    color: tokens.ink,
                   },
                 ]}
               />
@@ -204,18 +204,15 @@ export function CreateChild() {
                       style={[
                         styles.segment,
                         {
-                          borderColor: on ? tint.fg : tokens.border,
-                          backgroundColor: on ? tint.bg : tokens.surface,
+                          borderColor: on ? tokens.ink : tokens.hair,
+                          backgroundColor: on ? tokens.ink : tokens.surface,
                         },
                       ]}
                     >
                       <Text
                         style={[
-                          styles.segmentText,
-                          {
-                            color: on ? tint.fg : tokens.fg,
-                            fontWeight: on ? '700' : '500',
-                          },
+                          on ? TYPE.footnoteStrong : TYPE.footnote,
+                          { color: on ? tokens.onInk : tokens.ink },
                         ]}
                       >
                         {label}
@@ -239,7 +236,7 @@ export function CreateChild() {
                 styles.card,
                 {
                   backgroundColor: tokens.surface,
-                  borderColor: tokens.border,
+                  borderColor: tokens.hair,
                 },
               ]}
             >
@@ -251,11 +248,11 @@ export function CreateChild() {
                     key={type}
                     style={[
                       styles.trackRow,
-                      { borderBottomColor: tokens.border },
+                      { borderBottomColor: tokens.hair },
                     ]}
                   >
-                    <Icon size={20} color={tint.fg} strokeWidth={1.9} />
-                    <Text style={[styles.trackLabel, { color: tokens.fg }]}>
+                    <Icon size={20} color={tokens.ink} strokeWidth={1.9} />
+                    <Text style={[styles.trackLabel, { color: tokens.ink }]}>
                       {t.baby.eventTypes[type]}
                     </Text>
                     <Switch
@@ -268,13 +265,13 @@ export function CreateChild() {
                             : prev.filter((each) => each !== type),
                         )
                       }
-                      trackColor={{ false: tokens.tile, true: tint.fg }}
+                      trackColor={{ false: tokens.surface2 }}
                     />
                   </View>
                 )
               })}
             </View>
-            <View style={[styles.notice, { backgroundColor: tokens.tile }]}>
+            <View style={[styles.notice, { backgroundColor: tokens.surface2 }]}>
               <UI_ICONS.CircleAlert
                 size={18}
                 color={tokens.muted}
@@ -323,14 +320,14 @@ export function CreateChild() {
           onPress={() => (step < TOTAL_STEPS ? setStep(step + 1) : submit())}
           style={({ pressed }) => [
             styles.primary,
-            { backgroundColor: tint.fg },
+            { backgroundColor: tokens.accent },
             (!canContinue || saving || pressed) && styles.dimmed,
           ]}
         >
           {saving ? (
-            <ActivityIndicator color={tokens.surface} />
+            <ActivityIndicator color={tokens.onAccent} />
           ) : (
-            <Text style={[styles.primaryText, { color: tokens.surface }]}>
+            <Text style={[styles.primaryText, { color: tokens.onAccent }]}>
               {step < TOTAL_STEPS
                 ? text.next
                 : fmt(text.finish, { name: trimmed })}
@@ -370,20 +367,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerSide: { flex: 1 },
-  headerAction: { fontSize: 17 },
-  headerStep: { fontSize: 15, textAlign: 'right' },
-  headerTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.3 },
+  headerAction: { ...TYPE.body },
+  headerStep: { ...TYPE.subhead, textAlign: 'right' },
+  headerTitle: { ...TYPE.bodyStrong, letterSpacing: -0.3 },
   body: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 20 },
-  intro: { fontSize: 14.5, lineHeight: 21 },
+  intro: { ...TYPE.subhead },
   field: { gap: 8 },
-  fieldLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  fieldLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   input: {
+    ...TYPE.bodyStrong,
     minHeight: 48,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 14,
-    fontSize: 17,
-    fontWeight: '600',
   },
   segments: { flexDirection: 'row', gap: 8 },
   segment: {
@@ -392,9 +388,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  segmentText: { fontSize: 15 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
@@ -408,22 +403,22 @@ const styles = StyleSheet.create({
     minHeight: 52,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  trackLabel: { flex: 1, fontSize: 16 },
+  trackLabel: { ...TYPE.body, flex: 1 },
   notice: {
     flexDirection: 'row',
     gap: 10,
     padding: 12,
-    borderRadius: RADIUS.tile,
+    borderRadius: RADIUS.card,
   },
-  noticeText: { flex: 1, fontSize: 13.5, lineHeight: 20 },
-  error: { fontSize: 14 },
+  noticeText: { ...TYPE.footnote, flex: 1 },
+  error: { ...TYPE.subhead },
   footer: { paddingHorizontal: 16, paddingTop: 8 },
   primary: {
     minHeight: 52,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryText: { fontSize: 16.5, fontWeight: '700' },
+  primaryText: { ...TYPE.bodyStrong },
   dimmed: { opacity: 0.55 },
 })

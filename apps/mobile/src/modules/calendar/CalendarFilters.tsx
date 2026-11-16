@@ -2,7 +2,7 @@ import type { CalendarPeopleFilter } from '@gather/core/calendar'
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native'
 import { NativeSheet } from '../../components/NativeSheet'
 import { useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 
 export function CalendarFilters({
   people,
@@ -27,18 +27,18 @@ export function CalendarFilters({
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable
           onPress={() => onPeople(null)}
-          style={[styles.row, { borderColor: tokens.border }]}
+          style={[styles.row, { borderColor: tokens.hair }]}
           accessibilityRole="button"
           accessibilityState={{ selected: peopleFilter === null }}
         >
-          <Text style={[styles.name, { color: tokens.fg }]}>
+          <Text style={[styles.name, { color: tokens.ink }]}>
             {t.calendar.everyone}
           </Text>
           <Text
             style={[
               styles.check,
               {
-                color: peopleFilter === null ? tokens.accent : tokens.muted,
+                color: peopleFilter === null ? tokens.accentText : tokens.muted,
               },
             ]}
           >
@@ -58,17 +58,17 @@ export function CalendarFilters({
             <Pressable
               key={person.id}
               onPress={() => onPeople(filter)}
-              style={[styles.row, { borderColor: tokens.border }]}
+              style={[styles.row, { borderColor: tokens.hair }]}
               accessibilityRole="button"
               accessibilityState={{ selected }}
             >
-              <Text style={[styles.name, { color: tokens.fg }]}>
+              <Text style={[styles.name, { color: tokens.ink }]}>
                 {person.name}
               </Text>
               <Text
                 style={[
                   styles.check,
-                  { color: selected ? tokens.accent : tokens.muted },
+                  { color: selected ? tokens.accentText : tokens.muted },
                 ]}
               >
                 {selected ? '✓' : '○'}
@@ -85,13 +85,13 @@ export function CalendarFilters({
               ),
             })
           }
-          style={[styles.row, { borderColor: tokens.border }]}
+          style={[styles.row, { borderColor: tokens.hair }]}
           accessibilityRole="button"
           accessibilityState={{
             selected: peopleFilter?.includeUnassigned ?? false,
           }}
         >
-          <Text style={[styles.name, { color: tokens.fg }]}>
+          <Text style={[styles.name, { color: tokens.ink }]}>
             {t.calendar.unassigned}
           </Text>
           <Text
@@ -99,7 +99,7 @@ export function CalendarFilters({
               styles.check,
               {
                 color: peopleFilter?.includeUnassigned
-                  ? tokens.accent
+                  ? tokens.accentText
                   : tokens.muted,
               },
             ]}
@@ -117,11 +117,11 @@ const styles = StyleSheet.create({
   row: {
     minHeight: 52,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  name: { flex: 1, fontSize: 16 },
-  check: { fontSize: 22 },
+  name: { ...TYPE.body, flex: 1 },
+  check: { ...TYPE.title2 },
 })

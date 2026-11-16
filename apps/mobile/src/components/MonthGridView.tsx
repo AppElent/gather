@@ -6,8 +6,9 @@
  * is a bug, not a variation*. The arithmetic lives apart, in
  * `@gather/core/civil-date`, for the same reason.
  *
- * It knows nothing about what a day *means*. Selection, today, and the tint are
- * props; the caller owns the state and the write. That is what lets one grid
+ * It knows nothing about what a day *means*. Selection and today are props; the
+ * caller owns the state and the write. Both are drawn in ink, never a group
+ * colour: a selected state is not a tile (ADR-0017). That is what lets one grid
  * serve a sheet that sets a due date and a card that sets an event's day.
  *
  * ## The trailing row
@@ -20,7 +21,7 @@
  */
 import { localMidnight } from '@gather/core/civil-date'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { useTokens } from '../theme/tokens'
+import { TABULAR, TYPE, useTokens } from '../theme/tokens'
 
 export interface MonthGridViewProps {
   /** Six rows of seven from `monthGrid`. */
@@ -31,7 +32,6 @@ export interface MonthGridViewProps {
   selected?: string
   /** `YYYY-MM-DD` for the phone's own today, drawn as a ring. */
   today: string
-  tint: string
   onPick: (iso: string) => void
   /** Prefix for `testID`s, so two grids on one screen stay addressable. */
   testIDPrefix: string
@@ -76,7 +76,6 @@ export function MonthGridView({
   locale,
   selected,
   today,
-  tint,
   onPick,
   testIDPrefix,
   dropTrailingEmptyRow = false,
@@ -111,27 +110,20 @@ export function MonthGridView({
                 <View
                   style={[
                     styles.dayInner,
-                    iso === selected && { backgroundColor: tint },
+                    iso === selected && { backgroundColor: tokens.ink },
                     iso === today &&
                       iso !== selected && {
                         borderWidth: 1.4,
-                        borderColor: tint,
+                        borderColor: tokens.ink,
                       },
                   ]}
                 >
                   <Text
                     style={[
-                      styles.dayText,
-                      {
-                        color:
-                          iso === selected
-                            ? tokens.surface
-                            : iso === today
-                              ? tint
-                              : tokens.fg,
-                        fontWeight:
-                          iso === selected || iso === today ? '700' : '400',
-                      },
+                      iso === selected || iso === today
+                        ? styles.dayTextMarked
+                        : styles.dayText,
+                      { color: iso === selected ? tokens.onInk : tokens.ink },
                     ]}
                   >
                     {localMidnight(iso).getDate()}
@@ -148,7 +140,7 @@ export function MonthGridView({
 
 const styles = StyleSheet.create({
   weekdays: { flexDirection: 'row', paddingBottom: 4 },
-  weekday: { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '700' },
+  weekday: { ...TYPE.footnoteStrong, flex: 1, textAlign: 'center' },
   week: { flexDirection: 'row' },
   day: { flex: 1, alignItems: 'center', paddingVertical: 2 },
   dayInner: {
@@ -158,5 +150,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dayText: { fontSize: 15 },
+  dayText: { ...TYPE.body, ...TABULAR },
+  dayTextMarked: { ...TYPE.bodyStrong, ...TABULAR },
 })

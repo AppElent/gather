@@ -26,7 +26,7 @@ import { AuthError } from '../../../../../src/components/AuthError'
 import { SettingsCard } from '../../../../../src/components/SettingsCard'
 import { confirmDestructive } from '../../../../../src/feedback/confirmDestructive'
 import { fmt, useI18n } from '../../../../../src/i18n'
-import { useTokens } from '../../../../../src/theme/tokens'
+import { TYPE, useTokens } from '../../../../../src/theme/tokens'
 
 interface Row {
   id: string
@@ -98,7 +98,7 @@ export default function Devices() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.content,
         { paddingBottom: insets.bottom + 24 },
@@ -120,12 +120,12 @@ export default function Devices() {
                 styles.row,
                 index > 0 && {
                   borderTopWidth: StyleSheet.hairlineWidth,
-                  borderTopColor: tokens.border,
+                  borderTopColor: tokens.hair,
                 },
               ]}
             >
               <View style={styles.rowText}>
-                <Text style={[styles.device, { color: tokens.fg }]}>
+                <Text style={[styles.device, { color: tokens.ink }]}>
                   {row.current ? t.account.sessions.thisDevice : row.device}
                 </Text>
                 <Text style={[styles.detail, { color: tokens.muted }]}>
@@ -177,8 +177,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   rowText: { flex: 1, gap: 2 },
-  device: { fontSize: 16, fontWeight: '600' },
-  detail: { fontSize: 13 },
-  revoke: { fontSize: 15, fontWeight: '600' },
+  device: { ...TYPE.bodyStrong },
+  detail: { ...TYPE.footnote },
+  revoke: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.6 },
 })

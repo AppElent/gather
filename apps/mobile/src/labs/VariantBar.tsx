@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { haptics } from '../feedback/haptics'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import type { VariantAxis } from './variants'
 
 export interface VariantBarAxis {
@@ -44,10 +44,10 @@ export function VariantBar({ axes }: { axes: VariantBarAxis[] }) {
       style={[styles.dock, { paddingBottom: insets.bottom + 8 }]}
     >
       {open ? (
-        <View style={[styles.panel, { backgroundColor: tokens.fg }]}>
+        <View style={[styles.panel, { backgroundColor: tokens.ink }]}>
           {axes.map(({ axis, value, onChange }) => (
             <View key={axis.id} style={styles.axis}>
-              <Text style={[styles.axisLabel, { color: tokens.bg }]}>
+              <Text style={[styles.axisLabel, { color: tokens.onInk }]}>
                 {axis.label}
               </Text>
               <ScrollView
@@ -71,15 +71,15 @@ export function VariantBar({ axes }: { axes: VariantBarAxis[] }) {
                       style={[
                         styles.option,
                         {
-                          backgroundColor: on ? tokens.bg : 'transparent',
-                          borderColor: tokens.bg,
+                          backgroundColor: on ? tokens.onInk : 'transparent',
+                          borderColor: tokens.onInk,
                         },
                       ]}
                     >
                       <Text
                         style={[
                           styles.optionLabel,
-                          { color: on ? tokens.fg : tokens.bg },
+                          { color: on ? tokens.ink : tokens.onInk },
                         ]}
                       >
                         {option.label}
@@ -89,7 +89,7 @@ export function VariantBar({ axes }: { axes: VariantBarAxis[] }) {
                           accessibilityLabel={t.labs.variants.chosen}
                           style={[
                             styles.star,
-                            { color: on ? tokens.fg : tokens.bg },
+                            { color: on ? tokens.ink : tokens.onInk },
                           ]}
                         >
                           ★
@@ -115,19 +115,19 @@ export function VariantBar({ axes }: { axes: VariantBarAxis[] }) {
         }}
         style={({ pressed }) => [
           styles.pill,
-          { backgroundColor: tokens.fg },
+          { backgroundColor: tokens.ink },
           pressed && styles.pressed,
         ]}
       >
         <Text
           numberOfLines={1}
-          style={[styles.pillLabel, { color: tokens.bg }]}
+          style={[styles.pillLabel, { color: tokens.onInk }]}
         >
           {summary}
         </Text>
         <Chevron
           size={15}
-          color={tokens.bg}
+          color={tokens.onInk}
           strokeWidth={2.4}
           accessibilityElementsHidden
           importantForAccessibility="no"
@@ -155,8 +155,7 @@ const styles = StyleSheet.create({
   },
   axis: { gap: 5 },
   axisLabel: {
-    fontSize: 10,
-    fontWeight: '700',
+    ...TYPE.footnoteStrong,
     letterSpacing: 0.8,
     opacity: 0.7,
     textTransform: 'uppercase',
@@ -169,18 +168,18 @@ const styles = StyleSheet.create({
     minHeight: 32,
     paddingHorizontal: 11,
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
   },
-  optionLabel: { fontSize: 13, fontWeight: '600' },
-  star: { fontSize: 10 },
+  optionLabel: { ...TYPE.footnoteStrong },
+  star: { ...TYPE.footnote },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
     minHeight: 34,
     paddingHorizontal: 13,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
   },
-  pillLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
+  pillLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.2 },
   pressed: { opacity: 0.75 },
 })

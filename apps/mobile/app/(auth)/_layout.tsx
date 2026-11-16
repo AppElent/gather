@@ -34,9 +34,9 @@ export default function AuthLayout() {
         headerBackTitle: '',
         headerBackButtonDisplayMode: 'minimal',
         headerShadowVisible: false,
-        headerStyle: { backgroundColor: tokens.bg },
-        headerTintColor: tokens.fg,
-        contentStyle: { backgroundColor: tokens.bg },
+        headerStyle: { backgroundColor: tokens.ground },
+        headerTintColor: tokens.ink,
+        contentStyle: { backgroundColor: tokens.ground },
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />

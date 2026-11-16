@@ -28,7 +28,7 @@ import {
 import { NativeSheet } from '../../components/NativeSheet'
 import { api, type Id } from '../../convex/api'
 import { useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 
 export type QuickListKind = 'todo' | 'question'
 
@@ -96,17 +96,17 @@ export function QuickListSheet({
           onPress={save}
           style={({ pressed }) => [
             styles.save,
-            { backgroundColor: ready ? tokens.accent : tokens.tile },
+            { backgroundColor: ready ? tokens.accent : tokens.surface2 },
             (pressed || saving) && styles.pressed,
           ]}
         >
           {saving ? (
-            <ActivityIndicator color={tokens.surface} />
+            <ActivityIndicator color={tokens.onAccent} />
           ) : (
             <Text
               style={[
                 styles.saveText,
-                { color: ready ? tokens.surface : tokens.muted },
+                { color: ready ? tokens.onAccent : tokens.muted },
               ]}
             >
               {t.common.actions.save}
@@ -128,9 +128,9 @@ export function QuickListSheet({
           style={[
             styles.field,
             {
-              borderColor: tokens.border,
-              backgroundColor: tokens.bg,
-              color: tokens.fg,
+              borderColor: tokens.hair,
+              backgroundColor: tokens.ground,
+              color: tokens.ink,
             },
           ]}
         />
@@ -147,20 +147,20 @@ export function QuickListSheet({
 const styles = StyleSheet.create({
   body: { gap: 12, paddingBottom: 14 },
   field: {
+    ...TYPE.body,
     minHeight: 52,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 14,
-    fontSize: 16,
   },
-  error: { fontSize: 14, lineHeight: 20 },
+  error: { ...TYPE.subhead },
   save: {
     minHeight: 52,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
   },
-  saveText: { fontSize: 16.5, fontWeight: '700' },
+  saveText: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.7 },
 })

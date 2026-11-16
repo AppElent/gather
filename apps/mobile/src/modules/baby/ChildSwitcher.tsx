@@ -20,7 +20,7 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { NativeSheet } from '../../components/NativeSheet'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { useTokens } from '../../theme/tokens'
+import { TYPE, useTokens } from '../../theme/tokens'
 import { BABY_UI_ICONS } from './icons'
 
 export interface SwitchableChild {
@@ -77,7 +77,7 @@ export function ChildSwitcher({
                 if (action === 'delete') onDelete(item._id)
               }}
             >
-              <View style={[styles.row, { borderBottomColor: tokens.border }]}>
+              <View style={[styles.row, { borderBottomColor: tokens.hair }]}>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
@@ -87,20 +87,20 @@ export function ChildSwitcher({
                     pressed && styles.pressed,
                   ]}
                 >
-                  <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
+                  <View style={[styles.avatar, { backgroundColor: tint.fill }]}>
                     <BABY_UI_ICONS.Baby
                       size={19}
-                      color={tint.fg}
+                      color={tint.on}
                       strokeWidth={1.8}
                     />
                   </View>
-                  <Text style={[styles.name, { color: tokens.fg }]}>
+                  <Text style={[styles.name, { color: tokens.ink }]}>
                     {item.name}
                   </Text>
                   {selected ? (
                     <UI_ICONS.Check
                       size={20}
-                      color={tint.fg}
+                      color={tint.text}
                       strokeWidth={2.4}
                     />
                   ) : null}
@@ -114,7 +114,7 @@ export function ChildSwitcher({
                   hitSlop={8}
                   style={({ pressed }) => [
                     styles.edit,
-                    { backgroundColor: tokens.tile },
+                    { backgroundColor: tokens.surface2 },
                     pressed && styles.pressed,
                   ]}
                 >
@@ -138,7 +138,7 @@ export function ChildSwitcher({
             style={[
               styles.avatar,
               styles.avatarDashed,
-              { borderColor: tokens.border },
+              { borderColor: tokens.hair },
             ]}
           >
             <BABY_UI_ICONS.Plus
@@ -187,6 +187,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarDashed: { borderWidth: 1, borderStyle: 'dashed' },
-  name: { flex: 1, fontSize: 16.5, fontWeight: '600' },
+  name: { ...TYPE.bodyStrong, flex: 1 },
   pressed: { opacity: 0.6 },
 })

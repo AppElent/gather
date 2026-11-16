@@ -18,13 +18,16 @@
  * sentence naming it and never a control that changes it.
  */
 import { isAiLimitReached } from '@gather/core/ai-limit'
-import type { NutritionFacts as Facts, NutritionSource } from '@gather/core/domain'
+import type {
+  NutritionFacts as Facts,
+  NutritionSource,
+} from '@gather/core/domain'
 import { useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { PhotoField } from '../../components/PhotoField'
 import { fmt, useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { NutritionFacts } from './NutritionFacts'
 import { lines, type RecipeFormValues, servingCount } from './recipeForm'
 import { StarRating } from './StarRating'
@@ -215,7 +218,7 @@ export function RecipeFields({
             onPress={estimate}
             style={({ pressed }) => [
               styles.secondary,
-              { borderColor: tokens.border, backgroundColor: tokens.surface },
+              { borderColor: tokens.hair, backgroundColor: tokens.surface },
               (pressed ||
                 disabled ||
                 estimating ||
@@ -223,7 +226,7 @@ export function RecipeFields({
                 styles.pressed,
             ]}
           >
-            <Text style={[styles.secondaryLabel, { color: tokens.fg }]}>
+            <Text style={[styles.secondaryLabel, { color: tokens.ink }]}>
               {estimating ? text.estimating : text.estimate}
             </Text>
           </Pressable>
@@ -262,7 +265,7 @@ export function SaveRecipeButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.save,
-        { backgroundColor: off ? tokens.tile : tokens.accent },
+        { backgroundColor: off ? tokens.surface2 : tokens.accent },
         pressed && styles.savePressed,
       ]}
     >
@@ -314,9 +317,9 @@ function Input({
       style={[
         styles.input,
         {
-          color: tokens.fg,
+          color: tokens.ink,
           backgroundColor: tokens.surface,
-          borderColor: tokens.border,
+          borderColor: tokens.hair,
         },
         minHeight ? { minHeight } : null,
       ]}
@@ -327,33 +330,33 @@ function Input({
 const styles = StyleSheet.create({
   fields: { gap: 14 },
   field: { gap: 6 },
-  label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
-  hint: { fontWeight: '400', letterSpacing: 0 },
+  label: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  hint: { ...TYPE.footnote, letterSpacing: 0 },
   input: {
+    ...TYPE.body,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 13,
     paddingVertical: 12,
-    fontSize: 16,
     minHeight: 46,
   },
   secondary: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryLabel: { fontSize: 15, fontWeight: '600' },
-  problem: { fontSize: 13 },
+  secondaryLabel: { ...TYPE.bodyStrong },
+  problem: { ...TYPE.footnote },
   pressed: { opacity: 0.6 },
   save: {
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     minHeight: 50,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
   },
-  saveLabel: { fontSize: 16, fontWeight: '700' },
+  saveLabel: { ...TYPE.bodyStrong },
   savePressed: { opacity: 0.7 },
 })

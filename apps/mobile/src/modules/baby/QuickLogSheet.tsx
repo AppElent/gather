@@ -47,7 +47,7 @@ import { api, type Id } from '../../convex/api'
 import { haptics } from '../../feedback/haptics'
 import { fmt, plural, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { DateTimeField } from './DateTimeField'
 import { EntryFields, fieldLabel } from './EntryFields'
 import { EntryPhotoField } from './EntryPhotoField'
@@ -88,7 +88,6 @@ export function QuickLogSheet({
   const tokens = useTokens('home')
   const { t, locale } = useI18n()
   const add = useMutation(api.babyEvents.add)
-  const tint = tokens.tintOf('home')
 
   const [included, setIncluded] = useState<BabyEventType[]>([type])
   const [picks, setPicks] = useState<Record<string, Picks>>(() => ({
@@ -222,18 +221,18 @@ export function QuickLogSheet({
           style={({ pressed }) => [
             styles.save,
             {
-              backgroundColor: blocked ? tokens.tile : tokens.accent,
+              backgroundColor: blocked ? tokens.surface2 : tokens.accent,
             },
             (pressed || saving) && styles.pressed,
           ]}
         >
           {saving ? (
-            <ActivityIndicator color={tokens.surface} />
+            <ActivityIndicator color={tokens.onAccent} />
           ) : (
             <Text
               style={[
                 styles.saveText,
-                { color: blocked ? tokens.muted : tokens.surface },
+                { color: blocked ? tokens.muted : tokens.onAccent },
               ]}
             >
               {several
@@ -280,23 +279,20 @@ export function QuickLogSheet({
                     style={[
                       styles.includeChip,
                       {
-                        borderColor: on ? tokens.accent : tokens.border,
-                        backgroundColor: on ? tint.bg : tokens.bg,
+                        borderColor: on ? tokens.ink : tokens.hair,
+                        backgroundColor: on ? tokens.ink : tokens.ground,
                       },
                     ]}
                   >
                     <Icon
                       size={15}
                       strokeWidth={1.9}
-                      color={on ? tokens.accent : tokens.muted}
+                      color={on ? tokens.onInk : tokens.muted}
                     />
                     <Text
                       style={[
-                        styles.chipText,
-                        {
-                          color: on ? tokens.accent : tokens.fg,
-                          fontWeight: on ? '700' : '500',
-                        },
+                        on ? TYPE.bodyStrong : TYPE.body,
+                        { color: on ? tokens.onInk : tokens.ink },
                       ]}
                     >
                       {t.baby.eventTypes[each]}
@@ -312,9 +308,9 @@ export function QuickLogSheet({
           <View key={each} style={styles.section}>
             {several ? (
               <View
-                style={[styles.sectionHead, { borderTopColor: tokens.border }]}
+                style={[styles.sectionHead, { borderTopColor: tokens.hair }]}
               >
-                <Text style={[styles.sectionTitle, { color: tokens.fg }]}>
+                <Text style={[styles.sectionTitle, { color: tokens.ink }]}>
                   {t.baby.eventTypes[each]}
                 </Text>
                 <Pressable
@@ -324,7 +320,7 @@ export function QuickLogSheet({
                   hitSlop={10}
                   style={({ pressed }) => [
                     styles.remove,
-                    { backgroundColor: tokens.tile },
+                    { backgroundColor: tokens.surface2 },
                     pressed && styles.pressed,
                   ]}
                 >
@@ -355,9 +351,9 @@ export function QuickLogSheet({
               style={[
                 styles.notes,
                 {
-                  borderColor: tokens.border,
-                  backgroundColor: tokens.bg,
-                  color: tokens.fg,
+                  borderColor: tokens.hair,
+                  backgroundColor: tokens.ground,
+                  color: tokens.ink,
                 },
               ]}
             />
@@ -409,7 +405,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   body: { gap: 14, paddingBottom: 14 },
   field: { gap: 7 },
-  fieldLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  fieldLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   section: { gap: 12 },
   sectionHead: {
@@ -419,7 +415,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  sectionTitle: { flex: 1, fontSize: 17, fontWeight: '700' },
+  sectionTitle: { ...TYPE.bodyStrong, flex: 1 },
   remove: {
     width: 26,
     height: 26,
@@ -434,27 +430,26 @@ const styles = StyleSheet.create({
     minHeight: 40,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  chipText: { fontSize: 15 },
   notes: {
+    ...TYPE.subhead,
     minHeight: 64,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 12,
-    fontSize: 15,
     textAlignVertical: 'top',
   },
-  error: { fontSize: 14 },
+  error: { ...TYPE.subhead },
   save: {
     minHeight: 52,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
   },
-  saveText: { fontSize: 16.5, fontWeight: '700' },
+  saveText: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.7 },
 })

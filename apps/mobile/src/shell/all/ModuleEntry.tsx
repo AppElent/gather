@@ -3,7 +3,9 @@
  *
  * Both shapes exist because the All screen can be drawn either way and the
  * choice is the reader's. What does *not* change between them is everything
- * that matters: the same tint, the same hold menu, the same accessible name.
+ * that matters: the same glyph tile, the same hold menu, the same accessible
+ * name. The tile is the only part in the group's colour; the row or card around
+ * it stays neutral (ADR-0017).
  * A tile drops the description because there is nowhere for it to go at that
  * width, and a truncated sentence is worse than no sentence.
  *
@@ -38,7 +40,7 @@ import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { MODULE_ICONS, UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, TYPE, useTokens } from '../../theme/tokens'
 
 export interface ModuleEntryActions {
   isPinned: boolean
@@ -55,13 +57,13 @@ export interface ModuleEntryActions {
  * `apps/mobile/DESIGN_SYSTEM.md` bans `opacity: 0.6` by name - it is the React
  * Native default and it is wrong on both platforms, because it dims the *row*
  * where the platform lightens the *surface behind* it. So Android gets its own
- * ripple and iOS gets a translucent wash of the tint's own ink, which reads as
- * the row highlighting rather than the row fading out.
+ * ripple and iOS gets the quiet `surface2` fill, which reads as the row
+ * highlighting rather than the row fading out.
  */
 const IOS = Platform.OS === 'ios'
 
-function fillStyle(pressed: boolean, ink: string) {
-  return pressed && IOS ? { backgroundColor: `${ink}1f` } : null
+function fillStyle(pressed: boolean, quiet: string) {
+  return pressed && IOS ? { backgroundColor: quiet } : null
 }
 
 /** The Pin's only visible name, so it says which Module it would pin. */
@@ -77,22 +79,22 @@ function pinLabel(
 /**
  * The Pin, as a target rather than a menu item.
  *
- * Filled when it is pinned and a faded outline when it is not, because an
- * outline alone reads as a button that does nothing. A hidden Module gets no
+ * Filled in ink when it is pinned and a muted outline when it is not, because
+ * an outline alone reads as a button that does nothing. Never the group's
+ * colour: it is a glyph outside a tile. A hidden Module gets no
  * Pin at all: a shortcut to something deliberately out of sight is a
  * contradiction, and `arrangeModules` would drop it on the next read anyway.
  */
 function PinButton({
   actions,
   label,
-  ink,
   testID,
 }: {
   actions: ModuleEntryActions
   label: string
-  ink: string
   testID: string
 }) {
+  const tokens = useTokens()
   if (actions.isHidden) return null
   const Icon = actions.isPinned ? UI_ICONS.PinFill : UI_ICONS.Pin
   return (
@@ -109,8 +111,8 @@ function PinButton({
     >
       <Icon
         size={17}
-        color={actions.isPinned ? ink : `${ink}66`}
-        fill={actions.isPinned ? ink : undefined}
+        color={actions.isPinned ? tokens.ink : tokens.muted}
+        fill={actions.isPinned ? tokens.ink : undefined}
         strokeWidth={1.9}
       />
     </Pressable>
@@ -178,19 +180,25 @@ export function ModuleRow({
           accessibilityRole="button"
           accessibilityLabel={text.label}
           onPress={actions.onOpen}
-          android_ripple={{ color: `${tint.fg}22` }}
+          android_ripple={{ color: tokens.hair }}
           style={({ pressed }) => [
             styles.row,
-            { backgroundColor: tint.bg },
-            fillStyle(pressed, tint.fg),
+            { backgroundColor: tokens.surface },
+            fillStyle(pressed, tokens.surface2),
           ]}
         >
-          <Icon size={24} color={tint.fg} strokeWidth={1.75} />
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={[styles.rowGlyph, { backgroundColor: tint.fill }]}
+          >
+            <Icon size={16} color={tint.on} strokeWidth={1.9} />
+          </View>
           <View style={styles.rowText}>
-            <Text style={[styles.rowTitle, { color: tint.fg }]}>
+            <Text style={[styles.rowTitle, { color: tokens.ink }]}>
               {text.label}
             </Text>
-            <Text style={[styles.rowDescription, { color: tint.fg }]}>
+            <Text style={[styles.rowDescription, { color: tokens.muted }]}>
               {text.description}
             </Text>
           </View>
@@ -198,7 +206,6 @@ export function ModuleRow({
       </ModuleMenu>
       <PinButton
         actions={actions}
-        ink={tint.fg}
         label={pinLabel(t, actions.isPinned, text.label)}
         testID={`${id}-pin`}
       />
@@ -239,19 +246,25 @@ export function ModuleTile({
           accessibilityRole="button"
           accessibilityLabel={text.label}
           onPress={actions.onOpen}
-          android_ripple={{ color: `${tint.fg}22` }}
+          android_ripple={{ color: tokens.hair }}
           style={({ pressed }) => [
             styles.tile,
-            { backgroundColor: tint.bg },
-            fillStyle(pressed, tint.fg),
+            { backgroundColor: tokens.surface },
+            fillStyle(pressed, tokens.surface2),
           ]}
         >
-          <Icon size={26} color={tint.fg} strokeWidth={1.75} />
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={[styles.tileGlyph, { backgroundColor: tint.fill }]}
+          >
+            <Icon size={20} color={tint.on} strokeWidth={1.9} />
+          </View>
           <Text
             // Two lines rather than one: "Meal planner" and "Baby log" wrap at
             // Dynamic Type XL, and a clipped Module name is not a Module name.
             numberOfLines={2}
-            style={[styles.tileTitle, { color: tint.fg }]}
+            style={[styles.tileTitle, { color: tokens.ink }]}
           >
             {text.label}
           </Text>
@@ -259,7 +272,6 @@ export function ModuleTile({
       </ModuleMenu>
       <PinButton
         actions={actions}
-        ink={tint.fg}
         label={pinLabel(t, actions.isPinned, text.label)}
         testID={`${id}-pin`}
       />
@@ -279,9 +291,17 @@ const styles = StyleSheet.create({
     paddingRight: 36,
     overflow: 'hidden',
   },
+  rowGlyph: {
+    width: SIZE.tileS,
+    height: SIZE.tileS,
+    borderRadius: RADIUS.tileS,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   rowText: { flex: 1, gap: 2 },
-  rowTitle: { fontSize: 16, fontWeight: '700' },
-  rowDescription: { fontSize: 14, lineHeight: 20 },
+  rowTitle: { ...TYPE.bodyStrong },
+  rowDescription: { ...TYPE.subhead },
   // Above the row it sits on, in both senses: painted last, and raised on
   // Android where paint order alone does not decide who is touched.
   pin: { position: 'absolute', top: 8, right: 8, padding: 5, zIndex: 2 },
@@ -291,10 +311,18 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 96,
     gap: 10,
-    borderRadius: RADIUS.tile,
+    borderRadius: RADIUS.card,
     padding: 14,
     justifyContent: 'flex-end',
     overflow: 'hidden',
   },
-  tileTitle: { fontSize: 15, fontWeight: '700' },
+  tileGlyph: {
+    width: SIZE.tileM,
+    height: SIZE.tileM,
+    borderRadius: RADIUS.tileM,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileTitle: { ...TYPE.bodyStrong },
 })

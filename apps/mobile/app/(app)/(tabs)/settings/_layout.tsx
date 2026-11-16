@@ -22,7 +22,7 @@ export default function SettingsLayout() {
         // iOS-only, and paired with `contentInsetAdjustmentBehavior="automatic"`
         // on each screen.
         headerLargeTitle: true,
-        contentStyle: { backgroundColor: tokens.bg },
+        contentStyle: { backgroundColor: tokens.ground },
       }}
     >
       <Stack.Screen name="index" />

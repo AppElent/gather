@@ -168,7 +168,7 @@ export function LoyaltyCardForm({
           {storeMissing ? (
             <Text
               accessibilityRole="alert"
-              style={[TYPE.label, { color: tokens.danger }]}
+              style={[TYPE.footnote, { color: tokens.danger }]}
             >
               {t.loyaltyCards.refusals['loyalty:needsStore']}
             </Text>
@@ -197,7 +197,7 @@ export function LoyaltyCardForm({
           testID="loyalty-card-number-input"
         />
         {numberHints ? (
-          <Text style={[TYPE.label, { color: tokens.muted }]}>
+          <Text style={[TYPE.footnote, { color: tokens.muted }]}>
             {numberHints}
           </Text>
         ) : null}
@@ -205,7 +205,7 @@ export function LoyaltyCardForm({
           <Text
             accessibilityRole="alert"
             testID="loyalty-card-number-problem"
-            style={[TYPE.label, { color: tokens.danger }]}
+            style={[TYPE.footnote, { color: tokens.danger }]}
           >
             {words.problems[numberProblem]}
           </Text>
@@ -213,7 +213,7 @@ export function LoyaltyCardForm({
       </View>
 
       <View style={styles.field}>
-        <Text style={[TYPE.label, styles.label, { color: tokens.muted }]}>
+        <Text style={[TYPE.footnoteStrong, styles.label, { color: tokens.muted }]}>
           {words.barcodeFormat}
         </Text>
         <FormatSelect
@@ -221,7 +221,7 @@ export function LoyaltyCardForm({
           onChange={(format) => set('barcodeFormat', format)}
         />
         {formatIsGuess ? (
-          <Text style={[TYPE.label, { color: tokens.muted }]}>
+          <Text style={[TYPE.footnote, { color: tokens.muted }]}>
             {fmt(words.formatGuess, { store: storeLabel })}
           </Text>
         ) : null}
@@ -229,7 +229,7 @@ export function LoyaltyCardForm({
 
       {check.ok ? (
         <View style={styles.field}>
-          <Text style={[TYPE.label, styles.label, { color: tokens.muted }]}>
+          <Text style={[TYPE.footnoteStrong, styles.label, { color: tokens.muted }]}>
             {words.preview}
           </Text>
           <CardBarcode
@@ -258,7 +258,7 @@ export function LoyaltyCardForm({
           accessibilityHint={words.holderHint}
           testID="loyalty-card-holder"
         />
-        <Text style={[TYPE.label, { color: tokens.muted }]}>
+        <Text style={[TYPE.footnote, { color: tokens.muted }]}>
           {words.holderHint}
         </Text>
       </View>
@@ -300,7 +300,7 @@ export function LoyaltyCardForm({
         <Text
           accessibilityRole="alert"
           testID="loyalty-card-save-problem"
-          style={[TYPE.body, { color: tokens.danger }]}
+          style={[TYPE.subhead, { color: tokens.danger }]}
         >
           {problem}
         </Text>
@@ -342,10 +342,10 @@ function FormatSelect({
       testID="loyalty-card-format"
       style={[
         styles.select,
-        { width, borderColor: tokens.border, backgroundColor: tokens.surface },
+        { width, borderColor: tokens.hair, backgroundColor: tokens.surface },
       ]}
     >
-      <Text style={[TYPE.lead, styles.selectText, { color: tokens.fg }]}>
+      <Text style={[TYPE.body, styles.selectText, { color: tokens.ink }]}>
         {words.formats[value]}
       </Text>
       <UI_ICONS.ChevronDown size={18} color={tokens.muted} strokeWidth={1.9} />
@@ -386,7 +386,7 @@ function FormatSelect({
 const styles = StyleSheet.create({
   form: { gap: 18 },
   field: { gap: 6 },
-  label: { fontWeight: '600', letterSpacing: 0.2 },
+  label: { letterSpacing: 0.2 },
   select: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
   },
   selectText: { flex: 1 },
   selectSlot: { alignSelf: 'stretch' },

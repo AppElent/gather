@@ -60,7 +60,7 @@ export function SavingsScreen() {
         <Stack.Screen
           options={{ headerShown: true, title: text.savings.title }}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={4} label={text.actions.loading} />
         </View>
       </>
@@ -99,7 +99,7 @@ export function SavingsScreen() {
         {failure}
         {goals.length === 0 ? (
           <EmptyState
-            icon={<Target size={34} color={tint.fg} strokeWidth={1.6} />}
+            icon={<Target size={34} color={tint.text} strokeWidth={1.6} />}
             title={text.savings.emptyTitle}
             body={text.savings.emptyBody}
             actionLabel={text.savings.addGoal}
@@ -193,7 +193,6 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
 
-  const tint = tokens.tintOf('money')
 
   if (goal === undefined) {
     return (
@@ -201,7 +200,7 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
         <Stack.Screen
           options={{ headerShown: true, title: text.savings.title }}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={3} label={text.actions.loading} />
         </View>
       </>
@@ -269,7 +268,7 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
             })}
           />
           <View
-            style={[styles.track, { backgroundColor: tokens.tile }]}
+            style={[styles.track, { backgroundColor: tokens.surface2 }]}
             accessible
             accessibilityLabel={fmt(text.savings.percentSaved, {
               percent: Math.round(progress.fraction * 100),
@@ -279,7 +278,7 @@ export function SavingsGoalScreen({ goalId }: { goalId: Id<'savingsGoals'> }) {
               style={[
                 styles.fill,
                 {
-                  backgroundColor: tint.fg,
+                  backgroundColor: tokens.ink,
                   width: `${Math.round(progress.fraction * 100)}%`,
                 },
               ]}

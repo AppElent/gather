@@ -14,7 +14,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 
 export type PickedList =
   | { kind: 'new' }
@@ -47,7 +47,6 @@ export function ListPicker({
 }: ListPickerProps) {
   const tokens = useTokens('home')
   const { t } = useI18n()
-  const tint = tokens.tintOf('home')
   const text = t.baby.log.lists
   const [open, setOpen] = useState(false)
 
@@ -66,25 +65,25 @@ export function ListPicker({
       <View
         style={[
           styles.card,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
         ]}
       >
-        <View style={[styles.row, { borderBottomColor: tokens.border }]}>
-          <Text style={[styles.name, { color: tokens.fg }]} numberOfLines={1}>
+        <View style={[styles.row, { borderBottomColor: tokens.hair }]}>
+          <Text style={[styles.name, { color: tokens.ink }]} numberOfLines={1}>
             {chosen ? chosen.name : defaultName}
           </Text>
           <View
             style={[
               styles.badge,
               {
-                backgroundColor: readOnly ? tokens.tile : tint.bg,
+                backgroundColor: tokens.surface2,
               },
             ]}
           >
             <Text
               style={[
                 styles.badgeText,
-                { color: readOnly ? tokens.danger : tint.fg },
+                { color: readOnly ? tokens.danger : tokens.ink },
               ]}
             >
               {chosen ? chosen.provider : text.newList}
@@ -97,7 +96,9 @@ export function ListPicker({
           onPress={() => setOpen((was) => !was)}
           style={({ pressed }) => [styles.row, pressed && styles.pressed]}
         >
-          <Text style={[styles.choose, { color: tint.fg }]}>{text.choose}</Text>
+          <Text style={[styles.choose, { color: tokens.ink }]}>
+            {text.choose}
+          </Text>
           <UI_ICONS.ChevronRight
             size={18}
             color={tokens.muted}
@@ -106,7 +107,7 @@ export function ListPicker({
         </Pressable>
 
         {open ? (
-          <View style={[styles.options, { borderTopColor: tokens.border }]}>
+          <View style={[styles.options, { borderTopColor: tokens.hair }]}>
             <Text style={[styles.hint, { color: tokens.muted }]}>
               {fmt(text.anyListIn, { group: groupName })}
             </Text>
@@ -150,7 +151,7 @@ export function ListPicker({
       </View>
 
       {readOnly && chosen ? (
-        <View style={[styles.warning, { backgroundColor: tokens.tile }]}>
+        <View style={[styles.warning, { backgroundColor: tokens.surface2 }]}>
           <UI_ICONS.CircleAlert
             size={17}
             color={tokens.danger}
@@ -187,12 +188,12 @@ function Option({
       onPress={onPress}
       style={({ pressed }) => [
         styles.option,
-        { borderBottomColor: tokens.border },
+        { borderBottomColor: tokens.hair },
         pressed && styles.pressed,
       ]}
     >
       <View style={styles.optionText}>
-        <Text style={[styles.optionName, { color: tokens.fg }]}>{label}</Text>
+        <Text style={[styles.optionName, { color: tokens.ink }]}>{label}</Text>
         <Text
           style={[
             styles.optionMeta,
@@ -203,7 +204,7 @@ function Option({
         </Text>
       </View>
       {selected ? (
-        <UI_ICONS.Check size={19} color={tint.fg} strokeWidth={2.4} />
+        <UI_ICONS.Check size={19} color={tint.text} strokeWidth={2.4} />
       ) : null}
     </Pressable>
   )
@@ -211,7 +212,7 @@ function Option({
 
 const styles = StyleSheet.create({
   wrap: { gap: 8 },
-  title: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  title: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
@@ -226,12 +227,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'transparent',
   },
-  name: { flex: 1, fontSize: 16.5, fontWeight: '600' },
+  name: { ...TYPE.bodyStrong, flex: 1 },
   badge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  badgeText: { fontSize: 11.5, fontWeight: '700', letterSpacing: 0.3 },
-  choose: { flex: 1, fontSize: 15.5 },
+  badgeText: { ...TYPE.footnoteStrong, letterSpacing: 0.3 },
+  choose: { ...TYPE.subhead, flex: 1 },
   options: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 8 },
-  hint: { fontSize: 13, lineHeight: 19, paddingBottom: 6 },
+  hint: { ...TYPE.footnote, paddingBottom: 6 },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -240,14 +241,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   optionText: { flex: 1, gap: 2 },
-  optionName: { fontSize: 16, fontWeight: '600' },
-  optionMeta: { fontSize: 12.5 },
+  optionName: { ...TYPE.bodyStrong },
+  optionMeta: { ...TYPE.footnote },
   warning: {
     flexDirection: 'row',
     gap: 9,
     padding: 10,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
   },
-  warningText: { flex: 1, fontSize: 13, lineHeight: 19 },
+  warningText: { ...TYPE.footnote, flex: 1 },
   pressed: { opacity: 0.6 },
 })

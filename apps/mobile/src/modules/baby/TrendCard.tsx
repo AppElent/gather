@@ -14,7 +14,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, Line, Polyline } from 'react-native-svg'
 
 import { fmt, useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import {
   plotTrend,
   type TrendSource,
@@ -75,7 +75,7 @@ export function TrendCard({
             onPress={onOpenAll}
             style={({ pressed }) => [styles.link, pressed && styles.pressed]}
           >
-            <Text style={[styles.linkText, { color: tint.fg }]}>
+            <Text style={[styles.linkText, { color: tint.text }]}>
               {text.allTrends}
             </Text>
           </Pressable>
@@ -85,7 +85,7 @@ export function TrendCard({
       <View
         style={[
           styles.card,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
         ]}
       >
         {plotted ? (
@@ -102,14 +102,14 @@ export function TrendCard({
                   y1={y}
                   x2={CHART_WIDTH}
                   y2={y}
-                  stroke={tokens.tile}
+                  stroke={tokens.surface2}
                   strokeWidth={1}
                 />
               ))}
               <Polyline
                 points={toPolyline(plotted.points)}
                 fill="none"
-                stroke={tint.fg}
+                stroke={tokens.ink}
                 strokeWidth={2.2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -118,7 +118,7 @@ export function TrendCard({
                 cx={plotted.points[plotted.points.length - 1].x}
                 cy={plotted.points[plotted.points.length - 1].y}
                 r={3.4}
-                fill={tint.fg}
+                fill={tokens.ink}
               />
             </Svg>
             <View style={styles.caption}>
@@ -147,9 +147,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  title: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  title: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   link: { minHeight: 32, justifyContent: 'center' },
-  linkText: { fontSize: 13, fontWeight: '600' },
+  linkText: { ...TYPE.footnoteStrong },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   caption: { flexDirection: 'row', justifyContent: 'space-between' },
-  captionText: { fontSize: 11.5 },
-  empty: { fontSize: 14, lineHeight: 20, paddingVertical: 12 },
+  captionText: { ...TYPE.footnote, ...TABULAR },
+  empty: { ...TYPE.subhead, paddingVertical: 12 },
   pressed: { opacity: 0.6 },
 })

@@ -18,7 +18,7 @@ import Animated, {
 import { WeekdayStrip } from '../../components/MonthGridView'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 
 export interface CalendarHeaderProps {
   activeDate: string
@@ -85,10 +85,10 @@ function MonthDays({
                 <View
                   style={[
                     styles.dayInner,
-                    selected && { backgroundColor: tokens.accent },
+                    selected && { backgroundColor: tokens.ink },
                     isToday &&
                       !selected && {
-                        borderColor: tokens.accent,
+                        borderColor: tokens.ink,
                         borderWidth: 1.5,
                       },
                   ]}
@@ -98,10 +98,8 @@ function MonthDays({
                       styles.dayText,
                       {
                         color: selected
-                          ? tokens.onAccent
-                          : isToday
-                            ? tokens.accent
-                            : tokens.fg,
+                          ? tokens.onInk
+                          : tokens.ink,
                       },
                     ]}
                   >
@@ -114,7 +112,7 @@ function MonthDays({
                       key={mark.key}
                       style={[
                         styles.mark,
-                        { color: tokens.tintOf(mark.color).fg },
+                        { color: tokens.tintOf(mark.color).text },
                       ]}
                     >
                       {mark.initial ?? '•'}
@@ -173,10 +171,10 @@ function WeekDays({
               <View
                 style={[
                   styles.dayInner,
-                  selected && { backgroundColor: tokens.accent },
+                  selected && { backgroundColor: tokens.ink },
                   isToday &&
                     !selected && {
-                      borderColor: tokens.accent,
+                      borderColor: tokens.ink,
                       borderWidth: 1.5,
                     },
                 ]}
@@ -186,10 +184,8 @@ function WeekDays({
                     styles.dayText,
                     {
                       color: selected
-                        ? tokens.onAccent
-                        : isToday
-                          ? tokens.accent
-                          : tokens.fg,
+                        ? tokens.onInk
+                        : tokens.ink,
                     },
                   ]}
                 >
@@ -202,7 +198,7 @@ function WeekDays({
                     key={mark.key}
                     style={[
                       styles.mark,
-                      { color: tokens.tintOf(mark.color).fg },
+                      { color: tokens.tintOf(mark.color).text },
                     ]}
                   >
                     {mark.initial ?? '•'}
@@ -263,7 +259,7 @@ export function CalendarHeader(props: CalendarHeaderProps) {
     <Animated.View
       style={[
         styles.container,
-        { backgroundColor: tokens.bg, paddingTop: props.topInset ?? 0 },
+        { backgroundColor: tokens.ground, paddingTop: props.topInset ?? 0 },
         animatedStyle,
       ]}
     >
@@ -275,7 +271,7 @@ export function CalendarHeader(props: CalendarHeaderProps) {
           onPress={() => props.onSelectDate(props.today)}
           style={styles.today}
         >
-          <Text style={[styles.todayText, { color: tokens.accent }]}>
+          <Text style={[styles.todayText, { color: tokens.accentText }]}>
             {t.calendar.today}
           </Text>
         </Pressable>
@@ -284,7 +280,7 @@ export function CalendarHeader(props: CalendarHeaderProps) {
           accessibilityLabel={title}
           onPress={() => props.onSelectDate(props.activeDate)}
         >
-          <Text style={[styles.title, { color: tokens.fg }]}>{title}</Text>
+          <Text style={[styles.title, { color: tokens.ink }]}>{title}</Text>
         </Pressable>
         <View style={styles.actions}>
           <Pressable
@@ -292,9 +288,9 @@ export function CalendarHeader(props: CalendarHeaderProps) {
             accessibilityRole="button"
             accessibilityLabel={t.calendar.accessibility.add}
             onPress={props.onAdd}
-            style={[styles.iconButton, { backgroundColor: tokens.tile }]}
+            style={[styles.iconButton, { backgroundColor: tokens.surface2 }]}
           >
-            <Add size={19} color={tokens.fg} />
+            <Add size={19} color={tokens.ink} />
           </Pressable>
           <MenuView
             shouldOpenOnLongPress={false}
@@ -327,9 +323,9 @@ export function CalendarHeader(props: CalendarHeaderProps) {
               testID="calendar-view-menu"
               accessibilityRole="button"
               accessibilityLabel={t.calendar.accessibility.viewMenu}
-              style={[styles.iconButton, { backgroundColor: tokens.tile }]}
+              style={[styles.iconButton, { backgroundColor: tokens.surface2 }]}
             >
-              <More size={19} color={tokens.fg} />
+              <More size={19} color={tokens.ink} />
             </Pressable>
           </MenuView>
         </View>
@@ -342,7 +338,7 @@ export function CalendarHeader(props: CalendarHeaderProps) {
           onPress={props.onToggle}
           style={styles.handleArea}
         >
-          <View style={[styles.handle, { backgroundColor: tokens.border }]} />
+          <View style={[styles.handle, { backgroundColor: tokens.hair }]} />
         </Pressable>
       </GestureDetector>
       <View style={styles.pager}>
@@ -351,7 +347,7 @@ export function CalendarHeader(props: CalendarHeaderProps) {
           onPress={() => props.onPage(-1)}
           style={styles.arrow}
         >
-          <Text style={[styles.arrowText, { color: tokens.accent }]}>‹</Text>
+          <Text style={[styles.arrowText, { color: tokens.accentText }]}>‹</Text>
         </Pressable>
         <View style={styles.gridWrap}>
           {props.presentation === 'month' ? (
@@ -365,7 +361,7 @@ export function CalendarHeader(props: CalendarHeaderProps) {
           onPress={() => props.onPage(1)}
           style={styles.arrow}
         >
-          <Text style={[styles.arrowText, { color: tokens.accent }]}>›</Text>
+          <Text style={[styles.arrowText, { color: tokens.accentText }]}>›</Text>
         </Pressable>
       </View>
     </Animated.View>
@@ -382,8 +378,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   today: { minWidth: 54, minHeight: 44, justifyContent: 'center' },
-  todayText: { fontSize: 15, fontWeight: '600' },
-  title: { fontSize: 18, fontWeight: '700', textTransform: 'capitalize' },
+  todayText: { ...TYPE.bodyStrong },
+  title: { ...TYPE.title2, textTransform: 'capitalize' },
   actions: { flexDirection: 'row', gap: 7 },
   iconButton: {
     width: 40,
@@ -396,19 +392,19 @@ const styles = StyleSheet.create({
   handle: { width: 42, height: 5, borderRadius: 3 },
   pager: { flexDirection: 'row', alignItems: 'center' },
   arrow: { width: 26, alignItems: 'center', justifyContent: 'center' },
-  arrowText: { fontSize: 30, lineHeight: 34 },
+  arrowText: { ...TYPE.title2 },
   gridWrap: { flex: 1 },
   week: { flexDirection: 'row' },
   day: { flex: 1, alignItems: 'center', paddingVertical: 1, minHeight: 45 },
   dayInner: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    minWidth: 32,
+    minHeight: 32,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dayText: { fontSize: 14, fontWeight: '600' },
-  marks: { flexDirection: 'row', height: 13, alignItems: 'center', gap: 1 },
-  mark: { fontSize: 9, fontWeight: '800' },
-  more: { fontSize: 8, fontWeight: '700' },
+  dayText: { ...TYPE.bodyStrong, ...TABULAR },
+  marks: { flexDirection: 'row', minHeight: 13, alignItems: 'center', gap: 1 },
+  mark: { ...TYPE.footnoteStrong },
+  more: { ...TYPE.footnoteStrong, ...TABULAR },
 })

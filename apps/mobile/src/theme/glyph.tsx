@@ -12,7 +12,7 @@
  *
  * So `glyph()` pairs each lucide icon with the SF Symbol that means the same
  * thing, and returns one component with lucide's prop shape. Call sites do not
- * change and do not branch — `<Icon size={20} color={tint.fg} />` renders an
+ * change and do not branch — `<Icon size={20} color={tint.on} />` renders an
  * SVG on Android and a symbol on iOS.
  *
  * Three things make this safe rather than a source of blank squares:

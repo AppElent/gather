@@ -66,14 +66,14 @@ export function LoyaltyCardListScreen() {
               testID="loyalty-card-add"
               onPress={add}
             >
-              <UI_ICONS.Plus size={22} color={tokens.fg} strokeWidth={2.2} />
+              <UI_ICONS.Plus size={22} color={tokens.ink} strokeWidth={2.2} />
             </HeaderIconButton>
           ),
         }}
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.content,
@@ -86,11 +86,11 @@ export function LoyaltyCardListScreen() {
           <View testID="loyalty-card-empty" style={styles.empty}>
             <Text
               accessibilityRole="header"
-              style={[TYPE.title, styles.bold, styles.center, { color: tokens.fg }]}
+              style={[TYPE.title2, styles.center, { color: tokens.ink }]}
             >
               {words.index.emptyTitle}
             </Text>
-            <Text style={[TYPE.lead, styles.center, { color: tokens.muted }]}>
+            <Text style={[TYPE.body, styles.center, { color: tokens.muted }]}>
               {fmt(words.index.emptyBody, { group: group.name })}
             </Text>
             <Button
@@ -111,7 +111,7 @@ export function LoyaltyCardListScreen() {
             {problem ? (
               <Text
                 accessibilityRole="alert"
-                style={[TYPE.body, { color: tokens.danger }]}
+                style={[TYPE.subhead, { color: tokens.danger }]}
               >
                 {problem}
               </Text>
@@ -119,7 +119,7 @@ export function LoyaltyCardListScreen() {
             {matching.length === 0 ? (
               <View style={styles.notFound}>
                 <Text
-                  style={[TYPE.lead, styles.center, { color: tokens.muted }]}
+                  style={[TYPE.body, styles.center, { color: tokens.muted }]}
                 >
                   {words.index.filterEmpty}
                 </Text>
@@ -204,15 +204,15 @@ function CardRow({
       accessibilityRole="button"
       accessibilityLabel={`${card.storeName}, ${detail}`}
       onPress={onPress}
-      android_ripple={{ color: tokens.tile }}
+      android_ripple={{ color: tokens.surface2 }}
       style={({ pressed }) => [
         styles.row,
         {
           backgroundColor: tokens.surface,
-          borderBottomColor: tokens.border,
+          borderBottomColor: tokens.hair,
           borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
         },
-        pressed && { backgroundColor: tokens.tile },
+        pressed && { backgroundColor: tokens.surface2 },
       ]}
     >
       <StoreTile
@@ -224,11 +224,11 @@ function CardRow({
       <View style={styles.rowText}>
         <Text
           numberOfLines={1}
-          style={[TYPE.lead, styles.bold, { color: tokens.fg }]}
+          style={[TYPE.bodyStrong, { color: tokens.ink }]}
         >
           {card.storeName}
         </Text>
-        <Text numberOfLines={2} style={[TYPE.label, { color: tokens.muted }]}>
+        <Text numberOfLines={2} style={[TYPE.footnote, { color: tokens.muted }]}>
           {detail}
         </Text>
       </View>
@@ -242,7 +242,6 @@ const styles = StyleSheet.create({
   empty: { gap: 14, paddingTop: 48, paddingHorizontal: 8 },
   notFound: { gap: 14, paddingVertical: 20 },
   center: { textAlign: 'center' },
-  bold: { fontWeight: '600' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

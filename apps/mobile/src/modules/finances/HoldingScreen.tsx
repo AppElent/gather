@@ -66,7 +66,6 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
 
   const Target = FINANCE_ICONS.Target
   const Alert = FINANCE_ICONS.Alert
-  const tint = tokens.tintOf('money')
 
   if (holding === undefined) {
     return (
@@ -74,7 +73,7 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
         <Stack.Screen
           options={{ headerShown: true, title: text.portfolio.title }}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={4} label={text.actions.loading} />
         </View>
       </>
@@ -217,7 +216,7 @@ export function HoldingScreen({ holdingId }: { holdingId: Id<'holdings'> }) {
         />
         <Card>
           <Row
-            leading={<Target size={20} color={tint.fg} strokeWidth={1.8} />}
+            leading={<Target size={20} color={tokens.ink} strokeWidth={1.8} />}
             label={text.portfolio.holding.openingPosition}
             sub={`${format.date(holding.openingDate)} · ${
               holding.openingUnits

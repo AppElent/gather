@@ -34,7 +34,7 @@ import {
 import { useAppearance } from '../../../../src/theme/appearance'
 import type { Glyph } from '../../../../src/theme/glyph'
 import { UI_ICONS } from '../../../../src/theme/icons'
-import { RADIUS, useTokens } from '../../../../src/theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../../../src/theme/tokens'
 
 /** Decorative, and only ever next to the group's own title. */
 const SECTION_ICONS = {
@@ -74,7 +74,7 @@ export default function Settings() {
 
   return (
     <ScrollView
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={[
         styles.content,
@@ -86,7 +86,7 @@ export default function Settings() {
     >
       <Text
         accessibilityRole="header"
-        style={[styles.screenTitle, { color: tokens.fg }]}
+        style={[styles.screenTitle, { color: tokens.ink }]}
       >
         {t.settings.title}
       </Text>
@@ -108,7 +108,7 @@ export default function Settings() {
           <View
             style={[
               styles.card,
-              { backgroundColor: tokens.surface, borderColor: tokens.border },
+              { backgroundColor: tokens.surface, borderColor: tokens.hair },
             ]}
           >
             {hits.map(({ section, entry }, index) => (
@@ -145,7 +145,7 @@ export default function Settings() {
                     styles.card,
                     {
                       backgroundColor: tokens.surface,
-                      borderColor: tokens.border,
+                      borderColor: tokens.hair,
                     },
                   ]}
                 >
@@ -186,13 +186,13 @@ function Identity() {
       onPress={() => router.push('/settings/account')}
       style={({ pressed }) => [
         styles.identity,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        { backgroundColor: tokens.surface, borderColor: tokens.hair },
         pressed && styles.pressed,
       ]}
     >
-      <View style={[styles.avatar, { backgroundColor: tokens.tile }]}>
+      <View style={[styles.avatar, { backgroundColor: tokens.surface2 }]}>
         {initial ? (
-          <Text style={[styles.initials, { color: tokens.fg }]}>{initial}</Text>
+          <Text style={[styles.initials, { color: tokens.ink }]}>{initial}</Text>
         ) : (
           <User
             size={20}
@@ -207,7 +207,7 @@ function Identity() {
         <Text
           numberOfLines={1}
           selectable
-          style={[styles.name, { color: tokens.fg }]}
+          style={[styles.name, { color: tokens.ink }]}
         >
           {name}
         </Text>
@@ -263,13 +263,13 @@ function Row({
         styles.row,
         !first && {
           borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: tokens.border,
+          borderTopColor: tokens.hair,
         },
         pressed && styles.pressed,
       ]}
     >
       <View style={styles.rowText}>
-        <Text numberOfLines={1} style={[styles.rowLabel, { color: tokens.fg }]}>
+        <Text numberOfLines={1} style={[styles.rowLabel, { color: tokens.ink }]}>
           {entry.label}
         </Text>
         {within ? (
@@ -303,8 +303,7 @@ function Row({
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16 },
   screenTitle: {
-    fontSize: 32,
-    fontWeight: '700',
+    ...TYPE.title2,
     letterSpacing: -0.8,
     marginBottom: 14,
   },
@@ -324,10 +323,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  initials: { fontSize: 19, fontWeight: '700' },
+  initials: { ...TYPE.title2 },
   identityText: { flex: 1, gap: 2 },
-  name: { fontSize: 17, fontWeight: '700', letterSpacing: -0.3 },
-  email: { fontSize: 13 },
+  name: { ...TYPE.bodyStrong, letterSpacing: -0.3 },
+  email: { ...TYPE.footnote },
   group: { marginTop: 22 },
   groupHeader: {
     flexDirection: 'row',
@@ -336,7 +335,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     marginBottom: 7,
   },
-  groupTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  groupTitle: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
@@ -351,9 +350,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   rowText: { flex: 1, gap: 1 },
-  rowLabel: { fontSize: 16 },
-  rowWithin: { fontSize: 12 },
-  rowValue: { fontSize: 15, maxWidth: 150 },
-  empty: { fontSize: 15, paddingVertical: 24, textAlign: 'center' },
+  rowLabel: { ...TYPE.body },
+  rowWithin: { ...TYPE.footnote },
+  rowValue: { ...TYPE.subhead, maxWidth: 150 },
+  empty: { ...TYPE.subhead, paddingVertical: 24, textAlign: 'center' },
   pressed: { opacity: 0.6 },
 })

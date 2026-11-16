@@ -46,7 +46,7 @@ import { api, type Id } from '../../convex/api'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { moduleHref } from '../moduleDestination'
 import { ChildSwitcher } from './ChildSwitcher'
 import { useMinuteClock } from './clock'
@@ -81,7 +81,7 @@ export function ChildScreen() {
 
   if (log.loading)
     return (
-      <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+      <View style={{ flex: 1, backgroundColor: tokens.ground }}>
         <LoadingSkeleton rows={5} label={t.actions.loading} />
       </View>
     )
@@ -147,7 +147,7 @@ export function ChildScreen() {
         collapsed. `LogBar` paints its own background, so the wrapper bought
         nothing. */}
       <ScrollView
-        style={[styles.fill, { backgroundColor: tokens.bg }]}
+        style={[styles.fill, { backgroundColor: tokens.ground }]}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -166,13 +166,13 @@ export function ChildScreen() {
               accessibilityIgnoresInvertColors
             />
           ) : (
-            <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
-              <BABY_UI_ICONS.Baby size={27} color={tint.fg} strokeWidth={1.7} />
+            <View style={[styles.avatar, { backgroundColor: tint.fill }]}>
+              <BABY_UI_ICONS.Baby size={27} color={tint.on} strokeWidth={1.7} />
             </View>
           )}
           <View style={styles.identityText}>
             <View style={styles.nameRow}>
-              <Text style={[styles.name, { color: tokens.fg }]}>
+              <Text style={[styles.name, { color: tokens.ink }]}>
                 {child.name}
               </Text>
               <UI_ICONS.ChevronDown
@@ -205,13 +205,13 @@ export function ChildScreen() {
                   styles.tile,
                   {
                     backgroundColor: tokens.surface,
-                    borderColor: tokens.border,
+                    borderColor: tokens.hair,
                   },
                   pressed && styles.pressed,
                 ]}
               >
                 <View style={styles.tileHead}>
-                  <Icon size={17} color={tint.fg} strokeWidth={1.9} />
+                  <Icon size={17} color={tokens.muted} strokeWidth={1.9} />
                   <Text
                     numberOfLines={1}
                     style={[styles.tileLabel, { color: tokens.muted }]}
@@ -219,7 +219,7 @@ export function ChildScreen() {
                     {t.baby.eventTypes[type].toUpperCase()}
                   </Text>
                 </View>
-                <Text style={[styles.tileValue, { color: tokens.fg }]}>
+                <Text style={[styles.tileValue, { color: tokens.ink }]}>
                   {status.headline ?? '—'}
                 </Text>
                 <Text
@@ -250,7 +250,7 @@ export function ChildScreen() {
         <View
           style={[
             styles.card,
-            { backgroundColor: tokens.surface, borderColor: tokens.border },
+            { backgroundColor: tokens.surface, borderColor: tokens.hair },
           ]}
         >
           {(
@@ -279,13 +279,13 @@ export function ChildScreen() {
                 styles.row,
                 index > 0 && {
                   borderTopWidth: StyleSheet.hairlineWidth,
-                  borderTopColor: tokens.border,
+                  borderTopColor: tokens.hair,
                 },
                 pressed && styles.pressed,
               ]}
             >
-              <Icon size={18} color={tint.fg} strokeWidth={1.9} />
-              <Text style={[styles.rowLabel, { color: tokens.fg }]}>
+              <Icon size={18} color={tokens.ink} strokeWidth={1.9} />
+              <Text style={[styles.rowLabel, { color: tokens.ink }]}>
                 {label}
               </Text>
               <UI_ICONS.ChevronRight
@@ -306,7 +306,7 @@ export function ChildScreen() {
           }
           style={({ pressed }) => [styles.seeAll, pressed && styles.pressed]}
         >
-          <Text style={[styles.seeAllText, { color: tint.fg }]}>
+          <Text style={[styles.seeAllText, { color: tint.text }]}>
             {fmt(t.baby.log.status.seeAll, { count: events.length })}
           </Text>
         </Pressable>
@@ -397,11 +397,10 @@ const styles = StyleSheet.create({
   },
   identityText: { flex: 1, gap: 2 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  name: { fontSize: 27, fontWeight: '700', letterSpacing: -0.7 },
-  age: { fontSize: 13 },
+  name: { ...TYPE.title2, letterSpacing: -0.7 },
+  age: { ...TYPE.footnote },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
+    ...TYPE.footnoteStrong,
     letterSpacing: 0.8,
     marginTop: 6,
   },
@@ -417,9 +416,9 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   tileHead: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  tileLabel: { flex: 1, fontSize: 12, fontWeight: '700', letterSpacing: 0.4 },
-  tileValue: { fontSize: 24, fontWeight: '700', letterSpacing: -0.6 },
-  tileDetail: { fontSize: 12.5 },
+  tileLabel: { ...TYPE.footnoteStrong, flex: 1, letterSpacing: 0.4 },
+  tileValue: { ...TYPE.numeralL, letterSpacing: -0.6 },
+  tileDetail: { ...TYPE.footnote, ...TABULAR },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
@@ -427,8 +426,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
-  rowLabel: { flex: 1, fontSize: 16 },
+  rowLabel: { ...TYPE.body, flex: 1 },
   seeAll: { alignItems: 'center', minHeight: 44, justifyContent: 'center' },
-  seeAllText: { fontSize: 15, fontWeight: '600' },
+  seeAllText: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.6 },
 })

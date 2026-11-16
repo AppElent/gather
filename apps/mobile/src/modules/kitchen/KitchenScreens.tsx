@@ -27,7 +27,7 @@ import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { useTaskLists } from '../tasks/store'
 import { TaskList } from '../tasks/TaskListScreen'
 
@@ -45,7 +45,7 @@ function KitchenShell({
       <Stack.Screen options={{ headerShown: true, title }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 24 },
@@ -73,7 +73,7 @@ function Composer({
     <View
       style={[
         styles.composer,
-        { borderColor: tokens.border, backgroundColor: tokens.surface },
+        { borderColor: tokens.hair, backgroundColor: tokens.surface },
       ]}
     >
       <TextInput
@@ -81,7 +81,10 @@ function Composer({
         onChangeText={setName}
         placeholder={labels.name}
         placeholderTextColor={tokens.muted}
-        style={[styles.input, { color: tokens.fg }]}
+        style={[
+          styles.input,
+          { color: tokens.ink, borderBottomColor: tokens.hair },
+        ]}
       />
       {labels.extra ? (
         <TextInput
@@ -90,7 +93,10 @@ function Composer({
           placeholder={labels.extra}
           placeholderTextColor={tokens.muted}
           keyboardType="numeric"
-          style={[styles.input, { color: tokens.fg }]}
+          style={[
+            styles.input,
+            { color: tokens.ink, borderBottomColor: tokens.hair },
+          ]}
         />
       ) : null}
       <Pressable
@@ -106,7 +112,7 @@ function Composer({
         }
         style={[styles.add, { backgroundColor: tokens.accent }]}
       >
-        <Text style={{ color: tokens.onAccent, fontWeight: '700' }}>
+        <Text style={{ ...TYPE.bodyStrong, color: tokens.onAccent }}>
           {labels.add}
         </Text>
       </Pressable>
@@ -236,11 +242,11 @@ export function MealPlannerScreen() {
           onPress={() => setWeekStart(addDays(weekStart, -7))}
           style={styles.navButton}
         >
-          <UI_ICONS.ChevronLeft size={22} color={tokens.accent} />
+          <UI_ICONS.ChevronLeft size={22} color={tokens.accentText} />
         </Pressable>
         <Text
           accessibilityRole="header"
-          style={[styles.weekTitle, { color: tokens.fg }]}
+          style={[styles.weekTitle, { color: tokens.ink }]}
         >
           {weekRange(weekStart, locale)}
         </Text>
@@ -251,7 +257,7 @@ export function MealPlannerScreen() {
           onPress={() => setWeekStart(addDays(weekStart, 7))}
           style={styles.navButton}
         >
-          <UI_ICONS.ChevronRight size={22} color={tokens.accent} />
+          <UI_ICONS.ChevronRight size={22} color={tokens.accentText} />
         </Pressable>
       </View>
       <Pressable
@@ -270,7 +276,7 @@ export function MealPlannerScreen() {
             key={date}
             style={[
               styles.row,
-              { borderColor: tokens.border, backgroundColor: tokens.surface },
+              { borderColor: tokens.hair, backgroundColor: tokens.surface },
             ]}
           >
             <Pressable
@@ -278,7 +284,7 @@ export function MealPlannerScreen() {
               style={styles.dayMain}
               onPress={() => setPickerDate(date)}
             >
-              <Text style={[styles.dayName, { color: tokens.fg }]}>
+              <Text style={[styles.dayName, { color: tokens.ink }]}>
                 {sentenceCase(
                   localMidnight(date).toLocaleDateString(locale, {
                     weekday: 'long',
@@ -289,8 +295,8 @@ export function MealPlannerScreen() {
               </Text>
               <Text
                 style={{
-                  color: dinner ? tokens.fg : tokens.muted,
-                  fontSize: 15,
+                  ...TYPE.subhead,
+                  color: dinner ? tokens.ink : tokens.muted,
                 }}
               >
                 {dinner?.title ?? t.kitchen.nothingPlanned}
@@ -342,17 +348,23 @@ export function MealPlannerScreen() {
                     styles.limitChip,
                     {
                       backgroundColor: dinner?.quickLimit
-                        ? tokens.tile
+                        ? tokens.surface2
                         : 'transparent',
                     },
                   ]}
                 >
                   <UI_ICONS.Clock
                     size={16}
-                    color={dinner?.quickLimit ? tokens.accent : tokens.muted}
+                    color={dinner?.quickLimit ? tokens.ink : tokens.muted}
                   />
                   {dinner?.quickLimit ? (
-                    <Text style={{ color: tokens.accent, fontSize: 13 }}>
+                    <Text
+                      style={{
+                        ...TYPE.footnote,
+                        ...TABULAR,
+                        color: tokens.ink,
+                      }}
+                    >
                       {fmt(t.kitchen.quickShort, {
                         minutes: dinner.quickLimit,
                       })}
@@ -375,7 +387,7 @@ export function MealPlannerScreen() {
           </View>
         )
       })}
-      <Text style={[styles.section, { color: tokens.fg }]}>
+      <Text style={[styles.section, { color: tokens.ink }]}>
         {t.kitchen.mealLibrary}
       </Text>
       <Composer
@@ -419,10 +431,10 @@ export function MealPlannerScreen() {
               onPress={() => setEditing(entry._id)}
               style={[
                 styles.row,
-                { borderColor: tokens.border, backgroundColor: tokens.surface },
+                { borderColor: tokens.hair, backgroundColor: tokens.surface },
               ]}
             >
-              <Text style={[styles.title, { color: tokens.fg }]}>
+              <Text style={[styles.title, { color: tokens.ink }]}>
                 {entry.title}
               </Text>
               <Text style={{ color: tokens.muted }}>{entry.prepMinutes}</Text>
@@ -475,11 +487,11 @@ export function MealPlannerScreen() {
                 }}
                 style={({ pressed }) => [
                   styles.pickerRow,
-                  { borderBottomColor: tokens.border },
-                  pressed && { backgroundColor: tokens.tile },
+                  { borderBottomColor: tokens.hair },
+                  pressed && { backgroundColor: tokens.surface2 },
                 ]}
               >
-                <Text style={[styles.title, { color: tokens.fg }]}>
+                <Text style={[styles.title, { color: tokens.ink }]}>
                   {candidate.title}
                 </Text>
                 {candidate.prepMinutes ? (
@@ -550,16 +562,24 @@ function EditMeal({
         <TextInput
           value={title}
           onChangeText={setTitle}
-          style={[styles.input, { color: tokens.fg }]}
+          style={[
+            styles.input,
+            { color: tokens.ink, borderBottomColor: tokens.hair },
+          ]}
         />
         <TextInput
           value={prep}
           onChangeText={setPrep}
           keyboardType="numeric"
-          style={[styles.input, { color: tokens.fg }]}
+          style={[
+            styles.input,
+            { color: tokens.ink, borderBottomColor: tokens.hair },
+          ]}
         />
         <Pressable onPress={() => onSave(id, title, Number(prep) || undefined)}>
-          <Text style={{ color: tokens.accent }}>{t.common.actions.save}</Text>
+          <Text style={{ color: tokens.accentText }}>
+            {t.common.actions.save}
+          </Text>
         </Pressable>
         <Pressable onPress={onClose}>
           <Text style={{ color: tokens.muted }}>{t.common.actions.cancel}</Text>
@@ -674,12 +694,12 @@ export function PantryScreen() {
                 style={[
                   styles.row,
                   {
-                    borderColor: tokens.border,
+                    borderColor: tokens.hair,
                     backgroundColor: tokens.surface,
                   },
                 ]}
               >
-                <Text style={[styles.title, { color: tokens.fg }]}>
+                <Text style={[styles.title, { color: tokens.ink }]}>
                   {item.title}
                 </Text>
                 <Text style={{ color: tokens.muted }}>{item.quantity}</Text>
@@ -732,15 +752,23 @@ function PantryEditor({
         <TextInput
           value={title}
           onChangeText={setTitle}
-          style={[styles.input, { color: tokens.fg }]}
+          style={[
+            styles.input,
+            { color: tokens.ink, borderBottomColor: tokens.hair },
+          ]}
         />
         <TextInput
           value={quantity}
           onChangeText={setQuantity}
-          style={[styles.input, { color: tokens.fg }]}
+          style={[
+            styles.input,
+            { color: tokens.ink, borderBottomColor: tokens.hair },
+          ]}
         />
         <Pressable onPress={() => onSave(title, quantity)}>
-          <Text style={{ color: tokens.accent }}>{t.common.actions.save}</Text>
+          <Text style={{ color: tokens.accentText }}>
+            {t.common.actions.save}
+          </Text>
         </Pressable>
         <Pressable onPress={onClose}>
           <Text>{t.common.actions.cancel}</Text>
@@ -754,33 +782,32 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 10 },
   composer: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     padding: 10,
     gap: 8,
   },
   input: {
+    ...TYPE.body,
     minHeight: 40,
-    fontSize: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#00000022',
   },
   add: {
     minHeight: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 10,
   },
   row: {
     minHeight: 58,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  title: { flex: 1, fontSize: 16, fontWeight: '600' },
+  title: { ...TYPE.bodyStrong, flex: 1 },
   nav: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -788,18 +815,18 @@ const styles = StyleSheet.create({
   },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   navButton: { padding: 8 },
-  weekTitle: { fontSize: 17, fontWeight: '600', textAlign: 'center', flex: 1 },
+  weekTitle: { ...TYPE.bodyStrong, textAlign: 'center', flex: 1 },
   limitChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 6,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
   clear: { padding: 6 },
   dayMain: { flex: 1, gap: 2, paddingVertical: 10 },
-  dayName: { fontSize: 13, fontWeight: '600' },
+  dayName: { ...TYPE.footnoteStrong },
   pickerList: { paddingBottom: 40 },
   pickerEmpty: { padding: 24, textAlign: 'center' },
   pickerRow: {
@@ -810,13 +837,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  section: { fontSize: 17, fontWeight: '700', marginTop: 8 },
+  section: { ...TYPE.bodyStrong, marginTop: 8 },
   modal: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000066' },
   sheet: {
     padding: 20,
     gap: 12,
-    borderTopLeftRadius: RADIUS.control,
-    borderTopRightRadius: RADIUS.control,
+    borderTopLeftRadius: RADIUS.card,
+    borderTopRightRadius: RADIUS.card,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   day: {
@@ -824,6 +851,6 @@ const styles = StyleSheet.create({
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
   },
 })

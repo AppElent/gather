@@ -39,7 +39,7 @@ import { api, type Id } from '../../convex/api'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { DateTimeField } from './DateTimeField'
 import { EntryFields, fieldLabel, optionText } from './EntryFields'
 import { EntryPhotoField } from './EntryPhotoField'
@@ -197,7 +197,7 @@ export function EntryScreen() {
       <View
         style={[
           styles.card,
-          { backgroundColor: tokens.bg, borderColor: tokens.border },
+          { backgroundColor: tokens.ground, borderColor: tokens.hair },
         ]}
       >
         {rows.map((row, index) => (
@@ -207,14 +207,14 @@ export function EntryScreen() {
               styles.detail,
               index > 0 && {
                 borderTopWidth: StyleSheet.hairlineWidth,
-                borderTopColor: tokens.border,
+                borderTopColor: tokens.hair,
               },
             ]}
           >
             <Text style={[styles.detailName, { color: tokens.muted }]}>
               {row.name}
             </Text>
-            <Text style={[styles.detailValue, { color: tokens.fg }]}>
+            <Text style={[styles.detailValue, { color: tokens.ink }]}>
               {row.value}
             </Text>
           </View>
@@ -246,8 +246,8 @@ export function EntryScreen() {
             when. Editing replaces it with the control that changes it. */}
         {editing ? null : (
           <View style={styles.head}>
-            <View style={[styles.glyph, { backgroundColor: tint.bg }]}>
-              <Icon size={20} color={tint.fg} strokeWidth={1.9} />
+            <View style={[styles.glyph, { backgroundColor: tint.fill }]}>
+              <Icon size={20} color={tint.on} strokeWidth={1.9} />
             </View>
             <Text style={[styles.when, { color: tokens.muted }]}>
               {when.toLocaleDateString(locale, {
@@ -290,9 +290,9 @@ export function EntryScreen() {
               style={[
                 styles.notes,
                 {
-                  borderColor: tokens.border,
-                  backgroundColor: tokens.bg,
-                  color: tokens.fg,
+                  borderColor: tokens.hair,
+                  backgroundColor: tokens.ground,
+                  color: tokens.ink,
                 },
               ]}
             />
@@ -332,7 +332,7 @@ export function EntryScreen() {
                 <Text style={[styles.fieldLabel, { color: tokens.muted }]}>
                   {t.baby.log.entry.notes.toUpperCase()}
                 </Text>
-                <Text style={[styles.notesRead, { color: tokens.fg }]}>
+                <Text style={[styles.notesRead, { color: tokens.ink }]}>
                   {entry.notes}
                 </Text>
               </View>
@@ -340,7 +340,7 @@ export function EntryScreen() {
             {entry.photoUrl ? (
               <Image
                 source={{ uri: entry.photoUrl }}
-                style={[styles.photo, { backgroundColor: tokens.tile }]}
+                style={[styles.photo, { backgroundColor: tokens.surface2 }]}
                 contentFit="cover"
                 accessibilityLabel={fmt(t.baby.log.entry.photoOf, {
                   type: t.baby.eventTypes[type],
@@ -367,11 +367,11 @@ export function EntryScreen() {
                 style={({ pressed }) => [
                   styles.button,
                   styles.secondary,
-                  { borderColor: tokens.border },
+                  { borderColor: tokens.hair },
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={[styles.buttonText, { color: tokens.fg }]}>
+                <Text style={[styles.buttonText, { color: tokens.ink }]}>
                   {t.common.actions.cancel}
                 </Text>
               </Pressable>
@@ -382,18 +382,18 @@ export function EntryScreen() {
                 style={({ pressed }) => [
                   styles.button,
                   {
-                    backgroundColor: blocked ? tokens.tile : tokens.accent,
+                    backgroundColor: blocked ? tokens.surface2 : tokens.accent,
                   },
                   (pressed || busy) && styles.pressed,
                 ]}
               >
                 {busy ? (
-                  <ActivityIndicator color={tokens.surface} />
+                  <ActivityIndicator color={tokens.onAccent} />
                 ) : (
                   <Text
                     style={[
                       styles.buttonText,
-                      { color: blocked ? tokens.muted : tokens.surface },
+                      { color: blocked ? tokens.muted : tokens.onAccent },
                     ]}
                   >
                     {t.common.actions.save}
@@ -410,7 +410,7 @@ export function EntryScreen() {
                 style={({ pressed }) => [
                   styles.button,
                   styles.secondary,
-                  { borderColor: tokens.border },
+                  { borderColor: tokens.hair },
                   pressed && styles.pressed,
                 ]}
               >
@@ -433,7 +433,7 @@ export function EntryScreen() {
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={[styles.buttonText, { color: tokens.surface }]}>
+                <Text style={[styles.buttonText, { color: tokens.onAccent }]}>
                   {t.common.actions.edit}
                 </Text>
               </Pressable>
@@ -452,13 +452,14 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 4, gap: 14 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   glyph: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: SIZE.tileM,
+    height: SIZE.tileM,
+    borderRadius: RADIUS.tileM,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  when: { flex: 1, fontSize: 13 },
+  when: { ...TYPE.footnote, flex: 1 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
@@ -471,32 +472,32 @@ const styles = StyleSheet.create({
     gap: 12,
     minHeight: 46,
   },
-  detailName: { flex: 1, fontSize: 14 },
-  detailValue: { fontSize: 16, fontWeight: '600' },
+  detailName: { ...TYPE.subhead, flex: 1 },
+  detailValue: { ...TYPE.bodyStrong, ...TABULAR },
   field: { gap: 6 },
-  fieldLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
-  notesRead: { fontSize: 15, lineHeight: 21 },
+  fieldLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
+  notesRead: { ...TYPE.subhead },
   photo: { width: '100%', aspectRatio: 4 / 3, borderRadius: RADIUS.card },
   notes: {
+    ...TYPE.subhead,
     minHeight: 64,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 12,
-    fontSize: 15,
     textAlignVertical: 'top',
   },
-  error: { fontSize: 14 },
+  error: { ...TYPE.subhead },
   buttons: { flexDirection: 'row', gap: 10, marginTop: 4 },
   button: {
     flex: 1,
     minHeight: 50,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondary: { borderWidth: StyleSheet.hairlineWidth },
-  buttonText: { fontSize: 16, fontWeight: '700' },
+  buttonText: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.7 },
 })

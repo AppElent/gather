@@ -1,5 +1,5 @@
 /**
- * A grouped surface: 16px radius, a hairline border and a 14px inset, which
+ * A grouped surface: `RADIUS.card`, a hairline border and a 14px inset, which
  * the rows inside use as their own inset so a run of rows reads as one object.
  */
 import type { ReactNode } from 'react'
@@ -19,7 +19,7 @@ export function Card({
     <View
       style={[
         styles.card,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        { backgroundColor: tokens.surface, borderColor: tokens.hair },
         style,
       ]}
     >

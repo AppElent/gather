@@ -9,6 +9,8 @@ const sourceRoot = `${mobileRoot}src/`;
 const routeRoot = `${mobileRoot}app/`;
 const featureRoot = `${sourceRoot}features/`;
 const uiRoot = `${sourceRoot}ui/`;
+/** Where the typography tokens are defined: the one place a literal fontSize belongs. */
+const themeRoot = `${sourceRoot}theme/`;
 const messagesRoot = `${sourceRoot}i18n/`;
 /** Units and names that read the same in every supported language. */
 const UNTRANSLATED = /\b(?:kcal|kg|km|lb)\b/g;
@@ -86,6 +88,7 @@ export function inspectMobileSource(filename, source, resolveImport) {
 	const ui = file.startsWith(uiRoot);
 	const messages = messagesRoot !== null && file.startsWith(messagesRoot);
 	const route = file.startsWith(routeRoot);
+	const typed = !file.startsWith(themeRoot);
 	const issues = [];
 	if (messagesRoot !== null && !messages && /-copy\.tsx?$/.test(file))
 		issues.push({ file, line: 1, rule: "message-catalog", message: CATALOG_MESSAGE });
@@ -206,7 +209,7 @@ export function inspectMobileSource(filename, source, resolveImport) {
 		)
 			checkDependency(node.arguments[0]);
 		const fontSize =
-			feature &&
+			typed &&
 			(ts.isPropertyAssignment(node)
 				? (() => {
 						const name = ts.isComputedPropertyName(node.name)
@@ -224,7 +227,7 @@ export function inspectMobileSource(filename, source, resolveImport) {
 		if (fontSize)
 			report(
 				node,
-				"feature-font-size",
+				"literal-font-size",
 				"Use a shared theme typography token instead of a literal fontSize.",
 			);
 		ts.forEachChild(node, visit);

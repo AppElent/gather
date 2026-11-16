@@ -29,7 +29,7 @@ import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { moduleHref } from '../moduleDestination'
 import { CaptureFlow, useCapture } from './CaptureFlow'
 import { KIND_ICONS, TASTING_UI_ICONS } from './icons'
@@ -37,11 +37,7 @@ import { moduleIdOf } from './paths'
 import { indexSummary, subjectFacts, tastingCount } from './summary'
 import { kindWords } from './words'
 
-export function IndexScreen({
-  kind,
-}: {
-  kind: TastingKind
-}) {
+export function IndexScreen({ kind }: { kind: TastingKind }) {
   const tokens = useTokens('tasting')
   const insets = useSafeAreaInsets()
   const router = useRouter()
@@ -93,7 +89,7 @@ export function IndexScreen({
             onPress={capture.open}
             hitSlop={12}
           >
-            <Plus size={24} color={tint.fg} strokeWidth={2} />
+            <Plus size={24} color={tokens.accentText} strokeWidth={2} />
           </Pressable>
         ),
       }}
@@ -104,7 +100,7 @@ export function IndexScreen({
     return (
       <>
         {header}
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={5} label={t.actions.loading} />
         </View>
       </>
@@ -121,11 +117,11 @@ export function IndexScreen({
     return (
       <>
         {header}
-        <View style={[styles.emptyScreen, { backgroundColor: tokens.bg }]}>
-          <View style={[styles.emptyIcon, { backgroundColor: tint.bg }]}>
-            <KindIcon size={34} color={tint.fg} strokeWidth={1.6} />
+        <View style={[styles.emptyScreen, { backgroundColor: tokens.ground }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: tint.fill }]}>
+            <KindIcon size={28} color={tint.on} strokeWidth={1.6} />
           </View>
-          <Text style={[styles.emptyTitle, { color: tokens.fg }]}>
+          <Text style={[styles.emptyTitle, { color: tokens.ink }]}>
             {fmt(t.tastings.empty.title, { kind: words.many })}
           </Text>
           <Text style={[styles.emptyBody, { color: tokens.muted }]}>
@@ -139,12 +135,12 @@ export function IndexScreen({
             onPress={capture.open}
             style={({ pressed }) => [
               styles.emptyButton,
-              { backgroundColor: tint.fg },
+              { backgroundColor: tokens.accent },
               pressed && styles.pressed,
             ]}
           >
-            <Plus size={18} color={tokens.surface} strokeWidth={2.2} />
-            <Text style={[styles.emptyButtonText, { color: tokens.surface }]}>
+            <Plus size={18} color={tokens.onAccent} strokeWidth={2.2} />
+            <Text style={[styles.emptyButtonText, { color: tokens.onAccent }]}>
               {fmt(t.tastings.empty.action, { kind: words.one })}
             </Text>
           </Pressable>
@@ -163,7 +159,7 @@ export function IndexScreen({
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 32 },
@@ -192,7 +188,7 @@ export function IndexScreen({
               onPress={() => setQuery('')}
               style={({ pressed }) => [pressed && styles.pressed]}
             >
-              <Text style={[styles.clear, { color: tint.fg }]}>
+              <Text style={[styles.clear, { color: tokens.accentText }]}>
                 {t.tastings.index.clearSearch}
               </Text>
             </Pressable>
@@ -213,24 +209,26 @@ export function IndexScreen({
             }
             style={({ pressed }) => [
               styles.row,
-              { borderBottomColor: tokens.border },
-              pressed && { backgroundColor: tokens.tile },
+              { borderBottomColor: tokens.hair },
+              pressed && { backgroundColor: tokens.surface2 },
             ]}
           >
             {subject.photoUrl ? (
               <Image
                 source={{ uri: subject.photoUrl }}
-                style={[styles.thumb, { backgroundColor: tokens.tile }]}
+                style={[styles.thumb, { backgroundColor: tokens.surface2 }]}
                 contentFit="cover"
                 accessibilityIgnoresInvertColors
               />
             ) : (
-              <View style={[styles.thumb, { backgroundColor: tokens.tile }]}>
+              <View
+                style={[styles.thumb, { backgroundColor: tokens.surface2 }]}
+              >
                 <Photo size={20} color={tokens.muted} strokeWidth={1.8} />
               </View>
             )}
             <View style={styles.rowText}>
-              <Text style={[styles.rowName, { color: tokens.fg }]}>
+              <Text style={[styles.rowName, { color: tokens.ink }]}>
                 {subject.name}
               </Text>
               <Text style={[styles.rowFacts, { color: tokens.muted }]}>
@@ -244,7 +242,7 @@ export function IndexScreen({
                 </Text>
               ) : (
                 <>
-                  <Text style={[styles.score, { color: tint.fg }]}>
+                  <Text style={[styles.score, { color: tokens.ink }]}>
                     {subject.average.toFixed(1)}
                   </Text>
                   <Text style={[styles.rowCount, { color: tokens.muted }]}>
@@ -263,9 +261,9 @@ export function IndexScreen({
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 8, gap: 10 },
-  summary: { fontSize: 13 },
+  summary: { ...TYPE.footnote },
   noResults: { gap: 6, paddingVertical: 12 },
-  clear: { fontSize: 15, fontWeight: '600' },
+  clear: { ...TYPE.bodyStrong },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -276,16 +274,16 @@ const styles = StyleSheet.create({
   thumb: {
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: RADIUS.thumb,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowText: { flex: 1, gap: 2 },
-  rowName: { fontSize: 16, fontWeight: '600' },
-  rowFacts: { fontSize: 13 },
+  rowName: { ...TYPE.bodyStrong },
+  rowFacts: { ...TYPE.footnote },
   rowScore: { alignItems: 'flex-end', gap: 2 },
-  score: { fontSize: 16, fontWeight: '700' },
-  rowCount: { fontSize: 12 },
+  score: { ...TYPE.bodyStrong, ...TABULAR },
+  rowCount: { ...TYPE.footnote },
   emptyScreen: {
     flex: 1,
     alignItems: 'center',
@@ -295,22 +293,23 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
   },
   emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
+    width: SIZE.tileL,
+    height: SIZE.tileL,
+    borderRadius: RADIUS.tileL,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyTitle: { fontSize: 20, fontWeight: '700', letterSpacing: -0.4 },
-  emptyBody: { fontSize: 15, lineHeight: 21, textAlign: 'center' },
+  emptyTitle: { ...TYPE.title2, letterSpacing: -0.4 },
+  emptyBody: { ...TYPE.subhead, textAlign: 'center' },
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
     minHeight: 48,
     paddingHorizontal: 22,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  emptyButtonText: { fontSize: 16, fontWeight: '700' },
+  emptyButtonText: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.6 },
 })

@@ -17,6 +17,7 @@ import Image from 'lucide-react-native/icons/image'
 import ImagePlus from 'lucide-react-native/icons/image-plus'
 import Plus from 'lucide-react-native/icons/plus'
 import Star from 'lucide-react-native/icons/star'
+import StarHalf from 'lucide-react-native/icons/star-half'
 import Wine from 'lucide-react-native/icons/wine'
 
 import { CheeseWedge } from '../../theme/CheeseWedge'
@@ -38,4 +39,7 @@ export const TASTING_UI_ICONS = {
   ImagePlus: glyph(ImagePlus, 'photo.badge.plus'),
   Plus: glyph(Plus, 'plus'),
   Star: glyph(Star, 'star'),
+  /** The scored part of a star; SF says "filled" with its own symbol. */
+  StarFilled: glyph(Star, 'star.fill'),
+  StarHalf: glyph(StarHalf, 'star.leadinghalf.filled'),
 } satisfies Record<string, Glyph>

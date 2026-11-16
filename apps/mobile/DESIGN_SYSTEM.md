@@ -13,9 +13,17 @@ and every user-visible word come from `@gather/core`.
 **Visual direction: Tiles & Today.** The tokens, type scale, component guidelines
 and previews live in the [Gather design system](https://claude.ai/artifact/Rwyfbq38b6YcreQMScCZgy).
 The boards it was drawn from, and the council notes, are on the
-[directions canvas](https://claude.ai/artifact/RoKALMenqvjekPVR9BcHqv). The
-direction is approved but not built yet: `src/theme/tokens.ts` and
-`MODULE_TINTS` still hold the previous palette until it is implemented.
+[directions canvas](https://claude.ai/artifact/RoKALMenqvjekPVR9BcHqv).
+
+The tokens live in `src/theme/`: neutrals in `palette.ts`; text styles
+(`TYPE`, `TABULAR`), spacing (`SPACE`), radii (`RADIUS`), sizes (`SIZE`) and
+`useTokens(group?)` in `tokens.ts`. Each Module group's four colours (`fill`,
+`on`, `text`, `wash`) are `MODULE_TINTS` in `@gather/core/module-tints`.
+`src/theme/contrast.test.ts` holds every allowed text pair to 4.5:1 in both
+themes, and `scripts/check-mobile-structure.mjs` rejects a literal `fontSize`
+anywhere outside `src/theme/`. Group colour goes only on tiles and a Module's
+primary button (`accent`/`onAccent`); group-coloured text (`accentText`, a
+group's `text`) sits on `ground` or `surface`, never on a wash.
 
 ## Interaction vocabulary
 

@@ -27,7 +27,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useI18n } from '../../i18n'
-import { useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { CalendarAgenda } from './CalendarAgenda'
 import { CalendarHeader } from './CalendarHeader'
 import {
@@ -121,7 +121,7 @@ export function CalendarScreen({
         style={[
           styles.screen,
           {
-            backgroundColor: tokens.bg,
+            backgroundColor: tokens.ground,
             paddingBottom: insets.bottom,
           },
         ]}
@@ -150,7 +150,7 @@ export function CalendarScreen({
         {/* box-none: the row itself never takes a touch, but the draft pill does. */}
         <View style={styles.status} pointerEvents="box-none">
           {data.hiddenCalendarIds.length > 0 ? (
-            <Text style={[styles.filterStatus, { color: tokens.accent }]}>
+            <Text style={[styles.filterStatus, { color: tokens.accentText }]}>
               {t.calendar.filtersActive}
             </Text>
           ) : null}
@@ -162,11 +162,11 @@ export function CalendarScreen({
               hitSlop={8}
               style={({ pressed }) => [
                 styles.draft,
-                { backgroundColor: tokens.tile },
+                { backgroundColor: tokens.surface2 },
                 pressed && { opacity: 0.6 },
               ]}
             >
-              <Text style={[styles.draftText, { color: tokens.accent }]}>
+              <Text style={[styles.draftText, { color: tokens.ink }]}>
                 {t.calendar.resumeDraft}
               </Text>
             </Pressable>
@@ -214,8 +214,8 @@ const styles = StyleSheet.create({
   draft: {
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
   },
-  draftText: { fontSize: 14, fontWeight: '600' },
-  filterStatus: { fontSize: 11, fontWeight: '600' },
+  draftText: { ...TYPE.bodyStrong },
+  filterStatus: { ...TYPE.footnoteStrong },
 })

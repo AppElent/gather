@@ -45,7 +45,7 @@ import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { ListPicker, type PickedList } from './ListPicker'
 import { LogBar, slotIcon, slotLabel } from './LogBar'
 import { useWriteChildBar } from './useWriteChildBar'
@@ -57,7 +57,6 @@ export function ChildSettings({ childId }: { childId: string }) {
   const router = useRouter()
   const { group } = useGroup()
   const groupSlug = group.slug
-  const tint = tokens.tintOf('home')
 
   const child = useQuery(api.babies.get, {
     id: childId as Id<'babies'>,
@@ -89,11 +88,11 @@ export function ChildSettings({ childId }: { childId: string }) {
   const [reordering, setReordering] = useState(false)
 
   if (child === undefined) {
-    return <View style={{ flex: 1, backgroundColor: tokens.bg }} />
+    return <View style={{ flex: 1, backgroundColor: tokens.ground }} />
   }
   if (child === null) {
     return (
-      <View style={[styles.missing, { backgroundColor: tokens.bg }]}>
+      <View style={[styles.missing, { backgroundColor: tokens.ground }]}>
         <Text style={{ color: tokens.muted }}>{t.baby.log.child.notFound}</Text>
       </View>
     )
@@ -195,7 +194,7 @@ export function ChildSettings({ childId }: { childId: string }) {
       <View
         style={{
           flex: 1,
-          backgroundColor: tokens.bg,
+          backgroundColor: tokens.ground,
           justifyContent: 'flex-end',
         }}
       >
@@ -259,13 +258,13 @@ export function ChildSettings({ childId }: { childId: string }) {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.content,
         { paddingBottom: insets.bottom + 32 },
       ]}
     >
-      <Text style={[styles.name, { color: tokens.fg }]}>{record.name}</Text>
+      <Text style={[styles.name, { color: tokens.ink }]}>{record.name}</Text>
       <Text style={[styles.group, { color: tokens.muted }]}>{group.name}</Text>
 
       <Text style={[styles.sectionTitle, { color: tokens.muted }]}>
@@ -274,10 +273,10 @@ export function ChildSettings({ childId }: { childId: string }) {
       <View
         style={[
           styles.card,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
         ]}
       >
-        <View style={[styles.fieldRow, { borderBottomColor: tokens.border }]}>
+        <View style={[styles.fieldRow, { borderBottomColor: tokens.hair }]}>
           <Text style={[styles.fieldLabel, { color: tokens.muted }]}>
             {t.baby.log.form.name}
           </Text>
@@ -290,7 +289,7 @@ export function ChildSettings({ childId }: { childId: string }) {
             }
             returnKeyType="done"
             accessibilityLabel={t.baby.log.form.name}
-            style={[styles.fieldInput, { color: tokens.fg }]}
+            style={[styles.fieldInput, { color: tokens.ink }]}
           />
           {pendingName ? (
             <SaveEdit
@@ -300,7 +299,7 @@ export function ChildSettings({ childId }: { childId: string }) {
             />
           ) : null}
         </View>
-        <View style={[styles.fieldRow, { borderBottomColor: tokens.border }]}>
+        <View style={[styles.fieldRow, { borderBottomColor: tokens.hair }]}>
           <Text style={[styles.fieldLabel, { color: tokens.muted }]}>
             {t.baby.log.form.birthDate}
           </Text>
@@ -318,7 +317,7 @@ export function ChildSettings({ childId }: { childId: string }) {
             placeholderTextColor={tokens.muted}
             keyboardType="numbers-and-punctuation"
             accessibilityLabel={t.baby.log.form.birthDate}
-            style={[styles.fieldInput, { color: tokens.fg }]}
+            style={[styles.fieldInput, { color: tokens.ink }]}
           />
           {pendingBirthDate ? (
             <SaveEdit
@@ -353,19 +352,16 @@ export function ChildSettings({ childId }: { childId: string }) {
                   style={[
                     styles.segment,
                     {
-                      borderColor: on ? tint.fg : tokens.border,
-                      backgroundColor: on ? tint.bg : tokens.bg,
+                      borderColor: on ? tokens.ink : tokens.hair,
+                      backgroundColor: on ? tokens.ink : tokens.ground,
                     },
                   ]}
                 >
                   <Text
                     numberOfLines={1}
                     style={[
-                      styles.segmentText,
-                      {
-                        color: on ? tint.fg : tokens.fg,
-                        fontWeight: on ? '700' : '500',
-                      },
+                      on ? TYPE.footnoteStrong : TYPE.footnote,
+                      { color: on ? tokens.onInk : tokens.ink },
                     ]}
                   >
                     {label}
@@ -391,19 +387,19 @@ export function ChildSettings({ childId }: { childId: string }) {
         onPress={() => setReordering(true)}
         style={({ pressed }) => [
           styles.reorder,
-          { backgroundColor: tokens.tile },
+          { backgroundColor: tokens.surface2 },
           pressed && styles.pressed,
         ]}
       >
         <UI_ICONS.GripVertical size={18} color={tokens.muted} />
-        <Text style={[styles.reorderText, { color: tokens.fg }]}>
+        <Text style={[styles.reorderText, { color: tokens.ink }]}>
           {t.actions.reorder}
         </Text>
       </Pressable>
       <View
         style={[
           styles.card,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
         ]}
       >
         {slots.map((slot) => {
@@ -413,15 +409,15 @@ export function ChildSettings({ childId }: { childId: string }) {
           return (
             <View
               key={slot}
-              style={[styles.row, { borderBottomColor: tokens.border }]}
+              style={[styles.row, { borderBottomColor: tokens.hair }]}
             >
               <UI_ICONS.GripVertical size={18} color={tokens.muted} />
               <Icon
                 size={20}
-                color={shortcut ? tokens.muted : tint.fg}
+                color={shortcut ? tokens.muted : tokens.ink}
                 strokeWidth={1.9}
               />
-              <Text style={[styles.rowLabel, { color: tokens.fg }]}>
+              <Text style={[styles.rowLabel, { color: tokens.ink }]}>
                 {label}
               </Text>
               <Switch
@@ -430,7 +426,7 @@ export function ChildSettings({ childId }: { childId: string }) {
                 onValueChange={() =>
                   setSlots(slots.filter((each) => each !== slot))
                 }
-                trackColor={{ false: tokens.tile, true: tint.fg }}
+                trackColor={{ false: tokens.surface2 }}
               />
             </View>
           )
@@ -442,7 +438,7 @@ export function ChildSettings({ childId }: { childId: string }) {
           return (
             <View
               key={slot}
-              style={[styles.row, { borderBottomColor: tokens.border }]}
+              style={[styles.row, { borderBottomColor: tokens.hair }]}
             >
               <View style={styles.gripSpace} />
               <Icon size={20} color={tokens.muted} strokeWidth={1.9} />
@@ -455,7 +451,7 @@ export function ChildSettings({ childId }: { childId: string }) {
                 // Appended rather than slotted into catalogue order: the thing
                 // you just turned on is the thing you were looking for.
                 onValueChange={() => setSlots([...slots, slot])}
-                trackColor={{ false: tokens.tile, true: tint.fg }}
+                trackColor={{ false: tokens.surface2 }}
               />
             </View>
           )
@@ -464,7 +460,7 @@ export function ChildSettings({ childId }: { childId: string }) {
       <Text style={[styles.orderHint, { color: tokens.muted }]}>
         {t.baby.log.tracked.orderHint}
       </Text>
-      <View style={[styles.notice, { backgroundColor: tokens.tile }]}>
+      <View style={[styles.notice, { backgroundColor: tokens.surface2 }]}>
         <UI_ICONS.CircleAlert
           size={18}
           color={tokens.muted}
@@ -498,7 +494,7 @@ export function ChildSettings({ childId }: { childId: string }) {
         onPress={confirmDelete}
         style={({ pressed }) => [
           styles.delete,
-          { borderColor: tokens.border },
+          { borderColor: tokens.hair },
           pressed && styles.pressed,
         ]}
       >
@@ -528,7 +524,6 @@ function SaveEdit({
   onPress: () => void
 }) {
   const tokens = useTokens('home')
-  const tint = tokens.tintOf('home')
   return (
     <Pressable
       accessibilityRole="button"
@@ -538,11 +533,11 @@ function SaveEdit({
       hitSlop={8}
       style={({ pressed }) => [
         styles.saveEdit,
-        { backgroundColor: tint.bg },
+        { backgroundColor: tokens.surface2 },
         pressed && styles.pressed,
       ]}
     >
-      <Text style={[styles.saveEditText, { color: tint.fg }]}>{label}</Text>
+      <Text style={[styles.saveEditText, { color: tokens.ink }]}>{label}</Text>
     </Pressable>
   )
 }
@@ -553,15 +548,14 @@ const styles = StyleSheet.create({
     minHeight: 34,
     justifyContent: 'center',
     paddingHorizontal: 12,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  saveEditText: { fontSize: 14, fontWeight: '700' },
+  saveEditText: { ...TYPE.bodyStrong },
   missing: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: 27, fontWeight: '700', letterSpacing: -0.7 },
-  group: { fontSize: 13, marginBottom: 8 },
+  name: { ...TYPE.title2, letterSpacing: -0.7 },
+  group: { ...TYPE.footnote, marginBottom: 8 },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
+    ...TYPE.footnoteStrong,
     letterSpacing: 0.8,
     marginTop: 8,
   },
@@ -578,7 +572,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  rowLabel: { flex: 1, fontSize: 16 },
+  rowLabel: { ...TYPE.body, flex: 1 },
   gripSpace: { width: 18 },
   reorder: {
     flexDirection: 'row',
@@ -586,10 +580,10 @@ const styles = StyleSheet.create({
     gap: 8,
     minHeight: 44,
     paddingHorizontal: 12,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  reorderText: { fontSize: 15, fontWeight: '600' },
-  orderHint: { fontSize: 13, lineHeight: 19, paddingHorizontal: 2 },
+  reorderText: { ...TYPE.bodyStrong },
+  orderHint: { ...TYPE.footnote, paddingHorizontal: 2 },
   fieldRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -597,10 +591,10 @@ const styles = StyleSheet.create({
     minHeight: 52,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  fieldLabel: { fontSize: 15, width: 96 },
+  fieldLabel: { ...TYPE.subhead, width: 96 },
   fieldInput: {
+    ...TYPE.body,
     flex: 1,
-    fontSize: 16,
     paddingVertical: 12,
     textAlign: 'right',
   },
@@ -613,25 +607,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 6,
     borderWidth: 1,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  segmentText: { fontSize: 14 },
-  detailsError: { fontSize: 14 },
+  detailsError: { ...TYPE.subhead },
   notice: {
     flexDirection: 'row',
     gap: 10,
     padding: 12,
-    borderRadius: RADIUS.tile,
+    borderRadius: RADIUS.card,
   },
-  noticeText: { flex: 1, fontSize: 13.5, lineHeight: 20 },
+  noticeText: { ...TYPE.footnote, flex: 1 },
   delete: {
     minHeight: 50,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 18,
   },
-  deleteText: { fontSize: 16, fontWeight: '600' },
+  deleteText: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.6 },
 })

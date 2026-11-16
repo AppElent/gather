@@ -16,7 +16,7 @@ import { moduleHref } from '../modules/moduleDestination'
 import { QuickAddTask } from '../modules/tasks/QuickAddTask'
 import { SubjectPickerSheet } from '../modules/tasting/SubjectPickerSheet'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, SIZE, TYPE, useTokens } from '../theme/tokens'
 import {
   QUICK_ACTIONS,
   type QuickAction,
@@ -96,7 +96,7 @@ function SheetBody({
       hitSlop={12}
       style={({ pressed }) => [
         styles.close,
-        { backgroundColor: tokens.tile },
+        { backgroundColor: tokens.surface2 },
         pressed && styles.pressed,
       ]}
     >
@@ -160,12 +160,14 @@ function SheetBody({
                   ]}
                 >
                   <View
-                    style={[styles.rowIcon, { backgroundColor: tint.bg }]}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                    style={[styles.rowIcon, { backgroundColor: tint.fill }]}
                   >
-                    <Icon size={20} color={tint.fg} strokeWidth={1.8} />
+                    <Icon size={20} color={tint.on} strokeWidth={1.8} />
                   </View>
                   <View style={styles.rowText}>
-                    <Text style={[styles.rowLabel, { color: tokens.fg }]}>
+                    <Text style={[styles.rowLabel, { color: tokens.ink }]}>
                       {copy.label}
                     </Text>
                     <Text style={[styles.rowModule, { color: tokens.muted }]}>
@@ -202,14 +204,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   rowIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.tile,
+    width: SIZE.tileM,
+    height: SIZE.tileM,
+    borderRadius: RADIUS.tileM,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowText: { flex: 1, gap: 1 },
-  rowLabel: { fontSize: 16, fontWeight: '600' },
-  rowModule: { fontSize: 13 },
+  rowLabel: { ...TYPE.bodyStrong },
+  rowModule: { ...TYPE.footnote },
   pressed: { opacity: 0.6 },
 })

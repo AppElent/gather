@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { SettingsCard } from '../../../../../src/components/SettingsCard'
 import { useI18n } from '../../../../../src/i18n'
-import { useTokens } from '../../../../../src/theme/tokens'
+import { TYPE, useTokens } from '../../../../../src/theme/tokens'
 
 export default function Emails() {
   const tokens = useTokens()
@@ -27,7 +27,7 @@ export default function Emails() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.content,
         { paddingBottom: insets.bottom + 24 },
@@ -51,11 +51,11 @@ export default function Emails() {
                 styles.row,
                 index > 0 && {
                   borderTopWidth: StyleSheet.hairlineWidth,
-                  borderTopColor: tokens.border,
+                  borderTopColor: tokens.hair,
                 },
               ]}
             >
-              <Text selectable style={[styles.address, { color: tokens.fg }]}>
+              <Text selectable style={[styles.address, { color: tokens.ink }]}>
                 {address.emailAddress}
               </Text>
               {tags.length ? (
@@ -78,7 +78,7 @@ export default function Emails() {
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 16, gap: 16 },
   row: { paddingVertical: 8, gap: 2 },
-  address: { fontSize: 16 },
-  tags: { fontSize: 13 },
-  note: { fontSize: 14, lineHeight: 20, paddingHorizontal: 4 },
+  address: { ...TYPE.body },
+  tags: { ...TYPE.footnote },
+  note: { ...TYPE.subhead, paddingHorizontal: 4 },
 })

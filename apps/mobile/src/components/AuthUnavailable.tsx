@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native'
 import { useI18n } from '../i18n'
-import { useTokens } from '../theme/tokens'
+import { TYPE, useTokens } from '../theme/tokens'
 import { Button } from '../ui/button'
 import { useHideSplash } from '../useHideSplash'
 
@@ -18,11 +18,11 @@ export function AuthUnavailable({
   return (
     <View
       onLayout={onLayout}
-      style={[styles.wrap, { backgroundColor: tokens.bg }]}
+      style={[styles.wrap, { backgroundColor: tokens.ground }]}
     >
       <Text
         accessibilityRole="header"
-        style={[styles.title, { color: tokens.fg }]}
+        style={[styles.title, { color: tokens.ink }]}
       >
         {t.gate.title}
       </Text>
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 44,
   },
-  title: { fontSize: 24, fontWeight: '700', letterSpacing: -0.4 },
-  text: { fontSize: 15, lineHeight: 22, textAlign: 'center' },
+  title: { ...TYPE.title2, letterSpacing: -0.4 },
+  text: { ...TYPE.subhead, textAlign: 'center' },
   retry: { minWidth: 150 },
 })

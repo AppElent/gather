@@ -6,7 +6,7 @@ import type { Id } from '../convex/api'
 import { useGroup } from '../group/GroupProvider'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 /** An ephemeral shell modal: changing Group leaves the current valid surface in place. */
 export function GroupSwitcherSheet({ onClose }: { onClose: () => void }) {
@@ -42,14 +42,14 @@ export function GroupSwitcherSheet({ onClose }: { onClose: () => void }) {
               onPress={() => choose(group._id)}
               style={({ pressed }) => [
                 styles.row,
-                { backgroundColor: tokens.surface, borderColor: tokens.border },
+                { backgroundColor: tokens.surface, borderColor: tokens.hair },
                 pressed && styles.pressed,
               ]}
             >
               <View style={styles.rowText}>
                 <Text
                   numberOfLines={1}
-                  style={[styles.name, { color: tokens.fg }]}
+                  style={[styles.name, { color: tokens.ink }]}
                 >
                   {group.name}
                 </Text>
@@ -59,7 +59,7 @@ export function GroupSwitcherSheet({ onClose }: { onClose: () => void }) {
                     : t.shell.switcher.shared}
                 </Text>
               </View>
-              {isCurrent ? <Check size={20} color={tokens.fg} /> : null}
+              {isCurrent ? <Check size={20} color={tokens.ink} /> : null}
             </Pressable>
           )
         })}
@@ -74,13 +74,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 14,
     minHeight: 56,
   },
   rowText: { flex: 1, gap: 2 },
-  name: { fontSize: 15, fontWeight: '600' },
-  meta: { fontSize: 11 },
+  name: { ...TYPE.bodyStrong },
+  meta: { ...TYPE.footnote },
   pressed: { opacity: 0.7 },
 })

@@ -37,7 +37,7 @@ import { useQuery } from '../../convex/queries'
 import { useGroup } from '../../group/GroupProvider'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { KIND_ICONS, TASTING_UI_ICONS } from './icons'
 import { subjectFacts } from './summary'
 import { kindWords } from './words'
@@ -147,15 +147,15 @@ export function SubjectPickerSheet({
                 onPress={() => onChoose({ subjectId: subject._id })}
                 style={({ pressed }) => [
                   styles.row,
-                  { borderBottomColor: tokens.border },
-                  pressed && { backgroundColor: tokens.tile },
+                  { borderBottomColor: tokens.hair },
+                  pressed && { backgroundColor: tokens.surface2 },
                 ]}
               >
                 <View
-                  style={[styles.thumb, { backgroundColor: tokens.tile }]}
+                  style={[styles.thumb, { backgroundColor: tokens.surface2 }]}
                 />
                 <View style={styles.rowText}>
-                  <Text style={[styles.rowName, { color: tokens.fg }]}>
+                  <Text style={[styles.rowName, { color: tokens.ink }]}>
                     {subject.name}
                   </Text>
                   <Text style={[styles.rowFacts, { color: tokens.muted }]}>
@@ -187,15 +187,17 @@ export function SubjectPickerSheet({
                 }
                 style={({ pressed }) => [
                   styles.row,
-                  { borderBottomColor: tokens.border },
-                  pressed && { backgroundColor: tokens.tile },
+                  { borderBottomColor: tokens.hair },
+                  pressed && { backgroundColor: tokens.surface2 },
                 ]}
               >
-                <View style={[styles.thumb, { backgroundColor: tokens.tile }]}>
+                <View
+                  style={[styles.thumb, { backgroundColor: tokens.surface2 }]}
+                >
                   <KindIcon size={17} color={tokens.muted} strokeWidth={1.9} />
                 </View>
                 <View style={styles.rowText}>
-                  <Text style={[styles.rowName, { color: tokens.fg }]}>
+                  <Text style={[styles.rowName, { color: tokens.ink }]}>
                     {entry.name}
                   </Text>
                   <Text style={[styles.rowFacts, { color: tokens.muted }]}>
@@ -215,22 +217,13 @@ export function SubjectPickerSheet({
             onPress={() => onChoose({ name: typed })}
             style={({ pressed }) => [
               styles.create,
-              { borderColor: tokens.border },
+              { borderColor: tokens.hair },
               pressed && styles.pressed,
             ]}
           >
-            <Plus
-              size={20}
-              color={tokens.tintOf('tasting').fg}
-              strokeWidth={2}
-            />
+            <Plus size={20} color={tokens.accentText} strokeWidth={2} />
             <View style={styles.rowText}>
-              <Text
-                style={[
-                  styles.createName,
-                  { color: tokens.tintOf('tasting').fg },
-                ]}
-              >
+              <Text style={[styles.createName, { color: tokens.accentText }]}>
                 {fmt(t.tastings.picker.create, { name: typed })}
               </Text>
               <Text style={[styles.rowFacts, { color: tokens.muted }]}>
@@ -244,11 +237,11 @@ export function SubjectPickerSheet({
           <View
             style={[
               styles.warning,
-              { backgroundColor: tokens.tile, borderColor: tokens.border },
+              { backgroundColor: tokens.surface2, borderColor: tokens.hair },
             ]}
           >
             <Alert size={18} color={tokens.danger} strokeWidth={1.9} />
-            <Text style={[styles.warningText, { color: tokens.fg }]}>
+            <Text style={[styles.warningText, { color: tokens.ink }]}>
               {fmt(t.tastings.picker.duplicate, { name: clash.name })}
             </Text>
           </View>
@@ -267,8 +260,7 @@ export function SubjectPickerSheet({
 const styles = StyleSheet.create({
   list: { marginTop: 12 },
   heading: {
-    fontSize: 12,
-    fontWeight: '700',
+    ...TYPE.footnoteStrong,
     letterSpacing: 0.8,
     paddingBottom: 6,
     paddingTop: 10,
@@ -281,16 +273,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   thumb: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: SIZE.tileM,
+    height: SIZE.tileM,
+    borderRadius: RADIUS.tileM,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowText: { flex: 1, gap: 1 },
-  rowName: { fontSize: 16 },
-  rowFacts: { fontSize: 13 },
-  rowScore: { fontSize: 13 },
+  rowName: { ...TYPE.body },
+  rowFacts: { ...TYPE.footnote },
+  rowScore: { ...TYPE.footnote, ...TABULAR },
   create: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -298,20 +291,20 @@ const styles = StyleSheet.create({
     minHeight: 52,
     marginTop: 12,
     paddingHorizontal: 13,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     borderWidth: 1,
     borderStyle: 'dashed',
   },
-  createName: { fontSize: 16, fontWeight: '600' },
+  createName: { ...TYPE.bodyStrong },
   warning: {
     flexDirection: 'row',
     gap: 9,
     marginTop: 12,
     padding: 12,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  warningText: { flex: 1, fontSize: 13, lineHeight: 18 },
-  empty: { paddingVertical: 20, fontSize: 15, lineHeight: 21 },
+  warningText: { ...TYPE.footnote, flex: 1 },
+  empty: { ...TYPE.subhead, paddingVertical: 20 },
   pressed: { opacity: 0.6 },
 })

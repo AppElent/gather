@@ -44,7 +44,7 @@ import {
 } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, SIZE, TYPE, useTokens } from '../theme/tokens'
 import { useDrop } from './DropProvider'
 import {
   type DropTarget,
@@ -158,7 +158,7 @@ export function DropPickScreen() {
           title: ask ? text.pick[ask] : text.title,
         }}
       />
-      <View style={[styles.root, { backgroundColor: tokens.bg }]}>
+      <View style={[styles.root, { backgroundColor: tokens.ground }]}>
         {!asking || !drop ? (
           // A stale address, or a Drop that was answered elsewhere. Named by
           // the header above, and one Back from the chooser.
@@ -170,7 +170,7 @@ export function DropPickScreen() {
             <View
               style={[
                 styles.search,
-                { backgroundColor: tokens.surface, borderColor: tokens.border },
+                { backgroundColor: tokens.surface, borderColor: tokens.hair },
               ]}
             >
               <UI_ICONS.Search size={17} color={tokens.muted} />
@@ -179,7 +179,7 @@ export function DropPickScreen() {
                 onChangeText={setQuery}
                 placeholder={text.pick.search}
                 placeholderTextColor={tokens.muted}
-                style={[styles.searchInput, { color: tokens.fg }]}
+                style={[styles.searchInput, { color: tokens.ink }]}
                 autoCorrect={false}
                 returnKeyType="search"
               />
@@ -209,14 +209,14 @@ export function DropPickScreen() {
                         styles.row,
                         {
                           backgroundColor: tokens.surface,
-                          borderColor: tokens.border,
+                          borderColor: tokens.hair,
                         },
                         candidate.readOnly && styles.disabled,
                         pressed && !candidate.readOnly && styles.pressed,
                       ]}
                     >
                       <Text
-                        style={[styles.rowLabel, { color: tokens.fg }]}
+                        style={[styles.rowLabel, { color: tokens.ink }]}
                         numberOfLines={1}
                       >
                         {candidate.label}
@@ -336,12 +336,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 12,
-    height: 42,
+    minHeight: SIZE.hitMin,
   },
-  searchInput: { flex: 1, fontSize: 16 },
+  searchInput: { ...TYPE.body, flex: 1 },
   rows: { gap: 8, paddingBottom: 32 },
   row: {
     flexDirection: 'row',
@@ -353,10 +353,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
-  rowLabel: { fontSize: 16, flexShrink: 1 },
-  rowNote: { fontSize: 13 },
+  rowLabel: { ...TYPE.body, flexShrink: 1 },
+  rowNote: { ...TYPE.footnote },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.75 },
-  empty: { fontSize: 15, paddingVertical: 24, textAlign: 'center' },
-  problem: { fontSize: 14, lineHeight: 20 },
+  empty: { ...TYPE.subhead, paddingVertical: 24, textAlign: 'center' },
+  problem: { ...TYPE.subhead },
 })

@@ -28,7 +28,7 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { useDebouncedText } from '../../ui/use-debounced-text'
 import { confirmDeleteNote } from './notesActions'
 import { noteWhen, preview } from './noteText'
@@ -65,7 +65,7 @@ export function Note({ noteId }: { noteId: string }) {
     if (note) actions.editNote(note.id, { body: next })
   })
 
-  if (!note) return <View style={{ flex: 1, backgroundColor: tokens.bg }} />
+  if (!note) return <View style={{ flex: 1, backgroundColor: tokens.ground }} />
 
   return (
     <>
@@ -106,7 +106,7 @@ export function Note({ noteId }: { noteId: string }) {
               <View style={styles.headerButton}>
                 <UI_ICONS.Ellipsis
                   size={22}
-                  color={tokens.fg}
+                  color={tokens.ink}
                   strokeWidth={2.2}
                 />
               </View>
@@ -115,7 +115,7 @@ export function Note({ noteId }: { noteId: string }) {
         }}
       />
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: tokens.bg }}
+        style={{ flex: 1, backgroundColor: tokens.ground }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
@@ -132,7 +132,7 @@ export function Note({ noteId }: { noteId: string }) {
             placeholderTextColor={tokens.muted}
             multiline
             accessibilityLabel={t.notes.titlePlaceholder}
-            style={[styles.title, { color: tokens.fg }]}
+            style={[styles.title, { color: tokens.ink }]}
           />
 
           <View style={styles.meta}>
@@ -166,7 +166,7 @@ export function Note({ noteId }: { noteId: string }) {
             placeholderTextColor={tokens.muted}
             multiline
             accessibilityLabel={t.notes.bodyPlaceholder}
-            style={[styles.body, { color: tokens.fg }]}
+            style={[styles.body, { color: tokens.ink }]}
           />
 
           <Text style={[styles.footnote, { color: tokens.muted }]}>
@@ -179,7 +179,7 @@ export function Note({ noteId }: { noteId: string }) {
             styles.toolbar,
             {
               backgroundColor: tokens.surface,
-              borderTopColor: tokens.border,
+              borderTopColor: tokens.hair,
               paddingBottom: insets.bottom > 0 ? insets.bottom - 8 : 8,
             },
           ]}
@@ -213,23 +213,20 @@ const styles = StyleSheet.create({
   },
   headerButton: { paddingHorizontal: 6, paddingVertical: 6 },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
+    ...TYPE.title2,
     letterSpacing: -0.6,
-    lineHeight: 33,
     padding: 0,
     marginTop: 6,
   },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  metaText: { fontSize: 12.5 },
+  metaText: { ...TYPE.footnote },
   body: {
-    fontSize: 16,
-    lineHeight: 24,
+    ...TYPE.body,
     minHeight: 320,
     padding: 0,
     textAlignVertical: 'top',
   },
-  footnote: { fontSize: 12, lineHeight: 17 },
+  footnote: { ...TYPE.footnote },
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -243,7 +240,7 @@ const styles = StyleSheet.create({
     minHeight: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  formatText: { fontSize: 15, fontWeight: '700' },
+  formatText: { ...TYPE.bodyStrong },
 })

@@ -63,7 +63,7 @@ export function LoyaltyCardViewScreen({
     return (
       <>
         <Stack.Screen options={{ headerShown: true, title: moduleTitle }} />
-        <View style={[styles.fill, { backgroundColor: tokens.bg }]}>
+        <View style={[styles.fill, { backgroundColor: tokens.ground }]}>
           <LoadingSkeleton rows={3} label={t.actions.loading} />
         </View>
       </>
@@ -74,10 +74,10 @@ export function LoyaltyCardViewScreen({
     return (
       <>
         <Stack.Screen options={{ headerShown: true, title: moduleTitle }} />
-        <View style={[styles.fill, { backgroundColor: tokens.bg }]}>
+        <View style={[styles.fill, { backgroundColor: tokens.ground }]}>
           <Text
             testID="loyalty-card-not-found"
-            style={[TYPE.lead, styles.missing, { color: tokens.muted }]}
+            style={[TYPE.body, styles.missing, { color: tokens.muted }]}
           >
             {words.detail.notFound}
           </Text>
@@ -106,7 +106,7 @@ export function LoyaltyCardViewScreen({
                   )
                 }
               >
-                <UI_ICONS.Pencil size={19} color={tokens.fg} strokeWidth={1.9} />
+                <UI_ICONS.Pencil size={19} color={tokens.ink} strokeWidth={1.9} />
               </HeaderIconButton>
               <HeaderIconButton
                 label={words.till.delete}
@@ -130,7 +130,7 @@ export function LoyaltyCardViewScreen({
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 32 },
@@ -146,12 +146,12 @@ export function LoyaltyCardViewScreen({
           <View style={styles.storeText}>
             <Text
               accessibilityRole="header"
-              style={[TYPE.title, styles.storeName, { color: tokens.fg }]}
+              style={[TYPE.title2, { color: tokens.ink }]}
             >
               {store}
             </Text>
             {card.holder ? (
-              <Text style={[TYPE.body, { color: tokens.muted }]}>
+              <Text style={[TYPE.subhead, { color: tokens.muted }]}>
                 {card.holder}
               </Text>
             ) : null}
@@ -166,14 +166,14 @@ export function LoyaltyCardViewScreen({
             store,
           })}
         />
-        <Text style={[TYPE.label, styles.hint, { color: tokens.muted }]}>
+        <Text style={[TYPE.footnote, styles.hint, { color: tokens.muted }]}>
           {words.detail.showAtTill} · {formatName}
         </Text>
 
         {problem ? (
           <Text
             accessibilityRole="alert"
-            style={[TYPE.body, { color: tokens.danger }]}
+            style={[TYPE.subhead, { color: tokens.danger }]}
           >
             {problem}
           </Text>
@@ -181,10 +181,10 @@ export function LoyaltyCardViewScreen({
 
         {card.note ? (
           <View style={styles.section}>
-            <Text style={[TYPE.label, styles.label, { color: tokens.muted }]}>
+            <Text style={[TYPE.footnoteStrong, styles.label, { color: tokens.muted }]}>
               {words.detail.note.toUpperCase()}
             </Text>
-            <Text selectable style={[TYPE.body, { color: tokens.fg }]}>
+            <Text selectable style={[TYPE.subhead, { color: tokens.ink }]}>
               {card.note}
             </Text>
           </View>
@@ -192,14 +192,14 @@ export function LoyaltyCardViewScreen({
 
         {card.frontPhotoUrl || card.backPhotoUrl ? (
           <View style={styles.section}>
-            <Text style={[TYPE.label, styles.label, { color: tokens.muted }]}>
+            <Text style={[TYPE.footnoteStrong, styles.label, { color: tokens.muted }]}>
               {words.detail.photos.toUpperCase()}
             </Text>
             <View style={styles.photos}>
               {card.frontPhotoUrl ? (
                 <Image
                   source={{ uri: card.frontPhotoUrl }}
-                  style={[styles.photo, { backgroundColor: tokens.tile }]}
+                  style={[styles.photo, { backgroundColor: tokens.surface2 }]}
                   contentFit="cover"
                   accessibilityLabel={fmt(words.till.front, { store })}
                   accessibilityIgnoresInvertColors
@@ -208,7 +208,7 @@ export function LoyaltyCardViewScreen({
               {card.backPhotoUrl ? (
                 <Image
                   source={{ uri: card.backPhotoUrl }}
-                  style={[styles.photo, { backgroundColor: tokens.tile }]}
+                  style={[styles.photo, { backgroundColor: tokens.surface2 }]}
                   contentFit="cover"
                   accessibilityLabel={fmt(words.till.back, { store })}
                   accessibilityIgnoresInvertColors
@@ -229,10 +229,9 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 16 },
   store: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   storeText: { flex: 1, gap: 2 },
-  storeName: { fontWeight: '700' },
   hint: { textAlign: 'center' },
   section: { gap: 8 },
-  label: { fontWeight: '700', letterSpacing: 0.8 },
+  label: { letterSpacing: 0.8 },
   photos: { flexDirection: 'row', gap: 10 },
   photo: { flex: 1, aspectRatio: 1.586, borderRadius: RADIUS.card },
 })

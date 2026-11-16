@@ -75,7 +75,7 @@ export function PortfolioScreen() {
         <Stack.Screen
           options={{ headerShown: true, title: text.portfolio.title }}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={5} label={text.actions.loading} />
         </View>
       </>
@@ -135,7 +135,7 @@ export function PortfolioScreen() {
         {failure}
         {holdings.length === 0 ? (
           <EmptyState
-            icon={<Chart size={34} color={tint.fg} strokeWidth={1.6} />}
+            icon={<Chart size={34} color={tint.text} strokeWidth={1.6} />}
             title={text.portfolio.emptyTitle}
             body={text.portfolio.emptyBody}
             actionLabel={text.portfolio.addHolding}

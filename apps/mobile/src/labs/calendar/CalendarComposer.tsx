@@ -45,7 +45,7 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { weekendFrom } from '../../modules/tasks/taskDates'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import type { ComposerVariant } from './axes'
 import { LAB_CALENDARS, LAB_MEMBERS } from './fixtures'
 
@@ -211,10 +211,10 @@ function CardComposer({
             onChangeText={(title) => edit({ title })}
             placeholder={t.labs.calendar.namePlaceholder}
             placeholderTextColor={tokens.muted}
-            selectionColor={tint.fg}
+            selectionColor={tint.text}
             returnKeyType="done"
             onSubmitEditing={commit}
-            style={[styles.nameField, { color: tokens.fg }]}
+            style={[styles.nameField, { color: tokens.ink }]}
           />
           {local.mode === 'edit' && local.id ? (
             <NativeContextMenu
@@ -343,7 +343,7 @@ function CardComposer({
               accessibilityRole="button"
               accessibilityLabel={t.labs.calendar.chips.more}
               onPress={() => setPane(pane === 'more' ? 'none' : 'more')}
-              style={[styles.roundChip, { backgroundColor: tokens.tile }]}
+              style={[styles.roundChip, { backgroundColor: tokens.surface2 }]}
             >
               <UI_ICONS.Plus size={20} color={tokens.muted} strokeWidth={2.2} />
             </Pressable>
@@ -400,20 +400,20 @@ function CardComposer({
                 // Grey until the name has a character in it, so a half-typed
                 // event never reaches the household calendar.
                 backgroundColor:
-                  local.mode === 'edit' || ready ? tint.fg : tokens.tile,
+                  local.mode === 'edit' || ready ? tint.fill : tokens.surface2,
               },
             ]}
           >
             {local.mode === 'edit' ? (
               <UI_ICONS.Check
                 size={21}
-                color={tokens.surface}
+                color={tint.on}
                 strokeWidth={2.8}
               />
             ) : (
               <UI_ICONS.ArrowUp
                 size={21}
-                color={ready ? tokens.surface : tokens.muted}
+                color={ready ? tint.on : tokens.muted}
                 strokeWidth={2.6}
               />
             )}
@@ -475,11 +475,11 @@ function DatePane({
             onPress={() => onPick(shortcut.iso)}
             style={({ pressed }) => [
               styles.shortcut,
-              { borderColor: tokens.border },
-              pressed && { backgroundColor: tokens.tile },
+              { borderColor: tokens.hair },
+              pressed && { backgroundColor: tokens.surface2 },
             ]}
           >
-            <Text style={[styles.shortcutText, { color: tokens.fg }]}>
+            <Text style={[styles.shortcutText, { color: tokens.ink }]}>
               {shortcut.label}
             </Text>
           </Pressable>
@@ -494,9 +494,9 @@ function DatePane({
           hitSlop={12}
           onPress={() => onMonth(addMonths(month, -1))}
         >
-          <UI_ICONS.ChevronLeft size={20} color={tokens.fg} strokeWidth={2.2} />
+          <UI_ICONS.ChevronLeft size={20} color={tokens.ink} strokeWidth={2.2} />
         </Pressable>
-        <Text style={[styles.monthName, { color: tokens.fg }]}>
+        <Text style={[styles.monthName, { color: tokens.ink }]}>
           {localMidnight(month).toLocaleDateString(locale, {
             month: 'long',
             year: 'numeric',
@@ -511,7 +511,7 @@ function DatePane({
         >
           <UI_ICONS.ChevronRight
             size={20}
-            color={tokens.fg}
+            color={tokens.ink}
             strokeWidth={2.2}
           />
         </Pressable>
@@ -523,7 +523,6 @@ function DatePane({
         locale={locale}
         selected={value}
         today={today}
-        tint={tint.fg}
         onPick={onPick}
         testIDPrefix="composer-day"
       />
@@ -535,7 +534,7 @@ function DatePane({
         onPress={onDone}
         style={styles.paneDone}
       >
-        <Text style={[styles.paneDoneText, { color: tint.fg }]}>
+        <Text style={[styles.paneDoneText, { color: tint.text }]}>
           {t.actions.done}
         </Text>
       </Pressable>
@@ -595,13 +594,13 @@ function SheetComposer({
             }}
             style={[
               styles.sheetSave,
-              { backgroundColor: ready ? tint.fg : tokens.tile },
+              { backgroundColor: ready ? tint.fill : tokens.surface2 },
             ]}
           >
             <Text
               style={[
                 styles.sheetSaveText,
-                { color: ready ? tokens.surface : tokens.muted },
+                { color: ready ? tint.on : tokens.muted },
               ]}
             >
               {t.labs.calendar.commit}
@@ -617,10 +616,10 @@ function SheetComposer({
         onChangeText={(title) => edit({ title })}
         placeholder={t.labs.calendar.namePlaceholder}
         placeholderTextColor={tokens.muted}
-        selectionColor={tint.fg}
+        selectionColor={tint.text}
         style={[
           styles.sheetField,
-          { color: tokens.fg, borderColor: tokens.border },
+          { color: tokens.ink, borderColor: tokens.hair },
         ]}
       />
 
@@ -710,14 +709,14 @@ function SheetRow({
       onPress={onPress}
       style={({ pressed }) => [
         styles.sheetRow,
-        { borderTopColor: tokens.border },
-        pressed && { backgroundColor: tokens.tile },
+        { borderTopColor: tokens.hair },
+        pressed && { backgroundColor: tokens.surface2 },
       ]}
     >
       <Text
         style={[
           styles.sheetRowLabel,
-          { color: destructive ? tokens.danger : tokens.fg },
+          { color: destructive ? tokens.danger : tokens.ink },
         ]}
       >
         {label}
@@ -797,7 +796,7 @@ function InlineComposer({
       testID="composer-inline"
       style={[
         styles.inline,
-        { backgroundColor: tokens.surface, borderTopColor: tokens.border },
+        { backgroundColor: tokens.surface, borderTopColor: tokens.hair },
         barStyle,
       ]}
     >
@@ -810,10 +809,10 @@ function InlineComposer({
         }}
         placeholder={fmt(t.labs.calendar.addOn, { day: dayName })}
         placeholderTextColor={tokens.muted}
-        selectionColor={tint.fg}
+        selectionColor={tint.text}
         returnKeyType="done"
         onSubmitEditing={commit}
-        style={[styles.inlineField, { color: tokens.fg }]}
+        style={[styles.inlineField, { color: tokens.ink }]}
       />
       <Pressable
         testID="composer-commit"
@@ -823,13 +822,13 @@ function InlineComposer({
         style={[
           styles.commit,
           {
-            backgroundColor: title.trim().length > 0 ? tint.fg : tokens.tile,
+            backgroundColor: title.trim().length > 0 ? tint.fill : tokens.surface2,
           },
         ]}
       >
         <UI_ICONS.ArrowUp
           size={20}
-          color={title.trim().length > 0 ? tokens.surface : tokens.muted}
+          color={title.trim().length > 0 ? tint.on : tokens.muted}
           strokeWidth={2.6}
         />
       </Pressable>
@@ -857,10 +856,9 @@ function Chip({
   onPress: () => void
 }) {
   const tokens = useTokens('home')
-  const tint = tokens.tintOf('home')
   const Icon = icon ? UI_ICONS[icon] : null
-  const background = active ? tint.fg : set ? tint.bg : tokens.surface
-  const foreground = active ? tokens.surface : set ? tint.fg : tokens.muted
+  const background = active ? tokens.ink : set ? tokens.surface2 : tokens.surface
+  const foreground = active ? tokens.onInk : set ? tokens.ink : tokens.muted
 
   return (
     <Pressable
@@ -873,7 +871,7 @@ function Chip({
         styles.chip,
         {
           backgroundColor: background,
-          borderColor: set || active ? 'transparent' : tokens.border,
+          borderColor: set || active ? 'transparent' : tokens.hair,
           borderStyle: dashed ? 'dashed' : 'solid',
         },
         pressed && styles.pressed,
@@ -903,7 +901,6 @@ function TimePane({
   onPick: (start: string, end: string) => void
 }) {
   const tokens = useTokens('home')
-  const tint = tokens.tintOf('home')
   const { t } = useI18n()
 
   const times = Array.from({ length: 32 }, (_, index) => {
@@ -967,7 +964,7 @@ function TimePane({
           />
         ))}
       </View>
-      <View style={[styles.paneRule, { backgroundColor: tint.bg }]} />
+      <View style={[styles.paneRule, { backgroundColor: tokens.hair }]} />
     </View>
   )
 }
@@ -998,13 +995,13 @@ function TextPane({
         onChangeText={onChange}
         placeholder={placeholder}
         placeholderTextColor={tokens.muted}
-        selectionColor={tint.fg}
+        selectionColor={tint.text}
         multiline={multiline}
         style={[
           styles.paneField,
           {
-            color: tokens.fg,
-            backgroundColor: tokens.tile,
+            color: tokens.ink,
+            backgroundColor: tokens.surface2,
             minHeight: multiline ? 66 : 42,
           },
         ]}
@@ -1022,7 +1019,6 @@ function RepeatChip({
   onPick: (next: RepeatRule) => void
 }) {
   const tokens = useTokens('home')
-  const tint = tokens.tintOf('home')
   const { t } = useI18n()
   const rules: RepeatRule[] = ['never', 'daily', 'weekly', 'monthly']
   const set = value !== 'never'
@@ -1047,14 +1043,14 @@ function RepeatChip({
         style={[
           styles.chip,
           {
-            backgroundColor: set ? tint.bg : tokens.surface,
-            borderColor: set ? 'transparent' : tokens.border,
+            backgroundColor: set ? tokens.surface2 : tokens.surface,
+            borderColor: set ? 'transparent' : tokens.hair,
             borderStyle: set ? 'solid' : 'dashed',
           },
         ]}
       >
         <Text
-          style={[styles.chipLabel, { color: set ? tint.fg : tokens.muted }]}
+          style={[styles.chipLabel, { color: set ? tokens.ink : tokens.muted }]}
         >
           {set
             ? t.labs.calendar.repeatRules[value]
@@ -1097,11 +1093,11 @@ function CalendarChip({
         accessibilityLabel={calendar.name}
         style={[
           styles.chip,
-          { backgroundColor: colours.bg, borderColor: 'transparent' },
+          { backgroundColor: tokens.surface2, borderColor: 'transparent' },
         ]}
       >
-        <View style={[styles.swatch, { backgroundColor: colours.fg }]} />
-        <Text style={[styles.chipLabel, { color: colours.fg }]}>
+        <View style={[styles.swatch, { backgroundColor: colours.fill }]} />
+        <Text style={[styles.chipLabel, { color: tokens.ink }]}>
           {calendar.name}
         </Text>
       </View>
@@ -1118,7 +1114,6 @@ function WhoChip({
   onChange: (next: string[]) => void
 }) {
   const tokens = useTokens('home')
-  const tint = tokens.tintOf('home')
   const { t } = useI18n()
 
   return (
@@ -1143,10 +1138,10 @@ function WhoChip({
         style={[
           styles.chip,
           who.length > 0
-            ? { backgroundColor: tint.bg, borderColor: 'transparent' }
+            ? { backgroundColor: tokens.surface2, borderColor: 'transparent' }
             : {
                 backgroundColor: tokens.surface,
-                borderColor: tokens.border,
+                borderColor: tokens.hair,
                 borderStyle: 'dashed',
               },
         ]}
@@ -1164,10 +1159,10 @@ function WhoChip({
             return (
               <View
                 key={id}
-                style={[styles.whoInitial, { backgroundColor: tint.fg }]}
+                style={[styles.whoInitial, { backgroundColor: tokens.ink }]}
               >
                 <Text
-                  style={[styles.whoInitialText, { color: tokens.surface }]}
+                  style={[styles.whoInitialText, { color: tokens.onInk }]}
                 >
                   {member?.initial ?? '?'}
                 </Text>
@@ -1199,9 +1194,8 @@ const styles = StyleSheet.create({
   },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   nameField: {
+    ...TYPE.title2,
     flex: 1,
-    fontSize: 21,
-    fontWeight: '600',
     letterSpacing: -0.3,
     paddingVertical: Platform.OS === 'android' ? 2 : 4,
   },
@@ -1218,28 +1212,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 44,
+    minHeight: 44,
     paddingHorizontal: 15,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
   },
   pane: { paddingHorizontal: 4, paddingBottom: 6, gap: 6 },
   paneLabel: {
-    fontSize: 10.5,
-    fontWeight: '700',
+    ...TYPE.footnoteStrong,
     letterSpacing: 0.8,
     paddingHorizontal: 8,
     textTransform: 'uppercase',
   },
   paneField: {
-    fontSize: 16,
-    borderRadius: RADIUS.tile,
+    ...TYPE.body,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 12,
     paddingVertical: 10,
     textAlignVertical: 'top',
   },
   paneRule: { height: 1, marginTop: 4, borderRadius: 1 },
-  chipLabel: { fontSize: 15, fontWeight: '600' },
+  chipLabel: { ...TYPE.bodyStrong },
   swatch: { width: 11, height: 11, borderRadius: 3 },
   roundChip: {
     width: 44,
@@ -1249,13 +1242,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   whoInitial: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    minWidth: 22,
+    minHeight: 22,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  whoInitialText: { fontSize: 11, fontWeight: '700' },
+  whoInitialText: { ...TYPE.footnoteStrong },
   commit: {
     width: 44,
     height: 44,
@@ -1263,30 +1256,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  footnote: { fontSize: 11.5 },
+  footnote: { ...TYPE.footnote },
   shortcuts: { flexDirection: 'row', gap: 8, paddingBottom: 10 },
   shortcut: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 10,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
   },
-  shortcutText: { fontSize: 14, fontWeight: '600' },
+  shortcutText: { ...TYPE.bodyStrong },
   monthBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingBottom: 6,
   },
-  monthName: { fontSize: 16, fontWeight: '600' },
+  monthName: { ...TYPE.bodyStrong },
   paneDone: { alignItems: 'center', paddingTop: 8 },
-  paneDoneText: { fontSize: 15.5, fontWeight: '600' },
+  paneDoneText: { ...TYPE.bodyStrong },
   sheetField: {
-    fontSize: 19,
-    fontWeight: '600',
+    ...TYPE.title2,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 13,
     paddingVertical: 12,
     marginBottom: 6,
@@ -1298,15 +1290,15 @@ const styles = StyleSheet.create({
     minHeight: 50,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  sheetRowLabel: { flex: 1, fontSize: 16 },
-  sheetRowValue: { fontSize: 15, maxWidth: 170 },
+  sheetRowLabel: { ...TYPE.body, flex: 1 },
+  sheetRowValue: { ...TYPE.subhead, maxWidth: 170 },
   sheetSave: {
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  sheetSaveText: { fontSize: 16, fontWeight: '700' },
+  sheetSaveText: { ...TYPE.bodyStrong },
   inline: {
     position: 'absolute',
     left: 0,
@@ -1319,6 +1311,6 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  inlineField: { flex: 1, fontSize: 16, paddingVertical: 12 },
+  inlineField: { ...TYPE.body, flex: 1, paddingVertical: 12 },
   pressed: { opacity: 0.75 },
 })

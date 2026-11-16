@@ -44,7 +44,7 @@ import {
 } from '../../../../src/shell/all/ModuleEntry'
 import { SectionHeader } from '../../../../src/shell/all/SectionHeader'
 import { UI_ICONS } from '../../../../src/theme/icons'
-import { RADIUS, useTokens } from '../../../../src/theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../../../src/theme/tokens'
 
 export default function AllTab() {
   const tokens = useTokens()
@@ -108,7 +108,7 @@ export default function AllTab() {
                 testID="all-done"
                 accessibilityRole="button"
                 onPress={() => setEditing(false)}
-                style={[styles.done, { color: tokens.accent }]}
+                style={[styles.done, { color: tokens.accentText }]}
               >
                 {t.shell.all.done}
               </Text>
@@ -161,7 +161,7 @@ export default function AllTab() {
                       draws the glass circle around a nav-bar button. */}
                   <UI_ICONS.Ellipsis
                     size={19}
-                    color={tokens.accent}
+                    color={tokens.ink}
                     strokeWidth={2.2}
                   />
                 </View>
@@ -173,7 +173,7 @@ export default function AllTab() {
         ref={scrollRef}
         scrollEnabled={!dragging}
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingTop: 12, paddingBottom: insets.bottom + 24 },
@@ -246,7 +246,7 @@ export default function AllTab() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, gap: 24 },
-  intro: { fontSize: 15, lineHeight: 22 },
+  intro: { ...TYPE.subhead },
   section: { gap: 9 },
   entries: { gap: 8 },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   options: {
     paddingHorizontal: 4,
     paddingVertical: 4,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  done: { fontSize: 17, fontWeight: '600', paddingHorizontal: 4 },
+  done: { ...TYPE.bodyStrong, paddingHorizontal: 4 },
 })

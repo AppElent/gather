@@ -18,16 +18,19 @@ import {
 } from 'react-native'
 
 import { UI_ICONS } from '../../theme/icons'
-import { useTokens } from '../../theme/tokens'
+import { type Tokens, TYPE, useTokens } from '../../theme/tokens'
 import type { Priority } from './types'
 
-/** Red for the most urgent, amber for high, and nothing at all below that. */
+/**
+ * `danger` for the most urgent, `ink` for high, and nothing at all below that.
+ * Never a group colour: a priority is about the task, not its Module.
+ */
 export function priorityColor(
   priority: Priority | undefined,
-  danger: string,
+  tokens: Pick<Tokens, 'danger' | 'ink'>,
 ): string | undefined {
-  if (priority === 1) return danger
-  if (priority === 2) return '#b4791f'
+  if (priority === 1) return tokens.danger
+  if (priority === 2) return tokens.ink
   return undefined
 }
 
@@ -53,17 +56,17 @@ export function PressRow({
   return (
     <Pressable
       {...props}
-      android_ripple={{ color: tokens.tile }}
+      android_ripple={{ color: tokens.surface2 }}
       style={({ pressed }) => [
         styles.row,
         !last && {
           borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: tokens.border,
+          borderBottomColor: tokens.hair,
         },
         // iOS fills the row; Android's ripple does its own drawing and must not
         // be painted over.
         pressed &&
-          Platform.OS !== 'android' && { backgroundColor: tokens.tile },
+          Platform.OS !== 'android' && { backgroundColor: tokens.surface2 },
         style,
       ]}
     >
@@ -72,7 +75,11 @@ export function PressRow({
   )
 }
 
-/** The 21px box, ticked or not. */
+/**
+ * The 21px box, ticked or not. Its ring is the group's text colour, the one
+ * place a task row carries the group; ticked, it fills with the group's fill
+ * and the tick is the label on that fill.
+ */
 export function Checkbox({ checked }: { checked: boolean }) {
   const tokens = useTokens('home')
   const tint = tokens.tintOf('home')
@@ -83,14 +90,12 @@ export function Checkbox({ checked }: { checked: boolean }) {
       style={[
         styles.box,
         {
-          borderColor: checked ? tint.fg : tokens.border,
-          backgroundColor: checked ? tint.fg : 'transparent',
+          borderColor: tint.text,
+          backgroundColor: checked ? tint.fill : 'transparent',
         },
       ]}
     >
-      {checked ? (
-        <Check size={14} color={tokens.surface} strokeWidth={3} />
-      ) : null}
+      {checked ? <Check size={14} color={tint.on} strokeWidth={3} /> : null}
     </View>
   )
 }
@@ -116,7 +121,6 @@ export function Chip({
   accessibilityLabel?: string
 }) {
   const tokens = useTokens('home')
-  const tint = tokens.tintOf('home')
   const X = UI_ICONS.X
   const body = (
     <View
@@ -124,18 +128,20 @@ export function Chip({
         styles.chip,
         remove && styles.chipWithRemove,
         {
-          backgroundColor: on ? tint.bg : tokens.tile,
-          borderColor: on ? tint.fg : 'transparent',
+          backgroundColor: tokens.surface2,
+          borderColor: on ? tokens.ink : 'transparent',
         },
       ]}
     >
-      <Text style={[styles.chipText, { color: on ? tint.fg : tokens.muted }]}>
+      <Text
+        style={[styles.chipText, { color: on ? tokens.ink : tokens.muted }]}
+      >
         {label}
       </Text>
       {remove ? (
         <X
           size={12}
-          color={on ? tint.fg : tokens.muted}
+          color={on ? tokens.ink : tokens.muted}
           strokeWidth={2.6}
           accessibilityElementsHidden
           importantForAccessibility="no"
@@ -182,6 +188,6 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   chipWithRemove: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  chipText: { fontSize: 11.5, fontWeight: '700' },
+  chipText: { ...TYPE.footnoteStrong },
   pressedChip: { opacity: 0.7 },
 })

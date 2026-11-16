@@ -22,7 +22,7 @@ import { api, type Id } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { fmt } from '../../i18n'
-import { RADIUS } from '../../theme/tokens'
+import { RADIUS, TYPE } from '../../theme/tokens'
 import { moduleHref } from '../moduleDestination'
 import { dateForMonth } from './format'
 import { FINANCE_ICONS } from './icons'
@@ -62,7 +62,6 @@ export function MortgageScreen({
 
   const [copyName, setCopyName] = useState<string | null>(null)
   const Clock = FINANCE_ICONS.Clock
-  const tint = tokens.tintOf('money')
 
   if (calculation === undefined) {
     return (
@@ -70,7 +69,7 @@ export function MortgageScreen({
         <Stack.Screen
           options={{ headerShown: true, title: text.mortgage.parts }}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={4} label={text.actions.loading} />
         </View>
       </>
@@ -217,7 +216,7 @@ export function MortgageScreen({
               {steps.length > 1 ? (
                 <Row
                   leading={
-                    <Clock size={20} color={tint.fg} strokeWidth={1.8} />
+                    <Clock size={20} color={tokens.ink} strokeWidth={1.8} />
                   }
                   label={fmt(text.mortgage.stepsSummary, {
                     count: steps.length,
@@ -281,11 +280,11 @@ export function MortgageScreen({
             }
             style={({ pressed }) => [
               styles.ghost,
-              { borderColor: tokens.border },
+              { borderColor: tokens.hair },
               pressed && { opacity: 0.7 },
             ]}
           >
-            <Text style={[styles.ghostLabel, { color: tokens.fg }]}>
+            <Text style={[styles.ghostLabel, { color: tokens.ink }]}>
               {text.actions.duplicate}
             </Text>
           </Pressable>
@@ -328,11 +327,11 @@ export function MortgageScreen({
 const styles = StyleSheet.create({
   ghost: {
     minHeight: 40,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ghostLabel: { fontSize: 14.5, fontWeight: '600' },
+  ghostLabel: { ...TYPE.bodyStrong },
 })

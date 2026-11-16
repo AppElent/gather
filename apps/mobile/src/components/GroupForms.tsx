@@ -30,7 +30,7 @@ import { useAvailability } from '../availability/AvailabilityProvider'
 import { api } from '../convex/api'
 import { writeRetainedGroup } from '../group/retainedGroup'
 import { useI18n } from '../i18n'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import { Button } from '../ui/button'
 import { Field } from '../ui/field'
 
@@ -99,12 +99,12 @@ export function GroupForms() {
       <View
         style={[
           styles.card,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
         ]}
       >
         <Text
           accessibilityRole="header"
-          style={[styles.title, { color: tokens.fg }]}
+          style={[styles.title, { color: tokens.ink }]}
         >
           {text.createTitle}
         </Text>
@@ -140,12 +140,12 @@ export function GroupForms() {
       <View
         style={[
           styles.card,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
         ]}
       >
         <Text
           accessibilityRole="header"
-          style={[styles.title, { color: tokens.fg }]}
+          style={[styles.title, { color: tokens.ink }]}
         >
           {text.joinTitle}
         </Text>
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  title: { fontSize: 16, fontWeight: '700' },
-  body: { fontSize: 14, lineHeight: 20 },
-  error: { fontSize: 14, lineHeight: 20, fontWeight: '600' },
+  title: { ...TYPE.bodyStrong },
+  body: { ...TYPE.subhead },
+  error: { ...TYPE.bodyStrong },
 })

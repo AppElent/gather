@@ -15,7 +15,7 @@ import { useQuery } from '../../../../../src/convex/queries'
 import { useGroup } from '../../../../../src/group/GroupProvider'
 import { useI18n } from '../../../../../src/i18n'
 import { UI_ICONS } from '../../../../../src/theme/icons'
-import { RADIUS, useTokens } from '../../../../../src/theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../../../../src/theme/tokens'
 
 export default function BabyLogSettings() {
   const tokens = useTokens('home')
@@ -32,7 +32,7 @@ export default function BabyLogSettings() {
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: insets.bottom + 24 },
@@ -50,7 +50,7 @@ export default function BabyLogSettings() {
           <View
             style={[
               styles.card,
-              { backgroundColor: tokens.surface, borderColor: tokens.border },
+              { backgroundColor: tokens.surface, borderColor: tokens.hair },
             ]}
           >
             {children.map((child) => (
@@ -65,11 +65,11 @@ export default function BabyLogSettings() {
                 }
                 style={({ pressed }) => [
                   styles.row,
-                  { borderBottomColor: tokens.border },
+                  { borderBottomColor: tokens.hair },
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={[styles.name, { color: tokens.fg }]}>
+                <Text style={[styles.name, { color: tokens.ink }]}>
                   {child.name}
                 </Text>
                 <UI_ICONS.ChevronRight
@@ -88,7 +88,7 @@ export default function BabyLogSettings() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 12 },
-  group: { fontSize: 13 },
+  group: { ...TYPE.footnote },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  name: { flex: 1, fontSize: 16 },
-  empty: { fontSize: 15, paddingVertical: 20 },
+  name: { ...TYPE.body, flex: 1 },
+  empty: { ...TYPE.subhead, paddingVertical: 20 },
   pressed: { opacity: 0.6 },
 })

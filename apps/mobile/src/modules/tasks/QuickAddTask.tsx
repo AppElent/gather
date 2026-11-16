@@ -22,7 +22,7 @@ import {
 
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { Chip } from './components'
 import { quickAddLists, quickAddTarget } from './quickAdd'
 import { useTaskActions, useTaskLists } from './store'
@@ -91,9 +91,9 @@ export function QuickAddTask({
         style={[
           styles.input,
           {
-            color: tokens.fg,
-            backgroundColor: tokens.bg,
-            borderColor: tokens.border,
+            color: tokens.ink,
+            backgroundColor: tokens.ground,
+            borderColor: tokens.hair,
           },
         ]}
       />
@@ -136,17 +136,17 @@ export function QuickAddTask({
         disabled={!ready}
         style={({ pressed }) => [
           styles.saveButton,
-          { backgroundColor: ready ? tokens.fg : tokens.tile },
+          { backgroundColor: ready ? tokens.accent : tokens.surface2 },
           pressed && styles.pressed,
         ]}
       >
         {saving ? (
-          <ActivityIndicator color={tokens.bg} />
+          <ActivityIndicator color={tokens.onAccent} />
         ) : (
           <Text
             style={[
               styles.saveLabel,
-              { color: ready ? tokens.bg : tokens.muted },
+              { color: ready ? tokens.onAccent : tokens.muted },
             ]}
           >
             {text.save}
@@ -169,20 +169,20 @@ export function QuickAddTask({
 const styles = StyleSheet.create({
   capture: { gap: 8, paddingBottom: 8 },
   input: {
+    ...TYPE.body,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingHorizontal: 12,
     paddingVertical: 11,
-    fontSize: 16,
   },
   lists: { gap: 6 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  note: { fontSize: 13, lineHeight: 19 },
+  note: { ...TYPE.footnote },
   saveButton: {
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     paddingVertical: 12,
     alignItems: 'center',
   },
-  saveLabel: { fontSize: 15, fontWeight: '700' },
+  saveLabel: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.6 },
 })

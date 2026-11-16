@@ -1,8 +1,9 @@
 /**
  * The catalogue as the band under the pitch, because the front door's job is to
  * say what gather is and the catalogue is the most honest answer available:
- * every Module, in every Group. The words lead, the tints
- * confirm.
+ * every Module, in every Group. The words lead, the tiles
+ * confirm: each chip is neutral and only its glyph tile wears the group's fill
+ * (ADR-0017).
  *
  * It is not interactive. A chip that looked tappable and was not would be a
  * worse promise than a chip that plainly is not, and there is nothing behind it
@@ -14,7 +15,7 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../i18n'
 import { MODULE_ICONS } from '../theme/icons'
-import { useTokens } from '../theme/tokens'
+import { RADIUS, SIZE, TYPE, useTokens } from '../theme/tokens'
 
 /** Group order, so the four tints read as four bands rather than confetti. */
 const ORDERED: readonly (typeof MODULES)[number][] = MODULE_GROUPS.flatMap(
@@ -37,10 +38,12 @@ export function CatalogueStrip() {
         return (
           <View
             key={entry.id}
-            style={[styles.chip, { backgroundColor: tint.bg }]}
+            style={[styles.chip, { backgroundColor: tokens.surface2 }]}
           >
-            <Icon size={14} color={tint.fg} strokeWidth={1.9} />
-            <Text style={[styles.chipLabel, { color: tint.fg }]}>
+            <View style={[styles.tile, { backgroundColor: tint.fill }]}>
+              <Icon size={12} color={tint.on} strokeWidth={2} />
+            </View>
+            <Text style={[styles.chipLabel, { color: tokens.ink }]}>
               {t.modules.byId[entry.id].label}
             </Text>
           </View>
@@ -56,9 +59,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 7,
-    paddingHorizontal: 11,
-    borderRadius: 999,
+    paddingVertical: 6,
+    paddingLeft: 6,
+    paddingRight: 11,
+    borderRadius: RADIUS.pill,
   },
-  chipLabel: { fontSize: 12.5, fontWeight: '600' },
+  tile: {
+    width: SIZE.tileXs,
+    height: SIZE.tileXs,
+    borderRadius: RADIUS.tileXs,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipLabel: { ...TYPE.footnoteStrong },
 })

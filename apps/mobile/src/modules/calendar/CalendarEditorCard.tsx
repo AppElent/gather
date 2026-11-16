@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { DateTimeChip, DateTimeWheel } from '../../components/DateTimeField'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import type { CalendarDraft } from './calendarDraft'
 
 /** The draft stores an ISO day; the picker wants a Date. Noon dodges DST edges. */
@@ -147,13 +147,13 @@ export function CalendarEditorCard({
       <View
         style={[
           styles.card,
-          { backgroundColor: tokens.surface, borderColor: tokens.border },
+          { backgroundColor: tokens.surface, borderColor: tokens.hair },
           overlay && { paddingBottom: insets.bottom + 12 },
         ]}
         testID="calendar-editor-card"
       >
         <View style={styles.heading}>
-          <Text style={[styles.headingText, { color: tokens.fg }]}>
+          <Text style={[styles.headingText, { color: tokens.ink }]}>
             {draft.mode === 'edit' ? t.calendar.edit : t.calendar.newEvent}
           </Text>
           <Pressable
@@ -179,7 +179,7 @@ export function CalendarEditorCard({
               placeholderTextColor={tokens.muted}
               style={[
                 styles.input,
-                { color: tokens.fg, borderColor: tokens.border },
+                { color: tokens.ink, borderColor: tokens.hair },
               ]}
               returnKeyType="done"
               onSubmitEditing={onSave}
@@ -277,14 +277,14 @@ export function CalendarEditorCard({
                     style={[
                       styles.chip,
                       {
-                        borderColor: selected ? tokens.accent : tokens.border,
+                        borderColor: selected ? tokens.ink : tokens.hair,
                         backgroundColor: selected
-                          ? tokens.tintOf('home').bg
+                          ? tokens.surface2
                           : tokens.surface,
                       },
                     ]}
                   >
-                    <Text style={{ color: tokens.fg }}>{person.name}</Text>
+                    <Text style={{ color: tokens.ink }}>{person.name}</Text>
                   </Pressable>
                 )
               })}
@@ -309,12 +309,12 @@ export function CalendarEditorCard({
                     {
                       borderColor:
                         calendar.id === draft.values.calendarId
-                          ? tokens.accent
-                          : tokens.border,
+                          ? tokens.ink
+                          : tokens.hair,
                     },
                   ]}
                 >
-                  <Text style={{ color: tokens.fg }}>{calendar.name}</Text>
+                  <Text style={{ color: tokens.ink }}>{calendar.name}</Text>
                 </Pressable>
               ))}
             </View>
@@ -324,7 +324,7 @@ export function CalendarEditorCard({
                 onPress={onCreateCalendar}
                 style={styles.addCalendar}
               >
-                <Text style={{ color: tokens.accent }}>
+                <Text style={{ color: tokens.accentText }}>
                   {t.calendar.addCalendar}
                 </Text>
               </Pressable>
@@ -343,7 +343,7 @@ export function CalendarEditorCard({
                   placeholderTextColor={tokens.muted}
                   style={[
                     styles.input,
-                    { color: tokens.fg, borderColor: tokens.border },
+                    { color: tokens.ink, borderColor: tokens.hair },
                   ]}
                 />
               </Field>
@@ -357,7 +357,7 @@ export function CalendarEditorCard({
                   style={[
                     styles.input,
                     styles.notes,
-                    { color: tokens.fg, borderColor: tokens.border },
+                    { color: tokens.ink, borderColor: tokens.hair },
                   ]}
                 />
               </Field>
@@ -369,7 +369,7 @@ export function CalendarEditorCard({
               onPress={onExpand}
               style={styles.more}
             >
-              <Text style={{ color: tokens.accent }}>{t.calendar.expand}</Text>
+              <Text style={{ color: tokens.accentText }}>{t.calendar.expand}</Text>
             </Pressable>
           ) : null}
         </ScrollView>
@@ -396,7 +396,7 @@ export function CalendarEditorCard({
         {draft.mode === 'edit' ? (
           <View style={styles.secondary}>
             <Pressable onPress={onDuplicate}>
-              <Text style={{ color: tokens.accent }}>
+              <Text style={{ color: tokens.accentText }}>
                 {t.calendar.duplicate}
               </Text>
             </Pressable>
@@ -435,18 +435,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  headingText: { fontSize: 20, fontWeight: '700' },
+  headingText: { ...TYPE.title2 },
   body: { gap: 12, paddingVertical: 12 },
   field: { gap: 5 },
-  label: { fontSize: 13, fontWeight: '600' },
+  label: { ...TYPE.footnoteStrong },
   input: {
+    ...TYPE.body,
     minHeight: 44,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    fontSize: 16,
     paddingHorizontal: 4,
   },
   notes: { minHeight: 96, textAlignVertical: 'top' },
-  error: { fontSize: 12 },
+  error: { ...TYPE.footnote },
   switchRow: {
     minHeight: 44,
     flexDirection: 'row',
@@ -457,12 +457,12 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   chip: {
     minHeight: 38,
-    borderRadius: 19,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
-  helper: { fontSize: 12 },
+  helper: { ...TYPE.footnote },
   more: { paddingVertical: 8 },
   addCalendar: { minHeight: 44, justifyContent: 'center' },
   footer: {
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   },
   save: {
     minHeight: 44,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     justifyContent: 'center',
     paddingHorizontal: 16,
   },

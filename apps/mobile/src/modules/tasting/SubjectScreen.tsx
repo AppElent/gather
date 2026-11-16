@@ -59,7 +59,7 @@ import { useGroup } from '../../group/GroupProvider'
 import { fmt, plural, useI18n } from '../../i18n'
 import { pickPhoto, uploadPhoto } from '../../photo/pickPhoto'
 import { useRecordRecent } from '../../search/recentRecordsStore'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { moduleHref } from '../moduleDestination'
 import { TASTING_UI_ICONS } from './icons'
 import { StarRating } from './StarRating'
@@ -112,11 +112,10 @@ export function SubjectScreen({
   const Ellipsis = TASTING_UI_ICONS.Ellipsis
   const Plus = TASTING_UI_ICONS.Plus
   const PhotoIcon = TASTING_UI_ICONS.ImagePlus
-  const tint = tokens.tintOf('tasting')
 
   if (page === undefined) {
     return (
-      <View style={[styles.centre, { backgroundColor: tokens.bg }]}>
+      <View style={[styles.centre, { backgroundColor: tokens.ground }]}>
         <ActivityIndicator color={tokens.muted} />
       </View>
     )
@@ -127,7 +126,7 @@ export function SubjectScreen({
     return (
       <>
         <Stack.Screen options={{ headerShown: true, title: words.many }} />
-        <View style={[styles.centre, { backgroundColor: tokens.bg }]}>
+        <View style={[styles.centre, { backgroundColor: tokens.ground }]}>
           <Text style={{ color: tokens.muted }}>{copy.noTastings}</Text>
         </View>
       </>
@@ -270,7 +269,7 @@ export function SubjectScreen({
       hitSlop={12}
       style={({ pressed }) => [styles.overflow, pressed && styles.pressed]}
     >
-      <Ellipsis size={22} color={tint.fg} strokeWidth={2} />
+      <Ellipsis size={22} color={tokens.accentText} strokeWidth={2} />
     </Pressable>
   )
 
@@ -284,14 +283,14 @@ export function SubjectScreen({
           onPress={() => onSubjectMenu(action.id)}
           style={({ pressed }) => [
             styles.menuRow,
-            { borderBottomColor: tokens.border },
-            pressed && { backgroundColor: tokens.tile },
+            { borderBottomColor: tokens.hair },
+            pressed && { backgroundColor: tokens.surface2 },
           ]}
         >
           <Text
             style={[
               styles.menuLabel,
-              { color: action.danger ? tokens.danger : tokens.fg },
+              { color: action.danger ? tokens.danger : tokens.ink },
             ]}
           >
             {action.label}
@@ -319,12 +318,12 @@ export function SubjectScreen({
       onPress={() => compose('new')}
       style={({ pressed }) => [
         styles.logButton,
-        { backgroundColor: tint.fg },
+        { backgroundColor: tokens.accent },
         pressed && styles.pressed,
       ]}
     >
-      <Plus size={16} color={tokens.surface} strokeWidth={2.4} />
-      <Text style={[styles.logButtonText, { color: tokens.surface }]}>
+      <Plus size={16} color={tokens.onAccent} strokeWidth={2.4} />
+      <Text style={[styles.logButtonText, { color: tokens.onAccent }]}>
         {copy.logTasting}
       </Text>
     </Pressable>
@@ -343,7 +342,7 @@ export function SubjectScreen({
             onPress={addPhoto}
             style={({ pressed }) => [
               styles.photoTile,
-              { backgroundColor: tokens.tile, borderColor: tokens.border },
+              { backgroundColor: tokens.surface2, borderColor: tokens.hair },
               pressed && styles.pressed,
             ]}
           >
@@ -376,7 +375,7 @@ export function SubjectScreen({
       ) : null}
 
       {facts.length > 0 ? (
-        <View style={[styles.facts, { borderColor: tokens.border }]}>
+        <View style={[styles.facts, { borderColor: tokens.hair }]}>
           {facts.map(({ field, text }) => (
             <View
               key={field.key}
@@ -385,7 +384,7 @@ export function SubjectScreen({
               <Text style={[styles.factLabel, { color: tokens.muted }]}>
                 {fieldLabel(t.tastings, field).toUpperCase()}
               </Text>
-              <Text style={[styles.factValue, { color: tokens.fg }]}>
+              <Text style={[styles.factValue, { color: tokens.ink }]}>
                 {text}
               </Text>
             </View>
@@ -437,18 +436,18 @@ export function SubjectScreen({
               if (id === 'delete') confirmTastingDelete(tasting._id)
             }}
           >
-            <View
-              style={[styles.tasting, { borderBottomColor: tokens.border }]}
-            >
+            <View style={[styles.tasting, { borderBottomColor: tokens.hair }]}>
               <View style={styles.tastingHead}>
-                <View style={[styles.avatar, { backgroundColor: tint.bg }]}>
-                  <Text style={[styles.initial, { color: tint.fg }]}>
+                <View
+                  style={[styles.avatar, { backgroundColor: tokens.surface2 }]}
+                >
+                  <Text style={[styles.initial, { color: tokens.ink }]}>
                     {(tasting.mine ? copy.you : (tasting.byName ?? '?'))
                       .slice(0, 1)
                       .toUpperCase()}
                   </Text>
                 </View>
-                <Text style={[styles.who, { color: tokens.fg }]}>
+                <Text style={[styles.who, { color: tokens.ink }]}>
                   {tasting.mine ? copy.you : (tasting.byName ?? '')}
                 </Text>
                 <Text style={[styles.when, { color: tokens.muted }]}>
@@ -458,7 +457,7 @@ export function SubjectScreen({
                   })}
                 </Text>
                 <View style={styles.spacer} />
-                <Text style={[styles.score, { color: tint.fg }]}>
+                <Text style={[styles.score, { color: tokens.ink }]}>
                   {tasting.rating.toFixed(1)}
                 </Text>
               </View>
@@ -468,9 +467,9 @@ export function SubjectScreen({
                   {tags.map((tag) => (
                     <View
                       key={tag.key}
-                      style={[styles.tag, { backgroundColor: tint.bg }]}
+                      style={[styles.tag, { backgroundColor: tokens.surface2 }]}
                     >
-                      <Text style={[styles.tagText, { color: tint.fg }]}>
+                      <Text style={[styles.tagText, { color: tokens.ink }]}>
                         {tag.label}
                       </Text>
                     </View>
@@ -497,8 +496,8 @@ export function SubjectScreen({
                                 backgroundColor:
                                   step <=
                                   (tasting.attributes[field.key] as number)
-                                    ? tint.fg
-                                    : tokens.border,
+                                    ? tokens.ink
+                                    : tokens.hair,
                               },
                             ]}
                           />
@@ -510,7 +509,7 @@ export function SubjectScreen({
               ) : null}
 
               {typeof notes === 'string' && notes ? (
-                <Text style={[styles.notes, { color: tokens.fg }]}>
+                <Text style={[styles.notes, { color: tokens.ink }]}>
                   {notes}
                 </Text>
               ) : null}
@@ -530,7 +529,7 @@ export function SubjectScreen({
         <ScrollView
           // Without it the body starts under the large title and draws over it.
           contentInsetAdjustmentBehavior="automatic"
-          style={{ backgroundColor: tokens.bg }}
+          style={{ backgroundColor: tokens.ground }}
           contentContainerStyle={[
             styles.content,
             { paddingBottom: insets.bottom + 32 },
@@ -555,7 +554,7 @@ export function SubjectScreen({
       <Stack.Screen
         options={{ headerShown: true, title: subject.name, headerRight }}
       />
-      <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+      <View style={{ flex: 1, backgroundColor: tokens.ground }}>
         <Image
           source={{ uri: subject.photoUrl ?? undefined }}
           style={styles.hero}
@@ -563,10 +562,10 @@ export function SubjectScreen({
           accessibilityLabel={fmt(copy.photoOf, { name: subject.name })}
           accessibilityIgnoresInvertColors
         />
-        <View style={[styles.pinned, { borderBottomColor: tokens.border }]}>
+        <View style={[styles.pinned, { borderBottomColor: tokens.hair }]}>
           <Text
             accessibilityRole="header"
-            style={[styles.pinnedName, { color: tokens.fg }]}
+            style={[styles.pinnedName, { color: tokens.ink }]}
           >
             {subject.name}
           </Text>
@@ -611,7 +610,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  menuLabel: { fontSize: 16 },
+  menuLabel: { ...TYPE.body },
   content: { paddingHorizontal: 16, paddingTop: 14, gap: 14 },
   hero: { width: '100%', height: 200 },
   pinned: {
@@ -620,9 +619,16 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  pinnedName: { fontSize: 26, fontWeight: '700', letterSpacing: -0.7 },
-  pinnedFacts: { fontSize: 13.5 },
-  pinnedMeta: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pinnedName: { ...TYPE.recordTitle, letterSpacing: -0.7 },
+  pinnedFacts: { ...TYPE.footnote },
+  // Wraps: at 17 pt (and larger Dynamic Type) the button no longer fits
+  // beside the stars on a narrow phone, so it drops to its own line.
+  pinnedMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 12,
+  },
   pushedHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   pushedMeta: { flex: 1, gap: 8 },
   photoTile: {
@@ -635,8 +641,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderStyle: 'dashed',
   },
-  photoLabel: { fontSize: 11 },
-  problem: { fontSize: 13 },
+  photoLabel: { ...TYPE.footnote },
+  problem: { ...TYPE.footnote },
   logButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -644,9 +650,9 @@ const styles = StyleSheet.create({
     gap: 6,
     minHeight: 42,
     paddingHorizontal: 15,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  logButtonText: { fontSize: 15, fontWeight: '700' },
+  logButtonText: { ...TYPE.bodyStrong },
   facts: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -655,40 +661,42 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   fact: { width: '50%', gap: 2, padding: 11 },
-  factLabel: { fontSize: 11.5, fontWeight: '700', letterSpacing: 0.6 },
-  factValue: { fontSize: 15 },
-  heading: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  factLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.6 },
+  factValue: { ...TYPE.subhead },
+  heading: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   tasting: {
     gap: 7,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   tastingHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // A coin that grows with its initial rather than clipping it.
   avatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    minWidth: 24,
+    minHeight: 24,
+    paddingHorizontal: 4,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  initial: { fontSize: 11.5, fontWeight: '700' },
-  who: { fontSize: 15, fontWeight: '600' },
-  when: { fontSize: 13 },
+  initial: { ...TYPE.footnoteStrong },
+  who: { ...TYPE.bodyStrong },
+  when: { ...TYPE.footnote },
   spacer: { flex: 1 },
-  score: { fontSize: 16, fontWeight: '700' },
+  score: { ...TYPE.bodyStrong, ...TABULAR },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   tag: {
     minHeight: 26,
     justifyContent: 'center',
     paddingHorizontal: 10,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
   },
-  tagText: { fontSize: 12.5 },
+  tagText: { ...TYPE.footnote },
   scales: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   scale: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  scaleLabel: { fontSize: 12 },
+  scaleLabel: { ...TYPE.footnote },
   pips: { flexDirection: 'row', gap: 3 },
   pip: { width: 11, height: 5, borderRadius: 3 },
-  notes: { fontSize: 13.5, lineHeight: 19 },
+  notes: { ...TYPE.footnote },
   pressed: { opacity: 0.6 },
 })

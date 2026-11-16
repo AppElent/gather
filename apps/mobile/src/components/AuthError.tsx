@@ -8,7 +8,7 @@
 import { StyleSheet, Text, View } from 'react-native'
 
 import { UI_ICONS } from '../theme/icons'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 export function AuthError({ message }: { message: string | null }) {
   const tokens = useTokens()
@@ -24,7 +24,7 @@ export function AuthError({ message }: { message: string | null }) {
       ]}
     >
       <UI_ICONS.CircleAlert size={17} color={tokens.danger} strokeWidth={1.9} />
-      <Text style={[styles.text, { color: tokens.fg }]}>{message}</Text>
+      <Text style={[styles.text, { color: tokens.ink }]}>{message}</Text>
     </View>
   )
 }
@@ -35,9 +35,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 9,
     borderWidth: 1,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     paddingVertical: 11,
     paddingHorizontal: 13,
   },
-  text: { flex: 1, fontSize: 14, lineHeight: 20 },
+  text: { ...TYPE.subhead, flex: 1 },
 })

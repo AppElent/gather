@@ -20,7 +20,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../../i18n'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { daysApart, shiftDays, shiftMinutes } from './entryTime'
 
 export interface DateTimeFieldProps {
@@ -76,7 +76,7 @@ export function DateTimeField({
         <View
           style={[
             styles.stepper,
-            { borderColor: tokens.border, backgroundColor: tokens.surface },
+            { borderColor: tokens.hair, backgroundColor: tokens.surface },
           ]}
         >
           <Pressable
@@ -85,11 +85,11 @@ export function DateTimeField({
             onPress={() => onStep(-1)}
             style={({ pressed }) => [styles.step, pressed && styles.pressed]}
           >
-            <Text style={[styles.stepGlyph, { color: tint.fg }]}>−</Text>
+            <Text style={[styles.stepGlyph, { color: tint.text }]}>−</Text>
           </Pressable>
           <Text
             numberOfLines={1}
-            style={[styles.stepValue, { color: tokens.fg }]}
+            style={[styles.stepValue, { color: tokens.ink }]}
           >
             {display}
           </Text>
@@ -99,7 +99,7 @@ export function DateTimeField({
             onPress={() => onStep(1)}
             style={({ pressed }) => [styles.step, pressed && styles.pressed]}
           >
-            <Text style={[styles.stepGlyph, { color: tint.fg }]}>+</Text>
+            <Text style={[styles.stepGlyph, { color: tint.text }]}>+</Text>
           </Pressable>
         </View>
       </View>
@@ -112,7 +112,7 @@ export function DateTimeField({
     <View
       style={[
         styles.wrap,
-        { borderColor: tokens.border, backgroundColor: tokens.bg },
+        { borderColor: tokens.hair, backgroundColor: tokens.ground },
       ]}
     >
       <Pressable
@@ -125,16 +125,16 @@ export function DateTimeField({
         <Text style={[styles.summaryLabel, { color: tokens.muted }]}>
           {text.when}
         </Text>
-        <Text style={[styles.summaryValue, { color: tokens.fg }]}>
+        <Text style={[styles.summaryValue, { color: tokens.ink }]}>
           {offset === 0 ? time : `${day} ${time}`}
         </Text>
-        <Text style={[styles.summaryAction, { color: tint.fg }]}>
+        <Text style={[styles.summaryAction, { color: tint.text }]}>
           {open ? t.actions.done : text.editWhen}
         </Text>
       </Pressable>
 
       {open ? (
-        <View style={[styles.editor, { borderTopColor: tokens.border }]}>
+        <View style={[styles.editor, { borderTopColor: tokens.hair }]}>
           <View style={styles.steppers}>
             {stepper(
               text.date,
@@ -170,7 +170,7 @@ export function DateTimeField({
 const styles = StyleSheet.create({
   wrap: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     overflow: 'hidden',
   },
   summary: {
@@ -180,18 +180,18 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 14,
   },
-  summaryLabel: { fontSize: 15 },
-  summaryValue: { flex: 1, fontSize: 16, fontWeight: '600' },
-  summaryAction: { fontSize: 14, fontWeight: '600' },
+  summaryLabel: { ...TYPE.subhead },
+  summaryValue: { ...TYPE.bodyStrong, ...TABULAR, flex: 1 },
+  summaryAction: { ...TYPE.bodyStrong },
   editor: { borderTopWidth: StyleSheet.hairlineWidth, padding: 12, gap: 12 },
   steppers: { flexDirection: 'row', gap: 8 },
   stepperWrap: { gap: 5 },
-  stepperLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.6 },
+  stepperLabel: { ...TYPE.footnoteStrong, letterSpacing: 0.6 },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
     overflow: 'hidden',
   },
   step: {
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepGlyph: { fontSize: 22, fontWeight: '600', lineHeight: 26 },
-  stepValue: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700' },
+  stepGlyph: { ...TYPE.title2 },
+  stepValue: { ...TYPE.bodyStrong, ...TABULAR, flex: 1, textAlign: 'center' },
   pressed: { opacity: 0.6 },
 })

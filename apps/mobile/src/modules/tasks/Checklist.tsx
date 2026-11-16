@@ -11,7 +11,7 @@
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useI18n } from '../../i18n'
-import { useTokens } from '../../theme/tokens'
+import { TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
 import { SectionLabel } from '../../ui/section-label'
 import { taskSections, useTaskList } from './store'
@@ -96,6 +96,6 @@ export function Checklist({
 const styles = StyleSheet.create({
   wrap: { gap: 8 },
   readOnly: { minHeight: 50, justifyContent: 'center' },
-  readOnlyText: { fontSize: 13, lineHeight: 19, paddingVertical: 10 },
-  note: { fontSize: 14, paddingHorizontal: 2 },
+  readOnlyText: { ...TYPE.footnote, paddingVertical: 10 },
+  note: { ...TYPE.subhead, paddingHorizontal: 2 },
 })

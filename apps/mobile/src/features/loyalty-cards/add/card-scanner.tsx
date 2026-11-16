@@ -65,27 +65,27 @@ export function CardScanner({
   )
 
   if (!permission) {
-    return <View style={[styles.fill, { backgroundColor: tokens.bg }]} />
+    return <View style={[styles.fill, { backgroundColor: tokens.ground }]} />
   }
 
   if (!permission.granted || unavailable) {
     const denied = !permission.granted && !permission.canAskAgain
     return (
-      <Screen background={tokens.bg} centred testID="loyalty-card-scan-ask">
-        <View style={[styles.askIcon, { backgroundColor: tokens.tile }]}>
+      <Screen background={tokens.ground} centred testID="loyalty-card-scan-ask">
+        <View style={[styles.askIcon, { backgroundColor: tokens.surface2 }]}>
           <LOYALTY_CARD_ICONS.ScanBarcode
             size={34}
-            color={tokens.fg}
+            color={tokens.ink}
             strokeWidth={1.75}
           />
         </View>
         <Text
           accessibilityRole="header"
-          style={[TYPE.title, styles.center, styles.bold, { color: tokens.fg }]}
+          style={[TYPE.title2, styles.center, { color: tokens.ink }]}
         >
           {words.askTitle}
         </Text>
-        <Text style={[TYPE.lead, styles.center, { color: tokens.muted }]}>
+        <Text style={[TYPE.body, styles.center, { color: tokens.muted }]}>
           {unavailable
             ? words.unavailable
             : denied
@@ -117,7 +117,7 @@ export function CardScanner({
   }
 
   return (
-    <Screen background={tokens.bg}>
+    <Screen background={tokens.ground}>
       <View style={styles.cameraWrap}>
         {focused ? (
           <CameraView
@@ -139,7 +139,7 @@ export function CardScanner({
         <View pointerEvents="none" style={styles.frame} />
       </View>
       <View style={styles.below}>
-        <Text style={[TYPE.lead, styles.center, { color: tokens.fg }]}>
+        <Text style={[TYPE.body, styles.center, { color: tokens.ink }]}>
           {words.hint}
         </Text>
         {typeInstead}
@@ -195,7 +195,6 @@ const styles = StyleSheet.create({
   },
   askActions: { gap: 10, marginTop: 8 },
   center: { textAlign: 'center' },
-  bold: { fontWeight: '700' },
   // A card's barcode is wider than tall; a 4:5 window leaves room for the
   // hint and the way out below it on the smallest phones.
   cameraWrap: {

@@ -28,7 +28,7 @@ import {
 
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { FINANCE_ICONS } from './icons'
 
 /** The Module's accent. Money is one of the four catalogue groups. */
@@ -61,7 +61,7 @@ export function Card({
       style={[
         styles.card,
         padded && styles.cardPadded,
-        { backgroundColor: tokens.surface, borderColor: tokens.border },
+        { backgroundColor: tokens.surface, borderColor: tokens.hair },
       ]}
     >
       {children}
@@ -103,10 +103,9 @@ export function Row({
 }: RowProps) {
   const tokens = useMoneyTokens()
   const ChevronRight = UI_ICONS.ChevronRight
-  const tint = tokens.tintOf('money')
   const toneColor =
     valueTone === 'up'
-      ? tint.fg
+      ? tokens.ink
       : valueTone === 'down'
         ? tokens.danger
         : tokens.muted
@@ -115,7 +114,7 @@ export function Row({
     <>
       {leading ? <View style={styles.leading}>{leading}</View> : null}
       <View style={styles.rowText}>
-        <Text numberOfLines={1} style={[styles.rowLabel, { color: tokens.fg }]}>
+        <Text numberOfLines={1} style={[styles.rowLabel, { color: tokens.ink }]}>
           {label}
         </Text>
         {sub ? (
@@ -130,7 +129,7 @@ export function Row({
             numberOfLines={1}
             style={[
               styles.value,
-              { color: emphasis ? tokens.fg : tokens.muted },
+              { color: emphasis ? tokens.ink : tokens.muted },
             ]}
           >
             {value}
@@ -161,9 +160,9 @@ export function Row({
     styles.row,
     !last && {
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: tokens.border,
+      borderBottomColor: tokens.hair,
     },
-    derived && { backgroundColor: tint.bg },
+    derived && { backgroundColor: tokens.surface2 },
   ]
 
   if (!onPress) {
@@ -208,15 +207,15 @@ export function AddRow({
         styles.row,
         !last && {
           borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: tokens.border,
+          borderBottomColor: tokens.hair,
         },
         pressed && styles.pressed,
       ]}
     >
       <View style={styles.leading}>
-        <Plus size={17} color={tint.fg} strokeWidth={2.2} />
+        <Plus size={17} color={tint.text} strokeWidth={2.2} />
       </View>
-      <Text style={[styles.rowLabel, { color: tint.fg, flex: 1 }]}>
+      <Text style={[styles.rowLabel, { color: tint.text, flex: 1 }]}>
         {label}
       </Text>
     </Pressable>
@@ -244,7 +243,7 @@ export function Figure({
       <Text
         style={[
           large ? styles.figureLarge : styles.figureSmall,
-          { color: tokens.fg },
+          { color: tokens.ink },
         ]}
       >
         {amount}
@@ -317,7 +316,7 @@ export function EmptyState({
       {icon}
       <Text
         accessibilityRole="header"
-        style={[styles.emptyTitle, { color: tokens.fg }]}
+        style={[styles.emptyTitle, { color: tokens.ink }]}
       >
         {title}
       </Text>
@@ -382,14 +381,14 @@ export function AnswerBar({
     <View
       style={[
         styles.bar,
-        { backgroundColor: tokens.surface, borderTopColor: tokens.border },
+        { backgroundColor: tokens.surface, borderTopColor: tokens.hair },
       ]}
     >
       <View style={styles.barText}>
-        <Text style={[styles.barAmount, { color: tokens.fg }]}>
+        <Text style={[styles.barAmount, { color: tokens.ink }]}>
           {amount}
           {unit ? (
-            <Text style={[styles.barUnit, { color: tokens.fg }]}> {unit}</Text>
+            <Text style={[styles.barUnit, { color: tokens.ink }]}> {unit}</Text>
           ) : null}
         </Text>
         {sub ? (
@@ -412,7 +411,6 @@ export function Chip({
   onPress: () => void
 }) {
   const tokens = useMoneyTokens()
-  const tint = tokens.tintOf('money')
   return (
     <Pressable
       accessibilityRole="button"
@@ -422,14 +420,17 @@ export function Chip({
       style={({ pressed }) => [
         styles.chip,
         {
-          backgroundColor: selected ? tint.bg : tokens.surface,
-          borderColor: selected ? tint.fg : tokens.border,
+          backgroundColor: selected ? tokens.ink : tokens.surface,
+          borderColor: selected ? tokens.ink : tokens.hair,
         },
         pressed && styles.pressed,
       ]}
     >
       <Text
-        style={[styles.chipLabel, { color: selected ? tint.fg : tokens.fg }]}
+        style={[
+          styles.chipLabel,
+          { color: selected ? tokens.onInk : tokens.ink },
+        ]}
       >
         {label}
       </Text>
@@ -473,7 +474,7 @@ export function Field({
           placeholderTextColor={tokens.muted}
           keyboardType={keyboardType}
           autoFocus={autoFocus}
-          style={[styles.input, { color: tokens.fg }]}
+          style={[styles.input, { color: tokens.ink }]}
         />
         {suffix ? (
           <Text style={[styles.affix, { color: tokens.muted }]}>{suffix}</Text>
@@ -494,7 +495,7 @@ export function ScreenScroll({
   const tokens = useMoneyTokens()
   return (
     <ScrollView
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={[styles.content, { paddingBottom: bottomInset }]}
@@ -507,8 +508,7 @@ export function ScreenScroll({
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 8 },
   section: {
-    fontSize: 12,
-    fontWeight: '700',
+    ...TYPE.footnoteStrong,
     letterSpacing: 0.8,
     marginTop: 14,
     marginBottom: 2,
@@ -529,48 +529,37 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   rowText: { flex: 1, gap: 2 },
-  rowLabel: { fontSize: 16 },
+  rowLabel: { ...TYPE.body },
   rowValue: { alignItems: 'flex-end' },
-  value: { fontSize: 15, fontVariant: ['tabular-nums'], maxWidth: 160 },
-  valueSub: { fontSize: 12, fontVariant: ['tabular-nums'] },
-  sub: { fontSize: 13, lineHeight: 18 },
+  value: { ...TYPE.subhead, ...TABULAR, maxWidth: 160 },
+  valueSub: { ...TYPE.footnote, ...TABULAR },
+  sub: { ...TYPE.footnote },
   leading: { width: 24, alignItems: 'center' },
   pressed: { opacity: 0.7 },
   disabled: { opacity: 0.45 },
   figure: { gap: 3 },
-  caption: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6 },
-  figureLarge: {
-    fontSize: 34,
-    fontWeight: '700',
-    letterSpacing: -0.8,
-    fontVariant: ['tabular-nums'],
-  },
-  figureSmall: {
-    fontSize: 22,
-    fontWeight: '700',
-    letterSpacing: -0.4,
-    fontVariant: ['tabular-nums'],
-  },
-  notice: { fontSize: 13, lineHeight: 18, marginTop: 10, paddingHorizontal: 4 },
+  caption: { ...TYPE.footnoteStrong, letterSpacing: 0.6 },
+  figureLarge: { ...TYPE.numeralL, letterSpacing: -0.8 },
+  figureSmall: { ...TYPE.title2, ...TABULAR, letterSpacing: -0.4 },
+  notice: { ...TYPE.footnote, marginTop: 10, paddingHorizontal: 4 },
   stale: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  staleText: { fontSize: 13, flex: 1 },
+  staleText: { ...TYPE.footnote, flex: 1 },
   empty: { alignItems: 'center', gap: 10, paddingVertical: 48 },
-  emptyTitle: { fontSize: 19, fontWeight: '700', letterSpacing: -0.4 },
+  emptyTitle: { ...TYPE.title2, letterSpacing: -0.4 },
   emptyBody: {
-    fontSize: 14.5,
-    lineHeight: 21,
+    ...TYPE.subhead,
     textAlign: 'center',
     paddingHorizontal: 24,
   },
   primary: {
     minHeight: 52,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
     marginTop: 6,
   },
-  primaryLabel: { fontSize: 16.5, fontWeight: '700' },
+  primaryLabel: { ...TYPE.bodyStrong },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -580,26 +569,21 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   barText: { flex: 1 },
-  barAmount: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    fontVariant: ['tabular-nums'],
-  },
-  barUnit: { fontSize: 15, fontWeight: '600' },
-  barSub: { fontSize: 13 },
+  barAmount: { ...TYPE.numeralL, letterSpacing: -0.5 },
+  barUnit: { ...TYPE.bodyStrong },
+  barSub: { ...TYPE.footnote },
   chip: {
     minHeight: 40,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
     paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chipLabel: { fontSize: 15, fontWeight: '600' },
+  chipLabel: { ...TYPE.bodyStrong },
   field: { gap: 4, paddingVertical: 8 },
-  fieldLabel: { fontSize: 13 },
+  fieldLabel: { ...TYPE.footnote },
   fieldInput: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  affix: { fontSize: 17 },
-  input: { flex: 1, fontSize: 17, paddingVertical: 6 },
+  affix: { ...TYPE.body },
+  input: { ...TYPE.body, flex: 1, paddingVertical: 6 },
 })

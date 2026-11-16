@@ -24,7 +24,7 @@ import { useQuery } from '../convex/queries'
 import { useGroup } from '../group/GroupProvider'
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import {
   type RecentRecordInput,
   recordsForGroup,
@@ -182,20 +182,20 @@ export function SearchScreen() {
         accessibilityRole="button"
         accessibilityLabel={`${record.title}, ${typeLabel(record.type)}`}
         onPress={() => open(record)}
-        android_ripple={{ color: tokens.tile }}
+        android_ripple={{ color: tokens.surface2 }}
         style={({ pressed }) => [
           styles.row,
           {
             backgroundColor: tokens.surface,
-            borderBottomColor: tokens.border,
+            borderBottomColor: tokens.hair,
             borderBottomWidth:
               index === items.length - 1 ? 0 : StyleSheet.hairlineWidth,
           },
-          pressed && { backgroundColor: tokens.tile },
+          pressed && { backgroundColor: tokens.surface2 },
         ]}
       >
         <View style={styles.rowText}>
-          <Text numberOfLines={1} style={[styles.title, { color: tokens.fg }]}>
+          <Text numberOfLines={1} style={[styles.title, { color: tokens.ink }]}>
             {record.title}
           </Text>
           {record.detail ? (
@@ -209,8 +209,8 @@ export function SearchScreen() {
         </View>
         {/* The type, in Recent as well as in results: under a header that
           already says "Recent", saying it again on every row says nothing. */}
-        <View style={[styles.badge, { backgroundColor: tokens.tile }]}>
-          <Text style={[styles.badgeText, { color: tokens.fg }]}>
+        <View style={[styles.badge, { backgroundColor: tokens.surface2 }]}>
+          <Text style={[styles.badgeText, { color: tokens.ink }]}>
             {typeLabel(record.type)}
           </Text>
         </View>
@@ -269,7 +269,7 @@ export function SearchScreen() {
         }}
       />
       <ScrollView
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
         // Drag the list, the keyboard goes — and on iOS the docked field comes
         // down with your finger. Android has no `interactive`.
@@ -298,7 +298,7 @@ export function SearchScreen() {
                       pressed && { opacity: 0.5 },
                     ]}
                   >
-                    <Text style={[styles.headerAction, { color: tokens.fg }]}>
+                    <Text style={[styles.headerAction, { color: tokens.ink }]}>
                       {t.search.clearRecent}
                     </Text>
                   </Pressable>
@@ -324,7 +324,7 @@ export function SearchScreen() {
                   ) : null}
                 </View>
               </View>
-              <View style={[styles.card, { borderColor: tokens.border }]}>
+              <View style={[styles.card, { borderColor: tokens.hair }]}>
                 {rows(visibleRecents)}
               </View>
             </View>
@@ -351,17 +351,17 @@ export function SearchScreen() {
               onPress={clear}
               style={({ pressed }) => [
                 styles.clear,
-                { borderColor: tokens.border },
-                pressed && { backgroundColor: tokens.tile },
+                { borderColor: tokens.hair },
+                pressed && { backgroundColor: tokens.surface2 },
               ]}
             >
-              <Text style={{ color: tokens.fg, fontWeight: '600' }}>
+              <Text style={[styles.clearText, { color: tokens.ink }]}>
                 {t.search.clear}
               </Text>
             </Pressable>
           </View>
         ) : (
-          <View style={[styles.card, { borderColor: tokens.border }]}>
+          <View style={[styles.card, { borderColor: tokens.hair }]}>
             {rows(found)}
           </View>
         )}
@@ -372,7 +372,7 @@ export function SearchScreen() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 14 },
-  hint: { fontSize: 13.5 },
+  hint: { ...TYPE.footnote },
   section: { gap: 8 },
   sectionHeader: {
     flexDirection: 'row',
@@ -388,9 +388,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 6,
   },
-  headerAction: { fontSize: 14, fontWeight: '600' },
+  headerAction: { ...TYPE.bodyStrong },
   chevronUp: { transform: [{ rotate: '180deg' }] },
-  sectionTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  sectionTitle: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: RADIUS.card,
@@ -404,23 +404,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   rowText: { flex: 1, gap: 3 },
-  title: { fontSize: 16, fontWeight: '600' },
-  detail: { fontSize: 13.5 },
+  title: { ...TYPE.bodyStrong },
+  detail: { ...TYPE.footnote },
   skeleton: { marginHorizontal: -16 },
-  badge: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 },
-  badgeText: { fontSize: 11.5, fontWeight: '700' },
+  badge: {
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  badgeText: { ...TYPE.footnoteStrong },
   empty: {
     minHeight: 150,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 14,
   },
-  emptyText: { fontSize: 15, textAlign: 'center' },
+  emptyText: { ...TYPE.subhead, textAlign: 'center' },
   clear: {
     minHeight: 48,
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     paddingHorizontal: 16,
   },
+  clearText: { ...TYPE.bodyStrong },
 })

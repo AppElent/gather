@@ -11,7 +11,7 @@
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
-import { useTokens } from '../theme/tokens'
+import { TYPE, useTokens } from '../theme/tokens'
 
 interface AuthLinkProps {
   /** The inert half. Omit for a bare link. */
@@ -52,7 +52,7 @@ export function AuthLink({
           disabled && styles.inert,
         ]}
       >
-        <Text style={[styles.label, { color: tokens.fg }]}>{label}</Text>
+        <Text style={[styles.label, { color: tokens.ink }]}>{label}</Text>
       </Pressable>
     </View>
   )
@@ -66,9 +66,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
   },
-  prompt: { fontSize: 14.5 },
+  prompt: { ...TYPE.subhead },
   hit: { paddingVertical: 11 },
   pressed: { opacity: 0.6 },
   inert: { opacity: 0.5 },
-  label: { fontSize: 14.5, fontWeight: '700', textDecorationLine: 'underline' },
+  label: { ...TYPE.bodyStrong, textDecorationLine: 'underline' },
 })

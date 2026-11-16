@@ -9,6 +9,10 @@
  * most here, a person reading the appearance switch in the appearance they are
  * about to leave.
  *
+ * The track is `surface2`; the selected option is a `surface` pill on it and
+ * the others are transparent, all labelled in ink. No group colour and no
+ * accent: a selected state is not a tile (ADR-0017).
+ *
  * Selection is announced rather than only drawn: `accessibilityState.selected`
  * is what makes this a set of choices to a screen reader instead of five
  * buttons that happen to have different backgrounds.
@@ -16,7 +20,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { haptics } from '../feedback/haptics'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../theme/tokens'
 
 export interface SegmentedOption<Value extends string> {
   value: Value
@@ -37,7 +41,7 @@ export function Segmented<Value extends string>({
   const tokens = useTokens()
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.track, { backgroundColor: tokens.surface2 }]}>
       {options.map((option) => {
         const isOn = option.value === value
         return (
@@ -52,19 +56,13 @@ export function Segmented<Value extends string>({
             }}
             style={({ pressed }) => [
               styles.option,
-              {
-                backgroundColor: isOn ? tokens.accent : tokens.surface,
-                borderColor: isOn ? tokens.accent : tokens.border,
-              },
+              { backgroundColor: isOn ? tokens.surface : 'transparent' },
               pressed && styles.pressed,
             ]}
           >
             <Text
               numberOfLines={1}
-              style={[
-                styles.label,
-                { color: isOn ? tokens.onAccent : tokens.fg },
-              ]}
+              style={[styles.label, { color: tokens.ink }]}
             >
               {option.label}
             </Text>
@@ -76,16 +74,20 @@ export function Segmented<Value extends string>({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 8 },
+  track: {
+    flexDirection: 'row',
+    gap: SPACE[1],
+    padding: SPACE[1],
+    borderRadius: RADIUS.pill,
+  },
   option: {
     flex: 1,
-    minHeight: 44,
+    minHeight: SIZE.hitMin,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 10,
-    borderWidth: 1,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  label: { fontSize: 15, fontWeight: '600' },
+  label: { ...TYPE.bodyStrong },
   pressed: { opacity: 0.75 },
 })

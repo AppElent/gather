@@ -19,7 +19,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { NativeSheet } from '../../components/NativeSheet'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, TYPE, useTokens } from '../../theme/tokens'
 import { RECIPE_UI_ICONS } from './icons'
 
 export interface AddRecipeSheetProps {
@@ -67,11 +67,11 @@ export function AddRecipeSheet({
             onPress={onPress}
             style={({ pressed }) => [styles.row, pressed && styles.pressed]}
           >
-            <View style={[styles.icon, { backgroundColor: tint.bg }]}>
-              <Icon size={20} color={tint.fg} strokeWidth={1.8} />
+            <View style={[styles.icon, { backgroundColor: tint.fill }]}>
+              <Icon size={20} color={tint.on} strokeWidth={1.8} />
             </View>
             <View style={styles.rowText}>
-              <Text style={[styles.label, { color: tokens.fg }]}>{label}</Text>
+              <Text style={[styles.label, { color: tokens.ink }]}>{label}</Text>
               <Text style={[styles.body, { color: tokens.muted }]}>{body}</Text>
             </View>
             <UI_ICONS.ChevronRight
@@ -95,14 +95,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   icon: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.tile,
+    width: SIZE.tileM,
+    height: SIZE.tileM,
+    borderRadius: RADIUS.tileM,
+    borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowText: { flex: 1, gap: 1 },
-  label: { fontSize: 16, fontWeight: '600' },
-  body: { fontSize: 13 },
+  label: { ...TYPE.bodyStrong },
+  body: { ...TYPE.footnote },
   pressed: { opacity: 0.6 },
 })

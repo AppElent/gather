@@ -57,7 +57,6 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
   const [editing, setEditing] = useState<Editing>(null)
   const [draft, setDraft] = useState('')
 
-  const tint = tokens.tintOf('money')
   const Key = FINANCE_ICONS.Key
   const Clock = FINANCE_ICONS.Clock
 
@@ -67,7 +66,7 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
         <Stack.Screen
           options={{ headerShown: true, title: text.house.fallbackName }}
         />
-        <View style={{ flex: 1, backgroundColor: tokens.bg }}>
+        <View style={{ flex: 1, backgroundColor: tokens.ground }}>
           <LoadingSkeleton rows={4} label={text.actions.loading} />
         </View>
       </>
@@ -275,7 +274,7 @@ export function HouseScreen({ houseId }: { houseId: Id<'houses'> }) {
             }}
           />
           <Row
-            leading={<Key size={20} color={tint.fg} strokeWidth={1.8} />}
+            leading={<Key size={20} color={tokens.ink} strokeWidth={1.8} />}
             label={text.house.buyingCosts}
             sub={
               buyingCosts

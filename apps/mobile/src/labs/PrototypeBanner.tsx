@@ -9,20 +9,19 @@
 import { StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../i18n'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 export function PrototypeBanner() {
   const tokens = useTokens('home')
-  const tint = tokens.tintOf('home')
   const { t } = useI18n()
 
   return (
     <View
       testID="prototype-banner"
       accessibilityRole="alert"
-      style={[styles.banner, { backgroundColor: tint.bg }]}
+      style={[styles.banner, { backgroundColor: tokens.surface2 }]}
     >
-      <Text style={[styles.text, { color: tint.fg }]}>{t.labs.banner}</Text>
+      <Text style={[styles.text, { color: tokens.ink }]}>{t.labs.banner}</Text>
     </View>
   )
 }
@@ -33,7 +32,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
   },
-  text: { fontSize: 12, fontWeight: '600' },
+  text: { ...TYPE.footnoteStrong },
 })

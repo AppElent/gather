@@ -16,13 +16,7 @@
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
 import { Stack, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import {
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
+import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
 // Gesture Handler's own ScrollView, not React Native's: reorder's drag names
 // this view in `blocksExternalGesture`, and only a scroll view the library
 // knows about can be told to stand down for one touch. Gesture Handler 3's
@@ -35,7 +29,7 @@ import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, type Messages, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
 import { Chip, priorityColor } from './components'
 import { TASK_ICONS } from './icons'
@@ -92,7 +86,7 @@ export function TaskList({
 
   if (!list) {
     // The only way here is deleting the list from its own screen, which pops.
-    return <View style={{ flex: 1, backgroundColor: tokens.bg }} />
+    return <View style={{ flex: 1, backgroundColor: tokens.ground }} />
   }
 
   // Whether a provider rather than Convex holds the rows. Not `!writable`:
@@ -148,8 +142,7 @@ export function TaskList({
       writable={list.writable}
       last={last}
       bar={
-        (list.display.priority &&
-          priorityColor(task.priority, tokens.danger)) ||
+        (list.display.priority && priorityColor(task.priority, tokens)) ||
         'transparent'
       }
       meta={<TaskMeta task={task} display={list.display} today={today} />}
@@ -176,7 +169,7 @@ export function TaskList({
                 hitSlop={12}
                 onPress={() => setReordering(false)}
               >
-                <Text style={[styles.headerDone, { color: tokens.accent }]}>
+                <Text style={[styles.headerDone, { color: tokens.accentText }]}>
                   {t.actions.done}
                 </Text>
               </Pressable>
@@ -235,7 +228,7 @@ export function TaskList({
                 <View style={styles.headerButton}>
                   <UI_ICONS.Ellipsis
                     size={22}
-                    color={tokens.fg}
+                    color={tokens.ink}
                     strokeWidth={2.2}
                   />
                 </View>
@@ -247,7 +240,7 @@ export function TaskList({
       <ScrollView
         ref={scrollRef}
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
         scrollEnabled={!dragging}
         contentContainerStyle={[
@@ -281,7 +274,10 @@ export function TaskList({
               <View
                 style={[
                   styles.readOnly,
-                  { backgroundColor: tokens.tile, borderColor: tokens.border },
+                  {
+                    backgroundColor: tokens.surface2,
+                    borderColor: tokens.hair,
+                  },
                 ]}
               >
                 <TASK_ICONS.Link
@@ -401,7 +397,7 @@ function TaskMeta({
   if (!shown) return null
 
   const overdue = Boolean(task.dueDate && isOverdue(task.dueDate, today))
-  const flag = priorityColor(task.priority, tokens.danger) ?? tokens.muted
+  const flag = priorityColor(task.priority, tokens) ?? tokens.muted
 
   return (
     <View style={styles.metaRow}>
@@ -454,7 +450,7 @@ const styles = StyleSheet.create({
   /**
    * A navigation-bar action, dressed the way the platform dresses one: 17pt
    * in the tint colour, semibold because this is the confirming action of a
-   * mode. Not `fg` — a bar button that is the same colour as the title does
+   * mode. Not `ink` — a bar button that is the same colour as the title does
    * not read as something you can press.
    *
    * iOS 26 draws its own glass capsule around any *custom* header view, which
@@ -463,18 +459,18 @@ const styles = StyleSheet.create({
    * `headerRight` is always a custom view. That is the OS's styling of a
    * native item, not ours to undo.
    */
-  headerDone: { fontSize: 17, fontWeight: '600' },
+  headerDone: { ...TYPE.bodyStrong },
   readOnly: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 9,
     padding: 11,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
   },
-  readOnlyText: { flex: 1, fontSize: 13, lineHeight: 19 },
+  readOnlyText: { ...TYPE.footnote, flex: 1 },
   emptyRow: { minHeight: 50, justifyContent: 'center' },
-  empty: { fontSize: 14 },
+  empty: { ...TYPE.subhead },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -482,5 +478,5 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  meta: { fontSize: 12, fontWeight: '700' },
+  meta: { ...TYPE.footnoteStrong },
 })

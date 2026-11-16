@@ -28,7 +28,7 @@ import { NativeSheet } from '../../components/NativeSheet'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { term } from './words'
 
 export function VocabularySheet({
@@ -68,7 +68,7 @@ export function VocabularySheet({
       <View
         style={[
           styles.search,
-          { backgroundColor: tokens.tile, borderColor: tokens.border },
+          { backgroundColor: tokens.surface2, borderColor: tokens.hair },
         ]}
       >
         <Search size={17} color={tokens.muted} strokeWidth={2} />
@@ -78,7 +78,7 @@ export function VocabularySheet({
           placeholder={t.tastings.index.search}
           placeholderTextColor={tokens.muted}
           accessibilityLabel={t.tastings.index.search}
-          style={[styles.searchInput, { color: tokens.fg }]}
+          style={[styles.searchInput, { color: tokens.ink }]}
         />
       </View>
 
@@ -125,17 +125,13 @@ function Row({
       onPress={onPress}
       style={({ pressed }) => [
         styles.row,
-        { borderBottomColor: tokens.border },
-        pressed && { backgroundColor: tokens.tile },
+        { borderBottomColor: tokens.hair },
+        pressed && { backgroundColor: tokens.surface2 },
       ]}
     >
-      <Text style={[styles.rowLabel, { color: tokens.fg }]}>{label}</Text>
+      <Text style={[styles.rowLabel, { color: tokens.ink }]}>{label}</Text>
       {on ? (
-        <Check
-          size={18}
-          color={tokens.tintOf('tasting').fg}
-          strokeWidth={2.4}
-        />
+        <Check size={18} color={tokens.accentText} strokeWidth={2.4} />
       ) : null}
     </Pressable>
   )
@@ -148,10 +144,10 @@ const styles = StyleSheet.create({
     gap: 9,
     minHeight: 44,
     paddingHorizontal: 12,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  searchInput: { flex: 1, fontSize: 16 },
+  searchInput: { ...TYPE.body, flex: 1 },
   list: { marginTop: 10 },
   row: {
     flexDirection: 'row',
@@ -160,6 +156,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  rowLabel: { fontSize: 16 },
-  empty: { paddingVertical: 16, fontSize: 15 },
+  rowLabel: { ...TYPE.body },
+  empty: { ...TYPE.subhead, paddingVertical: 16 },
 })

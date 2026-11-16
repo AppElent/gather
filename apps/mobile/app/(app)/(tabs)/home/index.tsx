@@ -31,7 +31,7 @@ import { useGroup } from '../../../../src/group/GroupProvider'
 import { fmt, useI18n } from '../../../../src/i18n'
 import { GroupSwitcherSheet } from '../../../../src/shell/GroupSwitcherSheet'
 import { UI_ICONS } from '../../../../src/theme/icons'
-import { useTokens } from '../../../../src/theme/tokens'
+import { TYPE, useTokens } from '../../../../src/theme/tokens'
 import { useHideSplash } from '../../../../src/useHideSplash'
 
 export default function Home() {
@@ -49,7 +49,7 @@ export default function Home() {
   return (
     <ScrollView
       onLayout={onLayout}
-      style={{ backgroundColor: tokens.bg }}
+      style={{ backgroundColor: tokens.ground }}
       contentContainerStyle={[
         styles.content,
         { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 },
@@ -74,7 +74,7 @@ export default function Home() {
           <Text
             accessibilityRole="header"
             numberOfLines={1}
-            style={[styles.groupName, { color: tokens.fg }]}
+            style={[styles.groupName, { color: tokens.ink }]}
           >
             {group.name}
           </Text>
@@ -111,10 +111,9 @@ const styles = StyleSheet.create({
   settings: { padding: 4 },
   pressed: { opacity: 0.7 },
   groupName: {
+    ...TYPE.title2,
     flexShrink: 1,
-    fontSize: 26,
-    fontWeight: '700',
     letterSpacing: -0.5,
   },
-  subtitle: { fontSize: 15, lineHeight: 22 },
+  subtitle: { ...TYPE.subhead },
 })

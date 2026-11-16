@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useI18n } from '../i18n'
 import { MODULE_ICONS } from '../theme/icons'
-import { RADIUS, useTokens } from '../theme/tokens'
+import { RADIUS, SIZE, TYPE, useTokens } from '../theme/tokens'
 
 export function ModulePlaceholder({ module }: { module: ModuleDef }) {
   const tokens = useTokens(module.group)
@@ -25,16 +25,25 @@ export function ModulePlaceholder({ module }: { module: ModuleDef }) {
       <Stack.Screen options={{ headerShown: true, title: text.label }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         contentContainerStyle={[
           styles.content,
           { paddingTop: 20, paddingBottom: insets.bottom + 24 },
         ]}
       >
-        <View style={[styles.hero, { backgroundColor: tint.bg }]}>
-          <Icon size={46} color={tint.fg} strokeWidth={1.6} />
-          <Text style={[styles.title, { color: tint.fg }]}>{text.label}</Text>
-          <Text style={[styles.planned, { color: tint.fg }]}>
+        {/* A wash carries ink and muted; only the tile is group-coloured. */}
+        <View style={[styles.hero, { backgroundColor: tint.wash }]}>
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={[styles.tile, { backgroundColor: tint.fill }]}
+          >
+            <Icon size={30} color={tint.on} strokeWidth={1.9} />
+          </View>
+          <Text style={[styles.title, { color: tokens.ink }]}>
+            {text.label}
+          </Text>
+          <Text style={[styles.planned, { color: tokens.muted }]}>
             {t.shell.placeholder.planned}
           </Text>
         </View>
@@ -42,13 +51,13 @@ export function ModulePlaceholder({ module }: { module: ModuleDef }) {
         <View
           style={[
             styles.card,
-            { backgroundColor: tokens.surface, borderColor: tokens.border },
+            { backgroundColor: tokens.surface, borderColor: tokens.hair },
           ]}
         >
-          <Text style={[styles.cardTitle, { color: tokens.fg }]}>
+          <Text style={[styles.cardTitle, { color: tokens.ink }]}>
             {t.shell.placeholder.whatWillLiveHere}
           </Text>
-          <Text style={[styles.description, { color: tokens.fg }]}>
+          <Text style={[styles.description, { color: tokens.ink }]}>
             {text.description}
           </Text>
           <Text style={[styles.body, { color: tokens.muted }]}>
@@ -70,10 +79,18 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 24,
   },
-  title: { fontSize: 25, fontWeight: '700', letterSpacing: -0.5 },
-  planned: { fontSize: 14, fontWeight: '600' },
+  tile: {
+    width: SIZE.tileL,
+    height: SIZE.tileL,
+    borderRadius: RADIUS.tileL,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: { ...TYPE.title2, letterSpacing: -0.5 },
+  planned: { ...TYPE.bodyStrong },
   card: { borderWidth: 1, borderRadius: RADIUS.card, gap: 9, padding: 16 },
-  cardTitle: { fontSize: 16, fontWeight: '700' },
-  description: { fontSize: 15, fontWeight: '600', lineHeight: 22 },
-  body: { fontSize: 14.5, lineHeight: 21 },
+  cardTitle: { ...TYPE.bodyStrong },
+  description: { ...TYPE.bodyStrong },
+  body: { ...TYPE.subhead },
 })

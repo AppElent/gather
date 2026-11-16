@@ -20,7 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { CatalogueStrip } from '../../src/components/Catalogue'
 import { WelcomeActions } from '../../src/components/WelcomeActions'
 import { useI18n } from '../../src/i18n'
-import { useTokens } from '../../src/theme/tokens'
+import { TYPE, useTokens } from '../../src/theme/tokens'
 import { useHideSplash } from '../../src/useHideSplash'
 
 export default function Welcome() {
@@ -31,21 +31,21 @@ export default function Welcome() {
   return (
     <SafeAreaView
       onLayout={onLayout}
-      style={[styles.flex, { backgroundColor: tokens.bg }]}
+      style={[styles.flex, { backgroundColor: tokens.ground }]}
     >
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.pitch}>
-          <Text style={[styles.brand, { color: tokens.fg }]}>{t.brand}</Text>
+          <Text style={[styles.brand, { color: tokens.ink }]}>{t.brand}</Text>
           <Text style={[styles.tagline, { color: tokens.muted }]}>
             {t.welcome.tagline}
           </Text>
 
           <Text
             accessibilityRole="header"
-            style={[styles.title, { color: tokens.fg }]}
+            style={[styles.title, { color: tokens.ink }]}
           >
             {t.welcome.title}
           </Text>
@@ -82,19 +82,16 @@ const styles = StyleSheet.create({
     gap: 30,
   },
   pitch: { gap: 6 },
-  brand: { fontSize: 30, fontWeight: '800', letterSpacing: -0.8 },
-  tagline: { fontSize: 15, marginBottom: 18 },
+  brand: { ...TYPE.title2, letterSpacing: -0.8 },
+  tagline: { ...TYPE.subhead, marginBottom: 18 },
   title: {
-    fontSize: 27,
-    fontWeight: '700',
-    lineHeight: 34,
+    ...TYPE.title2,
     letterSpacing: -0.5,
   },
-  subtitle: { fontSize: 15, lineHeight: 22, marginTop: 6 },
+  subtitle: { ...TYPE.subhead, marginTop: 6 },
   catalogue: { gap: 12 },
   eyebrow: {
-    fontSize: 11.5,
-    fontWeight: '700',
+    ...TYPE.footnoteStrong,
     letterSpacing: 0.9,
     textTransform: 'uppercase',
   },

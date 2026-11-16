@@ -30,7 +30,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
 import { useDebouncedText } from '../../ui/use-debounced-text'
 import { Checkbox, Chip, priorityColor } from './components'
@@ -73,7 +73,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
     if (task) actions.setNotes(task.id, next)
   })
 
-  if (!task) return <View style={{ flex: 1, backgroundColor: tokens.bg }} />
+  if (!task) return <View style={{ flex: 1, backgroundColor: tokens.ground }} />
 
   const overdue = Boolean(task.dueDate && isOverdue(task.dueDate, state.today))
   const open = (action: string) => taskSheets.onAction(task, action)
@@ -85,7 +85,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: tokens.bg }}
+        style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
         // The notes field is the last thing on a long screen, so an open
         // keyboard covers Delete and everything below it. iOS insets the
@@ -124,7 +124,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             style={[
               styles.title,
               {
-                color: task.done ? tokens.muted : tokens.fg,
+                color: task.done ? tokens.muted : tokens.ink,
                 textDecorationLine: task.done ? 'line-through' : 'none',
               },
             ]}
@@ -158,9 +158,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             icon={
               <TASK_ICONS.Flag
                 size={18}
-                color={
-                  priorityColor(task.priority, tokens.danger) ?? tokens.muted
-                }
+                color={priorityColor(task.priority, tokens) ?? tokens.muted}
                 strokeWidth={2}
               />
             }
@@ -229,7 +227,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             placeholderTextColor={tokens.muted}
             multiline
             accessibilityLabel={t.tasks.task.notes}
-            style={[styles.notes, { color: tokens.fg }]}
+            style={[styles.notes, { color: tokens.ink }]}
           />
         </Card>
 
@@ -244,8 +242,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
           onPress={() => open('delete')}
           style={({ pressed }) => [
             styles.delete,
-            { borderColor: tokens.border, backgroundColor: tokens.surface },
-            pressed && { backgroundColor: tokens.tile },
+            { borderColor: tokens.hair, backgroundColor: tokens.surface },
+            pressed && { backgroundColor: tokens.surface2 },
           ]}
         >
           <TASK_ICONS.Trash2
@@ -294,20 +292,20 @@ function PropertyRow({
       accessibilityRole="button"
       accessibilityLabel={[label, value].filter(Boolean).join(', ')}
       onPress={onPress}
-      android_ripple={{ color: tokens.tile }}
+      android_ripple={{ color: tokens.surface2 }}
       style={({ pressed }) => [
         styles.property,
         !last && {
           borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: tokens.border,
+          borderBottomColor: tokens.hair,
         },
-        pressed && { backgroundColor: tokens.tile },
+        pressed && { backgroundColor: tokens.surface2 },
       ]}
     >
       <View accessibilityElementsHidden importantForAccessibility="no">
         {icon}
       </View>
-      <Text style={[styles.propertyLabel, { color: tokens.fg }]}>{label}</Text>
+      <Text style={[styles.propertyLabel, { color: tokens.ink }]}>{label}</Text>
       {trailing ??
         (value ? (
           <Text
@@ -341,11 +339,9 @@ const styles = StyleSheet.create({
   },
   headBox: { paddingTop: 5 },
   title: {
+    ...TYPE.title2,
     flex: 1,
-    fontSize: 22,
-    fontWeight: '700',
     letterSpacing: -0.4,
-    lineHeight: 29,
     padding: 0,
   },
   property: {
@@ -356,18 +352,17 @@ const styles = StyleSheet.create({
     marginHorizontal: -14,
     paddingHorizontal: 14,
   },
-  propertyLabel: { flex: 1, fontSize: 16 },
-  propertyValue: { fontSize: 15, maxWidth: 170 },
+  propertyLabel: { ...TYPE.body, flex: 1 },
+  propertyValue: { ...TYPE.subhead, maxWidth: 170 },
   chips: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  more: { fontSize: 12.5, fontWeight: '700' },
+  more: { ...TYPE.footnoteStrong, ...TABULAR },
   notes: {
-    fontSize: 15.5,
-    lineHeight: 22,
+    ...TYPE.body,
     minHeight: 96,
     paddingVertical: 14,
     textAlignVertical: 'top',
   },
-  hint: { fontSize: 12.5, lineHeight: 18, paddingHorizontal: 4 },
+  hint: { ...TYPE.footnote, paddingHorizontal: 4 },
   delete: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -375,7 +370,7 @@ const styles = StyleSheet.create({
     gap: 8,
     minHeight: 48,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  deleteText: { fontSize: 15.5, fontWeight: '600' },
+  deleteText: { ...TYPE.bodyStrong },
 })

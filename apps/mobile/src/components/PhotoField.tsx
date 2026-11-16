@@ -43,7 +43,7 @@ import {
 
 import { type PhotoSource, pickPhoto, uploadPhoto } from '../photo/pickPhoto'
 import { UI_ICONS } from '../theme/icons'
-import { type ModuleGroup, RADIUS, useTokens } from '../theme/tokens'
+import { type ModuleGroup, RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 /** Every word this row can show, resolved by whichever Module is drawing it. */
 export interface PhotoFieldLabels {
@@ -155,7 +155,7 @@ export function PhotoField({
       {shown ? (
         <Image
           source={{ uri: shown }}
-          style={[styles.preview, { backgroundColor: tokens.tile }]}
+          style={[styles.preview, { backgroundColor: tokens.surface2 }]}
           contentFit="cover"
           accessibilityLabel={labels.alt}
           accessibilityIgnoresInvertColors
@@ -240,7 +240,7 @@ function PhotoButton({
 }) {
   const tokens = useTokens(group)
   const Icon = icon ? UI_ICONS[icon] : null
-  const color = tone === 'danger' ? tokens.danger : tokens.fg
+  const color = tone === 'danger' ? tokens.danger : tokens.ink
 
   return (
     <Pressable
@@ -251,7 +251,7 @@ function PhotoButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        { borderColor: tokens.border, backgroundColor: tokens.bg },
+        { borderColor: tokens.hair, backgroundColor: tokens.ground },
         (pressed || disabled) && styles.pressed,
       ]}
     >
@@ -265,7 +265,7 @@ function PhotoButton({
 
 const styles = StyleSheet.create({
   field: { gap: 8 },
-  label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
+  label: { ...TYPE.footnoteStrong, letterSpacing: 0.8 },
   preview: {
     width: '100%',
     aspectRatio: 4 / 3,
@@ -281,10 +281,10 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 10,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.pill,
   },
-  buttonText: { fontSize: 14, fontWeight: '600' },
+  buttonText: { ...TYPE.bodyStrong },
   status: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  statusText: { fontSize: 13 },
+  statusText: { ...TYPE.footnote },
   pressed: { opacity: 0.6 },
 })

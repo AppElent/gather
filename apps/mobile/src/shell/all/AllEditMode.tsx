@@ -30,7 +30,7 @@ import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import type { ModuleArrangement } from '../../prefs/moduleArrangement'
 import { MODULE_ICONS, UI_ICONS } from '../../theme/icons'
-import { RADIUS, useTokens } from '../../theme/tokens'
+import { RADIUS, SIZE, TYPE, useTokens } from '../../theme/tokens'
 import { type DragItem, DragList } from './DragList'
 import { SectionHeader } from './SectionHeader'
 
@@ -48,14 +48,13 @@ export function AllEditMode({
   const { arrangement } = state
 
   const moduleItems = (group: ModuleGroup): DragItem[] => {
-    const tint = tokens.tintOf(group)
     return (
       arrangement.groups.find((entry) => entry.group === group)?.modules ?? []
     ).map((module) => ({
       id: module.id,
       label: moduleText(module, t).label,
       icon: MODULE_ICONS[module.icon],
-      iconColor: tint.fg,
+      group,
     }))
   }
 
@@ -83,7 +82,7 @@ export function AllEditMode({
       >
         <Icon
           size={22}
-          color={kind === 'remove' ? tokens.danger : tokens.accent}
+          color={kind === 'remove' ? tokens.danger : tokens.accentText}
           strokeWidth={1.9}
         />
       </Pressable>
@@ -92,7 +91,7 @@ export function AllEditMode({
 
   return (
     <>
-      <View style={[styles.hint, { backgroundColor: tokens.tile }]}>
+      <View style={[styles.hint, { backgroundColor: tokens.surface2 }]}>
         <UI_ICONS.GripVertical
           size={17}
           color={tokens.muted}
@@ -113,7 +112,7 @@ export function AllEditMode({
               id: module.id,
               label: moduleText(module, t).label,
               icon: MODULE_ICONS[module.icon],
-              iconColor: tokens.tintOf(module.group).fg,
+              group: module.group,
             }))}
             scrollRef={scrollRef}
             onDragging={onDragging}
@@ -183,7 +182,7 @@ export function AllEditMode({
             testID="all-edit-hidden"
             style={[
               styles.card,
-              { backgroundColor: tokens.surface, borderColor: tokens.border },
+              { backgroundColor: tokens.surface, borderColor: tokens.hair },
             ]}
           >
             {arrangement.hidden.map((module, index) => {
@@ -196,7 +195,7 @@ export function AllEditMode({
                   style={[
                     styles.hiddenRow,
                     {
-                      borderBottomColor: tokens.border,
+                      borderBottomColor: tokens.hair,
                       borderBottomWidth:
                         index === arrangement.hidden.length - 1
                           ? 0
@@ -204,16 +203,23 @@ export function AllEditMode({
                     },
                   ]}
                 >
-                  <Icon
-                    size={20}
-                    color={tokens.tintOf(module.group).fg}
-                    strokeWidth={1.75}
+                  <View
                     accessibilityElementsHidden
-                    importantForAccessibility="no"
-                  />
+                    importantForAccessibility="no-hide-descendants"
+                    style={[
+                      styles.glyphTile,
+                      { backgroundColor: tokens.tintOf(module.group).fill },
+                    ]}
+                  >
+                    <Icon
+                      size={16}
+                      color={tokens.tintOf(module.group).on}
+                      strokeWidth={1.9}
+                    />
+                  </View>
                   <Text
                     numberOfLines={1}
-                    style={[styles.hiddenLabel, { color: tokens.fg }]}
+                    style={[styles.hiddenLabel, { color: tokens.ink }]}
                   >
                     {label}
                   </Text>
@@ -240,9 +246,9 @@ const styles = StyleSheet.create({
     gap: 9,
     alignItems: 'flex-start',
     padding: 11,
-    borderRadius: RADIUS.control,
+    borderRadius: RADIUS.card,
   },
-  hintText: { flex: 1, fontSize: 13, lineHeight: 19 },
+  hintText: { ...TYPE.footnote, flex: 1 },
   card: {
     borderRadius: RADIUS.card,
     borderWidth: StyleSheet.hairlineWidth,
@@ -256,5 +262,13 @@ const styles = StyleSheet.create({
     marginHorizontal: -14,
     paddingHorizontal: 14,
   },
-  hiddenLabel: { flex: 1, fontSize: 15.5 },
+  glyphTile: {
+    width: SIZE.tileS,
+    height: SIZE.tileS,
+    borderRadius: RADIUS.tileS,
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hiddenLabel: { ...TYPE.subhead, flex: 1 },
 })

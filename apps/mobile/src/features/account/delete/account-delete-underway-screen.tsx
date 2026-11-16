@@ -31,7 +31,7 @@ export function AccountDeleteUnderwayScreen({
   return (
     <View
       testID="account-delete-underway"
-      style={[styles.wrap, { backgroundColor: tokens.bg }]}
+      style={[styles.wrap, { backgroundColor: tokens.ground }]}
     >
       {stranded ? (
         <View style={styles.actions}>
@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 32,
   },
-  text: { ...TYPE.body, textAlign: 'center' },
+  text: { ...TYPE.subhead, textAlign: 'center' },
   actions: { alignSelf: 'stretch', gap: 12 },
 })
