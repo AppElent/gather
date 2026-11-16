@@ -103,6 +103,18 @@ describe('the Retailer catalog', () => {
       deduped: 0,
       rows: RETAILER_CATALOG.length,
     })
+    // The counters could lie; watch the writes themselves.
+    const writes = await t.run(async (ctx) => {
+      const spies = [
+        vi.spyOn(ctx.db, 'insert'),
+        vi.spyOn(ctx.db, 'replace'),
+        vi.spyOn(ctx.db, 'patch'),
+        vi.spyOn(ctx.db, 'delete'),
+      ]
+      await applyRetailerCatalog(ctx)
+      return spies.reduce((sum, spy) => sum + spy.mock.calls.length, 0)
+    })
+    expect(writes).toBe(0)
   })
 
   test('a re-seed writes only the rows that changed', async () => {
@@ -110,7 +122,12 @@ describe('the Retailer catalog', () => {
     const changed = RETAILER_CATALOG.map((entry) =>
       entry.seedKey === 'hema' ? { ...entry, brandColor: '#123456' } : entry,
     )
-    const result = await t.run((ctx) => applyRetailerCatalog(ctx, changed))
+    const { result, replaced } = await t.run(async (ctx) => {
+      const replace = vi.spyOn(ctx.db, 'replace')
+      const result = await applyRetailerCatalog(ctx, changed)
+      return { result, replaced: replace.mock.calls.length }
+    })
+    expect(replaced).toBe(1)
     expect(result).toMatchObject({
       inserted: 0,
       updated: 1,

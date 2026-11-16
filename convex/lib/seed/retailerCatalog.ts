@@ -16,8 +16,10 @@ import type { RetailerCategory } from '@gather/core/loyalty-cards'
  *
  * `brandColor` is the brand's primary colour, taken from its own logo (mostly
  * the Wikimedia Commons SVG) or from its site's theme colour or CSS, and
- * checked against the retailer's own site on 2026-11-16 (APP-152). The
- * `Colour:` clause above each entry says where it came from.
+ * checked against the retailer's own site on 2026-11-16 (APP-152), with two
+ * exceptions: Levi's was not re-checked, and Xenos keeps the magenta of the
+ * logo we ship although its site now shows a yellow logo. The `Colour:` clause
+ * above each entry says where it came from.
  *
  * `formatConfidence: 'sourced'` means a public source shows the symbology, and
  * the `// Source:` line names it: a photo of the card, the retailer's own help
