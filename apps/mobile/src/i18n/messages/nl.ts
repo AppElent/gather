@@ -84,6 +84,18 @@ export const nl = {
       photoDenied:
         'Gather mag de camera of foto’s niet gebruiken. Zet het aan in Instellingen.',
       photoFailed: 'Die foto kon niet worden toegevoegd.',
+      colors: {
+        slate: 'Leisteen',
+        red: 'Rood',
+        orange: 'Oranje',
+        yellow: 'Geel',
+        green: 'Groen',
+        teal: 'Blauwgroen',
+        blue: 'Blauw',
+        purple: 'Paars',
+        pink: 'Roze',
+        brown: 'Bruin',
+      },
     },
   },
 
@@ -102,6 +114,7 @@ export const nl = {
       note: 'Notitie',
       tasting: 'Proeverij',
       calendarEvent: 'Afspraak',
+      loyaltyCard: 'Klantkaart',
     },
     kinds: { cheese: 'Kaas', wine: 'Wijn', beer: 'Bier' },
   },

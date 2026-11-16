@@ -8,15 +8,33 @@ const GROUP_RECORD_LIMIT = 200
 const PARENT_LIMIT = 20
 const CHILD_RECORD_LIMIT = 50
 
+const resultTypeValidator = v.union(
+  v.literal('recipe'),
+  v.literal('task'),
+  v.literal('note'),
+  v.literal('tasting'),
+  v.literal('calendarEvent'),
+  v.literal('loyaltyCard'),
+)
+
+type ResultType = Infer<typeof resultTypeValidator>
+
+/**
+ * What a caller that names no `accepts` gets: the types the first phone
+ * releases can open. An installed app routes an unknown type to the calendar
+ * event screen, so a type added later reaches only the clients that ask for it.
+ */
+const ORIGINAL_TYPES: readonly ResultType[] = [
+  'recipe',
+  'task',
+  'note',
+  'tasting',
+  'calendarEvent',
+]
+
 const resultValidator = v.object({
   id: v.string(),
-  type: v.union(
-    v.literal('recipe'),
-    v.literal('task'),
-    v.literal('note'),
-    v.literal('tasting'),
-    v.literal('calendarEvent'),
-  ),
+  type: resultTypeValidator,
   title: v.string(),
   tags: v.array(v.string()),
   excerpt: v.string(),
@@ -65,14 +83,20 @@ function matched(
  * maintained full-text projection when real Group volumes require it.
  */
 export const group = query({
-  args: { groupSlug: v.string(), query: v.string() },
+  args: {
+    groupSlug: v.string(),
+    query: v.string(),
+    /** The result types this client can open; absent means the original five. */
+    accepts: v.optional(v.array(resultTypeValidator)),
+  },
   returns: v.array(resultValidator),
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     const needle = normalized(args.query)
     if (needle.length < 2) return []
+    const accepts = new Set<ResultType>(args.accepts ?? ORIGINAL_TYPES)
 
-    const [recipes, notes, subjects, calendars, taskLists] = await Promise.all([
+    const [recipes, notes, subjects, calendars, taskLists, loyaltyCards] = await Promise.all([
       ctx.db
         .query('recipes')
         .withIndex('by_group', (q) => q.eq('groupId', group._id))
@@ -93,6 +117,12 @@ export const group = query({
         .query('taskLists')
         .withIndex('by_group', (q) => q.eq('groupId', group._id))
         .take(PARENT_LIMIT),
+      accepts.has('loyaltyCard')
+        ? ctx.db
+            .query('loyaltyCards')
+            .withIndex('by_group', (q) => q.eq('groupId', group._id))
+            .take(GROUP_RECORD_LIMIT)
+        : [],
     ])
 
     const localLists = taskLists.filter((list) => list.provider === 'local')
@@ -208,9 +238,26 @@ export const group = query({
           return found ? [found] : []
         }),
       ),
+      // Found by its store and by whose card it is ("Sam's Bonuskaart").
+      ...loyaltyCards.flatMap((card) => {
+        const found = matched(
+          {
+            id: card._id,
+            type: 'loyaltyCard',
+            title: card.storeName,
+            tags: [],
+            excerpt: card.holder ?? '',
+            creationTime: card._creationTime,
+          },
+          [card.holder ?? ''],
+          needle,
+        )
+        return found ? [found] : []
+      }),
     ]
 
     return results
+      .filter((result) => accepts.has(result.type))
       .sort(
         (a, b) =>
           a.rank - b.rank ||
