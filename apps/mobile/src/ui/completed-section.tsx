@@ -46,7 +46,11 @@ export function CompletedSection({
   const tint = tokens.tintOf(group)
   const [expanded, setExpanded] = useState(initiallyExpanded)
 
-  if (count <= 0) return null
+  if (count <= 0) {
+    // Emptied while open: the next completed row starts put away again.
+    if (expanded) setExpanded(false)
+    return null
+  }
 
   return (
     <View style={styles.wrap}>

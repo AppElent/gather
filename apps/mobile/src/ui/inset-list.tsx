@@ -209,7 +209,11 @@ export function InsetRow({
     <Pressable
       testID={testID}
       accessibilityRole={accessibilityRole}
-      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityLabel={
+        accessibilityLabel ??
+        // The subtitle is part of what the row says (due, author, count).
+        ([title, subtitle].filter(Boolean).join(', ') || undefined)
+      }
       android_ripple={{ color: tokens.surface2 }}
       onPress={onPress}
       style={({ pressed }) => [
