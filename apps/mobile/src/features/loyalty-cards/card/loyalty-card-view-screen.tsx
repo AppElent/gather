@@ -137,7 +137,12 @@ export function LoyaltyCardViewScreen({
         ]}
       >
         <View style={styles.store}>
-          <StoreTile name={store} color={card.brandColor} size="large" />
+          <StoreTile
+            name={store}
+            color={card.brandColor}
+            catalogKey={card.catalogKey}
+            size="large"
+          />
           <View style={styles.storeText}>
             <Text
               accessibilityRole="header"

@@ -47,7 +47,9 @@ callable functions, because every export under `convex/` is deployed API.
   entry updates that manifest and re-runs `scripts/prepare-retailer-logos.mjs`
   in the same change; `scripts/retailer-logos.test.ts` fails otherwise. A card
   finds its logo by `catalogKey`, so a retired entry's cards fall back to the
-  monogram.
+  monogram. The phone bundles the files through a generated `require` list;
+  re-run `node apps/mobile/scripts/generate-retailer-logo-files.mjs` after the
+  prepare script, or `scripts/mobile-retailer-logo-files.test.ts` fails.
 - Deploys run both Catalog seeds ([deploy](../runbooks/deploy.md#seeding-is-a-deploy-step)).
 - **Sample household** (`seedPreview`, `loadSampleData`, `sampleHousehold.ts`)
   is fake content for dev and previews only. It is wiped and recreated on every

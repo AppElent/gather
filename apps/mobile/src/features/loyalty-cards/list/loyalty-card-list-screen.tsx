@@ -215,7 +215,12 @@ function CardRow({
         pressed && { backgroundColor: tokens.tile },
       ]}
     >
-      <StoreTile name={card.storeName} color={card.brandColor} size="medium" />
+      <StoreTile
+        name={card.storeName}
+        color={card.brandColor}
+        catalogKey={card.catalogKey}
+        size="medium"
+      />
       <View style={styles.rowText}>
         <Text
           numberOfLines={1}
