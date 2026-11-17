@@ -16,6 +16,12 @@ const DAY_STYLES: Record<DayStyle, Intl.DateTimeFormatOptions> = {
   long: { weekday: 'long', day: 'numeric', month: 'long' },
 }
 
+/** The viewer's own calendar day; the iframe runs on their device. */
+export function localToday(now = new Date()) {
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
 export type ViewText = ReturnType<typeof viewText>
 
 /** Copy and formatting in the host's language; English when unsupported. */

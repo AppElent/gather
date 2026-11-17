@@ -126,7 +126,8 @@ a {
   cursor: pointer;
 }
 
-.icon-button:disabled {
+.icon-button:disabled,
+.icon-button[aria-disabled='true'] {
   opacity: 0.45;
   cursor: default;
 }
@@ -296,6 +297,15 @@ a {
   border-top: 1px solid var(--border);
 }
 
+.task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
 .task input[type='checkbox'] {
   width: 20px;
   height: 20px;
@@ -305,7 +315,8 @@ a {
   cursor: pointer;
 }
 
-.task input[type='checkbox']:disabled {
+.task input[type='checkbox']:disabled,
+.task input[type='checkbox'][aria-disabled='true'] {
   cursor: default;
 }
 

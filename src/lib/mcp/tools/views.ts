@@ -32,6 +32,18 @@ export function mondayOf(date: string) {
   return shiftDay(date, -((weekday + 6) % 7))
 }
 
+function webUrl(value: string | undefined) {
+  if (!value) return undefined
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' || url.protocol === 'http:'
+      ? url.href
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
 /** The Group's slug and name for an id the caller is a Member of. */
 async function groupOf(context: ToolContext, groupId: string) {
   const group = (await myGroups(context)).find((g) => g._id === groupId)
@@ -182,7 +194,8 @@ export const viewTools = [
           servings: recipe.servings,
           prepMinutes: recipe.prepMinutes,
           rating: recipe.rating,
-          sourceUrl: recipe.sourceUrl,
+          // Only a web link reaches the view; the app stores any string.
+          sourceUrl: webUrl(recipe.sourceUrl),
           sharedFrom:
             recipe.homeGroupSlug && recipe.homeGroupSlug !== group.slug
               ? (recipe.homeGroupName ?? undefined)

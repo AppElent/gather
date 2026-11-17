@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import type { ListTask, TaskListResult } from '../types'
-import type { ViewText } from './i18n'
+import { localToday, type ViewText } from './i18n'
 import type { ViewProps } from './ViewRoot'
 
 /** A fresh key per intended write; a retry of that write reuses it. */
@@ -34,7 +34,7 @@ export function TaskList({
   const [draft, setDraft] = useState('')
   const [draftKey, setDraftKey] = useState(newKey)
   const [adding, setAdding] = useState(false)
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localToday()
 
   const refresh = () =>
     reload('show_task_list', {
@@ -43,6 +43,7 @@ export function TaskList({
     })
 
   const toggle = async (task: ListTask) => {
+    if (!result.canWrite || pending.has(task.id)) return
     setFailed(false)
     setPending((now) => new Set(now).add(task.id))
     try {
@@ -56,6 +57,14 @@ export function TaskList({
       })
       if (response.isError) throw new Error('update_task failed')
       await refresh()
+      void app.updateModelContext({
+        content: [
+          {
+            type: 'text',
+            text: `The user marked the task "${task.title}" in "${result.listName}" as ${task.done ? 'open' : 'done'} from the task list view.`,
+          },
+        ],
+      })
     } catch {
       setFailed(true)
     } finally {
@@ -141,10 +150,13 @@ export function TaskList({
           })
           return (
             <li key={task.id} className="task" data-done={task.done || undefined}>
+              <label className="task-row">
               <input
                 type="checkbox"
                 checked={task.done}
-                disabled={!result.canWrite || busy}
+                // aria-disabled keeps keyboard focus while a call runs.
+                disabled={!result.canWrite}
+                aria-disabled={busy || undefined}
                 aria-label={label}
                 onChange={() => void toggle(task)}
               />
@@ -164,6 +176,7 @@ export function TaskList({
                   ))}
                 </span>
               </span>
+              </label>
             </li>
           )
         })}
@@ -172,6 +185,7 @@ export function TaskList({
         <button
           type="button"
           className="link-button"
+          aria-expanded={showDone}
           onClick={() => setShowDone((now) => !now)}
         >
           {showDone

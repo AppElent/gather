@@ -1,6 +1,12 @@
 import type { App, McpUiHostContext } from '@modelcontextprotocol/ext-apps'
 import { useApp, useHostStyles } from '@modelcontextprotocol/ext-apps/react'
-import { type ReactNode, useCallback, useMemo, useState } from 'react'
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import type { ViewName, ViewResult } from '../types'
 import { type ViewText, viewText } from './i18n'
 import { RecipeCard } from './RecipeCard'
@@ -100,6 +106,10 @@ export function ViewRoot({ view }: { view: ViewName }) {
     },
     [app, view],
   )
+
+  useEffect(() => {
+    document.documentElement.lang = text.locale
+  }, [text.locale])
 
   const fullscreen = hostContext?.displayMode === 'fullscreen'
   if (error || failed)

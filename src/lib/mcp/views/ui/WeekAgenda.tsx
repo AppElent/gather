@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { AgendaEvent, WeekAgendaResult } from '../types'
-import type { ViewText } from './i18n'
+import { localToday, type ViewText } from './i18n'
 import type { ViewProps } from './ViewRoot'
 
 function time(event: AgendaEvent, text: ViewText) {
@@ -18,6 +18,7 @@ export function WeekAgenda({
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
   const go = async (weekStart: string) => {
+    if (busy) return
     setBusy(true)
     setFailed(false)
     try {
@@ -28,6 +29,8 @@ export function WeekAgenda({
       setBusy(false)
     }
   }
+  // The viewer's day, not the server's UTC one.
+  const today = localToday()
   const total = result.days.reduce((sum, day) => sum + day.events.length, 0)
   return (
     <section aria-busy={busy}>
@@ -50,7 +53,7 @@ export function WeekAgenda({
             className="icon-button"
             aria-label={t.agenda.previous}
             title={t.agenda.previous}
-            disabled={busy}
+            aria-disabled={busy || undefined}
             onClick={() => void go(result.previousWeekStart)}
           >
             ‹
@@ -60,7 +63,7 @@ export function WeekAgenda({
             className="icon-button"
             aria-label={t.agenda.next}
             title={t.agenda.next}
-            disabled={busy}
+            aria-disabled={busy || undefined}
             onClick={() => void go(result.nextWeekStart)}
           >
             ›
@@ -75,7 +78,7 @@ export function WeekAgenda({
       )}
       <ol className="agenda">
         {result.days.map((day) => {
-          const isToday = day.date === result.today
+          const isToday = day.date === today
           return (
             <li
               key={day.date}

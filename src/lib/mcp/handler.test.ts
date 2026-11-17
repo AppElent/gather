@@ -634,4 +634,35 @@ describe('Gather MCP endpoint', () => {
       readOnlyReason: 'scope',
     })
   })
+
+  it('shows a recipe card and passes only web links to the view', async () => {
+    const backend = fakeBackend({
+      'recipes:get': () => ({
+        _id: 'recipe_1',
+        title: 'Snert',
+        ingredients: ['500 g spliterwten'],
+        steps: ['Koken'],
+        tags: [],
+        servings: 4,
+        sourceUrl: 'javascript:alert(1)',
+        imageUrl: null,
+        canEdit: true,
+        homeGroupSlug: 'club',
+        homeGroupName: 'Kookclub',
+        sharedGroups: [],
+      }),
+    })
+    const out = await callTool(backend, 'show_recipe', {
+      groupId: 'group_home',
+      recipeId: 'recipe_1',
+    })
+    expect(out.structuredContent).toMatchObject({
+      view: 'recipe-card',
+      recipe: { title: 'Snert', servings: 4, sharedFrom: 'Kookclub' },
+    })
+    expect(
+      (out.structuredContent as { recipe: { sourceUrl?: string } }).recipe
+        .sourceUrl,
+    ).toBeUndefined()
+  })
 })
