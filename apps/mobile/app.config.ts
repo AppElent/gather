@@ -2,14 +2,23 @@
  * One identity per EAS profile, so production, preview and development builds
  * install side by side (the mobile-distribution standard, ADR 0045). `app.json`
  * holds everything shared; this file only swaps the per-variant name, scheme,
- * bundle ID, package, share-extension app group and badged icon. The widget
- * extension (`targets/widgets/`) takes its bundle ID and name from the result.
+ * bundle ID, package, share-extension app group and badged icon, and sets the
+ * Apple team they all share. The widget extension (`targets/widgets/`) takes
+ * its bundle ID, name and team from the result.
  *
  * `APP_VARIANT` is set per profile in `eas.json`, and per channel by the
  * update publisher. Unset means a local development build, so a local run never
  * replaces the Preview or store install.
  */
 import type { ConfigContext, ExpoConfig } from 'expo/config'
+
+/**
+ * The Apple Developer team that signs every variant: the team in the Gather
+ * Preview build's provisioning profiles. `@bacons/apple-targets` signs the
+ * widget extension with it; without it the plugin warns and the extension's
+ * target has no team.
+ */
+const APPLE_TEAM_ID = 'D8AMB5N29A'
 
 /** Every build this app has; also its EAS Update channel. */
 const APP_VARIANTS = {
@@ -50,7 +59,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     slug: 'gather',
     scheme,
     icon: `./assets/images/icon${icon}.png`,
-    ios: { ...config.ios, bundleIdentifier: id },
+    ios: { ...config.ios, bundleIdentifier: id, appleTeamId: APPLE_TEAM_ID },
     android: {
       ...config.android,
       package: id,
