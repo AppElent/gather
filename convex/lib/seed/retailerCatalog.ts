@@ -21,14 +21,15 @@ import type { RetailerCategory } from '@gather/core/loyalty-cards'
  * although xenos.nl's header logo is now yellow (#FFD700). The `Colour:`
  * clause above each entry says where it came from.
  *
- * `formatConfidence: 'sourced'` means a public source shows the symbology, and
- * the `// Source:` line names it: a photo of the card, the retailer's own help
- * text or site code, an app-store screenshot of the retailer's own app (decoded
- * with zxing-cpp where it would decode; a decoded demo payload still shows the
- * symbology the app draws). A third-party card-app guide, or bar widths matched
- * by hand where no decoder reads the code, is not enough (APP-198). `'guess'`
- * means no such source was found, and the format is then always the CODE_128 fallback; its
- * `// Programme:` line says what was searched and why it did not settle it.
+ * `formatConfidence: 'sourced'` means a public source or a member's own card
+ * shows the symbology, and the `// Source:` line names it: a photo of the card,
+ * the retailer's own help text or site code, an app-store screenshot of the
+ * retailer's own app (decoded with zxing-cpp where it would decode; a decoded
+ * demo payload still shows the symbology the app draws). A third-party card-app
+ * guide, or bar widths matched by hand where no decoder reads the code, is not
+ * enough (APP-198). `'guess'` means no such source was found, and the format is
+ * then always the CODE_128 fallback; its `// Programme:` line says what was
+ * searched and why it did not settle it.
  * `numberLength` and `numberPrefix` appear only when a source states them.
  *
  * Retired in APP-152 (a card that still names one keeps its own copy, ADR-0024):
@@ -159,12 +160,12 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
 
   // --- DIY ---
 
-  // Programme: GAMMA Voordeelpas, plastic or in the app (App Store id949829216: 'Gebruik de barcode van de Voordeelpas'). Format unknown: the Play
-  // QR that APP-152 cited is a 'Hello :)' home-tile icon, and the App Store pass is a stylised linear mock-up that does not decode (APP-198).
-  // CODE_128 guess. Colour: Commons "Gamma logo 2010.png".
-  { seedKey: 'gamma', name: 'GAMMA', aliases: ['GAMMA Voordeelpas', 'Voordeelpas'], category: 'diy', brandColor: '#003878', domain: 'gamma.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
+  // Source: verified from a member's own Mijn GAMMA card, 2026-11-17: QR, payload = 13-digit card number (APP-198). The Play QR that APP-152
+  // cited was a 'Hello :)' home-tile icon. Colour: Commons "Gamma logo 2010.png".
+  { seedKey: 'gamma', name: 'GAMMA', aliases: ['GAMMA Voordeelpas', 'Voordeelpas'], category: 'diy', brandColor: '#003878', domain: 'gamma.nl', barcodeFormat: 'QR', formatConfidence: 'sourced' },
   // Programme: Club Karwei, plastic or in the app (App Store id950680989: 'Laat je Club Karwei-kaart scannen'). Format unknown: the Play QR that
-  // APP-152 cited is a 'Hello :)' tile icon, and the App Store card is the same undecodable linear mock-up as GAMMA's (APP-198). CODE_128 guess.
+  // APP-152 cited is a 'Hello :)' tile icon, and the App Store card is an undecodable linear mock-up. Same group as GAMMA, but no KARWEI card
+  // has been checked (APP-198). CODE_128 guess.
   // Colour: Commons "Karwei logo (2017).png".
   { seedKey: 'karwei', name: 'KARWEI', aliases: ['Club Karwei'], category: 'diy', brandColor: '#231F20', domain: 'karwei.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
   // Source: App Store 'Praxis' (id395524977) shows the Praxis Plus pass as a QR code; praxis.nl says there is no physical card any more. Colour:

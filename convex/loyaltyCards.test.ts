@@ -261,12 +261,13 @@ describe('the Retailer catalog', () => {
     const format = (key: string) =>
       RETAILER_CATALOG.find((entry) => entry.seedKey === key)
     expect(format('c-en-a')).toMatchObject({ barcodeFormat: 'ITF', formatConfidence: 'sourced' })
-    for (const key of ['levis', 'hunkemoller', 'only']) {
+    // GAMMA: from a member's own card (QR of the printed number).
+    for (const key of ['levis', 'hunkemoller', 'only', 'gamma']) {
       expect(format(key)).toMatchObject({ barcodeFormat: 'QR', formatConfidence: 'sourced' })
     }
-    // GAMMA's and KARWEI's QR was a placeholder icon; LEGO never decoded, and
-    // only a third-party guide gave Action's. All four are guesses again.
-    for (const key of ['gamma', 'karwei', 'lego', 'action']) {
+    // KARWEI's QR was a placeholder icon; LEGO never decoded, and only a
+    // third-party guide gave Action's. All three are guesses again.
+    for (const key of ['karwei', 'lego', 'action']) {
       expect(format(key)).toMatchObject({ barcodeFormat: 'CODE_128', formatConfidence: 'guess' })
     }
   })
@@ -282,13 +283,13 @@ describe('the Retailer catalog', () => {
     expect(suggest('990212345678')).toEqual([])
   })
 
-  test('at least 42 barcode formats come from a public source', () => {
-    // APP-152 sourced 31 more; APP-198 added 4 and withdrew 4 weak ones. Lower
+  test('at least 43 barcode formats come from a source', () => {
+    // APP-152 sourced 31 more; APP-198 added 5 and withdrew 4 weak ones. Lower
     // it only when a source turns out wrong, and say which in the catalog.
     const sourced = RETAILER_CATALOG.filter(
       (entry) => entry.formatConfidence === 'sourced',
     )
-    expect(sourced.length).toBeGreaterThanOrEqual(42)
+    expect(sourced.length).toBeGreaterThanOrEqual(43)
   })
 
   test('search matches name and aliases, ignoring case and accents', async () => {
