@@ -80,10 +80,32 @@ test('an Apple sign-up missing a field explains where to finish it', async () =>
   mocks.startApple.mockResolvedValue({
     createdSessionId: null,
     setActive: mocks.setActive,
-    signUp: { status: 'missing_requirements' },
+    signUp: {
+      status: 'missing_requirements',
+      verifications: { externalAccount: { status: 'verified' } },
+    },
   })
   const result = await run('apple')
   expect(result.error).toBe(en.social.incomplete)
+})
+
+test('cancelling Apple after an abandoned email sign-up still says nothing', async () => {
+  mocks.startApple.mockResolvedValue({
+    createdSessionId: null,
+    setActive: mocks.setActive,
+    signUp: {
+      status: 'missing_requirements',
+      verifications: { externalAccount: { status: null } },
+    },
+  })
+  const result = await run('apple')
+  expect(result.error).toBeNull()
+})
+
+test('Apple before Clerk has loaded says something went wrong', async () => {
+  mocks.startApple.mockResolvedValue({ createdSessionId: null })
+  const result = await run('apple')
+  expect(result.error).toBe(en.errors.generic)
 })
 
 test('Apple on Android falls back to the browser flow', async () => {

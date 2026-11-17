@@ -76,7 +76,6 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <form onSubmit={submitDetails} noValidate className="flex flex-col gap-3">
-      <SocialButtons />
       <AuthError message={error} />
       <AuthField
         label={auth.email}
@@ -95,6 +94,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         required
       />
       <AuthButton loading={loading}>{auth.signUp.submit}</AuthButton>
+      <SocialButtons />
       <div className="mt-1 text-center text-xs text-[var(--auth-muted)]">
         <a href={config.paths.signIn} className="hover:underline">
           {auth.signUp.haveAccount}

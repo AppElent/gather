@@ -85,6 +85,19 @@ describe('SocialButtons', () => {
     expect(sso).toHaveBeenCalledTimes(1)
   })
 
+  it('frees the buttons when the page comes back from the back/forward cache', async () => {
+    sso.mockReturnValue(new Promise(() => {}))
+    renderButtons()
+    fireEvent.click(screen.getByRole('button', { name: 'Continue with Apple' }))
+    const event = new Event('pageshow') as PageTransitionEvent
+    Object.defineProperty(event, 'persisted', { value: true })
+    fireEvent(window, event)
+    const microsoft = (await screen.findByRole('button', {
+      name: 'Continue with Microsoft',
+    })) as HTMLButtonElement
+    expect(microsoft.disabled).toBe(false)
+  })
+
   it('speaks Dutch', () => {
     renderButtons(CONFIG, 'nl')
     expect(

@@ -19,8 +19,9 @@
  *
  * Ported from Foundry's `use-social-sign-in.ts`, with one difference: Clerk's
  * Apple hook returns a null session both when the person cancels and when the
- * sign-up still misses a field, so only `missing_requirements` is treated as
- * "incomplete" here; Foundry shows that message on a plain cancel too.
+ * sign-up still misses a field, so only a verified Apple sign-up at
+ * `missing_requirements` is "incomplete" here; Foundry shows that message on a
+ * plain cancel too.
  */
 
 import { useSignInWithApple } from '@clerk/expo/apple'
@@ -65,7 +66,16 @@ export function useSocialSignIn() {
             await setActive({ session: createdSessionId })
             return
           }
-          if (signUp?.status === 'missing_requirements') {
+          // A cancel also lands here, with whatever sign-up the client last
+          // held, so only an Apple sign-up that is verified but missing a field
+          // counts as incomplete. Clerk not loaded yet (no `signUp`) is a
+          // failure the person should hear about.
+          if (!signUp) {
+            setFailure({ kind: 'thrown', cause: null })
+          } else if (
+            signUp.status === 'missing_requirements' &&
+            signUp.verifications?.externalAccount?.status === 'verified'
+          ) {
             setFailure({ kind: 'incomplete' })
           }
         } else {

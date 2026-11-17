@@ -298,7 +298,6 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <form onSubmit={submitPassword} noValidate className="flex flex-col gap-3">
-      <SocialButtons />
       <AuthError message={error} />
       <AuthField
         label={auth.email}
@@ -327,6 +326,7 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
         {auth.signIn.emailCode.send}
       </AuthButton>
       <TestLoginButton onSuccess={onSuccess} />
+      <SocialButtons />
       <div className="mt-1 flex justify-between text-xs text-[var(--auth-muted)]">
         {config.features.forgotPassword ? (
           <a href={config.paths.forgotPassword} className="hover:underline">

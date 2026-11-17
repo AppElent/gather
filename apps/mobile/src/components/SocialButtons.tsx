@@ -50,6 +50,7 @@ export function SocialButtons() {
           <View
             key={provider}
             pointerEvents={pending ? 'none' : 'auto'}
+            accessibilityState={{ disabled: pending !== null }}
             style={pending ? styles.inert : null}
           >
             <AppleAuthentication.AppleAuthenticationButton

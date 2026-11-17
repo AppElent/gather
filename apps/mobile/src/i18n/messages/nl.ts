@@ -368,7 +368,7 @@ export const nl = {
   },
 
   social: {
-    heading: 'Of ga verder met',
+    heading: 'Of doorgaan met',
     apple: 'Doorgaan met Apple',
     microsoft: 'Doorgaan met Microsoft',
     incomplete:

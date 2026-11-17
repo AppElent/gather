@@ -1,5 +1,5 @@
 import { useSignIn } from '@clerk/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { fmt, useMessages } from '../i18n'
 import { AuthButton } from './AuthButton'
 import { useAuthConfig } from './AuthConfigProvider'
@@ -8,8 +8,9 @@ import { orThrow } from './clerkResult'
 import { clerkErrorMessage } from './core'
 
 /**
- * One "Continue with …" button per provider in `AuthConfig.socialProviders`,
- * then an "or" rule above the email form. Each button redirects to the
+ * An "or" rule, then one "Continue with …" button per provider in
+ * `AuthConfig.socialProviders`, under the email form: the same order as the
+ * phone app. Each button redirects to the
  * provider and back to `paths.ssoCallback`, where
  * `AuthenticateWithRedirectCallback` finishes the flow. Starting from a
  * sign-in is enough for a sign-up too: Clerk transfers an unknown account to a
@@ -24,6 +25,16 @@ export function SocialButtons() {
   const { auth } = useMessages()
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Coming back with the browser's back button can restore this page from the
+  // back/forward cache with `pending` still set; free the buttons again.
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) setPending(null)
+    }
+    window.addEventListener('pageshow', onPageShow)
+    return () => window.removeEventListener('pageshow', onPageShow)
+  }, [])
 
   if (socialProviders.length === 0) return null
 
@@ -48,6 +59,11 @@ export function SocialButtons() {
 
   return (
     <div className="flex flex-col gap-2">
+      <div className="mt-1 flex items-center gap-3 text-xs text-[var(--auth-muted)]">
+        <span className="h-px flex-1 bg-[var(--auth-border)]" />
+        {auth.or}
+        <span className="h-px flex-1 bg-[var(--auth-border)]" />
+      </div>
       <AuthError message={error} />
       {socialProviders.map((provider) => (
         <AuthButton
@@ -62,11 +78,6 @@ export function SocialButtons() {
           {fmt(auth.continueWith, { provider: provider.label })}
         </AuthButton>
       ))}
-      <div className="my-1 flex items-center gap-3 text-xs text-[var(--auth-muted)]">
-        <span className="h-px flex-1 bg-[var(--auth-border)]" />
-        {auth.or}
-        <span className="h-px flex-1 bg-[var(--auth-border)]" />
-      </div>
     </div>
   )
 }
