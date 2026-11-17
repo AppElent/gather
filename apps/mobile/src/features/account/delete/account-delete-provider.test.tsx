@@ -11,19 +11,22 @@ import {
 
 const state = vi.hoisted(() => ({
   user: null as {
+    id?: string
     deleteSelfEnabled?: boolean
     delete: () => Promise<void>
   } | null,
   purge: (): Promise<void> => Promise.resolve(),
   apple: (): Promise<'continue' | 'cancelled'> => Promise.resolve('continue'),
   order: [] as string[],
+  purgeArgs: [] as unknown[],
   signedOut: 0,
 }))
 
 vi.mock('@clerk/expo', () => ({ useUser: () => ({ user: state.user }) }))
 vi.mock('convex/react', () => ({
-  useMutation: () => () => {
+  useMutation: () => (args: unknown) => {
     state.order.push('purge')
+    state.purgeArgs.push(args)
     return state.purge()
   },
   useAction: () => () => Promise.resolve(null),
@@ -100,6 +103,7 @@ beforeEach(() => {
   state.purge = () => Promise.resolve()
   state.apple = () => Promise.resolve('continue')
   state.order = []
+  state.purgeArgs = []
   state.user = { deleteSelfEnabled: true, delete: () => Promise.resolve() }
 })
 
@@ -318,5 +322,17 @@ describe('an account that signs in with Apple (APP-213)', () => {
     await settle()
     expect(state.order).toEqual(['apple'])
     expect(state.signedOut).toBe(0)
+  })
+
+  test('the purge names the account the person confirmed', async () => {
+    state.user = {
+      id: 'user_alex',
+      deleteSelfEnabled: true,
+      delete: () => Promise.resolve(),
+    }
+    view = render()
+    act(() => deletion.start())
+    await settle()
+    expect(state.purgeArgs).toEqual([{ expectedSubject: 'user_alex' }])
   })
 })

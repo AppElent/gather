@@ -27,6 +27,9 @@ export function isAppleClientId(value: string): value is AppleClientId {
   return (APPLE_CLIENT_IDS as readonly string[]).includes(value)
 }
 
+/** Per Apple request. */
+const APPLE_TIMEOUT_MS = 10_000
+
 /** Apple accepts client secrets valid for up to six months; one use needs minutes. */
 const SECRET_LIFETIME_SECONDS = 300
 
@@ -100,6 +103,9 @@ async function post(path: string, form: Record<string, string>) {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(form),
+    // The person is waiting on the delete screen; a stalled Apple must not
+    // hold the deletion, which goes ahead without the revoke anyway.
+    signal: AbortSignal.timeout(APPLE_TIMEOUT_MS),
   })
   if (!response.ok) {
     // Apple's error body is a short code such as `invalid_grant`, never a token.

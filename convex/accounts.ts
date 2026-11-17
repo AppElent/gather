@@ -89,6 +89,10 @@ export const deletionPreview = query({
   },
 })
 
+/** The refusal when the signed-in account is not the one being deleted. */
+export const ACCOUNT_CHANGED =
+  'You are signed in to a different account now. Nothing was deleted.'
+
 /**
  * Start the purge. Nothing here takes a user id — the caller is whoever the
  * token says they are, as everywhere else.
@@ -98,11 +102,17 @@ export const deletionPreview = query({
  * bounded steps behind it (`cascade.purgeAccount`).
  */
 export const deleteAccount = mutation({
-  args: {},
-  handler: async (ctx) => {
+  // The Clerk user id the phone means to delete. Optional so builds from
+  // before APP-213 keep working; when given, a session that has changed
+  // account since the person confirmed (the Apple sheet can stay up a while)
+  // is refused instead of purging the account it changed to.
+  args: { expectedSubject: v.optional(v.string()) },
+  handler: async (ctx, { expectedSubject }) => {
     // Deleting the account stays in the app (ADR-0046).
     await rejectConnectedApps(ctx)
     const user = await requireCurrentUser(ctx)
+    if (expectedSubject !== undefined && user.clerkId !== expectedSubject)
+      throw new ConvexError(ACCOUNT_CHANGED)
     if (user.deletedAt) return
 
     const { solo } = await partitionGroups(ctx, user._id)
@@ -134,6 +144,7 @@ export const APPLE_REVOCATION = {
  */
 export const revokeAppleSignIn = action({
   args: { authorizationCode: v.string(), bundleId: v.string() },
+  returns: v.null(),
   handler: async (ctx, { authorizationCode, bundleId }) => {
     // Deleting the account stays in the app (ADR-0046).
     await rejectConnectedApps(ctx)

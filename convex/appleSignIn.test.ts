@@ -258,4 +258,18 @@ describe('accounts.revokeAppleSignIn', () => {
     for (const suffix of suffixes)
       expect(isAppleClientId(`com.appelent.gather${suffix}`)).toBe(true)
   })
+
+  test('revokes the access token when Apple returns no refresh token', async () => {
+    await configure()
+    const { calls } = appleResponses({
+      '/auth/token': Response.json({ access_token: 'access' }),
+      '/auth/revoke': new Response(null, { status: 200 }),
+    })
+    const t = testConvex().withIdentity(alice)
+    await t.action(api.accounts.revokeAppleSignIn, args)
+    expect(Object.fromEntries(calls[1].form)).toMatchObject({
+      token: 'access',
+      token_type_hint: 'access_token',
+    })
+  })
 })

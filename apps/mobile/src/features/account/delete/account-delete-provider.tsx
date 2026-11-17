@@ -152,7 +152,9 @@ export function AccountDeleteProvider({
       }
       setState({ step: 'purging' })
       try {
-        await deleteAccount({})
+        // Bound to the account the person confirmed: if the session changed
+        // while the Apple sheet was up, Convex refuses and nothing is deleted.
+        await deleteAccount({ expectedSubject: user.id })
       } catch (cause) {
         running.current = false
         setState({ step: 'refused', cause })
