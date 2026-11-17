@@ -38,7 +38,7 @@
     "mobile:update:production": "node scripts/env.mjs exec production --only eas -- node apps/mobile/scripts/publish-update.mjs production"
   },
   "dependencies": {
-    "@clerk/react": "^6.18.7",
+    "@clerk/react": "^6.18.8",
     "@cloudflare/vite-plugin": "^1.69.1",
     "@gather/core": "workspace:*",
     "@sentry/cloudflare": "11.12.0",
