@@ -24,12 +24,15 @@ if (jsdomWindow) {
 
 // jsdom deliberately leaves scrolling unimplemented. Components may still
 // request it to restore a list position, so make it a harmless browser-like
-// no-op instead of printing the same warning for every affected test.
-Object.defineProperty(window, 'scrollTo', {
-  value: () => undefined,
-  writable: true,
-  configurable: true,
-})
+// no-op instead of printing the same warning for every affected test. Server
+// tests opt into `@vitest-environment node`, which has no window.
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'scrollTo', {
+    value: () => undefined,
+    writable: true,
+    configurable: true,
+  })
+}
 
 afterEach(() => {
   cleanup()

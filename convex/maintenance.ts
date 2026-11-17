@@ -454,6 +454,8 @@ const USER_REFERENCES: {
 } = {
   memberships: { userId: 'own rule', calendarPeopleFilter: 'repoint' },
   aiUsage: { userId: 'own rule' },
+  // Keys are random per write, so two accounts' keys do not collide.
+  idempotencyKeys: { userId: 'repoint' },
   recipes: { createdByUserId: 'repoint' },
   tasks: { createdBy: 'repoint' },
   notes: { createdBy: 'repoint', updatedBy: 'repoint' },

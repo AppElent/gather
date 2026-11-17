@@ -4,6 +4,7 @@ import { internal } from './_generated/api'
 import { action, internalQuery, mutation, query } from './_generated/server'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { deleteTaskList } from './lib/groupCascade'
+import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
 import { nextOrder } from './lib/order'
 import {
   providerConfigValidator,
@@ -46,12 +47,13 @@ export const create = mutation({
     provider: taskProviderValidator,
     providerConfig: v.optional(providerConfigValidator),
     groupSlug: v.string(),
+    idempotencyKey: idempotencyKeyValidator,
   },
   handler: async (ctx, args) => {
     // A list belongs to the Group in the URL, and the connection it links to
     // has to belong there too — both read the same groupId, so a slug cannot
     // be used to borrow another Group's Notion token.
-    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
     const groupId = group._id
 
     if (args.provider === 'local') {
@@ -75,17 +77,25 @@ export const create = mutation({
       }
     }
 
-    const existing = await ctx.db
-      .query('taskLists')
-      .withIndex('by_group', (q) => q.eq('groupId', groupId))
-      .collect()
-    return await ctx.db.insert('taskLists', {
-      groupId,
-      name: args.name,
-      provider: args.provider,
-      providerConfig: args.providerConfig,
-      order: nextOrder(existing),
-    })
+    return await createOnce(
+      ctx,
+      user._id,
+      'taskLists',
+      args.idempotencyKey,
+      async () => {
+        const existing = await ctx.db
+          .query('taskLists')
+          .withIndex('by_group', (q) => q.eq('groupId', groupId))
+          .collect()
+        return await ctx.db.insert('taskLists', {
+          groupId,
+          name: args.name,
+          provider: args.provider,
+          providerConfig: args.providerConfig,
+          order: nextOrder(existing),
+        })
+      },
+    )
   },
 })
 

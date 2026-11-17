@@ -18,6 +18,7 @@ import {
 } from './lib/calendar'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { purgeEventsOfCalendar } from './lib/groupCascade'
+import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
 
 const nullableNumber = v.union(v.null(), v.number())
 
@@ -334,6 +335,7 @@ export const addCalendarEvent = mutation({
     assigneeIds: v.optional(v.array(v.id('users'))),
     location: v.optional(v.string()),
     notes: v.optional(v.string()),
+    idempotencyKey: idempotencyKeyValidator,
   },
   handler: async (ctx, args) => {
     const { doc: calendar, user } = await requireInGroup(
@@ -357,11 +359,18 @@ export const addCalendarEvent = mutation({
     }
     validateEventFields(fields)
     await validateAssignees(ctx, calendar.groupId, fields.assigneeIds)
-    return await ctx.db.insert('calendarEvents', {
-      ...storedEventFields(fields),
-      revision: 0,
-      createdBy: user._id,
-    })
+    return await createOnce(
+      ctx,
+      user._id,
+      'calendarEvents',
+      args.idempotencyKey,
+      () =>
+        ctx.db.insert('calendarEvents', {
+          ...storedEventFields(fields),
+          revision: 0,
+          createdBy: user._id,
+        }),
+    )
   },
 })
 

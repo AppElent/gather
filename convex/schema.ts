@@ -238,6 +238,24 @@ export default defineSchema({
     count: v.number(),
   }).index('by_user_and_day', ['userId', 'day']),
 
+  /**
+   * The answer to a create a connected app already made: an idempotency key
+   * and the row it created (`lib/idempotency.ts`, ADR-0046). An agent retries a
+   * write it lost the answer to; replaying the key returns the same row instead
+   * of a second one.
+   *
+   * **Personal**: keys belong to the caller, whichever Group the row went to,
+   * so there is a `userId` and no `groupId`. Account deletion removes these rows
+   * (`cascade.finishAccount`); the export leaves them out as bookkeeping.
+   */
+  idempotencyKeys: defineTable({
+    userId: v.id('users'),
+    key: v.string(),
+    /** The table the create wrote to; a key reused for another table is refused. */
+    table: v.string(),
+    docId: v.string(),
+  }).index('by_user_and_key', ['userId', 'key']),
+
   babies: defineTable({
     groupId: v.id('groups'),
     name: v.string(),
