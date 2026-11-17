@@ -9,7 +9,10 @@
  */
 import { type BarcodeFormat, isBarcodeFormat } from '@gather/core/barcodes'
 
-import { readOfflineEntries } from '../../../convex/lastKnown'
+import {
+  readOfflineEntries,
+  readOfflineEntry,
+} from '../../../convex/lastKnown'
 import { isOfflineReadable } from '../../../convex/queries'
 
 const LIST = 'loyaltyCards:list'
@@ -64,5 +67,25 @@ export function offlineCards(account: string | null | undefined): OfflineCard[] 
     return cards
   } catch {
     return []
+  }
+}
+
+/**
+ * One Group's saved cards, in the server's order, for a signed-in screen that
+ * opens while Convex cannot answer (APP-206's quick-actions sheet). The same
+ * account rule as `offlineCards`. `undefined` means there is no copy for this
+ * Group; an empty list means the copy says it has no cards.
+ */
+export function offlineGroupCards(
+  account: string | null | undefined,
+  groupSlug: string,
+): OfflineCard[] | undefined {
+  if (!account || !isOfflineReadable(LIST)) return undefined
+  try {
+    const list = readOfflineEntry(account, LIST, { groupSlug })
+    if (!Array.isArray(list)) return undefined
+    return list.filter((card) => isOfflineCard(card))
+  } catch {
+    return undefined
   }
 }

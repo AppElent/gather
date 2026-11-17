@@ -164,3 +164,23 @@ export function readOfflineEntries(account: string, name: string): Value[] {
     return []
   }
 }
+
+/**
+ * One stored value (one function, one set of arguments) for an account in
+ * this bundle, under the same rule as `readOfflineEntries`: only for the
+ * account Convex last confirmed here. `undefined` is a miss, which includes
+ * any failure.
+ */
+export function readOfflineEntry(
+  account: string,
+  name: string,
+  args: Value,
+): Value | undefined {
+  try {
+    if (confirmedAccount() !== account) return undefined
+    const key = entryKey(diskScope(account), name, args)
+    return key ? readEntry(key) : undefined
+  } catch {
+    return undefined
+  }
+}

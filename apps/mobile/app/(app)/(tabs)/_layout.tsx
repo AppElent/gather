@@ -24,12 +24,26 @@ import { useI18n } from '../../../src/i18n'
 import { requestSearchFocus } from '../../../src/search/searchFocus'
 import { rememberSearchOrigin } from '../../../src/search/searchOrigin'
 import { QuickActionSheet } from '../../../src/shell/QuickActionSheet'
+import {
+  onQuickSheetRequest,
+  takeQuickSheetRequest,
+} from '../../../src/shell/quickSheetRequest'
 import { SHELL_TABS } from '../../../src/shell/tabs'
 
 export default function TabsLayout() {
   const { t } = useI18n()
   const { group } = useGroup()
   const [launcherOpen, setLauncherOpen] = useState(false)
+
+  // `<scheme>://quick` (APP-206): a request held across sign-in is taken on
+  // mount, and one made while the tabs are up arrives through the listener.
+  useEffect(() => {
+    const take = () => {
+      if (takeQuickSheetRequest()) setLauncherOpen(true)
+    }
+    take()
+    return onQuickSheetRequest(take)
+  }, [])
 
   return (
     <View style={{ flex: 1 }}>

@@ -251,8 +251,8 @@ export const FEATURES = defineFeatures([
     kind: 'product',
     status: 'exclusive',
     platforms: ['mobile'],
-    reason: `The Add tab is the phone's capture verb (ADR-0018, ${ADR}).`,
-    routes: { mobile: ['(app)/(tabs)/add'] },
+    reason: `The Add tab is the phone's capture verb (ADR-0018, ${ADR}); its sheet also shows Loyalty cards, and \`<scheme>://quick\` opens it (APP-206).`,
+    routes: { mobile: ['(app)/(tabs)/add', 'quick'] },
   },
   {
     id: 'drop',

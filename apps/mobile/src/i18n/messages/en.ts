@@ -180,38 +180,54 @@ export const en = {
     },
 
     add: {
-      title: 'Add to {group}',
-      workingOnly: 'Only actions that work today.',
+      /** The quick-actions sheet (APP-206): show what you need, or add. */
+      title: 'Quick · {group}',
+      subtitle: 'Show what you need, or add something',
       back: 'Back to actions',
       saved: 'Added: {items}',
-      kinds: {
-        row: 'in the row',
-        handoff: 'opens a form',
-        compose: 'pick, then rate',
+      cards: {
+        heading: coreEn.modules.byId['loyalty-cards'].label,
+        all: 'All cards',
+        /** A card's accessible name; `{store}` is the store. */
+        show: '{store}, show card',
+        emptyTitle: 'No loyalty cards yet',
+        emptyBody: 'Scan one and it waits here for the till.',
+        scan: 'Scan',
       },
+      addHeading: 'Add',
+      /**
+       * `label` is the accessible name, `short` the grid tile's words, and
+       * `module` the Module named under them.
+       */
       actions: {
         'cheese-tasting': {
           label: coreEn.tastings.kinds.cheese.launcher,
+          short: 'Cheese tasting',
           module: coreEn.modules.byId.cheeses.label,
         },
         'wine-tasting': {
           label: coreEn.tastings.kinds.wine.launcher,
+          short: 'Wine tasting',
           module: coreEn.modules.byId.wines.label,
         },
         'beer-tasting': {
           label: coreEn.tastings.kinds.beer.launcher,
+          short: 'Beer tasting',
           module: coreEn.modules.byId.beers.label,
         },
         'task-new': {
           label: 'Add a task',
+          short: 'Task',
           module: coreEn.modules.byId.tasks.label,
         },
         'recipe-import': {
           label: 'Import from a link',
+          short: 'Import recipe',
           module: coreEn.modules.byId.recipes.label,
         },
         'loyalty-card-add': {
           label: 'Add loyalty card',
+          short: 'Scan card',
           module: coreEn.modules.byId['loyalty-cards'].label,
         },
       },

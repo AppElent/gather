@@ -1,3 +1,4 @@
+import type { SortableLoyaltyCard } from '@gather/core/loyalty-cards'
 import {
   MODULES,
   type ModuleGroup,
@@ -7,7 +8,9 @@ import {
 import type { TastingKind } from '@gather/core/tastings'
 import type { Href } from 'expo-router'
 
+import { lastUsedFirst } from '../features/loyalty-cards/list/card-last-used'
 import { moduleHref } from '../modules/moduleDestination'
+import { isAccessibilityTextSize } from '../ui/text-scale'
 
 /**
  * How far a Module's quick action can proceed inside the launcher.
@@ -115,3 +118,72 @@ export const QUICK_ACTIONS: readonly QuickAction[] = MODULES.flatMap(
 ).sort(
   (a, b) => LAUNCHER_ORDER.indexOf(a.module) - LAUNCHER_ORDER.indexOf(b.module),
 )
+
+/**
+ * What the sheet's Loyalty cards section draws (APP-206), from its three
+ * sources, best first:
+ *
+ * - `live`: Convex's answer, with usage, so it can be ordered and say when
+ *   each card was last used.
+ * - `shown`: `useQuery`'s answer, which is `live` or the last-known copy
+ *   while that answer is on its way.
+ * - `saved`: this Group's offline copy (`offlineGroupCards`), for a sheet
+ *   opened while Convex cannot answer at all. `undefined` is no copy.
+ *
+ * Nothing yet is `loading`, which draws placeholders in the section only: the
+ * Add section never waits for cards.
+ */
+export type QuickCardsSection<T> =
+  | { kind: 'loading' }
+  | { kind: 'empty' }
+  | { kind: 'cards'; cards: T[]; usageKnown: boolean }
+
+export function quickCardsSection<T extends SortableLoyaltyCard>(sources: {
+  live: readonly T[] | undefined
+  shown: readonly T[] | undefined
+  saved: readonly T[] | undefined
+}): QuickCardsSection<T> {
+  const cards = sources.live ?? sources.shown ?? sources.saved
+  if (cards === undefined) return { kind: 'loading' }
+  if (cards.length === 0) return { kind: 'empty' }
+  const usageKnown = sources.live !== undefined
+  return { kind: 'cards', cards: lastUsedFirst(cards, usageKnown), usageKnown }
+}
+
+/**
+ * The Add grid's columns: three, and two at the accessibility text sizes,
+ * where a third column leaves a label a word per line.
+ */
+export function quickGridColumns(fontScale: number): 2 | 3 {
+  return isAccessibilityTextSize(fontScale) ? 2 : 3
+}
+
+/**
+ * The actions in rows of `columns`, the last row padded with `null` so its
+ * tiles keep the width of the ones above them.
+ */
+export function quickGridRows<T>(
+  items: readonly T[],
+  columns: number,
+): (T | null)[][] {
+  const rows: (T | null)[][] = []
+  for (let start = 0; start < items.length; start += columns) {
+    const row: (T | null)[] = items.slice(start, start + columns)
+    while (row.length < columns) row.push(null)
+    rows.push(row)
+  }
+  return rows
+}
+
+/**
+ * One column's width in a grid `width` wide, so every tile in the grid is the
+ * same width whatever its label. `undefined` before the grid is measured.
+ */
+export function quickTileWidth(
+  width: number,
+  columns: number,
+  gap: number,
+): number | undefined {
+  if (width <= 0) return undefined
+  return Math.floor((width - gap * (columns - 1)) / columns)
+}

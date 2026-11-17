@@ -1,4 +1,8 @@
 import { fmt, plural } from '@gather/core/i18n'
+import {
+  compareLoyaltyCards,
+  type SortableLoyaltyCard,
+} from '@gather/core/loyalty-cards'
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -41,4 +45,19 @@ export function cardLastUsed(
     month: 'short',
     year: 'numeric',
   })
+}
+
+/**
+ * The cards last used first, the list's order (`compareLoyaltyCards`), for a
+ * view that re-reads them as they change (APP-206's quick-actions sheet).
+ *
+ * `usageKnown` is false for a saved copy (`DRAWN_CARD_FIELDS` keeps no
+ * `lastUsedAt`): sorting it would put every card in name order, so a copy
+ * keeps the order the server last gave it, which was already last used first.
+ */
+export function lastUsedFirst<T extends SortableLoyaltyCard>(
+  cards: readonly T[],
+  usageKnown: boolean,
+): T[] {
+  return usageKnown ? [...cards].sort(compareLoyaltyCards) : [...cards]
 }
