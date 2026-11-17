@@ -20,6 +20,7 @@
  * `tokens.onInk`, rather than outlined, because it is the last thing on its
  * screen and it must not read as the quiet way out.
  */
+import type { ReactNode } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -43,6 +44,10 @@ interface ButtonProps {
   group?: ModuleGroup
   /** So a verification run can reach the button without matching its words. */
   testID?: string
+  /** A mark drawn before the label, such as a sign-in provider's logo. */
+  icon?: ReactNode
+  /** Overrides the variant's label colour, for a surface `style` repaints. */
+  labelColor?: string
 }
 
 export function Button({
@@ -54,6 +59,8 @@ export function Button({
   style,
   group,
   testID,
+  icon,
+  labelColor,
 }: ButtonProps) {
   const tokens = useTokens(group)
   const inert = disabled || busy
@@ -72,11 +79,12 @@ export function Button({
           : { backgroundColor: 'transparent' }
 
   const color =
-    variant === 'primary'
+    labelColor ??
+    (variant === 'primary'
       ? tokens.onAccent
       : variant === 'danger'
         ? tokens.onInk
-        : tokens.ink
+        : tokens.ink)
 
   return (
     <Pressable
@@ -95,6 +103,7 @@ export function Button({
       ]}
     >
       <View style={styles.row}>
+        {icon}
         <Text style={[styles.label, { color }]}>{label}</Text>
         {busy ? <ActivityIndicator size="small" color={color} /> : null}
       </View>

@@ -101,7 +101,7 @@ describe('SocialButtons', () => {
   it('speaks Dutch', () => {
     renderButtons(CONFIG, 'nl')
     expect(
-      screen.getByRole('button', { name: 'Doorgaan met Microsoft' }),
+      screen.getByRole('button', { name: 'Ga door met Microsoft' }),
     ).toBeDefined()
     expect(screen.getByText('of')).toBeDefined()
   })
