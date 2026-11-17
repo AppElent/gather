@@ -21,8 +21,10 @@ Read it before adding a screen. The research behind it is in
    `pnpm --filter @gather/mobile ios`.
 
 The native app icon and launch mark are rendered from Gather's web favicon. A
-native rebuild is required after changing `app.json` or anything in
-`assets/images`.
+native rebuild is required after changing `app.json`, `app.config.ts` or
+anything in `assets/images`. `app.config.ts` gives each build variant its own
+name, bundle ID, scheme and badged icon ([ADR 0045](../../docs/adr/0045-each-build-variant-installs-beside-the-others.md));
+rerun `node apps/mobile/scripts/badge-icons.mjs` after changing an icon.
 
 ## Building, verifying and shipping
 

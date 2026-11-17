@@ -1,11 +1,10 @@
 // Runtime fingerprints: the value a build and an over-the-air update must share
 // before the build loads the update (ADR 0029). Computed locally, they match
 // what EAS records on a build. Copied from the toolkit template
-// docs/standards/mobile-baseline/templates/fingerprint.mjs, with one change:
-// Gather has no APP_VARIANT (app.json, not app.config.ts), so every EAS profile
-// shares one fingerprint per platform and there are no variants to loop over.
+// docs/standards/mobile-baseline/templates/fingerprint.mjs. The bundle ID and
+// name enter the fingerprint, so each APP_VARIANT (app.config.ts) has its own.
 //
-//   node apps/mobile/scripts/fingerprint.mjs              # this checkout
+//   node apps/mobile/scripts/fingerprint.mjs              # this checkout, per variant
 //   node apps/mobile/scripts/fingerprint.mjs diff <base>  # Markdown: what changed vs
 //                                                         # another checkout (CI)
 //
@@ -18,18 +17,20 @@ import { fileURLToPath } from 'node:url'
 
 export const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 export const PLATFORMS = ['ios', 'android']
+export const VARIANTS = ['preview', 'production', 'development']
 const MAX_SOURCES = 100
 const RUNBOOK = 'docs/runbooks/mobile-releases.md#over-the-air-or-a-new-build'
 
-/** `{ hash, sources }` for one platform of the app at `root`. */
-export function fingerprint(platform, root = appRoot) {
+/** `{ hash, sources }` for one variant and platform of the app at `root`. */
+export function fingerprint(variant, platform, root = appRoot) {
   const result = spawnSync('pnpm', ['exec', 'expo-updates', 'fingerprint:generate', '--platform', platform], {
     cwd: root,
+    env: { ...process.env, APP_VARIANT: variant },
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
   })
   if (result.status !== 0) {
-    throw new Error(`fingerprint:generate failed in ${root} (${platform}):\n${result.stderr}`)
+    throw new Error(`fingerprint:generate failed in ${root} (${variant}, ${platform}):\n${result.stderr}`)
   }
   return JSON.parse(result.stdout)
 }
@@ -68,16 +69,20 @@ function diff(baseRepo) {
   const rows = []
   const sources = new Set()
   let native = false
-  for (const platform of PLATFORMS) {
-    const before = fingerprint(platform, baseApp)
-    const after = fingerprint(platform)
-    const changed = before.hash !== after.hash
-    if (changed) {
-      native = true
-      for (const key of changedSources(before, after)) sources.add(key)
+  for (const variant of VARIANTS) {
+    for (const platform of PLATFORMS) {
+      const before = fingerprint(variant, platform, baseApp)
+      const after = fingerprint(variant, platform)
+      const changed = before.hash !== after.hash
+      if (changed) {
+        native = true
+        for (const key of changedSources(before, after)) sources.add(key)
+      }
+      const label = platform === 'ios' ? 'iOS' : 'Android'
+      rows.push(
+        `| ${variant} | ${label} | ${changed ? '**yes**' : 'no'} | \`${before.hash.slice(0, 12)}\` | \`${after.hash.slice(0, 12)}\` |`,
+      )
     }
-    const label = platform === 'ios' ? 'iOS' : 'Android'
-    rows.push(`| ${label} | ${changed ? '**yes**' : 'no'} | \`${before.hash.slice(0, 12)}\` | \`${after.hash.slice(0, 12)}\` |`)
   }
   const lines = [
     '### Mobile runtime',
@@ -86,8 +91,8 @@ function diff(baseRepo) {
       ? 'This PR changes the native fingerprint. Installed builds will not load its JavaScript as an update: after merging, make a new `preview-internal` build (and a production build when releasing) before the next over-the-air update.'
       : 'No native changes. Installed builds can take this PR as an over-the-air update (`pnpm mobile:update:preview`).',
     '',
-    '| Platform | Native fingerprint changed | Base | This PR |',
-    '| --- | --- | --- | --- |',
+    '| Variant | Platform | Native fingerprint changed | Base | This PR |',
+    '| --- | --- | --- | --- | --- |',
     ...rows,
   ]
   if (sources.size > 0) {
@@ -118,7 +123,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (command === 'diff' && base) {
     console.log(diff(base))
   } else if (!command) {
-    for (const platform of PLATFORMS) console.log(`${platform.padEnd(8)} ${fingerprint(platform).hash}`)
+    for (const variant of VARIANTS) {
+      for (const platform of PLATFORMS) {
+        console.log(`${variant.padEnd(12)} ${platform.padEnd(8)} ${fingerprint(variant, platform).hash}`)
+      }
+    }
   } else {
     console.error('Usage: fingerprint.mjs [diff <base checkout>]')
     process.exit(1)

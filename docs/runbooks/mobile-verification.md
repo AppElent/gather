@@ -40,7 +40,7 @@ changes — never for JavaScript, which still Fast Refreshes. Use
 `pnpm devbuild:android:eas` (or `devbuild:ios:eas`) for a cloud build when you'd
 rather not have a local toolchain.
 
-The dev build also makes `gather://` deep links real, so a screen can be opened
+The dev build also makes `gather-dev://` deep links real, so a screen can be opened
 directly instead of tapped through.
 
 ## Driving the app (agent-device)
@@ -51,8 +51,8 @@ and shared by every mobile project. Only the facts below are gather-specific.
 
 | Fact | Value |
 | --- | --- |
-| Android app id | `com.appelent.gather` (Expo Go: `host.exp.exponent`) |
-| Deep link scheme | `gather://` (dev build only) |
+| Android app id | `com.appelent.gather.dev` (Expo Go: `host.exp.exponent`) |
+| Deep link scheme | `gather-dev://` (dev build only) |
 | Metro project root | `apps/mobile`; pnpm workspace, `--kind expo` |
 | Default AVD | `Pixel_9_Pro` |
 
@@ -62,7 +62,7 @@ The loop, from a cold machine:
 agent-device doctor                  # confirm the device and Metro are visible
 agent-device boot                    # start the emulator if it isn't running
 agent-device metro prepare --kind expo --project-root apps/mobile
-agent-device open com.appelent.gather --platform android --foreground
+agent-device open com.appelent.gather.dev --platform android --foreground
   press|fill|scroll <@ref> --settle  # each action prints the UI diff
   wait text "..."                    # this is verification; a screenshot is not
 agent-device close
@@ -71,7 +71,9 @@ agent-device close
 The UI is Dutch by default on a Dutch device, so a `text` selector matches
 `Recepten`, not `Recipes`; add `testID` on screens you test often. The facts
 above are Android's; an iOS simulator needs macOS with Xcode, and the bundle id
-is the same `com.appelent.gather`.
+is the same `com.appelent.gather.dev`. A local build is the Dev variant
+([ADR 0045](../adr/0045-each-build-variant-installs-beside-the-others.md)), so
+it installs beside Gather Preview instead of replacing it.
 
 ## Watching query subscriptions
 
@@ -90,8 +92,8 @@ and the OS sheet belongs to neither — so the Drop flow (ADR-0028) is verified
 through a deep link that produces the same Drop the share sheet would:
 
 ```
-agent-device deeplink "gather://drop?url=https://www.leukerecepten.nl/recepten/pasta/"
-agent-device deeplink "gather://drop?text=Buy%20stroopwafels"
+agent-device deeplink "gather-dev://drop?url=https://www.leukerecepten.nl/recepten/pasta/"
+agent-device deeplink "gather-dev://drop?text=Buy%20stroopwafels"
 ```
 
 Both land on the chooser, over the same `DropProvider`, with the same ranking.

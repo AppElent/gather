@@ -85,8 +85,8 @@ read-only); the run summary has the same table.
 To see the current fingerprint, or why it moved:
 
 ```
-node apps/mobile/scripts/fingerprint.mjs          # from the repo root, both platforms
-pnpm exec expo-updates runtimeversion:resolve --platform android
+node apps/mobile/scripts/fingerprint.mjs          # from the repo root, every variant and platform
+APP_VARIANT=preview pnpm exec expo-updates runtimeversion:resolve --platform android
 pnpm exec eas fingerprint:compare
 ```
 
@@ -147,7 +147,16 @@ neither reaches out and fixes a phone that is sitting in someone's pocket.
 | `preview` | `mobile-update.yml` on every merge (by hand: `pnpm mobile:update:preview`) | `deploy:preview` (iOS, store), `build:preview:android` (APK) |
 | `production` | `mobile-update-production.yml` daily (by hand: `pnpm mobile:update:production`) | `deploy:prod` |
 
-Each base profile in `apps/mobile/eas.json` declares its own channel.
+Each base profile in `apps/mobile/eas.json` declares its own channel and sets
+`APP_VARIANT` to the same name, which picks the app's name, bundle ID, scheme
+and icon ([ADR 0045](../adr/0045-each-build-variant-installs-beside-the-others.md)):
+Gather Preview (`com.appelent.gather.preview`), Gather Dev
+(`com.appelent.gather.dev`) and Gather (`com.appelent.gather`) install side by
+side. The bundle ID is part of the fingerprint, so resolve a channel's runtime
+with its variant set; the scripts here do. The first build of a new bundle ID
+runs interactively once (`pnpm exec eas build -p ios --profile preview-internal`
+without `--non-interactive`), so EAS can create its ad hoc profile and the
+share extension's app group.
 `preview-internal` extends `preview` and shares the `preview` channel, so it has
 no row of its own and receives the same updates.
 

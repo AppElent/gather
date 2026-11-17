@@ -76,6 +76,9 @@ if (!upload) {
 
 const env = {
   ...process.env,
+  // The channel's builds are its APP_VARIANT (app.config.ts). A bare publish
+  // resolves to development, whose fingerprint no preview or production build has.
+  APP_VARIANT: channel,
   ...(upload && { SENTRY_AUTH_TOKEN: token, SENTRY_ORG: org, SENTRY_PROJECT: project, SENTRY_URL: url }),
 }
 
