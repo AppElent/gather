@@ -53,7 +53,7 @@ export function AccountDeleteScreen() {
   const { state, start } = useAccountDelete()
 
   const preview = useQuery(api.accounts.deletionPreview, {})
-  const busy = state.step === 'purging'
+  const busy = state.step === 'purging' || state.step === 'revokingApple'
   const error = state.step === 'refused' ? readThrown(state.cause, t) : null
 
   // Clerk refuses self-deletion unless the instance allows it, and a button

@@ -283,6 +283,53 @@ export const ENTRIES = [
     },
   },
 
+  // ---------- Sign in with Apple ----------
+  // Account deletion revokes the person's Apple grant (APP-213,
+  // convex/lib/appleSignIn.ts). The same Apple team and key as Foundry.
+  // Optional, so a deploy never fails on them: without them the revoke action
+  // answers "not configured" and the deletion still goes ahead.
+  {
+    key: 'appleTeamId',
+    infisicalKey: 'apple-team-id',
+    description:
+      'Apple Developer team ID; signs the Sign in with Apple client secret',
+    optional: true,
+    secret: true,
+    lands: {
+      'convex-functions': {
+        name: 'APPLE_TEAM_ID',
+        environments: ['local', 'preview', 'production'],
+      },
+    },
+  },
+  {
+    key: 'appleSignInKeyId',
+    infisicalKey: 'apple-sso-key-id',
+    description: 'Key ID of the Sign in with Apple private key',
+    optional: true,
+    secret: true,
+    lands: {
+      'convex-functions': {
+        name: 'APPLE_SIGN_IN_KEY_ID',
+        environments: ['local', 'preview', 'production'],
+      },
+    },
+  },
+  {
+    key: 'appleSignInPrivateKey',
+    infisicalKey: 'apple-sso-key-value',
+    description:
+      'Sign in with Apple .p8 private key; Convex revokes Apple grants on account deletion',
+    optional: true,
+    secret: true,
+    lands: {
+      'convex-functions': {
+        name: 'APPLE_SIGN_IN_PRIVATE_KEY',
+        environments: ['local', 'preview', 'production'],
+      },
+    },
+  },
+
   // ---------- Task providers ----------
   {
     key: 'notionClientId',

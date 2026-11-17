@@ -30,14 +30,21 @@
  * the worst outcome available.
  */
 
+import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
-import { mutation, query } from './_generated/server'
-import { rejectConnectedApps } from './lib/connectedApps'
+import { action, mutation, query } from './_generated/server'
+import {
+  appleCredentials,
+  isAppleClientId,
+  revokeAppleAuthorization,
+} from './lib/appleSignIn'
+import { getGatedIdentity, rejectConnectedApps } from './lib/connectedApps'
 import {
   getCurrentUser,
   getMyGroupIds,
+  NOT_SIGNED_IN,
   requireCurrentUser,
 } from './lib/sharing'
 
@@ -104,5 +111,45 @@ export const deleteAccount = mutation({
       userId: user._id,
       groupIds: solo,
     })
+  },
+})
+
+/** Apple authorization codes are opaque strings of a few hundred characters. */
+const MAX_AUTHORIZATION_CODE = 2000
+
+/** The stable messages `revokeAppleSignIn` fails with. */
+export const APPLE_REVOCATION = {
+  invalidCode: 'Invalid Apple authorization code',
+  invalidBundleId: 'Not a Gather build',
+  unavailable: 'Apple revocation is not configured',
+  failed: 'Apple revocation failed',
+} as const
+
+/**
+ * Revoke the signed-in account's Sign in with Apple grant, just before the
+ * account is deleted (`lib/appleSignIn.ts`). The code comes from a fresh
+ * native Apple sheet on iOS, with the bundle ID of the build that showed it.
+ * Every failure is one stable message; the phone still deletes the account,
+ * so Apple can never block a deletion.
+ */
+export const revokeAppleSignIn = action({
+  args: { authorizationCode: v.string(), bundleId: v.string() },
+  handler: async (ctx, { authorizationCode, bundleId }) => {
+    // Deleting the account stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
+    if (!(await getGatedIdentity(ctx))) throw new ConvexError(NOT_SIGNED_IN)
+    if (!authorizationCode || authorizationCode.length > MAX_AUTHORIZATION_CODE)
+      throw new ConvexError(APPLE_REVOCATION.invalidCode)
+    if (!isAppleClientId(bundleId))
+      throw new ConvexError(APPLE_REVOCATION.invalidBundleId)
+    const credentials = appleCredentials()
+    if (!credentials) throw new ConvexError(APPLE_REVOCATION.unavailable)
+    try {
+      await revokeAppleAuthorization(credentials, authorizationCode, bundleId)
+    } catch (error) {
+      console.error('accounts.revokeAppleSignIn failed', error)
+      throw new ConvexError(APPLE_REVOCATION.failed)
+    }
+    return null
   },
 })
