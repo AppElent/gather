@@ -164,6 +164,21 @@ test('cancelling a retry after an unfinished Apple attempt says nothing', async 
   expect(result.error).toBeNull()
 })
 
+test('cancelling a retry after an Apple sign-in stuck at a second factor says nothing', async () => {
+  mocks.startApple.mockResolvedValue({
+    createdSessionId: null,
+    setActive: mocks.setActive,
+    signIn: {
+      id: 'sia_old',
+      status: 'needs_second_factor',
+      firstFactorVerification: { strategy: 'oauth_token_apple' },
+    },
+    signUp: { id: 'sua_old', status: null },
+  })
+  const result = await run('apple')
+  expect(result.error).toBeNull()
+})
+
 test('Apple before Clerk has loaded says something went wrong', async () => {
   mocks.startApple.mockResolvedValue({ createdSessionId: null })
   const result = await run('apple')
