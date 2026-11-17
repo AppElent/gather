@@ -1,8 +1,9 @@
+import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { alice, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 import { APPLE_REVOCATION } from './accounts'
-import { clientSecret } from './lib/appleSignIn'
+import { clientSecret, isAppleClientId } from './lib/appleSignIn'
 import { CONNECTED_APP_REFUSED } from './lib/connectedApps'
 import { NOT_SIGNED_IN } from './lib/sharing'
 
@@ -231,5 +232,30 @@ describe('accounts.revokeAppleSignIn', () => {
       APPLE_REVOCATION.failed,
     )
     expect(calls.map(({ path }) => path)).toEqual(['/auth/token'])
+  })
+
+  test('fails with the same message when the revoke itself is refused', async () => {
+    await configure()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { calls } = appleResponses({
+      '/auth/token': Response.json({ refresh_token: 'refresh' }),
+      '/auth/revoke': Response.json({ error: 'invalid_client' }, { status: 400 }),
+    })
+    const t = testConvex().withIdentity(alice)
+    expect(await refusal(t.action(api.accounts.revokeAppleSignIn, args))).toBe(
+      APPLE_REVOCATION.failed,
+    )
+    expect(calls.map(({ path }) => path)).toEqual(['/auth/token', '/auth/revoke'])
+  })
+
+  test('every Gather install variant is a known client', async () => {
+    const config = readFileSync(
+      new URL('../apps/mobile/app.config.ts', import.meta.url),
+      'utf8',
+    )
+    const suffixes = [...config.matchAll(/suffix: '([^']*)'/g)].map((m) => m[1])
+    expect(suffixes.length).toBeGreaterThan(0)
+    for (const suffix of suffixes)
+      expect(isAppleClientId(`com.appelent.gather${suffix}`)).toBe(true)
   })
 })

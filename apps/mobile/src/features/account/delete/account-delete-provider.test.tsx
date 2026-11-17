@@ -304,4 +304,19 @@ describe('an account that signs in with Apple (APP-213)', () => {
     expect(state.order).toEqual(['apple', 'apple', 'purge'])
     expect(attempts).toBe(1)
   })
+
+  test('leaving while the Apple sheet is up deletes nothing', async () => {
+    const apple = deferred()
+    state.apple = () => apple.promise.then(() => 'continue' as const)
+    view = render()
+    act(() => deletion.start())
+    await settle()
+
+    view.unmount()
+    view = undefined
+    apple.resolve()
+    await settle()
+    expect(state.order).toEqual(['apple'])
+    expect(state.signedOut).toBe(0)
+  })
 })

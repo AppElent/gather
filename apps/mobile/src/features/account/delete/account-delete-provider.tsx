@@ -33,6 +33,7 @@ import {
   type ReactNode,
   use,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -108,6 +109,16 @@ export function AccountDeleteProvider({
   // a second run, or a second Clerk call, before the first has rendered.
   const running = useRef(false)
   const askingClerk = useRef(false)
+  // The Apple sheet can stay up for as long as the person likes. If this
+  // provider is gone by the time it closes (signed out, app torn down), the
+  // person never saw the deletion through, so it does not go on to purge.
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   const deleteLogin = useCallback(async () => {
     if (askingClerk.current) return
@@ -132,7 +143,9 @@ export function AccountDeleteProvider({
     running.current = true
     setState({ step: 'revokingApple' })
     void (async () => {
-      if ((await revokeAppleSignIn(user, revokeApple)) === 'cancelled') {
+      const apple = await revokeAppleSignIn(user, revokeApple)
+      if (!mounted.current) return
+      if (apple === 'cancelled') {
         running.current = false
         setState({ step: 'idle' })
         return

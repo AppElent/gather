@@ -13,6 +13,9 @@
  */
 
 const APPLE = 'https://appleid.apple.com'
+/** One per install variant: keep in step with `APP_VARIANTS` in
+ * `apps/mobile/app.config.ts`, or a new variant's deletions are refused as
+ * "Not a Gather build" (and still go ahead, unrevoked). */
 const APPLE_CLIENT_IDS = [
   'com.appelent.gather',
   'com.appelent.gather.preview',
