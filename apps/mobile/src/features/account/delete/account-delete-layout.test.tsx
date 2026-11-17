@@ -39,6 +39,11 @@ vi.mock('convex/react', () => ({
     new Promise<void>((resolve) => {
       state.purged = resolve
     }),
+  useAction: () => () => Promise.resolve(null),
+}))
+// No Apple account here; the Apple step has its own tests.
+vi.mock('./apple-revocation', () => ({
+  revokeAppleSignIn: () => Promise.resolve('continue'),
 }))
 vi.mock('expo-router', () => {
   function Stack({ children }: { children: ReactNode }) {
@@ -105,6 +110,8 @@ test('a Clerk refusal after the purge empties the Group list is still on screen 
   expect(view.container.textContent).toBe('delete screen')
 
   act(() => deletion.start())
+  // Past the Apple step (APP-213), so the purge has been asked for.
+  await settle()
   // The scheduled purge empties `groups.myGroups` before the mutation's
   // answer is back, and `GroupProvider` swaps the delete screen out.
   act(() => {

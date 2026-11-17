@@ -18,16 +18,22 @@
  * then on the only ways out are Clerk agreeing, which signs out, or the
  * person signing out themselves.
  *
+ * Before any of it, an account linked to Sign in with Apple has its Apple
+ * grant revoked (`apple-revocation.ts`, APP-213): Clerk does not do it, and
+ * the purge would leave nobody authenticated to ask. Backing out of the Apple
+ * sheet cancels the deletion with nothing deleted.
+ *
  * The stranded state is held in memory, so it lasts while the app is open and
  * signed in. Quitting the app, or Clerk ending the session, loses it.
  */
 import { useUser } from '@clerk/expo'
-import { useMutation } from 'convex/react'
+import { useAction, useMutation } from 'convex/react'
 import {
   createContext,
   type ReactNode,
   use,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -36,11 +42,14 @@ import {
 import { useSignOut } from '../../../auth/useSignOut'
 import { api } from '../../../convex/api'
 import { accountDeletion } from '../../../settings/accountDeletion'
+import { revokeAppleSignIn } from './apple-revocation'
 
 /**
  * Where a deletion is.
  *
- * - **idle** — nothing has been asked for.
+ * - **idle** — nothing has been asked for, or the Apple sheet was dismissed.
+ * - **revokingApple** — revoking the Sign in with Apple grant; nothing is
+ *   deleted yet.
  * - **purging** — waiting for `accounts.deleteAccount`.
  * - **refused** — the purge refused. Nothing has been deleted, and the delete
  *   screen is still there to say so.
@@ -50,6 +59,7 @@ import { accountDeletion } from '../../../settings/accountDeletion'
  */
 export type AccountDeleteState =
   | { step: 'idle' }
+  | { step: 'revokingApple' }
   | { step: 'purging' }
   | { step: 'refused'; cause: unknown }
   | { step: 'deletingLogin' }
@@ -92,12 +102,23 @@ export function AccountDeleteProvider({
 }: AccountDeleteProviderProps) {
   const { user } = useUser()
   const deleteAccount = useMutation(api.accounts.deleteAccount)
+  const revokeApple = useAction(api.accounts.revokeAppleSignIn)
   const signOut = useSignOut()
   const [state, setState] = useState<AccountDeleteState>({ step: 'idle' })
   // Refs as well as the state, so a second tap in the same frame cannot start
   // a second run, or a second Clerk call, before the first has rendered.
   const running = useRef(false)
   const askingClerk = useRef(false)
+  // The Apple sheet can stay up for as long as the person likes. If this
+  // provider is gone by the time it closes (signed out, app torn down), the
+  // person never saw the deletion through, so it does not go on to purge.
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   const deleteLogin = useCallback(async () => {
     if (askingClerk.current) return
@@ -118,12 +139,22 @@ export function AccountDeleteProvider({
   }, [user, signOut])
 
   const start = useCallback(() => {
-    if (running.current || accountDeletion(user) !== 'allowed') return
+    if (!user || running.current || accountDeletion(user) !== 'allowed') return
     running.current = true
-    setState({ step: 'purging' })
+    setState({ step: 'revokingApple' })
     void (async () => {
+      const apple = await revokeAppleSignIn(user, revokeApple)
+      if (!mounted.current) return
+      if (apple === 'cancelled') {
+        running.current = false
+        setState({ step: 'idle' })
+        return
+      }
+      setState({ step: 'purging' })
       try {
-        await deleteAccount({})
+        // Bound to the account the person confirmed: if the session changed
+        // while the Apple sheet was up, Convex refuses and nothing is deleted.
+        await deleteAccount({ expectedSubject: user.id })
       } catch (cause) {
         running.current = false
         setState({ step: 'refused', cause })
@@ -131,7 +162,7 @@ export function AccountDeleteProvider({
       }
       await deleteLogin()
     })()
-  }, [user, deleteAccount, deleteLogin])
+  }, [user, deleteAccount, revokeApple, deleteLogin])
 
   const retryLogin = useCallback(() => {
     if (state.step === 'stranded') void deleteLogin()

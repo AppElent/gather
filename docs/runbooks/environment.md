@@ -75,6 +75,13 @@ the manifest and `.env.example`, not here.
   "not configured" error and local task lists still work.
 - `ANTHROPIC_API_KEY` is optional: without it, recipe import works only for
   pages with JSON-LD.
+- `APPLE_TEAM_ID`, `APPLE_SIGN_IN_KEY_ID` and `APPLE_SIGN_IN_PRIVATE_KEY`
+  (Infisical `apple-team-id`, `apple-sso-key-id`, `apple-sso-key-value`, the
+  same Apple team and key as Foundry) let account deletion revoke a person's
+  Sign in with Apple grant, which Apple requires (TN3194). They are optional so
+  a deploy never fails on them, but production needs them before Gather ships
+  Sign in with Apple to the App Store: without them the revoke answers "not
+  configured", Sentry gets the report, and the deletion goes ahead unrevoked.
 
 ## Verify
 

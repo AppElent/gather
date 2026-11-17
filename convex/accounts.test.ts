@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
+import { ACCOUNT_CHANGED } from './accounts'
 
 /**
  * Deleting an account, asserted from both ends.
@@ -439,6 +440,33 @@ describe('while the purge is running', () => {
     expect(await t.run(async (ctx) => ctx.db.query('users').collect())).toEqual(
       [],
     )
+  })
+})
+
+describe('the account the phone means to delete (APP-213)', () => {
+  test('a different signed-in account is refused, with nothing deleted', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+    await signUp(t, asBob)
+
+    await expect(
+      t.withIdentity(asBob).mutation(api.accounts.deleteAccount, {
+        expectedSubject: asAlice.subject,
+      }),
+    ).rejects.toThrow(ACCOUNT_CHANGED)
+    await settle(t)
+    expect(await t.withIdentity(asBob).query(api.users.me, {})).not.toBeNull()
+    expect(await t.withIdentity(asAlice).query(api.users.me, {})).not.toBeNull()
+  })
+
+  test('the named account goes', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+    await t.withIdentity(asAlice).mutation(api.accounts.deleteAccount, {
+      expectedSubject: asAlice.subject,
+    })
+    await settle(t)
+    expect(await t.withIdentity(asAlice).query(api.users.me, {})).toBeNull()
   })
 })
 

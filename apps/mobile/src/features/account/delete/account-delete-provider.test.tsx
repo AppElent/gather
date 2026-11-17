@@ -11,17 +11,39 @@ import {
 
 const state = vi.hoisted(() => ({
   user: null as {
+    id?: string
     deleteSelfEnabled?: boolean
     delete: () => Promise<void>
   } | null,
   purge: (): Promise<void> => Promise.resolve(),
+  apple: (): Promise<'continue' | 'cancelled'> => Promise.resolve('continue'),
+  order: [] as string[],
+  purgeArgs: [] as unknown[],
   signedOut: 0,
 }))
 
 vi.mock('@clerk/expo', () => ({ useUser: () => ({ user: state.user }) }))
-vi.mock('convex/react', () => ({ useMutation: () => () => state.purge() }))
+vi.mock('convex/react', () => ({
+  useMutation: () => (args: unknown) => {
+    state.order.push('purge')
+    state.purgeArgs.push(args)
+    return state.purge()
+  },
+  useAction: () => () => Promise.resolve(null),
+}))
 vi.mock('../../../convex/api', () => ({
-  api: { accounts: { deleteAccount: 'accounts:deleteAccount' } },
+  api: {
+    accounts: {
+      deleteAccount: 'accounts:deleteAccount',
+      revokeAppleSignIn: 'accounts:revokeAppleSignIn',
+    },
+  },
+}))
+vi.mock('./apple-revocation', () => ({
+  revokeAppleSignIn: () => {
+    state.order.push('apple')
+    return state.apple()
+  },
 }))
 vi.mock('../../../auth/useSignOut', () => ({
   useSignOut: () => () => {
@@ -79,6 +101,9 @@ let view: ReturnType<typeof mount> | undefined
 beforeEach(() => {
   state.signedOut = 0
   state.purge = () => Promise.resolve()
+  state.apple = () => Promise.resolve('continue')
+  state.order = []
+  state.purgeArgs = []
   state.user = { deleteSelfEnabled: true, delete: () => Promise.resolve() }
 })
 
@@ -228,5 +253,86 @@ describe('deleting the account', () => {
     purge.resolve()
     await settle()
     expect(purges).toBe(1)
+  })
+})
+
+describe('an account that signs in with Apple (APP-213)', () => {
+  test('the Apple grant is revoked before anything is deleted', async () => {
+    view = render()
+    act(() => deletion.start())
+    await settle()
+    expect(state.order).toEqual(['apple', 'purge'])
+    expect(state.signedOut).toBe(1)
+  })
+
+  test('while the Apple sheet is up nothing is deleted, and a second tap starts nothing', async () => {
+    const apple = deferred()
+    state.apple = () => apple.promise.then(() => 'continue' as const)
+    view = render()
+
+    const { start } = deletion
+    act(() => {
+      start()
+      start()
+    })
+    await settle()
+    expect(view.container.textContent).toBe('delete screen: revokingApple')
+    expect(state.order).toEqual(['apple'])
+
+    apple.resolve()
+    await settle()
+    expect(state.order).toEqual(['apple', 'purge'])
+  })
+
+  test('dismissing the Apple sheet deletes nothing and can be tried again', async () => {
+    let attempts = 0
+    state.apple = () => Promise.resolve('cancelled')
+    state.user = {
+      deleteSelfEnabled: true,
+      delete: () => {
+        attempts += 1
+        return Promise.resolve()
+      },
+    }
+    view = render()
+
+    act(() => deletion.start())
+    await settle()
+    expect(view.container.textContent).toBe('delete screen: idle')
+    expect(state.order).toEqual(['apple'])
+    expect(attempts).toBe(0)
+
+    state.apple = () => Promise.resolve('continue')
+    act(() => deletion.start())
+    await settle()
+    expect(state.order).toEqual(['apple', 'apple', 'purge'])
+    expect(attempts).toBe(1)
+  })
+
+  test('leaving while the Apple sheet is up deletes nothing', async () => {
+    const apple = deferred()
+    state.apple = () => apple.promise.then(() => 'continue' as const)
+    view = render()
+    act(() => deletion.start())
+    await settle()
+
+    view.unmount()
+    view = undefined
+    apple.resolve()
+    await settle()
+    expect(state.order).toEqual(['apple'])
+    expect(state.signedOut).toBe(0)
+  })
+
+  test('the purge names the account the person confirmed', async () => {
+    state.user = {
+      id: 'user_alex',
+      deleteSelfEnabled: true,
+      delete: () => Promise.resolve(),
+    }
+    view = render()
+    act(() => deletion.start())
+    await settle()
+    expect(state.purgeArgs).toEqual([{ expectedSubject: 'user_alex' }])
   })
 })
