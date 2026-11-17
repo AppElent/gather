@@ -58,6 +58,10 @@ updates:
       # with the SDK.
       - dependency-name: "@sentry/react-native"
         update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+      # Any @clerk/expo version change alters the native fingerprint, so installed
+      # builds stop taking OTA updates. Moved by hand with a planned native build.
+      - dependency-name: "@clerk/expo"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
 
   - package-ecosystem: github-actions
     directory: "/"
