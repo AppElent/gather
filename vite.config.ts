@@ -8,6 +8,7 @@ import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
+import { gatherMcpViews } from './src/lib/mcp/views/vitePlugin.ts'
 
 // apps/mobile/app.json `expo.version` is the one SemVer for web and phone
 // (the release standard): web reports it on /version and in its Sentry release.
@@ -81,6 +82,8 @@ const config = defineConfig(({ mode }) => {
     // uploads them and deletes them from dist, so none reach the public client.
     build: { sourcemap: uploadSourceMaps ? 'hidden' : false },
     plugins: [
+      // The MCP views, bundled into one document the Worker serves (docs/runbooks/mcp.md).
+      gatherMcpViews(),
       devtools(),
       cloudflare({ viteEnvironment: { name: 'ssr' } }),
       tailwindcss(),

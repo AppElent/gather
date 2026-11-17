@@ -1,5 +1,6 @@
 import viteReact from '@vitejs/plugin-react'
 import { configDefaults, defineConfig } from 'vitest/config'
+import { gatherMcpViews } from './src/lib/mcp/views/vitePlugin.ts'
 
 const alias = {
   '#': new URL('./src', import.meta.url).pathname,
@@ -15,7 +16,7 @@ export default defineConfig({
   test: {
     projects: [
       {
-        plugins: [viteReact()],
+        plugins: [viteReact(), gatherMcpViews()],
         resolve: { alias },
         test: {
           name: 'web',

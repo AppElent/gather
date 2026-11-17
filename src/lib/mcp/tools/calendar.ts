@@ -23,7 +23,7 @@ const NOT_FOUND = 'Calendar or event not found.'
 const MAX_RANGE_DAYS = 92
 const MAX_EVENTS = 500
 
-type Event = {
+export type Event = {
   _id: string
   calendarId: string
   calendarName: string
@@ -56,7 +56,7 @@ function daysBetween(from: string, to: string) {
   return (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 864e5
 }
 
-async function calendarsOf(context: ToolContext, slug: string) {
+export async function calendarsOf(context: ToolContext, slug: string) {
   const page = await context.backend.query(api.calendar.listCalendars, {
     groupSlug: slug,
     paginationOpts: { numItems: 100, cursor: null },
@@ -64,7 +64,7 @@ async function calendarsOf(context: ToolContext, slug: string) {
   return page.page
 }
 
-async function eventsOf(
+export async function eventsOf(
   context: ToolContext,
   slug: string,
   calendarId: Id<'calendars'>,

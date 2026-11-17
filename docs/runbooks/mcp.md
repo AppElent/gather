@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when connecting to, operating, or changing the Gather MCP server.
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Gather MCP
@@ -57,7 +57,8 @@ own origin, and localhost against a local server. Server-side clients send none.
 
 Read (`gather:read`): `get_current_user`, `list_groups`, `list_recipes`,
 `get_recipe`, `list_task_lists`, `list_tasks`, `list_notes`, `list_calendars`,
-`list_events`.
+`list_events`, and the view tools `show_week_agenda`, `show_task_list`, and
+`show_recipe` (see [Views](#views)).
 
 Write (`gather:write`): `create_recipe`, `update_recipe`, `create_task_list`,
 `create_task`, `update_task`, `create_note`, `update_note`, `create_event`,
@@ -81,6 +82,32 @@ To add a tool, add it to a file in `src/lib/mcp/tools/` with `defineTool`, set
 `access`, and add a case to `src/lib/mcp/handler.test.ts`. A create tool needs
 its Convex mutation to take `idempotencyKey` and insert through `createOnce`
 (`convex/lib/idempotency.ts`).
+
+## Views
+
+Three read tools open an interactive view (an [MCP App](https://modelcontextprotocol.io/extensions/apps/overview))
+in hosts that support it, such as Claude.ai. Other clients get the same data as
+JSON and text. The pattern is Foundry's (`AppElent/workouts`
+`docs/runbooks/mcp.md#views`).
+
+| Tool | View | What it does |
+| --- | --- | --- |
+| `show_week_agenda` | `ui://gather/week-agenda` | A Group's events for one Monday-to-Sunday week, every calendar; previous/next week call the tool again. |
+| `show_task_list` | `ui://gather/task-list` | One task list. With `gather:write` and a list kept in Gather, the view checks tasks off (`update_task`) and adds tasks (`create_task`, with an `idempotencyKey` made in the view and reused on retry). |
+| `show_recipe` | `ui://gather/recipe-card` | One recipe with photo, ingredients and steps; a servings stepper scales leading quantities in the ingredient lines. |
+
+- The UI is React in `src/lib/mcp/views/ui/`. The Vite plugin
+  `src/lib/mcp/views/vitePlugin.ts` builds it into one HTML file with inlined JS
+  and CSS, exposed to the Worker as `virtual:gather-mcp-views`; `pnpm build`
+  fails if it does not build.
+- Copy is in `packages/core/src/messages/*/mcpViews.ts` and follows the host's
+  locale (English or Dutch). Colours use the host's style variables first and
+  fall back to Gather's sea and lagoon palette, light and dark.
+- The recipe view loads its photo from Convex file storage, so that resource
+  declares the Convex origin in `_meta.ui.csp.resourceDomains`; the others load
+  nothing.
+- `_meta.ui.domain` is Claude's sandbox origin for this endpoint, computed per
+  request, so each environment gets its own.
 
 ## Setup per environment
 

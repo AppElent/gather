@@ -519,4 +519,119 @@ describe('Gather MCP endpoint', () => {
       done: true,
     })
   })
+
+  it('serves the three views as MCP Apps resources', async () => {
+    const listed = await result<{
+      tools: { name: string; _meta?: { ui?: { resourceUri?: string } } }[]
+    }>(await handleGatherMcpRequest(rpc('tools/list'), options(fakeBackend())))
+    const views = Object.fromEntries(
+      listed.tools
+        .filter((t) => t._meta?.ui?.resourceUri)
+        .map((t) => [t.name, t._meta?.ui?.resourceUri]),
+    )
+    expect(views).toEqual({
+      show_week_agenda: 'ui://gather/week-agenda',
+      show_task_list: 'ui://gather/task-list',
+      show_recipe: 'ui://gather/recipe-card',
+    })
+    const read = await result<{
+      contents: {
+        mimeType: string
+        text: string
+        _meta: { ui: { domain: string } }
+      }[]
+    }>(
+      await handleGatherMcpRequest(
+        rpc('resources/read', { uri: 'ui://gather/task-list' }),
+        options(fakeBackend(), ['gather:read']),
+      ),
+    )
+    const [content] = read.contents
+    expect(content.mimeType).toContain('mcp-app')
+    expect(content.text).toContain('data-view="task-list"')
+    expect(content._meta.ui.domain).toMatch(/^[0-9a-f]{32}\.claudemcpcontent\.com$/)
+  })
+
+  it('builds a Monday-to-Sunday agenda from every calendar', async () => {
+    const backend = fakeBackend({
+      'calendar:listCalendars': () => ({
+        page: [{ _id: 'cal_1', name: 'Family', color: 'home' }],
+        isDone: true,
+        continueCursor: '',
+      }),
+      'calendar:listEvents': () => ({
+        page: [
+          {
+            _id: 'event_1',
+            calendarId: 'cal_1',
+            calendarName: 'Family',
+            title: 'Dentist',
+            date: '2026-11-19',
+            allDay: false,
+            startMinutes: 540,
+            endMinutes: 600,
+            location: '',
+            notes: '',
+          },
+        ],
+        isDone: true,
+        continueCursor: '',
+      }),
+    })
+    const out = await callTool(backend, 'show_week_agenda', {
+      groupId: 'group_home',
+    })
+    const agenda = out.structuredContent as {
+      weekStart: string
+      isCurrentWeek: boolean
+      days: { date: string; events: { title: string; start?: string }[] }[]
+    }
+    expect(agenda.weekStart).toBe('2026-11-16')
+    expect(agenda.isCurrentWeek).toBe(true)
+    expect(agenda.days).toHaveLength(7)
+    expect(agenda.days[3]).toEqual({
+      date: '2026-11-19',
+      events: [
+        {
+          id: 'event_1',
+          calendar: 'Family',
+          title: 'Dentist',
+          date: '2026-11-19',
+          allDay: false,
+          start: '09:00',
+          end: '10:00',
+        },
+      ],
+    })
+    expect(backend.calls.at(-1)?.args).toMatchObject({
+      from: '2026-11-16',
+      toExclusive: '2026-11-23',
+    })
+  })
+
+  it('shows a task list as writable only with the write scope', async () => {
+    const backend = () =>
+      fakeBackend({
+        'taskLists:list': () => [
+          { _id: 'list_1', name: 'Groceries', provider: 'local', writable: true },
+        ],
+        'tasks:listByList': () => [
+          { _id: 'task_1', title: 'Milk', done: false, createdBy: 'user_x' },
+        ],
+      })
+    const args = { groupId: 'group_home', listId: 'list_1' }
+    const writer = await callTool(backend(), 'show_task_list', args)
+    expect(writer.structuredContent).toMatchObject({
+      canWrite: true,
+      tasks: [{ id: 'task_1', title: 'Milk', done: false }],
+    })
+    expect(writer.content[0].text).not.toContain('user_x')
+    const reader = await callTool(backend(), 'show_task_list', args, [
+      'gather:read',
+    ])
+    expect(reader.structuredContent).toMatchObject({
+      canWrite: false,
+      readOnlyReason: 'scope',
+    })
+  })
 })

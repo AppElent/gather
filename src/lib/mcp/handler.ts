@@ -150,6 +150,9 @@ export async function handleGatherMcpRequest(
 
 	const backend =
 		options.createBackend?.(access.token) ?? convexBackend(access.token);
+	const imageOrigin = options.createBackend
+		? undefined
+		: new URL(convexUrl()).origin;
 	const server = createGatherMcpServer({
 		backend,
 		access,
@@ -157,7 +160,7 @@ export async function handleGatherMcpRequest(
 		now: options.now ?? (() => new Date()),
 		userInfo: () =>
 			(options.fetchUserInfo ?? ((a) => fetchUserInfo(issuer, a)))(access),
-	});
+	}, imageOrigin);
 	const transport = new WebStandardStreamableHTTPServerTransport({
 		sessionIdGenerator: undefined,
 		enableJsonResponse: true,

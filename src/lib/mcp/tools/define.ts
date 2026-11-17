@@ -1,3 +1,4 @@
+import { registerAppTool } from '@modelcontextprotocol/ext-apps/server'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
 import type {
@@ -12,6 +13,7 @@ import type { Id } from '../../../../convex/_generated/dataModel'
 import { GROUP_REFUSAL_MESSAGES } from '../../../../convex/lib/groupAccess'
 import { reportError } from '../../observability/report'
 import { MCP_SCOPES, type McpAccess } from '../auth'
+import { type ViewName, viewUri } from '../views/types'
 
 /** The Convex calls tools make, as the signed-in user. ConvexHttpClient fits. */
 export type GatherBackend = {
@@ -45,6 +47,8 @@ type ToolDefinition<Input extends Shape> = {
   /** Read tools need gather:read; write tools need gather:write. */
   access: 'read' | 'write'
   annotations?: Omit<ToolAnnotations, 'title' | 'readOnlyHint'>
+  /** Hosts with MCP Apps render this view with the result. */
+  view?: ViewName
   run: (
     args: z.infer<z.ZodObject<Input>>,
     context: ToolContext,
@@ -73,30 +77,35 @@ export function registerTools(
   const canRead = canWrite || context.access.scopes.has(MCP_SCOPES.read)
   for (const tool of tools) {
     if (!(tool.access === 'read' ? canRead : canWrite)) continue
-    server.registerTool(
-      tool.name,
-      {
+    const config = {
+      title: tool.title,
+      description: tool.description,
+      inputSchema: tool.input,
+      annotations: {
         title: tool.title,
-        description: tool.description,
-        inputSchema: tool.input,
-        annotations: {
-          title: tool.title,
-          readOnlyHint: tool.access === 'read',
-          openWorldHint: false,
-          ...(tool.access === 'write'
-            ? { destructiveHint: false, idempotentHint: false }
-            : {}),
-          ...tool.annotations,
-        },
+        readOnlyHint: tool.access === 'read',
+        openWorldHint: false,
+        ...(tool.access === 'write'
+          ? { destructiveHint: false, idempotentHint: false }
+          : {}),
+        ...tool.annotations,
       },
-      async (args: unknown) => {
-        try {
-          return toolResult(await tool.run(args as never, context))
-        } catch (error) {
-          return toolError(error)
-        }
-      },
-    )
+    }
+    const callback = async (args: unknown) => {
+      try {
+        return toolResult(await tool.run(args as never, context))
+      } catch (error) {
+        return toolError(error)
+      }
+    }
+    if (tool.view)
+      registerAppTool(
+        server,
+        tool.name,
+        { ...config, _meta: { ui: { resourceUri: viewUri(tool.view) } } },
+        callback,
+      )
+    else server.registerTool(tool.name, config, callback)
   }
 }
 
