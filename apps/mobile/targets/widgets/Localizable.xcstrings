@@ -1,0 +1,28 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Quick actions": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snelle acties"
+          }
+        }
+      },
+      "comment": "The control's button. Same words as shell.homeScreenActions.quick in src/i18n/messages."
+    },
+    "Show what you need, or add something": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tonen wat je nodig hebt, of iets toevoegen"
+          }
+        }
+      },
+      "comment": "The control's description in the gallery. Same words as shell.add.subtitle in src/i18n/messages."
+    }
+  },
+  "version": "1.0"
+}

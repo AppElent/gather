@@ -128,6 +128,12 @@ export const nl = {
       all: coreNl.shell.nav.all,
     },
 
+    homeScreenActions: {
+      loyaltyCard: 'Klantkaart tonen',
+      addTask: 'Taak toevoegen',
+      quick: 'Snelle acties',
+    },
+
     add: {
       title: 'Snel · {group}',
       subtitle: 'Tonen wat je nodig hebt, of iets toevoegen',

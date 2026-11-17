@@ -2,7 +2,8 @@
  * One identity per EAS profile, so production, preview and development builds
  * install side by side (the mobile-distribution standard, ADR 0045). `app.json`
  * holds everything shared; this file only swaps the per-variant name, scheme,
- * bundle ID, package, share-extension app group and badged icon.
+ * bundle ID, package, share-extension app group and badged icon. The widget
+ * extension (`targets/widgets/`) takes its bundle ID and name from the result.
  *
  * `APP_VARIANT` is set per profile in `eas.json`, and per channel by the
  * update publisher. Unset means a local development build, so a local run never

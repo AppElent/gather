@@ -57,6 +57,7 @@ import { useOfflineCards } from '../src/features/loyalty-cards/offline/use-offli
 import { LocaleProvider } from '../src/i18n'
 import { useNavigationBreadcrumbs } from '../src/observability/navigation'
 import { reportError } from '../src/observability/report'
+import { HomeScreenActionLinks } from '../src/shell/HomeScreenActionLinks'
 import { AppearanceProvider } from '../src/theme/appearance'
 import { NativeChrome } from '../src/theme/NativeChrome'
 
@@ -177,6 +178,8 @@ function RootNavigator() {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />
       </Stack>
+      {/* The app icon's quick actions and the Control Center control (APP-207): after the router exists. */}
+      <HomeScreenActionLinks />
       {mode === 'connection-lost' ? <ConnectionLostBanner /> : null}
     </View>
   )

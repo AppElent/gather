@@ -179,6 +179,16 @@ export const en = {
       all: coreEn.shell.nav.all,
     },
 
+    /**
+     * The app icon's long-press menu (APP-207): iOS Home Screen quick actions
+     * and Android shortcuts. Each opens the quick-actions sheet.
+     */
+    homeScreenActions: {
+      loyaltyCard: 'Show loyalty card',
+      addTask: 'Add task',
+      quick: 'Quick actions',
+    },
+
     add: {
       /** The quick-actions sheet (APP-206): show what you need, or add. */
       title: 'Quick · {group}',

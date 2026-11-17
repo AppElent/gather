@@ -70,27 +70,55 @@ const TILE_MIN_HEIGHT = 96
 export function QuickActionSheet({
   visible,
   groupName,
+  initialAction,
+  requestCount = 0,
   onClose,
 }: {
   visible: boolean
   groupName: string
+  /** A `row` action whose form is open on arrival (`<scheme>://quick?action=`). */
+  initialAction?: QuickActionId
+  /**
+   * Bumped by each `<scheme>://quick` request. A new one while the sheet is up
+   * opens `initialAction` in place: remounting the native sheet instead would
+   * dismiss it, and iOS drops the new presentation.
+   */
+  requestCount?: number
   onClose: () => void
 }) {
   if (!visible) return null
-  return <SheetBody groupName={groupName} onClose={onClose} />
+  return (
+    <SheetBody
+      groupName={groupName}
+      initialAction={initialAction}
+      requestCount={requestCount}
+      onClose={onClose}
+    />
+  )
 }
 
 function SheetBody({
   groupName,
+  initialAction,
+  requestCount,
   onClose,
 }: {
   groupName: string
+  initialAction?: QuickActionId
+  requestCount: number
   onClose: () => void
 }) {
   const tokens = useTokens()
   const { t } = useI18n()
   const { fontScale } = useWindowDimensions()
-  const [openId, setOpenId] = useState<QuickActionId | null>(null)
+  const [openId, setOpenId] = useState<QuickActionId | null>(
+    initialAction ?? null,
+  )
+  const [seenRequest, setSeenRequest] = useState(requestCount)
+  if (requestCount !== seenRequest) {
+    setSeenRequest(requestCount)
+    setOpenId(initialAction ?? null)
+  }
   // Measured, because flex leaves a column as wide as its label.
   const [gridWidth, setGridWidth] = useState(0)
   // What this launcher has saved since it opened. A haptic is never the only
