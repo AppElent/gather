@@ -1,0 +1,156 @@
+name: Mobile update (production)
+
+# The daily production app update (the release standard, ADR 0044): once each
+# morning, publish to the `production` channel the newest commit that has
+# soaked at least 24 hours on the preview app. No decision card per daily
+# update. Per platform it publishes only when all of these hold:
+#
+# - a Deploy run on main published that commit to `preview`, and finished at
+#   least 24 hours ago (so it soaked on the owner's phone), and that run is
+#   green, so the production backend for the commit deployed;
+# - something the app bundles changed since that platform's `ota-production-<platform>` tag;
+# - an earlier update or a finished build on `production` has the same runtime
+#   fingerprint. Otherwise the run summary says a store build is due, and
+#   nothing is published: store builds wait for the owner's decision card.
+#
+# To hold production (a bad commit has soaked but its fix has not), disable this
+# workflow (`gh workflow disable mobile-update-production.yml`) until the fix
+# has soaked, then enable it again.
+#
+# A manual run can name a `ref` (skips the soak selection) or `force` (skips the
+# change and fingerprint gates). Both are for a hotfix or a forced publish the
+# owner approved on a decision card; never use them otherwise.
+on:
+  schedule:
+    # 06:17 UTC: 07:17 in Amsterdam in winter, 08:17 in summer.
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit to publish instead of the newest soaked one (owner-approved only)
+        type: string
+        default: ''
+      force:
+        description: Skip the change and fingerprint gates (owner-approved only)
+        type: boolean
+        default: false
+
+concurrency:
+  group: mobile-update-production
+  cancel-in-progress: false
+
+jobs:
+  select:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      sha: ${{ steps.pick.outputs.sha }}
+    steps:
+      - name: Pick the newest soaked preview publish
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ inputs.ref }}
+        run: |
+          if [ -n "$REF" ]; then
+            echo "Publishing \`$REF\` as asked; soak selection skipped." >> "$GITHUB_STEP_SUMMARY"
+            echo "sha=$REF" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          cutoff=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          # Newest first, page by page, stopping at the first eligible run; ten
+          # pages (1000 green Deploy runs) is far beyond any real backlog.
+          for page in $(seq 1 10); do
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs?branch=main&status=success&per_page=100&page=$page" \
+              --jq ".workflow_runs[] | select(.updated_at <= \"$cutoff\") | \"\(.id) \(.head_sha)\"")
+            total=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs?branch=main&status=success&per_page=100&page=$page" \
+              --jq '.workflow_runs | length')
+            while read -r id sha; do
+              [ -n "$id" ] || continue
+              # The run's preview job ("mobile / publish") ran its Publish step,
+              # rather than skipping it because nothing changed or a build is due.
+              published=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=100" \
+                --jq '[.jobs[] | select(.name | test("publish$")) | .steps[]? | select(.name == "Publish" and .conclusion == "success")] | length')
+              if [ "${published:-0}" -gt 0 ]; then
+                echo "Newest preview publish older than 24 hours: \`${sha:0:7}\` (Deploy run $id)." >> "$GITHUB_STEP_SUMMARY"
+                echo "sha=$sha" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            done <<< "$runs"
+            [ "${total:-0}" -eq 100 ] || break
+          done
+          echo "No preview publish has soaked 24 hours yet; nothing to publish." >> "$GITHUB_STEP_SUMMARY"
+          echo "sha=" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: select
+    if: needs.select.outputs.sha != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The production Environment holds EXPO_TOKEN and the Sentry token; it only
+    # allows main, and has no reviewers (the owner approves upstream).
+    environment: production
+    permissions:
+      # Moves the ota-production tags.
+      contents: write
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      # publish-update.mjs refuses production without them: a crash nobody can
+      # symbolicate is the one that costs a day.
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      VITE_SENTRY_ORG: ${{ vars.VITE_SENTRY_ORG }}
+      VITE_SENTRY_PROJECT: ${{ vars.VITE_SENTRY_PROJECT }}
+      FORCE: ${{ inputs.force && '--force' || '' }}
+    steps:
+      - name: Check Expo token
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN is not set in the production Environment. Store expo-token in Infisical and run pnpm env:apply production --only github."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.select.outputs.sha }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      # A `ref` from a manual run must be on main: production calls the backend
+      # main deployed, and nothing else soaked anywhere.
+      - name: Guard ref on main
+        run: |
+          git fetch -q origin main
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::$(git rev-parse --short HEAD) is not on main."
+            exit 1
+          fi
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Gate
+        id: gate
+        run: node apps/mobile/scripts/ota-gate.mjs production $FORCE
+
+      - name: Publish
+        if: steps.gate.outputs.platforms != ''
+        run: |
+          message="$(git log -1 --format=%s) ($(git rev-parse --short HEAD))"
+          published=0
+          for platform in ${{ steps.gate.outputs.platforms }}; do
+            node apps/mobile/scripts/publish-update.mjs production \
+              --platform "$platform" --non-interactive --message "$message"
+            # Per platform, so publishing one never marks the other as current.
+            git tag -f "ota-production-$platform"
+            git push -f origin "refs/tags/ota-production-$platform"
+            published=$((published + 1))
+          done
+          # The channel tag means "every platform runs at least this commit".
+          if [ "$published" -eq 2 ]; then
+            git tag -f ota-production
+            git push -f origin refs/tags/ota-production
+          fi
+          echo "Published. Check Sentry for the new release; roll back with \`eas update:republish\` or \`update:roll-back-to-embedded\` (docs/runbooks/mobile-releases.md)." >> "$GITHUB_STEP_SUMMARY"

@@ -2,12 +2,14 @@
 type: decision
 description: Read before changing the staging or production deploy trigger.
 version: 1.1.0
-status: accepted
+status: superseded
 date: 2026-08-06
 ---
 
 # Staging deploys on merge, production deploys on a click
 
+> [ADR 0044](./0044-every-merge-ships-and-the-app-updates-daily.md) replaces the click: production now follows staging on every merge.
+>
 > [ADR 0039](./0039-staging-is-a-frontend-on-the-production-backend.md) replaces the named staging deployment described here. The trigger and the click stand.
 
 `main` deploys itself to **staging**. Production deploys from the same workflow,

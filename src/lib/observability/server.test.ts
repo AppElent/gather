@@ -56,3 +56,14 @@ it('skips Sentry entirely when no DSN is configured', async () => {
   expect(await server.fetch(request, {}, ctx)).toBe(response)
   expect(mocks.sentryFetch).not.toHaveBeenCalled()
 })
+
+it('answers /version itself, before Start and Sentry', async () => {
+  vi.stubEnv('VITE_SENTRY_DSN', 'https://k@o1.ingest.sentry.io/1')
+  const { default: server } = await import('../../server')
+  const response = await server.fetch(new Request('https://gather.appelent.nl/version'), {}, ctx)
+
+  expect(response.headers.get('content-type')).toContain('application/json')
+  expect((await response.json()).app).toBe('gather')
+  expect(mocks.startFetch).not.toHaveBeenCalled()
+  expect(mocks.sentryFetch).not.toHaveBeenCalled()
+})
