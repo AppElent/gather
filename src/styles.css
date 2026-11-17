@@ -48,6 +48,8 @@
 }
 
 :root[data-theme="dark"] {
+  --auth-apple-bg: #fff;
+  --auth-apple-fg: #000;
   --app-bg: oklch(16% 0.012 250);
   --app-surface: oklch(20% 0.012 250);
   --app-surface-muted: oklch(24% 0.012 250);
@@ -81,6 +83,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --auth-apple-bg: #fff;
+    --auth-apple-fg: #000;
     --app-bg: oklch(16% 0.012 250);
     --app-surface: oklch(20% 0.012 250);
     --app-surface-muted: oklch(24% 0.012 250);
@@ -129,6 +133,9 @@
   --auth-accent: var(--lagoon-deep);
   --auth-accent-fg: var(--foam);
   --auth-error: #c14747;
+  /* Sign in with Apple: black on light, white on dark (Apple's guidelines). */
+  --auth-apple-bg: #000;
+  --auth-apple-fg: #fff;
 }
 
 /* Everything below is layered, and that is the whole point.

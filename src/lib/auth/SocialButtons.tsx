@@ -4,6 +4,7 @@ import { fmt, useMessages } from '../i18n'
 import { AuthButton } from './AuthButton'
 import { useAuthConfig } from './AuthConfigProvider'
 import { AuthError } from './AuthError'
+import { AppleMark, MicrosoftMark } from './BrandMarks'
 import { orThrow } from './clerkResult'
 import { clerkErrorMessage } from './core'
 
@@ -15,6 +16,11 @@ import { clerkErrorMessage } from './core'
  * `AuthenticateWithRedirectCallback` finishes the flow. Starting from a
  * sign-in is enough for a sign-up too: Clerk transfers an unknown account to a
  * sign-up on the callback, so both forms draw the same buttons.
+ *
+ * Apple and Microsoft carry their own marks, as their sign-in guidelines ask:
+ * Apple's button is solid black on a light page and white on a dark one
+ * (`--auth-apple-*` in `styles.css`), Microsoft's is the outlined button with
+ * the four squares. Any other provider is a plain outlined button.
  *
  * Ported from Foundry's `SocialButtons` (APP-208). Draws nothing when the
  * config lists no providers.
@@ -70,11 +76,20 @@ export function SocialButtons() {
           key={provider.strategy}
           type="button"
           variant="ghost"
-          className="border-solid border-[var(--auth-border)]"
+          className={
+            provider.id === 'apple'
+              ? 'border-solid border-transparent bg-[var(--auth-apple-bg)] text-[var(--auth-apple-fg)] hover:bg-[var(--auth-apple-bg)] hover:opacity-90'
+              : 'border-solid border-[var(--auth-border)]'
+          }
           loading={pending === provider.strategy}
           disabled={pending !== null}
           onClick={() => start(provider.strategy)}
         >
+          {provider.id === 'apple' ? (
+            <AppleMark className="size-4 shrink-0" />
+          ) : provider.id === 'microsoft' ? (
+            <MicrosoftMark className="size-4 shrink-0" />
+          ) : null}
           {fmt(auth.continueWith, { provider: provider.label })}
         </AuthButton>
       ))}

@@ -6,7 +6,7 @@ export const auth = {
   password: 'Wachtwoord',
   code: 'Code',
   verificationCode: 'Verificatiecode',
-  continueWith: 'Doorgaan met {provider}',
+  continueWith: 'Ga door met {provider}',
   or: 'of',
 
   errors: {

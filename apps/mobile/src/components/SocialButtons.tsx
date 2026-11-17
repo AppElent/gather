@@ -7,12 +7,12 @@
  * Apple's own artwork and approved styles, so it is not themed like the rest:
  * black on a light screen, white on a dark one, the pill radius and the 52 pt
  * height of `Button` so the column reads as one set. It localizes itself from
- * the device language. Android gets a plain `Button` for Apple, which opens
- * Apple's web sign-in.
+ * the device language. Android has no system button, so it draws Apple's
+ * guideline look itself: the Apple logo on a solid black or white pill. It
+ * opens Apple's web sign-in.
  *
- * Microsoft is a `secondary` `Button`, label only. Microsoft's branding guide
- * asks for its four-square mark at a fixed size on a real "Sign in with
- * Microsoft" button; a text label is allowed and avoids drawing it wrong.
+ * Microsoft is a `secondary` `Button` with Microsoft's four-square mark before
+ * the label, as Microsoft's branding guide asks.
  *
  * While one provider is running, the others are inert, so a second tap cannot
  * start a second browser on top of the first.
@@ -25,6 +25,7 @@ import { useAppearance } from '../theme/appearance'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import { Button } from '../ui/button'
 import { AuthError } from './AuthError'
+import { AppleMark, MicrosoftMark } from './BrandMarks'
 
 /** `Button`'s own height: 15 pt padding twice plus `TYPE.bodyStrong`'s line. */
 const BUTTON_HEIGHT = 52
@@ -34,6 +35,13 @@ export function SocialButtons() {
   const { scheme } = useAppearance()
   const { t } = useI18n()
   const { start, pending, error } = useSocialSignIn()
+  // Apple's guideline colours, outside the theme on purpose: black on a light
+  // screen, white on a dark one, the same as the iOS system button.
+  const appleInk = scheme === 'dark' ? '#000' : '#fff'
+  const appleSurface = {
+    backgroundColor: scheme === 'dark' ? '#fff' : '#000',
+    borderColor: 'transparent',
+  }
 
   return (
     <View style={styles.wrap}>
@@ -74,6 +82,15 @@ export function SocialButtons() {
             testID={`sign-in-${provider}`}
             variant="secondary"
             label={t.social[provider]}
+            icon={
+              provider === 'apple' ? (
+                <AppleMark color={appleInk} />
+              ) : (
+                <MicrosoftMark />
+              )
+            }
+            style={provider === 'apple' ? appleSurface : undefined}
+            labelColor={provider === 'apple' ? appleInk : undefined}
             busy={pending === provider}
             disabled={pending !== null && pending !== provider}
             onPress={() => start(provider)}
