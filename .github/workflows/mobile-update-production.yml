@@ -8,7 +8,7 @@ name: Mobile update (production)
 # - a Deploy run on main published that commit to `preview`, and finished at
 #   least 24 hours ago (so it soaked on the owner's phone), and that run is
 #   green, so the production backend for the commit deployed;
-# - something the app bundles changed since the `ota-production` tag;
+# - something the app bundles changed since that platform's `ota-production-<platform>` tag;
 # - an earlier update or a finished build on `production` has the same runtime
 #   fingerprint. Otherwise the run summary says a store build is due, and
 #   nothing is published: store builds wait for the owner's decision card.
@@ -61,20 +61,27 @@ jobs:
             exit 0
           fi
           cutoff=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
-          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs?branch=main&status=success&per_page=50" \
-            --jq ".workflow_runs[] | select(.updated_at <= \"$cutoff\") | \"\(.id) \(.head_sha)\"")
-          while read -r id sha; do
-            [ -n "$id" ] || continue
-            # The run's preview job ("mobile / publish") ran its Publish step,
-            # rather than skipping it because nothing changed or a build is due.
-            published=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=100" \
-              --jq '[.jobs[] | select(.name | test("publish$")) | .steps[]? | select(.name == "Publish" and .conclusion == "success")] | length')
-            if [ "${published:-0}" -gt 0 ]; then
-              echo "Newest preview publish older than 24 hours: \`${sha:0:7}\` (Deploy run $id)." >> "$GITHUB_STEP_SUMMARY"
-              echo "sha=$sha" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          done <<< "$runs"
+          # Newest first, page by page, stopping at the first eligible run; ten
+          # pages (1000 green Deploy runs) is far beyond any real backlog.
+          for page in $(seq 1 10); do
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs?branch=main&status=success&per_page=100&page=$page" \
+              --jq ".workflow_runs[] | select(.updated_at <= \"$cutoff\") | \"\(.id) \(.head_sha)\"")
+            total=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs?branch=main&status=success&per_page=100&page=$page" \
+              --jq '.workflow_runs | length')
+            while read -r id sha; do
+              [ -n "$id" ] || continue
+              # The run's preview job ("mobile / publish") ran its Publish step,
+              # rather than skipping it because nothing changed or a build is due.
+              published=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=100" \
+                --jq '[.jobs[] | select(.name | test("publish$")) | .steps[]? | select(.name == "Publish" and .conclusion == "success")] | length')
+              if [ "${published:-0}" -gt 0 ]; then
+                echo "Newest preview publish older than 24 hours: \`${sha:0:7}\` (Deploy run $id)." >> "$GITHUB_STEP_SUMMARY"
+                echo "sha=$sha" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            done <<< "$runs"
+            [ "${total:-0}" -eq 100 ] || break
+          done
           echo "No preview publish has soaked 24 hours yet; nothing to publish." >> "$GITHUB_STEP_SUMMARY"
           echo "sha=" >> "$GITHUB_OUTPUT"
 
@@ -87,7 +94,7 @@ jobs:
     # allows main, and has no reviewers (the owner approves upstream).
     environment: production
     permissions:
-      # Moves the ota-production tag.
+      # Moves the ota-production tags.
       contents: write
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -132,10 +139,18 @@ jobs:
         if: steps.gate.outputs.platforms != ''
         run: |
           message="$(git log -1 --format=%s) ($(git rev-parse --short HEAD))"
+          published=0
           for platform in ${{ steps.gate.outputs.platforms }}; do
             node apps/mobile/scripts/publish-update.mjs production \
               --platform "$platform" --non-interactive --message "$message"
+            # Per platform, so publishing one never marks the other as current.
+            git tag -f "ota-production-$platform"
+            git push -f origin "refs/tags/ota-production-$platform"
+            published=$((published + 1))
           done
-          git tag -f ota-production
-          git push -f origin refs/tags/ota-production
+          # The channel tag means "every platform runs at least this commit".
+          if [ "$published" -eq 2 ]; then
+            git tag -f ota-production
+            git push -f origin refs/tags/ota-production
+          fi
           echo "Published. Check Sentry for the new release; roll back with \`eas update:republish\` or \`update:roll-back-to-embedded\` (docs/runbooks/mobile-releases.md)." >> "$GITHUB_STEP_SUMMARY"

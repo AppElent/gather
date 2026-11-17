@@ -61,6 +61,6 @@ jobs:
     needs: production
     uses: ./.github/workflows/mobile-update.yml
     permissions:
-      # Moves the ota-preview tag.
+      # Moves the ota-preview tags.
       contents: write
     secrets: inherit

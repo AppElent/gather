@@ -18,8 +18,8 @@ date: 2026-11-17
 | --- | --- | --- | --- |
 | Web staging (`gather-staging`) | Every merge to `main` | CI `check` | `deploy.yml` → `deploy-web.yml` |
 | Production Convex, seeds, Worker (`gather`) | Every merge, right after staging | Staging deployed and its smoke check passed | same run |
-| Preview app (`preview` channel) | Every merge, after the production backend | Bundled files changed since `ota-preview`; runtime fingerprint matches a preview update or build | `mobile-update.yml` |
-| Production app (`production` channel) | Daily, 06:17 UTC | Soaked 24 hours on preview, its Deploy run green, bundled files changed since `ota-production`, fingerprint matches | `mobile-update-production.yml` |
+| Preview app (`preview` channel) | Every merge, after the production backend | Bundled files changed since `ota-preview-<platform>`; runtime fingerprint matches a preview update or build | `mobile-update.yml` |
+| Production app (`production` channel) | Daily, 06:17 UTC | Soaked 24 hours on preview, its Deploy run green, bundled files changed since `ota-production-<platform>`, fingerprint matches | `mobile-update-production.yml` |
 | Store build | Only for a native change, batched | The owner's decision card before submission | By hand ([mobile releases](../runbooks/mobile-releases.md)) |
 
 - There is no click any more. The gate is the merge: a `high` change, or one
@@ -50,7 +50,8 @@ date: 2026-11-17
   check fails unless `/version` reports the commit it built.
 - The web Sentry release is `gather@<version>+<short sha>` (`vite.config.ts`).
 - Tags: `v<version>` on each store build's commit; the workflows move
-  `ota-preview` and `ota-production` after each publish.
+  `ota-<channel>-<platform>` after each platform publishes, and `ota-preview` /
+  `ota-production` once both platforms got the same commit.
 
 ## Why
 

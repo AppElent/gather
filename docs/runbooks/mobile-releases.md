@@ -22,8 +22,8 @@ it; nobody needs to ([ADR 0044](../adr/0044-every-merge-ships-and-the-app-update
 
 | Channel | When | Workflow | Skips, and says why in the run summary, when |
 | --- | --- | --- | --- |
-| `preview` | Every merge, after the production deploy | `mobile-update.yml` (called by `deploy.yml`) | Nothing bundled changed since `ota-preview`; or no update or build on `preview` has the fingerprint ("rebuild `preview-internal`") |
-| `production` | Daily at 06:17 UTC | `mobile-update-production.yml` | No preview publish is 24 hours old yet; nothing bundled changed since `ota-production`; or no update or build on `production` has the fingerprint ("a store build is due") |
+| `preview` | Every merge, after the production deploy | `mobile-update.yml` (called by `deploy.yml`) | Nothing bundled changed since that platform's `ota-preview-<platform>` tag; or no update or build on `preview` has the fingerprint ("rebuild `preview-internal`") |
+| `production` | Daily at 06:17 UTC | `mobile-update-production.yml` | No preview publish is 24 hours old yet; nothing bundled changed since `ota-production-<platform>`; or no update or build on `production` has the fingerprint ("a store build is due") |
 
 Both gates live in `apps/mobile/scripts/ota-gate.mjs`. The production job
 publishes the newest commit whose Deploy run published it to preview at least

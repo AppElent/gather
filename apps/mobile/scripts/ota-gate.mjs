@@ -7,16 +7,18 @@
 // Writes `platforms=<space-separated list>` to $GITHUB_OUTPUT (empty: publish
 // nothing) and one line per platform to $GITHUB_STEP_SUMMARY. Three gates:
 //
-// 0. HEAD descends from the channel's tag, so a re-run of an old Deploy run or
+// Each gate is per platform, against that platform's tag `ota-<channel>-<platform>`.
+//
+// 0. HEAD descends from the platform's tag, so a re-run of an old Deploy run or
 //    an older soaked commit never replaces a newer update (for example an
 //    owner-approved hotfix on production).
-// 1. Something the app bundles changed since the channel's tag (`ota-<channel>`,
-//    moved after each publish). A web-only merge publishes nothing.
+// 1. Something the app bundles changed since the platform's tag (moved after
+//    each publish of that platform). A web-only merge publishes nothing.
 // 2. Something on the channel already runs this runtime fingerprint: an earlier
 //    update or a finished EAS build. Otherwise a native change is waiting and
 //    the platform needs a new build first; an update would never load.
 //
-// `--force` skips both. It exists to seed a channel after a local build, which
+// `--force` skips all three. It exists to seed a channel after a local build, which
 // EAS does not record; on production it waits for the owner's decision card.
 // Needs EXPO_TOKEN; reads EAS through the CLI pinned in apps/mobile.
 import { spawnSync } from 'node:child_process'
@@ -53,18 +55,20 @@ function run(command, args, cwd = appRoot) {
 }
 
 const repoRoot = join(appRoot, '..', '..')
-const hasTag = () => run('git', ['rev-parse', '-q', '--verify', `refs/tags/${tag}`], repoRoot).ok
+// One tag per platform, moved by the workflow after that platform publishes, so
+// publishing one platform never marks the other as current.
+const tagFor = (platform) => `${tag}-${platform}`
+const hasTag = (name) => run('git', ['rev-parse', '-q', '--verify', `refs/tags/${name}`], repoRoot).ok
 
-function descendsFromTag() {
-  if (!hasTag()) return true
-  return run('git', ['merge-base', '--is-ancestor', tag, 'HEAD'], repoRoot).ok
+function descendsFrom(name) {
+  if (!hasTag(name)) return true
+  return run('git', ['merge-base', '--is-ancestor', name, 'HEAD'], repoRoot).ok
 }
 
-function changedSinceTag() {
-  const root = repoRoot
-  if (!hasTag()) return true
+function changedSince(name) {
+  if (!hasTag(name)) return true
   // `git diff --quiet` exits 1 when something differs.
-  return !run('git', ['diff', '--quiet', tag, 'HEAD', '--', ...BUNDLED_PATHS], root).ok
+  return !run('git', ['diff', '--quiet', name, 'HEAD', '--', ...BUNDLED_PATHS], repoRoot).ok
 }
 
 function count(args) {
@@ -86,18 +90,6 @@ function channelRuns(platform, runtime) {
   return builds.length > 0
 }
 
-if (!force && !descendsFromTag()) {
-  summary(`HEAD is not a descendant of \`${tag}\`, so ${channel} already runs newer code; no update published.`)
-  output('platforms=')
-  process.exit(0)
-}
-
-if (!force && !changedSinceTag()) {
-  summary(`Nothing the app bundles changed since \`${tag}\`; no ${channel} update published.`)
-  output('platforms=')
-  process.exit(0)
-}
-
 const publish = []
 for (const platform of PLATFORMS) {
   const resolved = run('pnpm', ['exec', 'expo-updates', 'runtimeversion:resolve', '--platform', platform])
@@ -107,6 +99,15 @@ for (const platform of PLATFORMS) {
   }
   const runtime = JSON.parse(resolved.stdout).runtimeVersion
   const short = `\`${runtime.slice(0, 12)}\``
+  const platformTag = tagFor(platform)
+  if (!force && !descendsFrom(platformTag)) {
+    summary(`- ${platform}: HEAD is not a descendant of \`${platformTag}\`, so ${channel} already runs newer code; skipped`)
+    continue
+  }
+  if (!force && !changedSince(platformTag)) {
+    summary(`- ${platform}: nothing the app bundles changed since \`${platformTag}\`; skipped`)
+    continue
+  }
   if (force || channelRuns(platform, runtime)) {
     publish.push(platform)
     summary(`- ${platform} ${short}: publishing to \`${channel}\`${force ? ' (forced)' : ''}`)
