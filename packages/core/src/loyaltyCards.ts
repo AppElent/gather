@@ -7,16 +7,14 @@
  */
 
 /**
- * The picker's categories. `pharmacy` has no entry since Holland & Barrett
- * and Vitaminstore moved to `health` (APP-152); it stays because the schema
- * validates stored rows against this list before the seed can move them.
+ * The picker's categories. `pharmacy` was dropped in APP-198, once production
+ * had re-seeded with Holland & Barrett and Vitaminstore under `health`.
  */
 export const RETAILER_CATEGORIES = [
   'supermarket',
   'wholesale',
   'liquor',
   'drugstore',
-  'pharmacy',
   'health',
   'beauty',
   'diy',

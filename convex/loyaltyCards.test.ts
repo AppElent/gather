@@ -1,4 +1,7 @@
-import { retailersMatchingNumber } from '@gather/core/loyalty-cards'
+import {
+  RETAILER_CATEGORIES,
+  retailersMatchingNumber,
+} from '@gather/core/loyalty-cards'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   alice,
@@ -77,8 +80,9 @@ async function photoExists(t: Harness, id: Id<'_storage'>) {
 }
 
 describe('the Retailer catalog', () => {
-  test('ships at least 80 retailers, each well formed', () => {
-    expect(RETAILER_CATALOG.length).toBeGreaterThanOrEqual(80)
+  test('ships at least 75 retailers, each well formed', () => {
+    // 78 after APP-198 retired eight stores with nothing national to scan.
+    expect(RETAILER_CATALOG.length).toBeGreaterThanOrEqual(75)
     const keys = new Set<string>()
     for (const entry of RETAILER_CATALOG) {
       expect(entry.seedKey).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/)
@@ -224,10 +228,45 @@ describe('the Retailer catalog', () => {
     ])
   })
 
-  test('Trekpleister, Blokker and Tango are retired', () => {
+  test('stores with nothing national to scan are retired', () => {
     const keys = RETAILER_CATALOG.map((entry) => entry.seedKey)
-    for (const key of ['trekpleister', 'blokker', 'tango']) {
+    const retired = [
+      // APP-152
+      'trekpleister',
+      'blokker',
+      'tango',
+      // APP-198
+      'spar',
+      'da',
+      'flying-tiger',
+      'jysk',
+      'jd-sports',
+      'dreamland',
+      'discus',
+      'loogman',
+    ]
+    for (const key of retired) {
       expect(keys).not.toContain(key)
+    }
+  })
+
+  test('no catalog entry uses a category that is not in the list', () => {
+    expect(RETAILER_CATEGORIES).not.toContain('pharmacy')
+    for (const entry of RETAILER_CATALOG) {
+      expect(RETAILER_CATEGORIES).toContain(entry.category)
+    }
+  })
+
+  test('formats APP-198 sourced from the retailers themselves', () => {
+    const format = (key: string) =>
+      RETAILER_CATALOG.find((entry) => entry.seedKey === key)
+    expect(format('c-en-a')).toMatchObject({ barcodeFormat: 'ITF', formatConfidence: 'sourced' })
+    for (const key of ['levis', 'hunkemoller', 'only']) {
+      expect(format(key)).toMatchObject({ barcodeFormat: 'QR', formatConfidence: 'sourced' })
+    }
+    // Their APP-152 QR source was a placeholder icon, so both are guesses again.
+    for (const key of ['gamma', 'karwei']) {
+      expect(format(key)).toMatchObject({ barcodeFormat: 'CODE_128', formatConfidence: 'guess' })
     }
   })
 
@@ -242,12 +281,13 @@ describe('the Retailer catalog', () => {
     expect(suggest('990212345678')).toEqual([])
   })
 
-  test('at least 42 barcode formats come from a public source', () => {
-    // APP-152 sourced 31 more; a later pass may raise this, never lower it.
+  test('at least 44 barcode formats come from a public source', () => {
+    // APP-152 sourced 31 more; APP-198 added 4 and withdrew 2 weak ones. Lower
+    // it only when a source turns out wrong, and say which in the catalog.
     const sourced = RETAILER_CATALOG.filter(
       (entry) => entry.formatConfidence === 'sourced',
     )
-    expect(sourced.length).toBeGreaterThanOrEqual(42)
+    expect(sourced.length).toBeGreaterThanOrEqual(44)
   })
 
   test('search matches name and aliases, ignoring case and accents', async () => {

@@ -16,10 +16,10 @@ import type { RetailerCategory } from '@gather/core/loyalty-cards'
  *
  * `brandColor` is the brand's primary colour, taken from its own logo (mostly
  * the Wikimedia Commons SVG) or from its site's theme colour or CSS, and
- * checked against the retailer's own site on 2026-11-16 (APP-152), with two
- * exceptions: Levi's was not re-checked, and Xenos keeps the magenta of the
- * logo we ship although its site now shows a yellow logo. The `Colour:` clause
- * above each entry says where it came from.
+ * checked against the retailer's own site on 2026-11-16 (APP-152; Levi's in
+ * APP-198), with one exception: Xenos keeps the magenta of the logo we ship
+ * although xenos.nl's header logo is now yellow (#FFD700). The `Colour:`
+ * clause above each entry says where it came from.
  *
  * `formatConfidence: 'sourced'` means a public source shows the symbology, and
  * the `// Source:` line names it: a photo of the card, the retailer's own help
@@ -41,6 +41,25 @@ import type { RetailerCategory } from '@gather/core/loyalty-cards'
  *   has no programme and the app is gone.
  * - `tango`: no card or pass; discounts run through paying in the Tango app
  *   (tango.nl/app/tanken), and the Tango tankpas is a business fuel card.
+ *
+ * Retired in APP-198, each because nothing national is left to scan:
+ * - `spar`: no SPAR Nederland app; the "spaarkaart" on spar.nl is one store's
+ *   paper stamp card, and savings run per store (spar.nl FAQ).
+ * - `da`: every DA store issues its own card 'die gebonden is aan hun winkel'
+ *   (da.nl/klantenservice/klantenkaart); no app.
+ * - `flying-tiger`: the Club app is 'momenteel beschikbaar in' DK, SE, NO, FI,
+ *   DE, GB, IE and IT, not the Netherlands
+ *   (flyingtiger.com/nl-nl/pages/customer-club-app); not in the NL App Store.
+ * - `jysk`: the only card is the B2B klantenkaart (jysk.nl/b2b/faq); the
+ *   consumer benefits page lists no card.
+ * - `jd-sports`: JD STATUS (App Store id6449736895) is unavailable in the NL
+ *   store (GB, FR and IE only), and the NL JD app has no member pass.
+ * - `dreamland`: no card on dreamland.nl; DreamLand's loyalty runs on Colruyt's
+ *   Xtra, 'enkel geldig in DreamLand winkels in België'.
+ * - `discus`: a per-store stamp card ('wanneer de kaart vol is wordt deze
+ *   verzilverd'), in 8 of 83 store pages; no app or digital card.
+ * - `loogman`: savings are tied to the WasApp account and licence plates
+ *   (loogman.nl/sparen, /wasbubbel); the app holds only QR vouchers.
  */
 export interface RetailerCatalogEntry {
   seedKey: string
@@ -77,9 +96,6 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Source: dekamarkt.nl's own account code draws the card number with JsBarcode, format EAN13 (Nuxt 'barcode-card' component). Colour: Commons
   // Logo_of_Dekamarkt.svg.
   { seedKey: 'dekamarkt', name: 'DekaMarkt', aliases: ['Deka', 'Deka Markt', 'DekaVers'], category: 'supermarket', brandColor: '#E41F13', domain: 'dekamarkt.nl', barcodeFormat: 'EAN_13', formatConfidence: 'sourced', numberLength: 13 },
-  // Programme: spar.nl/spar-spaarkaart-9127925 (save digitally in the SPAR app instead of the paper card). Format unknown: no national card found,
-  // only local store savings (spar.nl FAQ). CODE_128 guess. Colour: Commons Spar-logo.svg.
-  { seedKey: 'spar', name: 'SPAR', aliases: ['SPAR city', 'SPAR app'], category: 'supermarket', brandColor: '#EC1B24', domain: 'spar.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
   // Source: ekoplaza.nl's own account code draws the Ekovriend card with JsBarcode and no format, which is CODE128. Colour: Commons
   // Logo_of_Ekoplaza.svg.
   { seedKey: 'ekoplaza', name: 'Ekoplaza', aliases: ['Ekoplaza Voordeelpas', 'Eko Plaza'], category: 'supermarket', brandColor: '#702483', domain: 'ekoplaza.nl', barcodeFormat: 'CODE_128', formatConfidence: 'sourced' },
@@ -104,8 +120,8 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Programme: sligro.nl (Sligro klantenkaart, business customers). Format unknown: no public image of the card. CODE_128 guess. Colour: sligro.nl
   // site icon (dark-green oval logo).
   { seedKey: 'sligro', name: 'Sligro', aliases: ['Sligro klantenkaart', 'Sligro pas'], category: 'wholesale', brandColor: '#034B32', domain: 'sligro.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
-  // Programme: hanos.nl (HANOS Wereldpas, business customers). Format unknown: no public image of the Wereldpas. CODE_128 guess. Colour: hanos.nl
-  // CSS.
+  // Programme: hanos.nl/nl/faq (HANOS Wereldpas, business customers; 'Het tonen van de Wereldpas op een mobiel apparaat is geen geldig
+  // toegangsmiddel'). Format unknown: no public image of the Wereldpas. CODE_128 guess. Colour: hanos.nl CSS.
   { seedKey: 'hanos', name: 'HANOS', aliases: ['Wereldpas', 'HANOS Wereldpas'], category: 'wholesale', brandColor: '#57004E', domain: 'hanos.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
 
   // --- Drugstores ---
@@ -114,9 +130,6 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   { seedKey: 'kruidvat', name: 'Kruidvat', aliases: ['Kruidvat Club', 'Jouw Extra Voordeelkaart', 'Kruidvat pas'], category: 'drugstore', brandColor: '#E2001A', domain: 'kruidvat.nl', barcodeFormat: 'EAN_13', formatConfidence: 'sourced', numberLength: 13 },
   // Source: Commons "Etos_Klantenkaart,_Groningen_(2019)_02.jpg" (EAN-13, 2 621828 088711). Colour: etos.nl TileColor and the current black logo.
   { seedKey: 'etos', name: 'Etos', aliases: ['Mijn Etos', 'Etos klantenkaart'], category: 'drugstore', brandColor: '#000000', domain: 'etos.nl', barcodeFormat: 'EAN_13', formatConfidence: 'sourced', numberLength: 13 },
-  // Programme: da.nl/klantenservice/klantenkaart (most DA stores issue their own store-bound card). Format unknown: no current national card found on
-  // da.nl (gift card only). CODE_128 guess. Colour: Commons DA logo SVG.
-  { seedKey: 'da', name: 'DA', aliases: ['DA Drogist', 'DA Drogisterij', 'Drogisten Associatie'], category: 'drugstore', brandColor: '#E4007A', domain: 'da.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
 
   // --- Health stores ---
 
@@ -138,17 +151,20 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Source: rituals.com's own member-card page loads eva.rituals.com/barcode/qr/… ('Member loyalty QR code'). Colour: Commons
   // Rituals_Cosmetics_logo.png.
   { seedKey: 'rituals', name: 'Rituals', aliases: ['My Rituals', 'Rituals Cosmetics'], category: 'beauty', brandColor: '#796F63', domain: 'rituals.com', barcodeFormat: 'QR', formatConfidence: 'sourced' },
-  // Source: kikocosmetics.com/nl-nl KIKO ME help (Wayback, 17 Apr 2026): 'Toon je QR-code in de winkel'; programme relaunched 28 Sep 2026. Colour:
-  // KIKO logo black.
+  // Source: KIKO_ME_Loyalty_Program_T_Cs_Netherlands_NL.pdf (linked from kikocosmetics.com/nl-nl, programme from 28 Sep 2026), art. 5a: in store
+  // show 'de QR-code die beschikbaar is in het Account of in de KIKO ME-welkomstmail'. Colour: KIKO logo black.
   { seedKey: 'kiko-milano', name: 'KIKO Milano', aliases: ['KIKO', 'KIKO ME'], category: 'beauty', brandColor: '#000000', domain: 'kikocosmetics.com', barcodeFormat: 'QR', formatConfidence: 'sourced' },
 
   // --- DIY ---
 
-  // Source: Google Play 'GAMMA' (nl.gamma.app.android) card tile shows a QR code (decoded, demo payload). Colour: Commons "Gamma logo 2010.png".
-  { seedKey: 'gamma', name: 'GAMMA', aliases: ['GAMMA Voordeelpas', 'Voordeelpas'], category: 'diy', brandColor: '#003878', domain: 'gamma.nl', barcodeFormat: 'QR', formatConfidence: 'sourced' },
-  // Source: Google Play 'KARWEI' (nl.karwei.app.android) Club Karwei tile shows a QR code (decoded, demo payload). Colour: Commons "Karwei logo
-  // (2017).png".
-  { seedKey: 'karwei', name: 'KARWEI', aliases: ['Club Karwei'], category: 'diy', brandColor: '#231F20', domain: 'karwei.nl', barcodeFormat: 'QR', formatConfidence: 'sourced' },
+  // Programme: GAMMA Voordeelpas, plastic or in the app (App Store id949829216: 'Gebruik de barcode van de Voordeelpas'). Format unknown: the Play
+  // QR that APP-152 cited is a 'Hello :)' home-tile icon, and the App Store pass is a stylised linear mock-up that does not decode (APP-198).
+  // CODE_128 guess. Colour: Commons "Gamma logo 2010.png".
+  { seedKey: 'gamma', name: 'GAMMA', aliases: ['GAMMA Voordeelpas', 'Voordeelpas'], category: 'diy', brandColor: '#003878', domain: 'gamma.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
+  // Programme: Club Karwei, plastic or in the app (App Store id950680989: 'Laat je Club Karwei-kaart scannen'). Format unknown: the Play QR that
+  // APP-152 cited is a 'Hello :)' tile icon, and the App Store card is the same undecodable linear mock-up as GAMMA's (APP-198). CODE_128 guess.
+  // Colour: Commons "Karwei logo (2017).png".
+  { seedKey: 'karwei', name: 'KARWEI', aliases: ['Club Karwei'], category: 'diy', brandColor: '#231F20', domain: 'karwei.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
   // Source: App Store 'Praxis' (id395524977) shows the Praxis Plus pass as a QR code; praxis.nl says there is no physical card any more. Colour:
   // Commons Praxis_logo_2018.svg.
   { seedKey: 'praxis', name: 'Praxis', aliases: ['Praxis Plus', 'Formido'], category: 'diy', brandColor: '#E20019', domain: 'praxis.nl', barcodeFormat: 'QR', formatConfidence: 'sourced' },
@@ -170,7 +186,8 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Source: App Store 'Tuinland' (id6478219275) 'Klantenkaart' screenshot decodes as Code 128 (demo number). Colour: tuinland.nl header logo.svg
   // background.
   { seedKey: 'tuinland', name: 'Tuinland', aliases: ['Tuinland klantenpas', 'Tuinland Groep'], category: 'garden', brandColor: '#550E42', domain: 'tuinland.nl', barcodeFormat: 'CODE_128', formatConfidence: 'sourced' },
-  // Source: App Store 'GroenRijk' (id1628482188) card barcode decodes as Code 128 (cropped demo; weak). Colour: groenrijk.nl logo.svg wordmark.
+  // Source: App Store 'GroenRijk' (id1628482188) home-screen card barcode decodes as Code 128 (demo '3513', checksum valid; full width in frame,
+  // re-checked in APP-198). Colour: groenrijk.nl logo.svg wordmark.
   { seedKey: 'groenrijk', name: 'GroenRijk', aliases: ['GroenRijk klantenkaart'], category: 'garden', brandColor: '#005634', domain: 'groenrijk.nl', barcodeFormat: 'CODE_128', formatConfidence: 'sourced' },
   // Programme: opschouwenduiveland.nl Life & Garden listing ("cardholders … collect points for discounts"). Format unknown: the Groeipas runs in two
   // stores only; no image. CODE_128 guess. Colour: lifeandgarden.com logo.png green accent.
@@ -186,30 +203,24 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Programme: xenos.nl (Xtra Xenos Member). Format unknown: the memberpas arrives by e-mail or wallet; no image shows the code. CODE_128 guess.
   // Colour: Commons Logo-Xenos-Rubin-Red.png.
   { seedKey: 'xenos', name: 'Xenos', aliases: ['Xtra Xenos', 'Xenos Member'], category: 'home', brandColor: '#DE006E', domain: 'xenos.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
-  // Programme: flyingtiger.com/nl-nl/blogs/news/flying-tiger-copenhagen-launches-new-app-and-customer-club (Club app). Format unknown: the Club app's
-  // linear barcode does not decode, and no Dutch launch of the Club was found. CODE_128 guess. Colour: Commons Flying_Tiger_Copenhagen.svg.
-  { seedKey: 'flying-tiger', name: 'Flying Tiger Copenhagen', aliases: ['Flying Tiger', 'Tiger', 'Flying Tiger Club'], category: 'home', brandColor: '#000000', domain: 'flyingtiger.com', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
-  // Programme: jysk.nl/jysk-B2B/klantenkaart (B2B klantenkaart shown in store for a discount. Format unknown: business (B2B) card only; no image.
-  // CODE_128 guess. Colour: site theme-color.
-  { seedKey: 'jysk', name: 'JYSK', aliases: ['JYSK B2B', 'JYSK klantenkaart'], category: 'home', brandColor: '#243A86', domain: 'jysk.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
 
   // --- Fashion, shoes and jewellery ---
 
-  // Programme: C&A for you programme (Commons promo photo shows a barcode, type not identifiable). Format unknown: only a 2022 in-store promo poster
-  // (Commons) shows a mock-up card, decoding as UPC-A with a demo number. CODE_128 guess. Colour: Commons C&A_logo.svg.
-  { seedKey: 'c-en-a', name: 'C&A', aliases: ['C&A for you', 'CenA', 'C en A'], category: 'fashion', brandColor: '#010202', domain: 'c-and-a.com', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
+  // Source: c-and-a.com's own web bundle (account Membership off-canvas) draws the membership ID with JsBarcode format "ITF", for 16- or 18-digit
+  // IDs only; c-and-a.com/nl/nl/shop/foryou terms art. 4.3: 'wordt de C&A-barcode voor u gescand'. Colour: Commons C&A_logo.svg.
+  { seedKey: 'c-en-a', name: 'C&A', aliases: ['C&A for you', 'CenA', 'C en A'], category: 'fashion', brandColor: '#010202', domain: 'c-and-a.com', barcodeFormat: 'ITF', formatConfidence: 'sourced' },
   // Source: App Store 'H&M' (id834465911) membership screen ('present at checkout') shows a QR code; hm.com member page says 'Member QR-code'.
   // Colour: Commons H&M-Logo.svg.
   { seedKey: 'h-en-m', name: 'H&M', aliases: ['H&M Member', 'HM', 'H en M'], category: 'fashion', brandColor: '#CC071E', domain: 'hm.com', barcodeFormat: 'QR', formatConfidence: 'sourced' },
-  // Programme: hunkemoller.nl (Hunkemöller membercard). Format unknown: a 2012 app screenshot (iculture.nl) showed a QR code, but nothing shows
-  // today's digital Member card. CODE_128 guess. Colour: hunkemoller.nl CSS.
-  { seedKey: 'hunkemoller', name: 'Hunkemöller', aliases: ['Hunkemoller', 'Hunkemöller Member'], category: 'fashion', brandColor: '#6A0437', domain: 'hunkemoller.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
+  // Source: hunkemoller.nl's own web bundle ('My Hunkemöller Card' modal, pages-customer-page.js) draws the member card number as a QR code;
+  // hunkemoller.at terms: 'Die Membercard-Nummer kann in der APP über einen QR-Code ausgelesen werden' (NL/DE app). Colour: hunkemoller.nl CSS.
+  { seedKey: 'hunkemoller', name: 'Hunkemöller', aliases: ['Hunkemoller', 'Hunkemöller Member'], category: 'fashion', brandColor: '#6A0437', domain: 'hunkemoller.nl', barcodeFormat: 'QR', formatConfidence: 'sourced' },
   // Programme: shoeby.nl (Shoeby Style Club). Format unknown: no source shows the card or how it is scanned. CODE_128 guess. Colour: Commons
   // Shoeby-logo.svg.
   { seedKey: 'shoeby', name: 'Shoeby', aliases: ['Shoeby Style Club', 'Style Club'], category: 'fashion', brandColor: '#1D1D1B', domain: 'shoeby.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
-  // Programme: only.com (CLUB ONLY). Format unknown: no source shows it; sister brand VERO MODA uses a QR code, but ONLY's app is from another
-  // Bestseller company. CODE_128 guess. Colour: ONLY logo black.
-  { seedKey: 'only', name: 'ONLY', aliases: ['CLUB ONLY'], category: 'fashion', brandColor: '#000000', domain: 'only.com', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
+  // Source: only.com/nl-nl's own account bundle (AccountInlineQr, AccountQrCodeFlyout) shows the Customer Club member ID as a QR code
+  // ('loyaltyQRcode'); support.only.com: the member ID is scanned in store. Colour: ONLY logo black.
+  { seedKey: 'only', name: 'ONLY', aliases: ['CLUB ONLY'], category: 'fashion', brandColor: '#000000', domain: 'only.com', barcodeFormat: 'QR', formatConfidence: 'sourced' },
   // Source: support.jackjones.com (en-gb) 'store staff … scan your membership QR code'; same Customer Club and app as in the Netherlands. Colour:
   // jackjones.com/nl-nl header logo (black wordmark).
   { seedKey: 'jack-en-jones', name: 'JACK & JONES', aliases: ['Jack and Jones', 'Jack en Jones'], category: 'fashion', brandColor: '#000000', domain: 'jackjones.com', barcodeFormat: 'QR', formatConfidence: 'sourced' },
@@ -241,11 +252,11 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Programme: klantenservice.livera.nl spaarprogramma article (points in Livera stores only). Format unknown: store-only programme; no card shown.
   // CODE_128 guess. Colour: livera.nl header logo (black wordmark; #861819 was a seasonal banner accent).
   { seedKey: 'livera', name: 'Livera', aliases: ['Livera spaarprogramma'], category: 'fashion', brandColor: '#000000', domain: 'livera.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
-  // Programme: lucardi.nl/lucardi-member.html and voorwaarden-klantenkaart.html (digital Member Card). Format unknown: lucardi.nl refuses fetches; no
-  // image of the Member Card. CODE_128 guess. Colour: Commons Lucardi_Logo_2023.svg.
+  // Programme: lucardi.nl/lucardi-member.html (Wayback 2026-10-30: physical or digital Member Card 'te laten scannen aan de kassa', 'te herkennen
+  // aan een barcode'), so kept (APP-198). Format unknown: no image shows the code. CODE_128 guess. Colour: Commons Lucardi_Logo_2023.svg.
   { seedKey: 'lucardi', name: 'Lucardi', aliases: ['Lucardi Member', 'Lucardi Juwelier', 'Lucardi Friends'], category: 'fashion', brandColor: '#510C76', domain: 'lucardi.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
-  // Source: App Store 'Takko Friends' (id1570110927) NL screenshot decodes as QR; it holds a structured string, not just the printed number. Colour:
-  // Commons TakkoLogo.svg.
+  // Source: App Store 'Takko Friends' (id1570110927) NL screenshot decodes as QR 'CUSTOMER_V2|<uuid>|<9-digit printed no.>|nl|true|', so a QR of
+  // the typed number alone may not scan (untested). Colour: Commons TakkoLogo.svg.
   { seedKey: 'takko', name: 'Takko Fashion', aliases: ['Takko', 'Takko Friends'], category: 'fashion', brandColor: '#A8052C', domain: 'takko.com', barcodeFormat: 'QR', formatConfidence: 'sourced' },
   // Programme: wefashion.com/nl_NL/we-is-me/we-is-me.html (WE IS ME, sign up at the till in any WE store). Format unknown: WE IS ME identifies by app
   // ID or e-mail address; no code shown. CODE_128 guess. Colour: site theme-color.
@@ -253,12 +264,12 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Source: App Store 'P&C* Fashion Shop' (id1072106130) NL listing shows the INSIDER-kaart as a QR code. Colour: Commons
   // Logo_Peek_&_Cloppenburg.svg.
   { seedKey: 'peek-cloppenburg', name: 'Peek & Cloppenburg', aliases: ['P&C', 'P&C INSIDER', 'INSIDER', 'Peek en Cloppenburg'], category: 'fashion', brandColor: '#002D65', domain: 'peek-cloppenburg.nl', barcodeFormat: 'QR', formatConfidence: 'sourced' },
-  // Programme: levi.com/NL/en/features/red-tab-members-program (Red Tab Member Card in your mobile wallet for in-store use). Format unknown: not
-  // re-researched in APP-152. CODE_128 guess. Colour: Levi's batwing red (not machine-checked, site blocked curl; not re-checked in APP-152).
-  { seedKey: 'levis', name: "Levi's", aliases: ['Levis', 'Red Tab', "Levi's Red Tab"], category: 'fashion', brandColor: '#C41230', domain: 'levi.com', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
-  // Programme: hollisterco.com/shop/eu-nl/help/help-faq and EU Club Cali terms (associate scans the Club Cali ID at checkout). Format unknown: Club
-  // Cali / House Rewards ID never shown, and Dutch participation is unconfirmed. CODE_128 guess. Colour: Hollister navy (not machine-checked, site
-  // blocked curl).
+  // Source: App Store "Levi's®" (id1270092335) NL screenshot shows the Red Tab member card as a QR code (decodes; demo payload). Colour: levi.com
+  // header logo SVG and favicon.svg fill #C41320 (Wayback 2026-11-08); Commons' #C41230 transposes two digits.
+  { seedKey: 'levis', name: "Levi's", aliases: ['Levis', 'Red Tab', "Levi's Red Tab"], category: 'fashion', brandColor: '#C41320', domain: 'levi.com', barcodeFormat: 'QR', formatConfidence: 'sourced' },
+  // Programme: Hollister House Rewards (hollisterco.com/shop/eu-nl footer; App Store id383915209: 'US, UK and Europe'; NL stores at Mall of the
+  // Netherlands and Maastricht), digital ID scanned at checkout, so kept (APP-198). Format unknown: app screenshots show only a scan icon. CODE_128
+  // guess. Colour: Hollister navy (not machine-checked, site blocked curl).
   { seedKey: 'hollister', name: 'Hollister', aliases: ['Hollister Co.', 'Club Cali', 'HCo'], category: 'fashion', brandColor: '#0A2240', domain: 'hollisterco.com', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
 
   // --- Electronics and games ---
@@ -284,15 +295,12 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Programme: decathlon.nl (digital membership card scanned at the till). Format unknown: German and French app screenshots show placeholder linear
   // barcodes that do not decode. CODE_128 guess. Colour: Commons Decathlon 2024 logo SVG.
   { seedKey: 'decathlon', name: 'Decathlon', aliases: ['Decathlon member', 'Decathlon klantenkaart'], category: 'sports', brandColor: '#3642B8', domain: 'decathlon.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
-  // Programme: intersport.nl (CLUB member, 2.5% saving). Format unknown: no source shows the CLUB card. CODE_128 guess. Colour: Commons
-  // Intersport_logo.svg.
+  // Programme: intersport.nl/pages/veel-gestelde-vragen-club-programma (CLUB app pass; 'De winkelier scant de barcode', 'de streepjescode', so
+  // linear, not QR). Exact symbology unknown. CODE_128 guess. Colour: Commons Intersport_logo.svg.
   { seedKey: 'intersport', name: 'INTERSPORT', aliases: ['Intersport CLUB'], category: 'sports', brandColor: '#11448F', domain: 'intersport.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
   // Programme: bever.nl/buitenvriend.html (Bever Card as one way to be a Buitenlid). Format unknown: no source shows the Buitenvriend card. CODE_128
   // guess. Colour: Commons "Bever Logo.png".
   { seedKey: 'bever', name: 'Bever', aliases: ['Bever Card', 'Buitenvriend', 'Buitenlid'], category: 'sports', brandColor: '#2C4D4B', domain: 'bever.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
-  // Programme: jdsports.nl/customer-service/privacy (purchases "waarbij je de JD Status App in de winkel gebruikt"). Format unknown: no Dutch JD
-  // STATUS launch found; the app is UK-based. CODE_128 guess. Colour: JD logo black.
-  { seedKey: 'jd-sports', name: 'JD Sports', aliases: ['JD'], category: 'sports', brandColor: '#000000', domain: 'jdsports.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
   // Source: Google Play 'adidas' NL listing shows the adiClub pass as a QR code that decodes to the printed member ID. Colour: logo black.
   { seedKey: 'adidas', name: 'adidas', aliases: ['adiClub'], category: 'sports', brandColor: '#000000', domain: 'adidas.nl', barcodeFormat: 'QR', formatConfidence: 'sourced' },
 
@@ -301,20 +309,15 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Source: Google Play 'LEGO Insiders' (com.lego.membership) card: bar widths measured by hand match Code 128 (Start C); zxing could not decode.
   // Colour: Commons LEGO_logo.svg.
   { seedKey: 'lego', name: 'LEGO', aliases: ['LEGO Insiders', 'LEGO VIP', 'LEGO Store'], category: 'toys', brandColor: '#E3000B', domain: 'lego.com', barcodeFormat: 'CODE_128', formatConfidence: 'sourced' },
-  // Programme: dreamland.nl/nieuw-merkidentiteit-nieuw-hoofdstuk (former ToyChamp stores. Format unknown: no image of the card; dreamland.nl refuses
-  // fetches. CODE_128 guess. Colour: dreamland.nl CSS (weak).
-  { seedKey: 'dreamland', name: 'DreamLand', aliases: ['ToyChamp', 'DreamLand Plus'], category: 'toys', brandColor: '#F02D2D', domain: 'dreamland.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
 
   // --- Pets ---
 
   // Programme: maxizoo.nl/klantenkaart (digital klantenkaart. Format unknown: the app mock-up decodes as Codabar but does not match its printed
   // number, too weak to trust. CODE_128 guess. Colour: maxizoo.nl logo markup.
   { seedKey: 'maxi-zoo', name: 'Maxi Zoo', aliases: ['Jumper', 'Maxi Zoo Friends', 'MaxiZoo'], category: 'pets', brandColor: '#196427', domain: 'maxizoo.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
-  // Programme: discus.nl/dierenwinkel/nieuwkoop-amsterdam-z-o-1 (free klantenkaart, points towards a €10 voucher). Format unknown: no image of the
-  // card. CODE_128 guess. Colour: discus.nl header logo (the green badge; the site CSS green #257333 is darker).
-  { seedKey: 'discus', name: 'Discus', aliases: ['Discus dierenwinkel', 'Discus klantenkaart'], category: 'pets', brandColor: '#00A13A', domain: 'discus.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
-  // Programme: petsplace.nl/acties/hondendag (mentions the Pets Place "Premium klantenkaart"). Format unknown: no image of the Premium klantenkaart.
-  // CODE_128 guess. Colour: Commons "Pets Place logo 01.png".
+  // Programme: petsplace.nl/premium (paid Premium membership: 'Je ontvangt direct een mail met jouw persoonlijke Premium barcode. Deze scan je
+  // eenvoudig in de winkel'), so kept (APP-198). Format unknown: the page's account mock-up is linear but undecodable. CODE_128 guess. Colour:
+  // Commons "Pets Place logo 01.png".
   { seedKey: 'pets-place', name: 'Pets Place', aliases: ['Petsplace', 'Pets Place Premium'], category: 'pets', brandColor: '#DC001B', domain: 'petsplace.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
 
   // --- Department stores ---
@@ -348,10 +351,7 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
 
   // --- Mobility ---
 
-  // Programme: kwik-fit.nl/anwb ("met je ANWB lidmaatschapspas profiteer je …"). Format unknown: the app has a 'Toon barcode' button, but the code is
-  // never shown. CODE_128 guess. Colour: ANWB yellow, anwb.nl CSS.
+  // Programme: anwb.nl/lidmaatschap/pas hero photo of the app pass: a linear barcode of a 16-character alphanumeric token, not the lidnummer, too
+  // blurry to decode (rules out EAN, UPC, ITF and Codabar). CODE_128 guess. Colour: ANWB yellow, anwb.nl CSS.
   { seedKey: 'anwb', name: 'ANWB', aliases: ['ANWB lidmaatschapspas', 'ANWB Ledenvoordeel', 'Wegenwacht'], category: 'mobility', brandColor: '#FFCD00', domain: 'anwb.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
-  // Programme: App Store "Loogman - WasApp" (points for every wash at Loogman Carwash. Format unknown: no member card or pass: WasApp rewards are QR
-  // vouchers. CODE_128 guess. Colour: loogman.nl CSS.
-  { seedKey: 'loogman', name: 'Loogman', aliases: ['Loogman Carwash', 'Loogman WasApp', 'Loogman tanken & wassen'], category: 'mobility', brandColor: '#003880', domain: 'loogman.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
 ]

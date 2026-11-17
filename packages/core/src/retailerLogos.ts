@@ -89,11 +89,6 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     page: 'https://commons.wikimedia.org/wiki/File:Logo_of_Dekamarkt.svg',
     licence: 'Wikimedia Commons, public domain',
   },
-  spar: {
-    url: 'https://upload.wikimedia.org/wikipedia/commons/7/7c/Spar-logo.svg',
-    page: 'https://commons.wikimedia.org/wiki/File:Spar-logo.svg',
-    licence: 'Wikimedia Commons, public domain; trademarked',
-  },
   ekoplaza: {
     url: 'https://upload.wikimedia.org/wikipedia/commons/8/85/Logo_of_Ekoplaza.svg',
     page: 'https://commons.wikimedia.org/wiki/File:Logo_of_Ekoplaza.svg',
@@ -139,12 +134,6 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     url: 'https://upload.wikimedia.org/wikipedia/commons/6/62/Etos_logo.svg',
     page: 'https://commons.wikimedia.org/wiki/File:Etos_logo.svg',
     licence: 'Wikimedia Commons, public domain; trademarked',
-  },
-  da: {
-    url: 'https://upload.wikimedia.org/wikipedia/commons/0/00/Logo_of_Drogisten_Associatie.svg',
-    page: 'https://commons.wikimedia.org/wiki/File:Logo_of_Drogisten_Associatie.svg',
-    licence: 'Wikimedia Commons, public domain; trademarked',
-    padding: 0,
   },
   'holland-and-barrett': {
     url: 'https://dam.hollandandbarrettimages.co.uk/design-system/_raw/6788cf6e-b35c-45b8-abde-1af321f2cda1/icon-512x512.webp',
@@ -246,16 +235,6 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     url: 'https://upload.wikimedia.org/wikipedia/commons/a/a3/Logo-Xenos-Rubin-Red.png',
     page: 'https://commons.wikimedia.org/wiki/File:Logo-Xenos-Rubin-Red.png',
     licence: 'Wikimedia Commons, public domain',
-  },
-  'flying-tiger': {
-    url: 'https://upload.wikimedia.org/wikipedia/commons/5/5e/Flying_Tiger_Copenhagen.svg',
-    page: 'https://commons.wikimedia.org/wiki/File:Flying_Tiger_Copenhagen.svg',
-    licence: 'Wikimedia Commons, public domain; trademarked',
-  },
-  jysk: {
-    url: 'https://upload.wikimedia.org/wikipedia/commons/3/3b/Jysk_logo.svg',
-    page: 'https://commons.wikimedia.org/wiki/File:Jysk_logo.svg',
-    licence: 'Wikimedia Commons, public domain; trademarked',
   },
   'c-en-a': {
     url: 'https://upload.wikimedia.org/wikipedia/commons/a/af/C%26A_logo.svg',
@@ -406,11 +385,6 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     page: 'https://commons.wikimedia.org/wiki/File:Bever_Logo.png',
     licence: 'Wikimedia Commons, public domain; trademarked',
   },
-  'jd-sports': {
-    url: 'https://www.jdsports.nl/apple-touch-icon.png',
-    page: 'https://www.jdsports.nl/',
-    licence: 'Official site icon; trademark of its owner',
-  },
   adidas: {
     url: 'https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg',
     page: 'https://commons.wikimedia.org/wiki/File:Adidas_Logo.svg',
@@ -432,11 +406,6 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     page: 'https://commons.wikimedia.org/wiki/File:Pets_Place_logo_01.png',
     licence: 'Wikimedia Commons, public domain; trademarked',
     padding: 0,
-  },
-  discus: {
-    url: 'https://www.discus.nl/image/logo/6ab9ff80-de7a-11e7-8c26-88a08bd89a7b',
-    page: 'https://www.discus.nl/',
-    licence: 'Official site header logo; trademark of its owner',
   },
   hema: {
     url: 'https://upload.wikimedia.org/wikipedia/commons/5/57/HEMA_Logo.svg',
@@ -485,11 +454,6 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     page: 'https://www.anwb.nl/',
     licence: 'Official site icon; trademark of its owner',
   },
-  loogman: {
-    url: 'https://www.loogman.nl/wp-content/uploads/2024/03/cropped-Loogman_Fav_2-180x180.png',
-    page: 'https://www.loogman.nl/',
-    licence: 'Official site icon; trademark of its owner',
-  },
 }
 
 /**
@@ -498,10 +462,7 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
  */
 export const RETAILERS_WITHOUT_LOGO: Readonly<Record<string, string>> = {
   ziengs:
-    'No logo on Wikimedia Commons; the only logo file ziengs.nl serves is a touch icon (a slash on mint) that does not show the name, and the wordmark is drawn inline with no file.',
-  dreamland:
-    'No logo on Wikimedia Commons, and dreamland.nl and dreamland.be refuse downloads (HTTP 403 bot check).',
-}
+    'No logo on Wikimedia Commons; the only logo file ziengs.nl serves is a touch icon (a slash on mint) that does not show the name, and the wordmark is drawn inline with no file.',}
 
 /**
  * The logo a card or Catalog entry shows, as the `seedKey` its files are named

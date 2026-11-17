@@ -102,7 +102,6 @@ export const loyaltyCards = {
     wholesale: 'Wholesale',
     liquor: 'Liquor store',
     drugstore: 'Drugstore',
-    pharmacy: 'Pharmacy',
     health: 'Health store',
     beauty: 'Beauty',
     diy: 'DIY',
