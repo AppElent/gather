@@ -1,0 +1,135 @@
+name: Deploy web
+
+# One web target, called by deploy.yml for `staging` and then `production`.
+# Production: Convex functions, the Catalog seeds, then the Worker, so the
+# backend is complete before the new frontend can be reached. Staging is a
+# frontend on the production Convex deployment (ADR 0039): it builds against the
+# production URL and ships only its Worker. Each target ends with a smoke check
+# of its custom domain and its /version endpoint.
+on:
+  workflow_call:
+    inputs:
+      # The GitHub Environment; production is the top-level Wrangler config.
+      environment: { type: string, required: true }
+      # The Worker this target must build; the deploy refuses any other.
+      worker: { type: string, required: true }
+      # The Worker's custom domain, for the smoke check.
+      url: { type: string, required: true }
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.url }}
+    permissions: { contents: read }
+    env:
+      # Every secret and variable below is environment-scoped: the `staging` and
+      # `production` GitHub Environments hold their own copies, so this file
+      # names each once and never selects between them. Which of them exist in
+      # which environment is declared in env.manifest.ts and verified by the
+      # `Check environment` step below, before anything ships.
+      ENVIRONMENT_NAME: ${{ inputs.environment }}
+      # Production only. A staging job would also inherit any repo secret of this
+      # name, so withholding it here is what stops staging changing the backend
+      # (ADR 0039), whatever repository scope holds.
+      CONVEX_DEPLOY_KEY: ${{ inputs.environment == 'production' && secrets.CONVEX_DEPLOY_KEY || '' }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      # Public values are GitHub *variables*, not secrets: the build inlines
+      # them into a downloadable bundle.
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
+      VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
+      VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+      VITE_SENTRY_ORG: ${{ vars.VITE_SENTRY_ORG }}
+      VITE_SENTRY_PROJECT: ${{ vars.VITE_SENTRY_PROJECT }}
+      # The Cloudflare Vite plugin picks the Worker at build time from
+      # CLOUDFLARE_ENV and writes it to dist/server/wrangler.json; `wrangler
+      # deploy --env` is ignored after such a build. Production is the
+      # top-level config, so it builds with an empty value.
+      CLOUDFLARE_ENV: ${{ inputs.environment != 'production' && inputs.environment || '' }}
+      EXPECTED_WORKER: ${{ inputs.worker }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+
+      - run: pnpm install --frozen-lockfile
+
+      # Fails the deploy rather than shipping a half-configured environment. An
+      # Environment without its own CONVEX_DEPLOY_KEY silently inherits the repo
+      # one, so production checks the prefix first. `--ci` checks the job env
+      # instead of calling APIs: a workflow cannot list GitHub secrets and does
+      # not need to, because it holds them.
+      - name: Check environment
+        run: |
+          if [ "$ENVIRONMENT_NAME" = production ]; then
+            case "$CONVEX_DEPLOY_KEY" in
+              prod:*) ;;
+              *) echo "::error::CONVEX_DEPLOY_KEY in the production Environment is missing or not a prod: key."; exit 1 ;;
+            esac
+          fi
+          node scripts/env.mjs check "$ENVIRONMENT_NAME" --ci
+
+      # CONVEX_DEPLOY_KEY alone picks the target deployment. Convex exposes that
+      # deployment's URL to --cmd as $CONVEX_URL; bridge it to VITE_CONVEX_URL,
+      # which is what the app reads at build time. Both targets run `pnpm build`:
+      # staging exists to exercise the same bundle production ships.
+      - name: Convex deploy + build
+        if: inputs.environment == 'production'
+        run: |
+          # shellcheck disable=SC2016 # $CONVEX_URL expands inside convex deploy
+          pnpm exec convex deploy \
+            --cmd-url-env-var-name CONVEX_URL \
+            --cmd 'VITE_CONVEX_URL=$CONVEX_URL pnpm build'
+
+      # Convex has no post-deploy hook outside previews, so the Catalog seeds are
+      # separate steps. They run before the Worker flips, so the backend is
+      # complete by the time anyone can reach the new frontend.
+      - name: Seed tasting Catalog
+        if: inputs.environment == 'production'
+        run: pnpm exec convex run seed:seedTastingCatalog
+
+      - name: Seed Retailer catalog
+        if: inputs.environment == 'production'
+        run: pnpm exec convex run seed:seedRetailerCatalog
+
+      # VITE_CONVEX_URL comes from the staging Environment, as the production URL.
+      - name: Build staging
+        if: inputs.environment != 'production'
+        run: pnpm build
+
+      # A build for the wrong env would replace another environment's Worker:
+      # without this, a build without CLOUDFLARE_ENV would silently replace the
+      # production Worker from a staging deploy.
+      - name: Guard Worker name
+        run: |
+          built=$(jq -r .name dist/server/wrangler.json)
+          if [ "$built" != "$EXPECTED_WORKER" ]; then
+            echo "::error::Built Worker is $built, expected $EXPECTED_WORKER. Check CLOUDFLARE_ENV."
+            exit 1
+          fi
+
+      - name: Deploy Worker
+        run: pnpm exec wrangler deploy
+
+      # The origin answers, and /version reports the commit this job built: a
+      # stale Worker or a cached edge fails here rather than in someone's browser.
+      - name: Smoke check
+        env:
+          URL: ${{ inputs.url }}
+        run: |
+          curl -fsS --retry 5 --retry-delay 3 --retry-all-errors -o /dev/null -w "%{http_code} $URL\n" "$URL"
+          for attempt in 1 2 3 4 5 6; do
+            commit=$(curl -fsS -H 'Cache-Control: no-cache' "$URL/version" | jq -r .commit || true)
+            [ "$commit" = "$GITHUB_SHA" ] && break
+            sleep 5
+          done
+          if [ "$commit" != "$GITHUB_SHA" ]; then
+            echo "::error::$URL/version reports commit '$commit', expected $GITHUB_SHA."
+            exit 1
+          fi
+          curl -fsS "$URL/version" | tee -a "$GITHUB_STEP_SUMMARY"

@@ -9,6 +9,7 @@ import {
   SENTRY_BASE_OPTIONS,
 } from './lib/observability/config'
 import { setErrorSink } from './lib/observability/report'
+import { versionResponse } from './lib/release/version'
 
 const dsn = import.meta.env.VITE_SENTRY_DSN
 
@@ -55,6 +56,9 @@ const instrumented = Sentry.withSentry(
 
 export default {
   fetch(request: Request, env: unknown, ctx: ExecutionContext) {
+    // What this Worker runs (release standard); answered before the app and Sentry.
+    const version = versionResponse(request)
+    if (version) return version
     // Wrangler hands a local `wrangler dev` its production bindings, so the
     // hostname — not the bindings — decides. Bypass before any span or capture.
     if (!dsn || isLocalReportingUrl(request.url)) return handler.fetch(request)

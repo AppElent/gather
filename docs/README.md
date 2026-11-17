@@ -21,7 +21,7 @@ Design studies: [designs/](../designs/).
 
 ## Decisions
 
-A new ADR takes the number after the highest (0043 next).
+A new ADR takes the number after the highest (0045 next).
 
 | ID | Decision | Status | Domain | Key implementation references |
 | --- | --- | --- | --- | --- |
@@ -37,7 +37,7 @@ A new ADR takes the number after the highest (0043 next).
 | [0010](adr/0010-a-photo-is-stored-as-prepared-never-as-chosen.md) | A photo is stored as prepared, never as chosen | accepted | files | `packages/core/src/photoPresets.ts`, `convex/lib/storedFiles.ts` |
 | [0011](adr/0011-the-ui-is-english-at-the-source-and-translations-are-typed-dictionaries.md) | The UI is English at the source, and translations are typed dictionaries | accepted | i18n | `packages/core/src/messages/`, `src/lib/i18n/` |
 | [0012](adr/0012-a-combo-is-a-personal-shortcut-and-not-a-recipe.md) | A Combo is a Personal shortcut, and not a kind of Recipe | superseded | nutrition | — |
-| [0013](adr/0013-staging-deploys-on-merge-production-deploys-on-a-click.md) | Staging deploys on merge, production deploys on a click | accepted | deployment | `.github/workflows/deploy.yml` |
+| [0013](adr/0013-staging-deploys-on-merge-production-deploys-on-a-click.md) | Staging deploys on merge, production deploys on a click | superseded by 0044 (the click) | deployment | `.github/workflows/deploy.yml` |
 | [0014](adr/0014-a-variable-declares-its-consumer-not-its-destination.md) | A variable declares its consumer, not its destination | accepted | environment | `env.manifest.ts`, `scripts/env.mjs` |
 | [0015](adr/0015-the-group-is-addressed-on-the-web-and-ambient-on-the-phone.md) | The Group is addressed on the web and ambient on the phone | superseded | mobile navigation | `apps/mobile/src/group/GroupProvider.tsx`, `apps/mobile/app/g/` |
 | [0016](adr/0016-shared-code-crosses-as-a-package-with-no-dependencies.md) | Shared code crosses as a package with no dependencies | accepted | workspace boundary | `packages/core/package.json`, `packages/core/tsconfig.json` |
@@ -68,3 +68,4 @@ A new ADR takes the number after the highest (0043 next).
 | [0041](adr/0041-nutrition-is-retired-and-foundry-owns-it.md) | Nutrition is retired, and Foundry owns it | accepted | modules | `convex/maintenance.ts`, `packages/core/src/modules.ts` |
 | [0042](adr/0042-the-phone-leads-and-the-web-is-where-a-household-is-managed.md) | The phone leads, and the web is where a household is managed | accepted | platforms | `packages/core/src/features.ts`, `scripts/feature-manifest.test.ts` |
 | [0043](adr/0043-a-retailer-catalog-is-a-picker-and-a-card-keeps-its-own-copy.md) | A Retailer catalog is a picker, and a card keeps its own copy | accepted | loyalty cards | `convex/loyaltyCards.ts`, `convex/lib/seed/retailerCatalog.ts` |
+| [0044](adr/0044-every-merge-ships-and-the-app-updates-daily.md) | Every merge ships, and the app updates daily | accepted | deployment | `.github/workflows/deploy.yml`, `.github/workflows/mobile-update*.yml` |

@@ -376,6 +376,17 @@ export const ENTRIES = [
 
   // ---------- CI credentials ----------
   {
+    key: 'expoToken',
+    infisicalKey: 'expo-token',
+    description:
+      'EAS access for the over-the-air update workflows: mobile-update.yml publishes `preview` from repository scope, mobile-update-production.yml publishes `production` from the production Environment (ADR 0044). Optional, so a web deploy never fails on it; the workflows check it themselves.',
+    optional: true,
+    secret: true,
+    lands: {
+      workflow: { name: 'EXPO_TOKEN', environments: ['preview', 'production'] },
+    },
+  },
+  {
     key: 'cloudflareApiToken',
     infisicalKey: 'cloudflare-account-token',
     description:

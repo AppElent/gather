@@ -62,9 +62,9 @@ This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) an
 **CI is the normal path** — see `.github/workflows/deploy.yml`:
 
 - **staging** — every merge to `main` deploys the `gather-staging` Worker automatically, at `gather-stg.appelent.nl`. It runs on the production Convex deployment and real data ([ADR 0039](docs/adr/0039-staging-is-a-frontend-on-the-production-backend.md)).
-- **production** — **Actions → Deploy → Run workflow** on `main`. The click is the gate for both the Worker and every Convex change; there is no separate approval step.
+- **production** — right after staging, in the same run, once staging's smoke check passed: `convex deploy`, the Catalog seeds, then the `gather` Worker ([ADR 0044](docs/adr/0044-every-merge-ships-and-the-app-updates-daily.md)). The gate is the merge. **Actions → Deploy → Run workflow** on `main` redeploys the chain.
 
-Both run `check` / `typecheck` / `test` first. Production then runs `convex deploy`, `convex run seed:seedTastingCatalog` and `wrangler deploy`; staging builds and runs `wrangler deploy` only, so a staging feature that needs new Convex functions fails until production deploys. Both build with `pnpm build`: staging runs the same production bundle prod does, and sample data and the test-login button are absent from both. Credentials live in the `staging` and `production` GitHub Environments (see [deploy](docs/runbooks/deploy.md)).
+Both run `check` / `typecheck` / `test` first. Production then runs `convex deploy`, `convex run seed:seedTastingCatalog` and `wrangler deploy`; staging builds and runs `wrangler deploy` only, so for the few minutes until production deploys, a staging feature that needs new Convex functions fails. Both build with `pnpm build`: staging runs the same production bundle prod does, and sample data and the test-login button are absent from both. Credentials live in the `staging` and `production` GitHub Environments (see [deploy](docs/runbooks/deploy.md)).
 
 **Dev is local.** There is no deployed dev environment — dev is `pnpm dev` against your own `convex dev` deployment. The `gather-dev` Worker and `deploy:dev` script below still work, but nothing automated touches them.
 

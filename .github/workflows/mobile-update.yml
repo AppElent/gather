@@ -1,0 +1,75 @@
+name: Mobile update (preview)
+
+# Publishes the app's JavaScript to the `preview` update channel, the one the
+# owner's daily-driver build (`preview-internal`) follows (the release
+# standard, ADR 0044). deploy.yml calls it after the production deploy:
+# preview builds call production Convex, so the update must not land before
+# the functions it calls.
+#
+# apps/mobile/scripts/ota-gate.mjs decides per platform: skipped when nothing
+# the app bundles changed since the `ota-preview` tag, and skipped with "rebuild
+# preview-internal" in the run summary when no update or build on the channel
+# has this runtime fingerprint (a native change is waiting for a build).
+#
+# A local build (`eas build --local`) is not recorded on EAS, so after
+# installing one, run this workflow by hand with `force` to seed the channel.
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Publish even when nothing changed or no build on the channel has this fingerprint
+        type: boolean
+        default: false
+
+concurrency:
+  group: mobile-update-preview
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      # Moves the ota-preview tag.
+      contents: write
+    env:
+      # No `environment:`: these come from repository scope, where
+      # `pnpm env:apply preview --only github` writes them as PREVIEW_<name>.
+      EXPO_TOKEN: ${{ secrets.PREVIEW_EXPO_TOKEN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.PREVIEW_SENTRY_AUTH_TOKEN }}
+      VITE_SENTRY_ORG: ${{ vars.PREVIEW_VITE_SENTRY_ORG }}
+      VITE_SENTRY_PROJECT: ${{ vars.PREVIEW_VITE_SENTRY_PROJECT }}
+      FORCE: ${{ inputs.force && '--force' || '' }}
+    steps:
+      - name: Check Expo token
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::PREVIEW_EXPO_TOKEN is not set. Store expo-token in Infisical and run pnpm env:apply preview --only github."
+            exit 1
+          fi
+
+      # The gate diffs against the ota-preview tag, so it needs history and tags.
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      - name: Gate
+        id: gate
+        run: node apps/mobile/scripts/ota-gate.mjs preview $FORCE
+
+      # The wrapper pairs --channel with --environment (EXPO_PUBLIC_* come from
+      # the EAS `preview` environment) and uploads the update's source maps.
+      - name: Publish
+        if: steps.gate.outputs.platforms != ''
+        run: |
+          message="$(git log -1 --format=%s) ($(git rev-parse --short HEAD))"
+          for platform in ${{ steps.gate.outputs.platforms }}; do
+            node apps/mobile/scripts/publish-update.mjs preview \
+              --platform "$platform" --non-interactive --message "$message"
+          done
+          git tag -f ota-preview
+          git push -f origin refs/tags/ota-preview
