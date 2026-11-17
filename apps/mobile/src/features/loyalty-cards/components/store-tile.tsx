@@ -25,6 +25,36 @@ import { RETAILER_LOGO_FILES } from './retailer-logo-files'
  * a fixed size on the tile scale, so at the largest sizes the two letters
  * shrink back to fit inside it rather than spilling over its edge.
  */
+/**
+ * What a store's face is drawn from, for `StoreTile` and `StoreCard`: its
+ * brand colour (or the default), the bundled logo for `catalogKey` while that
+ * logo has not failed to load, and the monogram and its colour otherwise.
+ */
+export function useStoreFace({
+  name,
+  color,
+  catalogKey,
+}: {
+  name: string
+  color?: string
+  catalogKey?: string
+}) {
+  const key = retailerLogoKey(catalogKey)
+  const file = key ? RETAILER_LOGO_FILES[key] : undefined
+  // The key that failed, not a flag: a recycled list row that moves on to
+  // another store tries that store's logo afresh.
+  const [failedKey, setFailedKey] = useState<string | null>(null)
+  const background = color && isHexColor(color) ? color : DEFAULT_STORE_COLOR
+  return {
+    background,
+    logo:
+      key && file !== undefined && key !== failedKey ? { key, file } : null,
+    onLogoError: () => setFailedKey(key ?? null),
+    monogram: storeMonogram(name),
+    onBrand: textOnBrand(background),
+  }
+}
+
 export function StoreTile({
   name,
   color,
@@ -37,25 +67,20 @@ export function StoreTile({
   size?: 'medium' | 'large'
 }) {
   const tokens = useTokens()
-  const key = retailerLogoKey(catalogKey)
-  const file = key ? RETAILER_LOGO_FILES[key] : undefined
-  // The key that failed, not a flag: a recycled list row that moves on to
-  // another store tries that store's logo afresh.
-  const [failedKey, setFailedKey] = useState<string | null>(null)
-  const background = color && isHexColor(color) ? color : DEFAULT_STORE_COLOR
+  const face = useStoreFace({ name, color, catalogKey })
   const dimension = size === 'large' ? SIZE.tileL : SIZE.tileM
   const radius = size === 'large' ? RADIUS.tileL : RADIUS.tileM
   const frame = [
     styles.tile,
     {
-      backgroundColor: background,
+      backgroundColor: face.background,
       width: dimension,
       height: dimension,
       borderRadius: radius,
     },
   ]
 
-  if (key && file !== undefined && key !== failedKey) {
+  if (face.logo) {
     return (
       <View
         accessible={false}
@@ -65,12 +90,12 @@ export function StoreTile({
         style={[frame, styles.logoFrame, { borderColor: tokens.hair }]}
       >
         <Image
-          source={file}
-          recyclingKey={key}
+          source={face.logo.file}
+          recyclingKey={face.logo.key}
           contentFit="cover"
           style={styles.logo}
           accessibilityIgnoresInvertColors
-          onError={() => setFailedKey(key)}
+          onError={face.onLogoError}
         />
       </View>
     )
@@ -88,10 +113,10 @@ export function StoreTile({
         adjustsFontSizeToFit
         style={[
           size === 'large' ? TYPE.title2 : TYPE.bodyStrong,
-          { color: textOnBrand(background) },
+          { color: face.onBrand },
         ]}
       >
-        {storeMonogram(name)}
+        {face.monogram}
       </Text>
     </View>
   )

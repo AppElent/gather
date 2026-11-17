@@ -180,38 +180,54 @@ export const en = {
     },
 
     add: {
-      title: 'Add to {group}',
-      workingOnly: 'Only actions that work today.',
+      /** The quick-actions sheet (APP-206): show what you need, or add. */
+      title: 'Quick · {group}',
+      subtitle: 'Show what you need, or add something',
       back: 'Back to actions',
       saved: 'Added: {items}',
-      kinds: {
-        row: 'in the row',
-        handoff: 'opens a form',
-        compose: 'pick, then rate',
+      cards: {
+        heading: coreEn.modules.byId['loyalty-cards'].label,
+        all: 'All cards',
+        /** A card's accessible name; `{store}` is the store. */
+        show: '{store}, show card',
+        emptyTitle: 'No loyalty cards yet',
+        emptyBody: 'Scan one and it waits here for the till.',
+        scan: 'Scan',
       },
+      addHeading: 'Add',
+      /**
+       * `label` is the accessible name, `short` the grid tile's words, and
+       * `module` the Module named under them.
+       */
       actions: {
         'cheese-tasting': {
           label: coreEn.tastings.kinds.cheese.launcher,
+          short: 'Cheese tasting',
           module: coreEn.modules.byId.cheeses.label,
         },
         'wine-tasting': {
           label: coreEn.tastings.kinds.wine.launcher,
+          short: 'Wine tasting',
           module: coreEn.modules.byId.wines.label,
         },
         'beer-tasting': {
           label: coreEn.tastings.kinds.beer.launcher,
+          short: 'Beer tasting',
           module: coreEn.modules.byId.beers.label,
         },
         'task-new': {
           label: 'Add a task',
+          short: 'Task',
           module: coreEn.modules.byId.tasks.label,
         },
         'recipe-import': {
           label: 'Import from a link',
+          short: 'Import recipe',
           module: coreEn.modules.byId.recipes.label,
         },
         'loyalty-card-add': {
           label: 'Add loyalty card',
+          short: 'Scan card',
           module: coreEn.modules.byId['loyalty-cards'].label,
         },
       },
@@ -529,21 +545,19 @@ export const en = {
   },
 
   /**
-   * Social sign-in, announced before it exists.
-   *
-   * None of these are enabled on the Clerk instance (`socialProviders: []`, see
-   * #139), so the rows are inert and say so. `soon` is the web's own word for
-   * this — `shell.marks.soon` — because a staged Module and a staged sign-in
-   * method should not be marked in two different vocabularies.
+   * Social sign-in under the email form (`SocialButtons`). Apple on iOS draws
+   * Apple's own localized button, so `apple` is only read on Android.
    */
   social: {
     heading: 'Or continue with',
-    soon: 'Soon',
-    apple: 'Apple',
-    microsoft: 'Microsoft',
-    google: 'Google',
-    /** The accessible name; `{provider}` is one of the three above. */
-    unavailable: 'Continue with {provider} — coming soon',
+    apple: 'Continue with Apple',
+    microsoft: 'Continue with Microsoft',
+    /**
+     * Clerk stopped short of a session: a sign-up missing a field, or a sign-in
+     * that needs a second factor. The web forms can finish both.
+     */
+    incomplete:
+      "Your account needs another step this app doesn't support yet. Finish it on the web, then sign in here.",
   },
 
   fields: {

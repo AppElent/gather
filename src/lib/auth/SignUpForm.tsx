@@ -7,6 +7,8 @@ import { AuthError } from './AuthError'
 import { AuthField } from './AuthField'
 import { orThrow } from './clerkResult'
 import { clerkErrorMessage } from './core'
+import { SocialButtons } from './SocialButtons'
+import { useOnceClerkLoaded } from './useOnceClerkLoaded'
 
 export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
   const { signUp } = useSignUp()
@@ -18,6 +20,36 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // An Apple or Microsoft sign-up that Clerk could not finish comes back here
+  // from `/sso-callback` at `missing_requirements`. Only an OAuth attempt (it
+  // has an external account), so an abandoned email sign-up is left alone. An
+  // email that is the only thing left to verify is the one gap this form can
+  // close; anything else it says it cannot.
+  useOnceClerkLoaded(() => {
+    if (
+      signUp.status !== 'missing_requirements' ||
+      !signUp.verifications.externalAccount?.status
+    ) {
+      return
+    }
+    const address = signUp.emailAddress
+    if (
+      address &&
+      signUp.missingFields.length === 0 &&
+      signUp.unverifiedFields.length === 1 &&
+      signUp.unverifiedFields[0] === 'email_address'
+    ) {
+      setEmail(address)
+      setLoading(true)
+      orThrow(signUp.verifications.sendEmailCode())
+        .then(() => setStep('verify'))
+        .catch((err) => setError(clerkErrorMessage(err, auth.errors.generic)))
+        .finally(() => setLoading(false))
+    } else {
+      setError(auth.signUp.needsMore)
+    }
+  })
 
   async function submitDetails(e: React.FormEvent) {
     e.preventDefault()
@@ -93,6 +125,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         required
       />
       <AuthButton loading={loading}>{auth.signUp.submit}</AuthButton>
+      <SocialButtons />
       <div className="mt-1 text-center text-xs text-[var(--auth-muted)]">
         <a href={config.paths.signIn} className="hover:underline">
           {auth.signUp.haveAccount}

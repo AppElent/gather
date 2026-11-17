@@ -13,8 +13,10 @@ import {
   pickSecondFactor,
   type SecondFactorStrategy,
 } from './core'
+import { SocialButtons } from './SocialButtons'
 import { TestLoginButton } from './TestLoginButton'
 import { useCooldown } from './useCooldown'
+import { useOnceClerkLoaded } from './useOnceClerkLoaded'
 
 /** Seconds "Send a new code" stays disabled after a send. */
 const RESEND_COOLDOWN_SECONDS = 30
@@ -125,6 +127,19 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
     })
     setStep('secondFactor')
   }
+
+  // An Apple or Microsoft sign-in that needs a second factor comes back here
+  // from `/sso-callback` with the attempt still open: carry on with it. Only an
+  // OAuth attempt, so an abandoned password attempt is not picked up again.
+  useOnceClerkLoaded(() => {
+    if (
+      signIn.firstFactorVerification?.strategy?.startsWith('oauth_') &&
+      (signIn.status === 'needs_second_factor' ||
+        signIn.status === 'needs_client_trust')
+    ) {
+      void run(proceed)
+    }
+  })
 
   function submitPassword(e: React.FormEvent) {
     e.preventDefault()
@@ -325,6 +340,7 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
         {auth.signIn.emailCode.send}
       </AuthButton>
       <TestLoginButton onSuccess={onSuccess} />
+      <SocialButtons />
       <div className="mt-1 flex justify-between text-xs text-[var(--auth-muted)]">
         {config.features.forgotPassword ? (
           <a href={config.paths.forgotPassword} className="hover:underline">

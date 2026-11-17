@@ -19,6 +19,11 @@ export interface NativeSheetProps {
   maxHeight?: number
   /** A bounded scroll body needs to fill an explicit sheet detent. */
   fill?: boolean
+  /**
+   * The sheet's own colour. `surface` by default; `ground` for a sheet whose
+   * content is itself `surface` cards and tiles (the quick-actions sheet).
+   */
+  background?: 'surface' | 'ground'
 }
 
 /**
@@ -35,6 +40,7 @@ export function NativeSheet({
   leading,
   maxHeight,
   fill = false,
+  background = 'surface',
 }: NativeSheetProps) {
   const ref = useRef<BottomSheetModal>(null)
   const closed = useRef(false)
@@ -62,7 +68,7 @@ export function NativeSheet({
       enableDynamicSizing={maxHeight === undefined}
       snapPoints={maxHeight ? [`${Math.round(maxHeight * 100)}%`] : undefined}
       onDismiss={handleDismiss}
-      backgroundStyle={{ backgroundColor: tokens.surface }}
+      backgroundStyle={{ backgroundColor: tokens[background] }}
     >
       <BottomSheetView
         style={[

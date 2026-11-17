@@ -129,38 +129,48 @@ export const nl = {
     },
 
     add: {
-      title: 'Toevoegen aan {group}',
-      workingOnly: 'Alleen acties die vandaag werken.',
+      title: 'Snel · {group}',
+      subtitle: 'Tonen wat je nodig hebt, of iets toevoegen',
       back: 'Terug naar acties',
       saved: 'Toegevoegd: {items}',
-      kinds: {
-        row: 'in de rij',
-        handoff: 'opent een formulier',
-        compose: 'kies en beoordeel',
+      cards: {
+        heading: coreNl.modules.byId['loyalty-cards'].label,
+        all: 'Alle kaarten',
+        show: '{store}, kaart tonen',
+        emptyTitle: 'Nog geen klantkaarten',
+        emptyBody: 'Scan er een, dan staat hij hier klaar voor de kassa.',
+        scan: 'Scannen',
       },
+      addHeading: 'Toevoegen',
       actions: {
         'cheese-tasting': {
           label: coreNl.tastings.kinds.cheese.launcher,
+          short: 'Kaas proeven',
           module: coreNl.modules.byId.cheeses.label,
         },
         'wine-tasting': {
           label: coreNl.tastings.kinds.wine.launcher,
+          short: 'Wijn proeven',
           module: coreNl.modules.byId.wines.label,
         },
         'beer-tasting': {
           label: coreNl.tastings.kinds.beer.launcher,
+          short: 'Bier proeven',
           module: coreNl.modules.byId.beers.label,
         },
         'task-new': {
           label: 'Taak toevoegen',
+          short: 'Taak',
           module: coreNl.modules.byId.tasks.label,
         },
         'recipe-import': {
           label: 'Importeren vanaf een link',
+          short: 'Recept importeren',
           module: coreNl.modules.byId.recipes.label,
         },
         'loyalty-card-add': {
           label: 'Klantkaart toevoegen',
+          short: 'Kaart scannen',
           module: coreNl.modules.byId['loyalty-cards'].label,
         },
       },
@@ -368,12 +378,12 @@ export const nl = {
   },
 
   social: {
-    heading: 'Of ga verder met',
-    soon: 'Binnenkort',
-    apple: 'Apple',
-    microsoft: 'Microsoft',
-    google: 'Google',
-    unavailable: 'Verder met {provider} — binnenkort beschikbaar',
+    // Apple's own Dutch button says "Ga door met Apple"; the rest follows it.
+    heading: 'Of ga door met',
+    apple: 'Ga door met Apple',
+    microsoft: 'Ga door met Microsoft',
+    incomplete:
+      'Je account heeft nog een stap nodig die deze app nog niet ondersteunt. Rond die af op het web en log daarna hier in.',
   },
 
   fields: {

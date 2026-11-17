@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { offlineCards } from '../features/loyalty-cards/offline/offline-cards'
+import {
+  offlineCards,
+  offlineGroupCard,
+  offlineGroupCards,
+} from '../features/loyalty-cards/offline/offline-cards'
 import {
   clearLastKnown,
   confirmAccount,
@@ -205,5 +209,58 @@ describe('the offline-readable copy', () => {
     saveList('user_a', 'parents', [card, { ...card, _id: 'k2', storeName: 'HEMA' }])
     confirmAccount('user_a')
     expect(offlineCards('user_a').map((c) => c._id).sort()).toEqual(['k1', 'k2'])
+  })
+})
+
+describe('one Group’s offline copy (APP-206)', () => {
+  const other = { ...card, _id: 'k2', storeName: 'Jumbo' }
+
+  it('reads only the Group asked for, in the saved order', () => {
+    saveList('user_a', 'home', [other, card])
+    saveList('user_a', 'work', [{ ...card, _id: 'k9' }])
+    confirmAccount('user_a')
+    expect(offlineGroupCards('user_a', 'home')?.map((c) => c._id)).toEqual([
+      'k2',
+      'k1',
+    ])
+  })
+
+  it('tells a Group with no copy from a copy with no cards', () => {
+    saveList('user_a', 'empty', [])
+    confirmAccount('user_a')
+    expect(offlineGroupCards('user_a', 'empty')).toEqual([])
+    expect(offlineGroupCards('user_a', 'never-opened')).toBeUndefined()
+  })
+
+  it('keeps the confirmed-account rule', () => {
+    saveList('user_a', 'home', [card])
+    expect(offlineGroupCards('user_a', 'home')).toBeUndefined()
+    confirmAccount('user_a')
+    expect(offlineGroupCards('user_b', 'home')).toBeUndefined()
+    expect(offlineGroupCards(null, 'home')).toBeUndefined()
+  })
+
+  it('reads a broken store as a miss', () => {
+    saveList('user_a', 'home', [card])
+    confirmAccount('user_a')
+    store.breakIt()
+    expect(offlineGroupCards('user_a', 'home')).toBeUndefined()
+  })
+
+  it('reads a copy with no drawable card as a miss, not as empty', () => {
+    saveList('user_a', 'home', [{ _id: 'k3', storeName: 'Kapot' }])
+    confirmAccount('user_a')
+    expect(offlineGroupCards('user_a', 'home')).toBeUndefined()
+  })
+
+  it('finds one saved card of the Group for its screen', () => {
+    saveList('user_a', 'home', [other, card])
+    saveList('user_a', 'work', [{ ...card, _id: 'k9' }])
+    confirmAccount('user_a')
+    expect(offlineGroupCard('user_a', 'home', 'k1')?.cardNumber).toBe(
+      card.cardNumber,
+    )
+    expect(offlineGroupCard('user_a', 'home', 'k9')).toBeUndefined()
+    expect(offlineGroupCard('user_b', 'home', 'k1')).toBeUndefined()
   })
 })

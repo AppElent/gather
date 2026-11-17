@@ -7,6 +7,7 @@ export const DEFAULT_AUTH_CONFIG: AuthConfig = {
     signIn: '/sign-in',
     signUp: '/sign-up',
     forgotPassword: '/forgot-password',
+    ssoCallback: '/sso-callback',
     afterAuth: '/',
     account: '/account',
   },

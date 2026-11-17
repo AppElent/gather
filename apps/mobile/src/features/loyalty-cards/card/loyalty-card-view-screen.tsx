@@ -8,10 +8,16 @@
  * tab or opening Edit keeps this screen mounted, and gives both back.
  * Opening it counts as using it, once (`useMarkUsedOnce`), except the open
  * that follows adding the card (`justAdded`).
+ *
+ * Until Convex answers, it draws the barcode from this Group's saved copy
+ * when there is one (`offlineGroupCard`, APP-206), so a card opened from the
+ * quick-actions sheet or the list while the connection is lost still works at
+ * the till. That copy is display only: no edit, delete, note or photos.
  */
+import { useAuth } from '@clerk/expo'
 import { Image } from 'expo-image'
 import { Stack, useIsFocused, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -27,6 +33,7 @@ import { HeaderIconButton } from '../../../ui/header-icon-button'
 import { CardBarcode } from '../components/card-barcode'
 import { StoreTile } from '../components/store-tile'
 import { LOYALTY_CARD_ICONS } from '../loyalty-card-icons'
+import { offlineGroupCard } from '../offline/offline-cards'
 import { useDeleteLoyaltyCard } from '../use-delete-loyalty-card'
 import { useKeepAwakeWhile } from './use-keep-awake-while'
 import { useMarkUsedOnce } from './use-mark-used-once'
@@ -49,17 +56,24 @@ export function LoyaltyCardViewScreen({
     groupSlug: group.slug,
     id: cardId,
   })
+  const { userId } = useAuth()
+  const waiting = card === undefined
+  const saved = useMemo(
+    () => (waiting ? offlineGroupCard(userId, group.slug, cardId) : undefined),
+    [waiting, userId, group.slug, cardId],
+  )
+  const face = waiting ? saved : card
   const deleteCard = useDeleteLoyaltyCard(group.slug)
   const [problem, setProblem] = useState<string | null>(null)
 
-  const shown = useIsFocused() && Boolean(card)
+  const shown = useIsFocused() && Boolean(face)
   useKeepAwakeWhile(shown)
   useTillBrightness(shown)
   useMarkUsedOnce(group.slug, cardId, justAdded)
 
   const moduleTitle = t.modules.byId['loyalty-cards'].label
 
-  if (card === undefined) {
+  if (face === undefined) {
     return (
       <>
         <Stack.Screen options={{ headerShown: true, title: moduleTitle }} />
@@ -70,7 +84,7 @@ export function LoyaltyCardViewScreen({
     )
   }
 
-  if (card === null) {
+  if (face === null) {
     return (
       <>
         <Stack.Screen options={{ headerShown: true, title: moduleTitle }} />
@@ -86,8 +100,8 @@ export function LoyaltyCardViewScreen({
     )
   }
 
-  const store = card.storeName
-  const formatName = words.formats[card.barcodeFormat]
+  const store = face.storeName
+  const formatName = words.formats[face.barcodeFormat]
 
   return (
     <>
@@ -95,7 +109,7 @@ export function LoyaltyCardViewScreen({
         options={{
           headerShown: true,
           title: store,
-          headerRight: () => (
+          headerRight: card ? () => (
             <View style={styles.headerActions}>
               <HeaderIconButton
                 label={words.till.edit}
@@ -125,7 +139,7 @@ export function LoyaltyCardViewScreen({
                 />
               </HeaderIconButton>
             </View>
-          ),
+          ) : undefined,
         }}
       />
       <ScrollView
@@ -139,8 +153,8 @@ export function LoyaltyCardViewScreen({
         <View style={styles.store}>
           <StoreTile
             name={store}
-            color={card.brandColor}
-            catalogKey={card.catalogKey}
+            color={face.brandColor}
+            catalogKey={face.catalogKey}
             size="large"
           />
           <View style={styles.storeText}>
@@ -150,17 +164,17 @@ export function LoyaltyCardViewScreen({
             >
               {store}
             </Text>
-            {card.holder ? (
+            {face.holder ? (
               <Text style={[TYPE.subhead, { color: tokens.muted }]}>
-                {card.holder}
+                {face.holder}
               </Text>
             ) : null}
           </View>
         </View>
 
         <CardBarcode
-          format={card.barcodeFormat}
-          value={card.cardNumber}
+          format={face.barcodeFormat}
+          value={face.cardNumber}
           label={fmt(words.detail.barcodeLabel, {
             format: formatName,
             store,
@@ -179,7 +193,7 @@ export function LoyaltyCardViewScreen({
           </Text>
         ) : null}
 
-        {card.note ? (
+        {card?.note ? (
           <View style={styles.section}>
             <Text style={[TYPE.footnoteStrong, { color: tokens.muted }]}>
               {words.detail.note}
@@ -190,7 +204,7 @@ export function LoyaltyCardViewScreen({
           </View>
         ) : null}
 
-        {card.frontPhotoUrl || card.backPhotoUrl ? (
+        {card?.frontPhotoUrl || card?.backPhotoUrl ? (
           <View style={styles.section}>
             <Text style={[TYPE.footnoteStrong, { color: tokens.muted }]}>
               {words.detail.photos}
