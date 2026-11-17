@@ -230,6 +230,15 @@ export const FEATURES = defineFeatures([
     routes: { web: ['about'] },
   },
   {
+    id: 'mcp-server',
+    kind: 'product',
+    status: 'exclusive',
+    platforms: ['web'],
+    reason:
+      'The remote MCP endpoint and its OAuth discovery, for Claude, ChatGPT and other agents (ADR-0046). Served by the web Worker; there is no screen.',
+    routes: { web: ['mcp', '[.]well-known/$'] },
+  },
+  {
     id: 'retired-urls',
     kind: 'product',
     status: 'exclusive',

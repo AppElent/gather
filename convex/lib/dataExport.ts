@@ -111,6 +111,8 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
     omit: ['clerkId', 'deletedAt'],
   },
   aiUsage: { scope: 'account', index: 'by_user_and_day' },
+  // Retry receipts for connected apps' creates; the rows they point at go out.
+  idempotencyKeys: { exclude: 'bookkeeping' },
 
   // -- Each Group ----------------------------------------------------------
   groups: { scope: 'group', self: true, omit: ['inviteCode', 'isPersonal'] },

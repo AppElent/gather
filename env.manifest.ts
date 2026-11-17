@@ -74,6 +74,20 @@ export const ENTRIES = [
     },
   },
 
+  {
+    key: 'mcpResourceUrls',
+    infisicalKey: 'mcp-resource-urls',
+    description:
+      'Comma-separated MCP endpoint URLs whose Clerk OAuth tokens Convex accepts (docs/runbooks/mcp.md); `none` disables MCP. Production lists the staging and production endpoints, since staging runs on the production backend (ADR-0039).',
+    secret: false,
+    lands: {
+      'convex-functions': {
+        name: 'MCP_RESOURCE_URLS',
+        environments: ['local', 'preview', 'production'],
+      },
+    },
+  },
+
   // ---------- Convex ----------
   {
     key: 'convexUrl',

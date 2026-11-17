@@ -9,6 +9,7 @@ import {
   isVisibleToGroups,
   requireGroupBySlug,
 } from './lib/groupAccess'
+import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
 import {
   nextNutritionStale,
   nutritionSourceValidator,
@@ -199,21 +200,27 @@ async function requireWritableRecipe(ctx: QueryCtx, id: Id<'recipes'>) {
 }
 
 export const create = mutation({
-  args: { groupSlug: v.string(), ...recipeFields },
+  args: {
+    groupSlug: v.string(),
+    ...recipeFields,
+    idempotencyKey: idempotencyKeyValidator,
+  },
   handler: async (ctx, args) => {
-    const { groupSlug, ...fields } = args
+    const { groupSlug, idempotencyKey, ...fields } = args
     // The destination is the Group the caller asked for and nothing else. There
     // is deliberately no fallback to `defaultGroupId`: a recipe landing
     // somewhere the caller did not name is exactly what this prevents.
     const { user, group } = await requireGroupBySlug(ctx, groupSlug)
-    return await ctx.db.insert('recipes', {
-      groupId: group._id,
-      // Sharing a recipe into further Groups is a verb of its own (#25); a new
-      // recipe is visible in the one Group it was added to.
-      sharedGroupIds: [],
-      createdByUserId: user._id,
-      ...fields,
-    })
+    return await createOnce(ctx, user._id, 'recipes', idempotencyKey, () =>
+      ctx.db.insert('recipes', {
+        groupId: group._id,
+        // Sharing a recipe into further Groups is a verb of its own (#25); a new
+        // recipe is visible in the one Group it was added to.
+        sharedGroupIds: [],
+        createdByUserId: user._id,
+        ...fields,
+      }),
+    )
   },
 })
 
