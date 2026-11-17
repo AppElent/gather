@@ -9,6 +9,7 @@ type Step = ReturnType<typeof vi.fn>
 const ok = () => Promise.resolve({ error: null })
 const signIn = {
   status: null as string | null,
+  firstFactorVerification: null as { strategy: string } | null,
   supportedFirstFactors: [] as unknown[],
   supportedSecondFactors: [] as unknown[],
   create: vi.fn() as Step,
@@ -25,6 +26,7 @@ const signIn = {
   finalize: vi.fn() as Step,
   reset: vi.fn() as Step,
 }
+const clerk = { loaded: true }
 const steps = [
   signIn.create,
   signIn.password,
@@ -46,6 +48,8 @@ function resolvesTo(step: Step, state: Partial<typeof signIn>) {
 
 function resetSignIn() {
   signIn.status = null
+  signIn.firstFactorVerification = null
+  clerk.loaded = true
   signIn.supportedFirstFactors = []
   signIn.supportedSecondFactors = []
   for (const step of steps) {
@@ -57,6 +61,7 @@ resetSignIn()
 
 vi.mock('@clerk/react', () => ({
   useSignIn: () => ({ signIn, errors: {}, fetchStatus: 'idle' }),
+  useAuth: () => ({ isLoaded: clerk.loaded }),
 }))
 
 import { renderWithI18n } from '../i18n/testing'
@@ -140,6 +145,32 @@ describe('SignInForm', () => {
       await vi.waitFor(() => expect(signIn.finalize).toHaveBeenCalled())
       expect(signIn.mfa.verifyTOTP).toHaveBeenCalledWith({ code: '123456' })
       expect(onSuccess).toHaveBeenCalled()
+    })
+
+    it('resumes a social sign-in that came back needing a second factor, once Clerk has loaded', async () => {
+      clerk.loaded = false
+      const view = renderForm()
+      expect(screen.getByLabelText('Email')).toBeDefined()
+      clerk.loaded = true
+      signIn.status = 'needs_second_factor'
+      signIn.firstFactorVerification = { strategy: 'oauth_apple' }
+      signIn.supportedSecondFactors = [{ strategy: 'totp' }]
+      view.rerender(
+        <AuthConfigProvider>
+          <SignInForm onSuccess={vi.fn()} />
+        </AuthConfigProvider>,
+      )
+      expect(await screen.findByText(/authenticator app/i)).toBeDefined()
+      expect(signIn.password).not.toHaveBeenCalled()
+    })
+
+    it('leaves an abandoned password attempt alone on arrival', async () => {
+      signIn.status = 'needs_second_factor'
+      signIn.firstFactorVerification = { strategy: 'password' }
+      signIn.supportedSecondFactors = [{ strategy: 'totp' }]
+      renderForm()
+      expect(screen.getByLabelText('Email')).toBeDefined()
+      expect(screen.queryByText(/authenticator app/i)).toBeNull()
     })
 
     it('sends the code for a phone second factor before asking for it', async () => {

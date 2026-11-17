@@ -58,7 +58,7 @@ export const FEATURES = defineFeatures([
     status: 'parity',
     platforms: ['web', 'mobile'],
     routes: {
-      web: ['sign-in', 'sign-up', 'forgot-password'],
+      web: ['sign-in', 'sign-up', 'forgot-password', 'sso-callback'],
       mobile: ['(auth)/**'],
     },
   },

@@ -13,6 +13,10 @@ export const auth = {
   password: 'Password',
   code: 'Code',
   verificationCode: 'Verification code',
+  /** A social sign-in button; `{provider}` is Apple or Microsoft. */
+  continueWith: 'Continue with {provider}',
+  /** Between the social buttons and the email form. */
+  or: 'or',
 
   errors: {
     generic: 'Something went wrong. Try again.',
@@ -69,6 +73,16 @@ export const auth = {
     haveAccount: 'Already have an account? Sign in',
     codeSent: 'We sent a code to {email}.',
     verify: 'Verify',
+    /** An Apple or Microsoft sign-up that needs a field this form does not ask for. */
+    needsMore:
+      "Your account needs a detail this form can't ask for yet. Create it with your email and a password instead.",
+  },
+
+  /** `/sso-callback`, while Clerk finishes an Apple or Microsoft sign-in. */
+  ssoCallback: {
+    eyebrow: 'Sign in',
+    title: 'Signing you in…',
+    subtitle: 'One moment while we finish your sign-in.',
   },
 
   forgotPassword: {

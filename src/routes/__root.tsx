@@ -33,11 +33,16 @@ const authConfig: AuthConfig = {
     signIn: '/sign-in',
     signUp: '/sign-up',
     forgotPassword: '/forgot-password',
+    ssoCallback: '/sso-callback',
     afterAuth: '/',
     account: hrefTo('account'),
   },
   features: { forgotPassword: true },
-  socialProviders: [],
+  // Both are enabled on the shared AppElent Clerk instances (APP-208).
+  socialProviders: [
+    { id: 'apple', label: 'Apple', strategy: 'oauth_apple' },
+    { id: 'microsoft', label: 'Microsoft', strategy: 'oauth_microsoft' },
+  ],
 }
 
 export const Route = createRootRoute({
