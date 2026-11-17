@@ -26,7 +26,7 @@
 
 import { useSignInWithApple } from '@clerk/expo/apple'
 import { useSSO } from '@clerk/expo/experimental'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Platform } from 'react-native'
 import { useI18n } from '../i18n'
 import { readThrown } from './clerkErrors'
@@ -53,45 +53,55 @@ export function useSocialSignIn() {
   const { startAppleAuthenticationFlow } = useSignInWithApple()
   const [pending, setPending] = useState<SocialProvider | null>(null)
   const [failure, setFailure] = useState<Failure | null>(null)
+  // A synchronous lock: two taps in the same frame both see `pending` null.
+  const running = useRef(false)
 
   const start = useCallback(
     async (provider: SocialProvider) => {
+      if (running.current) return
+      running.current = true
       setPending(provider)
       setFailure(null)
+      // `true` once a session is active: the screen is about to unmount, so
+      // the buttons stay busy until it does.
+      let signedIn = false
       try {
         if (provider === 'apple' && Platform.OS === 'ios') {
-          const { createdSessionId, setActive, signUp } =
+          const { createdSessionId, setActive, signIn, signUp } =
             await startAppleAuthenticationFlow()
           if (createdSessionId && setActive) {
             await setActive({ session: createdSessionId })
-            return
-          }
-          // A cancel also lands here, with whatever sign-up the client last
-          // held, so only an Apple sign-up that is verified but missing a field
-          // counts as incomplete. Clerk not loaded yet (no `signUp`) is a
-          // failure the person should hear about.
-          if (!signUp) {
+            signedIn = true
+          } else if (!signUp) {
+            // Clerk had not loaded yet: say so rather than nothing.
             setFailure({ kind: 'thrown', cause: null })
           } else if (
-            signUp.status === 'missing_requirements' &&
-            signUp.verifications?.externalAccount?.status === 'verified'
+            // A cancel also lands here, with whatever the client last held, so
+            // only an attempt this Apple flow made counts: a verified Apple
+            // sign-up missing a field, or an Apple sign-in at a second factor
+            // this app has no screen for.
+            (signUp.status === 'missing_requirements' &&
+              signUp.verifications?.externalAccount?.status === 'verified') ||
+            (signIn?.firstFactorVerification?.strategy === 'oauth_token_apple' &&
+              (signIn.status === 'needs_second_factor' ||
+                signIn.status === 'needs_client_trust'))
           ) {
             setFailure({ kind: 'incomplete' })
           }
         } else {
           const { createdSessionId, signIn, authSessionResult } =
             await startSSOFlow({ strategy: `oauth_${provider}` })
-          if (authSessionResult?.type !== 'success') {
-            setPending(null)
-            return
+          if (authSessionResult?.type === 'success') {
+            signedIn = Boolean(createdSessionId || signIn?.existingSession)
+            if (!signedIn) setFailure({ kind: 'incomplete' })
           }
-          if (createdSessionId || signIn?.existingSession) return
-          setFailure({ kind: 'incomplete' })
         }
       } catch (cause) {
         if (!isCanceled(cause)) setFailure({ kind: 'thrown', cause })
+      } finally {
+        running.current = false
+        if (!signedIn) setPending(null)
       }
-      setPending(null)
     },
     [startSSOFlow, startAppleAuthenticationFlow],
   )

@@ -536,9 +536,12 @@ export const en = {
     heading: 'Or continue with',
     apple: 'Continue with Apple',
     microsoft: 'Continue with Microsoft',
-    /** A sign-up Clerk left at `missing_requirements`: a field this app does not ask for. */
+    /**
+     * Clerk stopped short of a session: a sign-up missing a field, or a sign-in
+     * that needs a second factor. The web forms can finish both.
+     */
     incomplete:
-      "Your account needs another step this app doesn't support yet. Finish signing up on the web, then sign in here.",
+      "Your account needs another step this app doesn't support yet. Finish it on the web, then sign in here.",
   },
 
   fields: {

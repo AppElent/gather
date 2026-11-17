@@ -102,6 +102,46 @@ test('cancelling Apple after an abandoned email sign-up still says nothing', asy
   expect(result.error).toBeNull()
 })
 
+test('an Apple sign-in stopped at a second factor explains where to finish it', async () => {
+  mocks.startApple.mockResolvedValue({
+    createdSessionId: null,
+    setActive: mocks.setActive,
+    signIn: {
+      status: 'needs_second_factor',
+      firstFactorVerification: { strategy: 'oauth_token_apple' },
+    },
+    signUp: { status: null },
+  })
+  const result = await run('apple')
+  expect(result.error).toBe(en.social.incomplete)
+})
+
+test('a second tap while one provider runs starts nothing', async () => {
+  let release: (value: unknown) => void = () => {}
+  mocks.startSSOFlow.mockReturnValue(
+    new Promise((resolve) => {
+      release = resolve
+    }),
+  )
+  const result = { current: undefined as unknown as Hook }
+  function Probe() {
+    result.current = useSocialSignIn()
+    return null
+  }
+  const view = mount(<Probe />)
+  let first: Promise<void> = Promise.resolve()
+  await act(async () => {
+    first = result.current.start('microsoft')
+    void result.current.start('microsoft')
+  })
+  expect(mocks.startSSOFlow).toHaveBeenCalledTimes(1)
+  await act(async () => {
+    release({ createdSessionId: null, authSessionResult: { type: 'dismiss' } })
+    await first
+  })
+  view.unmount()
+})
+
 test('Apple before Clerk has loaded says something went wrong', async () => {
   mocks.startApple.mockResolvedValue({ createdSessionId: null })
   const result = await run('apple')

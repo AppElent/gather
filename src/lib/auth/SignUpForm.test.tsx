@@ -4,6 +4,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 /** A Clerk Core 3 `signUp`: steps resolve to `{ error }`, state is read back. */
 const signUp = {
   status: null as string | null,
+  missingFields: [] as string[],
+  unverifiedFields: [] as string[],
+  emailAddress: null as string | null,
   password: vi.fn(),
   verifications: { sendEmailCode: vi.fn(), verifyEmailCode: vi.fn() },
   finalize: vi.fn(),
@@ -38,7 +41,29 @@ describe('SignUpForm', () => {
   afterEach(() => {
     cleanup()
     signUp.status = null
+    signUp.missingFields = []
+    signUp.unverifiedFields = []
+    signUp.emailAddress = null
     for (const m of [create, prepare, attempt, finalize]) m.mockReset()
+  })
+
+  it('resumes a social sign-up that only needs its email verified', async () => {
+    signUp.status = 'missing_requirements'
+    signUp.unverifiedFields = ['email_address']
+    signUp.emailAddress = 'a@b.com'
+    prepare.mockImplementation(ok())
+    renderForm()
+    expect(await screen.findByLabelText(/verification code/i)).toBeDefined()
+    expect(screen.getByText(/a@b\.com/)).toBeDefined()
+    expect(prepare).toHaveBeenCalledTimes(1)
+  })
+
+  it('says so when a social sign-up needs a field the form cannot ask for', async () => {
+    signUp.status = 'missing_requirements'
+    signUp.missingFields = ['username']
+    renderForm()
+    expect(await screen.findByText(/can't ask for yet/i)).toBeDefined()
+    expect(prepare).not.toHaveBeenCalled()
   })
 
   it('moves to the verification step after creating the account', async () => {

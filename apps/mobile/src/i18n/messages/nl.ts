@@ -372,7 +372,7 @@ export const nl = {
     apple: 'Doorgaan met Apple',
     microsoft: 'Doorgaan met Microsoft',
     incomplete:
-      'Je account heeft nog een stap nodig die deze app nog niet ondersteunt. Rond je aanmelding af op het web en log daarna hier in.',
+      'Je account heeft nog een stap nodig die deze app nog niet ondersteunt. Rond die af op het web en log daarna hier in.',
   },
 
   fields: {

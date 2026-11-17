@@ -1,5 +1,5 @@
 import { useSignUp } from '@clerk/react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fmt, useMessages } from '../i18n'
 import { AuthButton } from './AuthButton'
 import { useAuthConfig } from './AuthConfigProvider'
@@ -19,6 +19,32 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // An Apple or Microsoft sign-up that Clerk could not finish comes back here
+  // from `/sso-callback` at `missing_requirements`. An unverified email is the
+  // one gap this form can close; anything else it says it cannot.
+  const resumed = useRef(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, on arrival
+  useEffect(() => {
+    if (resumed.current) return
+    resumed.current = true
+    if (signUp.status !== 'missing_requirements') return
+    if (
+      signUp.missingFields.length === 0 &&
+      signUp.unverifiedFields.includes('email_address') &&
+      signUp.emailAddress
+    ) {
+      const address = signUp.emailAddress
+      setEmail(address)
+      setLoading(true)
+      orThrow(signUp.verifications.sendEmailCode())
+        .then(() => setStep('verify'))
+        .catch((err) => setError(clerkErrorMessage(err, auth.errors.generic)))
+        .finally(() => setLoading(false))
+    } else {
+      setError(auth.signUp.needsMore)
+    }
+  }, [])
 
   async function submitDetails(e: React.FormEvent) {
     e.preventDefault()

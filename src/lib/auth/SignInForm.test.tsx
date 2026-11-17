@@ -142,6 +142,14 @@ describe('SignInForm', () => {
       expect(onSuccess).toHaveBeenCalled()
     })
 
+    it('resumes a social sign-in that came back needing a second factor', async () => {
+      signIn.status = 'needs_second_factor'
+      signIn.supportedSecondFactors = [{ strategy: 'totp' }]
+      renderForm()
+      expect(await screen.findByText(/authenticator app/i)).toBeDefined()
+      expect(signIn.password).not.toHaveBeenCalled()
+    })
+
     it('sends the code for a phone second factor before asking for it', async () => {
       resolvesTo(signIn.password, {
         status: 'needs_second_factor',
