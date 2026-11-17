@@ -6,10 +6,18 @@
  * are their own module, `./barcodes`.
  */
 
+/**
+ * The picker's categories. `pharmacy` has no entry since Holland & Barrett
+ * and Vitaminstore moved to `health` (APP-152); it stays because the schema
+ * validates stored rows against this list before the seed can move them.
+ */
 export const RETAILER_CATEGORIES = [
   'supermarket',
+  'wholesale',
+  'liquor',
   'drugstore',
   'pharmacy',
+  'health',
   'beauty',
   'diy',
   'garden',

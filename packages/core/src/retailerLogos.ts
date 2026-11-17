@@ -47,7 +47,9 @@ export const RETAILER_LOGO_PADDING = 0.08
 /**
  * Every logo, keyed by the Catalog entry's `seedKey`. Wikimedia Commons files
  * are mostly "public domain, trademarked" text logos; an official site icon
- * is the retailer's own app or touch icon. Sources checked on 2026-11-15.
+ * is the retailer's own app or touch icon, and an official site header logo
+ * is the logo file the retailer's own site shows. Sources checked on
+ * 2026-11-15, and the official site headers on 2026-11-16 (APP-152).
  */
 export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
   'albert-heijn': {
@@ -138,11 +140,6 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     page: 'https://commons.wikimedia.org/wiki/File:Etos_logo.svg',
     licence: 'Wikimedia Commons, public domain; trademarked',
   },
-  trekpleister: {
-    url: 'https://upload.wikimedia.org/wikipedia/commons/c/c5/Trekpleister_Logo_since_2024.webp',
-    page: 'https://commons.wikimedia.org/wiki/File:Trekpleister_Logo_since_2024.webp',
-    licence: 'Wikimedia Commons, CC0',
-  },
   da: {
     url: 'https://upload.wikimedia.org/wikipedia/commons/0/00/Logo_of_Drogisten_Associatie.svg',
     page: 'https://commons.wikimedia.org/wiki/File:Logo_of_Drogisten_Associatie.svg',
@@ -208,10 +205,22 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     page: 'https://www.bouwmaat.nl/',
     licence: 'Official site icon; trademark of its owner',
   },
+  intratuin: {
+    url: 'https://www.intratuin.nl/static/frontend/ISM/intratuin/nl_NL/images/logo.svg',
+    page: 'https://www.intratuin.nl/',
+    licence: 'Official site header logo; trademark of its owner',
+  },
   welkoop: {
     url: 'https://www.welkoop.nl/mobify/bundle/1006/static/img/global/apple-touch-icon.png',
     page: 'https://www.welkoop.nl/',
     licence: 'Official site icon; trademark of its owner',
+  },
+  tuinland: {
+    url: 'https://www.tuinland.nl/website/default-v2/images/logo.svg',
+    page: 'https://www.tuinland.nl/',
+    licence: 'Official site header logo; trademark of its owner',
+    // The wordmark is white; the site sets it on this aubergine.
+    background: '#550e42',
   },
   groenrijk: {
     url: 'https://www.groenrijk.nl/files/images/icons/cd27a0b7e9/apple-touch-icon-precomposed.png',
@@ -241,11 +250,6 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
   'flying-tiger': {
     url: 'https://upload.wikimedia.org/wikipedia/commons/5/5e/Flying_Tiger_Copenhagen.svg',
     page: 'https://commons.wikimedia.org/wiki/File:Flying_Tiger_Copenhagen.svg',
-    licence: 'Wikimedia Commons, public domain; trademarked',
-  },
-  blokker: {
-    url: 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Blokker-Logo.svg',
-    page: 'https://commons.wikimedia.org/wiki/File:Blokker-Logo.svg',
     licence: 'Wikimedia Commons, public domain; trademarked',
   },
   jysk: {
@@ -329,6 +333,12 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     page: 'https://commons.wikimedia.org/wiki/File:Snipes_logo.svg',
     licence: 'Wikimedia Commons, public domain; trademarked',
   },
+  livera: {
+    // A hashed build asset: re-check the URL if the download ever fails.
+    url: 'https://www.livera.nl/_next/static/media/logo-livera.ffcd2302.svg',
+    page: 'https://www.livera.nl/',
+    licence: 'Official site header logo; trademark of its owner',
+  },
   lucardi: {
     url: 'https://upload.wikimedia.org/wikipedia/commons/6/63/Lucardi_Logo_2023.svg',
     page: 'https://commons.wikimedia.org/wiki/File:Lucardi_Logo_2023.svg',
@@ -363,6 +373,13 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     url: 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Media_Markt_logo.svg',
     page: 'https://commons.wikimedia.org/wiki/File:Media_Markt_logo.svg',
     licence: 'Wikimedia Commons, public domain; trademarked',
+  },
+  primera: {
+    url: 'https://www.primera.nl/static/frontend/ISM/primera/nl_NL/images/logo.svg',
+    page: 'https://www.primera.nl/',
+    licence: 'Official site header logo; trademark of its owner',
+    // The wordmark is white; the site header behind it is this blue.
+    background: '#134395',
   },
   'the-read-shop': {
     url: 'https://www.readshop.nl/client/6.55.0-9145/assets/apple-touch-icon.png',
@@ -416,6 +433,11 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     licence: 'Wikimedia Commons, public domain; trademarked',
     padding: 0,
   },
+  discus: {
+    url: 'https://www.discus.nl/image/logo/6ab9ff80-de7a-11e7-8c26-88a08bd89a7b',
+    page: 'https://www.discus.nl/',
+    licence: 'Official site header logo; trademark of its owner',
+  },
   hema: {
     url: 'https://upload.wikimedia.org/wikipedia/commons/5/57/HEMA_Logo.svg',
     page: 'https://commons.wikimedia.org/wiki/File:HEMA_Logo.svg',
@@ -448,12 +470,6 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     licence: 'Wikimedia Commons, public domain; trademarked',
     padding: 0,
   },
-  tango: {
-    url: 'https://upload.wikimedia.org/wikipedia/commons/9/96/Tango_tankstations_logo.png',
-    page: 'https://commons.wikimedia.org/wiki/File:Tango_tankstations_logo.png',
-    licence: 'Wikimedia Commons, public domain; trademarked',
-    padding: 0.02,
-  },
   bp: {
     url: 'https://www.bp.com/icon.svg',
     page: 'https://www.bp.com/',
@@ -481,20 +497,10 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
  * holds every Catalog `seedKey` in exactly one of the two lists.
  */
 export const RETAILERS_WITHOUT_LOGO: Readonly<Record<string, string>> = {
-  intratuin:
-    'No logo on Wikimedia Commons, and intratuin.nl publishes no app or touch icon.',
-  tuinland:
-    'No logo on Wikimedia Commons, and tuinland.nl publishes no app or touch icon.',
   ziengs:
-    'No logo on Wikimedia Commons, and the icon ziengs.nl publishes does not show the brand.',
-  livera:
-    'No logo on Wikimedia Commons, and livera.nl publishes no app or touch icon.',
-  primera:
-    'No logo on Wikimedia Commons, and primera.nl publishes no app or touch icon.',
+    'No logo on Wikimedia Commons; the only logo file ziengs.nl serves is a touch icon (a slash on mint) that does not show the name, and the wordmark is drawn inline with no file.',
   dreamland:
-    'No logo on Wikimedia Commons, and dreamland.nl refused the download (HTTP 403).',
-  discus:
-    'No logo on Wikimedia Commons, and discus.nl publishes no app or touch icon.',
+    'No logo on Wikimedia Commons, and dreamland.nl and dreamland.be refuse downloads (HTTP 403 bot check).',
 }
 
 /**

@@ -99,8 +99,11 @@ export const loyaltyCards = {
   } satisfies Record<BarcodeFormat, string>,
   categories: {
     supermarket: 'Supermarket',
+    wholesale: 'Wholesale',
+    liquor: 'Liquor store',
     drugstore: 'Drugstore',
     pharmacy: 'Pharmacy',
+    health: 'Health store',
     beauty: 'Beauty',
     diy: 'DIY',
     garden: 'Garden',

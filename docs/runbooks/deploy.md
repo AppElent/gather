@@ -43,4 +43,5 @@ in the scripts ([seed data](../contracts/seed-data.md)).
 - `curl https://gather.appelent.nl/version` reports the commit at `main`.
 - `pnpm exec convex run seed:seedTastingCatalog --prod` and
   `seed:seedRetailerCatalog --prod` are idempotent: rerunning either reports
-  no inserts or retirements.
+  no inserts or retirements, and a rerun of `seed:seedRetailerCatalog` also
+  reports `updated: 0` (every row `unchanged`).

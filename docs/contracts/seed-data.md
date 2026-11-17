@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing the Catalog, the tasting or Retailer Catalog, the Sample household, or any seed entrypoint.
-version: 3.0.0
+version: 3.1.0
 status: current
 ---
 
@@ -76,8 +76,10 @@ callable functions, because every export under `convex/` is deployed API.
   when it needs reference data ([add a Module](../runbooks/add-a-module.md)).
 - Running `seedTastingCatalog` twice changes nothing the second time, and it
   never changes a Group's tasting subjects.
-- Running `seedRetailerCatalog` twice inserts and retires nothing the second
-  time, and it never changes a Group's Loyalty cards.
+- Running `seedRetailerCatalog` twice writes nothing the second time: it
+  replaces only a row that differs from its fixture, and reports the rest as
+  `unchanged`. It never changes a Group's Loyalty cards, even when it corrects
+  or retires the entry a card was picked from.
 - The Sample household is *not* idempotent: every run wipes it and builds a
   new one dated from that run. A reset leaves no unreachable rows, and content
   the Sample Group only referenced survives: a real person's recipe is
