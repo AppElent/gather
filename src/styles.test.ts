@@ -67,3 +67,25 @@ describe('cascade layers', () => {
     for (const layer of layers) expect(['base', 'components']).toContain(layer)
   })
 })
+
+/**
+ * Dark mode has two triggers: `data-theme="dark"` (an explicit choice) and the
+ * system setting while the choice is "auto", which removes `data-theme`. Both
+ * blocks must set the same tokens, or "auto" leaves some of them light: the
+ * `--app-*` tokens once lived only in the first, so the sign-in pages stayed
+ * light for everyone whose phone or laptop was in dark mode.
+ */
+describe('dark mode', () => {
+  function tokens(head: string): string[] {
+    const at = css.indexOf(head)
+    expect(at, head).toBeGreaterThan(-1)
+    const body = css.slice(at, css.indexOf('}', at))
+    return [...body.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]).sort()
+  }
+
+  test('the system setting sets every token an explicit choice does', () => {
+    expect(tokens(':root:not([data-theme="light"]) {')).toEqual(
+      tokens(':root[data-theme="dark"] {'),
+    )
+  })
+})

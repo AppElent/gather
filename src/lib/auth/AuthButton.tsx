@@ -4,6 +4,7 @@ import { cn } from './utils'
 export function AuthButton({
   children,
   loading,
+  disabled,
   variant = 'primary',
   type = 'submit',
   onClick,
@@ -11,6 +12,8 @@ export function AuthButton({
 }: {
   children: React.ReactNode
   loading?: boolean
+  /** Inert without the busy label, e.g. while another button's action runs. */
+  disabled?: boolean
   variant?: 'primary' | 'ghost'
   type?: 'submit' | 'button'
   onClick?: () => void
@@ -20,11 +23,11 @@ export function AuthButton({
   return (
     <button
       type={type}
-      disabled={loading}
+      disabled={loading || disabled}
       aria-busy={loading ?? false}
       onClick={onClick}
       className={cn(
-        'inline-flex items-center justify-center rounded-[var(--auth-radius)] px-4 py-2 text-sm font-medium transition disabled:opacity-60',
+        'inline-flex items-center justify-center gap-2 rounded-[var(--auth-radius)] px-4 py-2 text-sm font-medium transition disabled:opacity-60',
         variant === 'primary'
           ? 'bg-[var(--auth-accent)] text-[var(--auth-accent-fg)] hover:opacity-90'
           : 'border border-dashed border-[var(--auth-accent)] text-[var(--auth-fg)] hover:bg-[var(--auth-border)]',

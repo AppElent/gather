@@ -58,7 +58,7 @@ export const FEATURES = defineFeatures([
     status: 'parity',
     platforms: ['web', 'mobile'],
     routes: {
-      web: ['sign-in', 'sign-up', 'forgot-password'],
+      web: ['sign-in', 'sign-up', 'forgot-password', 'sso-callback'],
       mobile: ['(auth)/**'],
     },
   },
@@ -228,6 +228,15 @@ export const FEATURES = defineFeatures([
     reason:
       "The public page for visitors who do not have Gather yet. The phone's front door is its welcome screen (sign-in).",
     routes: { web: ['about'] },
+  },
+  {
+    id: 'mcp-server',
+    kind: 'product',
+    status: 'exclusive',
+    platforms: ['web'],
+    reason:
+      'The remote MCP endpoint and its OAuth discovery, for Claude, ChatGPT and other agents (ADR-0046). Served by the web Worker; there is no screen.',
+    routes: { web: ['mcp', '[.]well-known/$'] },
   },
   {
     id: 'retired-urls',

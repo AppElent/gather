@@ -2,6 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { internalQuery, mutation, query } from './_generated/server'
+import { rejectConnectedApps } from './lib/connectedApps'
 import {
   getMembership,
   groupRoleValidator,
@@ -162,6 +163,8 @@ export const members = query({
 export const inviteCode = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
+    // Group administration stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     const { group } = await requireGroupBySlug(ctx, args.slug)
     return group.inviteCode
   },
@@ -170,6 +173,8 @@ export const inviteCode = query({
 export const createGroup = mutation({
   args: { name: v.string() },
   handler: async (ctx, args) => {
+    // Group administration stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     const user = await requireCurrentUser(ctx)
     const groupId = await ctx.db.insert('groups', {
       name: args.name,
@@ -231,6 +236,8 @@ export const updateAppearance = mutation({
 export const joinByInvite = mutation({
   args: { inviteCode: v.string() },
   handler: async (ctx, args) => {
+    // Group administration stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     const user = await requireCurrentUser(ctx)
     const group = await ctx.db
       .query('groups')
@@ -264,6 +271,8 @@ export const setMemberRole = mutation({
     role: groupRoleValidator,
   },
   handler: async (ctx, args) => {
+    // Group administration stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     const { group, membership } = await requireMembership(ctx, args.groupId)
     if (!isAdmin(membership)) {
       throw new ConvexError('Only an admin can change roles')
@@ -300,6 +309,8 @@ async function adminsOf(ctx: QueryCtx, groupId: Id<'groups'>) {
 export const leaveGroup = mutation({
   args: { groupId: v.id('groups') },
   handler: async (ctx, args) => {
+    // Group administration stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     const { group, membership } = await requireMembership(ctx, args.groupId)
     // A Group whose last admin walks out cannot be renamed or deleted by
     // anyone left in it, and nothing short of database repair can put that
@@ -329,6 +340,8 @@ export const deleteGroup = mutation({
   args: { groupId: v.id('groups') },
   returns: v.null(),
   handler: async (ctx, args) => {
+    // Group administration stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     const { group, membership } = await requireMembership(ctx, args.groupId)
     if (!isAdmin(membership)) {
       throw new ConvexError('Only an admin can delete a group')

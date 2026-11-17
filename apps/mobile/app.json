@@ -21,7 +21,8 @@
       "bundleIdentifier": "com.appelent.gather",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.appelent.gather",
@@ -89,12 +90,8 @@
           "disableAndroidBrowserActivity": true
         }
       ],
-      [
-        "@clerk/expo",
-        {
-          "appleSignIn": false
-        }
-      ],
+      "@clerk/expo",
+      "expo-apple-authentication",
       [
         "expo-secure-store",
         {

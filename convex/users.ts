@@ -1,6 +1,7 @@
 import { ACCOUNT_DELETED } from '@gather/core/refusals'
 import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
+import { rejectConnectedApps } from './lib/connectedApps'
 import { requireGroupBySlug } from './lib/groupAccess'
 import {
   getCurrentUser,
@@ -21,6 +22,8 @@ export const me = query({
 export const ensureUser = mutation({
   args: {},
   handler: async (ctx) => {
+    // Stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     const identity = await requireIdentity(ctx)
 
     // Runs on every app mount, and is the only thing that inserts into

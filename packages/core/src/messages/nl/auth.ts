@@ -6,6 +6,8 @@ export const auth = {
   password: 'Wachtwoord',
   code: 'Code',
   verificationCode: 'Verificatiecode',
+  continueWith: 'Ga door met {provider}',
+  or: 'of',
 
   errors: {
     generic: 'Er ging iets mis. Probeer het opnieuw.',
@@ -63,6 +65,14 @@ export const auth = {
     haveAccount: 'Heb je al een account? Log in',
     codeSent: 'We hebben een code gestuurd naar {email}.',
     verify: 'Verifiëren',
+    needsMore:
+      'Je account heeft een gegeven nodig waar dit formulier nog niet om kan vragen. Maak het liever aan met je e-mailadres en een wachtwoord.',
+  },
+
+  ssoCallback: {
+    eyebrow: 'Inloggen',
+    title: 'Je wordt ingelogd…',
+    subtitle: 'Een moment, we ronden je inlog af.',
   },
 
   forgotPassword: {

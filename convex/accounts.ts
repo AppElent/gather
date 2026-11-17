@@ -34,6 +34,7 @@ import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { mutation, query } from './_generated/server'
+import { rejectConnectedApps } from './lib/connectedApps'
 import {
   getCurrentUser,
   getMyGroupIds,
@@ -92,6 +93,8 @@ export const deletionPreview = query({
 export const deleteAccount = mutation({
   args: {},
   handler: async (ctx) => {
+    // Deleting the account stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     const user = await requireCurrentUser(ctx)
     if (user.deletedAt) return
 

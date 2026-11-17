@@ -384,12 +384,12 @@ export const nl = {
   },
 
   social: {
-    heading: 'Of ga verder met',
-    soon: 'Binnenkort',
-    apple: 'Apple',
-    microsoft: 'Microsoft',
-    google: 'Google',
-    unavailable: 'Verder met {provider} — binnenkort beschikbaar',
+    // Apple's own Dutch button says "Ga door met Apple"; the rest follows it.
+    heading: 'Of ga door met',
+    apple: 'Ga door met Apple',
+    microsoft: 'Ga door met Microsoft',
+    incomplete:
+      'Je account heeft nog een stap nodig die deze app nog niet ondersteunt. Rond die af op het web en log daarna hier in.',
   },
 
   fields: {

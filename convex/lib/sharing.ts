@@ -1,6 +1,7 @@
 import { ConvexError } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { ActionCtx, QueryCtx } from '../_generated/server'
+import { getGatedIdentity } from './connectedApps'
 
 /** The refusal for a signed-out caller. A readable sentence, not a key. */
 export const NOT_SIGNED_IN = 'Not authenticated'
@@ -40,7 +41,8 @@ export async function getUserByClerkId(
 
 /** Resolve the calling Clerk user to their gather `users` row, or null. */
 export async function getCurrentUser(ctx: QueryCtx) {
-  const identity = await ctx.auth.getUserIdentity()
+  // Gated: a connected app without the write scope is refused in a mutation.
+  const identity = await getGatedIdentity(ctx)
   if (!identity) return null
   return await getUserByClerkId(ctx, identity.subject)
 }
@@ -50,7 +52,7 @@ export async function getCurrentUser(ctx: QueryCtx) {
  * database to resolve it against, and for provisioning the `users` row itself.
  */
 export async function requireIdentity(ctx: Pick<ActionCtx, 'auth'>) {
-  const identity = await ctx.auth.getUserIdentity()
+  const identity = await getGatedIdentity(ctx)
   if (!identity) throw new ConvexError(NOT_SIGNED_IN)
   return identity
 }

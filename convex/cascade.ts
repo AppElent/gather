@@ -96,6 +96,11 @@ async function finishAccount(
     .withIndex('by_user_and_day', (q) => q.eq('userId', userId))
     .collect()
   for (const row of usage) await ctx.db.delete(row._id)
+  const receipts = await ctx.db
+    .query('idempotencyKeys')
+    .withIndex('by_user_and_key', (q) => q.eq('userId', userId))
+    .collect()
+  for (const row of receipts) await ctx.db.delete(row._id)
 
   // Whatever memberships are left are the shared Groups — the solo ones went
   // with their Group.

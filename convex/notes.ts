@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import type { Id } from './_generated/dataModel'
 import { mutation, query } from './_generated/server'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
+import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
 
 export const list = query({
   args: { groupSlug: v.string() },
@@ -36,18 +37,21 @@ export const create = mutation({
     groupSlug: v.string(),
     title: v.string(),
     body: v.string(),
+    idempotencyKey: idempotencyKeyValidator,
   },
   handler: async (ctx, args) => {
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
     const now = Date.now()
-    return await ctx.db.insert('notes', {
-      groupId: group._id,
-      title: args.title,
-      body: args.body,
-      pinned: false,
-      createdBy: user._id,
-      updatedAt: now,
-    })
+    return await createOnce(ctx, user._id, 'notes', args.idempotencyKey, () =>
+      ctx.db.insert('notes', {
+        groupId: group._id,
+        title: args.title,
+        body: args.body,
+        pinned: false,
+        createdBy: user._id,
+        updatedAt: now,
+      }),
+    )
   },
 })
 

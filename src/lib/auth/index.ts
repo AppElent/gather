@@ -22,6 +22,7 @@ export { default as HeaderUser } from './HeaderUser'
 export { ProfilePanel } from './ProfilePanel'
 export { SignInForm } from './SignInForm'
 export { SignUpForm } from './SignUpForm'
+export { SocialButtons } from './SocialButtons'
 export { TestLoginButton } from './TestLoginButton'
 export { ThemeSync } from './ThemeSync'
 export {

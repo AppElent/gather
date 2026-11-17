@@ -21,7 +21,7 @@ Design studies: [designs/](../designs/).
 
 ## Decisions
 
-A new ADR takes the number after the highest (0045 next).
+A new ADR takes the number after the highest (0047 next).
 
 | ID | Decision | Status | Domain | Key implementation references |
 | --- | --- | --- | --- | --- |
@@ -70,3 +70,4 @@ A new ADR takes the number after the highest (0045 next).
 | [0043](adr/0043-a-retailer-catalog-is-a-picker-and-a-card-keeps-its-own-copy.md) | A Retailer catalog is a picker, and a card keeps its own copy | accepted | loyalty cards | `convex/loyaltyCards.ts`, `convex/lib/seed/retailerCatalog.ts` |
 | [0044](adr/0044-every-merge-ships-and-the-app-updates-daily.md) | Every merge ships, and the app updates daily | accepted | deployment | `.github/workflows/deploy.yml`, `.github/workflows/mobile-update*.yml` |
 | [0045](adr/0045-each-build-variant-installs-beside-the-others.md) | Each build variant installs beside the others | accepted | mobile | `apps/mobile/app.config.ts`, `apps/mobile/eas.json` |
+| [0046](adr/0046-agents-connect-through-clerk-oauth-and-name-the-group.md) | Agents connect through Clerk OAuth and name the Group | accepted | identity | `src/lib/mcp/`, `convex/lib/connectedApps.ts`, `convex/lib/idempotency.ts` |

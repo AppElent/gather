@@ -7,6 +7,7 @@ import {
   requireGroupBySlug,
   requireInGroup,
 } from './lib/groupAccess'
+import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
 import { nextOrder } from './lib/order'
 import { taskPriorityValidator } from './lib/taskFields'
 
@@ -105,19 +106,22 @@ export const add = mutation({
     dueDate: v.optional(v.string()),
     priority: v.optional(taskPriorityValidator),
     labels: v.optional(v.array(v.string())),
+    idempotencyKey: idempotencyKeyValidator,
   },
   handler: async (ctx, args) => {
     const { user } = await requireLocalList(ctx, args.groupSlug, args.listId)
-    return await ctx.db.insert('tasks', {
-      listId: args.listId,
-      title: args.title,
-      done: false,
-      dueDate: args.dueDate,
-      priority: args.priority,
-      labels: args.labels,
-      createdBy: user._id,
-      order: await endOfList(ctx, args.listId),
-    })
+    return await createOnce(ctx, user._id, 'tasks', args.idempotencyKey, async () =>
+      ctx.db.insert('tasks', {
+        listId: args.listId,
+        title: args.title,
+        done: false,
+        dueDate: args.dueDate,
+        priority: args.priority,
+        labels: args.labels,
+        createdBy: user._id,
+        order: await endOfList(ctx, args.listId),
+      }),
+    )
   },
 })
 
@@ -139,12 +143,15 @@ export const update = mutation({
     priority: v.optional(v.union(taskPriorityValidator, v.null())),
     labels: v.optional(v.union(v.array(v.string()), v.null())),
     notes: v.optional(v.union(v.string(), v.null())),
+    // Set, rather than toggled: a connected app retrying must land in one state.
+    done: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     await requireEditableTask(ctx, args.groupSlug, args.taskId)
-    const { taskId, title, dueDate, priority, labels, notes } = args
+    const { taskId, title, dueDate, priority, labels, notes, done } = args
     await ctx.db.patch(taskId, {
       ...(title !== undefined ? { title } : {}),
+      ...(done !== undefined ? { done } : {}),
       ...(dueDate !== undefined ? { dueDate: dueDate ?? undefined } : {}),
       ...(priority !== undefined ? { priority: priority ?? undefined } : {}),
       ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
