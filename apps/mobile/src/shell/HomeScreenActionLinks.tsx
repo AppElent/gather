@@ -13,7 +13,11 @@ import { Platform, Settings } from 'react-native'
 
 import { useI18n } from '../i18n'
 import { reportError } from '../observability/report'
-import { CONTROL_REQUEST_KEY, isFreshControlRequest } from './controlRequest'
+import {
+  CONTROL_REQUEST_KEY,
+  CONTROL_REQUEST_MAX_AGE_MS,
+  isFreshControlRequest,
+} from './controlRequest'
 import {
   homeScreenActionItems,
   homeScreenActionRequest,
@@ -30,6 +34,14 @@ import {
  * navigator remounts this after the Unavailable gate.
  */
 let launchItemFollowed = false
+
+/**
+ * About when the process started. The navigator first mounts this behind the
+ * Unavailable gate, which an offline launch can keep up for minutes; a launch
+ * item reaching it later than the control's freshness limit is dropped, so the
+ * sheet does not appear long after it was asked for.
+ */
+const loadedAt = Date.now()
 
 /** Opens the sheet in place when it is up, else through its route. */
 function openQuickSheet(request: QuickSheetRequest) {
@@ -52,7 +64,8 @@ export function HomeScreenActionLinks() {
     }
     if (!launchItemFollowed) {
       launchItemFollowed = true
-      if (QuickActions.initial) follow(QuickActions.initial)
+      const fresh = Date.now() - loadedAt <= CONTROL_REQUEST_MAX_AGE_MS
+      if (QuickActions.initial && fresh) follow(QuickActions.initial)
     }
     const subscription = QuickActions.addListener(follow)
     return () => subscription.remove()

@@ -115,6 +115,9 @@ function SheetBody({
     initialAction ?? null,
   )
   const [seenRequest, setSeenRequest] = useState(requestCount)
+  // A request from outside the app (a link, the icon's menu, the control)
+  // shows what it asks for, even over an open form: "Show loyalty card" asks
+  // for no action and must land on the cards.
   if (requestCount !== seenRequest) {
     setSeenRequest(requestCount)
     setOpenId(initialAction ?? null)
