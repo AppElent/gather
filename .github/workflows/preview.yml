@@ -2,8 +2,9 @@ name: PR Preview
 
 # Adapted from docs/standards/previews/templates/preview.yml.
 # Opt-in: deploys only while the PR carries the `preview:web` label; pushes
-# redeploy, and removing the label or closing the PR deletes the Worker. Close
-# always cleans up, so Workers deployed before the label gate are not left behind.
+# redeploy, and removing the label or closing the PR deletes the Worker and the
+# Convex preview. Close always cleans up, so Workers deployed before the label
+# gate are not left behind.
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled, closed]
@@ -140,5 +141,32 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Delete Worker
         run: pnpm exec wrangler delete --force --name "gather-pr-${{ github.event.pull_request.number }}" || true
-      # Convex preview deployments idle-expire automatically (~14 days).
-      # No reliable CLI delete today; prune from the dashboard if needed.
+      # Convex previews count against the team's deployment quota until they
+      # expire, so leftovers block every new preview. The preview deploy key
+      # (`preview:<team>:<project>|<token>`) may list and delete its own
+      # project's previews through the management API. Only a deployment of
+      # type `preview` named pr-<N> is ever deleted; none is a no-op.
+      - name: Delete Convex preview
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.PREVIEW_CONVEX_DEPLOY_KEY }}
+          PREVIEW: pr-${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          case "$CONVEX_DEPLOY_KEY" in
+            preview:*) ;;
+            *) echo "::error::PREVIEW_CONVEX_DEPLOY_KEY is not a preview deploy key"; exit 1 ;;
+          esac
+          IFS=: read -r _ TEAM PROJECT <<< "${CONVEX_DEPLOY_KEY%%|*}"
+          API=https://api.convex.dev/v1
+          AUTH="Authorization: Bearer $CONVEX_DEPLOY_KEY"
+          PROJECT_ID=$(curl -fsS -H "$AUTH" "$API/teams/$TEAM/projects/$PROJECT" | jq -er .id)
+          NAMES=$(curl -fsS -H "$AUTH" "$API/projects/$PROJECT_ID/list_deployments" \
+            | jq -r --arg p "$PREVIEW" '.[] | select(.deploymentType == "preview" and .previewIdentifier == $p) | .name')
+          if [ -z "$NAMES" ]; then
+            echo "No Convex preview $PREVIEW to delete."
+            exit 0
+          fi
+          for NAME in $NAMES; do
+            curl -fsS -X POST -H "$AUTH" "$API/deployments/$NAME/delete" > /dev/null
+            echo "Deleted Convex preview $PREVIEW ($NAME)."
+          done
