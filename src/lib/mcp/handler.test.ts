@@ -185,7 +185,7 @@ describe('Gather MCP endpoint', () => {
 
   it('initializes with Gather server info and instructions', async () => {
     const init = await result<{
-      serverInfo: { name: string }
+      serverInfo: { name: string; icons?: { src: string }[] }
       instructions: string
     }>(
       await handleGatherMcpRequest(
@@ -198,6 +198,8 @@ describe('Gather MCP endpoint', () => {
       ),
     )
     expect(init.serverInfo.name).toBe('gather')
+    // Gather's own icon, so clients do not guess one from the domain.
+    expect(init.serverInfo.icons?.[0]?.src).toMatch(/\/favicon\.svg$/)
     expect(init.instructions).toContain('list_groups')
   })
 

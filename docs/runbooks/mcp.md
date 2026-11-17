@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when connecting to, operating, or changing the Gather MCP server.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Gather MCP
@@ -115,6 +115,9 @@ JSON and text. The pattern is Foundry's (`AppElent/workouts`
 
 - OAuth applications → Scopes: add `gather:read` and `gather:write`. Creating
   scopes is Dashboard-only.
+- Add both scopes to every CIMD client already saved under OAuth applications,
+  above all Claude's (created when Foundry was connected). Clerk grants a CIMD
+  client only the scopes saved on it, so without this the connect fails.
 - An MCP resource for each endpoint URL (Clerk MCP `configure_mcp_server`, or
   the Dashboard). JWT access tokens, PKCE and the audience claim are already on
   for Foundry; check them, and that CIMD is published (the Clerk issuer's
@@ -149,6 +152,12 @@ the push fails.
   Clerk MCP resource and that the client sent `resource`.
 - **`403 insufficient_scope`:** the token has neither Gather scope. Clerk grants
   a CIMD client only the scopes saved on it; give it both and reconnect.
+- **Claude.ai: "Authorization with Gather failed" right after sign-in:**
+  Clerk refused `gather:*` with `invalid_scope`, because Claude's CIMD client
+  was saved before the Gather scopes existed (the Clerk instance is shared with
+  Foundry). Add `gather:read` and `gather:write` to that client under OAuth
+  applications, then reconnect. The `error=` on the last
+  `claude.ai/api/mcp/auth_callback` URL in browser history confirms it.
 - **Tools fail with "Not authenticated":** Convex does not trust the token.
   Check that `MCP_RESOURCE_URLS` on that deployment lists the endpoint exactly.
 - **`list_groups` is empty:** the person has never opened Gather, so there is

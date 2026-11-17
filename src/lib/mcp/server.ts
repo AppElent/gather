@@ -34,8 +34,20 @@ export function createGatherMcpServer(
   /** Where recipe photos load from (Convex file storage), for the view CSP. */
   imageOrigin?: string,
 ): McpServer {
+  // Clients show these instead of guessing an icon from the domain.
+  const site = new URL(context.endpointUrl).origin
   const server = new McpServer(
-    { name: 'gather', title: 'Gather', version: '1.0.0' },
+    {
+      name: 'gather',
+      title: 'Gather',
+      version: '1.0.0',
+      websiteUrl: site,
+      icons: [
+        { src: `${site}/favicon.svg`, mimeType: 'image/svg+xml', sizes: ['any'] },
+        { src: `${site}/pwa-192x192.png`, mimeType: 'image/png', sizes: ['192x192'] },
+        { src: `${site}/pwa-64x64.png`, mimeType: 'image/png', sizes: ['64x64'] },
+      ],
+    },
     { instructions: INSTRUCTIONS },
   )
   registerTools(server, GATHER_MCP_TOOLS, context)
