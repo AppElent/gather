@@ -7,6 +7,7 @@ import { AuthError } from './AuthError'
 import { AuthField } from './AuthField'
 import { orThrow } from './clerkResult'
 import { clerkErrorMessage } from './core'
+import { SocialButtons } from './SocialButtons'
 
 export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
   const { signUp } = useSignUp()
@@ -75,6 +76,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <form onSubmit={submitDetails} noValidate className="flex flex-col gap-3">
+      <SocialButtons />
       <AuthError message={error} />
       <AuthField
         label={auth.email}

@@ -3,7 +3,7 @@ import type React from 'react'
 export type SlotClassNames<Slot extends string> = Partial<Record<Slot, string>>
 
 export interface SocialProvider {
-  id: string // e.g. "google"
+  id: string // e.g. "apple"
   label: string
   strategy: `oauth_${string}`
 }
@@ -15,6 +15,8 @@ export interface AuthConfig {
     signIn: string
     signUp: string
     forgotPassword: string
+    /** Where a social provider sends the browser back (`/sso-callback`). */
+    ssoCallback: string
     afterAuth: string
     account: string
   }

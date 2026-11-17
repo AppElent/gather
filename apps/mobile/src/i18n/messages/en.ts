@@ -529,21 +529,16 @@ export const en = {
   },
 
   /**
-   * Social sign-in, announced before it exists.
-   *
-   * None of these are enabled on the Clerk instance (`socialProviders: []`, see
-   * #139), so the rows are inert and say so. `soon` is the web's own word for
-   * this — `shell.marks.soon` — because a staged Module and a staged sign-in
-   * method should not be marked in two different vocabularies.
+   * Social sign-in under the email form (`SocialButtons`). Apple on iOS draws
+   * Apple's own localized button, so `apple` is only read on Android.
    */
   social: {
     heading: 'Or continue with',
-    soon: 'Soon',
-    apple: 'Apple',
-    microsoft: 'Microsoft',
-    google: 'Google',
-    /** The accessible name; `{provider}` is one of the three above. */
-    unavailable: 'Continue with {provider} — coming soon',
+    apple: 'Continue with Apple',
+    microsoft: 'Continue with Microsoft',
+    /** A sign-up Clerk left at `missing_requirements`: a field this app does not ask for. */
+    incomplete:
+      "Your account needs another step this app doesn't support yet. Finish signing up on the web, then sign in here.",
   },
 
   fields: {

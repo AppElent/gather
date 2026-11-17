@@ -11,7 +11,11 @@ const signUp = {
 const { password: create, finalize } = signUp
 const { sendEmailCode: prepare, verifyEmailCode: attempt } =
   signUp.verifications
-vi.mock('@clerk/react', () => ({ useSignUp: () => ({ signUp }) }))
+vi.mock('@clerk/react', () => ({
+  useSignUp: () => ({ signUp }),
+  // `SocialButtons` reads it; the default config lists no providers, so it draws nothing.
+  useSignIn: () => ({ signIn: {} }),
+}))
 
 const ok = (status?: string) => async () => {
   if (status) signUp.status = status

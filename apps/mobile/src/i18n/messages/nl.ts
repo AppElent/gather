@@ -369,11 +369,10 @@ export const nl = {
 
   social: {
     heading: 'Of ga verder met',
-    soon: 'Binnenkort',
-    apple: 'Apple',
-    microsoft: 'Microsoft',
-    google: 'Google',
-    unavailable: 'Verder met {provider} — binnenkort beschikbaar',
+    apple: 'Doorgaan met Apple',
+    microsoft: 'Doorgaan met Microsoft',
+    incomplete:
+      'Je account heeft nog een stap nodig die deze app nog niet ondersteunt. Rond je aanmelding af op het web en log daarna hier in.',
   },
 
   fields: {

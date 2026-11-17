@@ -22,7 +22,7 @@ import { usePasswordSignIn } from '../../../auth/usePasswordSignIn'
 import { AuthError } from '../../../components/AuthError'
 import { AuthLink } from '../../../components/AuthLink'
 import { AuthScreen } from '../../../components/AuthScreen'
-import { SocialSoon } from '../../../components/SocialSoon'
+import { SocialButtons } from '../../../components/SocialButtons'
 import { haptics } from '../../../feedback/haptics'
 import { useI18n } from '../../../i18n'
 import { Button } from '../../../ui/button'
@@ -117,7 +117,7 @@ export function SignInScreen() {
       />
       <AuthLink label={t.signIn.forgot} onPress={() => router.push('/reset')} />
 
-      <SocialSoon />
+      <SocialButtons />
     </AuthScreen>
   )
 }
