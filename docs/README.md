@@ -69,3 +69,4 @@ A new ADR takes the number after the highest (0045 next).
 | [0042](adr/0042-the-phone-leads-and-the-web-is-where-a-household-is-managed.md) | The phone leads, and the web is where a household is managed | accepted | platforms | `packages/core/src/features.ts`, `scripts/feature-manifest.test.ts` |
 | [0043](adr/0043-a-retailer-catalog-is-a-picker-and-a-card-keeps-its-own-copy.md) | A Retailer catalog is a picker, and a card keeps its own copy | accepted | loyalty cards | `convex/loyaltyCards.ts`, `convex/lib/seed/retailerCatalog.ts` |
 | [0044](adr/0044-every-merge-ships-and-the-app-updates-daily.md) | Every merge ships, and the app updates daily | accepted | deployment | `.github/workflows/deploy.yml`, `.github/workflows/mobile-update*.yml` |
+| [0045](adr/0045-each-build-variant-installs-beside-the-others.md) | Each build variant installs beside the others | accepted | mobile | `apps/mobile/app.config.ts`, `apps/mobile/eas.json` |

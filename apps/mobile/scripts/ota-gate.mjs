@@ -49,8 +49,12 @@ const output = (line) => {
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${line}\n`)
 }
 
+// The channel's builds are its APP_VARIANT (app.config.ts): the bundle ID enters
+// the runtime fingerprint, so resolve it as the variant those builds are.
+const env = { ...process.env, APP_VARIANT: channel }
+
 function run(command, args, cwd = appRoot) {
-  const result = spawnSync(command, args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+  const result = spawnSync(command, args, { cwd, env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
   return { ok: result.status === 0, stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
 }
 

@@ -11,6 +11,7 @@
       "channel": "development",
       "environment": "development",
       "env": {
+        "APP_VARIANT": "development",
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
       },
       "android": {
@@ -22,6 +23,7 @@
       "channel": "preview",
       "environment": "preview",
       "env": {
+        "APP_VARIANT": "preview",
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
       }
     },
@@ -37,6 +39,7 @@
       "channel": "production",
       "environment": "production",
       "env": {
+        "APP_VARIANT": "production",
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
       }
     }
