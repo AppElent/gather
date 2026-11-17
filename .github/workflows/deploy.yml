@@ -11,11 +11,20 @@ name: Deploy
 # the production job changes the backend, a few minutes after staging's Worker.
 #
 # A manual "Run workflow" redeploys main through the same chain; any other ref
-# stops before production.
+# runs only the checks.
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
+# One Deploy run at a time, in the order they started, so an older merge can
+# never reach staging, production or the preview app after a newer one. A newer
+# run waiting behind another replaces the older waiting one; nothing in flight
+# is cancelled. deploy-web.yml also refuses to deploy over a newer commit, for
+# a re-run of an old run.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
 
 jobs:
   # The same suite as pull requests, because admins can bypass required checks.
@@ -26,10 +35,8 @@ jobs:
 
   staging:
     needs: checks
-    # Never cancel a deploy mid-flight; queue behind the previous one instead.
-    concurrency:
-      group: deploy-staging
-      cancel-in-progress: false
+    # Deploys ship main only, also from a manual run.
+    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/deploy-web.yml
     permissions: { contents: read }
     with:
@@ -40,11 +47,6 @@ jobs:
 
   production:
     needs: staging
-    # Production ships from main only, also from a manual run.
-    if: github.ref == 'refs/heads/main'
-    concurrency:
-      group: deploy-production
-      cancel-in-progress: false
     uses: ./.github/workflows/deploy-web.yml
     permissions: { contents: read }
     with:

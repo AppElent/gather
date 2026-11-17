@@ -31,9 +31,13 @@ date: 2026-11-17
   backend change reaches users with the production job a few minutes after
   staging's frontend. Convex changes stay backward compatible
   (expand/contract): installed builds call production Convex for weeks.
-- CI publishes app updates with `EXPO_TOKEN` from GitHub (repository scope for
-  preview, the production Environment for production), so no update depends
-  on a laptop or a personal Infisical login.
+- CI publishes app updates with `EXPO_TOKEN` from the main-only production
+  GitHub Environment (an Expo token is account-wide, so never repository
+  scope), so no update depends on a laptop or a personal Infisical login.
+- Deploy runs one at a time in start order, each web target refuses a commit
+  that does not descend from what its `/version` reports, and each update
+  channel refuses a commit that does not descend from its tag: an old run or
+  re-run never rolls anything back.
 
 ## Versioning
 

@@ -28,43 +28,58 @@ concurrency:
 
 jobs:
   publish:
+    # Preview builds call production Convex, which only main deploys.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       # Moves the ota-preview tag.
       contents: write
+    # An Expo token is account-wide: it could publish to any channel. It lives
+    # only in the production Environment, which deploys from main only, never
+    # in repository scope where any branch's workflow could read it.
+    environment: production
     env:
-      # No `environment:`: these come from repository scope, where
-      # `pnpm env:apply preview --only github` writes them as PREVIEW_<name>.
-      EXPO_TOKEN: ${{ secrets.PREVIEW_EXPO_TOKEN }}
-      SENTRY_AUTH_TOKEN: ${{ secrets.PREVIEW_SENTRY_AUTH_TOKEN }}
-      VITE_SENTRY_ORG: ${{ vars.PREVIEW_VITE_SENTRY_ORG }}
-      VITE_SENTRY_PROJECT: ${{ vars.PREVIEW_VITE_SENTRY_PROJECT }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      VITE_SENTRY_ORG: ${{ vars.VITE_SENTRY_ORG }}
+      VITE_SENTRY_PROJECT: ${{ vars.VITE_SENTRY_PROJECT }}
       FORCE: ${{ inputs.force && '--force' || '' }}
     steps:
+      # Web has already shipped by now, so a missing token warns rather than
+      # turning the Deploy run red. The production update job never selects a
+      # run whose Publish step did not run.
       - name: Check Expo token
+        id: token
         run: |
           if [ -z "$EXPO_TOKEN" ]; then
-            echo "::error::PREVIEW_EXPO_TOKEN is not set. Store expo-token in Infisical and run pnpm env:apply preview --only github."
-            exit 1
+            echo "::warning::EXPO_TOKEN is not set in the production Environment; no preview update published. Store expo-token in Infisical and run pnpm env:apply production --only github."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
           fi
 
       # The gate diffs against the ota-preview tag, so it needs history and tags.
       - uses: actions/checkout@v4
+        if: steps.token.outputs.ok == 'true'
         with: { fetch-depth: 0 }
       - uses: pnpm/action-setup@v4
+        if: steps.token.outputs.ok == 'true'
       - uses: actions/setup-node@v4
+        if: steps.token.outputs.ok == 'true'
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+        if: steps.token.outputs.ok == 'true'
 
       - name: Gate
         id: gate
+        if: steps.token.outputs.ok == 'true'
         run: node apps/mobile/scripts/ota-gate.mjs preview $FORCE
 
       # The wrapper pairs --channel with --environment (EXPO_PUBLIC_* come from
       # the EAS `preview` environment) and uploads the update's source maps.
       - name: Publish
-        if: steps.gate.outputs.platforms != ''
+        if: steps.token.outputs.ok == 'true' && steps.gate.outputs.platforms != ''
         run: |
           message="$(git log -1 --format=%s) ($(git rev-parse --short HEAD))"
           for platform in ${{ steps.gate.outputs.platforms }}; do

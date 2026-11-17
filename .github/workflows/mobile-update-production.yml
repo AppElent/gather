@@ -13,6 +13,10 @@ name: Mobile update (production)
 #   fingerprint. Otherwise the run summary says a store build is due, and
 #   nothing is published: store builds wait for the owner's decision card.
 #
+# To hold production (a bad commit has soaked but its fix has not), disable this
+# workflow (`gh workflow disable mobile-update-production.yml`) until the fix
+# has soaked, then enable it again.
+#
 # A manual run can name a `ref` (skips the soak selection) or `force` (skips the
 # change and fingerprint gates). Both are for a hotfix or a forced publish the
 # owner approved on a decision card; never use them otherwise.
@@ -108,6 +112,16 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
+      # A `ref` from a manual run must be on main: production calls the backend
+      # main deployed, and nothing else soaked anywhere.
+      - name: Guard ref on main
+        run: |
+          git fetch -q origin main
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::$(git rev-parse --short HEAD) is not on main."
+            exit 1
+          fi
+
       - run: pnpm install --frozen-lockfile
 
       - name: Gate

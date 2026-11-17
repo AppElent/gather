@@ -52,7 +52,28 @@ jobs:
       CLOUDFLARE_ENV: ${{ inputs.environment != 'production' && inputs.environment || '' }}
       EXPECTED_WORKER: ${{ inputs.worker }}
     steps:
+      # History, so the guard below can compare commits.
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      # Never deploy over newer code: a re-run of an old Deploy run would roll
+      # the Worker and the Convex functions back. The target's /version names
+      # what it runs; this commit must descend from it. A target without
+      # /version yet (before this check first shipped) passes.
+      - name: Guard against rollback
+        env:
+          URL: ${{ inputs.url }}
+        run: |
+          deployed=$(curl -fsS --retry 3 --retry-all-errors "$URL/version" 2>/dev/null | jq -r '.commit // empty' 2>/dev/null || true)
+          if [ -z "$deployed" ] || ! git cat-file -e "$deployed^{commit}" 2>/dev/null; then
+            echo "$URL reports no known commit; deploying."
+          elif git merge-base --is-ancestor "$deployed" "$GITHUB_SHA"; then
+            echo "$URL runs ${deployed:0:7}, an ancestor of ${GITHUB_SHA:0:7}; deploying."
+          else
+            echo "::error::$URL already runs ${deployed:0:7}, which is not an ancestor of ${GITHUB_SHA:0:7}. Refusing to roll back; to roll back on purpose, revert on main."
+            exit 1
+          fi
+
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }

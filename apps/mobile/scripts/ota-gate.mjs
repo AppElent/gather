@@ -5,8 +5,11 @@
 //   node apps/mobile/scripts/ota-gate.mjs <preview|production> [--force]
 //
 // Writes `platforms=<space-separated list>` to $GITHUB_OUTPUT (empty: publish
-// nothing) and one line per platform to $GITHUB_STEP_SUMMARY. Two gates:
+// nothing) and one line per platform to $GITHUB_STEP_SUMMARY. Three gates:
 //
+// 0. HEAD descends from the channel's tag, so a re-run of an old Deploy run or
+//    an older soaked commit never replaces a newer update (for example an
+//    owner-approved hotfix on production).
 // 1. Something the app bundles changed since the channel's tag (`ota-<channel>`,
 //    moved after each publish). A web-only merge publishes nothing.
 // 2. Something on the channel already runs this runtime fingerprint: an earlier
@@ -49,15 +52,25 @@ function run(command, args, cwd = appRoot) {
   return { ok: result.status === 0, stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
 }
 
+const repoRoot = join(appRoot, '..', '..')
+const hasTag = () => run('git', ['rev-parse', '-q', '--verify', `refs/tags/${tag}`], repoRoot).ok
+
+function descendsFromTag() {
+  if (!hasTag()) return true
+  return run('git', ['merge-base', '--is-ancestor', tag, 'HEAD'], repoRoot).ok
+}
+
 function changedSinceTag() {
-  const root = join(appRoot, '..', '..')
-  if (!run('git', ['rev-parse', '-q', '--verify', `refs/tags/${tag}`], root).ok) return true
+  const root = repoRoot
+  if (!hasTag()) return true
   // `git diff --quiet` exits 1 when something differs.
   return !run('git', ['diff', '--quiet', tag, 'HEAD', '--', ...BUNDLED_PATHS], root).ok
 }
 
 function count(args) {
   const result = run('pnpm', ['exec', 'eas', ...args, '--json', '--non-interactive'])
+  // A channel nobody has published to yet has no EAS branch: nothing runs on it.
+  if (!result.ok && /Could not find (any branches|branch)/.test(result.stdout + result.stderr)) return { currentPage: [] }
   if (!result.ok) throw new Error(`eas ${args[0]} failed: ${result.stderr.trim().split('\n').at(-1)}`)
   return JSON.parse(result.stdout)
 }
@@ -71,6 +84,12 @@ function channelRuns(platform, runtime) {
     '--status', 'finished', '--limit', '1',
   ])
   return builds.length > 0
+}
+
+if (!force && !descendsFromTag()) {
+  summary(`HEAD is not a descendant of \`${tag}\`, so ${channel} already runs newer code; no update published.`)
+  output('platforms=')
+  process.exit(0)
 }
 
 if (!force && !changedSinceTag()) {

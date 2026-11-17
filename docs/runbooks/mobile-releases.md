@@ -34,10 +34,17 @@ and `force` (skip the change and fingerprint gates) are used only after the
 owner's yes on a decision card. After a production publish, check Sentry for
 the new release; a regression is rolled back (below) and fixed forward.
 
-CI reads `EXPO_TOKEN` from GitHub: repository scope (`PREVIEW_EXPO_TOKEN`) for
-preview and the `production` Environment for production, written from
-Infisical `expo-token` by `pnpm env:apply preview --only github` and
-`pnpm env:apply production --only github`.
+Both jobs read `EXPO_TOKEN` from the `production` GitHub Environment, which
+deploys from `main` only, written from Infisical `expo-token` by
+`pnpm env:apply production --only github`. An Expo token can publish to any
+channel, so it never lives in repository scope, where any branch's workflow
+could read it. Without it the preview job warns and publishes nothing.
+
+Each gate also refuses a commit that does not descend from the channel's tag,
+so a re-run of an old Deploy run, or an older soaked commit after a hotfix,
+never replaces newer code on phones. To hold production while a fix soaks,
+disable the workflow (`gh workflow disable mobile-update-production.yml`) and
+enable it again afterwards.
 
 By hand, for example when CI is down, the same wrapper runs from the repo root:
 
