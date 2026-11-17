@@ -34,10 +34,10 @@ and `force` (skip the change and fingerprint gates) are used only after the
 owner's yes on a decision card. After a production publish, check Sentry for
 the new release; a regression is rolled back (below) and fixed forward.
 
-Both jobs read `EXPO_TOKEN` from the `production` GitHub Environment, which
-deploys from `main` only, written from Infisical `expo-token` by
-`pnpm env:apply production --only github`. An Expo token can publish to any
-channel, so it never lives in repository scope, where any branch's workflow
+Both jobs read `EXPO_TOKEN` from the `staging` GitHub Environment, which
+deploys from `main` only, written from the shared Infisical `staging` root
+value `expo-token` by `pnpm env:apply staging --only github`. An Expo token can
+publish to any channel, so it never lives in repository scope, where any branch's workflow
 could read it. Without it the preview job warns and publishes nothing.
 
 Each gate also refuses a commit that does not descend from the channel's tag,

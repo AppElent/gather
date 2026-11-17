@@ -90,9 +90,10 @@ jobs:
     if: needs.select.outputs.sha != ''
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # The production Environment holds EXPO_TOKEN and the Sentry token; it only
-    # allows main, and has no reviewers (the owner approves upstream).
-    environment: production
+    # The staging Environment holds EXPO_TOKEN (shared value in Infisical
+    # `staging`) and a Sentry token for the same org; it only allows main and
+    # has no reviewers (the owner approves upstream).
+    environment: staging
     permissions:
       # Moves the ota-production tags.
       contents: write
@@ -108,7 +109,7 @@ jobs:
       - name: Check Expo token
         run: |
           if [ -z "$EXPO_TOKEN" ]; then
-            echo "::error::EXPO_TOKEN is not set in the production Environment. Store expo-token in Infisical and run pnpm env:apply production --only github."
+            echo "::error::EXPO_TOKEN is not set in the staging Environment. Run pnpm env:apply staging --only github (Infisical staging, expo-token)."
             exit 1
           fi
 

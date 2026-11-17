@@ -36,9 +36,10 @@ jobs:
       # Moves the ota-preview tags.
       contents: write
     # An Expo token is account-wide: it could publish to any channel. It lives
-    # only in the production Environment, which deploys from main only, never
-    # in repository scope where any branch's workflow could read it.
-    environment: production
+    # in the staging Environment (deploys from main only; the shared value is in
+    # Infisical `staging`), never in repository scope where any branch's
+    # workflow could read it.
+    environment: staging
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -53,7 +54,7 @@ jobs:
         id: token
         run: |
           if [ -z "$EXPO_TOKEN" ]; then
-            echo "::warning::EXPO_TOKEN is not set in the production Environment; no preview update published. Store expo-token in Infisical and run pnpm env:apply production --only github."
+            echo "::warning::EXPO_TOKEN is not set in the staging Environment; no preview update published. Run pnpm env:apply staging --only github (Infisical staging, expo-token)."
             echo "ok=false" >> "$GITHUB_OUTPUT"
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"

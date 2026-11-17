@@ -379,11 +379,11 @@ export const ENTRIES = [
     key: 'expoToken',
     infisicalKey: 'expo-token',
     description:
-      'EAS access for the over-the-air update workflows (mobile-update.yml for `preview`, mobile-update-production.yml for `production`, ADR 0044). Account-wide, so it lands only in the main-only production Environment, never in repository scope. Optional, so a web deploy never fails on it; the workflows check it themselves.',
+      'EAS access for the over-the-air update workflows (mobile-update.yml for `preview`, mobile-update-production.yml for `production`, ADR 0044). The shared root value lives in Infisical `staging` (every app reads it there), so it lands in the staging GitHub Environment, which deploys from main only and already holds account-wide credentials; never repository scope. Optional, so a web deploy never fails on it; the workflows check it themselves.',
     optional: true,
     secret: true,
     lands: {
-      workflow: { name: 'EXPO_TOKEN', environments: ['production'] },
+      workflow: { name: 'EXPO_TOKEN', environments: ['staging'] },
     },
   },
   {
