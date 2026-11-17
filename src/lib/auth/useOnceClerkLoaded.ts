@@ -8,6 +8,9 @@ import { useEffect, useRef } from 'react'
  * `needs_identifier`, a sign-up at `missing_requirements`), so anything that
  * reads an attempt's state on arrival must wait for the real one. After a
  * social redirect the page is a full load, so that wait is the normal case.
+ *
+ * If Clerk never loads (an ad blocker, a CDN failure) the effect never runs,
+ * which is the safe outcome: the form simply starts fresh.
  */
 export function useOnceClerkLoaded(effect: () => void) {
   const { isLoaded } = useAuth()
