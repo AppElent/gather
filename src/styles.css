@@ -81,6 +81,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    --app-bg: oklch(16% 0.012 250);
+    --app-surface: oklch(20% 0.012 250);
+    --app-surface-muted: oklch(24% 0.012 250);
+    --app-fg: oklch(94% 0.006 250);
+    --app-muted: oklch(70% 0.012 250);
+    --app-border: oklch(31% 0.012 250);
+    --app-accent: oklch(70% 0.16 255);
+    --app-success: oklch(72% 0.13 150);
+    --app-warning: oklch(78% 0.12 75);
+    --app-danger: oklch(72% 0.13 25);
     --sea-ink: #d7ece8;
     --sea-ink-soft: #afcdc8;
     --lagoon: #60d7cf;
