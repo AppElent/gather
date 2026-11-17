@@ -2,12 +2,14 @@ import {
 	createRemoteJWKSet,
 	type JWTPayload,
 	type JWTVerifyGetKey,
+	errors as joseErrors,
 	jwtVerify,
 } from "jose";
 import {
 	MCP_READ_SCOPE,
 	MCP_WRITE_SCOPE,
 } from "../../../convex/lib/connectedApps";
+import { reportError } from "../observability/report";
 
 /**
  * OAuth scopes Gather's MCP endpoint understands, created in Clerk. Convex
@@ -114,15 +116,21 @@ export function createClerkTokenVerifier(
 				audience: resource,
 				algorithms: ["RS256"],
 			});
-			if (!payload.sub) return undefined;
+			// Clerk OAuth access tokens carry client_id; Convex tells them from
+			// the app's own session by it, so a token without one is refused.
+			if (!payload.sub || typeof payload.client_id !== "string")
+				return undefined;
 			return {
 				userId: payload.sub,
-				clientId:
-					typeof payload.client_id === "string" ? payload.client_id : undefined,
+				clientId: payload.client_id,
 				scopes: grantedScopes(payload),
 				token,
 			};
-		} catch {
+		} catch (error) {
+			// A bad token is the caller's; anything else (Clerk's JWKS
+			// unreachable) is ours to hear about.
+			if (!(error instanceof joseErrors.JOSEError) || error instanceof joseErrors.JWKSTimeout)
+				reportError(error);
 			return undefined;
 		}
 	};

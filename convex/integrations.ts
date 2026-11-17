@@ -9,6 +9,10 @@ import {
   mutation,
   query,
 } from './_generated/server'
+import {
+  getGatedIdentity,
+  rejectConnectedApps,
+} from './lib/connectedApps'
 import { requireGroupBySlug } from './lib/groupAccess'
 import { requireIdentity } from './lib/sharing'
 import { externalProviderValidator } from './lib/taskFields'
@@ -62,6 +66,8 @@ export const disconnect = mutation({
     groupSlug: v.string(),
   },
   handler: async (ctx, args) => {
+    // Stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     const conn = await ctx.db.get(args.connectionId)
     if (!conn || conn.groupId !== group._id) return
@@ -183,6 +189,8 @@ export const getAuthorizeUrl = action({
     state: v.string(),
   },
   handler: async (ctx, args): Promise<string> => {
+    // Stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     await requireIdentity(ctx)
     if (args.provider === 'notion') {
       const url = new URL('https://api.notion.com/v1/oauth/authorize')
@@ -216,6 +224,8 @@ export const completeOAuth = action({
     redirectUri: v.string(),
   },
   handler: async (ctx, args): Promise<void> => {
+    // Stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     const { userId, groupId } = await ctx.runQuery(
       internal.integrations.getAuthorisedGroup,
       { groupSlug: args.groupSlug },
@@ -306,6 +316,8 @@ function toUserError(error: unknown, provider: ExternalProviderId): never {
 export const listSources = action({
   args: { provider: externalProviderValidator, groupSlug: v.string() },
   handler: async (ctx, args): Promise<ProviderSource[]> => {
+    // An action can write, so a read-only connected app is refused (ADR-0046).
+    await getGatedIdentity(ctx)
     const conn = await requireGroupConnection(
       ctx,
       args.groupSlug,
@@ -328,6 +340,8 @@ export const getSourceSchema = action({
     sourceId: v.string(),
   },
   handler: async (ctx, args): Promise<SourceProperty[]> => {
+    // An action can write, so a read-only connected app is refused (ADR-0046).
+    await getGatedIdentity(ctx)
     const conn = await requireGroupConnection(
       ctx,
       args.groupSlug,

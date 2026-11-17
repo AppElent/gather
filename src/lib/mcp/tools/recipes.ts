@@ -105,14 +105,14 @@ export const recipeTools = [
     name: 'update_recipe',
     title: 'Update recipe',
     description:
-      'Change a recipe that lives in the given Group. Only the fields you pass change; lists you pass replace the whole list. rating or servings set to null are cleared. Recipes shared in from another Group cannot be changed here.',
+      'Change a recipe that lives in the given Group. Only the fields you pass change; lists you pass replace the whole list. description, rating or servings set to null are cleared. A recipe shared in from another Group is changed from its home Group, not here.',
     access: 'write',
     annotations: { idempotentHint: true },
     input: {
       groupId,
       recipeId: z.string().min(1),
       title: z.string().min(1).max(200).optional(),
-      description: fields.description,
+      description: fields.description.unwrap().nullable().optional(),
       ingredients: lines.optional(),
       steps: lines.optional(),
       tags: fields.tags.optional(),
@@ -128,14 +128,19 @@ export const recipeTools = [
         groupSlug: slug,
         id,
       })
-      // Writing follows the home Group; a shared-in recipe reads as missing.
-      if (!current?.canEdit) throw new ToolInputError(NOT_FOUND)
+      // Only a recipe that lives in the named Group is written from it; a
+      // shared-in one reads as missing, even to a Member of its home Group.
+      if (!current?.canEdit || current.homeGroupSlug !== slug)
+        throw new ToolInputError(NOT_FOUND)
       // `recipes.update` takes the whole document, so unchanged fields are
       // sent back as they are.
       await context.backend.mutation(api.recipes.update, {
         id,
         title: changes.title ?? current.title,
-        description: changes.description ?? current.description,
+        description:
+          changes.description === null
+            ? ''
+            : (changes.description ?? current.description),
         ingredients: changes.ingredients ?? current.ingredients,
         steps: changes.steps ?? current.steps,
         tags: changes.tags ?? current.tags,

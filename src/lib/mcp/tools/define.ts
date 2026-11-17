@@ -9,6 +9,7 @@ import { ConvexError, type Value } from 'convex/values'
 import type { z } from 'zod'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
+import { GROUP_REFUSAL_MESSAGES } from '../../../../convex/lib/groupAccess'
 import { reportError } from '../../observability/report'
 import { MCP_SCOPES, type McpAccess } from '../auth'
 
@@ -127,9 +128,9 @@ export const GROUP_NOT_FOUND =
   'Group not found. Call list_groups for the Groups you can use.'
 
 /** Convex's sentences for a refused Group; the agent hears GROUP_NOT_FOUND. */
-const GROUP_REFUSALS = new Set([
-  'No group has that slug',
-  'Not a member of that group',
+const GROUP_REFUSALS = new Set<string>([
+  GROUP_REFUSAL_MESSAGES['unknown-slug'],
+  GROUP_REFUSAL_MESSAGES['not-a-member'],
 ])
 
 /**

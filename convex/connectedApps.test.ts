@@ -11,7 +11,10 @@ import {
   CONNECTED_APP_READ_ONLY,
   CONNECTED_APP_REFUSED,
 } from './lib/connectedApps'
-import { IDEMPOTENCY_KEY_REUSED } from './lib/idempotency'
+import {
+  IDEMPOTENCY_KEY_REQUIRED,
+  IDEMPOTENCY_KEY_REUSED,
+} from './lib/idempotency'
 
 const person = { subject: 'mcp_ada', name: 'Ada', email: 'ada@example.com' }
 const app = (scope: string) => ({
@@ -64,6 +67,35 @@ describe('the connected-app gate', () => {
     ).rejects.toThrow(CONNECTED_APP_READ_ONLY)
   })
 
+  test('a read grant cannot run an action, which could write', async () => {
+    const { t, listId } = await seed()
+    await expect(
+      t
+        .withIdentity(app('gather:read'))
+        .action(api.taskLists.getTasks, { groupSlug: 'mcp-home', listId }),
+    ).rejects.toThrow(CONNECTED_APP_READ_ONLY)
+    await expect(
+      t.withIdentity(app('gather:read')).action(api.integrations.completeOAuth, {
+        provider: 'notion',
+        groupSlug: 'mcp-home',
+        code: 'code',
+        redirectUri: 'https://gather.example/integrations/callback',
+      }),
+    ).rejects.toThrow()
+  })
+
+  test('scopes in an scp array count the same as a scope string', async () => {
+    const { t } = await seed()
+    const reader = t.withIdentity({
+      ...person,
+      client_id: 'client_claude',
+      scp: ['gather:read'],
+    })
+    expect(
+      await reader.query(api.notes.list, { groupSlug: 'mcp-home' }),
+    ).toEqual([])
+  })
+
   test('a grant without a Gather scope cannot even read', async () => {
     const { t } = await seed()
     const other = t.withIdentity(app('openid foundry:read foundry:write'))
@@ -79,6 +111,7 @@ describe('the connected-app gate', () => {
       groupSlug: 'mcp-home',
       title: 'Wifi',
       body: 'On the router',
+      idempotencyKey: KEY,
     })
     expect(
       await writer.query(api.notes.list, { groupSlug: 'mcp-home' }),
@@ -187,6 +220,34 @@ describe('idempotent creates', () => {
       recipes: 1,
       calendarEvents: 1,
     })
+  })
+
+  test('a connected app must send a key', async () => {
+    const { t } = await seed()
+    await expect(
+      t.withIdentity(app('gather:write')).mutation(api.notes.create, {
+        groupSlug: 'mcp-home',
+        title: 'Wifi',
+        body: 'x',
+      }),
+    ).rejects.toThrow(IDEMPOTENCY_KEY_REQUIRED)
+  })
+
+  test('a replay after the row was deleted creates it again', async () => {
+    const { t } = await seed()
+    const writer = t.withIdentity(app('gather:write'))
+    const create = () =>
+      writer.mutation(api.notes.create, {
+        groupSlug: 'mcp-home',
+        title: 'Wifi',
+        body: 'x',
+        idempotencyKey: KEY,
+      })
+    const first = await create()
+    await t.run((ctx) => ctx.db.delete(first))
+    const second = await create()
+    expect(second).not.toBe(first)
+    expect(await create()).toBe(second)
   })
 
   test('a key reused for another kind of row is refused', async () => {

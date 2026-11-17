@@ -2,6 +2,7 @@ import type { ExternalProviderId } from '@gather/core/domain'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { action, internalQuery, mutation, query } from './_generated/server'
+import { getGatedIdentity } from './lib/connectedApps'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { deleteTaskList } from './lib/groupCascade'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
@@ -160,6 +161,8 @@ export type GetTasksResult =
 export const getTasks = action({
   args: { listId: v.id('taskLists'), groupSlug: v.string() },
   handler: async (ctx, args): Promise<GetTasksResult> => {
+    // An action can write, so a read-only connected app is refused (ADR-0046).
+    await getGatedIdentity(ctx)
     const list = await ctx.runQuery(internal.taskLists.getList, {
       listId: args.listId,
       groupSlug: args.groupSlug,

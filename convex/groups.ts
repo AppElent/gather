@@ -173,6 +173,8 @@ export const inviteCode = query({
 export const createGroup = mutation({
   args: { name: v.string() },
   handler: async (ctx, args) => {
+    // Group administration stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     const user = await requireCurrentUser(ctx)
     const groupId = await ctx.db.insert('groups', {
       name: args.name,

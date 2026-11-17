@@ -28,8 +28,20 @@ export const CONNECTED_APP_REFUSED =
  */
 export function connectedAppScopes(identity: UserIdentity): Set<string> | null {
   if (typeof identity.client_id !== 'string') return null
-  const scope = typeof identity.scope === 'string' ? identity.scope : ''
-  return new Set(scope.split(' ').filter(Boolean))
+  // The same two claim shapes the Worker reads (src/lib/mcp/auth.ts).
+  const scopes = new Set<string>()
+  if (typeof identity.scope === 'string')
+    for (const scope of identity.scope.split(' ')) if (scope) scopes.add(scope)
+  if (Array.isArray(identity.scp))
+    for (const scope of identity.scp)
+      if (typeof scope === 'string') scopes.add(scope)
+  return scopes
+}
+
+/** Whether the caller is a connected app, whatever it was granted. */
+export async function isConnectedApp(ctx: { auth: Auth }): Promise<boolean> {
+  const identity = await ctx.auth.getUserIdentity()
+  return identity !== null && connectedAppScopes(identity) !== null
 }
 
 /**
@@ -53,10 +65,9 @@ export async function getGatedIdentity(ctx: {
 /**
  * Refuse every connected app, whatever it was granted. For what stays in the
  * app: deleting the account or a Group, changing roles, leaving or joining a
- * Group, and reading the invite code.
+ * Group, creating a Group, connecting or disconnecting Notion or Todoist,
+ * provisioning the account, the Sample household, and reading the invite code.
  */
 export async function rejectConnectedApps(ctx: { auth: Auth }) {
-  const identity = await ctx.auth.getUserIdentity()
-  if (identity && connectedAppScopes(identity))
-    throw new ConvexError(CONNECTED_APP_REFUSED)
+  if (await isConnectedApp(ctx)) throw new ConvexError(CONNECTED_APP_REFUSED)
 }

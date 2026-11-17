@@ -37,11 +37,18 @@ ones the tools wrap. So identity resolves through one gate,
 in `lib/sharing.ts`: an OAuth identity (it carries `client_id`) needs a Gather
 scope, and without `gather:write` any mutation or action refuses it.
 
-Some things stay in the app whatever the grant: deleting the account, deleting
-a Group, changing a role, leaving or joining a Group, and reading the invite
-code. Each calls `rejectConnectedApps`. A write grant is otherwise trusted with
-the person's Groups the way the app is; "no delete tools" shapes the MCP
-surface and is not a Convex rule for single records.
+Every public action resolves a gated identity itself, because the queries an
+action runs cannot see that their caller could write
+(`convex/connectedAppsGuard.test.ts` holds this, and that nothing but
+`connectedApps.ts` reads `ctx.auth`).
+
+Some things stay in the app whatever the grant: deleting the account,
+provisioning it, deleting or creating a Group, changing a role, leaving or
+joining a Group, reading the invite code, connecting or disconnecting Notion
+or Todoist, and the Sample household. Each calls `rejectConnectedApps`. A write
+grant is otherwise trusted with the person's Groups the way the app is; "no
+delete tools" shapes the MCP surface and is not a Convex rule for single
+records.
 
 ## The Group is named on every call
 
@@ -61,10 +68,16 @@ Group, "missing" and "in another Group" stay one answer, as everywhere
 ## Writes
 
 Write tools create or update; there are no delete tools. Every create tool
-requires an `idempotencyKey`, and the Convex create takes it as an optional
-argument: `createOnce` (`convex/lib/idempotency.ts`) records `(user, key)` in
-`idempotencyKeys` after authorising, and a replay returns the first row instead
-of writing a second. A key reused for another kind of row is refused.
+requires an `idempotencyKey`. The Convex create takes it as an optional
+argument, because the app's own forms send none, and refuses a connected app
+that omits it: `createOnce` (`convex/lib/idempotency.ts`) records `(user, key)`
+in `idempotencyKeys` after authorising, and a replay returns the first row
+instead of writing a second. A replay whose row has since been deleted creates
+it again. A key reused for another kind of row is refused.
+
+`update_recipe` writes the whole recipe back, because `recipes.update` takes
+the whole document, so an edit made in the app between the tool's read and its
+write is overwritten. The app's own editor has the same window.
 
 ## Considered options
 

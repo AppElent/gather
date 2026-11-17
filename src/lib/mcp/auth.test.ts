@@ -74,11 +74,37 @@ describe("MCP auth", () => {
 		expect(
 			await verify(await sign({}, "https://other.example/mcp"), resource),
 		).toBeUndefined();
-		expect(await verify(await sign({}, "convex"), resource)).toBeUndefined();
+		expect(
+			await verify(await sign({ client_id: "c" }, "convex"), resource),
+		).toBeUndefined();
 		expect(
 			await verify(await sign({}, resource, "https://evil.example"), resource),
 		).toBeUndefined();
 		expect(await verify("not-a-jwt", resource)).toBeUndefined();
+	});
+
+	it("rejects an expired token and one without client_id", async () => {
+		const { keys, sign } = await signer();
+		const verify = createClerkTokenVerifier(issuer, keys);
+		// A session token for this audience is still not an OAuth grant.
+		expect(
+			await verify(await sign({ scope: "gather:read" }), resource),
+		).toBeUndefined();
+		const { privateKey, publicKey } = await generateKeyPair("RS256");
+		const jwk = { ...(await exportJWK(publicKey)), kid: "k2", alg: "RS256" };
+		const expired = await new SignJWT({ client_id: "c", scope: "gather:read" })
+			.setProtectedHeader({ alg: "RS256", kid: "k2" })
+			.setIssuer(issuer)
+			.setAudience(resource)
+			.setSubject("user_1")
+			.setIssuedAt(Math.floor(Date.now() / 1000) - 7200)
+			.setExpirationTime(Math.floor(Date.now() / 1000) - 3600)
+			.sign(privateKey);
+		const verifyK2 = createClerkTokenVerifier(
+			issuer,
+			createLocalJWKSet({ keys: [jwk] }),
+		);
+		expect(await verifyK2(expired, resource)).toBeUndefined();
 	});
 
 	it("points the challenge at protected resource metadata", () => {

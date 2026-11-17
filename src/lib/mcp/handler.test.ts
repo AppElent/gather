@@ -434,6 +434,7 @@ describe('Gather MCP endpoint', () => {
         steps: [],
         tags: [],
         canEdit: false,
+        homeGroupSlug: 'club',
         sharedGroups: [],
       }),
     })
@@ -444,5 +445,78 @@ describe('Gather MCP endpoint', () => {
     })
     expect(out.content[0].text).toBe('Recipe not found.')
     expect(backend.calls.some((c) => c.name === 'recipes:update')).toBe(false)
+  })
+
+  it('updates a recipe from its home Group, sending unchanged fields back', async () => {
+    const recipe = {
+      _id: 'recipe_1',
+      title: 'Soup',
+      description: 'Warm',
+      ingredients: ['water'],
+      steps: ['boil'],
+      tags: ['winter'],
+      servings: 2,
+      rating: 4,
+      canEdit: true,
+      homeGroupSlug: 'home',
+      sharedGroups: [],
+    }
+    const backend = fakeBackend({
+      'recipes:get': () => recipe,
+      'recipes:update': () => null,
+    })
+    const out = await callTool(backend, 'update_recipe', {
+      groupId: 'group_home',
+      recipeId: 'recipe_1',
+      title: 'Better soup',
+      description: null,
+      rating: null,
+    })
+    expect(out.isError).toBeUndefined()
+    expect(backend.calls.at(-1)?.args).toEqual({
+      id: 'recipe_1',
+      title: 'Better soup',
+      description: '',
+      ingredients: ['water'],
+      steps: ['boil'],
+      tags: ['winter'],
+      servings: 2,
+      rating: null,
+    })
+  })
+
+  it('will not write a recipe from a Group it was only shared into, even for a home Member', async () => {
+    const backend = fakeBackend({
+      'recipes:get': () => ({
+        _id: 'recipe_1',
+        title: 'Soup',
+        ingredients: [],
+        steps: [],
+        tags: [],
+        canEdit: true,
+        homeGroupSlug: 'club',
+        sharedGroups: [],
+      }),
+    })
+    const out = await callTool(backend, 'update_recipe', {
+      groupId: 'group_home',
+      recipeId: 'recipe_1',
+      title: 'Better soup',
+    })
+    expect(out.content[0].text).toBe('Recipe not found.')
+  })
+
+  it('marks a task done by setting it, not toggling', async () => {
+    const backend = fakeBackend({ 'tasks:update': () => null })
+    await callTool(backend, 'update_task', {
+      groupId: 'group_home',
+      taskId: 'task_1',
+      done: true,
+    })
+    expect(backend.calls.at(-1)?.args).toEqual({
+      groupSlug: 'home',
+      taskId: 'task_1',
+      done: true,
+    })
   })
 })

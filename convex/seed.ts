@@ -1,5 +1,6 @@
 import { ConvexError } from 'convex/values'
 import { internalMutation, mutation } from './_generated/server'
+import { rejectConnectedApps } from './lib/connectedApps'
 import {
   applyRetailerCatalog,
   applySample,
@@ -107,6 +108,8 @@ function requireSampleDataEnabled() {
 export const loadSampleData = mutation({
   args: {},
   handler: async (ctx) => {
+    // Stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     requireSampleDataEnabled()
     const user = await requireCurrentUser(ctx)
     const tastingCatalog = await applyTastingCatalog(ctx)
@@ -121,6 +124,8 @@ export const loadSampleData = mutation({
 export const resetSampleData = mutation({
   args: {},
   handler: async (ctx) => {
+    // Stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
     requireSampleDataEnabled()
     await requireCurrentUser(ctx)
     return await resetSample(ctx)

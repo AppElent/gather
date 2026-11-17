@@ -12,8 +12,12 @@
 import { ConvexError, v } from 'convex/values'
 import type { Id, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
+import { isConnectedApp } from './connectedApps'
 
 export const idempotencyKeyValidator = v.optional(v.string())
+
+export const IDEMPOTENCY_KEY_REQUIRED =
+  'Connected apps must send an idempotencyKey with every create.'
 
 export const IDEMPOTENCY_KEY_REUSED =
   'That idempotencyKey was already used for a different write.'
@@ -30,7 +34,12 @@ export async function createOnce<T extends TableNames>(
   key: string | undefined,
   create: () => Promise<Id<T>>,
 ): Promise<Id<T>> {
-  if (key === undefined) return await create()
+  if (key === undefined) {
+    // The app's own forms send none; a connected app retries, so it must.
+    if (await isConnectedApp(ctx))
+      throw new ConvexError(IDEMPOTENCY_KEY_REQUIRED)
+    return await create()
+  }
   if (key.length < 8 || key.length > 100)
     throw new ConvexError('idempotencyKey must be 8 to 100 characters.')
   const prior = await ctx.db
@@ -40,7 +49,13 @@ export async function createOnce<T extends TableNames>(
     .first()
   if (prior) {
     if (prior.table !== table) throw new ConvexError(IDEMPOTENCY_KEY_REUSED)
-    return prior.docId as Id<T>
+    // The row may have been deleted in the app since; then the retry is a
+    // fresh create rather than an answer pointing at nothing.
+    const existing = await ctx.db.get(prior.docId as Id<T>)
+    if (existing) return prior.docId as Id<T>
+    const id = await create()
+    await ctx.db.patch(prior._id, { docId: id })
+    return id
   }
   const id = await create()
   await ctx.db.insert('idempotencyKeys', { userId, key, table, docId: id })
