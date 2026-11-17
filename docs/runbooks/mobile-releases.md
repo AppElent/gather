@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when publishing an over-the-air update, making a store or internal build, or rolling an update back.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Mobile releases
@@ -156,7 +156,9 @@ side. The bundle ID is part of the fingerprint, so resolve a channel's runtime
 with its variant set; the scripts here do. The first build of a new bundle ID
 runs interactively once (`pnpm exec eas build -p ios --profile preview-internal`
 without `--non-interactive`), so EAS can create its ad hoc profile and the
-share extension's app group.
+share extension's app group. The same holds the first time a build carries a
+new extension: the widget extension (`<bundle ID>.widgets`, APP-207) needs its
+own App ID and profile in each variant.
 `preview-internal` extends `preview` and shares the `preview` channel, so it has
 no row of its own and receives the same updates.
 

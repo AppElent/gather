@@ -1,7 +1,7 @@
 ---
 type: runbook
-description: Read when building, running, or verifying the phone app on a device or emulator, including a Drop.
-version: 1.2.0
+description: Read when building, running, or verifying the phone app on a device or emulator, including a Drop and the quick-actions entry points.
+version: 1.3.0
 ---
 
 # Mobile verification
@@ -92,8 +92,8 @@ and the OS sheet belongs to neither — so the Drop flow (ADR-0028) is verified
 through a deep link that produces the same Drop the share sheet would:
 
 ```
-agent-device deeplink "gather-dev://drop?url=https://www.leukerecepten.nl/recepten/pasta/"
-agent-device deeplink "gather-dev://drop?text=Buy%20stroopwafels"
+agent-device open "gather-dev://drop?url=https://www.leukerecepten.nl/recepten/pasta/" --platform ios
+agent-device open "gather-dev://drop?text=Buy%20stroopwafels" --platform ios
 ```
 
 Both land on the chooser, over the same `DropProvider`, with the same ranking.
@@ -108,3 +108,27 @@ Two things this harness cannot tell you, and a real share can:
 - **Whether an iOS image Drop is readable.** Shared files land in an App Group
   container the app must be entitled to read; get it wrong and the URI looks
   perfectly valid and reads as nothing.
+
+## Verifying the quick-actions entry points
+
+The app icon's quick actions and the Control Center control (APP-207) open
+the same sheet as `<scheme>://quick`, so the sheet behind them is verified
+with the link:
+
+```
+agent-device open "gather-dev://quick" --platform ios
+agent-device open "gather-dev://quick?action=task-new" --platform ios   # the task form open
+```
+
+The entry points themselves belong to SpringBoard and Control Center, which
+`agent-device` drives only as far as the screen goes: long-press the icon on
+the Home Screen for the menu, and add the control from Control Center's edit
+mode ("Add a Control", search for the app's name). Both need a development
+build with the widget extension (`targets/widgets/`), and the menu appears only
+after the app has launched once, because the app sets it from JavaScript in
+its current language.
+
+Test the control itself, not only the link: it reaches the app through its
+user defaults rather than a URL (iOS drops a custom-scheme URL from a
+control), so check both a cold start (quit the app first) and a tap with the
+app in the background.

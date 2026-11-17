@@ -1,0 +1,33 @@
+diff --git a/ios/AppDelegate.swift b/ios/AppDelegate.swift
+index 37558e006b606eae26e2e5be6e44afee93590547..e1cacfddc4526379f645bc7d1b0c63ae71da1450 100644
+--- a/ios/AppDelegate.swift
++++ b/ios/AppDelegate.swift
+@@ -9,6 +9,10 @@ import ExpoModulesCore
+ 
+ public class ExpoQuickActionsAppDelegate: ExpoAppDelegateSubscriber {
+ 
++  /// False until the app first becomes active: a quick action that arrives before then is the one
++  /// that launched the process.
++  private var hasBecomeActive = false
++
+   public func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+     if let item = launchOptions?[.shortcutItem] as? UIApplicationShortcutItem {
+       initialAction = item
+@@ -16,7 +20,17 @@ public class ExpoQuickActionsAppDelegate: ExpoAppDelegateSubscriber {
+     return true
+   }
+ 
++  public func applicationDidBecomeActive(_ application: UIApplication) {
++    hasBecomeActive = true
++  }
++
+   public func application(_ application: UIApplication, performActionFor shortcutItem: UIApplicationShortcutItem, completionHandler: @escaping (Bool) -> Void) {
++    // Under the UIScene life cycle (Expo SDK 58) a cold start's item is not in `launchOptions`:
++    // `ExpoAppSceneDelegate` forwards it from the scene's connection options to here, before the
++    // JS bundle has loaded and so before anything observes the event below. Keep it as `initial`.
++    if !hasBecomeActive {
++      initialAction = shortcutItem
++    }
+     NotificationCenter.default.post(name: Notification.Name(onQuickAction), object: shortcutItem)
+     completionHandler(true)
+   }

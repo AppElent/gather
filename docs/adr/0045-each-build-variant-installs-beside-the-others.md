@@ -1,7 +1,7 @@
 ---
 type: decision
-description: Read before changing the phone app's name, bundle ID, scheme, icon or share-extension app group, or adding an EAS build profile.
-version: 1.0.0
+description: Read before changing the phone app's name, bundle ID, scheme, icon, share-extension app group or widget extension, or adding an EAS build profile.
+version: 1.1.0
 status: accepted
 date: 2026-11-17
 ---
@@ -28,6 +28,12 @@ The share extension's app group follows the bundle ID
 extension took it. `app.json` keeps everything shared; the badged icons are
 committed files made by `apps/mobile/scripts/badge-icons.mjs`.
 
+The widget extension (`apps/mobile/targets/widgets/`, APP-207) follows the
+same suffix: `com.appelent.gather<suffix>.widgets`, named after its app, so
+its Control Center control reads "Gather", "Gather Preview" or "Gather Dev".
+Its intent runs inside the app it opens, so it needs nothing per variant
+beyond that, and joins no App Group.
+
 ## Consequences
 
 - Preview, production and a dev client install side by side, and the first
@@ -40,7 +46,7 @@ committed files made by `apps/mobile/scripts/badge-icons.mjs`.
 - Builds made before this decision (`com.appelent.gather` on the `preview`
   channel, up to build 26) keep working against production but get no further
   updates. Install the new Gather Preview build and delete the old one.
-- The first build of each new bundle ID (and its share extension) runs
+- The first build of each new bundle ID (and its share and widget extensions) runs
   interactively once, so EAS can create its ad hoc profile and app group.
 - Any native sign-in that checks the bundle ID (none today: `appleSignIn` is
   off and the app has no SSO) must register each variant's ID on the Clerk

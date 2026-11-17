@@ -25,7 +25,9 @@ import { requestSearchFocus } from '../../../src/search/searchFocus'
 import { rememberSearchOrigin } from '../../../src/search/searchOrigin'
 import { QuickActionSheet } from '../../../src/shell/QuickActionSheet'
 import {
+  markQuickSheetOpen,
   onQuickSheetRequest,
+  type QuickSheetRequest,
   takeQuickSheetRequest,
 } from '../../../src/shell/quickSheetRequest'
 import { SHELL_TABS } from '../../../src/shell/tabs'
@@ -34,16 +36,31 @@ export default function TabsLayout() {
   const { t } = useI18n()
   const { group } = useGroup()
   const [launcherOpen, setLauncherOpen] = useState(false)
+  // The last `<scheme>://quick` request, and how many there have been: the
+  // count tells the sheet a new one arrived, so the action it names opens even
+  // when the sheet is already up.
+  const [linked, setLinked] = useState<{
+    request: QuickSheetRequest
+    count: number
+  }>({ request: {}, count: 0 })
 
   // `<scheme>://quick` (APP-206): a request held across sign-in is taken on
   // mount, and one made while the tabs are up arrives through the listener.
   useEffect(() => {
     const take = () => {
-      if (takeQuickSheetRequest()) setLauncherOpen(true)
+      const request = takeQuickSheetRequest()
+      if (!request) return
+      setLinked(({ count }) => ({ request, count: count + 1 }))
+      setLauncherOpen(true)
     }
     take()
     return onQuickSheetRequest(take)
   }, [])
+
+  // While the sheet is up, a link asks it in place instead of navigating.
+  useEffect(() => (launcherOpen ? markQuickSheetOpen() : undefined), [
+    launcherOpen,
+  ])
 
   return (
     <View style={{ flex: 1 }}>
@@ -56,7 +73,12 @@ export default function TabsLayout() {
             disabled={tab.name === 'add'}
             listeners={
               tab.name === 'add'
-                ? { tabPress: () => setLauncherOpen(true) }
+                ? {
+                    tabPress: () => {
+                      setLinked(({ count }) => ({ request: {}, count }))
+                      setLauncherOpen(true)
+                    },
+                  }
                 : // Selecting Search means asking to type. The screen's own
                   // trigger is the pathname changing, which on Android cannot
                   // fire when you are already on Search with the field closed.
@@ -73,6 +95,8 @@ export default function TabsLayout() {
       <SearchOriginTracker />
       <QuickActionSheet
         visible={launcherOpen}
+        initialAction={linked.request.action}
+        requestCount={linked.count}
         groupName={group.name}
         onClose={() => setLauncherOpen(false)}
       />

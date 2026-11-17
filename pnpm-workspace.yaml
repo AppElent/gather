@@ -69,3 +69,10 @@ packageExtensions:
 # agree. 60 rather than 120 because Windows cannot go higher.
 # Retire this when @expo/fingerprint stops hashing virtual-store paths.
 virtualStoreDirMaxLength: 60
+
+# expo-quick-actions reads a cold start's quick action from launch options,
+# which the UIScene life cycle (Expo SDK 58) leaves empty; the patch keeps the
+# item Expo forwards from the scene instead (APP-207). Retire it when upstream
+# handles scenes.
+patchedDependencies:
+  expo-quick-actions@6.0.2: patches/expo-quick-actions@6.0.2.patch

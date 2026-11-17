@@ -101,7 +101,8 @@
       "expo-localization",
       "expo-sqlite",
       "@sentry/react-native/expo",
-      "expo-status-bar"
+      "expo-status-bar",
+      "@bacons/apple-targets"
     ],
     "locales": {
       "en": "./locales/en.json",
