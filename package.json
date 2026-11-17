@@ -38,7 +38,7 @@
     "mobile:update:production": "node scripts/env.mjs exec production --only eas -- node apps/mobile/scripts/publish-update.mjs production"
   },
   "dependencies": {
-    "@clerk/react": "^6.18.7",
+    "@clerk/react": "^6.18.8",
     "@cloudflare/vite-plugin": "^1.69.1",
     "@gather/core": "workspace:*",
     "@modelcontextprotocol/ext-apps": "1.7.5",
@@ -53,7 +53,7 @@
     "bwip-js": "4.11.4",
     "clsx": "^2.1.1",
     "convex": "^1.50.0",
-    "jose": "6.1.0",
+    "jose": "6.2.17",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.9",
     "lucide-react": "^0.577.0",
