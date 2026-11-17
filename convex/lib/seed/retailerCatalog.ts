@@ -25,8 +25,9 @@ import type { RetailerCategory } from '@gather/core/loyalty-cards'
  * the `// Source:` line names it: a photo of the card, the retailer's own help
  * text or site code, an app-store screenshot of the retailer's own app (decoded
  * with zxing-cpp where it would decode; a decoded demo payload still shows the
- * symbology the app draws), or a card-app guide. `'guess'` means no public
- * source was found, and the format is then always the CODE_128 fallback; its
+ * symbology the app draws). A third-party card-app guide, or bar widths matched
+ * by hand where no decoder reads the code, is not enough (APP-198). `'guess'`
+ * means no such source was found, and the format is then always the CODE_128 fallback; its
  * `// Programme:` line says what was searched and why it did not settle it.
  * `numberLength` and `numberPrefix` appear only when a source states them.
  *
@@ -83,7 +84,8 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Source: Commons "Jumbo_Extra's_passen_(new_design),_Oude_Pekela_(2020)_02.jpg" (EAN-13 guard bars, 2 622273 871224). Colour: jumbo.com logo SVG
   // fill and mask-icon colour.
   { seedKey: 'jumbo', name: 'Jumbo', aliases: ["Jumbo Extra's", 'Extras', 'Jumbo pas'], category: 'supermarket', brandColor: '#EEB717', domain: 'jumbo.com', barcodeFormat: 'EAN_13', formatConfidence: 'sourced', numberLength: 13 },
-  // Source: guides.supercardsapp.com/nl/lidl ("scan je QR-code aan de kassa", app only); github.com/CatimaLoyalty/Android/issues/1233. Colour: Commons logo SVG.
+  // Source: lidl.nl/c/lidl-plus/s10008463: 'Open de Lidl Plus-app, klik op ‘Lidl Plus-kaart’ en scan de QR-code aan de kassa' (app only). Colour:
+  // Commons logo SVG.
   { seedKey: 'lidl', name: 'Lidl', aliases: ['Lidl Plus'], category: 'supermarket', brandColor: '#0050AA', domain: 'lidl.nl', barcodeFormat: 'QR', formatConfidence: 'sourced' },
   // Source: plus.nl/organisatie/faq-digitale-pluspunten ("Scan jouw QR-code bij de (zelfscan)kassa"). Colour: plus.nl CSS --color-primary-soft and
   // the app icon (the brand is green since the redesign).
@@ -198,8 +200,9 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Source: App Store 'IKEA' NL (id1452164827) shows the IKEA Family pas as a QR code; IKEA BE help says 'IKEA Family QR'. Colour: Commons
   // Ikea_logo.svg.
   { seedKey: 'ikea', name: 'IKEA', aliases: ['IKEA Family'], category: 'home', brandColor: '#0058A3', domain: 'ikea.com', barcodeFormat: 'QR', formatConfidence: 'sourced' },
-  // Source: guides.supercardsapp.com/nl/action ("scan je QR-code bij de kassa", app only, no physical card). Colour: Commons Action_Nederland_Logo_2020.svg.
-  { seedKey: 'action', name: 'Action', aliases: ['Mijn Action'], category: 'home', brandColor: '#001489', domain: 'action.com', barcodeFormat: 'QR', formatConfidence: 'sourced' },
+  // Programme: Mijn Action (app only, no physical card). Format unknown: only a third-party guide (guides.supercardsapp.com/nl/action) says QR, and
+  // action.com's own pages mention a QR only on receipts (APP-198). CODE_128 guess. Colour: Commons Action_Nederland_Logo_2020.svg.
+  { seedKey: 'action', name: 'Action', aliases: ['Mijn Action'], category: 'home', brandColor: '#001489', domain: 'action.com', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
   // Programme: xenos.nl (Xtra Xenos Member). Format unknown: the memberpas arrives by e-mail or wallet; no image shows the code. CODE_128 guess.
   // Colour: Commons Logo-Xenos-Rubin-Red.png.
   { seedKey: 'xenos', name: 'Xenos', aliases: ['Xtra Xenos', 'Xenos Member'], category: 'home', brandColor: '#DE006E', domain: 'xenos.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
@@ -265,7 +268,7 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Logo_Peek_&_Cloppenburg.svg.
   { seedKey: 'peek-cloppenburg', name: 'Peek & Cloppenburg', aliases: ['P&C', 'P&C INSIDER', 'INSIDER', 'Peek en Cloppenburg'], category: 'fashion', brandColor: '#002D65', domain: 'peek-cloppenburg.nl', barcodeFormat: 'QR', formatConfidence: 'sourced' },
   // Source: App Store "Levi's®" (id1270092335) NL screenshot shows the Red Tab member card as a QR code (decodes; demo payload). Colour: levi.com
-  // header logo SVG and favicon.svg fill #C41320 (Wayback 2026-11-08); Commons' #C41230 transposes two digits.
+  // header logo SVG and favicon.svg fill #C41320 (Wayback 2026-11-08); the old #C41230 transposes two digits.
   { seedKey: 'levis', name: "Levi's", aliases: ['Levis', 'Red Tab', "Levi's Red Tab"], category: 'fashion', brandColor: '#C41320', domain: 'levi.com', barcodeFormat: 'QR', formatConfidence: 'sourced' },
   // Programme: Hollister House Rewards (hollisterco.com/shop/eu-nl footer; App Store id383915209: 'US, UK and Europe'; NL stores at Mall of the
   // Netherlands and Maastricht), digital ID scanned at checkout, so kept (APP-198). Format unknown: app screenshots show only a scan icon. CODE_128
@@ -306,9 +309,9 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
 
   // --- Toys ---
 
-  // Source: Google Play 'LEGO Insiders' (com.lego.membership) card: bar widths measured by hand match Code 128 (Start C); zxing could not decode.
-  // Colour: Commons LEGO_logo.svg.
-  { seedKey: 'lego', name: 'LEGO', aliases: ['LEGO Insiders', 'LEGO VIP', 'LEGO Store'], category: 'toys', brandColor: '#E3000B', domain: 'lego.com', barcodeFormat: 'CODE_128', formatConfidence: 'sourced' },
+  // Programme: LEGO Insiders. Format unknown: the Google Play (com.lego.membership) card's bar widths, measured by hand, look like Code 128 (Start
+  // C), but no decoder reads it, so it is a guess (APP-198). CODE_128 guess. Colour: Commons LEGO_logo.svg.
+  { seedKey: 'lego', name: 'LEGO', aliases: ['LEGO Insiders', 'LEGO VIP', 'LEGO Store'], category: 'toys', brandColor: '#E3000B', domain: 'lego.com', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
 
   // --- Pets ---
 

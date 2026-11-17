@@ -462,7 +462,8 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
  */
 export const RETAILERS_WITHOUT_LOGO: Readonly<Record<string, string>> = {
   ziengs:
-    'No logo on Wikimedia Commons; the only logo file ziengs.nl serves is a touch icon (a slash on mint) that does not show the name, and the wordmark is drawn inline with no file.',}
+    'No logo on Wikimedia Commons; the only logo file ziengs.nl serves is a touch icon (a slash on mint) that does not show the name, and the wordmark is drawn inline with no file.',
+}
 
 /**
  * The logo a card or Catalog entry shows, as the `seedKey` its files are named
