@@ -11,8 +11,10 @@ name: Mobile update (preview)
 # preview-internal" in the run summary when no update or build on the channel
 # has this runtime fingerprint (a native change is waiting for a build).
 #
-# A local build (`eas build --local`) is not recorded on EAS, so after
-# installing one, run this workflow by hand with `force` to seed the channel.
+# A local build (`eas build --local`) is not recorded on EAS until it is
+# uploaded: `pnpm exec eas upload -p <platform> --build-path <file>` registers
+# its fingerprint, which the gate also accepts. Without the upload, run this
+# workflow by hand with `force` to seed the channel.
 on:
   workflow_call:
   workflow_dispatch:

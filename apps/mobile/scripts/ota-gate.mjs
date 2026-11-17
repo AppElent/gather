@@ -15,11 +15,12 @@
 // 1. Something the app bundles changed since the platform's tag (moved after
 //    each publish of that platform). A web-only merge publishes nothing.
 // 2. Something on the channel already runs this runtime fingerprint: an earlier
-//    update or a finished EAS build. Otherwise a native change is waiting and
-//    the platform needs a new build first; an update would never load.
+//    update, a finished EAS build, or a local build registered with `eas upload`.
+//    Otherwise a native change is waiting and the platform needs a new build
+//    first; an update would never load.
 //
-// `--force` skips all three. It exists to seed a channel after a local build, which
-// EAS does not record; on production it waits for the owner's decision card.
+// `--force` skips all three. It exists to seed a channel after a local build that
+// was not uploaded; on production it waits for the owner's decision card.
 // Needs EXPO_TOKEN; reads EAS through the CLI pinned in apps/mobile.
 import { spawnSync } from 'node:child_process'
 import { appendFileSync } from 'node:fs'
@@ -91,7 +92,15 @@ function channelRuns(platform, runtime) {
     'build:list', '--platform', platform, '--channel', channel, '--runtime-version', runtime,
     '--status', 'finished', '--limit', '1',
   ])
-  return builds.length > 0
+  if (builds.length > 0) return true
+  // A local build registered with `eas upload` carries its fingerprint but no
+  // channel or runtime version. The runtime is the fingerprint (app.json's
+  // `fingerprint` policy), and the bundle ID enters it, so a match is a build
+  // of this channel's variant.
+  const uploaded = count([
+    'build:list', '--platform', platform, '--fingerprint-hash', runtime, '--status', 'finished', '--limit', '1',
+  ])
+  return uploaded.length > 0
 }
 
 const publish = []

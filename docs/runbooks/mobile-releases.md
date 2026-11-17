@@ -77,7 +77,9 @@ or `pnpm-workspace.yaml` gets a **Mobile runtime** comment
 (`.github/workflows/mobile-runtime.yml`) saying, per platform, whether the
 native fingerprint changed. A "yes" means: after merging, make a new
 `preview-internal` build; until then the preview update job skips that
-platform. It also means the next store build: production stays on the old
+platform. A local build (`eas build --local`) counts only once EAS knows it:
+upload it with `pnpm exec eas upload -p ios --build-path <file>` (from
+`apps/mobile`), which registers its fingerprint and gives an install link. It also means the next store build: production stays on the old
 JavaScript until a store build with the new fingerprint is out. The check never
 fails a PR for a native change. A fork's PR gets no comment (its token is
 read-only); the run summary has the same table.
