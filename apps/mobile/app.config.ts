@@ -1,6 +1,6 @@
 /**
  * One identity per EAS profile, so production, preview and development builds
- * install side by side (the mobile-distribution standard, ADR 0029). `app.json`
+ * install side by side (the mobile-distribution standard, ADR 0045). `app.json`
  * holds everything shared; this file only swaps the per-variant name, scheme,
  * bundle ID, package, share-extension app group and badged icon.
  *

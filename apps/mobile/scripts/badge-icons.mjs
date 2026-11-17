@@ -39,7 +39,9 @@ function overlay({ label, fill }, shape, size) {
 
 async function badge(name, platform, variant) {
   const source = sharp(join(images, `${name}.png`))
-  const { width: size } = await source.metadata()
+  const { width: size, height } = await source.metadata()
+  // The overlay is drawn on a 1024 grid; a smaller source would make sharp refuse it.
+  if (size !== 1024 || height !== 1024) throw new Error(`${name}.png must be 1024×1024, got ${size}×${height}`)
   let image = source.composite([{ input: overlay(variant, SHAPES[platform], size) }])
   // App Store icons must not carry an alpha channel.
   if (platform === 'ios') image = image.flatten({ background: '#ffffff' }).removeAlpha()
