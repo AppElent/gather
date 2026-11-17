@@ -132,20 +132,12 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.PREVIEW_CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.PREVIEW_CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Delete Worker
-        run: pnpm exec wrangler delete --force --name "gather-pr-${{ github.event.pull_request.number }}" || true
       # Convex previews count against the team's deployment quota until they
       # expire, so leftovers block every new preview. The preview deploy key
       # (`preview:<team>:<project>|<token>`) may list and delete its own
       # project's previews through the management API. Only a deployment of
-      # type `preview` named pr-<N> is ever deleted; none is a no-op.
+      # type `preview` named pr-<N> is ever deleted; none is a no-op. Runs
+      # first and needs only curl and jq, so a failed install cannot skip it.
       - name: Delete Convex preview
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.PREVIEW_CONVEX_DEPLOY_KEY }}
@@ -159,14 +151,30 @@ jobs:
           IFS=: read -r _ TEAM PROJECT <<< "${CONVEX_DEPLOY_KEY%%|*}"
           API=https://api.convex.dev/v1
           AUTH="Authorization: Bearer $CONVEX_DEPLOY_KEY"
-          PROJECT_ID=$(curl -fsS -H "$AUTH" "$API/teams/$TEAM/projects/$PROJECT" | jq -er .id)
-          NAMES=$(curl -fsS -H "$AUTH" "$API/projects/$PROJECT_ID/list_deployments" \
-            | jq -r --arg p "$PREVIEW" '.[] | select(.deploymentType == "preview" and .previewIdentifier == $p) | .name')
+          api() { curl -fsS --retry 3 --retry-all-errors -H "$AUTH" "$@"; }
+          PROJECT_ID=$(api "$API/teams/$TEAM/projects/$PROJECT" | jq -er .id)
+          DEPLOYMENTS=$(api "$API/projects/$PROJECT_ID/list_deployments")
+          NAMES=$(jq -r --arg p "$PREVIEW" '.[] | select(.deploymentType == "preview" and .previewIdentifier == $p) | .name' <<< "$DEPLOYMENTS")
           if [ -z "$NAMES" ]; then
-            echo "No Convex preview $PREVIEW to delete."
+            COUNT=$(jq '[.[] | select(.deploymentType == "preview")] | length' <<< "$DEPLOYMENTS")
+            echo "No Convex preview $PREVIEW to delete ($COUNT other previews in $PROJECT)."
             exit 0
           fi
           for NAME in $NAMES; do
-            curl -fsS -X POST -H "$AUTH" "$API/deployments/$NAME/delete" > /dev/null
-            echo "Deleted Convex preview $PREVIEW ($NAME)."
+            # A 404 means another run already deleted it.
+            CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "$AUTH" "$API/deployments/$NAME/delete")
+            case "$CODE" in
+              2??) echo "Deleted Convex preview $PREVIEW ($NAME)." ;;
+              404) echo "Convex preview $PREVIEW ($NAME) was already gone." ;;
+              *) echo "::error::Deleting Convex preview $NAME returned HTTP $CODE"; exit 1 ;;
+            esac
           done
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Delete Worker
+        run: pnpm exec wrangler delete --force --name "gather-pr-${{ github.event.pull_request.number }}" || true
