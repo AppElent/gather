@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Snelle acties</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.8}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+</style>
+</helmet>
+<div style="width: {{w}}px; height: {{h}}px; position: relative; overflow: hidden; background: {{c.scrimGround}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: {{c.ink}}">
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; padding: 64px 16px 0 16px; opacity: 0.35">
+    <div style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 34px; line-height: 41px; font-weight: 700">Verbeek</div>
+    <div style="font-size: 15px; line-height: 20px; color: {{c.muted}}">dinsdag 17 november · 3 leden</div>
+  </div>
+  <section aria-label="Snelle acties" style="position: absolute; left: 0; right: 0; bottom: 0; top: {{sheetTop}}px; background: {{c.ground}}; border-radius: 34px 34px 0 0; display: flex; flex-direction: column; gap: 20px; padding: 8px 0 34px 0; box-sizing: border-box">
+    <div aria-hidden="true" style="align-self: center; width: 36px; height: 5px; border-radius: 999px; background: {{c.hair}}"></div>
+    <div style="display: flex; align-items: center; gap: 12px; padding: 0 16px">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+        <h1 style="margin: 0; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Snel · Verbeek</h1>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: {{c.muted}}">Tonen wat je nodig hebt, of iets toevoegen</p>
+      </div>
+      <button aria-label="Sluiten" style="width: 30px; height: 30px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; align-items: baseline; padding: 0 16px">
+        <h2 style="margin: 0; flex-grow: 1; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">KLANTKAARTEN</h2>
+        <sc-if value="{{hasCards}}" hint-placeholder-val="{{ true }}">
+          <a href="#" style="font-size: 15px; line-height: 20px; text-decoration: none; color: {{c.ink}}; min-height: 44px; display: flex; align-items: center; margin: -12px 0">Alle kaarten</a>
+        </sc-if>
+      </div>
+      <sc-if value="{{hasCards}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; gap: 12px; overflow-x: auto; padding: 0 16px">
+          <sc-for list="{{cards}}" as="card" hint-placeholder-count="4">
+            <button aria-label="{{card.label}}" style="flex: 0 0 auto; width: 150px; display: flex; flex-direction: column; gap: 6px">
+              <div style="width: 150px; height: 95px; border-radius: 14px; background: {{card.color}}; box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; border: 0.5px solid {{c.hair}}">
+                <div style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; color: {{card.on}}">{{card.mono}}</div>
+                <svg width="80" height="18" viewBox="0 0 80 18" aria-hidden="true"><g fill="{{card.on}}" opacity="0.85"><rect x="0" y="0" width="2" height="18"></rect><rect x="4" y="0" width="1" height="18"></rect><rect x="7" y="0" width="3" height="18"></rect><rect x="12" y="0" width="1" height="18"></rect><rect x="15" y="0" width="2" height="18"></rect><rect x="19" y="0" width="1" height="18"></rect><rect x="22" y="0" width="3" height="18"></rect><rect x="27" y="0" width="1" height="18"></rect><rect x="30" y="0" width="2" height="18"></rect><rect x="34" y="0" width="1" height="18"></rect><rect x="37" y="0" width="2" height="18"></rect><rect x="41" y="0" width="3" height="18"></rect><rect x="46" y="0" width="1" height="18"></rect><rect x="49" y="0" width="2" height="18"></rect><rect x="53" y="0" width="1" height="18"></rect><rect x="56" y="0" width="3" height="18"></rect><rect x="61" y="0" width="1" height="18"></rect><rect x="64" y="0" width="2" height="18"></rect></g></svg>
+              </div>
+              <div style="display: flex; flex-direction: column; padding: 0 4px">
+                <span style="font-size: 15px; line-height: 20px; font-weight: 600; color: {{c.ink}}">{{card.name}}</span>
+                <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{card.used}}</span>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{noCards}}" hint-placeholder-val="{{ false }}">
+        <div style="margin: 0 16px; background: {{c.surface}}; border-radius: 22px; padding: 16px; display: flex; align-items: center; gap: 12px">
+          <div aria-hidden="true" style="width: 36px; height: 36px; border-radius: 11px; background: {{c.homeFill}}; display: flex; align-items: center; justify-content: center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.homeOn}}" stroke-width="1.8" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M8 7v10M12 7v10M16 7v10"></path></svg>
+          </div>
+          <div style="flex-grow: 1; display: flex; flex-direction: column">
+            <span style="font-size: 17px; line-height: 22px; font-weight: 600">Nog geen klantkaarten</span>
+            <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Scan er een, dan staat hij hier klaar voor de kassa.</span>
+          </div>
+          <a href="#" style="min-height: 44px; padding: 0 16px; border-radius: 999px; background: {{c.ink}}; color: {{c.onInk}}; display: flex; align-items: center; text-decoration: none; font-size: 15px; font-weight: 600">Scannen</a>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 0 16px">
+      <h2 style="margin: 0; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">TOEVOEGEN</h2>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <sc-for list="{{actions}}" as="act" hint-placeholder-count="6">
+          <button aria-label="{{act.label}}" style="background: {{c.surface}}; border-radius: 22px; min-height: 96px; padding: 12px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; gap: 8px">
+            <div aria-hidden="true" style="width: 36px; height: 36px; border-radius: 11px; background: {{act.fill}}; display: flex; align-items: center; justify-content: center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{act.on}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{act.icon}}"></path></svg>
+            </div>
+            <div style="display: flex; flex-direction: column">
+              <span style="font-size: 15px; line-height: 20px; font-weight: 600; color: {{c.ink}}">{{act.label}}</span>
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{act.module}}</span>
+            </div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"cardsState":{"editor":"enum","options":["some","none"],"default":"some"},"size":{"editor":"enum","options":["iphone","se"],"default":"iphone"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = (this.props.theme ?? 'light') === 'dark';
+    const se = (this.props.size ?? 'iphone') === 'se';
+    const none = (this.props.cardsState ?? 'some') === 'none';
+    const c = dark ? {
+      scrimGround: '#060707', ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', onInk: '#0F1110', muted: '#A0A8A4', hair: '#2E3331',
+      homeFill: '#D99B2B', homeOn: '#2B1F06', kitchenFill: '#0B7C75', kitchenOn: '#FFFFFF', tastingFill: '#B4487F', tastingOn: '#FFFFFF'
+    } : {
+      scrimGround: '#B9BCB8', ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', onInk: '#FFFFFF', muted: '#5E6764', hair: '#DFE2DE',
+      homeFill: '#F2B233', homeOn: '#2B1F06', kitchenFill: '#0B7C75', kitchenOn: '#FFFFFF', tastingFill: '#8A2D5A', tastingOn: '#FFFFFF'
+    };
+    const cards = [
+      { name: 'Albert Heijn', mono: 'AH', color: '#00A0E2', on: '#FFFFFF', used: 'Gisteren' },
+      { name: 'Jumbo', mono: 'J', color: '#FFC800', on: '#1A1F1D', used: 'Zaterdag' },
+      { name: 'Kruidvat', mono: 'K', color: '#E2001A', on: '#FFFFFF', used: '3 nov' },
+      { name: 'HEMA', mono: 'H', color: '#FFFFFF', on: '#E3001B', used: '28 okt' }
+    ].map((x) => ({ ...x, label: x.name + ', kaart tonen' }));
+    const icons = {
+      task: 'M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
+      recipe: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',
+      card: 'M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M8 7v10M12 7v10M16 7v10',
+      cheese: 'M3 18l9-13 9 6v7zM3 18h18M9 14a1.5 1.5 0 1 0 0 .01M15 15a1 1 0 1 0 0 .01',
+      wine: 'M8 3h8l-.5 5a3.5 3.5 0 0 1-7 0zM12 12v8M8 21h8',
+      beer: 'M6 8h10v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM16 11h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2M6 8a3 3 0 0 1 5-2 3 3 0 0 1 5 2'
+    };
+    const actions = [
+      { label: 'Taak', module: 'Taken', fill: c.homeFill, on: c.homeOn, icon: icons.task },
+      { label: 'Recept importeren', module: 'Recepten', fill: c.kitchenFill, on: c.kitchenOn, icon: icons.recipe },
+      { label: 'Kaart scannen', module: 'Klantkaarten', fill: c.homeFill, on: c.homeOn, icon: icons.card },
+      { label: 'Kaas proeven', module: 'Kazen', fill: c.tastingFill, on: c.tastingOn, icon: icons.cheese },
+      { label: 'Wijn proeven', module: 'Wijnen', fill: c.tastingFill, on: c.tastingOn, icon: icons.wine },
+      { label: 'Bier proeven', module: 'Bieren', fill: c.tastingFill, on: c.tastingOn, icon: icons.beer }
+    ];
+    const h = se ? 667 : 844;
+    return {
+      c, cards, actions,
+      hasCards: !none, noCards: none,
+      w: se ? 375 : 390, h,
+      sheetTop: se ? 40 : (none ? 300 : 236)
+    };
+  }
+}
+</script>
+</body>
+</html>

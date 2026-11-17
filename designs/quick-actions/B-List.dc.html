@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Snelle acties, als lijst</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.8}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #B9BCB8; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: #1A1F1D">
+  <section aria-label="Snelle acties" style="position: absolute; left: 0; right: 0; bottom: 0; top: 60px; background: #F2F3F1; border-radius: 34px 34px 0 0; display: flex; flex-direction: column; gap: 20px; padding: 8px 16px 34px 16px; box-sizing: border-box">
+    <div aria-hidden="true" style="align-self: center; width: 36px; height: 5px; border-radius: 999px; background: #DFE2DE"></div>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+        <h1 style="margin: 0; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Snel · Verbeek</h1>
+        <p style="margin: 0; font-size: 13px; line-height: 18px; color: #5E6764">Tonen wat je nodig hebt, of iets toevoegen</p>
+      </div>
+      <button aria-label="Sluiten" style="width: 30px; height: 30px; border-radius: 999px; background: #E9EBE8; display: flex; align-items: center; justify-content: center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5E6764" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0; font-size: 13px; line-height: 18px; font-weight: 600; color: #5E6764">KLANTKAART TONEN</h2>
+      <div style="background: #FFFFFF; border-radius: 22px; padding: 0 16px">
+        <sc-for list="{{cards}}" as="card" hint-placeholder-count="3">
+          <button aria-label="{{card.name}}, kaart tonen" style="width: 100%; min-height: 52px; display: flex; align-items: center; gap: 12px; border-bottom: {{card.sep}}">
+            <div aria-hidden="true" style="width: 36px; height: 36px; border-radius: 11px; background: {{card.color}}; display: flex; align-items: center; justify-content: center; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-weight: 700; font-size: 13px; color: {{card.on}}; border: 0.5px solid #DFE2DE">{{card.mono}}</div>
+            <span style="flex-grow: 1; font-size: 17px; line-height: 22px">{{card.name}}</span>
+            <span style="font-size: 13px; line-height: 18px; color: #5E6764">{{card.used}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h2 style="margin: 0; font-size: 13px; line-height: 18px; font-weight: 600; color: #5E6764">TOEVOEGEN</h2>
+      <div style="background: #FFFFFF; border-radius: 22px; padding: 0 16px">
+        <sc-for list="{{actions}}" as="act" hint-placeholder-count="6">
+          <button aria-label="{{act.label}}" style="width: 100%; min-height: 52px; display: flex; align-items: center; gap: 12px; border-bottom: {{act.sep}}">
+            <div aria-hidden="true" style="width: 28px; height: 28px; border-radius: 9px; background: {{act.fill}}; display: flex; align-items: center; justify-content: center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{act.on}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{act.icon}}"></path></svg>
+            </div>
+            <span style="flex-grow: 1; font-size: 17px; line-height: 22px">{{act.label}}</span>
+            <span style="font-size: 13px; line-height: 18px; color: #5E6764">{{act.module}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const sep = '0.5px solid #DFE2DE';
+    const cards = [
+      { name: 'Albert Heijn', mono: 'AH', color: '#00A0E2', on: '#FFFFFF', used: 'Gisteren' },
+      { name: 'Jumbo', mono: 'J', color: '#FFC800', on: '#1A1F1D', used: 'Zaterdag' },
+      { name: 'Kruidvat', mono: 'K', color: '#E2001A', on: '#FFFFFF', used: '3 nov' }
+    ].map((x, i, a) => ({ ...x, sep: i < a.length - 1 ? sep : '0' }));
+    const icons = {
+      task: 'M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
+      recipe: 'M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7',
+      card: 'M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M8 7v10M12 7v10M16 7v10',
+      cheese: 'M3 18l9-13 9 6v7zM3 18h18',
+      wine: 'M8 3h8l-.5 5a3.5 3.5 0 0 1-7 0zM12 12v8M8 21h8',
+      beer: 'M6 8h10v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM16 11h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2'
+    };
+    const actions = [
+      { label: 'Taak toevoegen', module: 'Taken', fill: '#F2B233', on: '#2B1F06', icon: icons.task },
+      { label: 'Recept importeren', module: 'Recepten', fill: '#0B7C75', on: '#FFFFFF', icon: icons.recipe },
+      { label: 'Kaart scannen', module: 'Klantkaarten', fill: '#F2B233', on: '#2B1F06', icon: icons.card },
+      { label: 'Kaas proeven', module: 'Kazen', fill: '#8A2D5A', on: '#FFFFFF', icon: icons.cheese },
+      { label: 'Wijn proeven', module: 'Wijnen', fill: '#8A2D5A', on: '#FFFFFF', icon: icons.wine },
+      { label: 'Bier proeven', module: 'Bieren', fill: '#8A2D5A', on: '#FFFFFF', icon: icons.beer }
+    ].map((x, i, a) => ({ ...x, sep: i < a.length - 1 ? sep : '0' }));
+    return { cards, actions };
+  }
+}
+</script>
+</body>
+</html>
