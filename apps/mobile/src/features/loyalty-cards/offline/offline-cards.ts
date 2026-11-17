@@ -73,8 +73,9 @@ export function offlineCards(account: string | null | undefined): OfflineCard[] 
 /**
  * One Group's saved cards, in the server's order, for a signed-in screen that
  * opens while Convex cannot answer (APP-206's quick-actions sheet). The same
- * account rule as `offlineCards`. `undefined` means there is no copy for this
- * Group; an empty list means the copy says it has no cards.
+ * account rule as `offlineCards`. `undefined` means there is no usable copy for
+ * this Group, which includes a copy none of whose cards can be drawn; an empty
+ * list means the copy says it has no cards.
  */
 export function offlineGroupCards(
   account: string | null | undefined,
@@ -84,8 +85,24 @@ export function offlineGroupCards(
   try {
     const list = readOfflineEntry(account, LIST, { groupSlug })
     if (!Array.isArray(list)) return undefined
-    return list.filter((card) => isOfflineCard(card))
+    const cards = list.filter((card) => isOfflineCard(card))
+    return list.length > 0 && cards.length === 0 ? undefined : cards
   } catch {
     return undefined
   }
+}
+
+/**
+ * One saved card of a Group, for the card's screen while Convex has not
+ * answered (APP-206): a card the quick-actions sheet drew from the copy can
+ * still show its barcode at the till. Same rules as `offlineGroupCards`.
+ */
+export function offlineGroupCard(
+  account: string | null | undefined,
+  groupSlug: string,
+  cardId: string,
+): OfflineCard | undefined {
+  return offlineGroupCards(account, groupSlug)?.find(
+    (card) => card._id === cardId,
+  )
 }

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import {
   offlineCards,
+  offlineGroupCard,
   offlineGroupCards,
 } from '../features/loyalty-cards/offline/offline-cards'
 import {
@@ -244,5 +245,22 @@ describe('one Group’s offline copy (APP-206)', () => {
     confirmAccount('user_a')
     store.breakIt()
     expect(offlineGroupCards('user_a', 'home')).toBeUndefined()
+  })
+
+  it('reads a copy with no drawable card as a miss, not as empty', () => {
+    saveList('user_a', 'home', [{ _id: 'k3', storeName: 'Kapot' }])
+    confirmAccount('user_a')
+    expect(offlineGroupCards('user_a', 'home')).toBeUndefined()
+  })
+
+  it('finds one saved card of the Group for its screen', () => {
+    saveList('user_a', 'home', [other, card])
+    saveList('user_a', 'work', [{ ...card, _id: 'k9' }])
+    confirmAccount('user_a')
+    expect(offlineGroupCard('user_a', 'home', 'k1')?.cardNumber).toBe(
+      card.cardNumber,
+    )
+    expect(offlineGroupCard('user_a', 'home', 'k9')).toBeUndefined()
+    expect(offlineGroupCard('user_b', 'home', 'k1')).toBeUndefined()
   })
 })
