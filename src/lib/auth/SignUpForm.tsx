@@ -1,5 +1,5 @@
 import { useSignUp } from '@clerk/react'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { fmt, useMessages } from '../i18n'
 import { AuthButton } from './AuthButton'
 import { useAuthConfig } from './AuthConfigProvider'
@@ -8,6 +8,7 @@ import { AuthField } from './AuthField'
 import { orThrow } from './clerkResult'
 import { clerkErrorMessage } from './core'
 import { SocialButtons } from './SocialButtons'
+import { useOnceClerkLoaded } from './useOnceClerkLoaded'
 
 export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
   const { signUp } = useSignUp()
@@ -21,20 +22,24 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
   const [loading, setLoading] = useState(false)
 
   // An Apple or Microsoft sign-up that Clerk could not finish comes back here
-  // from `/sso-callback` at `missing_requirements`. An unverified email is the
-  // one gap this form can close; anything else it says it cannot.
-  const resumed = useRef(false)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: once, on arrival
-  useEffect(() => {
-    if (resumed.current) return
-    resumed.current = true
-    if (signUp.status !== 'missing_requirements') return
+  // from `/sso-callback` at `missing_requirements`. Only an OAuth attempt (it
+  // has an external account), so an abandoned email sign-up is left alone. An
+  // email that is the only thing left to verify is the one gap this form can
+  // close; anything else it says it cannot.
+  useOnceClerkLoaded(() => {
     if (
-      signUp.missingFields.length === 0 &&
-      signUp.unverifiedFields.includes('email_address') &&
-      signUp.emailAddress
+      signUp.status !== 'missing_requirements' ||
+      !signUp.verifications.externalAccount?.status
     ) {
-      const address = signUp.emailAddress
+      return
+    }
+    const address = signUp.emailAddress
+    if (
+      address &&
+      signUp.missingFields.length === 0 &&
+      signUp.unverifiedFields.length === 1 &&
+      signUp.unverifiedFields[0] === 'email_address'
+    ) {
       setEmail(address)
       setLoading(true)
       orThrow(signUp.verifications.sendEmailCode())
@@ -44,7 +49,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
     } else {
       setError(auth.signUp.needsMore)
     }
-  }, [])
+  })
 
   async function submitDetails(e: React.FormEvent) {
     e.preventDefault()

@@ -1,5 +1,5 @@
 import { useSignIn } from '@clerk/react'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { fmt, useMessages } from '../i18n'
 import { AuthButton } from './AuthButton'
 import { useAuthConfig } from './AuthConfigProvider'
@@ -16,6 +16,7 @@ import {
 import { SocialButtons } from './SocialButtons'
 import { TestLoginButton } from './TestLoginButton'
 import { useCooldown } from './useCooldown'
+import { useOnceClerkLoaded } from './useOnceClerkLoaded'
 
 /** Seconds "Send a new code" stays disabled after a send. */
 const RESEND_COOLDOWN_SECONDS = 30
@@ -128,19 +129,17 @@ export function SignInForm({ onSuccess }: { onSuccess: () => void }) {
   }
 
   // An Apple or Microsoft sign-in that needs a second factor comes back here
-  // from `/sso-callback` with the attempt still open: carry on with it.
-  const resumed = useRef(false)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: once, on arrival; `run` and `proceed` are recreated every render
-  useEffect(() => {
-    if (resumed.current) return
-    resumed.current = true
+  // from `/sso-callback` with the attempt still open: carry on with it. Only an
+  // OAuth attempt, so an abandoned password attempt is not picked up again.
+  useOnceClerkLoaded(() => {
     if (
-      signIn.status === 'needs_second_factor' ||
-      signIn.status === 'needs_client_trust'
+      signIn.firstFactorVerification?.strategy?.startsWith('oauth_') &&
+      (signIn.status === 'needs_second_factor' ||
+        signIn.status === 'needs_client_trust')
     ) {
       void run(proceed)
     }
-  }, [])
+  })
 
   function submitPassword(e: React.FormEvent) {
     e.preventDefault()

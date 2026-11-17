@@ -24,6 +24,7 @@
  * plain cancel too.
  */
 
+import { useClerk } from '@clerk/expo'
 import { useSignInWithApple } from '@clerk/expo/apple'
 import { useSSO } from '@clerk/expo/experimental'
 import { useCallback, useRef, useState } from 'react'
@@ -51,6 +52,7 @@ export function useSocialSignIn() {
   const { t } = useI18n()
   const { startSSOFlow } = useSSO()
   const { startAppleAuthenticationFlow } = useSignInWithApple()
+  const clerk = useClerk()
   const [pending, setPending] = useState<SocialProvider | null>(null)
   const [failure, setFailure] = useState<Failure | null>(null)
   // A synchronous lock: two taps in the same frame both see `pending` null.
@@ -67,6 +69,12 @@ export function useSocialSignIn() {
       let signedIn = false
       try {
         if (provider === 'apple' && Platform.OS === 'ios') {
+          // What the client held before: a cancel hands these same attempts
+          // back, so only a new one says anything about this flow.
+          const before = {
+            signIn: clerk.client?.signIn?.id,
+            signUp: clerk.client?.signUp?.id,
+          }
           const { createdSessionId, setActive, signIn, signUp } =
             await startAppleAuthenticationFlow()
           if (createdSessionId && setActive) {
@@ -80,9 +88,11 @@ export function useSocialSignIn() {
             // only an attempt this Apple flow made counts: a verified Apple
             // sign-up missing a field, or an Apple sign-in at a second factor
             // this app has no screen for.
-            (signUp.status === 'missing_requirements' &&
+            (signUp.id !== before.signUp &&
+              signUp.status === 'missing_requirements' &&
               signUp.verifications?.externalAccount?.status === 'verified') ||
-            (signIn?.firstFactorVerification?.strategy === 'oauth_token_apple' &&
+            (signIn?.id !== before.signIn &&
+              signIn?.firstFactorVerification?.strategy === 'oauth_token_apple' &&
               (signIn.status === 'needs_second_factor' ||
                 signIn.status === 'needs_client_trust'))
           ) {
@@ -103,7 +113,7 @@ export function useSocialSignIn() {
         if (!signedIn) setPending(null)
       }
     },
-    [startSSOFlow, startAppleAuthenticationFlow],
+    [startSSOFlow, startAppleAuthenticationFlow, clerk],
   )
 
   // Words are picked at render, so a language switch re-translates them.

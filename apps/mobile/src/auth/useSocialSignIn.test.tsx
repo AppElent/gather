@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   startSSOFlow: vi.fn(),
   startApple: vi.fn(),
   setActive: vi.fn(),
+  /** The attempts the client holds before a flow starts. */
+  client: { signIn: { id: 'sia_old' }, signUp: { id: 'sua_old' } },
 }))
 
 vi.mock('react-native', () => ({
@@ -19,6 +21,9 @@ vi.mock('react-native', () => ({
       return mocks.os
     },
   },
+}))
+vi.mock('@clerk/expo', () => ({
+  useClerk: () => ({ client: mocks.client }),
 }))
 vi.mock('@clerk/expo/experimental', () => ({
   useSSO: () => ({ startSSOFlow: mocks.startSSOFlow }),
@@ -81,6 +86,7 @@ test('an Apple sign-up missing a field explains where to finish it', async () =>
     createdSessionId: null,
     setActive: mocks.setActive,
     signUp: {
+      id: 'sua_new',
       status: 'missing_requirements',
       verifications: { externalAccount: { status: 'verified' } },
     },
@@ -107,6 +113,7 @@ test('an Apple sign-in stopped at a second factor explains where to finish it', 
     createdSessionId: null,
     setActive: mocks.setActive,
     signIn: {
+      id: 'sia_new',
       status: 'needs_second_factor',
       firstFactorVerification: { strategy: 'oauth_token_apple' },
     },
@@ -140,6 +147,21 @@ test('a second tap while one provider runs starts nothing', async () => {
     await first
   })
   view.unmount()
+})
+
+test('cancelling a retry after an unfinished Apple attempt says nothing', async () => {
+  // The client still holds the earlier attempt; the cancel hands it back.
+  mocks.startApple.mockResolvedValue({
+    createdSessionId: null,
+    setActive: mocks.setActive,
+    signUp: {
+      id: 'sua_old',
+      status: 'missing_requirements',
+      verifications: { externalAccount: { status: 'verified' } },
+    },
+  })
+  const result = await run('apple')
+  expect(result.error).toBeNull()
 })
 
 test('Apple before Clerk has loaded says something went wrong', async () => {
