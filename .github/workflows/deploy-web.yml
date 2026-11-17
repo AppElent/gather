@@ -70,7 +70,7 @@ jobs:
           elif git merge-base --is-ancestor "$deployed" "$GITHUB_SHA"; then
             echo "$URL runs ${deployed:0:7}, an ancestor of ${GITHUB_SHA:0:7}; deploying."
           else
-            echo "::error::$URL already runs ${deployed:0:7}, which is not an ancestor of ${GITHUB_SHA:0:7}. Refusing to roll back; to roll back on purpose, revert on main."
+            echo "::error::$URL already runs ${deployed:0:7}, which is not an ancestor of ${GITHUB_SHA:0:7}. Refusing to roll back. To roll back on purpose, revert on main. If the target runs a commit that is not on main (a local deploy:<environment> from a branch), redeploy main by hand with pnpm deploy:<environment> first."
             exit 1
           fi
 
