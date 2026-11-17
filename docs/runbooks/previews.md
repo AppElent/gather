@@ -38,7 +38,11 @@ labelled `preview:web` gets its own Convex backend and Worker.
   preview deploy key may list and delete its own project's previews, so the
   `cleanup` job deletes the `preview` deployment named `pr-<N>`. Leftovers count
   against the Convex team's deployment quota, which Gather shares with the other
-  AppElent apps; a full quota fails every preview `deploy`.
+  AppElent apps; a full quota fails every preview `deploy`. Removing the label
+  mid-deploy can still leak one: cleanup cancels the deploy, but Convex may
+  finish creating `pr-<N>` after cleanup listed. That preview idle-expires, or
+  delete it from the dashboard. If cleanup reports no match while the log counts
+  previews, the management API's field names have changed.
 - **A preview backend inherits no Convex variables** — server values come from
   preview defaults ([environment](environment.md#hazards)).
 

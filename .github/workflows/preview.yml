@@ -145,6 +145,8 @@ jobs:
         run: |
           set -euo pipefail
           case "$CONVEX_DEPLOY_KEY" in
+            # Runs started by Dependabot get no repository secrets.
+            "") echo "::notice::No preview deploy key in this run; Convex preview $PREVIEW not checked."; exit 0 ;;
             preview:*) ;;
             *) echo "::error::PREVIEW_CONVEX_DEPLOY_KEY is not a preview deploy key"; exit 1 ;;
           esac
@@ -157,24 +159,30 @@ jobs:
           NAMES=$(jq -r --arg p "$PREVIEW" '.[] | select(.deploymentType == "preview" and .previewIdentifier == $p) | .name' <<< "$DEPLOYMENTS")
           if [ -z "$NAMES" ]; then
             COUNT=$(jq '[.[] | select(.deploymentType == "preview")] | length' <<< "$DEPLOYMENTS")
-            echo "No Convex preview $PREVIEW to delete ($COUNT other previews in $PROJECT)."
+            echo "No Convex preview $PREVIEW to delete ($COUNT previews in $PROJECT)."
             exit 0
           fi
           for NAME in $NAMES; do
-            # A 404 means another run already deleted it.
-            CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "$AUTH" "$API/deployments/$NAME/delete")
+            # Retries cover 5xx and timeouts; a 404 means it is already gone.
+            CODE=$(curl -sS --retry 3 -o /dev/null -w '%{http_code}' -X POST -H "$AUTH" "$API/deployments/$NAME/delete")
             case "$CODE" in
               2??) echo "Deleted Convex preview $PREVIEW ($NAME)." ;;
               404) echo "Convex preview $PREVIEW ($NAME) was already gone." ;;
               *) echo "::error::Deleting Convex preview $NAME returned HTTP $CODE"; exit 1 ;;
             esac
           done
+      # The Worker is deleted even when the Convex step failed.
       - uses: actions/checkout@v4
+        if: ${{ !cancelled() }}
       - uses: pnpm/action-setup@v4
+        if: ${{ !cancelled() }}
       - uses: actions/setup-node@v4
+        if: ${{ !cancelled() }}
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: ${{ !cancelled() }}
       - name: Delete Worker
+        if: ${{ !cancelled() }}
         run: pnpm exec wrangler delete --force --name "gather-pr-${{ github.event.pull_request.number }}" || true
