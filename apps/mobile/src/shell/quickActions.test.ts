@@ -10,14 +10,15 @@ import {
 } from './quickActions'
 
 describe('the Add tab launcher', () => {
+  // Task first, as on the approved quick-actions artboard (APP-206).
   test('lets each working quick action declare how it opens', () => {
     expect(QUICK_ACTIONS.map(({ id, kind }) => ({ id, kind }))).toEqual([
-      { id: 'cheese-tasting', kind: 'compose' },
-      { id: 'wine-tasting', kind: 'compose' },
-      { id: 'beer-tasting', kind: 'compose' },
       { id: 'task-new', kind: 'row' },
       { id: 'recipe-import', kind: 'handoff' },
       { id: 'loyalty-card-add', kind: 'handoff' },
+      { id: 'cheese-tasting', kind: 'compose' },
+      { id: 'wine-tasting', kind: 'compose' },
+      { id: 'beer-tasting', kind: 'compose' },
     ])
   })
 

@@ -55,8 +55,10 @@ export type QuickAction = QuickActionDef & {
 
 /**
  * Every Module, and the capture verbs it puts on the Add tab, in launcher
- * order. An empty list is an answer: adding a Module is a compile error until
- * somebody decides whether it has a verb, as with `DROP_TARGETS`.
+ * order: task, recipe import and card scan first, then the tastings, as on the
+ * approved quick-actions artboard (APP-206). An empty list is an answer:
+ * adding a Module is a compile error until somebody decides whether it has a
+ * verb, as with `DROP_TARGETS`.
  *
  * Only currently working flows appear until each Module owns its real one.
  * Writing a recipe from blank is not here: the Add tab is for capture — you
@@ -65,14 +67,6 @@ export type QuickAction = QuickActionDef & {
  * add control (`AddRecipeSheet`): **reachable, and not advertised.**
  */
 const ACTIONS_BY_MODULE: Record<ModuleId, readonly QuickActionDef[]> = {
-  /**
-   * Three rows, not one "Tasting" row plus a Kind step: the launcher is a flat
-   * list of verbs, and a Kind chooser would cost everyone a tap to save three
-   * rows nobody minds.
-   */
-  cheeses: [{ id: 'cheese-tasting', kind: 'compose', tastingKind: 'cheese' }],
-  wines: [{ id: 'wine-tasting', kind: 'compose', tastingKind: 'wine' }],
-  beers: [{ id: 'beer-tasting', kind: 'compose', tastingKind: 'beer' }],
   tasks: [{ id: 'task-new', kind: 'row' }],
   recipes: [
     // An import is a *reading* of a page, partly parsed and partly guessed,
@@ -85,13 +79,6 @@ const ACTIONS_BY_MODULE: Record<ModuleId, readonly QuickActionDef[]> = {
       href: moduleHref('/all/recipes/import'),
     },
   ],
-  'meal-planner': [],
-  groceries: [],
-  pantry: [],
-  'recurring-costs': [],
-  'shared-costs': [],
-  'savings-goals': [],
-  'baby-log': [],
   // A card in the hand is capture: the launcher hands over to the scanner,
   // which is a whole screen of camera and does not fit under a row.
   'loyalty-cards': [
@@ -101,6 +88,21 @@ const ACTIONS_BY_MODULE: Record<ModuleId, readonly QuickActionDef[]> = {
       href: moduleHref('/all/loyalty-cards/new'),
     },
   ],
+  /**
+   * Three rows, not one "Tasting" row plus a Kind step: the launcher is a flat
+   * list of verbs, and a Kind chooser would cost everyone a tap to save three
+   * rows nobody minds.
+   */
+  cheeses: [{ id: 'cheese-tasting', kind: 'compose', tastingKind: 'cheese' }],
+  wines: [{ id: 'wine-tasting', kind: 'compose', tastingKind: 'wine' }],
+  beers: [{ id: 'beer-tasting', kind: 'compose', tastingKind: 'beer' }],
+  'meal-planner': [],
+  groceries: [],
+  pantry: [],
+  'recurring-costs': [],
+  'shared-costs': [],
+  'savings-goals': [],
+  'baby-log': [],
   calendar: [],
   notes: [],
 }
