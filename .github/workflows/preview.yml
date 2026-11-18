@@ -187,7 +187,15 @@ jobs:
       # Tolerate only that; any other failure must stay visible.
       - name: Delete Worker
         if: ${{ !cancelled() }}
+        env:
+          ACTOR: ${{ github.actor }}
         run: |
+          # Runs started by Dependabot (closing a superseded PR) get no secrets.
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            level=warning; [ "$ACTOR" = "dependabot[bot]" ] && level=notice
+            echo "::$level::No Cloudflare token in this run; Worker not deleted."
+            exit 0
+          fi
           status=0; out=$(pnpm exec wrangler delete --force --name "gather-pr-${{ github.event.pull_request.number }}" 2>&1) || status=$?
           echo "$out"
           # Wrangler reports a missing Worker as Cloudflare error 10007 or, from

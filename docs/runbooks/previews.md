@@ -48,7 +48,8 @@ labelled `preview:web` gets its own Convex backend and Worker.
   Wrangler reports Cloudflare error 10007 or 10090 (Worker not found; current
   Wrangler logs 10090), as on a PR that never deployed. Any other Wrangler
   failure, such as a bad token or an account the token cannot access, fails the
-  job.
+  job. A run without the Cloudflare token (Dependabot closing a superseded PR)
+  skips the Worker delete with a notice.
 - **A preview backend inherits no Convex variables** — server values come from
   preview defaults ([environment](environment.md#hazards)).
 
