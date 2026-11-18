@@ -41,8 +41,8 @@ missing it is `pending-port` with a follow-up:
   forbid the web, and the web port reuses the same cascade
   (`accounts.deleteAccount`, `cascade.purgeAccount`).
 - Signing out other devices is on the phone only ([APP-82](https://linear.app/appelent/issue/APP-82)).
-- Leaving a Group counts as account management, so it is floor. It is on the
-  web only ([APP-80](https://linear.app/appelent/issue/APP-80)).
+- Leaving a Group counts as account management, so it is floor. It is on
+  both platforms since [APP-80](https://linear.app/appelent/issue/APP-80).
 - Data export covers every table on both platforms: one server registry
   (`convex/lib/dataExport.ts`, keyed by every table, so a new table fails
   typecheck) and one collector (`@gather/core/data-export`).
@@ -62,8 +62,8 @@ on the web or remove the page ([APP-83](https://linear.app/appelent/issue/APP-83
 code ([ADR-0006](0006-any-member-invites-only-an-admin-removes.md)), not a
 link. Someone without the app can accept one in a browser: sign up on the web
 and enter the code on `/groups`. Joining with a code works on both platforms.
-Showing the code works only on the web, so nobody can invite from the phone
-([APP-80](https://linear.app/appelent/issue/APP-80)).
+Showing the code works on both platforms; the phone hands it to the share
+sheet ([APP-80](https://linear.app/appelent/issue/APP-80)).
 
 **One web client.** Expo web is not a deploy target. `apps/mobile` lists
 `platforms: ["ios", "android"]`, has no `web` script or `web` config, and the

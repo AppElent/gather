@@ -306,19 +306,47 @@ export const en = {
       current: 'Current group',
     },
 
-    /** The Groups screen: the households you are in, and the two ways to get another. */
+    /**
+     * The Groups screen: the households you are in, the Current Group's invite
+     * code, the two ways to get another, and the ways out of the current one.
+     */
     groups: {
       ...coreEn.shell.groups,
       /**
-       * The one string here that is *not* the web's. The web's intro says
-       * "Open one to change its name, share its invite code, or leave it" —
-       * three things the phone cannot do and one, switching, that it does
-       * somewhere else entirely (ADR-0015: on Home). Shared words stop being
-       * shared the moment they describe a surface the other client does not
-       * have.
+       * Not the web's. The web's intro says "Open one to change its name,
+       * share its invite code, or leave it": the phone does not rename, and
+       * it acts on the Current Group rather than one you open, which you
+       * switch somewhere else entirely (ADR-0015: on Home). Shared words stop
+       * being shared the moment they describe a surface the other client does
+       * not have.
        */
       intro:
-        'The households you are in. Home is where you switch between them; start another one or join somebody else’s below.',
+        'The households you are in. Home is where you switch between them. Below, invite somebody to the current one, start another, or join somebody else’s.',
+      /**
+       * The Current Group's invite code, in the web's words, and the native
+       * share sheet's text. A code, not a link: invite links are APP-84.
+       */
+      invite: {
+        title: coreEn.settings.group.inviteCode,
+        note: coreEn.settings.group.inviteCodeNote,
+        share: 'Share code',
+        shareMessage:
+          'Join {group} on Gather: under Groups, choose “{join}” and enter {code}.',
+      },
+      /**
+       * Leaving the Current Group, in the web's words. The server refuses the
+       * only admin while anyone else is still in it (`groups.leaveGroup`); the
+       * phone cannot hand the role on, so the note sends them to the web.
+       */
+      leave: {
+        button: coreEn.settings.group.leaveButton,
+        title: coreEn.settings.group.leaveTitle,
+        body: coreEn.settings.group.leaveBody,
+        confirm: coreEn.settings.group.leaveConfirm,
+        failed: coreEn.settings.group.leaveFailed,
+        onlyAdmin:
+          'You are the only admin. Make somebody else an admin in this group’s settings on the web, then leave.',
+      },
       /**
        * Deleting the Current Group, in the web's words (`settings.group`). The
        * server allows it only to an admin who is its last Member.
