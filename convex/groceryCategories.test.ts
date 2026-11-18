@@ -133,6 +133,51 @@ describe('aisle on add', () => {
     expect(Object.keys(cache[0]).sort()).not.toContain('groupId')
   })
 
+  // The runtime walk-through in the PR (APP-353): five names the dictionary
+  // does not know, each in Overig at once and in its aisle once the
+  // scheduled question is answered. The model is a stand-in that answers per
+  // name, because no key exists yet.
+  test('five unknown items move from other to their aisles', async () => {
+    const { t, groups } = await seed()
+    const answers: Record<string, string> = {
+      doenjang: 'pasta_world',
+      kibbeling: 'meat_fish',
+      'baked beans': 'tins_sauces',
+      desem: 'bakery',
+      labneh: 'dairy',
+    }
+    const fetchMock = vi.fn(async (_url: string, init: { body: string }) => {
+      const prompt: string = JSON.parse(init.body).messages[0].content
+      const name = Object.keys(answers).find((key) => prompt.includes(`"${key}"`))
+      return {
+        ok: true,
+        json: async () => ({
+          content: [
+            { type: 'tool_use', name: 'choose_aisle', input: { aisle: answers[name ?? ''] } },
+          ],
+        }),
+      }
+    })
+    vi.stubEnv('ANTHROPIC_API_KEY', 'test-key')
+    vi.stubGlobal('fetch', fetchMock)
+
+    const titles = ['doenjang', '2 bakjes kibbeling', 'baked beans', 'desem', 'labneh']
+    const added: Id<'tasks'>[] = []
+    for (const title of titles) added.push(await addItem(t, 0, groups[0].groceries, title))
+    const before = await Promise.all(added.map((id) => categoryOf(t, id)))
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    const after = await Promise.all(added.map((id) => categoryOf(t, id)))
+
+    console.log(
+      titles
+        .map((title, index) => `${title.padEnd(20)} ${before[index]} → ${after[index]}`)
+        .join('\n'),
+    )
+    expect(before).toEqual(['other', 'other', 'other', 'other', 'other'])
+    expect(after).toEqual(['pasta_world', 'meat_fish', 'tins_sauces', 'bakery', 'dairy'])
+    expect(fetchMock).toHaveBeenCalledTimes(5)
+  })
+
   test('the model is asked once per name, whoever adds it', async () => {
     const { t, groups } = await seed()
     const fetchMock = modelAnswers('pasta_world')
