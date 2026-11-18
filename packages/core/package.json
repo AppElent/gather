@@ -27,6 +27,7 @@
     "./module-arrangement": "./src/moduleArrangement.ts",
     "./module-tints": "./src/moduleTints.ts",
     "./modules": "./src/modules.ts",
+    "./notifications": "./src/notifications.ts",
     "./photo-presets": "./src/photoPresets.ts",
     "./pins": "./src/pins.ts",
     "./refusals": "./src/refusals.ts",

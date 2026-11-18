@@ -36,6 +36,9 @@ export const PREFERENCE_KEYS = {
   locale: 'gather:locale',
   recentRecords: 'gather:search:recent-records',
   allView: 'gather:all:view',
+  pushRegistration: 'gather:push:registration',
+  pushRelease: 'gather:push:release',
+  pushExplained: 'gather:push:explained',
 } as const
 
 /**

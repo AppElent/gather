@@ -59,6 +59,10 @@ export default function SettingsLayout() {
         options={{ headerShown: true, title: t.shell.groups.title }}
       />
       <Stack.Screen
+        name="notifications"
+        options={{ headerShown: true, title: t.notifications.title }}
+      />
+      <Stack.Screen
         name="appearance"
         options={{ headerShown: true, title: t.settings.appearance.title }}
       />

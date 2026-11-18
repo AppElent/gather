@@ -491,6 +491,8 @@ describe('what the file contains', () => {
     expect(data.exportedAt).toBe('2026-10-18T12:00:00.000Z')
     expect(data.excludedTables).toEqual([
       { table: 'idempotencyKeys', reason: 'bookkeeping' },
+      { table: 'pushDevices', reason: 'bookkeeping' },
+      { table: 'scheduledNotifications', reason: 'bookkeeping' },
       { table: 'groceryCategoryCache', reason: 'reference-data' },
       { table: 'groceryAiUsage', reason: 'bookkeeping' },
       { table: 'recipeShares', reason: 'bookkeeping' },

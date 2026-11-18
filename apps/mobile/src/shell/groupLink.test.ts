@@ -33,7 +33,21 @@ describe('nativeDestinationForGroupLink', () => {
     expect(nativeDestinationForGroupLink(['all'])).toBe('/all')
   })
 
+  test('a task or an event opens its detail screen (a notification’s tap)', () => {
+    expect(nativeDestinationForGroupLink(['tasks', 'task', 'k57abc'])).toEqual({
+      pathname: '/all/tasks/task/[taskId]',
+      params: { taskId: 'k57abc' },
+    })
+    expect(nativeDestinationForGroupLink(['calendar', 'j9xyz'])).toEqual({
+      pathname: '/all/calendar/[eventId]',
+      params: { eventId: 'j9xyz' },
+    })
+  })
+
   test.each([
+    [['tasks', 'task', '../settings']],
+    [['tasks', 'k57abc']],
+    [['calendar', 'j9', 'edit']],
     [['spirits']],
     [['all', 'spirits']],
     [['recipes', 'r1']],

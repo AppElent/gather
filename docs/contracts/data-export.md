@@ -52,8 +52,11 @@ everything user-owned belongs to a Group or to a person
   ([stored files](stored-files.md)) becomes `…Url` with `ctx.storage.getUrl`.
   Those links need no sign-in and do not expire, and the screen says so.
 - **Reference data and bookkeeping are excluded**: `tastingCatalog` and
-  `retailerCatalog` (`reference-data`), `seedRuns` and `recipeShares` (`bookkeeping`;
-  the latter indexes `recipes.sharedGroupIds`, which goes out with each recipe). Tasks in a Notion- or
+  `retailerCatalog` (`reference-data`), `seedRuns`, `idempotencyKeys`,
+  `recipeShares` (`bookkeeping`; it indexes `recipes.sharedGroupIds`, which goes
+  out with each recipe), and `pushDevices` and `scheduledNotifications`
+  (`bookkeeping`: a phone's push token is a way to reach that phone, not
+  something the person wrote). Tasks in a Notion- or
   Todoist-backed list live in that service and are not in the file.
 - **Bounded reads, assembled on the client.** `dataExport.manifest` names the
   tables and Groups; `dataExport.page` returns at most `PAGE_SIZE` rows of one

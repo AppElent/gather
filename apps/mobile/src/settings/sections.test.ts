@@ -24,7 +24,7 @@ describe('the Settings list', () => {
     expect(
       sections.map(({ id, entries }) => [id, entries.map((e) => e.id)]),
     ).toEqual([
-      ['account', ['account', 'groups']],
+      ['account', ['account', 'groups', 'notifications']],
       ['modules', ['baby-log']],
       ['phone', ['appearance', 'language']],
       ['about', ['privacy']],

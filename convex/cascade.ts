@@ -17,6 +17,7 @@ import type { Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation } from './_generated/server'
 import { destroyGroup, detachFromGroup } from './lib/groupCascade'
+import { deletePushData } from './lib/notifications'
 import { deleteStoredFile } from './lib/storedFiles'
 
 /**
@@ -79,8 +80,9 @@ export const purgeAccount = internalMutation({
 /**
  * Everything of theirs that is not a Group's, and then the row itself.
  *
- * The AI usage counter belongs to the person rather than to a Group and is
- * reached by index. What is left in the Groups they shared is deliberately
+ * The AI usage counter, retry receipts, push phones and queued push
+ * notifications belong to the person rather than to a Group and are reached
+ * by index. What is left in the Groups they shared is deliberately
  * *not* deleted: `createdBy` and its siblings are attribution and never conferred
  * access, so a dangling one costs nothing and the household keeps what it was
  * given. The two exceptions are handled here because they are not attribution
@@ -101,6 +103,8 @@ async function finishAccount(
     .withIndex('by_user_and_key', (q) => q.eq('userId', userId))
     .collect()
   for (const row of receipts) await ctx.db.delete(row._id)
+  // Their phones and queued push notifications (APP-298).
+  await deletePushData(ctx, userId)
 
   // Whatever memberships are left are the shared Groups — the solo ones went
   // with their Group.

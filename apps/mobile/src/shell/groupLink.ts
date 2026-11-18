@@ -10,6 +10,7 @@
  * `moduleDestination`'s, so a link and a tap on All open the same screen.
  */
 import { MODULES, type ModuleId, moduleById } from '@gather/core/modules'
+import { recordOfSegments } from '@gather/core/notifications'
 import type { Href } from 'expo-router'
 
 import type { Id } from '../convex/api'
@@ -40,6 +41,20 @@ export function nativeDestinationForGroupLink(
   segments: readonly string[],
 ): Href | null {
   if (segments.length === 0) return '/home'
+
+  // A task or an event: the address a push notification opens (APP-298,
+  // `notificationPath` in core). Both have a native detail screen.
+  const record = recordOfSegments(segments)
+  if (record?.type === 'task')
+    return {
+      pathname: '/all/tasks/task/[taskId]',
+      params: { taskId: record.id },
+    }
+  if (record?.type === 'event')
+    return {
+      pathname: '/all/calendar/[eventId]',
+      params: { eventId: record.id },
+    }
 
   const [first, second] = segments
 

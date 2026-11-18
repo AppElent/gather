@@ -22,6 +22,7 @@ import { NoGroup } from '../../src/components/NoGroup'
 import { DropGate } from '../../src/drop/DropGate'
 import { AccountDeleteProvider } from '../../src/features/account/delete/account-delete-provider'
 import { AccountDeleteUnderwayScreen } from '../../src/features/account/delete/account-delete-underway-screen'
+import { PushPermissionProvider } from '../../src/features/notifications/push/push-permission-provider'
 import { GroupProvider } from '../../src/group/GroupProvider'
 import { groupUnwindActions, type NavState } from '../../src/group/groupUnwind'
 import { useTokens } from '../../src/theme/tokens'
@@ -53,6 +54,8 @@ export default function AppLayout() {
       )}
     >
       <ConvexSessionGate pending={<GroupPending />} onSignOut={signOut}>
+        {/* Asks nothing at launch; registers this phone's token when allowed. */}
+        <PushPermissionProvider>
         <GroupProvider
           pending={<GroupPending />}
           none={<NoGroup onSignOut={signOut} />}
@@ -73,6 +76,7 @@ export default function AppLayout() {
             <Stack.Screen name="drop" />
           </Stack>
         </GroupProvider>
+        </PushPermissionProvider>
       </ConvexSessionGate>
     </AccountDeleteProvider>
   )
