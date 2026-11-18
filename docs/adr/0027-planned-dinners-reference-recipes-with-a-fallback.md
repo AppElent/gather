@@ -45,7 +45,8 @@ The week view reads and writes through `convex/mealPlan.ts`. Installed phones
 still call `kitchen.planner`, `kitchen.setDinner` and `kitchen.clearDinner`;
 those act on the dinner slot only, so an old phone never draws a lunch as that
 day's dinner. They stay until the OTA that calls `mealPlan` has reached every
-installed build.
+installed build. Replacing a dinner, from either side, keeps that evening's
+servings, note and eaters; only the recipe or quick meal changes.
 
 Removing a meal answers what it was, and undo puts that snapshot back with
 `mealPlan.restore`, even when its Recipe or quick meal has gone since. "Something

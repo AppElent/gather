@@ -353,6 +353,59 @@ describe('phones from before meal slots', () => {
       }),
     ).rejects.toThrow('That slot already has a meal')
   })
+  test('refuses another Group’s meal to move, and a backwards or long range', async () => {
+    const { t, pasta } = await seed()
+    const id = await t.withIdentity(alice).mutation(api.mealPlan.plan, {
+      groupSlug: 'home',
+      date: '2026-11-24',
+      slot: 'dinner',
+      recipeId: pasta,
+    })
+    await expect(
+      t.withIdentity(carol).mutation(api.mealPlan.move, {
+        groupSlug: 'other',
+        id,
+        date: '2026-11-25',
+        slot: 'dinner',
+      }),
+    ).rejects.toThrow('Meal not found')
+    const as = t.withIdentity(alice)
+    await expect(
+      as.query(api.mealPlan.week, { groupSlug: 'home', from: '2026-11-29', to: '2026-11-23' }),
+    ).rejects.toThrow('Use a range of YYYY-MM-DD days')
+    await expect(
+      as.query(api.mealPlan.week, { groupSlug: 'home', from: '2026-11-01', to: '2026-12-03' }),
+    ).rejects.toThrow('At most 31 days at once')
+  })
+
+  test('an old phone’s setDinner swaps the dinner and keeps its servings, note and eaters', async () => {
+    const { t, pasta, tacos, aliceId } = await seed()
+    const as = t.withIdentity(alice)
+    const id = await as.mutation(api.mealPlan.plan, {
+      groupSlug: 'home',
+      date: '2026-11-24',
+      slot: 'dinner',
+      recipeId: pasta,
+      servings: 6,
+      note: 'Extra voor lunch',
+      eaterIds: [aliceId],
+    })
+    await as.mutation(api.kitchen.setDinner, {
+      groupSlug: 'home',
+      date: '2026-11-24',
+      title: 'Tacos',
+      recipeId: tacos,
+    })
+    const meal = await t.run(async (ctx) => await ctx.db.get(id))
+    expect(meal).toMatchObject({
+      title: 'Tacos',
+      slot: 'dinner',
+      servings: 6,
+      note: 'Extra voor lunch',
+      eaterIds: [aliceId],
+    })
+  })
+
   test('Something else replaces the meal it names, even after a swap moved it', async () => {
     const { t, pasta, tacos, toast } = await seed()
     const as = t.withIdentity(alice)
