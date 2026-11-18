@@ -56,6 +56,22 @@ describe('ProfilePanel', () => {
     )
   })
 
+  it('names the account in the change-password form for password managers', () => {
+    renderWithI18n(<ProfilePanel />)
+    const form = screen.getByLabelText('New password').closest('form')
+    const hint = form?.querySelector('input[autocomplete="username"]')
+    expect(hint).toHaveValue('e@x.com')
+    expect(hint).not.toBeVisible()
+    expect(screen.getByLabelText('Current password')).toHaveAttribute(
+      'autocomplete',
+      'current-password',
+    )
+    expect(screen.getByLabelText('New password')).toHaveAttribute(
+      'autocomplete',
+      'new-password',
+    )
+  })
+
   it('signs out', () => {
     renderWithI18n(<ProfilePanel />)
     fireEvent.click(screen.getByRole('button', { name: /sign out/i }))

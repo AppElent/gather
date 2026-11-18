@@ -13,11 +13,15 @@
  *
  * The submit does not navigate. `finalize()` flips `isSignedIn`, the `(auth)`
  * layout redirects, and this screen unmounts; see `usePasswordSignIn`.
+ *
+ * Sign in submits through `useCredentialFields`, so a saved login AutoFill
+ * filled without `onChangeText` is the one sent, even mid-edit.
  */
 
 import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import type { TextInputInstance } from 'react-native'
+import { useCredentialFields } from '../../../auth/useCredentialFields'
 import { usePasswordSignIn } from '../../../auth/usePasswordSignIn'
 import { AuthError } from '../../../components/AuthError'
 import { AuthLink } from '../../../components/AuthLink'
@@ -35,8 +39,15 @@ export function SignInScreen() {
   const passwordSignIn = usePasswordSignIn()
   const emailCode = useEmailCodeSignIn()
   const [source, setSource] = useState<'password' | 'code'>('password')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  // Not gated on the email: AutoFill can fill it without reporting it, and
+  // Clerk's "enter your email" beats a silent button.
+  const form = useCredentialFields(
+    { email: '', password: '' },
+    (latest) => {
+      if (latest.password.length > 0 && !busy) signInWithPassword(latest)
+    },
+  )
+  const { email, password } = form.values
   const passwordRef = useRef<TextInputInstance>(null)
 
   const hasEmail = email.trim().length > 0
@@ -44,9 +55,9 @@ export function SignInScreen() {
   const busy = passwordSignIn.busy || emailCode.busy
   const error = source === 'code' ? emailCode.error : passwordSignIn.error
 
-  function signInWithPassword() {
+  function signInWithPassword(latest: { email: string; password: string }) {
     setSource('password')
-    passwordSignIn.submit(email, password)
+    passwordSignIn.submit(latest.email, latest.password)
   }
 
   async function signInWithCode() {
@@ -74,8 +85,7 @@ export function SignInScreen() {
     >
       <Field
         label={t.fields.email}
-        value={email}
-        onChangeText={setEmail}
+        {...form.field('email')}
         autoCapitalize="none"
         autoCorrect={false}
         keyboardType="email-address"
@@ -88,14 +98,13 @@ export function SignInScreen() {
       <Field
         ref={passwordRef}
         label={t.fields.password}
-        value={password}
-        onChangeText={setPassword}
+        {...form.field('password')}
         secure
         autoCapitalize="none"
         autoComplete="current-password"
         textContentType="password"
         returnKeyType="go"
-        onSubmitEditing={() => ready && !busy && signInWithPassword()}
+        onSubmitEditing={form.submitFrom('password')}
       />
 
       <AuthError message={error} />
@@ -104,8 +113,8 @@ export function SignInScreen() {
         testID="sign-in-submit"
         label={t.signIn.submit}
         busy={passwordSignIn.busy}
-        disabled={!ready || emailCode.busy}
-        onPress={signInWithPassword}
+        disabled={(!ready && !form.editing) || emailCode.busy}
+        onPress={form.press}
       />
       <Button
         testID="sign-in-email-code"

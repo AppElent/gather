@@ -11,11 +11,19 @@
  * someone resetting one they think was stolen wants exactly that. Neither
  * default is right without asking, and asking is a question this prototype has
  * no answer for — see the resolution on #147.
+ *
+ * The email the reset started with sits above the password as a read-only
+ * `username` field. Without it iCloud Keychain cannot tell whose password
+ * this is, and saves a second login instead of updating the existing one.
+ * The button submits through `useCredentialFields`, so a strong password
+ * AutoFill filled while the field had focus is the one that is sent.
  */
 
 import { useSignIn } from '@clerk/expo'
+import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { type CodedError, pickError } from '../../../src/auth/clerkErrors'
+import { useCredentialFields } from '../../../src/auth/useCredentialFields'
 import { AuthError } from '../../../src/components/AuthError'
 import { AuthScreen } from '../../../src/components/AuthScreen'
 import { useI18n } from '../../../src/i18n'
@@ -25,13 +33,16 @@ import { Field } from '../../../src/ui/field'
 export default function ResetPassword() {
   const { t } = useI18n()
   const { signIn, errors } = useSignIn()
-  const [password, setPassword] = useState('')
+  const { email } = useLocalSearchParams<{ email?: string }>()
   const [busy, setBusy] = useState(false)
   const [returned, setReturned] = useState<CodedError | null>(null)
 
+  const form = useCredentialFields({ password: '' }, ({ password }) => {
+    if (password.length > 0 && !busy) void submit(password)
+  })
   const error = pickError(errors, returned, t)
 
-  async function submit() {
+  async function submit(password: string) {
     setBusy(true)
     setReturned(null)
 
@@ -56,26 +67,36 @@ export default function ResetPassword() {
       heading={t.reset.password.heading}
       subtitle={t.reset.password.subtitle}
     >
+      {email ? (
+        <Field
+          label={t.fields.email}
+          value={email}
+          editable={false}
+          autoCapitalize="none"
+          autoComplete="username"
+          textContentType="username"
+        />
+      ) : null}
       <Field
         label={t.fields.newPassword}
-        value={password}
-        onChangeText={setPassword}
+        {...form.field('password')}
         secure
         autoCapitalize="none"
         autoComplete="new-password"
         textContentType="newPassword"
         autoFocus
         returnKeyType="go"
-        onSubmitEditing={() => password.length > 0 && submit()}
+        onSubmitEditing={form.submitFrom('password')}
       />
 
       <AuthError message={error} />
 
       <Button
+        testID="reset-password-submit"
         label={t.reset.password.submit}
         busy={busy}
-        disabled={password.length === 0}
-        onPress={submit}
+        disabled={form.values.password.length === 0 && !form.editing}
+        onPress={form.press}
       />
     </AuthScreen>
   )

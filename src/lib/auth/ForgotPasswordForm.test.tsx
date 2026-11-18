@@ -38,6 +38,10 @@ async function reachResetStep(onSuccess = vi.fn()) {
   create.mockImplementation(ok('needs_first_factor'))
   sendCode.mockImplementation(ok())
   renderForm(onSuccess)
+  expect(screen.getByLabelText('Email')).toHaveAttribute(
+    'autocomplete',
+    'username',
+  )
   fireEvent.change(screen.getByLabelText('Email'), {
     target: { value: 'a@b.com' },
   })
@@ -61,6 +65,18 @@ describe('ForgotPasswordForm', () => {
     signIn.status = null
     for (const m of [create, sendCode, verifyCode, submitPassword, finalize])
       m.mockReset()
+  })
+
+  it('marks the email as the username and names the account on the reset step', async () => {
+    await reachResetStep()
+    const form = screen.getByLabelText(/new password/i).closest('form')
+    const hint = form?.querySelector('input[autocomplete="username"]')
+    expect(hint).toHaveValue('a@b.com')
+    expect(hint).not.toBeVisible()
+    expect(screen.getByLabelText(/new password/i)).toHaveAttribute(
+      'autocomplete',
+      'new-password',
+    )
   })
 
   it('requests a reset code then sets a new password', async () => {

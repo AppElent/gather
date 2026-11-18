@@ -41,8 +41,9 @@ export default function ResetCode() {
 
     setBusy(false)
     // The code has been consumed. Keeping this screen in history would strand
-    // a Back navigation on a code that cannot be submitted again.
-    router.replace('/reset/password')
+    // a Back navigation on a code that cannot be submitted again. The email
+    // goes along so the password step can name the account for AutoFill.
+    router.replace({ pathname: '/reset/password', params: { email } })
   }
 
   return (
