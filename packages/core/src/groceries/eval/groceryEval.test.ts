@@ -37,6 +37,10 @@ describe('grocery recognition eval', () => {
     expect(runGroceryEval(holdout, groceryDictionary()).accuracy).toBeGreaterThanOrEqual(0.85)
   })
 
+  // The cache snapshot is recorded with `scripts/groceries/ask-ai.ts`, which
+  // needs ANTHROPIC_API_KEY. Until it has answers (`recordedOn` is null) these
+  // two checks measure the dictionary alone on all lines, curated ones
+  // included; they are not yet a measure of the AI fallback.
   it('places at least 95% in the exact aisle with the shared AI cache', () => {
     expect(withCache.accuracy).toBeGreaterThanOrEqual(0.95)
   })

@@ -5,7 +5,6 @@ import type { MutationCtx } from './_generated/server'
 import { internalQuery, mutation, query } from './_generated/server'
 import {
   askAiOnce,
-  groceryTitleKey,
   isGroceryList,
   recogniseGroceryTitle,
   recordGroceryCorrection,
@@ -193,14 +192,15 @@ export const update = mutation({
     const priceCents =
       args.priceCents === undefined ? undefined : checkedPrice(args.priceCents)
     const onGroceryList = isGroceryList(group, task.listId)
-    let category = args.category
+    // An aisle means something only on the grocery list.
+    let category = onGroceryList ? args.category : undefined
     let askAi: Awaited<ReturnType<typeof recogniseGroceryTitle>> | null = null
     if (onGroceryList && category !== undefined) {
       await recordGroceryCorrection(
         ctx,
         group._id,
         user._id,
-        groceryTitleKey(title ?? task.title),
+        title ?? task.title,
         category,
       )
     } else if (onGroceryList && title !== undefined && title !== task.title) {

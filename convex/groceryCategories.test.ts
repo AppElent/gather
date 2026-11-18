@@ -278,6 +278,114 @@ describe('corrections', () => {
     expect(await cached()).toMatchObject({ aisle: 'pasta_world', source: 'consensus' })
   })
 
+  test('three Groups agreeing teach the cache even when the model was never asked', async () => {
+    const { t, groups } = await seed()
+    vi.stubEnv('ANTHROPIC_API_KEY', '')
+    vi.stubGlobal('fetch', vi.fn())
+    for (const index of [0, 1, 2]) {
+      const task = await addItem(t, index, groups[index].groceries, 'doenjang')
+      await t.finishAllScheduledFunctions(vi.runAllTimers)
+      expect(await categoryOf(t, task)).toBe('other')
+      await t.withIdentity(PEOPLE[index]).mutation(api.tasks.update, {
+        taskId: task,
+        groupSlug: SLUGS[index],
+        category: 'pasta_world',
+      })
+    }
+    expect(
+      await t.run((ctx) => ctx.db.query('groceryCategoryCache').collect()),
+    ).toMatchObject([{ name: 'doenjang', aisle: 'pasta_world', source: 'consensus' }])
+  })
+
+  test('three Groups cannot overturn an answer more Groups chose', async () => {
+    const { t, groups } = await seed()
+    vi.stubEnv('ANTHROPIC_API_KEY', '')
+    await t.run(async (ctx) => {
+      for (const n of [1, 2, 3, 4]) {
+        const groupId = await seedGroup(ctx, { name: `g${n}`, slug: `g${n}` })
+        const userId = await ctx.db.insert('users', {
+          clerkId: `u${n}`,
+          name: `U${n}`,
+          email: `u${n}@example.com`,
+        })
+        await ctx.db.insert('groceryCategoryOverrides', {
+          groupId,
+          name: 'doenjang',
+          aisle: 'snacks',
+          updatedBy: userId,
+          updatedAt: 0,
+        })
+      }
+      await ctx.db.insert('groceryCategoryCache', {
+        name: 'doenjang',
+        aisle: 'snacks',
+        source: 'consensus',
+        askedAt: 0,
+        answeredAt: 0,
+      })
+    })
+    for (const index of [0, 1, 2]) {
+      const task = await addItem(t, index, groups[index].groceries, 'doenjang')
+      await t.withIdentity(PEOPLE[index]).mutation(api.tasks.update, {
+        taskId: task,
+        groupSlug: SLUGS[index],
+        category: 'pasta_world',
+      })
+    }
+    expect(
+      (await t.run((ctx) => ctx.db.query('groceryCategoryCache').collect()))[0],
+    ).toMatchObject({ aisle: 'snacks' })
+  })
+
+  test('a Member’s choice while the question is out is not undone by the answer', async () => {
+    const { t, groups } = await seed()
+    modelAnswers('pasta_world')
+    const task = await addItem(t, 0, groups[0].groceries, 'doenjang')
+    await t.withIdentity(alice).mutation(api.tasks.update, {
+      taskId: task,
+      groupSlug: SLUGS[0],
+      category: 'other',
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await categoryOf(t, task)).toBe('other')
+  })
+
+  test('an aisle sent for an item on another list is ignored', async () => {
+    const { t, groups } = await seed()
+    const task = await addItem(t, 0, groups[0].chores, 'melk')
+    await t.withIdentity(alice).mutation(api.tasks.update, {
+      taskId: task,
+      groupSlug: SLUGS[0],
+      category: 'drinks',
+    })
+    expect(await categoryOf(t, task)).toBeUndefined()
+    expect(
+      await t.run((ctx) => ctx.db.query('groceryCategoryOverrides').collect()),
+    ).toEqual([])
+  })
+
+  test('a new grocery list’s starter items get their aisles', async () => {
+    const { t } = await seed()
+    const listId = await t.withIdentity(alice).mutation(api.taskLists.create, {
+      name: 'Boodschappen',
+      provider: 'local',
+      groupSlug: SLUGS[0],
+      idempotencyKey: crypto.randomUUID(),
+      kind: 'groceries',
+      starterTasks: ['melk', 'brood'],
+    })
+    const items = await t.run((ctx) =>
+      ctx.db
+        .query('tasks')
+        .withIndex('by_list', (q) => q.eq('listId', listId))
+        .collect(),
+    )
+    expect(items.map((item) => [item.title, item.category])).toEqual([
+      ['melk', 'dairy'],
+      ['brood', 'bakery'],
+    ])
+  })
+
   test('a renamed item gets the aisle of its new name', async () => {
     const { t, groups } = await seed()
     modelAnswers('other')

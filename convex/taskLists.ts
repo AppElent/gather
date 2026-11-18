@@ -3,6 +3,7 @@ import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { action, internalQuery, mutation, query } from './_generated/server'
 import { getGatedIdentity } from './lib/connectedApps'
+import { askAiOnce, recogniseGroceryTitle } from './lib/groceryCategories'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { deleteTaskList } from './lib/groupCascade'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
@@ -118,13 +119,21 @@ export const create = mutation({
           ...(args.color ? { color: args.color } : {}),
         })
         for (const [order, title] of starterTasks.entries()) {
-          await ctx.db.insert('tasks', {
+          // A new grocery list's starter items get their aisles like any
+          // item added to it (APP-353).
+          const grocery =
+            args.kind === 'groceries'
+              ? await recogniseGroceryTitle(ctx, groupId, title, [])
+              : null
+          const taskId = await ctx.db.insert('tasks', {
             listId,
             title,
             done: false,
             createdBy: user._id,
             order,
+            ...(grocery ? { category: grocery.aisle } : {}),
           })
+          if (grocery) await askAiOnce(ctx, grocery, taskId)
         }
         // A list made as the groceries becomes the Group's grocery list, which
         // is what the Groceries Module opens (ADR-0034). The list it replaces

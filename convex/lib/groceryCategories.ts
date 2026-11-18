@@ -157,15 +157,18 @@ export async function askAiOnce(
 /**
  * A Member put an item in another aisle: that is the Group's choice for the
  * name from now on. When enough Groups made the same choice for a name the
- * shared cache holds, the cache takes it too.
+ * bundled dictionary does not know, and more Groups chose it than chose the
+ * shared answer it would replace, the shared cache takes it too — whether or
+ * not the model was ever asked.
  */
 export async function recordGroceryCorrection(
   ctx: MutationCtx,
   groupId: Id<'groups'>,
   userId: Id<'users'>,
-  name: string,
+  title: string,
   aisle: GroceryAisle,
 ) {
+  const name = groceryTitleKey(title)
   if (!name) return
   const now = Date.now()
   const override = await findOverride(ctx, groupId, name)
@@ -180,27 +183,52 @@ export async function recordGroceryCorrection(
       updatedAt: now,
     })
 
+  // The cache is read only for names the dictionary does not know, so a
+  // shared answer for any other name would never be used.
+  if (recogniseGroceryLine(title).source === 'dictionary') return
   const cached = await findGroceryCache(ctx, name)
-  if (!cached || cached.aisle === aisle) return
-  const agreeing = await ctx.db
-    .query('groceryCategoryOverrides')
-    .withIndex('by_name_and_aisle', (q) => q.eq('name', name).eq('aisle', aisle))
-    .take(100)
-  const groups = new Set(agreeing.map((row) => row.groupId))
-  const people = new Set(agreeing.map((row) => row.updatedBy))
-  if (groups.size >= CONSENSUS_GROUPS && people.size >= CONSENSUS_GROUPS) {
-    await ctx.db.patch(cached._id, {
+  if (cached?.aisle === aisle) return
+  const agreeing = await groupsChoosing(ctx, name, aisle)
+  if (
+    agreeing.groups < CONSENSUS_GROUPS ||
+    agreeing.people < CONSENSUS_GROUPS ||
+    (cached?.aisle &&
+      agreeing.groups <= (await groupsChoosing(ctx, name, cached.aisle)).groups)
+  )
+    return
+  if (cached)
+    await ctx.db.patch(cached._id, { aisle, source: 'consensus', answeredAt: now })
+  else
+    await ctx.db.insert('groceryCategoryCache', {
+      name,
       aisle,
       source: 'consensus',
+      askedAt: now,
       answeredAt: now,
     })
-    console.log(`grocery-category consensus name="${name}" aisle=${aisle}`)
+  console.log(`grocery-category consensus name="${name}" aisle=${aisle}`)
+}
+
+/** How many Groups, and how many people, chose this aisle for a name. */
+async function groupsChoosing(
+  ctx: QueryCtx,
+  name: string,
+  aisle: GroceryAisle,
+) {
+  const rows = await ctx.db
+    .query('groceryCategoryOverrides')
+    .withIndex('by_name_and_aisle', (q) => q.eq('name', name).eq('aisle', aisle))
+    .take(500)
+  return {
+    groups: new Set(rows.map((row) => row.groupId)).size,
+    people: new Set(rows.map((row) => row.updatedBy)).size,
   }
 }
 
 /**
  * Move an item out of `other` now that its name has an answer — unless a
- * Member already chose its aisle, or renamed it to something else.
+ * Member already chose its aisle, or the Group's own choice for the name,
+ * or renamed it to something else.
  */
 export async function applyGroceryAnswer(
   ctx: MutationCtx,
@@ -211,6 +239,10 @@ export async function applyGroceryAnswer(
   const task = await ctx.db.get(taskId)
   if (!task || task.category !== 'other') return false
   if (groceryTitleKey(task.title) !== name) return false
+  // A Member who put the name somewhere (`other` included) while the
+  // question was out has the last word for their Group.
+  const list = await ctx.db.get(task.listId)
+  if (list && (await findOverride(ctx, list.groupId, name))) return false
   await ctx.db.patch(taskId, { category: aisle })
   return true
 }
