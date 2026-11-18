@@ -22,9 +22,11 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   it.
 - `tasks`, `calendarEvents` and `babyEvents` hang off a parent rather than a
   Group, so each is deleted inside its parent's entry.
-- A table of a person's own rows (`userId`, no `groupId`: today only `aiUsage`)
-  is not in the cascade; `cascade.finishAccount` deletes it by index, so a new
-  one is added there by hand. [Data export](data-export.md)
+- A table of a person's own rows (`userId`, no `groupId`: `aiUsage`,
+  `idempotencyKeys`, `pushDevices`, `scheduledNotifications`) is not in the
+  cascade; `cascade.finishAccount` deletes it by index, so a new one is added
+  there by hand. Queued push notifications have their scheduled jobs
+  cancelled with them (`deletePushData` in `convex/lib/notifications.ts`). [Data export](data-export.md)
   reads the same tables, and its registry fails `pnpm typecheck` for a new one.
 - Storage ids are collected by the cascade and deleted by scheduled work, so a
   large Group survives the one-transaction limit ([stored files](stored-files.md)).

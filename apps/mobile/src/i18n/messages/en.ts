@@ -982,6 +982,46 @@ export const en = {
   },
 
   /**
+   * Settings → Notifications, and the one line before iOS's own permission
+   * sheet (APP-298). The switches are the person's in every Group; a Group's
+   * mute is on top of them. The prompt is shown only when somebody sets a
+   * reminder, is assigned something, or asks here, never at launch.
+   */
+  notifications: {
+    title: 'Notifications',
+    description:
+      'These follow your account to every phone you sign in on, and apply in every group.',
+    tasks: 'Tasks',
+    calendar: 'Calendar',
+    reminders: 'Reminders',
+    assignments: 'Assigned to me',
+    /** The accessible name of a switch: `{area}` is Tasks or Calendar. */
+    switchLabel: '{area}: {kind}',
+    groups: 'Groups',
+    groupsDescription: 'A muted group sends you nothing, whatever is on above.',
+    /** `{group}` is the group's name. */
+    muteLabel: 'Notifications from {group}',
+    permission: {
+      off: 'Notifications are off for Gather on this phone.',
+      allow: 'Turn on notifications',
+      denied:
+        'Notifications are turned off for Gather in iOS Settings, so this phone gets none of the above.',
+      openSettings: 'Open iOS Settings',
+      /** The title of the alert shown before iOS asks. */
+      askTitle: 'Get notified on this phone?',
+      /** The one line before iOS's sheet, by what the person just did. */
+      ask: {
+        reminder: 'Gather sends your reminder to this phone as a notification.',
+        assignment:
+          'Gather tells you on this phone when somebody gives you something to do.',
+      },
+      notNow: 'Not now',
+      continue: 'Continue',
+    },
+    failed: 'Could not save that. Try again.',
+  },
+
+  /**
    * Settings → Labs: the prototypes, and only them.
    *
    * Development builds only: `settings/labs/_layout.tsx` redirects in a release

@@ -29,6 +29,12 @@ import {
   formatConfidenceValidator,
   retailerCategoryValidator,
 } from './lib/loyaltyCards'
+import {
+  notificationPayloadValidator,
+  notificationSwitchesValidator,
+  pushLocaleValidator,
+  pushPlatformValidator,
+} from './lib/notificationFields'
 import { nutritionValidator } from './lib/nutrition'
 import { recipeFields } from './lib/recipeFields'
 import {
@@ -70,6 +76,10 @@ export default defineSchema({
     // anyone signing in to find their navigation reset. The contract half of
     // expand–contract: droppable once every membership carries its own list.
     pinnedModuleIds: v.optional(v.array(v.string())),
+    // Which push notifications this person wants, in every Group (APP-298).
+    // Absent, or a switch absent inside it, means on; a Group is muted on its
+    // membership row below.
+    notificationSwitches: v.optional(notificationSwitchesValidator),
   }).index('by_clerkId', ['clerkId']),
 
   groups: defineTable({
@@ -110,6 +120,9 @@ export default defineSchema({
     hiddenCalendarIds: v.optional(v.array(v.id('calendars'))),
     calendarView: v.optional(calendarViewValidator),
     calendarPeopleFilter: v.optional(calendarPeopleFilterValidator),
+    // This person sends themselves no push notifications from this Group
+    // (APP-298). One person's choice, like Pins, and it goes with the row.
+    notificationsMuted: v.optional(v.boolean()),
   })
     .index('by_user', ['userId'])
     .index('by_group', ['groupId']),
@@ -255,6 +268,50 @@ export default defineSchema({
     table: v.string(),
     docId: v.string(),
   }).index('by_user_and_key', ['userId', 'key']),
+
+  /**
+   * A phone that may receive this person's push notifications: its Expo push
+   * token (APP-298, `notifications.ts`).
+   *
+   * **Personal**: a `userId` and no `groupId`. A token is one app install, so
+   * it belongs to one row; registering it again under another account moves
+   * it. It goes on sign-out (the phone unregisters first), on account
+   * deletion (`cascade.finishAccount`), and when Expo reports the install
+   * gone (`DeviceNotRegistered`). The export leaves it out as bookkeeping.
+   *
+   * `locale` is the phone's Language, which is a setting on the phone and not
+   * on the account, so each phone is told in its own language.
+   */
+  pushDevices: defineTable({
+    userId: v.id('users'),
+    token: v.string(),
+    platform: pushPlatformValidator,
+    locale: pushLocaleValidator,
+    updatedAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_token', ['token']),
+
+  /**
+   * A push notification waiting for its time, keyed by the caller's
+   * `dedupeKey` (APP-298, `lib/notifications.ts`). One row per (person, key):
+   * scheduling the key again replaces the job, and `generation` makes a job
+   * that was already running when it was replaced send nothing, so one record
+   * never sends twice.
+   *
+   * **Personal**: a `userId` and no top-level `groupId`; the Group is inside
+   * the payload and checked when it sends. Account deletion removes these rows
+   * (`cascade.finishAccount`); the export leaves them out as bookkeeping.
+   */
+  scheduledNotifications: defineTable({
+    userId: v.id('users'),
+    dedupeKey: v.string(),
+    at: v.number(),
+    payload: notificationPayloadValidator,
+    // Absent only inside the transaction that inserts the row.
+    jobId: v.optional(v.id('_scheduled_functions')),
+    generation: v.number(),
+  }).index('by_user_and_key', ['userId', 'dedupeKey']),
 
   babies: defineTable({
     groupId: v.id('groups'),

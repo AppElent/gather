@@ -1,0 +1,383 @@
+/**
+ * Push notifications (APP-298): a person's phones, their switches, and the
+ * internal entry points the rest of the backend sends through.
+ *
+ * The public functions are the phone's: register this install's Expo push
+ * token, forget it on sign-out, read and change the switches and per-Group
+ * mutes on Settings → Notifications. None of them takes a user id — the
+ * caller is whoever the token says they are.
+ *
+ * The internal ones are `notify`, `schedule` and `cancel`, thin wrappers over
+ * `lib/notifications.ts` for callers that are already scheduled work. A
+ * mutation that causes a notification calls the helpers directly instead, so
+ * the notification is queued in its own transaction.
+ *
+ * Delivery is Expo's push service. `sendPush` posts the messages and reads
+ * the tickets back; an install Expo says is gone (`DeviceNotRegistered`) is
+ * forgotten at once from the ticket, or from the receipt `checkReceipts`
+ * reads a quarter of an hour later.
+ */
+
+import {
+  isExpoPushToken,
+  NOTIFICATION_SWITCHES,
+  resolveSwitches,
+} from '@gather/core/notifications'
+import { ConvexError, v } from 'convex/values'
+import { internal } from './_generated/api'
+import {
+  internalAction,
+  internalMutation,
+  mutation,
+  query,
+} from './_generated/server'
+import { rejectConnectedApps } from './lib/connectedApps'
+import { requireGroupBySlug } from './lib/groupAccess'
+import {
+  notificationPayloadValidator,
+  pushLocaleValidator,
+  pushPlatformValidator,
+} from './lib/notificationFields'
+import {
+  cancelScheduled,
+  fireScheduled as fire,
+  notify as notifyNow,
+  schedule as scheduleSend,
+} from './lib/notifications'
+import { getCurrentUser, requireCurrentUser } from './lib/sharing'
+
+/** Phones one person may register; the least recently seen goes first. */
+export const MAX_DEVICES = 10
+
+/** The refusal for a token that is not an Expo push token. */
+export const INVALID_PUSH_TOKEN = 'Not an Expo push token'
+
+const EXPO_SEND = 'https://exp.host/--/api/v2/push/send'
+const EXPO_RECEIPTS = 'https://exp.host/--/api/v2/push/getReceipts'
+
+/** Expo's own limits per request. */
+const SEND_CHUNK = 100
+const RECEIPT_CHUNK = 300
+
+/** Expo keeps receipts for a day; it asks for a wait before reading them. */
+const RECEIPT_DELAY_MS = 15 * 60 * 1000
+
+const switchValidator = v.union(
+  ...NOTIFICATION_SWITCHES.map((name) => v.literal(name)),
+)
+
+const pushMessageValidator = v.object({
+  to: v.string(),
+  title: v.string(),
+  body: v.string(),
+  data: v.object({ url: v.string() }),
+  sound: v.literal('default'),
+})
+
+// -- The phone ----------------------------------------------------------------
+
+/**
+ * Remember this install's token for the signed-in person. A token is one
+ * install, so one already held by another account moves here: the phone has
+ * changed hands, and the previous account must stop receiving on it.
+ */
+export const registerDevice = mutation({
+  args: {
+    token: v.string(),
+    platform: pushPlatformValidator,
+    locale: pushLocaleValidator,
+  },
+  returns: v.null(),
+  handler: async (ctx, { token, platform, locale }) => {
+    await rejectConnectedApps(ctx)
+    const user = await requireCurrentUser(ctx)
+    if (!isExpoPushToken(token)) throw new ConvexError(INVALID_PUSH_TOKEN)
+
+    const now = Date.now()
+    const held = await ctx.db
+      .query('pushDevices')
+      .withIndex('by_token', (q) => q.eq('token', token))
+      .collect()
+    const [mine, ...rest] = held
+    for (const row of rest) await ctx.db.delete(row._id)
+    if (mine) {
+      await ctx.db.patch(mine._id, {
+        userId: user._id,
+        platform,
+        locale,
+        updatedAt: now,
+      })
+    } else {
+      await ctx.db.insert('pushDevices', {
+        userId: user._id,
+        token,
+        platform,
+        locale,
+        updatedAt: now,
+      })
+    }
+
+    const devices = await ctx.db
+      .query('pushDevices')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .collect()
+    const oldestFirst = devices.sort((a, b) => a.updatedAt - b.updatedAt)
+    for (const row of oldestFirst.slice(0, -MAX_DEVICES))
+      await ctx.db.delete(row._id)
+    return null
+  },
+})
+
+/**
+ * Forget this install's token, before the phone signs out. Only the caller's
+ * own row: a token somebody else registered since is theirs now.
+ */
+export const unregisterDevice = mutation({
+  args: { token: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { token }) => {
+    await rejectConnectedApps(ctx)
+    const user = await requireCurrentUser(ctx)
+    const rows = await ctx.db
+      .query('pushDevices')
+      .withIndex('by_token', (q) => q.eq('token', token))
+      .collect()
+    for (const row of rows)
+      if (row.userId === user._id) await ctx.db.delete(row._id)
+    return null
+  },
+})
+
+/** The caller's switches, resolved, and the Groups they have muted. */
+export const settings = query({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.object({
+      switches: v.object({
+        taskReminders: v.boolean(),
+        taskAssignments: v.boolean(),
+        eventReminders: v.boolean(),
+        eventAssignments: v.boolean(),
+      }),
+      mutedGroupIds: v.array(v.id('groups')),
+    }),
+  ),
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx)
+    if (!user) return null
+    const memberships = await ctx.db
+      .query('memberships')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .collect()
+    return {
+      switches: resolveSwitches(user.notificationSwitches),
+      mutedGroupIds: memberships
+        .filter((m) => m.notificationsMuted)
+        .map((m) => m.groupId),
+    }
+  },
+})
+
+/** Turn one kind on or off, in every Group. */
+export const setSwitch = mutation({
+  args: { name: switchValidator, enabled: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, { name, enabled }) => {
+    await rejectConnectedApps(ctx)
+    const user = await requireCurrentUser(ctx)
+    await ctx.db.patch(user._id, {
+      notificationSwitches: { ...user.notificationSwitches, [name]: enabled },
+    })
+    return null
+  },
+})
+
+/** Mute or unmute one Group, for the caller only. */
+export const setGroupMuted = mutation({
+  args: { groupSlug: v.string(), muted: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, { groupSlug, muted }) => {
+    await rejectConnectedApps(ctx)
+    const { membership } = await requireGroupBySlug(ctx, groupSlug)
+    await ctx.db.patch(membership._id, { notificationsMuted: muted })
+    return null
+  },
+})
+
+// -- The backend's entry points ----------------------------------------------
+
+export const notify = internalMutation({
+  args: {
+    userIds: v.array(v.id('users')),
+    payload: notificationPayloadValidator,
+  },
+  returns: v.null(),
+  handler: async (ctx, { userIds, payload }) => {
+    await notifyNow(ctx, userIds, payload)
+    return null
+  },
+})
+
+export const schedule = internalMutation({
+  args: {
+    userId: v.id('users'),
+    at: v.number(),
+    payload: notificationPayloadValidator,
+    dedupeKey: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { userId, at, payload, dedupeKey }) => {
+    await scheduleSend(ctx, userId, at, payload, dedupeKey)
+    return null
+  },
+})
+
+export const cancel = internalMutation({
+  args: { userId: v.id('users'), dedupeKey: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { userId, dedupeKey }) => {
+    await cancelScheduled(ctx, userId, dedupeKey)
+    return null
+  },
+})
+
+/** The job `schedule` leaves behind (`lib/notifications.ts`). */
+export const fireScheduled = internalMutation({
+  args: {
+    rowId: v.id('scheduledNotifications'),
+    generation: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { rowId, generation }) => {
+    await fire(ctx, rowId, generation)
+    return null
+  },
+})
+
+// -- Delivery -----------------------------------------------------------------
+
+interface Ticket {
+  status: 'ok' | 'error'
+  id?: string
+  message?: string
+  details?: { error?: string }
+}
+
+function chunks<T>(items: readonly T[], size: number): T[][] {
+  const out: T[][] = []
+  for (let i = 0; i < items.length; i += size)
+    out.push(items.slice(i, i + size))
+  return out
+}
+
+async function postJson(url: string, body: unknown): Promise<unknown> {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) throw new Error(`Expo push: HTTP ${response.status}`)
+  return await response.json()
+}
+
+/**
+ * Post the messages to Expo. A ticket that already says the install is gone
+ * forgets its token; the rest are checked again by receipt.
+ */
+export const sendPush = internalAction({
+  args: { messages: v.array(pushMessageValidator) },
+  returns: v.null(),
+  handler: async (ctx, { messages }) => {
+    const gone: string[] = []
+    const pending: { id: string; token: string }[] = []
+    for (const batch of chunks(messages, SEND_CHUNK)) {
+      let tickets: Ticket[]
+      try {
+        const answer = (await postJson(EXPO_SEND, batch)) as {
+          data?: Ticket[]
+        }
+        tickets = answer.data ?? []
+      } catch (error) {
+        console.error('notifications.sendPush failed', error)
+        continue
+      }
+      tickets.forEach((ticket, index) => {
+        const token = batch[index]?.to
+        if (!token) return
+        if (ticket.status === 'ok' && ticket.id)
+          pending.push({ id: ticket.id, token })
+        else if (ticket.details?.error === 'DeviceNotRegistered')
+          gone.push(token)
+        else if (ticket.status === 'error')
+          console.error('notifications.sendPush ticket', ticket.details?.error)
+      })
+    }
+    if (gone.length)
+      await ctx.runMutation(internal.notifications.forgetTokens, {
+        tokens: gone,
+      })
+    if (pending.length)
+      await ctx.scheduler.runAfter(
+        RECEIPT_DELAY_MS,
+        internal.notifications.checkReceipts,
+        { tickets: pending },
+      )
+    return null
+  },
+})
+
+/** Read the receipts for sent tickets and forget the installs that are gone. */
+export const checkReceipts = internalAction({
+  args: { tickets: v.array(v.object({ id: v.string(), token: v.string() })) },
+  returns: v.null(),
+  handler: async (ctx, { tickets }) => {
+    const gone: string[] = []
+    for (const batch of chunks(tickets, RECEIPT_CHUNK)) {
+      let receipts: Record<string, Ticket>
+      try {
+        const answer = (await postJson(EXPO_RECEIPTS, {
+          ids: batch.map((ticket) => ticket.id),
+        })) as { data?: Record<string, Ticket> }
+        receipts = answer.data ?? {}
+      } catch (error) {
+        console.error('notifications.checkReceipts failed', error)
+        continue
+      }
+      for (const ticket of batch) {
+        const receipt = receipts[ticket.id]
+        if (receipt?.details?.error === 'DeviceNotRegistered')
+          gone.push(ticket.token)
+        else if (receipt?.status === 'error')
+          console.error(
+            'notifications.checkReceipts receipt',
+            receipt.details?.error,
+          )
+      }
+    }
+    if (gone.length)
+      await ctx.runMutation(internal.notifications.forgetTokens, {
+        tokens: gone,
+      })
+    return null
+  },
+})
+
+/** Forget installs Expo reported as gone. */
+export const forgetTokens = internalMutation({
+  args: { tokens: v.array(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, { tokens }) => {
+    for (const token of new Set(tokens)) {
+      const rows = await ctx.db
+        .query('pushDevices')
+        .withIndex('by_token', (q) => q.eq('token', token))
+        .collect()
+      for (const row of rows) await ctx.db.delete(row._id)
+    }
+    return null
+  },
+})

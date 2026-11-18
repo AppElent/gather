@@ -710,6 +710,37 @@ export const nl = {
     deleteBody: 'Dit kan niet ongedaan worden gemaakt.',
   },
 
+  notifications: {
+    title: 'Meldingen',
+    description:
+      'Deze gaan mee met je account naar elke telefoon waarop je inlogt, en gelden in elke Groep.',
+    tasks: 'Taken',
+    calendar: 'Agenda',
+    reminders: 'Herinneringen',
+    assignments: 'Aan mij toegewezen',
+    switchLabel: '{area}: {kind}',
+    groups: 'Groepen',
+    groupsDescription:
+      'Een gedempte Groep stuurt je niets, wat er hierboven ook aanstaat.',
+    muteLabel: 'Meldingen uit {group}',
+    permission: {
+      off: 'Meldingen staan uit voor Gather op deze telefoon.',
+      allow: 'Meldingen aanzetten',
+      denied:
+        'Meldingen staan uit voor Gather in de iOS-instellingen, dus deze telefoon krijgt niets van het bovenstaande.',
+      openSettings: 'iOS-instellingen openen',
+      askTitle: 'Meldingen op deze telefoon?',
+      ask: {
+        reminder: 'Gather stuurt je herinnering als melding naar deze telefoon.',
+        assignment:
+          'Gather laat je op deze telefoon weten wanneer iemand je iets te doen geeft.',
+      },
+      notNow: 'Niet nu',
+      continue: 'Doorgaan',
+    },
+    failed: 'Dat kon niet worden bewaard. Probeer het opnieuw.',
+  },
+
   // "Labs" blijft onvertaald: het is de naam van de sectie, niet een woord.
   labs: {
     title: 'Labs',

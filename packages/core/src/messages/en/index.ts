@@ -7,6 +7,7 @@ import { loyaltyCards } from './loyaltyCards'
 import { mcpViews } from './mcpViews'
 import { modules } from './modules'
 import { notes } from './notes'
+import { notifications } from './notifications'
 import { nutrients } from './nutrients'
 import { privacy } from './privacy'
 import { recipes } from './recipes'
@@ -26,6 +27,7 @@ export const en = {
   shell,
   modules,
   notes,
+  notifications,
   nutrients,
   recipes,
   finances,

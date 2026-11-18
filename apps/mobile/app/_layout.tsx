@@ -54,6 +54,7 @@ import {
   OfflineLoyaltyCards,
 } from '../src/features/loyalty-cards/offline/offline-loyalty-cards'
 import { useOfflineCards } from '../src/features/loyalty-cards/offline/use-offline-cards'
+import { PushTapLinks } from '../src/features/notifications/push/push-tap-links'
 import { LocaleProvider } from '../src/i18n'
 import { useNavigationBreadcrumbs } from '../src/observability/navigation'
 import { reportError } from '../src/observability/report'
@@ -180,6 +181,8 @@ function RootNavigator() {
       </Stack>
       {/* The app icon's quick actions and the Control Center control (APP-207): after the router exists. */}
       <HomeScreenActionLinks />
+      {/* A tapped notification opens its task or event (APP-298). */}
+      <PushTapLinks />
       {mode === 'connection-lost' ? <ConnectionLostBanner /> : null}
     </View>
   )

@@ -89,6 +89,9 @@ vi.mock('../../../components/NoGroup', () => ({
   NoGroup: () => <p>no group</p>,
 }))
 vi.mock('../../../drop/DropGate', () => ({ DropGate: () => null }))
+vi.mock('../../notifications/push/push-permission-provider', () => ({
+  PushPermissionProvider: ({ children }: { children: ReactNode }) => children,
+}))
 vi.mock('../../../theme/tokens', () => ({ useTokens: () => ({ bg: '#fff' }) }))
 vi.mock('./account-delete-underway-screen', () => ({
   AccountDeleteUnderwayScreen: ({

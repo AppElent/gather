@@ -113,6 +113,10 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   aiUsage: { scope: 'account', index: 'by_user_and_day' },
   // Retry receipts for connected apps' creates; the rows they point at go out.
   idempotencyKeys: { exclude: 'bookkeeping' },
+  // A phone's push token and the sends queued for it: delivery plumbing, and
+  // the token is a credential for reaching that phone (APP-298).
+  pushDevices: { exclude: 'bookkeeping' },
+  scheduledNotifications: { exclude: 'bookkeeping' },
 
   // -- Each Group ----------------------------------------------------------
   groups: { scope: 'group', self: true, omit: ['inviteCode', 'isPersonal'] },

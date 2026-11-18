@@ -35,6 +35,7 @@ export type SettingsEntryId =
   | 'account-export'
   | 'account-delete'
   | 'groups'
+  | 'notifications'
   | 'appearance'
   | 'language'
   | 'baby-log'
@@ -51,6 +52,7 @@ export type SettingsHref =
   | '/settings/account/export'
   | '/settings/account/delete'
   | '/settings/groups'
+  | '/settings/notifications'
   | '/settings/appearance'
   | '/settings/language'
   | '/settings/labs'
@@ -180,6 +182,11 @@ export function settingsSections(
           id: 'groups',
           label: t.settings.groups,
           href: '/settings/groups',
+        },
+        {
+          id: 'notifications',
+          label: t.notifications.title,
+          href: '/settings/notifications',
         },
       ],
     },

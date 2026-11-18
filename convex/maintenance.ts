@@ -456,6 +456,11 @@ const USER_REFERENCES: {
   aiUsage: { userId: 'own rule' },
   // Keys are random per write, so two accounts' keys do not collide.
   idempotencyKeys: { userId: 'repoint' },
+  // A token is one install, so two accounts never hold the same one.
+  pushDevices: { userId: 'repoint' },
+  // Two rows for one key fold back into one at the next schedule or send
+  // (`lib/notifications.ts`), so the merge only repoints them.
+  scheduledNotifications: { userId: 'repoint' },
   recipes: { createdByUserId: 'repoint' },
   tasks: { createdBy: 'repoint' },
   notes: { createdBy: 'repoint', updatedBy: 'repoint' },

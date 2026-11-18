@@ -117,6 +117,16 @@ export const FEATURES = defineFeatures([
     },
   },
   {
+    // Push reaches a phone; the web has no notifications to switch (APP-298).
+    id: 'notifications',
+    kind: 'product',
+    status: 'exclusive',
+    platforms: ['mobile'],
+    reason:
+      'Push notifications reach the phone only, so their switches live in its Settings (APP-298). The web sends none.',
+    routes: { mobile: ['(app)/(tabs)/settings/notifications'] },
+  },
+  {
     id: 'theme',
     kind: 'floor',
     status: 'parity',
