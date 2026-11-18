@@ -106,6 +106,7 @@ export const mealPreferences = {
   extra: {
     heading: 'Extra',
     budget: 'Weekbudget',
+    budgetLabel: 'Weekbudget in euro',
     budgetNone: 'Geen',
     budgetPlaceholder: 'Geen',
     budgetInvalid: 'Vul een bedrag in, bijvoorbeeld 85 of 85,50.',

@@ -365,15 +365,26 @@ export function normalizeMealPreferencesPatch(
  * A typed weekly budget as cents, or why not. Accepts `12`, `12,50`, `12.5`,
  * `€ 1.250,00`; empty is "no budget" (null). Thousands separators are
  * accepted only in their usual groups of three.
+ *
+ * With the locale's `decimal` separator, only the other one groups
+ * thousands, so English `1.250` is refused rather than read as €1,250. The
+ * other separator still reads as a decimal when nothing is grouped (`85.50`
+ * typed in Dutch), since that is never a thousands group.
  */
 export function parseBudgetCents(
   text: string,
+  decimal?: ',' | '.',
 ): { ok: true; cents: number | null } | { ok: false } {
   const cleaned = text.replace(/[€\s]/g, '')
   if (cleaned === '') return { ok: true, cents: null }
   // "1.250,00" / "1,250.00": the last separator followed by 1-2 digits is the
   // decimal one; any others must group thousands.
-  const match = /^(\d{1,3}(?:[.,]\d{3})*|\d+)(?:[.,](\d{1,2}))?$/.exec(cleaned)
+  const group = decimal === ',' ? '\\.' : decimal === '.' ? ',' : '[.,]'
+  const point = decimal === ',' ? ',' : decimal === '.' ? '\\.' : '[.,]'
+  const match =
+    new RegExp(`^(\\d{1,3}(?:${group}\\d{3})*|\\d+)(?:${point}(\\d{1,2}))?$`).exec(
+      cleaned,
+    ) ?? /^(\d+)[.,](\d{1,2})$/.exec(cleaned)
   if (!match) return { ok: false }
   const whole = Number(match[1].replace(/[.,]/g, ''))
   const fraction = match[2] ? Number(match[2].padEnd(2, '0')) : 0

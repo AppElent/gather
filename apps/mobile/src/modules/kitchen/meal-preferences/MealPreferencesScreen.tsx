@@ -160,7 +160,7 @@ export function MealPreferencesScreen() {
 
   function commitBudget() {
     if (budgetDraft === null || !prefs) return
-    const parsed = parseBudgetCents(budgetDraft)
+    const parsed = parseBudgetCents(budgetDraft, decimal)
     if (!parsed.ok) {
       haptics.actionFailed()
       setBudgetInvalid(true)
@@ -560,7 +560,7 @@ export function MealPreferencesScreen() {
                   returnKeyType="done"
                   placeholder={m.extra.budgetPlaceholder}
                   placeholderTextColor={tokens.muted}
-                  accessibilityLabel={m.extra.budget}
+                  accessibilityLabel={m.extra.budgetLabel}
                   style={[styles.budgetInput, { color: tokens.ink }]}
                 />
               </View>

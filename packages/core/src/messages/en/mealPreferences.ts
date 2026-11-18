@@ -111,9 +111,10 @@ export const mealPreferences = {
   extra: {
     heading: 'Extra',
     budget: 'Weekly budget',
+    budgetLabel: 'Weekly budget in euros',
     budgetNone: 'None',
     budgetPlaceholder: 'None',
-    budgetInvalid: 'Enter an amount, for example 85 or 85,50.',
+    budgetInvalid: 'Enter an amount, for example 85 or 85.50.',
     cuisines: 'Favourite cuisines',
     cuisineNames: {
       italian: 'Italian',

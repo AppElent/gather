@@ -39,8 +39,10 @@ export function PrefSection({
 }) {
   const tokens = useTokens()
   return (
-    <View style={styles.section} accessibilityLabel={heading}>
-      <SectionLabel>{heading}</SectionLabel>
+    <View style={styles.section}>
+      <View accessible accessibilityRole="header">
+        <SectionLabel>{heading}</SectionLabel>
+      </View>
       {children}
       {footnote ? (
         <Text style={[styles.footnote, { color: tokens.muted }]}>

@@ -247,6 +247,23 @@ describe('parseBudgetCents', () => {
       expect(parseBudgetCents(text)).toEqual({ ok: false })
     },
   )
+
+  test.each([
+    ['1.250', ',', 125000],
+    ['85,50', ',', 8550],
+    ['85.50', ',', 8550],
+    ['1,250', '.', 125000],
+    ['1,250.50', '.', 125050],
+    ['85.5', '.', 8550],
+    ['85,50', '.', 8550],
+  ] as const)('%j in a %j locale is %s cents', (text, decimal, cents) => {
+    expect(parseBudgetCents(text, decimal)).toEqual({ ok: true, cents })
+  })
+
+  test('English 1.250 is refused, not read as €1,250', () => {
+    expect(parseBudgetCents('1.250', '.')).toEqual({ ok: false })
+    expect(parseBudgetCents('1.250,00', '.')).toEqual({ ok: false })
+  })
 })
 
 const recipe = (
@@ -494,6 +511,89 @@ describe('recipeClashes: diets', () => {
         ),
       ),
     ).toHaveLength(1)
+  })
+})
+
+describe('recipeClashes: the round-1 review cases', () => {
+  const hides = (
+    line: string,
+    overrides: Partial<Parameters<typeof recipeClashes>[1]>,
+  ) => certain(recipeClashes(recipe('Recept', [line]), prefsWith(overrides), 0))
+
+  test.each([
+    ["400 g gamba's", 'crustaceans'],
+    ['500 g vongole', 'molluscs'],
+    ['2 snoekbaarsfilets', 'fish'],
+    ['4 scholfilets', 'fish'],
+    ['300 g paling', 'fish'],
+    ['1 zeeduivel', 'fish'],
+    ['2 tongfilets', 'fish'],
+    ['150 g havervlokken', 'gluten'],
+    ['200 g zelfrijzend bakmeel', 'gluten'],
+    ['1 ciabatta', 'gluten'],
+    ['1 baguette', 'gluten'],
+    ['200 g udon', 'gluten'],
+    ['12 lange vingers', 'gluten'],
+    ['4 speculaasjes', 'gluten'],
+    ['4 eitjes', 'eggs'],
+    ['1 kippenei', 'eggs'],
+    ['2 scharreleieren', 'eggs'],
+  ] as const)('%s is a certain %s clash', (line, allergen) => {
+    expect(hides(line, { allergens: [allergen] })).toEqual([
+      expect.objectContaining({ kind: 'allergen', id: allergen }),
+    ])
+  })
+
+  test.each([
+    '4 schnitzels',
+    '2 karbonades',
+    '2 entrecotes',
+    '1 kg spareribs',
+    '500 g half-om-half gehakt',
+    '6 merguez worstjes',
+  ])('%s is not vegetarian', (line) => {
+    expect(hides(line, { diets: ['vegetarian'] })).toEqual([
+      expect.objectContaining({ kind: 'diet', id: 'vegetarian' }),
+    ])
+  })
+
+  test('half-om-half gehakt is not halal, rundergehakt is "controleer zelf"', () => {
+    expect(hides('500 g half-om-half gehakt', { diets: ['halal'] })).toHaveLength(1)
+    const beef = recipeClashes(
+      recipe('Gehaktballen', ['500 g gehakt']),
+      prefsWith({ diets: ['halal'] }),
+      0,
+    )
+    expect(beef).toEqual([
+      expect.objectContaining({ kind: 'diet', id: 'halal', uncertain: true }),
+    ])
+  })
+
+  test('a guarded line is "controleer zelf", never silence', () => {
+    const flour = recipeClashes(
+      recipe('Taart', ['200 g bloem (of glutenvrij meel)']),
+      prefsWith({ allergens: ['gluten'] }),
+      0,
+    )
+    expect(flour).toEqual([
+      expect.objectContaining({ id: 'gluten', uncertain: true }),
+    ])
+    expect(fitsPreferences(flour)).toBe(true)
+    const chicken = recipeClashes(
+      recipe('Wraps', ['300 g kip (of vegetarische kip)']),
+      prefsWith({ diets: ['vegetarian'] }),
+      0,
+    )
+    expect(chicken).toEqual([
+      expect.objectContaining({ id: 'vegetarian', uncertain: true }),
+    ])
+  })
+
+  test('look-alikes stay quiet', () => {
+    expect(hides('1 gele paprika', { allergens: ['fish'] })).toEqual([])
+    expect(hides('100 g wilde rijst', { diets: ['vegetarian'] })).toEqual([])
+    expect(hides('1 tl speculaaskruiden', { allergens: ['gluten'] })).toEqual([])
+    expect(hides('1 aubergine (eggplant)', { allergens: ['eggs'] })).toEqual([])
   })
 })
 

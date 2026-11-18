@@ -125,8 +125,36 @@ const GLUTEN: Rule = {
     'beer',
     'cracker',
     'beschuit',
+    'haver',
+    'bakmeel',
+    'tarwemeel',
+    'ciabatta',
+    'baguette',
+    'focaccia',
+    'brioche',
+    'bagel',
+    'udon',
+    'ramen',
+    'lange vinger',
+    'ladyfinger',
+    'speculaas',
+    'koek',
+    'cake',
+    'cookie',
+    'biscuit',
+    'muffin',
+    'wafel',
+    'waffle',
+    'crumble',
+    'cannelloni',
+    'farfalle',
+    'rigatoni',
+    'pappardelle',
+    'tortelloni',
+    'conchiglie',
+    'vermicelli',
   ],
-  word: ['haver', 'oat', 'oats', 'wrap', 'wraps', 'deeg', 'dough', 'mie'],
+  word: ['oat', 'oats', 'wrap', 'wraps', 'deeg', 'dough', 'mie', 'roti'],
   except: [
     'bloemkool',
     'maisbloem',
@@ -162,8 +190,14 @@ const GLUTEN: Rule = {
     'gemberbier',
     'ginger beer',
     'broodbeleg',
+    'rijstwafel',
+    'rice cake',
+    'speculaaskruiden',
+    'koekkruiden',
   ],
   maybe: [
+    'meel',
+    'soba',
     'sojasaus',
     'soy sauce',
     'ketjap',
@@ -190,6 +224,8 @@ const CRUSTACEANS: Rule = {
     'crab',
     'langoustine',
     'scampi',
+    'gamba',
+    'kreeftje',
     'crayfish',
     'shellfish',
     'schaaldier',
@@ -199,7 +235,12 @@ const CRUSTACEANS: Rule = {
 
 const EGGS: Rule = {
   part: [
-    'eieren',
+    'eier',
+    'eitje',
+    'kippenei',
+    'scharrelei',
+    'eendenei',
+    'kwartelei',
     'eidooier',
     'eigeel',
     'eiwit',
@@ -214,7 +255,7 @@ const EGGS: Rule = {
     'bearnaise',
     'scrambled',
   ],
-  word: ['ei', 'egg', 'eggs', 'mayo', 'eierkoek'],
+  word: ['ei', 'egg', 'eggs', 'mayo', 'egg yolk', 'egg white'],
   except: ['eiwitrijk', 'eggplant'],
   maybe: ['mie', 'verse pasta', 'fresh pasta', 'tagliatelle', 'pannenkoek', 'pancake', 'cake'],
 }
@@ -255,8 +296,25 @@ const FISH: Rule = {
     'schelvis',
     'wijting',
     'vis',
+    'schol',
+    'baars',
+    'snoek',
+    'paling',
+    'zeeduivel',
+    'tongfilet',
+    'zeetong',
+    'tongschar',
+    'tarbot',
+    'griet',
+    'bokking',
+    'sprot',
+    'pollak',
+    'zeewolf',
+    'skrei',
+    'bacalhau',
+    'sole fillet',
   ],
-  word: ['cod', 'schol', 'tong', 'baars'],
+  word: ['cod', 'tong', 'sole', 'bass', 'pike', 'eel'],
   except: ['inktvis', 'shellfish', 'visite', 'televisie', 'provisie'],
   maybe: ['worcestershire', 'caesar', 'dashi', 'paella', 'zeevruchten', 'seafood'],
 }
@@ -449,6 +507,11 @@ const MOLLUSCS: Rule = {
     'cockle',
     'clam',
     'venusschelp',
+    'vongole',
+    'schelpdier',
+    'sint jakobsschelp',
+    'zeeoor',
+    'abalone',
     'escargot',
     'wulk',
     'whelk',
@@ -486,6 +549,7 @@ const VEG_GUARD = [
 ]
 
 const PORK = [
+  'half om half',
   'varken',
   'pork',
   'spek',
@@ -540,9 +604,31 @@ const MEAT: Rule = {
     'gelatin',
     'lever',
     'liver',
+    'schnitzel',
+    'karbonade',
+    'kotelet',
+    'entrecote',
+    'sparerib',
+    'ribeye',
+    'rib eye',
+    'tournedos',
+    'ossobuco',
+    'riblap',
+    'sukade',
+    'rosbief',
+    'roast beef',
+    'carpaccio',
+    'cordon bleu',
+    'saucijs',
+    'merguez',
+    'drumstick',
+    'bitterbal',
+    'filet americain',
+    'zwijn',
+    'struisvogel',
     ...PORK,
   ],
-  word: ['ham', 'lam', 'haas', 'gans', 'lard', 'gehakt'],
+  word: ['ham', 'lam', 'haas', 'gans', 'lard', 'gehakt', 'ree', 'wild', 'mergpijp'],
   except: [
     'vleestomaat',
     'vleestomaten',
@@ -553,6 +639,10 @@ const MEAT: Rule = {
     'tofu steak',
     'kippenei',
     'hertshoorn',
+    'bietencarpaccio',
+    'courgettecarpaccio',
+    'wild rice',
+    'wilde rijst',
     'spekkoek',
     ', gehakt',
     'fijn gehakt',
@@ -614,7 +704,7 @@ const HALAL: Rule = {
 /** Meat whose slaughter the recipe cannot say: "controleer zelf" for halal. */
 const HALAL_UNSURE_MEAT: Rule = {
   part: (MEAT.part ?? []).filter((term) => !PORK.includes(term)),
-  word: ['lam', 'haas', 'gans'],
+  word: ['lam', 'haas', 'gans', 'gehakt', 'ree', 'wild', 'mergpijp'],
   except: MEAT.except,
   lineGuard: [...VEG_GUARD, 'halal'],
 }
@@ -713,9 +803,25 @@ interface RuleHit {
 function matchRule(lines: readonly string[], rule: Rule): RuleHit | null {
   let maybe: string | null = null
   for (const raw of lines) {
-    if (rule.lineGuard?.some((guard) => raw.includes(guard))) continue
-    const hit = findTerm(blank(raw, rule.except), rule.part, rule.word)
-    if (hit) return { term: hit, uncertain: false }
+    // A guard word names the safe variant ("vegetarisch gehakt", "halal
+    // kipfilet"), so a term next to it is not a clash. When the line offers
+    // a choice ("200 g bloem (of glutenvrij meel)", "kip or vegetarian kip"),
+    // the term in the other alternative may be what is cooked: "controleer
+    // zelf", never silence.
+    const alternatives = blank(raw, rule.except)
+      .split(/ (?:of|or) /)
+      .map((part) => ` ${part.trim()} `)
+    const isGuarded = (part: string) =>
+      rule.lineGuard?.some((guard) => part.includes(guard)) ?? false
+    const offersSafe = alternatives.some(isGuarded)
+    for (const part of alternatives) {
+      if (isGuarded(part)) continue
+      const hit = findTerm(part, rule.part, rule.word)
+      if (!hit) continue
+      if (!offersSafe) return { term: hit, uncertain: false }
+      maybe ??= hit
+    }
+    if (offersSafe) continue
     // Read the line as written: "wijnazijn" is blanked as wine for halal and
     // still worth a "controleer zelf". A maybe sits inside a compound too
     // ("groentebouillon") when it is long enough not to match by accident.
