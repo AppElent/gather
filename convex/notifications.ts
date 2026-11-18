@@ -52,6 +52,16 @@ export const MAX_DEVICES = 10
 /** The refusal for a token that is not an Expo push token. */
 export const INVALID_PUSH_TOKEN = 'Not an Expo push token'
 
+/** The refusal for something that is not a Clerk session id. */
+export const INVALID_SESSION_ID = 'Not a session id'
+
+/** A row this recent outlives a session list that may predate it. */
+export const SESSION_GRACE_MS = 10 * 60 * 1000
+
+function isSessionId(value: string) {
+  return /^sess_[A-Za-z0-9]{1,64}$/.test(value)
+}
+
 const EXPO_SEND = 'https://exp.host/--/api/v2/push/send'
 const EXPO_RECEIPTS = 'https://exp.host/--/api/v2/push/getReceipts'
 
@@ -80,18 +90,27 @@ const pushMessageValidator = v.object({
  * Remember this install's token for the signed-in person. A token is one
  * install, so one already held by another account moves here: the phone has
  * changed hands, and the previous account must stop receiving on it.
+ *
+ * `sessionId` is the Clerk session this phone is signed in with. Convex's
+ * token does not carry it, so the phone says; it only ever labels the
+ * caller's own row. It is what lets a sign-out release the row without a
+ * session (`releaseDevice`) and a revoked session's phone be forgotten
+ * (`forgetEndedSessions`).
  */
 export const registerDevice = mutation({
   args: {
     token: v.string(),
     platform: pushPlatformValidator,
     locale: pushLocaleValidator,
+    sessionId: v.optional(v.string()),
   },
   returns: v.null(),
-  handler: async (ctx, { token, platform, locale }) => {
+  handler: async (ctx, { token, platform, locale, sessionId }) => {
     await rejectConnectedApps(ctx)
     const user = await requireCurrentUser(ctx)
     if (!isExpoPushToken(token)) throw new ConvexError(INVALID_PUSH_TOKEN)
+    if (sessionId !== undefined && !isSessionId(sessionId))
+      throw new ConvexError(INVALID_SESSION_ID)
 
     const now = Date.now()
     const held = await ctx.db
@@ -105,6 +124,7 @@ export const registerDevice = mutation({
         userId: user._id,
         platform,
         locale,
+        sessionId,
         updatedAt: now,
       })
     } else {
@@ -113,6 +133,7 @@ export const registerDevice = mutation({
         token,
         platform,
         locale,
+        sessionId,
         updatedAt: now,
       })
     }
@@ -129,21 +150,62 @@ export const registerDevice = mutation({
 })
 
 /**
- * Forget this install's token, before the phone signs out. Only the caller's
- * own row: a token somebody else registered since is theirs now.
+ * Forget this install's token on sign-out. Needs no session, because a phone
+ * signing out may have none by the time this reaches the server (offline, or
+ * sent after the session ended); the phone keeps asking until it lands.
+ *
+ * Holding the token *and* the session it was registered under is the proof:
+ * only that phone knows both. A token registered since under another session
+ * (somebody else signed in on the phone) does not match and stays.
  */
-export const unregisterDevice = mutation({
-  args: { token: v.string() },
+export const releaseDevice = mutation({
+  args: { token: v.string(), sessionId: v.string() },
   returns: v.null(),
-  handler: async (ctx, { token }) => {
+  handler: async (ctx, { token, sessionId }) => {
     await rejectConnectedApps(ctx)
-    const user = await requireCurrentUser(ctx)
     const rows = await ctx.db
       .query('pushDevices')
       .withIndex('by_token', (q) => q.eq('token', token))
       .collect()
     for (const row of rows)
-      if (row.userId === user._id) await ctx.db.delete(row._id)
+      if (row.sessionId === sessionId) await ctx.db.delete(row._id)
+    return null
+  },
+})
+
+/**
+ * Forget the caller's phones whose session has ended: revoked from another
+ * device, or signed out where the release never arrived. The phone passes the
+ * sessions Clerk lists as active for this person; a row registered under any
+ * other session goes. A row registered in the last few minutes stays, in case
+ * its session is newer than the list. `endedSessionIds` are sessions the
+ * person just revoked: their phones go whatever their age.
+ */
+export const forgetEndedSessions = mutation({
+  args: {
+    activeSessionIds: v.array(v.string()),
+    endedSessionIds: v.optional(v.array(v.string())),
+  },
+  returns: v.null(),
+  handler: async (ctx, { activeSessionIds, endedSessionIds = [] }) => {
+    await rejectConnectedApps(ctx)
+    const user = await requireCurrentUser(ctx)
+    // Only the caller's own phones (at most MAX_DEVICES) are read; the lists
+    // are just looked up in, however long Clerk's are.
+    const active = new Set(activeSessionIds)
+    const ended = new Set(endedSessionIds)
+    const settled = Date.now() - SESSION_GRACE_MS
+    const devices = await ctx.db
+      .query('pushDevices')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .collect()
+    for (const row of devices)
+      if (
+        row.sessionId !== undefined &&
+        !active.has(row.sessionId) &&
+        (ended.has(row.sessionId) || row.updatedAt < settled)
+      )
+        await ctx.db.delete(row._id)
     return null
   },
 })

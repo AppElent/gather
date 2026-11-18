@@ -1,6 +1,10 @@
 /**
  * This phone as a push destination (APP-298): its permission, its Expo push
- * token, and the token it last registered, which sign-out unregisters.
+ * token, the registration it last made, and a release still to be delivered.
+ *
+ * Both are kept on the phone, not in memory, so a sign-out right after a cold
+ * start still knows what to release, and a release that could not reach the
+ * server (offline) is sent again on the next launch.
  *
  * iOS only. Android is paused, so on Android every answer here is
  * `unavailable` and nothing is ever asked or registered.
@@ -8,6 +12,13 @@
 import Constants from 'expo-constants'
 import * as Notifications from 'expo-notifications'
 import { Platform } from 'react-native'
+
+import {
+  clearPreference,
+  PREFERENCE_KEYS,
+  readPreference,
+  writePreference,
+} from '../../../prefs/localPreference'
 
 export type PushPermission = 'granted' | 'undetermined' | 'denied' | 'unavailable'
 
@@ -61,13 +72,63 @@ export async function readPushToken(): Promise<string> {
   return data
 }
 
-let registered: string | null = null
-
-/** The token this phone last registered for the signed-in account. */
-export function registeredPushToken(): string | null {
-  return registered
+/** A token as registered, with the Clerk session it was registered under. */
+export interface PushRegistration {
+  token: string
+  sessionId: string
 }
 
-export function rememberRegisteredPushToken(token: string | null) {
-  registered = token
+function readRegistration(
+  key: typeof PREFERENCE_KEYS.pushRegistration | typeof PREFERENCE_KEYS.pushRelease,
+): PushRegistration | null {
+  const raw = readPreference(key)
+  if (!raw) return null
+  try {
+    const value = JSON.parse(raw) as Partial<PushRegistration>
+    return typeof value.token === 'string' &&
+      typeof value.sessionId === 'string'
+      ? { token: value.token, sessionId: value.sessionId }
+      : null
+  } catch {
+    return null
+  }
+}
+
+/** What this phone last registered for the signed-in account. */
+export function registeredPush(): PushRegistration | null {
+  return readRegistration(PREFERENCE_KEYS.pushRegistration)
+}
+
+export function rememberRegisteredPush(registration: PushRegistration) {
+  writePreference(
+    PREFERENCE_KEYS.pushRegistration,
+    JSON.stringify(registration),
+  )
+}
+
+/**
+ * Sign-out: the registration becomes a release to deliver. Returns it, or
+ * null when this phone registered nothing.
+ */
+export function moveRegistrationToRelease(): PushRegistration | null {
+  const registration = registeredPush()
+  clearPreference(PREFERENCE_KEYS.pushRegistration)
+  if (registration)
+    writePreference(PREFERENCE_KEYS.pushRelease, JSON.stringify(registration))
+  return registration
+}
+
+/** A release the server has not confirmed yet. */
+export function pendingPushRelease(): PushRegistration | null {
+  return readRegistration(PREFERENCE_KEYS.pushRelease)
+}
+
+/** The server confirmed `release`; forget it unless a newer one replaced it. */
+export function confirmPushRelease(release: PushRegistration) {
+  const pending = pendingPushRelease()
+  if (
+    pending?.token === release.token &&
+    pending.sessionId === release.sessionId
+  )
+    clearPreference(PREFERENCE_KEYS.pushRelease)
 }

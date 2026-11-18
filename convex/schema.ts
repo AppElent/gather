@@ -275,18 +275,21 @@ export default defineSchema({
    *
    * **Personal**: a `userId` and no `groupId`. A token is one app install, so
    * it belongs to one row; registering it again under another account moves
-   * it. It goes on sign-out (the phone unregisters first), on account
+   * it. It goes on sign-out (the phone releases it), when its session ends, on account
    * deletion (`cascade.finishAccount`), and when Expo reports the install
    * gone (`DeviceNotRegistered`). The export leaves it out as bookkeeping.
    *
    * `locale` is the phone's Language, which is a setting on the phone and not
-   * on the account, so each phone is told in its own language.
+   * on the account, so each phone is told in its own language. `sessionId` is
+   * the Clerk session the phone registered under: a sign-out releases the row
+   * by it, and a row whose session has ended is forgotten.
    */
   pushDevices: defineTable({
     userId: v.id('users'),
     token: v.string(),
     platform: pushPlatformValidator,
     locale: pushLocaleValidator,
+    sessionId: v.optional(v.string()),
     updatedAt: v.number(),
   })
     .index('by_user', ['userId'])

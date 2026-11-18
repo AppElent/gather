@@ -8,7 +8,12 @@ import {
 } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
-import { INVALID_PUSH_TOKEN, MAX_DEVICES } from './notifications'
+import {
+  INVALID_PUSH_TOKEN,
+  INVALID_SESSION_ID,
+  MAX_DEVICES,
+  SESSION_GRACE_MS,
+} from './notifications'
 
 /**
  * Push notifications (APP-298), asserted at Expo's door: every test counts
@@ -125,11 +130,13 @@ async function register(
   who: typeof asAlice,
   name: string,
   locale: 'en' | 'nl' = 'en',
+  sessionId?: string,
 ) {
   await t.withIdentity(who).mutation(api.notifications.registerDevice, {
     token: token(name),
     platform: 'ios',
     locale,
+    sessionId,
   })
 }
 
@@ -181,7 +188,17 @@ describe('devices', () => {
       }),
     ).rejects.toThrow(INVALID_PUSH_TOKEN)
     await expect(
-      t.mutation(api.notifications.unregisterDevice, { token: token('x') }),
+      t.withIdentity(asAlice).mutation(api.notifications.registerDevice, {
+        token: token('x'),
+        platform: 'ios',
+        locale: 'en',
+        sessionId: 'not a session',
+      }),
+    ).rejects.toThrow(INVALID_SESSION_ID)
+    await expect(
+      t.mutation(api.notifications.forgetEndedSessions, {
+        activeSessionIds: [],
+      }),
     ).rejects.toThrow()
   })
 
@@ -209,19 +226,76 @@ describe('devices', () => {
     expect(tokens).not.toContain(token('p0'))
   })
 
-  test('sign-out forgets only the caller’s own row', async () => {
+  test('sign-out releases the row with the token and its session, no sign-in needed', async () => {
     const t = testConvex()
     const w = await world(t)
-    await register(t, asAlice, 'a')
-    await register(t, asBob, 'b')
-    await t
-      .withIdentity(asAlice)
-      .mutation(api.notifications.unregisterDevice, { token: token('b') })
-    expect(await devicesOf(t, w.bob)).toHaveLength(1)
-    await t
-      .withIdentity(asAlice)
-      .mutation(api.notifications.unregisterDevice, { token: token('a') })
+    await register(t, asAlice, 'a', 'en', 'sess_alice')
+    await register(t, asBob, 'b', 'en', 'sess_bob')
+
+    // Signed out by now: no identity. The wrong session releases nothing.
+    await t.mutation(api.notifications.releaseDevice, {
+      token: token('a'),
+      sessionId: 'sess_bob',
+    })
+    expect(await devicesOf(t, w.alice)).toHaveLength(1)
+
+    await t.mutation(api.notifications.releaseDevice, {
+      token: token('a'),
+      sessionId: 'sess_alice',
+    })
     expect(await devicesOf(t, w.alice)).toHaveLength(0)
+    expect(await devicesOf(t, w.bob)).toHaveLength(1)
+  })
+
+  test('a late release from the previous account leaves the next one’s row', async () => {
+    const t = testConvex()
+    const w = await world(t)
+    await register(t, asAlice, 'phone', 'en', 'sess_alice')
+    // Alice signed out offline; Bob signs in on the phone before her release lands.
+    await register(t, asBob, 'phone', 'en', 'sess_bob')
+    await t.mutation(api.notifications.releaseDevice, {
+      token: token('phone'),
+      sessionId: 'sess_alice',
+    })
+    expect(await devicesOf(t, w.bob)).toHaveLength(1)
+  })
+
+  test('a phone whose session ended elsewhere is forgotten; the caller’s own are kept', async () => {
+    const t = testConvex()
+    const w = await world(t)
+    await register(t, asAlice, 'lost', 'en', 'sess_lost')
+    await register(t, asAlice, 'mine', 'en', 'sess_mine')
+    await register(t, asBob, 'bob', 'en', 'sess_bob')
+    // Registered a while ago; the lost phone's session was revoked since.
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query('pushDevices').collect())
+        await ctx.db.patch(row._id, {
+          updatedAt: row.updatedAt - SESSION_GRACE_MS - 1,
+        })
+    })
+    await register(t, asAlice, 'fresh', 'en', 'sess_fresh')
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.notifications.forgetEndedSessions, {
+        activeSessionIds: ['sess_mine'],
+      })
+    const left = (await devicesOf(t, w.alice)).map((d) => d.token).sort()
+    // `fresh` is newer than the list could know about, so it stays.
+    expect(left).toEqual([token('fresh'), token('mine')])
+    expect(await devicesOf(t, w.bob)).toHaveLength(1)
+
+    // Revoked just now from Settings → Account → Devices: gone at once.
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.notifications.forgetEndedSessions, {
+        activeSessionIds: ['sess_mine'],
+        endedSessionIds: ['sess_fresh', 'sess_bob'],
+      })
+    expect((await devicesOf(t, w.alice)).map((d) => d.token)).toEqual([
+      token('mine'),
+    ])
+    // Bob's session is not Alice's to end.
+    expect(await devicesOf(t, w.bob)).toHaveLength(1)
   })
 })
 

@@ -11,8 +11,13 @@
  *
  * Mounted inside `ConvexSessionGate`, so registering always has a signed-in
  * caller; the token is re-registered when the phone's Language changes,
- * because the server writes each phone's notifications in its language.
+ * because the server writes each phone's notifications in its language, and
+ * under the Clerk session it is signed in with, which is what releases it on
+ * sign-out. After registering, the person's other phones whose session has
+ * ended (revoked from another device, or a release that never arrived) are
+ * forgotten, using the sessions Clerk lists as active.
  */
+import { useAuth, useUser } from '@clerk/expo'
 import { useMutation } from 'convex/react'
 import {
   createContext,
@@ -20,6 +25,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import { Alert, AppState } from 'react-native'
@@ -30,7 +36,7 @@ import {
   type PushPermission,
   readPushPermission,
   readPushToken,
-  rememberRegisteredPushToken,
+  rememberRegisteredPush,
   requestPushPermission,
 } from './push-device'
 
@@ -56,6 +62,14 @@ export const PushPermissionContext = createContext<PushPermissionValue | null>(
 export function PushPermissionProvider({ children }: { children: ReactNode }) {
   const { t, locale } = useI18n()
   const register = useMutation(api.notifications.registerDevice)
+  const forgetEnded = useMutation(api.notifications.forgetEndedSessions)
+  const { sessionId } = useAuth()
+  // Read when needed, not a dependency: the object changes with every profile edit.
+  const { user } = useUser()
+  const userRef = useRef(user)
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
   const [permission, setPermission] = useState<PushPermission | null>(null)
 
   const refresh = useCallback(async () => {
@@ -77,14 +91,19 @@ export function PushPermissionProvider({ children }: { children: ReactNode }) {
   }, [refresh])
 
   useEffect(() => {
-    if (permission !== 'granted') return
+    if (permission !== 'granted' || !sessionId) return
     let cancelled = false
     void (async () => {
       try {
         const token = await readPushToken()
         if (cancelled) return
-        await register({ token, platform: 'ios', locale })
-        rememberRegisteredPushToken(token)
+        await register({ token, platform: 'ios', locale, sessionId })
+        rememberRegisteredPush({ token, sessionId })
+        const current = userRef.current
+        if (!current) return
+        const sessions = await current.getSessions()
+        if (cancelled) return
+        await forgetEnded({ activeSessionIds: sessions.map((s) => s.id) })
       } catch {
         // No network or no push entitlement (a simulator without one): the
         // next launch tries again, and nothing on screen depends on it.
@@ -93,7 +112,7 @@ export function PushPermissionProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [permission, register, locale])
+  }, [permission, register, forgetEnded, locale, sessionId])
 
   const ask = useCallback(
     async (reason: PushAskReason | 'settings') => {

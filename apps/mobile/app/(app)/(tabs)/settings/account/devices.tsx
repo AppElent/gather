@@ -11,6 +11,7 @@
  * than subscribed to, so it reloads after a revoke instead of hoping.
  */
 import { useSession, useUser } from '@clerk/expo'
+import { useMutation } from 'convex/react'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
@@ -24,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { readThrown } from '../../../../../src/auth/clerkErrors'
 import { AuthError } from '../../../../../src/components/AuthError'
 import { SettingsCard } from '../../../../../src/components/SettingsCard'
+import { api } from '../../../../../src/convex/api'
 import { confirmDestructive } from '../../../../../src/feedback/confirmDestructive'
 import { fmt, useI18n } from '../../../../../src/i18n'
 import { TYPE, useTokens } from '../../../../../src/theme/tokens'
@@ -44,11 +46,15 @@ export default function Devices() {
   const { session } = useSession()
   const insets = useSafeAreaInsets()
 
+  // A revoked session's phone stops getting this account's notifications.
+  const forgetEnded = useMutation(api.notifications.forgetEndedSessions)
+
   const [rows, setRows] = useState<Row[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
-    if (!user) return
+  /** Loads the list; resolves to the active session ids, or null on failure. */
+  const load = useCallback(async (): Promise<string[] | null> => {
+    if (!user) return null
     try {
       const sessions = await user.getSessions()
       setRows(
@@ -67,8 +73,10 @@ export default function Devices() {
           revoke: () => s.revoke(),
         })),
       )
+      return sessions.map((s) => s.id)
     } catch (cause) {
       setError(readThrown(cause, t))
+      return null
     }
   }, [user, session?.id, t])
 
@@ -86,7 +94,12 @@ export default function Devices() {
         void (async () => {
           try {
             await row.revoke()
-            await load()
+            const active = await load()
+            if (active)
+              await forgetEnded({
+                activeSessionIds: active,
+                endedSessionIds: [row.id],
+              }).catch(() => {})
           } catch (cause) {
             setError(readThrown(cause, t))
           }
