@@ -797,8 +797,10 @@ describe('recipeClashes: the round-2 Sonnet review cases', () => {
     ['gehakt, vegetarisch', { diets: ['vegetarian'] }],
     ['melk, lactosevrij', { diets: ['lactose-free'] }],
     ['kipfilet, halal', { diets: ['halal'] }],
-  ] as const)('a trailing free-from word qualifies the item: %s', (line, prefs) => {
-    expect(clashes(line, prefs)).toEqual([])
+  ] as const)('a trailing free-from word is "controleer zelf": %s', (line, prefs) => {
+    const found = clashes(line, prefs)
+    expect(found).toHaveLength(1)
+    expect(found[0].uncertain).toBe(true)
   })
 
   test.each([
@@ -925,5 +927,85 @@ describe('describeClash', () => {
         m,
       ),
     ).toEqual(['pinda', 'champignons'])
+  })
+})
+
+describe('recipeClashes: the final-check blockers', () => {
+  type Prefs = Parameters<typeof recipeClashes>[1]
+  const clashes = (
+    line: string,
+    chosen: {
+      allergens?: readonly Prefs['allergens'][number][]
+      diets?: readonly Prefs['diets'][number][]
+    },
+  ) =>
+    recipeClashes(
+      recipe('Toetje', [line]),
+      prefsWith({
+        allergens: [...(chosen.allergens ?? [])],
+        diets: [...(chosen.diets ?? [])],
+        dislikes: [],
+      }),
+      0,
+    )
+
+  // Blocker 1: a free-from word never removes a hit.
+  test.each([
+    ['200 g pasta (gewoon of glutenvrij)', { allergens: ['gluten'] }],
+    ['spaghetti of glutenvrij', { allergens: ['gluten'] }],
+    ['300 g tarwebloem of glutenvrije', { allergens: ['gluten'] }],
+    ['tarwebloem en glutenvrij', { allergens: ['gluten'] }],
+    ['200 g pasta, zout, glutenvrij', { allergens: ['gluten'] }],
+    ['glutenvrije pasta en tarwebloem', { allergens: ['gluten'] }],
+    ['glutenvrije pasta met paneermeel', { allergens: ['gluten'] }],
+    ['250 ml melk (volle of lactosevrije)', { diets: ['lactose-free'] }],
+    ['500 g gehakt of vegetarisch', { diets: ['vegetarian'] }],
+    ['2 kipfilets (of vegetarisch)', { diets: ['vegetarian'] }],
+    ['vegetarische worst met spekjes', { diets: ['vegetarian'] }],
+    ['kip (of vegetarische kip)', { diets: ['vegetarian'] }],
+    ['kipfilet of halal', { diets: ['halal'] }],
+  ] as const)('a line with a free-from word and another term is "controleer zelf": %s', (line, prefs) => {
+    const found = clashes(line, prefs)
+    expect(found.length).toBeGreaterThan(0)
+    expect(certain(found)).toEqual([])
+  })
+
+  test.each([
+    ['200 g glutenvrije pasta', { allergens: ['gluten'] }],
+    ['500 g vegetarisch gehakt', { diets: ['vegetarian'] }],
+    ['2 vegaschnitzels', { diets: ['vegetarian'] }],
+    ['1 l lactosevrije melk', { diets: ['lactose-free'] }],
+    ['2 halal kipfilets', { diets: ['halal'] }],
+  ] as const)('a line whose only term is free-from is fine: %s', (line, prefs) => {
+    expect(clashes(line, prefs)).toEqual([])
+  })
+
+  // Blocker 2: the ambiguous words are "controleer zelf", never silent.
+  test.each([
+    ['500 g half om half gehakt', { diets: ['vegetarian'] }],
+    ['500 g sukadelap', { diets: ['vegetarian'] }],
+    ['500 g wildstoof', { diets: ['vegetarian'] }],
+    ['2 grietfilets', { allergens: ['fish'] }],
+    ['2 grietfilets', { diets: ['vegetarian'] }],
+    ['1 kom ramensoep', { allergens: ['gluten'] }],
+  ] as const)('the certain form hides: %s', (line, prefs) => {
+    expect(certain(clashes(line, prefs))).toHaveLength(1)
+  })
+
+  test.each([
+    ['500 g half om half', { diets: ['vegetarian'] }],
+    ['500 g half-om-half', { diets: ['vegetarian'] }],
+    ['200 ml half om half melk', { diets: ['vegetarian'] }],
+    ['500 g sukade', { diets: ['vegetarian'] }],
+    ['50 g sukade', { diets: ['vegetarian'] }],
+    ['500 g wild', { diets: ['vegetarian'] }],
+    ['200 g wild mushrooms', { diets: ['vegetarian'] }],
+    ['1 griet', { allergens: ['fish'] }],
+    ['1 griet', { diets: ['vegetarian'] }],
+    ['Oma Margriet’s soep', { allergens: ['fish'] }],
+  ] as const)('the ambiguous word is "controleer zelf": %s', (line, prefs) => {
+    const found = clashes(line, prefs)
+    expect(found.length).toBeGreaterThan(0)
+    expect(certain(found)).toEqual([])
   })
 })

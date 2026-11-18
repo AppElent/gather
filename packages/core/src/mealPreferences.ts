@@ -470,7 +470,6 @@ export function toggleDay(days: readonly Weekday[], day: Weekday): Weekday[] {
     : [...days, day].sort((a, b) => a - b)
 }
 
-/** Adds `value` to a set kept as a list, or takes it out, keeping order. */
 /**
  * One item switched on or off one of the safety lists. These are written per
  * item, never as the whole list, so two Members adding two allergens at the
@@ -522,6 +521,7 @@ function setIn<T>(values: readonly T[], value: T, on: boolean): T[] {
   return on ? (values.includes(value) ? [...values] : [...values, value]) : without
 }
 
+/** Adds `value` to a set kept as a list, or takes it out, keeping order. */
 export function toggleIn<T>(values: readonly T[], value: T): T[] {
   return values.includes(value)
     ? values.filter((v) => v !== value)

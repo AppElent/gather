@@ -138,6 +138,7 @@ const GLUTEN: Rule = {
     'bagel',
     'udon',
     'ramennoedel',
+    'ramensoep',
     'lange vinger',
     'ladyfinger',
     'speculaas',
@@ -344,6 +345,7 @@ const FISH: Rule = {
     'skrei',
     'bacalhau',
     'sole fillet',
+    'grietfilet',
   ],
   word: ['cod', 'tong', 'sole', 'bass', 'pike', 'eel'],
   except: [
@@ -358,7 +360,7 @@ const FISH: Rule = {
     'varkens tong',
     'beef tongue',
   ],
-  maybe: ['worcestershire', 'caesar', 'dashi', 'paella', 'zeevruchten', 'seafood'],
+  maybe: ['worcestershire', 'caesar', 'dashi', 'paella', 'zeevruchten', 'seafood', 'griet'],
 }
 
 const PEANUTS: Rule = {
@@ -727,7 +729,20 @@ const MEAT: Rule = {
     'fijngehakt',
     'grofgehakt',
   ],
-  maybe: ['bouillon', 'stock', 'burger', 'kroket', 'fond', 'jus', 'carpaccio'],
+  // "half om half" (gehakt or melk), "sukade" (beef or candied peel) and
+  // "wild" (game or wild garlic) are often meat: "controleer zelf".
+  maybe: [
+    'bouillon',
+    'stock',
+    'burger',
+    'kroket',
+    'fond',
+    'jus',
+    'carpaccio',
+    'half om half',
+    'sukade',
+    'wild',
+  ],
   lineGuard: VEG_GUARD,
 }
 
@@ -738,7 +753,7 @@ const SEAFOOD: Rule = {
     ...(MOLLUSCS.part ?? []),
   ],
   word: [...(FISH.word ?? []), ...(MOLLUSCS.word ?? [])],
-  maybe: ['worcestershire', 'dashi', 'zeevruchten', 'seafood'],
+  maybe: ['worcestershire', 'dashi', 'zeevruchten', 'seafood', 'griet'],
   lineGuard: VEG_GUARD,
 }
 
@@ -883,13 +898,45 @@ function findTerm(
   return null
 }
 
-/** Whether every word of `part` belongs to a free-from word ("glutenvrije"). */
-function isOnlyGuard(part: string, guards: readonly string[]): boolean {
-  let rest = part
-  for (const guard of [...guards].sort((a, b) => b.length - a.length)) {
-    rest = rest.replace(new RegExp(`\\S*${guard}\\S*`, 'g'), ' ')
+/** Every term of `rule` in this normalised text, as words, in reading order. */
+function findAllTerms(
+  line: string,
+  part: readonly string[] | undefined,
+  word: readonly string[] | undefined,
+): Span[] {
+  const found: Span[] = []
+  for (const term of word ?? []) {
+    for (let at = line.indexOf(` ${term} `); at !== -1; at = line.indexOf(` ${term} `, at + 1)) {
+      found.push({ start: at + 1, end: at + 1 + term.length, term })
+    }
   }
-  return rest.trim() === ''
+  for (const term of part ?? []) {
+    for (let at = line.indexOf(term); at !== -1; at = line.indexOf(term, at + term.length)) {
+      found.push(wordAround(line, at, term.length))
+    }
+  }
+  // One hit per stretch of text: "half om half gehakt" is one term, not two.
+  found.sort((a, b) => a.start - b.start || b.end - a.end)
+  const spans: Span[] = []
+  for (const span of found) {
+    const last = spans.at(-1)
+    if (!last || span.start >= last.end) spans.push(span)
+  }
+  return spans
+}
+
+interface Span {
+  start: number
+  end: number
+  term: string
+}
+
+/** The whole word (or words) around `line[at, at + length)`, as written. */
+function wordAround(line: string, at: number, length: number): Span {
+  const start = line.lastIndexOf(' ', at) + 1
+  const space = line.indexOf(' ', at + length)
+  const end = space === -1 ? line.length : space
+  return { start, end, term: line.slice(start, end) }
 }
 
 interface RuleHit {
@@ -898,39 +945,50 @@ interface RuleHit {
 }
 
 function matchRule(lines: readonly string[], rule: Rule): RuleHit | null {
+  const guards = rule.lineGuard ?? []
   let maybe: string | null = null
   for (const raw of lines) {
-    // A guard word in front of a term names the safe variant ("vegetarisch
-    // gehakt", "glutenvrije pasta", "halal kipfilet"): no clash. Anywhere
-    // else it is a choice or a tip ("bloem (of glutenvrij meel)", "spaghetti
-    // (eventueel glutenvrij)", "kipfilets (vegetariers: gebruik tofu)"), so
-    // what the line names may still be what is cooked: "controleer zelf",
-    // never silence. Each item ("pasta en bloem") and alternative ("kip of
-    // tofu") is read on its own, so a guard only clears its own term.
-    const guards = rule.lineGuard ?? []
+    // When in doubt, "controleer zelf": a free-from word never removes a hit.
+    // It clears only the term right after it in the same item ("glutenvrije
+    // pasta", "vegetarisch gehakt", "halal kipfilet"), or a term it is part
+    // of ("lactosevrije"). A line that also names anything else, or names the
+    // free-from word as a choice or a tip ("pasta (gewoon of glutenvrij)",
+    // "gehakt of vegetarisch", "pasta, glutenvrij"), may still be what is
+    // cooked: uncertain, never silent and never a certain hide.
     const lineGuarded = guards.some((guard) => raw.includes(guard))
-    // A piece that is nothing but a free-from word ("pasta, glutenvrij",
-    // "kipfilet, halal") qualifies the item before it.
-    const found: { term: string; open: boolean }[] = []
-    for (const piece of blank(raw, rule.except).split(
-      / (?:of|or|en|and) |,/,
-    )) {
-      const part = ` ${piece.trim()} `
-      if (part.trim() && isOnlyGuard(part, guards)) {
-        const last = found.at(-1)
-        if (last) last.open = false
-        continue
+    let open: string | null = null
+    let cleared = false
+    for (const piece of blank(raw, rule.except).split(/ (?:of|or|en|and) |,/)) {
+      const text = ` ${piece.trim()} `
+      const guardSpans = guards.flatMap((guard) => {
+        const spans: Span[] = []
+        for (let at = text.indexOf(guard); at !== -1; at = text.indexOf(guard, at + 1)) {
+          spans.push(wordAround(text, at, guard.length))
+        }
+        return spans
+      })
+      let pending = false
+      let guardAt = 0
+      const guardStarts = [...new Set(guardSpans.map((span) => span.start))].sort((a, b) => a - b)
+      for (const hit of findAllTerms(text, rule.part, rule.word)) {
+        // A free-from word before this hit (and after the last one) clears it.
+        while (guardAt < guardStarts.length && (guardStarts[guardAt] ?? 0) < hit.start) {
+          pending = true
+          guardAt++
+        }
+        const inGuard = guardSpans.some((span) => span.start < hit.end && hit.start < span.end)
+        if (inGuard) {
+          cleared = true
+          continue
+        }
+        if (pending) {
+          pending = false
+          cleared = true
+          continue
+        }
+        open ??= hit.term
       }
-      const hit = findTerm(part, rule.part, rule.word)
-      if (!hit) continue
-      const hitAt = part.indexOf(hit)
-      const guardAt = Math.min(
-        ...guards.map((guard) => part.indexOf(guard)).filter((at) => at >= 0),
-      )
-      found.push({ term: hit, open: guardAt > hitAt })
     }
-    const open = found.find((entry) => entry.open)?.term ?? null
-    const cleared = found.length > 0
     if (open && !lineGuarded) return { term: open, uncertain: false }
     if (open) {
       maybe ??= open
