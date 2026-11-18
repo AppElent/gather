@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when changing the PR preview workflow, its secrets, or what a preview seeds.
-version: 3.0.0
+version: 3.1.0
 ---
 
 # Previews
@@ -14,7 +14,7 @@ labelled `preview:web` gets its own Convex backend and Worker.
 | Fact | Value |
 | --- | --- |
 | Workflow | `.github/workflows/preview.yml` |
-| Trigger | Opt-in: adding the `preview:web` label deploys, pushes redeploy while it stays; removing the label or closing the PR deletes the Worker |
+| Trigger | Opt-in: adding the `preview:web` label deploys, pushes redeploy while it stays; removing the label or closing the PR deletes the Worker and the Convex preview `pr-<N>` |
 | Backend | `convex deploy --preview-create pr-<N> --preview-run seed:seedPreview` |
 | Worker | `gather-pr-<N>`, built with `CLOUDFLARE_ENV=pr` (the route-free Wrangler env), URL posted as a PR comment |
 | Repository-scope names | `PREVIEW_<name>`, written by `pnpm env:apply preview --only github` from Infisical `staging`, so they cannot shadow or be shadowed by `staging`/`production` Environment values. The workflow maps each back to `<name>`: secrets from `secrets.`, public values from `vars.` |
@@ -34,6 +34,15 @@ labelled `preview:web` gets its own Convex backend and Worker.
   `CLERK_JWT_ISSUER_DOMAIN` is a Convex preview default, written from
   `clerk-jwt-issuer-domain` (Infisical `staging`) by
   `pnpm env:apply preview --only convex`.
+- **Cleanup deletes the Convex preview through the management API.** The
+  preview deploy key may list and delete its own project's previews, so the
+  `cleanup` job deletes the `preview` deployment named `pr-<N>`. Leftovers count
+  against the Convex team's deployment quota, which Gather shares with the other
+  AppElent apps; a full quota fails every preview `deploy`. Removing the label
+  mid-deploy can still leak one: cleanup cancels the deploy, but Convex may
+  finish creating `pr-<N>` after cleanup listed. That preview idle-expires, or
+  delete it from the dashboard. If cleanup reports no match while the log counts
+  previews, the management API's field names have changed.
 - **A preview backend inherits no Convex variables** — server values come from
   preview defaults ([environment](environment.md#hazards)).
 

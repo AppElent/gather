@@ -2,8 +2,9 @@ name: PR Preview
 
 # Adapted from docs/standards/previews/templates/preview.yml.
 # Opt-in: deploys only while the PR carries the `preview:web` label; pushes
-# redeploy, and removing the label or closing the PR deletes the Worker. Close
-# always cleans up, so Workers deployed before the label gate are not left behind.
+# redeploy, and removing the label or closing the PR deletes the Worker and the
+# Convex preview. Close always cleans up, so Workers deployed before the label
+# gate are not left behind.
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled, closed]
@@ -131,14 +132,57 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.PREVIEW_CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.PREVIEW_CLOUDFLARE_ACCOUNT_ID }}
     steps:
+      # Convex previews count against the team's deployment quota until they
+      # expire, so leftovers block every new preview. The preview deploy key
+      # (`preview:<team>:<project>|<token>`) may list and delete its own
+      # project's previews through the management API. Only a deployment of
+      # type `preview` named pr-<N> is ever deleted; none is a no-op. Runs
+      # first and needs only curl and jq, so a failed install cannot skip it.
+      - name: Delete Convex preview
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.PREVIEW_CONVEX_DEPLOY_KEY }}
+          PREVIEW: pr-${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          case "$CONVEX_DEPLOY_KEY" in
+            # Runs started by Dependabot get no repository secrets.
+            "") echo "::notice::No preview deploy key in this run; Convex preview $PREVIEW not checked."; exit 0 ;;
+            preview:*) ;;
+            *) echo "::error::PREVIEW_CONVEX_DEPLOY_KEY is not a preview deploy key"; exit 1 ;;
+          esac
+          IFS=: read -r _ TEAM PROJECT <<< "${CONVEX_DEPLOY_KEY%%|*}"
+          API=https://api.convex.dev/v1
+          AUTH="Authorization: Bearer $CONVEX_DEPLOY_KEY"
+          api() { curl -fsS --connect-timeout 10 --max-time 60 --retry 3 --retry-all-errors -H "$AUTH" "$@"; }
+          PROJECT_ID=$(api "$API/teams/$TEAM/projects/$PROJECT" | jq -er .id)
+          DEPLOYMENTS=$(api "$API/projects/$PROJECT_ID/list_deployments")
+          NAMES=$(jq -r --arg p "$PREVIEW" '.[] | select(.deploymentType == "preview" and .previewIdentifier == $p) | .name' <<< "$DEPLOYMENTS")
+          if [ -z "$NAMES" ]; then
+            COUNT=$(jq '[.[] | select(.deploymentType == "preview")] | length' <<< "$DEPLOYMENTS")
+            echo "No Convex preview $PREVIEW to delete ($COUNT previews in $PROJECT)."
+            exit 0
+          fi
+          for NAME in $NAMES; do
+            # Retries cover 5xx and timeouts; a 404 means it is already gone.
+            CODE=$(curl -sS --connect-timeout 10 --max-time 60 --retry 3 -o /dev/null -w '%{http_code}' -X POST -H "$AUTH" "$API/deployments/$NAME/delete")
+            case "$CODE" in
+              2??) echo "Deleted Convex preview $PREVIEW ($NAME)." ;;
+              404) echo "Convex preview $PREVIEW ($NAME) was already gone." ;;
+              *) echo "::error::Deleting Convex preview $NAME returned HTTP $CODE"; exit 1 ;;
+            esac
+          done
+      # The Worker is deleted even when the Convex step failed.
       - uses: actions/checkout@v4
+        if: ${{ !cancelled() }}
       - uses: pnpm/action-setup@v4
+        if: ${{ !cancelled() }}
       - uses: actions/setup-node@v4
+        if: ${{ !cancelled() }}
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: ${{ !cancelled() }}
       - name: Delete Worker
+        if: ${{ !cancelled() }}
         run: pnpm exec wrangler delete --force --name "gather-pr-${{ github.event.pull_request.number }}" || true
-      # Convex preview deployments idle-expire automatically (~14 days).
-      # No reliable CLI delete today; prune from the dashboard if needed.
