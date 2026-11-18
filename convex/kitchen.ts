@@ -8,11 +8,14 @@ import {
   requireInGroup,
 } from './lib/groupAccess'
 import { quickLimitValidator } from './lib/kitchen'
+import { dinnerOn } from './lib/mealPlan'
 import { recipesVisibleIn } from './lib/recipeShares'
 
 /**
  * A Group's planned dinners, by `by_group_date` when a range is given, with a
- * live Recipe's fields over the stored ones.
+ * live Recipe's fields over the stored ones. Only the dinner slot: phones from
+ * before meal slots (ADR-0027) show one meal per day and would draw a lunch as
+ * that day's dinner.
  *
  * A live Recipe is the source of truth while it remains visible. The stored
  * fields are deliberately a fallback for a deleted/unshared Recipe, so a past
@@ -35,14 +38,16 @@ async function dinnersIn(
       return group
     })
     .collect()
-  return dinners.map((dinner) => {
-    const recipe = dinner.recipeId
-      ? visibleRecipes.get(dinner.recipeId)
-      : undefined
-    return recipe
-      ? { ...dinner, title: recipe.title, prepMinutes: recipe.prepMinutes }
-      : dinner
-  })
+  return dinners
+    .filter((dinner) => (dinner.slot ?? 'dinner') === 'dinner')
+    .map((dinner) => {
+      const recipe = dinner.recipeId
+        ? visibleRecipes.get(dinner.recipeId)
+        : undefined
+      return recipe
+        ? { ...dinner, title: recipe.title, prepMinutes: recipe.prepMinutes }
+        : dinner
+    })
 }
 
 /** The fields a dinner picker shows for a Recipe. */
@@ -214,6 +219,12 @@ export const updateMealEntry = mutation({
   },
 })
 
+/**
+ * Phones from before meal slots (ADR-0027) plan a day's dinner with these two.
+ * They act on the dinner slot only; the week view writes through `mealPlan`.
+ * Keep both until the OTA that calls `mealPlan` has reached every installed
+ * build (docs/migrations/README.md).
+ */
 export const setDinner = mutation({
   args: {
     groupSlug: v.string(),
@@ -249,12 +260,7 @@ export const setDinner = mutation({
       title = recipe.title
       prepMinutes = recipe.prepMinutes
     }
-    const existing = await ctx.db
-      .query('plannedDinners')
-      .withIndex('by_group_date', (q) =>
-        q.eq('groupId', group._id).eq('date', args.date),
-      )
-      .unique()
+    const existing = await dinnerOn(ctx, group._id, args.date)
     const row = {
       recipeId: args.recipeId,
       mealEntryId: args.mealEntryId,
@@ -267,6 +273,7 @@ export const setDinner = mutation({
       await ctx.db.insert('plannedDinners', {
         groupId: group._id,
         date: args.date,
+        slot: 'dinner',
         ...row,
       })
   },
@@ -276,12 +283,7 @@ export const clearDinner = mutation({
   args: { groupSlug: v.string(), date: v.string() },
   handler: async (ctx, args) => {
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const existing = await ctx.db
-      .query('plannedDinners')
-      .withIndex('by_group_date', (q) =>
-        q.eq('groupId', group._id).eq('date', args.date),
-      )
-      .unique()
+    const existing = await dinnerOn(ctx, group._id, args.date)
     if (existing) await ctx.db.delete(existing._id)
   },
 })

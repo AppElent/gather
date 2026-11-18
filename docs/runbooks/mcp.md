@@ -56,11 +56,12 @@ own origin, and localhost against a local server. Server-side clients send none.
 ## Tools
 
 Read (`gather:read`): `get_current_user`, `list_groups`, `list_recipes`,
-`get_recipe`, `list_task_lists`, `list_tasks`, `list_notes`, `list_calendars`,
-`list_events`, and the view tools `show_week_agenda`, `show_task_list`, and
+`get_recipe`, `list_meal_plan`, `list_task_lists`, `list_tasks`, `list_notes`,
+`list_calendars`, `list_events`, and the view tools `show_week_agenda`, `show_task_list`, and
 `show_recipe` (see [Views](#views)).
 
-Write (`gather:write`): `create_recipe`, `update_recipe`, `create_task_list`,
+Write (`gather:write`): `create_recipe`, `update_recipe`, `plan_meal`,
+`create_task_list`,
 `create_task`, `update_task`, `create_note`, `update_note`, `create_event`,
 `update_event`.
 
@@ -70,6 +71,8 @@ Rules for every tool:
   caller is not in reads as `Group not found`, the same as a missing one.
 - Create tools require an `idempotencyKey`. Convex stores it per person in
   `idempotencyKeys`; a retry with the same key returns the first row.
+  `plan_meal` counts as a create: a retry with its key answers the first
+  meal instead of finding the slot taken.
 - There are no delete tools. People delete in the app.
 - Recipes shared into a Group can be read there but changed only from their
   home Group. Task lists that mirror Notion or Todoist are listed but their

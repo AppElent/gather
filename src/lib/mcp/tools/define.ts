@@ -255,7 +255,16 @@ export function myGroups(context: ToolContext) {
 }
 
 /** A Convex id from a tool argument; Convex validates its table. */
-export function asId<T extends 'recipes' | 'tasks' | 'taskLists' | 'notes' | 'calendars' | 'calendarEvents'>(
+export function asId<
+  T extends
+    | 'recipes'
+    | 'mealEntries'
+    | 'tasks'
+    | 'taskLists'
+    | 'notes'
+    | 'calendars'
+    | 'calendarEvents',
+>(
   value: string,
 ): Id<T> {
   return value as Id<T>

@@ -23,6 +23,7 @@ import type { ModuleIconName } from '@gather/core/modules'
 import ArrowUp from 'lucide-react-native/icons/arrow-up'
 import Baby from 'lucide-react-native/icons/baby'
 import Beer from 'lucide-react-native/icons/beer'
+import BookOpen from 'lucide-react-native/icons/book-open'
 import Calendar from 'lucide-react-native/icons/calendar'
 import CalendarHeart from 'lucide-react-native/icons/calendar-heart'
 import Camera from 'lucide-react-native/icons/camera'
@@ -52,6 +53,7 @@ import Grid from 'lucide-react-native/icons/layout-grid'
 import ListChecks from 'lucide-react-native/icons/list-checks'
 import Mail from 'lucide-react-native/icons/mail'
 import MapPin from 'lucide-react-native/icons/map-pin'
+import Minus from 'lucide-react-native/icons/minus'
 import NotebookPen from 'lucide-react-native/icons/notebook-pen'
 import Pencil from 'lucide-react-native/icons/pencil'
 import Pin from 'lucide-react-native/icons/pin'
@@ -60,7 +62,9 @@ import Refrigerator from 'lucide-react-native/icons/refrigerator'
 import Repeat from 'lucide-react-native/icons/repeat'
 import Search from 'lucide-react-native/icons/search'
 import Settings from 'lucide-react-native/icons/settings'
+import Share from 'lucide-react-native/icons/share'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
+import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
 import Smartphone from 'lucide-react-native/icons/smartphone'
 import Target from 'lucide-react-native/icons/target'
 import Trash2 from 'lucide-react-native/icons/trash-2'
@@ -68,6 +72,7 @@ import User from 'lucide-react-native/icons/user'
 import Users from 'lucide-react-native/icons/users'
 import Wine from 'lucide-react-native/icons/wine'
 import X from 'lucide-react-native/icons/x'
+import Zap from 'lucide-react-native/icons/zap'
 // Chrome. Not Modules, so deliberately kept out of the union below.
 
 import { CheeseWedge } from './CheeseWedge'
@@ -181,4 +186,18 @@ export const UI_ICONS = {
   Trash2: glyph(Trash2, 'trash'),
   User: glyph(User, 'person.crop.circle'),
   X: glyph(X, 'xmark'),
+  /** A planned meal from a recipe, where the meal has no photo. */
+  BookOpen: glyph(BookOpen, 'book'),
+  /** A quick meal: a dinner without a recipe. */
+  Bolt: glyph(Zap, 'bolt.fill'),
+  /** An evening a calendar event makes busy. */
+  Calendar: glyph(Calendar, 'calendar'),
+  /** The way to the grocery list from somewhere else. */
+  Cart: glyph(ShoppingCart, 'cart'),
+  /** A stepper's take-one-away. */
+  Minus: glyph(Minus, 'minus'),
+  /** Sending something out of the app through the share sheet. */
+  Share: glyph(Share, 'square.and.arrow.up'),
+  /** Preferences that filter a list: Meal preferences. */
+  Sliders: glyph(SlidersHorizontal, 'slider.horizontal.3'),
 } satisfies Record<string, Glyph>
