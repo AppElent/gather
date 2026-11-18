@@ -1,7 +1,7 @@
 ---
 type: decision
 description: Read before changing money records, Houses, mortgage calculations, or Payment splits.
-version: 1.0.0
+version: 1.0.1
 status: accepted
 date: 2026-08-24
 ---
@@ -11,6 +11,11 @@ date: 2026-08-24
 The statement below that Finances is one Module was superseded by ADR-0035.
 The manual-first model and the boundaries between its records and calculator
 remain in force.
+
+> Partly superseded by [ADR-0048](0048-shared-costs-are-expense-pots-with-balances.md)
+> (18 Nov 2026): Shared costs is no longer a disposable calculator but holds
+> expense pots with balances and settlements. Manual-first, Recurring costs and
+> the Split ratio stand.
 
 Money is shared within a Group and every figure in it is one a Member typed.
 Gather connects to no bank, imports no file, looks up no property, and reads no

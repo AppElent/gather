@@ -223,7 +223,23 @@ export const nl = {
     groups: {
       ...coreNl.shell.groups,
       intro:
-        'De huishoudens waar je in zit. Op Home wissel je tussen Groepen; hieronder begin je er een of doe je mee met die van iemand anders.',
+        'De huishoudens waar je in zit. Op Home wissel je tussen Groepen. Hieronder nodig je iemand uit voor de huidige, begin je er een of doe je mee met die van iemand anders.',
+      invite: {
+        title: coreNl.settings.group.inviteCode,
+        note: coreNl.settings.group.inviteCodeNote,
+        share: 'Code delen',
+        shareMessage:
+          'Doe mee met {group} in Gather: kies onder Groepen voor ‘{join}’ en vul {code} in.',
+      },
+      leave: {
+        button: coreNl.settings.group.leaveButton,
+        title: coreNl.settings.group.leaveTitle,
+        body: coreNl.settings.group.leaveBody,
+        confirm: coreNl.settings.group.leaveConfirm,
+        failed: coreNl.settings.group.leaveFailed,
+        onlyAdmin:
+          'Je bent de enige beheerder. Maak op het web eerst iemand anders beheerder in de instellingen van deze Groep, en vertrek dan.',
+      },
       delete: {
         button: coreNl.settings.group.deleteButton,
         title: coreNl.settings.group.deleteTitle,
@@ -604,6 +620,15 @@ export const nl = {
 
   tasks: {
     count: coreNl.tasks.count,
+    /** APP-306: the New list sheet, list kinds and their faces, shared with the web. */
+    newList: coreNl.tasks.newList,
+    appearance: coreNl.tasks.appearance,
+    kinds: coreNl.tasks.kinds,
+    icons: coreNl.tasks.icons,
+    colors: coreNl.tasks.colors,
+    starters: coreNl.tasks.starters,
+    packing: coreNl.tasks.packing,
+    wishlist: coreNl.tasks.wishlist,
     title: 'Taken',
     quickAdd: {
       list: 'Op de lijst',

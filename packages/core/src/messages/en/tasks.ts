@@ -1,3 +1,10 @@
+import type {
+  TaskListColor,
+  TaskListIcon,
+  TaskListKind,
+  TaskStarterKey,
+} from '../../taskLists'
+
 /**
  * The Tasks module's own words.
  *
@@ -93,4 +100,127 @@ export const tasks = {
     labelsProperty: 'Labels property',
     create: 'Create linked list',
   },
+  /**
+   * The New list sheet (APP-306). Its kinds, icons and colours are keys in
+   * `@gather/core/task-lists`; these are their words.
+   */
+  newList: {
+    title: 'New list',
+    create: 'Create',
+    nameLabel: 'List name',
+    kind: 'List type',
+    color: 'Colour',
+    icon: 'Icon',
+    /** The icon that comes with the chosen type, always first in the row. */
+    kindIcon: 'Icon of the type',
+    failed: 'That list could not be made. Try again.',
+  },
+
+  /** A packing list: checked items stay in place, and can all be reset. */
+  packing: {
+    progress: '{done} of {total}',
+    packed: 'packed',
+    uncheckAll: 'Uncheck all',
+    uncheckAllHint: 'For the next trip. The items stay.',
+    undo: 'Undo',
+    /** Read out after Uncheck all, beside the Undo button. */
+    uncheckedAll: 'Everything is unchecked.',
+  },
+
+  /** A wishlist item's link and price (APP-306). */
+  wishlist: {
+    link: 'Link',
+    linkPlaceholder: 'Paste a link',
+    price: 'Price',
+    pricePlaceholder: '0.00',
+    openLink: 'Open link',
+    invalidLink: 'That is not a web address.',
+  },
+
+  /** The ⋯ menu's appearance entry and its sheet. */
+  appearance: {
+    title: 'Colour and icon',
+  },
+
+  kinds: {
+    plain: {
+      title: 'Plain list',
+      description: 'Empty, for anything',
+      defaultName: 'New list',
+      startsWith: 'Starts empty.',
+    },
+    chores: {
+      title: 'Chores',
+      description: 'Jobs around the house',
+      defaultName: 'Household',
+      startsWith:
+        'Starts with 8 sample chores for the kitchen, the bathroom and the rest of the house. Remove any of them.',
+    },
+    packing: {
+      title: 'Packing list',
+      description: 'Tick off, then reset for next time',
+      defaultName: 'Trip',
+      startsWith:
+        'Starts with 18 sample items: clothes, toiletries and things for the kids. Remove any of them.',
+    },
+    groceries: {
+      title: 'Groceries',
+      description: 'By aisle, with recipes and amounts',
+      defaultName: 'Groceries',
+      startsWith: 'Opens the grocery settings next.',
+    },
+    wishlist: {
+      title: 'Wishlist',
+      description: 'With a link and price per item',
+      defaultName: 'Wishlist',
+      startsWith: 'Starts empty. Each item gets a link and a price.',
+    },
+  } satisfies Record<TaskListKind, unknown>,
+
+  icons: {
+    list: 'List',
+    sparkles: 'Sparkles',
+    suitcase: 'Suitcase',
+    cart: 'Shopping cart',
+    gift: 'Gift',
+    house: 'House',
+    papers: 'Papers',
+  } satisfies Record<TaskListIcon, string>,
+
+  colors: {
+    home: 'Amber',
+    kitchen: 'Teal',
+    tasting: 'Plum',
+    money: 'Blue',
+  } satisfies Record<TaskListColor, string>,
+
+  /** What a template's starter items are called once they are on a list. */
+  starters: {
+    bins: 'Put the bins out',
+    fridge: 'Clean out the fridge',
+    dishwasher: 'Descale the dishwasher',
+    bathroom: 'Clean the bathroom',
+    towels: 'Wash the towels',
+    plants: 'Water the plants',
+    vacuum: 'Vacuum',
+    windows: 'Clean the windows',
+    rainJackets: 'Rain jackets',
+    walkingShoes: 'Walking shoes',
+    jumpers: 'Jumpers',
+    swimwear: 'Swimwear',
+    underwear: 'Underwear',
+    socks: 'Socks',
+    pyjamas: 'Pyjamas',
+    toothbrushes: 'Toothbrushes',
+    toothpaste: 'Toothpaste',
+    sunscreen: 'Sunscreen',
+    medicines: 'Medicines',
+    deodorant: 'Deodorant',
+    shampoo: 'Shampoo',
+    nappies: 'Nappies',
+    cuddlyToy: 'Cuddly toy',
+    travelCot: 'Travel cot',
+    travelToys: 'Toys for the journey',
+    snacks: 'Snacks',
+  } satisfies Record<TaskStarterKey, string>,
 }

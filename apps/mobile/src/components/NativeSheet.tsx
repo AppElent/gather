@@ -7,7 +7,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
-import { TYPE, useTokens } from '../theme/tokens'
+import { type ModuleGroup, RADIUS, TYPE, useTokens } from '../theme/tokens'
 
 export interface NativeSheetProps {
   title: string
@@ -24,6 +24,22 @@ export interface NativeSheetProps {
    * content is itself `surface` cards and tiles (the quick-actions sheet).
    */
   background?: 'surface' | 'ground'
+  /**
+   * A form sheet's bar: Cancel on the left, the title centred, the confirming
+   * action on the right in the Module's primary colour (the New list sheet).
+   * Replaces the close button; Cancel dismisses exactly as it would.
+   */
+  confirm?: SheetConfirm
+}
+
+export interface SheetConfirm {
+  label: string
+  onPress: () => void
+  disabled?: boolean
+  busy?: boolean
+  /** The Module whose primary button this is. */
+  group?: ModuleGroup
+  testID?: string
 }
 
 /**
@@ -41,6 +57,7 @@ export function NativeSheet({
   maxHeight,
   fill = false,
   background = 'surface',
+  confirm,
 }: NativeSheetProps) {
   const ref = useRef<BottomSheetModal>(null)
   const closed = useRef(false)
@@ -77,6 +94,9 @@ export function NativeSheet({
           { paddingTop: Platform.OS === 'ios' ? 8 : 0 },
         ]}
       >
+        {confirm ? (
+          <FormBar title={title} confirm={confirm} onCancel={dismiss} />
+        ) : (
         <View style={styles.heading}>
           {leading}
           <View style={styles.headingText}>
@@ -106,10 +126,72 @@ export function NativeSheet({
             <Close size={18} color={tokens.muted} strokeWidth={2.2} />
           </Pressable>
         </View>
+        )}
         {children}
         {footer ? <View style={styles.footer}>{footer}</View> : null}
       </BottomSheetView>
     </BottomSheetModal>
+  )
+}
+
+function FormBar({
+  title,
+  confirm,
+  onCancel,
+}: {
+  title: string
+  confirm: SheetConfirm
+  onCancel: () => void
+}) {
+  const tokens = useTokens()
+  const accent = useTokens(confirm.group)
+  const { t } = useI18n()
+  const inert = confirm.disabled || confirm.busy
+  return (
+    <View style={styles.bar}>
+      <Pressable
+        testID="sheet-cancel"
+        accessibilityRole="button"
+        accessibilityLabel={t.common.actions.cancel}
+        onPress={onCancel}
+        hitSlop={8}
+        style={({ pressed }) => [
+          styles.barButton,
+          { backgroundColor: tokens.surface2 },
+          pressed && styles.pressed,
+        ]}
+      >
+        <Text style={[styles.barLabel, { color: tokens.ink }]}>
+          {t.common.actions.cancel}
+        </Text>
+      </Pressable>
+      <Text
+        accessibilityRole="header"
+        numberOfLines={1}
+        style={[styles.barTitle, { color: tokens.ink }]}
+      >
+        {title}
+      </Text>
+      <Pressable
+        testID={confirm.testID}
+        accessibilityRole="button"
+        accessibilityLabel={confirm.label}
+        accessibilityState={{ disabled: inert, busy: confirm.busy }}
+        disabled={inert}
+        onPress={confirm.onPress}
+        hitSlop={8}
+        style={({ pressed }) => [
+          styles.barButton,
+          { backgroundColor: accent.accent },
+          inert && styles.disabled,
+          pressed && styles.pressed,
+        ]}
+      >
+        <Text style={[styles.barConfirm, { color: accent.onAccent }]}>
+          {confirm.label}
+        </Text>
+      </Pressable>
+    </View>
   )
 }
 
@@ -134,4 +216,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pressed: { opacity: 0.7 },
+  disabled: { opacity: 0.4 },
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 16,
+  },
+  barButton: {
+    minHeight: 44,
+    paddingHorizontal: 16,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  barTitle: { ...TYPE.bodyStrong, flex: 1, textAlign: 'center' },
+  barLabel: { ...TYPE.body },
+  barConfirm: { ...TYPE.bodyStrong },
 })

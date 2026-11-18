@@ -1,4 +1,9 @@
 import type { TaskProviderId } from '@gather/core/domain'
+import type {
+  TaskListColor,
+  TaskListIcon,
+  TaskListKind,
+} from '@gather/core/task-lists'
 
 export type Priority = 1 | 2 | 3 | 4
 
@@ -23,6 +28,11 @@ export interface TaskList {
   display: ListDisplay
   order: number
   sync: ListSync
+  /** What kind of list it is; `plain` for any list made before kinds. */
+  kind: TaskListKind
+  /** The tile it wears: its own choice, or its kind's (`taskListFace`). */
+  icon: TaskListIcon
+  color: TaskListColor
 }
 
 export interface Task {
@@ -34,6 +44,9 @@ export interface Task {
   priority?: Priority
   labels: string[]
   notes?: string
+  /** A wishlist item's link and price, in cents. */
+  url?: string
+  priceCents?: number
   order: number
 }
 

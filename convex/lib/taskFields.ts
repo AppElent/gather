@@ -1,4 +1,9 @@
 import { EXTERNAL_PROVIDER_IDS, TASK_PROVIDER_IDS } from '@gather/core/domain'
+import {
+  TASK_LIST_COLORS,
+  TASK_LIST_ICONS,
+  TASK_LIST_KINDS,
+} from '@gather/core/task-lists'
 import { v } from 'convex/values'
 import { literals } from './validators'
 
@@ -31,3 +36,10 @@ export const taskListDisplayValidator = v.object({
   priority: v.boolean(),
   labels: v.boolean(),
 })
+
+// What kind of list it is and the face it wears (APP-306). All three are
+// optional on the table: lists made before them, and by phones that predate
+// them, read as a plain list in the kind's colour and icon.
+export const taskListKindValidator = literals(TASK_LIST_KINDS)
+export const taskListIconValidator = literals(TASK_LIST_ICONS)
+export const taskListColorValidator = literals(TASK_LIST_COLORS)

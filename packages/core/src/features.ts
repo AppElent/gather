@@ -147,13 +147,16 @@ export const FEATURES = defineFeatures([
     routes: { web: ['privacy'] },
   },
   {
+    // Leaving a Group is account management. The server holds the rule (the
+    // only admin stays while anyone else is in it); both clients say it first.
     id: 'group-leave',
     kind: 'floor',
-    status: 'pending-port',
-    platforms: ['web'],
-    reason:
-      'Leaving a Group is account management. Only the web offers it (Group settings); on the phone the only way out of a household is deleting the account. APP-80.',
-    routes: { web: ['_app/group-settings'] },
+    status: 'parity',
+    platforms: ['web', 'mobile'],
+    routes: {
+      web: ['_app/group-settings'],
+      mobile: ['(app)/(tabs)/settings/groups'],
+    },
   },
 
   // -- Share targets ---------------------------------------------------------
@@ -167,13 +170,16 @@ export const FEATURES = defineFeatures([
     routes: { web: ['_app/groups'], mobile: ['(app)/(tabs)/settings/groups'] },
   },
   {
+    // Any Member may invite (ADR-0006). The phone hands the code to the share
+    // sheet; it is a code, not a link (links are APP-84).
     id: 'group-invite',
     kind: 'share-target',
-    status: 'pending-port',
-    platforms: ['web'],
-    reason:
-      'Any Member may invite (ADR-0006), but only the web shows the invite code (groups.inviteCode), so nobody can invite from the phone. APP-80.',
-    routes: { web: ['_app/group-settings'] },
+    status: 'parity',
+    platforms: ['web', 'mobile'],
+    routes: {
+      web: ['_app/group-settings'],
+      mobile: ['(app)/(tabs)/settings/groups'],
+    },
   },
 
   // -- Shell -----------------------------------------------------------------

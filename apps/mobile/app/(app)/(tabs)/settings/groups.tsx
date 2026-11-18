@@ -2,8 +2,9 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { GroupForms } from '../../../../src/components/GroupForms'
-import { DeleteGroupSection } from '../../../../src/group/DeleteGroupSection'
 import { useGroup } from '../../../../src/group/GroupProvider'
+import { InviteCodeCard } from '../../../../src/group/InviteCodeCard'
+import { LeaveOrDeleteGroupSection } from '../../../../src/group/LeaveOrDeleteGroupSection'
 import { useI18n } from '../../../../src/i18n'
 import { UI_ICONS } from '../../../../src/theme/icons'
 import { RADIUS, TYPE, useTokens } from '../../../../src/theme/tokens'
@@ -63,9 +64,11 @@ export default function Groups() {
           )
         })}
       </View>
+      {/* Inviting is about the Current Group, so it sits right under the list. */}
+      <InviteCodeCard />
       <GroupForms />
-      {/* Destructive, so last: below everything that adds a Group. */}
-      <DeleteGroupSection />
+      {/* The ways out, so last: below everything that adds somebody. */}
+      <LeaveOrDeleteGroupSection />
     </ScrollView>
   )
 }

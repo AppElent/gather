@@ -21,7 +21,7 @@ Design studies: [designs/](../designs/).
 
 ## Decisions
 
-A new ADR takes the number after the highest (0048 next).
+A new ADR takes the number after the highest (0049 next).
 
 | ID | Decision | Status | Domain | Key implementation references |
 | --- | --- | --- | --- | --- |
@@ -49,7 +49,7 @@ A new ADR takes the number after the highest (0048 next).
 | [0022](adr/0022-a-module-is-configured-by-its-content-not-by-a-switch.md) | A Module is configured by its content, not by a switch | accepted | mobile modules | `apps/mobile/src/modules/baby/` |
 | [0023](adr/0023-modules-live-inside-the-tab-stacks.md) | Modules live inside the tab stacks | accepted | mobile navigation | `apps/mobile/app/(app)/(tabs)/`, `apps/mobile/src/modules/` |
 | [0024](adr/0024-a-tasting-catalog-is-a-picker-and-tasting-it-makes-it-yours.md) | A Tasting catalog is a picker, and tasting it makes it yours | accepted | tasting | `convex/tastings.ts`, `packages/core/src/tastingKinds.ts` |
-| [0025](adr/0025-money-is-shared-and-manual-first.md) | Money is shared and entered by hand | accepted | finances | [GLOSSARY.md](../GLOSSARY.md), ADR-0026 |
+| [0025](adr/0025-money-is-shared-and-manual-first.md) | Money is shared and entered by hand | accepted; partly superseded by 0048 (Shared costs) | finances | [GLOSSARY.md](../GLOSSARY.md), ADR-0026 |
 | [0026](adr/0026-portfolio-overviews-are-information-not-advice.md) | Portfolio overviews are information, not advice | accepted | finances | [GLOSSARY.md](../GLOSSARY.md) |
 | [0027](adr/0027-planned-dinners-reference-recipes-with-a-fallback.md) | Planned dinners reference Recipes, with a fallback | accepted | meal planning | [GLOSSARY.md](../GLOSSARY.md) |
 | [0028](adr/0028-a-drop-is-nothing-until-a-person-names-its-destination.md) | A Drop is nothing until a person names its destination | accepted | mobile sharing | `apps/mobile/src/drop/`, `packages/core/src/dropRules.ts` |
@@ -72,3 +72,4 @@ A new ADR takes the number after the highest (0048 next).
 | [0045](adr/0045-each-build-variant-installs-beside-the-others.md) | Each build variant installs beside the others | accepted | mobile | `apps/mobile/app.config.ts`, `apps/mobile/eas.json` |
 | [0046](adr/0046-agents-connect-through-clerk-oauth-and-name-the-group.md) | Agents connect through Clerk OAuth and name the Group | accepted | identity | `src/lib/mcp/`, `convex/lib/connectedApps.ts`, `convex/lib/idempotency.ts` |
 | [0047](adr/0047-six-modules-ship-on-the-web-and-the-phone-still-leads.md) | Six Modules ship on the web too, and the phone still leads | accepted | platforms | `packages/core/src/features.ts`, ADR-0042 |
+| [0048](adr/0048-shared-costs-are-expense-pots-with-balances.md) | Shared costs are expense pots with balances | accepted | money modules | [GLOSSARY.md](../GLOSSARY.md), ADR-0025, `convex/lib/finance.ts` |

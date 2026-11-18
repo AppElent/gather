@@ -23,6 +23,7 @@ vi.mock('convex/react', () => ({
 import {
   ensureExternalLists,
   externalSnapshot,
+  listFace,
   localTaskQueries,
   mergeTasks,
   syncExternalList,
@@ -41,6 +42,9 @@ function listRow(id: string, provider: 'local' | 'notion' | 'todoist') {
     provider,
     order: 0,
     display,
+    kind: 'plain' as const,
+    icon: null,
+    color: null,
     writable: provider === 'local',
   }
 }
@@ -256,6 +260,9 @@ describe('what the writes send', () => {
     display: { due: true, priority: false, labels: true },
     order: 0,
     sync: 'live',
+    kind: 'chores',
+    icon: 'sparkles',
+    color: 'home',
   }
 
   test('toggling one display option keeps the other two', async () => {
@@ -284,5 +291,45 @@ describe('what the writes send', () => {
         args: { taskId: 'bins', groupSlug: 'our-household', listId: 'errands' },
       },
     ])
+  })
+})
+
+describe('a list’s kind and face', () => {
+  test('a list from before kinds draws as a plain list in the Tasks colours', () => {
+    expect(listFace({})).toEqual({ kind: 'plain', icon: 'list', color: 'home' })
+  })
+
+  test('a kind this build does not know draws as plain, its face kept', () => {
+    expect(
+      listFace({ kind: 'recipes-someday', icon: 'gift', color: 'tasting' }),
+    ).toEqual({ kind: 'plain', icon: 'gift', color: 'tasting' })
+  })
+
+  test('a typed list without its own face wears its kind’s', () => {
+    expect(listFace({ kind: 'packing', icon: null, color: null })).toEqual({
+      kind: 'packing',
+      icon: 'suitcase',
+      color: 'money',
+    })
+  })
+
+  test('the lists from Convex carry it through to the model', () => {
+    const { lists } = mergeTasks(
+      [
+        {
+          ...listRow('trip', 'local'),
+          kind: 'packing' as const,
+          icon: null,
+          color: 'kitchen' as const,
+        },
+      ],
+      { trip: [] },
+      new Map(),
+    )
+    expect(lists[0]).toMatchObject({
+      kind: 'packing',
+      icon: 'suitcase',
+      color: 'kitchen',
+    })
   })
 })

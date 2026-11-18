@@ -9,7 +9,10 @@ import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
 import { nextOrder } from './lib/order'
 import {
   providerConfigValidator,
+  taskListColorValidator,
   taskListDisplayValidator,
+  taskListIconValidator,
+  taskListKindValidator,
   taskProviderValidator,
 } from './lib/taskFields'
 import { getAdapter } from './lib/taskProviders'
@@ -32,6 +35,11 @@ export const list = query({
         provider: l.provider,
         order: l.order,
         display: l.display ?? { due: false, priority: false, labels: false },
+        // APP-306. Absent on lists made before kinds: a plain list, drawn in
+        // its kind's icon and colour (`taskListFace`).
+        kind: l.kind ?? 'plain',
+        icon: l.icon ?? null,
+        color: l.color ?? null,
         // Whether this list can be added to from Gather: only a local list
         // has `tasks` rows, and no provider write path exists (ADR-0021).
         // Callers that offer a list as somewhere to write — the baby log's
@@ -49,6 +57,13 @@ export const create = mutation({
     providerConfig: v.optional(providerConfigValidator),
     groupSlug: v.string(),
     idempotencyKey: idempotencyKeyValidator,
+    // APP-306, all optional so older phones and the web keep calling this as
+    // before. `starterTasks` are a template's items in the creator's language,
+    // written onto a local list in the same transaction as the list.
+    kind: v.optional(taskListKindValidator),
+    icon: v.optional(taskListIconValidator),
+    color: v.optional(taskListColorValidator),
+    starterTasks: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     // A list belongs to the Group in the URL, and the connection it links to
@@ -57,11 +72,15 @@ export const create = mutation({
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
     const groupId = group._id
 
+    const starterTasks = checkedStarterTasks(args.starterTasks)
     if (args.provider === 'local') {
       if (args.providerConfig) {
         throw new ConvexError('Local lists take no provider config')
       }
     } else {
+      if (starterTasks.length > 0) {
+        throw new ConvexError('Only a local list starts with tasks')
+      }
       if (!args.providerConfig) {
         throw new ConvexError('External lists need a provider config')
       }
@@ -88,15 +107,72 @@ export const create = mutation({
           .query('taskLists')
           .withIndex('by_group', (q) => q.eq('groupId', groupId))
           .collect()
-        return await ctx.db.insert('taskLists', {
+        const listId = await ctx.db.insert('taskLists', {
           groupId,
           name: args.name,
           provider: args.provider,
           providerConfig: args.providerConfig,
           order: nextOrder(existing),
+          ...(args.kind ? { kind: args.kind } : {}),
+          ...(args.icon ? { icon: args.icon } : {}),
+          ...(args.color ? { color: args.color } : {}),
         })
+        for (const [order, title] of starterTasks.entries()) {
+          await ctx.db.insert('tasks', {
+            listId,
+            title,
+            done: false,
+            createdBy: user._id,
+            order,
+          })
+        }
+        // A list made as the groceries becomes the Group's grocery list, which
+        // is what the Groceries Module opens (ADR-0034). The list it replaces
+        // stays in Tasks, exactly as when someone picks another one there.
+        if (args.kind === 'groceries') {
+          await ctx.db.patch(groupId, { groceryListId: listId })
+        }
+        return listId
       },
     )
+  },
+})
+
+/** The most starter items a template may bring, and the longest title. */
+export const STARTER_TASKS_MAX = 50
+export const STARTER_TITLE_MAX = 200
+
+/** A template's items, trimmed, with the bounds a create may not exceed. */
+function checkedStarterTasks(titles: readonly string[] | undefined): string[] {
+  if (!titles) return []
+  if (titles.length > STARTER_TASKS_MAX) {
+    throw new ConvexError('Too many starter tasks')
+  }
+  return titles.map((title) => {
+    const trimmed = title.trim()
+    if (!trimmed || trimmed.length > STARTER_TITLE_MAX) {
+      throw new ConvexError('A starter task needs a title')
+    }
+    return trimmed
+  })
+}
+
+/** A list's tile: its colour, its icon, or both. */
+export const setAppearance = mutation({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    icon: v.optional(taskListIconValidator),
+    color: v.optional(taskListColorValidator),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
+    await ctx.db.patch(args.listId, {
+      ...(args.icon ? { icon: args.icon } : {}),
+      ...(args.color ? { color: args.color } : {}),
+    })
+    return null
   },
 })
 
