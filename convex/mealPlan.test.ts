@@ -8,6 +8,7 @@ import {
   testConvex,
 } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
+import { CONNECTED_APP_REFUSED } from './lib/connectedApps'
 
 async function seed() {
   const t = testConvex()
@@ -553,6 +554,88 @@ describe('phones from before meal slots', () => {
       slot: 'lunch',
     })
     expect(await eaters()).toBeUndefined()
+  })
+
+  test('a swap across days drops both meals’ chosen eaters', async () => {
+    const { t, pasta, tacos, aliceId, bobId } = await seed()
+    const as = t.withIdentity(alice)
+    const plan = { groupSlug: 'home', slot: 'dinner' as const }
+    const monday = await as.mutation(api.mealPlan.plan, {
+      ...plan,
+      date: '2026-11-23',
+      recipeId: pasta,
+      eaterIds: [aliceId],
+    })
+    const thursday = await as.mutation(api.mealPlan.plan, {
+      ...plan,
+      date: '2026-11-26',
+      recipeId: tacos,
+      eaterIds: [bobId],
+    })
+    await as.mutation(api.mealPlan.move, {
+      ...plan,
+      id: monday,
+      date: '2026-11-26',
+    })
+    const [a, b] = await t.run(
+      async (ctx) => await Promise.all([ctx.db.get(monday), ctx.db.get(thursday)]),
+    )
+    expect([a?.date, a?.eaterIds, b?.date, b?.eaterIds]).toEqual([
+      '2026-11-26',
+      undefined,
+      '2026-11-23',
+      undefined,
+    ])
+  })
+
+  test('a keyed replace answers its first meal on retry and changes nothing', async () => {
+    const { t, pasta, tacos, toast } = await seed()
+    const as = t.withIdentity(alice)
+    const slot = {
+      groupSlug: 'home',
+      date: '2026-11-24',
+      slot: 'dinner' as const,
+    }
+    const id = await as.mutation(api.mealPlan.plan, { ...slot, recipeId: pasta })
+    const replace = {
+      ...slot,
+      recipeId: tacos,
+      replace: true,
+      idempotencyKey: 'replace-key-1',
+    }
+    expect(await as.mutation(api.mealPlan.plan, replace)).toBe(id)
+    // Someone changes it meanwhile; the retry must not write over that.
+    await as.mutation(api.mealPlan.plan, { ...slot, mealEntryId: toast, replace: true })
+    expect(await as.mutation(api.mealPlan.plan, replace)).toBe(id)
+    const [meal] = (await as.query(api.mealPlan.week, WEEK)).meals
+    expect(meal.title).toBe('Toast')
+  })
+
+  test('undo is the app’s own: it refuses a connected app and cleans what it puts back', async () => {
+    const { t, aliceId } = await seed()
+    const snapshot = {
+      groupSlug: 'home',
+      date: '2026-11-24',
+      slot: 'dinner' as const,
+      title: 'Soup',
+    }
+    const app = t.withIdentity({
+      ...alice,
+      client_id: 'mcp-client',
+      scope: 'gather:read gather:write',
+    })
+    await expect(app.mutation(api.mealPlan.restore, snapshot)).rejects.toThrow(
+      CONNECTED_APP_REFUSED,
+    )
+    const as = t.withIdentity(alice)
+    await as.mutation(api.mealPlan.restore, {
+      ...snapshot,
+      prepMinutes: -5,
+      eaterIds: [aliceId, aliceId],
+    })
+    const [meal] = (await as.query(api.mealPlan.week, WEEK)).meals
+    expect(meal.prepMinutes).toBeUndefined()
+    expect(meal.eaterIds).toEqual([aliceId])
   })
 
   test('a day lists breakfast, lunch, then dinner', async () => {

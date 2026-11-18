@@ -49,7 +49,8 @@ installed build. Replacing a dinner, from either side, keeps that evening's
 servings, note and eaters; only the recipe or quick meal changes.
 
 Removing a meal answers what it was, and undo puts that snapshot back with
-`mealPlan.restore`, even when its Recipe or quick meal has gone since. "Something
+`mealPlan.restore`, even when its Recipe or quick meal has gone since. Undo is
+the app's own, so connected apps cannot call `restore`. "Something
 else" replaces the meal by id, not by whatever is in its slot by then. Agents
 plan through `plan_meal` with an `idempotencyKey`, like every create (ADR-0046).
 

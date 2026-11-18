@@ -115,9 +115,11 @@ function MealSheetBody({
   const [groceries, setGroceries] = useState<string | null>(null)
   const finished = useRef(false)
 
-  const eaters = eatersOf(data, meal.date, meal.slot, eaterIds)
+  // Who eats follows the day the meal will be on, so a day picked in the grid
+  // brings that evening's calendar with it.
+  const eaters = eatersOf(data, moveTo, meal.slot, eaterIds)
   const shownServings = servingsOf(data, servings, eaters.length)
-  const away = awayAt(data.events, meal.date, meal.slot)
+  const away = awayAt(data.events, moveTo, meal.slot)
   const fromCalendar = data.members.flatMap((member) => {
     const event = away.get(member.userId)
     return event
@@ -404,6 +406,9 @@ function MealSheetBody({
                   testID={`meal-move-${date}`}
                   onPress={() => {
                     setMoveTo(date)
+                    // A new day drops chosen eaters, as `move` does; back on
+                    // the meal's own day, its own choice returns.
+                    setEaterIds(date === opened.date ? opened.eaterIds : undefined)
                     haptics.selectionChanged()
                   }}
                   style={({ pressed }) => [

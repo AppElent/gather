@@ -16,6 +16,7 @@ import {
   type QueryCtx,
   query,
 } from './_generated/server'
+import { rejectConnectedApps } from './lib/connectedApps'
 import {
   isVisibleToGroups,
   requireGroupBySlug,
@@ -36,6 +37,8 @@ const MAX_RANGE_DAYS = 31
 const MAX_SERVINGS = 50
 const MAX_NOTE = 500
 const MAX_TITLE = 200
+/** A day; a stored time past it is not a cooking time. */
+const MAX_PREP_MINUTES = 24 * 60
 const NOT_FOUND = 'Meal not found'
 
 type PlannedMeal = Doc<'plannedDinners'>
@@ -452,9 +455,8 @@ export const remove = mutation({
  * link is dropped, as are eaters who have left the Group, and a Recipe title
  * longer than a meal title may be is cut rather than refused.
  *
- * It takes no idempotency key: like `move`, it is keyed by its slot, so a
- * repeated Undo finds the slot taken and writes nothing (ADR-0046). It is not
- * an MCP tool.
+ * It exists only for the app's Undo, so connected apps are refused (ADR-0046);
+ * a repeated Undo finds the slot taken and writes nothing.
  */
 export const restore = mutation({
   args: {
@@ -470,6 +472,7 @@ export const restore = mutation({
     eaterIds: v.optional(v.array(v.id('users'))),
   },
   handler: async (ctx, args) => {
+    await rejectConnectedApps(ctx)
     requireDate(args.date)
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
     const title = args.title.trim().slice(0, MAX_TITLE)
@@ -486,13 +489,21 @@ export const restore = mutation({
       date: args.date,
       slot: args.slot,
       title,
-      prepMinutes: args.prepMinutes,
+      prepMinutes:
+        args.prepMinutes !== undefined &&
+        Number.isFinite(args.prepMinutes) &&
+        args.prepMinutes >= 0 &&
+        args.prepMinutes <= MAX_PREP_MINUTES
+          ? args.prepMinutes
+          : undefined,
       recipeId:
         recipe && isVisibleToGroups(recipe, [group._id]) ? recipe._id : undefined,
       mealEntryId: entry && entry.groupId === group._id ? entry._id : undefined,
       servings: checkedServings(args.servings),
       note: checkedNote(args.note),
-      eaterIds: args.eaterIds?.filter((id) => members.has(id)),
+      eaterIds: args.eaterIds && [
+        ...new Set(args.eaterIds.filter((id) => members.has(id))),
+      ],
     })
   },
 })
