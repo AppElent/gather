@@ -1,12 +1,18 @@
 ---
 type: decision
 description: Read before deciding which platform a feature ships on, adding or moving a web or phone route, or adding a shareable link.
-version: 1.0.0
+version: 1.0.1
 status: accepted
 date: 2026-11-11
 ---
 
 # The phone leads, and the web is where a household is managed
+
+> Partly superseded by [ADR-0047](0047-six-modules-ship-on-the-web-and-the-phone-still-leads.md)
+> (18 Nov 2026): notes, calendar, groceries, the meal planner and shared costs
+> now ship on the web too, and tasks reaches full parity. Everything else here
+> stands, including the floor, share targets, phone-only Search, Quick add,
+> Drop, Labs, and the placeholders for pantry, recurring costs and savings goals.
 
 Gather has two clients of one Convex backend: the TanStack Start web app and
 the Expo phone app. Nothing said which features belonged on which. The web

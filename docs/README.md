@@ -21,7 +21,7 @@ Design studies: [designs/](../designs/).
 
 ## Decisions
 
-A new ADR takes the number after the highest (0047 next).
+A new ADR takes the number after the highest (0048 next).
 
 | ID | Decision | Status | Domain | Key implementation references |
 | --- | --- | --- | --- | --- |
@@ -66,8 +66,9 @@ A new ADR takes the number after the highest (0047 next).
 | [0039](adr/0039-staging-is-a-frontend-on-the-production-backend.md) | Staging is a frontend on the production backend | accepted | deployment | `.github/workflows/deploy.yml`, `env.manifest.ts` |
 | [0040](adr/0040-a-group-counts-in-euros.md) | A Group counts in euros | accepted | finances | `convex/holdings.ts`, ADR-0026 |
 | [0041](adr/0041-nutrition-is-retired-and-foundry-owns-it.md) | Nutrition is retired, and Foundry owns it | accepted | modules | `convex/maintenance.ts`, `packages/core/src/modules.ts` |
-| [0042](adr/0042-the-phone-leads-and-the-web-is-where-a-household-is-managed.md) | The phone leads, and the web is where a household is managed | accepted | platforms | `packages/core/src/features.ts`, `scripts/feature-manifest.test.ts` |
+| [0042](adr/0042-the-phone-leads-and-the-web-is-where-a-household-is-managed.md) | The phone leads, and the web is where a household is managed | accepted; partly superseded by 0047 (six Modules on the web) | platforms | `packages/core/src/features.ts`, `scripts/feature-manifest.test.ts` |
 | [0043](adr/0043-a-retailer-catalog-is-a-picker-and-a-card-keeps-its-own-copy.md) | A Retailer catalog is a picker, and a card keeps its own copy | accepted | loyalty cards | `convex/loyaltyCards.ts`, `convex/lib/seed/retailerCatalog.ts` |
 | [0044](adr/0044-every-merge-ships-and-the-app-updates-daily.md) | Every merge ships, and the app updates daily | accepted | deployment | `.github/workflows/deploy.yml`, `.github/workflows/mobile-update*.yml` |
 | [0045](adr/0045-each-build-variant-installs-beside-the-others.md) | Each build variant installs beside the others | accepted | mobile | `apps/mobile/app.config.ts`, `apps/mobile/eas.json` |
 | [0046](adr/0046-agents-connect-through-clerk-oauth-and-name-the-group.md) | Agents connect through Clerk OAuth and name the Group | accepted | identity | `src/lib/mcp/`, `convex/lib/connectedApps.ts`, `convex/lib/idempotency.ts` |
+| [0047](adr/0047-six-modules-ship-on-the-web-and-the-phone-still-leads.md) | Six Modules ship on the web too, and the phone still leads | accepted | platforms | `packages/core/src/features.ts`, ADR-0042 |
