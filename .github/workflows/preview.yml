@@ -190,6 +190,7 @@ jobs:
         run: |
           status=0; out=$(pnpm exec wrangler delete --force --name "gather-pr-${{ github.event.pull_request.number }}" 2>&1) || status=$?
           echo "$out"
-          # Wrangler reports a missing Worker as Cloudflare error 10007; match the
-          # code alone, because "does not exist" also covers a wrong account.
-          [ "$status" -eq 0 ] || grep -qF '[code: 10007]' <<< "$out" || exit "$status"
+          # Wrangler reports a missing Worker as Cloudflare error 10007 or, from
+          # its services lookup, 10090 (its own isWorkerNotFoundError accepts
+          # both). Match the code, not the message wording.
+          [ "$status" -eq 0 ] || grep -qE '\[code: (10007|10090)\]' <<< "$out" || exit "$status"

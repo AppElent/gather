@@ -45,9 +45,10 @@ labelled `preview:web` gets its own Convex backend and Worker.
   counts previews, that is normal: the count includes other open PRs'
   previews, so it does not mean the management API's field names changed.
 - **Worker delete tolerates only a missing Worker.** `cleanup` passes when
-  Wrangler reports Cloudflare error 10007 (Worker not found), as on a PR that
-  never deployed. Any other Wrangler failure, such as a bad token or account,
-  fails the job.
+  Wrangler reports Cloudflare error 10007 or 10090 (Worker not found; current
+  Wrangler logs 10090), as on a PR that never deployed. Any other Wrangler
+  failure, such as a bad token or an account the token cannot access, fails the
+  job.
 - **A preview backend inherits no Convex variables** — server values come from
   preview defaults ([environment](environment.md#hazards)).
 
