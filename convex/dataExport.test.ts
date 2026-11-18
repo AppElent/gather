@@ -486,6 +486,7 @@ describe('what the file contains', () => {
       { table: 'idempotencyKeys', reason: 'bookkeeping' },
       { table: 'pushDevices', reason: 'bookkeeping' },
       { table: 'scheduledNotifications', reason: 'bookkeeping' },
+      { table: 'recipeShares', reason: 'bookkeeping' },
       { table: 'tastingCatalog', reason: 'reference-data' },
       { table: 'retailerCatalog', reason: 'reference-data' },
       { table: 'seedRuns', reason: 'bookkeeping' },

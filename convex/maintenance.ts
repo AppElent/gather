@@ -7,6 +7,7 @@ import { v } from 'convex/values'
 import type { Doc, Id, TableNames } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation, internalQuery } from './_generated/server'
+import { recipeShareDiff, syncRecipeShares } from './lib/recipeShares'
 import { pickCanonicalUser } from './lib/sharing'
 import { stableDigest } from './lib/stableDigest'
 import { deleteStoredFile } from './lib/storedFiles'
@@ -66,6 +67,62 @@ export const removePersonalGroupSemantics = internalMutation({
       }
     }
     return { apply, converted: legacy.length }
+  },
+})
+
+/**
+ * Backfills `recipeShares` from `recipes.sharedGroupIds` (APP-299). Shares
+ * made before the table existed have no row, so the kitchen's recipe picker
+ * would not offer them until this has run. Idempotent: each recipe's rows are
+ * made to match its array, so a second pass finds nothing to do.
+ *
+ * One page of recipes per call. Dry by default; run with `{ apply: true }`,
+ * passing back `cursor` while `more` is true, then a dry pass from the start
+ * must report `created` and `removed` zero. **End condition:** the dev and
+ * production results are recorded in docs/migrations/README.md; then delete
+ * this and its test.
+ */
+const RECIPE_SHARES_BATCH = 200
+
+export const backfillRecipeShares = internalMutation({
+  args: {
+    apply: v.optional(v.boolean()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const page = await ctx.db
+      .query('recipes')
+      .paginate({ numItems: RECIPE_SHARES_BATCH, cursor: args.cursor ?? null })
+    let created = 0
+    let removed = 0
+    for (const recipe of page.page) {
+      if (apply) {
+        const result = await syncRecipeShares(
+          ctx,
+          recipe._id,
+          recipe.sharedGroupIds,
+        )
+        created += result.created
+        removed += result.removed
+      } else {
+        const diff = await recipeShareDiff(
+          ctx,
+          recipe._id,
+          recipe.sharedGroupIds,
+        )
+        created += diff.missing.length
+        removed += diff.stale.length
+      }
+    }
+    return {
+      apply,
+      scanned: page.page.length,
+      created,
+      removed,
+      more: !page.isDone,
+      cursor: page.continueCursor,
+    }
   },
 })
 

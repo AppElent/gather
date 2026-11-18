@@ -48,6 +48,8 @@ export const defineFeatures = <const T extends readonly Feature[]>(
 
 const ADR =
   'docs/adr/0042-the-phone-leads-and-the-web-is-where-a-household-is-managed.md'
+const WEB_PORTS_ADR =
+  'docs/adr/0047-six-modules-ship-on-the-web-and-the-phone-still-leads.md'
 const ACCOUNT = '(app)/(tabs)/settings/account'
 
 export const FEATURES = defineFeatures([
@@ -374,9 +376,9 @@ export const FEATURES = defineFeatures([
   {
     id: 'calendar',
     kind: 'product',
-    status: 'exclusive',
+    status: 'pending-port',
     platforms: ['mobile'],
-    reason: `Daily capture is the phone's goal (${ADR}). The web route is a placeholder (planned-web-modules).`,
+    reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-344.`,
     routes: {
       mobile: [
         '(app)/(tabs)/all/calendar/**',
@@ -387,9 +389,9 @@ export const FEATURES = defineFeatures([
   {
     id: 'notes',
     kind: 'product',
-    status: 'exclusive',
+    status: 'pending-port',
     platforms: ['mobile'],
-    reason: `Daily capture is the phone's goal (${ADR}). The web route is a placeholder (planned-web-modules).`,
+    reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-351.`,
     routes: {
       mobile: ['(app)/(tabs)/all/notes/**', '(app)/(tabs)/search/notes/**'],
     },
@@ -397,9 +399,9 @@ export const FEATURES = defineFeatures([
   {
     id: 'groceries',
     kind: 'product',
-    status: 'exclusive',
+    status: 'pending-port',
     platforms: ['mobile'],
-    reason: `Daily capture is the phone's goal (${ADR}). The web route is a placeholder (planned-web-modules).`,
+    reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-316.`,
     routes: { mobile: ['(app)/(tabs)/all/groceries/**'] },
   },
   {
@@ -413,9 +415,9 @@ export const FEATURES = defineFeatures([
   {
     id: 'meal-planner',
     kind: 'product',
-    status: 'exclusive',
+    status: 'pending-port',
     platforms: ['mobile'],
-    reason: `Daily capture is the phone's goal (${ADR}). The web route is a placeholder (planned-web-modules).`,
+    reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-322.`,
     routes: { mobile: ['(app)/(tabs)/all/meal-planner/**'] },
   },
   {
@@ -429,9 +431,9 @@ export const FEATURES = defineFeatures([
   {
     id: 'shared-costs',
     kind: 'product',
-    status: 'exclusive',
+    status: 'pending-port',
     platforms: ['mobile'],
-    reason: `Daily capture is the phone's goal (${ADR}). The web route is a placeholder (planned-web-modules).`,
+    reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-329.`,
     routes: { mobile: ['(app)/(tabs)/all/shared-costs/**'] },
   },
   {
@@ -448,7 +450,7 @@ export const FEATURES = defineFeatures([
     kind: 'product',
     status: 'exclusive',
     platforms: ['web'],
-    reason: `Placeholders for phone Modules, pending a decision per Module to build it on the web or remove the page (APP-83, ${ADR}).`,
+    reason: `Placeholders for phone Modules. Calendar, notes, groceries, meal planner and shared costs are replaced by their web ports (${WEB_PORTS_ADR}); pantry, recurring costs and savings goals wait for a decision per Module (APP-83, ${ADR}).`,
     routes: {
       web: [
         '_app/calendar',

@@ -126,6 +126,8 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
     ownedBy: { field: 'userId', othersSee: ['userId', 'role'] },
   },
   recipes: { scope: 'group', index: 'by_group' },
+  // An index of `recipes.sharedGroupIds`, which goes out with each recipe.
+  recipeShares: { exclude: 'bookkeeping' },
   mealEntries: { scope: 'group', index: 'by_group' },
   plannedDinners: { scope: 'group', index: 'by_group' },
   pantryEntries: { scope: 'group', index: 'by_group' },

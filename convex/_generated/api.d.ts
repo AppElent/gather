@@ -43,6 +43,7 @@ import type * as lib_order from "../lib/order.js";
 import type * as lib_recipeAiExtract from "../lib/recipeAiExtract.js";
 import type * as lib_recipeFields from "../lib/recipeFields.js";
 import type * as lib_recipeParsing from "../lib/recipeParsing.js";
+import type * as lib_recipeShares from "../lib/recipeShares.js";
 import type * as lib_safeFetch from "../lib/safeFetch.js";
 import type * as lib_seed_apply from "../lib/seed/apply.js";
 import type * as lib_seed_retailerCatalog from "../lib/seed/retailerCatalog.js";
@@ -122,6 +123,7 @@ declare const fullApi: ApiFromModules<{
   "lib/recipeAiExtract": typeof lib_recipeAiExtract;
   "lib/recipeFields": typeof lib_recipeFields;
   "lib/recipeParsing": typeof lib_recipeParsing;
+  "lib/recipeShares": typeof lib_recipeShares;
   "lib/safeFetch": typeof lib_safeFetch;
   "lib/seed/apply": typeof lib_seed_apply;
   "lib/seed/retailerCatalog": typeof lib_seed_retailerCatalog;

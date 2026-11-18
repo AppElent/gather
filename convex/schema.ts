@@ -141,6 +141,19 @@ export default defineSchema({
     nutritionStale: v.optional(v.boolean()),
   }).index('by_group', ['groupId']),
 
+  // One row per Group a recipe is Shared into: an index of
+  // `recipes.sharedGroupIds`, which stays the source of truth. A Convex index
+  // cannot key on membership of an array, so this is how "the recipes shared
+  // into this Group" is read without scanning every recipe. Written only by
+  // `lib/recipeShares.ts`; `groupId` is the Group shared *into*, not the
+  // recipe's home.
+  recipeShares: defineTable({
+    recipeId: v.id('recipes'),
+    groupId: v.id('groups'),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_recipe_group', ['recipeId', 'groupId']),
+
   taskLists: defineTable({
     groupId: v.id('groups'),
     name: v.string(),
