@@ -17,6 +17,7 @@ import {
 import { internal } from '../_generated/api'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
+import { utcDay } from './aiUsage'
 import { isAskableGroceryName } from './groceryAi'
 
 /** Questions the AI fallback may ask per UTC day, across every Group. */
@@ -128,8 +129,16 @@ export async function askAiOnce(
   taskId: Id<'tasks'>,
 ) {
   if (!recognition.askAi) return
+  // Nothing to ask with: no key, or today's questions are spent. `classify`
+  // checks both again; this only spares a scheduled run per unknown item.
+  if (!process.env.ANTHROPIC_API_KEY) return
   const { key: name, cleanName } = recognition
   const now = Date.now()
+  const usage = await ctx.db
+    .query('groceryAiUsage')
+    .withIndex('by_day', (q) => q.eq('day', utcDay(now)))
+    .unique()
+  if (usage && usage.count >= GROCERY_AI_DAILY_BUDGET) return
   const row = await findGroceryCache(ctx, name)
   if (row?.aisle) return
   if (row && now - row.askedAt < PENDING_STALE_MS) {
