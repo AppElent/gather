@@ -155,8 +155,11 @@ export function useModuleArrangement(groupSlug: string): ModuleArrangement {
   }, [groupSlug])
 
   // A Module this build does not show is not in All, Home's pins or edit mode
-  // (`modules/moduleVisibility.ts`). Its stored place is kept, so a build
-  // that shows it puts it back where the reader left it.
+  // (`modules/moduleVisibility.ts`). Reordering here saves the
+  // arrangement without it, so a build that shows it again puts it back in its
+  // default place. Store users never had those Modules, so nothing they chose
+  // is lost; only a development build run with
+  // `EXPO_PUBLIC_LIVE_MODULES_ONLY=1` can drop its own choices this way.
   const arrangement = useMemo(
     () => shownArrangement(arrangeModules(stored), LIVE_MODULES_ONLY),
     [stored],

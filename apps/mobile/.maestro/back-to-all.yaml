@@ -10,3 +10,5 @@ appId: com.appelent.gather.dev
     commands:
       - tapOn: ${L_BACK}
       - waitForAnimationToEnd
+- assertVisible:
+    id: all-options
