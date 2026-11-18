@@ -8,6 +8,7 @@ import {
   DEFAULT_MEAL_PREFERENCES,
   describeClash,
   fitsPreferences,
+  listChangePatch,
   type MatchableRecipe,
   nextCookingMinutes,
   normalizeMealPreferencesPatch,
@@ -202,6 +203,50 @@ describe('the optimistic answer', () => {
     const next = applyMemberDefault(base, 'daan', false)
     expect(next.defaultEaterIds).toEqual(['sanne', 'noor'])
     expect(next.servingsPerMeal).toBe(2)
+  })
+})
+
+describe('listChangePatch', () => {
+  const current = { allergens: ['milk' as const], diets: [], dislikes: ['Koriander'] }
+
+  test('adds and removes one item, keeping the rest', () => {
+    expect(
+      listChangePatch(current, { list: 'allergens', value: 'eggs', on: true }),
+    ).toEqual({ ok: true, patch: { allergens: ['milk', 'eggs'] } })
+    expect(
+      listChangePatch(current, { list: 'allergens', value: 'milk', on: false }),
+    ).toEqual({ ok: true, patch: { allergens: [] } })
+    expect(
+      listChangePatch(current, { list: 'diets', value: 'vegan', on: true }),
+    ).toEqual({ ok: true, patch: { diets: ['vegan'] } })
+  })
+
+  test('on twice and off twice are no-ops', () => {
+    expect(
+      listChangePatch(current, { list: 'allergens', value: 'milk', on: true }),
+    ).toEqual({ ok: true, patch: { allergens: ['milk'] } })
+    expect(
+      listChangePatch(current, { list: 'diets', value: 'halal', on: false }),
+    ).toEqual({ ok: true, patch: { diets: [] } })
+  })
+
+  test('dislikes match ignoring case and are refused when empty or too long', () => {
+    expect(
+      listChangePatch(current, { list: 'dislikes', value: ' koriander ', on: true }),
+    ).toEqual({ ok: true, patch: { dislikes: ['Koriander'] } })
+    expect(
+      listChangePatch(current, { list: 'dislikes', value: 'KORIANDER', on: false }),
+    ).toEqual({ ok: true, patch: { dislikes: [] } })
+    expect(
+      listChangePatch(current, { list: 'dislikes', value: '  ', on: true }),
+    ).toEqual({ ok: false, field: 'dislikes' })
+    expect(
+      listChangePatch(current, {
+        list: 'dislikes',
+        value: 'x'.repeat(41),
+        on: true,
+      }),
+    ).toEqual({ ok: false, field: 'dislikes' })
   })
 })
 
@@ -692,6 +737,14 @@ describe('recipeClashes: the round-2 Opus review cases', () => {
     ['1 pot bramenjam', { diets: ['gluten-free'] }],
     ['250 g wild mushrooms', { diets: ['vegetarian'] }],
     ['1 bosje wild garlic', { diets: ['halal'] }],
+    ['1 bosje wild garlic', { diets: ['vegetarian'] }],
+    ['50 g wild rocket', { diets: ['vegetarian'] }],
+    ['125 g wild blueberries', { diets: ['vegetarian'] }],
+    ['200 g bramen', { diets: ['gluten-free'] }],
+    ['2 bloemkoolschnitzels', { diets: ['vegetarian'] }],
+    ['1 tofuschnitzel', { diets: ['vegetarian'] }],
+    ['100 g rijst vermicelli', { allergens: ['gluten'] }],
+    ['2 el sukade', { diets: ['halal'] }],
     ['carpaccio van rode biet', { diets: ['vegetarian'] }],
     ['1 tomatencarpaccio', { diets: ['vegetarian'] }],
     ['50 g sukade', { diets: ['vegetarian'] }],

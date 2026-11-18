@@ -45,14 +45,15 @@ export const smartValidator = v.object({
 /**
  * The preferences a write may set. Each is optional; absent leaves it as it
  * is. `null` clears the two values whose default is "none".
+ *
+ * Diets, allergens and dislikes are not here: they change one item at a time
+ * (`mealPreferences.setDiet` and friends), so a concurrent edit by another
+ * Member is never overwritten by a stale whole list.
  */
 export const mealPreferencesPatchValidator = v.object({
   servingsPerMeal: v.optional(v.union(v.number(), v.null())),
   slots: v.optional(slotsValidator),
   cookingMinutes: v.optional(v.array(cookingMinutesValidator)),
-  diets: v.optional(v.array(dietValidator)),
-  allergens: v.optional(v.array(allergenValidator)),
-  dislikes: v.optional(v.array(v.string())),
   noRepeatDays: v.optional(v.number()),
   meatFreeNights: v.optional(v.number()),
   fishDays: v.optional(v.array(weekdayValidator)),

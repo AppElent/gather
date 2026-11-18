@@ -8,6 +8,8 @@
  * week (APP-317) can rely on them.
  */
 import {
+  listChangePatch,
+  type MealPreferencesListChange,
   type MealPreferencesPatch,
   normalizeMealPreferencesPatch,
   resolveMealPreferences,
@@ -22,7 +24,11 @@ import {
   query,
 } from './_generated/server'
 import { requireGroupBySlug } from './lib/groupAccess'
-import { mealPreferencesPatchValidator } from './lib/mealPreferences'
+import {
+  allergenValidator,
+  dietValidator,
+  mealPreferencesPatchValidator,
+} from './lib/mealPreferences'
 
 async function rowOf(ctx: QueryCtx, groupId: Id<'groups'>) {
   return await ctx.db
@@ -134,4 +140,69 @@ export const setMemberDefault = mutation({
     )
     await write(ctx, group._id, user._id, { memberDefaults })
   },
+})
+
+/**
+ * Switch one item of a safety list on or off, reading the list inside the
+ * transaction. Two Members adding two allergens at once both keep theirs,
+ * which a whole-list write could not promise.
+ */
+async function changeList(
+  ctx: MutationCtx,
+  groupSlug: string,
+  change: MealPreferencesListChange,
+) {
+  const { group, user } = await requireGroupBySlug(ctx, groupSlug)
+  const [row, members] = await Promise.all([
+    rowOf(ctx, group._id),
+    membersOf(ctx, group._id),
+  ])
+  const result = listChangePatch(resolveMealPreferences(row, members), change)
+  if (!result.ok) throw new ConvexError(mealPreferencesRefusal(result.field))
+  await write(
+    ctx,
+    group._id,
+    user._id,
+    result.patch as Partial<Doc<'mealPreferences'>>,
+  )
+}
+
+/** One diet on or off. */
+export const setDiet = mutation({
+  args: { groupSlug: v.string(), diet: dietValidator, on: v.boolean() },
+  handler: (ctx, args) =>
+    changeList(ctx, args.groupSlug, {
+      list: 'diets',
+      value: args.diet,
+      on: args.on,
+    }),
+})
+
+/** One allergen on or off. */
+export const setAllergen = mutation({
+  args: {
+    groupSlug: v.string(),
+    allergen: allergenValidator,
+    on: v.boolean(),
+  },
+  handler: (ctx, args) =>
+    changeList(ctx, args.groupSlug, {
+      list: 'allergens',
+      value: args.allergen,
+      on: args.on,
+    }),
+})
+
+/**
+ * Add a dislike (`on`) or remove it, matched ignoring case. Too long, empty,
+ * or one past the limit is refused as `dislikes`.
+ */
+export const setDislike = mutation({
+  args: { groupSlug: v.string(), dislike: v.string(), on: v.boolean() },
+  handler: (ctx, args) =>
+    changeList(ctx, args.groupSlug, {
+      list: 'dislikes',
+      value: args.dislike,
+      on: args.on,
+    }),
 })

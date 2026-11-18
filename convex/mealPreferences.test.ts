@@ -82,11 +82,22 @@ describe('mealPreferences.get', () => {
 describe('mealPreferences.update', () => {
   test('any Member changes it, the other reads it at once', async () => {
     const { t, home, bobId } = await seed()
-    await t.withIdentity(bob).mutation(api.mealPreferences.update, {
+    const asBob = t.withIdentity(bob)
+    for (const allergen of ['peanuts', 'milk'] as const)
+      await asBob.mutation(api.mealPreferences.setAllergen, {
+        groupSlug: 'home',
+        allergen,
+        on: true,
+      })
+    for (const dislike of [' champignons ', 'Champignons'])
+      await asBob.mutation(api.mealPreferences.setDislike, {
+        groupSlug: 'home',
+        dislike,
+        on: true,
+      })
+    await asBob.mutation(api.mealPreferences.update, {
       groupSlug: 'home',
       patch: {
-        allergens: ['peanuts', 'milk'],
-        dislikes: [' champignons ', 'Champignons'],
         cookingMinutes: [20, 20, 20, 20, 20, 60, null],
         fishDays: [4],
         weeklyBudgetCents: 8550,
@@ -106,9 +117,10 @@ describe('mealPreferences.update', () => {
   test('one row per Group, patched in place', async () => {
     const { t, home } = await seed()
     const as = t.withIdentity(alice)
-    await as.mutation(api.mealPreferences.update, {
+    await as.mutation(api.mealPreferences.setDiet, {
       groupSlug: 'home',
-      patch: { diets: ['vegetarian'] },
+      diet: 'vegetarian',
+      on: true,
     })
     await as.mutation(api.mealPreferences.update, {
       groupSlug: 'home',
@@ -159,11 +171,121 @@ describe('mealPreferences.update', () => {
   test('refuses a non-member before writing', async () => {
     const { t, home } = await seed()
     await expect(
-      t.withIdentity(carol).mutation(api.mealPreferences.update, {
+      t.withIdentity(carol).mutation(api.mealPreferences.setDiet, {
         groupSlug: 'home',
-        patch: { diets: ['vegan'] },
+        diet: 'vegan',
+        on: true,
       }),
     ).rejects.toThrow('Not a member of that group')
+    expect(await rowOf(t, home)).toBeNull()
+  })
+})
+
+describe('safety lists change one item at a time', () => {
+  test('two Members adding two allergens at once both keep theirs', async () => {
+    const { t } = await seed()
+    // Both read the same empty list before either write lands: a whole-list
+    // write would drop one of these.
+    await Promise.all([
+      t.withIdentity(alice).mutation(api.mealPreferences.setAllergen, {
+        groupSlug: 'home',
+        allergen: 'peanuts',
+        on: true,
+      }),
+      t.withIdentity(bob).mutation(api.mealPreferences.setAllergen, {
+        groupSlug: 'home',
+        allergen: 'milk',
+        on: true,
+      }),
+    ])
+    const prefs = await t
+      .withIdentity(alice)
+      .query(api.mealPreferences.get, { groupSlug: 'home' })
+    expect([...prefs.allergens].sort()).toEqual(['milk', 'peanuts'])
+  })
+
+  test('interleaved: one adds a diet while the other removes another', async () => {
+    const { t } = await seed()
+    const asAlice = t.withIdentity(alice)
+    const asBob = t.withIdentity(bob)
+    await asAlice.mutation(api.mealPreferences.setDiet, {
+      groupSlug: 'home',
+      diet: 'vegetarian',
+      on: true,
+    })
+    await Promise.all([
+      asBob.mutation(api.mealPreferences.setDiet, {
+        groupSlug: 'home',
+        diet: 'halal',
+        on: true,
+      }),
+      asAlice.mutation(api.mealPreferences.setDiet, {
+        groupSlug: 'home',
+        diet: 'vegetarian',
+        on: false,
+      }),
+    ])
+    const prefs = await asBob.query(api.mealPreferences.get, {
+      groupSlug: 'home',
+    })
+    expect(prefs.diets).toEqual(['halal'])
+  })
+
+  test('two dislikes added at once both stay; removing ignores case', async () => {
+    const { t } = await seed()
+    await Promise.all([
+      t.withIdentity(alice).mutation(api.mealPreferences.setDislike, {
+        groupSlug: 'home',
+        dislike: 'koriander',
+        on: true,
+      }),
+      t.withIdentity(bob).mutation(api.mealPreferences.setDislike, {
+        groupSlug: 'home',
+        dislike: 'Spruitjes',
+        on: true,
+      }),
+    ])
+    await t.withIdentity(bob).mutation(api.mealPreferences.setDislike, {
+      groupSlug: 'home',
+      dislike: 'KORIANDER',
+      on: false,
+    })
+    const prefs = await t
+      .withIdentity(alice)
+      .query(api.mealPreferences.get, { groupSlug: 'home' })
+    expect(prefs.dislikes).toEqual(['Spruitjes'])
+  })
+
+  test('switching on twice keeps one; a too-long dislike is refused', async () => {
+    const { t, home } = await seed()
+    const as = t.withIdentity(alice)
+    for (let i = 0; i < 2; i++)
+      await as.mutation(api.mealPreferences.setAllergen, {
+        groupSlug: 'home',
+        allergen: 'eggs',
+        on: true,
+      })
+    expect((await rowOf(t, home))?.allergens).toEqual(['eggs'])
+    await expect(
+      as.mutation(api.mealPreferences.setDislike, {
+        groupSlug: 'home',
+        dislike: 'x'.repeat(41),
+        on: true,
+      }),
+    ).rejects.toMatchObject({
+      data: { kind: 'mealPreferences:invalid', field: 'dislikes' },
+    })
+  })
+
+  test('the whole-patch write no longer takes the safety lists', async () => {
+    const { t, home } = await seed()
+    await expect(
+      t.withIdentity(alice).mutation(api.mealPreferences.update, {
+        groupSlug: 'home',
+        // @ts-expect-error allergens change one item at a time
+        patch: { allergens: ['milk'] },
+      }),
+    ).rejects.toThrow()
     expect(await rowOf(t, home)).toBeNull()
   })
 })
@@ -220,9 +342,10 @@ describe('mealPreferences.setMemberDefault', () => {
 describe('the row goes with its Group', () => {
   test('deleting the Group deletes its meal preferences', async () => {
     const { t, home } = await seed()
-    await t.withIdentity(alice).mutation(api.mealPreferences.update, {
+    await t.withIdentity(alice).mutation(api.mealPreferences.setAllergen, {
       groupSlug: 'home',
-      patch: { allergens: ['nuts'] },
+      allergen: 'nuts',
+      on: true,
     })
     await t.withIdentity(bob).mutation(api.groups.leaveGroup, { groupId: home })
     await t.withIdentity(alice).mutation(api.groups.deleteGroup, { groupId: home })
@@ -231,9 +354,10 @@ describe('the row goes with its Group', () => {
 
   test('another Group’s row is untouched and never read', async () => {
     const { t, other } = await seed()
-    await t.withIdentity(carol).mutation(api.mealPreferences.update, {
+    await t.withIdentity(carol).mutation(api.mealPreferences.setDiet, {
       groupSlug: 'other',
-      patch: { diets: ['halal'] },
+      diet: 'halal',
+      on: true,
     })
     const home = await t
       .withIdentity(alice)

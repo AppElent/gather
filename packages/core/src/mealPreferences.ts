@@ -471,6 +471,57 @@ export function toggleDay(days: readonly Weekday[], day: Weekday): Weekday[] {
 }
 
 /** Adds `value` to a set kept as a list, or takes it out, keeping order. */
+/**
+ * One item switched on or off one of the safety lists. These are written per
+ * item, never as the whole list, so two Members adding two allergens at the
+ * same moment both keep theirs.
+ */
+export type MealPreferencesListChange =
+  | { list: 'allergens'; value: Allergen; on: boolean }
+  | { list: 'diets'; value: Diet; on: boolean }
+  | { list: 'dislikes'; value: string; on: boolean }
+
+/**
+ * The patch that makes `change` on top of `current`, normalised, or the field
+ * that refuses it (a dislike too long, or one too many). Switching on what is
+ * already on, or off what is already off, is a no-op patch.
+ */
+export function listChangePatch(
+  current: Pick<ResolvedMealPreferences, 'allergens' | 'diets' | 'dislikes'>,
+  change: MealPreferencesListChange,
+):
+  | { ok: true; patch: MealPreferencesPatch }
+  | { ok: false; field: MealPreferencesField } {
+  if (change.list === 'dislikes') {
+    const text = normalizeDislike(change.value)
+    const key = text.toLocaleLowerCase()
+    const others = current.dislikes.filter(
+      (dislike) => dislike.toLocaleLowerCase() !== key,
+    )
+    const has = others.length !== current.dislikes.length
+    if (change.on && !text) return { ok: false, field: 'dislikes' }
+    const dislikes = change.on
+      ? has
+        ? [...current.dislikes]
+        : [...current.dislikes, text]
+      : others
+    return normalizeMealPreferencesPatch({ dislikes })
+  }
+  if (change.list === 'allergens')
+    return normalizeMealPreferencesPatch({
+      allergens: setIn(current.allergens, change.value, change.on),
+    })
+  return normalizeMealPreferencesPatch({
+    diets: setIn(current.diets, change.value, change.on),
+  })
+}
+
+/** `values` with `value` in it (`on`) or out of it, order kept. */
+function setIn<T>(values: readonly T[], value: T, on: boolean): T[] {
+  const without = values.filter((v) => v !== value)
+  return on ? (values.includes(value) ? [...values] : [...values, value]) : without
+}
+
 export function toggleIn<T>(values: readonly T[], value: T): T[] {
   return values.includes(value)
     ? values.filter((v) => v !== value)

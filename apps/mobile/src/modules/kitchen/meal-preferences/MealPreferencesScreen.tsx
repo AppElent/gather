@@ -8,6 +8,10 @@
  * is in flight; a refused write drops the patch, the old value reappears and
  * the screen says it did not save. The only typed value, the weekly budget,
  * commits on blur (docs/standards/number-fields.md).
+ *
+ * Diets, allergens and dislikes are written one item at a time
+ * (`setDiet`/`setAllergen`/`setDislike`), never as a whole list, so another
+ * Member's change made at the same moment is never lost.
  */
 import {
   ALLERGENS,
@@ -17,8 +21,10 @@ import {
   type CookingMinutes,
   CUISINES,
   DIETS,
+  listChangePatch,
   MEAL_PREFERENCE_LIMITS,
   MEAL_SLOTS,
+  type MealPreferencesListChange,
   type MealPreferencesPatch,
   nextCookingMinutes,
   normalizeDislike,
@@ -27,6 +33,7 @@ import {
   toggleDay,
   toggleIn,
 } from '@gather/core/meal-preferences'
+import type { OptimisticLocalStore } from 'convex/browser'
 import { useMutation } from 'convex/react'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -110,6 +117,44 @@ export function MealPreferencesScreen() {
       )
   })
 
+  // The same answer the server gives for one list item, shown at once.
+  const optimisticList = (
+    store: OptimisticLocalStore,
+    change: MealPreferencesListChange,
+  ) => {
+    const current = store.getQuery(api.mealPreferences.get, { groupSlug })
+    if (!current) return
+    const result = listChangePatch(current, change)
+    if (result.ok)
+      store.setQuery(
+        api.mealPreferences.get,
+        { groupSlug },
+        { ...current, ...applyMealPreferencesPatch(current, result.patch) },
+      )
+  }
+  const setDiet = useMutation(api.mealPreferences.setDiet).withOptimisticUpdate(
+    (store, args) =>
+      optimisticList(store, { list: 'diets', value: args.diet, on: args.on }),
+  )
+  const setAllergen = useMutation(
+    api.mealPreferences.setAllergen,
+  ).withOptimisticUpdate((store, args) =>
+    optimisticList(store, {
+      list: 'allergens',
+      value: args.allergen,
+      on: args.on,
+    }),
+  )
+  const setDislike = useMutation(
+    api.mealPreferences.setDislike,
+  ).withOptimisticUpdate((store, args) =>
+    optimisticList(store, {
+      list: 'dislikes',
+      value: args.dislike,
+      on: args.on,
+    }),
+  )
+
   const failedToSave = () => {
     haptics.actionFailed()
     setFailed(true)
@@ -118,6 +163,17 @@ export function MealPreferencesScreen() {
   function save(patch: MealPreferencesPatch) {
     setFailed(false)
     update({ groupSlug, patch }).catch(failedToSave)
+  }
+
+  function saveItem(change: MealPreferencesListChange) {
+    setFailed(false)
+    const written =
+      change.list === 'diets'
+        ? setDiet({ groupSlug, diet: change.value, on: change.on })
+        : change.list === 'allergens'
+          ? setAllergen({ groupSlug, allergen: change.value, on: change.on })
+          : setDislike({ groupSlug, dislike: change.value, on: change.on })
+    written.catch(failedToSave)
   }
 
   const decimal: ',' | '.' = locale === 'nl' ? ',' : '.'
@@ -177,7 +233,7 @@ export function MealPreferencesScreen() {
     }
     setDislikeFull(false)
     setDislikeDraft('')
-    if (!exists) save({ dislikes: [...prefs.dislikes, text] })
+    if (!exists) saveItem({ list: 'dislikes', value: text, on: true })
   }
 
   function commitBudget() {
@@ -376,7 +432,13 @@ export function MealPreferencesScreen() {
                   testID={`meal-prefs-diet-${diet}`}
                   label={m.diet.names[diet]}
                   selected={prefs.diets.includes(diet)}
-                  onPress={() => save({ diets: toggleIn(prefs.diets, diet) })}
+                  onPress={() =>
+                    saveItem({
+                      list: 'diets',
+                      value: diet,
+                      on: !prefs.diets.includes(diet),
+                    })
+                  }
                 />
               ))}
             </ChipWrap>
@@ -398,7 +460,11 @@ export function MealPreferencesScreen() {
                   label={m.allergies.names[allergen]}
                   selected={prefs.allergens.includes(allergen)}
                   onPress={() =>
-                    save({ allergens: toggleIn(prefs.allergens, allergen) })
+                    saveItem({
+                      list: 'allergens',
+                      value: allergen,
+                      on: !prefs.allergens.includes(allergen),
+                    })
                   }
                 />
               ))}
@@ -428,9 +494,7 @@ export function MealPreferencesScreen() {
                       hitSlop={6}
                       onPress={() => {
                         setDislikeFull(false)
-                        save({
-                          dislikes: prefs.dislikes.filter((d) => d !== dislike),
-                        })
+                        saveItem({ list: 'dislikes', value: dislike, on: false })
                       }}
                       style={({ pressed }) => [
                         styles.tagRemove,
