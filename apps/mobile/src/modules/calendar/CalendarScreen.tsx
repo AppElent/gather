@@ -131,8 +131,10 @@ export function CalendarScreen({
 
   const settle = (next: typeof navigation) => {
     setNavigation(next)
-    if (next.presentation !== navigation.presentation)
-      onViewChange(next.presentation)
+    // The preference, not the presentation: after an automatic collapse the
+    // header already shows Week, and a drag that keeps it there is a choice.
+    if (next.preferredView !== navigation.preferredView)
+      onViewChange(next.preferredView)
   }
 
   return (
