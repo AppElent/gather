@@ -867,6 +867,15 @@ export const en = {
   tasks: {
     /** The summary under a task screen's large title. */
     count: coreEn.tasks.count,
+    /** APP-306: the New list sheet, list kinds and their faces, shared with the web. */
+    newList: coreEn.tasks.newList,
+    appearance: coreEn.tasks.appearance,
+    kinds: coreEn.tasks.kinds,
+    icons: coreEn.tasks.icons,
+    colors: coreEn.tasks.colors,
+    starters: coreEn.tasks.starters,
+    packing: coreEn.tasks.packing,
+    wishlist: coreEn.tasks.wishlist,
     title: 'Tasks',
 
     /** The Add tab's "Add a task": a title, a list, and a save. */

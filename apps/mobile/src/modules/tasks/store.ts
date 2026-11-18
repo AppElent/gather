@@ -9,6 +9,13 @@
  * rows readable and says so through the list's `sync`.
  */
 import { localIsoDate } from '@gather/core/civil-date'
+import {
+  asTaskListKind,
+  type TaskListColor,
+  type TaskListIcon,
+  type TaskListKind,
+  taskListFace,
+} from '@gather/core/task-lists'
 import type { OptimisticLocalStore } from 'convex/browser'
 import { useAction, useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
@@ -165,6 +172,8 @@ export function mergeTasks(
             priority: row.priority,
             labels: row.labels ?? [],
             notes: row.notes,
+            url: row.url,
+            priceCents: row.priceCents,
             order: row.order,
           })
         }
@@ -182,9 +191,23 @@ export function mergeTasks(
       display: list.display,
       order: list.order,
       sync,
+      ...listFace(list),
     }
   })
   return { lists: views, tasks }
+}
+
+/**
+ * A list row's kind and tile. A server older than APP-306 sends none of the
+ * three, and a newer one may send a kind this build does not know: both read
+ * as a plain list in the kind's face.
+ */
+export function listFace(list: {
+  kind?: string | null
+  icon?: string | null
+  color?: string | null
+}): { kind: TaskListKind; icon: TaskListIcon; color: TaskListColor } {
+  return { kind: asTaskListKind(list.kind), ...taskListFace(list) }
 }
 
 export function taskSections<T extends { done: boolean }>(tasks: readonly T[]) {
@@ -308,6 +331,9 @@ export function useTaskActions() {
   const removeList = useMutation(api.taskLists.remove)
   const renameLabel = useMutation(api.tasks.renameLabel)
   const removeLabel = useMutation(api.tasks.removeLabel)
+  const createList = useMutation(api.taskLists.create)
+  const setAppearance = useMutation(api.taskLists.setAppearance)
+  const setDoneInList = useMutation(api.tasks.setDoneInList)
 
   const patch = (
     id: string,
@@ -354,5 +380,30 @@ export function useTaskActions() {
     renameLabel: (from: string, to: string) =>
       renameLabel({ groupSlug, from, to }),
     removeLabel: (label: string) => removeLabel({ groupSlug, label }),
+    /** A local list from the New list sheet, with its template's items. */
+    createList: (fields: {
+      name: string
+      kind: TaskListKind
+      icon: TaskListIcon
+      color: TaskListColor
+      starterTasks: string[]
+      idempotencyKey: string
+    }) => createList({ groupSlug, provider: 'local', ...fields }),
+    setListAppearance: (
+      id: string,
+      face: { icon?: TaskListIcon; color?: TaskListColor },
+    ) =>
+      setAppearance({ listId: id as Id<'taskLists'>, groupSlug, ...face }),
+    /** Every item on a list, or only `ids`, checked or unchecked at once. */
+    setDoneInList: (listId: string, done: boolean, ids?: string[]) =>
+      setDoneInList({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        done,
+        taskIds: ids as Id<'tasks'>[] | undefined,
+      }),
+    setUrl: (id: string, url: string | null) => patch(id, { url }),
+    setPrice: (id: string, priceCents: number | null) =>
+      patch(id, { priceCents }),
   }
 }

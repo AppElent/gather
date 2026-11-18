@@ -27,6 +27,14 @@ rows, lists, selected states or the tab bar. Group-coloured text (`accentText`,
 a group's `text`) and check rings sit on `ground` or `surface`, never on a
 wash. Section labels are sentence case, never uppercased.
 
+A task list may wear one of the four group colours and an icon of its own
+(`@gather/core/task-lists`). The same rule holds: that colour goes only on the
+list's own tile (`ListTile` in `modules/tasks/listFace.tsx`): its row on the
+lists index, its `WashHeader` and the New list preview. It never goes on its
+rows or text. A linked list wears no colour: its tile is `surface-2` with the
+link glyph. The colour swatches in the New list and Colour and icon sheets are
+samples of the fills, not selected states.
+
 The building blocks are in `src/ui/`, one per component guideline:
 `ModuleTile` (four sizes; `moduleTile(id)` reads a Module's group and glyph from
 the catalogue), `WashHeader`, `PhotoHeader` with `usePhotoTitle`, `FactsStrip`,

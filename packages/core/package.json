@@ -30,6 +30,7 @@
     "./refusals": "./src/refusals.ts",
     "./retailer-logos": "./src/retailerLogos.ts",
     "./sentry-privacy": "./src/sentryPrivacy.ts",
+    "./task-lists": "./src/taskLists.ts",
     "./tastings": "./src/tastings.ts"
   },
   "dependencies": {},

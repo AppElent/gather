@@ -14,6 +14,7 @@
  * Delete is at the bottom, in red, and asks first — deleting in Gather is
  * permanent today (`apps/mobile/DESIGN_SYSTEM.md`).
  */
+import { hasLinkAndPrice } from '@gather/core/task-lists'
 import { Stack, useRouter } from 'expo-router'
 import type { ReactNode } from 'react'
 import {
@@ -38,6 +39,7 @@ import { TASK_ICONS } from './icons'
 import { useTaskActions, useTaskState } from './store'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
+import { WishlistFields } from './WishlistFields'
 
 export function TaskDetail({ taskId }: { taskId: string }) {
   const tokens = useTokens('home')
@@ -130,6 +132,10 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             ]}
           />
         </View>
+
+        {list && hasLinkAndPrice(list.kind) ? (
+          <WishlistFields task={task} writable={list.writable} />
+        ) : null}
 
         <Card>
           <PropertyRow

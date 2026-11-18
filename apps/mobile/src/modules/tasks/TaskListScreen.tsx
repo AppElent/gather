@@ -14,6 +14,11 @@
  *   write to also says so and hides its composer.
  */
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
+import {
+  hasLinkAndPrice,
+  keepsCheckedInPlace,
+  taskUrlHost,
+} from '@gather/core/task-lists'
 import { Stack, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
@@ -37,7 +42,9 @@ import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { WashHeader } from '../../ui/wash-header'
 import { Chip, priorityColor } from './components'
-import { TASK_ICONS } from './icons'
+import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
+import { AppearanceSheet } from './listFace'
+import { PackingProgress, UncheckAll } from './packing'
 import { ReorderMode } from './ReorderMode'
 import { RenameSheet } from './sheets'
 import { taskSections, useTaskActions, useTaskList } from './store'
@@ -45,6 +52,7 @@ import { TaskComposer, TaskRow } from './TaskRow'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
 import type { ListDisplay, Task, TaskList as TaskListModel } from './types'
+import { formatPrice } from './wishlist'
 
 /** A menu entry an owning module adds to the list's ⋯ menu. */
 export interface ListMenuExtra {
@@ -80,6 +88,7 @@ export function TaskList({
   const actions = useTaskActions()
 
   const [renamingList, setRenamingList] = useState(false)
+  const [restyling, setRestyling] = useState(false)
   const [reordering, setReordering] = useState(false)
   const taskSheets = useTaskSheets({
     tasks,
@@ -96,6 +105,14 @@ export function TaskList({
     // The only way here is deleting the list from its own screen, which pops.
     return <View style={{ flex: 1, backgroundColor: tokens.ground }} />
   }
+
+  // A packing list keeps its checked items where they are: it is reset for
+  // the next trip rather than worked through (APP-306).
+  const inPlace = keepsCheckedInPlace(list.kind)
+  const listed = inPlace ? tasks : active
+  const finished = inPlace ? [] : completed
+  const doneCount = tasks.filter((task) => task.done).length
+  const wishlist = hasLinkAndPrice(list.kind)
 
   // Whether a provider rather than Convex holds the rows. Not `!writable`:
   // being linked and being read-only are separate facts that only coincide
@@ -124,6 +141,7 @@ export function TaskList({
     }
     if (action === 'reorder') setReordering(true)
     if (action === 'rename') setRenamingList(true)
+    if (action === 'appearance') setRestyling(true)
     if (action === 'delete') confirmDeleteList()
     menuExtras.find((extra) => extra.id === action)?.onPress()
   }
@@ -143,7 +161,12 @@ export function TaskList({
       params: { taskId: task.id },
     })
 
-  const tile = moduleTile(moduleId)
+  // A local list under Tasks wears its own tile; a list another Module owns
+  // (Groceries) wears that Module's, and a linked list the Tasks tile.
+  const tile =
+    moduleId === 'tasks' && !linked
+      ? { group: list.color, glyph: TASK_LIST_GLYPHS[list.icon] }
+      : moduleTile(moduleId)
 
   const row = (task: Task) => (
     <TaskRow
@@ -154,7 +177,14 @@ export function TaskList({
         (list.display.priority && priorityColor(task.priority, tokens)) ||
         'transparent'
       }
-      meta={<TaskMeta task={task} display={list.display} today={today} />}
+      meta={
+        <TaskMeta
+          task={task}
+          display={list.display}
+          today={today}
+          wishlist={wishlist}
+        />
+      }
       onOpen={() => openTask(task)}
       menu={{
         reorder: true,
@@ -219,6 +249,15 @@ export function TaskList({
                     image: 'pencil',
                     attributes: { disabled: !list.writable },
                   },
+                  ...(linked
+                    ? []
+                    : [
+                        {
+                          id: 'appearance',
+                          title: t.tasks.appearance.title,
+                          image: 'paintpalette' as const,
+                        },
+                      ]),
                   ...menuExtras.map(({ id, title, image }) => ({
                     id,
                     title,
@@ -277,12 +316,16 @@ export function TaskList({
         <View style={styles.content}>
           {reordering ? (
             <ReorderMode
-              tasks={active}
+              tasks={listed}
               display={list.display}
               today={today}
               scrollRef={scrollRef}
               onDragging={setDragging}
-              onCommit={(ids) => actions.reorderTasks(list.id, ids)}
+              onCommit={(ids) =>
+                actions
+                  .reorderTasks(list.id, ids)
+                  .catch(() => haptics.actionFailed())
+              }
             />
           ) : (
             <>
@@ -319,8 +362,12 @@ export function TaskList({
                 </View>
               )}
 
+              {inPlace && tasks.length > 0 ? (
+                <PackingProgress done={doneCount} total={tasks.length} />
+              ) : null}
+
               <InsetList>
-                {active.length === 0 && completed.length === 0 ? (
+                {tasks.length === 0 ? (
                   <View style={styles.emptyRow}>
                     <Text style={[styles.empty, { color: tokens.muted }]}>
                       {linked && list.sync === 'loading'
@@ -329,7 +376,7 @@ export function TaskList({
                     </Text>
                   </View>
                 ) : null}
-                {active.map(row)}
+                {listed.map(row)}
                 {list.writable ? (
                   <TaskComposer
                     listId={list.id}
@@ -339,12 +386,16 @@ export function TaskList({
               </InsetList>
 
               <CompletedSection
-                count={completed.length}
+                count={finished.length}
                 group="home"
                 label={t.common.completed}
               >
-                <InsetList>{completed.map(row)}</InsetList>
+                <InsetList>{finished.map(row)}</InsetList>
               </CompletedSection>
+
+              {inPlace && list.writable && tasks.length > 0 ? (
+                <UncheckAll listId={list.id} doneCount={doneCount} />
+              ) : null}
             </>
           )}
         </View>
@@ -358,6 +409,9 @@ export function TaskList({
           onSave={(next) => actions.renameList(list.id, next)}
           onClose={() => setRenamingList(false)}
         />
+      ) : null}
+      {restyling ? (
+        <AppearanceSheet list={list} onClose={() => setRestyling(false)} />
       ) : null}
     </>
   )
@@ -386,14 +440,26 @@ function TaskMeta({
   task,
   display,
   today,
+  wishlist,
 }: {
   task: Task
   display: ListDisplay
   today: string
+  /** A wishlist row leads with where to buy it and what it costs. */
+  wishlist: boolean
 }) {
   const tokens = useTokens('home')
   const { t, locale } = useI18n()
+  const buy = wishlist
+    ? [
+        task.url ? taskUrlHost(task.url) : null,
+        task.priceCents === undefined
+          ? null
+          : formatPrice(task.priceCents, locale),
+      ].filter(Boolean)
+    : []
   const shown =
+    buy.length > 0 ||
     (display.due && task.dueDate) ||
     (display.priority && task.priority) ||
     (display.labels && task.labels.length > 0)
@@ -404,6 +470,11 @@ function TaskMeta({
 
   return (
     <View style={styles.metaRow}>
+      {buy.length > 0 ? (
+        <Text style={[styles.meta, { color: tokens.muted }]}>
+          {buy.join(' \u00b7 ')}
+        </Text>
+      ) : null}
       {display.due && task.dueDate ? (
         <View style={styles.metaItem}>
           <TASK_ICONS.Calendar
