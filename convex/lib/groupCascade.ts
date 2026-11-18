@@ -33,6 +33,7 @@ import { internal } from '../_generated/api'
 import type { Doc, Id, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import type { GroupScopedTable } from './groupAccess'
+import { dropRecipeShares, setSharedGroups } from './recipeShares'
 import { storedFileIdsOf } from './storedFiles'
 
 /** Delete these rows, handing back the stored files they were holding. */
@@ -190,12 +191,23 @@ const GROUP_CONTENT: {
     return purge(ctx, 'calendars', calendars)
   },
 
-  recipes: async (ctx, groupId) =>
+  recipes: async (ctx, groupId) => {
+    const recipes = await ctx.db
+      .query('recipes')
+      .withIndex('by_group', (q) => q.eq('groupId', groupId))
+      .collect()
+    for (const recipe of recipes) await dropRecipeShares(ctx, recipe._id)
+    return purge(ctx, 'recipes', recipes)
+  },
+
+  // Shares *into* this Group of recipes living elsewhere. The recipes stay;
+  // `destroyGroup` takes this Group out of their `sharedGroupIds`.
+  recipeShares: async (ctx, groupId) =>
     purge(
       ctx,
-      'recipes',
+      'recipeShares',
       await ctx.db
-        .query('recipes')
+        .query('recipeShares')
         .withIndex('by_group', (q) => q.eq('groupId', groupId))
         .collect(),
     ),
@@ -425,12 +437,13 @@ export async function destroyGroup(
   }
 
   // A recipe living in another Group may have been Shared into this one. It is
-  // not ours to delete — only the sharing is. There is no index on
-  // `sharedGroupIds`, and this is the one scan the cascade cannot avoid.
+  // not ours to delete — only the sharing is. `recipeShares` indexes this, but
+  // only once `maintenance:backfillRecipeShares` has run everywhere; until then
+  // `sharedGroupIds` is scanned (docs/migrations/README.md).
   const shared = await ctx.db.query('recipes').collect()
   for (const recipe of shared) {
     if (!recipe.sharedGroupIds?.includes(groupId)) continue
-    await ctx.db.patch(recipe._id, {
+    await setSharedGroups(ctx, recipe._id, {
       sharedGroupIds: recipe.sharedGroupIds.filter((id) => id !== groupId),
     })
   }

@@ -179,7 +179,7 @@ export function MealPlannerScreen() {
   const [editing, setEditing] = useState<Id<'mealEntries'> | null>(null)
   const from = weekStart
   const to = addDays(weekStart, 6)
-  const data = useQuery(api.kitchen.overview, {
+  const data = useQuery(api.kitchen.planner, {
     groupSlug: group.slug,
     from,
     to,
@@ -622,7 +622,7 @@ export function GroceriesScreen() {
   const { group } = useGroup()
   const { t, locale } = useI18n()
   const tokens = useTokens('kitchen')
-  const data = useQuery(api.kitchen.overview, { groupSlug: group.slug })
+  const data = useQuery(api.kitchen.groceries, { groupSlug: group.slug })
   const set = useMutation(api.kitchen.setGroceryList)
   const lists = useTaskLists()
   const selected = data?.groceryListId
@@ -681,7 +681,7 @@ export function PantryScreen() {
   const { group } = useGroup()
   const { t } = useI18n()
   const tokens = useTokens('kitchen')
-  const data = useQuery(api.kitchen.overview, { groupSlug: group.slug })
+  const pantry = useQuery(api.kitchen.pantry, { groupSlug: group.slug })
   const add = useMutation(api.kitchen.addPantryEntry)
   const update = useMutation(api.kitchen.updatePantryEntry)
   const remove = useMutation(api.kitchen.removePantryEntry)
@@ -694,7 +694,7 @@ export function PantryScreen() {
       onConfirm: () => remove({ groupSlug: group.slug, id: item._id }),
     })
   const [editing, setEditing] = useState<Id<'pantryEntries'> | null>(null)
-  const entry = data?.pantry.find((item) => item._id === editing)
+  const entry = pantry?.find((item) => item._id === editing)
   return (
     <KitchenShell title={t.modules.byId.pantry.label}>
       <Composer
@@ -707,10 +707,10 @@ export function PantryScreen() {
           add({ groupSlug: group.slug, title, quantity })
         }
       />
-      {data?.pantry.length === 0 ? (
+      {pantry?.length === 0 ? (
         <Text style={{ color: tokens.muted }}>{t.kitchen.noPantry}</Text>
       ) : (
-        data?.pantry.map((item) => (
+        pantry?.map((item) => (
           <NativeContextMenu
             key={item._id}
             actions={[
