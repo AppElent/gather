@@ -1,0 +1,32 @@
+{
+  "NEVO2025_v9.0.csv": {
+    "url": "https://www.rivm.nl/nederlands-voedingsstoffenbestand (NEVO online 2025/9.0, via the workouts repo data/nevo/)",
+    "bytes": 1745875,
+    "sha256": "28a114cfffd7f74db78d0f008cdc90c78558becc1687d14a19162d98d5b8851e",
+    "lastModified": "NEVO online 2025/9.0 (as committed in the workouts repo)"
+  },
+  "off.csv.gz": {
+    "url": "https://static.openfoodfacts.org/data/en.openfoodfacts.org.products.csv.gz",
+    "bytes": 1540715029,
+    "sha256": "9633c5bcf511be0ed61f093c40f70fe02c86ba9518bed1402b44d055899259fc",
+    "lastModified": "Wed, 18 Nov 2026 10:14:00 GMT"
+  },
+  "obf.csv.gz": {
+    "url": "https://static.openbeautyfacts.org/data/en.openbeautyfacts.org.products.csv.gz",
+    "bytes": 20284871,
+    "sha256": "bf01a03d8a091e66fe0882832120861550db27bcaed95d1a7d61f3aa0d51c648",
+    "lastModified": "Wed, 18 Nov 2026 01:24:00 GMT"
+  },
+  "opf.csv.gz": {
+    "url": "https://static.openproductsfacts.org/data/en.openproductsfacts.org.products.csv.gz",
+    "bytes": 6496518,
+    "sha256": "a410d9be9c75135f8961480689e0977c56f57c775f89d55fdad41cd572f7c378",
+    "lastModified": "Wed, 18 Nov 2026 04:05:00 GMT"
+  },
+  "categories.json": {
+    "url": "https://static.openfoodfacts.org/data/taxonomies/categories.json",
+    "bytes": 4953363,
+    "sha256": "ac42fb029e53804b7b6896bfd1a6c92e64f773e113ab5e6d2bb49c4393b97744",
+    "lastModified": "Tue, 17 Nov 2026"
+  }
+}
