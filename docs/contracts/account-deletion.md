@@ -28,6 +28,17 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   there by hand. Queued push notifications have their scheduled jobs
   cancelled with them (`deletePushData` in `convex/lib/notifications.ts`). [Data export](data-export.md)
   reads the same tables, and its registry fails `pnpm typecheck` for a new one.
+- The shared grocery aisle cache (`groceryCategoryCache`) and its daily
+  counter carry no Group or person id, so neither a Group's nor an account's
+  deletion touches them. The cache does keep the normalised item name a Member
+  typed (for an unknown item that was sent to the model, or that three Groups
+  put in the same aisle), and so do the
+  function logs that record the answer; that name stays after the Group or
+  account that typed it is deleted, because nothing records who typed it.
+  Names that look like more than a product (an email address, a URL, a run of
+  four or more digits, more than six words) are never sent or cached. A
+  Group's aisle corrections (`groceryCategoryOverrides`) are in the cascade
+  with its other content.
 - Storage ids are collected by the cascade and deleted by scheduled work, so a
   large Group survives the one-transaction limit ([stored files](stored-files.md)).
 - **Account deletion is Convex first, Clerk second**, in scheduled steps, one

@@ -4,6 +4,13 @@ import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalQuery, mutation, query } from './_generated/server'
 import {
+  askAiOnce,
+  isGroceryList,
+  recogniseGroceryTitle,
+  recordGroceryCorrection,
+} from './lib/groceryCategories'
+import { groceryAisleValidator } from './lib/groceryFields'
+import {
   findInGroup,
   requireGroupBySlug,
   requireInGroup,
@@ -59,6 +66,15 @@ async function requireEditableTask(
   groupSlug: string,
   taskId: Id<'tasks'>,
 ) {
+  return (await requireEditableTaskInGroup(ctx, groupSlug, taskId)).task
+}
+
+/** As `requireEditableTask`, with the Group, caller and list it was found in. */
+async function requireEditableTaskInGroup(
+  ctx: MutationCtx,
+  groupSlug: string,
+  taskId: Id<'tasks'>,
+) {
   const task = await ctx.db.get(taskId)
   if (!task) {
     // Resolve the Group even with nothing to look up, so that a caller who is
@@ -71,7 +87,7 @@ async function requireEditableTask(
   if (found.doc.provider !== 'local') {
     throw new ConvexError('This list is read-only')
   }
-  return task
+  return { ...found, task }
 }
 
 /**
@@ -90,14 +106,13 @@ async function requireLocalList(
   return found
 }
 
-/** The order that puts a task last on a list. */
-async function endOfList(ctx: MutationCtx, listId: Id<'taskLists'>) {
-  const existing = await ctx.db
+async function tasksOfList(ctx: MutationCtx, listId: Id<'taskLists'>) {
+  return await ctx.db
     .query('tasks')
     .withIndex('by_list', (q) => q.eq('listId', listId))
     .collect()
-  return nextOrder(existing)
 }
+
 
 export const add = mutation({
   args: {
@@ -110,9 +125,19 @@ export const add = mutation({
     idempotencyKey: idempotencyKeyValidator,
   },
   handler: async (ctx, args) => {
-    const { user } = await requireLocalList(ctx, args.groupSlug, args.listId)
-    return await createOnce(ctx, user._id, 'tasks', args.idempotencyKey, async () =>
-      ctx.db.insert('tasks', {
+    const { user, group } = await requireLocalList(
+      ctx,
+      args.groupSlug,
+      args.listId,
+    )
+    return await createOnce(ctx, user._id, 'tasks', args.idempotencyKey, async () => {
+      const existing = await tasksOfList(ctx, args.listId)
+      // An item on the Group's grocery list gets its aisle here, so every
+      // client — installed apps that know nothing of aisles too — has it.
+      const grocery = isGroceryList(group, args.listId)
+        ? await recogniseGroceryTitle(ctx, group._id, args.title, existing)
+        : null
+      const taskId = await ctx.db.insert('tasks', {
         listId: args.listId,
         title: args.title,
         done: false,
@@ -120,9 +145,12 @@ export const add = mutation({
         priority: args.priority,
         labels: args.labels,
         createdBy: user._id,
-        order: await endOfList(ctx, args.listId),
-      }),
-    )
+        order: nextOrder(existing),
+        ...(grocery ? { category: grocery.aisle } : {}),
+      })
+      if (grocery) await askAiOnce(ctx, grocery, taskId)
+      return taskId
+    })
   },
 })
 
@@ -149,14 +177,45 @@ export const update = mutation({
     // A wishlist item's link and price (APP-306); null clears either.
     url: v.optional(v.union(v.string(), v.null())),
     priceCents: v.optional(v.union(v.number(), v.null())),
+    // The aisle a Member moved a grocery item to; it becomes the Group's own
+    // choice for the item's name (APP-353).
+    category: v.optional(groceryAisleValidator),
   },
   handler: async (ctx, args) => {
-    await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    const { task, group, user } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
     const { taskId, title, dueDate, priority, labels, notes, done } = args
     const url = args.url === undefined ? undefined : checkedUrl(args.url)
     const priceCents =
       args.priceCents === undefined ? undefined : checkedPrice(args.priceCents)
+    const onGroceryList = isGroceryList(group, task.listId)
+    // An aisle means something only on the grocery list.
+    let category = onGroceryList ? args.category : undefined
+    let askAi: Awaited<ReturnType<typeof recogniseGroceryTitle>> | null = null
+    if (onGroceryList && category !== undefined) {
+      await recordGroceryCorrection(
+        ctx,
+        group._id,
+        user._id,
+        title ?? task.title,
+        category,
+      )
+    } else if (onGroceryList && title !== undefined && title !== task.title) {
+      // A renamed item is a different item: find its aisle again.
+      askAi = await recogniseGroceryTitle(
+        ctx,
+        group._id,
+        title,
+        await tasksOfList(ctx, task.listId),
+        task._id,
+      )
+      category = askAi.aisle
+    }
     await ctx.db.patch(taskId, {
+      ...(category !== undefined ? { category } : {}),
       ...(url !== undefined ? { url: url ?? undefined } : {}),
       ...(priceCents !== undefined
         ? { priceCents: priceCents ?? undefined }
@@ -168,6 +227,7 @@ export const update = mutation({
       ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
       ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
     })
+    if (askAi) await askAiOnce(ctx, askAi, taskId)
   },
 })
 
@@ -366,11 +426,18 @@ export const moveToList = mutation({
   handler: async (ctx, args) => {
     const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
     if (task.listId === args.listId) return null
-    await requireLocalList(ctx, args.groupSlug, args.listId)
+    const { group } = await requireLocalList(ctx, args.groupSlug, args.listId)
+    const existing = await tasksOfList(ctx, args.listId)
+    // Onto the grocery list it needs an aisle; off it the aisle means nothing.
+    const grocery = isGroceryList(group, args.listId)
+      ? await recogniseGroceryTitle(ctx, group._id, task.title, existing)
+      : null
     await ctx.db.patch(task._id, {
       listId: args.listId,
-      order: await endOfList(ctx, args.listId),
+      order: nextOrder(existing),
+      category: grocery?.aisle,
     })
+    if (grocery) await askAiOnce(ctx, grocery, task._id)
     return null
   },
 })

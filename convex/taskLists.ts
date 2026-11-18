@@ -3,6 +3,7 @@ import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { action, internalQuery, mutation, query } from './_generated/server'
 import { getGatedIdentity } from './lib/connectedApps'
+import { recogniseGroceryTitle } from './lib/groceryCategories'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { deleteTaskList } from './lib/groupCascade'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
@@ -118,12 +119,20 @@ export const create = mutation({
           ...(args.color ? { color: args.color } : {}),
         })
         for (const [order, title] of starterTasks.entries()) {
+          // A new grocery list's starter items get their aisles from what is
+          // known (APP-353). They do not ask the model: a template holds up to
+          // STARTER_TASKS_MAX items, and the daily budget is shared.
+          const grocery =
+            args.kind === 'groceries'
+              ? await recogniseGroceryTitle(ctx, groupId, title, [])
+              : null
           await ctx.db.insert('tasks', {
             listId,
             title,
             done: false,
             createdBy: user._id,
             order,
+            ...(grocery ? { category: grocery.aisle } : {}),
           })
         }
         // A list made as the groceries becomes the Group's grocery list, which
