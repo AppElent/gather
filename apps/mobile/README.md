@@ -68,6 +68,6 @@ so there is no Android staging build or script.
    ([when a bad update is out](../../docs/runbooks/mobile-releases.md#when-a-bad-update-is-out)).
 
 Preview shows every Module, placeholders included; only the store build
-(`APP_VARIANT=production`) hides the ones that are not live
+(`APP_VARIANT=production`) hides the ones whose `mobileStatus` is not `live`
 (`src/modules/moduleVisibility.ts`). To see what the store build shows on a
 development build, start Metro with `EXPO_PUBLIC_LIVE_MODULES_ONLY=1`.

@@ -1,3 +1,7 @@
+/**
+ * `live`: the Module is a real feature on that platform. `placeholder`: it is
+ * not built there yet, so that platform draws a placeholder or nothing.
+ */
 export type ModuleStatus = 'live' | 'placeholder'
 
 export const MODULE_GROUPS = ['kitchen', 'money', 'home', 'tasting'] as const
@@ -24,7 +28,15 @@ export interface ModuleDef {
   id: string
   icon: ModuleIconName
   group: ModuleGroup
+  /** The web's answer: whether its screens are a real feature (`src/`). */
   status: ModuleStatus
+  /**
+   * The phone's answer (APP-374): `live` only when its phone screens are a
+   * real feature, not `ModulePlaceholder` or a stub. The store build shows
+   * only these (`apps/mobile/src/modules/moduleVisibility.ts`), and a Module
+   * the phone marks `live` must have screens (`NATIVE_MODULES`).
+   */
+  mobileStatus: ModuleStatus
 }
 
 export const MODULES = [
@@ -33,66 +45,77 @@ export const MODULES = [
     icon: 'ChefHat',
     group: 'kitchen',
     status: 'live',
+    mobileStatus: 'live',
   },
   {
     id: 'meal-planner',
     icon: 'CalendarHeart',
     group: 'kitchen',
     status: 'placeholder',
+    mobileStatus: 'live',
   },
   {
     id: 'groceries',
     icon: 'ShoppingCart',
     group: 'kitchen',
     status: 'placeholder',
+    mobileStatus: 'live',
   },
   {
     id: 'pantry',
     icon: 'Refrigerator',
     group: 'kitchen',
     status: 'placeholder',
+    mobileStatus: 'live',
   },
   {
     id: 'recurring-costs',
     icon: 'Repeat',
     group: 'money',
     status: 'placeholder',
+    mobileStatus: 'live',
   },
   {
     id: 'shared-costs',
     icon: 'Users',
     group: 'money',
     status: 'placeholder',
+    mobileStatus: 'live',
   },
   {
     id: 'savings-goals',
     icon: 'Target',
     group: 'money',
     status: 'placeholder',
+    mobileStatus: 'live',
   },
   {
     id: 'tasks',
     icon: 'ListChecks',
     group: 'home',
     status: 'live',
+    mobileStatus: 'live',
   },
   {
     id: 'baby-log',
     icon: 'Baby',
     group: 'home',
     status: 'live',
+    mobileStatus: 'live',
   },
   {
     id: 'calendar',
     icon: 'Calendar',
     group: 'home',
     status: 'placeholder',
+    mobileStatus: 'live',
   },
   {
     id: 'notes',
     icon: 'NotebookPen',
     group: 'home',
     status: 'placeholder',
+    mobileStatus: 'live',
   },
   /**
    * A Group's store cards (APP-140). In `home` because a card is something
@@ -104,24 +127,27 @@ export const MODULES = [
     icon: 'CreditCard',
     group: 'home',
     status: 'live',
+    mobileStatus: 'live',
   },
   /**
    * The three tasting Modules (#199, #203, ADR-0024). They share one backend,
    * one Kind spec (`tastings.ts`) and one parameterised implementation on each
-   * client. `status` answers the web's question, so these became live only
-   * when the web companion landed.
+   * client. `status` answers the web's question, so these became live there
+   * only when the web companion landed.
    */
   {
     id: 'cheeses',
     icon: 'Grape',
     group: 'tasting',
     status: 'live',
+    mobileStatus: 'live',
   },
   {
     id: 'wines',
     icon: 'Wine',
     group: 'tasting',
     status: 'live',
+    mobileStatus: 'live',
   },
   /**
    * Beer is in at launch on purpose (#199). Two Kinds would let a per-Kind
@@ -133,6 +159,7 @@ export const MODULES = [
     icon: 'Beer',
     group: 'tasting',
     status: 'live',
+    mobileStatus: 'live',
   },
 ] as const satisfies readonly ModuleDef[]
 

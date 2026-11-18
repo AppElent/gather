@@ -1,9 +1,10 @@
 /**
  * Where a Module's screens are, and the one place their addresses are built.
  *
- * Modules live once, inside the All tab's stack (ADR-0023). Most have no native
- * workflow yet and land on `ModulePlaceholder` via the dynamic `[moduleId]`
- * route. The ones that are built have real screens at a static segment —
+ * Modules live once, inside the All tab's stack (ADR-0023). A Module with no
+ * native workflow lands on `ModulePlaceholder` via the dynamic `[moduleId]`
+ * route; every Module has its own screens today (APP-374). Those sit at a
+ * static segment —
  * `/all/baby-log` — and a static route must be named explicitly: navigating to
  * `{pathname: '/all/[moduleId]', params: {moduleId: 'baby-log'}}` targets the
  * dynamic route, which would render the placeholder over a Module that exists.
