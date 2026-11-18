@@ -442,6 +442,46 @@ describe('phones from before meal slots', () => {
     ])
   })
 
+  test('refuses to replace another Group’s meal by id and leaves it alone', async () => {
+    const { t, foreign, pasta } = await seed()
+    const theirs = await t.withIdentity(carol).mutation(api.mealPlan.plan, {
+      groupSlug: 'other',
+      date: '2026-11-24',
+      slot: 'dinner',
+      recipeId: foreign,
+    })
+    await expect(
+      t.withIdentity(alice).mutation(api.mealPlan.plan, {
+        groupSlug: 'home',
+        date: '2026-11-24',
+        slot: 'dinner',
+        recipeId: pasta,
+        replace: true,
+        replaceId: theirs,
+      }),
+    ).rejects.toThrow('Meal not found')
+    const week = await t
+      .withIdentity(carol)
+      .query(api.mealPlan.week, { ...WEEK, groupSlug: 'other' })
+    expect(week.meals.map((m) => m.title)).toEqual(['Foreign soup'])
+    expect(
+      (await t.withIdentity(alice).query(api.mealPlan.week, WEEK)).meals,
+    ).toEqual([])
+  })
+
+  test('undo cuts a recipe title longer than a meal title instead of refusing', async () => {
+    const { t } = await seed()
+    const as = t.withIdentity(alice)
+    await as.mutation(api.mealPlan.restore, {
+      groupSlug: 'home',
+      date: '2026-11-24',
+      slot: 'dinner',
+      title: `  ${'x'.repeat(230)}`,
+    })
+    const [meal] = (await as.query(api.mealPlan.week, WEEK)).meals
+    expect(meal.title).toHaveLength(200)
+  })
+
   test('a retry with the same idempotency key answers the first meal', async () => {
     const { t, pasta } = await seed()
     const as = t.withIdentity(alice)

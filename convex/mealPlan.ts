@@ -449,7 +449,12 @@ export const remove = mutation({
  * Undo for `remove`: puts a meal back as it was, snapshot and all, while its
  * slot is still free. Unlike `plan` it never refuses a meal whose Recipe or
  * quick meal has gone (ADR-0027 keeps the snapshot for exactly that); such a
- * link is dropped, as are eaters who have left the Group.
+ * link is dropped, as are eaters who have left the Group, and a Recipe title
+ * longer than a meal title may be is cut rather than refused.
+ *
+ * It takes no idempotency key: like `move`, it is keyed by its slot, so a
+ * repeated Undo finds the slot taken and writes nothing (ADR-0046). It is not
+ * an MCP tool.
  */
 export const restore = mutation({
   args: {
@@ -467,9 +472,8 @@ export const restore = mutation({
   handler: async (ctx, args) => {
     requireDate(args.date)
     const { group } = await requireGroupBySlug(ctx, args.groupSlug)
-    const title = args.title.trim()
-    if (!title || title.length > MAX_TITLE)
-      throw new ConvexError(`A meal title is 1 to ${MAX_TITLE} characters`)
+    const title = args.title.trim().slice(0, MAX_TITLE)
+    if (!title) throw new ConvexError('A meal needs a title')
     if (await mealAt(ctx, group._id, args.date, args.slot))
       throw new ConvexError('That slot already has a meal')
     const recipe = args.recipeId ? await ctx.db.get(args.recipeId) : null
