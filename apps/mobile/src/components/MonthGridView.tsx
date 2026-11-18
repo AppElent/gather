@@ -1,10 +1,9 @@
 /**
  * The month, Monday first, as a grid of days you can press.
  *
- * The Tasks module's `DueDateSheet` and the Calendar prototype's composer both
- * draw it, and the composer's build brief says *a reimplementation of that grid
- * is a bug, not a variation*. The arithmetic lives apart, in
- * `@gather/core/civil-date`, for the same reason.
+ * The Tasks module's `DueDateSheet` and the Calendar header both draw it: a
+ * reimplementation of that grid is a bug, not a variation. The arithmetic
+ * lives apart, in `@gather/core/civil-date`, for the same reason.
  *
  * It knows nothing about what a day *means*. Selection and today are props; the
  * caller owns the state and the write. Both are drawn in ink, never a group
