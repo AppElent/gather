@@ -70,8 +70,9 @@ agent-device close
 
 The UI is Dutch by default on a Dutch device, so a `text` selector matches
 `Recepten`, not `Recipes`; add `testID` on screens you test often. The facts
-above are Android's; an iOS simulator needs macOS with Xcode, and the bundle id
-is the same `com.appelent.gather.dev`. A local build is the Dev variant
+above are Android's. On an iOS simulator (macOS with Xcode), use
+`node scripts/run-mobile.mjs up` and `… ad <args>` ([mobile run](../standards/mobile-run.md);
+Metro on port 8092, same bundle id `com.appelent.gather.dev`); `down` releases the simulator. A local build is the Dev variant
 ([ADR 0045](../adr/0045-each-build-variant-installs-beside-the-others.md)), so
 it installs beside Gather Preview instead of replacing it.
 
