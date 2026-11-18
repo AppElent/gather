@@ -34,7 +34,10 @@ import { recipeFields } from './lib/recipeFields'
 import {
   externalProviderValidator,
   providerConfigValidator,
+  taskListColorValidator,
   taskListDisplayValidator,
+  taskListIconValidator,
+  taskListKindValidator,
   taskPriorityValidator,
   taskProviderValidator,
 } from './lib/taskFields'
@@ -135,6 +138,12 @@ export default defineSchema({
     providerConfig: v.optional(providerConfigValidator),
     order: v.number(),
     display: v.optional(taskListDisplayValidator),
+    // APP-306. Optional, and absent on every list made before them: an absent
+    // kind is a plain list, and an absent icon or colour is the kind's own
+    // (`taskListFace` in `@gather/core/task-lists`).
+    kind: v.optional(taskListKindValidator),
+    icon: v.optional(taskListIconValidator),
+    color: v.optional(taskListColorValidator),
   }).index('by_group', ['groupId']),
 
   // Rows exist only for provider === 'local' lists.
@@ -146,6 +155,9 @@ export default defineSchema({
     priority: v.optional(taskPriorityValidator),
     labels: v.optional(v.array(v.string())),
     notes: v.optional(v.string()),
+    // A wishlist item's link (http or https only) and price in cents (APP-306).
+    url: v.optional(v.string()),
+    priceCents: v.optional(v.number()),
     createdBy: v.id('users'),
     order: v.number(),
   }).index('by_list', ['listId']),

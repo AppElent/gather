@@ -604,6 +604,15 @@ export const nl = {
 
   tasks: {
     count: coreNl.tasks.count,
+    /** APP-306: the New list sheet, list kinds and their faces, shared with the web. */
+    newList: coreNl.tasks.newList,
+    appearance: coreNl.tasks.appearance,
+    kinds: coreNl.tasks.kinds,
+    icons: coreNl.tasks.icons,
+    colors: coreNl.tasks.colors,
+    starters: coreNl.tasks.starters,
+    packing: coreNl.tasks.packing,
+    wishlist: coreNl.tasks.wishlist,
     title: 'Taken',
     quickAdd: {
       list: 'Op de lijst',

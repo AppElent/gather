@@ -19,18 +19,22 @@
  *   differs is what you may do to it — and that difference belongs on the list
  *   itself (ADR-0021), which is where the next screen puts it.
  */
+import { keepsCheckedInPlace } from '@gather/core/task-lists'
 import { Stack, useRouter } from 'expo-router'
+import { useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { fmt, type Messages, plural, useI18n } from '../../i18n'
 import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
-import { InsetList, InsetRow } from '../../ui/inset-list'
+import { InsetAddRow, InsetList, InsetRow } from '../../ui/inset-list'
 import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
 import { WashHeader } from '../../ui/wash-header'
 import { TASK_ICONS } from './icons'
+import { ListTile } from './listFace'
+import { NewListSheet } from './NewListSheet'
 import { useTaskState } from './store'
 import { TaskRow } from './TaskRow'
 import { useTaskSheets } from './taskMenu'
@@ -44,6 +48,7 @@ export function TaskLists() {
   const state = useTaskState()
   const taskSheets = useTaskSheets({ tasks: state.tasks })
   const tile = moduleTile('tasks')
+  const [creating, setCreating] = useState(false)
 
   const lists = [...state.lists].sort((a, b) => a.order - b.order)
   const listOf = (id: string) => lists.find((list) => list.id === id)
@@ -131,12 +136,23 @@ export function TaskLists() {
             <InsetList>
               {lists.map((list) => {
                 const count = openCount(list, state.tasks, t)
+                // The type under the name, unless the name already says it.
+                const typed =
+                  list.provider === 'local' &&
+                  list.kind !== 'plain' &&
+                  t.tasks.kinds[list.kind].title !== list.name
                 return (
                   <InsetRow
                     key={list.id}
                     testID={`list-${list.id}`}
-                    accessibilityLabel={`${list.name}, ${count}`}
+                    accessibilityLabel={
+                      typed
+                        ? `${list.name}, ${t.tasks.kinds[list.kind].title}, ${count}`
+                        : `${list.name}, ${count}`
+                    }
                     title={list.name}
+                    subtitle={typed ? t.tasks.kinds[list.kind].title : undefined}
+                    leading={<ListTile list={list} size="s" />}
                     chevron
                     trailing={
                       <Text style={[styles.count, { color: tokens.muted }]}>
@@ -169,12 +185,31 @@ export function TaskLists() {
                   </InsetRow>
                 )
               })}
+              <InsetAddRow
+                group="home"
+                label={t.tasks.newList.title}
+                onPress={() => setCreating(true)}
+                testID="new-list"
+              />
             </InsetList>
           </View>
         </View>
       </ScrollView>
 
       {taskSheets.sheets}
+      {creating ? (
+        <NewListSheet
+          onClose={() => setCreating(false)}
+          onCreated={(list) =>
+            list.kind === 'groceries'
+              ? router.push('/all/groceries')
+              : router.push({
+                  pathname: '/all/tasks/[listId]',
+                  params: { listId: list.id },
+                })
+          }
+        />
+      ) : null}
     </>
   )
 }
@@ -187,6 +222,15 @@ function openCount(
 ): string {
   if (list.sync === 'reconnect' || list.sync === 'failed') {
     return t.tasks.notLoaded
+  }
+  // A packing list counts what is packed: its items are ticked off and reset,
+  // so "3 left" would read as a list nearly done when it is nearly packed.
+  if (keepsCheckedInPlace(list.kind)) {
+    const items = tasks.filter((task) => task.listId === list.id)
+    return fmt(t.tasks.packing.progress, {
+      done: items.filter((task) => task.done).length,
+      total: items.length,
+    })
   }
   const open = tasks.filter(
     (task) => task.listId === list.id && !task.done,

@@ -87,4 +87,117 @@ export const tasks = {
     labelsProperty: 'Labels-eigenschap',
     create: 'Gekoppelde lijst aanmaken',
   },
+  newList: {
+    title: 'Nieuwe lijst',
+    create: 'Maak',
+    nameLabel: 'Naam van de lijst',
+    kind: 'Soort lijst',
+    color: 'Kleur',
+    icon: 'Icoon',
+    kindIcon: 'Icoon van de soort',
+    failed: 'Die lijst kon niet worden gemaakt. Probeer het opnieuw.',
+  },
+
+  packing: {
+    progress: '{done} van {total}',
+    packed: 'ingepakt',
+    uncheckAll: 'Alles uitvinken',
+    uncheckAllHint: 'Voor de volgende reis. De items blijven staan.',
+    undo: 'Ongedaan maken',
+    uncheckedAll: 'Alles is uitgevinkt.',
+  },
+
+  wishlist: {
+    link: 'Link',
+    linkPlaceholder: 'Plak een link',
+    price: 'Prijs',
+    pricePlaceholder: '0,00',
+    openLink: 'Link openen',
+    invalidLink: 'Dat is geen webadres.',
+  },
+
+  appearance: {
+    title: 'Kleur en icoon',
+  },
+
+  kinds: {
+    plain: {
+      title: 'Gewone lijst',
+      description: 'Leeg, voor alles wat moet',
+      defaultName: 'Nieuwe lijst',
+      startsWith: 'Begint leeg.',
+    },
+    chores: {
+      title: 'Klusjes',
+      description: 'Taken in en om het huis',
+      defaultName: 'Huishouden',
+      startsWith:
+        'Begint met 8 voorbeeldklusjes voor de keuken, de badkamer en de rest van het huis. Weghalen kan altijd.',
+    },
+    packing: {
+      title: 'Paklijst',
+      description: 'Afvinken en later alles weer uitvinken',
+      defaultName: 'Vakantie',
+      startsWith:
+        'Begint met 18 voorbeelditems: kleding, toilettas en spullen voor de kinderen. Weghalen kan altijd.',
+    },
+    groceries: {
+      title: 'Boodschappen',
+      description: 'Per afdeling, met recepten en hoeveelheden',
+      defaultName: 'Boodschappen',
+      startsWith: 'Opent daarna de boodschappen-instellingen.',
+    },
+    wishlist: {
+      title: 'Verlanglijst',
+      description: 'Met link en prijs per item',
+      defaultName: 'Verlanglijst',
+      startsWith: 'Begint leeg. Een item krijgt een link en een prijs.',
+    },
+  },
+
+  icons: {
+    list: 'Lijst',
+    sparkles: 'Glinstering',
+    suitcase: 'Koffer',
+    cart: 'Winkelwagen',
+    gift: 'Cadeau',
+    house: 'Huis',
+    papers: 'Papieren',
+  },
+
+  colors: {
+    home: 'Amber',
+    kitchen: 'Groenblauw',
+    tasting: 'Pruim',
+    money: 'Blauw',
+  },
+
+  starters: {
+    bins: 'Kliko aan de straat',
+    fridge: 'Koelkast uitsoppen',
+    dishwasher: 'Vaatwasser ontkalken',
+    bathroom: 'Badkamer schoonmaken',
+    towels: 'Handdoeken wassen',
+    plants: 'Plantjes water geven',
+    vacuum: 'Stofzuigen',
+    windows: 'Ramen lappen',
+    rainJackets: 'Regenjassen',
+    walkingShoes: 'Wandelschoenen',
+    jumpers: 'Truien',
+    swimwear: 'Zwemspullen',
+    underwear: 'Ondergoed',
+    socks: 'Sokken',
+    pyjamas: "Pyjama's",
+    toothbrushes: 'Tandenborstels',
+    toothpaste: 'Tandpasta',
+    sunscreen: 'Zonnebrand',
+    medicines: 'Medicijnen',
+    deodorant: 'Deodorant',
+    shampoo: 'Shampoo',
+    nappies: 'Luiers',
+    cuddlyToy: 'Knuffel',
+    travelCot: 'Reisbedje',
+    travelToys: 'Speelgoed voor onderweg',
+    snacks: 'Tussendoortjes',
+  },
 } satisfies typeof enTasks

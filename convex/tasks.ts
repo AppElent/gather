@@ -1,3 +1,4 @@
+import { normalizeTaskUrl } from '@gather/core/task-lists'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
@@ -145,11 +146,21 @@ export const update = mutation({
     notes: v.optional(v.union(v.string(), v.null())),
     // Set, rather than toggled: a connected app retrying must land in one state.
     done: v.optional(v.boolean()),
+    // A wishlist item's link and price (APP-306); null clears either.
+    url: v.optional(v.union(v.string(), v.null())),
+    priceCents: v.optional(v.union(v.number(), v.null())),
   },
   handler: async (ctx, args) => {
     await requireEditableTask(ctx, args.groupSlug, args.taskId)
     const { taskId, title, dueDate, priority, labels, notes, done } = args
+    const url = args.url === undefined ? undefined : checkedUrl(args.url)
+    const priceCents =
+      args.priceCents === undefined ? undefined : checkedPrice(args.priceCents)
     await ctx.db.patch(taskId, {
+      ...(url !== undefined ? { url: url ?? undefined } : {}),
+      ...(priceCents !== undefined
+        ? { priceCents: priceCents ?? undefined }
+        : {}),
       ...(title !== undefined ? { title } : {}),
       ...(done !== undefined ? { done } : {}),
       ...(dueDate !== undefined ? { dueDate: dueDate ?? undefined } : {}),
@@ -157,6 +168,64 @@ export const update = mutation({
       ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
       ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
     })
+  },
+})
+
+/**
+ * A link as stored: http or https only, so an app that opens it can never be
+ * handed a `javascript:` or `file:` address. Null clears it.
+ */
+function checkedUrl(url: string | null): string | null {
+  if (url === null || url.trim() === '') return null
+  const normalized = normalizeTaskUrl(url)
+  if (!normalized) throw new ConvexError('That is not a web address')
+  return normalized
+}
+
+/** The highest price an item may carry: ten million, in cents. */
+const PRICE_CENTS_MAX = 1_000_000_000
+
+function checkedPrice(cents: number | null): number | null {
+  if (cents === null) return null
+  if (!Number.isInteger(cents) || cents < 0 || cents > PRICE_CENTS_MAX) {
+    throw new ConvexError('That is not a price')
+  }
+  return cents
+}
+
+/**
+ * Check or uncheck many tasks of one list at once: a packing list's "Uncheck
+ * all", and its undo. Without `taskIds` it is every task on the list; with
+ * them, only those, and each must be on this list. Answers the ids it changed,
+ * so the undo can put back exactly those and no others.
+ */
+export const setDoneInList = mutation({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    done: v.boolean(),
+    taskIds: v.optional(v.array(v.id('tasks'))),
+  },
+  returns: v.array(v.id('tasks')),
+  handler: async (ctx, args) => {
+    await requireLocalList(ctx, args.groupSlug, args.listId)
+    const rows = await ctx.db
+      .query('tasks')
+      .withIndex('by_list', (q) => q.eq('listId', args.listId))
+      .collect()
+    let targets = rows
+    if (args.taskIds) {
+      const onList = new Map(rows.map((task) => [task._id, task]))
+      if (args.taskIds.some((id) => !onList.has(id))) {
+        throw new ConvexError('Task not found')
+      }
+      targets = args.taskIds.map((id) => onList.get(id) as Doc<'tasks'>)
+    }
+    const changed = targets.filter((task) => task.done !== args.done)
+    await Promise.all(
+      changed.map((task) => ctx.db.patch(task._id, { done: args.done })),
+    )
+    return changed.map((task) => task._id)
   },
 })
 
