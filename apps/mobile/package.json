@@ -86,5 +86,9 @@
       ]
     }
   },
-  "private": true
+  "private": true,
+  "runMobile": {
+    "bundleId": "com.appelent.gather.dev",
+    "port": 8092
+  }
 }
