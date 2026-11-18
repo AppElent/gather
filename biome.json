@@ -27,6 +27,7 @@
       "!scripts/check-project.mjs",
       "!scripts/env.mjs",
       "!scripts/sync-devtools.mjs",
+      "!scripts/run-mobile.mjs",
       "!scripts/workspace.mjs",
       "!apps/mobile/ios",
       "!apps/mobile/android",
