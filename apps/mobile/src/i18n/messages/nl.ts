@@ -33,6 +33,9 @@ export const nl = {
 
   recipes: coreNl.recipes,
 
+  /** Meal preferences (APP-318): the screen and the planner's filter words. */
+  mealPreferences: coreNl.mealPreferences,
+
   nutrients: coreNl.nutrients,
 
   tastings: coreNl.tastings,

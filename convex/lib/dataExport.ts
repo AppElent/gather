@@ -140,6 +140,7 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   recipeShares: { exclude: 'bookkeeping' },
   mealEntries: { scope: 'group', index: 'by_group' },
   plannedDinners: { scope: 'group', index: 'by_group' },
+  mealPreferences: { scope: 'group', index: 'by_group' },
   // The Pantry's rows until the contract step (APP-314), and the staples
   // they became: both go out, so nothing a Group typed is missing.
   pantryEntries: { scope: 'group', index: 'by_group' },

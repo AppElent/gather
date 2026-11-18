@@ -55,6 +55,9 @@ export const en = {
    */
   recipes: coreEn.recipes,
 
+  /** Meal preferences (APP-318): the screen and the planner's filter words. */
+  mealPreferences: coreEn.mealPreferences,
+
   /** Recipes' nutrition panel. */
   nutrients: coreEn.nutrients,
 

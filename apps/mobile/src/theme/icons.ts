@@ -159,6 +159,8 @@ export const UI_ICONS = {
   FlaskConical: glyph(FlaskConical, 'flask'),
   /** A place on a form. */
   MapPin: glyph(MapPin, 'mappin'),
+  /** A screen of preferences that tune a Module, like the meal planner's. */
+  SlidersHorizontal: glyph(SlidersHorizontal, 'slider.horizontal.3'),
   /** Adding one of something, where the row is not itself the add. */
   Plus: glyph(Plus, 'plus'),
   /** More than one member — never one, which is `User`. */
