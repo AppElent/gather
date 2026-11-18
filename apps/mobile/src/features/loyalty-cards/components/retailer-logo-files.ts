@@ -5,6 +5,7 @@
 export const RETAILER_LOGO_FILES: Readonly<Record<string, number>> = {
   'action': require('../../../../../../packages/core/assets/retailer-logos/action-192.webp'),
   'adidas': require('../../../../../../packages/core/assets/retailer-logos/adidas-192.webp'),
+  'air-miles': require('../../../../../../packages/core/assets/retailer-logos/air-miles-192.webp'),
   'albert-heijn': require('../../../../../../packages/core/assets/retailer-logos/albert-heijn-192.webp'),
   'anwb': require('../../../../../../packages/core/assets/retailer-logos/anwb-192.webp'),
   'avia': require('../../../../../../packages/core/assets/retailer-logos/avia-192.webp'),

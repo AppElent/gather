@@ -116,6 +116,7 @@ export const loyaltyCards = {
     department: 'Department store',
     fuel: 'Fuel',
     mobility: 'Mobility',
+    programme: 'Savings programme',
   } satisfies Record<RetailerCategory, string>,
   /** Keyed by the wire kind, `loyalty:<code>`, for `errorMessage`. */
   refusals: {

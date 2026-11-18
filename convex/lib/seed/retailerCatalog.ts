@@ -358,4 +358,10 @@ export const RETAILER_CATALOG: RetailerCatalogEntry[] = [
   // Programme: anwb.nl/lidmaatschap/pas hero photo of the app pass: a linear barcode of a 16-character alphanumeric token, not the lidnummer, too
   // blurry to decode (rules out EAN, UPC, ITF and Codabar). CODE_128 guess. Colour: ANWB yellow, anwb.nl CSS.
   { seedKey: 'anwb', name: 'ANWB', aliases: ['ANWB lidmaatschapspas', 'ANWB Ledenvoordeel', 'Wegenwacht'], category: 'mobility', brandColor: '#FFCD00', domain: 'anwb.nl', barcodeFormat: 'CODE_128', formatConfidence: 'guess' },
+
+  // --- Savings programmes (one card, scanned at several stores) ---
+
+  // Source: verified from a member's own Air Miles Wallet pass, 2026-11-18: EAN-13, payload = 13-digit card number (APP-262). Colour: airmiles.nl
+  // theme-color, mask-icon colour and the blue of its swallow icon.
+  { seedKey: 'air-miles', name: 'Air Miles', aliases: ['AIR MILES', 'Airmiles', 'Air Miles kaart', 'Air Miles app'], category: 'programme', brandColor: '#007CE1', domain: 'airmiles.nl', barcodeFormat: 'EAN_13', formatConfidence: 'sourced', numberLength: 13 },
 ]

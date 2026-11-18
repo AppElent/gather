@@ -272,6 +272,18 @@ describe('the Retailer catalog', () => {
     }
   })
 
+  test('Air Miles is a savings programme with the EAN-13 of a member pass (APP-262)', () => {
+    const airMiles = RETAILER_CATALOG.find((entry) => entry.seedKey === 'air-miles')
+    // A member's own Wallet pass: EAN-13 of the 13-digit card number.
+    expect(airMiles).toMatchObject({
+      name: 'Air Miles',
+      category: 'programme',
+      barcodeFormat: 'EAN_13',
+      formatConfidence: 'sourced',
+      numberLength: 13,
+    })
+  })
+
   test('a scanned number suggests the retailers whose prefix it carries', () => {
     const suggest = (number: string) =>
       retailersMatchingNumber(RETAILER_CATALOG, number).map(
@@ -283,13 +295,14 @@ describe('the Retailer catalog', () => {
     expect(suggest('990212345678')).toEqual([])
   })
 
-  test('at least 43 barcode formats come from a source', () => {
-    // APP-152 sourced 31 more; APP-198 added 5 and withdrew 4 weak ones. Lower
-    // it only when a source turns out wrong, and say which in the catalog.
+  test('at least 44 barcode formats come from a source', () => {
+    // APP-152 sourced 31 more; APP-198 added 5 and withdrew 4 weak ones;
+    // APP-262 added Air Miles. Lower it only when a source turns out wrong,
+    // and say which in the catalog.
     const sourced = RETAILER_CATALOG.filter(
       (entry) => entry.formatConfidence === 'sourced',
     )
-    expect(sourced.length).toBeGreaterThanOrEqual(43)
+    expect(sourced.length).toBeGreaterThanOrEqual(44)
   })
 
   test('search matches name and aliases, ignoring case and accents', async () => {
@@ -308,6 +321,9 @@ describe('the Retailer catalog', () => {
     // where it has one.
     expect(await search('hémá')).toContain('hema')
     expect(await search('HUNKEMOLLER')).toContain('hunkemoller')
+    // "Airmiles" folds to one word, so only the alias finds Air Miles.
+    expect(await search('airmiles')).toContain('air-miles')
+    expect(await search('AIR MILES')).toContain('air-miles')
     expect(await search('zzzz-no-such-store')).toEqual([])
     // An empty query lists the whole Catalog.
     expect((await search('')).length).toBe(RETAILER_CATALOG.length)

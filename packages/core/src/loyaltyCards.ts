@@ -9,6 +9,8 @@
 /**
  * The picker's categories. `pharmacy` was dropped in APP-198, once production
  * had re-seeded with Holland & Barrett and Vitaminstore under `health`.
+ * `programme` (APP-262) is a savings programme that runs across several
+ * stores, such as Air Miles, rather than a store of its own.
  */
 export const RETAILER_CATEGORIES = [
   'supermarket',
@@ -29,6 +31,7 @@ export const RETAILER_CATEGORIES = [
   'department',
   'fuel',
   'mobility',
+  'programme',
 ] as const
 export type RetailerCategory = (typeof RETAILER_CATEGORIES)[number]
 
