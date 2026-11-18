@@ -17,7 +17,7 @@ import type { RetailerCategory } from '@gather/core/loyalty-cards'
  * `brandColor` is the brand's primary colour, taken from its own logo (mostly
  * the Wikimedia Commons SVG) or from its site's theme colour or CSS, and
  * checked against the retailer's own site on 2026-11-16 (APP-152; Levi's in
- * APP-198), with one exception: Xenos keeps the magenta of the logo we ship
+ * APP-198; Air Miles on 2026-11-18 in APP-262), with one exception: Xenos keeps the magenta of the logo we ship
  * although xenos.nl's header logo is now yellow (#FFD700). The `Colour:`
  * clause above each entry says where it came from.
  *
