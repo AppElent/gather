@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when changing the PR preview workflow, its secrets, or what a preview seeds.
-version: 3.1.0
+version: 3.2.0
 ---
 
 # Previews
@@ -41,8 +41,16 @@ labelled `preview:web` gets its own Convex backend and Worker.
   AppElent apps; a full quota fails every preview `deploy`. Removing the label
   mid-deploy can still leak one: cleanup cancels the deploy, but Convex may
   finish creating `pr-<N>` after cleanup listed. That preview idle-expires, or
-  delete it from the dashboard. If cleanup reports no match while the log counts
-  previews, the management API's field names have changed.
+  delete it from the dashboard. If cleanup reports no match while the log
+  counts previews, that is normal: the count includes other open PRs'
+  previews, so it does not mean the management API's field names changed.
+- **Worker delete tolerates only a missing Worker.** The `Delete Worker` step
+  passes when Wrangler reports Cloudflare error 10007 or 10090 (Worker not
+  found; current Wrangler logs 10090), as on a PR that never deployed. Any
+  other Wrangler failure, such as a bad token, fails it. A wrong account the
+  token can access also reports 10090 and passes. Without the Cloudflare token
+  the step skips the delete: a notice when Dependabot closed the PR (it gets no
+  secrets), a warning for anyone else.
 - **A preview backend inherits no Convex variables** — server values come from
   preview defaults ([environment](environment.md#hazards)).
 
