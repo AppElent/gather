@@ -303,6 +303,48 @@ describe('Uncheck all', () => {
     expect(done.get(snacks._id)).toBe(false)
   })
 
+  test('a packing list with ticked items reorders as a whole', async () => {
+    const { as, listId, tasks } = await packing()
+    const [socks, shampoo, snacks] = tasks
+    await as.mutation(api.tasks.toggleDone, {
+      taskId: socks._id,
+      groupSlug: JANSEN,
+    })
+    // Every task, ticked one included, as the packing list shows them.
+    await as.mutation(api.tasks.reorder, {
+      listId,
+      groupSlug: JANSEN,
+      ids: [snacks._id, socks._id, shampoo._id],
+    })
+    let rows = await as.query(api.tasks.listByList, {
+      listId,
+      groupSlug: JANSEN,
+    })
+    const byOrder = (list: typeof rows) =>
+      [...list].sort((a, b) => a.order - b.order).map((task) => task._id)
+    expect(byOrder(rows)).toEqual([snacks._id, socks._id, shampoo._id])
+    // Only the open ones, as an installed app sends them, still works.
+    await as.mutation(api.tasks.reorder, {
+      listId,
+      groupSlug: JANSEN,
+      ids: [shampoo._id, snacks._id],
+    })
+    rows = await as.query(api.tasks.listByList, { listId, groupSlug: JANSEN })
+    expect(
+      byOrder(rows.filter((task) => !task.done)),
+    ).toEqual([shampoo._id, snacks._id])
+    // Anything in between is still refused.
+    expect(
+      await refusal(
+        as.mutation(api.tasks.reorder, {
+          listId,
+          groupSlug: JANSEN,
+          ids: [socks._id, shampoo._id],
+        }),
+      ),
+    ).toContain('Reorder must contain')
+  })
+
   test('refuses a task from another list, and another Group', async () => {
     const { t, as, listId, oldTask } = await packing()
     expect(

@@ -321,7 +321,11 @@ export function TaskList({
               today={today}
               scrollRef={scrollRef}
               onDragging={setDragging}
-              onCommit={(ids) => actions.reorderTasks(list.id, ids)}
+              onCommit={(ids) =>
+                actions
+                  .reorderTasks(list.id, ids)
+                  .catch(() => haptics.actionFailed())
+              }
             />
           ) : (
             <>

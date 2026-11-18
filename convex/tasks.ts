@@ -249,13 +249,15 @@ export const reorder = mutation({
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
       .collect()
-    const open = rows
-      .filter((task) => !task.done)
-      .sort((a, b) => a.order - b.order)
-    const expected = new Set(open.map((task) => task._id))
+    // Either every open task (a list that moves ticked items away) or every
+    // task (a packing list, which keeps ticked items in place: APP-306).
+    const open = rows.filter((task) => !task.done)
+    const expected = new Set(
+      (args.ids.length === rows.length ? rows : open).map((task) => task._id),
+    )
     if (
-      args.ids.length !== open.length ||
-      new Set(args.ids).size !== open.length ||
+      new Set(args.ids).size !== expected.size ||
+      args.ids.length !== expected.size ||
       args.ids.some((id) => !expected.has(id))
     ) {
       throw new ConvexError('Reorder must contain every open task exactly once')
