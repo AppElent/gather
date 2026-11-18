@@ -15,12 +15,15 @@
  * The email the reset started with sits above the password as a read-only
  * `username` field. Without it iCloud Keychain cannot tell whose password
  * this is, and saves a second login instead of updating the existing one.
+ * The button submits through `useCredentialFields`, so a strong password
+ * AutoFill filled while the field had focus is the one that is sent.
  */
 
 import { useSignIn } from '@clerk/expo'
 import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { type CodedError, pickError } from '../../../src/auth/clerkErrors'
+import { useCredentialFields } from '../../../src/auth/useCredentialFields'
 import { AuthError } from '../../../src/components/AuthError'
 import { AuthScreen } from '../../../src/components/AuthScreen'
 import { useI18n } from '../../../src/i18n'
@@ -31,19 +34,20 @@ export default function ResetPassword() {
   const { t } = useI18n()
   const { signIn, errors } = useSignIn()
   const { email } = useLocalSearchParams<{ email?: string }>()
-  const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [returned, setReturned] = useState<CodedError | null>(null)
 
+  const form = useCredentialFields({ password: '' }, ({ password }) => {
+    if (password.length > 0 && !busy) void submit(password)
+  })
   const error = pickError(errors, returned, t)
 
-  /** `typed` is the field's native text when the keyboard's Go submits. */
-  async function submit(typed: string = password) {
+  async function submit(password: string) {
     setBusy(true)
     setReturned(null)
 
     const saved = await signIn.resetPasswordEmailCode.submitPassword({
-      password: typed,
+      password,
     })
     if (saved.error) {
       setReturned(saved.error)
@@ -75,26 +79,24 @@ export default function ResetPassword() {
       ) : null}
       <Field
         label={t.fields.newPassword}
-        value={password}
-        onChangeText={setPassword}
+        {...form.field('password')}
         secure
         autoCapitalize="none"
         autoComplete="new-password"
         textContentType="newPassword"
         autoFocus
         returnKeyType="go"
-        onSubmitEditing={(event) =>
-          event.nativeEvent.text.length > 0 && submit(event.nativeEvent.text)
-        }
+        onSubmitEditing={form.submitFrom('password')}
       />
 
       <AuthError message={error} />
 
       <Button
+        testID="reset-password-submit"
         label={t.reset.password.submit}
         busy={busy}
-        disabled={password.length === 0}
-        onPress={() => submit()}
+        disabled={form.values.password.length === 0 && !form.editing}
+        onPress={form.press}
       />
     </AuthScreen>
   )

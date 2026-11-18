@@ -8,6 +8,9 @@
  *
  * `autoComplete="new-password"` is what makes the platform offer to generate and
  * save one, which is the only reason the sign-in screen has anything to fill.
+ * The button submits through `useCredentialFields`: the strong password iOS
+ * offers lands in the field without `onChangeText`, and it is the one Clerk
+ * must get.
  */
 
 import { useSignUp } from '@clerk/expo'
@@ -15,6 +18,7 @@ import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import type { TextInputInstance } from 'react-native'
 import { type CodedError, pickError } from '../../src/auth/clerkErrors'
+import { useCredentialFields } from '../../src/auth/useCredentialFields'
 import { AuthError } from '../../src/components/AuthError'
 import { AuthLink } from '../../src/components/AuthLink'
 import { AuthScreen } from '../../src/components/AuthScreen'
@@ -27,23 +31,35 @@ export default function SignUp() {
   const { t } = useI18n()
   const router = useRouter()
   const { signUp, errors } = useSignUp()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [returned, setReturned] = useState<CodedError | null>(null)
   const passwordRef = useRef<TextInputInstance>(null)
 
-  const ready = email.trim().length > 0 && password.length > 0
+  // Not gated on the email: AutoFill can fill it without reporting it, and
+  // Clerk's "enter your email" beats a silent button.
+  const form = useCredentialFields(
+    { email: '', password: '' },
+    (latest) => {
+      if (latest.password.length > 0 && !busy) void submit(latest)
+    },
+  )
+  const ready =
+    form.values.email.trim().length > 0 && form.values.password.length > 0
   const error = pickError(errors, returned, t)
 
-  /** `typed` is the field's native text when the keyboard's Go submits. */
-  async function submit(typed: string = password) {
+  async function submit({
+    email,
+    password,
+  }: {
+    email: string
+    password: string
+  }) {
     setBusy(true)
     setReturned(null)
 
     const created = await signUp.password({
       emailAddress: email.trim(),
-      password: typed,
+      password,
     })
     if (created.error) {
       setReturned(created.error)
@@ -79,8 +95,7 @@ export default function SignUp() {
     >
       <Field
         label={t.fields.email}
-        value={email}
-        onChangeText={setEmail}
+        {...form.field('email')}
         autoCapitalize="none"
         autoCorrect={false}
         keyboardType="email-address"
@@ -93,29 +108,23 @@ export default function SignUp() {
       <Field
         ref={passwordRef}
         label={t.fields.password}
-        value={password}
-        onChangeText={setPassword}
+        {...form.field('password')}
         secure
         autoCapitalize="none"
         autoComplete="new-password"
         textContentType="newPassword"
         returnKeyType="go"
-        // Not gated on the email state: AutoFill can fill the email without
-        // reporting it, and Clerk's "enter your email" beats a silent Go.
-        onSubmitEditing={(event) =>
-          event.nativeEvent.text.length > 0 &&
-          !busy &&
-          submit(event.nativeEvent.text)
-        }
+        onSubmitEditing={form.submitFrom('password')}
       />
 
       <AuthError message={error} />
 
       <Button
+        testID="sign-up-submit"
         label={t.signUp.submit}
         busy={busy}
-        disabled={!ready}
-        onPress={() => submit()}
+        disabled={!ready && !form.editing}
+        onPress={form.press}
       />
 
       <SocialButtons />

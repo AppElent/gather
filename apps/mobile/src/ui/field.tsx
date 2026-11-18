@@ -20,6 +20,9 @@
  *   and when the keyboard submits, so state matches what the field shows.
  *   An `onSubmitEditing` that submits the form should read
  *   `event.nativeEvent.text`: the state update has not landed yet.
+ *
+ * A form's primary button needs more than this, because a focused field has
+ * not reported its text yet: `useCredentialFields` handles that.
  */
 import { forwardRef, useState } from 'react'
 import {
@@ -65,6 +68,8 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
     secure,
     invalid,
     passwordRules,
+    onFocus,
+    onBlur,
     onEndEditing,
     onSubmitEditing,
     ...props
@@ -110,8 +115,6 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
           placeholderTextColor={tokens.muted}
           secureTextEntry={secure && !revealed}
           accessibilityLabel={label}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
           passwordRules={
             passwordRules ??
             (props.textContentType === 'newPassword'
@@ -119,6 +122,14 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
               : undefined)
           }
           {...props}
+          onFocus={(event) => {
+            setFocused(true)
+            onFocus?.(event)
+          }}
+          onBlur={(event) => {
+            setFocused(false)
+            onBlur?.(event)
+          }}
           onEndEditing={(event) => {
             sync(event)
             onEndEditing?.(event)

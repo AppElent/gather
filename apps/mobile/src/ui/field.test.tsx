@@ -4,7 +4,7 @@
  * fields, and state kept on the native text when AutoFill sets a credential
  * field without `onChangeText`.
  */
-import type { ReactNode } from 'react'
+import { act, type ReactNode } from 'react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import { mount } from '../testing/dom'
@@ -94,6 +94,16 @@ describe('native text sync', () => {
     })
     field.submit('a@b.com')
     expect(calls).toEqual(['change:a@b.com', 'submit:a@b.com'])
+  })
+
+  test("a screen's focus handlers run alongside the field's own", () => {
+    const onFocus = vi.fn()
+    const onBlur = vi.fn()
+    render({ secure: true, onFocus, onBlur })
+    act(() => (input.props.onFocus as () => void)())
+    act(() => (input.props.onBlur as () => void)())
+    expect(onFocus).toHaveBeenCalledTimes(1)
+    expect(onBlur).toHaveBeenCalledTimes(1)
   })
 
   test('unchanged text and non-credential fields are left alone', () => {
