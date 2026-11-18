@@ -717,6 +717,91 @@ describe('recipeClashes: the round-2 Opus review cases', () => {
   })
 })
 
+describe('recipeClashes: the round-2 Sonnet review cases', () => {
+  type Prefs = Parameters<typeof recipeClashes>[1]
+  const clashes = (
+    line: string,
+    chosen: {
+      allergens?: readonly Prefs['allergens'][number][]
+      diets?: readonly Prefs['diets'][number][]
+      dislikes?: readonly string[]
+    },
+  ) =>
+    recipeClashes(
+      recipe('Toetje', [line]),
+      prefsWith({
+        allergens: [...(chosen.allergens ?? [])],
+        diets: [...(chosen.diets ?? [])],
+        dislikes: [...(chosen.dislikes ?? [])],
+      }),
+      0,
+    )
+
+  test.each([
+    ['pasta, glutenvrij', { diets: ['gluten-free'] }],
+    ['wraps, glutenvrij', { allergens: ['gluten'] }],
+    ['worst, vegetarisch', { diets: ['vegetarian'] }],
+    ['gehakt, vegetarisch', { diets: ['vegetarian'] }],
+    ['melk, lactosevrij', { diets: ['lactose-free'] }],
+    ['kipfilet, halal', { diets: ['halal'] }],
+  ] as const)('a trailing free-from word qualifies the item: %s', (line, prefs) => {
+    expect(clashes(line, prefs)).toEqual([])
+  })
+
+  test.each([
+    ['pasta (use gluten free pasta if needed)', { allergens: ['gluten'] }],
+    ['soy sauce (use tamari if gluten free)', { allergens: ['gluten'] }],
+    ['pasta (glutenvrij of gewoon)', { allergens: ['gluten'] }],
+  ] as const)('a tip is "controleer zelf": %s', (line, prefs) => {
+    const found = clashes(line, prefs)
+    expect(found).toHaveLength(1)
+    expect(found[0].uncertain).toBe(true)
+  })
+
+  test.each([
+    ['1 el toasted sesame seeds', { allergens: ['gluten'] }],
+    ['1 koekenpan', { allergens: ['gluten'] }],
+    ['1 cakevorm van 24 cm', { allergens: ['gluten'] }],
+    ['a cookie cutter', { allergens: ['gluten'] }],
+    ['Oma Margriet’s soep', { allergens: ['fish'] }],
+    ['200 ml half-om-half yoghurt', { diets: ['halal'] }],
+    ['4 boterhammen', { allergens: ['milk'] }],
+    ['200 g gemalen ijs', { allergens: ['milk'] }],
+  ] as const)('%s is not hidden', (line, prefs) => {
+    expect(certain(clashes(line, prefs))).toEqual([])
+  })
+
+  test.each([
+    ['2 sneetjes toast', { allergens: ['gluten'] }],
+    ['4 speculoos', { allergens: ['gluten'] }],
+    ['500 g vanilleijs', { allergens: ['milk'] }],
+    ['1 kg spare ribs', { diets: ['vegetarian'] }],
+  ] as const)('%s is caught', (line, prefs) => {
+    expect(certain(clashes(line, prefs))).toHaveLength(1)
+  })
+
+  test.each([
+    ['1 blik kikkererwten, uitgelekt', 'ui'],
+    ['tonijn uit blik', 'ui'],
+    ['sap van 1 uitgeperste citroen', 'ui'],
+    ['eigengemaakte pesto', 'ei'],
+    ['1 eigeel', 'ei'],
+    ['4 hamburgerbroodjes', 'ham'],
+  ])('dislike %s does not hide on %s', (line, dislike) => {
+    expect(clashes(line, { dislikes: [dislike] })).toEqual([])
+  })
+
+  test.each([
+    ['2 uien', 'ui'],
+    ['een handje uitjes', 'ui'],
+    ['200 g uienringen', 'ui'],
+    ['4 eieren', 'ei'],
+    ['100 g ham', 'ham'],
+  ])('%s is a %s dislike', (line, dislike) => {
+    expect(clashes(line, { dislikes: [dislike] })).toHaveLength(1)
+  })
+})
+
 describe('recipeClashes: dislikes and time', () => {
   test('a dislike matches singular, plural, any case', () => {
     const prefs = prefsWith({ dislikes: ['Champignons', 'koriander'] })

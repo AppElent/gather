@@ -127,7 +127,7 @@ const GLUTEN: Rule = {
     'beschuit',
     'haver',
     'boterham',
-    'toast',
+    'tosti',
     'taart',
     'bakmeel',
     'tarwemeel',
@@ -141,6 +141,7 @@ const GLUTEN: Rule = {
     'lange vinger',
     'ladyfinger',
     'speculaas',
+    'speculoos',
     'koek',
     'cake',
     'cookie',
@@ -157,7 +158,21 @@ const GLUTEN: Rule = {
     'conchiglie',
     'vermicelli',
   ],
-  word: ['oat', 'oats', 'wrap', 'wraps', 'deeg', 'dough', 'mie', 'roti', 'ramen'],
+  word: [
+    'oat',
+    'oats',
+    'wrap',
+    'wraps',
+    'deeg',
+    'dough',
+    'mie',
+    'roti',
+    'ramen',
+    'toast',
+    'toasts',
+    'toastje',
+    'toastjes',
+  ],
   except: [
     'bloemkool',
     'maisbloem',
@@ -200,6 +215,15 @@ const GLUTEN: Rule = {
     'rice cake',
     'rice vermicelli',
     'rijst vermicelli',
+    'koekenpan',
+    'koekepan',
+    'cakevorm',
+    'cakeblik',
+    'cake tin',
+    'cake pan',
+    'cookie cutter',
+    'koekjesvorm',
+    'koekjes vorm',
     'speculaaskruiden',
     'koekkruiden',
   ],
@@ -313,7 +337,6 @@ const FISH: Rule = {
     'zeetong',
     'tongschar',
     'tarbot',
-    'griet',
     'bokking',
     'sprot',
     'pollak',
@@ -361,6 +384,9 @@ const SOY: Rule = {
 }
 
 const MILK_EXCEPT = [
+  'boterham',
+  'gemalen ijs',
+  'crushed ice',
   'ijsbergsla',
   'ijsblokje',
   'ijsklontje',
@@ -404,6 +430,10 @@ const MILK: Rule = {
     'melk',
     'ice cream',
     'roomijs',
+    'vanilleijs',
+    'chocoladeijs',
+    'aardbeienijs',
+    'ijstaart',
     'schepijs',
     'softijs',
     'milk',
@@ -642,6 +672,7 @@ const MEAT: Rule = {
     'kotelet',
     'entrecote',
     'sparerib',
+    'spare rib',
     'ribeye',
     'rib eye',
     'tournedos',
@@ -852,6 +883,15 @@ function findTerm(
   return null
 }
 
+/** Whether every word of `part` belongs to a free-from word ("glutenvrije"). */
+function isOnlyGuard(part: string, guards: readonly string[]): boolean {
+  let rest = part
+  for (const guard of [...guards].sort((a, b) => b.length - a.length)) {
+    rest = rest.replace(new RegExp(`\\S*${guard}\\S*`, 'g'), ' ')
+  }
+  return rest.trim() === ''
+}
+
 interface RuleHit {
   term: string
   uncertain: boolean
@@ -869,21 +909,28 @@ function matchRule(lines: readonly string[], rule: Rule): RuleHit | null {
     // tofu") is read on its own, so a guard only clears its own term.
     const guards = rule.lineGuard ?? []
     const lineGuarded = guards.some((guard) => raw.includes(guard))
-    let open: string | null = null
-    let cleared = false
+    // A piece that is nothing but a free-from word ("pasta, glutenvrij",
+    // "kipfilet, halal") qualifies the item before it.
+    const found: { term: string; open: boolean }[] = []
     for (const piece of blank(raw, rule.except).split(
       / (?:of|or|en|and) |,/,
     )) {
       const part = ` ${piece.trim()} `
+      if (part.trim() && isOnlyGuard(part, guards)) {
+        const last = found.at(-1)
+        if (last) last.open = false
+        continue
+      }
       const hit = findTerm(part, rule.part, rule.word)
       if (!hit) continue
       const hitAt = part.indexOf(hit)
       const guardAt = Math.min(
         ...guards.map((guard) => part.indexOf(guard)).filter((at) => at >= 0),
       )
-      if (guardAt <= hitAt) cleared = true
-      else open ??= hit
+      found.push({ term: hit, open: guardAt > hitAt })
     }
+    const open = found.find((entry) => entry.open)?.term ?? null
+    const cleared = found.length > 0
     if (open && !lineGuarded) return { term: open, uncertain: false }
     if (open) {
       maybe ??= open
@@ -985,11 +1032,15 @@ export function recipeClashes(
   }
 
   const corpus = [...lines, ...tags.map((tag) => ` ${tag} `)].join(' ')
-  // A dislike hides the recipe, so a short one must start a word: "ui" is in
-  // "rode ui" and "uienringen", not in "suiker" or "kruiden". A longer one
-  // also counts inside a compound ("kastanjechampignons").
+  // A dislike hides the recipe, so a short one must be a whole word, give or
+  // take a plural or diminutive ("ui", "uien", "uitjes", "uienringen"), never
+  // part of another word ("suiker", "uitgelekt", "eigeel", "hamburger"). A
+  // longer one also counts inside a compound ("kastanjechampignons").
   const found = (form: string) =>
-    form.length >= 5 ? corpus.includes(form) : corpus.includes(` ${form}`)
+    form.length >= 5
+      ? corpus.includes(form)
+      : new RegExp(` ${form}(?:s|en|eren|je|jes|tje|tjes)? `).test(corpus) ||
+        corpus.includes(` ${form}en`)
   for (const dislike of prefs.dislikes) {
     if (dislikeForms(dislike).some(found))
       clashes.push({ kind: 'dislike', label: dislike })

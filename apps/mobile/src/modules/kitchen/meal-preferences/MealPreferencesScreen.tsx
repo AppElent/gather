@@ -124,14 +124,15 @@ export function MealPreferencesScreen() {
 
   // Leaving the screen with the budget field focused may not blur it, so a
   // typed budget still pending is saved on the way out.
-  const leaving = useRef({ budgetDraft, decimal, groupSlug, update })
-  leaving.current = { budgetDraft, decimal, groupSlug, update }
+  const stored = prefs?.weeklyBudgetCents
+  const leaving = useRef({ budgetDraft, decimal, groupSlug, stored, update })
+  leaving.current = { budgetDraft, decimal, groupSlug, stored, update }
   useEffect(
     () => () => {
       const pending = leaving.current
       if (pending.budgetDraft === null) return
       const parsed = parseBudgetCents(pending.budgetDraft, pending.decimal)
-      if (!parsed.ok) return
+      if (!parsed.ok || parsed.cents === pending.stored) return
       pending
         .update({
           groupSlug: pending.groupSlug,
