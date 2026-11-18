@@ -571,7 +571,7 @@ describe('recipeClashes: the round-1 review cases', () => {
 
   test('a guarded line is "controleer zelf", never silence', () => {
     const flour = recipeClashes(
-      recipe('Taart', ['200 g bloem (of glutenvrij meel)']),
+      recipe('Toetje', ['200 g bloem (of glutenvrij meel)']),
       prefsWith({ allergens: ['gluten'] }),
       0,
     )
@@ -594,6 +594,60 @@ describe('recipeClashes: the round-1 review cases', () => {
     expect(hides('100 g wilde rijst', { diets: ['vegetarian'] })).toEqual([])
     expect(hides('1 tl speculaaskruiden', { allergens: ['gluten'] })).toEqual([])
     expect(hides('1 aubergine (eggplant)', { allergens: ['eggs'] })).toEqual([])
+  })
+})
+
+describe('recipeClashes: the round-1 Sonnet review cases', () => {
+  const hides = (
+    line: string,
+    overrides: Partial<Parameters<typeof recipeClashes>[1]>,
+  ) => certain(recipeClashes(recipe('Recept', [line]), prefsWith(overrides), 0))
+
+  test.each([
+    ['1 bol vanille-ijs', 'milk'],
+    ['4 boterhammen', 'gluten'],
+    ['2 sneetjes toast', 'gluten'],
+    ['1 taartbodem', 'gluten'],
+    ['6 amaretti', 'nuts'],
+    ['2 kwarteleitjes', 'eggs'],
+  ] as const)('%s is a certain %s clash', (line, allergen) => {
+    expect(hides(line, { allergens: [allergen] })).toEqual([
+      expect.objectContaining({ kind: 'allergen', id: allergen }),
+    ])
+  })
+
+  test('ijsbergsla is not ice cream', () => {
+    expect(hides('1 krop ijsbergsla', { allergens: ['milk'] })).toEqual([])
+  })
+
+  test('ossenhaas is not vegetarian', () => {
+    expect(hides('400 g ossenhaas', { diets: ['vegetarian'] })).toHaveLength(1)
+  })
+
+  test('a serrano pepper is not ham; serranoham is', () => {
+    expect(hides('1 serrano peper', { diets: ['halal'] })).toEqual([])
+    expect(hides('4 plakjes serranoham', { diets: ['halal'] })).toHaveLength(1)
+  })
+
+  test('one item’s free-from word does not clear the next item', () => {
+    expect(
+      hides('glutenvrije pasta en tarwebloem', { allergens: ['gluten'] }),
+    ).toEqual([expect.objectContaining({ id: 'gluten' })])
+    expect(
+      hides('200 g glutenvrije pasta', { allergens: ['gluten'] }),
+    ).toEqual([])
+  })
+
+  test('a short dislike must start a word', () => {
+    const dislikes = (line: string, dislike: string) =>
+      recipeClashes(recipe('Recept', [line]), prefsWith({ dislikes: [dislike] }), 0)
+    expect(dislikes('1 el suiker', 'ui')).toEqual([])
+    expect(dislikes('verse kruiden', 'ui')).toEqual([])
+    expect(dislikes('1 prei', 'ei')).toEqual([])
+    expect(dislikes('250 g champignons', 'ham')).toEqual([])
+    expect(dislikes('1 rode ui', 'ui')).toHaveLength(1)
+    expect(dislikes('200 g uienringen', 'ui')).toHaveLength(1)
+    expect(dislikes('250 g kastanjechampignons', 'champignons')).toHaveLength(1)
   })
 })
 

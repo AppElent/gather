@@ -28,7 +28,7 @@ import {
   toggleIn,
 } from '@gather/core/meal-preferences'
 import { useMutation } from 'convex/react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Pressable,
   ScrollView,
@@ -120,6 +120,28 @@ export function MealPreferencesScreen() {
     update({ groupSlug, patch }).catch(failedToSave)
   }
 
+  const decimal: ',' | '.' = locale === 'nl' ? ',' : '.'
+
+  // Leaving the screen with the budget field focused may not blur it, so a
+  // typed budget still pending is saved on the way out.
+  const leaving = useRef({ budgetDraft, decimal, groupSlug, update })
+  leaving.current = { budgetDraft, decimal, groupSlug, update }
+  useEffect(
+    () => () => {
+      const pending = leaving.current
+      if (pending.budgetDraft === null) return
+      const parsed = parseBudgetCents(pending.budgetDraft, pending.decimal)
+      if (!parsed.ok) return
+      pending
+        .update({
+          groupSlug: pending.groupSlug,
+          patch: { weeklyBudgetCents: parsed.cents },
+        })
+        .catch(() => haptics.actionFailed())
+    },
+    [],
+  )
+
   if (prefs === undefined) {
     return (
       <ScrollView
@@ -132,7 +154,6 @@ export function MealPreferencesScreen() {
     )
   }
 
-  const decimal = locale === 'nl' ? ',' : '.'
   const eaters = prefs.defaultEaterIds.length
   const nameOf = new Map(prefs.members.map((p) => [p.userId, p.name]))
 
@@ -168,8 +189,16 @@ export function MealPreferencesScreen() {
     }
     setBudgetInvalid(false)
     setBudgetDraft(null)
-    if (parsed.cents !== prefs.weeklyBudgetCents)
-      save({ weeklyBudgetCents: parsed.cents })
+    if (parsed.cents === prefs.weeklyBudgetCents) return
+    // A refused save puts back what was typed, not the old amount.
+    const typed = budgetDraft
+    setFailed(false)
+    update({ groupSlug, patch: { weeklyBudgetCents: parsed.cents } }).catch(
+      () => {
+        failedToSave()
+        setBudgetDraft(typed)
+      },
+    )
   }
 
   const minutesValue = (minutes: CookingMinutes | null) =>

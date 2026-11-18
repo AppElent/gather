@@ -126,6 +126,9 @@ const GLUTEN: Rule = {
     'cracker',
     'beschuit',
     'haver',
+    'boterham',
+    'toast',
+    'taart',
     'bakmeel',
     'tarwemeel',
     'ciabatta',
@@ -342,6 +345,12 @@ const SOY: Rule = {
 }
 
 const MILK_EXCEPT = [
+  'ijsbergsla',
+  'ijsblokje',
+  'ijsklontje',
+  'ijswater',
+  'ijskoud',
+  'waterijs',
   'kokosmelk',
   'amandelmelk',
   'havermelk',
@@ -377,6 +386,10 @@ const MILK_EXCEPT = [
 const MILK: Rule = {
   part: [
     'melk',
+    'ice cream',
+    'roomijs',
+    'schepijs',
+    'softijs',
     'milk',
     'room',
     'boter',
@@ -411,7 +424,7 @@ const MILK: Rule = {
     'dairy',
     'custard',
   ],
-  word: ['wei', 'vla'],
+  word: ['wei', 'vla', 'ijs', 'ijsje', 'ijsjes'],
   except: MILK_EXCEPT,
   maybe: ['pesto', 'bechamel', 'puree'],
 }
@@ -419,6 +432,7 @@ const MILK: Rule = {
 const NUTS: Rule = {
   part: [
     'noot',
+    'amaretti',
     'noten',
     'nut',
     'amandel',
@@ -605,6 +619,9 @@ const MEAT: Rule = {
     'lever',
     'liver',
     'schnitzel',
+    'ossenhaas',
+    'varkenshaas',
+    'kogelbiefstuk',
     'karbonade',
     'kotelet',
     'entrecote',
@@ -643,6 +660,10 @@ const MEAT: Rule = {
     'courgettecarpaccio',
     'wild rice',
     'wilde rijst',
+    'serrano peper',
+    'serranopeper',
+    'serrano pepper',
+    'serrano chili',
     'spekkoek',
     ', gehakt',
     'fijn gehakt',
@@ -696,7 +717,17 @@ const ALCOHOL = [
 const HALAL: Rule = {
   part: [...PORK, ...ALCOHOL.filter((term) => term.length > 3)],
   word: ['ham', 'rum', 'gin', 'port', 'lard'],
-  except: ['wijnazijn', 'wine vinegar', 'portobello', 'gemberbier', 'ginger beer'],
+  except: [
+    'wijnazijn',
+    'wine vinegar',
+    'portobello',
+    'gemberbier',
+    'ginger beer',
+    'serrano peper',
+    'serranopeper',
+    'serrano pepper',
+    'serrano chili',
+  ],
   maybe: ['gelatine', 'gelatin', 'mirin', 'wijnazijn', 'wine vinegar'],
   lineGuard: ['halal'],
 }
@@ -808,20 +839,27 @@ function matchRule(lines: readonly string[], rule: Rule): RuleHit | null {
     // a choice ("200 g bloem (of glutenvrij meel)", "kip or vegetarian kip"),
     // the term in the other alternative may be what is cooked: "controleer
     // zelf", never silence.
-    const alternatives = blank(raw, rule.except)
-      .split(/ (?:of|or) /)
-      .map((part) => ` ${part.trim()} `)
-    const isGuarded = (part: string) =>
-      rule.lineGuard?.some((guard) => part.includes(guard)) ?? false
-    const offersSafe = alternatives.some(isGuarded)
-    for (const part of alternatives) {
-      if (isGuarded(part)) continue
-      const hit = findTerm(part, rule.part, rule.word)
-      if (!hit) continue
-      if (!offersSafe) return { term: hit, uncertain: false }
-      maybe ??= hit
+    // A line can also list two things ("glutenvrije pasta en tarwebloem"):
+    // each item is read on its own, so one item's guard never clears another.
+    const items = blank(raw, rule.except).split(/ (?:en|and) |,/)
+    let anySafe = false
+    for (const item of items) {
+      const alternatives = item
+        .split(/ (?:of|or) /)
+        .map((part) => ` ${part.trim()} `)
+      const isGuarded = (part: string) =>
+        rule.lineGuard?.some((guard) => part.includes(guard)) ?? false
+      const offersSafe = alternatives.some(isGuarded)
+      anySafe ||= offersSafe
+      for (const part of alternatives) {
+        if (isGuarded(part)) continue
+        const hit = findTerm(part, rule.part, rule.word)
+        if (!hit) continue
+        if (!offersSafe) return { term: hit, uncertain: false }
+        maybe ??= hit
+      }
     }
-    if (offersSafe) continue
+    if (anySafe) continue
     // Read the line as written: "wijnazijn" is blanked as wine for halal and
     // still worth a "controleer zelf". A maybe sits inside a compound too
     // ("groentebouillon") when it is long enough not to match by accident.
@@ -917,8 +955,13 @@ export function recipeClashes(
   }
 
   const corpus = [...lines, ...tags.map((tag) => ` ${tag} `)].join(' ')
+  // A dislike hides the recipe, so a short one must start a word: "ui" is in
+  // "rode ui" and "uienringen", not in "suiker" or "kruiden". A longer one
+  // also counts inside a compound ("kastanjechampignons").
+  const found = (form: string) =>
+    form.length >= 5 ? corpus.includes(form) : corpus.includes(` ${form}`)
   for (const dislike of prefs.dislikes) {
-    if (dislikeForms(dislike).some((form) => corpus.includes(form)))
+    if (dislikeForms(dislike).some(found))
       clashes.push({ kind: 'dislike', label: dislike })
   }
 
