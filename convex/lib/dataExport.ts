@@ -113,6 +113,10 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   aiUsage: { scope: 'account', index: 'by_user_and_day' },
   // Retry receipts for connected apps' creates; the rows they point at go out.
   idempotencyKeys: { exclude: 'bookkeeping' },
+  // Shared across every Group and keyed by a product name only: nobody's.
+  groceryCategoryCache: { exclude: 'reference-data' },
+  // One global counter per day of AI questions about grocery names.
+  groceryAiUsage: { exclude: 'bookkeeping' },
 
   // -- Each Group ----------------------------------------------------------
   groups: { scope: 'group', self: true, omit: ['inviteCode', 'isPersonal'] },
@@ -134,6 +138,7 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
     index: 'by_list',
     field: 'listId',
   },
+  groceryCategoryOverrides: { scope: 'group', index: 'by_group_and_name' },
   notes: { scope: 'group', index: 'by_group' },
   calendars: { scope: 'group', index: 'by_group' },
   calendarEvents: {

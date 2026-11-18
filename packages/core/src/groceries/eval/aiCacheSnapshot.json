@@ -1,0 +1,6 @@
+{
+  "about": "Answers of the grocery AI fallback (convex/lib/groceryAi.ts) for the eval lines the dictionary does not know, keyed by groceryKey. Written by scripts/groceries/ask-ai.ts. Empty until a deployment with ANTHROPIC_API_KEY records it: no key was available when APP-353 was built, so 'local + AI cache' currently equals the local score.",
+  "model": "claude-haiku-5-5",
+  "recordedOn": null,
+  "answers": {}
+}

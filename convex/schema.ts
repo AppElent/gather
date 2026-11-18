@@ -22,6 +22,10 @@ import {
   splitScenarioFields,
   transferTaxBandValidator,
 } from './lib/finance'
+import {
+  groceryAisleValidator,
+  groceryCacheSourceValidator,
+} from './lib/groceryFields'
 import { groupRoleValidator } from './lib/groupAccess'
 import { mealSlotValidator, quickLimitValidator } from './lib/kitchen'
 import {
@@ -173,7 +177,53 @@ export default defineSchema({
     priceCents: v.optional(v.number()),
     createdBy: v.id('users'),
     order: v.number(),
+    /**
+     * The aisle of an item on a Group's grocery list (APP-353), set by the
+     * server when the item is added and by a Member's correction. Absent on
+     * other lists and on items added before recognition existed.
+     */
+    category: v.optional(groceryAisleValidator),
   }).index('by_list', ['listId']),
+
+  /**
+   * A Group's own aisle for a grocery name: written when a Member moves an
+   * item to another aisle, and it wins over everything else for that Group
+   * (APP-353). `name` is the `groceryKey` of the item's name.
+   */
+  groceryCategoryOverrides: defineTable({
+    groupId: v.id('groups'),
+    name: v.string(),
+    aisle: groceryAisleValidator,
+    updatedBy: v.id('users'),
+    updatedAt: v.number(),
+  })
+    .index('by_group_and_name', ['groupId', 'name'])
+    .index('by_name_and_aisle', ['name', 'aisle']),
+
+  /**
+   * The shared answer for a grocery name the bundled dictionary does not
+   * know: asked of a small model once, or agreed by at least three Groups'
+   * corrections (APP-353). Holds no Group or person data: the key is the
+   * normalised name only. `aisle` is absent while the question is out.
+   */
+  groceryCategoryCache: defineTable({
+    name: v.string(),
+    aisle: v.optional(groceryAisleValidator),
+    source: groceryCacheSourceValidator,
+    askedAt: v.number(),
+    answeredAt: v.optional(v.number()),
+  }).index('by_name', ['name']),
+
+  /**
+   * How many grocery-aisle questions went to the model on a UTC day: the
+   * global budget behind the AI fallback, separate from any person's own
+   * cap (`lib/aiUsage.ts`), because nobody asked for these calls.
+   */
+  groceryAiUsage: defineTable({
+    /** `YYYY-MM-DD`, UTC. */
+    day: v.string(),
+    count: v.number(),
+  }).index('by_day', ['day']),
 
   notes: defineTable({
     groupId: v.id('groups'),

@@ -158,6 +158,16 @@ const GROUP_CONTENT: {
         .collect(),
     ),
 
+  groceryCategoryOverrides: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'groceryCategoryOverrides',
+      await ctx.db
+        .query('groceryCategoryOverrides')
+        .withIndex('by_group_and_name', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
   taskLists: async (ctx, groupId) => {
     const lists = await ctx.db
       .query('taskLists')

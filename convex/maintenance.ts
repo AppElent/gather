@@ -556,6 +556,7 @@ const USER_REFERENCES: {
   idempotencyKeys: { userId: 'repoint' },
   recipes: { createdByUserId: 'repoint' },
   tasks: { createdBy: 'repoint' },
+  groceryCategoryOverrides: { updatedBy: 'repoint' },
   notes: { createdBy: 'repoint', updatedBy: 'repoint' },
   mealEntries: { createdBy: 'repoint' },
   plannedDinners: { eaterIds: 'repoint' },
