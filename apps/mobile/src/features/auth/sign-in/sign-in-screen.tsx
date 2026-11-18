@@ -96,8 +96,9 @@ export function SignInScreen() {
         autoComplete="current-password"
         textContentType="password"
         returnKeyType="go"
+        // Not gated on the email state: AutoFill can fill the email without
+        // reporting it, and Clerk's "enter your email" beats a silent Go.
         onSubmitEditing={(event) =>
-          hasEmail &&
           event.nativeEvent.text.length > 0 &&
           !busy &&
           signInWithPassword(event.nativeEvent.text)

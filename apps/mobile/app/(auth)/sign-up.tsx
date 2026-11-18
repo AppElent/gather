@@ -100,9 +100,11 @@ export default function SignUp() {
         autoComplete="new-password"
         textContentType="newPassword"
         returnKeyType="go"
+        // Not gated on the email state: AutoFill can fill the email without
+        // reporting it, and Clerk's "enter your email" beats a silent Go.
         onSubmitEditing={(event) =>
-          email.trim().length > 0 &&
           event.nativeEvent.text.length > 0 &&
+          !busy &&
           submit(event.nativeEvent.text)
         }
       />
