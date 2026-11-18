@@ -83,9 +83,38 @@ monthly and annual totals.
 _Avoid_: Fixed costs, Fixed cost overview, Bills
 
 **Shared costs**:
-The Money Module containing the **Payment split** calculator and the Group's
-immutable **Saved scenarios**.
+The Money Module containing a Group's **Pots**: shared expenses, the running
+**Balance** per participant, and **Settlements** (ADR-0048). Until APP-328
+migrates them, it also holds the **Payment split** calculator and its
+**Saved scenarios**.
 _Avoid_: Temporary costs, Temporary cost overview, Expense ledger
+
+**Pot**:
+A named record in **Shared costs** that a circle of participants shares
+expenses in, such as a household's groceries or a weekend away. Its
+participants are current Members plus optional named guests, who are names and
+not accounts. A pot is open while expenses are added; a closed pot is
+read-only and keeps its history. Pots never net out against each other.
+_Avoid_: Potje (in English text), Group balance, Tab, Account
+
+**Expense**:
+A cost one participant paid for a **Pot**, with an amount, a date, a
+description and how it splits over the pot's participants. Every figure in it
+is one a Member typed or confirmed.
+_Avoid_: Bill, Payment, Transaction
+
+**Balance**:
+What a participant in a **Pot** paid minus their share of its expenses,
+adjusted by **Settlements**. It is derived and never typed, and a pot's
+balances sum to zero. It is bookkeeping between participants, not a loan, and
+Gather never collects it.
+_Avoid_: Debt, Loan, Owed amount
+
+**Settlement**:
+A Member's record that one participant in a **Pot** paid another to even out
+their **Balances**. Gather may suggest who pays whom, but moves no money; a
+payment-request link on it is one a Member pasted.
+_Avoid_: Payment, Transfer (for a recorded one), Refund
 
 **Savings goals**:
 The Money Module containing a Group's **Savings goals** and their manually
@@ -94,7 +123,8 @@ _Avoid_: Saving goals, Savings accounts
 
 **Finance calculator**:
 A Group money tool that estimates an outcome from values a Member enters and
-keeps nothing unless asked. **Payment split** is the only one; every other
+keeps nothing unless asked. **Payment split** is the only one, and it retires
+when APP-328 moves Saved scenarios into closed **Pots** (ADR-0048); every other
 money tool stores Finance records.
 _Avoid_: Ledger, Account statement
 
@@ -102,7 +132,8 @@ _Avoid_: Ledger, Account statement
 An immutable Group snapshot of the inputs and result of a **Payment split**.
 Members change a scenario by duplicating it, so a comparison always retains the
 assumptions it was made from. A Mortgage calculation is not a scenario: it is a
-record, and duplicating one is how a Member asks what if.
+record, and duplicating one is how a Member asks what if. Retiring: APP-328
+turns each one into a closed **Pot** (ADR-0048).
 _Avoid_: Editable draft, Live calculation
 
 **House**:
@@ -179,7 +210,8 @@ _Avoid_: Account aggregation, Financial statement
 A Finance calculator in **Shared costs** that divides one event's costs among current Group
 Members, equally or by custom amount. It may collect several payments that
 different Members made, then shows who should contribute; it does not retain
-debts, balances, or settlements.
+debts, balances, or settlements. Retiring with APP-328: **Pots** replace it
+(ADR-0048).
 _Avoid_: Bill, Expense claim, Settlement
 
 **Portfolio overview**:
