@@ -26,6 +26,10 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   is not in the cascade; `cascade.finishAccount` deletes it by index, so a new
   one is added there by hand. [Data export](data-export.md)
   reads the same tables, and its registry fails `pnpm typecheck` for a new one.
+- The shared grocery aisle cache (`groceryCategoryCache`) and its daily
+  counter hold no Group or person data, so neither a Group's nor an account's
+  deletion touches them. A Group's aisle corrections
+  (`groceryCategoryOverrides`) are in the cascade with its other content.
 - Storage ids are collected by the cascade and deleted by scheduled work, so a
   large Group survives the one-transaction limit ([stored files](stored-files.md)).
 - **Account deletion is Convex first, Clerk second**, in scheduled steps, one

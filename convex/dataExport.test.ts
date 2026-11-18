@@ -197,6 +197,13 @@ async function household(t: Harness): Promise<Household> {
       order: 2,
     })
     await ctx.db.patch(household, { groceryListId: errands })
+    await ctx.db.insert('groceryCategoryOverrides', {
+      groupId: household,
+      name: 'melk',
+      aisle: 'drinks',
+      updatedBy: alice,
+      updatedAt: 0,
+    })
     // More than a page across two lists, so the compound cursor has to work.
     for (let i = 0; i < PAGE_SIZE + 5; i++) {
       await ctx.db.insert('tasks', {
@@ -484,6 +491,8 @@ describe('what the file contains', () => {
     expect(data.exportedAt).toBe('2026-10-18T12:00:00.000Z')
     expect(data.excludedTables).toEqual([
       { table: 'idempotencyKeys', reason: 'bookkeeping' },
+      { table: 'groceryCategoryCache', reason: 'reference-data' },
+      { table: 'groceryAiUsage', reason: 'bookkeeping' },
       { table: 'recipeShares', reason: 'bookkeeping' },
       { table: 'tastingCatalog', reason: 'reference-data' },
       { table: 'retailerCatalog', reason: 'reference-data' },

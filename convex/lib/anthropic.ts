@@ -1,4 +1,6 @@
 const MODEL = 'claude-sonnet-5'
+/** The small, cheap model for one-word answers (the grocery aisle fallback). */
+export const SMALL_MODEL = 'claude-haiku-5-5'
 const API_URL = 'https://api.anthropic.com/v1/messages'
 const API_VERSION = '2023-06-01'
 
@@ -24,9 +26,12 @@ export async function callAnthropicTool({
   tool,
   maxTokens,
   prompt,
+  model = MODEL,
   fetchImpl = fetch,
 }: {
   apiKey: string
+  /** Defaults to the recipe model; pass `SMALL_MODEL` for short answers. */
+  model?: string
   tool: AnthropicTool
   maxTokens: number
   prompt: string
@@ -42,7 +47,7 @@ export async function callAnthropicTool({
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         max_tokens: maxTokens,
         tools: [tool],
         tool_choice: { type: 'tool', name: tool.name },
