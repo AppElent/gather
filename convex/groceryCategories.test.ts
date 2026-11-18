@@ -350,6 +350,21 @@ describe('corrections', () => {
     expect(await categoryOf(t, task)).toBe('other')
   })
 
+  test('a waiting item follows the Group’s choice, not the late answer', async () => {
+    const { t, groups } = await seed()
+    modelAnswers('pasta_world')
+    const first = await addItem(t, 0, groups[0].groceries, 'doenjang')
+    const second = await addItem(t, 0, groups[0].groceries, 'doenjang')
+    await t.withIdentity(alice).mutation(api.tasks.update, {
+      taskId: first,
+      groupSlug: SLUGS[0],
+      category: 'snacks',
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await categoryOf(t, first)).toBe('snacks')
+    expect(await categoryOf(t, second)).toBe('snacks')
+  })
+
   test('an aisle sent for an item on another list is ignored', async () => {
     const { t, groups } = await seed()
     const task = await addItem(t, 0, groups[0].chores, 'melk')

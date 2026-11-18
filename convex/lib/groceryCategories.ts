@@ -195,6 +195,8 @@ export async function recordGroceryCorrection(
   // The cache is read only for names the dictionary does not know, so a
   // shared answer for any other name would never be used.
   if (recogniseGroceryLine(title).source === 'dictionary') return
+  // What may not be sent to the model may not be shared either.
+  if (!isAskableGroceryName(title)) return
   const cached = await findGroceryCache(ctx, name)
   if (cached?.aisle === aisle) return
   const agreeing = await groupsChoosing(ctx, name, aisle)
@@ -249,9 +251,12 @@ export async function applyGroceryAnswer(
   if (!task || task.category !== 'other') return false
   if (groceryTitleKey(task.title) !== name) return false
   // A Member who put the name somewhere (`other` included) while the
-  // question was out has the last word for their Group.
+  // question was out has the last word for their Group: the item goes where
+  // they chose, not where the answer says.
   const list = await ctx.db.get(task.listId)
-  if (list && (await findOverride(ctx, list.groupId, name))) return false
-  await ctx.db.patch(taskId, { category: aisle })
+  const override = list ? await findOverride(ctx, list.groupId, name) : null
+  const chosen = override?.aisle ?? aisle
+  if (chosen === 'other') return false
+  await ctx.db.patch(taskId, { category: chosen })
   return true
 }
