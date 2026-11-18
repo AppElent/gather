@@ -82,7 +82,7 @@ export const mealPlanTools = [
             prepMinutes: meal.prepMinutes,
             servings: mealServings(
               meal.servings,
-              week.preferences.servingsPerMeal,
+              week.preferences.servingsOverride,
               eaters.length,
             ),
             note: meal.note,

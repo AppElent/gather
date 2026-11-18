@@ -60,7 +60,8 @@ export async function membersOf(ctx: QueryCtx, groupId: Id<'groups'>) {
  *
  * Stand-in for APP-318: there is no stored row yet, so this always answers
  * the defaults. When APP-318's `mealPreferences` table lands, read its row by
- * `by_group` here and pass it instead of `null`.
+ * `by_group` here and pass it instead of `null` (the same row its
+ * `mealPreferences.get({ groupSlug })` resolves).
  */
 export async function mealPreferencesOf(
   _ctx: QueryCtx,

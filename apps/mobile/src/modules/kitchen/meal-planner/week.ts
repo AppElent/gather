@@ -152,7 +152,7 @@ export function servingsOf(
   servings: number | undefined,
   eaters: number,
 ) {
-  return mealServings(servings, data.preferences.servingsPerMeal, eaters)
+  return mealServings(servings, data.preferences.servingsOverride, eaters)
 }
 
 /** The Members not eating, by name. */

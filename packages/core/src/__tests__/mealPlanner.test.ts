@@ -11,6 +11,7 @@ import {
 } from '../mealPlanner'
 import {
   enabledSlots,
+  fitsPreferences,
   recipeClashes,
   resolveMealPreferences,
 } from '../mealPreferencesStandIn'
@@ -113,10 +114,12 @@ describe('meal preferences stand-in', () => {
       { userId: 'sanne', eatsByDefault: true },
       { userId: 'daan', eatsByDefault: true },
     ])
-    expect(prefs.servingsPerMeal).toBeUndefined()
+    expect(prefs.defaultEaterIds).toEqual(['sanne', 'daan'])
+    expect(prefs.servingsOverride).toBeNull()
+    expect(prefs.servingsPerMeal).toBe(2)
     expect(enabledSlots(prefs, 0)).toEqual(['dinner'])
     expect(enabledSlots(prefs, 5)).toEqual(['lunch', 'dinner'])
-    expect(prefs.minutesPerWeekday).toEqual([30, 30, 30, 30, 30, 60, 60])
+    expect(prefs.cookingMinutes).toEqual([30, 30, 30, 30, 30, 60, 60])
   })
   test('keeps what a row says and fills the rest', () => {
     const prefs = resolveMealPreferences(
@@ -128,6 +131,8 @@ describe('meal preferences stand-in', () => {
       members,
     )
     expect(prefs.memberDefaults[1]).toEqual({ userId: 'daan', eatsByDefault: false })
+    expect(prefs.defaultEaterIds).toEqual(['sanne'])
+    expect(prefs.servingsPerMeal).toBe(1)
     expect(enabledSlots(prefs, 6)).toEqual(['breakfast', 'lunch', 'dinner'])
     expect(
       recipeClashes(
@@ -136,9 +141,20 @@ describe('meal preferences stand-in', () => {
         0,
       ),
     ).toEqual([
-      { kind: 'time', label: '45' },
+      { kind: 'time', minutes: 45, limit: 30 },
       { kind: 'dislike', label: 'koriander' },
     ])
     expect(recipeClashes({ title: 'Soup' }, prefs, 0)).toEqual([])
+  })
+  test('hides a recipe only on a certain clash', () => {
+    expect(fitsPreferences([])).toBe(true)
+    expect(
+      fitsPreferences([
+        { kind: 'allergen', id: 'milk', label: 'Melk', uncertain: true },
+      ]),
+    ).toBe(true)
+    expect(fitsPreferences([{ kind: 'dislike', label: 'koriander' }])).toBe(
+      false,
+    )
   })
 })

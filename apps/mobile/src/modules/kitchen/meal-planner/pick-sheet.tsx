@@ -5,7 +5,9 @@
  * changed and deleted here.
  *
  * The preference filter reads APP-318's preferences through the stand-in
- * (`@gather/core/meal-preferences-stand-in`) until APP-318 is on main.
+ * (`@gather/core/meal-preferences-stand-in`) until APP-318 is on main. Then
+ * the row text and status reasons come from its `describeClash` and
+ * `clashReasons` with the core `mealPreferences` copy.
  */
 import { localMidnight } from '@gather/core/civil-date'
 import {
@@ -16,6 +18,7 @@ import {
   weekdayIndex,
 } from '@gather/core/meal-planner'
 import {
+  fitsPreferences,
   type RecipeClash,
   recipeClashes,
 } from '@gather/core/meal-preferences-stand-in'
@@ -102,7 +105,7 @@ export function PickSheet({
   )
   const searched = eligibleDinnerCandidates(found(recipes), limit)
   const shown = matches
-    ? searched.filter((recipe) => recipe.clashes.length === 0)
+    ? searched.filter((recipe) => fitsPreferences(recipe.clashes))
     : searched
   const hidden = matches ? searched.length - shown.length : 0
   const reasons = [
@@ -125,7 +128,7 @@ export function PickSheet({
 
   const clashText = (clash: RecipeClash) =>
     clash.kind === 'time'
-      ? fmt(pickWords.clashTime, { minutes: clash.label, weekday: weekdayWord })
+      ? fmt(pickWords.clashTime, { minutes: clash.minutes, weekday: weekdayWord })
       : fmt(pickWords.clashDislike, { item: clash.label })
 
   const choose = (pick: { recipeId?: Id<'recipes'>; mealEntryId?: Id<'mealEntries'> }) => {

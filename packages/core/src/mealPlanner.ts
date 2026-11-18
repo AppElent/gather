@@ -129,13 +129,16 @@ export function mealEaters(
   return memberIds.filter((id) => chosen.has(id))
 }
 
-/** A meal's servings: its own number, else the Group's, else who eats along. */
+/**
+ * A meal's servings: its own number, else the Group's fixed override, else
+ * who eats along (at least 1).
+ */
 export function mealServings(
   servings: number | undefined,
-  servingsPerMeal: number | undefined,
+  servingsOverride: number | null | undefined,
   eaters: number,
 ): number {
-  return servings ?? servingsPerMeal ?? Math.max(1, eaters)
+  return servings ?? servingsOverride ?? Math.max(1, eaters)
 }
 
 export interface SlotAddress {
