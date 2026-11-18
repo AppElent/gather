@@ -656,10 +656,22 @@ describe('recipeClashes: the round-1 Sonnet review cases', () => {
 })
 
 describe('recipeClashes: the round-2 Opus review cases', () => {
+  type Prefs = Parameters<typeof recipeClashes>[1]
   const clashes = (
     line: string,
-    overrides: Partial<Parameters<typeof recipeClashes>[1]>,
-  ) => recipeClashes(recipe('Toetje', [line]), prefsWith(overrides), 0)
+    chosen: {
+      allergens?: readonly Prefs['allergens'][number][]
+      diets?: readonly Prefs['diets'][number][]
+    },
+  ) =>
+    recipeClashes(
+      recipe('Toetje', [line]),
+      prefsWith({
+        allergens: [...(chosen.allergens ?? [])],
+        diets: [...(chosen.diets ?? [])],
+      }),
+      0,
+    )
 
   test.each([
     ['spaghetti (eventueel glutenvrij)', { allergens: ['gluten'] }],
