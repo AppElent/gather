@@ -15,7 +15,7 @@ import {
   publicDoc,
   ToolInputError,
 } from './define'
-import { clockOf, day, groupId } from './shared'
+import { clockOf, day, groupId, idempotencyKey } from './shared'
 
 /** The longest range list_meal_plan reads, matching the Convex week query. */
 const MAX_RANGE_DAYS = 31
@@ -117,6 +117,7 @@ export const mealPlanTools = [
     annotations: { idempotentHint: true },
     input: {
       groupId,
+      idempotencyKey,
       date: day,
       slot,
       recipeId: z.string().min(1).optional(),

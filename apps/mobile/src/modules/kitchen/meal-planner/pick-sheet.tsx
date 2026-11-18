@@ -139,6 +139,7 @@ export function PickSheet({
       slot,
       ...pick,
       replace: Boolean(replacing),
+      replaceId: replacing,
     })
       .then(() => haptics.itemSaved())
       .catch(() => {

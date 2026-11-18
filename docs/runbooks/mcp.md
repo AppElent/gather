@@ -71,8 +71,8 @@ Rules for every tool:
   caller is not in reads as `Group not found`, the same as a missing one.
 - Create tools require an `idempotencyKey`. Convex stores it per person in
   `idempotencyKeys`; a retry with the same key returns the first row.
-  `plan_meal` takes none: a Planned meal is keyed by day and meal slot, so a
-  retry finds the slot taken and, with `replace`, writes the same meal again.
+  `plan_meal` counts as a create: a retry with its key answers the first
+  meal instead of finding the slot taken.
 - There are no delete tools. People delete in the app.
 - Recipes shared into a Group can be read there but changed only from their
   home Group. Task lists that mirror Notion or Todoist are listed but their

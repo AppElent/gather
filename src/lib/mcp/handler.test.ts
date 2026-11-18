@@ -727,6 +727,7 @@ describe('Gather MCP endpoint', () => {
     const backend = fakeBackend({ 'mealPlan:plan': () => 'meal_9' })
     const out = await callTool(backend, 'plan_meal', {
       groupId: 'group_home',
+      idempotencyKey: 'plan-key-1',
       date: '2026-11-26',
       slot: 'lunch',
       quickMealId: 'entry_1',
@@ -738,6 +739,7 @@ describe('Gather MCP endpoint', () => {
       name: 'mealPlan:plan',
       args: {
         groupSlug: 'home',
+        idempotencyKey: 'plan-key-1',
         date: '2026-11-26',
         slot: 'lunch',
         mealEntryId: 'entry_1',
@@ -745,9 +747,17 @@ describe('Gather MCP endpoint', () => {
         replace: false,
       },
     })
+    const unkeyed = await callTool(fakeBackend(), 'plan_meal', {
+      groupId: 'group_home',
+      date: '2026-11-26',
+      slot: 'dinner',
+      quickMealId: 'entry_1',
+    })
+    expect(unkeyed.isError).toBe(true)
     for (const pick of [{}, { recipeId: 'recipe_1', quickMealId: 'entry_1' }]) {
       const refused = await callTool(fakeBackend(), 'plan_meal', {
         groupId: 'group_home',
+        idempotencyKey: 'plan-key-2',
         date: '2026-11-26',
         slot: 'dinner',
         ...pick,

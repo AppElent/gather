@@ -84,10 +84,10 @@ describe('mealPlan', () => {
     })
     const week = await t.withIdentity(bob).query(api.mealPlan.week, WEEK)
     expect(week.meals.map((m) => [m.date, m.slot, m.title])).toEqual([
-      ['2026-11-28', 'dinner', 'Pasta pesto'],
       ['2026-11-28', 'lunch', 'Toast'],
+      ['2026-11-28', 'dinner', 'Pasta pesto'],
     ])
-    expect(week.meals[0]).toMatchObject({ servings: 3, note: 'restjes van maandag' })
+    expect(week.meals[1]).toMatchObject({ servings: 3, note: 'restjes van maandag' })
     expect(week.members.map((m) => m.name)).toEqual(['Alice', 'Bob'])
     expect(week.preferences.slots.lunch).toEqual({ enabled: true, days: [5, 6] })
   })
@@ -353,6 +353,125 @@ describe('phones from before meal slots', () => {
       }),
     ).rejects.toThrow('That slot already has a meal')
   })
+  test('Something else replaces the meal it names, even after a swap moved it', async () => {
+    const { t, pasta, tacos, toast } = await seed()
+    const as = t.withIdentity(alice)
+    const plan = { groupSlug: 'home', slot: 'dinner' as const }
+    const monday = await as.mutation(api.mealPlan.plan, {
+      ...plan,
+      date: '2026-11-23',
+      recipeId: pasta,
+    })
+    await as.mutation(api.mealPlan.plan, {
+      ...plan,
+      date: '2026-11-25',
+      recipeId: tacos,
+    })
+    // The sheet's move lands first: Pasta goes to Wednesday, Tacos to Monday.
+    await as.mutation(api.mealPlan.move, {
+      groupSlug: 'home',
+      id: monday,
+      date: '2026-11-25',
+      slot: 'dinner',
+    })
+    // Pick still thinks Pasta is on Monday.
+    await as.mutation(api.mealPlan.plan, {
+      ...plan,
+      date: '2026-11-23',
+      mealEntryId: toast,
+      replace: true,
+      replaceId: monday,
+    })
+    const week = await as.query(api.mealPlan.week, WEEK)
+    expect(week.meals.map((m) => [m.date, m.title])).toEqual([
+      ['2026-11-23', 'Tacos'],
+      ['2026-11-25', 'Toast'],
+    ])
+  })
+
+  test('a retry with the same idempotency key answers the first meal', async () => {
+    const { t, pasta } = await seed()
+    const as = t.withIdentity(alice)
+    const args = {
+      groupSlug: 'home',
+      date: '2026-11-24',
+      slot: 'dinner' as const,
+      recipeId: pasta,
+      idempotencyKey: 'plan-meal-key-1',
+    }
+    const first = await as.mutation(api.mealPlan.plan, args)
+    expect(await as.mutation(api.mealPlan.plan, args)).toBe(first)
+    expect((await as.query(api.mealPlan.week, WEEK)).meals).toHaveLength(1)
+  })
+
+  test('undo restores the snapshot when the recipe is gone and an eater left', async () => {
+    const { t, home, pasta, aliceId, bobId } = await seed()
+    const as = t.withIdentity(alice)
+    const id = await as.mutation(api.mealPlan.plan, {
+      groupSlug: 'home',
+      date: '2026-11-24',
+      slot: 'dinner',
+      recipeId: pasta,
+      note: 'Extra basil',
+      eaterIds: [aliceId, bobId],
+    })
+    const removed = await as.mutation(api.mealPlan.remove, { groupSlug: 'home', id })
+    await t.run(async (ctx) => await ctx.db.delete(pasta))
+    await t.withIdentity(bob).mutation(api.groups.leaveGroup, { groupId: home })
+    await as.mutation(api.mealPlan.restore, { groupSlug: 'home', ...removed })
+    const [meal] = (await as.query(api.mealPlan.week, WEEK)).meals
+    expect(meal).toMatchObject({
+      date: '2026-11-24',
+      slot: 'dinner',
+      title: 'Pasta pesto',
+      prepMinutes: 25,
+      note: 'Extra basil',
+      eaterIds: [aliceId],
+    })
+    expect(meal.recipeId).toBeUndefined()
+    await expect(
+      as.mutation(api.mealPlan.restore, { groupSlug: 'home', ...removed }),
+    ).rejects.toThrow('That slot already has a meal')
+  })
+
+  test('a meal that changes day drops its chosen eaters; a new slot keeps them', async () => {
+    const { t, pasta, aliceId } = await seed()
+    const as = t.withIdentity(alice)
+    const id = await as.mutation(api.mealPlan.plan, {
+      groupSlug: 'home',
+      date: '2026-11-26',
+      slot: 'dinner',
+      recipeId: pasta,
+      eaterIds: [aliceId],
+    })
+    const eaters = async () =>
+      (await t.run(async (ctx) => await ctx.db.get(id)))?.eaterIds
+    await as.mutation(api.mealPlan.move, {
+      groupSlug: 'home',
+      id,
+      date: '2026-11-26',
+      slot: 'lunch',
+    })
+    expect(await eaters()).toEqual([aliceId])
+    await as.mutation(api.mealPlan.move, {
+      groupSlug: 'home',
+      id,
+      date: '2026-11-23',
+      slot: 'lunch',
+    })
+    expect(await eaters()).toBeUndefined()
+  })
+
+  test('a day lists breakfast, lunch, then dinner', async () => {
+    const { t, pasta, tacos, toast } = await seed()
+    const as = t.withIdentity(alice)
+    const at = { groupSlug: 'home', date: '2026-11-28' }
+    await as.mutation(api.mealPlan.plan, { ...at, slot: 'dinner', recipeId: pasta })
+    await as.mutation(api.mealPlan.plan, { ...at, slot: 'lunch', recipeId: tacos })
+    await as.mutation(api.mealPlan.plan, { ...at, slot: 'breakfast', mealEntryId: toast })
+    const week = await as.query(api.mealPlan.week, WEEK)
+    expect(week.meals.map((m) => m.slot)).toEqual(['breakfast', 'lunch', 'dinner'])
+  })
 })
 
 describe('backfillMealSlots', () => {
@@ -397,5 +516,32 @@ describe('backfillMealSlots', () => {
       ),
     )
     expect(legacy).toEqual([20, 20, null])
+  })
+
+  test('pages by cursor until more is false', async () => {
+    const { t, home, pasta } = await seed()
+    await t.run(async (ctx) => {
+      for (const date of ['2026-11-01', '2026-11-02', '2026-11-03'])
+        await ctx.db.insert('plannedDinners', {
+          groupId: home,
+          date,
+          recipeId: pasta,
+          title: 'Pasta pesto',
+        })
+    })
+    const first = await t.mutation(internal.maintenance.backfillMealSlots, {
+      apply: true,
+      batch: 2,
+    })
+    expect(first).toMatchObject({ scanned: 2, missing: 2, more: true })
+    const second = await t.mutation(internal.maintenance.backfillMealSlots, {
+      apply: true,
+      batch: 2,
+      cursor: first.cursor,
+    })
+    expect(second).toMatchObject({ scanned: 1, missing: 1, more: false })
+    expect(
+      await t.mutation(internal.maintenance.backfillMealSlots, {}),
+    ).toMatchObject({ scanned: 3, missing: 0, more: false })
   })
 })

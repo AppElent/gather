@@ -102,9 +102,12 @@ function MealSheetBody({
   const update = useMutation(api.mealPlan.update)
   const move = useMutation(api.mealPlan.move)
   const remove = useMutation(api.mealPlan.remove)
-  const plan = useMutation(api.mealPlan.plan)
+  const restore = useMutation(api.mealPlan.restore)
   const addToGroceries = useMutation(api.mealPlan.addToGroceries)
 
+  // The meal as the sheet opened on it: closing saves only what changed here,
+  // so an edit made meanwhile on another phone is never written back over.
+  const opened = useRef(meal).current
   const [eaterIds, setEaterIds] = useState<string[] | undefined>(meal.eaterIds)
   const [servings, setServings] = useState<number | undefined>(meal.servings)
   const [note, setNote] = useState(meal.note ?? '')
@@ -129,8 +132,11 @@ function MealSheetBody({
   })
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index))
 
-  /** Saves what changed, once, however the sheet is leaving. */
-  const finish = (save: boolean) => {
+  /**
+   * Saves what changed, once, however the sheet is leaving. `move: false`
+   * keeps the meal where it is: "Something else" replaces it in place.
+   */
+  const finish = (save: boolean, { move: moving = true } = {}) => {
     if (finished.current) return
     finished.current = true
     if (!save) return
@@ -139,18 +145,20 @@ function MealSheetBody({
       note?: string | null
       eaterIds?: Id<'users'>[] | null
     } = {}
-    if (servings !== meal.servings) changes.servings = servings ?? null
+    if (servings !== opened.servings) changes.servings = servings ?? null
     const trimmed = note.trim()
-    if (trimmed !== (meal.note ?? '')) changes.note = trimmed || null
-    if (!sameList(eaterIds, meal.eaterIds))
+    if (trimmed !== (opened.note ?? '')) changes.note = trimmed || null
+    if (!sameList(eaterIds, opened.eaterIds))
       changes.eaterIds = (eaterIds as Id<'users'>[] | undefined) ?? null
+    // Move first: a new day drops the meal's chosen eaters, and eaters
+    // chosen here, in the same sheet, should still stand after it.
     const writes: Promise<unknown>[] = []
-    if (Object.keys(changes).length > 0)
-      writes.push(update({ groupSlug: group.slug, id: meal._id, ...changes }))
-    if (moveTo !== meal.date)
+    if (moving && moveTo !== opened.date)
       writes.push(
         move({ groupSlug: group.slug, id: meal._id, date: moveTo, slot: meal.slot }),
       )
+    if (Object.keys(changes).length > 0)
+      writes.push(update({ groupSlug: group.slug, id: meal._id, ...changes }))
     if (writes.length === 0) return
     Promise.all(writes)
       .then(() => haptics.itemSaved())
@@ -182,9 +190,9 @@ function MealSheetBody({
     haptics.selectionChanged()
   }
 
-  const target = moveTo !== meal.date ? mealIn(data.meals, moveTo, meal.slot) : undefined
+  const target = moveTo !== opened.date ? mealIn(data.meals, moveTo, meal.slot) : undefined
   const moveStatus =
-    moveTo === meal.date
+    moveTo === opened.date
       ? null
       : target
         ? fmt(mealWords.swaps, {
@@ -200,22 +208,15 @@ function MealSheetBody({
   const removeMeal = () => {
     close(false)
     remove({ groupSlug: group.slug, id: meal._id })
-      .then(() =>
+      .then((removed) =>
         showToast({
           message: fmt(words.removed, { title: meal.title }),
           undo: {
             label: words.undo,
             onPress: () => {
-              plan({
-                groupSlug: group.slug,
-                date: meal.date,
-                slot: meal.slot,
-                recipeId: meal.recipeId,
-                mealEntryId: meal.mealEntryId,
-                servings: meal.servings,
-                note: meal.note,
-                eaterIds: meal.eaterIds as Id<'users'>[] | undefined,
-              }).catch(() => showToast({ message: words.failed }))
+              restore({ groupSlug: group.slug, ...removed }).catch(() =>
+                showToast({ message: words.failed }),
+              )
             },
           },
         }),
@@ -498,7 +499,7 @@ function MealSheetBody({
             testID="meal-something-else"
             chevron
             onPress={() => {
-              finish(true)
+              finish(true, { move: false })
               onSomethingElse(meal)
             }}
           />

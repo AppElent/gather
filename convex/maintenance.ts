@@ -142,12 +142,18 @@ export const backfillMealSlots = internalMutation({
   args: {
     apply: v.optional(v.boolean()),
     cursor: v.optional(v.union(v.string(), v.null())),
+    // Rows per call, at most the default; tests use a small one to page.
+    batch: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const apply = args.apply ?? false
+    const numItems = Math.max(
+      1,
+      Math.min(MEAL_SLOTS_BATCH, Math.floor(args.batch ?? MEAL_SLOTS_BATCH)),
+    )
     const page = await ctx.db
       .query('plannedDinners')
-      .paginate({ numItems: MEAL_SLOTS_BATCH, cursor: args.cursor ?? null })
+      .paginate({ numItems, cursor: args.cursor ?? null })
     const missing = page.page.filter((meal) => meal.slot === undefined)
     if (apply)
       for (const meal of missing) await ctx.db.patch(meal._id, { slot: 'dinner' })

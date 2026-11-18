@@ -7,7 +7,7 @@
  * which read and write the dinner slot only.
  */
 import { isIsoDate } from '@gather/core/civil-date'
-import { isEveningEvent, slotOf } from '@gather/core/meal-planner'
+import { isEveningEvent, MEAL_SLOTS, slotOf } from '@gather/core/meal-planner'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import {
@@ -21,6 +21,7 @@ import {
   requireGroupBySlug,
   requireInGroup,
 } from './lib/groupAccess'
+import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
 import { mealSlotValidator } from './lib/kitchen'
 import {
   mealAt,
@@ -34,6 +35,7 @@ import { recipesVisibleIn } from './lib/recipeShares'
 const MAX_RANGE_DAYS = 31
 const MAX_SERVINGS = 50
 const MAX_NOTE = 500
+const MAX_TITLE = 200
 const NOT_FOUND = 'Meal not found'
 
 type PlannedMeal = Doc<'plannedDinners'>
@@ -160,7 +162,9 @@ export async function weekOf(
     rows.map((row) => withLiveRecipe(ctx, groupId, row)),
   )
   meals.sort(
-    (a, b) => a.date.localeCompare(b.date) || a.slot.localeCompare(b.slot),
+    (a, b) =>
+      a.date.localeCompare(b.date) ||
+      MEAL_SLOTS.indexOf(a.slot) - MEAL_SLOTS.indexOf(b.slot),
   )
   return {
     meals,
@@ -268,43 +272,64 @@ export interface PlanArgs {
   note?: string
   eaterIds?: Id<'users'>[]
   replace?: boolean
+  /**
+   * The meal "Something else" swaps out. Replaces that row wherever it now
+   * is, rather than whatever holds `date` and `slot`, so a move landing
+   * first can never make it overwrite the meal swapped into its place.
+   */
+  replaceId?: Id<'plannedDinners'>
+  idempotencyKey?: string
 }
 
 /**
  * Plans a Recipe or quick meal in one slot of one day. A slot that already
  * holds a meal is refused unless `replace` is set; replacing keeps that
- * evening's servings, note and eaters unless new ones are given.
+ * evening's servings, note and eaters unless new ones are given. A retry
+ * with the same `idempotencyKey` answers the first meal (ADR-0046).
  */
 export async function planMeal(ctx: MutationCtx, args: PlanArgs) {
   requireDate(args.date)
-  const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+  const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
   const fields = await candidateFields(ctx, args.groupSlug, group._id, args)
   const servings = checkedServings(args.servings)
   const note = checkedNote(args.note)
   const eaterIds = await checkedEaters(ctx, group._id, args.eaterIds)
-  const existing = await mealAt(ctx, group._id, args.date, args.slot)
-  if (existing && !args.replace)
-    throw new ConvexError('That slot already has a meal')
-  if (existing) {
-    await ctx.db.patch(existing._id, {
-      ...fields,
-      slot: args.slot,
-      ...(servings !== undefined ? { servings } : {}),
-      ...(note !== undefined ? { note } : {}),
-      ...(eaterIds !== undefined ? { eaterIds } : {}),
-      quickLimit: undefined,
-    })
-    return existing._id
-  }
-  return await ctx.db.insert('plannedDinners', {
-    groupId: group._id,
-    date: args.date,
-    slot: args.slot,
-    ...fields,
-    servings,
-    note,
-    eaterIds,
-  })
+  const replaced = args.replaceId
+    ? (await requireInGroup(ctx, args.groupSlug, args.replaceId, NOT_FOUND))
+        .doc
+    : null
+  return await createOnce(
+    ctx,
+    user._id,
+    'plannedDinners',
+    args.idempotencyKey,
+    async () => {
+      const existing =
+        replaced ?? (await mealAt(ctx, group._id, args.date, args.slot))
+      if (existing && !args.replace && !replaced)
+        throw new ConvexError('That slot already has a meal')
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          ...fields,
+          ...(replaced ? {} : { slot: args.slot }),
+          ...(servings !== undefined ? { servings } : {}),
+          ...(note !== undefined ? { note } : {}),
+          ...(eaterIds !== undefined ? { eaterIds } : {}),
+          quickLimit: undefined,
+        })
+        return existing._id
+      }
+      return await ctx.db.insert('plannedDinners', {
+        groupId: group._id,
+        date: args.date,
+        slot: args.slot,
+        ...fields,
+        servings,
+        note,
+        eaterIds,
+      })
+    },
+  )
 }
 
 const planArgs = {
@@ -317,6 +342,8 @@ const planArgs = {
   note: v.optional(v.string()),
   eaterIds: v.optional(v.array(v.id('users'))),
   replace: v.optional(v.boolean()),
+  replaceId: v.optional(v.id('plannedDinners')),
+  idempotencyKey: idempotencyKeyValidator,
 }
 
 export const plan = mutation({
@@ -356,6 +383,9 @@ export const update = mutation({
 /**
  * Moves a meal to another day or slot. A place that already holds a meal
  * swaps with it, in one transaction, so nobody ever sees two meals in a slot.
+ * A meal that changes day drops its chosen eaters: who eats along was chosen
+ * for that evening and its calendar, so the new day starts from its own
+ * defaults (ADR-0027).
  */
 export const move = mutation({
   args: {
@@ -376,24 +406,90 @@ export const move = mutation({
     if (from.date === args.date && from.slot === args.slot)
       return { kind: 'stay' as const }
     const other = await mealAt(ctx, group._id, args.date, args.slot)
-    await ctx.db.patch(doc._id, { date: args.date, slot: args.slot })
+    const newDay = from.date !== args.date ? { eaterIds: undefined } : {}
+    await ctx.db.patch(doc._id, { date: args.date, slot: args.slot, ...newDay })
     if (!other) return { kind: 'move' as const }
-    await ctx.db.patch(other._id, from)
+    await ctx.db.patch(other._id, { ...from, ...newDay })
     return { kind: 'swap' as const, otherId: other._id }
   },
 })
 
-/** Takes a meal off the plan. The phone offers undo by planning it again. */
+/**
+ * Takes a meal off the plan and answers what it was, for `restore` to put
+ * back. A Recipe the Group can no longer see is left out of the answer; its
+ * snapshot title and time stay.
+ */
 export const remove = mutation({
   args: { groupSlug: v.string(), id: v.id('plannedDinners') },
   handler: async (ctx, args) => {
-    const { doc } = await requireInGroup(
+    const { group, doc } = await requireInGroup(
       ctx,
       args.groupSlug,
       args.id,
       NOT_FOUND,
     )
     await ctx.db.delete(doc._id)
+    const recipe = doc.recipeId ? await ctx.db.get(doc.recipeId) : null
+    return {
+      date: doc.date,
+      slot: slotOf(doc),
+      title: doc.title,
+      prepMinutes: doc.prepMinutes,
+      recipeId:
+        recipe && isVisibleToGroups(recipe, [group._id]) ? recipe._id : undefined,
+      mealEntryId: doc.mealEntryId,
+      servings: doc.servings,
+      note: doc.note,
+      eaterIds: doc.eaterIds,
+    }
+  },
+})
+
+/**
+ * Undo for `remove`: puts a meal back as it was, snapshot and all, while its
+ * slot is still free. Unlike `plan` it never refuses a meal whose Recipe or
+ * quick meal has gone (ADR-0027 keeps the snapshot for exactly that); such a
+ * link is dropped, as are eaters who have left the Group.
+ */
+export const restore = mutation({
+  args: {
+    groupSlug: v.string(),
+    date: v.string(),
+    slot: mealSlotValidator,
+    title: v.string(),
+    prepMinutes: v.optional(v.number()),
+    recipeId: v.optional(v.id('recipes')),
+    mealEntryId: v.optional(v.id('mealEntries')),
+    servings: v.optional(v.number()),
+    note: v.optional(v.string()),
+    eaterIds: v.optional(v.array(v.id('users'))),
+  },
+  handler: async (ctx, args) => {
+    requireDate(args.date)
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const title = args.title.trim()
+    if (!title || title.length > MAX_TITLE)
+      throw new ConvexError(`A meal title is 1 to ${MAX_TITLE} characters`)
+    if (await mealAt(ctx, group._id, args.date, args.slot))
+      throw new ConvexError('That slot already has a meal')
+    const recipe = args.recipeId ? await ctx.db.get(args.recipeId) : null
+    const entry = args.mealEntryId ? await ctx.db.get(args.mealEntryId) : null
+    const members = new Set(
+      (await membersOf(ctx, group._id)).map((member) => member.userId),
+    )
+    return await ctx.db.insert('plannedDinners', {
+      groupId: group._id,
+      date: args.date,
+      slot: args.slot,
+      title,
+      prepMinutes: args.prepMinutes,
+      recipeId:
+        recipe && isVisibleToGroups(recipe, [group._id]) ? recipe._id : undefined,
+      mealEntryId: entry && entry.groupId === group._id ? entry._id : undefined,
+      servings: checkedServings(args.servings),
+      note: checkedNote(args.note),
+      eaterIds: args.eaterIds?.filter((id) => members.has(id)),
+    })
   },
 })
 

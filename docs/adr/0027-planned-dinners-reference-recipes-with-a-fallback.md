@@ -36,6 +36,8 @@ change is expand-only:
 - `eaterIds`: who eats along. Absent means the Group's default eaters for that
   slot, minus whoever an evening calendar event takes out of dinner. Storing
   only a deliberate choice keeps the default live when the calendar changes.
+  The choice belongs to that day: a meal moved or swapped to another day drops
+  it and starts from the new day's defaults.
 - `servings`: absent means as many as eat along.
 - `note`: free text, such as "make extra for lunch".
 
@@ -44,6 +46,11 @@ still call `kitchen.planner`, `kitchen.setDinner` and `kitchen.clearDinner`;
 those act on the dinner slot only, so an old phone never draws a lunch as that
 day's dinner. They stay until the OTA that calls `mealPlan` has reached every
 installed build.
+
+Removing a meal answers what it was, and undo puts that snapshot back with
+`mealPlan.restore`, even when its Recipe or quick meal has gone since. "Something
+else" replaces the meal by id, not by whatever is in its slot by then. Agents
+plan through `plan_meal` with an `idempotencyKey`, like every create (ADR-0046).
 
 Which slots a Group plans, its default eaters and its servings live in the
 Group's meal preferences (APP-318), not on the planned meal.
