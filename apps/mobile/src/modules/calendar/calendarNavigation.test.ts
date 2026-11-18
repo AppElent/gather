@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  chooseHeader,
   initialCalendarNavigation,
   pageActiveDate,
   selectCalendarDate,
@@ -34,7 +35,28 @@ describe('calendar navigation', () => {
     })
     expect(toggleHeader(state)).toMatchObject({
       presentation: 'month',
+      preferredView: 'month',
       headerProgress: 1,
+    })
+  })
+
+  test('a released header drag settles by position, then by velocity', () => {
+    const week = initialCalendarNavigation('2026-09-12', 'week')
+    // Pulled past half way: Month, and that becomes the preference.
+    expect(chooseHeader(week, 0.6)).toMatchObject({
+      presentation: 'month',
+      preferredView: 'month',
+    })
+    // Pulled down and brought back: stays Week.
+    expect(chooseHeader(week, 0.1)).toMatchObject({ presentation: 'week' })
+    // A short, fast flick down still opens the month; a flick up closes it.
+    expect(chooseHeader(week, 0.2, 900)).toMatchObject({
+      presentation: 'month',
+    })
+    const month = initialCalendarNavigation('2026-09-12', 'month')
+    expect(chooseHeader(month, 0.8, -900)).toMatchObject({
+      presentation: 'week',
+      preferredView: 'week',
     })
   })
 

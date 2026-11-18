@@ -17,6 +17,7 @@ import {
 } from 'react'
 import {
   type FlatList,
+  LayoutAnimation,
   Platform,
   Pressable,
   StatusBar,
@@ -24,6 +25,7 @@ import {
   Text,
   View,
 } from 'react-native'
+import { useReducedMotion } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useI18n } from '../../i18n'
@@ -31,10 +33,12 @@ import { RADIUS, TYPE, useTokens } from '../../theme/tokens'
 import { CalendarAgenda } from './CalendarAgenda'
 import { CalendarHeader } from './CalendarHeader'
 import {
+  chooseHeader,
   initialCalendarNavigation,
   pageActiveDate,
   selectCalendarDate,
   setCalendarView,
+  settleHeader,
   toggleHeader,
 } from './calendarNavigation'
 
@@ -81,6 +85,7 @@ export function CalendarScreen({
   const { t } = useI18n()
   const tokens = useTokens('home')
   const insets = useSafeAreaInsets()
+  const reduceMotion = useReducedMotion()
   const topInset = Math.max(
     insets.top,
     StatusBar.currentHeight ?? 0,
@@ -91,13 +96,22 @@ export function CalendarScreen({
   const [navigation, setNavigation] = useState(() =>
     initialCalendarNavigation(today, preferredView),
   )
+  /**
+   * The date of the first agenda row while the person scrolls. It drives the
+   * header (month, week, selection) and Add, but never moves the list: only a
+   * deliberate jump does that, so scrolling cannot pull the list back.
+   */
+  const [scrolledDate, setScrolledDate] = useState<string | null>(null)
+  /** Bumped on every deliberate jump, even to the date already selected. */
+  const [jumpId, setJumpId] = useState(0)
+  const shownDate = scrolledDate ?? navigation.activeDate
   const [expandedByMonth, setExpandedByMonth] = useState<
     Record<string, readonly string[]>
   >({})
   const activeMonth = navigation.activeDate.slice(0, 7)
   useEffect(() => {
-    onActiveDate(navigation.activeDate)
-  }, [navigation.activeDate, onActiveDate])
+    onActiveDate(shownDate)
+  }, [shownDate, onActiveDate])
   const from = useMemo(
     () => addDays(navigation.activeDate, -21),
     [navigation.activeDate],
@@ -110,8 +124,18 @@ export function CalendarScreen({
   const expandedDates = expandedByMonth[activeMonth] ?? []
 
   const jumpToDate = useCallback((date: string) => {
+    setScrolledDate(null)
+    setJumpId((id) => id + 1)
     setNavigation((current) => selectCalendarDate(current, date))
   }, [])
+
+  const settle = (next: typeof navigation) => {
+    setNavigation(next)
+    // The preference, not the presentation: after an automatic collapse the
+    // header already shows Week, and a drag that keeps it there is a choice.
+    if (next.preferredView !== navigation.preferredView)
+      onViewChange(next.preferredView)
+  }
 
   return (
     <>
@@ -127,7 +151,7 @@ export function CalendarScreen({
         ]}
       >
         <CalendarHeader
-          activeDate={navigation.activeDate}
+          activeDate={shownDate}
           today={today}
           presentation={navigation.presentation}
           progress={navigation.headerProgress}
@@ -136,14 +160,20 @@ export function CalendarScreen({
           people={data.people}
           onSelectDate={jumpToDate}
           onPage={(direction) =>
-            setNavigation((current) => pageActiveDate(current, direction))
+            jumpToDate(
+              pageActiveDate({ ...navigation, activeDate: shownDate }, direction)
+                .activeDate,
+            )
           }
-          onToggle={() => setNavigation((current) => toggleHeader(current))}
+          onToggle={() => settle(toggleHeader(navigation))}
+          onSettle={(progress, velocity) =>
+            settle(chooseHeader(navigation, progress, velocity))
+          }
           onView={(view: CalendarView) => {
             setNavigation((current) => setCalendarView(current, view))
             onViewChange(view)
           }}
-          onAdd={() => onAdd(navigation.activeDate)}
+          onAdd={() => onAdd(shownDate)}
           onOpenCalendars={onOpenCalendars}
           onOpenPeople={onOpenPeople}
         />
@@ -177,6 +207,8 @@ export function CalendarScreen({
           from={from}
           toExclusive={toExclusive}
           selectedDate={navigation.activeDate}
+          shownDate={shownDate}
+          jumpId={jumpId}
           today={today}
           events={data.events}
           people={data.people}
@@ -192,6 +224,17 @@ export function CalendarScreen({
               ],
             }))
             if (dates[0]) jumpToDate(dates[0])
+          }}
+          onVisibleDate={setScrolledDate}
+          onDragUp={() => {
+            // An automatic collapse: the list takes over the space, and the
+            // saved preference stays whatever the person last chose.
+            if (navigation.presentation !== 'month') return
+            if (!reduceMotion)
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut,
+              )
+            setNavigation((current) => settleHeader(current, 0))
           }}
           listRef={listRef}
         />

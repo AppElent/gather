@@ -852,114 +852,12 @@ export const nl = {
     title: 'Labs',
     description:
       'Prototypes van schermen waarover nog beslist wordt. Alleen in ontwikkelbuilds.',
-    banner:
-      'Prototype. De gegevens zijn verzonnen en blijven alleen in deze sessie.',
-
-    entries: {
-      calendar: 'Agenda — de maand, het vakje en de invoerkaart',
-    },
-
-    entry: {
-      question: 'De vraag',
-      built: 'Gebouwd op {date}',
-      verdict: 'Uitkomst',
-      undecided: 'Nog niet besloten.',
-      open: 'Openen',
-      variants: 'Varianten',
-    },
-
-    variants: {
-      show: 'Variantenkiezer tonen',
-      hide: 'Variantenkiezer verbergen',
-      chosen: 'Keuze van het canvas',
-    },
 
     finance: {
       title: 'Financieel lab',
       description:
         'Huizen en hypotheken, Portefeuille en Nettovermogen. Alleen in ontwikkelbuilds.',
       open: 'Financieel lab openen',
-    },
-
-    calendar: {
-      title: 'Agenda',
-      productionPreview: 'Productie-agenda openen',
-      question:
-        'Leest één scherm met drie indelingen als een voorkeur, en houdt de invoerkaart het toetsenbord vrij?',
-      today: 'Vandaag',
-      views: {
-        month: 'Maand',
-        week: 'Week',
-        agenda: 'Agenda',
-      },
-      calendars: 'Agenda’s…',
-      viewMenu: 'Weergave wijzigen',
-      newEvent: 'Nieuwe afspraak',
-      nothingOn: 'Niets gepland.',
-      nothingAhead: 'Verder niets deze maand.',
-      quietWeek: 'Een rustige week.',
-      /**
-       * Settled on a device on 2 September 2026. The three axes stay in the
-       * code — a winner does not delete the alternatives — but this is what
-       * the real Module is built from.
-       */
-      verdict:
-        'Het weergavemenu wint, met een veeg erbij: opzij bladert door de maanden, omhoog en omlaag wisselt tussen week en maand. Een dagcel toont één initiaal en een telling, nooit een rij. De composer is de kaart. Nog open: of de sleepbare koptekst (nav=fluid) het waard is om te houden.',
-      namePlaceholder: 'Naam van de afspraak',
-      chips: {
-        more: 'Meer',
-        calendar: 'Agenda',
-        date: 'Datum',
-        time: 'Tijd',
-        who: 'Wie',
-        allDay: 'Hele dag',
-        where: 'Waar',
-        notes: 'Notities',
-        repeats: 'Herhaalt…',
-      },
-      /** The panes those chips open. */
-      wherePlaceholder: 'Waar',
-      notesPlaceholder: 'Notities',
-      startsAt: 'Begint om',
-      lasts: 'Duurt',
-      durations: {
-        m30: '30 min',
-        h1: '1 uur',
-        h2: '2 uur',
-      },
-      /** How often it comes round. Prototype only: nothing is expanded. */
-      repeatRules: {
-        never: 'Nooit',
-        daily: 'Elke dag',
-        weekly: 'Elke week',
-        monthly: 'Elke maand',
-      },
-      commit: 'Afspraak toevoegen',
-      dismiss: 'Klaar',
-      duplicate: 'Dupliceren',
-      deleteEvent: 'Afspraak verwijderen',
-      addOn: 'Afspraak toevoegen op {day}…',
-      dragHint: 'Sleep de agenda omlaag voor de maand.',
-      previousMonth: 'Vorige maand',
-      nextMonth: 'Volgende maand',
-      todayShort: 'Vandaag',
-      tomorrow: 'Morgen',
-      weekend: 'Weekend',
-      marksNobody: 'niemand toegewezen',
-      axes: {
-        nav: 'Weergave wisselen',
-        navMenu: 'Weergavemenu',
-        navSegmented: 'Segmenten',
-        navFluid: 'Slepen',
-        cell: 'Een dagvakje',
-        cellMarks: 'Wie',
-        cellBars: 'Balkjes',
-        composer: 'Afspraak toevoegen',
-        composerCard: 'Kaart',
-        composerSheet: 'Blad',
-        composerInline: 'Eén regel',
-      },
-      notSaved: 'Hier wordt niets bewaard.',
     },
   },
 } satisfies typeof en

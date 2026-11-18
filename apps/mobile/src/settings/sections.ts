@@ -56,7 +56,6 @@ export type SettingsHref =
   | '/settings/appearance'
   | '/settings/language'
   | '/settings/labs'
-  | '/settings/labs/calendar'
   | '/settings/labs/finance'
   | '/settings/baby-log'
 

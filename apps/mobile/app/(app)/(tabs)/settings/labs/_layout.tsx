@@ -27,10 +27,6 @@ export default function LabsLayout() {
         name="index"
         options={{ headerShown: true, title: t.labs.title }}
       />
-      <Stack.Screen
-        name="calendar"
-        options={{ headerShown: true, title: t.labs.calendar.title }}
-      />
       <Stack.Screen name="finance" options={{ headerShown: false }} />
     </Stack>
   )

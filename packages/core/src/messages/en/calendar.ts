@@ -66,5 +66,9 @@ export const calendar = {
     today: 'Jump to today',
     add: 'Add event',
     save: 'Save event',
+    previousWeek: 'Previous week',
+    nextWeek: 'Next week',
+    previousMonth: 'Previous month',
+    nextMonth: 'Next month',
   },
 }

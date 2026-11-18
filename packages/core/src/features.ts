@@ -303,13 +303,8 @@ export const FEATURES = defineFeatures([
     kind: 'product',
     status: 'exclusive',
     platforms: ['mobile'],
-    reason: `Prototypes of phone designs, reached through Settings > Labs (${ADR}).`,
-    routes: {
-      mobile: [
-        '(app)/(tabs)/settings/labs/index',
-        '(app)/(tabs)/settings/labs/calendar',
-      ],
-    },
+    reason: `The development-only Settings > Labs index that lists the phone's labs (${ADR}).`,
+    routes: { mobile: ['(app)/(tabs)/settings/labs/index'] },
   },
   {
     id: 'finance-labs',
