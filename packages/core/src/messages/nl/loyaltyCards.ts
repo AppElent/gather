@@ -105,6 +105,7 @@ export const loyaltyCards = {
     department: 'Warenhuis',
     fuel: 'Tanken',
     mobility: 'Onderweg',
+    programme: 'Spaarprogramma',
   },
   refusals: {
     'loyalty:notFound': 'Deze kaart hoort niet meer bij dit huishouden.',

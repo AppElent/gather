@@ -454,6 +454,14 @@ export const RETAILER_LOGOS: Readonly<Record<string, RetailerLogoSource>> = {
     page: 'https://www.anwb.nl/',
     licence: 'Official site icon; trademark of its owner',
   },
+  // The Dutch swallow mark, checked 2026-11-18 (APP-262). Commons' "Air
+  // Miles.svg" is the Canadian wordmark, a different programme.
+  'air-miles': {
+    url: 'https://www.airmiles.nl/apple-touch-icon.png',
+    page: 'https://www.airmiles.nl/',
+    licence: 'Official site icon; trademark of its owner',
+    padding: 0,
+  },
 }
 
 /**
