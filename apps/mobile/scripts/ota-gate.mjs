@@ -28,7 +28,9 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
-const PLATFORMS = ['ios', 'android']
+// Android is paused until the repository variable ANDROID_ENABLED is `true`;
+// the workflows pass it in (developer-home standards/releases.md, "Android pause").
+const PLATFORMS = ['ios', 'android'].filter((p) => p !== 'android' || process.env.ANDROID_ENABLED === 'true')
 // What ends up in the update bundle. `packages/` is @gather/core, bundled into
 // the app; the lockfile and patches change what node_modules bundles.
 const BUNDLED_PATHS = ['apps/mobile', 'packages', 'patches', 'pnpm-lock.yaml', 'pnpm-workspace.yaml']
