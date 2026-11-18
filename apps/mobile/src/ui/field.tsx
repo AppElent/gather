@@ -8,9 +8,22 @@
  * each screen re-derives: `autoComplete` is what makes Android's password
  * manager offer to fill and to save, and `textContentType` is the iOS half of
  * the same deal.
+ *
+ * Password managers need two more things a screen would otherwise forget:
+ *
+ * - A new-password field (`textContentType="newPassword"`) passes iOS
+ *   `passwordRules`, so the strong password iOS offers passes Clerk. The
+ *   default is `CLERK_PASSWORD_RULES`.
+ * - iOS AutoFill can set or clear a credential field without `onChangeText`
+ *   (declining "Use Strong Password?" clears it silently). A credential field
+ *   therefore also hands its native text to `onChangeText` when editing ends
+ *   and when the keyboard submits, so state matches what the field shows.
+ *   An `onSubmitEditing` that submits the form should read
+ *   `event.nativeEvent.text`: the state update has not landed yet.
  */
 import { forwardRef, useState } from 'react'
 import {
+  type NativeSyntheticEvent,
   Pressable,
   StyleSheet,
   Text,
@@ -23,6 +36,21 @@ import { useI18n } from '../i18n'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 
+/**
+ * iOS `passwordRules` for the Clerk password policy. The development instance
+ * sets no minimum (Clerk's default of 8 applies) and no character classes;
+ * change this with the instance's password settings.
+ */
+export const CLERK_PASSWORD_RULES = 'minlength: 8;'
+
+/** Fields a password manager fills, and so can set without `onChangeText`. */
+const CREDENTIAL_TYPES = new Set<TextInputProps['textContentType']>([
+  'username',
+  'password',
+  'newPassword',
+  'oneTimeCode',
+])
+
 interface FieldProps extends Omit<TextInputProps, 'style'> {
   label: string
   /** Renders the reveal toggle and starts obscured. */
@@ -32,13 +60,29 @@ interface FieldProps extends Omit<TextInputProps, 'style'> {
 }
 
 export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
-  { label, secure, invalid, ...props },
+  {
+    label,
+    secure,
+    invalid,
+    passwordRules,
+    onEndEditing,
+    onSubmitEditing,
+    ...props
+  },
   ref,
 ) {
   const tokens = useTokens()
   const { t } = useI18n()
   const [focused, setFocused] = useState(false)
   const [revealed, setRevealed] = useState(false)
+
+  const credential = secure || CREDENTIAL_TYPES.has(props.textContentType)
+  const readOnly = props.editable === false
+  /** Hands the native text to `onChangeText` when it differs from `value`. */
+  function sync(event: NativeSyntheticEvent<{ text: string }>) {
+    const { text } = event.nativeEvent
+    if (credential && text !== props.value) props.onChangeText?.(text)
+  }
 
   const Reveal = revealed ? UI_ICONS.EyeOff : UI_ICONS.Eye
   const borderColor = invalid
@@ -59,13 +103,30 @@ export const Field = forwardRef<TextInputInstance, FieldProps>(function Field(
       >
         <TextInput
           ref={ref}
-          style={[styles.input, { color: tokens.ink }]}
+          style={[
+            styles.input,
+            { color: readOnly ? tokens.muted : tokens.ink },
+          ]}
           placeholderTextColor={tokens.muted}
           secureTextEntry={secure && !revealed}
           accessibilityLabel={label}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          passwordRules={
+            passwordRules ??
+            (props.textContentType === 'newPassword'
+              ? CLERK_PASSWORD_RULES
+              : undefined)
+          }
           {...props}
+          onEndEditing={(event) => {
+            sync(event)
+            onEndEditing?.(event)
+          }}
+          onSubmitEditing={(event) => {
+            sync(event)
+            onSubmitEditing?.(event)
+          }}
         />
         {secure ? (
           <Pressable

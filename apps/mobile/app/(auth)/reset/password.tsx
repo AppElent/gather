@@ -11,9 +11,14 @@
  * someone resetting one they think was stolen wants exactly that. Neither
  * default is right without asking, and asking is a question this prototype has
  * no answer for — see the resolution on #147.
+ *
+ * The email the reset started with sits above the password as a read-only
+ * `username` field. Without it iCloud Keychain cannot tell whose password
+ * this is, and saves a second login instead of updating the existing one.
  */
 
 import { useSignIn } from '@clerk/expo'
+import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { type CodedError, pickError } from '../../../src/auth/clerkErrors'
 import { AuthError } from '../../../src/components/AuthError'
@@ -25,18 +30,20 @@ import { Field } from '../../../src/ui/field'
 export default function ResetPassword() {
   const { t } = useI18n()
   const { signIn, errors } = useSignIn()
+  const { email } = useLocalSearchParams<{ email?: string }>()
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [returned, setReturned] = useState<CodedError | null>(null)
 
   const error = pickError(errors, returned, t)
 
-  async function submit() {
+  /** `typed` is the field's native text when the keyboard's Go submits. */
+  async function submit(typed: string = password) {
     setBusy(true)
     setReturned(null)
 
     const saved = await signIn.resetPasswordEmailCode.submitPassword({
-      password,
+      password: typed,
     })
     if (saved.error) {
       setReturned(saved.error)
@@ -56,6 +63,16 @@ export default function ResetPassword() {
       heading={t.reset.password.heading}
       subtitle={t.reset.password.subtitle}
     >
+      {email ? (
+        <Field
+          label={t.fields.email}
+          value={email}
+          editable={false}
+          autoCapitalize="none"
+          autoComplete="username"
+          textContentType="username"
+        />
+      ) : null}
       <Field
         label={t.fields.newPassword}
         value={password}
@@ -66,7 +83,9 @@ export default function ResetPassword() {
         textContentType="newPassword"
         autoFocus
         returnKeyType="go"
-        onSubmitEditing={() => password.length > 0 && submit()}
+        onSubmitEditing={(event) =>
+          event.nativeEvent.text.length > 0 && submit(event.nativeEvent.text)
+        }
       />
 
       <AuthError message={error} />
@@ -75,7 +94,7 @@ export default function ResetPassword() {
         label={t.reset.password.submit}
         busy={busy}
         disabled={password.length === 0}
-        onPress={submit}
+        onPress={() => submit()}
       />
     </AuthScreen>
   )

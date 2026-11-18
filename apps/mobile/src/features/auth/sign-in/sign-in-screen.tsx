@@ -44,9 +44,10 @@ export function SignInScreen() {
   const busy = passwordSignIn.busy || emailCode.busy
   const error = source === 'code' ? emailCode.error : passwordSignIn.error
 
-  function signInWithPassword() {
+  /** `typed` is the field's native text when the keyboard's Go submits. */
+  function signInWithPassword(typed: string = password) {
     setSource('password')
-    passwordSignIn.submit(email, password)
+    passwordSignIn.submit(email, typed)
   }
 
   async function signInWithCode() {
@@ -95,7 +96,12 @@ export function SignInScreen() {
         autoComplete="current-password"
         textContentType="password"
         returnKeyType="go"
-        onSubmitEditing={() => ready && !busy && signInWithPassword()}
+        onSubmitEditing={(event) =>
+          hasEmail &&
+          event.nativeEvent.text.length > 0 &&
+          !busy &&
+          signInWithPassword(event.nativeEvent.text)
+        }
       />
 
       <AuthError message={error} />
@@ -105,7 +111,7 @@ export function SignInScreen() {
         label={t.signIn.submit}
         busy={passwordSignIn.busy}
         disabled={!ready || emailCode.busy}
-        onPress={signInWithPassword}
+        onPress={() => signInWithPassword()}
       />
       <Button
         testID="sign-in-email-code"

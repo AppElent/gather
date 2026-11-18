@@ -34,3 +34,4 @@ export {
   type ThemeMode,
 } from './theme'
 export type { AuthConfig, SlotClassNames, SocialProvider } from './types'
+export { UsernameHint } from './UsernameHint'

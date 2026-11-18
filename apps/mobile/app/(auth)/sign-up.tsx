@@ -36,13 +36,14 @@ export default function SignUp() {
   const ready = email.trim().length > 0 && password.length > 0
   const error = pickError(errors, returned, t)
 
-  async function submit() {
+  /** `typed` is the field's native text when the keyboard's Go submits. */
+  async function submit(typed: string = password) {
     setBusy(true)
     setReturned(null)
 
     const created = await signUp.password({
       emailAddress: email.trim(),
-      password,
+      password: typed,
     })
     if (created.error) {
       setReturned(created.error)
@@ -99,7 +100,11 @@ export default function SignUp() {
         autoComplete="new-password"
         textContentType="newPassword"
         returnKeyType="go"
-        onSubmitEditing={() => ready && submit()}
+        onSubmitEditing={(event) =>
+          email.trim().length > 0 &&
+          event.nativeEvent.text.length > 0 &&
+          submit(event.nativeEvent.text)
+        }
       />
 
       <AuthError message={error} />
@@ -108,7 +113,7 @@ export default function SignUp() {
         label={t.signUp.submit}
         busy={busy}
         disabled={!ready}
-        onPress={submit}
+        onPress={() => submit()}
       />
 
       <SocialButtons />

@@ -9,6 +9,11 @@
  * An account with no password at all — signed up through a provider — gets a
  * sentence instead of a form. Clerk would reject the call, and a form that
  * cannot succeed is worse than being told why.
+ *
+ * iOS AutoFill needs the change-password shape to tell the fields apart: the
+ * account's email as a read-only `username`, then the current password, then
+ * the new one. Without the username it reads both secure fields as new
+ * passwords, and declining its strong-password offer clears both.
  */
 import { useUser } from '@clerk/expo'
 import { router } from 'expo-router'
@@ -46,14 +51,15 @@ export default function ChangePassword() {
 
   const ready = current.length > 0 && password.length > 0
 
-  async function save() {
-    if (!user || busy || !ready) return
+  /** `typed` is the new field's native text when the keyboard submits. */
+  async function save(typed: string = password) {
+    if (!user || busy || current.length === 0 || typed.length === 0) return
     setBusy(true)
     setError(null)
     try {
       await user.updatePassword({
         currentPassword: current,
-        newPassword: password,
+        newPassword: typed,
         signOutOfOtherSessions: true,
       })
       router.back()
@@ -95,6 +101,15 @@ export default function ChangePassword() {
         <SettingsCard description={t.account.changePassword.description}>
           <View style={styles.fields}>
             <Field
+              testID="account-password-email"
+              label={t.fields.email}
+              value={user?.primaryEmailAddress?.emailAddress ?? ''}
+              editable={false}
+              autoCapitalize="none"
+              autoComplete="username"
+              textContentType="username"
+            />
+            <Field
               testID="account-current-password"
               label={t.account.changePassword.current}
               value={current}
@@ -117,7 +132,7 @@ export default function ChangePassword() {
               textContentType="newPassword"
               autoCapitalize="none"
               returnKeyType="done"
-              onSubmitEditing={() => void save()}
+              onSubmitEditing={(event) => void save(event.nativeEvent.text)}
             />
           </View>
         </SettingsCard>
