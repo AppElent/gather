@@ -58,6 +58,7 @@ export function WelcomeActions() {
               variant="ghost"
               busy={busy}
               label={t.welcome.devSignIn}
+              testID="welcome-dev-sign-in"
               onPress={() => submit(shortcut.email, shortcut.password)}
               style={styles.devButton}
             />

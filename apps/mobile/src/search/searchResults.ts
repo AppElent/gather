@@ -8,11 +8,16 @@
  * translated Kind label reach a route param.
  */
 import { minutesToClock } from '@gather/core/civil-date'
-import { isTastingKind } from '@gather/core/tastings'
+import type { ModuleId } from '@gather/core/modules'
+import { isTastingKind, TASTING_KIND_SPECS } from '@gather/core/tastings'
 import type { Href } from 'expo-router'
 
 import type { Messages } from '../i18n'
-import type { RecentRecordInput, SearchRecordType } from './recentRecords'
+import {
+  type RecentRecordInput,
+  SEARCH_RECORD_TYPES,
+  type SearchRecordType,
+} from './recentRecords'
 
 export type QueryResult = {
   id: string
@@ -116,4 +121,44 @@ export function hrefFor(record: RecentRecordInput): Href | null {
         params: { eventId: record.id },
       }
   }
+}
+
+/**
+ * The Module a record belongs to. A tasting's is its Kind's, so it is `null`
+ * here and read from the record in `recordShown`.
+ */
+const MODULE_OF_TYPE = {
+  recipe: 'recipes',
+  task: 'tasks',
+  note: 'notes',
+  tasting: null,
+  calendarEvent: 'calendar',
+  loyaltyCard: 'loyalty-cards',
+} as const satisfies Record<SearchRecordType, ModuleId | null>
+
+const TASTING_MODULES = Object.values(TASTING_KIND_SPECS).map(
+  (spec) => spec.moduleId,
+)
+
+/**
+ * The types to ask `search.group` for: those of the Modules this build shows
+ * (`modules/moduleVisibility.ts`). A hidden Module's records are not found.
+ */
+export function searchableTypes(
+  shown: (moduleId: ModuleId) => boolean,
+): SearchRecordType[] {
+  return SEARCH_RECORD_TYPES.filter((type) => {
+    const module = MODULE_OF_TYPE[type]
+    return module ? shown(module) : TASTING_MODULES.some(shown)
+  })
+}
+
+/** Whether a stored recent may still be listed, by the same rule. */
+export function recordShown(
+  record: Pick<RecentRecordInput, 'type' | 'kind'>,
+  shown: (moduleId: ModuleId) => boolean,
+): boolean {
+  const module = MODULE_OF_TYPE[record.type]
+  if (module) return shown(module)
+  return record.kind ? shown(TASTING_KIND_SPECS[record.kind].moduleId) : false
 }

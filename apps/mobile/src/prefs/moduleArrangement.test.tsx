@@ -13,6 +13,10 @@ vi.mock('./localPreference', () => ({
   writePreference: () => {},
 }))
 
+// A development build: every Module shows. The store build's narrowing is
+// `moduleVisibility.test.ts`'s; this suite only needs the hook to apply it.
+vi.mock('../modules/buildModules', () => ({ LIVE_MODULES_ONLY: false }))
+
 afterEach(() => {
   document.body.innerHTML = ''
 })

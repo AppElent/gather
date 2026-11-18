@@ -50,6 +50,7 @@ import {
 import { haptics } from '../feedback/haptics'
 import { useGroup, useOpenInGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
+import { moduleShown } from '../modules/buildModules'
 import { MODULE_ICONS, UI_ICONS } from '../theme/icons'
 import { RADIUS, SIZE, TYPE, useTokens } from '../theme/tokens'
 import { DropGroupSheet } from './DropGroupSheet'
@@ -105,6 +106,7 @@ export function DropChooserScreen() {
     ? targetsForDrop({
         kind: drop.kind,
         host: drop.kind === 'url' ? drop.host : null,
+        shown: moduleShown,
       })
     : []
   const chosen =

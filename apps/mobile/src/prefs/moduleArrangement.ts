@@ -28,6 +28,8 @@ import type { ModuleGroup } from '@gather/core/modules'
 import { pinnedModuleIds, togglePin } from '@gather/core/pins'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { LIVE_MODULES_ONLY } from '../modules/buildModules'
+import { shownArrangement } from '../modules/moduleVisibility'
 import {
   allArrangementKey,
   PREFERENCE_KEYS,
@@ -152,7 +154,16 @@ export function useModuleArrangement(groupSlug: string): ModuleArrangement {
     }
   }, [groupSlug])
 
-  const arrangement = useMemo(() => arrangeModules(stored), [stored])
+  // A Module this build does not show is not in All, Home's pins or edit mode
+  // (`modules/moduleVisibility.ts`). Reordering here saves the
+  // arrangement without it, so a build that shows it again puts it back in its
+  // default place. Store users never had those Modules, so nothing they chose
+  // is lost; only a development build run with
+  // `EXPO_PUBLIC_LIVE_MODULES_ONLY=1` can drop its own choices this way.
+  const arrangement = useMemo(
+    () => shownArrangement(arrangeModules(stored), LIVE_MODULES_ONLY),
+    [stored],
+  )
   const collapsed = stored.collapsed ?? []
 
   const commit = useCallback(

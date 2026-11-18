@@ -32,6 +32,7 @@ import { cardLastUsed } from '../features/loyalty-cards/list/card-last-used'
 import { offlineGroupCards } from '../features/loyalty-cards/offline/offline-cards'
 import { useGroup } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
+import { moduleShown } from '../modules/buildModules'
 import { moduleHref } from '../modules/moduleDestination'
 import { QuickAddTask } from '../modules/tasks/QuickAddTask'
 import { SubjectPickerSheet } from '../modules/tasting/SubjectPickerSheet'
@@ -64,6 +65,10 @@ interface QuickCard {
 
 /** The placeholders in the cards row while nothing is known yet. */
 const PLACEHOLDER_CARDS = 3
+
+/** The verbs of the Modules this build shows (`modules/moduleVisibility.ts`). */
+const SHOWN_ACTIONS = QUICK_ACTIONS.filter((action) => moduleShown(action.module))
+
 /** An Add tile's minimum height, so a row of one-line labels stays even. */
 const TILE_MIN_HEIGHT = 96
 
@@ -129,7 +134,7 @@ function SheetBody({
   const [added, setAdded] = useState<string[]>([])
   const text = t.shell.add
   const Back = UI_ICONS.ChevronLeft
-  const openAction = QUICK_ACTIONS.find((action) => action.id === openId)
+  const openAction = SHOWN_ACTIONS.find((action) => action.id === openId)
   // The tasting Modules' first step lives in the launcher and their second
   // does not: this swaps the whole sheet for the subject picker, which then
   // pushes the composer. See `QuickActionKind`'s `compose`.
@@ -243,7 +248,7 @@ function SheetBody({
                 setGridWidth(event.nativeEvent.layout.width)
               }
             >
-              {quickGridRows(QUICK_ACTIONS, columns).map((row) => (
+              {quickGridRows(SHOWN_ACTIONS, columns).map((row) => (
                 <View key={row.map((a) => a?.id).join()} style={styles.gridRow}>
                   {row.map((action, slot) =>
                     action ? (

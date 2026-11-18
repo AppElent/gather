@@ -2,6 +2,7 @@ import { moduleById } from '@gather/core/modules'
 import { Redirect, useLocalSearchParams } from 'expo-router'
 
 import { ModulePlaceholder } from '../components/ModulePlaceholder'
+import { moduleShown } from '../modules/buildModules'
 import { isNativeModule, moduleDestination } from '../modules/moduleDestination'
 
 /**
@@ -17,7 +18,9 @@ export function ModuleRoute() {
   const { moduleId } = useLocalSearchParams<{ moduleId: string }>()
   const module = moduleById(moduleId)
 
-  if (!module) return <Redirect href="/all" />
+  // A Module the store build hides is as absent as a retired one
+  // (`modules/moduleVisibility.ts`, App Review 2.1(a)).
+  if (!module || !moduleShown(module.id)) return <Redirect href="/all" />
   if (isNativeModule(module.id)) {
     return <Redirect href={moduleDestination(module.id)} />
   }

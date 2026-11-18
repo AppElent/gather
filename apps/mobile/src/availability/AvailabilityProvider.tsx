@@ -61,9 +61,15 @@ export function AvailabilityProvider({ children }: { children: ReactNode }) {
     setRetrying(true)
     setSplashExpired(false)
     setRetryAttempt((attempt) => attempt + 1)
+    // Not `load()`. The provider loaded this instance with the native options
+    // (`standardBrowser: false`, the token cache, headless runtime); `load()`
+    // with none starts over from clerk-js's browser defaults while Clerk is in
+    // `error`, and does nothing at all once it is loaded. Reloading the client
+    // and environment is what @clerk/expo itself does to recover (its resource
+    // retries and its foreground check), and it moves `error` back to `ready`.
     const clerkInstance = getClerkInstance({ publishableKey })
     void clerkInstance
-      .load()
+      .__internal_reloadInitialResources()
       .then(async () => {
         if (session) await session.reload()
       })

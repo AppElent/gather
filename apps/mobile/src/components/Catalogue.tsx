@@ -1,7 +1,7 @@
 /**
  * The catalogue as the band under the pitch, because the front door's job is to
  * say what gather is and the catalogue is the most honest answer available:
- * every Module, in every Group. The words lead, the tiles
+ * every Module this build shows, in every Group. The words lead, the tiles
  * confirm: each chip is neutral and only its glyph tile wears the group's fill
  * (ADR-0017).
  *
@@ -14,12 +14,20 @@ import { MODULE_GROUPS, MODULES } from '@gather/core/modules'
 import { StyleSheet, Text, View } from 'react-native'
 
 import { useI18n } from '../i18n'
+import { moduleShown } from '../modules/buildModules'
 import { MODULE_ICONS } from '../theme/icons'
 import { RADIUS, SIZE, TYPE, useTokens } from '../theme/tokens'
 
-/** Group order, so the four tints read as four bands rather than confetti. */
+/**
+ * Group order, so the four tints read as four bands rather than confetti. The
+ * store build names only live Modules: a promise on the front door is one the
+ * app has to keep.
+ */
 const ORDERED: readonly (typeof MODULES)[number][] = MODULE_GROUPS.flatMap(
-  (group) => MODULES.filter((module) => module.group === group),
+  (group) =>
+    MODULES.filter(
+      (module) => module.group === group && moduleShown(module.id),
+    ),
 )
 
 export function CatalogueStrip() {

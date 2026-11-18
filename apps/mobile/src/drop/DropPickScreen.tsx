@@ -43,6 +43,7 @@ import {
   useOpenInGroup,
 } from '../group/GroupProvider'
 import { fmt, useI18n } from '../i18n'
+import { moduleShown } from '../modules/buildModules'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, SIZE, TYPE, useTokens } from '../theme/tokens'
 import { useDrop } from './DropProvider'
@@ -250,12 +251,14 @@ export function DropPickScreen() {
  *
  * A route param is a string somebody could have typed, so an unrecognised one
  * is a screen that says so rather than a thrown error — the same reading
- * `TastingRoute` gives its `[kind]` segment.
+ * `TastingRoute` gives its `[kind]` segment. A target in a Module this build
+ * hides reads as unknown too (`modules/moduleVisibility.ts`).
  */
 function knownTarget(id: string | undefined): DropTarget | null {
   if (!id) return null
   try {
-    return dropTargetById(id as DropTargetId)
+    const target = dropTargetById(id as DropTargetId)
+    return moduleShown(target.module) ? target : null
   } catch {
     return null
   }

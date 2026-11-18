@@ -282,6 +282,11 @@ export interface DropDecisionInput {
   kind: DropKind
   /** The link's host, for a `url` Drop. Ignored for anything else. */
   host?: string | null
+  /**
+   * Whether this build shows a Module (`modules/moduleVisibility.ts`). A
+   * destination in a Module the store build hides is not offered at all.
+   */
+  shown?: (moduleId: ModuleId) => boolean
 }
 
 /**
@@ -295,8 +300,11 @@ export interface DropDecisionInput {
 export function targetsForDrop({
   kind,
   host,
+  shown = () => true,
 }: DropDecisionInput): RankedDropTarget[] {
-  const declared = DROP_ORDER[kind].map((id) => dropTargetById(id))
+  const declared = DROP_ORDER[kind]
+    .map((id) => dropTargetById(id))
+    .filter((target) => shown(target.module))
   // A host says nothing about a photo or a paragraph of text — only a link has
   // one, and reading a stale one off anything else would rank by accident.
   const preference = kind === 'url' ? dropHostPreference(host ?? null) : null
