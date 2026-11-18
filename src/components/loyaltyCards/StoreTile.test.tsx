@@ -70,8 +70,8 @@ describe('the monogram', () => {
   })
 
   test('stands in for a Catalog store without a logo', () => {
-    renderWithI18n(<StoreTile name="DreamLand" catalogKey="dreamland" />)
+    renderWithI18n(<StoreTile name="Ziengs" catalogKey="ziengs" />)
     expect(screen.queryByRole('img')).toBeNull()
-    expect(screen.getByText('D')).toBeTruthy()
+    expect(screen.getByText('Z')).toBeTruthy()
   })
 })

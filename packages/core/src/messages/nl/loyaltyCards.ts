@@ -91,7 +91,6 @@ export const loyaltyCards = {
     wholesale: 'Groothandel',
     liquor: 'Slijterij',
     drugstore: 'Drogisterij',
-    pharmacy: 'Apotheek',
     health: 'Gezondheidswinkel',
     beauty: 'Beauty',
     diy: 'Doe-het-zelf',
