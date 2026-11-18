@@ -1,7 +1,7 @@
 ---
 type: runbook
-description: Read when building, running, or verifying the phone app on a device or emulator, including a Drop and the quick-actions entry points.
-version: 1.3.0
+description: Read when building, running, or verifying the phone app on a device or emulator, including a Release build on the simulator, store screenshots, a Drop and the quick-actions entry points.
+version: 1.4.0
 ---
 
 # Mobile verification
@@ -75,6 +75,53 @@ above are Android's. On an iOS simulator (macOS with Xcode), use
 Metro on port 8092, same bundle id `com.appelent.gather.dev`); `down` releases the simulator. A local build is the Dev variant
 ([ADR 0045](../adr/0045-each-build-variant-installs-beside-the-others.md)), so
 it installs beside Gather Preview instead of replacing it.
+
+## A Release build on the iOS simulator
+
+Use it to see the app with no Metro: the embedded bundle, minified, `__DEV__`
+off. It is still the Dev variant (`com.appelent.gather.dev`, development
+Clerk and Convex), so it never needs a production secret. From the repository
+root:
+
+```
+pnpm env:apply local --only file          # the bundle reads apps/mobile/.env.local
+cd apps/mobile && APP_VARIANT=development pnpm exec expo prebuild --platform ios
+cd ios && pod install
+SENTRY_DISABLE_AUTO_UPLOAD=true xcodebuild -workspace GatherDev.xcworkspace \
+  -scheme GatherDev -configuration Release -sdk iphonesimulator \
+  -destination 'generic/platform=iOS Simulator' -derivedDataPath build build
+```
+
+- **Keep signing on.** Do not pass `CODE_SIGNING_ALLOWED=NO`. A simulator
+  build is signed ad hoc, and Xcode writes the app's entitlements into the
+  binary's `__TEXT,__entitlements` section (`otool -l … | grep __entitlements`
+  shows it). That is where the simulator reads the application identifier
+  from. Without it the keychain refuses secure storage and Clerk cannot keep
+  a session: signing in leaves you on the welcome screen. With signing on,
+  you sign in and stay signed in across a relaunch.
+- **No `.env.local`, no app.** Without the Clerk key the bundle throws at
+  start, and `expo-updates` error recovery then aborts the app
+  (`ErrorRecovery: could not recover from error, crashing` in
+  `xcrun simctl spawn <udid> log show`).
+- `SENTRY_DISABLE_AUTO_UPLOAD=true`: a local build has no Sentry auth token.
+
+## Store screenshots
+
+`apps/mobile/.maestro/store-screenshots.yaml` takes the App Store set, and
+`store-screenshots.json` holds its labels per language. The shared
+`store-screenshots.mjs` script in developer-home runs it on a 6.9" iPhone and a
+13" iPad against the development client. From the repository root:
+
+```
+EXPO_PUBLIC_LIVE_MODULES_ONLY=1 node ~/Developer/developer-home/scripts/store-screenshots.mjs \
+  --issue APP-123 --name gather [--devices iphone,ipad] [--langs en,nl]
+```
+
+`EXPO_PUBLIC_LIVE_MODULES_ONLY=1` makes the development client show only what
+the store build shows (`src/modules/moduleVisibility.ts`). The flow signs in
+with the dev shortcut, so the shots show the development test account's
+Group; check every shot for an email address, a dev label or a LogBox toast
+before anyone uploads it. Uploading is a separate, deliberate step.
 
 ## Watching query subscriptions
 

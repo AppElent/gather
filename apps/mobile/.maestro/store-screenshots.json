@@ -1,0 +1,19 @@
+{
+  "$comment": "Labels the store-screenshots flow taps or waits for, per language (developer-home scripts/store-screenshots.mjs passes them with maestro -e). Tab names come from packages/core shell.nav, Module names from packages/core messages/<lang>/modules.ts. L_BACK is the system back button.",
+  "languages": {
+    "en": {
+      "L_ALL": "All",
+      "L_RECIPES": "Recipes",
+      "L_WINES": "Wines",
+      "L_LOYALTY_CARDS": "Loyalty cards",
+      "L_BACK": "Back"
+    },
+    "nl": {
+      "L_ALL": "Alles",
+      "L_RECIPES": "Recepten",
+      "L_WINES": "Wijnen",
+      "L_LOYALTY_CARDS": "Klantkaarten",
+      "L_BACK": "Vorige"
+    }
+  }
+}

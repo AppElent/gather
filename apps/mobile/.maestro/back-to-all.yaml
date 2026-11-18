@@ -1,0 +1,12 @@
+# Back from a Module to the All tab's top. Re-tapping the selected tab does
+# not pop every stack, so this goes back until All's own menu shows.
+appId: com.appelent.gather.dev
+---
+- repeat:
+    while:
+      notVisible:
+        id: all-options
+    times: 3
+    commands:
+      - tapOn: ${L_BACK}
+      - waitForAnimationToEnd
