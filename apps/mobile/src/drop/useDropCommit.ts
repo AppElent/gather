@@ -213,7 +213,7 @@ export function useDropCommit() {
         case 'grocery-line': {
           // The Group designates its grocery list, so there is nothing to ask —
           // unless it has not, which is the one thing that can stop this.
-          const { groceryListId } = await convex.query(api.kitchen.overview, {
+          const { groceryListId } = await convex.query(api.kitchen.groceries, {
             groupSlug,
           })
           if (!groceryListId) return { ok: false, problem: 'no-grocery-list' }

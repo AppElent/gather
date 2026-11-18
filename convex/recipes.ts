@@ -16,6 +16,7 @@ import {
   nutritionValidator,
 } from './lib/nutrition'
 import { recipeFields } from './lib/recipeFields'
+import { dropRecipeShares, setSharedGroups } from './lib/recipeShares'
 import { requireCurrentUser } from './lib/sharing'
 import {
   deleteStoredFile,
@@ -356,6 +357,7 @@ export const remove = mutation({
     const recipe = await writableRecipe(ctx, args.id)
     if (!recipe) return
     await ctx.db.delete(args.id)
+    await dropRecipeShares(ctx, args.id)
     // The Groups this was Shared into lose the picture along with the recipe.
     // A Share is standing to read and no claim on the content, so there is
     // nothing of theirs to keep (ADR-0007). After the row is gone, so that the
@@ -392,7 +394,7 @@ export const move = mutation({
     const { group } = await requireGroupBySlug(ctx, args.toGroupSlug)
     // Already home. Moving somewhere it already lives changes nothing.
     if (group._id === recipe.groupId) return
-    await ctx.db.patch(args.id, {
+    await setSharedGroups(ctx, args.id, {
       groupId: group._id,
       // The destination stops being a guest the moment it becomes home —
       // `sharedGroupIds` never contains `groupId` (schema). Shares into *other*
@@ -412,7 +414,7 @@ export const share = mutation({
     // something that is already true.
     if (group._id === recipe.groupId) return
     if (recipe.sharedGroupIds.includes(group._id)) return
-    await ctx.db.patch(args.id, {
+    await setSharedGroups(ctx, args.id, {
       sharedGroupIds: [...recipe.sharedGroupIds, group._id],
     })
   },
@@ -432,7 +434,7 @@ export const unshare = mutation({
     // Nothing to withdraw — an unknown slug and a Group it was never shared
     // with land in the same place a second unshare does.
     if (!group || !recipe.sharedGroupIds.includes(group._id)) return
-    await ctx.db.patch(args.id, {
+    await setSharedGroups(ctx, args.id, {
       sharedGroupIds: recipe.sharedGroupIds.filter((id) => id !== group._id),
     })
   },
