@@ -1,0 +1,1210 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Weekmenu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.85}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+input,textarea{font:inherit;color:inherit;border:0;background:transparent;outline:none;padding:0;margin:0;width:100%}
+</style>
+</helmet>
+<div style="width: {{w}}px; height: {{h}}px; position: relative; overflow: hidden; background: {{c.ground}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: {{c.ink}}">
+
+  <!-- ============ WEEK + PROPOSAL ============ -->
+  <sc-if value="{{isWeek}}" hint-placeholder-val="{{ true }}">
+    <div style="background: {{c.kitchenWash}}; padding: 54px 16px 20px 16px; display: flex; flex-direction: column">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <a href="#" aria-label="Terug naar Keuken" style="height: 44px; padding: 0 16px 0 8px; border-radius: 999px; display: flex; align-items: center; gap: 2px; text-decoration: none; color: {{c.ink}}; background: {{c.glass}}; box-shadow: {{c.glassShadow}}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+          <span style="font-size: 17px; line-height: 22px">Keuken</span>
+        </a>
+        <a href="Prefs.dc.html" aria-label="Meer: Eetvoorkeuren, weekmenu delen" style="width: 44px; height: 44px; border-radius: 999px; background: {{c.glass}}; box-shadow: {{c.glassShadow}}; display: flex; align-items: center; justify-content: center; color: {{c.ink}}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="1.7"></circle><circle cx="19" cy="12" r="1.7"></circle><circle cx="5" cy="12" r="1.7"></circle></svg>
+        </a>
+      </div>
+      <h1 style="margin: 6px 4px 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 34px; line-height: 41px; font-weight: 700">Weekmenu</h1>
+      <div style="margin: 12px 4px 0 4px; display: flex; align-items: center; gap: 14px">
+        <span aria-hidden="true" style="width: 56px; height: 56px; flex: 0 0 56px; border-radius: 17px; background: {{c.kitchenFill}}; display: flex; align-items: center; justify-content: center">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenOn}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.week}}"></path></svg>
+        </span>
+        <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 17px; line-height: 22px"><span style="font-weight: 700; font-variant-numeric: tabular-nums">{{wk.count}}</span> {{wk.countRest}}</span>
+          <div style="display: flex; align-items: center; gap: 4px">
+            <button aria-label="Vorige week" onClick="{{noop}}" style="width: 36px; height: 36px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; justify-content: center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+            </button>
+            <span style="min-height: 36px; padding: 0 12px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">23 – 29 nov</span>
+            <button aria-label="Volgende week" onClick="{{noop}}" style="width: 36px; height: 36px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; justify-content: center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 20px 16px 160px 16px; display: flex; flex-direction: column; gap: 20px">
+
+      <sc-if value="{{showActions}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; gap: 8px">
+          <a href="Plan.dc.html" style="flex-grow: 1; min-height: 44px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-size: 17px; font-weight: 600">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.spark}}"></path></svg>
+            Plan mijn week
+          </a>
+          <a href="Groceries.dc.html" style="min-height: 44px; padding: 0 16px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; gap: 6px; text-decoration: none; color: {{c.ink}}; font-size: 17px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.cart}}"></path></svg>
+            Boodschappen
+          </a>
+          <a href="Prefs.dc.html" aria-label="Eetvoorkeuren" style="width: 44px; min-height: 44px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; justify-content: center; color: {{c.ink}}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.sliders}}"></path></svg>
+          </a>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showBanner}}" hint-placeholder-val="{{ false }}">
+        <div role="status" style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start">
+          <span aria-hidden="true" style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: {{c.kitchenWash}}; display: flex; align-items: center; justify-content: center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenText}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{banner.glyph}}"></path></svg>
+          </span>
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 15px; line-height: 20px; font-weight: 600">{{banner.title}}</span>
+            <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{banner.text}}</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+        <section aria-label="{{d.aria}}" style="display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 0 4px; min-height: 28px">
+            <h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 700; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif">{{d.long}} <span style="font-weight: 400; color: {{c.muted}}; font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif; font-size: 15px">{{d.date}}</span></h2>
+            <sc-if value="{{d.isBusy}}" hint-placeholder-val="{{ false }}">
+              <span style="display: flex; align-items: center; gap: 4px; min-height: 24px; padding: 0 8px; border-radius: 999px; background: {{c.surface2}}; font-size: 13px; line-height: 18px; font-weight: 600">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.cal}}"></path></svg>
+                {{d.busy}}
+              </span>
+            </sc-if>
+            <span style="flex-grow: 1"></span>
+            <span aria-label="{{d.eatLabel}}" role="img" style="display: flex; align-items: center; gap: 4px">
+              <sc-for list="{{d.coins}}" as="co" hint-placeholder-count="4">
+                <span aria-hidden="true" style="width: 22px; height: 22px; border-radius: 999px; background: {{co.bg}}; color: {{co.fg}}; border: {{co.border}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; text-decoration: {{co.strike}}">{{co.init}}</span>
+              </sc-for>
+            </span>
+          </div>
+
+          <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px; overflow: hidden">
+            <sc-for list="{{d.slots}}" as="s" hint-placeholder-count="1">
+
+              <sc-if value="{{s.isMeal}}" hint-placeholder-val="{{ true }}">
+                <a href="Meal.dc.html" aria-label="{{s.aria}}" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit">
+                  <span aria-hidden="true" style="width: 46px; height: 46px; flex: 0 0 46px; border-radius: 13px; background: {{s.thumbBg}}; display: flex; align-items: center; justify-content: center">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{s.thumbFg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{s.glyph}}"></path></svg>
+                  </span>
+                  <span style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 68px; padding: 10px 16px 10px 0; box-sizing: border-box; border-top: {{s.sep}}">
+                    <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                      <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">{{s.slot}}</span>
+                      <span style="font-size: 17px; line-height: 22px; font-weight: 600">{{s.title}}</span>
+                      <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums">{{s.meta}}</span>
+                    </span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+                  </span>
+                </a>
+              </sc-if>
+
+              <sc-if value="{{s.isEmpty}}" hint-placeholder-val="{{ false }}">
+                <a href="Pick.dc.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit">
+                  <span aria-hidden="true" style="width: 46px; height: 46px; flex: 0 0 46px; border-radius: 13px; border: 1.5px dashed {{c.hairStrong}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenText}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+                  </span>
+                  <span style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; min-height: 60px; padding: 8px 16px 8px 0; box-sizing: border-box; border-top: {{s.sep}}">
+                    <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">{{s.slot}}</span>
+                    <span style="font-size: 17px; line-height: 22px; color: {{c.kitchenText}}">{{s.title}}</span>
+                  </span>
+                </a>
+              </sc-if>
+
+              <sc-if value="{{s.isDraft}}" hint-placeholder-val="{{ false }}">
+                <div style="margin: 8px 8px 8px -8px; border-radius: 16px; border: 1.5px dashed {{c.kitchenText}}; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+                  <div style="display: flex; gap: 12px; align-items: flex-start">
+                    <span aria-hidden="true" style="width: 46px; height: 46px; flex: 0 0 46px; border-radius: 13px; background: {{s.thumbBg}}; display: flex; align-items: center; justify-content: center">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{s.thumbFg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{s.glyph}}"></path></svg>
+                    </span>
+                    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                      <span style="display: flex; align-items: center; gap: 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.kitchenText}}">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.spark}}"></path></svg>
+                        Voorstel · {{s.slot}}
+                      </span>
+                      <span style="font-size: 17px; line-height: 22px; font-weight: 600">{{s.title}}</span>
+                      <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{s.why}}</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 8px">
+                    <button onClick="{{s.accept}}" aria-label="{{s.acceptLabel}}" style="flex-grow: 1; min-height: 44px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 15px; font-weight: 600">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                      Neem over
+                    </button>
+                    <a href="Swap.dc.html" style="min-height: 44px; padding: 0 14px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; text-decoration: none; color: {{c.ink}}; font-size: 15px; font-weight: 600">Iets anders</a>
+                    <button onClick="{{s.regen}}" aria-label="{{s.regenLabel}}" style="width: 44px; min-height: 44px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.regen}}"></path></svg>
+                    </button>
+                  </div>
+                </div>
+              </sc-if>
+
+            </sc-for>
+          </div>
+        </section>
+      </sc-for>
+
+      <sc-if value="{{showWeekFoot}}" hint-placeholder-val="{{ true }}">
+        <p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Houd een maaltijd ingedrukt om hem naar een andere dag te slepen. Staat daar al iets, dan wisselen ze om.</p>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{showPropBar}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; left: 12px; right: 12px; bottom: 28px; border-radius: 28px; background: {{c.glass}}; box-shadow: {{c.glassShadow}}; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 10px; display: flex; flex-direction: column; gap: 8px">
+        <span role="status" style="text-align: center; font-size: 13px; line-height: 18px; color: {{c.ink}}">{{pb.status}}</span>
+        <sc-if value="{{pb.open}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; gap: 8px">
+            <button onClick="{{pb.discard}}" style="min-height: 48px; padding: 0 18px; border-radius: 999px; background: {{c.surface}}; font-size: 17px">Weggooien</button>
+            <button onClick="{{pb.acceptAll}}" style="flex-grow: 1; min-height: 48px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600">{{pb.allLabel}}</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{pb.done}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; gap: 8px">
+            <a href="Groceries.dc.html" style="flex-grow: 1; min-height: 48px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-size: 17px; font-weight: 600">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.cart}}"></path></svg>
+              Boodschappen voor deze week
+            </a>
+            <a href="Main.dc.html" style="min-height: 48px; padding: 0 18px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; text-decoration: none; color: {{c.ink}}; font-size: 17px">Klaar</a>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <!-- ============ PREFERENCES ============ -->
+  <sc-if value="{{isPrefs}}" hint-placeholder-val="{{ false }}">
+    <div style="padding: 54px 16px 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px">
+      <a href="Main.dc.html" aria-label="Terug naar Weekmenu" style="height: 44px; padding: 0 16px 0 8px; border-radius: 999px; background: {{c.glass}}; box-shadow: {{c.glassShadow}}; display: flex; align-items: center; gap: 2px; text-decoration: none; color: {{c.ink}}">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+        <span style="font-size: 17px">Weekmenu</span>
+      </a>
+    </div>
+    <div style="padding: 8px 16px 60px 16px; display: flex; flex-direction: column; gap: 20px">
+      <div style="padding: 0 4px; display: flex; flex-direction: column; gap: 4px">
+        <h1 style="margin: 0; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 34px; line-height: 41px; font-weight: 700">Eetvoorkeuren</h1>
+        <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">Voor heel Verbeek. Gather gebruikt dit bij zelf kiezen, Plan mijn week en Iets anders.</span>
+      </div>
+
+      <sc-for list="{{prefSections}}" as="ps" hint-placeholder-count="6">
+        <section aria-label="{{ps.label}}" style="display: flex; flex-direction: column; gap: 8px">
+          <h2 style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">{{ps.label}}</h2>
+          <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+            <sc-for list="{{ps.rows}}" as="r" hint-placeholder-count="2">
+              <div style="border-top: {{r.sep}}; padding: 10px 16px 10px 0; min-height: 52px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 10px">
+
+                <sc-if value="{{r.hasHead}}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; align-items: center; gap: 12px">
+                    <sc-if value="{{r.isMember}}" hint-placeholder-val="{{ false }}">
+                      <span aria-hidden="true" style="width: 32px; height: 32px; flex: 0 0 32px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700">{{r.init}}</span>
+                    </sc-if>
+                    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                      <span style="font-size: 17px; line-height: 22px">{{r.label}}</span>
+                      <sc-if value="{{r.hasSub}}" hint-placeholder-val="{{ false }}">
+                        <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{r.sub}}</span>
+                      </sc-if>
+                    </div>
+                    <sc-if value="{{r.isSwitch}}" hint-placeholder-val="{{ false }}">
+                      <button role="switch" aria-checked="{{r.checked}}" aria-label="{{r.label}}" onClick="{{r.toggle}}" style="width: 51px; height: 31px; flex: 0 0 51px; border-radius: 999px; background: {{r.track}}; position: relative">
+                        <span style="position: absolute; top: 2px; left: {{r.knob}}px; width: 27px; height: 27px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 2px 4px rgba(0,0,0,0.22)"></span>
+                      </button>
+                    </sc-if>
+                    <sc-if value="{{r.isStepper}}" hint-placeholder-val="{{ false }}">
+                      <div style="display: flex; align-items: center; gap: 4px">
+                        <button aria-label="{{r.minusLabel}}" onClick="{{r.minus}}" style="width: 44px; height: 36px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg>
+                        </button>
+                        <span aria-live="polite" style="min-width: 56px; text-align: center; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums">{{r.value}}</span>
+                        <button aria-label="{{r.plusLabel}}" onClick="{{r.plus}}" style="width: 44px; height: 36px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                        </button>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{r.isValue}}" hint-placeholder-val="{{ false }}">
+                      <span style="display: flex; align-items: center; gap: 6px; font-size: 17px; color: {{c.muted}}">{{r.value}}
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+                      </span>
+                    </sc-if>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{r.hasChips}}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px">
+                    <sc-for list="{{r.chips}}" as="ch" hint-placeholder-count="4">
+                      <button aria-pressed="{{ch.pressed}}" onClick="{{ch.toggle}}" aria-label="{{ch.aria}}" style="min-height: 36px; padding: 0 12px; border-radius: 999px; background: {{ch.bg}}; color: {{ch.fg}}; border: {{ch.border}}; box-sizing: border-box; display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: {{ch.weight}}">
+                        <sc-if value="{{ch.on}}" hint-placeholder-val="{{ false }}">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                        </sc-if>
+                        {{ch.label}}
+                      </button>
+                    </sc-for>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{r.isMinutes}}" hint-placeholder-val="{{ false }}">
+                  <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px">
+                    <sc-for list="{{r.mins}}" as="mi" hint-placeholder-count="7">
+                      <button onClick="{{mi.cycle}}" aria-label="{{mi.aria}}" style="min-height: 60px; border-radius: 14px; background: {{mi.bg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+                        <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">{{mi.day}}</span>
+                        <span style="font-size: 17px; line-height: 22px; font-weight: 700; font-variant-numeric: tabular-nums">{{mi.val}}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{r.isTags}}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; flex-direction: column; gap: 10px">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px">
+                      <sc-for list="{{r.tags}}" as="tg" hint-placeholder-count="2">
+                        <span style="min-height: 36px; padding: 0 4px 0 12px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; gap: 2px; font-size: 15px">
+                          {{tg.label}}
+                          <button aria-label="{{tg.removeLabel}}" onClick="{{tg.remove}}" style="width: 32px; height: 32px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: {{c.muted}}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                          </button>
+                        </span>
+                      </sc-for>
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 12px; background: {{c.ground}}">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                      <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Iets toevoegen dat jullie liever niet eten</span>
+                      <input type="text" placeholder="Toevoegen, bijvoorbeeld koriander" style="font-size: 17px">
+                    </label>
+                  </div>
+                </sc-if>
+
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ps.hasFoot}}" hint-placeholder-val="{{ true }}">
+            <p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{ps.foot}}</p>
+          </sc-if>
+        </section>
+      </sc-for>
+
+      <p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Iedereen in Verbeek kan dit aanpassen; wijzigingen gelden meteen. Eetvoorkeuren gaan mee in de export van je gegevens.</p>
+    </div>
+  </sc-if>
+
+  <!-- ============ SHEETS ============ -->
+  <sc-if value="{{isSheet}}" hint-placeholder-val="{{ false }}">
+    <div style="height: 64px; background: {{c.scrim}}; padding: 18px 24px 0 24px; box-sizing: border-box; font-size: 15px; color: {{c.muted}}" aria-hidden="true">{{sh.behind}}</div>
+    <div style="position: absolute; top: 56px; left: 0; right: 0; bottom: 0; background: {{c.ground}}; border-radius: 38px 38px 0 0; display: flex; flex-direction: column">
+      <div aria-hidden="true" style="align-self: center; width: 36px; height: 5px; border-radius: 999px; background: {{c.hairStrong}}; margin-top: 6px"></div>
+      <div style="padding: 8px 16px 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px">
+        <a href="{{sh.leftHref}}" style="height: 44px; padding: 0 16px; border-radius: 999px; background: {{c.glass}}; box-shadow: {{c.glassShadow}}; display: flex; align-items: center; text-decoration: none; color: {{c.ink}}; font-size: 17px">{{sh.left}}</a>
+        <span style="font-size: 17px; line-height: 22px; font-weight: 600">{{sh.title}}</span>
+        <span style="width: 80px"></span>
+      </div>
+
+      <div style="padding: 16px 16px 40px 16px; display: flex; flex-direction: column; gap: 20px">
+
+        <!-- Meal sheet -->
+        <sc-if value="{{isMeal}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; gap: 14px; align-items: center; padding: 0 4px">
+            <span aria-hidden="true" style="width: 56px; height: 56px; flex: 0 0 56px; border-radius: 17px; background: {{c.kitchenFill}}; display: flex; align-items: center; justify-content: center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenOn}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.book}}"></path></svg>
+            </span>
+            <div style="display: flex; flex-direction: column">
+              <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.kitchenText}}">Donderdag 26 nov · Avondeten</span>
+              <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Tacos met kip</span>
+              <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">35 min · recept</span>
+            </div>
+          </div>
+
+          <section aria-label="Wie eet mee" style="display: flex; flex-direction: column; gap: 8px">
+            <h2 style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">Wie eet mee</h2>
+            <div style="background: {{c.surface}}; border-radius: 22px; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px">
+              <div style="display: flex; flex-wrap: wrap; gap: 8px">
+                <sc-for list="{{meal.eaters}}" as="e" hint-placeholder-count="4">
+                  <button aria-pressed="{{e.pressed}}" onClick="{{e.toggle}}" aria-label="{{e.aria}}" style="min-height: 44px; padding: 0 14px 0 6px; border-radius: 999px; background: {{e.bg}}; color: {{e.fg}}; border: {{e.border}}; box-sizing: border-box; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600">
+                    <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 999px; background: {{e.coinBg}}; color: {{e.coinFg}}; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">{{e.init}}</span>
+                    <span style="text-decoration: {{e.strike}}">{{e.name}}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <sc-if value="{{meal.hasCal}}" hint-placeholder-val="{{ true }}">
+                <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; color: {{c.muted}}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.cal}}"></path></svg>
+                  Uit de agenda: Daan, teamuitje 18:30
+                </span>
+              </sc-if>
+              <div style="display: flex; align-items: center; gap: 12px; border-top: 0.5px solid {{c.hair}}; padding-top: 10px">
+                <div style="flex-grow: 1; display: flex; flex-direction: column">
+                  <span style="font-size: 17px; line-height: 22px">Porties</span>
+                  <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{meal.servSub}}</span>
+                </div>
+                <button aria-label="Een portie minder" onClick="{{meal.minus}}" style="width: 44px; height: 36px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg>
+                </button>
+                <span aria-live="polite" style="min-width: 28px; text-align: center; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums">{{meal.serv}}</span>
+                <button aria-label="Een portie meer" onClick="{{meal.plus}}" style="width: 44px; height: 36px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section aria-label="Verplaatsen" style="display: flex; flex-direction: column; gap: 8px">
+            <h2 style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">Verplaatsen naar</h2>
+            <div style="background: {{c.surface}}; border-radius: 22px; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+              <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px">
+                <sc-for list="{{meal.moves}}" as="mv" hint-placeholder-count="7">
+                  <button aria-pressed="{{mv.pressed}}" onClick="{{mv.pick}}" aria-label="{{mv.aria}}" style="min-height: 52px; border-radius: 14px; background: {{mv.bg}}; color: {{mv.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+                    <span style="font-size: 15px; line-height: 20px; font-weight: 700">{{mv.day}}</span>
+                    <span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 999px; background: {{mv.dot}}"></span>
+                  </button>
+                </sc-for>
+              </div>
+              <span role="status" style="padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{meal.moveText}}</span>
+            </div>
+          </section>
+
+          <label style="display: flex; flex-direction: column; gap: 8px">
+            <span style="padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">Notitie</span>
+            <span style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; display: block">
+              <textarea rows="2" defaultValue="Extra wraps maken voor de lunch van vrijdag" style="font-size: 17px; line-height: 22px; resize: none"></textarea>
+            </span>
+          </label>
+
+          <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+            <sc-for list="{{meal.actions}}" as="ma" hint-placeholder-count="4">
+              <a href="{{ma.href}}" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: {{ma.color}}">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ma.glyph}}"></path></svg>
+                <span style="flex-grow: 1; min-height: 52px; padding: 6px 16px 6px 0; box-sizing: border-box; border-top: {{ma.sep}}; display: flex; flex-direction: column; justify-content: center">
+                  <span style="font-size: 17px; line-height: 22px">{{ma.label}}</span>
+                  <sc-if value="{{ma.hasSub}}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{ma.sub}}</span>
+                  </sc-if>
+                </span>
+              </a>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- Pick sheet -->
+        <sc-if value="{{isPick}}" hint-placeholder-val="{{ false }}">
+          <label style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 12px; background: {{c.surface2}}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16a8 8 0 1 0 0 16M21 21l-4.3-4.3"></path></svg>
+            <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Zoek in recepten</span>
+            <input type="search" placeholder="Zoek in 86 recepten" style="font-size: 17px">
+          </label>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <button aria-pressed="{{pick.filterPressed}}" onClick="{{pick.toggleFilter}}" style="min-height: 36px; padding: 0 12px; border-radius: 999px; background: {{pick.filterBg}}; color: {{pick.filterFg}}; border: {{pick.filterBorder}}; box-sizing: border-box; display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.sliders}}"></path></svg>
+              Volgens voorkeuren
+            </button>
+            <sc-for list="{{pick.times}}" as="tm" hint-placeholder-count="3">
+              <button aria-pressed="{{tm.pressed}}" onClick="{{tm.pick}}" style="min-height: 36px; padding: 0 12px; border-radius: 999px; background: {{tm.bg}}; color: {{tm.fg}}; border: {{tm.border}}; box-sizing: border-box; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">{{tm.label}}</button>
+            </sc-for>
+          </div>
+          <span role="status" style="padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{pick.status}}</span>
+          <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+            <sc-for list="{{pick.rows}}" as="pr" hint-placeholder-count="5">
+              <button onClick="{{noop}}" aria-label="{{pr.aria}}" style="width: 100%; display: flex; align-items: center; gap: 12px">
+                <span aria-hidden="true" style="width: 46px; height: 46px; flex: 0 0 46px; border-radius: 13px; background: {{pr.thumbBg}}; display: flex; align-items: center; justify-content: center">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{pr.thumbFg}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{pr.glyph}}"></path></svg>
+                </span>
+                <span style="flex-grow: 1; min-width: 0; min-height: 64px; padding: 8px 16px 8px 0; box-sizing: border-box; border-top: {{pr.sep}}; display: flex; flex-direction: column; justify-content: center">
+                  <span style="font-size: 17px; line-height: 22px; font-weight: 600">{{pr.title}}</span>
+                  <span style="font-size: 13px; line-height: 18px; color: {{pr.metaColor}}; font-weight: {{pr.metaWeight}}">{{pr.meta}}</span>
+                </span>
+              </button>
+            </sc-for>
+          </div>
+          <a href="#" style="display: flex; align-items: center; gap: 12px; background: {{c.surface}}; border-radius: 22px; padding: 12px 16px; text-decoration: none; color: inherit">
+            <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 9px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.bolt}}"></path></svg>
+            </span>
+            <span style="flex-grow: 1; display: flex; flex-direction: column">
+              <span style="font-size: 17px; line-height: 22px">Snel gerecht zonder recept</span>
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Pizza, tosti's, iets van de markt</span>
+            </span>
+          </a>
+        </sc-if>
+
+        <!-- Plan sheet + limit -->
+        <sc-if value="{{isPlan}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 0 4px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 28px; line-height: 34px; font-weight: 700">Plan mijn week</span>
+            <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">23 tot 29 november. Gather vult alleen wat nog leeg is, met jullie eigen recepten.</span>
+          </div>
+
+          <sc-if value="{{plan.over}}" hint-placeholder-val="{{ false }}">
+            <div role="alert" style="background: {{c.surface}}; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+              <span style="display: flex; align-items: center; gap: 8px; font-size: 17px; line-height: 22px; font-weight: 600">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.clock}}"></path></svg>
+                Je slimme acties voor vandaag zijn op
+              </span>
+              <span style="font-size: 15px; line-height: 20px">Je hebt er vandaag 30 van 30 gebruikt. Morgen kan het weer. Er is niets aan je weekmenu veranderd.</span>
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Zelf kiezen werkt gewoon, met dezelfde voorkeuren als filter.</span>
+              <a href="Pick.dc.html" style="min-height: 44px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 17px; font-weight: 600">Zelf kiezen</a>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{plan.ok}}" hint-placeholder-val="{{ true }}">
+            <section aria-label="Welke dagen" style="display: flex; flex-direction: column; gap: 8px">
+              <h2 style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">Welke dagen</h2>
+              <div style="background: {{c.surface}}; border-radius: 22px; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+                <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px">
+                  <sc-for list="{{plan.days}}" as="pd" hint-placeholder-count="7">
+                    <button aria-pressed="{{pd.pressed}}" onClick="{{pd.toggle}}" aria-label="{{pd.aria}}" disabled="{{pd.disabled}}" style="min-height: 56px; border-radius: 14px; background: {{pd.bg}}; color: {{pd.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: {{pd.cursor}}">
+                      <span style="font-size: 15px; line-height: 20px; font-weight: 700">{{pd.day}}</span>
+                      <span style="font-size: 11px; line-height: 13px; font-weight: 600">{{pd.state}}</span>
+                    </button>
+                  </sc-for>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                  <sc-for list="{{plan.slots}}" as="pl" hint-placeholder-count="2">
+                    <button aria-pressed="{{pl.pressed}}" onClick="{{pl.toggle}}" style="min-height: 36px; padding: 0 12px; border-radius: 999px; background: {{pl.bg}}; color: {{pl.fg}}; border: {{pl.border}}; box-sizing: border-box; display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600">
+                      <sc-if value="{{pl.on}}" hint-placeholder-val="{{ true }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                      </sc-if>
+                      {{pl.label}}
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+            </section>
+
+            <label style="display: flex; flex-direction: column; gap: 8px">
+              <span style="padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">Wens voor deze week (mag leeg)</span>
+              <span style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; display: block">
+                <input type="text" placeholder="Bijvoorbeeld: veel groente, één keer iets nieuws" style="font-size: 17px">
+              </span>
+            </label>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: -8px">
+              <sc-for list="{{plan.wishChips}}" as="wc" hint-placeholder-count="3">
+                <button aria-pressed="{{wc.pressed}}" onClick="{{wc.toggle}}" style="min-height: 36px; padding: 0 12px; border-radius: 999px; background: {{wc.bg}}; color: {{wc.fg}}; border: {{wc.border}}; box-sizing: border-box; font-size: 15px; font-weight: {{wc.weight}}">{{wc.label}}</button>
+              </sc-for>
+            </div>
+
+            <section aria-label="Gather houdt rekening met" style="display: flex; flex-direction: column; gap: 8px">
+              <h2 style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">Gather houdt rekening met</h2>
+              <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+                <sc-for list="{{plan.uses}}" as="u" hint-placeholder-count="4">
+                  <a href="{{u.href}}" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit">
+                    <span aria-hidden="true" style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{u.glyph}}"></path></svg>
+                    </span>
+                    <span style="flex-grow: 1; min-width: 0; min-height: 56px; padding: 8px 16px 8px 0; box-sizing: border-box; border-top: {{u.sep}}; display: flex; align-items: center; gap: 8px">
+                      <span style="flex-grow: 1; display: flex; flex-direction: column">
+                        <span style="font-size: 17px; line-height: 22px">{{u.label}}</span>
+                        <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{u.sub}}</span>
+                      </span>
+                      <sc-if value="{{u.hasLink}}" hint-placeholder-val="{{ false }}">
+                        <span style="font-size: 15px; color: {{c.kitchenText}}">Aanpassen</span>
+                      </sc-if>
+                    </span>
+                  </a>
+                </sc-for>
+              </div>
+            </section>
+
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <a href="Proposal.dc.html" style="min-height: 50px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-size: 17px; font-weight: 600">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.spark}}"></path></svg>
+                {{plan.cta}}
+              </a>
+              <p style="margin: 0; padding: 0 4px; text-align: center; font-size: 13px; line-height: 18px; color: {{c.muted}}">Kost 1 slimme actie · nog 28 van 30 vandaag</p>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <!-- Review sheet (B) -->
+        <sc-if value="{{isReview}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 0 4px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 28px; line-height: 34px; font-weight: 700">Voorstel voor deze week</span>
+            <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">Vink uit wat je niet wilt. Ma en di blijven zoals ze zijn.</span>
+          </div>
+          <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+            <sc-for list="{{review}}" as="rv" hint-placeholder-count="5">
+              <div style="display: flex; align-items: stretch">
+                <button role="checkbox" aria-checked="{{rv.checked}}" aria-label="{{rv.aria}}" onClick="{{rv.toggle}}" style="width: 40px; flex: 0 0 40px; display: flex; align-items: center">
+                  <span style="width: 24px; height: 24px; border-radius: 7px; box-sizing: border-box; border: 2px solid {{rv.ring}}; background: {{rv.boxBg}}; display: flex; align-items: center; justify-content: center">
+                    <sc-if value="{{rv.on}}" hint-placeholder-val="{{ true }}">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.surface}}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                    </sc-if>
+                  </span>
+                </button>
+                <div style="flex-grow: 1; min-width: 0; min-height: 72px; padding: 10px 8px 10px 0; box-sizing: border-box; border-top: {{rv.sep}}; display: flex; align-items: center; gap: 8px">
+                  <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                    <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">{{rv.day}}</span>
+                    <span style="font-size: 17px; line-height: 22px; font-weight: 600; color: {{rv.nameColor}}">{{rv.title}}</span>
+                    <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{rv.why}}</span>
+                  </div>
+                  <a href="Swap.dc.html" aria-label="{{rv.swapLabel}}" style="width: 44px; height: 44px; flex: 0 0 44px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center; color: {{c.ink}}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.swap}}"></path></svg>
+                  </a>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <a href="Main.dc.html" style="min-height: 50px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 17px; font-weight: 600">{{reviewCta}}</a>
+            <button onClick="{{noop}}" style="min-height: 44px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 17px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.regen}}"></path></svg>
+              Helemaal opnieuw
+            </button>
+            <p style="margin: 0; text-align: center; font-size: 13px; line-height: 18px; color: {{c.muted}}">Opnieuw kost 1 slimme actie · nog 27 van 30 vandaag</p>
+          </div>
+        </sc-if>
+
+        <!-- Swap sheet -->
+        <sc-if value="{{isSwap}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 0 4px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 28px; line-height: 34px; font-weight: 700">Iets anders voor donderdag</span>
+            <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">Nu: Tacos met kip · 3 personen · druk tot 18:30</span>
+          </div>
+          <label style="display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 14px; border-radius: 22px; background: {{c.surface}}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.spark}}"></path></svg>
+            <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Wens</span>
+            <input type="text" placeholder="Een wens? Bijvoorbeeld: met kip, snel" style="font-size: 17px">
+          </label>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: -8px">
+            <sc-for list="{{swap.chips}}" as="sc" hint-placeholder-count="4">
+              <button aria-pressed="{{sc.pressed}}" onClick="{{sc.pick}}" style="min-height: 36px; padding: 0 12px; border-radius: 999px; background: {{sc.bg}}; color: {{sc.fg}}; border: {{sc.border}}; box-sizing: border-box; font-size: 15px; font-weight: 600">{{sc.label}}</button>
+            </sc-for>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <sc-for list="{{swap.alts}}" as="al" hint-placeholder-count="3">
+              <div style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; border: {{al.border}}">
+                <span aria-hidden="true" style="width: 46px; height: 46px; flex: 0 0 46px; border-radius: 13px; background: {{c.kitchenWash}}; display: flex; align-items: center; justify-content: center">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenText}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.book}}"></path></svg>
+                </span>
+                <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                  <span style="font-size: 17px; line-height: 22px; font-weight: 600">{{al.title}}</span>
+                  <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}; font-variant-numeric: tabular-nums">{{al.meta}}</span>
+                  <span style="font-size: 13px; line-height: 18px; color: {{c.ink}}">{{al.why}}</span>
+                </div>
+                <button aria-pressed="{{al.pressed}}" onClick="{{al.pick}}" aria-label="{{al.aria}}" style="min-height: 44px; padding: 0 16px; border-radius: 999px; background: {{al.btnBg}}; color: {{al.btnFg}}; font-size: 15px; font-weight: 600">{{al.btn}}</button>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{swap.hasChosen}}" hint-placeholder-val="{{ false }}">
+            <div role="status" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 8px 0 16px; border-radius: 999px; background: {{c.ink}}; color: {{c.onInk}}">
+              <span style="flex-grow: 1; font-size: 15px">{{swap.chosenText}}</span>
+              <button onClick="{{swap.undo}}" style="min-height: 36px; padding: 0 12px; border-radius: 999px; font-size: 15px; font-weight: 700; color: {{c.onInk}}">Ongedaan maken</button>
+            </div>
+          </sc-if>
+
+          <a href="Idea.dc.html" style="display: flex; align-items: center; gap: 12px; background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; text-decoration: none; color: inherit">
+            <span aria-hidden="true" style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: {{c.kitchenWash}}; display: flex; align-items: center; justify-content: center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenText}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.spark}}"></path></svg>
+            </span>
+            <span style="flex-grow: 1; display: flex; flex-direction: column">
+              <span style="font-size: 17px; line-height: 22px; font-weight: 600">Niets dat past? Nieuw idee</span>
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Gather bedenkt een recept dat je kunt bewaren</span>
+            </span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+          </a>
+          <p style="margin: 0; text-align: center; font-size: 13px; line-height: 18px; color: {{c.muted}}">Elke vraag kost 1 slimme actie · nog 27 van 30 vandaag</p>
+        </sc-if>
+
+        <!-- Idea sheet -->
+        <sc-if value="{{isIdea}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 0 4px; display: flex; flex-direction: column; gap: 6px">
+            <span style="display: flex; align-items: center; gap: 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.kitchenText}}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.spark}}"></path></svg>
+              Bedacht door Gather · concept
+            </span>
+            <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 30px; line-height: 34px; font-weight: 700">Kip-pompoencurry met spinazie</span>
+            <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">Op je wens "met kip, snel". Gebruikt de pompoen en spinazie die in huis zijn. Zonder pinda.</span>
+          </div>
+          <div style="background: {{c.surface}}; border-radius: 22px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr))">
+            <div style="padding: 12px 0; display: flex; flex-direction: column; align-items: center">
+              <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 28px; line-height: 32px; font-weight: 700; font-variant-numeric: tabular-nums">30</span>
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">minuten</span>
+            </div>
+            <div style="padding: 12px 0; display: flex; flex-direction: column; align-items: center; border-left: 0.5px solid {{c.hair}}">
+              <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 28px; line-height: 32px; font-weight: 700; font-variant-numeric: tabular-nums">{{idea.serv}}</span>
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">personen</span>
+            </div>
+            <div style="padding: 12px 0; display: flex; flex-direction: column; align-items: center; border-left: 0.5px solid {{c.hair}}">
+              <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 28px; line-height: 32px; font-weight: 700; font-variant-numeric: tabular-nums">8</span>
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">ingrediënten</span>
+            </div>
+          </div>
+          <section aria-label="Ingrediënten" style="display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; align-items: center; padding: 0 4px; gap: 8px">
+              <h2 style="margin: 0; flex-grow: 1; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">Ingrediënten</h2>
+              <button aria-label="Een persoon minder" onClick="{{idea.minus}}" style="width: 44px; height: 32px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; justify-content: center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg>
+              </button>
+              <button aria-label="Een persoon meer" onClick="{{idea.plus}}" style="width: 44px; height: 32px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; justify-content: center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+              </button>
+            </div>
+            <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+              <sc-for list="{{idea.ings}}" as="ig" hint-placeholder-count="8">
+                <div style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 16px 8px 0; box-sizing: border-box; border-top: {{ig.sep}}">
+                  <span style="flex-grow: 1; font-size: 17px; line-height: 22px">{{ig.name}}</span>
+                  <sc-if value="{{ig.inStock}}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">in huis</span>
+                  </sc-if>
+                  <span style="font-size: 17px; line-height: 22px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap">{{ig.qty}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+          <section aria-label="Bereiding" style="display: flex; flex-direction: column; gap: 8px">
+            <h2 style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">Bereiding</h2>
+            <ol style="margin: 0; padding: 0; list-style: none; background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+              <sc-for list="{{idea.steps}}" as="sp" hint-placeholder-count="4">
+                <li style="display: flex; gap: 12px; padding: 12px 16px 12px 0; border-top: {{sp.sep}}">
+                  <span aria-hidden="true" style="width: 24px; flex: 0 0 24px; font-size: 17px; line-height: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: {{c.kitchenText}}">{{sp.n}}</span>
+                  <span style="font-size: 17px; line-height: 22px">{{sp.text}}</span>
+                </li>
+              </sc-for>
+            </ol>
+          </section>
+          <p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Door AI bedacht. Controleer zelf op allergieën. Gather geeft bij dit recept geen voedingswaarden.</p>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <a href="Main.dc.html" style="min-height: 50px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 17px; font-weight: 600">Bewaar en zet op donderdag</a>
+            <div style="display: flex; gap: 8px">
+              <a href="Main.dc.html" style="flex-grow: 1; min-height: 44px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; justify-content: center; text-decoration: none; color: {{c.ink}}; font-size: 17px">Alleen bewaren</a>
+              <button onClick="{{noop}}" style="flex-grow: 1; min-height: 44px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 17px">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.regen}}"></path></svg>
+                Ander idee
+              </button>
+            </div>
+            <p style="margin: 0; text-align: center; font-size: 13px; line-height: 18px; color: {{c.muted}}">Bewaard wordt het een gewoon recept in Verbeek, bron AI. Ander idee kost 1 slimme actie.</p>
+          </div>
+        </sc-if>
+
+        <!-- Groceries sheet -->
+        <sc-if value="{{isGroc}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; gap: 14px; align-items: center; padding: 0 4px">
+            <span aria-hidden="true" style="width: 56px; height: 56px; flex: 0 0 56px; border-radius: 17px; background: {{c.kitchenFill}}; display: flex; align-items: center; justify-content: center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenOn}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.week}}"></path></svg>
+            </span>
+            <div style="display: flex; flex-direction: column">
+              <span style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">Weekmenu 23 tot 29 november</span>
+              <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">{{groc.sub}}</span>
+            </div>
+          </div>
+          <div style="background: {{c.surface}}; border-radius: 22px; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+            <span style="padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">Dagen die meetellen</span>
+            <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px">
+              <sc-for list="{{groc.days}}" as="gd" hint-placeholder-count="7">
+                <button aria-pressed="{{gd.pressed}}" onClick="{{gd.toggle}}" aria-label="{{gd.aria}}" style="min-height: 52px; border-radius: 14px; background: {{gd.bg}}; color: {{gd.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px">
+                  <span style="font-size: 15px; line-height: 20px; font-weight: 700">{{gd.day}}</span>
+                  <span style="font-size: 11px; line-height: 13px; font-weight: 600">{{gd.state}}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <sc-for list="{{groc.sections}}" as="gs" hint-placeholder-count="4">
+            <section aria-label="{{gs.label}}" style="display: flex; flex-direction: column; gap: 8px">
+              <h2 style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">{{gs.label}}</h2>
+              <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+                <sc-for list="{{gs.rows}}" as="gr" hint-placeholder-count="3">
+                  <div style="display: flex; align-items: stretch">
+                    <button role="checkbox" aria-checked="{{gr.checked}}" aria-label="{{gr.aria}}" onClick="{{gr.toggle}}" style="width: 40px; flex: 0 0 40px; display: flex; align-items: center">
+                      <span style="width: 24px; height: 24px; border-radius: 7px; box-sizing: border-box; border: 2px solid {{gr.ring}}; background: {{gr.boxBg}}; display: flex; align-items: center; justify-content: center">
+                        <sc-if value="{{gr.on}}" hint-placeholder-val="{{ true }}">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.surface}}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                        </sc-if>
+                      </span>
+                    </button>
+                    <div style="flex-grow: 1; min-width: 0; min-height: 56px; padding: 8px 16px 8px 0; box-sizing: border-box; border-top: {{gr.sep}}; display: flex; align-items: center; gap: 12px">
+                      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                        <span style="font-size: 17px; line-height: 22px; color: {{gr.nameColor}}">{{gr.name}}</span>
+                        <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}; font-weight: {{gr.metaWeight}}">{{gr.meta}}</span>
+                      </div>
+                      <span style="font-size: 17px; line-height: 22px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: {{gr.nameColor}}">{{gr.qty}}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+          </sc-for>
+          <section aria-label="Zonder recept" style="display: flex; flex-direction: column; gap: 8px">
+            <h2 style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">Zonder recept, even nakijken</h2>
+            <div style="background: {{c.surface}}; border-radius: 22px; padding: 0 16px; display: flex; align-items: center; gap: 12px; min-height: 60px">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.bolt}}"></path></svg>
+              <span style="flex-grow: 1; display: flex; flex-direction: column">
+                <span style="font-size: 17px; line-height: 22px">Tosti's met tomatensoep</span>
+                <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Woensdag · snel gerecht, geen ingrediënten bekend</span>
+              </span>
+              <button onClick="{{noop}}" style="min-height: 36px; padding: 0 12px; border-radius: 999px; background: {{c.surface2}}; font-size: 15px; font-weight: 600">Iets toevoegen</button>
+            </div>
+          </section>
+          <a href="#" style="display: flex; align-items: center; gap: 12px; background: {{c.surface}}; border-radius: 22px; padding: 0 16px; min-height: 52px; text-decoration: none; color: inherit">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.cart}}"></path></svg>
+            <span style="flex-grow: 1; font-size: 17px">Naar lijst</span>
+            <span style="font-size: 17px; color: {{c.muted}}">Albert Heijn</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+          </a>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <a href="Main.dc.html" style="min-height: 50px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 17px; font-weight: 600">{{groc.cta}}</a>
+            <p style="margin: 0; padding: 0 4px; text-align: center; font-size: 13px; line-height: 18px; color: {{c.muted}}">Samengevoegd met wat er al op staat. Doe je dit nog een keer voor deze week, dan komt alleen wat nieuw is erbij.</p>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["week","proposal","prefs","meal","pick","plan","limit","review","swap","idea","groceries"],"default":"week"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"size":{"editor":"enum","options":["iphone","se"],"default":"iphone"},"fallback":{"editor":"boolean","default":false},"$preview":{"width":390,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const st = this.state || {};
+    const screen = p.screen || 'week';
+    const dark = (p.theme || 'light') === 'dark';
+    const se = (p.size || 'iphone') === 'se';
+    const fallback = !!p.fallback;
+    const set = (o) => this.setState(Object.assign({}, this.state || {}, o));
+    const noop = () => {};
+
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', onInk: '#0F1110', muted: '#A0A8A4', hair: '#2E3331', hairStrong: '#5A615E', danger: '#F0917F',
+      kitchenFill: '#0B7C75', kitchenOn: '#FFFFFF', kitchenText: '#6FD6CD', kitchenWash: '#133230',
+      glass: 'rgba(44,46,45,0.55)', glassShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 8px 24px rgba(0,0,0,0.45)',
+      scrim: '#060707', trackOff: '#3E4441'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', onInk: '#FFFFFF', muted: '#5E6764', hair: '#DFE2DE', hairStrong: '#9AA19D', danger: '#A4372C',
+      kitchenFill: '#0B7C75', kitchenOn: '#FFFFFF', kitchenText: '#0B7C75', kitchenWash: '#DDEFEC',
+      glass: 'rgba(255,255,255,0.62)', glassShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 8px 24px rgba(16,32,30,0.14)',
+      scrim: '#B9BCB8', trackOff: '#BFC4BF'
+    };
+    const g = {
+      week: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+      cal: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+      cart: 'M8 21a1 1 0 1 0 0-2a1 1 0 1 0 0 2M19 21a1 1 0 1 0 0-2a1 1 0 1 0 0 2M2 2h3l2.7 12.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 7H6',
+      spark: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z',
+      sliders: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M16 4v4M10 10v4M18 16v4',
+      book: 'M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20',
+      bolt: 'M13 2 3 14h9l-1 8 10-12h-9z',
+      regen: 'M21 12a9 9 0 1 1-2.6-6.4L21 8M21 3v5h-5',
+      swap: 'M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7',
+      clock: 'M12 22a10 10 0 1 0 0-20a10 10 0 1 0 0 20M12 6v6l4 2',
+      home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+      people: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8a4 4 0 1 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',
+      trash: 'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6',
+      fish: 'M6.5 12c3-5 9-5 12 0-3 5-9 5-12 0zM6.5 12 2 8v8zM16 11h.01'
+    };
+    const SEP = '0.5px solid ' + c.hair;
+    const chip = (on) => ({ pressed: on ? 'true' : 'false', on: on, bg: on ? c.ink : c.surface, fg: on ? c.onInk : c.ink, border: on ? '1px solid ' + c.ink : '1px solid ' + c.hairStrong, weight: on ? '600' : '400' });
+    const dayTile = (on, disabled) => ({ pressed: on ? 'true' : 'false', bg: disabled ? c.surface2 : (on ? c.ink : c.ground), fg: disabled ? c.muted : (on ? c.onInk : c.ink) });
+
+    const members = [{ id: 's', name: 'Sanne', init: 'S' }, { id: 'd', name: 'Daan', init: 'D' }, { id: 'n', name: 'Noor', init: 'N' }, { id: 'm', name: 'Mees', init: 'M' }];
+    const dayDefs = [
+      { id: 'ma', short: 'ma', long: 'Maandag', date: '23 nov' },
+      { id: 'di', short: 'di', long: 'Dinsdag', date: '24 nov' },
+      { id: 'wo', short: 'wo', long: 'Woensdag', date: '25 nov', busy: 'Zwemles 18:00' },
+      { id: 'do', short: 'do', long: 'Donderdag', date: '26 nov', away: 'd' },
+      { id: 'vr', short: 'vr', long: 'Vrijdag', date: '27 nov' },
+      { id: 'za', short: 'za', long: 'Zaterdag', date: '28 nov', lunch: true },
+      { id: 'zo', short: 'zo', long: 'Zondag', date: '29 nov', lunch: true }
+    ];
+    const planned = {
+      ma: { t: 'Pasta pesto', min: 25 },
+      di: { t: 'Shakshuka met feta', min: 30 },
+      wo: { t: "Tosti's met tomatensoep", min: 15, quick: true },
+      do: { t: 'Tacos met kip', min: 35 },
+      vr: { t: 'Zalm uit de oven', min: 40 }
+    };
+    const drafts = {
+      wo: { a: { t: 'Wraps met hummus en groente', min: 15, why: 'Zwemles om 18:00, dus klaar in 15 min' }, b: { t: "Tosti's met tomatensoep", min: 15, quick: true, why: 'Snel gerecht voor de zwemavond' } },
+      do: { a: { t: 'Kip teriyaki met rijst', min: 25, why: 'Voor 3, Daan eet niet mee · 4,5 sterren' }, b: { t: 'Gnocchi met spinazie', min: 20, why: 'Spinazie in huis · voor 3' } },
+      vr: { a: { t: 'Zalm uit de oven', min: 40, why: 'Visavond · 5 weken niet gegeten' }, b: { t: 'Visstoofpot met venkel', min: 45, why: 'Visavond · lang niet gegeten' } },
+      za: { a: { t: 'Pompoenrisotto', min: 45, why: 'Vleesloos · de pompoen in huis is bijna op' }, b: { t: 'Groentelasagne', min: 60, why: 'Vleesloos · weekend, tijd genoeg' } },
+      zo: { a: { t: 'Ovenschotel met gehakt', min: 60, why: 'Zondag tijd genoeg · dubbel, voor restjes' }, b: { t: 'Kip uit de oven met krieltjes', min: 50, why: 'Hoog beoordeeld · 6 weken niet gegeten' } }
+    };
+    const draftOrder = ['wo', 'do', 'vr', 'za', 'zo'];
+    const thumb = (quick) => quick ? { thumbBg: c.surface2, thumbFg: c.ink, glyph: g.bolt } : { thumbBg: c.kitchenWash, thumbFg: c.kitchenText, glyph: g.book };
+    const eatersFor = (d) => members.filter((m) => m.id !== d.away);
+    const coinsFor = (d) => members.map((m) => {
+      const off = m.id === d.away;
+      return { init: m.init, bg: off ? 'transparent' : c.surface, fg: off ? c.muted : c.ink, border: off ? '1px dashed ' + c.hairStrong : '1px solid ' + c.hair, strike: off ? 'line-through' : 'none' };
+    });
+    const eatLabel = (d) => d.away ? '3 eten mee, zonder Daan' : 'Alle 4 eten mee';
+
+    // ---------- week / proposal ----------
+    const isProposal = screen === 'proposal';
+    const acc = st.acc || {};
+    const alt = st.alt || {};
+    const discarded = !!st.discarded;
+    let pending = 0;
+    const days = dayDefs.map((d) => {
+      const n = eatersFor(d).length;
+      const slots = [];
+      if (d.lunch) slots.push({ isEmpty: true, slot: 'Lunch', title: 'Kies lunch' });
+      let meal = isProposal ? (d.id === 'ma' || d.id === 'di' ? planned[d.id] : null) : planned[d.id];
+      if (isProposal && drafts[d.id] && !discarded) {
+        const dr = alt[d.id] ? drafts[d.id].b : drafts[d.id].a;
+        if (acc[d.id]) {
+          meal = Object.assign({}, dr, { acceptedNote: true });
+        } else {
+          pending++;
+          slots.push(Object.assign({ isDraft: true, slot: 'Avondeten', title: dr.t, why: (fallback ? dr.min + ' min · volgens jullie regels' : dr.why) + ' · ' + dr.min + ' min',
+            acceptLabel: 'Neem ' + dr.t + ' over voor ' + d.long.toLowerCase(),
+            regenLabel: 'Ander voorstel voor ' + d.long.toLowerCase(),
+            accept: () => { const m = Object.assign({}, (this.state || {}).acc || {}); m[d.id] = true; set({ acc: m }); },
+            regen: () => { const m = Object.assign({}, (this.state || {}).alt || {}); m[d.id] = !m[d.id]; set({ alt: m }); }
+          }, thumb(dr.quick)));
+          meal = undefined;
+        }
+      }
+      if (meal) {
+        const meta = meal.min + ' min · ' + n + ' personen' + (d.away ? ', zonder Daan' : '') + (meal.acceptedNote ? ' · net overgenomen' : '');
+        slots.push(Object.assign({ isMeal: true, slot: 'Avondeten', title: meal.t, meta: meta, aria: 'Avondeten ' + d.long.toLowerCase() + ': ' + meal.t + ', ' + meta }, thumb(meal.quick)));
+      } else if (meal === null || (meal === undefined && !(isProposal && drafts[d.id] && !discarded))) {
+        slots.push({ isEmpty: true, slot: 'Avondeten', title: 'Kies avondeten' });
+      }
+      return {
+        long: d.long, date: d.date, isBusy: !!d.busy, busy: d.busy || '',
+        aria: d.long + ' ' + d.date + (d.busy ? ', druk: ' + d.busy : ''),
+        coins: coinsFor(d), eatLabel: eatLabel(d),
+        slots: slots.map((s, i) => Object.assign({ isMeal: false, isEmpty: false, isDraft: false, sep: i === 0 ? '0' : SEP }, s))
+      };
+    });
+    const plannedCount = isProposal ? (2 + draftOrder.filter((k) => acc[k] && !discarded).length) : 5;
+    const wk = { count: plannedCount + ' van 7', countRest: 'avonden gepland · 4 personen' };
+    const pb = {
+      open: pending > 0, done: pending === 0 && !discarded,
+      status: discarded ? 'Voorstel weggegooid. Er is niets veranderd.' : (pending > 0 ? pending + ' voorstellen nog niet bewaard' : 'Alles staat in het weekmenu'),
+      allLabel: 'Neem alle ' + pending + ' over',
+      acceptAll: () => { const m = {}; draftOrder.forEach((k) => { m[k] = true; }); set({ acc: m }); },
+      discard: () => set({ discarded: true })
+    };
+    const banner = fallback
+      ? { glyph: g.clock, title: 'Eenvoudig voorstel', text: 'De slimme planner was niet bereikbaar. Dit voorstel is gemaakt met jullie eigen regels, zonder AI. Het kostte geen slimme actie.' }
+      : { glyph: g.spark, title: 'Voorstel van Gather', text: 'Uit jullie eigen recepten, volgens de voorkeuren en de agenda. Neem per dag over, of alles tegelijk.' };
+
+    // ---------- preferences ----------
+    const eatOn = st.eatOn || { s: true, d: true, n: true, m: true };
+    const eatCount = Object.keys(eatOn).filter((k) => eatOn[k]).length;
+    const portions = st.portions === undefined ? eatCount : st.portions;
+    const sw = (key, label, sub, def) => {
+      const on = st[key] === undefined ? def : st[key];
+      return { isSwitch: true, hasHead: true, label: label, sub: sub || '', hasSub: !!sub, checked: on ? 'true' : 'false', track: on ? c.kitchenFill : c.trackOff, knob: on ? 22 : 2, toggle: () => { const o = {}; o[key] = !on; set(o); } };
+    };
+    const stepper = (key, label, sub, def, min, max, unit, minusL, plusL) => {
+      const v = st[key] === undefined ? def : st[key];
+      return { isStepper: true, hasHead: true, label: label, sub: sub, hasSub: !!sub, value: v + (unit ? ' ' + unit : ''), minusLabel: minusL, plusLabel: plusL,
+        minus: () => { const o = {}; o[key] = Math.max(min, v - 1); set(o); }, plus: () => { const o = {}; o[key] = Math.min(max, v + 1); set(o); } };
+    };
+    const chipSet = (key, labels, def, single) => {
+      const sel = st[key] || def;
+      return labels.map((l) => {
+        const on = !!sel[l];
+        return Object.assign({ label: l, aria: l, toggle: () => { const m = single ? {} : Object.assign({}, ((this.state || {})[key]) || def); m[l] = !on; const o = {}; o[key] = m; set(o); } }, chip(on));
+      });
+    };
+    const wd = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+    const allDays = {}; wd.forEach((d) => { allDays[d] = true; });
+    const minSteps = [15, 20, 30, 45, 60, 90, 0];
+    const minsSel = st.mins || { ma: 30, di: 30, wo: 20, do: 30, vr: 45, za: 60, zo: 90 };
+    const mins = wd.map((d) => {
+      const v = minsSel[d];
+      return { day: d, val: v === 0 ? 'geen' : String(v), bg: c.ground, aria: d + ': ' + (v === 0 ? 'geen maximum' : 'maximaal ' + v + ' minuten') + ', tik om te wijzigen',
+        cycle: () => { const m = Object.assign({}, (this.state || {}).mins || minsSel); const i = minSteps.indexOf(v); m[d] = minSteps[(i + 1) % minSteps.length]; set({ mins: m }); } };
+    });
+    const dislikes = (st.dislikes || ['Champignons', 'Spruitjes', 'Koriander']).map((t) => ({ label: t, removeLabel: t + ' weghalen',
+      remove: () => set({ dislikes: ((this.state || {}).dislikes || ['Champignons', 'Spruitjes', 'Koriander']).filter((x) => x !== t) }) }));
+    const memberRows = members.map((m) => {
+      const on = !!eatOn[m.id];
+      return { isMember: true, hasHead: true, isSwitch: true, init: m.init, label: m.name, sub: on ? 'Eet standaard mee' : 'Eet standaard niet mee', hasSub: true, checked: on ? 'true' : 'false', track: on ? c.kitchenFill : c.trackOff, knob: on ? 22 : 2,
+        toggle: () => { const e = Object.assign({}, eatOn); e[m.id] = !on; set({ eatOn: e, portions: undefined }); } };
+    });
+    const rowsOf = (rows) => rows.map((r, i) => Object.assign({ hasHead: false, isMember: false, isSwitch: false, isStepper: false, isValue: false, hasChips: false, isMinutes: false, isTags: false, hasSub: false, sep: i === 0 ? '0' : SEP }, r));
+    const prefSections = [
+      { label: 'Wie eet mee', foot: 'Eet iemand een keer niet mee? Tik op die maaltijd in het weekmenu. Een afspraak in de agenda zet het al voor je klaar.',
+        rows: memberRows.concat([{ isStepper: true, hasHead: true, label: 'Porties per maaltijd', sub: 'Standaard gelijk aan wie mee-eet', hasSub: true, value: String(portions), minusLabel: 'Een portie minder', plusLabel: 'Een portie meer',
+          minus: () => set({ portions: Math.max(1, portions - 1) }), plus: () => set({ portions: portions + 1 }) }]) },
+      { label: 'Wat plannen', foot: 'Alleen wat aan staat krijgt een plek in het weekmenu en in Plan mijn week.',
+        rows: [
+          sw('pBreakfast', 'Ontbijt', '', false),
+          Object.assign(sw('pLunch', 'Lunch', 'Op de gekozen dagen', true), { hasChips: true, chips: chipSet('lunchDays', wd, { za: true, zo: true }) }),
+          Object.assign(sw('pDinner', 'Avondeten', 'Op de gekozen dagen', true), { hasChips: true, chips: chipSet('dinnerDays', wd, allDays) })
+        ] },
+      { label: 'Kooktijd per dag', foot: 'Tik op een dag om de maximale tijd te wijzigen. Op een drukke avond in de agenda kiest Gather iets snels, wat hier ook staat.',
+        rows: [{ isMinutes: true, mins: mins }] },
+      { label: 'Dieet', foot: 'Geldt voor de hele groep. Niets gekozen: alles mag.',
+        rows: [{ hasChips: true, chips: chipSet('diets', ['Vegetarisch', 'Veganistisch', 'Pescotarisch', 'Glutenvrij', 'Lactosevrij', 'Halal'], {}) }] },
+      { label: 'Allergieën', foot: 'Gather slaat een recept over als het ingrediënt er herkenbaar in staat. Bij twijfel staat er "controleer zelf" bij. Kijk bij een allergie altijd zelf het etiket na.',
+        rows: [{ hasChips: true, chips: chipSet('allergens', ['Gluten', 'Schaaldieren', 'Eieren', 'Vis', 'Pinda', 'Soja', 'Melk', 'Noten', 'Selderij', 'Mosterd', 'Sesam', 'Sulfiet', 'Lupine', 'Weekdieren'], { Pinda: true }) }] },
+      { label: 'Liever niet', foot: '',
+        rows: [{ isTags: true, tags: dislikes }] },
+      { label: 'Afwisseling', foot: '',
+        rows: [
+          stepper('noRepeat', 'Zelfde recept niet binnen', '', 14, 0, 60, 'dagen', 'Een dag korter', 'Een dag langer'),
+          stepper('meatFree', 'Vleesloze avonden', 'Per week', 2, 0, 7, '', 'Een avond minder', 'Een avond meer'),
+          { hasHead: true, label: 'Visavond', sub: 'Gather plant dan bij voorkeur vis', hasSub: true, hasChips: true, chips: chipSet('fishDays', wd, { vr: true }) }
+        ] },
+      { label: 'Restjes', foot: 'Op deze dagen kookt Gather voor meer porties. De dag erna wordt "Restjes", tenzij daar al iets staat.',
+        rows: [{ hasHead: true, label: 'Kook dubbel op', hasChips: true, chips: chipSet('doubleDays', wd, { zo: true }) }] },
+      { label: 'Extra', foot: 'Budget telt alleen mee als recepten een prijs hebben. Zonder budget let Gather er niet op.',
+        rows: [
+          { isValue: true, hasHead: true, label: 'Weekbudget', value: 'Geen' },
+          { hasHead: true, label: 'Favoriete keukens', sub: 'Komen vaker voor in voorstellen', hasSub: true, hasChips: true, chips: chipSet('cuisines', ['Italiaans', 'Mexicaans', 'Aziatisch', 'Hollands', 'Midden-Oosters', 'Indiaas'], { Italiaans: true, Mexicaans: true }) }
+        ] },
+      { label: 'Slimme voorstellen', foot: 'Plan mijn week, Iets anders en Nieuw idee kosten elk 1 slimme actie uit je eigen daglimiet van 30. Zelf kiezen met deze filters is altijd gratis.',
+        rows: [
+          sw('useStock', 'Gebruik wat in huis is', 'Recepten met wat bijna op is gaan voor', true),
+          sw('useCal', 'Houd rekening met de agenda', 'Drukke avonden krijgen iets snels', true),
+          sw('useRating', 'Liever hoog beoordeeld', 'En wat lang niet gegeten is', true)
+        ] }
+    ].map((s) => ({ label: s.label, foot: s.foot, hasFoot: !!s.foot, rows: rowsOf(s.rows) }));
+
+    // ---------- meal sheet ----------
+    const mealEat = st.mealEat || { s: true, d: false, n: true, m: true };
+    const mealCount = Object.keys(mealEat).filter((k) => mealEat[k]).length;
+    const mealServ = st.mealServ === undefined ? mealCount : st.mealServ;
+    const moveTo = st.moveTo || 'do';
+    const occupied = { ma: 'Pasta pesto', di: 'Shakshuka met feta', wo: "Tosti's met tomatensoep", vr: 'Zalm uit de oven' };
+    const meal = {
+      hasCal: !mealEat.d,
+      eaters: members.map((m) => {
+        const on = !!mealEat[m.id];
+        return { name: m.name, init: m.init, pressed: on ? 'true' : 'false', aria: m.name + (on ? ' eet mee' : ' eet niet mee'),
+          bg: on ? c.surface2 : 'transparent', fg: on ? c.ink : c.muted, border: on ? '1px solid ' + c.surface2 : '1px dashed ' + c.hairStrong,
+          coinBg: on ? c.ink : 'transparent', coinFg: on ? c.onInk : c.muted, strike: on ? 'none' : 'line-through',
+          toggle: () => { const e = Object.assign({}, mealEat); e[m.id] = !on; set({ mealEat: e, mealServ: undefined }); } };
+      }),
+      serv: String(mealServ), servSub: mealServ === mealCount ? 'Gelijk aan wie mee-eet' : 'Aangepast, wie mee-eet: ' + mealCount,
+      minus: () => set({ mealServ: Math.max(1, mealServ - 1) }), plus: () => set({ mealServ: mealServ + 1 }),
+      moves: wd.map((d) => {
+        const cur = d === moveTo;
+        const has = !!occupied[d] || d === 'do';
+        return { day: d, pressed: cur ? 'true' : 'false', bg: cur ? c.ink : c.ground, fg: cur ? c.onInk : c.ink, dot: has ? (cur ? c.onInk : c.muted) : 'transparent',
+          aria: d + (d === 'do' ? ', nu gepland' : (occupied[d] ? ', daar staat ' + occupied[d] : ', leeg')), pick: () => set({ moveTo: d }) };
+      }),
+      moveText: moveTo === 'do' ? 'Staat op donderdag. Kies een andere dag om te verplaatsen.' : (occupied[moveTo] ? 'Wisselt met ' + occupied[moveTo] + ' op ' + moveTo + '. Tacos met kip gaat naar ' + moveTo + '.' : 'Tacos met kip gaat naar ' + moveTo + '. Donderdag wordt leeg.'),
+      actions: [
+        { label: 'Recept openen', glyph: g.book, href: '#', color: c.ink, hasSub: false },
+        { label: 'Iets anders', sub: 'Drie alternatieven die op donderdag passen', hasSub: true, glyph: g.spark, href: 'Swap.dc.html', color: c.ink },
+        { label: 'Boodschappen voor dit recept', glyph: g.cart, href: 'Groceries.dc.html', color: c.ink, hasSub: false },
+        { label: 'Uit weekmenu halen', glyph: g.trash, href: 'Main.dc.html', color: c.danger, hasSub: false }
+      ].map((a, i) => Object.assign({}, a, { sub: a.sub || '', sep: i === 0 ? '0' : SEP }))
+    };
+
+    // ---------- pick ----------
+    const filterOn = st.filterOn === undefined ? true : st.filterOn;
+    const timeSel = st.timeSel || 'all';
+    const recipes = [
+      { t: 'Pompoenrisotto', min: 45, meta: 'Vleesloos · 4 sterren · pompoen in huis' },
+      { t: 'Ovenschotel met gehakt', min: 60, meta: '4,5 sterren · 5 weken geleden' },
+      { t: 'Gnocchi met spinazie', min: 20, meta: 'Vleesloos · 3 weken geleden' },
+      { t: 'Kip teriyaki met rijst', min: 25, meta: '4,5 sterren · 3 weken geleden' },
+      { t: 'Saté met pindasaus', min: 30, meta: 'Bevat pinda', bad: 'allergy' },
+      { t: 'Risotto met champignons', min: 35, meta: 'Bevat champignons, staat bij liever niet', bad: 'dislike' },
+      { t: 'Pasta pesto', min: 25, meta: 'Staat al op maandag' }
+    ];
+    const visible = recipes.filter((r) => (filterOn ? !r.bad : true) && (timeSel === 'all' ? true : r.min <= Number(timeSel)));
+    const hidden = recipes.filter((r) => r.bad).length;
+    const pick = {
+      filterPressed: filterOn ? 'true' : 'false', filterBg: filterOn ? c.ink : c.surface, filterFg: filterOn ? c.onInk : c.ink, filterBorder: filterOn ? '1px solid ' + c.ink : '1px solid ' + c.hairStrong,
+      toggleFilter: () => set({ filterOn: !filterOn }),
+      times: [{ id: '20', label: 'Tot 20 min' }, { id: '30', label: 'Tot 30 min' }, { id: '60', label: 'Tot 60 min' }].map((t) => Object.assign({ label: t.label, pick: () => set({ timeSel: timeSel === t.id ? 'all' : t.id }) }, chip(timeSel === t.id))),
+      status: filterOn ? hidden + ' recepten verborgen door jullie voorkeuren (pinda, liever niet). Tik Volgens voorkeuren om ze te zien.' : 'Alle recepten. Wat niet past staat erbij.',
+      rows: visible.map((r, i) => Object.assign({ title: r.title || r.t, meta: r.min + ' min · ' + r.meta, metaColor: r.bad ? c.danger : c.muted, metaWeight: r.bad ? '600' : '400',
+        aria: 'Kies ' + r.t + ' voor zaterdag, ' + r.min + ' minuten, ' + r.meta, sep: i === 0 ? '0' : SEP }, thumb(false)))
+    };
+
+    // ---------- plan ----------
+    const planDays = st.planDays || { wo: true, do: true, vr: true, za: true, zo: true };
+    const plSlots = st.plSlots || { 'Avondeten': true, 'Lunch (za, zo)': false };
+    const nDays = Object.keys(planDays).filter((k) => planDays[k]).length;
+    const plan = {
+      over: screen === 'limit', ok: screen !== 'limit',
+      days: wd.map((d) => {
+        const fixed = d === 'ma' || d === 'di';
+        const on = !fixed && !!planDays[d];
+        return Object.assign({ day: d, state: fixed ? 'gepland' : (on ? 'vullen' : 'overslaan'), disabled: fixed, cursor: fixed ? 'default' : 'pointer',
+          aria: d + (fixed ? ', al gepland, blijft zo' : (on ? ', wordt gevuld' : ', wordt overgeslagen')),
+          toggle: () => { if (fixed) return; const m = Object.assign({}, planDays); m[d] = !on; set({ planDays: m }); } }, dayTile(on, fixed));
+      }),
+      slots: Object.keys(plSlots).map((k) => Object.assign({ label: k, toggle: () => { const m = Object.assign({}, plSlots); m[k] = !m[k]; set({ plSlots: m }); } }, chip(!!plSlots[k]))),
+      wishChips: chipSet('wishes', ['Veel groente', 'Eén keer iets nieuws', 'Iets met de pompoen'], {}),
+      uses: [
+        { glyph: g.sliders, label: 'Eetvoorkeuren', sub: 'Geen pinda · liever geen champignons · 2 vleesloos · vr vis', href: 'Prefs.dc.html', hasLink: true },
+        { glyph: g.cal, label: 'Agenda', sub: 'Woensdag zwemles 18:00: iets snels', href: '#', hasLink: false },
+        { glyph: g.people, label: 'Wie eet mee', sub: 'Donderdag zonder Daan: voor 3', href: '#', hasLink: false },
+        { glyph: g.home, label: 'In huis', sub: 'Pompoen bijna op · spinazie · rijst', href: '#', hasLink: false }
+      ].map((u, i) => Object.assign({}, u, { sep: i === 0 ? '0' : SEP })),
+      cta: 'Maak voorstel voor ' + nDays + (nDays === 1 ? ' dag' : ' dagen')
+    };
+
+    // ---------- review (B) ----------
+    const rvOff = st.rvOff || {};
+    const review = draftOrder.map((k, i) => {
+      const d = dayDefs.find((x) => x.id === k);
+      const dr = drafts[k].a;
+      const on = !rvOff[k];
+      return { day: d.long + ' ' + d.date + (d.busy ? ' · ' + d.busy : ''), title: dr.t, why: dr.why + ' · ' + dr.min + ' min', on: on, checked: on ? 'true' : 'false',
+        ring: on ? c.kitchenText : c.hairStrong, boxBg: on ? c.kitchenText : 'transparent', nameColor: on ? c.ink : c.muted, sep: i === 0 ? '0' : SEP,
+        aria: (on ? 'Overnemen: ' : 'Overslaan: ') + d.long + ', ' + dr.t, swapLabel: 'Iets anders voor ' + d.long.toLowerCase(),
+        toggle: () => { const m = Object.assign({}, rvOff); m[k] = on; set({ rvOff: m }); } };
+    });
+    const rvN = review.filter((r) => r.on).length;
+    const reviewCta = 'Zet ' + rvN + ' in het weekmenu';
+
+    // ---------- swap ----------
+    const hintSel = st.hintSel || '';
+    const altSets = {
+      '': [
+        { t: 'Kip teriyaki met rijst', min: 25, meta: '25 min · 4,5 sterren', why: 'Past na het teamuitje · 3 weken niet gegeten' },
+        { t: 'Gnocchi met spinazie', min: 20, meta: '20 min · 4 sterren', why: 'Vleesloos · de spinazie in huis gaat op' },
+        { t: 'Nasi goreng', min: 30, meta: '30 min · 4 sterren', why: 'Gebruikt de rijst die in huis is' }
+      ],
+      'Met kip, snel': [
+        { t: 'Kip teriyaki met rijst', min: 25, meta: '25 min · 4,5 sterren', why: 'Met kip · 3 weken niet gegeten' },
+        { t: 'Wraps met kip en mais', min: 20, meta: '20 min · 4 sterren', why: 'Met kip · de wraps blijven nodig voor vrijdag' },
+        { t: 'Kip-gyros met tzatziki', min: 20, meta: '20 min · 4 sterren', why: 'Met kip · nog niet eerder gepland' }
+      ],
+      'Vleesloos': [
+        { t: 'Gnocchi met spinazie', min: 20, meta: '20 min · 4 sterren', why: 'Spinazie in huis' },
+        { t: 'Pompoenrisotto', min: 45, meta: '45 min · 4 sterren', why: 'Pompoen bijna op · wel langer dan 30 min' },
+        { t: 'Shakshuka met feta', min: 30, meta: '30 min · 4,5 sterren', why: 'Staat al op dinsdag, toch een optie' }
+      ],
+      'Sneller': [
+        { t: 'Wraps met hummus en groente', min: 15, meta: '15 min · 4 sterren', why: 'Snelste uit jullie recepten' },
+        { t: "Tosti's met tomatensoep", min: 15, meta: '15 min · snel gerecht', why: 'Zonder recept' },
+        { t: 'Gnocchi met spinazie', min: 20, meta: '20 min · 4 sterren', why: 'Vleesloos · spinazie in huis' }
+      ]
+    };
+    const chosen = st.chosen;
+    const swap = {
+      hint: hintSel,
+      chips: ['Met kip, snel', 'Vleesloos', 'Sneller'].map((l) => Object.assign({ label: l, pick: () => set({ hintSel: hintSel === l ? '' : l, chosen: undefined }) }, chip(hintSel === l))),
+      alts: altSets[hintSel].map((a) => {
+        const isC = chosen === a.t;
+        return { title: a.t, meta: a.meta, why: a.why, pressed: isC ? 'true' : 'false', btn: isC ? 'Gekozen' : 'Kies', btnBg: isC ? c.kitchenFill : c.surface2, btnFg: isC ? c.kitchenOn : c.ink,
+          border: isC ? '2px solid ' + c.kitchenText : '2px solid transparent', aria: 'Kies ' + a.t + ' voor donderdag', pick: () => set({ chosen: a.t }) };
+      }),
+      hasChosen: !!chosen, chosenText: chosen ? 'Donderdag: ' + chosen + ' in plaats van Tacos met kip' : '',
+      undo: () => set({ chosen: undefined })
+    };
+
+    // ---------- idea ----------
+    const iServ = st.iServ || 3;
+    const sc = (n, unit) => { const v = n * iServ / 3; return (unit === 'g' || unit === 'ml') ? Math.round(v / 25) * 25 + ' ' + unit : (Math.round(v * 2) / 2) + (unit ? ' ' + unit : ''); };
+    const idea = {
+      serv: String(iServ), minus: () => set({ iServ: Math.max(1, iServ - 1) }), plus: () => set({ iServ: iServ + 1 }),
+      ings: [
+        { name: 'Kipdijfilet', qty: sc(375, 'g') }, { name: 'Pompoen', qty: sc(450, 'g'), inStock: true }, { name: 'Verse spinazie', qty: sc(150, 'g'), inStock: true },
+        { name: 'Ui', qty: sc(1, '') }, { name: 'Rode currypasta', qty: sc(2, 'el') }, { name: 'Kokosmelk', qty: sc(400, 'ml') },
+        { name: 'Limoen', qty: sc(1, '') }, { name: 'Rijst', qty: sc(225, 'g'), inStock: true }
+      ].map((x, i) => Object.assign({ inStock: false }, x, { sep: i === 0 ? '0' : SEP })),
+      steps: [
+        'Zet de rijst op. Snijd de kip, pompoen en ui in blokjes.',
+        'Bak de ui en kip 5 minuten. Roer de currypasta erdoor en bak 1 minuut mee.',
+        'Voeg pompoen en kokosmelk toe. Laat 15 minuten zacht koken tot de pompoen gaar is.',
+        'Schep de spinazie erdoor tot hij slinkt. Maak af met limoensap en serveer met de rijst.'
+      ].map((t, i) => ({ n: String(i + 1), text: t, sep: i === 0 ? '0' : SEP }))
+    };
+
+    // ---------- groceries ----------
+    const gDays = st.gDays || { ma: true, di: true, wo: true, do: true, vr: true, za: false, zo: false };
+    const gTicks = st.gTicks || {};
+    const gRow = (id, name, qty, days, o) => {
+      o = o || {};
+      const def = !o.stock;
+      const on = gTicks[id] === undefined ? def : gTicks[id];
+      let meta = o.meta;
+      if (o.merge && on) meta = 'Staat er al: ' + o.merge;
+      if (o.stock) meta = on ? o.meta + ' · in huis, toch erbij' : o.meta + ' · in huis';
+      return { id: id, days: days, name: name, qty: qty, on: on, checked: on ? 'true' : 'false', meta: meta, metaWeight: o.merge && on ? '600' : '400',
+        ring: on ? c.kitchenText : c.hairStrong, boxBg: on ? c.kitchenText : 'transparent', nameColor: on ? c.ink : c.muted,
+        aria: (on ? 'Op de lijst: ' : 'Niet op de lijst: ') + name + ', ' + qty,
+        toggle: () => { const m = Object.assign({}, (this.state || {}).gTicks || {}); m[id] = !on; set({ gTicks: m }); } };
+    };
+    const gGroups = [
+      { label: 'Groente en fruit', rows: [
+        gRow('g1', 'Cherrytomaten', '250 g', ['ma'], { meta: 'Pasta pesto · ma' }),
+        gRow('g2', 'Basilicum', '1 bos', ['ma'], { meta: 'Pasta pesto · ma' }),
+        gRow('g3', 'Rode paprika', '4', ['di', 'do'], { meta: 'Shakshuka di, Tacos do' }),
+        gRow('g4', 'Rode uien', '+2', ['di', 'do'], { merge: '3, wordt 5', meta: 'Shakshuka di, Tacos do' }),
+        gRow('g5', 'Avocado', '2', ['do'], { meta: 'Tacos · do' }),
+        gRow('g6', 'Citroen', '1', ['vr'], { meta: 'Zalm uit de oven · vr' })
+      ] },
+      { label: 'Zuivel en eieren', rows: [
+        gRow('g7', 'Eieren', '+6', ['di'], { merge: '10, wordt 16', meta: 'Shakshuka · di' }),
+        gRow('g8', 'Feta', '200 g', ['di'], { meta: 'Shakshuka · di' }),
+        gRow('g9', 'Zure room', '1 beker', ['do'], { meta: 'Tacos · do' })
+      ] },
+      { label: 'Vlees en vis', rows: [
+        gRow('g10', 'Kipdijfilet', '375 g', ['do'], { meta: 'Tacos · do · voor 3' }),
+        gRow('g11', 'Zalmfilet', '4 stuks', ['vr'], { meta: 'Zalm uit de oven · vr' })
+      ] },
+      { label: 'Pasta, rijst en wereldkeuken', rows: [
+        gRow('g12', 'Penne', '500 g', ['ma'], { meta: 'Pasta pesto · ma' }),
+        gRow('g13', 'Tortilla wraps', '2 pak', ['do'], { meta: 'Tacos · do' }),
+        gRow('g14', 'Rijst', '300 g', ['vr'], { meta: 'Zalm uit de oven · vr', stock: true })
+      ] },
+      { label: 'Conserven en sauzen', rows: [
+        gRow('g15', 'Tomatenblokjes', '2 blik', ['di'], { meta: 'Shakshuka · di' }),
+        gRow('g16', 'Olijfolie', '3 el', ['ma', 'di', 'vr'], { meta: '3 recepten', stock: true })
+      ] }
+    ];
+    let gN = 0;
+    const gSections = gGroups.map((gp) => {
+      const rows = gp.rows.filter((r) => r.days.some((d) => gDays[d]));
+      rows.forEach((r) => { if (r.on) gN++; });
+      return { label: gp.label, rows: rows.map((r, i) => Object.assign({}, r, { sep: i === 0 ? '0' : SEP })) };
+    }).filter((s) => s.rows.length > 0);
+    const gMeals = { ma: 'Pasta pesto', di: 'Shakshuka', wo: "Tosti's", do: 'Tacos', vr: 'Zalm' };
+    const gCount = wd.filter((d) => gDays[d] && gMeals[d]).length;
+    const groc = {
+      sub: gCount + ' maaltijden · personen per maaltijd uit het weekmenu',
+      days: wd.map((d) => { const on = !!gDays[d]; const has = !!gMeals[d];
+        return Object.assign({ day: d, state: has ? (on ? 'telt mee' : 'niet') : 'leeg', aria: d + (has ? ': ' + gMeals[d] + (on ? ', telt mee' : ', telt niet mee') : ': niets gepland'),
+          toggle: () => { const m = Object.assign({}, gDays); m[d] = !on; set({ gDays: m }); } }, dayTile(on && has, !has)); }),
+      sections: gSections,
+      cta: 'Zet ' + gN + ' op de lijst'
+    };
+
+    // ---------- screen flags ----------
+    const isWeek = screen === 'week' || screen === 'proposal';
+    const sheetScreens = { meal: 1, pick: 1, plan: 1, limit: 1, review: 1, swap: 1, idea: 1, groceries: 1 };
+    const isSheet = !!sheetScreens[screen];
+    const sheets = {
+      meal: { behind: 'Weekmenu', left: 'Klaar', leftHref: 'Main.dc.html', title: '' },
+      pick: { behind: 'Weekmenu', left: 'Annuleer', leftHref: 'Main.dc.html', title: 'Avondeten zaterdag' },
+      plan: { behind: 'Weekmenu', left: 'Annuleer', leftHref: 'Main.dc.html', title: '' },
+      limit: { behind: 'Weekmenu', left: 'Sluit', leftHref: 'Main.dc.html', title: '' },
+      review: { behind: 'Weekmenu', left: 'Annuleer', leftHref: 'Main.dc.html', title: '' },
+      swap: { behind: 'Weekmenu', left: 'Annuleer', leftHref: 'Main.dc.html', title: '' },
+      idea: { behind: 'Iets anders', left: 'Terug', leftHref: 'Swap.dc.html', title: 'Nieuw idee' },
+      groceries: { behind: 'Weekmenu', left: 'Annuleer', leftHref: 'Main.dc.html', title: 'Op de boodschappenlijst' }
+    };
+    const sh = sheets[screen] || { behind: '', left: '', leftHref: '#', title: '' };
+    const heights = { week: 1500, proposal: 1960, prefs: 2960, meal: 1040, pick: 1120, plan: 1120, limit: 844, review: 1120, swap: 1120, idea: 1560, groceries: 1640 };
+    let h = heights[screen] || 1500;
+    if (fallback) h = 844;
+
+    return {
+      c, g, wk, days, pb, banner, prefSections, meal, pick, plan, review, reviewCta, swap, idea, groc, sh, noop,
+      isWeek, isPrefs: screen === 'prefs', isSheet,
+      isMeal: screen === 'meal', isPick: screen === 'pick', isPlan: screen === 'plan' || screen === 'limit', isReview: screen === 'review',
+      isSwap: screen === 'swap', isIdea: screen === 'idea', isGroc: screen === 'groceries',
+      showActions: screen === 'week', showBanner: isProposal && !discarded, showPropBar: isProposal, showWeekFoot: screen === 'week',
+      w: se ? 375 : 390, h: se ? 667 : h
+    };
+  }
+}
+</script>
+</body>
+</html>
