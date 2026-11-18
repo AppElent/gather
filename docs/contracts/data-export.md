@@ -40,8 +40,11 @@ everything user-owned belongs to a Group or to a person
   cannot see.
 - **Shared tables owned by nobody stay out.** The grocery aisle cache
   (`groceryCategoryCache`) is keyed by a product name and shared by every
-  Group, and `groceryAiUsage` is one global counter per day; neither holds
-  Group or person data, so both are excluded. A Group's own aisle corrections
+  Group, and `groceryAiUsage` is one global counter per day. Neither carries
+  a Group or person id, so neither can be scoped to an export and both are
+  excluded. The cache's names are text Members typed, but with no record of
+  who typed them; the Group's own copies of those names are its tasks, which
+  are exported. A Group's own aisle corrections
   (`groceryCategoryOverrides`) are Group content and go out with the Group.
 - **No secrets.** `integrationConnections.accessToken` and `groups.inviteCode`
   are omitted columns, listed in the file's `omittedFields`.
