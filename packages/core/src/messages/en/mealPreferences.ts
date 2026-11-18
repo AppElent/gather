@@ -11,7 +11,6 @@ export const mealPreferences = {
   closing:
     'Everyone in {group} can change this; changes apply at once. Meal preferences are included when you export your data.',
   saveFailed: 'Could not save. Try again.',
-  openPreferences: 'Meal preferences',
 
   /** Monday first, as everywhere in the meal planner. */
   dayShort: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],

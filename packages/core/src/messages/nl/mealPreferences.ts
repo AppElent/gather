@@ -7,7 +7,6 @@ export const mealPreferences = {
   closing:
     'Iedereen in {group} kan dit aanpassen; wijzigingen gelden meteen. Eetvoorkeuren gaan mee in de export van je gegevens.',
   saveFailed: 'Opslaan lukte niet. Probeer het opnieuw.',
-  openPreferences: 'Eetvoorkeuren',
 
   dayShort: ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'],
   dayLong: [

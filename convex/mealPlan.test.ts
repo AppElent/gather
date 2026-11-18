@@ -289,6 +289,29 @@ describe('mealPlan', () => {
     const meal = await t.run(async (ctx) => await ctx.db.get(id))
     expect(meal?.eaterIds).toEqual([aliceId])
   })
+  test('the week reads the Group’s meal preferences', async () => {
+    const { t, bobId } = await seed()
+    const as = t.withIdentity(alice)
+    await as.mutation(api.mealPreferences.setDislike, {
+      groupSlug: 'home',
+      dislike: 'koriander',
+      on: true,
+    })
+    await as.mutation(api.mealPreferences.setAllergen, {
+      groupSlug: 'home',
+      allergen: 'peanuts',
+      on: true,
+    })
+    await as.mutation(api.mealPreferences.setMemberDefault, {
+      groupSlug: 'home',
+      userId: bobId,
+      eatsByDefault: false,
+    })
+    const week = await t.withIdentity(bob).query(api.mealPlan.week, WEEK)
+    expect(week.preferences.dislikes).toEqual(['koriander'])
+    expect(week.preferences.allergens).toEqual(['peanuts'])
+    expect(week.preferences.defaultEaterIds).not.toContain(bobId)
+  })
 })
 
 describe('mealPlan.weekIngredients', () => {

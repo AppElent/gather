@@ -4,10 +4,9 @@
  * chip, and by search; then the quick meals without a recipe, which are added,
  * changed and deleted here.
  *
- * The preference filter reads APP-318's preferences through the stand-in
- * (`@gather/core/meal-preferences-stand-in`) until APP-318 is on main. Then
- * the row text and status reasons come from its `describeClash` and
- * `clashReasons` with the core `mealPreferences` copy.
+ * The preference filter hides a recipe only on a certain clash; a "controleer
+ * zelf" stays in the list with its reason. Row text and the hidden line's
+ * reasons come from `describeClash` and `clashReasons`.
  */
 import { localMidnight } from '@gather/core/civil-date'
 import {
@@ -18,10 +17,11 @@ import {
   weekdayIndex,
 } from '@gather/core/meal-planner'
 import {
+  clashReasons,
+  describeClash,
   fitsPreferences,
-  type RecipeClash,
   recipeClashes,
-} from '@gather/core/meal-preferences-stand-in'
+} from '@gather/core/meal-preferences'
 import { useMutation } from 'convex/react'
 import { useMemo, useState } from 'react'
 import {
@@ -108,28 +108,18 @@ export function PickSheet({
     ? searched.filter((recipe) => fitsPreferences(recipe.clashes))
     : searched
   const hidden = matches ? searched.length - shown.length : 0
-  const reasons = [
-    ...new Set(
-      searched.flatMap((recipe) =>
-        recipe.clashes.map((clash) =>
-          clash.kind === 'time'
-            ? fmt(pickWords.reasonTime, { weekday: weekdayWord })
-            : fmt(pickWords.reasonDislike, { item: clash.label }),
-        ),
-      ),
-    ),
-  ].join(', ')
+  const reasons = clashReasons(
+    searched
+      .filter((recipe) => !fitsPreferences(recipe.clashes))
+      .flatMap((recipe) => recipe.clashes),
+    t.mealPreferences,
+  ).join(', ')
   const quickMeals = eligibleDinnerCandidates(
     found(
       (candidates?.mealEntries ?? []).map((entry) => ({ ...entry, id: entry._id })),
     ),
     limit,
   )
-
-  const clashText = (clash: RecipeClash) =>
-    clash.kind === 'time'
-      ? fmt(pickWords.clashTime, { minutes: clash.minutes, weekday: weekdayWord })
-      : fmt(pickWords.clashDislike, { item: clash.label })
 
   const choose = (pick: { recipeId?: Id<'recipes'>; mealEntryId?: Id<'mealEntries'> }) => {
     onClose()
@@ -244,14 +234,21 @@ export function PickSheet({
                   ? fmt(pickWords.alreadyOn, { day: days.join(', ') })
                   : null,
               ].filter(Boolean)
-              const clash = recipe.clashes[0]
+              // A certain clash first; else the "controleer zelf".
+              const clash =
+                recipe.clashes.find((entry) => !entry.uncertain) ??
+                recipe.clashes[0]
               return (
                 <InsetRow
                   key={recipe._id}
                   testID={`pick-recipe-${recipe.title}`}
                   title={recipe.title}
-                  subtitle={clash ? clashText(clash) : facts.join(' · ') || undefined}
-                  subtitleTone={clash ? 'danger' : 'muted'}
+                  subtitle={
+                    clash
+                      ? describeClash(clash, t.mealPreferences)
+                      : facts.join(' · ') || undefined
+                  }
+                  subtitleTone={clash && !clash.uncertain ? 'danger' : 'muted'}
                   leading={<MealThumb imageUrl={recipe.imageUrl} quick={false} />}
                   onPress={() => choose({ recipeId: recipe._id })}
                 />

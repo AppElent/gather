@@ -2,7 +2,7 @@ import type { MealSlot } from '@gather/core/meal-planner'
 import {
   type ResolvedMealPreferences,
   resolveMealPreferences,
-} from '@gather/core/meal-preferences-stand-in'
+} from '@gather/core/meal-preferences'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 
@@ -56,17 +56,17 @@ export async function membersOf(ctx: QueryCtx, groupId: Id<'groups'>) {
 }
 
 /**
- * The Group's meal preferences with every default filled in.
- *
- * Stand-in for APP-318: there is no stored row yet, so this always answers
- * the defaults. When APP-318's `mealPreferences` table lands, read its row by
- * `by_group` here and pass it instead of `null` (the same row its
- * `mealPreferences.get({ groupSlug })` resolves).
+ * The Group's meal preferences with every default filled in: its
+ * `mealPreferences` row (APP-318), the same one `mealPreferences.get` resolves.
  */
 export async function mealPreferencesOf(
-  _ctx: QueryCtx,
-  _groupId: Id<'groups'>,
+  ctx: QueryCtx,
+  groupId: Id<'groups'>,
   members: readonly { userId: Id<'users'> }[],
-): Promise<ResolvedMealPreferences> {
-  return resolveMealPreferences(null, members)
+): Promise<ResolvedMealPreferences<Id<'users'>>> {
+  const row = await ctx.db
+    .query('mealPreferences')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .unique()
+  return resolveMealPreferences(row, members)
 }

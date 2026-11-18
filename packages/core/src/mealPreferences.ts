@@ -210,6 +210,18 @@ export function resolveMealPreferences<U extends string>(
   }
 }
 
+/** The slots a weekday shows, in day order (breakfast, lunch, dinner). */
+export function enabledSlots(
+  prefs: Pick<ResolvedMealPreferences, 'slots'>,
+  weekday: number,
+): MealSlot[] {
+  return MEAL_SLOTS.filter(
+    (slot) =>
+      prefs.slots[slot].enabled &&
+      prefs.slots[slot].days.some((day) => day === weekday),
+  )
+}
+
 /** The next value a cooking-time cell shows when tapped: 15 … 90, none, 15. */
 export function nextCookingMinutes(
   current: CookingMinutes | null,

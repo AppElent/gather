@@ -24,7 +24,6 @@
     "./i18n": "./src/i18n.ts",
     "./loyalty-cards": "./src/loyaltyCards.ts",
     "./meal-planner": "./src/mealPlanner.ts",
-    "./meal-preferences-stand-in": "./src/mealPreferencesStandIn.ts",
     "./meal-preferences": "./src/mealPreferences.ts",
     "./messages": "./src/messages.ts",
     "./module-arrangement": "./src/moduleArrangement.ts",

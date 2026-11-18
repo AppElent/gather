@@ -18,7 +18,7 @@ import {
 import {
   enabledSlots,
   type ResolvedMealPreferences,
-} from '@gather/core/meal-preferences-stand-in'
+} from '@gather/core/meal-preferences'
 import type { FunctionReturnType } from 'convex/server'
 
 import type { api } from '../../../convex/api'
