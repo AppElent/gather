@@ -478,6 +478,8 @@ export async function destroyGroup(
  * A **saved split scenario** is the opposite: it is immutable on purpose and
  * already stores each party's name beside their id precisely so it keeps
  * reading after somebody leaves. So only the id goes.
+ *
+ * A **Planned meal's eaters** drop the person; the meal stays.
  */
 export async function detachFromGroup(
   ctx: MutationCtx,
@@ -520,6 +522,18 @@ export async function detachFromGroup(
         from: anonymise(t.from),
         to: anonymise(t.to),
       })),
+    })
+  }
+
+  // Who eats along with a Planned meal names Members; a former one leaves it.
+  const meals = await ctx.db
+    .query('plannedDinners')
+    .withIndex('by_group', (q) => q.eq('groupId', groupId))
+    .collect()
+  for (const meal of meals) {
+    if (!meal.eaterIds?.includes(userId)) continue
+    await ctx.db.patch(meal._id, {
+      eaterIds: meal.eaterIds.filter((id) => id !== userId),
     })
   }
 }

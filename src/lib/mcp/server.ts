@@ -6,6 +6,7 @@ import {
   registerTools,
   type ToolContext,
 } from './tools/define'
+import { mealPlanTools } from './tools/mealPlan'
 import { noteTools } from './tools/notes'
 import { recipeTools } from './tools/recipes'
 import { taskTools } from './tools/tasks'
@@ -18,14 +19,15 @@ export const GATHER_MCP_TOOLS: readonly AnyToolDefinition[] = [
   ...taskTools,
   ...noteTools,
   ...calendarTools,
+  ...mealPlanTools,
   ...viewTools,
 ]
 
-const INSTRUCTIONS = `Gather is the user's household app: recipes, task lists, notes, and calendars, shared within Groups (a household, a club).
+const INSTRUCTIONS = `Gather is the user's household app: recipes, a meal plan, task lists, notes, and calendars, shared within Groups (a household, a club).
 - Everything belongs to a Group. Call list_groups first and pass a groupId to every other tool; ask which Group when the user has several and it is unclear.
 - IDs come from list tools; never invent them. "Not found" covers both a missing record and one outside that Group.
 - Dates are the Group's local calendar days (YYYY-MM-DD); times are local HH:MM. Call get_current_user for the current time.
-- Every create tool takes an idempotencyKey: generate a fresh UUID per intended write and reuse it only to retry that same write.
+- Every create tool takes an idempotencyKey: generate a fresh UUID per intended write and reuse it only to retry that same write. plan_meal needs none: a day has one meal per slot (breakfast, lunch, dinner), and a taken slot is refused unless replace is true.
 - show_week_agenda, show_task_list and show_recipe show interactive views where the client supports them; prefer them when the user wants to see a week, a list or a recipe.
 - Confirm with the user before adding or changing anything they did not clearly ask for. Agents cannot delete anything; deleting happens in the app.`
 

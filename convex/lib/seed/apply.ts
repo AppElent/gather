@@ -505,6 +505,7 @@ export async function applySample(
       await ctx.db.insert('plannedDinners', {
         groupId,
         date: isoDate(now, -dinner.daysAhead),
+        slot: 'dinner',
         recipeId,
         mealEntryId,
         title: source.title,

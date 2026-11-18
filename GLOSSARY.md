@@ -265,12 +265,19 @@ Random planning considers only candidates with a recorded time no greater than
 that maximum; an ordinary dinner day may use any candidate.
 _Avoid_: Easy dinner, Fast meal
 
-**Planned dinner**:
-The one dinner a Group has assigned to one date in a Monday–Sunday planner week.
-It refers directly to any Recipe visible in the Group or carries a free-text
-meal; when a referenced Recipe disappears, its last known title and time remain
-as the dinner's snapshot.
-_Avoid_: Meal slot, Recipe copy
+**Planned meal**:
+The one meal a Group has assigned to one date and Meal slot in a Monday–Sunday
+planner week. It refers directly to any Recipe visible in the Group or carries a
+free-text meal; when a referenced Recipe disappears, its last known title and
+time remain as the meal's snapshot. It may name who eats along, a number of
+servings and a note; without them, the Group's defaults apply.
+_Avoid_: Planned dinner (older name, still the table's), Recipe copy
+
+**Meal slot**:
+Breakfast, lunch or dinner: the moments of a day a Group plans. A day holds at
+most one Planned meal per slot. Which slots a Group plans, and on which days,
+is one of its meal preferences.
+_Avoid_: Meal moment, Meal time
 
 **Pantry entry**:
 A Group's record that an item is in stock at home, with an optional quantity and

@@ -127,6 +127,41 @@ export const backfillRecipeShares = internalMutation({
 })
 
 /**
+ * Gives every Planned meal from before meal slots (APP-317, ADR-0027) its
+ * slot: each was a day's one dinner, so it becomes `dinner`. Reads already
+ * treat a missing slot as dinner, so the app is right before and after this
+ * runs; it exists so the schema can later make `slot` required.
+ *
+ * Pages through `plannedDinners` by `cursor`. Dry unless `{ apply: true }`;
+ * run it until `more` is false, then run the dry pass again from the start
+ * and confirm every page reports `missing` zero.
+ */
+const MEAL_SLOTS_BATCH = 200
+
+export const backfillMealSlots = internalMutation({
+  args: {
+    apply: v.optional(v.boolean()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const page = await ctx.db
+      .query('plannedDinners')
+      .paginate({ numItems: MEAL_SLOTS_BATCH, cursor: args.cursor ?? null })
+    const missing = page.page.filter((meal) => meal.slot === undefined)
+    if (apply)
+      for (const meal of missing) await ctx.db.patch(meal._id, { slot: 'dinner' })
+    return {
+      apply,
+      scanned: page.page.length,
+      missing: missing.length,
+      more: !page.isDone,
+      cursor: page.continueCursor,
+    }
+  },
+})
+
+/**
  * Deletes every `financeSettings` row. The table is retired: a Group counts in
  * euros only, with no conversions, and `holdings.settings` answers that
  * without reading it. Nothing writes the table any more.
@@ -517,6 +552,7 @@ const USER_REFERENCES: {
   tasks: { createdBy: 'repoint' },
   notes: { createdBy: 'repoint', updatedBy: 'repoint' },
   mealEntries: { createdBy: 'repoint' },
+  plannedDinners: { eaterIds: 'repoint' },
   pantryEntries: { createdBy: 'repoint' },
   calendars: { createdBy: 'repoint' },
   calendarEvents: { createdBy: 'repoint', assigneeIds: 'repoint' },

@@ -637,6 +637,125 @@ describe('Gather MCP endpoint', () => {
     })
   })
 
+  it('lists the meal plan by name, with servings and busy evenings, without user ids', async () => {
+    const backend = fakeBackend({
+      'mealPlan:week': () => ({
+        meals: [
+          {
+            _id: 'meal_1',
+            date: '2026-11-25',
+            slot: 'dinner',
+            recipeId: 'recipe_1',
+            title: 'Snert',
+            prepMinutes: 45,
+            eaterIds: undefined,
+            imageUrl: null,
+          },
+        ],
+        members: [
+          { userId: 'user_a', name: 'Daan' },
+          { userId: 'user_b', name: 'Sanne' },
+        ],
+        events: [
+          {
+            _id: 'event_1',
+            date: '2026-11-25',
+            title: 'Zwemles',
+            startMinutes: 1080,
+            endMinutes: 1140,
+            assigneeIds: ['user_a'],
+          },
+        ],
+        preferences: {
+          memberDefaults: [
+            { userId: 'user_a', eatsByDefault: true },
+            { userId: 'user_b', eatsByDefault: true },
+          ],
+          slots: {},
+        },
+        groceryListId: null,
+      }),
+      'mealPlan:candidates': () => ({
+        recipes: [],
+        mealEntries: [{ _id: 'entry_1', title: 'Pizza', prepMinutes: 15 }],
+      }),
+    })
+    const out = await callTool(backend, 'list_meal_plan', {
+      groupId: 'group_home',
+      from: '2026-11-23',
+      to: '2026-11-30',
+    })
+    expect(out.structuredContent).toMatchObject({
+      meals: [
+        {
+          id: 'meal_1',
+          slot: 'dinner',
+          title: 'Snert',
+          servings: 1,
+          eating: ['Sanne'],
+        },
+      ],
+      busyEvenings: [
+        { date: '2026-11-25', title: 'Zwemles', start: '18:00', away: ['Daan'] },
+      ],
+      quickMeals: [{ id: 'entry_1', title: 'Pizza', prepMinutes: 15 }],
+    })
+    expect(out.content[0].text).not.toContain('user_a')
+    expect(backend.calls.find((c) => c.name === 'mealPlan:week')?.args).toEqual({
+      groupSlug: 'home',
+      from: '2026-11-23',
+      to: '2026-11-29',
+    })
+  })
+
+  it('refuses a meal plan range that is backwards or longer than 31 days', async () => {
+    for (const to of ['2026-11-23', '2026-12-25']) {
+      const backend = fakeBackend()
+      const out = await callTool(backend, 'list_meal_plan', {
+        groupId: 'group_home',
+        from: '2026-11-23',
+        to,
+      })
+      expect(out.isError).toBe(true)
+      expect(backend.calls.some((c) => c.name.startsWith('mealPlan:'))).toBe(
+        false,
+      )
+    }
+  })
+
+  it('plans a quick meal into one slot and refuses both or neither candidate', async () => {
+    const backend = fakeBackend({ 'mealPlan:plan': () => 'meal_9' })
+    const out = await callTool(backend, 'plan_meal', {
+      groupId: 'group_home',
+      date: '2026-11-26',
+      slot: 'lunch',
+      quickMealId: 'entry_1',
+      servings: 3,
+    })
+    expect(out.structuredContent).toEqual({ mealId: 'meal_9' })
+    expect(backend.calls.at(-1)).toEqual({
+      kind: 'mutation',
+      name: 'mealPlan:plan',
+      args: {
+        groupSlug: 'home',
+        date: '2026-11-26',
+        slot: 'lunch',
+        mealEntryId: 'entry_1',
+        servings: 3,
+        replace: false,
+      },
+    })
+    for (const pick of [{}, { recipeId: 'recipe_1', quickMealId: 'entry_1' }]) {
+      const refused = await callTool(fakeBackend(), 'plan_meal', {
+        groupId: 'group_home',
+        date: '2026-11-26',
+        slot: 'dinner',
+        ...pick,
+      })
+      expect(refused.isError).toBe(true)
+    }
+  })
+
   it('shows a recipe card and passes only web links to the view', async () => {
     const backend = fakeBackend({
       'recipes:get': () => ({

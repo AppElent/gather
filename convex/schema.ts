@@ -23,7 +23,7 @@ import {
   transferTaxBandValidator,
 } from './lib/finance'
 import { groupRoleValidator } from './lib/groupAccess'
-import { quickLimitValidator } from './lib/kitchen'
+import { mealSlotValidator, quickLimitValidator } from './lib/kitchen'
 import {
   barcodeFormatValidator,
   formatConfidenceValidator,
@@ -194,13 +194,24 @@ export default defineSchema({
     createdBy: v.id('users'),
   }).index('by_group', ['groupId']),
 
+  // Planned meals (ADR-0027). The table keeps its first name: renaming it
+  // would be a copy migration with nothing to gain. At most one row per
+  // Group, date and slot; `slot` absent is a dinner planned before slots
+  // existed (`maintenance:backfillMealSlots` fills it in).
   plannedDinners: defineTable({
     groupId: v.id('groups'),
     date: v.string(),
+    slot: v.optional(mealSlotValidator),
     recipeId: v.optional(v.id('recipes')),
     mealEntryId: v.optional(v.id('mealEntries')),
     title: v.string(),
     prepMinutes: v.optional(v.number()),
+    // Absent: as many as eat along.
+    servings: v.optional(v.number()),
+    note: v.optional(v.string()),
+    // Absent: the Group's default eaters for that evening.
+    eaterIds: v.optional(v.array(v.id('users'))),
+    // Written only by phones from before slots; read as a legacy field.
     quickLimit: v.optional(quickLimitValidator),
   })
     .index('by_group', ['groupId'])
