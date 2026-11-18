@@ -631,8 +631,12 @@ describe('recipeClashes: the round-1 Sonnet review cases', () => {
 
   test('one item’s free-from word does not clear the next item', () => {
     expect(
-      hides('glutenvrije pasta en tarwebloem', { allergens: ['gluten'] }),
-    ).toEqual([expect.objectContaining({ id: 'gluten' })])
+      recipeClashes(
+        recipe('Toetje', ['glutenvrije pasta en tarwebloem']),
+        prefsWith({ allergens: ['gluten'] }),
+        0,
+      ),
+    ).toEqual([expect.objectContaining({ id: 'gluten', uncertain: true })])
     expect(
       hides('200 g glutenvrije pasta', { allergens: ['gluten'] }),
     ).toEqual([])
@@ -648,6 +652,56 @@ describe('recipeClashes: the round-1 Sonnet review cases', () => {
     expect(dislikes('1 rode ui', 'ui')).toHaveLength(1)
     expect(dislikes('200 g uienringen', 'ui')).toHaveLength(1)
     expect(dislikes('250 g kastanjechampignons', 'champignons')).toHaveLength(1)
+  })
+})
+
+describe('recipeClashes: the round-2 Opus review cases', () => {
+  const clashes = (
+    line: string,
+    overrides: Partial<Parameters<typeof recipeClashes>[1]>,
+  ) => recipeClashes(recipe('Toetje', [line]), prefsWith(overrides), 0)
+
+  test.each([
+    ['spaghetti (eventueel glutenvrij)', { allergens: ['gluten'] }],
+    ['200 g bloem, glutenvrij indien nodig', { allergens: ['gluten'] }],
+    ['2 kipfilets (vegetariërs: gebruik tofu)', { diets: ['vegetarian'] }],
+    [
+      '500 g beef mince (see tip for a vegetarian version)',
+      { diets: ['vegetarian'] },
+    ],
+  ] as const)('a tip after the term is "controleer zelf": %s', (line, prefs) => {
+    const found = clashes(line, prefs)
+    expect(found).toHaveLength(1)
+    expect(found[0].uncertain).toBe(true)
+  })
+
+  test.each([
+    ['200 g bramen', { allergens: ['gluten'] }],
+    ['1 pot bramenjam', { diets: ['gluten-free'] }],
+    ['250 g wild mushrooms', { diets: ['vegetarian'] }],
+    ['1 bosje wild garlic', { diets: ['halal'] }],
+    ['carpaccio van rode biet', { diets: ['vegetarian'] }],
+    ['1 tomatencarpaccio', { diets: ['vegetarian'] }],
+    ['50 g sukade', { diets: ['vegetarian'] }],
+    ['4 selderijschnitzels', { diets: ['vegetarian'] }],
+    ['100 g rice vermicelli', { allergens: ['gluten'] }],
+    ['4 maiswafels', { allergens: ['gluten'] }],
+    ['6 rijstkoekjes', { allergens: ['gluten'] }],
+    ['1 l half om half melk en room', { diets: ['halal'] }],
+    ['4 plakjes spekkoek', { diets: ['halal'] }],
+    ['300 g runder tong', { allergens: ['fish'] }],
+  ] as const)('%s is not hidden', (line, prefs) => {
+    expect(certain(clashes(line, prefs))).toEqual([])
+  })
+
+  test('still caught: ramen noodles, game stew, beef carpaccio, sukadelappen', () => {
+    expect(certain(clashes('2 pakjes ramen', { allergens: ['gluten'] }))).toHaveLength(1)
+    expect(certain(clashes('500 g wildstoof', { diets: ['vegetarian'] }))).toHaveLength(1)
+    expect(
+      certain(clashes('100 g rundercarpaccio', { diets: ['vegetarian'] })),
+    ).toHaveLength(1)
+    expect(certain(clashes('2 sukadelappen', { diets: ['vegetarian'] }))).toHaveLength(1)
+    expect(certain(clashes('4 tongfilets', { allergens: ['fish'] }))).toHaveLength(1)
   })
 })
 
