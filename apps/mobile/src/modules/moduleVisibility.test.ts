@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { arrangeModules } from '@gather/core/module-arrangement'
-import { MODULES } from '@gather/core/modules'
-import { describe, expect, test } from 'vitest'
+import { MODULES as LITERAL_MODULES, type ModuleDef } from '@gather/core/modules'
+import { describe, expect, test, vi } from 'vitest'
 
 import { targetsForDrop } from '../drop/dropTargets'
 import { recordShown, searchableTypes } from '../search/searchResults'
@@ -13,11 +13,36 @@ import {
   showsOnlyLiveModules,
 } from './moduleVisibility'
 
+/**
+ * Every Module is live on the phone today (APP-374), so the store build hides
+ * nothing and the real catalogue cannot exercise the gate. These tests run it
+ * against a catalogue where three Modules are not built on the phone yet; the
+ * real catalogue's answer is checked in `storeModules.test.ts`.
+ */
+const NOT_ON_THE_PHONE = vi.hoisted(() => ['notes', 'calendar', 'pantry'])
+
+vi.mock('@gather/core/modules', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@gather/core/modules')>()
+  const MODULES = real.MODULES.map((module) =>
+    NOT_ON_THE_PHONE.includes(module.id)
+      ? { ...module, mobileStatus: 'placeholder' as const }
+      : module,
+  )
+  return {
+    ...real,
+    MODULES,
+    moduleById: (id: string) => MODULES.find((module) => module.id === id),
+  }
+})
+
+/** Widened: in the real catalogue every `mobileStatus` is the literal `live`. */
+const MODULES: readonly ModuleDef[] = LITERAL_MODULES
+
 const LIVE: readonly string[] = MODULES.filter(
-  (module) => module.status === 'live',
+  (module) => module.mobileStatus === 'live',
 ).map((module) => module.id)
 const PLACEHOLDER: readonly string[] = MODULES.filter(
-  (module) => module.status === 'placeholder',
+  (module) => module.mobileStatus === 'placeholder',
 ).map((module) => module.id)
 
 const store = (id: string) => isModuleShown(id, true)
@@ -52,16 +77,24 @@ describe('which build shows only live Modules', () => {
 describe('the store build', () => {
   test('there is something to hide, and something left', () => {
     expect(LIVE.length).toBeGreaterThan(0)
-    expect(PLACEHOLDER.length).toBeGreaterThan(0)
+    expect([...PLACEHOLDER].sort()).toEqual([...NOT_ON_THE_PHONE].sort())
   })
 
-  test.each(MODULES.map((module) => [module.id, module.status] as const))(
-    '%s (%s) shows only when live',
-    (id, status) => {
-      expect(store(id)).toBe(status === 'live')
-      expect(development(id)).toBe(true)
-    },
-  )
+  test.each(
+    MODULES.map((module) => [module.id, module.mobileStatus] as const),
+  )('%s (%s on the phone) shows only when live there', (id, mobileStatus) => {
+    expect(store(id)).toBe(mobileStatus === 'live')
+    expect(development(id)).toBe(true)
+  })
+
+  test("the web's status does not decide what the phone shows", () => {
+    const webOnly = MODULES.filter(
+      (module) =>
+        module.status === 'placeholder' && module.mobileStatus === 'live',
+    )
+    expect(webOnly.length).toBeGreaterThan(0)
+    for (const module of webOnly) expect(store(module.id)).toBe(true)
+  })
 
   test('an unknown Module shows in no build', () => {
     expect(isModuleShown('nutrition', false)).toBe(false)

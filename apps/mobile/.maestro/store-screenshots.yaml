@@ -5,8 +5,8 @@
 # in --test-output-dir.
 #
 # Start the run with EXPO_PUBLIC_LIVE_MODULES_ONLY=1 so the dev client shows
-# what the store build shows: live Modules only (src/modules/buildModules.ts).
-# Only live Modules are visited here. The dev account signs in through the
+# what the store build shows: Modules live on the phone only
+# (src/modules/buildModules.ts). Only those Modules are visited here. The dev account signs in through the
 # dev shortcut; a reinstall keeps the Clerk session in the keychain, so the
 # shortcut is tapped only when the welcome screen is up. Nothing on these
 # screens may show an email address or a dev label.

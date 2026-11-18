@@ -1,8 +1,9 @@
 /**
  * Which Modules a build shows (App Review 2.1(a), APP-234).
  *
- * The store build shows only the Modules the catalogue marks `live`
- * (`@gather/core/modules`). Development and preview builds show every Module,
+ * The store build shows only the Modules the catalogue marks `live` for the
+ * phone (`mobileStatus` in `@gather/core/modules`; `status` is the web's
+ * answer and does not decide anything here, APP-374). Development and preview builds show every Module,
  * so work in progress stays reachable on the phones that test it. One answer
  * for every way in: All, Home's pins, Search, the quick-actions sheet, a Drop,
  * and a route opened by a link (`GroupScopedStack`).
@@ -40,7 +41,7 @@ export function showsOnlyLiveModules(
 export function isModuleShown(moduleId: string, liveOnly: boolean): boolean {
   const module = moduleById(moduleId)
   if (!module) return false
-  return !liveOnly || module.status === 'live'
+  return !liveOnly || module.mobileStatus === 'live'
 }
 
 /**
@@ -50,7 +51,7 @@ export function isModuleShown(moduleId: string, liveOnly: boolean): boolean {
  * `tasks/task/[taskId]`, `index`. A first segment that names a Module belongs
  * to it; anything else (`index`, `[moduleId]`, `tasting/...`) is not a
  * Module's own route and is left alone. The tasting Modules sit under one
- * `tasting` segment and are all live; `[moduleId]` answers for itself in
+ * `tasting` segment and are all live on the phone; `[moduleId]` answers for itself in
  * `ModuleRoute`.
  */
 export function isRouteShown(routeName: string, liveOnly: boolean): boolean {

@@ -20,7 +20,7 @@ import { RADIUS, SIZE, TYPE, useTokens } from '../theme/tokens'
 
 /**
  * Group order, so the four tints read as four bands rather than confetti. The
- * store build names only live Modules: a promise on the front door is one the
+ * store build names only Modules live on the phone: a promise on the front door is one the
  * app has to keep.
  */
 const ORDERED: readonly (typeof MODULES)[number][] = MODULE_GROUPS.flatMap(
