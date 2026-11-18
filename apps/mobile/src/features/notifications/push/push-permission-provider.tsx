@@ -39,7 +39,9 @@ import {
   writePreference,
 } from '../../../prefs/localPreference'
 import {
+  confirmPushRelease,
   type PushPermission,
+  queuePushRelease,
   readPushPermission,
   readPushToken,
   rememberRegisteredPush,
@@ -69,7 +71,16 @@ export function PushPermissionProvider({ children }: { children: ReactNode }) {
   const { t, locale } = useI18n()
   const register = useMutation(api.notifications.registerDevice)
   const forgetEnded = useMutation(api.notifications.forgetEndedSessions)
+  const release = useMutation(api.notifications.releaseDevice)
   const { sessionId } = useAuth()
+  // The session now, for a registration that lands after a sign-out.
+  const sessionRef = useRef(sessionId)
+  useEffect(() => {
+    sessionRef.current = sessionId
+    return () => {
+      sessionRef.current = null
+    }
+  }, [sessionId])
   // Read when needed, not a dependency: the object changes with every profile edit.
   const { user } = useUser()
   const userRef = useRef(user)
@@ -104,7 +115,15 @@ export function PushPermissionProvider({ children }: { children: ReactNode }) {
         const token = await readPushToken()
         if (cancelled) return
         await register({ token, platform: 'ios', locale, sessionId })
-        rememberRegisteredPush({ token, sessionId })
+        const registration = { token, sessionId }
+        if (sessionRef.current !== sessionId) {
+          // Signed out while this was on its way: take it back.
+          queuePushRelease(registration)
+          await release(registration)
+          confirmPushRelease(registration)
+          return
+        }
+        rememberRegisteredPush(registration)
         const current = userRef.current
         if (!current) return
         const sessions = await current.getSessions()
@@ -118,7 +137,7 @@ export function PushPermissionProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [permission, register, forgetEnded, locale, sessionId])
+  }, [permission, register, forgetEnded, release, locale, sessionId])
 
   const ask = useCallback(
     async (reason: PushAskReason | 'settings') => {

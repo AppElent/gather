@@ -18,6 +18,7 @@
  * the ones the fields show, even when AutoFill set one without reporting it.
  */
 import { useUser } from '@clerk/expo'
+import { useMutation } from 'convex/react'
 import { router } from 'expo-router'
 import { useRef, useState } from 'react'
 import {
@@ -35,6 +36,7 @@ import { readThrown } from '../../../../../src/auth/clerkErrors'
 import { useCredentialFields } from '../../../../../src/auth/useCredentialFields'
 import { AuthError } from '../../../../../src/components/AuthError'
 import { SettingsCard } from '../../../../../src/components/SettingsCard'
+import { api } from '../../../../../src/convex/api'
 import { useI18n } from '../../../../../src/i18n'
 import { TYPE, useTokens } from '../../../../../src/theme/tokens'
 import { Button } from '../../../../../src/ui/button'
@@ -44,6 +46,7 @@ export default function ChangePassword() {
   const tokens = useTokens()
   const { t } = useI18n()
   const { user } = useUser()
+  const forgetEnded = useMutation(api.notifications.forgetEndedSessions)
   const insets = useSafeAreaInsets()
   const next = useRef<TextInputInstance>(null)
 
@@ -68,11 +71,26 @@ export default function ChangePassword() {
     setBusy(true)
     setError(null)
     try {
+      const before = await user.getSessions().catch(() => [])
       await user.updatePassword({
         currentPassword: current,
         newPassword: password,
         signOutOfOtherSessions: true,
       })
+      // The phones those sessions were on stop getting this account's
+      // notifications now, not at their next launch (APP-298).
+      void user
+        .getSessions()
+        .then((after) => {
+          const active = after.map((s) => s.id)
+          return forgetEnded({
+            activeSessionIds: active,
+            endedSessionIds: before
+              .map((s) => s.id)
+              .filter((id) => !active.includes(id)),
+          })
+        })
+        .catch(() => {})
       router.back()
     } catch (cause) {
       setError(readThrown(cause, t))

@@ -84,9 +84,12 @@ vi.mock('@clerk/expo', () => ({
       passwordEnabled: true,
       primaryEmailAddress: { emailAddress: 'a@b.com' },
       updatePassword: state.updatePassword,
+      getSessions: async () => [],
     },
   }),
 }))
+// Change password forgets the phones of the sessions it ended (APP-298).
+vi.mock('convex/react', () => ({ useMutation: () => async () => null }))
 vi.mock('expo-router', () => ({
   router: { back: () => {} },
   useRouter: () => ({ push: () => {}, replace: () => {} }),

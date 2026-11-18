@@ -118,6 +118,14 @@ export function moveRegistrationToRelease(): PushRegistration | null {
   return registration
 }
 
+/**
+ * A registration that reached the server after this phone signed out: it is
+ * released at once, and kept until that is confirmed like any other.
+ */
+export function queuePushRelease(registration: PushRegistration) {
+  writePreference(PREFERENCE_KEYS.pushRelease, JSON.stringify(registration))
+}
+
 /** A release the server has not confirmed yet. */
 export function pendingPushRelease(): PushRegistration | null {
   return readRegistration(PREFERENCE_KEYS.pushRelease)
