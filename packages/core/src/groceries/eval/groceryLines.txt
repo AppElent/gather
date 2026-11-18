@@ -1,0 +1,1432 @@
+# Grocery eval set (APP-353)
+#
+# Real grocery-list lines as people type them on a phone: Dutch and English,
+# brands and store brands, plurals, typos, compounds and amounts. Written by
+# hand before the dictionary existed, and never generated from it: the score
+# is only worth something while this file stays independent of the data it
+# measures. Add lines when a real list shows a miss; never edit a label to
+# make a score go up.
+#
+# Columns, separated by `|` and trimmed:
+#   line      what the person typed
+#   aisle     the expected aisle id (designs/groceries/README.md)
+#   quantity  the expected amount, `.` as decimal point; empty when none
+#   unit      the expected unit id (`@gather/core/groceries` UNITS); empty when none
+#   name      the expected name once amount and unit are taken off; empty
+#             means the whole line
+#
+# Aisle conventions for the cases a Dutch supermarket splits differently:
+#   eggs, butter, margarine, cream, plant drinks, chilled desserts, chocolate
+#     milk -> dairy
+#   sliced meats, cheese, hummus and chilled spreads -> cheese_deli
+#   fresh meat, fish, smoked sausage, bacon, meat substitutes, tofu -> meat_fish
+#   rice, pasta, noodles, wraps, pasta sauce, pesto, Asian and Mexican
+#     ingredients -> pasta_world
+#   tins, jars, soup, oil, vinegar, spices, condiments, baking staples (flour,
+#     sugar, yeast) -> tins_sauces
+#   cereal, spreads, honey, jam, crackers, rusks, coffee, tea -> breakfast
+#   biscuits, sweets, chocolate, crisps, nuts, dried fruit -> snacks
+#   anything sold frozen -> frozen
+#   water, soft drinks, juice, beer, wine, spirits, squash -> drinks
+#   toiletries, medicine, baby food, nappies -> care_baby
+#   cleaning, paper goods, bags and foil, batteries, pet food -> household
+#   not something a supermarket sells -> other
+
+melk|dairy|||
+2 pakken melk|dairy|2|pak|melk
+halfvolle melk|dairy|||
+AH halfvolle melk|dairy|||
+volle melk 1l|dairy|1|l|volle melk
+magere melk|dairy|||
+karnemelk|dairy|||
+Campina karnemelk|dairy|||
+yoghurt|dairy|||
+griekse yoghurt|dairy|||
+Griekse yoghurt 0%|dairy|||
+3x yoghurt|dairy|3||yoghurt
+volle yoghurt 1 liter|dairy|1|l|volle yoghurt
+jogurt|dairy|||
+Activia aardbei|dairy|||
+Optimel drinkyoghurt|dairy|||
+kwark|dairy|||
+magere kwark 500g|dairy|500|g|magere kwark
+Skyr|dairy|||
+vla|dairy|||
+vanillevla|dairy|||
+chocoladevla|dairy|||
+Mona pudding|dairy|||
+slagroom|dairy|||
+kookroom|dairy|||
+zure room|dairy|||
+creme fraiche|dairy|||
+crème fraîche|dairy|||
+roomboter|dairy|||
+boter|dairy|||
+Becel|dairy|||
+Blue Band halvarine|dairy|||
+margarine|dairy|||
+eieren|dairy|||
+6 eieren|dairy|6||eieren
+10 eieren|dairy|10||eieren
+scharreleieren|dairy|||
+eitjes|dairy|||
+ei|dairy|||
+Chocomel|dairy|||
+Fristi|dairy|||
+havermelk|dairy|||
+Oatly haverdrink|dairy|||
+Alpro sojadrink|dairy|||
+amandelmelk|dairy|||
+Alpro skyr style|dairy|||
+koffiemelk|dairy|||
+Campina koffiemelk|dairy|||
+slagroom spuitbus|dairy|||
+yoghurt drink|dairy|||
+Danone Actimel|dairy|||
+milk|dairy|||
+semi skimmed milk|dairy|||
+eggs|dairy|||
+butter|dairy|||
+greek yogurt|dairy|||
+yoghurt pots|dairy|||
+double cream|dairy|||
+whipping cream|dairy|||
+oat milk|dairy|||
+almond milk|dairy|||
+custard|dairy|||
+sour cream|dairy|||
+cottage cheese|dairy|||
+kaas|cheese_deli|||
+jonge kaas|cheese_deli|||
+belegen kaas|cheese_deli|||
+oude kaas|cheese_deli|||
+Old Amsterdam|cheese_deli|||
+Beemster kaas|cheese_deli|||
+geraspte kaas|cheese_deli|||
+200 gr geraspte kaas|cheese_deli|200|g|geraspte kaas
+plakken kaas|cheese_deli|||
+kaasplakken|cheese_deli|||
+Leerdammer|cheese_deli|||
+Milner 30+|cheese_deli|||
+mozzarella|cheese_deli|||
+2 bollen mozzarella|cheese_deli|2|bol|mozzarella
+feta|cheese_deli|||
+fetakaas|cheese_deli|||
+Parmezaanse kaas|cheese_deli|||
+parmezaan|cheese_deli|||
+brie|cheese_deli|||
+camembert|cheese_deli|||
+geitenkaas|cheese_deli|||
+smeerkaas|cheese_deli|||
+Philadelphia|cheese_deli|||
+roomkaas|cheese_deli|||
+ham|cheese_deli|||
+achterham|cheese_deli|||
+plakjes ham|cheese_deli|||
+kipfilet beleg|cheese_deli|||
+gerookte kipfilet|cheese_deli|||
+salami|cheese_deli|||
+cervelaat|cheese_deli|||
+leverworst|cheese_deli|||
+boterhamworst|cheese_deli|||
+rosbief|cheese_deli|||
+filet americain|cheese_deli|||
+vleeswaren|cheese_deli|||
+ontbijtspek|cheese_deli|||
+hummus|cheese_deli|||
+humus|cheese_deli|||
+eiersalade|cheese_deli|||
+tonijnsalade|cheese_deli|||
+komkommersalade|cheese_deli|||
+Zwan cocktailworstjes|cheese_deli|||
+cheese|cheese_deli|||
+cheddar|cheese_deli|||
+mature cheddar|cheese_deli|||
+grated cheese|cheese_deli|||
+sliced ham|cheese_deli|||
+chorizo|cheese_deli|||
+pepperoni|cheese_deli|||
+halloumi|cheese_deli|||
+parmesan|cheese_deli|||
+gehakt|meat_fish|||
+500g gehakt|meat_fish|500|g|gehakt
+rundergehakt|meat_fish|||
+half om half gehakt|meat_fish|||
+kipfilet|meat_fish|||
+kipdijfilet|meat_fish|||
+2 kipfilets|meat_fish|2||kipfilets
+kippendijen|meat_fish|||
+kippenpoten|meat_fish|||
+kip|meat_fish|||
+hele kip|meat_fish|||
+kipstukjes|meat_fish|||
+kipshoarma|meat_fish|||
+shoarma|meat_fish|||
+kip gyros|meat_fish|||
+biefstuk|meat_fish|||
+4 biefstukken|meat_fish|4||biefstukken
+entrecote|meat_fish|||
+runderlappen|meat_fish|||
+stoofvlees|meat_fish|||
+varkenshaas|meat_fish|||
+karbonade|meat_fish|||
+speklapjes|meat_fish|||
+spekjes|meat_fish|||
+gerookte spekblokjes|meat_fish|||
+bacon|meat_fish|||
+hamburgers|meat_fish|||
+4 hamburgers|meat_fish|4||hamburgers
+slavinken|meat_fish|||
+gehaktballen|meat_fish|||
+braadworst|meat_fish|||
+rookworst|meat_fish|||
+Unox rookworst|meat_fish|||
+saucijzen|meat_fish|||
+shaslick|meat_fish|||
+sateh|meat_fish|||
+kipsate|meat_fish|||
+lamsrack|meat_fish|||
+lamsgehakt|meat_fish|||
+rollade|meat_fish|||
+zalm|meat_fish|||
+zalmfilet|meat_fish|||
+2 zalmfilets|meat_fish|2||zalmfilets
+gerookte zalm|meat_fish|||
+kabeljauw|meat_fish|||
+kabeljauwfilet|meat_fish|||
+pangasius|meat_fish|||
+tilapia|meat_fish|||
+garnalen|meat_fish|||
+scampi's|meat_fish|||
+mosselen|meat_fish|||
+1 kg mosselen|meat_fish|1|kg|mosselen
+haring|meat_fish|||
+makreel|meat_fish|||
+gerookte makreel|meat_fish|||
+tonijn steak|meat_fish|||
+vegaburger|meat_fish|||
+vegetarische burgers|meat_fish|||
+vegetarisch gehakt|meat_fish|||
+De Vegetarische Slager kipstuckjes|meat_fish|||
+Garden Gourmet balletjes|meat_fish|||
+tofu|meat_fish|||
+tempeh|meat_fish|||
+ground beef|meat_fish|||
+mince|meat_fish|||
+chicken breast|meat_fish|||
+chicken thighs|meat_fish|||
+chicken|meat_fish|||
+sausages|meat_fish|||
+pork chops|meat_fish|||
+steak|meat_fish|||
+salmon fillets|meat_fish|||
+prawns|meat_fish|||
+cod|meat_fish|||
+beef burgers|meat_fish|||
+appels|produce|||
+1 kilo appels|produce|1|kg|appels
+Elstar appels|produce|||
+Jonagold|produce|||
+peren|produce|||
+bananen|produce|||
+1 tros bananen|produce|1|tros|bananen
+banaan|produce|||
+bananaen|produce|||
+sinaasappels|produce|||
+handsinaasappels|produce|||
+mandarijnen|produce|||
+clementines|produce|||
+citroen|produce|||
+2 citroenen|produce|2||citroenen
+limoen|produce|||
+limoenen|produce|||
+druiven|produce|||
+pitloze druiven|produce|||
+aardbeien|produce|||
+2 bakjes aardbeien|produce|2|bak|aardbeien
+blauwe bessen|produce|||
+frambozen|produce|||
+kiwi|produce|||
+kiwi's|produce|||
+mango|produce|||
+ananas|produce|||
+meloen|produce|||
+watermeloen|produce|||
+avocado|produce|||
+2 avocado's|produce|2||avocado's
+avacado|produce|||
+granaatappel|produce|||
+nectarines|produce|||
+pruimen|produce|||
+tomaten|produce|||
+tomaat|produce|||
+cherrytomaten|produce|||
+trostomaten|produce|||
+snoeptomaatjes|produce|||
+komkommer|produce|||
+komkommr|produce|||
+paprika|produce|||
+3 paprika's|produce|3||paprika's
+rode paprika|produce|||
+paparika|produce|||
+ui|produce|||
+uien|produce|||
+2 uien|produce|2||uien
+rode ui|produce|||
+rode uien|produce|||
+sjalotjes|produce|||
+lente-ui|produce|||
+bosui|produce|||
+knoflook|produce|||
+1 bol knoflook|produce|1|bol|knoflook
+2 teentjes knoflook|produce|2|teentje|knoflook
+gember|produce|||
+wortels|produce|||
+winterpeen|produce|||
+peentjes|produce|||
+broccoli|produce|||
+brocolli|produce|||
+bloemkool|produce|||
+spruitjes|produce|||
+boerenkool|produce|||
+zuurkool|produce|||
+andijvie|produce|||
+spinazie|produce|||
+verse spinazie|produce|||
+sla|produce|||
+ijsbergsla|produce|||
+rucola|produce|||
+veldsla|produce|||
+zak sla|produce|1|zak|sla
+little gem|produce|||
+courgette|produce|||
+courgete|produce|||
+aubergine|produce|||
+champignons|produce|||
+kastanjechampignons|produce|||
+paddenstoelen|produce|||
+prei|produce|||
+selderij|produce|||
+bleekselderij|produce|||
+knolselderij|produce|||
+venkel|produce|||
+pompoen|produce|||
+zoete aardappel|produce|||
+zoete aardappelen|produce|||
+aardappelen|produce|||
+aardappels|produce|||
+aardapels|produce|||
+krieltjes|produce|||
+2 kg aardappelen|produce|2|kg|aardappelen
+kruimige aardappelen|produce|||
+sperziebonen|produce|||
+snijbonen|produce|||
+peultjes|produce|||
+sugarsnaps|produce|||
+mais kolven|produce|||
+radijs|produce|||
+rode biet|produce|||
+bietjes|produce|||
+taugé|produce|||
+pastinaak|produce|||
+koolrabi|produce|||
+witlof|produce|||
+rode kool|produce|||
+spitskool|produce|||
+chinese kool|produce|||
+paksoi|produce|||
+peterselie|produce|||
+1 bos peterselie|produce|1|bos|peterselie
+verse basilicum|produce|||
+koriander|produce|||
+bosje koriander|produce|1|bos|koriander
+munt|produce|||
+bieslook|produce|||
+rode peper|produce|||
+spaanse peper|produce|||
+jalapeño|produce|||
+citroengras|produce|||
+roerbakgroente|produce|||
+gesneden groente|produce|||
+soepgroente|produce|||
+salade melange|produce|||
+fruit|produce|||
+groente|produce|||
+apples|produce|||
+bananas|produce|||
+6 bananas|produce|6||bananas
+oranges|produce|||
+lemons|produce|||
+limes|produce|||
+grapes|produce|||
+strawberries|produce|||
+blueberries|produce|||
+raspberries|produce|||
+pears|produce|||
+tomatoes|produce|||
+cherry tomatoes|produce|||
+cucumber|produce|||
+lettuce|produce|||
+spinach|produce|||
+onions|produce|||
+red onion|produce|||
+garlic|produce|||
+ginger|produce|||
+carrots|produce|||
+potatoes|produce|||
+sweet potatoes|produce|||
+mushrooms|produce|||
+peppers|produce|||
+bell pepper|produce|||
+courgettes|produce|||
+zucchini|produce|||
+broccoli florets|produce|||
+cauliflower|produce|||
+leeks|produce|||
+celery|produce|||
+spring onions|produce|||
+fresh basil|produce|||
+coriander|produce|||
+parsley|produce|||
+avocados|produce|||
+kale|produce|||
+green beans|produce|||
+brood|bakery|||
+volkorenbrood|bakery|||
+1 volkoren brood|bakery|1||volkoren brood
+bruin brood|bakery|||
+wit brood|bakery|||
+heel tarwe|bakery|||
+half bruin|bakery|||
+meergranenbrood|bakery|||
+spelt brood|bakery|||
+zuurdesembrood|bakery|||
+desembrood|bakery|||
+stokbrood|bakery|||
+2 stokbroden|bakery|2||stokbroden
+afbakbroodjes|bakery|||
+pistolets|bakery|||
+bolletjes|bakery|||
+6 bolletjes|bakery|6||bolletjes
+witte bollen|bakery|||
+krentenbollen|bakery|||
+krentenbol|bakery|||
+croissants|bakery|||
+4 croissants|bakery|4||croissants
+roomboter croissants|bakery|||
+pain au chocolat|bakery|||
+ciabatta|bakery|||
+focaccia|bakery|||
+Turks brood|bakery|||
+pitabroodjes|bakery|||
+hamburgerbroodjes|bakery|||
+hotdogbroodjes|bakery|||
+tijgerbrood|bakery|||
+suikerbrood|bakery|||
+rozijnenbrood|bakery|||
+appeltaart|bakery|||
+taart|bakery|||
+gevulde koeken|bakery|||
+appelflappen|bakery|||
+muffins|bakery|||
+donuts|bakery|||
+Jumbo meergranen bol|bakery|||
+AH Excellent desem|bakery|||
+bread|bakery|||
+wholemeal bread|bakery|||
+sourdough|bakery|||
+baguette|bakery|||
+bread rolls|bakery|||
+burger buns|bakery|||
+bagels|bakery|||
+pasta|pasta_world|||
+spaghetti|pasta_world|||
+spagetti|pasta_world|||
+2 pakken spaghetti|pasta_world|2|pak|spaghetti
+penne|pasta_world|||
+macaroni|pasta_world|||
+fusilli|pasta_world|||
+farfalle|pasta_world|||
+tagliatelle|pasta_world|||
+lasagnebladen|pasta_world|||
+volkoren pasta|pasta_world|||
+verse pasta|pasta_world|||
+tortellini|pasta_world|||
+ravioli|pasta_world|||
+gnocchi|pasta_world|||
+rijst|pasta_world|||
+1 kg rijst|pasta_world|1|kg|rijst
+basmatirijst|pasta_world|||
+zilvervliesrijst|pasta_world|||
+risottorijst|pasta_world|||
+pandan rijst|pasta_world|||
+couscous|pasta_world|||
+bulgur|pasta_world|||
+quinoa|pasta_world|||
+noedels|pasta_world|||
+mie|pasta_world|||
+mienestjes|pasta_world|||
+eiermie|pasta_world|||
+rijstnoedels|pasta_world|||
+wraps|pasta_world|||
+AH wraps|pasta_world|||
+tortilla wraps|pasta_world|||
+volkoren wraps|pasta_world|||
+taco's|pasta_world|||
+tacoschelpen|pasta_world|||
+taco kruiden|pasta_world|||
+Old El Paso fajita kit|pasta_world|||
+Santa Maria tortilla's|pasta_world|||
+nachochips|snacks|||
+pastasaus|pasta_world|||
+Grand'Italia pastasaus|pasta_world|||
+Bertolli tomatensaus|pasta_world|||
+pesto|pasta_world|||
+groene pesto|pasta_world|||
+rode pesto|pasta_world|||
+lasagnesaus|pasta_world|||
+sojasaus|pasta_world|||
+ketjap|pasta_world|||
+ketjap manis|pasta_world|||
+sambal|pasta_world|||
+sambal oelek|pasta_world|||
+Conimex boemboe|pasta_world|||
+nasi kruiden|pasta_world|||
+bami goreng mix|pasta_world|||
+kokosmelk|pasta_world|||
+2 blikjes kokosmelk|pasta_world|2|blik|kokosmelk
+currypasta|pasta_world|||
+rode curry pasta|pasta_world|||
+satésaus|pasta_world|||
+pindasaus|pasta_world|||
+kroepoek|pasta_world|||
+sushi rijst|pasta_world|||
+nori|pasta_world|||
+naanbrood|pasta_world|||
+Knorr wereldgerechten|pasta_world|||
+Honig mix voor nasi|pasta_world|||
+rice|pasta_world|||
+basmati rice|pasta_world|||
+noodles|pasta_world|||
+egg noodles|pasta_world|||
+soy sauce|pasta_world|||
+coconut milk|pasta_world|||
+curry paste|pasta_world|||
+pasta sauce|pasta_world|||
+tortillas|pasta_world|||
+lasagne sheets|pasta_world|||
+tomatenpuree|tins_sauces|||
+2 blikjes tomatenpuree|tins_sauces|2|blik|tomatenpuree
+tomatenblokjes|tins_sauces|||
+gepelde tomaten|tins_sauces|||
+passata|tins_sauces|||
+blik tomaten|tins_sauces|1|blik|tomaten
+kidneybonen|tins_sauces|||
+bruine bonen|tins_sauces|||
+witte bonen in tomatensaus|tins_sauces|||
+kikkererwten|tins_sauces|||
+linzen|tins_sauces|||
+mais|tins_sauces|||
+blikje mais|tins_sauces|1|blik|mais
+doperwten|tins_sauces|||
+erwten en wortelen|tins_sauces|||
+Hak bruine bonen|tins_sauces|||
+Bonduelle maïs|tins_sauces|||
+tonijn|tins_sauces|||
+tonijn in blik|tins_sauces|||
+3 blikjes tonijn|tins_sauces|3|blik|tonijn
+sardientjes|tins_sauces|||
+ansjovis|tins_sauces|||
+olijven|tins_sauces|||
+zwarte olijven|tins_sauces|||
+augurken|tins_sauces|||
+zilveruitjes|tins_sauces|||
+appelmoes|tins_sauces|||
+pot appelmoes|tins_sauces|1|pot|appelmoes
+rode kool uit pot|tins_sauces|||
+soep|tins_sauces|||
+tomatensoep|tins_sauces|||
+Unox soep|tins_sauces|||
+erwtensoep|tins_sauces|||
+bouillonblokjes|tins_sauces|||
+kippenbouillon|tins_sauces|||
+groentebouillon|tins_sauces|||
+Maggi|tins_sauces|||
+mayonaise|tins_sauces|||
+mayonnaise|tins_sauces|||
+Calvé mayonaise|tins_sauces|||
+fritessaus|tins_sauces|||
+ketchup|tins_sauces|||
+Heinz ketchup|tins_sauces|||
+curry saus|tins_sauces|||
+mosterd|tins_sauces|||
+Zaanse mosterd|tins_sauces|||
+barbecuesaus|tins_sauces|||
+knoflooksaus|tins_sauces|||
+sla dressing|tins_sauces|||
+olijfolie|tins_sauces|||
+1 fles olijfolie|tins_sauces|1|fles|olijfolie
+zonnebloemolie|tins_sauces|||
+frituurolie|tins_sauces|||
+bakboter|tins_sauces|||
+azijn|tins_sauces|||
+balsamico azijn|tins_sauces|||
+zout|tins_sauces|||
+peper|tins_sauces|||
+zwarte peper|tins_sauces|||
+paprikapoeder|tins_sauces|||
+kerriepoeder|tins_sauces|||
+komijn|tins_sauces|||
+kaneel|tins_sauces|||
+oregano|tins_sauces|||
+italiaanse kruiden|tins_sauces|||
+nootmuskaat|tins_sauces|||
+laurierblaadjes|tins_sauces|||
+chilivlokken|tins_sauces|||
+bloem|tins_sauces|||
+1 kg bloem|tins_sauces|1|kg|bloem
+zelfrijzend bakmeel|tins_sauces|||
+suiker|tins_sauces|||
+kristalsuiker|tins_sauces|||
+poedersuiker|tins_sauces|||
+basterdsuiker|tins_sauces|||
+vanillesuiker|tins_sauces|||
+bakpoeder|tins_sauces|||
+gist|tins_sauces|||
+maizena|tins_sauces|||
+paneermeel|tins_sauces|||
+cakemix|tins_sauces|||
+Koopmans pannenkoekenmix|tins_sauces|||
+pannenkoekenmeel|tins_sauces|||
+chocoladedruppels|tins_sauces|||
+kapperjes|tins_sauces|||
+zongedroogde tomaten|tins_sauces|||
+tapenade|tins_sauces|||
+tinned tomatoes|tins_sauces|||
+chopped tomatoes|tins_sauces|||
+tomato puree|tins_sauces|||
+baked beans|tins_sauces|||
+chickpeas|tins_sauces|||
+kidney beans|tins_sauces|||
+tuna|tins_sauces|||
+olive oil|tins_sauces|||
+vegetable oil|tins_sauces|||
+vinegar|tins_sauces|||
+salt|tins_sauces|||
+black pepper|tins_sauces|||
+flour|tins_sauces|||
+plain flour|tins_sauces|||
+sugar|tins_sauces|||
+caster sugar|tins_sauces|||
+baking powder|tins_sauces|||
+stock cubes|tins_sauces|||
+mustard|tins_sauces|||
+mayo|tins_sauces|||
+tomato soup|tins_sauces|||
+cinnamon|tins_sauces|||
+paprika powder|tins_sauces|||
+hagelslag|breakfast|||
+De Ruijter hagelslag|breakfast|||
+chocoladehagelslag|breakfast|||
+vlokken|breakfast|||
+muisjes|breakfast|||
+pindakaas|breakfast|||
+Calvé pindakaas|breakfast|||
+jam|breakfast|||
+aardbeienjam|breakfast|||
+Hero jam|breakfast|||
+honing|breakfast|||
+appelstroop|breakfast|||
+Nutella|breakfast|||
+chocopasta|breakfast|||
+speculoospasta|breakfast|||
+Lotus speculoospasta|breakfast|||
+smeerworst|cheese_deli|||
+cornflakes|breakfast|||
+Kellogg's cornflakes|breakfast|||
+muesli|breakfast|||
+cruesli|breakfast|||
+Quaker cruesli|breakfast|||
+granola|breakfast|||
+havermout|breakfast|||
+Brinta|breakfast|||
+ontbijtkoek|breakfast|||
+Peijnenburg ontbijtkoek|breakfast|||
+beschuit|breakfast|||
+2 rollen beschuit|breakfast|2|rol|beschuit
+crackers|breakfast|||
+knäckebröd|breakfast|||
+knackebrod|breakfast|||
+rijstwafels|breakfast|||
+Lu Tuc crackers|snacks|||
+volkoren crackers|breakfast|||
+koffie|breakfast|||
+koffiebonen|breakfast|||
+Douwe Egberts koffie|breakfast|||
+filterkoffie|breakfast|||
+koffiepads|breakfast|||
+Senseo pads|breakfast|||
+koffiecups|breakfast|||
+Nespresso cups|breakfast|||
+oploskoffie|breakfast|||
+thee|breakfast|||
+theezakjes|breakfast|||
+Pickwick thee|breakfast|||
+Pickwick thee 20 zakjes|breakfast|20|zak|Pickwick thee
+groene thee|breakfast|||
+muntthee|breakfast|||
+rooibos|breakfast|||
+cacao|breakfast|||
+Nesquik|breakfast|||
+cereal|breakfast|||
+porridge oats|breakfast|||
+oats|breakfast|||
+peanut butter|breakfast|||
+strawberry jam|breakfast|||
+honey|breakfast|||
+marmalade|breakfast|||
+coffee|breakfast|||
+coffee beans|breakfast|||
+instant coffee|breakfast|||
+tea bags|breakfast|||
+green tea|breakfast|||
+crispbread|breakfast|||
+rice cakes|breakfast|||
+koekjes|snacks|||
+koek|snacks|||
+stroopwafels|snacks|||
+1 pak stroopwafels|snacks|1|pak|stroopwafels
+speculaas|snacks|||
+kruidnoten|snacks|||
+pepernoten|snacks|||
+chocoladeletter|snacks|||
+Verkade biscuits|snacks|||
+mariabiscuit|snacks|||
+Liga|snacks|||
+Sultana|snacks|||
+Bastogne koeken|snacks|||
+Oreo|snacks|||
+bitterkoekjes|snacks|||
+eierkoeken|snacks|||
+chocolade|snacks|||
+pure chocolade|snacks|||
+Tony's Chocolonely|snacks|||
+2 repen Tony's|snacks|2|reep|Tony's
+Milka|snacks|||
+Côte d'Or|snacks|||
+chocoladereep|snacks|||
+Snickers|snacks|||
+Mars|snacks|||
+Twix|snacks|||
+KitKat|snacks|||
+M&M's|snacks|||
+snoep|snacks|||
+drop|snacks|||
+Venco drop|snacks|||
+Haribo|snacks|||
+winegums|snacks|||
+spekjes snoep|snacks|||
+kauwgom|snacks|||
+pepermunt|snacks|||
+chips|snacks|||
+paprika chips|snacks|||
+naturel chips|snacks|||
+Lay's|snacks|||
+Lays paprika|snacks|||
+Doritos|snacks|||
+Pringles|snacks|||
+Croky chips|snacks|||
+Hamka's|snacks|||
+borrelnootjes|snacks|||
+pinda's|snacks|||
+cashewnoten|snacks|||
+walnoten|snacks|||
+amandelen|snacks|||
+gemengde noten|snacks|||
+zoutjes|snacks|||
+popcorn|snacks|||
+rozijnen|snacks|||
+dadels|snacks|||
+gedroogde abrikozen|snacks|||
+mueslirepen|snacks|||
+ontbijtkoek repen|breakfast|||
+biscuits|snacks|||
+digestives|snacks|||
+cookies|snacks|||
+chocolate|snacks|||
+dark chocolate|snacks|||
+crisps|snacks|||
+tortilla chips|snacks|||
+nuts|snacks|||
+peanuts|snacks|||
+cashews|snacks|||
+sweets|snacks|||
+gummy bears|snacks|||
+raisins|snacks|||
+cereal bars|snacks|||
+ijs|frozen|||
+Ben & Jerry's|frozen|||
+Magnum|frozen|||
+Ola raketjes|frozen|||
+vanille-ijs|frozen|||
+waterijsjes|frozen|||
+diepvriespizza|frozen|||
+Dr. Oetker pizza|frozen|||
+pizza|frozen|||
+2 pizza's|frozen|2||pizza's
+patat|frozen|||
+friet|frozen|||
+diepvries friet|frozen|||
+McCain frites|frozen|||
+aardappelkroketjes|frozen|||
+kroketten|frozen|||
+frikandellen|frozen|||
+bitterballen|frozen|||
+loempia's|frozen|||
+vissticks|frozen|||
+Iglo vissticks|frozen|||
+diepvries spinazie|frozen|||
+diepvriesspinazie|frozen|||
+diepvries erwten|frozen|||
+diepvries groente|frozen|||
+diepvries fruit|frozen|||
+bevroren frambozen|frozen|||
+smoothie fruit diepvries|frozen|||
+ijsblokjes|frozen|||
+bladerdeeg|frozen|||
+diepvries kipnuggets|frozen|||
+kipnuggets|frozen|||
+Mora snacks|frozen|||
+ice cream|frozen|||
+frozen pizza|frozen|||
+frozen peas|frozen|||
+fish fingers|frozen|||
+frozen berries|frozen|||
+oven chips|frozen|||
+ice cubes|frozen|||
+frozen veg|frozen|||
+water|drinks|||
+spa rood|drinks|||
+Spa blauw|drinks|||
+bruiswater|drinks|||
+mineraalwater|drinks|||
+6 flessen water|drinks|6|fles|water
+cola|drinks|||
+Coca-Cola|drinks|||
+cola zero|drinks|||
+coca cola zero 1,5l|drinks|1.5|l|coca cola zero
+Pepsi max|drinks|||
+Fanta|drinks|||
+Sprite|drinks|||
+7up|drinks|||
+Fernandes|drinks|||
+ice tea|drinks|||
+Lipton ice tea|drinks|||
+Red Bull|drinks|||
+energiedrank|drinks|||
+sinaasappelsap|drinks|||
+jus d'orange|drinks|||
+Appelsientje|drinks|||
+appelsap|drinks|||
+multivruchtensap|drinks|||
+Dubbelfrisss|drinks|||
+Tropicana|drinks|||
+limonadesiroop|drinks|||
+ranja|drinks|||
+Karvan Cevitam|drinks|||
+Wicky|drinks|||
+Capri-Sun|drinks|||
+tonic|drinks|||
+ginger ale|drinks|||
+bier|drinks|||
+krat bier|drinks|1|krat|bier
+Heineken|drinks|||
+Hertog Jan|drinks|||
+Grolsch|drinks|||
+Amstel radler|drinks|||
+alcoholvrij bier|drinks|||
+speciaalbier|drinks|||
+witbier|drinks|||
+wijn|drinks|||
+rode wijn|drinks|||
+witte wijn|drinks|||
+2 flessen witte wijn|drinks|2|fles|witte wijn
+rosé|drinks|||
+prosecco|drinks|||
+cava|drinks|||
+champagne|drinks|||
+jenever|drinks|||
+whisky|drinks|||
+rum|drinks|||
+gin|drinks|||
+Aperol|drinks|||
+port|drinks|||
+sparkling water|drinks|||
+still water|drinks|||
+coke|drinks|||
+diet coke|drinks|||
+lemonade|drinks|||
+orange juice|drinks|||
+apple juice|drinks|||
+squash|drinks|||
+beer|drinks|||
+lager|drinks|||
+red wine|drinks|||
+white wine|drinks|||
+tonic water|drinks|||
+energy drink|drinks|||
+tandpasta|care_baby|||
+tandpasat|care_baby|||
+Prodent|care_baby|||
+Zendium tandpasta|care_baby|||
+tandenborstel|care_baby|||
+Oral-B opzetborstels|care_baby|||
+flosdraad|care_baby|||
+mondwater|care_baby|||
+shampoo|care_baby|||
+shampo|care_baby|||
+Andrélon shampoo|care_baby|||
+Head & Shoulders|care_baby|||
+conditioner|care_baby|||
+douchegel|care_baby|||
+Dove douchegel|care_baby|||
+zeep|care_baby|||
+handzeep|care_baby|||
+deodorant|care_baby|||
+deo|care_baby|||
+Rexona|care_baby|||
+scheermesjes|care_baby|||
+scheerschuim|care_baby|||
+Gillette mesjes|care_baby|||
+bodylotion|care_baby|||
+Nivea creme|care_baby|||
+handcrème|care_baby|||
+zonnebrand|care_baby|||
+zonnebrandcrème factor 30|care_baby|||
+lippenbalsem|care_baby|||
+wattenstaafjes|care_baby|||
+wattenschijfjes|care_baby|||
+maandverband|care_baby|||
+tampons|care_baby|||
+inlegkruisjes|care_baby|||
+condooms|care_baby|||
+paracetamol|care_baby|||
+ibuprofen|care_baby|||
+pleisters|care_baby|||
+vitamine D|care_baby|||
+multivitamine|care_baby|||
+keelpastilles|care_baby|||
+haarlak|care_baby|||
+haargel|care_baby|||
+luiers|care_baby|||
+Pampers|care_baby|||
+Pampers maat 4|care_baby|||
+billendoekjes|care_baby|||
+vochtige doekjes|care_baby|||
+zwemluiers|care_baby|||
+babyvoeding|care_baby|||
+fruithapje|care_baby|||
+Olvarit|care_baby|||
+potjes babyvoeding|care_baby|||
+Nutrilon|care_baby|||
+opvolgmelk|care_baby|||
+flesvoeding|care_baby|||
+babyshampoo|care_baby|||
+speentjes|care_baby|||
+toothpaste|care_baby|||
+toothbrush|care_baby|||
+shower gel|care_baby|||
+body wash|care_baby|||
+deodorant spray|care_baby|||
+razors|care_baby|||
+moisturiser|care_baby|||
+sun cream|care_baby|||
+plasters|care_baby|||
+painkillers|care_baby|||
+nappies|care_baby|||
+diapers|care_baby|||
+baby wipes|care_baby|||
+baby food|care_baby|||
+formula|care_baby|||
+cotton buds|care_baby|||
+tampax|care_baby|||
+wasmiddel|household|||
+vloeibaar wasmiddel|household|||
+Robijn|household|||
+Persil|household|||
+Ariel pods|household|||
+wasverzachter|household|||
+Lenor|household|||
+vlekkenspray|household|||
+afwasmiddel|household|||
+Dreft|household|||
+1 fles Dreft|household|1|fles|Dreft
+vaatwastabletten|household|||
+Finish tabletten|household|||
+Sun vaatwasblokjes|household|||
+glansspoelmiddel|household|||
+vaatwaszout|household|||
+allesreiniger|household|||
+Ajax|household|||
+Cif|household|||
+schoonmaakazijn|household|||
+bleek|household|||
+Glorix|household|||
+wc-reiniger|household|||
+wc blokjes|household|||
+ontstopper|household|||
+glasreiniger|household|||
+toiletpapier|household|||
+wc papier|household|||
+wc-papier|household|||
+Page toiletpapier|household|||
+keukenrol|household|||
+keukenpapier|household|||
+2 keukenrollen|household|2||keukenrollen
+tissues|household|||
+zakdoekjes|household|||
+vuilniszakken|household|||
+afvalzakken|household|||
+pedaalemmerzakken|household|||
+boterhamzakjes|household|||
+diepvrieszakjes|household|||
+huishoudfolie|household|||
+aluminiumfolie|household|||
+bakpapier|household|||
+sponsjes|household|||
+schuursponsjes|household|||
+afwasborstel|household|||
+vaatdoekjes|household|||
+microvezeldoek|household|||
+batterijen|household|||
+AA batterijen|household|||
+lampjes|household|||
+waxinelichtjes|household|||
+kaarsen|household|||
+lucifers|household|||
+aanmaakblokjes|household|||
+houtskool|household|||
+kattenvoer|household|||
+Whiskas|household|||
+kattenbakvulling|household|||
+hondenvoer|household|||
+hondenbrokken|household|||
+luchtverfrisser|household|||
+ontkalker|household|||
+washing up liquid|household|||
+dishwasher tablets|household|||
+laundry detergent|household|||
+fabric softener|household|||
+bleach|household|||
+toilet roll|household|||
+toilet paper|household|||
+kitchen roll|household|||
+bin bags|household|||
+tin foil|household|||
+cling film|household|||
+sponges|household|||
+batteries|household|||
+cat food|household|||
+dog food|household|||
+light bulbs|household|||
+candles|household|||
+postzegels|other|||
+cadeaukaart|other|||
+cadeautje voor oma|other|||
+pakketje ophalen|other|||
+statiegeldbonnetje|other|||
+melk 2|dairy|2||melk
+kaas 1 stuk|cheese_deli|1|stuks|kaas
+2 st avocado|produce|2|stuks|avocado
+½ kilo uien|produce|0.5|kg|uien
+½ liter slagroom|dairy|0.5|l|slagroom
+1/2 brood|bakery|0.5||brood
+1,5 l cola|drinks|1.5|l|cola
+cola 1.5L|drinks|1.5|l|cola
+250 gram boter|dairy|250|g|boter
+boter 250g|dairy|250|g|boter
+kipfilet 500 gram|meat_fish|500|g|kipfilet
+gehakt 1 kg|meat_fish|1|kg|gehakt
+4 stuks kipfilet|meat_fish|4|stuks|kipfilet
+3 zakken chips|snacks|3|zak|chips
+1 zak chips|snacks|1|zak|chips
+2 potten pindakaas|breakfast|2|pot|pindakaas
+1 pot jam|breakfast|1|pot|jam
+3 flessen wijn|drinks|3|fles|wijn
+2 pakken vla|dairy|2|pak|vla
+1 pak hagelslag|breakfast|1|pak|hagelslag
+2 blikken bier|drinks|2|blik|bier
+6 blikjes cola|drinks|6|blik|cola
+2 dozen eieren|dairy|2|doos|eieren
+1 doos tissues|household|1|doos|tissues
+4 rollen wc papier|household|4|rol|wc papier
+200 ml kookroom|dairy|200|ml|kookroom
+500 ml slagroom|dairy|500|ml|slagroom
+75 cl wijn|drinks|75|cl|wijn
+2 el olijfolie|tins_sauces|2|el|olijfolie
+1 tl kaneel|tins_sauces|1|tl|kaneel
+3 tl kerrie|tins_sauces|3|tl|kerrie
+1 snufje zout|tins_sauces|1|snuf|zout
+2 plakken bladerdeeg|frozen|2|plak|bladerdeeg
+8 plakjes ham|cheese_deli|8|plak|ham
+1 bakje champignons|produce|1|bak|champignons
+2 bakjes kwark|dairy|2|bak|kwark
+1 netje uien|produce|1|net|uien
+1 krop sla|produce|1|krop|sla
+2 kroppen ijsbergsla|produce|2|krop|ijsbergsla
+1 stronk broccoli|produce|1|stronk|broccoli
+1,5 kg aardappelen|produce|1.5|kg|aardappelen
+0,5 kg gehakt|meat_fish|0.5|kg|gehakt
+1½ liter melk|dairy|1.5|l|melk
+2,5 kilo appels|produce|2.5|kg|appels
+100g pijnboompitten|snacks|100|g|pijnboompitten
+400 g tomatenblokjes|tins_sauces|400|g|tomatenblokjes
+300gr spinazie|produce|300|g|spinazie
+1 kilo bloem|tins_sauces|1|kg|bloem
+2 kg suiker|tins_sauces|2|kg|suiker
+5 bananen|produce|5||bananen
+12 eieren|dairy|12||eieren
+2x melk|dairy|2||melk
+melk x2|dairy|2||melk
+2 x kaas|cheese_deli|2||kaas
+tomaten 6 stuks|produce|6|stuks|tomaten
+bananen 6|produce|6||bananen
+eieren 10 st|dairy|10|stuks|eieren
+1 liter melk|dairy|1|l|melk
+2 liter cola|drinks|2|l|cola
+33cl bier|drinks|33|cl|bier
+1 krat Heineken|drinks|1|krat|Heineken
+2 tubes tandpasta|care_baby|2|tube|tandpasta
+1 tube tomatenpuree|tins_sauces|1|tube|tomatenpuree
+3 potjes fruithapje|care_baby|3|pot|fruithapje
+1 pak luiers|care_baby|1|pak|luiers
+2 pakken Pampers|care_baby|2|pak|Pampers
+1 fles afwasmiddel|household|1|fles|afwasmiddel
+1 pak vaatwastabletten|household|1|pak|vaatwastabletten
+2 pakken koffie|breakfast|2|pak|koffie
+1 doosje thee|breakfast|1|doos|thee
+2 bossen bosui|produce|2|bos|bosui
+1 bos radijs|produce|1|bos|radijs
+1 tros tomaten|produce|1|tros|tomaten
+2 netten mandarijnen|produce|2|net|mandarijnen
+1 zak aardappelen|produce|1|zak|aardappelen
+1 zak rijst|pasta_world|1|zak|rijst
+2 zakjes gist|tins_sauces|2|zak|gist
+1 blik mais|tins_sauces|1|blik|mais
+3 blikken tomaten|tins_sauces|3|blik|tomaten
+1 pot pesto|pasta_world|1|pot|pesto
+2 potjes sambal|pasta_world|2|pot|sambal
+1 fles ketjap|pasta_world|1|fles|ketjap
+1 fles sojasaus|pasta_world|1|fles|sojasaus
+2 flesjes ranja|drinks|2|fles|ranja
+1 rol beschuit|breakfast|1|rol|beschuit
+2 rollen koekjes|snacks|2|rol|koekjes
+1 reep chocola|snacks|1|reep|chocola
+1 stuk parmezaan|cheese_deli|1|stuks|parmezaan
+4 stuks croissants|bakery|4|stuks|croissants
+1 brood|bakery|1||brood
+2 broden|bakery|2||broden
+2 milk|dairy|2||milk
+500g mince|meat_fish|500|g|mince
+1kg potatoes|produce|1|kg|potatoes
+2 tins of chopped tomatoes|tins_sauces|2|blik|chopped tomatoes
+3 cans of coke|drinks|3|blik|coke
+1 bottle of olive oil|tins_sauces|1|fles|olive oil
+2 bottles of wine|drinks|2|fles|wine
+1 bag of rice|pasta_world|1|zak|rice
+2 packs of butter|dairy|2|pak|butter
+1 jar of pesto|pasta_world|1|pot|pesto
+1 bunch of bananas|produce|1|bos|bananas
+1 bunch of coriander|produce|1|bos|coriander
+4 chicken breasts|meat_fish|4||chicken breasts
+250ml cream|dairy|250|ml|cream
+1 litre orange juice|drinks|1|l|orange juice
+2 tbsp honey|breakfast|2|el|honey
+1 tsp cinnamon|tins_sauces|1|tl|cinnamon
+1 clove garlic|produce|1|teentje|garlic
+6 eggs|dairy|6||eggs
+3 x yogurt|dairy|3||yogurt
+200g cheddar|cheese_deli|200|g|cheddar
+100 g walnoten|snacks|100|g|walnoten
+1 l melk|dairy|1|l|melk
+2 pak melk|dairy|2|pak|melk
+2 pakjes boter|dairy|2|pak|boter
+1 pakje roomboter|dairy|1|pak|roomboter
+3 stuks paprika|produce|3|stuks|paprika
+1 kg wortelen|produce|1|kg|wortelen
+750 gr sperziebonen|produce|750|g|sperziebonen
+400gr kipdijfilet|meat_fish|400|g|kipdijfilet
+2 pakken spekjes|meat_fish|2|pak|spekjes
+1 zak friet|frozen|1|zak|friet
+1 doos ijs|frozen|1|doos|ijs
+2 bakken ijs|frozen|2|bak|ijs
+1 pak wasmiddel|household|1|pak|wasmiddel
+1 zak kattenvoer|household|1|zak|kattenvoer
+kattenvoer 4 zakjes|household|4|zak|kattenvoer
+hondenvoer 2kg|household|2|kg|hondenvoer
+melk halfvol|dairy|||
+yoghurt naturel|dairy|||
+kaas jong belegen|cheese_deli|||
+brood volkoren|bakery|||
+appels groen|produce|||
+tomaten cherry|produce|||
+rijst basmati|pasta_world|||
+kip filet|meat_fish|||
+kip dijfilet|meat_fish|||
+pinda kaas|breakfast|||
+appel sap|drinks|||
+afwas middel|household|||
+wc reiniger|household|||
+keuken rol|household|||
+vuilnis zakken|household|||
+tanden borstel|care_baby|||
+Jumbo halfvolle melk|dairy|||
+Jumbo pindakaas|breakfast|||
+Jumbo Lekker Veggie burger|meat_fish|||
+Lidl Milbona yoghurt|dairy|||
+Plus volkoren brood|bakery|||
+AH Basic chips|snacks|||
+AH Biologisch eieren|dairy|||
+AH Terra plantaardige drink|dairy|||
+Albert Heijn kipfilet|meat_fish|||
+Ekoplaza havermout|breakfast|||
+Kruidvat shampoo|care_baby|||
+Etos deodorant|care_baby|||
+Hema tissues|household|||
+Delhaize spaghetti|pasta_world|||
+Colruyt Boni frieten|frozen|||
+Everyday vuilniszakken|household|||
+Smiling Hill appels|produce|||
+g'woon pindakaas|breakfast|||
+Kanis & Gunnink koffie|breakfast|||
+Zaanlander kaas|cheese_deli|||
+Melkan yoghurt|dairy|||
+Arla Skyr|dairy|||
+Valess|meat_fish|||
+Vivera shoarma|meat_fish|||
+Beyond burger|meat_fish|||
+Quorn stukjes|meat_fish|||
+Lassie toverrijst|pasta_world|||
+Duo Penotti|breakfast|||
+Bolletje beschuit|breakfast|||
+Wasa crackers|breakfast|||
+Hollandse nieuwe|meat_fish|||
+kibbeling|meat_fish|||
+lekkerbekje|meat_fish|||
+roomboter amandelstaaf|bakery|||
+oliebollen|bakery|||
+tompouce|bakery|||
+pindasaus Conimex|pasta_world|||
+sambal badjak|pasta_world|||
+babi pangang saus|pasta_world|||
+wokolie|pasta_world|||
+tahin|pasta_world|||
+harissa|pasta_world|||
+kipsaté saus|pasta_world|||
+groentesoep|tins_sauces|||
+champignonsoep|tins_sauces|||
+cup a soup|tins_sauces|||
+Knorr wereldpasta|pasta_world|||
+diepvries lasagne|frozen|||
+ijsthee|drinks|||
+kokoswater|drinks|||
+smoothie|drinks|||
+verse jus|drinks|||
+Chaudfontaine|drinks|||
+Bavaria 0.0|drinks|||
+Leffe blond|drinks|||
+Duvel|drinks|||
+Brand bier|drinks|||
+Jillz|drinks|||
+Smirnoff|drinks|||
+Baileys|drinks|||
+Martini|drinks|||
+Douwe Egberts aroma rood|breakfast|||
+Lavazza|breakfast|||
+Nescafé|breakfast|||
+Lipton thee|breakfast|||
+Twinings|breakfast|||
+Zonnatura thee|breakfast|||
+Hero cereal repen|snacks|||
+Sultana fruitbiscuit|snacks|||
+Lotus speculoos|snacks|||
+Maltesers|snacks|||
+Toblerone|snacks|||
+Red Band|snacks|||
+Autodrop|snacks|||
+Mentos|snacks|||
+Stimorol|snacks|||
+Wokkels|snacks|||
+Cheetos|snacks|||
+Tyrrells|snacks|||
+Duyvis nootjes|snacks|||
+Calvé satésaus|pasta_world|||
+Remia fritessaus|tins_sauces|||
+Heinz mayo|tins_sauces|||
+Hellmann's|tins_sauces|||
+Verstegen kruiden|tins_sauces|||
+Silvo kaneel|tins_sauces|||
+Van Gilse suiker|tins_sauces|||
+Oetker bakpoeder|tins_sauces|||
+Koopmans bloem|tins_sauces|||
+Unox cup a soup|tins_sauces|||
+Knorr bouillon|tins_sauces|||
+Bonduelle kikkererwten|tins_sauces|||
+Hak rode kool|tins_sauces|||
+Zwan worstjes|cheese_deli|||
+Kips leverworst|cheese_deli|||
+Gouda kaas|cheese_deli|||
+Président brie|cheese_deli|||
+Galbani mozzarella|cheese_deli|||
+Boursin|cheese_deli|||
+Mon Chou|cheese_deli|||
+Elite yoghurt|dairy|||
+Almhof yoghurt|dairy|||
+Campina vla|dairy|||
+Mona toetje|dairy|||
+Alpro yoghurt|dairy|||
+Becel pro-activ|dairy|||
+Blue Band|dairy|||
+Croma|tins_sauces|||
+Iglo spinazie|frozen|||
+Iglo doperwten|frozen|||
+Aviko friet|frozen|||
+Ristorante pizza|frozen|||
+Wagner pizza|frozen|||
+Ola Magnum|frozen|||
+Hertog ijs|frozen|||
+Nivea|care_baby|||
+Dove|care_baby|||
+Axe|care_baby|||
+Sanex|care_baby|||
+Elvive|care_baby|||
+Garnier|care_baby|||
+Always|care_baby|||
+Libresse|care_baby|||
+Kruidvat luiers|care_baby|||
+Zwitsal|care_baby|||
+Hipp|care_baby|||
+Bambix|care_baby|||
+Sensodyne|care_baby|||
+Colgate|care_baby|||
+Listerine|care_baby|||
+Dettol|household|||
+Biotex|household|||
+Omo|household|||
+Witte Reus|household|||
+Vanish|household|||
+Calgon|household|||
+Fairy|household|||
+Sun|household|||
+Finish|household|||
+Harpic|household|||
+Domestos|household|||
+Andy|household|||
+Mr Proper|household|||
+Edet|household|||
+Zewa|household|||
+Page|household|||
+Kleenex|household|||
+Duracell|household|||
+Philips lamp|household|||
+Felix kattenvoer|household|||
+Pedigree|household|||
+Sheba|household|||
+Glade|household|||
+Airwick|household|||
+melkk|dairy|||
+yoghurrt|dairy|||
+kwakr|dairy|||
+eiren|dairy|||
+kaaas|cheese_deli|||
+komkomer|produce|||
+tomatne|produce|||
+banannen|produce|||
+appel|produce|||
+aardbijen|produce|||
+champinons|produce|||
+paprikas|produce|||
+spinazi|produce|||
+uitjes|produce|||
+wortel|produce|||
+gehackt|meat_fish|||
+kipfillet|meat_fish|||
+spagettie|pasta_world|||
+macarony|pasta_world|||
+rijs|pasta_world|||
+mayonnaisse|tins_sauces|||
+ketchupp|tins_sauces|||
+pindakaaas|breakfast|||
+hagelslagg|breakfast|||
+koffe|breakfast|||
+choclade|snacks|||
+koekies|snacks|||
+chipps|snacks|||
+shampooo|care_baby|||
+tandpasata|care_baby|||
+wasmidel|household|||
+toiletpapir|household|||
+yoghurt aardbei|dairy|||
+yoghurt griekse stijl|dairy|||
+kwark vanille|dairy|||
+roomkaas bieslook|cheese_deli|||
+kipfilet gerookt|cheese_deli|||
+vleeswaren schaal|cheese_deli|||
+zalm gerookt|meat_fish|||
+garnalen gepeld|meat_fish|||
+kipgehakt|meat_fish|||
+kalkoenfilet|meat_fish|||
+eendenborst|meat_fish|||
+ossenhaas|meat_fish|||
+tartaar|meat_fish|||
+varkensvlees|meat_fish|||
+rundvlees|meat_fish|||
+vis|meat_fish|||
+witvis|meat_fish|||
+vegetarische kipstukjes|meat_fish|||
+appels jonagold|produce|||
+peren conference|produce|||
+druiven wit|produce|||
+sla gemengd|produce|||
+groenten voor soep|produce|||
+wokgroente|produce|||
+maaltijdsalade|produce|||
+fruitsalade|produce|||
+gesneden fruit|produce|||
+stamppot groente|produce|||
+witte rijst|pasta_world|||
+volkoren spaghetti|pasta_world|||
+glutenvrije pasta|pasta_world|||
+ramen noedels|pasta_world|||
+udon|pasta_world|||
+miso|pasta_world|||
+sriracha|pasta_world|||
+zoetzure saus|pasta_world|||
+oestersaus|pasta_world|||
+vissaus|pasta_world|||
+rijstazijn|pasta_world|||
+sesamolie|pasta_world|||
+kokosrasp|tins_sauces|||
+cranberrysaus|tins_sauces|||
+mierikswortel|tins_sauces|||
+worcestershiresaus|tins_sauces|||
+tabasco|tins_sauces|||
+truffelmayo|tins_sauces|||
+pijnboompitten|snacks|||
+zonnebloempitten|snacks|||
+chiazaad|breakfast|||
+lijnzaad|breakfast|||
+pompoenpitten|snacks|||
+Nutrilon standaard|care_baby|||
+dozen eggs|dairy|||
+free range eggs|dairy|||
+salted butter|dairy|||
+skimmed milk|dairy|||
+natural yoghurt|dairy|||
+brown bread|bakery|||
+white bread|bakery|||
+croissant|bakery|||
+pitta bread|bakery|||
+wraps volkoren|pasta_world|||
+spaghetti 500g|pasta_world|500|g|spaghetti
+penne 2 pakken|pasta_world|2|pak|penne
