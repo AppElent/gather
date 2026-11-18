@@ -23,12 +23,12 @@ import { api } from '../convex/api'
 import { useQuery } from '../convex/queries'
 import { useGroup } from '../group/GroupProvider'
 import { useI18n } from '../i18n'
+import { moduleShown } from '../modules/buildModules'
 import { UI_ICONS } from '../theme/icons'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import {
   type RecentRecordInput,
   recordsForGroup,
-  SEARCH_RECORD_TYPES,
   type SearchRecordType,
 } from './recentRecords'
 import {
@@ -38,7 +38,13 @@ import {
 } from './recentRecordsStore'
 import { onSearchFocusRequest } from './searchFocus'
 import { searchOrigin } from './searchOrigin'
-import { hrefFor, type QueryResult, toRecent } from './searchResults'
+import {
+  hrefFor,
+  type QueryResult,
+  recordShown,
+  searchableTypes,
+  toRecent,
+} from './searchResults'
 
 const SEARCH_DELAY_MS = 200
 const MINIMUM_QUERY = 2
@@ -108,12 +114,15 @@ export function SearchScreen() {
       ? {
           groupSlug: group.slug,
           query: debounced,
-          accepts: [...SEARCH_RECORD_TYPES],
+          accepts: searchableTypes(moduleShown),
         }
       : 'skip',
   )
   const groupRecents = useMemo(
-    () => recordsForGroup(recents, group.slug),
+    () =>
+      recordsForGroup(recents, group.slug).filter((record) =>
+        recordShown(record, moduleShown),
+      ),
     [group.slug, recents],
   )
 

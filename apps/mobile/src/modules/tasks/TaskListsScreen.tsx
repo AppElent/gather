@@ -32,6 +32,7 @@ import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
 import { WashHeader } from '../../ui/wash-header'
+import { moduleShown } from '../buildModules'
 import { TASK_ICONS } from './icons'
 import { ListTile } from './listFace'
 import { NewListSheet } from './NewListSheet'
@@ -201,7 +202,8 @@ export function TaskLists() {
         <NewListSheet
           onClose={() => setCreating(false)}
           onCreated={(list) =>
-            list.kind === 'groceries'
+            // A store build that hides Groceries opens the new list itself.
+            list.kind === 'groceries' && moduleShown('groceries')
               ? router.push('/all/groceries')
               : router.push({
                   pathname: '/all/tasks/[listId]',

@@ -28,6 +28,8 @@ import type { ModuleGroup } from '@gather/core/modules'
 import { pinnedModuleIds, togglePin } from '@gather/core/pins'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { LIVE_MODULES_ONLY } from '../modules/buildModules'
+import { shownArrangement } from '../modules/moduleVisibility'
 import {
   allArrangementKey,
   PREFERENCE_KEYS,
@@ -152,7 +154,13 @@ export function useModuleArrangement(groupSlug: string): ModuleArrangement {
     }
   }, [groupSlug])
 
-  const arrangement = useMemo(() => arrangeModules(stored), [stored])
+  // A Module this build does not show is not in All, Home's pins or edit mode
+  // (`modules/moduleVisibility.ts`). Its stored place is kept, so a build
+  // that shows it puts it back where the reader left it.
+  const arrangement = useMemo(
+    () => shownArrangement(arrangeModules(stored), LIVE_MODULES_ONLY),
+    [stored],
+  )
   const collapsed = stored.collapsed ?? []
 
   const commit = useCallback(
