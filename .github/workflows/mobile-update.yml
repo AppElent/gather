@@ -47,6 +47,9 @@ jobs:
       VITE_SENTRY_ORG: ${{ vars.VITE_SENTRY_ORG }}
       VITE_SENTRY_PROJECT: ${{ vars.VITE_SENTRY_PROJECT }}
       FORCE: ${{ inputs.force && '--force' || '' }}
+      # Android is paused until this repository variable is `true`
+      # (developer-home standards/releases.md, "Android pause").
+      ANDROID_ENABLED: ${{ vars.ANDROID_ENABLED }}
     steps:
       # Web has already shipped by now, so a missing token warns rather than
       # turning the Deploy run red. The production update job never selects a
@@ -93,8 +96,8 @@ jobs:
             git push -f origin "refs/tags/ota-preview-$platform"
             published=$((published + 1))
           done
-          # The channel tag means "every platform runs at least this commit".
-          if [ "$published" -eq 2 ]; then
+          # The channel tag means "every enabled platform runs at least this commit".
+          if [ "$published" -eq "$([ "$ANDROID_ENABLED" = true ] && echo 2 || echo 1)" ]; then
             git tag -f ota-preview
             git push -f origin refs/tags/ota-preview
           fi

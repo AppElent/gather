@@ -12,6 +12,11 @@ Run the commands from `apps/mobile`. Development builds are in
 
 ## Over the air or a new build
 
+> **Android is paused (Eric, 18 Nov 2026).** Until the repository variable
+> `ANDROID_ENABLED` is `true`, `ota-gate.mjs` and both Mobile Update workflows
+> publish iOS only. Re-enable with `gh variable set ANDROID_ENABLED --body true`
+> (developer-home `standards/releases.md`, "Android pause").
+
 A change reaches installed builds one of two ways, and which one is not a
 judgement call — `expo-updates` decides it mechanically. See
 [ADR 0029](../adr/0029-a-javascript-change-ships-over-the-air-and-a-native-one-does-not.md).
