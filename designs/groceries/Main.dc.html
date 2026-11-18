@@ -1,0 +1,905 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Boodschappen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.85}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+input,textarea{font:inherit;color:inherit;border:0;background:transparent;outline:none;padding:0;margin:0;width:100%}
+</style>
+</helmet>
+<div style="width: {{w}}px; height: {{h}}px; position: relative; overflow: hidden; background: {{c.ground}}; font-family: -apple-system, 'SF Pro Text', system-ui, 'Helvetica Neue', Arial, sans-serif; color: {{c.ink}}">
+
+  <sc-if value="{{showWash}}" hint-placeholder-val="{{ true }}">
+    <div style="background: {{c.kitchenWash}}; padding: 54px 16px 20px 16px; display: flex; flex-direction: column">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <a href="{{hdr.backHref}}" aria-label="Terug naar {{hdr.back}}" style="height: 44px; padding: 0 16px 0 8px; border-radius: 999px; display: flex; align-items: center; gap: 2px; text-decoration: none; color: {{c.ink}}; background: {{c.glass}}; box-shadow: {{c.glassShadow}}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+          <span style="font-size: 17px; line-height: 22px">{{hdr.back}}</span>
+        </a>
+        <button aria-label="{{hdr.menuLabel}}" style="width: 44px; height: 44px; border-radius: 999px; background: {{c.glass}}; box-shadow: {{c.glassShadow}}; display: flex; align-items: center; justify-content: center; color: {{c.ink}}">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="1.7"></circle><circle cx="19" cy="12" r="1.7"></circle><circle cx="5" cy="12" r="1.7"></circle></svg>
+        </button>
+      </div>
+      <h1 style="margin: 6px 4px 0 4px; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 34px; line-height: 41px; font-weight: 700">{{hdr.title}}</h1>
+      <div style="margin: 12px 4px 0 4px; display: flex; align-items: center; gap: 14px">
+        <span aria-hidden="true" style="width: 56px; height: 56px; flex: 0 0 56px; border-radius: 17px; background: {{c.kitchenFill}}; display: flex; align-items: center; justify-content: center">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenOn}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{hdr.glyph}}"></path></svg>
+        </span>
+        <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 17px; line-height: 22px"><span style="font-weight: 700; font-variant-numeric: tabular-nums">{{hdr.count}}</span> · {{hdr.scope}}</span>
+          <sc-if value="{{hdr.hasStore}}" hint-placeholder-val="{{ true }}">
+            <a href="Stores.dc.html" aria-label="Lijst: {{store}}, wisselen" style="align-self: flex-start; min-height: 32px; padding: 0 10px 0 12px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; gap: 6px; text-decoration: none; color: {{c.ink}}; font-size: 15px; font-weight: 600">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.store}}"></path></svg>
+              {{store}}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+            </a>
+          </sc-if>
+          <sc-if value="{{hdr.hasSub}}" hint-placeholder-val="{{ false }}">
+            <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">{{hdr.sub}}</span>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{showBar}}" hint-placeholder-val="{{ false }}">
+    <div style="padding: 54px 16px 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px">
+      <a href="{{bar.leftHref}}" style="height: 44px; padding: 0 16px; border-radius: 999px; background: {{c.glass}}; box-shadow: {{c.glassShadow}}; display: flex; align-items: center; text-decoration: none; color: {{c.ink}}; font-size: 17px">{{bar.left}}</a>
+      <span style="font-size: 17px; line-height: 22px; font-weight: 600">{{bar.title}}</span>
+      <sc-if value="{{bar.hasRightLink}}" hint-placeholder-val="{{ true }}">
+        <a href="{{bar.rightHref}}" style="height: 44px; padding: 0 18px; border-radius: 999px; background: {{c.kitchenFill}}; display: flex; align-items: center; text-decoration: none; color: {{c.kitchenOn}}; font-size: 17px; font-weight: 600">{{bar.right}}</a>
+      </sc-if>
+      <sc-if value="{{bar.hasRightText}}" hint-placeholder-val="{{ false }}">
+        <span style="min-width: 64px; text-align: right; font-size: 17px; line-height: 22px; font-weight: 600; font-variant-numeric: tabular-nums">{{bar.right}}</span>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <div style="padding: 20px 16px 140px 16px; display: flex; flex-direction: column; gap: 20px">
+
+    <sc-if value="{{isShop}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; line-height: 18px; color: {{c.muted}}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.sun}}"></path></svg>
+          Albert Heijn · scherm blijft aan tot je klaar bent
+        </div>
+        <div role="progressbar" aria-label="Afgevinkt" aria-valuemin="0" aria-valuemax="{{shop.total}}" aria-valuenow="{{shop.done}}" style="height: 8px; border-radius: 999px; background: {{c.surface2}}; overflow: hidden">
+          <div style="height: 8px; width: {{shop.pct}}%; border-radius: 999px; background: {{c.kitchenText}}"></div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showActions}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; gap: 8px">
+        <a href="Shop.dc.html" style="flex-grow: 1; min-height: 44px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-size: 17px; font-weight: 600">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.cart}}"></path></svg>
+          Winkelen
+        </a>
+        <a href="Stock.dc.html" style="min-height: 44px; padding: 0 16px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; gap: 6px; text-decoration: none; color: {{c.ink}}; font-size: 17px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.home}}"></path></svg>
+          In huis
+        </a>
+        <a href="Recent.dc.html" style="min-height: 44px; padding: 0 16px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; gap: 6px; text-decoration: none; color: {{c.ink}}; font-size: 17px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.clock}}"></path></svg>
+          Recent
+        </a>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showSuggest}}" hint-placeholder-val="{{ true }}">
+      <section aria-label="Misschien nodig" style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: baseline; gap: 8px; padding: 0 4px">
+          <h2 style="margin: 0; flex-grow: 1; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">Misschien nodig</h2>
+          <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Houd ingedrukt om te verbergen</span>
+        </div>
+        <div style="display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 0 16px">
+          <sc-for list="{{suggestions}}" as="s" hint-placeholder-count="4">
+            <button onClick="{{s.add}}" aria-label="{{s.name}} op de lijst zetten, {{s.why}}" style="flex: 0 0 148px; min-height: 76px; box-sizing: border-box; border-radius: 22px; background: {{c.surface}}; padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px">
+              <span style="display: flex; align-items: center; gap: 6px">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenText}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                <span style="font-size: 17px; line-height: 22px; font-weight: 600">{{s.name}}</span>
+              </span>
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{s.why}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-for list="{{sections}}" as="sec" hint-placeholder-count="3">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <sc-if value="{{sec.hasLabel}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; align-items: baseline; gap: 8px; padding: 0 4px">
+            <h2 style="margin: 0; flex-grow: 1; font-size: {{sec.labelSize}}px; line-height: {{sec.labelLine}}px; font-weight: {{sec.labelWeight}}; color: {{sec.labelColor}}">{{sec.label}}</h2>
+            <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}; font-variant-numeric: tabular-nums">{{sec.aside}}</span>
+          </div>
+        </sc-if>
+        <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+          <sc-for list="{{sec.rows}}" as="r" hint-placeholder-count="3">
+
+            <sc-if value="{{r.isItem}}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; align-items: stretch">
+                <button aria-label="{{r.checkLabel}}" onClick="{{r.toggle}}" style="width: 40px; flex: 0 0 40px; display: flex; align-items: center; justify-content: flex-start">
+                  <span style="width: 24px; height: 24px; border-radius: 999px; box-sizing: border-box; border: 2px solid {{c.kitchenText}}; background: {{r.discBg}}; display: flex; align-items: center; justify-content: center">
+                    <sc-if value="{{r.done}}" hint-placeholder-val="{{ false }}">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.ground}}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                    </sc-if>
+                  </span>
+                </button>
+                <a href="Item.dc.html" style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 16px 8px 0; box-sizing: border-box; border-top: {{r.sep}}; text-decoration: none; color: inherit">
+                  <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                    <span style="font-size: 17px; line-height: 22px">{{r.name}}</span>
+                    <sc-if value="{{r.hasMeta}}" hint-placeholder-val="{{ true }}">
+                      <span style="display: flex; align-items: center; gap: 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">
+                        <sc-if value="{{r.fromRecipe}}" hint-placeholder-val="{{ false }}">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Uit recept"><path d="{{g.book}}"></path></svg>
+                        </sc-if>
+                        <span>{{r.meta}}</span>
+                      </span>
+                    </sc-if>
+                  </div>
+                  <span style="font-size: 17px; line-height: 22px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap">{{r.qty}}</span>
+                </a>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{r.isAdd}}" hint-placeholder-val="{{ false }}">
+              <a href="{{r.href}}" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit">
+                <span aria-hidden="true" style="width: 28px; flex: 0 0 28px; display: flex; align-items: center; justify-content: flex-start">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenText}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.glyph}}"></path></svg>
+                </span>
+                <span style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; min-height: 56px; padding: 6px 14px 6px 0; box-sizing: border-box; border-top: {{r.sep}}">
+                  <span style="font-size: 17px; line-height: 22px">{{r.label}}</span>
+                  <sc-if value="{{r.hasSub}}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{r.sub}}</span>
+                  </sc-if>
+                </span>
+              </a>
+            </sc-if>
+
+            <sc-if value="{{r.isDoneRow}}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; align-items: center; gap: 12px">
+                <span aria-hidden="true" style="width: 28px; flex: 0 0 28px; display: flex; align-items: center">
+                  <span style="width: 24px; height: 24px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                  </span>
+                </span>
+                <span style="flex-grow: 1; display: flex; align-items: center; gap: 8px; min-height: 52px; padding-right: 8px; border-top: {{r.sep}}">
+                  <span style="flex-grow: 1; font-size: 17px; line-height: 22px; color: {{c.muted}}">{{r.label}}</span>
+                  <button onClick="{{r.undo}}" style="min-height: 44px; padding: 0 8px; font-size: 15px; font-weight: 600">Zet terug</button>
+                </span>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{r.isRecent}}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 8px 6px 0; box-sizing: border-box; border-top: {{r.sep}}">
+                <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                  <span style="font-size: 17px; line-height: 22px">{{r.name}}</span>
+                  <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{r.meta}}</span>
+                </div>
+                <sc-if value="{{r.onList}}" hint-placeholder-val="{{ false }}">
+                  <span style="display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 8px; font-size: 15px; color: {{c.muted}}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                    Op de lijst
+                  </span>
+                </sc-if>
+                <sc-if value="{{r.canAdd}}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{r.add}}" aria-label="{{r.addLabel}}" style="width: 44px; height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: center">
+                    <span style="width: 32px; height: 32px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                    </span>
+                  </button>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{r.isStock}}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 8px 6px 0; box-sizing: border-box; border-top: {{r.sep}}">
+                <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                  <span style="font-size: 17px; line-height: 22px">{{r.name}}</span>
+                  <sc-if value="{{r.hasMeta}}" hint-placeholder-val="{{ true }}">
+                    <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{r.meta}}</span>
+                  </sc-if>
+                </div>
+                <button onClick="{{r.toggle}}" aria-label="{{r.toggleLabel}}" style="min-height: 44px; display: flex; align-items: center">
+                  <span style="min-height: 32px; padding: 0 12px; border-radius: 999px; background: {{r.pillBg}}; color: {{r.pillFg}}; display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; white-space: nowrap">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.pillGlyph}}"></path></svg>
+                    {{r.pill}}
+                  </span>
+                </button>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{r.isAisle}}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; align-items: center; gap: 8px; min-height: 52px; padding-right: 6px; box-sizing: border-box; border-top: {{r.sep}}">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="{{g.grip}}"></path></svg>
+                <span style="flex-grow: 1; min-width: 0; font-size: 17px; line-height: 22px">{{r.name}}</span>
+                <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}; font-variant-numeric: tabular-nums">{{r.count}}</span>
+                <button onClick="{{r.up}}" aria-label="{{r.upLabel}}" style="width: 40px; height: 44px; display: flex; align-items: center; justify-content: center; opacity: {{r.upOpacity}}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"></path></svg>
+                </button>
+                <button onClick="{{r.down}}" aria-label="{{r.downLabel}}" style="width: 40px; height: 44px; display: flex; align-items: center; justify-content: center; opacity: {{r.downOpacity}}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+                </button>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{r.isShop}}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{r.toggle}}" aria-label="{{r.checkLabel}}" aria-pressed="{{r.pressed}}" style="width: 100%; display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 10px 16px 10px 0; box-sizing: border-box; border-top: {{r.sep}}">
+                <span style="width: 32px; height: 32px; flex: 0 0 32px; border-radius: 999px; box-sizing: border-box; border: 2.5px solid {{r.ring}}; background: {{r.discBg}}; display: flex; align-items: center; justify-content: center">
+                  <sc-if value="{{r.done}}" hint-placeholder-val="{{ false }}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.ground}}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                  </sc-if>
+                </span>
+                <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                  <span style="font-size: 20px; line-height: 25px; font-weight: 600; color: {{r.nameColor}}; text-decoration: {{r.strike}}">{{r.name}}</span>
+                  <sc-if value="{{r.hasMeta}}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}">{{r.meta}}</span>
+                  </sc-if>
+                </span>
+                <span style="font-size: 20px; line-height: 25px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: {{r.nameColor}}">{{r.qty}}</span>
+              </button>
+            </sc-if>
+
+          </sc-for>
+        </div>
+        <sc-if value="{{sec.hasFoot}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{sec.foot}}</p>
+        </sc-if>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{isStock}}" hint-placeholder-val="{{ false }}">
+      <p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Vink je een vast voorraaditem af op de lijst, dan staat het hier weer op voorraad. Recept en weekmenu laten wat op voorraad is uitgevinkt beginnen.</p>
+    </sc-if>
+
+    <sc-if value="{{isAisles}}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{resetAisles}}" style="min-height: 52px; border-radius: 22px; background: {{c.surface}}; font-size: 17px; text-align: center">Standaardvolgorde herstellen</button>
+    </sc-if>
+  </div>
+
+
+  <sc-if value="{{showComposerBar}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 34px 16px; background: {{c.ground}}; border-top: 0.5px solid {{c.hair}}">
+      <a href="Composer.dc.html" style="min-height: 48px; border-radius: 999px; background: {{c.surface}}; display: flex; align-items: center; gap: 10px; padding: 0 6px 0 16px; text-decoration: none; color: {{c.muted}}; font-size: 17px">
+        <span style="flex-grow: 1">Item toevoegen, bijv. 2 pak melk</span>
+        <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 999px; background: {{c.kitchenFill}}; display: flex; align-items: center; justify-content: center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenOn}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+        </span>
+      </a>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isShop}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 34px 16px; background: {{c.ground}}; border-top: 0.5px solid {{c.hair}}; display: flex; flex-direction: column; gap: 10px">
+      <sc-if value="{{shop.hasUndo}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 6px 0 16px; border-radius: 999px; background: {{c.surface2}}">
+          <span style="flex-grow: 1; font-size: 15px; line-height: 20px">{{shop.undoText}}</span>
+          <button onClick="{{shop.undo}}" style="min-height: 44px; padding: 0 12px; font-size: 15px; font-weight: 600">Ongedaan maken</button>
+        </div>
+      </sc-if>
+      <a href="Main.dc.html" style="min-height: 56px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 18px; font-weight: 700">Klaar met winkelen</a>
+    </div>
+  </sc-if>
+
+
+  <sc-if value="{{isComposer}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column">
+      <div style="margin: 0 8px 8px 8px; background: {{c.surface}}; border-radius: 22px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding-left: 16px" role="listbox" aria-label="Aanvullen">
+        <sc-for list="{{completions}}" as="cp" hint-placeholder-count="3">
+          <button role="option" aria-selected="{{cp.first}}" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 16px 6px 0; box-sizing: border-box; border-top: {{cp.sep}}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{cp.glyph}}"></path></svg>
+            <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+              <span style="font-size: 17px; line-height: 22px"><span style="font-weight: 600">{{cp.match}}</span>{{cp.rest}}</span>
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{cp.why}}</span>
+            </span>
+            <span style="font-size: 17px; line-height: 22px; font-weight: 600; font-variant-numeric: tabular-nums">{{cp.qty}}</span>
+          </button>
+        </sc-for>
+      </div>
+      <section aria-label="Item toevoegen aan Albert Heijn" style="background: {{c.surface}}; border-radius: 22px 22px 0 0; border-top: 0.5px solid {{c.hair}}; padding: 12px 16px 10px 16px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: flex-end; gap: 10px">
+          <div aria-label="Nieuw item" style="flex-grow: 1; font-size: 17px; line-height: 26px; min-height: 26px">
+            <sc-for list="{{segs}}" as="s" hint-placeholder-count="2">
+              <span style="background: {{s.bg}}; border-radius: 6px; padding: {{s.pad}}; font-weight: {{s.weight}}">{{s.t}}</span>
+            </sc-for>
+            <span aria-hidden="true" style="display: inline-block; width: 2px; height: 20px; vertical-align: -4px; margin-left: 1px; background: {{c.kitchenText}}"></span>
+          </div>
+          <a href="Main.dc.html" aria-label="Toevoegen" style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 999px; background: {{c.kitchenFill}}; display: flex; align-items: center; justify-content: center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenOn}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+          </a>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <a href="Stores.dc.html" aria-label="Lijst: Albert Heijn, wijzigen" style="min-height: 32px; padding: 0 10px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; gap: 6px; font-size: 15px; text-decoration: none; color: {{c.ink}}">
+            <span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 6px; background: {{c.kitchenFill}}; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenOn}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.cart}}"></path></svg></span>
+            Albert Heijn
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+          </a>
+          <sc-for list="{{chips}}" as="ch" hint-placeholder-count="2">
+            <span style="min-height: 32px; padding: 0 4px 0 10px; border-radius: 999px; background: {{c.kitchenWash}}; display: flex; align-items: center; gap: 6px; font-size: 15px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ch.icon}}"></path></svg>
+              {{ch.label}}
+              <button aria-label="{{ch.removeLabel}}" onClick="{{ch.remove}}" style="width: 28px; height: 28px; border-radius: 999px; display: flex; align-items: center; justify-content: center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+              </button>
+            </span>
+          </sc-for>
+        </div>
+        <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Hoeveelheid en afdeling worden herkend, zonder AI en ook offline</span>
+      </section>
+      <div aria-hidden="true" style="height: 291px; background: {{c.keyboard}}; display: flex; align-items: center; justify-content: center; font-size: 13px; color: {{c.muted}}">Toetsenbord</div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isItem}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: {{c.scrim}}">
+      <section aria-label="Item" style="position: absolute; left: 0; right: 0; bottom: 0; top: 54px; background: {{c.ground}}; border-radius: 34px 34px 0 0; padding: 8px 16px 34px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+        <div aria-hidden="true" style="align-self: center; width: 36px; height: 5px; border-radius: 999px; background: {{c.hair}}"></div>
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <a href="Main.dc.html" style="height: 44px; padding: 0 16px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; text-decoration: none; color: {{c.ink}}; font-size: 17px">Annuleren</a>
+          <h1 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 600">Item</h1>
+          <a href="Main.dc.html" style="height: 44px; padding: 0 18px; border-radius: 999px; background: {{c.kitchenFill}}; display: flex; align-items: center; text-decoration: none; color: {{c.kitchenOn}}; font-size: 17px; font-weight: 600">Bewaar</a>
+        </div>
+        <div style="background: {{c.surface}}; border-radius: 22px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px">
+          <input type="text" aria-label="Naam" value="Melk" onChange="{{noop}}" style="font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700">
+          <input type="text" aria-label="Notitie" value="Halfvol" onChange="{{noop}}" style="font-size: 15px; line-height: 20px; color: {{c.muted}}">
+        </div>
+        <div style="background: {{c.surface}}; border-radius: 22px; padding: 12px 16px 14px 16px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span style="flex-grow: 1; font-size: 17px; line-height: 22px">Hoeveelheid</span>
+            <div role="group" aria-label="Hoeveelheid" style="display: flex; align-items: center; gap: 4px; padding: 2px; border-radius: 999px; background: {{c.surface2}}">
+              <button onClick="{{item.minus}}" aria-label="Minder" style="width: 44px; height: 40px; border-radius: 999px; display: flex; align-items: center; justify-content: center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg>
+              </button>
+              <span aria-live="polite" style="min-width: 36px; text-align: center; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; font-variant-numeric: tabular-nums">{{item.qty}}</span>
+              <button onClick="{{item.plus}}" aria-label="Meer" style="width: 44px; height: 40px; border-radius: 999px; display: flex; align-items: center; justify-content: center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+              </button>
+            </div>
+          </div>
+          <div role="radiogroup" aria-label="Eenheid" style="display: flex; flex-wrap: wrap; gap: 6px">
+            <sc-for list="{{units}}" as="u" hint-placeholder-count="8">
+              <button role="radio" aria-checked="{{u.checked}}" onClick="{{u.pick}}" style="min-height: 36px; padding: 0 12px; border-radius: 999px; background: {{u.bg}}; color: {{u.fg}}; font-size: 15px; font-weight: 600">{{u.label}}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background: {{c.surface}}; border-radius: 22px">
+          <sc-for list="{{itemFields}}" as="f" hint-placeholder-count="2">
+            <button style="width: 100%; display: flex; align-items: center; gap: 12px; padding-left: 16px">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{f.glyph}}"></path></svg>
+              <span style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 52px; padding-right: 12px; border-top: {{f.sep}}; box-sizing: border-box">
+                <span style="flex-grow: 1; font-size: 17px; line-height: 22px">{{f.label}}</span>
+                <span style="font-size: 17px; line-height: 22px; color: {{c.muted}}; white-space: nowrap">{{f.value}}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"></path></svg>
+              </span>
+            </button>
+          </sc-for>
+          <div style="display: flex; align-items: center; gap: 12px; padding-left: 16px">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.home}}"></path></svg>
+            <span style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 60px; padding-right: 12px; border-top: 0.5px solid {{c.hair}}; box-sizing: border-box">
+              <span style="flex-grow: 1; display: flex; flex-direction: column">
+                <span style="font-size: 17px; line-height: 22px">Vaste voorraad</span>
+                <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Bijhouden bij In huis</span>
+              </span>
+              <button role="switch" aria-checked="{{item.stockChecked}}" aria-label="Vaste voorraad" onClick="{{item.toggleStock}}" style="width: 51px; height: 31px; border-radius: 999px; background: {{item.switchBg}}; position: relative; flex: 0 0 51px">
+                <span style="position: absolute; top: 2px; left: {{item.knobLeft}}px; width: 27px; height: 27px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 2px 4px rgba(0,0,0,0.2)"></span>
+              </button>
+            </span>
+          </div>
+        </div>
+        <div style="background: {{c.kitchenWash}}; border-radius: 22px; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">Wat jullie meestal doen</span>
+          <span style="font-size: 17px; line-height: 22px; font-weight: 600">9 keer gekocht, meestal 2 pak, elke 4 dagen</span>
+          <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">Laatst za 14 november, door Sanne</span>
+        </div>
+        <button style="min-height: 52px; border-radius: 22px; background: {{c.surface}}; color: {{c.danger}}; font-size: 17px; text-align: center">Item verwijderen</button>
+      </section>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isStores}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: {{c.scrim}}">
+      <section aria-label="Boodschappenlijsten" style="position: absolute; left: 0; right: 0; bottom: 0; top: 300px; background: {{c.ground}}; border-radius: 34px 34px 0 0; padding: 8px 16px 34px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+        <div aria-hidden="true" style="align-self: center; width: 36px; height: 5px; border-radius: 999px; background: {{c.hair}}"></div>
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <span style="width: 64px"></span>
+          <h1 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 600">Boodschappenlijsten</h1>
+          <a href="Main.dc.html" style="height: 44px; width: 64px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; justify-content: center; text-decoration: none; color: {{c.ink}}; font-size: 17px; font-weight: 600">Klaar</a>
+        </div>
+        <div role="radiogroup" aria-label="Boodschappenlijst" style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+          <sc-for list="{{storeRows}}" as="sr" hint-placeholder-count="3">
+            <button role="radio" aria-checked="{{sr.checked}}" onClick="{{sr.pick}}" style="width: 100%; display: flex; align-items: center; gap: 12px">
+              <span aria-hidden="true" style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: {{c.kitchenFill}}; display: flex; align-items: center; justify-content: center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenOn}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{sr.glyph}}"></path></svg>
+              </span>
+              <span style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 6px 14px 6px 0; box-sizing: border-box; border-top: {{sr.sep}}">
+                <span style="flex-grow: 1; display: flex; flex-direction: column">
+                  <span style="font-size: 17px; line-height: 22px">{{sr.name}}</span>
+                  <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{sr.sub}}</span>
+                </span>
+                <span style="font-size: 15px; line-height: 20px; color: {{c.muted}}; font-variant-numeric: tabular-nums">{{sr.count}}</span>
+                <sc-if value="{{sr.selected}}" hint-placeholder-val="{{ false }}">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenText}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                </sc-if>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+          <a href="Aisles.dc.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.sort}}"></path></svg>
+            <span style="flex-grow: 1; display: flex; align-items: center; min-height: 52px; padding-right: 14px; gap: 8px">
+              <span style="flex-grow: 1; font-size: 17px; line-height: 22px">Schapvolgorde van {{storeName}}</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+            </span>
+          </a>
+          <a href="#" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenText}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+            <span style="flex-grow: 1; display: flex; align-items: center; min-height: 52px; border-top: 0.5px solid {{c.hair}}; font-size: 17px; line-height: 22px">Nieuwe boodschappenlijst</span>
+          </a>
+        </div>
+        <p style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; color: {{c.muted}}">Elke lijst heeft zijn eigen schapvolgorde. Een item verplaatsen houdt hoeveelheid en afdeling.</p>
+      </section>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isRecipe}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: {{c.scrim}}">
+      <div aria-hidden="true" style="padding: 62px 24px 0 24px; opacity: 0.45; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 30px; line-height: 34px; font-weight: 700">{{rc.behind}}</div>
+      <section aria-label="Op de boodschappenlijst" style="position: absolute; left: 0; right: 0; bottom: 0; top: 112px; background: {{c.ground}}; border-radius: 34px 34px 0 0; padding: 8px 16px 34px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+        <div aria-hidden="true" style="align-self: center; width: 36px; height: 5px; border-radius: 999px; background: {{c.hair}}"></div>
+        <div style="display: flex; align-items: center; justify-content: space-between">
+          <a href="#" style="height: 44px; padding: 0 16px; border-radius: 999px; background: {{c.surface2}}; display: flex; align-items: center; text-decoration: none; color: {{c.ink}}; font-size: 17px">Annuleren</a>
+          <h1 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 600">Op de boodschappenlijst</h1>
+          <span style="width: 96px"></span>
+        </div>
+        <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+          <div style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding-right: 14px">
+            <span aria-hidden="true" style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 11px; background: {{c.kitchenFill}}; display: flex; align-items: center; justify-content: center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenOn}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{rc.glyph}}"></path></svg>
+            </span>
+            <span style="flex-grow: 1; display: flex; flex-direction: column">
+              <span style="font-size: 17px; line-height: 22px; font-weight: 600">{{rc.title}}</span>
+              <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}">{{rc.sub}}</span>
+            </span>
+          </div>
+          <sc-if value="{{rc.hasServings}}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding-right: 12px; border-top: 0.5px solid {{c.hair}}">
+              <span style="flex-grow: 1; font-size: 17px; line-height: 22px">Personen</span>
+              <div role="group" aria-label="Personen" style="display: flex; align-items: center; gap: 4px; padding: 2px; border-radius: 999px; background: {{c.surface2}}">
+                <button onClick="{{rc.minus}}" aria-label="Minder personen" style="width: 44px; height: 40px; border-radius: 999px; display: flex; align-items: center; justify-content: center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg>
+                </button>
+                <span aria-live="polite" style="min-width: 28px; text-align: center; font-family: 'SF Pro Rounded', ui-rounded, Nunito, system-ui, sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; font-variant-numeric: tabular-nums">{{rc.servings}}</span>
+                <button onClick="{{rc.plus}}" aria-label="Meer personen" style="width: 44px; height: 40px; border-radius: 999px; display: flex; align-items: center; justify-content: center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{c.ink}}" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                </button>
+              </div>
+            </div>
+          </sc-if>
+          <a href="Stores.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 52px; padding-right: 12px; border-top: 0.5px solid {{c.hair}}; text-decoration: none; color: inherit">
+            <span style="flex-grow: 1; font-size: 17px; line-height: 22px">Naar lijst</span>
+            <span style="font-size: 17px; line-height: 22px; color: {{c.muted}}">Albert Heijn</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"></path></svg>
+          </a>
+        </div>
+        <sc-for list="{{pickSections}}" as="ps" hint-placeholder-count="2">
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <h2 style="margin: 0; padding: 0 4px; font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.muted}}">{{ps.label}}</h2>
+            <div style="background: {{c.surface}}; border-radius: 22px; padding-left: 16px">
+              <sc-for list="{{ps.rows}}" as="pk" hint-placeholder-count="4">
+                <button role="checkbox" aria-checked="{{pk.checked}}" onClick="{{pk.toggle}}" style="width: 100%; display: flex; align-items: center; gap: 12px">
+                  <span aria-hidden="true" style="width: 24px; height: 24px; flex: 0 0 24px; border-radius: 7px; box-sizing: border-box; border: 2px solid {{pk.ring}}; background: {{pk.boxBg}}; display: flex; align-items: center; justify-content: center">
+                    <sc-if value="{{pk.on}}" hint-placeholder-val="{{ true }}">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.ground}}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                    </sc-if>
+                  </span>
+                  <span style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 6px 16px 6px 0; box-sizing: border-box; border-top: {{pk.sep}}">
+                    <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                      <span style="font-size: 17px; line-height: 22px; color: {{pk.nameColor}}">{{pk.name}}</span>
+                      <sc-if value="{{pk.hasMeta}}" hint-placeholder-val="{{ true }}">
+                        <span style="font-size: 13px; line-height: 18px; color: {{c.muted}}; font-weight: {{pk.metaWeight}}">{{pk.meta}}</span>
+                      </sc-if>
+                    </span>
+                    <span style="font-size: 17px; line-height: 22px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: {{pk.nameColor}}">{{pk.qty}}</span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <a href="Main.dc.html" style="min-height: 52px; border-radius: 999px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 17px; font-weight: 600">{{rc.cta}}</a>
+          <p style="margin: 0; text-align: center; font-size: 13px; line-height: 18px; color: {{c.muted}}">{{rc.foot}}</p>
+        </div>
+      </section>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["list","item","recent","composer","stores","aisles","stock","shop","recipe","week"],"default":"list"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"size":{"editor":"enum","options":["iphone","se"],"default":"iphone"},"suggest":{"editor":"enum","options":["strip","typing"],"default":"strip"},"$preview":{"width":390,"height":1780}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const st = this.state || {};
+    const screen = p.screen || 'list';
+    const dark = (p.theme || 'light') === 'dark';
+    const se = (p.size || 'iphone') === 'se';
+    const strip = (p.suggest || 'strip') === 'strip';
+    const set = (o) => this.setState(Object.assign({}, this.state || {}, o));
+
+    const c = dark ? {
+      ground: '#0F1110', surface: '#1B1E1D', surface2: '#262A28', ink: '#F1F3F1', onInk: '#0F1110', muted: '#A0A8A4', hair: '#2E3331', danger: '#F0917F',
+      kitchenFill: '#0B7C75', kitchenOn: '#FFFFFF', kitchenText: '#6FD6CD', kitchenWash: '#133230',
+      glass: 'rgba(44,46,45,0.55)', glassShadow: 'inset 0 1px 0 rgba(255,255,255,0.16), 0 8px 24px rgba(0,0,0,0.45)',
+      scrim: '#060707', keyboard: '#2B2F2D'
+    } : {
+      ground: '#F2F3F1', surface: '#FFFFFF', surface2: '#E9EBE8', ink: '#1A1F1D', onInk: '#FFFFFF', muted: '#5E6764', hair: '#DFE2DE', danger: '#A4372C',
+      kitchenFill: '#0B7C75', kitchenOn: '#FFFFFF', kitchenText: '#0B7C75', kitchenWash: '#DDEFEC',
+      glass: 'rgba(255,255,255,0.62)', glassShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 8px 24px rgba(16,32,30,0.14)',
+      scrim: '#B9BCB8', keyboard: '#D3D6D2'
+    };
+
+    const g = {
+      cart: 'M8 21a1 1 0 1 0 0-2a1 1 0 1 0 0 2M19 21a1 1 0 1 0 0-2a1 1 0 1 0 0 2M2 2h3l2.7 12.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 7H6',
+      home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+      clock: 'M12 22a10 10 0 1 0 0-20a10 10 0 1 0 0 20M12 6v6l4 2',
+      store: 'M3 9l1.5-5h15L21 9M4 9v11h16V9M3 9h18M9 20v-6h6v6',
+      book: 'M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20',
+      week: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+      grip: 'M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01',
+      sort: 'M3 6h13M3 12h9M3 18h5M18 9V3M15 6l3-3 3 3M18 15v6M15 18l3 3 3-3',
+      sun: 'M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41',
+      tag: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l8.59-8.59a1 1 0 0 0 0-1.41zM7 7h.01',
+      list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+      hist: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2',
+      dict: 'M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z',
+      low: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+      check: 'M20 6 9 17l-5-5'
+    };
+    const SEP = '0.5px solid ' + c.hair;
+
+    const aisleDefs = [
+      { id: 'veg', name: 'Groente en fruit' }, { id: 'bread', name: 'Brood en bakkerij' }, { id: 'dairy', name: 'Zuivel en eieren' },
+      { id: 'cheese', name: 'Kaas en vleeswaren' }, { id: 'meat', name: 'Vlees en vis' }, { id: 'dry', name: 'Pasta, rijst en wereldkeuken' },
+      { id: 'tins', name: 'Conserven en sauzen' }, { id: 'breakfast', name: 'Ontbijt en beleg' }, { id: 'snack', name: 'Koek, snoep en chips' },
+      { id: 'frozen', name: 'Diepvries' }, { id: 'drinks', name: 'Dranken' }, { id: 'care', name: 'Drogisterij en baby' },
+      { id: 'house', name: 'Huishouden' }, { id: 'other', name: 'Overig' }
+    ];
+    const aisleName = {}; aisleDefs.forEach((a) => { aisleName[a.id] = a.name; });
+
+    const baseItems = [
+      { id: 'i1', name: 'Bananen', qty: '1 tros', a: 'veg' },
+      { id: 'i2', name: 'Cherrytomaten', qty: '250 g', a: 'veg', meta: 'Pasta pesto · di', rec: true },
+      { id: 'i3', name: 'Basilicum', qty: '1 bos', a: 'veg', meta: 'Pasta pesto · di', rec: true },
+      { id: 'i4', name: 'Rode uien', qty: '3', a: 'veg' },
+      { id: 'i5', name: 'Volkoren brood', qty: '1', a: 'bread', meta: 'Gesneden', who: 'Sanne' },
+      { id: 'i6', name: 'Melk', qty: '2 pak', a: 'dairy', meta: 'Halfvol' },
+      { id: 'i7', name: 'Eieren', qty: '10', a: 'dairy' },
+      { id: 'i8', name: 'Griekse yoghurt', qty: '1 pot', a: 'dairy' },
+      { id: 'i9', name: 'Parmezaan', qty: '80 g', a: 'cheese', meta: 'Pasta pesto · di', rec: true },
+      { id: 'i10', name: 'Penne', qty: '500 g', a: 'dry', meta: 'Pasta pesto · di', rec: true },
+      { id: 'i11', name: 'Tandpasta', qty: '1', a: 'care' },
+      { id: 'i12', name: 'Luiers maat 4', qty: '1 pak', a: 'care', meta: 'Toegevoegd door Sanne' },
+      { id: 'i13', name: 'Vaatwastabletten', qty: '1', a: 'house', meta: 'Bijna op · vaste voorraad' }
+    ];
+    const suggDefs = [
+      { id: 's1', name: 'Kaas', why: 'Elke week · 8 dagen geleden', qty: '1 stuk', a: 'cheese' },
+      { id: 's2', name: 'Appels', why: 'Elke 5 dagen · 6 dagen geleden', qty: '6', a: 'veg' },
+      { id: 's3', name: 'Pindakaas', why: 'Elke 2 weken · 15 dagen geleden', qty: '1 pot', a: 'breakfast' },
+      { id: 's4', name: 'Toiletpapier', why: 'Elke 3 weken · 22 dagen geleden', qty: '1 pak', a: 'house' }
+    ];
+    const addedS = st.addedS || {};
+    const items = baseItems.concat(suggDefs.filter((s) => addedS[s.id]).map((s) => ({ id: s.id, name: s.name, qty: s.qty, a: s.a, meta: 'Uit Misschien nodig' })));
+    const suggestions = suggDefs.filter((s) => !addedS[s.id]).map((s) => Object.assign({}, s, {
+      add: () => { const m = Object.assign({}, (this.state || {}).addedS || {}); m[s.id] = true; set({ addedS: m }); }
+    }));
+
+    const doneMap = st.done || {};
+    const order = st.aisles || aisleDefs.map((a) => a.id);
+
+    const groupBy = (list, makeRow) => {
+      const out = [];
+      order.forEach((aid) => {
+        const rows = list.filter((it) => it.a === aid);
+        if (!rows.length) return;
+        out.push({ aid: aid, rows: rows.map(makeRow) });
+      });
+      return out;
+    };
+
+    const sec = (label, rows, o) => {
+      o = o || {};
+      return {
+        label: label || '', hasLabel: !!label, aside: o.aside || '', foot: o.foot || '', hasFoot: !!o.foot,
+        labelSize: o.big ? 20 : 13, labelLine: o.big ? 25 : 18, labelWeight: o.big ? 700 : 600, labelColor: o.big ? c.ink : c.muted,
+        rows: rows.map((r, i) => Object.assign({}, r, { sep: i === 0 ? '0' : SEP }))
+      };
+    };
+
+    const itemRow = (it) => {
+      const done = !!doneMap[it.id];
+      return {
+        isItem: true, name: it.name, qty: it.qty, meta: it.meta || '', hasMeta: !!it.meta, fromRecipe: !!it.rec, done: done,
+        discBg: done ? c.kitchenText : 'transparent',
+        checkLabel: 'Afvinken: ' + it.name + ', ' + it.qty,
+        toggle: () => { const m = Object.assign({}, (this.state || {}).done || {}); m[it.id] = !done; set({ done: m }); }
+      };
+    };
+
+    let showWash = false, showBar = false, showActions = false, showSuggest = false, showComposerBar = false;
+    let isItem = false, isComposer = false, isStores = false, isAisles = false, isStock = false, isShop = false, isRecipe = false;
+    let hdr = { back: 'Alles', backHref: '#', menuLabel: 'Lijstopties: uit recept, schapvolgorde, afgevinkte wissen, suggesties uit', title: 'Boodschappen', glyph: g.cart, count: '', scope: '', hasStore: false, hasSub: false, sub: '' };
+    let bar = { left: '', leftHref: '#', title: '', right: '', rightHref: '#', hasRightLink: false, hasRightText: false };
+    let sections = [];
+    let h = 844;
+
+    const storeDefs = [
+      { id: 'ah', name: 'Albert Heijn', sub: 'Schapvolgorde aangepast', count: '13' },
+      { id: 'markt', name: 'Markt zaterdag', sub: 'Groente, kaas en vis', count: '3' },
+      { id: 'action', name: 'Action', sub: 'Standaardvolgorde', count: '1' }
+    ];
+    const storeId = st.store || 'ah';
+    const storeSel = storeDefs.find((s) => s.id === storeId) || storeDefs[0];
+    const storeRows = storeDefs.map((s, i) => ({
+      name: s.name, sub: s.sub, count: s.count, glyph: g.cart, sep: i === 0 ? '0' : SEP,
+      selected: s.id === storeId, checked: s.id === storeId ? 'true' : 'false', pick: () => set({ store: s.id })
+    }));
+
+    const listSections = () => {
+      const open = items.filter((it) => !doneMap[it.id]);
+      const doneCount = items.length - open.length;
+      const out = groupBy(open, itemRow).map((gp) => sec(aisleName[gp.aid], gp.rows, { aside: String(gp.rows.length) }));
+      const tail = [
+        { isAdd: true, label: 'Uit recept of weekmenu', sub: 'Ingrediënten samengevoegd met wat er al staat', hasSub: true, glyph: g.book, href: 'Recipe.dc.html' }
+      ];
+      if (doneCount) {
+        tail.push({ isDoneRow: true, label: 'Afgevinkt (' + doneCount + ')', undo: () => set({ done: {} }) });
+      }
+      out.push(sec('', tail));
+      return { out: out, open: open.length };
+    };
+
+    if (screen === 'list' || screen === 'item' || screen === 'composer' || screen === 'stores') {
+      showWash = true; showActions = true; showComposerBar = screen === 'list'; showSuggest = strip && screen !== 'composer';
+      const ls = listSections();
+      sections = ls.out;
+      hdr = Object.assign(hdr, { count: ls.open + ' items', scope: 'hele huishouden', hasStore: true });
+      h = screen === 'list' ? (strip ? 1780 : 1660) : 844;
+      isItem = screen === 'item'; isComposer = screen === 'composer'; isStores = screen === 'stores';
+    } else if (screen === 'recent') {
+      showWash = true; h = 1120;
+      hdr = Object.assign(hdr, { back: 'Boodschappen', backHref: 'Main.dc.html', title: 'Recent', glyph: g.clock, count: '11 items', scope: 'laatste 2 weken', hasSub: true, sub: 'Tik op plus en het staat weer op de lijst', menuLabel: 'Opties' });
+      const addedR = st.addedR || {};
+      const rec = (id, name, meta, onList) => {
+        const isOn = onList || !!addedR[id];
+        return {
+          isRecent: true, name: name, meta: meta, onList: isOn, canAdd: !isOn, addLabel: name + ' terug op de lijst zetten',
+          add: () => { const m = Object.assign({}, (this.state || {}).addedR || {}); m[id] = true; set({ addedR: m }); }
+        };
+      };
+      sections = [
+        sec('Vandaag · woensdag 18 november', [
+          rec('r1', 'Melk', 'Laatst 2 pak · Zuivel en eieren', true),
+          rec('r2', 'Bananen', 'Laatst 1 tros · Groente en fruit', true),
+          rec('r3', 'Komkommer', 'Laatst 1 · Groente en fruit', false)
+        ]),
+        sec('Zaterdag 14 november', [
+          rec('r4', 'Kaas', 'Laatst 1 stuk · Kaas en vleeswaren', false),
+          rec('r5', 'Koffiebonen', 'Laatst 1 zak · Ontbijt en beleg', false),
+          rec('r6', 'Kipfilet', 'Laatst 500 g · Vlees en vis', false),
+          rec('r7', 'Appels', 'Laatst 6 · Groente en fruit', false)
+        ]),
+        sec('Woensdag 11 november', [
+          rec('r8', 'Pindakaas', 'Laatst 1 pot · Ontbijt en beleg', false),
+          rec('r9', 'Wasmiddel', 'Laatst 1 fles · Huishouden', false),
+          rec('r10', 'Tortilla wraps', 'Laatst 2 pak · Pasta, rijst en wereldkeuken', false),
+          rec('r11', 'Toiletpapier', 'Laatst 1 pak · Huishouden', false)
+        ], { foot: 'Recent bewaart de laatste 100 afgevinkte items van dit huishouden.' })
+      ];
+    } else if (screen === 'aisles') {
+      showBar = true; isAisles = true; h = 1040;
+      bar = { left: 'Annuleren', leftHref: 'Stores.dc.html', title: 'Schapvolgorde', right: 'Bewaar', rightHref: 'Main.dc.html', hasRightLink: true, hasRightText: false };
+      const counts = {}; items.forEach((it) => { counts[it.a] = (counts[it.a] || 0) + 1; });
+      const move = (i, d) => {
+        const cur = ((this.state || {}).aisles || aisleDefs.map((a) => a.id)).slice();
+        const j = i + d; if (j < 0 || j >= cur.length) return;
+        const t = cur[i]; cur[i] = cur[j]; cur[j] = t; set({ aisles: cur });
+      };
+      const rows = order.map((aid, i) => ({
+        isAisle: true, name: aisleName[aid], count: counts[aid] ? String(counts[aid]) : '',
+        up: () => move(i, -1), down: () => move(i, 1),
+        upLabel: aisleName[aid] + ' omhoog', downLabel: aisleName[aid] + ' omlaag',
+        upOpacity: i === 0 ? '0.3' : '1', downOpacity: i === order.length - 1 ? '0.3' : '1'
+      }));
+      sections = [sec('Albert Heijn · zo loop je door de winkel', rows, { foot: 'Sleep een afdeling, of gebruik de pijlen. Afdelingen zonder items zijn in de lijst verborgen.' })];
+    } else if (screen === 'stock') {
+      showWash = true; isStock = true; h = 1300;
+      const lowMap = Object.assign({ k6: true, k10: true, k12: true }, st.low || {});
+      const stock = (id, name, a) => {
+        const low = !!lowMap[id];
+        return {
+          isStock: true, name: name, a: a, meta: low ? 'Staat op Albert Heijn' : '', hasMeta: low,
+          pill: low ? 'Bijna op' : 'Op voorraad', pillGlyph: low ? g.low : g.check,
+          pillBg: low ? c.kitchenFill : c.surface2, pillFg: low ? c.kitchenOn : c.ink,
+          toggleLabel: name + ': ' + (low ? 'bijna op, tik voor op voorraad' : 'op voorraad, tik voor bijna op'),
+          toggle: () => { const m = Object.assign({ k6: true, k10: true, k12: true }, (this.state || {}).low || {}); m[id] = !low; set({ low: m }); }
+        };
+      };
+      const all = [
+        stock('k1', 'Knoflook', 'veg'), stock('k2', 'Uien', 'veg'),
+        stock('k3', 'Olijfolie', 'tins'), stock('k4', 'Komijn', 'tins'), stock('k5', 'Tomatenblokjes', 'tins'),
+        stock('k6', 'Koffiebonen', 'breakfast'), stock('k7', 'Hagelslag', 'breakfast'),
+        stock('k8', 'Rijst', 'dry'), stock('k9', 'Spaghetti', 'dry'),
+        stock('k10', 'Vaatwastabletten', 'house'), stock('k11', 'Wasmiddel', 'house'), stock('k12', 'Toiletpapier', 'house')
+      ];
+      const lowCount = all.filter((r) => r.hasMeta).length;
+      hdr = Object.assign(hdr, { back: 'Boodschappen', backHref: 'Main.dc.html', title: 'In huis', glyph: g.home, count: lowCount + ' bijna op', scope: all.length + ' vaste voorraad', hasSub: true, sub: 'Wat jullie altijd in huis willen hebben', menuLabel: 'Opties' });
+      const byA = {}; all.forEach((r) => { (byA[r.a] = byA[r.a] || []).push(r); });
+      const secs = [];
+      order.forEach((aid) => { if (byA[aid]) secs.push(sec(aisleName[aid], byA[aid])); });
+      secs.push(sec('', [{ isAdd: true, label: 'Voorraaditem toevoegen', hasSub: false, sub: '', glyph: 'M12 5v14M5 12h14', href: '#' }]));
+      sections = secs;
+    } else if (screen === 'shop') {
+      showBar = true; isShop = true; h = 1500;
+      const live = { i5: true };
+      const sd = Object.assign({ i1: true, i4: true, i6: true }, st.shopDone || {});
+      const open = baseItems;
+      let done = 0;
+      const rows = groupBy(open, (it) => {
+        const isDone = !!sd[it.id] || (!!live[it.id] && sd[it.id] !== false);
+        if (isDone) done++;
+        const byOther = !!live[it.id] && sd[it.id] === undefined;
+        return {
+          isShop: true, name: it.name, qty: it.qty, done: isDone, pressed: isDone ? 'true' : 'false',
+          meta: byOther ? 'Sanne vinkte af, net nu' : (it.rec ? it.meta : ''), hasMeta: byOther || !!it.rec,
+          ring: isDone ? c.muted : c.kitchenText, discBg: isDone ? c.muted : 'transparent',
+          nameColor: isDone ? c.muted : c.ink, strike: isDone ? 'line-through' : 'none',
+          checkLabel: (isDone ? 'Weer open: ' : 'Afvinken: ') + it.name + ', ' + it.qty,
+          toggle: () => { const m = Object.assign({ i1: true, i4: true, i6: true }, (this.state || {}).shopDone || {}); m[it.id] = !isDone; set({ shopDone: m, last: isDone ? null : it.name }); }
+        };
+      });
+      sections = rows.map((gp) => sec(aisleName[gp.aid], gp.rows, { big: true }));
+      const total = open.length;
+      const last = st.last === undefined ? 'Melk' : st.last;
+      bar = { left: 'Klaar', leftHref: 'Main.dc.html', title: 'Winkelen', right: done + ' van ' + total, rightHref: '#', hasRightLink: false, hasRightText: true };
+      this._shop = {
+        done: done, total: total, pct: Math.round(done * 100 / total), hasUndo: !!last, undoText: (last || '') + ' afgevinkt',
+        undo: () => { const it = baseItems.find((x) => x.name === last); if (!it) return; const m = Object.assign({ i1: true, i4: true, i6: true }, (this.state || {}).shopDone || {}); m[it.id] = false; set({ shopDone: m, last: null }); }
+      };
+    } else if (screen === 'recipe' || screen === 'week') {
+      isRecipe = true; h = screen === 'week' ? 1180 : 1040;
+    }
+
+    // Composer
+    const removed = st.removed || {};
+    const segs = [
+      { t: '2 pak', id: 'qty' }, { t: ' mel' }
+    ].map((s) => { const hl = s.id && !removed[s.id]; return { t: s.t, bg: hl ? c.kitchenWash : 'transparent', pad: hl ? '1px 4px' : '0', weight: hl ? '600' : '400' }; });
+    const chips = [
+      { id: 'qty', icon: g.tag, label: '2 pak' },
+      { id: 'aisle', icon: g.list, label: 'Zuivel en eieren' }
+    ].filter((x) => !removed[x.id]).map((x) => Object.assign({}, x, {
+      removeLabel: x.label + ' weghalen' + (x.id === 'qty' ? ', de tekst blijft in de naam' : ', kies zelf een afdeling'),
+      remove: () => { const m = Object.assign({}, (this.state || {}).removed || {}); m[x.id] = true; set({ removed: m }); }
+    }));
+    const completions = [
+      { match: 'Mel', rest: 'k', why: 'Vaak gekocht · elke 4 dagen · staat al op de lijst (2 pak)', qty: '+2 pak', glyph: g.hist },
+      { match: 'Mel', rest: 'kchocolade', why: 'Jullie historie · Koek, snoep en chips', qty: '2 pak', glyph: g.hist },
+      { match: 'Kar', rest: 'nemelk', why: 'Woordenboek · Zuivel en eieren', qty: '2 pak', glyph: g.dict }
+    ].map((x, i) => Object.assign({}, x, { sep: i === 0 ? '0' : SEP, first: i === 0 ? 'true' : 'false' }));
+    completions[2].match = ''; completions[2].rest = 'Karnemelk';
+
+    // Item sheet
+    const qty = st.qty === undefined ? 2 : st.qty;
+    const unitId = st.unit || 'pak';
+    const units = ['stuks', 'pak', 'fles', 'g', 'kg', 'ml', 'l', 'bos', 'blik'].map((u) => ({
+      label: u, checked: u === unitId ? 'true' : 'false', bg: u === unitId ? c.ink : c.surface2, fg: u === unitId ? c.onInk : c.ink, pick: () => set({ unit: u })
+    }));
+    const stockOn = !!st.stockOn;
+    const item = {
+      qty: String(qty), minus: () => set({ qty: Math.max(0, qty - 1) }), plus: () => set({ qty: qty + 1 }),
+      stockChecked: stockOn ? 'true' : 'false', switchBg: stockOn ? c.kitchenFill : c.surface2, knobLeft: stockOn ? 22 : 2,
+      toggleStock: () => set({ stockOn: !stockOn })
+    };
+    const itemFields = [
+      { glyph: g.list, label: 'Afdeling', value: 'Zuivel en eieren' },
+      { glyph: g.cart, label: 'Lijst', value: 'Albert Heijn' }
+    ].map((f, i) => Object.assign({}, f, { sep: i === 0 ? '0' : SEP }));
+
+    // Recipe and week sheet
+    const servings = st.servings || 4;
+    const tickMap = st.ticks || {};
+    const scale = (n, unit) => {
+      const v = n * servings / 4;
+      if (unit === 'g') return Math.max(25, Math.round(v / 25) * 25);
+      return Math.max(1, Math.ceil(v));
+    };
+    const pick = (id, name, n, unit, o) => {
+      o = o || {};
+      const def = o.stock ? false : true;
+      const on = tickMap[id] === undefined ? def : tickMap[id];
+      const amount = o.fixed ? o.fixed : (scale(n, unit) + (unit ? ' ' + unit : ''));
+      let meta = o.meta || '';
+      if (o.merge && on) meta = 'Staat er al: ' + o.merge + ', wordt ' + (o.mergeN + scale(n, unit));
+      if (o.stock) meta = on ? 'Op voorraad in huis, toch erbij' : 'Op voorraad in huis';
+      return {
+        name: name, qty: amount, on: on, checked: on ? 'true' : 'false', meta: meta, hasMeta: !!meta, metaWeight: o.merge && on ? '600' : '400',
+        ring: on ? c.kitchenText : c.muted, boxBg: on ? c.kitchenText : 'transparent', nameColor: on ? c.ink : c.muted,
+        toggle: () => { const m = Object.assign({}, (this.state || {}).ticks || {}); m[id] = !on; set({ ticks: m }); }
+      };
+    };
+    let rc = {}, pickSections = [];
+    if (screen === 'recipe') {
+      const rows = [
+        pick('p1', 'Eieren', 6, '', { merge: '10', mergeN: 10 }),
+        pick('p2', 'Tomatenblokjes', 2, 'blik'),
+        pick('p3', 'Rode paprika', 2, ''),
+        pick('p4', 'Ui', 1, ''),
+        pick('p5', 'Feta', 200, 'g'),
+        pick('p6', 'Verse koriander', 1, 'bos'),
+        pick('p7', 'Chilivlokken', 1, '', { fixed: 'snufje', meta: 'Gelezen met AI · 1 van je 20 vandaag' }),
+        pick('p8', 'Knoflook', 2, 'teentjes', { stock: true }),
+        pick('p9', 'Olijfolie', 2, 'el', { stock: true })
+      ];
+      const n = rows.filter((r) => r.on).length;
+      pickSections = [{ label: 'Ingrediënten', rows: rows.map((r, i) => Object.assign({}, r, { sep: i === 0 ? '0' : SEP })) }];
+      rc = {
+        behind: 'Shakshuka met feta', glyph: g.book, title: 'Shakshuka met feta', sub: 'Recept · voor 4 personen', hasServings: true,
+        servings: String(servings), minus: () => set({ servings: Math.max(1, servings - 1) }), plus: () => set({ servings: servings + 1 }),
+        cta: 'Zet ' + n + ' op de lijst', foot: 'Samengevoegd met wat er al op staat. De lijst ziet erbij voor welk recept het is.'
+      };
+    } else if (screen === 'week') {
+      const groups = [
+        { label: 'Groente en fruit', rows: [
+          pick('w1', 'Rode uien', 0, '', { fixed: '3', meta: 'Shakshuka, Tacos · er staan er al 3' }),
+          pick('w2', 'Rode paprika', 0, '', { fixed: '4', meta: 'Shakshuka, Tacos' }),
+          pick('w3', 'Avocado', 0, '', { fixed: '2', meta: 'Tacos · do' }),
+          pick('w4', 'Limoen', 0, '', { fixed: '1', meta: 'Tacos · do' })
+        ] },
+        { label: 'Zuivel en eieren', rows: [
+          pick('w5', 'Eieren', 0, '', { fixed: '6', meta: 'Shakshuka · di · er staan er al 10' }),
+          pick('w6', 'Zure room', 0, '', { fixed: '1 beker', meta: 'Tacos · do' })
+        ] },
+        { label: 'Vlees en vis', rows: [
+          pick('w7', 'Kipdijfilet', 0, '', { fixed: '500 g', meta: 'Tacos · do' }),
+          pick('w8', 'Zalmfilet', 0, '', { fixed: '4 stuks', meta: 'Zalm uit de oven · vr' })
+        ] },
+        { label: 'Pasta, rijst en wereldkeuken', rows: [
+          pick('w9', 'Tortilla wraps', 0, '', { fixed: '2 pak', meta: 'Tacos · do' }),
+          pick('w10', 'Rijst', 0, '', { fixed: '300 g', meta: 'Zalm uit de oven · vr', stock: true })
+        ] }
+      ];
+      let n = 0;
+      pickSections = groups.map((gp) => ({ label: gp.label, rows: gp.rows.map((r, i) => { if (r.on) n++; return Object.assign({}, r, { sep: i === 0 ? '0' : SEP }); }) }));
+      rc = {
+        behind: 'Weekmenu', glyph: g.week, title: 'Weekmenu 23 tot 29 november', sub: '3 maaltijden met boodschappen · 4 personen', hasServings: false,
+        servings: '4', minus: () => {}, plus: () => {},
+        cta: 'Zet ' + n + ' op de lijst', foot: 'Personen komen per maaltijd uit het weekmenu. Zelfde regels als bij een recept.'
+      };
+    }
+
+    const shop = this._shop || { done: 0, total: 0, pct: 0, hasUndo: false, undoText: '', undo: () => {} };
+
+    return {
+      c, g, hdr, bar, sections, suggestions, completions, segs, chips, units, item, itemFields, storeRows, rc, pickSections, shop,
+      store: storeSel.name, storeName: storeSel.name,
+      showWash, showBar, showActions, showSuggest, showComposerBar,
+      isItem, isComposer, isStores, isAisles, isStock, isShop, isRecipe,
+      resetAisles: () => set({ aisles: null }),
+      noop: () => {},
+      w: se ? 375 : 390, h: se ? 667 : h
+    };
+  }
+}
+</script>
+</body>
+</html>
