@@ -362,6 +362,9 @@ export function MealPreferencesScreen() {
               <BlockRow
                 key={slot}
                 title={m.plan.slots[slot]}
+                subtitle={
+                  slot === 'breakfast' ? undefined : m.plan.onChosenDays
+                }
                 trailing={
                   <Switch
                     testID={`meal-prefs-slot-${slot}`}
@@ -598,7 +601,10 @@ export function MealPreferencesScreen() {
               />
             }
           />
-          <BlockRow title={m.variety.fishNight}>
+          <BlockRow
+            title={m.variety.fishNight}
+            subtitle={m.variety.fishNightSub}
+          >
             <DayChips
               testID="meal-prefs-fish-day"
               selected={prefs.fishDays}
@@ -669,7 +675,10 @@ export function MealPreferencesScreen() {
               </Text>
             ) : null}
           </BlockRow>
-          <BlockRow title={m.extra.cuisines}>
+          <BlockRow
+            title={m.extra.cuisines}
+            subtitle={m.extra.cuisinesSub}
+          >
             <ChipWrap>
               {CUISINES.map((cuisine) => (
                 <Chip
@@ -693,6 +702,7 @@ export function MealPreferencesScreen() {
             <InsetRow
               key={key}
               title={m.smart[key]}
+              subtitle={m.smart.subs[key]}
               trailing={
                 <Switch
                   testID={`meal-prefs-smart-${key}`}

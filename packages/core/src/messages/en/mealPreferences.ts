@@ -38,6 +38,8 @@ export const mealPreferences = {
   plan: {
     heading: 'What to plan',
     slots: { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' },
+    /** Under Lunch and Dinner, above their day chips. */
+    onChosenDays: 'On the chosen days',
     footnote:
       'Only what is on gets a place in the week menu and in Plan my week.',
   },
@@ -49,7 +51,7 @@ export const mealPreferences = {
     cellLabelNone: '{day}: no maximum',
     hint: 'Changes the time',
     footnote:
-      'On a busy evening in the calendar, Gather picks something quick, whatever it says here.',
+      'Tap a day to change the maximum time. On a busy evening in the calendar, Gather picks something quick, whatever it says here.',
   },
   diet: {
     heading: 'Diet',
@@ -98,6 +100,7 @@ export const mealPreferences = {
     meatFree: 'Meat-free nights',
     meatFreeValue: { one: '{count} a week', other: '{count} a week' },
     fishNight: 'Fish night',
+    fishNightSub: 'Gather then prefers to plan fish',
     decrease: 'Fewer',
     increase: 'More',
   },
@@ -115,6 +118,7 @@ export const mealPreferences = {
     budgetPlaceholder: 'None',
     budgetInvalid: 'Enter an amount, for example 85 or 85.50.',
     cuisines: 'Favourite cuisines',
+    cuisinesSub: 'Show up more often in suggestions',
     cuisineNames: {
       italian: 'Italian',
       mexican: 'Mexican',
@@ -131,6 +135,11 @@ export const mealPreferences = {
     useStock: 'Use what is in stock',
     useCalendar: 'Take the calendar into account',
     preferHighRated: 'Prefer highly rated',
+    subs: {
+      useStock: 'Recipes with what is nearly gone come first',
+      useCalendar: 'Busy evenings get something quick',
+      preferHighRated: 'And what has not been eaten in a while',
+    },
     footnote:
       'Plan my week, Something else and New idea each cost 1 smart action from your own daily limit of 30. Choosing yourself with these filters is always free.',
   },

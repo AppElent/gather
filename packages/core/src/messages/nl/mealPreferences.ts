@@ -33,6 +33,7 @@ export const mealPreferences = {
   plan: {
     heading: 'Wat plannen',
     slots: { breakfast: 'Ontbijt', lunch: 'Lunch', dinner: 'Avondeten' },
+    onChosenDays: 'Op de gekozen dagen',
     footnote:
       'Alleen wat aan staat krijgt een plek in het weekmenu en in Plan mijn week.',
   },
@@ -44,7 +45,7 @@ export const mealPreferences = {
     cellLabelNone: '{day}: geen maximum',
     hint: 'Wijzigt de tijd',
     footnote:
-      'Op een drukke avond in de agenda kiest Gather iets snels, wat hier ook staat.',
+      'Tik op een dag om de maximale tijd te wijzigen. Op een drukke avond in de agenda kiest Gather iets snels, wat hier ook staat.',
   },
   diet: {
     heading: 'Dieet',
@@ -93,6 +94,7 @@ export const mealPreferences = {
     meatFree: 'Vleesloze avonden',
     meatFreeValue: { one: '{count} per week', other: '{count} per week' },
     fishNight: 'Visavond',
+    fishNightSub: 'Gather plant dan bij voorkeur vis',
     decrease: 'Minder',
     increase: 'Meer',
   },
@@ -110,6 +112,7 @@ export const mealPreferences = {
     budgetPlaceholder: 'Geen',
     budgetInvalid: 'Vul een bedrag in, bijvoorbeeld 85 of 85,50.',
     cuisines: 'Favoriete keukens',
+    cuisinesSub: 'Komen vaker voor in voorstellen',
     cuisineNames: {
       italian: 'Italiaans',
       mexican: 'Mexicaans',
@@ -126,6 +129,11 @@ export const mealPreferences = {
     useStock: 'Gebruik wat in huis is',
     useCalendar: 'Houd rekening met de agenda',
     preferHighRated: 'Liever hoog beoordeeld',
+    subs: {
+      useStock: 'Recepten met wat bijna op is gaan voor',
+      useCalendar: 'Drukke avonden krijgen iets snels',
+      preferHighRated: 'En wat lang niet gegeten is',
+    },
     footnote:
       'Plan mijn week, Iets anders en Nieuw idee kosten elk 1 slimme actie uit je eigen daglimiet van 30. Zelf kiezen met deze filters is altijd gratis.',
   },
