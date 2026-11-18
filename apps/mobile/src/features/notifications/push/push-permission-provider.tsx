@@ -7,7 +7,8 @@
  * token iOS rotated is picked up. The sheet is shown only from `ask`, which a
  * screen calls when a person sets a reminder or is assigned something, or
  * from Settings → Notifications when they ask there. `ask` explains in one
- * line first, and iOS's own sheet follows only on Continue.
+ * line first, and iOS's own sheet follows only on Continue. That line is
+ * shown once per install: after "Not now" only Settings → Notifications asks.
  *
  * Mounted inside `ConvexSessionGate`, so registering always has a signed-in
  * caller; the token is re-registered when the phone's Language changes,
@@ -32,6 +33,11 @@ import { Alert, AppState } from 'react-native'
 
 import { api } from '../../../convex/api'
 import { useI18n } from '../../../i18n'
+import {
+  PREFERENCE_KEYS,
+  readPreference,
+  writePreference,
+} from '../../../prefs/localPreference'
 import {
   type PushPermission,
   readPushPermission,
@@ -120,6 +126,10 @@ export function PushPermissionProvider({ children }: { children: ReactNode }) {
       if (now === 'granted') return true
       if (now !== 'undetermined') return false
       if (reason !== 'settings') {
+        // The line before iOS's sheet is shown once. After "Not now", only
+        // Settings → Notifications asks again, because the person goes there.
+        if (readPreference(PREFERENCE_KEYS.pushExplained)) return false
+        writePreference(PREFERENCE_KEYS.pushExplained, '1')
         const text = t.notifications.permission
         const proceed = await new Promise<boolean>((resolve) =>
           Alert.alert(text.askTitle, text.ask[reason], [

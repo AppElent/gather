@@ -361,7 +361,14 @@ export const sendPush = internalAction({
       try {
         const answer = (await postJson(EXPO_SEND, batch)) as {
           data?: Ticket[]
+          errors?: { code?: string }[]
         }
+        // A whole-request refusal comes back as 200 with `errors` and no data.
+        if (answer.errors?.length)
+          console.error(
+            'notifications.sendPush refused',
+            answer.errors.map((error) => error.code),
+          )
         tickets = answer.data ?? []
       } catch (error) {
         console.error('notifications.sendPush failed', error)

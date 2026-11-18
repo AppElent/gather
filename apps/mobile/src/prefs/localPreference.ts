@@ -38,6 +38,7 @@ export const PREFERENCE_KEYS = {
   allView: 'gather:all:view',
   pushRegistration: 'gather:push:registration',
   pushRelease: 'gather:push:release',
+  pushExplained: 'gather:push:explained',
 } as const
 
 /**
