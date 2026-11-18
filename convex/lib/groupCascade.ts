@@ -437,8 +437,9 @@ export async function destroyGroup(
   }
 
   // A recipe living in another Group may have been Shared into this one. It is
-  // not ours to delete — only the sharing is. There is no index on
-  // `sharedGroupIds`, and this is the one scan the cascade cannot avoid.
+  // not ours to delete — only the sharing is. `recipeShares` indexes this, but
+  // only once `maintenance:backfillRecipeShares` has run everywhere; until then
+  // `sharedGroupIds` is scanned (docs/migrations/README.md).
   const shared = await ctx.db.query('recipes').collect()
   for (const recipe of shared) {
     if (!recipe.sharedGroupIds?.includes(groupId)) continue

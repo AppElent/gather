@@ -73,7 +73,8 @@ export async function dropRecipeShares(
 /**
  * Every recipe visible in a Group, read by index: its own (`by_group`) and
  * those Shared into it (`recipeShares.by_group`). A recipe of an unrelated
- * Group is never read.
+ * Group is never read while the rows match `sharedGroupIds`; a row that lags
+ * costs one `get` and is dropped by the visibility check.
  */
 export async function recipesVisibleIn(
   ctx: QueryCtx,
