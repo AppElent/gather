@@ -47,10 +47,25 @@ export function settleHeader(
   return { ...state, presentation, headerProgress: target }
 }
 
+/**
+ * A header drag the person let go of: settles like `settleHeader` and, because
+ * it was their choice rather than an automatic collapse, becomes the saved
+ * preference too.
+ */
+export function chooseHeader(
+  state: CalendarNavigationState,
+  progress: number,
+  velocity = 0,
+): CalendarNavigationState {
+  const settled = settleHeader(state, progress, velocity)
+  return { ...settled, preferredView: settled.presentation }
+}
+
+/** The handle's tap: an explicit choice, so it updates the preference. */
 export function toggleHeader(
   state: CalendarNavigationState,
 ): CalendarNavigationState {
-  return settleHeader(state, state.headerProgress < 0.5 ? 1 : 0)
+  return chooseHeader(state, state.headerProgress < 0.5 ? 1 : 0)
 }
 
 export function pageActiveDate(

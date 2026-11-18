@@ -5,8 +5,17 @@ import {
   type CalendarPerson,
 } from '@gather/core/calendar'
 import { minutesToClock } from '@gather/core/civil-date'
-import { useEffect, useMemo } from 'react'
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
+import { useEffect, useMemo, useRef } from 'react'
+import {
+  FlatList,
+  type FlatListProps,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
 
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { SwipeableRow } from '../../components/SwipeableRow'
@@ -16,7 +25,12 @@ import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 export interface CalendarAgendaProps {
   from: string
   toExclusive: string
+  /** The date a deliberate jump asked for; kept visible even inside a gap. */
   selectedDate: string
+  /** The date the header shows, which follows scrolling. */
+  shownDate?: string
+  /** Changes on every deliberate jump, so jumping to the same date scrolls too. */
+  jumpId?: number
   today: string
   events: readonly CalendarEvent[]
   people: readonly CalendarPerson[]
@@ -26,6 +40,26 @@ export interface CalendarAgendaProps {
   onExpandGap?: (dates: readonly string[]) => void
   expandedDates?: readonly string[]
   listRef?: React.RefObject<FlatList<AgendaRow> | null>
+  /**
+   * The first row's date while the person scrolls the list. Never after a
+   * jump until they touch the list again: a jump near the end of the loaded
+   * rows cannot bring its day to the top, and the row above it is not the
+   * date they chose.
+   */
+  onVisibleDate?: (date: string) => void
+  /** The person dragged the list upward, toward later dates. */
+  onDragUp?: () => void
+}
+
+/** Points the list must travel up in one drag before the header collapses. */
+const COLLAPSE_AFTER = 16
+
+type ViewableChange = Parameters<
+  NonNullable<FlatListProps<AgendaRow>['onViewableItemsChanged']>
+>[0]
+
+function rowDate(row: AgendaRow) {
+  return row.kind === 'gap' ? row.from : row.date
 }
 
 function minutes(value?: number) {
@@ -36,6 +70,8 @@ export function CalendarAgenda({
   from,
   toExclusive,
   selectedDate,
+  shownDate = selectedDate,
+  jumpId = 0,
   today,
   events,
   people,
@@ -45,6 +81,8 @@ export function CalendarAgenda({
   onExpandGap,
   expandedDates = [],
   listRef,
+  onVisibleDate,
+  onDragUp,
 }: CalendarAgendaProps) {
   const { t, locale } = useI18n()
   const tokens = useTokens('home')
@@ -58,17 +96,55 @@ export function CalendarAgenda({
     [people],
   )
 
+  /**
+   * A jump stays "current" until the person touches the list: while it is,
+   * rows arriving above the target (a month loading) re-aim it, and the rows
+   * it scrolls past do not move the header. Touching the list ends it, so a
+   * late load never pulls the list back from under a finger.
+   */
+  const pendingJump = useRef(true)
+  /** The jump the person last dragged the list after; null before any drag. */
+  const draggedSince = useRef<number | null>(null)
+  const dragStart = useRef<number | null>(null)
+  const latest = useRef({ onVisibleDate, onDragUp, jumpId })
+  latest.current = { onVisibleDate, onDragUp, jumpId }
+
+  const lastJump = useRef<number | null>(null)
+
   useEffect(() => {
+    if (lastJump.current !== jumpId) {
+      lastJump.current = jumpId
+      pendingJump.current = true
+    }
+    if (!pendingJump.current) return
     const index = rows.findIndex(
       (row) => row.kind === 'day' && row.date === selectedDate,
     )
-    if (index >= 0)
-      listRef?.current?.scrollToIndex({
-        index,
-        animated: true,
-        viewPosition: 0.1,
-      })
-  }, [listRef, rows, selectedDate])
+    if (index < 0) return
+    listRef?.current?.scrollToIndex({
+      index,
+      animated: true,
+      viewPosition: 0,
+    })
+  }, [jumpId, listRef, rows, selectedDate])
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: ViewableChange) => {
+      // Only a person scrolling moves the header; a jump, its scroll and the
+      // layout after it keep the date they chose.
+      if (draggedSince.current !== latest.current.jumpId) return
+      const first = viewableItems.find((token) => token.isViewable)
+      if (first?.item) latest.current.onVisibleDate?.(rowDate(first.item))
+    },
+  ).current
+
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (dragStart.current === null) return
+    if (event.nativeEvent.contentOffset.y - dragStart.current > COLLAPSE_AFTER) {
+      dragStart.current = null
+      latest.current.onDragUp?.()
+    }
+  }
 
   function renderEvent(event: CalendarEvent) {
     const who = event.assigneeIds
@@ -94,6 +170,9 @@ export function CalendarAgenda({
           else onEvent(event)
         }}
       >
+        {/* Clipped to the card's own corners, so the Delete action behind
+            the row shows only when the row is swiped. */}
+        <View style={styles.eventClip}>
         <SwipeableRow
           deleteLabel={t.calendar.deleteEvent}
           onDelete={() => onDeleteEvent?.(event)}
@@ -140,6 +219,7 @@ export function CalendarAgenda({
             </View>
           </Pressable>
         </SwipeableRow>
+        </View>
       </NativeContextMenu>
     )
   }
@@ -188,7 +268,7 @@ export function CalendarAgenda({
           <Text
             style={[
               styles.dayTitle,
-              { color: item.date === selectedDate ? tokens.ink : tokens.muted },
+              { color: item.date === shownDate ? tokens.ink : tokens.muted },
             ]}
           >
             {item.date === today ? `${t.calendar.today} · ${label}` : label}
@@ -214,15 +294,41 @@ export function CalendarAgenda({
       renderItem={renderRow}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
-      onScrollToIndexFailed={(info) =>
+      viewabilityConfig={VIEWABILITY}
+      onViewableItemsChanged={onViewableItemsChanged}
+      scrollEventThrottle={16}
+      onScroll={onScroll}
+      onScrollBeginDrag={(event) => {
+        pendingJump.current = false
+        draggedSince.current = jumpId
+        dragStart.current = event.nativeEvent.contentOffset.y
+      }}
+      onScrollEndDrag={() => {
+        dragStart.current = null
+      }}
+      onScrollToIndexFailed={(info) => {
+        // Variable-height rows: land near the estimate, then re-aim once the
+        // rows on the way are measured. The jump is still pending, so the
+        // next layout of `rows` retries it; a finger on the list cancels it.
         listRef?.current?.scrollToOffset({
           offset: info.averageItemLength * info.index,
           animated: false,
         })
-      }
+        requestAnimationFrame(() => {
+          if (!pendingJump.current) return
+          listRef?.current?.scrollToIndex({
+            index: info.index,
+            animated: false,
+            viewPosition: 0,
+          })
+        })
+      }}
     />
   )
 }
+
+/** A row counts as "the first row" once half of it is on screen. */
+const VIEWABILITY = { itemVisiblePercentThreshold: 50 }
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 12, paddingBottom: 120 },
@@ -240,7 +346,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: RADIUS.card,
     borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
+  eventClip: {
     marginBottom: 8,
+    borderRadius: RADIUS.card,
     overflow: 'hidden',
   },
   colorBar: { width: 4 },

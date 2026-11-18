@@ -67,5 +67,9 @@ export const calendar = {
     today: 'Ga naar vandaag',
     add: 'Afspraak toevoegen',
     save: 'Afspraak bewaren',
+    previousWeek: 'Vorige week',
+    nextWeek: 'Volgende week',
+    previousMonth: 'Vorige maand',
+    nextMonth: 'Volgende maand',
   },
 }
