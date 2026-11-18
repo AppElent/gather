@@ -182,6 +182,7 @@ export const shell = {
   about: {
     eyebrow: 'About Gather',
     title: 'One shared group for everyday coordination',
+    /** Also the phone's welcome pitch: name only Modules the store build shows (`PITCHED` in `apps/mobile/src/modules/storeModules.test.ts`). */
     subtitle:
       'Gather keeps shared recipes, plans, lists, tasks, notes, and tasting logs in one place, for the people who share a household.',
     modules:

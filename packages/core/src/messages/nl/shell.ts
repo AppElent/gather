@@ -158,6 +158,7 @@ export const shell = {
   about: {
     eyebrow: 'Over Gather',
     title: 'Eén gedeelde Groep voor het dagelijks regelwerk',
+    /** Also the phone's welcome pitch: name only Modules the store build shows (`PITCHED` in `apps/mobile/src/modules/storeModules.test.ts`). */
     subtitle:
       'Gather houdt gedeelde recepten, plannen, lijsten, taken, notities en proefnotities op één plek, voor de mensen die een huishouden delen.',
     modules:
