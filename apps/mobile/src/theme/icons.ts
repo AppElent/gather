@@ -33,6 +33,7 @@ import ChevronDown from 'lucide-react-native/icons/chevron-down'
 import ChevronLeft from 'lucide-react-native/icons/chevron-left'
 import ChevronRight from 'lucide-react-native/icons/chevron-right'
 import ChevronUp from 'lucide-react-native/icons/chevron-up'
+import ChevronsUpDown from 'lucide-react-native/icons/chevrons-up-down'
 import CircleAlert from 'lucide-react-native/icons/circle-alert'
 import CircleEllipsis from 'lucide-react-native/icons/circle-ellipsis'
 import CircleMinus from 'lucide-react-native/icons/circle-minus'
@@ -118,6 +119,8 @@ export const UI_ICONS = {
   ChevronRight: glyph(ChevronRight, 'chevron.right'),
   /** Rearranging an ordered list, one row at a time. */
   ChevronUp: glyph(ChevronUp, 'chevron.up'),
+  /** A row that opens a menu of choices (Add to groceries' To list). */
+  ChevronsUpDown: glyph(ChevronsUpDown, 'chevron.up.chevron.down'),
   CircleAlert: glyph(CircleAlert, 'exclamationmark.circle'),
   /**
    * Edit mode's two verbs, drawn the way iOS draws them in an editing list:

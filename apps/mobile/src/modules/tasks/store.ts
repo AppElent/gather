@@ -21,6 +21,7 @@ import {
   type TaskListKind,
   taskListFace,
 } from '@gather/core/task-lists'
+import type { ReminderClock } from '@gather/core/task-reminders'
 import type { OptimisticLocalStore } from 'convex/browser'
 import { useAction, useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
@@ -184,6 +185,8 @@ export function mergeTasks(
             category: row.category,
             assigneeId: row.assigneeId,
             assignmentNotice: row.assignmentNotice,
+            reminder: row.reminder,
+            sectionId: row.sectionId,
             order: row.order,
           })
         }
@@ -202,6 +205,7 @@ export function mergeTasks(
       order: list.order,
       sync,
       grocery: list.grocery ?? false,
+      sections: list.sections ?? [],
       ...listFace(list),
     }
   })
@@ -346,6 +350,12 @@ export function useTaskActions() {
   const setAppearance = useMutation(api.taskLists.setAppearance)
   const setDoneInList = useMutation(api.tasks.setDoneInList)
   const markSeen = useMutation(api.tasks.markAssignmentSeen)
+  const setReminder = useMutation(api.tasks.setReminder)
+  const setSection = useMutation(api.tasks.setSection)
+  const addSection = useMutation(api.taskSections.add)
+  const renameSection = useMutation(api.taskSections.rename)
+  const reorderSections = useMutation(api.taskSections.reorder)
+  const removeSection = useMutation(api.taskSections.remove)
 
   const patch = (
     id: string,
@@ -357,12 +367,19 @@ export function useTaskActions() {
      * A line onto a list. On a grocery list the amount is read off it first
      * ("2 pakken melk" is "melk", 2 pak), here rather than on the server, so
      * an installed app that sends only the line keeps it as typed (APP-309).
+     * `sectionId` is the section the composer sits in (APP-357).
      */
-    addTask: (listId: string, title: string, grocery = false) =>
+    addTask: (
+      listId: string,
+      title: string,
+      grocery = false,
+      sectionId?: string,
+    ) =>
       add({
         listId: listId as Id<'taskLists'>,
         groupSlug,
         ...(grocery ? groceryAddFields(title) : { title }),
+        ...(sectionId ? { sectionId } : {}),
       }),
     toggleTask: (id: string) =>
       toggle({ taskId: id as Id<'tasks'>, groupSlug }),
@@ -381,11 +398,45 @@ export function useTaskActions() {
         groupSlug,
         listId: listId as Id<'taskLists'>,
       }),
-    reorderTasks: (listId: string, ids: string[]) =>
+    /**
+     * The tasks in their new order; with `sectionIds`, each one's section
+     * after the drag, by position (null is "No section", APP-357).
+     */
+    reorderTasks: (
+      listId: string,
+      ids: string[],
+      sectionIds?: (string | null)[],
+    ) =>
       reorder({
         listId: listId as Id<'taskLists'>,
         groupSlug,
         ids: ids as Id<'tasks'>[],
+        ...(sectionIds ? { sectionIds } : {}),
+      }),
+    /** Into a section of its own list, or out of every section with null. */
+    setTaskSection: (id: string, sectionId: string | null) =>
+      setSection({ taskId: id as Id<'tasks'>, groupSlug, sectionId }),
+    addSection: (listId: string, name: string) =>
+      addSection({ listId: listId as Id<'taskLists'>, groupSlug, name }),
+    renameSection: (listId: string, sectionId: string, name: string) =>
+      renameSection({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        sectionId,
+        name,
+      }),
+    reorderSections: (listId: string, sectionIds: string[]) =>
+      reorderSections({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        sectionIds,
+      }),
+    /** Its tasks stay on the list, under "No section". */
+    deleteSection: (listId: string, sectionId: string) =>
+      removeSection({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        sectionId,
       }),
     /** One option changes; the others keep the list's current value. */
     setListDisplay: (list: TaskList, change: Partial<ListDisplay>) =>
@@ -407,7 +458,8 @@ export function useTaskActions() {
       kind: TaskListKind
       icon: TaskListIcon
       color: TaskListColor
-      starterTasks: string[]
+      /** The template's items in their sections, in the Group's words. */
+      starterSections: { name: string; tasks: string[] }[]
       idempotencyKey: string
     }) => createList({ groupSlug, provider: 'local', ...fields }),
     setListAppearance: (
@@ -432,6 +484,9 @@ export function useTaskActions() {
       quantity: number | null,
       unit: GroceryUnit | null,
     ) => patch(id, { quantity, unit }),
+    /** A reminder for the caller at this wall clock, or none (APP-305). */
+    setReminder: (id: string, clock: ReminderClock | null) =>
+      setReminder({ taskId: id as Id<'tasks'>, groupSlug, reminder: clock }),
     /** The aisle a Member chose; the Group keeps it for the name. */
     setAisle: (id: string, category: GroceryAisle) => patch(id, { category }),
     /** The Member responsible, or nobody (APP-302). */

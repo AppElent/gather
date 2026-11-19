@@ -38,6 +38,7 @@ import { AssigneeRow } from './assignee'
 import { Checkbox, Chip, priorityColor } from './components'
 import { GroceryFields } from './GroceryFields'
 import { TASK_ICONS } from './icons'
+import { reminderLabel } from './reminder'
 import { useTaskActions, useTaskState } from './store'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
@@ -175,6 +176,29 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             danger={overdue}
             onPress={() => open('due')}
           />
+          {list?.provider === 'local' ? (
+            <PropertyRow
+              testID="detail-reminder"
+              icon={
+                <TASK_ICONS.Bell
+                  size={18}
+                  color={tokens.muted}
+                  strokeWidth={2}
+                />
+              }
+              label={t.tasks.task.reminder}
+              value={
+                task.reminder
+                  ? reminderLabel(task.reminder, state.today, locale, {
+                      today: t.tasks.task.today,
+                      tomorrow: t.tasks.task.tomorrow,
+                      reminderAt: t.tasks.task.reminderAt,
+                    })
+                  : t.tasks.task.unset
+              }
+              onPress={() => open('reminder')}
+            />
+          ) : null}
           <PropertyRow
             testID="detail-priority"
             icon={

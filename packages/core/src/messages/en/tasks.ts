@@ -4,6 +4,7 @@ import type {
   TaskListIcon,
   TaskListKind,
   TaskStarterKey,
+  TaskStarterSectionKey,
 } from '../../taskLists'
 
 /**
@@ -152,6 +153,40 @@ export const tasks = {
     aisle: 'Aisle',
     /** Under the composer while a line is typed. */
     recognised: 'Recognised without AI, also offline',
+    /**
+     * A recipe's ingredients (and later the week menu's) onto the list:
+     * the add-to-groceries sheet (APP-312, designs/groceries section 5).
+     */
+    addLines: {
+      title: 'Add to groceries',
+      /** The grocery list's menu entry. */
+      fromRecipe: 'From recipe or week menu',
+      recipe: 'Recipe',
+      recipeServes: {
+        one: 'Recipe · serves {count}',
+        other: 'Recipe · serves {count}',
+      },
+      servings: 'Servings',
+      fewer: 'Fewer servings',
+      more: 'More servings',
+      toList: 'To list',
+      noList: 'No grocery list yet',
+      ingredients: 'Ingredients',
+      merge: 'Already on the list: {from}, becomes {to}',
+      alreadyOn: 'Already on the list',
+      inStock: 'In stock at home',
+      inStockAdding: 'In stock, adding anyway',
+      readWithAi: 'Read with AI · {used} of your {limit} today',
+      readWithAiEarlier: 'Read with AI earlier',
+      reading: 'Reading with AI…',
+      asText: 'Added as text',
+      add: { one: 'Add {count} to the list', other: 'Add {count} to the list' },
+      footnote:
+        'Merged with what is already there. The list shows which recipe each item is for.',
+      edit: 'Edit',
+      editTitle: 'Edit item',
+      failed: 'These could not be added. Try again.',
+    },
     aisles: {
       produce: 'Fruit and vegetables',
       bakery: 'Bread and bakery',
@@ -247,14 +282,14 @@ export const tasks = {
       description: 'Jobs around the house',
       defaultName: 'Household',
       startsWith:
-        'Starts with 8 sample chores for the kitchen, the bathroom and the rest of the house. Remove any of them.',
+        'Starts with 8 sample chores in Kitchen, Bathroom and Everywhere. Remove any of them.',
     },
     packing: {
       title: 'Packing list',
       description: 'Tick off, then reset for next time',
       defaultName: 'Trip',
       startsWith:
-        'Starts with 18 sample items: clothes, toiletries and things for the kids. Remove any of them.',
+        'Starts with 18 sample items in Clothes, Toiletries and Kids. Remove any of them.',
     },
     groceries: {
       title: 'Groceries',
@@ -316,4 +351,14 @@ export const tasks = {
     travelToys: 'Toys for the journey',
     snacks: 'Snacks',
   } satisfies Record<TaskStarterKey, string>,
+
+  /** The sections a template's starter items arrive in (APP-357). */
+  starterSections: {
+    kitchen: 'Kitchen',
+    bathroom: 'Bathroom',
+    everywhere: 'Everywhere',
+    clothes: 'Clothes',
+    toiletries: 'Toiletries',
+    kids: 'Kids',
+  } satisfies Record<TaskStarterSectionKey, string>,
 }

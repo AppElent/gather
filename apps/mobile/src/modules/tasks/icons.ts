@@ -10,6 +10,7 @@
 
 import type { TaskListIcon } from '@gather/core/task-lists'
 import Banknote from 'lucide-react-native/icons/banknote'
+import Bell from 'lucide-react-native/icons/bell'
 import Calendar from 'lucide-react-native/icons/calendar'
 import CircleCheck from 'lucide-react-native/icons/circle-check'
 import FileText from 'lucide-react-native/icons/file-text'
@@ -29,6 +30,8 @@ import Trash2 from 'lucide-react-native/icons/trash-2'
 import { type Glyph, glyph } from '../../theme/glyph'
 
 export const TASK_ICONS = {
+  /** A task's reminder (APP-305). */
+  Bell: glyph(Bell, 'bell'),
   Calendar: glyph(Calendar, 'calendar'),
   CircleCheck: glyph(CircleCheck, 'checkmark.circle'),
   FileText: glyph(FileText, 'doc.text'),

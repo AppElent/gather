@@ -72,6 +72,13 @@ const RECEIPT_CHUNK = 300
 /** Expo keeps receipts for a day; it asks for a wait before reading them. */
 const RECEIPT_DELAY_MS = 15 * 60 * 1000
 
+/**
+ * The waits before posting a batch again that Expo did not take: no answer,
+ * too many requests, or a server error. Three more tries over about ten
+ * minutes, so a reminder survives a short outage and is not sent an hour late.
+ */
+export const SEND_RETRY_DELAYS_MS = [30_000, 120_000, 480_000] as const
+
 const switchValidator = v.union(
   ...NOTIFICATION_SWITCHES.map((name) => v.literal(name)),
 )
@@ -82,6 +89,7 @@ const pushMessageValidator = v.object({
   body: v.string(),
   data: v.object({ url: v.string() }),
   sound: v.literal('default'),
+  categoryId: v.optional(v.string()),
 })
 
 // -- The phone ----------------------------------------------------------------
@@ -333,6 +341,18 @@ function chunks<T>(items: readonly T[], size: number): T[][] {
   return out
 }
 
+class PushHttpError extends Error {
+  constructor(readonly status: number) {
+    super(`Expo push: HTTP ${status}`)
+  }
+}
+
+/** Worth trying again: no answer at all, a rate limit, or Expo's own fault. */
+function isTransient(error: unknown): boolean {
+  if (!(error instanceof PushHttpError)) return true
+  return error.status === 429 || error.status >= 500
+}
+
 async function postJson(url: string, body: unknown): Promise<unknown> {
   const response = await fetch(url, {
     method: 'POST',
@@ -342,20 +362,26 @@ async function postJson(url: string, body: unknown): Promise<unknown> {
     },
     body: JSON.stringify(body),
   })
-  if (!response.ok) throw new Error(`Expo push: HTTP ${response.status}`)
+  if (!response.ok) throw new PushHttpError(response.status)
   return await response.json()
 }
 
 /**
  * Post the messages to Expo. A ticket that already says the install is gone
- * forgets its token; the rest are checked again by receipt.
+ * forgets its token; the rest are checked again by receipt. A batch Expo did
+ * not take for a passing reason is posted again later, a bounded number of
+ * times (`attempt` counts the tries already made).
  */
 export const sendPush = internalAction({
-  args: { messages: v.array(pushMessageValidator) },
+  args: {
+    messages: v.array(pushMessageValidator),
+    attempt: v.optional(v.number()),
+  },
   returns: v.null(),
-  handler: async (ctx, { messages }) => {
+  handler: async (ctx, { messages, attempt = 0 }) => {
     const gone: string[] = []
     const pending: { id: string; token: string }[] = []
+    const again: typeof messages = []
     for (const batch of chunks(messages, SEND_CHUNK)) {
       let tickets: Ticket[]
       try {
@@ -371,7 +397,14 @@ export const sendPush = internalAction({
           )
         tickets = answer.data ?? []
       } catch (error) {
-        console.error('notifications.sendPush failed', error)
+        const retry =
+          isTransient(error) && attempt < SEND_RETRY_DELAYS_MS.length
+        console.error('notifications.sendPush failed', {
+          attempt,
+          retry,
+          error: String(error),
+        })
+        if (retry) again.push(...batch)
         continue
       }
       tickets.forEach((ticket, index) => {
@@ -389,6 +422,12 @@ export const sendPush = internalAction({
       await ctx.runMutation(internal.notifications.forgetTokens, {
         tokens: gone,
       })
+    if (again.length)
+      await ctx.scheduler.runAfter(
+        SEND_RETRY_DELAYS_MS[attempt] as number,
+        internal.notifications.sendPush,
+        { messages: again, attempt: attempt + 1 },
+      )
     if (pending.length)
       await ctx.scheduler.runAfter(
         RECEIPT_DELAY_MS,

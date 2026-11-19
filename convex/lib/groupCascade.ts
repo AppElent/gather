@@ -33,9 +33,11 @@ import { internal } from '../_generated/api'
 import type { Doc, Id, TableNames } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import type { GroupScopedTable } from './groupAccess'
+import { cancelGroupSends } from './notifications'
 import { dropRecipeShares, setSharedGroups } from './recipeShares'
 import { storedFileIdsOf } from './storedFiles'
 import { unassignFromGroup } from './taskAssignee'
+import { cancelSend, dropMemberReminders } from './taskReminders'
 
 /** Delete these rows, handing back the stored files they were holding. */
 async function purge<T extends TableNames>(
@@ -51,19 +53,20 @@ async function purge<T extends TableNames>(
   return files
 }
 
-/** Delete a list's tasks: the only way to find them is through the list. */
+/**
+ * Delete a list's tasks: the only way to find them is through the list. A
+ * task's queued reminder is withdrawn with it (APP-305).
+ */
 export async function purgeTasksOfList(
   ctx: MutationCtx,
   listId: Id<'taskLists'>,
 ) {
-  await purge(
-    ctx,
-    'tasks',
-    await ctx.db
-      .query('tasks')
-      .withIndex('by_list', (q) => q.eq('listId', listId))
-      .collect(),
-  )
+  const tasks = await ctx.db
+    .query('tasks')
+    .withIndex('by_list', (q) => q.eq('listId', listId))
+    .collect()
+  for (const task of tasks) await cancelSend(ctx, task)
+  await purge(ctx, 'tasks', tasks)
 }
 
 /**
@@ -478,6 +481,11 @@ export async function destroyGroup(
     }
   }
 
+  // Whatever is still queued for the Group (an event's reminder, a task's
+  // the cascade did not reach) would send nothing, but its row and job would
+  // outlive the Group until their time.
+  await cancelGroupSends(ctx, groupId)
+
   await ctx.db.delete(groupId)
   if (files.length) {
     await ctx.scheduler.runAfter(0, internal.cascade.releaseFiles, {
@@ -504,12 +512,16 @@ export async function destroyGroup(
  *
  * A **task** they were responsible for goes back to nobody (APP-302), with
  * any notice they had not opened.
+ *
+ * A **task reminder** for them goes, with its queued send (APP-305).
  */
 export async function detachFromGroup(
   ctx: MutationCtx,
   userId: Id<'users'>,
   groupId: Id<'groups'>,
 ) {
+  await dropMemberReminders(ctx, userId, groupId)
+
   const costs = await ctx.db
     .query('recurringCosts')
     .withIndex('by_group', (q) => q.eq('groupId', groupId))

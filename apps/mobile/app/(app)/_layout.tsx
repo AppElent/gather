@@ -23,6 +23,7 @@ import { DropGate } from '../../src/drop/DropGate'
 import { AccountDeleteProvider } from '../../src/features/account/delete/account-delete-provider'
 import { AccountDeleteUnderwayScreen } from '../../src/features/account/delete/account-delete-underway-screen'
 import { PushPermissionProvider } from '../../src/features/notifications/push/push-permission-provider'
+import { PushTaskDone } from '../../src/features/notifications/push/push-task-done'
 import { GroupProvider } from '../../src/group/GroupProvider'
 import { groupUnwindActions, type NavState } from '../../src/group/groupUnwind'
 import { useTokens } from '../../src/theme/tokens'
@@ -56,6 +57,8 @@ export default function AppLayout() {
       <ConvexSessionGate pending={<GroupPending />} onSignOut={signOut}>
         {/* Asks nothing at launch; registers this phone's token when allowed. */}
         <PushPermissionProvider>
+        {/* A task reminder's Done button (APP-305). */}
+        <PushTaskDone />
         <GroupProvider
           pending={<GroupPending />}
           none={<NoGroup onSignOut={signOut} />}

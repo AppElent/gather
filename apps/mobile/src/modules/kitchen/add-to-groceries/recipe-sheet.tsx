@@ -1,0 +1,52 @@
+/**
+ * Add to groceries from a recipe (APP-312): the recipe's ingredients, read
+ * locally and by the AI where needed, in the source-agnostic sheet with a
+ * servings stepper that starts at the recipe's own servings.
+ */
+import { useState } from 'react'
+
+import { plural, useI18n } from '../../../i18n'
+import { UI_ICONS } from '../../../theme/icons'
+import { AddToGroceriesSheet } from './add-sheet'
+import { useRecipeLines } from './use-recipe-lines'
+
+export function RecipeToGroceriesSheet({
+  recipe,
+  onClose,
+}: {
+  recipe: {
+    _id: string
+    title: string
+    ingredients: readonly string[]
+    servings?: number
+  }
+  onClose: () => void
+}) {
+  const { t, locale } = useI18n()
+  const words = t.tasks.grocery.addLines
+  const { lines, aiCount } = useRecipeLines({
+    id: recipe._id,
+    ingredients: recipe.ingredients,
+    servings: recipe.servings,
+  })
+  const [servings, setServings] = useState(recipe.servings ?? 0)
+
+  return (
+    <AddToGroceriesSheet
+      source={{
+        title: recipe.title,
+        subtitle: recipe.servings
+          ? plural(locale, recipe.servings, words.recipeServes)
+          : words.recipe,
+        glyph: UI_ICONS.BookOpen,
+      }}
+      lines={lines}
+      // A recipe that does not say how many it serves cannot scale.
+      servings={
+        recipe.servings ? { value: servings, onChange: setServings } : undefined
+      }
+      aiCount={aiCount}
+      onClose={onClose}
+    />
+  )
+}

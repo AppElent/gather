@@ -3,12 +3,14 @@ import { en, nl } from './messages'
 import {
   assigneeUnavailable,
   asTaskListKind,
+  groupBySection,
   iconChoices,
   normalizeTaskUrl,
   TASK_LIST_KINDS,
   TASK_LIST_TEMPLATES,
   taskListFace,
   taskUrlHost,
+  templateStarters,
 } from './taskLists'
 
 describe('task list kinds', () => {
@@ -43,15 +45,75 @@ describe('task list kinds', () => {
     }
   })
 
-  it('has every starter item in both languages', () => {
+  it('has every starter item and section in both languages', () => {
     for (const kind of TASK_LIST_KINDS) {
-      for (const key of TASK_LIST_TEMPLATES[kind].starters) {
-        expect(en.tasks.starters[key]).toBeTruthy()
-        expect(nl.tasks.starters[key]).toBeTruthy()
+      for (const { section, items } of TASK_LIST_TEMPLATES[kind].sections) {
+        expect(en.tasks.starterSections[section]).toBeTruthy()
+        expect(nl.tasks.starterSections[section]).toBeTruthy()
+        for (const key of items) {
+          expect(en.tasks.starters[key]).toBeTruthy()
+          expect(nl.tasks.starters[key]).toBeTruthy()
+        }
       }
     }
-    expect(TASK_LIST_TEMPLATES.chores.starters).toHaveLength(8)
-    expect(TASK_LIST_TEMPLATES.packing.starters).toHaveLength(18)
+    expect(templateStarters(TASK_LIST_TEMPLATES.chores)).toHaveLength(8)
+    expect(templateStarters(TASK_LIST_TEMPLATES.packing)).toHaveLength(18)
+  })
+
+  it('puts chores by room and packing by bag, as the design shows', () => {
+    expect(
+      TASK_LIST_TEMPLATES.chores.sections.map(({ section }) => section),
+    ).toEqual(['kitchen', 'bathroom', 'everywhere'])
+    expect(
+      TASK_LIST_TEMPLATES.packing.sections.map(({ section }) => section),
+    ).toEqual(['clothes', 'toiletries', 'kids'])
+  })
+})
+
+describe('sections', () => {
+  const sections = [
+    { id: 'a', name: 'Kitchen' },
+    { id: 'b', name: 'Bathroom' },
+  ]
+
+  it('draws a list without sections as one group of everything', () => {
+    const tasks = [{ id: 1 }, { id: 2, sectionId: 'gone' }]
+    expect(groupBySection([], tasks)).toEqual([
+      { id: null, name: null, tasks },
+    ])
+  })
+
+  it('groups by section in section order, keeping task order', () => {
+    const tasks = [
+      { id: 1, sectionId: 'b' },
+      { id: 2, sectionId: 'a' },
+      { id: 3, sectionId: 'b' },
+    ]
+    expect(
+      groupBySection(sections, tasks).map((g) => [
+        g.id,
+        g.tasks.map((t) => t.id),
+      ]),
+    ).toEqual([
+      ['a', [2]],
+      ['b', [1, 3]],
+    ])
+  })
+
+  it('puts tasks with no section, or a deleted one, first under null', () => {
+    const tasks = [
+      { id: 1, sectionId: 'a' },
+      { id: 2 },
+      { id: 3, sectionId: 'deleted' },
+      { id: 4, sectionId: null },
+    ]
+    const groups = groupBySection(sections, tasks)
+    expect(groups[0]).toEqual({
+      id: null,
+      name: null,
+      tasks: [tasks[1], tasks[2], tasks[3]],
+    })
+    expect(groups.map((g) => g.id)).toEqual([null, 'a', 'b'])
   })
 })
 

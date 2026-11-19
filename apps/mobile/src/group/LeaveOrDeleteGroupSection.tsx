@@ -6,11 +6,15 @@
  * and say so before the button is pressed, rather than refusing after the
  * confirmation:
  *
- * - Anybody may leave, except the only admin while anyone else is still in it
- *   (`leaveRule`). The phone cannot hand the admin role on, so the note says
- *   where that happens.
- * - Only an admin may delete, and only once they are its last Member. A Member
- *   who is not an admin does not see Delete.
+ * - Anybody may leave, except the only admin while anyone else is still in it.
+ *   The phone cannot hand the admin role on, so the note says where that
+ *   happens.
+ * - The last Member does not see Leave: they are offered Delete instead,
+ *   whatever their role, because leaving would strand an empty Group.
+ * - Otherwise only an admin sees Delete, held back while others remain.
+ *
+ * Which of these applies is the server's answer (`groups.leaveStatus`, see
+ * `groupExits`), not a count of `groups.members`, so the two cannot disagree.
  *
  * What follows either is the same: the Group drops out of `myGroups`,
  * `GroupProvider` falls back to the landing Group and unwinds the Group-scoped
@@ -22,14 +26,14 @@ import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { AuthError } from '../components/AuthError'
 import { api, type Id } from '../convex/api'
-import { useQuery } from '../convex/queries'
+import { useLiveQuery, useQuery } from '../convex/queries'
 import { confirmDestructive } from '../feedback/confirmDestructive'
 import { haptics } from '../feedback/haptics'
 import { fmt, useI18n } from '../i18n'
 import { TYPE, useTokens } from '../theme/tokens'
 import { Button } from '../ui/button'
 import { useGroup } from './GroupProvider'
-import { leaveRule } from './leaveRule'
+import { groupExits } from './leaveRule'
 
 type Exit = 'leave' | 'delete'
 
@@ -43,21 +47,19 @@ export function LeaveOrDeleteGroupSection() {
   // `GroupProvider` holds the same subscription, so this reads its result.
   const myGroups = useQuery(api.groups.myGroups, {})
   const role = myGroups?.find((each) => each._id === group._id)?.role
-  const isAdmin = role === 'admin'
   // Once the reader is out, the Group's own queries would only refuse until
   // `GroupProvider` moves on, so they are not asked again.
   const [gone, setGone] = useState<Id<'groups'> | null>(null)
-  const members = useQuery(
-    api.groups.members,
-    isAdmin && gone !== group._id ? { slug: group.slug } : 'skip',
+  const status = useLiveQuery(
+    api.groups.leaveStatus,
+    gone !== group._id ? { slug: group.slug } : 'skip',
   )
   const [busy, setBusy] = useState<Exit | null>(null)
   const [failed, setFailed] = useState<Exit | null>(null)
 
   if (gone === group._id) return null
 
-  const rule = leaveRule(role, members)
-  const othersRemain = members !== undefined && members.length > 1
+  const exits = groupExits(role, status)
 
   async function run(which: Exit) {
     if (busy) return
@@ -96,34 +98,44 @@ export function LeaveOrDeleteGroupSection() {
               : null
         }
       />
-      <Button
-        label={leaveText.button}
-        variant="secondary"
-        busy={busy === 'leave'}
-        disabled={rule !== 'allowed' || busy !== null}
-        testID="leave-group"
-        onPress={() =>
-          confirmDestructive({
-            title: fmt(leaveText.title, { group: group.name }),
-            message: leaveText.body,
-            confirm: leaveText.confirm,
-            cancel: t.common.actions.cancel,
-            onConfirm: () => void run('leave'),
-          })
-        }
-      />
-      {rule === 'only-admin' ? (
+      {exits.leave !== 'hidden' ? (
+        <Button
+          label={leaveText.button}
+          variant="secondary"
+          busy={busy === 'leave'}
+          disabled={exits.leave !== 'offer' || busy !== null}
+          testID="leave-group"
+          onPress={() =>
+            confirmDestructive({
+              title: fmt(leaveText.title, { group: group.name }),
+              message: leaveText.body,
+              confirm: leaveText.confirm,
+              cancel: t.common.actions.cancel,
+              onConfirm: () => void run('leave'),
+            })
+          }
+        />
+      ) : (
+        <Text
+          testID="last-member-note"
+          style={[styles.note, { color: tokens.muted }]}
+        >
+          {leaveText.lastMember}
+        </Text>
+      )}
+      {exits.leave === 'only-admin' ? (
         <Text style={[styles.note, { color: tokens.muted }]}>
           {leaveText.onlyAdmin}
         </Text>
       ) : null}
-      {isAdmin ? (
+      {exits.delete !== 'hidden' ? (
         <>
           <Button
             label={deleteText.button}
             variant="danger"
             busy={busy === 'delete'}
-            disabled={members === undefined || othersRemain || busy !== null}
+            disabled={exits.delete !== 'offer' || busy !== null}
+            testID="delete-group"
             onPress={() =>
               confirmDestructive({
                 title: fmt(deleteText.title, { group: group.name }),
@@ -134,7 +146,7 @@ export function LeaveOrDeleteGroupSection() {
               })
             }
           />
-          {othersRemain ? (
+          {exits.delete === 'others-first' ? (
             <Text style={[styles.note, { color: tokens.muted }]}>
               {deleteText.othersFirst}
             </Text>

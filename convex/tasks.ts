@@ -6,6 +6,7 @@ import {
   roundGroceryQuantity,
 } from '@gather/core/groceries'
 import { normalizeTaskUrl } from '@gather/core/task-lists'
+import { clockMoment } from '@gather/core/task-reminders'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
@@ -29,6 +30,16 @@ import {
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
 import { assigneeChange, notifyAssignee } from './lib/taskAssignee'
 import { taskPriorityValidator } from './lib/taskFields'
+import {
+  cancelSend,
+  checkedClock,
+  REMINDER_PASSED,
+  REMINDER_SLACK_MS,
+  shiftedReminder,
+  syncSend,
+  type TaskReminder,
+} from './lib/taskReminders'
+import { knownSectionId } from './lib/taskSections'
 
 const byOpenThenOrder = (a: Doc<'tasks'>, b: Doc<'tasks'>) =>
   Number(a.done) - Number(b.done) || a.order - b.order
@@ -144,6 +155,9 @@ export const add = mutation({
     unit: v.optional(groceryUnitValidator),
     // The Member responsible (APP-302); a current Member of the list's Group.
     assigneeId: v.optional(v.id('users')),
+    // The section it is added to (APP-357). One the list does not have, and
+    // none at all from an app older than sections, is "No section".
+    sectionId: v.optional(v.string()),
     idempotencyKey: idempotencyKeyValidator,
   },
   handler: async (ctx, args) => {
@@ -155,6 +169,7 @@ export const add = mutation({
     const quantity =
       args.quantity === undefined ? undefined : checkedQuantity(args.quantity)
     const onGroceryList = isGroceryList(group, list)
+    const sectionId = knownSectionId(list, args.sectionId)
     // A list without amounts keeps an amount it was sent in the title, so
     // nothing a connected app wrote is dropped.
     const title = onGroceryList
@@ -195,6 +210,7 @@ export const add = mutation({
         ...(onGroceryList && quantity !== undefined ? { quantity } : {}),
         ...(onGroceryList && args.unit !== undefined ? { unit: args.unit } : {}),
         ...(assignee ?? {}),
+        ...(sectionId ? { sectionId } : {}),
       })
       if (grocery) await askAiOnce(ctx, group._id, grocery, taskId)
       await notifyAssignee(ctx, group._id, taskId, assignee)
@@ -206,8 +222,51 @@ export const add = mutation({
 export const toggleDone = mutation({
   args: { taskId: v.id('tasks'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    const { task, group } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
     await ctx.db.patch(args.taskId, { done: !task.done })
+    if (task.reminder)
+      await syncSend(ctx, { ...task, done: !task.done }, group._id, task.reminder)
+  },
+})
+
+/**
+ * Set or clear a task's reminder (APP-305). It goes to the caller: a reminder
+ * is chosen by the person it is for (16 Sept). The clock is the caller's wall
+ * clock and time zone; the moment must not have passed, give or take the
+ * minute the person was looking at.
+ */
+export const setReminder = mutation({
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    reminder: v.union(
+      v.object({ date: v.string(), time: v.string(), timeZone: v.string() }),
+      v.null(),
+    ),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { task, group, user } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
+    let reminder: TaskReminder | undefined
+    if (args.reminder) {
+      const clock = checkedClock(args.reminder)
+      if (clockMoment(clock) < Date.now() - REMINDER_SLACK_MS)
+        throw new ConvexError(REMINDER_PASSED)
+      reminder = { ...clock, userId: user._id }
+    }
+    await ctx.db.patch(task._id, { reminder })
+    await syncSend(ctx, { ...task, reminder }, group._id, task.reminder, {
+      late: true,
+    })
+    return null
   },
 })
 
@@ -266,6 +325,11 @@ export const update = mutation({
             current: task.assigneeId,
             next: args.assigneeId,
           })
+    // Moving the due date moves the reminder by the same days (APP-305).
+    const reminder =
+      dueDate === undefined
+        ? task.reminder
+        : shiftedReminder(task.reminder, task.dueDate, dueDate ?? undefined)
     let askAi: Awaited<ReturnType<typeof recogniseGroceryTitle>> | null = null
     if (onGroceryList && category !== undefined) {
       await recordGroceryCorrection(
@@ -305,7 +369,15 @@ export const update = mutation({
       ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
       ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
       ...(assignee ?? {}),
+      ...(reminder !== task.reminder ? { reminder } : {}),
     })
+    if (task.reminder && (reminder !== task.reminder || done !== undefined))
+      await syncSend(
+        ctx,
+        { ...task, reminder, done: done ?? task.done },
+        group._id,
+        task.reminder,
+      )
     if (askAi) await askAiOnce(ctx, group._id, askAi, taskId)
     await notifyAssignee(ctx, group._id, taskId, assignee)
   },
@@ -376,7 +448,7 @@ export const setDoneInList = mutation({
   },
   returns: v.array(v.id('tasks')),
   handler: async (ctx, args) => {
-    await requireLocalList(ctx, args.groupSlug, args.listId)
+    const { group } = await requireLocalList(ctx, args.groupSlug, args.listId)
     const rows = await ctx.db
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
@@ -393,6 +465,9 @@ export const setDoneInList = mutation({
     await Promise.all(
       changed.map((task) => ctx.db.patch(task._id, { done: args.done })),
     )
+    for (const task of changed)
+      if (task.reminder)
+        await syncSend(ctx, { ...task, done: args.done }, group._id, task.reminder)
     return changed.map((task) => task._id)
   },
 })
@@ -400,7 +475,8 @@ export const setDoneInList = mutation({
 export const remove = mutation({
   args: { taskId: v.id('tasks'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    await cancelSend(ctx, task)
     await ctx.db.delete(args.taskId)
   },
 })
@@ -410,9 +486,21 @@ export const reorder = mutation({
     listId: v.id('taskLists'),
     groupSlug: v.string(),
     ids: v.array(v.id('tasks')),
+    // APP-357: each task's section after the drag, by position in `ids`
+    // (null is "No section"). Absent from an app older than sections, which
+    // leaves every task in the section it was in.
+    sectionIds: v.optional(v.array(v.union(v.string(), v.null()))),
   },
   handler: async (ctx, args) => {
-    await requireLocalList(ctx, args.groupSlug, args.listId)
+    const { doc: list } = await requireLocalList(
+      ctx,
+      args.groupSlug,
+      args.listId,
+    )
+    const sectionIds = args.sectionIds
+    if (sectionIds && sectionIds.length !== args.ids.length) {
+      throw new ConvexError('Every task needs its section')
+    }
     const rows = await ctx.db
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
@@ -430,7 +518,16 @@ export const reorder = mutation({
     ) {
       throw new ConvexError('Reorder must contain every open task exactly once')
     }
-    await Promise.all(args.ids.map((id, order) => ctx.db.patch(id, { order })))
+    await Promise.all(
+      args.ids.map((id, order) =>
+        ctx.db.patch(id, {
+          order,
+          ...(sectionIds
+            ? { sectionId: knownSectionId(list, sectionIds[order]) }
+            : {}),
+        }),
+      ),
+    )
   },
 })
 
@@ -564,8 +661,40 @@ export const moveToList = mutation({
       title: fields.title,
       quantity: fields.quantity,
       unit: fields.unit satisfies GroceryUnit | undefined,
+      // A section belongs to its list; on another list the task has none.
+      sectionId: undefined,
     })
     if (grocery) await askAiOnce(ctx, group._id, grocery, task._id)
+    return null
+  },
+})
+
+/**
+ * Into a section of its own list, or out of every section with null
+ * (APP-357). It goes last in its new section.
+ */
+export const setSection = mutation({
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    sectionId: v.union(v.string(), v.null()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { task, doc: list } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
+    const sectionId = knownSectionId(list, args.sectionId)
+    if (args.sectionId !== null && sectionId === undefined) {
+      throw new ConvexError('Section not found')
+    }
+    if ((task.sectionId ?? undefined) === sectionId) return null
+    await ctx.db.patch(task._id, {
+      sectionId,
+      order: await endOfList(ctx, task.listId),
+    })
     return null
   },
 })
