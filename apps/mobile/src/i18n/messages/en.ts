@@ -531,8 +531,6 @@ export const en = {
     name: 'Name',
     quantity: 'Quantity (optional)',
     noPantry: 'Nothing in the pantry yet.',
-    noGroceryList: 'Choose a task list for groceries.',
-    changeList: 'Use another list',
     addGroceryItem: 'Add an item…',
     deleteTitle: 'Delete “{title}”?',
     deleteBody: 'This cannot be undone.',
@@ -881,6 +879,7 @@ export const en = {
     pick: {
       note: 'Which note?',
       'task-list': 'Which list?',
+      'grocery-list': 'Which grocery list?',
       recipe: 'Which recipe?',
       'tasting-subject': 'Which one?',
       search: 'Search',

@@ -124,7 +124,7 @@ export function DropPickScreen() {
         group: named,
         pick: candidate,
       })
-      if (!result.ok) {
+      if (result.ok !== true) {
         haptics.actionFailed()
         setFailed(true)
         return
@@ -284,7 +284,7 @@ function useCandidates(
   )
   const lists = useQuery(
     api.taskLists.list,
-    picks === 'task-list' ? { groupSlug } : 'skip',
+    picks === 'task-list' || picks === 'grocery-list' ? { groupSlug } : 'skip',
   )
   const recipes = useQuery(
     api.recipes.list,
@@ -313,6 +313,15 @@ function useCandidates(
       label: list.name,
       readOnly: !list.writable,
     }))
+  }
+  if (picks === 'grocery-list') {
+    return lists
+      ?.filter((list) => list.grocery)
+      .map((list) => ({
+        id: list._id,
+        label: list.name,
+        readOnly: !list.writable,
+      }))
   }
   if (picks === 'recipe') {
     return recipes?.map((recipe) => ({

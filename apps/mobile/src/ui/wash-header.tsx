@@ -13,6 +13,7 @@
  *
  * Text on the wash is `ink` and `muted` only, never a group's `text`.
  */
+import type { ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 
 import type { Glyph } from '../theme/glyph'
@@ -37,10 +38,13 @@ export function WashHeader({
   group,
   glyph,
   summary,
+  accessory,
 }: {
   group: ModuleGroup
   glyph: Glyph
   summary: WashSummary
+  /** Under the summary: the grocery list's store pill (APP-313). */
+  accessory?: ReactNode
 }) {
   const tokens = useTokens()
   const tint = tokens.tintOf(group)
@@ -53,15 +57,18 @@ export function WashHeader({
       />
       <View style={styles.row}>
         <ModuleTile group={group} glyph={glyph} size="l" />
-        <Text
-          testID="wash-summary"
-          style={[styles.summary, { color: tokens.ink }]}
-        >
-          <Text style={styles.count}>{summary.count}</Text>
-          {summary.scope ? (
-            <Text style={{ color: tokens.muted }}>{` · ${summary.scope}`}</Text>
-          ) : null}
-        </Text>
+        <View style={styles.side}>
+          <Text
+            testID="wash-summary"
+            style={[styles.summary, { color: tokens.ink }]}
+          >
+            <Text style={styles.count}>{summary.count}</Text>
+            {summary.scope ? (
+              <Text style={{ color: tokens.muted }}>{` · ${summary.scope}`}</Text>
+            ) : null}
+          </Text>
+          {accessory}
+        </View>
       </View>
     </View>
   )
@@ -83,6 +90,7 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE[3] },
-  summary: { ...TYPE.subhead, flex: 1 },
+  side: { flex: 1, gap: SPACE[1], alignItems: 'flex-start' },
+  summary: { ...TYPE.subhead, alignSelf: 'stretch' },
   count: { ...TABULAR, fontWeight: '700' },
 })

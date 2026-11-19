@@ -1,9 +1,11 @@
 import type { ExternalProviderId } from '@gather/core/domain'
+import { aisleOrder, isDefaultAisleOrder } from '@gather/core/groceries'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { action, internalQuery, mutation, query } from './_generated/server'
 import { getGatedIdentity } from './lib/connectedApps'
 import { isGroceryList, recogniseGroceryTitle } from './lib/groceryCategories'
+import { groceryAisleValidator } from './lib/groceryFields'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { deleteTaskList } from './lib/groupCascade'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
@@ -47,6 +49,9 @@ export const list = query({
         // APP-310: items checked before this left the Checked section of a
         // grocery list ("Clear checked") and are only in Recent now.
         checkedClearedAt: l.checkedClearedAt ?? null,
+        // APP-313: a grocery list's own aisle order, or null for the default
+        // walking order. Read through `aisleOrder` (`@gather/core/groceries`).
+        aisleOrder: l.aisleOrder ?? null,
         // Whether this list can be added to from Gather: only a local list
         // has `tasks` rows, and no provider write path exists (ADR-0021).
         // Callers that offer a list as somewhere to write — the baby log's
@@ -224,6 +229,42 @@ export const clearChecked = mutation({
     }
     await ctx.db.patch(args.listId, { checkedClearedAt: Date.now() })
     return list.checkedClearedAt ?? null
+  },
+})
+
+/**
+ * A grocery list's aisle order, the way its store is walked (APP-313), or
+ * `null` for the default walking order ("Restore default order"). The order
+ * may leave out aisles a phone did not know; they are stored after it, so the
+ * list always holds every aisle once.
+ */
+export const setAisleOrder = mutation({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    order: v.union(v.array(groceryAisleValidator), v.null()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { group, doc: list } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.listId,
+      'List not found',
+    )
+    if (list.provider !== 'local' || !isGroceryList(group, list)) {
+      throw new ConvexError('That is not a grocery list')
+    }
+    if (args.order && new Set(args.order).size !== args.order.length) {
+      throw new ConvexError('An aisle order names each aisle once')
+    }
+    await ctx.db.patch(args.listId, {
+      aisleOrder:
+        args.order === null || isDefaultAisleOrder(args.order)
+          ? undefined
+          : aisleOrder(args.order),
+    })
+    return null
   },
 })
 

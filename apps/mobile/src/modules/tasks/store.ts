@@ -202,6 +202,7 @@ export function mergeTasks(
       sync,
       grocery: list.grocery ?? false,
       checkedClearedAt: list.checkedClearedAt ?? null,
+      aisleOrder: list.aisleOrder ?? null,
       ...listFace(list),
     }
   })
@@ -333,6 +334,14 @@ export function useTaskList(listId: string) {
   }
 }
 
+/**
+ * The tasks of the given lists only (APP-313: the Grocery lists sheet's
+ * counts). `lists` must be memoised by the caller, as `useQueries` needs.
+ */
+export function useTasksOf(lists: readonly ListRow[]) {
+  return useListsOf(lists)
+}
+
 /** Every write Tasks makes, in the Current Group. */
 export function useTaskActions() {
   const { group } = useGroup()
@@ -355,6 +364,7 @@ export function useTaskActions() {
   const setDoneInList = useMutation(api.tasks.setDoneInList)
   const clearChecked = useMutation(api.taskLists.clearChecked)
   const restoreCheckedCleared = useMutation(api.taskLists.restoreCheckedCleared)
+  const setAisleOrder = useMutation(api.taskLists.setAisleOrder)
   const putBack = useMutation(api.tasks.putBack)
 
   const patch = (
@@ -455,6 +465,16 @@ export function useTaskActions() {
         listId: listId as Id<'taskLists'>,
         groupSlug,
         checkedClearedAt,
+      }),
+    /**
+     * A grocery list's aisle order, the way its store is walked (APP-313);
+     * null restores the default walking order.
+     */
+    setAisleOrder: (listId: string, order: readonly GroceryAisle[] | null) =>
+      setAisleOrder({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        order: order ? [...order] : null,
       }),
     /** A Recent item back onto a grocery list, with its amount and aisle. */
     putBack: (taskId: string, listId: string) =>

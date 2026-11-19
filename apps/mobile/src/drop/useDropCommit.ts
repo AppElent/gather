@@ -13,7 +13,7 @@
  * ## Nothing runs before a person confirms
  *
  * Two destinations need to look something up — a memory needs a Child, a
- * grocery line needs the list the Group designated — and both do it with a
+ * grocery line needs the Group's grocery lists — and both do it with a
  * **one-shot query inside the commit**, never a subscription at hook level. A
  * `useQuery` here would fire the moment the chooser rendered, which is exactly
  * the "nothing expensive before a person confirms" rule of ADR-0028, broken by
@@ -34,7 +34,7 @@
  *
  * ## A precondition is a sentence, not a dead end
  *
- * A missing Child or an undesignated grocery list answers with a `DropProblem`
+ * A missing Child or a Group with no grocery list answers with a `DropProblem`
  * rather than throwing or navigating somewhere unhelpful, so the chooser can
  * say what is missing **with the Drop still pending**. Nothing shared is lost
  * by finding out late.
@@ -48,7 +48,12 @@ import { api, type Id } from '../convex/api'
 import type { AmbientGroup } from '../group/GroupProvider'
 import { resolveSelectedChild } from '../modules/baby/selectedChild'
 import { preparePhoto, uploadPhoto } from '../photo/pickPhoto'
-import { babyChildKey, readPreference } from '../prefs/localPreference'
+import {
+  babyChildKey,
+  lastGroceryListKey,
+  readPreference,
+  writePreference,
+} from '../prefs/localPreference'
 import { appendedBody, type Drop, dropBody, dropTitle } from './drop'
 import type { DropTarget } from './dropTargets'
 
@@ -74,6 +79,8 @@ export type DropProblem = 'no-child' | 'no-grocery-list'
 export type DropCommit =
   | { ok: true; href: Href }
   | { ok: false; problem: DropProblem }
+  /** Stage two has a question after all: several grocery lists. */
+  | { ok: 'ask' }
 
 export interface DropCommitInput {
   target: DropTarget
@@ -212,19 +219,28 @@ export function useDropCommit() {
         }
 
         case 'grocery-line': {
-          // The Group designates its grocery list, so there is nothing to ask —
-          // unless it has not, which is the one thing that can stop this.
-          const { groceryListId } = await convex.query(api.kitchen.groceries, {
-            groupSlug,
-          })
-          if (!groceryListId) return { ok: false, problem: 'no-grocery-list' }
+          // One grocery list is the destination, so nothing is asked. With
+          // several, one per store (APP-313), stage two asks which, and its
+          // pick comes back through here.
+          let listId = pick?.id as Id<'taskLists'> | undefined
+          if (!listId) {
+            const lists = (
+              await convex.query(api.taskLists.list, { groupSlug })
+            ).filter((list) => list.grocery && list.writable)
+            if (lists.length === 0)
+              return { ok: false, problem: 'no-grocery-list' }
+            if (lists.length > 1) return { ok: 'ask' }
+            listId = lists[0]._id
+          }
           // The amount off the line, as the list's own composer does (APP-309).
           await addTask({
             groupSlug,
-            listId: groceryListId,
+            listId,
             ...groceryAddFields(lineOf(drop)),
           })
-          return { ok: true, href: target.route({ id: groceryListId }) }
+          // The list it went to is the one Groceries opens next.
+          writePreference(lastGroceryListKey(groupSlug), listId)
+          return { ok: true, href: target.route({ id: listId }) }
         }
 
         case 'baby-memory': {

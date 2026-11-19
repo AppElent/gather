@@ -71,8 +71,9 @@ export function allArrangementKey(groupSlug: string) {
 }
 
 /**
- * The grocery list a recipe last went to, in one Group: the add-to-groceries
- * sheet opens on it (APP-312, "the last used grocery list").
+ * The grocery list last used on this phone, in one Group: the one last opened
+ * in Groceries or picked in its store pill (APP-313), or the one a recipe last
+ * went to (APP-312). Groceries and the add-to-groceries sheet both open on it.
  */
 export function lastGroceryListKey(groupSlug: string) {
   return `gather:groceries:last-list:${groupSlug}` as const

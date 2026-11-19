@@ -101,6 +101,13 @@ export default defineSchema({
     isPersonal: v.optional(v.boolean()),
     icon: v.optional(v.string()),
     imageId: v.optional(v.id('_storage')),
+    // The list the Groceries Module opened before a Group could have several
+    // grocery lists (APP-313). Installed phones still read it through
+    // `kitchen.groceries` and write it through `kitchen.setGroceryList`; a
+    // newer phone opens the grocery list last used on it and falls back to
+    // this. Contract: drop once the OTA that reads `taskLists.list` alone has
+    // reached every installed build and `backfillGroceryListKind` ran
+    // everywhere (docs/migrations/README.md).
     groceryListId: v.optional(v.id('taskLists')),
   })
     .index('by_inviteCode', ['inviteCode'])
@@ -181,6 +188,13 @@ export default defineSchema({
      * Recent. Absent until the first clear.
      */
     checkedClearedAt: v.optional(v.number()),
+    /**
+     * A grocery list's aisle order, the way its store is walked (APP-313).
+     * Absent is the default walking order (`GROCERY_AISLES`); a reader goes
+     * through `aisleOrder` in `@gather/core/groceries`, which also places an
+     * aisle added after the order was saved.
+     */
+    aisleOrder: v.optional(v.array(groceryAisleValidator)),
   }).index('by_group', ['groupId']),
 
   // Rows exist only for provider === 'local' lists.

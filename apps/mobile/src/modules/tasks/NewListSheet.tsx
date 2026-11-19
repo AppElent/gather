@@ -43,8 +43,11 @@ const NAME_MAX = 100
 export function NewListSheet({
   onClose,
   onCreated,
+  initialKind = 'plain',
 }: {
   onClose: () => void
+  /** The kind already chosen: Groceries from the Grocery lists sheet (APP-313). */
+  initialKind?: TaskListKind
   /** Called with the new list once it exists; the sheet is closed by then. */
   onCreated: (list: { id: string; kind: TaskListKind }) => void
 }) {
@@ -52,7 +55,7 @@ export function NewListSheet({
   const { t } = useI18n()
   const actions = useTaskActions()
   const [name, setName] = useState('')
-  const [kind, setKind] = useState<TaskListKind>('plain')
+  const [kind, setKind] = useState<TaskListKind>(initialKind)
   // `null` follows the kind: its colour until somebody picks one, its icon
   // until somebody picks one after choosing it.
   const [color, setColor] = useState<TaskListColor | null>(null)

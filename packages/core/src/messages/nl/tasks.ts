@@ -141,6 +141,30 @@ export const tasks = {
       other: '{count} afgevinkte items gewist. Ze blijven in Recent.',
     },
     undo: 'Ongedaan maken',
+    lists: {
+      title: 'Boodschappenlijsten',
+      switchLabel: 'Lijst: {list}, wisselen',
+      customOrder: 'Schapvolgorde aangepast',
+      defaultOrder: 'Standaardvolgorde',
+      count: { one: '{count} item', other: '{count} items' },
+      aisleOrderOf: 'Schapvolgorde van {list}',
+      newList: 'Nieuwe boodschappenlijst',
+      footnote:
+        'Elke lijst heeft zijn eigen schapvolgorde. Een item verplaatsen houdt hoeveelheid en afdeling.',
+      none: 'Nog geen boodschappenlijst. Maak er een, of gebruik een van je lijsten.',
+    },
+    aisleOrder: {
+      title: 'Schapvolgorde',
+      menu: 'Schapvolgorde',
+      section: '{list} · zo loop je door de winkel',
+      up: '{aisle} omhoog',
+      down: '{aisle} omlaag',
+      footnote:
+        'Sleep een afdeling, of gebruik de pijlen. Afdelingen zonder items zijn in de lijst verborgen.',
+      save: 'Bewaar',
+      restore: 'Standaardvolgorde herstellen',
+      failed: 'De schapvolgorde kon niet worden bewaard. Probeer het opnieuw.',
+    },
     recent: {
       title: 'Recent',
       count: { one: '{count} item', other: '{count} items' },

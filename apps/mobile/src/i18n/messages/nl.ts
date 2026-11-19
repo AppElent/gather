@@ -359,8 +359,6 @@ export const nl = {
     name: 'Naam',
     quantity: 'Hoeveelheid (optioneel)',
     noPantry: 'Nog niets in de voorraadkast.',
-    noGroceryList: 'Kies een takenlijst voor boodschappen.',
-    changeList: 'Andere lijst gebruiken',
     addGroceryItem: 'Item toevoegen…',
     deleteTitle: '“{title}” verwijderen?',
     deleteBody: 'Dit kan niet ongedaan worden gemaakt.',
@@ -660,6 +658,7 @@ export const nl = {
     pick: {
       note: 'Welke notitie?',
       'task-list': 'Welke lijst?',
+      'grocery-list': 'Welke boodschappenlijst?',
       recipe: 'Welk recept?',
       'tasting-subject': 'Welke?',
       search: 'Zoeken',
