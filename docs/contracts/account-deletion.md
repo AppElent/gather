@@ -76,6 +76,9 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   browser tab is often older, and finding out after the purge would strand
   the account. The web asks with Clerk's verify dialog when the sign-in is
   older than five minutes, and closing it deletes nothing.
+- **Another signed-in tab or device can bring the account back.** It still
+  runs `ensureUser`; once the purge has deleted the `users` row, a reload
+  there while the login is stranded provisions a new, empty account.
 - **Only the iOS app revokes Sign in with Apple** (APP-213). Android and the
   web delete an Apple-linked account without revoking the grant.
 

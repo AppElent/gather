@@ -59,7 +59,7 @@ export const settings = {
       'Je gegevens zijn verwijderd, maar het account zelf niet. Probeer het opnieuw, of neem contact op met support als het blijft mislukken.',
     underway: 'Je account wordt verwijderd…',
     unavailable:
-      'Dit account kan niet vanuit de app worden verwijderd. Neem contact op met support.',
+      'Dit account kan hier niet worden verwijderd. Neem contact op met support.',
     signInCheckFailed:
       'Je aanmelding kon niet worden bevestigd, dus er is niets verwijderd. Probeer het opnieuw.',
     accountChanged:

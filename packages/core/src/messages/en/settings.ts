@@ -79,7 +79,7 @@ export const settings = {
     underway: 'Deleting your account…',
     /** Clerk refuses self-deletion unless the instance allows it. */
     unavailable:
-      'This account cannot be deleted from the app. Please contact support.',
+      'This account cannot be deleted here. Please contact support.',
     /**
      * The web asks Clerk for a recent sign-in before anything is deleted; Clerk
      * deletes a login only within a few minutes of one.

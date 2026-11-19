@@ -97,7 +97,7 @@ describe('before asking', () => {
 
     expect(submit()).toBeDisabled()
     expect(screen.getByRole('alert').textContent).toBe(
-      'This account cannot be deleted from the app. Please contact support.',
+      'This account cannot be deleted here. Please contact support.',
     )
   })
 

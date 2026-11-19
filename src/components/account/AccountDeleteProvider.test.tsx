@@ -66,6 +66,17 @@ const clerk = vi.hoisted(() => ({
   },
 }))
 
+/** `isReverificationHint` from `@clerk/shared` (4.45.1), the check Clerk's
+ * handler runs, so a malformed hint from the provider fails here too. */
+function isReverificationHint(result: unknown) {
+  const error =
+    typeof result === 'object' && result !== null && 'clerk_error' in result
+      ? (result as { clerk_error?: { type?: string; reason?: string } })
+          .clerk_error
+      : undefined
+  return error?.type === 'forbidden' && error.reason === 'reverification-error'
+}
+
 vi.mock('@clerk/react', () => ({
   useUser: () => ({ user: state.user }),
   useClerk: () => clerk,
@@ -80,16 +91,14 @@ vi.mock('@clerk/react', () => ({
           return await fetcher(...args)
         } catch (error) {
           if ((error as { code?: string }).code === 'needs_reverification')
-            return { clerk_error: { reason: 'reverification-error' } }
+            return {
+              clerk_error: { type: 'forbidden', reason: 'reverification-error' },
+            }
           throw error
         }
       }
       let result: unknown = await call()
-      if (
-        typeof result === 'object' &&
-        result !== null &&
-        'clerk_error' in result
-      ) {
+      if (isReverificationHint(result)) {
         state.dialogsShown += 1
         if ((state.dialog.shift() ?? 'complete') === 'cancel')
           throw Object.assign(new Error('cancelled'), {

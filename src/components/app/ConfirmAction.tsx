@@ -104,7 +104,12 @@ function ConfirmDialog({
                   value={typed}
                   onChange={(event) => setTyped(event.target.value)}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' && phraseMatches && !busy)
+                    if (
+                      event.key === 'Enter' &&
+                      !event.nativeEvent.isComposing &&
+                      phraseMatches &&
+                      !busy
+                    )
                       onConfirm()
                   }}
                   autoComplete="off"

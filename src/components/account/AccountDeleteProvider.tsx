@@ -93,8 +93,11 @@ export class AccountChanged extends Error {}
 
 /**
  * Clerk's reverification hint (`reverificationError('strict')` in
- * `@clerk/shared`): `useReverification` answers it with Clerk's verify dialog
- * and then calls the wrapped function once more.
+ * `@clerk/shared`, checked against 4.45.1): `useReverification` answers it
+ * with Clerk's verify dialog and then calls the wrapped function once more.
+ * Written out because `@clerk/shared` is not a dependency of the web app; its
+ * `isReverificationHint` reads `type` and `reason`, and the tests' stand-in
+ * reads the same two.
  */
 const NEEDS_RECENT_SIGN_IN = {
   clerk_error: {
@@ -172,8 +175,10 @@ export function AccountDeleteProvider({
       : NEEDS_RECENT_SIGN_IN
   })
 
+  // The user only, not the session: after the purge a refusal strands the
+  // login, and `clerk.user.delete()` deletes whoever `clerk.user` is.
   const deleteUser = useReverification(async (account: Confirmed) => {
-    if (!sameAccount(account)) throw new AccountChanged()
+    if (clerk.user?.id !== account.userId) throw new AccountChanged()
     await clerk.user?.delete()
     return true
   })
