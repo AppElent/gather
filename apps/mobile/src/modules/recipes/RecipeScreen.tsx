@@ -48,6 +48,7 @@ import { fmt, plural, useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { MODULE_ICONS, UI_ICONS } from '../../theme/icons'
 import { RADIUS, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { Button } from '../../ui/button'
 import { FactsStrip } from '../../ui/facts-strip'
 import { InsetList, InsetRow } from '../../ui/inset-list'
 import { PhotoHeader, usePhotoTitle } from '../../ui/photo-header'
@@ -58,6 +59,7 @@ import {
 } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
 import { WashHeader } from '../../ui/wash-header'
+import { RecipeToGroceriesSheet } from '../kitchen/add-to-groceries/recipe-sheet'
 import { moduleHref } from '../moduleDestination'
 import { RECIPE_UI_ICONS } from './icons'
 import { NutritionFacts } from './NutritionFacts'
@@ -115,6 +117,7 @@ export function RecipeScreen() {
 
   const [problem, setProblem] = useState<string | null>(null)
   const [estimating, setEstimating] = useState(false)
+  const [addingToGroceries, setAddingToGroceries] = useState(false)
 
   useRecordRecent(
     recipe && recipe !== null
@@ -476,7 +479,29 @@ export function RecipeScreen() {
                   <InsetRow key={`${index}-${ingredient}`} title={ingredient} />
                 ))}
               </InsetList>
+              <Button
+                testID="recipe-add-to-groceries"
+                variant="secondary"
+                group="kitchen"
+                label={t.tasks.grocery.addLines.title}
+                icon={
+                  <UI_ICONS.Cart
+                    size={18}
+                    color={tokens.ink}
+                    strokeWidth={2.2}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no"
+                  />
+                }
+                onPress={() => setAddingToGroceries(true)}
+              />
             </View>
+          ) : null}
+          {addingToGroceries ? (
+            <RecipeToGroceriesSheet
+              recipe={recipe}
+              onClose={() => setAddingToGroceries(false)}
+            />
           ) : null}
 
           {recipe.steps.length ? (

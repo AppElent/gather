@@ -34,6 +34,7 @@ import {
   type NotificationKind,
   notificationPath,
 } from '@gather/core/notifications'
+import { TASK_REMINDER_CATEGORY } from '@gather/core/task-reminders'
 import type { Infer } from 'convex/values'
 import { internal } from '../_generated/api'
 import type { Doc, Id } from '../_generated/dataModel'
@@ -55,6 +56,8 @@ export interface PushMessage {
   body: string
   data: { url: string }
   sound: 'default'
+  /** The iOS category, for a notification with actions (a task's Done). */
+  categoryId?: string
 }
 
 const MESSAGES = { en, nl } as const
@@ -72,6 +75,8 @@ async function recordOf(
   if (payload.target.type === 'task') {
     const task = await ctx.db.get(payload.target.id)
     if (!task) return null
+    // A reminder for a task already done has nothing left to remind of.
+    if (task.done && payload.kind === 'taskReminder') return null
     const list = await ctx.db.get(task.listId)
     if (!list) return null
     title = task.title
@@ -146,6 +151,9 @@ export async function queueDelivery(
     body: bodyOf(payload.kind, device.locale, record.group.name),
     data: { url },
     sound: 'default',
+    ...(payload.kind === 'taskReminder'
+      ? { categoryId: TASK_REMINDER_CATEGORY }
+      : {}),
   }))
   await ctx.scheduler.runAfter(0, internal.notifications.sendPush, {
     messages,
@@ -274,6 +282,25 @@ export async function fireScheduled(
   }
   await ctx.db.delete(row._id)
   return await queueDelivery(ctx, row.userId, row.payload)
+}
+
+/**
+ * Withdraw every send still queued about a Group, for a Group being deleted:
+ * each would send nothing, but its row and job would outlive the Group until
+ * their time.
+ */
+export async function cancelGroupSends(
+  ctx: MutationCtx,
+  groupId: Id<'groups'>,
+) {
+  const queued = await ctx.db
+    .query('scheduledNotifications')
+    .withIndex('by_group', (q) => q.eq('payload.groupId', groupId))
+    .collect()
+  for (const row of queued) {
+    await cancelJob(ctx, row.jobId)
+    await ctx.db.delete(row._id)
+  }
 }
 
 /**

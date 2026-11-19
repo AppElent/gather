@@ -1,6 +1,6 @@
 
 import { useMutation } from 'convex/react'
-import { Stack } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   Modal,
@@ -25,6 +25,7 @@ import { InsetList, InsetRow } from '../../ui/inset-list'
 import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { WashHeader, type WashSummary } from '../../ui/wash-header'
+import { moduleHref } from '../moduleDestination'
 import { useTaskLists } from '../tasks/store'
 import { TaskList } from '../tasks/TaskListScreen'
 
@@ -147,6 +148,7 @@ export function GroceriesScreen() {
   const data = useQuery(api.kitchen.groceries, { groupSlug: group.slug })
   const set = useMutation(api.kitchen.setGroceryList)
   const lists = useTaskLists()
+  const router = useRouter()
   const selected = data?.groceryListId
   if (selected)
     return (
@@ -155,6 +157,14 @@ export function GroceriesScreen() {
         moduleId="groceries"
         addPlaceholder={t.kitchen.addGroceryItem}
         menuExtras={[
+          {
+            // A recipe's ingredients are added from the recipe (APP-312): the
+            // list leads there; the week menu joins with APP-321.
+            id: 'groceries-from-recipe',
+            title: t.tasks.grocery.addLines.fromRecipe,
+            image: 'book',
+            onPress: () => router.push(moduleHref('/all/recipes')),
+          },
           {
             // Unlinking is not destructive — the list stays in Tasks — and it
             // lands on the picker below, so it needs no confirmation.

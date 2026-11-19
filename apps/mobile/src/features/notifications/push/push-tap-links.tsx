@@ -29,6 +29,10 @@ let lastFollowed: string | null = null
 
 function follow(response: Notifications.NotificationResponse | null) {
   if (!response) return
+  // A reminder's Done button completes the task where it is (`PushTaskDone`);
+  // only a tap on the notification itself opens it.
+  if (response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER)
+    return
   const id = `${response.notification.request.identifier}@${response.notification.date}`
   if (id === lastFollowed) return
   lastFollowed = id

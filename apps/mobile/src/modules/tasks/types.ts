@@ -4,6 +4,7 @@ import type {
   TaskListColor,
   TaskListIcon,
   TaskListKind,
+  TaskSection,
 } from '@gather/core/task-lists'
 
 export type Priority = 1 | 2 | 3 | 4
@@ -46,6 +47,11 @@ export interface TaskList {
    * server.
    */
   checkedClearedAt: number | null
+  /**
+   * Its sections in order (APP-357). Empty for a list without any, for a
+   * linked list, and from a server older than sections.
+   */
+  sections: TaskSection[]
 }
 
 export interface Task {
@@ -66,7 +72,21 @@ export interface Task {
   category?: GroceryAisle
   /** When it was checked (APP-310); absent when open or checked before. */
   doneAt?: number
+  /**
+   * The reminder somebody chose (APP-305): a wall clock in the zone it was
+   * set in, and the Member it goes to. Only Gather's own lists have one.
+   */
+  reminder?: TaskReminder
+  /** The section it sits in; none, or one that is gone, is "No section". */
+  sectionId?: string
   order: number
+}
+
+export interface TaskReminder {
+  date: string
+  time: string
+  timeZone: string
+  userId: string
 }
 
 export const SUGGESTED_LABELS = ['house', 'admin', 'car', 'inbox', 'errand']

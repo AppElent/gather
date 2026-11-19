@@ -322,6 +322,13 @@ A Group-owned collection of Tasks, kept in Gather or supplied by an external
 provider. Other Modules may use an ordinary Task list for a specific purpose,
 as Grocery list does.
 
+**Task section**:
+A named part of a local Task list that Tasks sit in, in an order the Group
+sets: "Clothes" on a packing list, "Kitchen" on a chores list. A Task in no
+section, or in one that was deleted, sits under "No section"; deleting a
+section never deletes its Tasks.
+_Avoid_: Group (that is a Group), Category (that is a grocery aisle), Heading
+
 **Task**:
 Something a Group needs done, with at most one responsible current Member and
 an explicit completion state. It may be unassigned or repeat on a fixed schedule

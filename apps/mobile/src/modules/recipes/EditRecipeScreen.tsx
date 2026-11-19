@@ -28,6 +28,7 @@ import { useQuery } from '../../convex/queries'
 import { haptics } from '../../feedback/haptics'
 import { useI18n } from '../../i18n'
 import { TYPE, useTokens } from '../../theme/tokens'
+import { clearCachedLines } from '../kitchen/add-to-groceries/line-cache'
 import { RecipeFields, SaveRecipeButton } from './RecipeFields'
 import {
   type RecipeFormValues,
@@ -104,6 +105,8 @@ export function EditRecipeScreen() {
         nutrition: fields.nutrition ?? null,
         nutritionSource: fields.nutritionSource ?? null,
       })
+      // What the AI read in the old ingredients goes with them (APP-312).
+      clearCachedLines(recipeId)
       haptics.itemSaved()
       router.back()
     } catch (error) {

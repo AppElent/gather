@@ -84,11 +84,11 @@ export const FEATURES = defineFeatures([
   {
     id: 'signed-in-devices',
     kind: 'floor',
-    status: 'pending-port',
-    platforms: ['mobile'],
-    reason:
-      'Only the phone lists the sessions signed in to the account and signs one out. The web gets it in APP-82.',
-    routes: { mobile: [`${ACCOUNT}/devices`] },
+    status: 'parity',
+    platforms: ['web', 'mobile'],
+    // Clerk's own session list on both: `user.getSessions()` and
+    // `session.revoke()` (APP-82).
+    routes: { web: ['_app/account'], mobile: [`${ACCOUNT}/devices`] },
   },
   {
     id: 'data-export',
