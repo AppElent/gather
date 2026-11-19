@@ -157,27 +157,59 @@ describe('installed phones', () => {
     expect((await t.run((ctx) => ctx.db.get(chores)))?.kind).toBe('groceries')
   })
 
-  test('a new store list leaves the named list alone; with none, it is named', async () => {
-    const { as, ah } = await seed()
+  test('an installed phone’s new grocery list is the one it opens next', async () => {
+    const { as } = await seed()
+    // No `keepGroceryList`: the APP-306 New list sheet, then Groceries.
+    const jumbo = await as.mutation(api.taskLists.create, {
+      groupSlug: SLUG,
+      name: 'Jumbo',
+      provider: 'local',
+      kind: 'groceries',
+    })
+    expect(
+      await as.query(api.kitchen.groceries, { groupSlug: SLUG }),
+    ).toEqual({ groceryListId: jumbo })
+  })
+
+  test('a store list from this build keeps the named list, unless none is', async () => {
+    const { t, as, ah, groupId } = await seed()
     const make = (name: string) =>
       as.mutation(api.taskLists.create, {
         groupSlug: SLUG,
         name,
         provider: 'local',
         kind: 'groceries',
+        keepGroceryList: true,
       })
+    const named = () => as.query(api.kitchen.groceries, { groupSlug: SLUG })
     await make('Jumbo')
-    expect(
-      await as.query(api.kitchen.groceries, { groupSlug: SLUG }),
-    ).toEqual({ groceryListId: ah })
+    expect(await named()).toEqual({ groceryListId: ah })
+    // Unlinked by an installed phone's Change list.
     await as.mutation(api.kitchen.setGroceryList, {
       groupSlug: SLUG,
       listId: null,
     })
     const lidl = await make('Lidl')
-    expect(
-      await as.query(api.kitchen.groceries, { groupSlug: SLUG }),
-    ).toEqual({ groceryListId: lidl })
+    expect(await named()).toEqual({ groceryListId: lidl })
+    // A pointer at a list that no longer exists, or in another Group.
+    const elsewhere = await t.run(async (ctx) => {
+      const other = await seedGroup(ctx, { name: 'other', slug: 'other' })
+      return ctx.db.insert('taskLists', {
+        groupId: other,
+        name: 'Theirs',
+        provider: 'local',
+        order: 0,
+        kind: 'groceries',
+      })
+    })
+    await t.run((ctx) => ctx.db.patch(groupId, { groceryListId: elsewhere }))
+    const aldi = await make('Aldi')
+    expect(await named()).toEqual({ groceryListId: aldi })
+    await t.run(async (ctx) => {
+      await ctx.db.delete(aldi)
+    })
+    const plus = await make('Plus')
+    expect(await named()).toEqual({ groceryListId: plus })
   })
 
   test('deleting the named list points the Group at its next grocery list', async () => {

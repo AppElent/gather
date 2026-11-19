@@ -105,9 +105,9 @@ export default defineSchema({
     // grocery lists (APP-313). Installed phones still read it through
     // `kitchen.groceries` and write it through `kitchen.setGroceryList`; a
     // newer phone never reads it: it opens the grocery list last used on it,
-    // else the first. A new grocery list is named here only when nothing
-    // else is. Contract: drop once the OTA that reads `taskLists.list` alone
-    // has reached every installed build and `backfillGroceryListKind` ran
+    // else the first, and tells `taskLists.create` to keep this pointer
+    // (`keepGroceryList`). Contract: drop once the OTA that reads
+    // `taskLists.list` alone has reached every installed build and `backfillGroceryListKind` ran
     // everywhere (docs/migrations/README.md).
     groceryListId: v.optional(v.id('taskLists')),
   })

@@ -429,7 +429,15 @@ export function useTaskActions() {
       color: TaskListColor
       starterTasks: string[]
       idempotencyKey: string
-    }) => createList({ groupSlug, provider: 'local', ...fields }),
+    }) =>
+      // This build opens a grocery list by id (APP-313), so a new one leaves
+      // the list installed phones open where it is.
+      createList({
+        groupSlug,
+        provider: 'local',
+        keepGroceryList: true,
+        ...fields,
+      }),
     setListAppearance: (
       id: string,
       face: { icon?: TaskListIcon; color?: TaskListColor },

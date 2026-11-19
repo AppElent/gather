@@ -76,6 +76,12 @@ export const create = mutation({
     icon: v.optional(taskListIconValidator),
     color: v.optional(taskListColorValidator),
     starterTasks: v.optional(v.array(v.string())),
+    // APP-313: sent by phones whose Groceries Module opens the list by id, so a
+    // second store list does not re-point `groups.groceryListId`. Absent
+    // (installed phones, the web, MCP), a new groceries list is the Group's
+    // grocery list, which is where an installed phone goes next. Contract:
+    // drop with `groceryListId` (docs/migrations/README.md).
+    keepGroceryList: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     // A list belongs to the Group in the URL, and the connection it links to
@@ -146,16 +152,20 @@ export const create = mutation({
             ...(grocery ? { category: grocery.aisle } : {}),
           })
         }
-        // A Group with no grocery list yet gets this one as the list installed
-        // phones' Groceries Module opens (ADR-0034, `kitchen.groceries`). A
-        // second one, for another store (APP-313), leaves that pointer alone:
-        // re-pointing would move every installed phone onto a new, empty list.
+        // A list made as the groceries becomes the Group's grocery list, the
+        // one an installed phone's Groceries Module opens (ADR-0034,
+        // `kitchen.groceries`); an installed phone opens it right after making
+        // it. A newer phone making a second store list (APP-313) keeps the
+        // named one, or every installed phone would move onto an empty list;
+        // it names this one only when the Group names no list of its own.
         if (args.kind === 'groceries') {
           const named = (await ctx.db.get(groupId))?.groceryListId
           const current = named ? await ctx.db.get(named) : null
-          if (!current || current.groupId !== groupId) {
-            await ctx.db.patch(groupId, { groceryListId: listId })
-          }
+          const keeps =
+            args.keepGroceryList === true &&
+            current !== null &&
+            current.groupId === groupId
+          if (!keeps) await ctx.db.patch(groupId, { groceryListId: listId })
         }
         return listId
       },
