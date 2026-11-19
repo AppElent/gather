@@ -32,6 +32,7 @@ export function CompletedSection({
   children,
   initiallyExpanded = false,
   testID = 'completed-toggle',
+  action,
 }: {
   count: number
   group: ModuleGroup
@@ -41,6 +42,17 @@ export function CompletedSection({
   children: ReactNode
   initiallyExpanded?: boolean
   testID?: string
+  /**
+   * A button at the row's end that acts on every completed row at once: a
+   * grocery list's Put back (APP-310). Its own target, beside the toggle.
+   */
+  action?: {
+    label: string
+    accessibilityLabel: string
+    onPress: () => void
+    disabled?: boolean
+    testID?: string
+  }
 }) {
   const tokens = useTokens()
   const tint = tokens.tintOf(group)
@@ -52,9 +64,8 @@ export function CompletedSection({
     return null
   }
 
-  return (
-    <View style={styles.wrap}>
-      <Pressable
+  const toggle = (
+    <Pressable
         testID={testID}
         accessibilityRole="button"
         accessibilityLabel={`${label} (${count})`}
@@ -63,6 +74,7 @@ export function CompletedSection({
         onPress={() => setExpanded((open) => !open)}
         style={({ pressed }) => [
           styles.row,
+          action ? styles.withAction : null,
           { backgroundColor: tokens.surface },
           pressed &&
             Platform.OS !== 'android' && { backgroundColor: tokens.surface2 },
@@ -89,6 +101,36 @@ export function CompletedSection({
           />
         </View>
       </Pressable>
+  )
+
+  return (
+    <View style={styles.wrap}>
+      {action ? (
+        <View
+          style={[styles.actionRow, { backgroundColor: tokens.surface }]}
+        >
+          {toggle}
+          <Pressable
+            testID={action.testID}
+            accessibilityRole="button"
+            accessibilityLabel={action.accessibilityLabel}
+            accessibilityState={{ disabled: action.disabled }}
+            disabled={action.disabled}
+            hitSlop={8}
+            onPress={action.onPress}
+            style={({ pressed }) => [
+              styles.action,
+              pressed && { backgroundColor: tokens.surface2 },
+            ]}
+          >
+            <Text style={[styles.actionLabel, { color: tokens.ink }]}>
+              {action.label}
+            </Text>
+          </Pressable>
+        </View>
+      ) : (
+        toggle
+      )}
       {expanded ? children : null}
     </View>
   )
@@ -114,6 +156,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: { ...TYPE.body, flex: 1 },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderRadius: RADIUS.card,
+    overflow: 'hidden',
+  },
+  withAction: { flex: 1, borderRadius: 0 },
+  action: {
+    minHeight: SIZE.hitMin,
+    paddingHorizontal: SPACE[4],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionLabel: { ...TYPE.subhead, fontWeight: '600' },
   count: { ...TABULAR },
   flipped: { transform: [{ rotate: '180deg' }] },
 })

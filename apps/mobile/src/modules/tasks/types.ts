@@ -40,6 +40,12 @@ export interface TaskList {
    * older than amounts.
    */
   grocery: boolean
+  /**
+   * When a Member last chose "Clear checked" (APP-310): items checked before
+   * it are only in Recent. Null until the first clear, and from an older
+   * server.
+   */
+  checkedClearedAt: number | null
 }
 
 export interface Task {
@@ -58,6 +64,8 @@ export interface Task {
   quantity?: number
   unit?: GroceryUnit
   category?: GroceryAisle
+  /** When it was checked (APP-310); absent when open or checked before. */
+  doneAt?: number
   order: number
 }
 

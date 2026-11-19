@@ -182,6 +182,7 @@ export function mergeTasks(
             quantity: row.quantity,
             unit: row.unit,
             category: row.category,
+            doneAt: row.doneAt,
             order: row.order,
           })
         }
@@ -200,6 +201,7 @@ export function mergeTasks(
       order: list.order,
       sync,
       grocery: list.grocery ?? false,
+      checkedClearedAt: list.checkedClearedAt ?? null,
       ...listFace(list),
     }
   })
@@ -237,7 +239,15 @@ export function toggleInPlace(
       api.tasks.listByList,
       args,
       value.map((task) =>
-        task._id === taskId ? { ...task, done: !task.done } : task,
+        task._id === taskId
+          ? {
+              ...task,
+              done: !task.done,
+              // As the server stamps it, so a fresh check is not taken for
+              // one from before the last "Clear checked" (APP-310).
+              doneAt: task.done ? undefined : Date.now(),
+            }
+          : task,
       ),
     )
   }
@@ -343,6 +353,9 @@ export function useTaskActions() {
   const createList = useMutation(api.taskLists.create)
   const setAppearance = useMutation(api.taskLists.setAppearance)
   const setDoneInList = useMutation(api.tasks.setDoneInList)
+  const clearChecked = useMutation(api.taskLists.clearChecked)
+  const restoreCheckedCleared = useMutation(api.taskLists.restoreCheckedCleared)
+  const putBack = useMutation(api.tasks.putBack)
 
   const patch = (
     id: string,
@@ -431,5 +444,33 @@ export function useTaskActions() {
     ) => patch(id, { quantity, unit }),
     /** The aisle a Member chose; the Group keeps it for the name. */
     setAisle: (id: string, category: GroceryAisle) => patch(id, { category }),
+    /**
+     * "Clear checked" on a grocery list (APP-310). Answers the moment it
+     * replaced, which is what `restoreCheckedCleared` puts back on undo.
+     */
+    clearChecked: (listId: string) =>
+      clearChecked({ listId: listId as Id<'taskLists'>, groupSlug }),
+    restoreCheckedCleared: (listId: string, checkedClearedAt: number | null) =>
+      restoreCheckedCleared({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        checkedClearedAt,
+      }),
+    /** A Recent item back onto a grocery list, with its amount and aisle. */
+    putBack: (taskId: string, listId: string) =>
+      putBack({
+        taskId: taskId as Id<'tasks'>,
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+      }),
   }
+}
+
+/**
+ * The Current Group's Recent (APP-310): its grocery lists' checked items,
+ * newest first, one per name, at most 100. `undefined` until Convex answers.
+ */
+export function useRecentGroceries() {
+  const { group } = useGroup()
+  return useQuery(api.tasks.recentGroceries, { groupSlug: group.slug })
 }
