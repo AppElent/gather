@@ -201,6 +201,16 @@ export default defineSchema({
      * Recent. Absent until the first clear.
      */
     checkedClearedAt: v.optional(v.number()),
+    /**
+     * A Member switched the "Maybe needed" suggestions off for this grocery
+     * list (APP-311). Absent is on.
+     */
+    suggestionsOff: v.optional(v.boolean()),
+    /**
+     * Names a Member hid from this list's suggestions for good (APP-311), as
+     * `groceryTitleKey`s, at most `HIDDEN_SUGGESTIONS_LIMIT`. Absent is none.
+     */
+    hiddenSuggestions: v.optional(v.array(v.string())),
     // APP-357. The list's sections in the order they are drawn; absent on
     // every list made before them, which reads as no sections.
     sections: v.optional(v.array(taskSectionValidator)),

@@ -9,7 +9,9 @@
  * `packages/core/src/groceries/data/README.md`.
  */
 
+import { type GroceryName, groceryNameList } from './completions'
 import { DICTIONARY_DATA } from './data/dictionary.generated'
+import { GROCERY_NAMES_DATA } from './data/names.generated'
 import { createGroceryDictionary, type GroceryDictionary } from './dictionary'
 import {
   type GroceryAisleContext,
@@ -20,7 +22,9 @@ import {
 export * from './addLines'
 export * from './aisles'
 export * from './amount'
+export * from './completions'
 export type { DictionaryHit, DictionaryMatch, GroceryDictionary } from './dictionary'
+export * from './habits'
 export {
   cleanGroceryName,
   groceryKey,
@@ -46,4 +50,12 @@ export function recogniseGroceryLine(
   context: GroceryAisleContext = {},
 ): ResolvedGroceryLine {
   return resolveGroceryLine(line, groceryDictionary(), context)
+}
+
+let names: GroceryName[] | undefined
+
+/** The bundled readable names the composer completes from (APP-311). */
+export function groceryNames(): readonly GroceryName[] {
+  names ??= groceryNameList(GROCERY_NAMES_DATA)
+  return names
 }

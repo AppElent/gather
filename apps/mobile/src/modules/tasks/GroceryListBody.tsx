@@ -7,8 +7,9 @@
  * tapped back, and then leaves its aisle for Checked. Checked holds what was
  * checked since the last "Clear checked"; everything checked stays in Recent.
  *
- * Shopping mode, In stock and the suggestion strip (APP-315, 314, 311) have no
- * slot here yet: they arrive with their own issues.
+ * Under the action row, the "Maybe needed" strip (APP-311). Shopping mode and
+ * In stock (APP-315, 314) have no slot here yet: they arrive with their own
+ * issues.
  */
 import { useRouter } from 'expo-router'
 import { type ReactNode, useState } from 'react'
@@ -20,6 +21,7 @@ import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { CompletedSection } from '../../ui/completed-section'
 import { InsetList } from '../../ui/inset-list'
+import { SuggestionStrip } from './GrocerySuggestions'
 import { aisleSections, inCheckedSection } from './groceryList'
 import { useTaskActions } from './store'
 import type { Task, TaskList } from './types'
@@ -112,6 +114,8 @@ export function GroceryListBody({
           </Text>
         </Pressable>
       </View>
+
+      <SuggestionStrip list={list} onUndoable={onUndoable} />
 
       {sections.map(({ aisle, tasks: rows }) => (
         <View key={aisle} style={styles.section} testID={`aisle-${aisle}`}>

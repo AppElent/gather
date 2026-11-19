@@ -1,7 +1,10 @@
 import {
+  type GroceryPurchase,
   type GroceryUnit,
   groceryAddFields,
+  groceryHabits as groceryHabitsOf,
   groceryLineText,
+  grocerySuggestions,
   isGroceryQuantity,
   roundGroceryQuantity,
 } from '@gather/core/groceries'
@@ -772,12 +775,113 @@ export const recentGroceries = query({
 })
 
 /**
+ * How many of each grocery list's newest checked items the habits read
+ * (APP-311): enough for a year of weekly shopping of a full list.
+ */
+const GROCERY_HABITS_WINDOW = 1000
+
+/** How many names the composer's history completes from. */
+const GROCERY_HABITS_LIMIT = 300
+
+const groceryHabitValidator = v.object({
+  key: v.string(),
+  title: v.string(),
+  count: v.number(),
+  intervalDays: v.union(v.number(), v.null()),
+  lastAt: v.number(),
+  quantity: v.optional(v.number()),
+  unit: v.optional(groceryUnitValidator),
+  category: v.optional(groceryAisleValidator),
+})
+
+/**
+ * What the Group usually buys, for one of its grocery lists (APP-311;
+ * `designs/groceries/README.md`, section 1 item 2 and section 2):
+ *
+ * - `habits`: every name its grocery lists had checked, most bought first,
+ *   with the usual interval and amount: the composer completes from them.
+ * - `suggestions`: the "Maybe needed" strip, computed here by the plain rule
+ *   in `@gather/core/groceries` (`grocerySuggestions`), no AI: bought at least
+ *   three times, the usual interval has passed, not open on this list, not
+ *   hidden from it, at most eight. Empty when the list has them switched off.
+ *
+ * History is the checked items of the Group's grocery lists, as Recent reads
+ * it (`by_list_and_done_at`, no table of its own), bounded per list. Items
+ * checked before `doneAt` existed count at the moment they were added. The
+ * "now" a query sees is when it last ran: the strip moves on with the next
+ * change to the Group's grocery lists or the next time it is opened.
+ */
+export const groceryHabits = query({
+  args: { groupSlug: v.string(), listId: v.id('taskLists') },
+  returns: v.object({
+    habits: v.array(groceryHabitValidator),
+    suggestions: v.array(groceryHabitValidator),
+  }),
+  handler: async (ctx, args) => {
+    const { group, doc: target } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.listId,
+      'List not found',
+    )
+    if (target.provider !== 'local' || !isGroceryList(group, target)) {
+      return { habits: [], suggestions: [] }
+    }
+    const lists = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const grocery = lists.filter(
+      (list) => list.provider === 'local' && isGroceryList(group, list),
+    )
+    const window = (list: Doc<'taskLists'>, stamped: boolean) =>
+      ctx.db
+        .query('tasks')
+        .withIndex('by_list_and_done_at', (q) =>
+          stamped
+            ? q.eq('listId', list._id).gt('doneAt', 0)
+            : q.eq('listId', list._id).eq('doneAt', undefined),
+        )
+        .order('desc')
+        .take(GROCERY_HABITS_WINDOW)
+    const [stamped, unstamped] = await Promise.all([
+      Promise.all(grocery.map((list) => window(list, true))),
+      Promise.all(grocery.map((list) => window(list, false))),
+    ])
+    const purchases: GroceryPurchase[] = [
+      ...stamped.flat().filter((task) => task.done),
+      ...unstamped.flat().filter((task) => task.done),
+    ].map((task) => ({
+      key: groceryTitleKey(task.title),
+      title: task.title,
+      at: task.doneAt ?? task._creationTime,
+      ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
+      ...(task.unit !== undefined ? { unit: task.unit } : {}),
+      ...(task.category !== undefined ? { category: task.category } : {}),
+    }))
+    const habits = groceryHabitsOf(purchases)
+    if (target.suggestionsOff) {
+      return { habits: habits.slice(0, GROCERY_HABITS_LIMIT), suggestions: [] }
+    }
+    // What is open on the list now: the open rows sit in the no-stamp range.
+    const onList = unstamped[grocery.findIndex((list) => list._id === target._id)]
+      .filter((task) => !task.done)
+      .map((task) => groceryTitleKey(task.title))
+    const exclude = new Set([...onList, ...(target.hiddenSuggestions ?? [])])
+    return {
+      habits: habits.slice(0, GROCERY_HABITS_LIMIT),
+      suggestions: grocerySuggestions(habits, { now: Date.now(), exclude }),
+    }
+  },
+})
+
+/**
  * A checked grocery item back onto a grocery list from Recent (APP-310), with
- * its amount, unit and aisle. On its own list the item itself is unchecked
- * and goes to the end; from another grocery list a copy is added, so that
- * list keeps its history. When an open item of the same name is already on
- * the list, nothing is added and that item is the answer: a second tap, or a
- * second Member, never makes a duplicate.
+ * its amount, unit and aisle. A copy is added and the checked item stays as
+ * it was, so the Group's history keeps that purchase (APP-311 reads it). When
+ * an open item of the same name is already on the list, nothing is added and
+ * that item is the answer: a second tap, or a second Member, never makes a
+ * duplicate.
  */
 export const putBack = mutation({
   args: {
@@ -806,10 +910,6 @@ export const putBack = mutation({
     )
     if (open) return open._id
     const order = await endOfList(ctx, args.listId)
-    if (task.listId === args.listId) {
-      await ctx.db.patch(task._id, { ...doneFields(false), order })
-      return task._id
-    }
     return await ctx.db.insert('tasks', {
       listId: args.listId,
       title: task.title,

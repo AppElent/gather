@@ -166,7 +166,31 @@ export function TaskList({
     if (action === 'sections') setEditingSections(true)
     if (action === 'delete') confirmDeleteList()
     if (action === 'clear-checked') clearChecked()
+    if (action === 'suggestions') toggleSuggestions()
     menuExtras.find((extra) => extra.id === action)?.onPress()
+  }
+
+  /** The "Maybe needed" strip on or off for every Member (APP-311). */
+  const toggleSuggestions = () => {
+    const on = list.suggestionsOff
+    actions
+      .setSuggestions(list.id, on)
+      .then(() => {
+        haptics.selectionChanged()
+        const s = t.tasks.grocery.suggestions
+        undoToast.show({
+          message: on ? s.on : s.off,
+          undo: {
+            label: t.tasks.grocery.undo,
+            onPress: () => {
+              void actions
+                .setSuggestions(list.id, !on)
+                .catch(() => haptics.actionFailed())
+            },
+          },
+        })
+      })
+      .catch(() => haptics.actionFailed())
   }
 
   /** Checked items leave the Checked row, stay in Recent, and can come back. */
@@ -332,6 +356,15 @@ export function TaskList({
                           image: 'checkmark.circle.badge.xmark' as const,
                           attributes: { disabled: clearable === 0 },
                         },
+                        {
+                          id: 'suggestions',
+                          title: list.suggestionsOff
+                            ? t.tasks.grocery.suggestions.turnOn
+                            : t.tasks.grocery.suggestions.turnOff,
+                          image: list.suggestionsOff
+                            ? ('lightbulb' as const)
+                            : ('lightbulb.slash' as const),
+                        },
                       ]
                     : []),
                   ...menuExtras.map(({ id, title, image }) => ({
@@ -464,6 +497,7 @@ export function TaskList({
                         listId={list.id}
                         placeholder={addPlaceholder ?? t.kitchen.addGroceryItem}
                         grocery
+                        tasks={tasks}
                       />
                     ) : null
                   }

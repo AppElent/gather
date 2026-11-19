@@ -1,9 +1,20 @@
 import type { ExternalProviderId } from '@gather/core/domain'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
-import { action, internalQuery, mutation, query } from './_generated/server'
+import type { Id } from './_generated/dataModel'
+import {
+  action,
+  internalQuery,
+  type MutationCtx,
+  mutation,
+  query,
+} from './_generated/server'
 import { getGatedIdentity } from './lib/connectedApps'
-import { isGroceryList, recogniseGroceryTitle } from './lib/groceryCategories'
+import {
+  groceryTitleKey,
+  isGroceryList,
+  recogniseGroceryTitle,
+} from './lib/groceryCategories'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { deleteTaskList } from './lib/groupCascade'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
@@ -54,6 +65,8 @@ export const list = query({
         // APP-310: items checked before this left the Checked section of a
         // grocery list ("Clear checked") and are only in Recent now.
         checkedClearedAt: l.checkedClearedAt ?? null,
+        // APP-311: whether the list's "Maybe needed" strip is switched off.
+        suggestionsOff: l.suggestionsOff ?? false,
         // Whether this list can be added to from Gather: only a local list
         // has `tasks` rows, and no provider write path exists (ADR-0021).
         // Callers that offer a list as somewhere to write — the baby log's
@@ -285,6 +298,80 @@ export const restoreCheckedCleared = mutation({
     await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
     await ctx.db.patch(args.listId, {
       checkedClearedAt: args.checkedClearedAt ?? undefined,
+    })
+    return null
+  },
+})
+
+/** How many names one list's suggestions can hide; the oldest go first. */
+export const HIDDEN_SUGGESTIONS_LIMIT = 500
+
+/** A local grocery list of the named Group, for a suggestions write. */
+async function requireSuggestionsList(
+  ctx: MutationCtx,
+  groupSlug: string,
+  listId: Id<'taskLists'>,
+) {
+  const { group, doc: list } = await requireInGroup(
+    ctx,
+    groupSlug,
+    listId,
+    'List not found',
+  )
+  if (list.provider !== 'local' || !isGroceryList(group, list)) {
+    throw new ConvexError('That is not a grocery list')
+  }
+  return list
+}
+
+/**
+ * The "Maybe needed" strip on or off for a grocery list (APP-311), for every
+ * Member: the list's `…` menu.
+ */
+export const setSuggestions = mutation({
+  args: { listId: v.id('taskLists'), groupSlug: v.string(), on: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireSuggestionsList(ctx, args.groupSlug, args.listId)
+    await ctx.db.patch(args.listId, {
+      suggestionsOff: args.on ? undefined : true,
+    })
+    return null
+  },
+})
+
+/**
+ * A name off a grocery list's suggestions for good (APP-311): press and hold
+ * on the strip. Kept as its `groceryTitleKey`, so "Melk" and "2 pak melk"
+ * are one name.
+ */
+export const hideSuggestion = mutation({
+  args: { listId: v.id('taskLists'), groupSlug: v.string(), title: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const list = await requireSuggestionsList(ctx, args.groupSlug, args.listId)
+    const key = groceryTitleKey(args.title)
+    const hidden = list.hiddenSuggestions ?? []
+    if (!key || hidden.includes(key)) return null
+    await ctx.db.patch(args.listId, {
+      hiddenSuggestions: [...hidden, key].slice(-HIDDEN_SUGGESTIONS_LIMIT),
+    })
+    return null
+  },
+})
+
+/** The undo of `hideSuggestion`: the name can be suggested again. */
+export const unhideSuggestion = mutation({
+  args: { listId: v.id('taskLists'), groupSlug: v.string(), title: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const list = await requireSuggestionsList(ctx, args.groupSlug, args.listId)
+    const key = groceryTitleKey(args.title)
+    const hidden = list.hiddenSuggestions ?? []
+    if (!hidden.includes(key)) return null
+    const rest = hidden.filter((name) => name !== key)
+    await ctx.db.patch(args.listId, {
+      hiddenSuggestions: rest.length ? rest : undefined,
     })
     return null
   },
