@@ -17,6 +17,7 @@ import {
   resolveGroceryLine,
 } from './resolve'
 
+export * from './addLines'
 export * from './aisles'
 export * from './amount'
 export type { DictionaryHit, DictionaryMatch, GroceryDictionary } from './dictionary'
