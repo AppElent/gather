@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest'
 
-import { accountDeletion } from './accountDeletion'
+import { accountDeletion } from '../accountDeletion'
 
-describe('whether the phone offers account deletion', () => {
+describe('whether an app offers account deletion', () => {
   test('only when Clerk has said yes', () => {
     expect(accountDeletion({ deleteSelfEnabled: true })).toBe('allowed')
   })

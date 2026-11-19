@@ -19,7 +19,7 @@
  * risks is purging a household for an account Clerk then refuses to delete —
  * which is why `deleteSelfEnabled` is checked *before* anything is called, and
  * the button simply is not offered unless Clerk has said yes
- * (`settings/accountDeletion.ts`).
+ * (`@gather/core/account-deletion`).
  *
  * The run itself is not this screen's. The purge unmounts it (`GroupProvider`
  * has no Group left to draw), so the deletion lives in
@@ -28,6 +28,7 @@
  * been deleted and the screen is still here to say so.
  */
 import { useUser } from '@clerk/expo'
+import { accountDeletion } from '@gather/core/account-deletion'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -39,7 +40,6 @@ import { api } from '../../../convex/api'
 import { useQuery } from '../../../convex/queries'
 import { confirmDestructive } from '../../../feedback/confirmDestructive'
 import { fmt, useI18n } from '../../../i18n'
-import { accountDeletion } from '../../../settings/accountDeletion'
 import { RADIUS, TYPE, useTokens } from '../../../theme/tokens'
 import { Button } from '../../../ui/button'
 import { useAccountDelete } from './account-delete-provider'

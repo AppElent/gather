@@ -1,0 +1,414 @@
+import { act, render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
+import {
+  AccountChanged,
+  AccountDeleteProvider,
+  type AccountDeleteValue,
+  SignInNotConfirmed,
+  useAccountDelete,
+} from './AccountDeleteProvider'
+
+/**
+ * The web's deletion run, on the phone's terms
+ * (`apps/mobile/src/features/account/delete/account-delete-provider.test.tsx`)
+ * plus Clerk's recent-sign-in check, which has to pass before anything is
+ * deleted.
+ */
+
+type ClerkUser = {
+  id: string
+  deleteSelfEnabled?: boolean
+  delete: () => Promise<void>
+}
+
+const state = vi.hoisted(() => ({
+  user: null as ClerkUser | null,
+  sessionId: 'sess_1',
+  /** Whether the session's sign-in is recent enough, read per check. */
+  recent: [] as boolean[],
+  /** What the person does with Clerk's verify dialog, per dialog. */
+  dialog: [] as ('complete' | 'cancel')[],
+  dialogsShown: 0,
+  /** Runs while Clerk reloads the session. */
+  onReload: () => {},
+  purge: (): Promise<void> => Promise.resolve(),
+  order: [] as string[],
+  purgeArgs: [] as unknown[],
+  signedOut: 0,
+}))
+
+const clerk = vi.hoisted(() => ({
+  get user() {
+    return state.user
+  },
+  get session() {
+    return state.sessionId
+      ? {
+          id: state.sessionId,
+          reload: () => {
+            state.order.push('reload')
+            state.onReload()
+            return Promise.resolve()
+          },
+          checkAuthorization: () => {
+            state.order.push('check')
+            return state.recent.length > 1
+              ? (state.recent.shift() as boolean)
+              : (state.recent[0] ?? true)
+          },
+        }
+      : null
+  },
+  signOut: () => {
+    state.signedOut += 1
+    return Promise.resolve()
+  },
+}))
+
+vi.mock('@clerk/react', () => ({
+  useUser: () => ({ user: state.user }),
+  useClerk: () => clerk,
+  // Clerk's handler: a hint, or a `session_reverification_required` refusal,
+  // opens its dialog; completing it calls the function once more and returns
+  // that answer as is, cancelling rejects.
+  useReverification:
+    <A extends unknown[], R>(fetcher: (...args: A) => Promise<R>) =>
+    async (...args: A) => {
+      const call = async () => {
+        try {
+          return await fetcher(...args)
+        } catch (error) {
+          if ((error as { code?: string }).code === 'needs_reverification')
+            return { clerk_error: { reason: 'reverification-error' } }
+          throw error
+        }
+      }
+      let result: unknown = await call()
+      if (
+        typeof result === 'object' &&
+        result !== null &&
+        'clerk_error' in result
+      ) {
+        state.dialogsShown += 1
+        if ((state.dialog.shift() ?? 'complete') === 'cancel')
+          throw Object.assign(new Error('cancelled'), {
+            code: 'reverification_cancelled',
+          })
+        result = await call()
+      }
+      return result
+    },
+}))
+vi.mock('@clerk/react/errors', () => ({
+  isReverificationCancelledError: (error: unknown) =>
+    (error as { code?: string } | null)?.code === 'reverification_cancelled',
+}))
+vi.mock('convex/react', () => ({
+  useMutation: () => (args: unknown) => {
+    state.order.push('purge')
+    state.purgeArgs.push(args)
+    return state.purge()
+  },
+}))
+vi.mock('../../../convex/_generated/api', () => ({
+  api: { accounts: { deleteAccount: 'accounts:deleteAccount' } },
+}))
+
+/** Resolved or rejected by the test, so it decides what lands first. */
+function deferred() {
+  let resolve!: () => void
+  let reject!: (cause: unknown) => void
+  const promise = new Promise<void>((yes, no) => {
+    resolve = yes
+    reject = no
+  })
+  return { promise, resolve, reject }
+}
+
+function clerkUser(overrides: Partial<ClerkUser> = {}): ClerkUser {
+  return {
+    id: 'user_1',
+    deleteSelfEnabled: true,
+    delete: () => {
+      state.order.push('clerk')
+      return Promise.resolve()
+    },
+    ...overrides,
+  }
+}
+
+/** Stands in for the signed-in gate: the Account page, until the purge
+ * empties the household and the page goes with it. */
+let emptyHousehold: () => void
+function SignedIn() {
+  const [inAGroup, setInAGroup] = useState(true)
+  emptyHousehold = () => setInAGroup(false)
+  return inAGroup ? <AccountPage /> : <p>no group</p>
+}
+
+let deletion: AccountDeleteValue
+function AccountPage() {
+  deletion = useAccountDelete()
+  return <p>account page: {deletion.state.step}</p>
+}
+
+const leave = vi.fn()
+
+function mount() {
+  return render(
+    <AccountDeleteProvider
+      leave={leave}
+      underway={(value) => {
+        deletion = value
+        return <p>underway: {value.state.step}</p>
+      }}
+    >
+      <SignedIn />
+    </AccountDeleteProvider>,
+  )
+}
+
+function shown() {
+  return document.body.textContent
+}
+
+beforeEach(() => {
+  state.user = clerkUser()
+  state.sessionId = 'sess_1'
+  state.recent = [true]
+  state.dialog = []
+  state.dialogsShown = 0
+  state.onReload = () => {}
+  state.purge = () => Promise.resolve()
+  state.order = []
+  state.purgeArgs = []
+  state.signedOut = 0
+  leave.mockReset()
+})
+
+describe('deleting the account on the web', () => {
+  test('a Clerk refusal is shown even after the purge has taken the Account page away', async () => {
+    const purge = deferred()
+    const login = deferred()
+    state.purge = () => purge.promise
+    state.user = clerkUser({ delete: () => login.promise })
+    mount()
+
+    act(() => deletion.start())
+    await waitFor(() => expect(shown()).toBe('account page: purging'))
+
+    // The scheduled purge empties the Group list before the mutation's answer
+    // is back.
+    act(() => {
+      emptyHousehold()
+      purge.resolve()
+    })
+    await waitFor(() => expect(shown()).toBe('underway: deletingLogin'))
+
+    login.reject(new Error('Clerk refused'))
+    await waitFor(() => expect(shown()).toBe('underway: stranded'))
+    expect(leave).not.toHaveBeenCalled()
+  })
+
+  test('a stranded login can be asked for again, without purging again, and then leaves', async () => {
+    let attempts = 0
+    state.user = clerkUser({
+      delete: () => {
+        attempts += 1
+        return attempts === 1
+          ? Promise.reject(new Error('Clerk refused'))
+          : Promise.resolve()
+      },
+    })
+    mount()
+
+    act(() => deletion.start())
+    await waitFor(() => expect(shown()).toBe('underway: stranded'))
+
+    act(() => deletion.retryLogin())
+    await waitFor(() => expect(leave).toHaveBeenCalledWith('/'))
+    expect(attempts).toBe(2)
+    expect(state.order.filter((step) => step === 'purge')).toHaveLength(1)
+  })
+
+  test('a second Try again click before the first has rendered asks Clerk once', async () => {
+    const retry = deferred()
+    let attempts = 0
+    state.user = clerkUser({
+      delete: () => {
+        attempts += 1
+        return attempts === 1
+          ? Promise.reject(new Error('Clerk refused'))
+          : retry.promise
+      },
+    })
+    mount()
+    act(() => deletion.start())
+    await waitFor(() => expect(shown()).toBe('underway: stranded'))
+
+    const { retryLogin } = deletion
+    act(() => {
+      retryLogin()
+      retryLogin()
+    })
+    retry.resolve()
+    await waitFor(() => expect(leave).toHaveBeenCalledTimes(1))
+    expect(attempts).toBe(2)
+  })
+
+  test('Clerk agreeing leaves for the signed-out start page', async () => {
+    mount()
+
+    act(() => deletion.start())
+
+    await waitFor(() => expect(leave).toHaveBeenCalledWith('/'))
+    expect(state.order).toEqual(['reload', 'check', 'purge', 'clerk'])
+  })
+
+  test('a purge refusal stays on the Account page and never reaches Clerk', async () => {
+    const refusal = new Error('Not signed in')
+    state.purge = () => Promise.reject(refusal)
+    mount()
+
+    act(() => deletion.start())
+
+    await waitFor(() => expect(shown()).toBe('account page: refused'))
+    expect(deletion.state).toEqual({ step: 'refused', cause: refusal })
+    expect(state.order).not.toContain('clerk')
+  })
+
+  test('does nothing unless Clerk allows self-deletion', async () => {
+    for (const deleteSelfEnabled of [false, undefined]) {
+      state.user = clerkUser({ deleteSelfEnabled })
+      const view = mount()
+      act(() => deletion.start())
+      await Promise.resolve()
+      expect(shown()).toBe('account page: idle')
+      view.unmount()
+    }
+    expect(state.order).toEqual([])
+  })
+
+  test('a second click before the first has rendered starts one deletion', async () => {
+    mount()
+
+    const { start } = deletion
+    act(() => {
+      start()
+      start()
+    })
+
+    await waitFor(() => expect(leave).toHaveBeenCalled())
+    expect(state.order.filter((step) => step === 'purge')).toHaveLength(1)
+  })
+
+  test('the purge names the account the person confirmed', async () => {
+    mount()
+
+    act(() => deletion.start())
+
+    await waitFor(() => expect(leave).toHaveBeenCalled())
+    expect(state.purgeArgs).toEqual([{ expectedSubject: 'user_1' }])
+  })
+})
+
+describe('a recent sign-in, before anything is deleted', () => {
+  test('an old sign-in asks Clerk, and once confirmed the deletion goes on', async () => {
+    state.recent = [false, true]
+    mount()
+
+    act(() => deletion.start())
+
+    await waitFor(() => expect(leave).toHaveBeenCalledWith('/'))
+    expect(state.dialogsShown).toBe(1)
+    expect(state.order.indexOf('purge')).toBeGreaterThan(
+      state.order.lastIndexOf('check'),
+    )
+  })
+
+  test('closing Clerk’s dialog deletes nothing and can be tried again', async () => {
+    state.recent = [false, true]
+    state.dialog = ['cancel']
+    mount()
+
+    act(() => deletion.start())
+    await waitFor(() => expect(state.dialogsShown).toBe(1))
+    await waitFor(() => expect(shown()).toBe('account page: idle'))
+    expect(state.order).not.toContain('purge')
+
+    act(() => deletion.start())
+    await waitFor(() => expect(leave).toHaveBeenCalled())
+  })
+
+  test('a sign-in still old after Clerk’s dialog deletes nothing', async () => {
+    state.recent = [false]
+    mount()
+
+    act(() => deletion.start())
+
+    await waitFor(() => expect(shown()).toBe('account page: refused'))
+    expect(
+      deletion.state.step === 'refused' &&
+        deletion.state.cause instanceof SignInNotConfirmed,
+    ).toBe(true)
+    expect(state.order).not.toContain('purge')
+  })
+
+  test('another account signed in meanwhile is never deleted', async () => {
+    // The session changes while Clerk reloads it, as a sign-in in another
+    // tab would.
+    state.onReload = () => {
+      state.sessionId = 'sess_2'
+    }
+    mount()
+
+    act(() => deletion.start())
+
+    await waitFor(() => expect(shown()).toBe('account page: refused'))
+    expect(
+      deletion.state.step === 'refused' &&
+        deletion.state.cause instanceof AccountChanged,
+    ).toBe(true)
+    expect(state.order).not.toContain('purge')
+  })
+
+  test('Clerk asking again after the purge, and that being cancelled, strands the login', async () => {
+    state.user = clerkUser({
+      delete: () =>
+        Promise.reject(
+          Object.assign(new Error('reverify'), {
+            code: 'needs_reverification',
+          }),
+        ),
+    })
+    state.dialog = ['cancel']
+    mount()
+
+    act(() => deletion.start())
+
+    await waitFor(() => expect(shown()).toBe('underway: stranded'))
+    expect(state.dialogsShown).toBe(1)
+  })
+
+  test('signing out from the stranded state signs out of Clerk and leaves', async () => {
+    state.user = clerkUser({
+      delete: () => Promise.reject(new Error('Clerk refused')),
+    })
+    mount()
+    act(() => deletion.start())
+    await waitFor(() => expect(shown()).toBe('underway: stranded'))
+
+    act(() => deletion.signOut())
+
+    await waitFor(() => expect(leave).toHaveBeenCalledWith('/'))
+    expect(state.signedOut).toBe(1)
+  })
+})
+
+test('useAccountDelete outside the provider says so', () => {
+  const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  expect(() => render(<AccountPage />)).toThrow(/AccountDeleteProvider/)
+  spy.mockRestore()
+  expect(screen.queryByText(/account page/)).toBeNull()
+})

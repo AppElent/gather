@@ -516,39 +516,8 @@ export const en = {
       failed: 'That photo could not be saved.',
     },
 
-    /**
-     * The end of the account, and the one screen in the app that has to say
-     * what it is about to destroy *before* the confirmation rather than inside
-     * it. An alert is the wrong place to read a list of households.
-     */
-    deleteAccount: {
-      title: 'Delete account',
-      lead: 'This cannot be undone.',
-      goesHeading: 'Deleted with your account',
-      goesBody:
-        'You are the only member of these Groups, so they go, and everything in them goes with them.',
-      keptHeading: 'Left, not deleted',
-      keptBody:
-        'These Groups have other members. You stop seeing them, and anything you added stays with the household.',
-      noGroups: 'You are not in any Groups.',
-      submit: 'Delete my account',
-      confirmTitle: 'Delete {email}?',
-      confirmBody:
-        'Your account and everything only you could see is deleted for good.',
-      /**
-       * The half-way failure, which is real: Convex is purged before Clerk,
-       * because the purge needs a signed-in caller and there is none once the
-       * Clerk user is gone (ADR-0032). Saying "nothing has been removed" here
-       * would be a lie.
-       */
-      partlyFailed:
-        'Your data was deleted, but the account itself could not be. Try again, or contact support if it keeps failing.',
-      /** On screen in place of the app while Clerk deletes the login. */
-      underway: 'Deleting your account…',
-      /** Clerk refuses self-deletion unless the instance allows it. */
-      unavailable:
-        'This account cannot be deleted from the app. Please contact support.',
-    },
+    /** The end of the account; the web's Danger zone says the same. */
+    deleteAccount: coreEn.settings.deleteAccount,
 
     /**
      * Shown on every control that would change the shared test account. It is

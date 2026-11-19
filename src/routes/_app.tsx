@@ -3,6 +3,8 @@ import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { useConvexAuth, useMutation } from 'convex/react'
 import { useEffect } from 'react'
 import { api } from '../../convex/_generated/api'
+import { AccountDeleteProvider } from '../components/account/AccountDeleteProvider'
+import { AccountDeleteUnderway } from '../components/account/AccountDeleteUnderway'
 import { AppShell } from '../components/app/AppShell'
 import { useConvexAuthStalled } from '../integrations/convex/useConvexAuthStalled'
 import { useMessages } from '../lib/i18n'
@@ -11,7 +13,28 @@ export const Route = createFileRoute('/_app')({
   component: AppLayout,
 })
 
+/**
+ * Account deletion runs above the gate: once its purge has started, the gate
+ * (and its `ensureUser`) is replaced by the deletion, so nothing re-provisions
+ * the account mid-purge (`AccountDeleteProvider`).
+ */
 export function AppLayout() {
+  return (
+    <AccountDeleteProvider
+      underway={({ state, retryLogin, signOut }) => (
+        <AccountDeleteUnderway
+          state={state}
+          retryLogin={retryLogin}
+          signOut={signOut}
+        />
+      )}
+    >
+      <SignedInGate />
+    </AccountDeleteProvider>
+  )
+}
+
+function SignedInGate() {
   // Clerk is the source of truth for "should we be on this route at all" -
   // sign-in.tsx navigates here on the same signal, so the two routes never
   // disagree. Convex's own isAuthenticated can lag behind (or, rarely, hang)
