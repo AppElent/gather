@@ -202,6 +202,8 @@ const PRIVATE_FIELDS = new Set([
   'createdByUserId',
   'updatedBy',
   'assigneeIds',
+  'assigneeId',
+  'assignmentNotice',
   'imageId',
   'sharedGroupIds',
   'providerConfig',

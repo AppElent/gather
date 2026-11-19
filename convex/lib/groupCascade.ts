@@ -36,6 +36,7 @@ import type { GroupScopedTable } from './groupAccess'
 import { cancelGroupSends } from './notifications'
 import { dropRecipeShares, setSharedGroups } from './recipeShares'
 import { storedFileIdsOf } from './storedFiles'
+import { unassignFromGroup } from './taskAssignee'
 import { cancelSend, dropMemberReminders } from './taskReminders'
 
 /** Delete these rows, handing back the stored files they were holding. */
@@ -519,6 +520,9 @@ export async function destroyGroup(
  *
  * A **Planned meal's eaters** drop the person; the meal stays.
  *
+ * A **task** they were responsible for goes back to nobody (APP-302), with
+ * any notice they had not opened.
+ *
  * A **task reminder** for them goes, with its queued send (APP-305).
  */
 export async function detachFromGroup(
@@ -578,4 +582,6 @@ export async function detachFromGroup(
       eaterIds: meal.eaterIds.filter((id) => id !== userId),
     })
   }
+
+  await unassignFromGroup(ctx, userId, groupId)
 }

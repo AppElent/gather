@@ -205,6 +205,27 @@ export const tasks = {
     },
   },
 
+  assignee: {
+    who: 'Wie',
+    nobody: 'Niemand',
+    assignedTo: 'Toegewezen aan {name}',
+    someone: 'Iemand',
+    unavailable: {
+      readOnly:
+        'Wijs deze taak toe in {provider}. Gather kan gekoppelde lijsten nog niet wijzigen.',
+      notShared:
+        'Alleen een gedeeld {provider}-project heeft mensen om een taak aan te geven.',
+      unsupported: 'Lijsten uit {provider} hebben geen veld voor wie een taak doet.',
+    },
+    notice: {
+      title: 'Nieuw voor jou',
+      gaveYou: '{name} gaf je een taak',
+    },
+    refusals: {
+      'assignee-not-member': 'Die persoon zit niet meer in deze groep.',
+    },
+  },
+
   appearance: {
     title: 'Kleur en icoon',
   },

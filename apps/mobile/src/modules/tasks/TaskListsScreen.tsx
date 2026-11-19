@@ -25,6 +25,8 @@ import { useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { api } from '../../convex/api'
+import { useQuery } from '../../convex/queries'
 import { fmt, type Messages, plural, useI18n } from '../../i18n'
 import { SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { InsetAddRow, InsetList, InsetRow } from '../../ui/inset-list'
@@ -33,6 +35,7 @@ import { washScreenOptions } from '../../ui/screen-header'
 import { SectionLabel } from '../../ui/section-label'
 import { WashHeader } from '../../ui/wash-header'
 import { moduleShown } from '../buildModules'
+import { AssigneeCoin, useTaskPeople } from './assignee'
 import { TASK_ICONS } from './icons'
 import { ListTile } from './listFace'
 import { NewListSheet } from './NewListSheet'
@@ -63,6 +66,27 @@ export function TaskLists() {
 
   const openTotal = state.tasks.filter((task) => !task.done).length
 
+  // Tasks someone else gave you that you have not opened yet (APP-302): the
+  // in-app half of the assignment notice, while push cannot reach the phone.
+  // Opening one clears it (`tasks.markAssignmentSeen`).
+  const me = useQuery(api.users.me, {})
+  const { byId } = useTaskPeople()
+  const notices = me
+    ? state.tasks
+        .filter(
+          (task) =>
+            !task.done &&
+            task.assignmentNotice &&
+            task.assigneeId === me._id,
+        )
+        .sort(
+          (a, b) =>
+            (b.assignmentNotice?.at ?? 0) - (a.assignmentNotice?.at ?? 0),
+        )
+    : []
+  const openTask = (taskId: string) =>
+    router.push({ pathname: '/all/tasks/task/[taskId]', params: { taskId } })
+
   return (
     <>
       <Stack.Screen options={washScreenOptions(t.tasks.title)} />
@@ -82,6 +106,33 @@ export function TaskLists() {
           />
         ) : null}
         <View style={styles.content}>
+          {notices.length > 0 ? (
+            <View style={styles.group}>
+              <SectionLabel>{t.tasks.assignee.notice.title}</SectionLabel>
+              <InsetList>
+                {notices.map((task) => {
+                  const giver = task.assignmentNotice
+                    ? byId.get(task.assignmentNotice.by)
+                    : undefined
+                  const gaveYou = fmt(t.tasks.assignee.notice.gaveYou, {
+                    name: giver?.name ?? t.tasks.assignee.someone,
+                  })
+                  return (
+                    <InsetRow
+                      key={task.id}
+                      testID={`notice-${task.id}`}
+                      accessibilityLabel={`${gaveYou}: ${task.title}`}
+                      title={task.title}
+                      subtitle={gaveYou}
+                      leading={<AssigneeCoin initial={giver?.initial ?? '?'} />}
+                      chevron
+                      onPress={() => openTask(task.id)}
+                    />
+                  )
+                })}
+              </InsetList>
+            </View>
+          ) : null}
           <View style={styles.group}>
             <SectionLabel>{t.tasks.today}</SectionLabel>
             <InsetList>
@@ -115,12 +166,7 @@ export function TaskLists() {
                             : inList}
                         </Text>
                       }
-                      onOpen={() =>
-                        router.push({
-                          pathname: '/all/tasks/task/[taskId]',
-                          params: { taskId: task.id },
-                        })
-                      }
+                      onOpen={() => openTask(task.id)}
                       menu={{
                         reorder: false,
                         onAction: (action) => taskSheets.onAction(task, action),

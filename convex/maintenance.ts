@@ -652,7 +652,12 @@ const USER_REFERENCES: {
   scheduledNotifications: { userId: 'repoint' },
   recipes: { createdByUserId: 'repoint' },
   // The reminder's send is repointed with `scheduledNotifications` above.
-  tasks: { createdBy: 'repoint', reminder: 'repoint' },
+  tasks: {
+    createdBy: 'repoint',
+    assigneeId: 'repoint',
+    assignmentNotice: 'repoint',
+    reminder: 'repoint',
+  },
   groceryCategoryOverrides: { updatedBy: 'repoint' },
   notes: { createdBy: 'repoint', updatedBy: 'repoint' },
   mealEntries: { createdBy: 'repoint' },
