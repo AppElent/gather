@@ -40,6 +40,7 @@ export type SettingsEntryId =
   | 'language'
   | 'baby-log'
   | 'privacy'
+  | 'data-sources'
   | 'labs'
 
 /** The screens below the tab's index. Typed so a dead link fails the build. */
@@ -65,6 +66,13 @@ export type SettingsHref =
  * opens in the in-app browser rather than leaving Gather.
  */
 export const PRIVACY_STATEMENT_URL = 'https://gather.appelent.nl/privacy'
+
+/**
+ * The web's About page, which carries the data-source attribution the
+ * grocery dictionary's licences ask for (APP-369). One copy, like the
+ * privacy statement.
+ */
+export const ABOUT_PAGE_URL = 'https://gather.appelent.nl/about'
 
 interface SettingsEntryBase {
   id: SettingsEntryId
@@ -237,6 +245,11 @@ export function settingsSections(
           id: 'privacy',
           label: t.settings.privacy,
           url: PRIVACY_STATEMENT_URL,
+        },
+        {
+          id: 'data-sources',
+          label: t.settings.dataSources,
+          url: ABOUT_PAGE_URL,
         },
       ],
     },

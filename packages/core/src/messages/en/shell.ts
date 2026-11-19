@@ -190,6 +190,18 @@ export const shell = {
     pins: "Every module is available in every group. You pin the ones you use to your own navigation, and the rest stay one click away — your choices are yours alone and never move anybody else's.",
     trademarks:
       'Store names and logos in Loyalty cards are trademarks of their owners and are used only to show which store a card belongs to.',
+    /**
+     * The attribution the grocery dictionary's licences ask for (APP-369,
+     * `packages/core/src/groceries/data/README.md`). Source names stay as
+     * their owners write them, in every language.
+     */
+    dataSources: {
+      title: 'Data sources',
+      openFoodFacts:
+        'Grocery aisles are recognised with product names from Open Food Facts, Open Beauty Facts and Open Products Facts, made available under the Open Database License (ODbL) 1.0. The derived list is available under the same licence.',
+      nevo: 'Food names are also based on data from NEVO online version 2025/9.0, RIVM, Bilthoven.',
+      licence: 'Open Database License 1.0',
+    },
   },
 
   publicFrame: {

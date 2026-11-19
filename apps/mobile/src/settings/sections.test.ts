@@ -27,7 +27,7 @@ describe('the Settings list', () => {
       ['account', ['account', 'groups', 'notifications']],
       ['modules', ['baby-log']],
       ['phone', ['appearance', 'language']],
-      ['about', ['privacy']],
+      ['about', ['privacy', 'data-sources']],
     ])
   })
 

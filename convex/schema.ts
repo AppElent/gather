@@ -220,7 +220,8 @@ export default defineSchema({
    * The shared answer for a grocery name the bundled dictionary does not
    * know: asked of a small model once, or agreed by at least three Groups'
    * corrections (APP-353). Holds no Group or person data: the key is the
-   * normalised name only. `aisle` is absent while the question is out.
+   * normalised name only. `aisle` is absent while the question is out. Rows
+   * nothing backs any more are pruned daily (ADR-0049).
    */
   groceryCategoryCache: defineTable({
     name: v.string(),
