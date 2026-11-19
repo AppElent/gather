@@ -51,7 +51,9 @@ import {
   taskListKindValidator,
   taskPriorityValidator,
   taskProviderValidator,
+  taskReminderValidator,
 } from './lib/taskFields'
+import { taskSectionValidator } from './lib/taskSections'
 import {
   tastingAttributesValidator,
   tastingKindValidator,
@@ -196,6 +198,9 @@ export default defineSchema({
      * aisle added after the order was saved.
      */
     aisleOrder: v.optional(v.array(groceryAisleValidator)),
+    // APP-357. The list's sections in the order they are drawn; absent on
+    // every list made before them, which reads as no sections.
+    sections: v.optional(v.array(taskSectionValidator)),
   }).index('by_group', ['groupId']),
 
   // Rows exist only for provider === 'local' lists.
@@ -233,12 +238,42 @@ export default defineSchema({
      * `by_list_and_done_at`.
      */
     doneAt: v.optional(v.number()),
+    /**
+     * The one Member responsible for the task (APP-302): a current Member of
+     * the list's Group, checked on every write. Leaving the Group clears it
+     * (`detachFromGroup`). Absent is nobody, and on every task from before.
+     */
+    assigneeId: v.optional(v.id('users')),
+    /**
+     * Present while the assignee has not yet opened a task someone else gave
+     * them: who gave it and when. It is the in-app notice beside the push
+     * (APP-302); opening the task, a new assignee, or none clears it.
+     */
+    assignmentNotice: v.optional(
+      v.object({ by: v.id('users'), at: v.number() }),
+    ),
+    /**
+     * A reminder somebody chose (APP-305); a due date alone sets none. Absent
+     * on every task without one. Its send is a `scheduledNotifications` row
+     * under `taskReminderKey`, kept in step by `lib/taskReminders.ts`.
+     */
+    reminder: v.optional(taskReminderValidator),
+    /**
+     * The section of its list the task sits in (APP-357): an id from
+     * `taskLists.sections`. Absent, or naming a section the list no longer
+     * has, it sits under "No section". Installed apps from before sections
+     * never read it and draw the task as before.
+     */
+    sectionId: v.optional(v.string()),
   })
     .index('by_list', ['listId'])
     // The end of a list without reading all of it (APP-368).
     .index('by_list_and_order', ['listId', 'order'])
     // A list's newest checked items without reading the rest (APP-310).
-    .index('by_list_and_done_at', ['listId', 'doneAt']),
+    .index('by_list_and_done_at', ['listId', 'doneAt'])
+    // A person's tasks across lists: the leave-Group clean-up, the in-app
+    // notice, and later the "Mine" smart list (APP-301).
+    .index('by_assignee', ['assigneeId']),
 
   /**
    * A Group's own aisle for a grocery name: written when a Member moves an
@@ -459,7 +494,10 @@ export default defineSchema({
     // Absent only inside the transaction that inserts the row.
     jobId: v.optional(v.id('_scheduled_functions')),
     generation: v.number(),
-  }).index('by_user_and_key', ['userId', 'dedupeKey']),
+  })
+    .index('by_user_and_key', ['userId', 'dedupeKey'])
+    // A deleted Group's queued sends, found without reading everybody's.
+    .index('by_group', ['payload.groupId']),
 
   babies: defineTable({
     groupId: v.id('groups'),

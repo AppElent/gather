@@ -21,10 +21,11 @@ import ReanimatedSwipeable, {
 
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
-import { useI18n } from '../../i18n'
+import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { useInsetSeparator } from '../../ui/inset-list'
+import { AssigneeCoin, useTaskPeople } from './assignee'
 import { Checkbox } from './components'
 import { GroceryPreview } from './GroceryFields'
 import { TASK_ICONS } from './icons'
@@ -60,7 +61,12 @@ export function TaskRow({
   writable: boolean
   onOpen?: () => void
   /** The hold menu and both swipes. Reorder appears only inside a list. */
-  menu?: { reorder: boolean; onAction: (action: string) => void }
+  menu?: {
+    reorder: boolean
+    /** Whether the list has sections, which adds Move to section (APP-357). */
+    sections?: boolean
+    onAction: (action: string) => void
+  }
   /** The priority bar's colour; no bar at all when absent. */
   bar?: string
   /** What sits under the title. */
@@ -79,6 +85,14 @@ export function TaskRow({
   const swipe = useRef<SwipeableMethods | null>(null)
   // Rows sit in an `InsetList`: the hairline starts at the text column.
   const separator = useInsetSeparator()
+  // The responsible Member's coin, trailing (APP-302); VoiceOver hears it in
+  // the row's label instead.
+  const { byId } = useTaskPeople()
+  const assignee = task.assigneeId ? byId.get(task.assigneeId) : undefined
+  const spoken = assignee
+    ? `${label ?? task.title}, ${fmt(t.tasks.assignee.assignedTo, { name: assignee.name })}`
+    : (label ?? task.title)
+  const coin = assignee ? <AssigneeCoin initial={assignee.initial} /> : null
 
   const toggle = () => {
     if (!task.done) haptics.itemCompleted()
@@ -129,7 +143,7 @@ export function TaskRow({
           <Pressable
             testID={`task-${task.id}`}
             accessibilityRole="button"
-            accessibilityLabel={label ?? task.title}
+            accessibilityLabel={spoken}
             android_ripple={{ color: tokens.surface2 }}
             onPress={onOpen}
             style={({ pressed }) => [
@@ -146,6 +160,7 @@ export function TaskRow({
               {meta}
             </View>
             {trailing}
+            {coin}
             {chevron ? (
               <UI_ICONS.ChevronRight
                 size={17}
@@ -174,6 +189,7 @@ export function TaskRow({
               {meta}
             </View>
             {trailing}
+            {coin}
           </View>
         </Pressable>
       )}
@@ -258,7 +274,11 @@ export function TaskRow({
 
   return (
     <NativeContextMenu
-      actions={taskMenuActions(task, t, { writable, reorder: menu.reorder })}
+      actions={taskMenuActions(task, t, {
+        writable,
+        reorder: menu.reorder,
+        sections: menu.sections,
+      })}
       onAction={menu.onAction}
     >
       {swipeable}
@@ -271,11 +291,14 @@ export function TaskComposer({
   listId,
   placeholder,
   grocery = false,
+  sectionId,
 }: {
   listId: string
   placeholder: string
   /** A grocery list: the amount is read off the line, and shown while typed. */
   grocery?: boolean
+  /** The section the composer sits in, which a new task joins (APP-357). */
+  sectionId?: string
 }) {
   const tokens = useTokens('home')
   const actions = useTaskActions()
@@ -288,7 +311,7 @@ export function TaskComposer({
     // Cleared first: the row appears the moment it is accepted, and a second
     // tap cannot submit the same line twice while the write is in flight.
     setDraft('')
-    actions.addTask(listId, title, grocery).then(
+    actions.addTask(listId, title, grocery, sectionId).then(
       () => haptics.itemSaved(),
       () => haptics.actionFailed(),
     )

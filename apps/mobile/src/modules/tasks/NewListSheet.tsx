@@ -85,7 +85,11 @@ export function NewListSheet({
         kind,
         icon: face.icon,
         color: face.color,
-        starterTasks: template.starters.map((key) => t.tasks.starters[key]),
+        // Packing and chores starters arrive in their sections (APP-357).
+        starterSections: template.sections.map(({ section, items }) => ({
+          name: t.tasks.starterSections[section],
+          tasks: items.map((key) => t.tasks.starters[key]),
+        })),
         idempotencyKey,
       })
       haptics.itemSaved()

@@ -4,6 +4,7 @@ import type {
   TaskListIcon,
   TaskListKind,
   TaskStarterKey,
+  TaskStarterSectionKey,
 } from '../../taskLists'
 
 /**
@@ -238,8 +239,11 @@ export const tasks = {
       ingredients: 'Ingredients',
       merge: 'Already on the list: {from}, becomes {to}',
       alreadyOn: 'Already on the list',
+      covered: 'Already on the list: {amount}',
       inStock: 'In stock at home',
       inStockAdding: 'In stock, adding anyway',
+      inStockShort: 'in stock',
+      inStockShortAdding: 'in stock, adding anyway',
       readWithAi: 'Read with AI · {used} of your {limit} today',
       readWithAiEarlier: 'Read with AI earlier',
       reading: 'Reading with AI…',
@@ -300,6 +304,35 @@ export const tasks = {
     } satisfies Record<GroceryUnit, { one: string; other: string }>,
   },
 
+  /**
+   * The one Member responsible for a task (APP-302): the Who row, the coin a
+   * row shows, and the in-app notice for a task someone else gave you.
+   */
+  assignee: {
+    who: 'Who',
+    nobody: 'Nobody',
+    /** The coin's label for VoiceOver. */
+    assignedTo: 'Assigned to {name}',
+    /** A Member who has since left, or an account that is gone. */
+    someone: 'Someone',
+    /** Why the Who row is off on a list (`assigneeUnavailable`). */
+    unavailable: {
+      readOnly:
+        'Assign this task in {provider}. Gather cannot change linked lists yet.',
+      notShared:
+        'Only a shared {provider} project has people to give a task to.',
+      unsupported: '{provider} lists have no field for who does a task.',
+    },
+    /** Tasks someone else gave you that you have not opened yet. */
+    notice: {
+      title: 'New for you',
+      gaveYou: '{name} gave you a task',
+    },
+    refusals: {
+      'assignee-not-member': 'That person is not in this group any more.',
+    },
+  },
+
   /** The ⋯ menu's appearance entry and its sheet. */
   appearance: {
     title: 'Colour and icon',
@@ -317,14 +350,14 @@ export const tasks = {
       description: 'Jobs around the house',
       defaultName: 'Household',
       startsWith:
-        'Starts with 8 sample chores for the kitchen, the bathroom and the rest of the house. Remove any of them.',
+        'Starts with 8 sample chores in Kitchen, Bathroom and Everywhere. Remove any of them.',
     },
     packing: {
       title: 'Packing list',
       description: 'Tick off, then reset for next time',
       defaultName: 'Trip',
       startsWith:
-        'Starts with 18 sample items: clothes, toiletries and things for the kids. Remove any of them.',
+        'Starts with 18 sample items in Clothes, Toiletries and Kids. Remove any of them.',
     },
     groceries: {
       title: 'Groceries',
@@ -386,4 +419,14 @@ export const tasks = {
     travelToys: 'Toys for the journey',
     snacks: 'Snacks',
   } satisfies Record<TaskStarterKey, string>,
+
+  /** The sections a template's starter items arrive in (APP-357). */
+  starterSections: {
+    kitchen: 'Kitchen',
+    bathroom: 'Bathroom',
+    everywhere: 'Everywhere',
+    clothes: 'Clothes',
+    toiletries: 'Toiletries',
+    kids: 'Kids',
+  } satisfies Record<TaskStarterSectionKey, string>,
 }

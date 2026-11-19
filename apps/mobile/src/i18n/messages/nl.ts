@@ -227,6 +227,7 @@ export const nl = {
       invite: {
         title: coreNl.settings.group.inviteCode,
         note: coreNl.settings.group.inviteCodeNote,
+        failed: coreNl.settings.group.inviteCodeFailed,
         share: 'Code delen',
         shareMessage:
           'Doe mee met {group} in Gather: kies onder Groepen voor ‘{join}’ en vul {code} in.',
@@ -237,6 +238,7 @@ export const nl = {
         body: coreNl.settings.group.leaveBody,
         confirm: coreNl.settings.group.leaveConfirm,
         failed: coreNl.settings.group.leaveFailed,
+        lastMember: coreNl.settings.group.lastMember,
         onlyAdmin:
           'Je bent de enige beheerder. Maak op het web eerst iemand anders beheerder in de instellingen van deze Groep, en vertrek dan.',
       },
@@ -400,6 +402,32 @@ export const nl = {
     undo: 'Ongedaan maken',
     shareTitle: 'Weekmenu {range}',
     shareEmpty: 'Nog niets gepland.',
+    weekGroceries: {
+      source: 'Weekmenu {range}',
+      range: '{from} tot {to}',
+      meals: {
+        one: '{count} maaltijd · personen per maaltijd uit het weekmenu',
+        other: '{count} maaltijden · personen per maaltijd uit het weekmenu',
+      },
+      days: 'Dagen die meetellen',
+      counts: 'telt mee',
+      notCounted: 'niet',
+      empty: 'leeg',
+      dayCounts: '{day}: {meals}, telt mee',
+      dayNotCounted: '{day}: {meals}, telt niet mee',
+      dayEmpty: '{day}: niets gepland',
+      toCheck: 'Zonder recept, even nakijken',
+      quickMeta: '{weekday} · snel gerecht, geen ingrediënten bekend',
+      recipeMeta: '{weekday} · recept zonder ingrediënten',
+      addSomething: 'Iets toevoegen',
+      addSomethingLabel: 'Iets toevoegen voor {title}',
+      fromOne: '{title} · {day}',
+      fromTwo: '{first}, {second}',
+      fromMany: { one: '{count} recept', other: '{count} recepten' },
+      footnote:
+        'Samengevoegd met wat er al op staat. Doe je dit nog een keer voor deze week, dan komt alleen wat nieuw is erbij.',
+      nothingPlanned: 'Nog niets in dit weekmenu. Plan eerst een maaltijd.',
+    },
     meal: {
       done: 'Klaar',
       recipe: 'recept',
@@ -689,9 +717,11 @@ export const nl = {
     icons: coreNl.tasks.icons,
     colors: coreNl.tasks.colors,
     starters: coreNl.tasks.starters,
+    starterSections: coreNl.tasks.starterSections,
     packing: coreNl.tasks.packing,
     wishlist: coreNl.tasks.wishlist,
     grocery: coreNl.tasks.grocery,
+    assignee: coreNl.tasks.assignee,
     title: 'Taken',
     quickAdd: {
       list: 'Op de lijst',
@@ -739,6 +769,24 @@ export const nl = {
       deleteBody: 'Dit kan niet ongedaan worden gemaakt.',
     },
 
+    sections: {
+      title: 'Secties',
+      none: 'Geen sectie',
+      add: 'Sectie toevoegen',
+      newPlaceholder: 'Nieuwe sectie',
+      empty: 'Nog niets in deze sectie.',
+      moveToSection: 'Naar sectie verplaatsen…',
+      rename: 'Hernoemen',
+      moveUp: 'Omhoog',
+      moveDown: 'Omlaag',
+      delete: 'Sectie verwijderen',
+      options: 'Opties voor {name}',
+      deleteTitle: 'De sectie “{name}” verwijderen?',
+      deleteBody: 'De taken blijven op de lijst staan, onder Geen sectie.',
+      hint: 'Verplaats een taak naar een andere sectie met Volgorde wijzigen, of met Naar sectie verplaatsen in het menu als je de taak vasthoudt.',
+      sheetEmpty: 'Nog geen secties. Een sectie groepeert taken, zoals Keuken of Kleding.',
+    },
+
     task: {
       titlePlaceholder: 'Wat moet er gebeuren?',
       due: 'Einddatum',
@@ -771,6 +819,18 @@ export const nl = {
       previousMonth: 'Vorige maand',
       nextMonth: 'Volgende maand',
       overdue: 'Te laat',
+      reminder: 'Herinnering',
+      reminderAt: '{day} {time}',
+      reminderSheet: {
+        dueDay: 'Op de dag om 9:00',
+        eveningBefore: 'De avond ervoor om 19:00',
+        remove: 'Geen herinnering',
+        footnote: 'De herinnering gaat naar jou, als melding op je telefoon.',
+        someoneElse:
+          'Een ander lid zette deze herinnering, en die gaat naar hen. Zet je er hier een, dan wordt hij van jou.',
+        passed: 'Dat tijdstip is al voorbij. Kies een later moment.',
+        failed: 'De herinnering kon niet worden gezet. Probeer het opnieuw.',
+      },
     },
   },
 
@@ -826,6 +886,7 @@ export const nl = {
       notNow: 'Niet nu',
       continue: 'Doorgaan',
     },
+    actions: { done: 'Afvinken' },
     failed: 'Dat kon niet worden bewaard. Probeer het opnieuw.',
   },
 

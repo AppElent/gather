@@ -1,32 +1,61 @@
 import { describe, expect, test } from 'vitest'
 
-import { leaveRule } from './leaveRule'
+import { groupExits, type LeaveStatus } from './leaveRule'
 
-const admin = { role: 'admin' as const }
-const member = { role: 'member' as const }
+const allowed: LeaveStatus = { leave: 'allowed', canDelete: false }
+const onlyAdmin: LeaveStatus = { leave: 'only-admin', canDelete: false }
+const lastMember: LeaveStatus = { leave: 'last-member', canDelete: true }
 
-// The same cases `convex/groups.test.ts` holds `groups.leaveGroup` to.
-describe('leaveRule', () => {
-  test('a Member who is not an admin may always leave', () => {
-    expect(leaveRule('member', undefined)).toBe('allowed')
-    expect(leaveRule('member', [admin, member])).toBe('allowed')
+// The phone follows `groups.leaveStatus`, the rule `convex/groups.test.ts`
+// holds `groups.leaveGroup` and `groups.deleteGroup` to.
+describe('groupExits', () => {
+  test('a Member who is not an admin may leave, and is not offered Delete', () => {
+    expect(groupExits('member', allowed)).toEqual({
+      leave: 'offer',
+      delete: 'hidden',
+    })
   })
 
   test('the only admin may not leave while anyone else is still in it', () => {
-    expect(leaveRule('admin', [admin, member])).toBe('only-admin')
-    expect(leaveRule('admin', [admin, member, member])).toBe('only-admin')
+    expect(groupExits('admin', onlyAdmin)).toEqual({
+      leave: 'only-admin',
+      delete: 'others-first',
+    })
   })
 
-  test('the last admin may leave once nobody else is in it', () => {
-    expect(leaveRule('admin', [admin])).toBe('allowed')
+  test('an admin may leave once somebody else is one too, but not delete', () => {
+    expect(groupExits('admin', allowed)).toEqual({
+      leave: 'offer',
+      delete: 'others-first',
+    })
   })
 
-  test('an admin may leave once somebody else is one too', () => {
-    expect(leaveRule('admin', [admin, admin, member])).toBe('allowed')
+  test('the last Member is offered Delete instead of Leave', () => {
+    expect(groupExits('admin', lastMember)).toEqual({
+      leave: 'hidden',
+      delete: 'offer',
+    })
   })
 
-  test('nothing is decided before the role and Members have loaded', () => {
-    expect(leaveRule(undefined, [admin, member])).toBe('unknown')
-    expect(leaveRule('admin', undefined)).toBe('unknown')
+  test('the last Member is offered Delete even when they are not an admin', () => {
+    expect(groupExits('member', lastMember)).toEqual({
+      leave: 'hidden',
+      delete: 'offer',
+    })
+  })
+
+  test('nothing is pressable before the server has answered', () => {
+    expect(groupExits('admin', undefined)).toEqual({
+      leave: 'wait',
+      delete: 'wait',
+    })
+    expect(groupExits('member', undefined)).toEqual({
+      leave: 'wait',
+      delete: 'hidden',
+    })
+    expect(groupExits(undefined, undefined)).toEqual({
+      leave: 'wait',
+      delete: 'hidden',
+    })
   })
 })

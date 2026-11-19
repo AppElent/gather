@@ -35,6 +35,7 @@
     "./retailer-logos": "./src/retailerLogos.ts",
     "./sentry-privacy": "./src/sentryPrivacy.ts",
     "./task-lists": "./src/taskLists.ts",
+    "./task-reminders": "./src/taskReminders.ts",
     "./tastings": "./src/tastings.ts"
   },
   "dependencies": {},

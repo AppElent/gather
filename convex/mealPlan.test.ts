@@ -291,6 +291,35 @@ describe('mealPlan', () => {
   })
 })
 
+describe('mealPlan.weekIngredients', () => {
+  test('the ingredients of each Recipe planned in the range, once, without quick meals or another Group’s', async () => {
+    const { t, home, pasta, tacos, foreign, toast } = await seed()
+    await t.run(async (ctx) => {
+      const plan = (date: string, slot: 'dinner' | 'lunch', fields: object) =>
+        ctx.db.insert('plannedDinners', { groupId: home, date, slot, title: 'x', ...fields })
+      await plan('2026-11-23', 'dinner', { recipeId: pasta })
+      await plan('2026-11-24', 'dinner', { recipeId: tacos })
+      await plan('2026-11-25', 'lunch', { recipeId: pasta })
+      await plan('2026-11-26', 'dinner', { mealEntryId: toast })
+      // Not visible in this Group, and outside the range.
+      await plan('2026-11-27', 'dinner', { recipeId: foreign })
+      await plan('2026-11-30', 'dinner', { recipeId: tacos })
+    })
+    const recipes = await t
+      .withIdentity(alice)
+      .query(api.mealPlan.weekIngredients, WEEK)
+    expect(recipes.map((recipe) => recipe.title).sort()).toEqual(['Pasta pesto', 'Tacos'])
+    expect(recipes[0]).toMatchObject({ servings: 2, ingredients: ['2 onions', 'Rice', ''] })
+  })
+
+  test('another Group’s Member cannot read it', async () => {
+    const { t } = await seed()
+    await expect(
+      t.withIdentity(carol).query(api.mealPlan.weekIngredients, WEEK),
+    ).rejects.toThrow()
+  })
+})
+
 describe('phones from before meal slots', () => {
   test('setDinner, clearDinner and planner act on the dinner slot only', async () => {
     const { t, pasta, tacos, toast } = await seed()

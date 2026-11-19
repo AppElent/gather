@@ -30,6 +30,13 @@ export interface GroceryAmount {
 /** One line to put on a list: what the item will be called, and how much. */
 export interface GroceryAddLine extends GroceryAmount {
   title: string
+  /**
+   * Bring the list up to this amount instead of adding it (the week menu,
+   * APP-321): an open item with the same name that already has enough is
+   * left as it is, one with less grows to the amount, and a name already on
+   * the list never gets a second row. Run it twice and nothing changes.
+   */
+  topUp?: boolean
 }
 
 /** What `readIngredientLine` made of a line it could read. */
@@ -255,6 +262,8 @@ export type GroceryAddPlan =
       from: GroceryAmount
       to: GroceryAmount
     }
+  /** A top-up line the list already has enough of: nothing changes. */
+  | { kind: 'covered'; by: string; have: GroceryAmount }
 
 /** The id a line that is new in this add goes by until it has a real one. */
 export function pendingItemId(lineIndex: number): string {
@@ -265,12 +274,19 @@ export function pendingItemId(lineIndex: number): string {
  * For each line in order: the open item with the same name whose amount it
  * adds up with, or new. A line merges into an earlier new line of the same
  * add too, so a recipe that names eggs twice puts them on the list once.
+ *
+ * A `topUp` line (the week menu) measures itself against an item that was on
+ * the list before this add: covered when the item already has as much,
+ * otherwise the item grows to what the line asks. Top-up lines for the same
+ * item ask together, so "6 eieren" and "4 eieren" want 10. A name already on
+ * the list is never added beside it, even when the units do not add up
+ * ("2 blik tomaten" covers "400 g tomaten").
  */
 export function planGroceryAdds(
   items: readonly GroceryListItem[],
   lines: readonly GroceryAddLine[],
 ): GroceryAddPlan[] {
-  const open = items
+  const open: OpenItem[] = items
     .filter((item) => !item.done)
     // An item is matched by its title as stored: the merge never reads an
     // amount out of a title (APP-309), so "2 pak melk" from before amounts
@@ -278,33 +294,115 @@ export function planGroceryAdds(
     .map((item) => ({
       id: item.id,
       key: groceryKey(item.title),
-      ...(item.quantity !== undefined ? { quantity: item.quantity } : {}),
-      ...unitOf(item.unit),
+      listed: true,
+      need: 0,
+      ...amountOf(item),
     }))
   return lines.map((line, index): GroceryAddPlan => {
     const key = groceryKey(line.title)
-    if (key) {
-      for (const item of open) {
-        if (item.key !== key) continue
-        const to = addGroceryAmounts(item, line)
-        if (!to) continue
-        const from: GroceryAmount = {
-          ...(item.quantity !== undefined ? { quantity: item.quantity } : {}),
-          ...unitOf(item.unit),
-        }
-        item.quantity = to.quantity
-        item.unit = to.unit
-        return { kind: 'merge', into: item.id, from, to }
-      }
+    const same = key ? open.filter((item) => item.key === key) : []
+    for (const item of same) {
+      const plan =
+        line.topUp && item.listed ? topUpPlan(item, line) : mergePlan(item, line)
+      if (plan) return plan
     }
+    const listed = line.topUp && same.find((item) => item.listed)
+    if (listed)
+      return { kind: 'covered', by: listed.id, have: amountOf(listed) }
     open.push({
       id: pendingItemId(index),
       key,
-      ...(line.quantity !== undefined ? { quantity: line.quantity } : {}),
-      ...unitOf(line.unit),
+      listed: false,
+      need: 0,
+      ...amountOf(line),
     })
     return { kind: 'new' }
   })
+}
+
+/** An open item as the plan sees it, its amount updated as lines land. */
+interface OpenItem extends GroceryAmount {
+  id: string
+  key: string
+  /** On the list before this add, rather than a line of it. */
+  listed: boolean
+  /** What this add's top-up lines ask of it so far, in its unit. */
+  need: number
+}
+
+function amountOf(amount: GroceryAmount): GroceryAmount {
+  return {
+    ...(amount.quantity !== undefined ? { quantity: amount.quantity } : {}),
+    ...unitOf(amount.unit),
+  }
+}
+
+function mergePlan(item: OpenItem, line: GroceryAddLine): GroceryAddPlan | null {
+  const to = addGroceryAmounts(item, line)
+  if (!to) return null
+  const from = amountOf(item)
+  item.quantity = to.quantity
+  item.unit = to.unit
+  return { kind: 'merge', into: item.id, from, to }
+}
+
+function topUpPlan(item: OpenItem, line: GroceryAddLine): GroceryAddPlan | null {
+  const have = amountOf(item)
+  // A line without an amount ("olijfolie") is covered by the item itself.
+  if (line.quantity === undefined && line.unit === undefined)
+    return { kind: 'covered', by: item.id, have }
+  // The line's amount in the item's unit: added to nothing.
+  const asked = addGroceryAmounts({ quantity: 0, ...unitOf(item.unit) }, line)
+  if (!asked || asked.quantity === undefined) return null
+  item.need = Math.min(
+    roundGroceryQuantity(item.need + asked.quantity),
+    GROCERY_QUANTITY_MAX,
+  )
+  const current = item.quantity ?? 1
+  if (item.need <= current) return { kind: 'covered', by: item.id, have }
+  item.quantity = item.need
+  return {
+    kind: 'merge',
+    into: item.id,
+    from: have,
+    to: { quantity: item.need, ...unitOf(item.unit) },
+  }
+}
+
+/** One line of `combineGroceryLines`: an item, and the lines it came from. */
+export interface CombinedGroceryLine extends GroceryAddLine {
+  /** Indexes into the lines given, in order. */
+  from: number[]
+}
+
+/**
+ * Lines from several sources as one line per item (the week menu, APP-321):
+ * when two recipes name onions, the list is asked for them once. The same
+ * name with units that add up merges, by the same rule as `planGroceryAdds`;
+ * anything else stays a line of its own. In order of first appearance.
+ */
+export function combineGroceryLines(
+  lines: readonly GroceryAddLine[],
+): CombinedGroceryLine[] {
+  const plain = lines.map(({ title, quantity, unit }) => ({
+    title,
+    ...amountOf({ quantity, unit }),
+  }))
+  const combined = new Map<string, CombinedGroceryLine>()
+  planGroceryAdds([], plain).forEach((plan, index) => {
+    if (plan.kind === 'merge') {
+      const into = combined.get(plan.into)
+      if (into) {
+        into.from.push(index)
+        delete into.quantity
+        delete into.unit
+        Object.assign(into, amountOf(plan.to))
+        return
+      }
+    }
+    combined.set(pendingItemId(index), { ...plain[index], from: [index] })
+  })
+  return [...combined.values()]
 }
 
 /** Whether a value is one of the list's units (an AI answer, a stored cache). */
