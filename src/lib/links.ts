@@ -26,7 +26,6 @@ const MODULE_ROUTES = {
   'baby-log': '/baby',
   'meal-planner': '/meal-planner',
   groceries: '/groceries',
-  pantry: '/pantry',
   'recurring-costs': '/recurring-costs',
   'shared-costs': '/shared-costs',
   'savings-goals': '/savings-goals',

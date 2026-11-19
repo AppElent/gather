@@ -24,6 +24,7 @@ import {
   groceryAisleValidator,
   groceryUnitValidator,
 } from './lib/groceryFields'
+import { restockCheckedStaples } from './lib/groceryStaples'
 import {
   findInGroup,
   requireGroupBySlug,
@@ -279,11 +280,15 @@ export const toggleDone = mutation({
   args: { taskId: v.id('tasks'), groupSlug: v.string(), today: todayArg },
   returns: completionResult,
   handler: async (ctx, args) => {
-    const { task, group, user } = await requireEditableTaskInGroup(
-      ctx,
-      args.groupSlug,
-      args.taskId,
-    )
+    const {
+      task,
+      group,
+      user,
+      doc: list,
+    } = await requireEditableTaskInGroup(ctx, args.groupSlug, args.taskId)
+    // A staple bought is back in stock (APP-314), once per tick, whether the
+    // task closes or a repeating one moves on to its next occurrence.
+    if (!task.done) await restockCheckedStaples(ctx, group, list, [task])
     if (!task.done && isRepeating(task)) {
       return await completeOccurrence(ctx, {
         task,
@@ -529,6 +534,10 @@ export const update = mutation({
         task.reminder,
       )
     if (askAi) await askAiOnce(ctx, group._id, askAi, taskId)
+    if (done === true && !task.done)
+      await restockCheckedStaples(ctx, group, list, [
+        { title: title ?? task.title },
+      ])
     await notifyAssignee(ctx, group._id, taskId, assignee)
 
     const today = completionDay(args.today)
@@ -650,7 +659,11 @@ export const setDoneInList = mutation({
   },
   returns: v.array(v.id('tasks')),
   handler: async (ctx, args) => {
-    const { group } = await requireLocalList(ctx, args.groupSlug, args.listId)
+    const { group, doc: list } = await requireLocalList(
+      ctx,
+      args.groupSlug,
+      args.listId,
+    )
     const rows = await ctx.db
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
@@ -670,6 +683,7 @@ export const setDoneInList = mutation({
     for (const task of changed)
       if (task.reminder)
         await syncSend(ctx, { ...task, done: args.done }, group._id, task.reminder)
+    if (args.done) await restockCheckedStaples(ctx, group, list, changed)
     return changed.map((task) => task._id)
   },
 })

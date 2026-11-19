@@ -58,7 +58,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   Names that look like more than a product (an email address, a URL, a run of
   four or more digits, more than six words) are never sent or cached. A
   Group's aisle corrections (`groceryCategoryOverrides`) are in the cascade
-  with its other content.
+  with its other content, and so are its Staples (`groceryStaples`, APP-314)
+  and the Pantry rows they were copied from (`pantryEntries`).
 - Storage ids are collected by the cascade and deleted by scheduled work, so a
   large Group survives the one-transaction limit ([stored files](stored-files.md)).
 - **Account deletion is Convex first, Clerk second**, in scheduled steps, one

@@ -168,6 +168,14 @@ async function household(t: Harness): Promise<Household> {
       title: 'Rice',
       createdBy: bob,
     })
+    await ctx.db.insert('groceryStaples', {
+      groupId: household,
+      name: 'Rice',
+      key: 'rice',
+      aisle: 'pasta_world',
+      low: false,
+      createdBy: bob,
+    })
 
     // Tasks, notes and the calendar.
     const connectionId = await ctx.db.insert('integrationConnections', {
@@ -550,6 +558,10 @@ describe('what the file contains', () => {
       expect.objectContaining({ completedBy: 'Bob', completedOn: '2026-11-19' }),
     ])
     expect(household.recipes.map((r) => r.title)).toEqual(['Stamppot'])
+    // The Pantry folded into In stock (APP-314): both its rows and the
+    // staples they became go out.
+    expect(household.pantryEntries.map((r) => r.title)).toEqual(['Rice'])
+    expect(household.groceryStaples.map((r) => r.name)).toEqual(['Rice'])
     expect(groupOf(data, 'allotment').notes.map((n) => n.title)).toEqual([
       'Seeds',
     ])

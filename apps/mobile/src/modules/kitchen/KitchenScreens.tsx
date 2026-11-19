@@ -1,26 +1,19 @@
 
 import { useMutation } from 'convex/react'
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
 import {
-  Modal,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { NativeContextMenu } from '../../components/NativeContextMenu'
-import { SwipeableRow } from '../../components/SwipeableRow'
-import { api, type Id } from '../../convex/api'
+import { api } from '../../convex/api'
 import { useQuery } from '../../convex/queries'
-import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { useGroup } from '../../group/GroupProvider'
-import { fmt, plural, useI18n } from '../../i18n'
-import { RADIUS, SPACE, TYPE, useTokens } from '../../theme/tokens'
+import { plural, useI18n } from '../../i18n'
+import { SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { InsetList, InsetRow } from '../../ui/inset-list'
 import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
@@ -78,69 +71,6 @@ function KitchenShell({
   )
 }
 
-function Composer({
-  labels,
-  onSave,
-  initial,
-}: {
-  labels: { name: string; extra?: string; add: string }
-  onSave: (name: string, extra?: string) => Promise<unknown>
-  initial?: { name: string; extra?: string }
-}) {
-  const tokens = useTokens('kitchen')
-  const [name, setName] = useState(initial?.name ?? '')
-  const [extra, setExtra] = useState(initial?.extra ?? '')
-  return (
-    <View
-      style={[
-        styles.composer,
-        { borderColor: tokens.hair, backgroundColor: tokens.surface },
-      ]}
-    >
-      <TextInput
-        value={name}
-        onChangeText={setName}
-        placeholder={labels.name}
-        placeholderTextColor={tokens.muted}
-        style={[
-          styles.input,
-          { color: tokens.ink, borderBottomColor: tokens.hair },
-        ]}
-      />
-      {labels.extra ? (
-        <TextInput
-          value={extra}
-          onChangeText={setExtra}
-          placeholder={labels.extra}
-          placeholderTextColor={tokens.muted}
-          keyboardType="numeric"
-          style={[
-            styles.input,
-            { color: tokens.ink, borderBottomColor: tokens.hair },
-          ]}
-        />
-      ) : null}
-      <Pressable
-        disabled={!name.trim()}
-        onPress={() =>
-          onSave(name, extra)
-            .then(() => {
-              setName('')
-              setExtra('')
-              haptics.itemSaved()
-            })
-            .catch(() => haptics.actionFailed())
-        }
-        style={[styles.add, { backgroundColor: tokens.accent }]}
-      >
-        <Text style={{ ...TYPE.bodyStrong, color: tokens.onAccent }}>
-          {labels.add}
-        </Text>
-      </Pressable>
-    </View>
-  )
-}
-
 export function GroceriesScreen() {
   const { group } = useGroup()
   const { t, locale } = useI18n()
@@ -164,6 +94,14 @@ export function GroceriesScreen() {
             title: t.tasks.grocery.addLines.fromRecipe,
             image: 'book',
             onPress: () => router.push(moduleHref('/all/recipes')),
+          },
+          {
+            // What the house keeps (APP-314). The design's action-row pill
+            // arrives with the aisle list (APP-310); until then, the menu.
+            id: 'groceries-in-stock',
+            title: t.kitchen.inStock.title,
+            image: 'house',
+            onPress: () => router.push(moduleHref('/all/groceries/in-stock')),
           },
           {
             // Unlinking is not destructive — the list stays in Tasks — and it
@@ -209,221 +147,7 @@ export function GroceriesScreen() {
   )
 }
 
-export function PantryScreen() {
-  const { group } = useGroup()
-  const { t } = useI18n()
-  const tokens = useTokens('kitchen')
-  const pantry = useQuery(api.kitchen.pantry, { groupSlug: group.slug })
-  const add = useMutation(api.kitchen.addPantryEntry)
-  const update = useMutation(api.kitchen.updatePantryEntry)
-  const remove = useMutation(api.kitchen.removePantryEntry)
-  const confirmRemove = (item: { _id: Id<'pantryEntries'>; title: string }) =>
-    confirmDestructive({
-      title: fmt(t.kitchen.deleteTitle, { title: item.title }),
-      message: t.kitchen.deleteBody,
-      confirm: t.common.actions.delete,
-      cancel: t.common.actions.cancel,
-      onConfirm: () => remove({ groupSlug: group.slug, id: item._id }),
-    })
-  const [editing, setEditing] = useState<Id<'pantryEntries'> | null>(null)
-  const entry = pantry?.find((item) => item._id === editing)
-  return (
-    <KitchenShell title={t.modules.byId.pantry.label}>
-      <Composer
-        labels={{
-          name: t.kitchen.name,
-          extra: t.kitchen.quantity,
-          add: t.common.actions.add,
-        }}
-        onSave={(title, quantity) =>
-          add({ groupSlug: group.slug, title, quantity })
-        }
-      />
-      {pantry?.length === 0 ? (
-        <Text style={{ color: tokens.muted }}>{t.kitchen.noPantry}</Text>
-      ) : (
-        pantry?.map((item) => (
-          <NativeContextMenu
-            key={item._id}
-            actions={[
-              { id: 'edit', title: t.common.actions.edit },
-              {
-                id: 'delete',
-                title: t.common.actions.delete,
-                attributes: { destructive: true },
-              },
-            ]}
-            onAction={(action) =>
-              action === 'edit' ? setEditing(item._id) : confirmRemove(item)
-            }
-          >
-            <SwipeableRow
-              deleteLabel={t.common.actions.delete}
-              onDelete={() => confirmRemove(item)}
-            >
-              <Pressable
-                onPress={() => setEditing(item._id)}
-                style={[
-                  styles.row,
-                  {
-                    borderColor: tokens.hair,
-                    backgroundColor: tokens.surface,
-                  },
-                ]}
-              >
-                <Text style={[styles.title, { color: tokens.ink }]}>
-                  {item.title}
-                </Text>
-                <Text style={{ color: tokens.muted }}>{item.quantity}</Text>
-              </Pressable>
-            </SwipeableRow>
-          </NativeContextMenu>
-        ))
-      )}
-      <Modal
-        visible={editing !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setEditing(null)}
-      >
-        {entry ? (
-          <PantryEditor
-            entry={entry}
-            onSave={(title, quantity) =>
-              update({
-                groupSlug: group.slug,
-                id: entry._id,
-                title,
-                quantity,
-              }).then(() => setEditing(null))
-            }
-            onClose={() => setEditing(null)}
-          />
-        ) : null}
-      </Modal>
-    </KitchenShell>
-  )
-}
-
-function PantryEditor({
-  entry,
-  onSave,
-  onClose,
-}: {
-  entry: { title: string; quantity?: string }
-  onSave: (title: string, quantity?: string) => Promise<unknown>
-  onClose: () => void
-}) {
-  const tokens = useTokens('kitchen')
-  const { t } = useI18n()
-  const [title, setTitle] = useState(entry.title)
-  const [quantity, setQuantity] = useState(entry.quantity ?? '')
-  return (
-    <View style={styles.modal}>
-      <View style={[styles.sheet, { backgroundColor: tokens.surface }]}>
-        <TextInput
-          value={title}
-          onChangeText={setTitle}
-          style={[
-            styles.input,
-            { color: tokens.ink, borderBottomColor: tokens.hair },
-          ]}
-        />
-        <TextInput
-          value={quantity}
-          onChangeText={setQuantity}
-          style={[
-            styles.input,
-            { color: tokens.ink, borderBottomColor: tokens.hair },
-          ]}
-        />
-        <Pressable onPress={() => onSave(title, quantity)}>
-          <Text style={{ color: tokens.accentText }}>
-            {t.common.actions.save}
-          </Text>
-        </Pressable>
-        <Pressable onPress={onClose}>
-          <Text>{t.common.actions.cancel}</Text>
-        </Pressable>
-      </View>
-    </View>
-  )
-}
-
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 10 },
   washContent: { paddingHorizontal: SPACE[4], gap: SPACE[3] },
-  composer: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.card,
-    padding: 10,
-    gap: 8,
-  },
-  input: {
-    ...TYPE.body,
-    minHeight: 40,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  add: {
-    minHeight: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: RADIUS.pill,
-    paddingHorizontal: 10,
-  },
-  row: {
-    minHeight: 58,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: RADIUS.card,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  title: { ...TYPE.bodyStrong, flex: 1 },
-  nav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  inline: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  navButton: { padding: 8 },
-  weekTitle: { ...TYPE.bodyStrong, textAlign: 'center', flex: 1 },
-  limitChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: RADIUS.pill,
-  },
-  clear: { padding: 6 },
-  dayMain: { flex: 1, gap: 2, paddingVertical: 10 },
-  dayName: { ...TYPE.footnoteStrong },
-  pickerList: { paddingBottom: 40 },
-  pickerEmpty: { padding: 24, textAlign: 'center' },
-  pickerRow: {
-    minHeight: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  section: { ...TYPE.bodyStrong, marginTop: 8 },
-  modal: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000066' },
-  sheet: {
-    padding: 20,
-    gap: 12,
-    borderTopLeftRadius: RADIUS.card,
-    borderTopRightRadius: RADIUS.card,
-  },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  day: {
-    width: '14.2857%',
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: RADIUS.card,
-  },
 })

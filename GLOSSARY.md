@@ -1,7 +1,7 @@
 # Gather
 
 Gather is a household-management app. Everything a household keeps track of —
-recipes, tasks, a baby's log, what's in the pantry — lives inside a Group that
+recipes, tasks, a baby's log, what's in stock at home — lives inside a Group that
 its members share.
 
 ## Language
@@ -260,7 +260,7 @@ _Avoid_: Base currency, Default currency
 ### Content
 
 **Module**:
-A feature area — Recipes, Tasks, Baby log, Pantry. Every live Module is
+A feature area — Recipes, Tasks, Baby log, Groceries. Every live Module is
 available in every Group; a Group never enables or disables one. A Module with
 nothing in it is not *off* — it is **empty**, and an empty Module invites you to
 make its first thing rather than offering a switch (ADR-0022).
@@ -311,11 +311,13 @@ most one Planned meal per slot. Which slots a Group plans, and on which days,
 is one of its meal preferences.
 _Avoid_: Meal moment, Meal time
 
-**Pantry entry**:
-A Group's record that an item is in stock at home, with an optional quantity and
-free-text quantity/value. Its name is free text; it is an inventory reminder,
-not a purchase history.
-_Avoid_: Stock movement, Inventory transaction
+**Staple**:
+Something a Group always wants in the house, kept in Groceries' **In stock**
+view (APP-314). A Staple is *in stock* or *running low*: running low puts it on
+the Group's grocery list, and checking it off there puts it back in stock. It
+is a reminder of what to keep, not a count or a purchase history.
+_Avoid_: Pantry entry (the retired Module's rows, still in `pantryEntries`
+until the contract step), Stock movement, Inventory transaction
 
 **Task list**:
 A Group-owned collection of Tasks, kept in Gather or supplied by an external

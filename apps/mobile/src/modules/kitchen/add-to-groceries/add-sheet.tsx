@@ -10,7 +10,7 @@
  * lines without a stepper, with its day grid above them, the lines grouped
  * by aisle, its meals to check below them and the list row at the end.
  *
- * Rows for what the Pantry has in stock start unticked.
+ * Rows for what the house has in stock (Groceries' In stock) start unticked.
  */
 import { MenuView } from '@expo/ui/community/menu'
 import {
@@ -18,7 +18,6 @@ import {
   GROCERY_AISLES,
   type GroceryAisle,
   type GroceryAmount,
-  groceryKey,
   recogniseGroceryLine,
 } from '@gather/core/groceries'
 import { useMutation } from 'convex/react'
@@ -58,6 +57,7 @@ import { Button } from '../../../ui/button'
 import { ModuleTile } from '../../../ui/module-tile'
 import { SectionLabel } from '../../../ui/section-label'
 import { useTaskList, useTaskLists } from '../../tasks/store'
+import { useInStock } from '../in-stock/use-in-stock'
 import {
   editedRead,
   type LineRead,
@@ -136,11 +136,8 @@ export function AddToGroceriesSheet({
     .find((id) => id && lists.some((list) => list._id === id))
   const list = lists.find((candidate) => candidate._id === listId)
   const { tasks } = useTaskList(listId ?? '')
-  const pantry = useQuery(api.kitchen.pantry, { groupSlug: group.slug })
-  const stocked = useMemo(
-    () => new Set((pantry ?? []).map((entry) => groceryKey(entry.title))),
-    [pantry],
-  )
+  // In stock starts unticked (APP-314), for a recipe and the week menu alike.
+  const inStock = useInStock(group.slug)
 
   const [ticks, setTicks] = useState<Record<string, boolean>>({})
   const [edits, setEdits] = useState<Record<string, LineRead>>({})
@@ -156,7 +153,7 @@ export function AddToGroceriesSheet({
     servings: servings?.value,
     items: tasks,
     ticks,
-    inStock: (name) => stocked.has(groceryKey(name)),
+    inStock,
   })
   const count = pick.lines.length
 

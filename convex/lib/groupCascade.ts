@@ -292,6 +292,16 @@ const GROUP_CONTENT: {
         .collect(),
     ),
 
+  groceryStaples: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'groceryStaples',
+      await ctx.db
+        .query('groceryStaples')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
   tastings: async (ctx, groupId) =>
     purge(
       ctx,

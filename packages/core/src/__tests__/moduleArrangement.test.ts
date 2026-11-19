@@ -29,12 +29,7 @@ describe('an arrangement nobody has touched', () => {
     expect(arrangement.groups.map((group) => group.group)).toEqual([
       ...MODULE_GROUPS,
     ])
-    expect(kitchenOf({})).toEqual([
-      'recipes',
-      'meal-planner',
-      'groceries',
-      'pantry',
-    ])
+    expect(kitchenOf({})).toEqual(['recipes', 'meal-planner', 'groceries'])
     expect(arrangement.hidden).toEqual([])
     expect(ids(arrangement.pinned)).toEqual([...DEFAULT_PINS])
   })
@@ -55,11 +50,10 @@ describe('a Module that ships after somebody arranged their screen', () => {
   test('lands at its canonical position in its section, not at the bottom', () => {
     // 'meal-planner' is unmentioned and canonically second, and it must land
     // after 'recipes' rather than being swept to the end.
-    expect(kitchenOf({ order: ['pantry', 'recipes', 'groceries'] })).toEqual([
-      'pantry',
+    expect(kitchenOf({ order: ['groceries', 'recipes'] })).toEqual([
+      'groceries',
       'recipes',
       'meal-planner',
-      'groceries',
     ])
   })
 
@@ -68,7 +62,6 @@ describe('a Module that ships after somebody arranged their screen', () => {
       'recipes',
       'meal-planner',
       'groceries',
-      'pantry',
     ])
   })
 })
@@ -89,7 +82,16 @@ describe('what a stored order may contain', () => {
   test('drops an id that no longer names a Module', () => {
     expect(
       kitchenOf({ order: ['sourdough', 'meal-planner', 'recipes'] }),
-    ).toEqual(['meal-planner', 'recipes', 'groceries', 'pantry'])
+    ).toEqual(['meal-planner', 'recipes', 'groceries'])
+  })
+
+  test('drops the retired Pantry, which folded into Groceries (APP-314)', () => {
+    expect(
+      kitchenOf({ order: ['pantry', 'groceries', 'recipes'], hidden: ['pantry'] }),
+    ).toEqual(['groceries', 'recipes', 'meal-planner'])
+    expect(ids(arrangeModules({ pinned: ['pantry', 'tasks'] }).pinned)).toEqual([
+      'tasks',
+    ])
   })
 
   test('drops a hidden id that no longer names a Module', () => {
@@ -97,11 +99,10 @@ describe('what a stored order may contain', () => {
   })
 
   test('keeps a duplicated id once', () => {
-    expect(kitchenOf({ order: ['pantry', 'pantry', 'recipes'] })).toEqual([
-      'pantry',
+    expect(kitchenOf({ order: ['groceries', 'groceries', 'recipes'] })).toEqual([
+      'groceries',
       'recipes',
       'meal-planner',
-      'groceries',
     ])
   })
 })
@@ -172,12 +173,11 @@ describe('writing an arrangement back', () => {
       'recipes',
       'meal-planner',
       'groceries',
-      'pantry',
     ])
   })
 
   test('round-trips a rearrangement unchanged', () => {
-    const order = ['pantry', 'recipes', 'meal-planner', 'groceries']
+    const order = ['groceries', 'recipes', 'meal-planner']
     const once = kitchenOf({ order })
     expect(
       kitchenOf({
