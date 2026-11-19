@@ -349,9 +349,10 @@ export function TaskComposer({
     </View>
   )
   if (!grocery) return field
+  // The completions sit above the field: the list scrolls the field to just
+  // above the keyboard, so anything under it would be covered.
   return (
     <View>
-      {field}
       {tasks ? (
         <GroceryCompletions
           listId={listId}
@@ -360,6 +361,7 @@ export function TaskComposer({
           onPicked={() => setDraft('')}
         />
       ) : null}
+      {field}
       <GroceryPreview line={draft} />
     </View>
   )

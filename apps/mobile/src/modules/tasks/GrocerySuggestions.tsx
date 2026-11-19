@@ -61,12 +61,14 @@ function useWhyText() {
         : days === 1
           ? s.ago.yesterday
           : plural(locale, days, s.ago.days)
+    // A number stays on the line of its unit: "5 days ago", never "5" and
+    // then "days ago" in a narrow card.
     return capitalise(
       fmt(s.why, {
         cadence: cadenceText(habit.intervalDays ?? 1),
         ago,
       }),
-    )
+    ).replace(/(\d) /g, '$1 ')
   }
 }
 
@@ -209,7 +211,7 @@ export function SuggestionStrip({
 }
 
 /**
- * Under the composer while a name is typed: up to three completions, history
+ * Above the composer's field while a name is typed: up to three completions, history
  * first. A tap adds the completed name: with the amount typed, or else the
  * usual amount from history.
  */
@@ -372,7 +374,7 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   name: { ...TYPE.bodyStrong, flexShrink: 1 },
   why: { ...TYPE.footnote },
-  completions: { paddingBottom: SPACE[1] },
+  completions: { paddingTop: SPACE[1] },
   completion: {
     flexDirection: 'row',
     alignItems: 'center',
