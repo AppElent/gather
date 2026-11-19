@@ -178,7 +178,8 @@ export function AssigneeRow({ task, list }: { task: Task; list?: TaskList }) {
           // Group after this screen drew the menu. Anything else is a write
           // that did not land, which the unchanged row already shows.
           const refused = readTaskRefusal(error)
-          if (refused) Alert.alert(words.refusals[refused])
+          if (refused === 'assignee-not-member')
+            Alert.alert(words.refusals[refused])
         })
       }}
     >

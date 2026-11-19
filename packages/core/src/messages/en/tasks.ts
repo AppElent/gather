@@ -174,6 +174,8 @@ export const tasks = {
       other: '{count} checked items cleared. They stay in Recent.',
     },
     undo: 'Undo',
+    /** The undo of Clear checked, refused: the list was cleared since (APP-403). */
+    undoSuperseded: 'The list was cleared again since. Nothing was undone.',
     recent: {
       title: 'Recent',
       count: { one: '{count} item', other: '{count} items' },

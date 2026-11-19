@@ -517,6 +517,12 @@ export const SAMPLE_RECIPES: SampleRecipe[] = [
 export interface SampleTask {
   title: string
   done: boolean
+  /**
+   * For a checked task, how many days before the seed run it was checked
+   * (`tasks.doneAt`, APP-403), so Recent shows it under that day. Absent
+   * means checked at the seed run.
+   */
+  checkedDaysAgo?: number
   /** Days from the seed run; negative is overdue. Absent means no due date. */
   dueInDays?: number
   priority?: 1 | 2 | 3 | 4
@@ -537,8 +543,13 @@ export const SAMPLE_TASK_LISTS: SampleTaskList[] = [
       { title: 'Feta (two blocks)', done: false, author: 'nora' },
       { title: 'Rolled oats', done: false, priority: 4, author: 'owner' },
       { title: 'Nappies, size 3', done: false, priority: 1, author: 'sam' },
-      { title: 'Tinned tomatoes ×6', done: true, author: 'nora' },
-      { title: 'Coffee beans', done: true, author: 'owner' },
+      {
+        title: 'Tinned tomatoes ×6',
+        done: true,
+        checkedDaysAgo: 1,
+        author: 'nora',
+      },
+      { title: 'Coffee beans', done: true, checkedDaysAgo: 3, author: 'owner' },
     ],
   },
   {

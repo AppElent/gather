@@ -15,6 +15,7 @@
  */
 
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
+import { readTaskRefusal } from '@gather/core/refusals'
 import {
   groupBySection,
   hasLinkAndPrice,
@@ -60,6 +61,7 @@ import { TaskComposer, TaskRow } from './TaskRow'
 import { dueLabel, isOverdue } from './taskDates'
 import { useTaskSheets } from './taskMenu'
 import type { ListDisplay, Task, TaskList as TaskListModel } from './types'
+import { useLingering } from './useLingering'
 import { formatPrice } from './wishlist'
 
 /** A menu entry an owning module adds to the list's ⋯ menu. */
@@ -111,6 +113,12 @@ export function TaskList({
   const [refreshed, setRefreshed] = useState(false)
 
   const { active, completed } = taskSections(tasks)
+  // A grocery item just checked stays in its aisle for a moment (APP-310);
+  // until it moves it is still open, in the summary and for Clear checked.
+  const lingering = useLingering(
+    tasks,
+    list?.grocery === true && (list.sync === 'live' || list.sync === 'synced'),
+  )
 
   if (!list) {
     // The only way here is deleting the list from its own screen, which pops.
@@ -128,9 +136,15 @@ export function TaskList({
   // aisle sections with Checked and Recent (APP-310).
   const grocery = list.grocery
   const clearable = grocery
-    ? tasks.filter((task) => inCheckedSection(task, list.checkedClearedAt))
-        .length
+    ? tasks.filter(
+        (task) =>
+          !lingering.has(task.id) &&
+          inCheckedSection(task, list.checkedClearedAt),
+      ).length
     : 0
+  const openCount = grocery
+    ? tasks.filter((task) => !task.done || lingering.has(task.id)).length
+    : active.length
   // Each section is its own labelled inset list (APP-357), "No section"
   // first; a list without sections is one unlabelled list, as before. A
   // grocery list is in aisle sections instead (APP-310), so it has none.
@@ -176,7 +190,7 @@ export function TaskList({
     const count = clearable
     actions
       .clearChecked(list.id)
-      .then((previous) => {
+      .then((cleared) => {
         haptics.itemSaved()
         undoToast.show({
           message: plural(locale, count, t.tasks.grocery.cleared),
@@ -184,8 +198,14 @@ export function TaskList({
             label: t.tasks.grocery.undo,
             onPress: () => {
               void actions
-                .restoreCheckedCleared(list.id, previous)
-                .catch(() => haptics.actionFailed())
+                .restoreCheckedCleared(list.id, cleared)
+                .catch((error: unknown) => {
+                  haptics.actionFailed()
+                  // Another clear came after this one (APP-403): say why
+                  // the Checked row did not come back.
+                  if (readTaskRefusal(error) === 'clear-superseded')
+                    undoToast.show({ message: t.tasks.grocery.undoSuperseded })
+                })
             },
           },
         })
@@ -389,7 +409,7 @@ export function TaskList({
             group={tile.group}
             glyph={tile.glyph}
             summary={{
-              count: plural(locale, active.length, t.tasks.count.open),
+              count: plural(locale, openCount, t.tasks.count.open),
               scope: group.name,
             }}
           />
@@ -453,6 +473,7 @@ export function TaskList({
                   list={list}
                   tasks={tasks}
                   row={row}
+                  lingering={lingering}
                   empty={
                     <View style={styles.emptyRow}>
                       <Text style={[styles.empty, { color: tokens.muted }]}>

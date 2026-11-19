@@ -141,6 +141,8 @@ export const tasks = {
       other: '{count} afgevinkte items gewist. Ze blijven in Recent.',
     },
     undo: 'Ongedaan maken',
+    undoSuperseded:
+      'De lijst is sindsdien opnieuw gewist. Er is niets ongedaan gemaakt.',
     recent: {
       title: 'Recent',
       count: { one: '{count} item', other: '{count} items' },
