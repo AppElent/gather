@@ -227,6 +227,7 @@ export const nl = {
       invite: {
         title: coreNl.settings.group.inviteCode,
         note: coreNl.settings.group.inviteCodeNote,
+        failed: coreNl.settings.group.inviteCodeFailed,
         share: 'Code delen',
         shareMessage:
           'Doe mee met {group} in Gather: kies onder Groepen voor ‘{join}’ en vul {code} in.',
@@ -237,6 +238,7 @@ export const nl = {
         body: coreNl.settings.group.leaveBody,
         confirm: coreNl.settings.group.leaveConfirm,
         failed: coreNl.settings.group.leaveFailed,
+        lastMember: coreNl.settings.group.lastMember,
         onlyAdmin:
           'Je bent de enige beheerder. Maak op het web eerst iemand anders beheerder in de instellingen van deze Groep, en vertrek dan.',
       },

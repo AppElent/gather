@@ -129,6 +129,7 @@ export const settings = {
     inviteCode: 'Invite code',
     inviteCodeNote:
       'Anyone holding this code can join from Groups — share it only with people you want in this group.',
+    inviteCodeFailed: 'Could not load the invite code.',
     leave: 'Leave',
     leaveButton: 'Leave this group',
     leaveTitle: 'Leave {group}?',
@@ -136,6 +137,8 @@ export const settings = {
       'You stop seeing everything in it. Anything you added stays with the group.',
     leaveConfirm: 'Leave group',
     leaveFailed: 'Could not leave this group.',
+    lastMember:
+      'You are the last member, so the group cannot be left. Delete it instead.',
     delete: 'Delete',
     deleteButton: 'Delete this group',
     deleteTitle: 'Delete {group}?',

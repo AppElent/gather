@@ -7,22 +7,24 @@
  * nothing here builds a URL.
  *
  * The code is its own query (`groups.inviteCode`), asked for the one Group on
- * screen, because holding it lets somebody in.
+ * screen, because holding it lets somebody in. When it cannot load, the card
+ * says so and offers Retry in place of Share (`useInviteCode`).
  */
 import { Share, StyleSheet, Text, View } from 'react-native'
-import { api } from '../convex/api'
-import { useQuery } from '../convex/queries'
+import { AuthError } from '../components/AuthError'
 import { fmt, useI18n } from '../i18n'
 import { RADIUS, TYPE, useTokens } from '../theme/tokens'
 import { Button } from '../ui/button'
 import { useGroup } from './GroupProvider'
+import { useInviteCode } from './useInviteCode'
 
 export function InviteCodeCard() {
   const tokens = useTokens()
   const { t } = useI18n()
   const text = t.shell.groups.invite
   const { group } = useGroup()
-  const code = useQuery(api.groups.inviteCode, { slug: group.slug })
+  const invite = useInviteCode(group.slug)
+  const code = invite.state === 'ready' ? invite.code : undefined
 
   function share() {
     if (code === undefined) return
@@ -50,24 +52,37 @@ export function InviteCodeCard() {
       >
         {text.title}
       </Text>
-      <Text
-        selectable
-        testID="invite-code"
-        style={[
-          styles.code,
-          { color: code === undefined ? tokens.muted : tokens.ink },
-        ]}
-      >
-        {code ?? t.common.errors.loading}
-      </Text>
+      {invite.state === 'failed' ? (
+        <AuthError message={text.failed} />
+      ) : (
+        <Text
+          selectable
+          testID="invite-code"
+          style={[
+            styles.code,
+            { color: code === undefined ? tokens.muted : tokens.ink },
+          ]}
+        >
+          {code ?? t.common.errors.loading}
+        </Text>
+      )}
       <Text style={[styles.note, { color: tokens.muted }]}>{text.note}</Text>
-      <Button
-        variant="secondary"
-        label={text.share}
-        disabled={code === undefined}
-        onPress={share}
-        testID="share-invite-code"
-      />
+      {invite.state === 'failed' ? (
+        <Button
+          variant="secondary"
+          label={t.common.actions.retry}
+          onPress={invite.retry}
+          testID="retry-invite-code"
+        />
+      ) : (
+        <Button
+          variant="secondary"
+          label={text.share}
+          disabled={code === undefined}
+          onPress={share}
+          testID="share-invite-code"
+        />
+      )}
     </View>
   )
 }
