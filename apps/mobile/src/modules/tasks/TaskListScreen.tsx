@@ -469,7 +469,7 @@ function TaskMeta({
   today: string
   /** A wishlist row leads with where to buy it and what it costs. */
   wishlist: boolean
-  /** A grocery row leads with its aisle. */
+  /** A grocery row leads with its aisle, then the recipe it is for. */
   grocery: boolean
 }) {
   const tokens = useTokens('home')
@@ -481,8 +481,12 @@ function TaskMeta({
           ? null
           : formatPrice(task.priceCents, locale),
       ].filter(Boolean)
-    : grocery && task.category
-      ? [t.tasks.grocery.aisles[task.category]]
+    : grocery
+      ? [
+          task.category ? t.tasks.grocery.aisles[task.category] : null,
+          // The recipe it is for (APP-312), or the first line of a note.
+          task.notes?.trim().split('\n')[0] || null,
+        ].filter(Boolean)
       : []
   const shown =
     buy.length > 0 ||
