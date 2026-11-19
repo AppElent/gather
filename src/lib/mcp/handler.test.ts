@@ -579,6 +579,87 @@ describe('Gather MCP endpoint', () => {
     })
   })
 
+  it('assigns a task to a Member by name, and clears it with null', async () => {
+    const members = () => [
+      { userId: 'user_ada', name: 'Ada' },
+      { userId: 'user_bo', name: 'Bo' },
+    ]
+    const backend = fakeBackend({
+      'groups:members': members,
+      'tasks:add': () => 'task_1',
+      'tasks:update': () => null,
+    })
+    await callTool(backend, 'create_task', {
+      groupId: 'group_home',
+      listId: 'list_1',
+      idempotencyKey: KEY,
+      title: 'Take out the bins',
+      assignee: ' bo ',
+    })
+    expect(backend.calls.at(-1)?.args).toMatchObject({
+      assigneeId: 'user_bo',
+    })
+    await callTool(backend, 'update_task', {
+      groupId: 'group_home',
+      taskId: 'task_1',
+      assignee: null,
+    })
+    expect(backend.calls.at(-1)?.args).toEqual({
+      groupSlug: 'home',
+      taskId: 'task_1',
+      assigneeId: null,
+    })
+  })
+
+  it('refuses an assignee who is not one Member of the Group, before writing', async () => {
+    const backend = fakeBackend({
+      'groups:members': () => [
+        { userId: 'user_ada', name: 'Ada' },
+        { userId: 'user_ada2', name: 'ada' },
+      ],
+    })
+    const unknown = await callTool(backend, 'update_task', {
+      groupId: 'group_home',
+      taskId: 'task_1',
+      assignee: 'Cy',
+    })
+    expect(unknown.isError).toBe(true)
+    expect(unknown.content[0].text).toContain('Nobody called Cy')
+    const ambiguous = await callTool(backend, 'update_task', {
+      groupId: 'group_home',
+      taskId: 'task_1',
+      assignee: 'Ada',
+    })
+    expect(ambiguous.isError).toBe(true)
+    expect(ambiguous.content[0].text).toContain('More than one Member')
+    expect(backend.calls.some((c) => c.kind === 'mutation')).toBe(false)
+  })
+
+  it('names the assignee in list_tasks and keeps the user id out', async () => {
+    const backend = fakeBackend({
+      'groups:members': () => [{ userId: 'user_bo', name: 'Bo' }],
+      'tasks:listByList': () => [
+        {
+          _id: 'task_1',
+          title: 'Take out the bins',
+          done: false,
+          order: 1,
+          assigneeId: 'user_bo',
+          assignmentNotice: { by: 'user_ada', at: 1 },
+        },
+      ],
+    })
+    const out = await callTool(backend, 'list_tasks', {
+      groupId: 'group_home',
+      listId: 'list_1',
+    })
+    expect(out.isError).toBeFalsy()
+    const text = JSON.stringify(out.structuredContent)
+    expect(text).toContain('"assignee":"Bo"')
+    expect(text).not.toContain('user_bo')
+    expect(text).not.toContain('user_ada')
+  })
+
   it('serves the three views as MCP Apps resources', async () => {
     const listed = await result<{
       tools: { name: string; _meta?: { ui?: { resourceUri?: string } } }[]

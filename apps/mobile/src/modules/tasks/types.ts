@@ -72,6 +72,10 @@ export interface Task {
   category?: GroceryAisle
   /** When it was checked (APP-310); absent when open or checked before. */
   doneAt?: number
+  /** The Member responsible (APP-302); absent is nobody. */
+  assigneeId?: string
+  /** Set while the assignee has not opened a task someone else gave them. */
+  assignmentNotice?: { by: string; at: number }
   /**
    * The reminder somebody chose (APP-305): a wall clock in the zone it was
    * set in, and the Member it goes to. Only Gather's own lists have one.

@@ -169,8 +169,11 @@ export const tasks = {
       ingredients: 'Ingrediënten',
       merge: 'Staat er al: {from}, wordt {to}',
       alreadyOn: 'Staat er al op',
+      covered: 'Staat er al: {amount}',
       inStock: 'Op voorraad in huis',
       inStockAdding: 'Op voorraad in huis, toch erbij',
+      inStockShort: 'in huis',
+      inStockShortAdding: 'in huis, toch erbij',
       readWithAi: 'Gelezen met AI · {used} van je {limit} vandaag',
       readWithAiEarlier: 'Eerder gelezen met AI',
       reading: 'Lezen met AI…',
@@ -228,6 +231,27 @@ export const tasks = {
       cl: { one: 'cl', other: 'cl' },
       dl: { one: 'dl', other: 'dl' },
       l: { one: 'l', other: 'l' },
+    },
+  },
+
+  assignee: {
+    who: 'Wie',
+    nobody: 'Niemand',
+    assignedTo: 'Toegewezen aan {name}',
+    someone: 'Iemand',
+    unavailable: {
+      readOnly:
+        'Wijs deze taak toe in {provider}. Gather kan gekoppelde lijsten nog niet wijzigen.',
+      notShared:
+        'Alleen een gedeeld {provider}-project heeft mensen om een taak aan te geven.',
+      unsupported: 'Lijsten uit {provider} hebben geen veld voor wie een taak doet.',
+    },
+    notice: {
+      title: 'Nieuw voor jou',
+      gaveYou: '{name} gaf je een taak',
+    },
+    refusals: {
+      'assignee-not-member': 'Die persoon zit niet meer in deze groep.',
     },
   },
 

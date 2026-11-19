@@ -16,7 +16,7 @@
  */
 import { hasLinkAndPrice } from '@gather/core/task-lists'
 import { Stack, useRouter } from 'expo-router'
-import type { ReactNode } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import {
   Platform,
   Pressable,
@@ -34,6 +34,7 @@ import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
 import { useDebouncedText } from '../../ui/use-debounced-text'
+import { AssigneeRow } from './assignee'
 import { Checkbox, Chip, priorityColor } from './components'
 import { GroceryFields } from './GroceryFields'
 import { TASK_ICONS } from './icons'
@@ -76,6 +77,16 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   const notes = useDebouncedText(task?.notes ?? '', (next) => {
     if (task) actions.setNotes(task.id, next)
   })
+
+  // Opening a task someone gave you is seeing it: the notice on Tasks goes.
+  // The server clears it only for the assignee, so anyone else opening the
+  // task changes nothing.
+  const noticeId = task?.assignmentNotice ? task.id : null
+  const markSeen = useRef(actions.markAssignmentSeen)
+  markSeen.current = actions.markAssignmentSeen
+  useEffect(() => {
+    if (noticeId) markSeen.current(noticeId).catch(() => {})
+  }, [noticeId])
 
   if (!task) return <View style={{ flex: 1, backgroundColor: tokens.ground }} />
 
@@ -143,6 +154,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         ) : null}
 
         <Card>
+          <AssigneeRow task={task} list={list} />
           <PropertyRow
             testID="detail-due"
             icon={

@@ -184,6 +184,8 @@ export function mergeTasks(
             unit: row.unit,
             category: row.category,
             doneAt: row.doneAt,
+            assigneeId: row.assigneeId,
+            assignmentNotice: row.assignmentNotice,
             reminder: row.reminder,
             sectionId: row.sectionId,
             order: row.order,
@@ -360,6 +362,7 @@ export function useTaskActions() {
   const clearChecked = useMutation(api.taskLists.clearChecked)
   const restoreCheckedCleared = useMutation(api.taskLists.restoreCheckedCleared)
   const putBack = useMutation(api.tasks.putBack)
+  const markSeen = useMutation(api.tasks.markAssignmentSeen)
   const setReminder = useMutation(api.tasks.setReminder)
   const setSection = useMutation(api.tasks.setSection)
   const addSection = useMutation(api.taskSections.add)
@@ -518,6 +521,12 @@ export function useTaskActions() {
         listId: listId as Id<'taskLists'>,
         groupSlug,
       }),
+    /** The Member responsible, or nobody (APP-302). */
+    setAssignee: (id: string, userId: string | null) =>
+      patch(id, { assigneeId: userId as Id<'users'> | null }),
+    /** The assignee opened a task someone gave them: its notice is seen. */
+    markAssignmentSeen: (id: string) =>
+      markSeen({ taskId: id as Id<'tasks'>, groupSlug }),
   }
 }
 

@@ -29,6 +29,7 @@ import {
   requireInGroup,
 } from './lib/groupAccess'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
+import { assigneeChange, notifyAssignee } from './lib/taskAssignee'
 import { taskPriorityValidator } from './lib/taskFields'
 import {
   cancelSend,
@@ -162,6 +163,8 @@ export const add = mutation({
     // the title, exactly as before.
     quantity: v.optional(v.number()),
     unit: v.optional(groceryUnitValidator),
+    // The Member responsible (APP-302); a current Member of the list's Group.
+    assigneeId: v.optional(v.id('users')),
     // The section it is added to (APP-357). One the list does not have, and
     // none at all from an app older than sections, is "No section".
     sectionId: v.optional(v.string()),
@@ -195,6 +198,15 @@ export const add = mutation({
             await recentListItems(ctx, args.listId),
           )
         : null
+      const assignee =
+        args.assigneeId === undefined
+          ? null
+          : await assigneeChange(ctx, {
+              groupId: group._id,
+              actorId: user._id,
+              current: undefined,
+              next: args.assigneeId,
+            })
       const taskId = await ctx.db.insert('tasks', {
         listId: args.listId,
         title,
@@ -207,9 +219,11 @@ export const add = mutation({
         ...(grocery ? { category: grocery.aisle } : {}),
         ...(onGroceryList && quantity !== undefined ? { quantity } : {}),
         ...(onGroceryList && args.unit !== undefined ? { unit: args.unit } : {}),
+        ...(assignee ?? {}),
         ...(sectionId ? { sectionId } : {}),
       })
       if (grocery) await askAiOnce(ctx, group._id, grocery, taskId)
+      await notifyAssignee(ctx, group._id, taskId, assignee)
       return taskId
     })
   },
@@ -287,6 +301,9 @@ export const update = mutation({
     // A grocery item's amount and unit (APP-309); null clears either.
     quantity: v.optional(v.union(v.number(), v.null())),
     unit: v.optional(v.union(groceryUnitValidator, v.null())),
+    // The Member responsible (APP-302); null is nobody. Absent leaves it as
+    // it is, which is what every client from before assignees sends.
+    assigneeId: v.optional(v.union(v.id('users'), v.null())),
   },
   handler: async (ctx, args) => {
     const {
@@ -309,6 +326,15 @@ export const update = mutation({
           ? null
           : checkedQuantity(args.quantity)
     const unit = onGroceryList ? args.unit : undefined
+    const assignee =
+      args.assigneeId === undefined
+        ? null
+        : await assigneeChange(ctx, {
+            groupId: group._id,
+            actorId: user._id,
+            current: task.assigneeId,
+            next: args.assigneeId,
+          })
     // Moving the due date moves the reminder by the same days (APP-305).
     const reminder =
       dueDate === undefined
@@ -352,6 +378,7 @@ export const update = mutation({
       ...(priority !== undefined ? { priority: priority ?? undefined } : {}),
       ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
       ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
+      ...(assignee ?? {}),
       ...(reminder !== task.reminder ? { reminder } : {}),
     })
     if (task.reminder && (reminder !== task.reminder || done !== undefined))
@@ -362,6 +389,27 @@ export const update = mutation({
         task.reminder,
       )
     if (askAi) await askAiOnce(ctx, group._id, askAi, taskId)
+    await notifyAssignee(ctx, group._id, taskId, assignee)
+  },
+})
+
+/**
+ * The assignee opened the task: its notice is seen. Anyone else opening it
+ * changes nothing, and neither does a task with no notice.
+ */
+export const markAssignmentSeen = mutation({
+  args: { taskId: v.id('tasks'), groupSlug: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { task, user } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
+    if (task.assignmentNotice && task.assigneeId === user._id) {
+      await ctx.db.patch(task._id, { assignmentNotice: undefined })
+    }
+    return null
   },
 })
 
