@@ -199,9 +199,11 @@ export function ReorderMode({
                 ]}
               >
                 <Text style={[styles.headingText, { color: tokens.muted }]}>
+                  {/* A section deleted on another phone while Reorder is
+                      open: its tasks already sit under "No section" there. */}
                   {heading === null
                     ? t.tasks.sections.none
-                    : (names.get(heading) ?? '')}
+                    : (names.get(heading) ?? t.tasks.sections.none)}
                 </Text>
               </Animated.View>
             )

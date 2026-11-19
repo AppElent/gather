@@ -89,7 +89,7 @@ export const reorder = mutation({
       throw new ConvexError('Reorder must contain every section exactly once')
     }
     await ctx.db.patch(list._id, {
-      sections: args.sectionIds.map((id) => byId.get(id) as { id: string; name: string }),
+      sections: args.sectionIds.flatMap((id) => byId.get(id) ?? []),
     })
     return null
   },

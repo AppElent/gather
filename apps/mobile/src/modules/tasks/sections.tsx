@@ -56,7 +56,14 @@ export function SectionsSheet({
     const name = draft.trim()
     if (!name) return
     setDraft('')
-    report(actions.addSection(list.id, name))
+    actions.addSection(list.id, name).then(
+      () => haptics.itemSaved(),
+      () => {
+        haptics.actionFailed()
+        // A refused add (the 31st section, say) gives the name back to retype.
+        setDraft((current) => current || name)
+      },
+    )
   }
 
   const move = (index: number, by: -1 | 1) => {
@@ -129,6 +136,7 @@ export function SectionsSheet({
               accessibilityLabel={fmt(t.tasks.sections.options, {
                 name: section.name,
               })}
+              hitSlop={12}
               style={styles.more}
             >
               <UI_ICONS.Ellipsis

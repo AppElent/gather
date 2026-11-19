@@ -416,6 +416,36 @@ describe('tasks in sections', () => {
     ])
   })
 
+  test('a reorder naming a section deleted meanwhile files the task under No section', async () => {
+    const { as, list, a, b, c } = await seed()
+    const kitchen = await as.mutation(api.taskSections.add, {
+      listId: list,
+      groupSlug: JANSEN,
+      name: 'Kitchen',
+    })
+    // Another phone deletes Kitchen while this one is still in Reorder mode.
+    await as.mutation(api.taskSections.remove, {
+      listId: list,
+      groupSlug: JANSEN,
+      sectionId: kitchen,
+    })
+    await as.mutation(api.tasks.reorder, {
+      listId: list,
+      groupSlug: JANSEN,
+      ids: [a, b, c],
+      sectionIds: [kitchen, kitchen, null],
+    })
+    const tasks = await as.query(api.tasks.listByList, {
+      listId: list,
+      groupSlug: JANSEN,
+    })
+    expect(tasks.map((task) => [task.title, task.sectionId])).toEqual([
+      ['A', undefined],
+      ['B', undefined],
+      ['C', undefined],
+    ])
+  })
+
   test('a reorder from an app older than sections leaves sections alone', async () => {
     const { as, list, a, b, c } = await seed()
     const kitchen = await as.mutation(api.taskSections.add, {
