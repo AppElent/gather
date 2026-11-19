@@ -258,6 +258,79 @@ export const tasks = {
     money: 'Blue',
   } satisfies Record<TaskListColor, string>,
 
+  /**
+   * A repeating task (APP-303): the Repeat row and sheet, the summary on a
+   * row, and the completion history. Shared with the web (APP-308).
+   */
+  repeat: {
+    title: 'Repeat',
+    done: 'Done',
+    /** The segmented control at the top of the sheet. */
+    modes: {
+      none: 'Never',
+      fixed: 'Fixed schedule',
+      afterDone: 'After done',
+    },
+    every: 'Every',
+    on: 'On',
+    afterDone: 'After done',
+    /** The unit picker's words, after the count. */
+    units: {
+      day: { one: 'day', other: 'days' },
+      week: { one: 'week', other: 'weeks' },
+      month: { one: 'month', other: 'months' },
+      year: { one: 'year', other: 'years' },
+    },
+    decrease: 'Fewer',
+    increase: 'More',
+    /** A monthly or yearly rule follows the task's date. */
+    onMonthDay: 'On day {day}',
+    onDate: 'On {date}',
+    followsDate: 'Change the date to move it.',
+    lastDayHint: 'In months without day {day}, it falls on the last day.',
+    /** The row's value, and the line under a task's title. */
+    summary: {
+      never: 'Never',
+      every: {
+        day: { one: 'Every day', other: 'Every {count} days' },
+        week: { one: 'Every week', other: 'Every {count} weeks' },
+        month: { one: 'Every month', other: 'Every {count} months' },
+        year: { one: 'Every year', other: 'Every {count} years' },
+      },
+      afterDone: {
+        day: { one: '1 day after done', other: '{count} days after done' },
+        week: { one: '1 week after done', other: '{count} weeks after done' },
+        month: {
+          one: '1 month after done',
+          other: '{count} months after done',
+        },
+      },
+      onDays: '{every}, {days}',
+      onMonthDay: '{every} on day {day}',
+      onDate: '{every} on {date}',
+    },
+    /** The preview card. */
+    next: 'Next',
+    nextAfter: 'After {date}: {dates}',
+    nextIfDoneToday: 'If done today: {date}',
+    nextNever: 'Does not come back',
+    pickDay: 'Pick at least one day',
+    footnote:
+      'One occurrence is open at a time. Miss it and it stays overdue; no copies pile up.',
+    footnoteNever: 'A date alone sets no reminder and no repeat.',
+    /** A linked list's task: its repeat lives in the other app. */
+    linked:
+      'This list lives in {provider}. Gather reads it but cannot write to it, so set the repeat in {provider}.',
+    /** After completing a repeating task. */
+    completed: 'Done. Next: {date}',
+    undo: 'Undo',
+    undoFailed: 'That could not be undone.',
+    /** The history on the task screen. */
+    history: 'Done before',
+    historyEntry: '{name}, {when}',
+    someone: 'Someone',
+  },
+
   /** What a template's starter items are called once they are on a list. */
   starters: {
     bins: 'Put the bins out',

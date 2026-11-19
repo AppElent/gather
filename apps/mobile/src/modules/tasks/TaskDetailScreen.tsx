@@ -15,6 +15,7 @@
  * permanent today (`apps/mobile/DESIGN_SYSTEM.md`).
  */
 import { hasLinkAndPrice } from '@gather/core/task-lists'
+import { describeRepeat } from '@gather/core/task-repeat'
 import { Stack, useRouter } from 'expo-router'
 import type { ReactNode } from 'react'
 import {
@@ -28,7 +29,10 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { useI18n } from '../../i18n'
+import { api, type Id } from '../../convex/api'
+import { useQuery } from '../../convex/queries'
+import { useGroup } from '../../group/GroupProvider'
+import { fmt, useI18n } from '../../i18n'
 import { useRecordRecent } from '../../search/recentRecordsStore'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
@@ -80,6 +84,13 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
   const overdue = Boolean(task.dueDate && isOverdue(task.dueDate, state.today))
   const open = (action: string) => taskSheets.onAction(task, action)
+  const repeatWords = t.tasks.repeat
+  // A linked list is read-only in Gather, so its repeat is its provider's to
+  // set: shown in the provider's words, with the row switched off (APP-303).
+  const canRepeat = Boolean(list?.writable && list.provider === 'local')
+  const repeatValue = task.repeat
+    ? describeRepeat(task.repeat, repeatWords.summary, locale)
+    : (task.repeatText ?? repeatWords.summary.never)
 
   return (
     <>
@@ -164,6 +175,20 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             onPress={() => open('due')}
           />
           <PropertyRow
+            testID="detail-repeat"
+            icon={
+              <TASK_ICONS.Repeat
+                size={18}
+                color={tokens.muted}
+                strokeWidth={2}
+              />
+            }
+            label={repeatWords.title}
+            value={repeatValue}
+            disabled={!canRepeat}
+            onPress={() => open('repeat')}
+          />
+          <PropertyRow
             testID="detail-priority"
             icon={
               <TASK_ICONS.Flag
@@ -226,6 +251,17 @@ export function TaskDetail({ taskId }: { taskId: string }) {
             last
           />
         </Card>
+        {list && !canRepeat ? (
+          <Text style={[styles.hint, { color: tokens.muted }]}>
+            {fmt(repeatWords.linked, {
+              // Provider ids are lower case: 'todoist' reads as Todoist.
+              provider:
+                list.provider.charAt(0).toUpperCase() + list.provider.slice(1),
+            })}
+          </Text>
+        ) : null}
+
+        {list?.provider === 'local' ? <CompletionHistory taskId={task.id} /> : null}
 
         <Card>
           <TextInput
@@ -274,6 +310,61 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   )
 }
 
+/**
+ * Who completed a repeating task before, newest first (APP-303). Shown once
+ * there is something in it; the newest one can be undone from the toast.
+ */
+function CompletionHistory({ taskId }: { taskId: string }) {
+  const tokens = useTokens('home')
+  const { t, locale } = useI18n()
+  const { group } = useGroup()
+  const words = t.tasks.repeat
+  const rows = useQuery(api.tasks.completions, {
+    taskId: taskId as Id<'tasks'>,
+    groupSlug: group.slug,
+  })
+  if (!rows || rows.length === 0) return null
+  return (
+    <View testID="detail-history" style={styles.history}>
+      <Text style={[styles.historyTitle, { color: tokens.muted }]}>
+        {words.history}
+      </Text>
+      <Card>
+        {rows.map((row, index) => (
+          <View
+            key={row._id}
+            style={[
+              styles.historyRow,
+              index < rows.length - 1 && {
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: tokens.hair,
+              },
+            ]}
+          >
+            <TASK_ICONS.CircleCheck
+              size={16}
+              color={tokens.muted}
+              strokeWidth={2}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+            <Text style={[styles.historyText, { color: tokens.ink }]}>
+              {fmt(words.historyEntry, {
+                name: row.byName ?? words.someone,
+                when: new Date(row.completedAt).toLocaleDateString(locale, {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                }),
+              })}
+            </Text>
+          </View>
+        ))}
+      </Card>
+    </View>
+  )
+}
+
 function PropertyRow({
   testID,
   icon,
@@ -281,6 +372,7 @@ function PropertyRow({
   value,
   trailing,
   danger = false,
+  disabled = false,
   last = false,
   onPress,
 }: {
@@ -290,6 +382,7 @@ function PropertyRow({
   value?: string
   trailing?: ReactNode
   danger?: boolean
+  disabled?: boolean
   last?: boolean
   onPress: () => void
 }) {
@@ -301,6 +394,8 @@ function PropertyRow({
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={[label, value].filter(Boolean).join(', ')}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
       android_ripple={{ color: tokens.surface2 }}
       style={({ pressed }) => [
@@ -327,13 +422,15 @@ function PropertyRow({
             {value}
           </Text>
         ) : null)}
-      <ChevronRight
-        size={18}
+      {disabled ? null : (
+        <ChevronRight
+          size={18}
         color={tokens.muted}
         strokeWidth={1.8}
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-      />
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        />
+      )}
     </Pressable>
   )
 }
@@ -377,6 +474,15 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   hint: { ...TYPE.footnote, paddingHorizontal: 4 },
+  history: { gap: 6 },
+  historyTitle: { ...TYPE.footnoteStrong, paddingHorizontal: 4 },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 44,
+  },
+  historyText: { ...TYPE.subhead, flex: 1 },
   delete: {
     flexDirection: 'row',
     alignItems: 'center',

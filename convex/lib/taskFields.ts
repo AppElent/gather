@@ -4,6 +4,7 @@ import {
   TASK_LIST_ICONS,
   TASK_LIST_KINDS,
 } from '@gather/core/task-lists'
+import { REPEAT_MODES, REPEAT_UNITS } from '@gather/core/task-repeat'
 import { v } from 'convex/values'
 import { literals } from './validators'
 
@@ -43,3 +44,17 @@ export const taskListDisplayValidator = v.object({
 export const taskListKindValidator = literals(TASK_LIST_KINDS)
 export const taskListIconValidator = literals(TASK_LIST_ICONS)
 export const taskListColorValidator = literals(TASK_LIST_COLORS)
+
+/**
+ * How a task repeats (APP-303), as `@gather/core/task-repeat` defines it. The
+ * shape only: ranges and which fields a unit uses are `normalizeRepeat`'s, so
+ * a stored rule is always the normalized one.
+ */
+export const taskRepeatValidator = v.object({
+  mode: literals(REPEAT_MODES),
+  unit: literals(REPEAT_UNITS),
+  every: v.number(),
+  weekdays: v.optional(v.array(v.number())),
+  monthDay: v.optional(v.number()),
+  month: v.optional(v.number()),
+})

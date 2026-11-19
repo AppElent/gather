@@ -6,6 +6,7 @@ import {
   roundGroceryQuantity,
 } from '@gather/core/groceries'
 import { normalizeTaskUrl } from '@gather/core/task-lists'
+import { reanchorRepeat, type TaskRepeat } from '@gather/core/task-repeat'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
@@ -27,7 +28,32 @@ import {
   requireInGroup,
 } from './lib/groupAccess'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
-import { taskPriorityValidator } from './lib/taskFields'
+import { taskPriorityValidator, taskRepeatValidator } from './lib/taskFields'
+import {
+  checkedRepeat,
+  completeOccurrence,
+  completionDay,
+  completionsOf,
+  firstDueDate,
+  isRepeating,
+  purgeCompletionsOfTask,
+} from './lib/taskRepeat'
+
+/**
+ * What completing a repeating task answers: the history row it wrote, which
+ * `undoCompletion` takes, and the due date the task moved to. `null` for any
+ * other change.
+ */
+const completionResult = v.union(
+  v.null(),
+  v.object({ completionId: v.id('taskCompletions'), dueDate: v.string() }),
+)
+
+/**
+ * The completer's calendar day, `YYYY-MM-DD`. Optional: an installed app from
+ * before repeats sends none, and gets the day in the Netherlands.
+ */
+const todayArg = v.optional(v.string())
 
 const byOpenThenOrder = (a: Doc<'tasks'>, b: Doc<'tasks'>) =>
   Number(a.done) - Number(b.done) || a.order - b.order
@@ -141,6 +167,10 @@ export const add = mutation({
     // the title, exactly as before.
     quantity: v.optional(v.number()),
     unit: v.optional(groceryUnitValidator),
+    // How it repeats (APP-303). A fixed schedule without a due date starts on
+    // its first day from `today`.
+    repeat: v.optional(taskRepeatValidator),
+    today: todayArg,
     idempotencyKey: idempotencyKeyValidator,
   },
   handler: async (ctx, args) => {
@@ -157,6 +187,13 @@ export const add = mutation({
     const title = onGroceryList
       ? args.title
       : groceryLineText(args.title, quantity, args.unit)
+    const today = completionDay(args.today)
+    const repeat = args.repeat
+      ? checkedRepeat(args.repeat, args.dueDate ?? today)
+      : undefined
+    const dueDate = repeat
+      ? firstDueDate(repeat, args.dueDate, today)
+      : args.dueDate
     return await createOnce(ctx, user._id, 'tasks', args.idempotencyKey, async () => {
       // An item on a grocery list gets its aisle here, so every client —
       // installed apps that know nothing of aisles too — has it. It is
@@ -174,7 +211,7 @@ export const add = mutation({
         listId: args.listId,
         title,
         done: false,
-        dueDate: args.dueDate,
+        dueDate,
         priority: args.priority,
         labels: args.labels,
         createdBy: user._id,
@@ -182,6 +219,7 @@ export const add = mutation({
         ...(grocery ? { category: grocery.aisle } : {}),
         ...(onGroceryList && quantity !== undefined ? { quantity } : {}),
         ...(onGroceryList && args.unit !== undefined ? { unit: args.unit } : {}),
+        ...(repeat ? { repeat } : {}),
       })
       if (grocery) await askAiOnce(ctx, group._id, grocery, taskId)
       return taskId
@@ -189,13 +227,103 @@ export const add = mutation({
   },
 })
 
+/**
+ * Tick a task, or untick it. Ticking an open repeating task completes its
+ * occurrence instead: the task stays open with its next due date, and the
+ * answer names the history row for `undoCompletion`. An installed app from
+ * before repeats calls this too and gets the same result; it sees the task
+ * come back with the new date.
+ */
 export const toggleDone = mutation({
-  args: { taskId: v.id('tasks'), groupSlug: v.string() },
+  args: { taskId: v.id('tasks'), groupSlug: v.string(), today: todayArg },
+  returns: completionResult,
   handler: async (ctx, args) => {
-    const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    const { task, group, user } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
+    if (!task.done && isRepeating(task)) {
+      return await completeOccurrence(ctx, {
+        task,
+        groupId: group._id,
+        userId: user._id,
+        today: completionDay(args.today),
+      })
+    }
     await ctx.db.patch(args.taskId, { done: !task.done })
+    return null
   },
 })
+
+/**
+ * Take back a repeating task's completion right after it: the due date goes
+ * back to the one it was completed from, and the history row goes. Only the
+ * task's latest completion can be undone, so one Member's undo never erases
+ * another's later completion.
+ */
+export const undoCompletion = mutation({
+  args: { completionId: v.id('taskCompletions'), groupSlug: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const completion = await ctx.db.get(args.completionId)
+    if (!completion) {
+      await requireGroupBySlug(ctx, args.groupSlug)
+      throw new ConvexError('Nothing to undo')
+    }
+    const { task } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      completion.taskId,
+    )
+    const [latest] = await completionsOf(ctx, task._id)
+    if (latest?._id !== completion._id) {
+      throw new ConvexError('Nothing to undo')
+    }
+    await ctx.db.patch(task._id, {
+      dueDate: completion.previousDueDate,
+      done: false,
+    })
+    await ctx.db.delete(completion._id)
+    return null
+  },
+})
+
+/** Who completed a repeating task and when, newest first (APP-303). */
+export const completions = query({
+  args: { taskId: v.id('tasks'), groupSlug: v.string() },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.taskId)
+    if (!task) {
+      await requireGroupBySlug(ctx, args.groupSlug)
+      throw new ConvexError('Task not found')
+    }
+    if (!(await findInGroup(ctx, args.groupSlug, task.listId))) {
+      throw new ConvexError('Task not found')
+    }
+    const rows = await ctx.db
+      .query('taskCompletions')
+      .withIndex('by_task', (q) => q.eq('taskId', args.taskId))
+      .order('desc')
+      .take(COMPLETIONS_SHOWN)
+    // By name, never by id; somebody who left reads as null.
+    const names = new Map<Id<'users'>, string | null>()
+    for (const row of rows) {
+      if (!names.has(row.completedBy)) {
+        names.set(row.completedBy, (await ctx.db.get(row.completedBy))?.name ?? null)
+      }
+    }
+    return rows.map((row) => ({
+      _id: row._id,
+      completedAt: row.completedAt,
+      completedOn: row.completedOn,
+      byName: names.get(row.completedBy) ?? null,
+    }))
+  },
+})
+
+/** How much history the task screen shows; older rows are kept, not shown. */
+const COMPLETIONS_SHOWN = 20
 
 export const update = mutation({
   args: {
@@ -218,7 +346,15 @@ export const update = mutation({
     // A grocery item's amount and unit (APP-309); null clears either.
     quantity: v.optional(v.union(v.number(), v.null())),
     unit: v.optional(v.union(groceryUnitValidator, v.null())),
+    // How it repeats (APP-303); null stops it. A moved due date carries a
+    // monthly, yearly or one-weekday rule along with it.
+    repeat: v.optional(v.union(taskRepeatValidator, v.null())),
+    today: todayArg,
+    // With done true on a repeating task: the due date the caller saw, so a
+    // retry after the task moved on completes nothing twice.
+    occurrence: v.optional(v.union(v.string(), v.null())),
   },
+  returns: completionResult,
   handler: async (ctx, args) => {
     const {
       task,
@@ -273,15 +409,67 @@ export const update = mutation({
         ? { priceCents: priceCents ?? undefined }
         : {}),
       ...(title !== undefined ? { title } : {}),
-      ...(done !== undefined ? { done } : {}),
+      // Done on an open repeating task completes its occurrence, below.
+      ...(done !== undefined && !(done && !task.done && willRepeat(task, args.repeat))
+        ? { done }
+        : {}),
       ...(dueDate !== undefined ? { dueDate: dueDate ?? undefined } : {}),
       ...(priority !== undefined ? { priority: priority ?? undefined } : {}),
       ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
       ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
     })
     if (askAi) await askAiOnce(ctx, group._id, askAi, taskId)
+
+    const today = completionDay(args.today)
+    const repeatPatch = repeatChange(task, args.repeat, dueDate, today)
+    if (repeatPatch) await ctx.db.patch(taskId, repeatPatch)
+
+    // Completing a repeating task moves it on rather than closing it.
+    if (done === true && !task.done) {
+      const current = await ctx.db.get(taskId)
+      if (current && isRepeating(current)) {
+        return await completeOccurrence(ctx, {
+          task: current,
+          groupId: group._id,
+          userId: user._id,
+          today,
+          occurrence: args.occurrence,
+        })
+      }
+    }
+    return null
   },
 })
+
+/** Whether the task repeats once this update's repeat change is applied. */
+function willRepeat(task: Doc<'tasks'>, repeat: TaskRepeat | null | undefined) {
+  return repeat === undefined ? task.repeat !== undefined : repeat !== null
+}
+
+/**
+ * The repeat fields an update writes: a new rule (anchored on the due date,
+ * and giving a fixed rule without one its first day), none, or the old rule
+ * following a moved due date. `undefined` when nothing about the repeat
+ * changes.
+ */
+function repeatChange(
+  task: Doc<'tasks'>,
+  repeat: TaskRepeat | null | undefined,
+  dueDate: string | null | undefined,
+  today: string,
+): Partial<Pick<Doc<'tasks'>, 'repeat' | 'dueDate'>> | undefined {
+  const due = dueDate === undefined ? task.dueDate : (dueDate ?? undefined)
+  if (repeat === null) return task.repeat ? { repeat: undefined } : undefined
+  if (repeat) {
+    const rule = checkedRepeat(repeat, due ?? today)
+    const first = firstDueDate(rule, due, today)
+    return { repeat: rule, ...(first !== due ? { dueDate: first } : {}) }
+  }
+  if (task.repeat && typeof dueDate === 'string') {
+    return { repeat: reanchorRepeat(task.repeat, dueDate) }
+  }
+  return undefined
+}
 
 /**
  * A link as stored: http or https only, so an app that opens it can never be
@@ -353,6 +541,7 @@ export const remove = mutation({
   args: { taskId: v.id('tasks'), groupSlug: v.string() },
   handler: async (ctx, args) => {
     await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    await purgeCompletionsOfTask(ctx, args.taskId)
     await ctx.db.delete(args.taskId)
   },
 })

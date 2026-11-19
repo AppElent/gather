@@ -5,6 +5,7 @@ import type {
   TaskListIcon,
   TaskListKind,
 } from '@gather/core/task-lists'
+import type { TaskRepeat } from '@gather/core/task-repeat'
 
 export type Priority = 1 | 2 | 3 | 4
 
@@ -58,6 +59,10 @@ export interface Task {
   quantity?: number
   unit?: GroceryUnit
   category?: GroceryAisle
+  /** How it comes back once done (APP-303); a Gather list's own. */
+  repeat?: TaskRepeat
+  /** A linked list's own words for its repeat, such as Todoist's "every week". */
+  repeatText?: string
   order: number
 }
 

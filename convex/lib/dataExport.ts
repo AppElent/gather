@@ -144,6 +144,8 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
     index: 'by_list',
     field: 'listId',
   },
+  // Who completed a repeating task and when (APP-303); names, never ids.
+  taskCompletions: { scope: 'group', index: 'by_group' },
   groceryCategoryOverrides: { scope: 'group', index: 'by_group_and_name' },
   notes: { scope: 'group', index: 'by_group' },
   calendars: { scope: 'group', index: 'by_group' },

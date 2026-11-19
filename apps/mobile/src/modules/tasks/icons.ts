@@ -20,6 +20,7 @@ import House from 'lucide-react-native/icons/house'
 import Link from 'lucide-react-native/icons/link'
 import List from 'lucide-react-native/icons/list'
 import Luggage from 'lucide-react-native/icons/luggage'
+import Repeat from 'lucide-react-native/icons/repeat'
 import RotateCcw from 'lucide-react-native/icons/rotate-ccw'
 import ShoppingCart from 'lucide-react-native/icons/shopping-cart'
 import Sparkles from 'lucide-react-native/icons/sparkles'
@@ -36,6 +37,8 @@ export const TASK_ICONS = {
   /** A list that lives in Notion or Todoist rather than in Gather. */
   Link: glyph(Link, 'link'),
   Price: glyph(Banknote, 'banknote'),
+  /** A task that comes back once done (APP-303). */
+  Repeat: glyph(Repeat, 'repeat'),
   Reset: glyph(RotateCcw, 'arrow.counterclockwise'),
   Tag: glyph(Tag, 'tag'),
   Trash2: glyph(Trash2, 'trash'),

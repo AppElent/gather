@@ -579,6 +579,61 @@ describe('Gather MCP endpoint', () => {
     })
   })
 
+  it('creates, lists and completes a repeating task', async () => {
+    const rule = { mode: 'fixed', unit: 'week', every: 1, weekdays: [6] }
+    const backend = fakeBackend({
+      'tasks:add': () => 'task_1',
+      'tasks:listByList': () => [
+        {
+          _id: 'task_1',
+          title: 'Kliko',
+          done: false,
+          dueDate: '2026-11-21',
+          repeat: rule,
+          labels: [],
+        },
+      ],
+      'tasks:update': () => ({
+        completionId: 'completion_1',
+        dueDate: '2026-11-28',
+      }),
+    })
+    await callTool(backend, 'create_task', {
+      groupId: 'group_home',
+      listId: 'list_1',
+      idempotencyKey: KEY,
+      title: 'Kliko',
+      repeat: rule,
+    })
+    expect(backend.calls.at(-1)?.args).toMatchObject({ repeat: rule })
+
+    const listed = await callTool(backend, 'list_tasks', {
+      groupId: 'group_home',
+      listId: 'list_1',
+    })
+    expect(listed.structuredContent).toMatchObject({
+      tasks: [{ id: 'task_1', repeat: rule }],
+    })
+
+    const done = await callTool(backend, 'update_task', {
+      groupId: 'group_home',
+      taskId: 'task_1',
+      done: true,
+      occurrence: '2026-11-21',
+    })
+    expect(backend.calls.at(-1)?.args).toEqual({
+      groupSlug: 'home',
+      taskId: 'task_1',
+      done: true,
+      occurrence: '2026-11-21',
+    })
+    expect(done.structuredContent).toEqual({
+      taskId: 'task_1',
+      updated: true,
+      nextDueDate: '2026-11-28',
+    })
+  })
+
   it('serves the three views as MCP Apps resources', async () => {
     const listed = await result<{
       tools: { name: string; _meta?: { ui?: { resourceUri?: string } } }[]

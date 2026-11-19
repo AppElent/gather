@@ -51,6 +51,7 @@ import {
   taskListKindValidator,
   taskPriorityValidator,
   taskProviderValidator,
+  taskRepeatValidator,
 } from './lib/taskFields'
 import {
   tastingAttributesValidator,
@@ -205,10 +206,36 @@ export default defineSchema({
      */
     quantity: v.optional(v.number()),
     unit: v.optional(groceryUnitValidator),
+    /**
+     * How the task comes back once completed (APP-303). Absent on a task that
+     * does not repeat, which is every task from before repeats. A repeating
+     * task stays open: completing it moves `dueDate` on and writes a
+     * `taskCompletions` row.
+     */
+    repeat: v.optional(taskRepeatValidator),
   })
     .index('by_list', ['listId'])
     // The end of a list without reading all of it (APP-368).
     .index('by_list_and_order', ['listId', 'order']),
+
+  /**
+   * One completion of a repeating task (APP-303): who, when, and the due
+   * date it moved from and to, so the completion can be undone right after.
+   * Carries the task's Group so the Group's deletion and export reach it
+   * without walking its lists; deleted with its task.
+   */
+  taskCompletions: defineTable({
+    groupId: v.id('groups'),
+    taskId: v.id('tasks'),
+    completedBy: v.id('users'),
+    completedAt: v.number(),
+    /** The completer's calendar day, `YYYY-MM-DD`. */
+    completedOn: v.string(),
+    previousDueDate: v.optional(v.string()),
+    nextDueDate: v.string(),
+  })
+    .index('by_task', ['taskId'])
+    .index('by_group', ['groupId']),
 
   /**
    * A Group's own aisle for a grocery name: written when a Member moves an

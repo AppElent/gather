@@ -3,6 +3,11 @@ import {
   GROCERY_QUANTITY_MAX,
   GROCERY_UNITS,
 } from '@gather/core/groceries'
+import {
+  REPEAT_EVERY_MAX,
+  REPEAT_MODES,
+  REPEAT_UNITS,
+} from '@gather/core/task-repeat'
 import { z } from 'zod'
 import { api } from '../../../../convex/_generated/api'
 import { asId, defineTool, groupSlug, publicDoc } from './define'
@@ -31,6 +36,53 @@ const category = z
   .enum(GROCERY_AISLES)
   .describe(
     'The supermarket aisle of a grocery item. Gather sets it from the name; setting it moves the item and is remembered for the Group.',
+  )
+
+// How a task repeats (APP-303). Gather fills weekdays, monthDay and month
+// from the due date when they are left out.
+const repeat = z
+  .object({
+    mode: z
+      .enum(REPEAT_MODES)
+      .describe(
+        'fixed: on a schedule (bins every Tuesday). afterDone: a set time after it was last done (descale 3 months after).',
+      ),
+    unit: z
+      .enum(REPEAT_UNITS)
+      .describe('day, week, month or year. afterDone takes day, week or month.'),
+    every: z
+      .number()
+      .int()
+      .min(1)
+      .max(REPEAT_EVERY_MAX)
+      .describe('Every N units: 2 with week is every other week.'),
+    weekdays: z
+      .array(z.number().int().min(1).max(7))
+      .min(1)
+      .max(7)
+      .optional()
+      .describe(
+        'fixed weekly only: the days, 1 Monday to 7 Sunday. Defaults to the weekday of the due date.',
+      ),
+    monthDay: z
+      .number()
+      .int()
+      .min(1)
+      .max(31)
+      .optional()
+      .describe(
+        'fixed monthly or yearly: the day of the month. Months without it use their last day. Defaults to the due date.',
+      ),
+    month: z
+      .number()
+      .int()
+      .min(1)
+      .max(12)
+      .optional()
+      .describe('fixed yearly: the month, 1 to 12. Defaults to the due date.'),
+  })
+  .describe(
+    'How the task repeats. A repeating task has one open occurrence: marking it done moves dueDate to the next one and keeps it open.',
   )
 
 export const taskTools = [
@@ -90,6 +142,7 @@ export const taskTools = [
               quantity: t.quantity,
               unit: t.unit,
               category: t.category,
+              repeat: t.repeat,
             }),
           ),
       }
@@ -115,7 +168,7 @@ export const taskTools = [
     name: 'create_task',
     title: 'Create task',
     description:
-      'Add a task to the end of a task list. The list must be writable (see list_task_lists). On a grocery list, put the amount in quantity and unit and only the product in title: "2 pakken melk" is title "melk", quantity 2, unit "pak". The aisle is set from the name.',
+      'Add a task to the end of a task list. The list must be writable (see list_task_lists). On a grocery list, put the amount in quantity and unit and only the product in title: "2 pakken melk" is title "melk", quantity 2, unit "pak". The aisle is set from the name. A task with repeat on a fixed schedule and no dueDate starts on its first scheduled day.',
     access: 'write',
     input: {
       groupId,
@@ -127,6 +180,7 @@ export const taskTools = [
       labels: labels.optional(),
       quantity: quantity.optional(),
       unit: unit.optional(),
+      repeat: repeat.optional(),
     },
     async run({ groupId, listId, ...input }, context) {
       const id = await context.backend.mutation(api.tasks.add, {
@@ -141,7 +195,7 @@ export const taskTools = [
     name: 'update_task',
     title: 'Update task',
     description:
-      'Change a task, or mark it done or open again. Only the fields you pass change; dueDate, priority, labels, notes, quantity or unit set to null are cleared. quantity, unit and category apply to grocery lists only and are ignored on other lists.',
+      'Change a task, or mark it done or open again. Only the fields you pass change; dueDate, priority, labels, notes, quantity, unit or repeat set to null are cleared. quantity, unit and category apply to grocery lists only and are ignored on other lists. On a repeating task, done true completes the open occurrence: dueDate moves to the next one and the task stays open. Pass occurrence, the dueDate you read, so a retry does not complete it twice.',
     access: 'write',
     annotations: { idempotentHint: true },
     input: {
@@ -156,14 +210,23 @@ export const taskTools = [
       quantity: quantity.nullable().optional(),
       unit: unit.nullable().optional(),
       category: category.optional(),
+      repeat: repeat.nullable().optional(),
+      occurrence: day
+        .nullable()
+        .optional()
+        .describe(
+          'With done true on a repeating task: its dueDate as you read it (null if it had none). When the task has moved on since, nothing is completed again.',
+        ),
     },
     async run({ groupId, taskId, ...changes }, context) {
-      await context.backend.mutation(api.tasks.update, {
+      const completed = await context.backend.mutation(api.tasks.update, {
         groupSlug: await groupSlug(context, groupId),
         taskId: asId<'tasks'>(taskId),
         ...changes,
       })
-      return { taskId, updated: true }
+      return completed
+        ? { taskId, updated: true, nextDueDate: completed.dueDate }
+        : { taskId, updated: true }
     },
   }),
 ]

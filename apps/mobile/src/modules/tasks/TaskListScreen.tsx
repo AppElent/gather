@@ -13,12 +13,14 @@
  *   the only kind Convex is not keeping live (ADR-0021). One Gather cannot
  *   write to also says so and hides its composer.
  */
+
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
 import {
   hasLinkAndPrice,
   keepsCheckedInPlace,
   taskUrlHost,
 } from '@gather/core/task-lists'
+import { describeRepeat } from '@gather/core/task-repeat'
 import { Stack, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native'
@@ -484,11 +486,17 @@ function TaskMeta({
     : grocery && task.category
       ? [t.tasks.grocery.aisles[task.category]]
       : []
+  // A repeat is shown whatever the list's settings: it changes what ticking
+  // the row does, so it is not an optional detail (APP-303).
+  const repeat = task.repeat
+    ? describeRepeat(task.repeat, t.tasks.repeat.summary, locale)
+    : task.repeatText
   const shown =
     buy.length > 0 ||
     (display.due && task.dueDate) ||
     (display.priority && task.priority) ||
-    (display.labels && task.labels.length > 0)
+    (display.labels && task.labels.length > 0) ||
+    repeat
   if (!shown) return null
 
   const overdue = Boolean(task.dueDate && isOverdue(task.dueDate, today))
@@ -521,6 +529,18 @@ function TaskMeta({
               tomorrow: t.tasks.task.tomorrow,
             })}
           </Text>
+        </View>
+      ) : null}
+      {repeat ? (
+        <View testID={`repeat-${task.id}`} style={styles.metaItem}>
+          <TASK_ICONS.Repeat
+            size={12}
+            color={tokens.muted}
+            strokeWidth={2.2}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+          <Text style={[styles.meta, { color: tokens.muted }]}>{repeat}</Text>
         </View>
       ) : null}
       {display.priority && task.priority ? (

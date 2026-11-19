@@ -35,6 +35,7 @@ import type { MutationCtx } from '../_generated/server'
 import type { GroupScopedTable } from './groupAccess'
 import { dropRecipeShares, setSharedGroups } from './recipeShares'
 import { storedFileIdsOf } from './storedFiles'
+import { purgeCompletionsOfTask } from './taskRepeat'
 
 /** Delete these rows, handing back the stored files they were holding. */
 async function purge<T extends TableNames>(
@@ -50,19 +51,20 @@ async function purge<T extends TableNames>(
   return files
 }
 
-/** Delete a list's tasks: the only way to find them is through the list. */
+/**
+ * Delete a list's tasks, and each one's completion history (APP-303): the
+ * only way to find them is through the list.
+ */
 export async function purgeTasksOfList(
   ctx: MutationCtx,
   listId: Id<'taskLists'>,
 ) {
-  await purge(
-    ctx,
-    'tasks',
-    await ctx.db
-      .query('tasks')
-      .withIndex('by_list', (q) => q.eq('listId', listId))
-      .collect(),
-  )
+  const tasks = await ctx.db
+    .query('tasks')
+    .withIndex('by_list', (q) => q.eq('listId', listId))
+    .collect()
+  for (const task of tasks) await purgeCompletionsOfTask(ctx, task._id)
+  await purge(ctx, 'tasks', tasks)
 }
 
 /**
@@ -175,6 +177,17 @@ const GROUP_CONTENT: {
       await ctx.db
         .query('groceryAiGroupUsage')
         .withIndex('by_group_and_day', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  // Also deleted with each task; this catches any whose task went first.
+  taskCompletions: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'taskCompletions',
+      await ctx.db
+        .query('taskCompletions')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
         .collect(),
     ),
 

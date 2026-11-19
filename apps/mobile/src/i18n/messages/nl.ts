@@ -691,6 +691,7 @@ export const nl = {
     colors: coreNl.tasks.colors,
     starters: coreNl.tasks.starters,
     packing: coreNl.tasks.packing,
+    repeat: coreNl.tasks.repeat,
     wishlist: coreNl.tasks.wishlist,
     grocery: coreNl.tasks.grocery,
     title: 'Taken',

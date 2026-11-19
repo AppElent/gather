@@ -932,6 +932,7 @@ export const en = {
     colors: coreEn.tasks.colors,
     starters: coreEn.tasks.starters,
     packing: coreEn.tasks.packing,
+    repeat: coreEn.tasks.repeat,
     wishlist: coreEn.tasks.wishlist,
     grocery: coreEn.tasks.grocery,
     title: 'Tasks',

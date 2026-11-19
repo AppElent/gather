@@ -561,6 +561,7 @@ const USER_REFERENCES: {
   scheduledNotifications: { userId: 'repoint' },
   recipes: { createdByUserId: 'repoint' },
   tasks: { createdBy: 'repoint' },
+  taskCompletions: { completedBy: 'repoint' },
   groceryCategoryOverrides: { updatedBy: 'repoint' },
   notes: { createdBy: 'repoint', updatedBy: 'repoint' },
   mealEntries: { createdBy: 'repoint' },
