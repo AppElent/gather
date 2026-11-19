@@ -400,7 +400,7 @@ export function useTaskActions() {
   const setAppearance = useMutation(api.taskLists.setAppearance)
   const setDoneInList = useMutation(api.tasks.setDoneInList)
   const undoCompletion = useMutation(api.tasks.undoCompletion)
-  const clearChecked = useMutation(api.taskLists.clearChecked)
+  const clearChecked = useMutation(api.taskLists.clearCheckedUndoable)
   const restoreCheckedCleared = useMutation(api.taskLists.restoreCheckedCleared)
   const putBack = useMutation(api.tasks.putBack)
   const setSuggestions = useMutation(api.taskLists.setSuggestions)
@@ -567,15 +567,20 @@ export function useTaskActions() {
     setAisle: (id: string, category: GroceryAisle) => patch(id, { category }),
     /**
      * "Clear checked" on a grocery list (APP-310). Answers the moment it
-     * replaced, which is what `restoreCheckedCleared` puts back on undo.
+     * cleared and the one it replaced; the undo passes both back, so it puts
+     * back only this clear, never one another Member made since (APP-403).
      */
     clearChecked: (listId: string) =>
       clearChecked({ listId: listId as Id<'taskLists'>, groupSlug }),
-    restoreCheckedCleared: (listId: string, checkedClearedAt: number | null) =>
+    restoreCheckedCleared: (
+      listId: string,
+      cleared: { clearedAt: number; previous: number | null },
+    ) =>
       restoreCheckedCleared({
         listId: listId as Id<'taskLists'>,
         groupSlug,
-        checkedClearedAt,
+        checkedClearedAt: cleared.previous,
+        clearedAt: cleared.clearedAt,
       }),
     /** A Recent item back onto a grocery list, with its amount and aisle. */
     putBack: (taskId: string, listId: string) =>

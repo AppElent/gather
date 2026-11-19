@@ -173,6 +173,8 @@ export const tasks = {
       onListAmount: 'staat al op de lijst ({amount})',
       pick: 'Zet {name} erbij',
     },
+    undoSuperseded:
+      'De lijst is sindsdien opnieuw gewist. Er is niets ongedaan gemaakt.',
     recent: {
       title: 'Recent',
       count: { one: '{count} item', other: '{count} items' },

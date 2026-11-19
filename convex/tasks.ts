@@ -8,6 +8,7 @@ import {
   isGroceryQuantity,
   roundGroceryQuantity,
 } from '@gather/core/groceries'
+import { taskRefusal } from '@gather/core/refusals'
 import { normalizeTaskUrl } from '@gather/core/task-lists'
 import { clockMoment } from '@gather/core/task-reminders'
 import { reanchorRepeat, type TaskRepeat } from '@gather/core/task-repeat'
@@ -19,9 +20,11 @@ import {
   askAiOnce,
   groceryTitleKey,
   isGroceryList,
+  openItemNamed,
   recentListItems,
   recogniseGroceryTitle,
   recordGroceryCorrection,
+  requireWritableGroceryList,
 } from './lib/groceryCategories'
 import {
   groceryAisleValidator,
@@ -1085,10 +1088,15 @@ export const groceryHabits = query({
 /**
  * A checked grocery item back onto a grocery list from Recent (APP-310), with
  * its amount, unit and aisle. A copy is added and the checked item stays as
- * it was, so the Group's history keeps that purchase (APP-311 reads it). When
- * an open item of the same name is already on the list, nothing is added and
- * that item is the answer: a second tap, or a second Member, never makes a
- * duplicate.
+ * it was, so the Group's history keeps that purchase (APP-311 reads it), on
+ * its own list too. When an open item of the same name is already on the
+ * list, however old, nothing is added and that item is the answer: a second
+ * tap, or a second Member, never makes a duplicate (APP-403).
+ *
+ * Both lists must be grocery lists of the Group that Gather can write to.
+ * Refusals are keyed (`@gather/core/refusals`, `tasks:*`); installed phones
+ * only play the failure haptic on any error, so the keys change nothing they
+ * show.
  */
 export const putBack = mutation({
   args: {
@@ -1098,23 +1106,17 @@ export const putBack = mutation({
   },
   returns: v.id('tasks'),
   handler: async (ctx, args) => {
-    const { task, group, user } = await requireEditableTaskInGroup(
-      ctx,
-      args.groupSlug,
-      args.taskId,
-    )
-    const { doc: list } = await requireLocalList(
-      ctx,
-      args.groupSlug,
-      args.listId,
-    )
-    if (!isGroceryList(group, list)) {
-      throw new ConvexError('That is not a grocery list')
-    }
-    const key = groceryTitleKey(task.title)
-    const open = (await recentListItems(ctx, args.listId)).find(
-      (row) => !row.done && groceryTitleKey(row.title) === key,
-    )
+    const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
+    const task = await ctx.db.get(args.taskId)
+    const source = task ? await ctx.db.get(task.listId) : null
+    if (!task || !source || source.groupId !== group._id)
+      throw new ConvexError(taskRefusal('not-found'))
+    requireWritableGroceryList(group, source)
+    const list = await ctx.db.get(args.listId)
+    if (!list || list.groupId !== group._id)
+      throw new ConvexError(taskRefusal('not-found'))
+    requireWritableGroceryList(group, list)
+    const open = await openItemNamed(ctx, args.listId, task.title)
     if (open) return open._id
     const order = await endOfList(ctx, args.listId)
     return await ctx.db.insert('tasks', {
