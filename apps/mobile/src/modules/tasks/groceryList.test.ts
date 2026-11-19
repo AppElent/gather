@@ -4,6 +4,7 @@ import {
   aisleOf,
   aisleSections,
   inCheckedSection,
+  putBackAllIds,
   recentDays,
   recentWeeks,
 } from './groceryList'
@@ -65,5 +66,19 @@ describe('Recent in days', () => {
     expect(recentWeeks([], now)).toBe(1)
     expect(recentWeeks([{ doneAt: now - 3 * 86_400_000 }], now)).toBe(1)
     expect(recentWeeks([{ doneAt: now - 10 * 86_400_000 }], now)).toBe(2)
+  })
+})
+
+describe('put back all', () => {
+  test('one per name, and none already open on the list', () => {
+    const tasks = [
+      { id: 'melk-open', title: '2 pak melk', done: false },
+      { id: 'melk-checked', title: 'Melk', done: true },
+      { id: 'brood-1', title: 'brood', done: true },
+      { id: 'brood-2', title: 'Brood', done: true },
+      { id: 'kaas', title: 'kaas', done: true },
+    ]
+    const checked = tasks.filter((task) => task.done)
+    expect(putBackAllIds(tasks, checked)).toEqual(['brood-1', 'kaas'])
   })
 })

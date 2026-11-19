@@ -24,7 +24,7 @@ import { CompletedSection } from '../../ui/completed-section'
 import { InsetList } from '../../ui/inset-list'
 import { moduleHref } from '../moduleDestination'
 import { SuggestionStrip } from './GrocerySuggestions'
-import { aisleSections, inCheckedSection } from './groceryList'
+import { aisleSections, inCheckedSection, putBackAllIds } from './groceryList'
 import { useTaskActions } from './store'
 import type { Task, TaskList } from './types'
 import { useLingering } from './useLingering'
@@ -67,7 +67,7 @@ export function GroceryListBody({
   const sections = aisleSections(open)
 
   const putBackAll = () => {
-    const ids = checked.map((task) => task.id)
+    const ids = putBackAllIds(tasks, checked)
     setBusy(true)
     actions
       .setDoneInList(list.id, false, ids)

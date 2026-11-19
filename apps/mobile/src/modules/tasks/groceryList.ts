@@ -7,7 +7,9 @@ import { localIsoDate } from '@gather/core/civil-date'
 import {
   GROCERY_AISLES,
   type GroceryAisle,
+  groceryKey,
   isGroceryAisle,
+  parseGroceryLine,
 } from '@gather/core/groceries'
 
 /** The aisle an item is shown under: its own, or Other when it has none. */
@@ -74,4 +76,28 @@ export function inCheckedSection(
 ): boolean {
   if (!task.done) return false
   return checkedClearedAt === null || (task.doneAt ?? 0) > checkedClearedAt
+}
+
+/**
+ * The checked items "Put back all" unchecks: one per name, and none whose name
+ * is already open on the list. A single put-back from Recent adds a copy and
+ * leaves the checked item as history (APP-311), so without this the name
+ * would be on the list twice.
+ */
+export function putBackAllIds(
+  tasks: readonly { id: string; title: string; done: boolean }[],
+  checked: readonly { id: string; title: string }[],
+): string[] {
+  const keyOf = (title: string) => groceryKey(parseGroceryLine(title).name)
+  const taken = new Set(
+    tasks.filter((task) => !task.done).map((task) => keyOf(task.title)),
+  )
+  const ids: string[] = []
+  for (const task of checked) {
+    const key = keyOf(task.title)
+    if (taken.has(key)) continue
+    taken.add(key)
+    ids.push(task.id)
+  }
+  return ids
 }
