@@ -931,6 +931,7 @@ export const en = {
     icons: coreEn.tasks.icons,
     colors: coreEn.tasks.colors,
     starters: coreEn.tasks.starters,
+    starterSections: coreEn.tasks.starterSections,
     packing: coreEn.tasks.packing,
     wishlist: coreEn.tasks.wishlist,
     grocery: coreEn.tasks.grocery,
@@ -995,6 +996,27 @@ export const en = {
       /** The alert before a delete, which is permanent in Gather today. */
       deleteTitle: 'Delete “{title}”?',
       deleteBody: 'This cannot be undone.',
+    },
+
+    /** A list's sections (APP-357): the ⋯ menu's Sections sheet and the hold menu. */
+    sections: {
+      title: 'Sections',
+      /** The heading over tasks in no section, on a list that has sections. */
+      none: 'No section',
+      add: 'Add section',
+      newPlaceholder: 'New section',
+      empty: 'Nothing in this section yet.',
+      moveToSection: 'Move to section…',
+      rename: 'Rename',
+      moveUp: 'Move up',
+      moveDown: 'Move down',
+      delete: 'Delete section',
+      /** The ellipsis on a row of the Sections sheet. */
+      options: 'Options for {name}',
+      deleteTitle: 'Delete the section “{name}”?',
+      deleteBody: 'Its tasks stay on the list, under No section.',
+      hint: 'Move a task between sections with Reorder, or with Move to section in its hold menu.',
+      sheetEmpty: 'No sections yet. A section groups tasks, like Kitchen or Clothes.',
     },
 
     task: {

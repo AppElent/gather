@@ -14,7 +14,9 @@
  *
  * The arithmetic is `arrange/arrange.ts`. Rows wrap their title under Dynamic
  * Type, so each row is measured as it lays out and the drop arithmetic walks
- * those heights rather than dividing by one. There is no drag-and-drop
+ * those heights rather than dividing by one. On a list with sections each
+ * section's heading is a fixed row in the same column, and a task dragged
+ * past one moves into that section (`sectionArrange.ts`, APP-357). There is no drag-and-drop
  * dependency: a list that does not auto-scroll is short, and the library is
  * five hundred kilobytes and a native rebuild.
  *
@@ -28,6 +30,7 @@
  * than to the row, which is what leaves the rest of the row free to scroll a
  * list too long to see — the same division iOS's own reordering uses.
  */
+import type { TaskSection } from '@gather/core/task-lists'
 import { useMemo, useRef, useState } from 'react'
 import { Animated, StyleSheet, Text, View } from 'react-native'
 import {
@@ -42,6 +45,12 @@ import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
 import { priorityColor } from './components'
+import {
+  arrangementOf,
+  committed,
+  firstDropIndex,
+  headingSection,
+} from './sectionArrange'
 import { dueLabel } from './taskDates'
 import type { ListDisplay, Task } from './types'
 
@@ -54,6 +63,7 @@ interface DragHandlers {
 
 export function ReorderMode({
   tasks,
+  sections = [],
   display,
   today,
   scrollRef,
@@ -62,6 +72,8 @@ export function ReorderMode({
 }: {
   /** Active tasks only, in their current order. */
   tasks: Task[]
+  /** The list's sections; a task dragged under a heading joins it. */
+  sections?: readonly TaskSection[]
   display: ListDisplay
   today: string
   /**
@@ -71,16 +83,23 @@ export function ReorderMode({
   scrollRef: React.RefObject<GestureScrollView | null>
   /** Belt to the gesture's braces: the list stops scrolling mid-drag. */
   onDragging: (dragging: boolean) => void
-  onCommit: (ids: string[]) => void
+  /** The task ids in order and, on a list with sections, each one's section. */
+  onCommit: (ids: string[], sectionIds?: (string | null)[]) => void
 }) {
   const tokens = useTokens('home')
   const { t, locale } = useI18n()
 
   // The arrangement while the mode is open. Committed on every drop rather
   // than on Done, so leaving by the back gesture cannot lose the work.
-  const [order, setOrder] = useState(() => tasks.map((task) => task.id))
+  const [order, setOrder] = useState(() => arrangementOf(sections, tasks))
+  const sectioned = sections.length > 0
   const byId = new Map(tasks.map((task) => [task.id, task]))
-  const rows = order.map((id) => byId.get(id)).filter(Boolean) as Task[]
+  const names = new Map(sections.map((section) => [section.id, section.name]))
+  // A heading row, or a task still on the list: a task deleted elsewhere
+  // while the mode is open drops out.
+  const rows = order.filter(
+    (key) => headingSection(key) !== undefined || byId.has(key),
+  )
 
   const [drag, setDrag] = useState<{ from: number; to: number } | null>(null)
   const lift = useRef(new Animated.Value(0)).current
@@ -112,10 +131,11 @@ export function ReorderMode({
       lift.setValue(dy)
       const current = live.current.drag
       if (!current) return
-      const to = dropIndexAcross(
-        live.current.order.map(heightOf),
-        current.from,
-        dy,
+      // Nothing lands above the first heading: every task is in a section
+      // or under "No section".
+      const to = Math.max(
+        firstDropIndex(live.current.order),
+        dropIndexAcross(live.current.order.map(heightOf), current.from, dy),
       )
       if (to !== current.to) {
         setDrag({ from: current.from, to })
@@ -131,7 +151,8 @@ export function ReorderMode({
       if (current && current.from !== current.to) {
         const next = movedTo(live.current.order, current.from, current.to)
         setOrder(next)
-        onCommit(next)
+        const { ids, sectionIds } = committed(next)
+        onCommit(ids, sectionIds)
         haptics.itemSaved()
       }
       lift.setValue(0)
@@ -156,12 +177,44 @@ export function ReorderMode({
 
       {/* Not clipped: a card that hides its overflow cuts the lifted row in
           half the moment it passes the first or last row. */}
-      <Card style={styles.dragCard}>
-        {rows.map((task, index) => {
-          const dragging = drag?.from === index
+      <Column sectioned={sectioned}>
+        {rows.map((key, index) => {
           const shift = drag
-            ? shiftFor(index, drag.from, drag.to, heightOf(rows[drag.from]?.id))
+            ? shiftFor(index, drag.from, drag.to, heightOf(rows[drag.from]))
             : 0
+          const heading = headingSection(key)
+          if (heading !== undefined) {
+            return (
+              <Animated.View
+                key={key}
+                testID={`reorder-heading-${heading ?? 'none'}`}
+                accessibilityRole="header"
+                onLayout={(event) => {
+                  heights.current.set(key, event.nativeEvent.layout.height)
+                }}
+                style={[
+                  styles.heading,
+                  index === 0 && styles.firstHeading,
+                  { transform: [{ translateY: shift }] },
+                ]}
+              >
+                <Text style={[styles.headingText, { color: tokens.muted }]}>
+                  {heading === null
+                    ? t.tasks.sections.none
+                    : (names.get(heading) ?? '')}
+                </Text>
+              </Animated.View>
+            )
+          }
+          const task = byId.get(key) as Task
+          const dragging = drag?.from === index
+          // On a sectioned list each section is its own inset card: the first
+          // and last task under a heading carry its corners.
+          const firstInSection =
+            index === 0 || headingSection(rows[index - 1]) !== undefined
+          const lastInSection =
+            index === rows.length - 1 ||
+            headingSection(rows[index + 1]) !== undefined
           const meta = [
             display.due && task.dueDate
               ? dueLabel(task.dueDate, today, locale, {
@@ -189,10 +242,17 @@ export function ReorderMode({
               }}
               style={[
                 styles.row,
+                sectioned && [
+                  styles.sectionRow,
+                  { backgroundColor: tokens.surface },
+                  firstInSection && styles.sectionTop,
+                  lastInSection && styles.sectionBottom,
+                ],
                 {
                   borderBottomColor: tokens.hair,
-                  borderBottomWidth:
-                    index === rows.length - 1 ? 0 : StyleSheet.hairlineWidth,
+                  borderBottomWidth: lastInSection
+                    ? 0
+                    : StyleSheet.hairlineWidth,
                 },
                 dragging
                   ? {
@@ -235,13 +295,29 @@ export function ReorderMode({
             </Animated.View>
           )
         })}
-      </Card>
+      </Column>
 
       <Text style={[styles.note, { color: tokens.muted }]}>
         {t.tasks.list.reorderCompleted}
       </Text>
     </View>
   )
+}
+
+/**
+ * The draggable column: one `Card` for a list without sections; on a list
+ * with them, bare, because each section's rows draw their own card and the
+ * headings sit on the list's `ground` between them.
+ */
+function Column({
+  sectioned,
+  children,
+}: {
+  sectioned: boolean
+  children: React.ReactNode
+}) {
+  if (sectioned) return <View>{children}</View>
+  return <Card style={styles.dragCard}>{children}</Card>
 }
 
 /**
@@ -306,6 +382,27 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.card,
   },
   hintText: { ...TYPE.footnote, flex: 1 },
+  /**
+   * A section's heading in the draggable column, set as `SectionLabel` is:
+   * the rows of every section still share one coordinate space, which is
+   * what lets a task be dragged from one section into the next.
+   */
+  heading: {
+    paddingHorizontal: 4,
+    paddingTop: SPACE[4],
+    paddingBottom: SPACE[2],
+  },
+  firstHeading: { paddingTop: 0 },
+  headingText: { ...TYPE.footnoteStrong },
+  sectionRow: { marginHorizontal: 0, borderCurve: 'continuous' },
+  sectionTop: {
+    borderTopLeftRadius: RADIUS.card,
+    borderTopRightRadius: RADIUS.card,
+  },
+  sectionBottom: {
+    borderBottomLeftRadius: RADIUS.card,
+    borderBottomRightRadius: RADIUS.card,
+  },
   row: {
     minHeight: SIZE.rowMin,
     paddingVertical: SPACE[2],
