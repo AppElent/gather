@@ -42,6 +42,12 @@ export interface TaskList {
    */
   grocery: boolean
   /**
+   * When a Member last chose "Clear checked" (APP-310): items checked before
+   * it are only in Recent. Null until the first clear, and from an older
+   * server.
+   */
+  checkedClearedAt: number | null
+  /**
    * Its sections in order (APP-357). Empty for a list without any, for a
    * linked list, and from a server older than sections.
    */
@@ -64,6 +70,8 @@ export interface Task {
   quantity?: number
   unit?: GroceryUnit
   category?: GroceryAisle
+  /** When it was checked (APP-310); absent when open or checked before. */
+  doneAt?: number
   /** The Member responsible (APP-302); absent is nobody. */
   assigneeId?: string
   /** Set while the assignee has not opened a task someone else gave them. */
