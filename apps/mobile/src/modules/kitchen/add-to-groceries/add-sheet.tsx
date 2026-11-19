@@ -50,6 +50,7 @@ import { Button } from '../../../ui/button'
 import { ModuleTile } from '../../../ui/module-tile'
 import { SectionLabel } from '../../../ui/section-label'
 import { useTaskList, useTaskLists } from '../../tasks/store'
+import { useInStock } from '../in-stock/use-in-stock'
 import {
   editedRead,
   type LineRead,
@@ -113,6 +114,8 @@ export function AddToGroceriesSheet({
     .find((id) => id && lists.some((list) => list._id === id))
   const list = lists.find((candidate) => candidate._id === listId)
   const { tasks } = useTaskList(listId ?? '')
+  // In stock starts unticked (APP-314); the week menu's sheet shares this.
+  const inStock = useInStock(group.slug)
 
   const [ticks, setTicks] = useState<Record<string, boolean>>({})
   const [edits, setEdits] = useState<Record<string, LineRead>>({})
@@ -128,6 +131,7 @@ export function AddToGroceriesSheet({
     servings: servings?.value,
     items: tasks,
     ticks,
+    inStock,
   })
   const count = pick.lines.length
 

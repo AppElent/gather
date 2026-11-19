@@ -309,12 +309,36 @@ export default defineSchema({
     .index('by_group', ['groupId'])
     .index('by_group_date', ['groupId', 'date']),
 
+  // The Pantry before it folded into Groceries as In stock (APP-314). Kept,
+  // unread by current phones, while installed apps still call `kitchen.*`
+  // pantry functions; `maintenance:migratePantryToStaples` copies it into
+  // `groceryStaples`. Dropped in the contract step after the next OTA.
   pantryEntries: defineTable({
     groupId: v.id('groups'),
     title: v.string(),
     quantity: v.optional(v.string()),
     createdBy: v.id('users'),
   }).index('by_group', ['groupId']),
+
+  /**
+   * What a household always wants in the house (APP-314, Groceries "In
+   * stock"): each staple is in stock or running low. Running low puts it on
+   * the Group's grocery list; checking it off there puts it back in stock.
+   * `key` is the `groceryTitleKey` of `name`, so "Melk" and "2 pak melk" are
+   * one staple; at most one row per Group and key.
+   */
+  groceryStaples: defineTable({
+    groupId: v.id('groups'),
+    name: v.string(),
+    key: v.string(),
+    aisle: groceryAisleValidator,
+    low: v.boolean(),
+    /** A pantry entry's free quantity ("2 pakken"), kept from the migration. */
+    note: v.optional(v.string()),
+    createdBy: v.id('users'),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_group_and_key', ['groupId', 'key']),
 
   calendars: defineTable({
     groupId: v.id('groups'),

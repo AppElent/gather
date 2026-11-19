@@ -222,8 +222,6 @@ export const DROP_TARGETS = {
   // ordinary way, once it is a recipe.
   'meal-planner': [],
   groceries: GROCERIES,
-  // The pantry is a count of what is in the house. A link is not stock.
-  pantry: [],
   // Money is shared and entered by hand on purpose (ADR-0025).
   'recurring-costs': [],
   'shared-costs': [],

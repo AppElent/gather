@@ -2,6 +2,7 @@ import { declinedEventTypes } from '@gather/core/domain'
 import { SAMPLE_GROUP_NAME } from '@gather/core/groups'
 import type { Doc, Id, TableNames } from '../../_generated/dataModel'
 import type { MutationCtx } from '../../_generated/server'
+import { stapleKey } from '../groceryStaples'
 import { destroyGroup } from '../groupCascade'
 import { allocateGroupSlug } from '../groupSlugs'
 import { getUserByClerkId } from '../sharing'
@@ -514,13 +515,15 @@ export async function applySample(
       }),
     )
   }
-  for (const entry of SAMPLE_KITCHEN.pantry)
+  for (const staple of SAMPLE_KITCHEN.staples)
     rec.track(
-      await ctx.db.insert('pantryEntries', {
+      await ctx.db.insert('groceryStaples', {
         groupId,
-        title: entry.title,
-        quantity: entry.quantity,
-        createdBy: authors[entry.author],
+        name: staple.name,
+        key: stapleKey(staple.name),
+        aisle: staple.aisle,
+        low: false,
+        createdBy: authors[staple.author],
       }),
     )
   for (const fixture of SAMPLE_KITCHEN.calendars) {
@@ -900,7 +903,7 @@ export async function applySample(
     notes: SAMPLE_NOTES.length,
     mealEntries: SAMPLE_KITCHEN.meals.length,
     dinners: SAMPLE_KITCHEN.dinners.length,
-    pantryEntries: SAMPLE_KITCHEN.pantry.length,
+    groceryStaples: SAMPLE_KITCHEN.staples.length,
     calendars: SAMPLE_KITCHEN.calendars.length,
     calendarEvents: SAMPLE_KITCHEN.calendars.reduce(
       (count, calendar) => count + calendar.events.length,
@@ -934,7 +937,7 @@ export async function applySample(
     counts.tasks +
     counts.mealEntries +
     counts.dinners +
-    counts.pantryEntries +
+    counts.groceryStaples +
     counts.calendars +
     counts.calendarEvents +
     counts.notes +

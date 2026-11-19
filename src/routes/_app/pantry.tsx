@@ -1,6 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { ModulePlaceholder } from '../../components/app/ModulePlaceholder'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+// The Pantry folded into Groceries as In stock (APP-314); an old link lands
+// on Groceries.
 export const Route = createFileRoute('/_app/pantry')({
-  component: () => <ModulePlaceholder moduleId="pantry" />,
+  beforeLoad: () => {
+    throw redirect({ to: '/groceries' })
+  },
 })

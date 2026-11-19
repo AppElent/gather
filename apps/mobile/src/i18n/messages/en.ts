@@ -530,12 +530,30 @@ export const en = {
   kitchen: {
     name: 'Name',
     quantity: 'Quantity (optional)',
-    noPantry: 'Nothing in the pantry yet.',
     noGroceryList: 'Choose a task list for groceries.',
     changeList: 'Use another list',
     addGroceryItem: 'Add an item…',
     deleteTitle: 'Delete “{title}”?',
     deleteBody: 'This cannot be undone.',
+    /**
+     * Groceries' In stock (APP-314, designs/groceries section 7): the staples
+     * a household keeps, in stock or running low. It replaced the Pantry.
+     */
+    inStock: {
+      title: 'In stock',
+      running: { one: '{count} running low', other: '{count} running low' },
+      staples: { one: '{count} staple', other: '{count} staples' },
+      sub: 'What you always want in the house',
+      onList: 'On {list}',
+      noList: 'No grocery list yet',
+      inStock: 'In stock',
+      low: 'Running low',
+      toLow: '{name}: in stock, tap for running low',
+      toInStock: '{name}: running low, tap for in stock',
+      add: 'Add a staple',
+      footnote:
+        'Check off a staple on the list and it is back in stock here. Recipe and week menu start in-stock items unticked.',
+    },
   },
 
   /**

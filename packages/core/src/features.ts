@@ -402,16 +402,10 @@ export const FEATURES = defineFeatures([
     kind: 'product',
     status: 'pending-port',
     platforms: ['mobile'],
-    reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-316.`,
-    routes: { mobile: ['(app)/(tabs)/all/groceries/**'] },
-  },
-  {
-    id: 'pantry',
-    kind: 'product',
-    status: 'exclusive',
-    platforms: ['mobile'],
-    reason: `Daily capture is the phone's goal (${ADR}). The web route is a placeholder (planned-web-modules).`,
-    routes: { mobile: ['(app)/(tabs)/all/pantry/**'] },
+    reason: `Ships on the web too (${WEB_PORTS_ADR}); the phone leads. The web route is a placeholder (planned-web-modules) until $APP-316. In stock replaced the Pantry Module (APP-314); its old phone route redirects there.`,
+    routes: {
+      mobile: ['(app)/(tabs)/all/groceries/**', '(app)/(tabs)/all/pantry/**'],
+    },
   },
   {
     id: 'meal-planner',
@@ -451,7 +445,7 @@ export const FEATURES = defineFeatures([
     kind: 'product',
     status: 'exclusive',
     platforms: ['web'],
-    reason: `Placeholders for phone Modules. Calendar, notes, groceries, meal planner and shared costs are replaced by their web ports (${WEB_PORTS_ADR}); pantry, recurring costs and savings goals wait for a decision per Module (APP-83, ${ADR}).`,
+    reason: `Placeholders for phone Modules. Calendar, notes, groceries, meal planner and shared costs are replaced by their web ports (${WEB_PORTS_ADR}); recurring costs and savings goals wait for a decision per Module (APP-83, ${ADR}). The pantry route only redirects to Groceries: the Pantry folded into In stock (APP-314).`,
     routes: {
       web: [
         '_app/calendar',

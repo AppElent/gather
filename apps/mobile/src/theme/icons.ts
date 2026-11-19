@@ -47,6 +47,7 @@ import Eye from 'lucide-react-native/icons/eye'
 import EyeOff from 'lucide-react-native/icons/eye-off'
 import FlaskConical from 'lucide-react-native/icons/flask-conical'
 import GripVertical from 'lucide-react-native/icons/grip-vertical'
+import House from 'lucide-react-native/icons/house'
 import ImagePlus from 'lucide-react-native/icons/image-plus'
 import Info from 'lucide-react-native/icons/info'
 import KeyRound from 'lucide-react-native/icons/key-round'
@@ -59,7 +60,6 @@ import NotebookPen from 'lucide-react-native/icons/notebook-pen'
 import Pencil from 'lucide-react-native/icons/pencil'
 import Pin from 'lucide-react-native/icons/pin'
 import Plus from 'lucide-react-native/icons/plus'
-import Refrigerator from 'lucide-react-native/icons/refrigerator'
 import Repeat from 'lucide-react-native/icons/repeat'
 import Search from 'lucide-react-native/icons/search'
 import Settings from 'lucide-react-native/icons/settings'
@@ -69,6 +69,7 @@ import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal'
 import Smartphone from 'lucide-react-native/icons/smartphone'
 import Target from 'lucide-react-native/icons/target'
 import Trash2 from 'lucide-react-native/icons/trash-2'
+import TriangleAlert from 'lucide-react-native/icons/triangle-alert'
 import User from 'lucide-react-native/icons/user'
 import Users from 'lucide-react-native/icons/users'
 import Wine from 'lucide-react-native/icons/wine'
@@ -99,7 +100,6 @@ export const MODULE_ICONS = {
   Grape: CheeseWedge as Glyph,
   ListChecks: glyph(ListChecks, 'checklist'),
   NotebookPen: glyph(NotebookPen, 'square.and.pencil'),
-  Refrigerator: glyph(Refrigerator, 'refrigerator'),
   Repeat: glyph(Repeat, 'repeat'),
   ShoppingCart: glyph(ShoppingCart, 'cart'),
   Target: glyph(Target, 'target'),
@@ -197,6 +197,10 @@ export const UI_ICONS = {
   Calendar: glyph(Calendar, 'calendar'),
   /** The way to the grocery list from somewhere else. */
   Cart: glyph(ShoppingCart, 'cart'),
+  /** Groceries' In stock: what the house keeps (APP-314). */
+  House: glyph(House, 'house'),
+  /** A staple running low (APP-314). */
+  TriangleAlert: glyph(TriangleAlert, 'exclamationmark.triangle'),
   /** A stepper's take-one-away. */
   Minus: glyph(Minus, 'minus'),
   /** Sending something out of the app through the share sheet. */

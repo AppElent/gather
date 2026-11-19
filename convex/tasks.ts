@@ -21,6 +21,7 @@ import {
   groceryAisleValidator,
   groceryUnitValidator,
 } from './lib/groceryFields'
+import { restockCheckedStaples } from './lib/groceryStaples'
 import {
   findInGroup,
   requireGroupBySlug,
@@ -192,8 +193,14 @@ export const add = mutation({
 export const toggleDone = mutation({
   args: { taskId: v.id('tasks'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    const {
+      task,
+      group,
+      doc: list,
+    } = await requireEditableTaskInGroup(ctx, args.groupSlug, args.taskId)
     await ctx.db.patch(args.taskId, { done: !task.done })
+    // A staple bought is back in stock (APP-314).
+    if (!task.done) await restockCheckedStaples(ctx, group, list, [task])
   },
 })
 
@@ -280,6 +287,10 @@ export const update = mutation({
       ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
     })
     if (askAi) await askAiOnce(ctx, group._id, askAi, taskId)
+    if (done === true && !task.done)
+      await restockCheckedStaples(ctx, group, list, [
+        { title: title ?? task.title },
+      ])
   },
 })
 
@@ -328,7 +339,11 @@ export const setDoneInList = mutation({
   },
   returns: v.array(v.id('tasks')),
   handler: async (ctx, args) => {
-    await requireLocalList(ctx, args.groupSlug, args.listId)
+    const { group, doc: list } = await requireLocalList(
+      ctx,
+      args.groupSlug,
+      args.listId,
+    )
     const rows = await ctx.db
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
@@ -345,6 +360,7 @@ export const setDoneInList = mutation({
     await Promise.all(
       changed.map((task) => ctx.db.patch(task._id, { done: args.done })),
     )
+    if (args.done) await restockCheckedStaples(ctx, group, list, changed)
     return changed.map((task) => task._id)
   },
 })

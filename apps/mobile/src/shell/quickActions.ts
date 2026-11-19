@@ -98,7 +98,6 @@ const ACTIONS_BY_MODULE: Record<ModuleId, readonly QuickActionDef[]> = {
   beers: [{ id: 'beer-tasting', kind: 'compose', tastingKind: 'beer' }],
   'meal-planner': [],
   groceries: [],
-  pantry: [],
   'recurring-costs': [],
   'shared-costs': [],
   'savings-goals': [],

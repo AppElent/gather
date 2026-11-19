@@ -358,12 +358,26 @@ export const nl = {
   kitchen: {
     name: 'Naam',
     quantity: 'Hoeveelheid (optioneel)',
-    noPantry: 'Nog niets in de voorraadkast.',
     noGroceryList: 'Kies een takenlijst voor boodschappen.',
     changeList: 'Andere lijst gebruiken',
     addGroceryItem: 'Item toevoegen…',
     deleteTitle: '“{title}” verwijderen?',
     deleteBody: 'Dit kan niet ongedaan worden gemaakt.',
+    inStock: {
+      title: 'In huis',
+      running: { one: '{count} bijna op', other: '{count} bijna op' },
+      staples: { one: '{count} vaste voorraad', other: '{count} vaste voorraad' },
+      sub: 'Wat jullie altijd in huis willen hebben',
+      onList: 'Staat op {list}',
+      noList: 'Nog geen boodschappenlijst',
+      inStock: 'Op voorraad',
+      low: 'Bijna op',
+      toLow: '{name}: op voorraad, tik voor bijna op',
+      toInStock: '{name}: bijna op, tik voor op voorraad',
+      add: 'Voorraaditem toevoegen',
+      footnote:
+        'Vink je een vast voorraaditem af op de lijst, dan staat het hier weer op voorraad. Recept en weekmenu laten wat op voorraad is uitgevinkt beginnen.',
+    },
   },
 
   mealPlanner: {

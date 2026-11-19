@@ -34,7 +34,6 @@ export const NATIVE_MODULES = [
   'notes',
   'meal-planner',
   'groceries',
-  'pantry',
   'calendar',
   'recurring-costs',
   'shared-costs',
@@ -81,6 +80,7 @@ export type ModulePath =
   | `/all/baby-log${'' | '/new' | '/settings' | '/timeline' | '/trends' | '/lists' | '/entry'}`
   | `/all/recipes${'' | '/recipe' | '/import' | '/new' | '/edit'}`
   | `/all/tasting/${TastingKind}${'' | '/subject' | '/compose'}`
+  | `/all/groceries${'' | '/in-stock'}`
   | `/all/recurring-costs${'' | '/cost'}`
   | `/all/savings-goals${'' | '/goal'}`
   | `/all/loyalty-cards${'' | '/card' | '/new' | '/edit'}`

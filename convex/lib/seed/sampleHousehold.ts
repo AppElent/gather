@@ -632,9 +632,12 @@ export const SAMPLE_KITCHEN = {
     { recipe: 'shakshuka', daysAhead: 0 },
     { meal: 'Penne carbonara', daysAhead: 1, quickLimit: 20 as const },
   ],
-  pantry: [
-    { title: 'Basmati rice', quantity: '1 kg', author: 'owner' as const },
-    { title: 'Tinned tomatoes', quantity: '4 tins', author: 'nora' as const },
+  // In stock (APP-314): what the house always wants, all in stock.
+  staples: [
+    { name: 'Basmati rice', aisle: 'pasta_world' as const, author: 'owner' as const },
+    { name: 'Tinned tomatoes', aisle: 'tins_sauces' as const, author: 'nora' as const },
+    { name: 'Olive oil', aisle: 'tins_sauces' as const, author: 'owner' as const },
+    { name: 'Coffee beans', aisle: 'breakfast' as const, author: 'sam' as const },
   ],
   calendars: [
     {

@@ -72,8 +72,8 @@ export interface PickInput {
   /** Rows ticked or unticked by hand, by key. */
   ticks: Readonly<Record<string, boolean>>
   /**
-   * Whether the house has this in stock (APP-314, the pantry as In huis).
-   * Such a row starts unticked. Until APP-314 lands nothing is in stock.
+   * Whether the house has this in stock (APP-314, Groceries' In stock):
+   * `useInStock`. Such a row starts unticked.
    */
   inStock?: (name: string) => boolean
 }
