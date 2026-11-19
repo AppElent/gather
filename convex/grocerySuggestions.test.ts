@@ -159,6 +159,25 @@ describe('groceryHabits', () => {
     expect(suggestions[0].title).toBe('item j')
   })
 
+  test('counts an item checked before doneAt existed at when it was added', async () => {
+    const s = await seed()
+    await bought(s, s.groceries, 'melk', [12, 8])
+    // Checked before APP-310: no stamp, so it counts at its creation, now.
+    await s.t.run((ctx) =>
+      ctx.db.insert('tasks', {
+        listId: s.groceries,
+        title: 'Melk',
+        done: true,
+        createdBy: s.userId,
+        order: 0,
+      }),
+    )
+    const { habits, suggestions } = await read(s)
+    expect(habits[0]).toMatchObject({ title: 'Melk', count: 3 })
+    // Bought "today", so not due yet.
+    expect(suggestions).toEqual([])
+  })
+
   test('answers nothing for a list that is not a grocery list', async () => {
     const s = await seed()
     await bought(s, s.groceries, 'melk', [12, 8, 4])
@@ -215,6 +234,24 @@ describe('hiding a suggestion', () => {
     expect(
       (await s.t.run((ctx) => ctx.db.get(s.groceries)))?.hiddenSuggestions,
     ).toBeUndefined()
+  })
+
+  test('keeps at most 500 names, dropping the oldest', async () => {
+    const s = await seed()
+    const names = Array.from({ length: 500 }, (_, i) => `zz${i}k`)
+    await s.t.run((ctx) =>
+      ctx.db.patch(s.groceries, { hiddenSuggestions: names }),
+    )
+    await s.as.mutation(api.taskLists.hideSuggestion, {
+      groupSlug: SLUG,
+      listId: s.groceries,
+      title: 'melk',
+    })
+    const hidden = (await s.t.run((ctx) => ctx.db.get(s.groceries)))
+      ?.hiddenSuggestions
+    expect(hidden).toHaveLength(500)
+    expect(hidden?.[0]).toBe('zz1k')
+    expect(hidden?.at(-1)).toBe('melk')
   })
 
   test('refuses a title longer than a grocery line', async () => {

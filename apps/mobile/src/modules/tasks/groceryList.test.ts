@@ -3,8 +3,8 @@ import { describe, expect, test } from 'vitest'
 import {
   aisleOf,
   aisleSections,
+  checkedOncePerName,
   inCheckedSection,
-  putBackAllIds,
   recentDays,
   recentWeeks,
 } from './groceryList'
@@ -69,16 +69,19 @@ describe('Recent in days', () => {
   })
 })
 
-describe('put back all', () => {
-  test('one per name, and none already open on the list', () => {
+describe('the Checked section', () => {
+  test('one row per name, the newest, and none whose name is open', () => {
     const tasks = [
       { id: 'melk-open', title: '2 pak melk', done: false },
-      { id: 'melk-checked', title: 'Melk', done: true },
-      { id: 'brood-1', title: 'brood', done: true },
-      { id: 'brood-2', title: 'Brood', done: true },
-      { id: 'kaas', title: 'kaas', done: true },
+      { id: 'melk-checked', title: 'Melk', done: true, doneAt: 5 },
+      { id: 'brood-old', title: 'brood', done: true, doneAt: 1 },
+      { id: 'kaas', title: 'kaas', done: true, doneAt: 3 },
+      { id: 'brood-new', title: 'Brood', done: true, doneAt: 4 },
     ]
     const checked = tasks.filter((task) => task.done)
-    expect(putBackAllIds(tasks, checked)).toEqual(['brood-1', 'kaas'])
+    expect(checkedOncePerName(tasks, checked).map((task) => task.id)).toEqual([
+      'kaas',
+      'brood-new',
+    ])
   })
 })

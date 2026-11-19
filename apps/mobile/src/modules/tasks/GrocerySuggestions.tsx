@@ -21,7 +21,7 @@ import {
   groceryNames,
   parseGroceryLine,
 } from '@gather/core/groceries'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { NativeContextMenu } from '../../components/NativeContextMenu'
@@ -89,6 +89,17 @@ export function SuggestionStrip({
   // Names tapped or hidden here leave the strip at once; the server's
   // answer then leaves them out for good.
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set())
+  // Once the server leaves a name out, the local hold on it is let go: if
+  // the added item is then deleted unbought, the name can come back.
+  const served = habits?.suggestions
+  useEffect(() => {
+    if (!served) return
+    const keys = new Set(served.map((habit) => habit.key))
+    setGone((held) => {
+      const kept = [...held].filter((key) => keys.has(key))
+      return kept.length === held.size ? held : new Set(kept)
+    })
+  }, [served])
 
   if (!list.writable || list.suggestionsOff) return null
   const now = Date.now()
