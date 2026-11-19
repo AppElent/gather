@@ -16,7 +16,6 @@
 
 import {
   GROCERY_QUANTITY_MAX,
-  groceryAddFields,
   roundGroceryQuantity,
 } from './amount'
 import { groceryKey } from './normalise'
@@ -157,16 +156,23 @@ export function capitalise(name: string): string {
   return name.charAt(0).toLocaleUpperCase() + name.slice(1)
 }
 
-/** Whether a unit is a weight or volume that rounds to 25 when scaled. */
-const ROUND_TO_25 = new Set<GroceryUnit>(['g', 'ml'])
-/** Measures that scale in halves: "1,5 el", "0,5 kg". */
+/** Grams and millilitres: rounded to a step that grows with the amount. */
+const FINE = new Set<GroceryUnit>(['g', 'ml'])
+/** Measures that scale in halves: "1,5 el", "0,5 kg"; quarters below one. */
 const HALVES = new Set<GroceryUnit>(['kg', 'l', 'cl', 'dl', 'el', 'tl'])
+
+/** 1 g below 50, 5 g below 250, then 25 g: "7 g gist", "120 g", "300 g". */
+function fineStep(value: number): number {
+  return value < 50 ? 1 : value < 250 ? 5 : 25
+}
 
 /**
  * An amount for another number of servings (`factor` = wanted / written).
- * Grams and millilitres round to 25, spoons and kilos to halves, and
- * anything counted — eggs, tins, packs — rounds up: nobody buys 2.4 tins.
- * At the recipe's own servings the amount stays as written.
+ * Grams and millilitres round to a step that grows with the amount, spoons
+ * and kilos to halves (quarters below one), and anything counted — eggs,
+ * tins, packs — rounds up: nobody buys 2.4 tins. Fewer servings never ask
+ * for more than the recipe wrote, and the recipe's own servings keep the
+ * amount as written.
  */
 export function scaleGroceryQuantity(
   quantity: number,
@@ -176,11 +182,14 @@ export function scaleGroceryQuantity(
   if (factor === 1 || !(factor > 0)) return quantity
   const value = quantity * factor
   let scaled: number
-  if (unit && ROUND_TO_25.has(unit))
-    scaled = Math.max(25, Math.round(value / 25) * 25)
-  else if (unit && HALVES.has(unit))
-    scaled = Math.max(0.5, Math.ceil(value * 2 - 1e-9) / 2)
-  else scaled = Math.max(1, Math.ceil(value - 1e-9))
+  if (unit && FINE.has(unit)) {
+    const step = fineStep(value)
+    scaled = Math.max(1, Math.round(value / step) * step)
+  } else if (unit && HALVES.has(unit)) {
+    const parts = value < 1 ? 4 : 2
+    scaled = Math.max(0.25, Math.ceil(value * parts - 1e-9) / parts)
+  } else scaled = Math.max(1, Math.ceil(value - 1e-9))
+  if (factor < 1) scaled = Math.min(scaled, quantity)
   return Math.min(roundGroceryQuantity(scaled), GROCERY_QUANTITY_MAX)
 }
 
@@ -205,7 +214,11 @@ export function addGroceryAmounts(
   item: GroceryAmount,
   line: GroceryAmount,
 ): GroceryAmount | null {
-  if (line.quantity === undefined && line.unit === undefined) return { ...item }
+  if (line.quantity === undefined && line.unit === undefined)
+    return {
+      ...(item.quantity !== undefined ? { quantity: item.quantity } : {}),
+      ...unitOf(item.unit),
+    }
   const have = item.quantity ?? 1
   const add = line.quantity ?? 1
   const total = (value: number) =>
@@ -241,29 +254,11 @@ export type GroceryAddPlan =
       into: string
       from: GroceryAmount
       to: GroceryAmount
-      /**
-       * The item's title without the amount it was typed with, when it came
-       * from before amounts ("2 pak melk" is "melk" with 2 pak): the merged
-       * amount goes beside it, so the title loses its own.
-       */
-      title?: string
     }
 
 /** The id a line that is new in this add goes by until it has a real one. */
 export function pendingItemId(lineIndex: number): string {
   return `pending:${lineIndex}`
-}
-
-/**
- * An item as the merge reads it. One typed before amounts kept its amount in
- * the title ("2 pak melk"), so a title without an amount beside it is read
- * again first; `retitled` says so.
- */
-function readItem(item: GroceryAddLine): GroceryAddLine & { retitled: boolean } {
-  if (item.quantity !== undefined || item.unit !== undefined)
-    return { ...item, retitled: false }
-  const fields = groceryAddFields(item.title)
-  return { ...fields, retitled: fields.title !== item.title.trim() }
 }
 
 /**
@@ -277,10 +272,15 @@ export function planGroceryAdds(
 ): GroceryAddPlan[] {
   const open = items
     .filter((item) => !item.done)
-    .map((item) => {
-      const read = readItem(item)
-      return { ...read, id: item.id, key: groceryKey(read.title) }
-    })
+    // An item is matched by its title as stored: the merge never reads an
+    // amount out of a title (APP-309), so "2 pak melk" from before amounts
+    // stays as it is and "Melk" is added beside it.
+    .map((item) => ({
+      id: item.id,
+      key: groceryKey(item.title),
+      ...(item.quantity !== undefined ? { quantity: item.quantity } : {}),
+      ...unitOf(item.unit),
+    }))
   return lines.map((line, index): GroceryAddPlan => {
     const key = groceryKey(line.title)
     if (key) {
@@ -292,18 +292,16 @@ export function planGroceryAdds(
           ...(item.quantity !== undefined ? { quantity: item.quantity } : {}),
           ...unitOf(item.unit),
         }
-        const retitle = item.retitled ? { title: item.title } : {}
         item.quantity = to.quantity
         item.unit = to.unit
-        item.retitled = false
-        return { kind: 'merge', into: item.id, from, to, ...retitle }
+        return { kind: 'merge', into: item.id, from, to }
       }
     }
     open.push({
-      ...line,
       id: pendingItemId(index),
       key,
-      retitled: false,
+      ...(line.quantity !== undefined ? { quantity: line.quantity } : {}),
+      ...unitOf(line.unit),
     })
     return { kind: 'new' }
   })

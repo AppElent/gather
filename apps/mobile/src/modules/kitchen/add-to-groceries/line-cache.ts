@@ -22,23 +22,30 @@ export interface CachedRead {
   unit?: GroceryUnit
 }
 
+/** A reading, or null: the AI read the line as plain text. */
+export type CachedLine = CachedRead | null
+
 interface Stored {
   digest: string
-  lines: Record<string, CachedRead>
+  lines: Record<string, CachedLine>
 }
 
 /** The cached readings for a recipe, by line text, while they still apply. */
 export function readCachedLines(
   recipeId: string,
   digest: string,
-): Record<string, CachedRead> {
+): Record<string, CachedLine> {
   const raw = readPreference(recipeGroceryLinesKey(recipeId))
   if (!raw) return {}
   try {
     const stored = JSON.parse(raw) as Partial<Stored>
     if (stored.digest !== digest || typeof stored.lines !== 'object') return {}
-    const lines: Record<string, CachedRead> = {}
+    const lines: Record<string, CachedLine> = {}
     for (const [text, read] of Object.entries(stored.lines ?? {})) {
+      if (read === null) {
+        lines[text] = null
+        continue
+      }
       if (!read || typeof read.name !== 'string' || !read.name) continue
       lines[text] = {
         name: read.name,
@@ -56,7 +63,7 @@ export function readCachedLines(
 export function cacheLines(
   recipeId: string,
   digest: string,
-  lines: Record<string, CachedRead>,
+  lines: Record<string, CachedLine>,
 ) {
   const merged = { ...readCachedLines(recipeId, digest), ...lines }
   writePreference(

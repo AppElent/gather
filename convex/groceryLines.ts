@@ -159,7 +159,6 @@ export const add = mutation({
         await ctx.db.patch(taskId, {
           quantity: plan.to.quantity,
           unit: plan.to.unit,
-          ...(plan.title !== undefined ? { title: plan.title } : {}),
           ...(source && !task.notes ? { notes: source } : {}),
         })
         merged++

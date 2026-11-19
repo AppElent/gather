@@ -12,7 +12,12 @@ import { readIngredientLine } from '@gather/core/groceries'
 import { useAction } from 'convex/react'
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../../convex/api'
-import { type CachedRead, cacheLines, readCachedLines } from './line-cache'
+import {
+  type CachedLine,
+  type CachedRead,
+  cacheLines,
+  readCachedLines,
+} from './line-cache'
 import { ingredientsDigest, type LineRead, type SourceLine } from './pick'
 
 export interface AiCount {
@@ -39,6 +44,8 @@ export function useRecipeLines(recipe: {
       const read = readIngredientLine(text)
       if (read) return { kind: 'local' as const, read }
       const earlier = cached[text.trim()]
+      // The AI read it before; null means it read the line as plain text.
+      if (earlier === null) return { kind: 'text' as const }
       if (earlier) return { kind: 'earlier' as const, read: earlier }
       return { kind: 'unread' as const }
     })
@@ -73,10 +80,13 @@ export function useRecipeLines(recipe: {
           return
         }
         const reads: Record<string, CachedRead> = {}
+        const seen: Record<string, CachedLine> = {}
         answer.lines.forEach((read, index) => {
           if (read) reads[texts[index]] = read
+          seen[texts[index]] = read ?? null
         })
-        cacheLines(recipe.id, digest, reads)
+        // Plain-text answers are kept too, so the line is not asked again.
+        cacheLines(recipe.id, digest, seen)
         setAi({
           state: 'done',
           reads,
@@ -97,7 +107,7 @@ export function useRecipeLines(recipe: {
     if (own.kind === 'local') read = { kind: 'read', via: 'local', ...own.read }
     else if (own.kind === 'earlier')
       read = { kind: 'read', via: 'ai-earlier', ...own.read }
-    else if (!text.trim()) read = { kind: 'text' }
+    else if (own.kind === 'text' || !text.trim()) read = { kind: 'text' }
     else if (ai.state === 'reading') read = { kind: 'reading' }
     else {
       const answer = ai.reads[text.trim()]

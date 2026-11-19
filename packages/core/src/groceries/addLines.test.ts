@@ -48,11 +48,15 @@ describe('scaleGroceryQuantity', () => {
     expect(scaleGroceryQuantity(10, 'g', 1)).toBe(10)
     expect(scaleGroceryQuantity(2.5, undefined, 1)).toBe(2.5)
   })
-  test('grams and millilitres round to 25', () => {
+  test('grams and millilitres round to a step that grows with the amount', () => {
     expect(scaleGroceryQuantity(200, 'g', 6 / 4)).toBe(300)
     expect(scaleGroceryQuantity(200, 'g', 5 / 4)).toBe(250)
-    expect(scaleGroceryQuantity(10, 'g', 2 / 4)).toBe(25)
     expect(scaleGroceryQuantity(330, 'ml', 3 / 4)).toBe(250)
+    expect(scaleGroceryQuantity(10, 'g', 2 / 4)).toBe(5)
+    expect(scaleGroceryQuantity(20, 'g', 2 / 4)).toBe(10)
+    expect(scaleGroceryQuantity(5, 'g', 2)).toBe(10)
+    expect(scaleGroceryQuantity(7, 'g', 3 / 4)).toBe(5)
+    expect(scaleGroceryQuantity(150, 'g', 3 / 4)).toBe(115)
   })
   test('counts round up', () => {
     expect(scaleGroceryQuantity(6, undefined, 5 / 4)).toBe(8)
@@ -61,7 +65,15 @@ describe('scaleGroceryQuantity', () => {
   })
   test('spoons and kilos go in halves', () => {
     expect(scaleGroceryQuantity(2, 'el', 5 / 4)).toBe(2.5)
-    expect(scaleGroceryQuantity(1, 'kg', 1 / 4)).toBe(0.5)
+    expect(scaleGroceryQuantity(1, 'kg', 1 / 4)).toBe(0.25)
+    expect(scaleGroceryQuantity(0.25, 'l', 2 / 4)).toBe(0.25)
+  })
+  test('fewer servings never ask for more than the recipe wrote', () => {
+    const units = [undefined, 'g', 'ml', 'kg', 'l', 'el', 'tl', 'blik'] as const
+    for (const unit of units)
+      for (const quantity of [0.25, 0.5, 1, 2, 3, 5, 7, 10, 30, 49, 120, 330, 1000])
+        for (const [wanted, written] of [[1, 2], [1, 4], [2, 4], [3, 4], [5, 6], [1, 8]])
+          expect(scaleGroceryQuantity(quantity, unit, wanted / written)).toBeLessThanOrEqual(quantity)
   })
 })
 
@@ -140,11 +152,9 @@ describe('planGroceryAdds', () => {
     expect(planGroceryAdds(items, [{ title: 'Eieren', quantity: 6 }])).toEqual([{ kind: 'new' }])
   })
 
-  test('an item typed before amounts is read again ("2 pak melk")', () => {
+  test('an item typed before amounts keeps its title and is not merged into ("2 pak melk")', () => {
     const items = [item('a', '2 pak melk')]
-    expect(planGroceryAdds(items, [{ title: 'Melk', quantity: 1, unit: 'pak' }])).toEqual([
-      { kind: 'merge', into: 'a', from: { quantity: 2, unit: 'pak' }, to: { quantity: 3, unit: 'pak' }, title: 'melk' },
-    ])
+    expect(planGroceryAdds(items, [{ title: 'Melk', quantity: 1, unit: 'pak' }])).toEqual([{ kind: 'new' }])
   })
 
   test('a name twice in one add goes on the list once', () => {
