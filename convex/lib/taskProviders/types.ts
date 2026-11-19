@@ -8,6 +8,11 @@ export interface UnifiedTask {
   priority?: 1 | 2 | 3 | 4 // 1 = most urgent (Todoist "p1")
   labels?: string[]
   url?: string // link-out to the item in its source app (external only)
+  /**
+   * How the item repeats, in the provider's own words ("every week"), for a
+   * linked list's Repeat row (APP-303). Gather cannot write it back.
+   */
+  repeatText?: string
 }
 
 export interface ProviderSource {

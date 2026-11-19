@@ -734,6 +734,7 @@ export const nl = {
     starters: coreNl.tasks.starters,
     starterSections: coreNl.tasks.starterSections,
     packing: coreNl.tasks.packing,
+    repeat: coreNl.tasks.repeat,
     wishlist: coreNl.tasks.wishlist,
     grocery: coreNl.tasks.grocery,
     assignee: coreNl.tasks.assignee,

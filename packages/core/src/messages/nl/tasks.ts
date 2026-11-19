@@ -311,6 +311,67 @@ export const tasks = {
     money: 'Blauw',
   },
 
+  repeat: {
+    title: 'Herhalen',
+    done: 'Klaar',
+    modes: {
+      none: 'Niet',
+      fixed: 'Vast schema',
+      afterDone: 'Na afvinken',
+    },
+    every: 'Elke',
+    on: 'Op',
+    afterDone: 'Na afvinken',
+    units: {
+      day: { one: 'dag', other: 'dagen' },
+      week: { one: 'week', other: 'weken' },
+      month: { one: 'maand', other: 'maanden' },
+      year: { one: 'jaar', other: 'jaar' },
+    },
+    decrease: 'Minder',
+    increase: 'Meer',
+    onMonthDay: 'Op dag {day}',
+    onDate: 'Op {date}',
+    followsDate: 'Verander de datum om hem te verzetten.',
+    lastDayHint: 'In maanden zonder dag {day} valt hij op de laatste dag.',
+    summary: {
+      never: 'Nooit',
+      every: {
+        day: { one: 'Elke dag', other: 'Elke {count} dagen' },
+        week: { one: 'Elke week', other: 'Elke {count} weken' },
+        month: { one: 'Elke maand', other: 'Elke {count} maanden' },
+        year: { one: 'Elk jaar', other: 'Elke {count} jaar' },
+      },
+      afterDone: {
+        day: { one: '1 dag na afvinken', other: '{count} dagen na afvinken' },
+        week: { one: '1 week na afvinken', other: '{count} weken na afvinken' },
+        month: {
+          one: '1 maand na afvinken',
+          other: '{count} maanden na afvinken',
+        },
+      },
+      onDays: '{every}, {days}',
+      onMonthDay: '{every} op dag {day}',
+      onDate: '{every} op {date}',
+    },
+    next: 'Volgende keer',
+    nextAfter: 'Na {date}: {dates}',
+    nextIfDoneToday: 'Vink je hem vandaag af: {date}',
+    nextNever: 'Komt niet terug',
+    pickDay: 'Kies minstens één dag',
+    footnote:
+      'Er staat steeds één keer open. Mis je hem, dan blijft hij als te laat staan; er komen geen kopieën bij.',
+    footnoteNever: 'Een datum alleen geeft geen herinnering en geen herhaling.',
+    linked:
+      'Deze lijst staat in {provider}. Gather leest hem, maar kan er niet in schrijven: stel het herhalen in {provider} in.',
+    completed: 'Afgevinkt. Volgende keer: {date}',
+    undo: 'Ongedaan maken',
+    undoFailed: 'Dat kon niet ongedaan worden gemaakt.',
+    history: 'Eerder afgevinkt',
+    historyEntry: '{name}, {when}',
+    someone: 'Iemand',
+  },
+
   starters: {
     bins: 'Kliko aan de straat',
     fridge: 'Koelkast uitsoppen',

@@ -52,6 +52,7 @@ import {
   taskPriorityValidator,
   taskProviderValidator,
   taskReminderValidator,
+  taskRepeatValidator,
 } from './lib/taskFields'
 import { taskSectionValidator } from './lib/taskSections'
 import {
@@ -256,6 +257,13 @@ export default defineSchema({
       v.object({ by: v.id('users'), at: v.number() }),
     ),
     /**
+     * How the task comes back once completed (APP-303). Absent on a task that
+     * does not repeat, which is every task from before repeats. A repeating
+     * task stays open: completing it moves `dueDate` on and writes a
+     * `taskCompletions` row.
+     */
+    repeat: v.optional(taskRepeatValidator),
+    /**
      * A reminder somebody chose (APP-305); a due date alone sets none. Absent
      * on every task without one. Its send is a `scheduledNotifications` row
      * under `taskReminderKey`, kept in step by `lib/taskReminders.ts`.
@@ -279,6 +287,25 @@ export default defineSchema({
     // A person's tasks across lists: the leave-Group clean-up, the in-app
     // notice, and later the "Mine" smart list (APP-301).
     .index('by_assignee', ['assigneeId']),
+
+  /**
+   * One completion of a repeating task (APP-303): who, when, and the due
+   * date it moved from and to, so the completion can be undone right after.
+   * Carries the task's Group so the Group's deletion and export reach it
+   * without walking its lists; deleted with its task.
+   */
+  taskCompletions: defineTable({
+    groupId: v.id('groups'),
+    taskId: v.id('tasks'),
+    completedBy: v.id('users'),
+    completedAt: v.number(),
+    /** The completer's calendar day, `YYYY-MM-DD`. */
+    completedOn: v.string(),
+    previousDueDate: v.optional(v.string()),
+    nextDueDate: v.string(),
+  })
+    .index('by_task', ['taskId'])
+    .index('by_group', ['groupId']),
 
   /**
    * A Group's own aisle for a grocery name: written when a Member moves an

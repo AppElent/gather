@@ -226,6 +226,24 @@ async function household(t: Harness): Promise<Household> {
           : {}),
       })
     }
+    const bins = await ctx.db.insert('tasks', {
+      listId: chores,
+      title: 'Bins',
+      done: false,
+      createdBy: alice,
+      order: PAGE_SIZE + 10,
+      dueDate: '2026-11-28',
+      repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [6] },
+    })
+    await ctx.db.insert('taskCompletions', {
+      groupId: household,
+      taskId: bins,
+      completedBy: bob,
+      completedAt: 0,
+      completedOn: '2026-11-19',
+      previousDueDate: '2026-11-21',
+      nextDueDate: '2026-11-28',
+    })
     await ctx.db.insert('notes', {
       groupId: household,
       title: 'Wifi',
@@ -533,7 +551,12 @@ describe('what the file contains', () => {
     for (const [table, rows] of Object.entries(household)) {
       expect(rows.length, table).toBeGreaterThan(0)
     }
-    expect(household.tasks).toHaveLength(PAGE_SIZE + 5)
+    // The page of tasks, five more, and the repeating one (APP-303).
+    expect(household.tasks).toHaveLength(PAGE_SIZE + 6)
+    // Who completed it, by name.
+    expect(household.taskCompletions).toEqual([
+      expect.objectContaining({ completedBy: 'Bob', completedOn: '2026-11-19' }),
+    ])
     expect(household.recipes.map((r) => r.title)).toEqual(['Stamppot'])
     // The Pantry folded into In stock (APP-314): both its rows and the
     // staples they became go out.

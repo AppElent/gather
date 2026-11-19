@@ -18,6 +18,7 @@ import { recipeShareDiff, syncRecipeShares } from './lib/recipeShares'
 import { pickCanonicalUser } from './lib/sharing'
 import { stableDigest } from './lib/stableDigest'
 import { deleteStoredFile } from './lib/storedFiles'
+import { completionsOf } from './lib/taskRepeat'
 import schema from './schema'
 
 /**
@@ -570,6 +571,7 @@ export const moveBabyToGroup = internalMutation({
 
     let taskListsMoved = 0
     let taskListsMissing = 0
+    let completionsMoved = 0
     for (const field of ['taskListId', 'questionsListId'] as const) {
       const listId = baby[field]
       if (!listId) continue
@@ -581,6 +583,18 @@ export const moveBabyToGroup = internalMutation({
       if (list.groupId === target._id) continue
       taskListsMoved++
       if (apply) await ctx.db.patch(listId, { groupId: target._id })
+      // A repeating task's history is Group content too (APP-303): it moves
+      // with its list, so the new Group exports and deletes it.
+      const tasks = await ctx.db
+        .query('tasks')
+        .withIndex('by_list', (q) => q.eq('listId', listId))
+        .collect()
+      for (const task of tasks) {
+        for (const row of await completionsOf(ctx, task._id)) {
+          completionsMoved++
+          if (apply) await ctx.db.patch(row._id, { groupId: target._id })
+        }
+      }
     }
 
     const events = await ctx.db
@@ -597,6 +611,7 @@ export const moveBabyToGroup = internalMutation({
       babiesMoved: alreadyInTargetGroup ? 0 : 1,
       taskListsMoved,
       taskListsMissing,
+      completionsMoved,
       // The log follows the child. Reported so the operator can see how much
       // is riding on the patch, and check it against the verification output.
       eventsCarried: events.length,
@@ -658,6 +673,7 @@ const USER_REFERENCES: {
     assignmentNotice: 'repoint',
     reminder: 'repoint',
   },
+  taskCompletions: { completedBy: 'repoint' },
   groceryCategoryOverrides: { updatedBy: 'repoint' },
   notes: { createdBy: 'repoint', updatedBy: 'repoint' },
   mealEntries: { createdBy: 'repoint' },
