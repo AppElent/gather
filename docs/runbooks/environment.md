@@ -85,11 +85,15 @@ the manifest and `.env.example`, not here.
 - `CLERK_WEBHOOK_SECRET` (Infisical `clerk-webhook-secret`) is the signing
   secret of the Clerk webhook endpoint pointed at `POST /clerk/webhook` on that
   Convex deployment's `.convex.site` origin, subscribed to `user.deleted`
-  ([ADR-0050](../adr/0050-deleting-gather-data-keeps-the-appelent-login.md)).
+  ([ADR-0050](../adr/0050-deleting-gather-data-keeps-the-appelent-login.md)),
+  and to `user.created` and `user.updated`, which mirror the login's Apple
+  links for web Apple revocation (APP-388,
+  [account deletion](../contracts/account-deletion.md#web-apple-revocation)).
   Each Clerk instance has its own endpoint and secret: the development one for
   `local`, the production one for `production`, which waits for Eric's go
   (APP-392). Per-PR preview backends get none. Optional: without it the route refuses every request
-  (503) and a login deleted in another app leaves Gather's data behind.
+  (503), a login deleted in another app leaves Gather's data behind, and web
+  Apple revocation refuses every code (nothing is deleted).
 
 ## Verify
 

@@ -30,6 +30,7 @@ import type * as lib_anthropic from "../lib/anthropic.js";
 import type * as lib_appleSignIn from "../lib/appleSignIn.js";
 import type * as lib_babyEvents from "../lib/babyEvents.js";
 import type * as lib_calendar from "../lib/calendar.js";
+import type * as lib_clerkUsers from "../lib/clerkUsers.js";
 import type * as lib_connectedApps from "../lib/connectedApps.js";
 import type * as lib_dataExport from "../lib/dataExport.js";
 import type * as lib_finance from "../lib/finance.js";
@@ -125,6 +126,7 @@ declare const fullApi: ApiFromModules<{
   "lib/appleSignIn": typeof lib_appleSignIn;
   "lib/babyEvents": typeof lib_babyEvents;
   "lib/calendar": typeof lib_calendar;
+  "lib/clerkUsers": typeof lib_clerkUsers;
   "lib/connectedApps": typeof lib_connectedApps;
   "lib/dataExport": typeof lib_dataExport;
   "lib/finance": typeof lib_finance;

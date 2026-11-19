@@ -48,6 +48,32 @@ const userDeleted = (id: string) =>
     data: { id, object: 'user', deleted: true },
   })
 
+/** A Clerk user event with the user's external accounts (APP-388). */
+function userEvent(
+  type: string,
+  updatedAt: number | null,
+  externalAccounts: unknown[],
+  id = alice.subject,
+) {
+  return JSON.stringify({
+    type,
+    object: 'event',
+    data: {
+      id,
+      object: 'user',
+      ...(updatedAt === null ? {} : { updated_at: updatedAt }),
+      external_accounts: externalAccounts,
+    },
+  })
+}
+
+const apple = (sub: string, status = 'verified') => ({
+  object: 'external_account',
+  provider: 'oauth_apple',
+  provider_user_id: sub,
+  verification: { status },
+})
+
 async function post(t: Harness, body: string, headers: HeadersInit) {
   return await t.fetch('/clerk/webhook', { method: 'POST', body, headers })
 }
@@ -213,8 +239,13 @@ describe('POST /clerk/webhook', () => {
     const t = testConvex()
     await household(t)
     const before = await rowCounts(t)
-    for (const type of ['user.created', 'user.updated', 'session.created']) {
+    for (const type of ['session.created', 'email.created']) {
       const body = JSON.stringify({ type, data: { id: alice.subject } })
+      expect((await post(t, body, signed(body))).status).toBe(200)
+    }
+    // A user event without an Apple link stores nothing either.
+    for (const type of ['user.created', 'user.updated']) {
+      const body = userEvent(type, 10, [])
       expect((await post(t, body, signed(body))).status).toBe(200)
     }
     await settle(t)
@@ -236,5 +267,76 @@ describe('POST /clerk/webhook', () => {
     const t = testConvex()
     const response = await t.fetch('/clerk/webhook', { method: 'GET' })
     expect(response.status).toBe(404)
+  })
+})
+
+describe('POST /clerk/webhook Apple links (APP-388)', () => {
+  const links = (t: Harness) =>
+    t.run(async (ctx) =>
+      (await ctx.db.query('appleSignInLinks').collect()).map(
+        ({ clerkId, appleUserIds }) => ({ clerkId, appleUserIds }),
+      ),
+    )
+
+  test('mirrors verified Apple links from user.created and user.updated', async () => {
+    const t = testConvex()
+    const created = userEvent('user.created', 10, [
+      apple('apple-alice'),
+      apple('apple-pending', 'unverified'),
+    ])
+    expect((await post(t, created, signed(created))).status).toBe(200)
+    expect(await links(t)).toEqual([
+      { clerkId: alice.subject, appleUserIds: ['apple-alice'] },
+    ])
+
+    const relinked = userEvent('user.updated', 20, [apple('apple-new')])
+    await post(t, relinked, signed(relinked))
+    // A retried older delivery does not roll it back.
+    await post(t, created, signed(created))
+    expect(await links(t)).toEqual([
+      { clerkId: alice.subject, appleUserIds: ['apple-new'] },
+    ])
+
+    const unlinked = userEvent('user.updated', 30, [])
+    await post(t, unlinked, signed(unlinked))
+    expect(await links(t)).toEqual([])
+  })
+
+  test('never stores a link from an unsigned, forged or undated event', async () => {
+    const t = testConvex()
+    const body = userEvent('user.updated', 10, [apple('apple-attacker')])
+    expect((await post(t, body, { 'content-type': 'application/json' })).status).toBe(400)
+    expect((await post(t, body, signed(body, randomKey()))).status).toBe(401)
+    const undated = userEvent('user.updated', null, [apple('apple-attacker')])
+    expect((await post(t, undated, signed(undated))).status).toBe(400)
+    expect(await links(t)).toEqual([])
+  })
+
+  test('user.deleted drops the link with the login', async () => {
+    const t = testConvex()
+    const created = userEvent('user.created', 10, [apple('apple-alice')])
+    await post(t, created, signed(created))
+    const bobs = userEvent('user.created', 10, [apple('apple-bob')], bob.subject)
+    await post(t, bobs, signed(bobs))
+    const deleted = userDeleted(alice.subject)
+    expect((await post(t, deleted, signed(deleted))).status).toBe(200)
+    await settle(t)
+    expect(await links(t)).toEqual([
+      { clerkId: bob.subject, appleUserIds: ['apple-bob'] },
+    ])
+  })
+
+  test("deleting Gather's data only keeps the link: the login stays", async () => {
+    const t = testConvex()
+    await household(t)
+    const created = userEvent('user.created', 10, [apple('apple-alice')])
+    await post(t, created, signed(created))
+    await t
+      .withIdentity(alice)
+      .mutation(api.accounts.deleteAccount, { keepLogin: true })
+    await settle(t)
+    expect(await links(t)).toEqual([
+      { clerkId: alice.subject, appleUserIds: ['apple-alice'] },
+    ])
   })
 })

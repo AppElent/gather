@@ -60,6 +60,21 @@ import {
 } from './lib/tastings'
 
 export default defineSchema({
+  /**
+   * The verified Sign in with Apple users (`sub`) Clerk links to an AppElent
+   * login, keyed by its Clerk subject (APP-388). Mirrored from Clerk's signed
+   * `user.created`/`user.updated` webhook (`convex/http.ts`) so web Apple
+   * revocation can bind a code to the caller without a Clerk admin key on
+   * Convex. Only logins with an Apple link have a row; `user.deleted` drops
+   * it, and deleting Gather's data only keeps it, because the login stays.
+   * `clerkUpdatedAt` is the Clerk user's `updated_at`, so an older delivery
+   * never overwrites a newer one.
+   */
+  appleSignInLinks: defineTable({
+    clerkId: v.string(),
+    appleUserIds: v.array(v.string()),
+    clerkUpdatedAt: v.number(),
+  }).index('by_clerkId', ['clerkId']),
   users: defineTable({
     clerkId: v.string(),
     name: v.string(),
