@@ -6,6 +6,7 @@ import {
   roundGroceryQuantity,
 } from '@gather/core/groceries'
 import { normalizeTaskUrl } from '@gather/core/task-lists'
+import { clockMoment } from '@gather/core/task-reminders'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
@@ -28,6 +29,15 @@ import {
 } from './lib/groupAccess'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
 import { taskPriorityValidator } from './lib/taskFields'
+import {
+  cancelSend,
+  checkedClock,
+  REMINDER_PASSED,
+  REMINDER_SLACK_MS,
+  shiftedReminder,
+  syncSend,
+  type TaskReminder,
+} from './lib/taskReminders'
 import { knownSectionId } from './lib/taskSections'
 
 const byOpenThenOrder = (a: Doc<'tasks'>, b: Doc<'tasks'>) =>
@@ -198,8 +208,51 @@ export const add = mutation({
 export const toggleDone = mutation({
   args: { taskId: v.id('tasks'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    const { task, group } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
     await ctx.db.patch(args.taskId, { done: !task.done })
+    if (task.reminder)
+      await syncSend(ctx, { ...task, done: !task.done }, group._id, task.reminder)
+  },
+})
+
+/**
+ * Set or clear a task's reminder (APP-305). It goes to the caller: a reminder
+ * is chosen by the person it is for (16 Sept). The clock is the caller's wall
+ * clock and time zone; the moment must not have passed, give or take the
+ * minute the person was looking at.
+ */
+export const setReminder = mutation({
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    reminder: v.union(
+      v.object({ date: v.string(), time: v.string(), timeZone: v.string() }),
+      v.null(),
+    ),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { task, group, user } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
+    let reminder: TaskReminder | undefined
+    if (args.reminder) {
+      const clock = checkedClock(args.reminder)
+      if (clockMoment(clock) < Date.now() - REMINDER_SLACK_MS)
+        throw new ConvexError(REMINDER_PASSED)
+      reminder = { ...clock, userId: user._id }
+    }
+    await ctx.db.patch(task._id, { reminder })
+    await syncSend(ctx, { ...task, reminder }, group._id, task.reminder, {
+      late: true,
+    })
+    return null
   },
 })
 
@@ -246,6 +299,11 @@ export const update = mutation({
           ? null
           : checkedQuantity(args.quantity)
     const unit = onGroceryList ? args.unit : undefined
+    // Moving the due date moves the reminder by the same days (APP-305).
+    const reminder =
+      dueDate === undefined
+        ? task.reminder
+        : shiftedReminder(task.reminder, task.dueDate, dueDate ?? undefined)
     let askAi: Awaited<ReturnType<typeof recogniseGroceryTitle>> | null = null
     if (onGroceryList && category !== undefined) {
       await recordGroceryCorrection(
@@ -284,7 +342,15 @@ export const update = mutation({
       ...(priority !== undefined ? { priority: priority ?? undefined } : {}),
       ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
       ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
+      ...(reminder !== task.reminder ? { reminder } : {}),
     })
+    if (task.reminder && (reminder !== task.reminder || done !== undefined))
+      await syncSend(
+        ctx,
+        { ...task, reminder, done: done ?? task.done },
+        group._id,
+        task.reminder,
+      )
     if (askAi) await askAiOnce(ctx, group._id, askAi, taskId)
   },
 })
@@ -334,7 +400,7 @@ export const setDoneInList = mutation({
   },
   returns: v.array(v.id('tasks')),
   handler: async (ctx, args) => {
-    await requireLocalList(ctx, args.groupSlug, args.listId)
+    const { group } = await requireLocalList(ctx, args.groupSlug, args.listId)
     const rows = await ctx.db
       .query('tasks')
       .withIndex('by_list', (q) => q.eq('listId', args.listId))
@@ -351,6 +417,9 @@ export const setDoneInList = mutation({
     await Promise.all(
       changed.map((task) => ctx.db.patch(task._id, { done: args.done })),
     )
+    for (const task of changed)
+      if (task.reminder)
+        await syncSend(ctx, { ...task, done: args.done }, group._id, task.reminder)
     return changed.map((task) => task._id)
   },
 })
@@ -358,7 +427,8 @@ export const setDoneInList = mutation({
 export const remove = mutation({
   args: { taskId: v.id('tasks'), groupSlug: v.string() },
   handler: async (ctx, args) => {
-    await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
+    await cancelSend(ctx, task)
     await ctx.db.delete(args.taskId)
   },
 })

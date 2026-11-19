@@ -14,6 +14,7 @@ import { useState } from 'react'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, type Messages, useI18n } from '../../i18n'
+import { ReminderSheet } from './ReminderSheet'
 import { MoveToSectionSheet } from './sections'
 import {
   DueDateSheet,
@@ -85,7 +86,14 @@ export function taskMenuActions(
   ]
 }
 
-type TaskSheet = 'due' | 'priority' | 'labels' | 'move' | 'rename' | 'section'
+type TaskSheet =
+  | 'due'
+  | 'priority'
+  | 'labels'
+  | 'move'
+  | 'rename'
+  | 'reminder'
+  | 'section'
 
 /**
  * Runs every action on the menu except Reorder, which the screen owns.
@@ -138,6 +146,7 @@ export function useTaskSheets({
       case 'priority':
       case 'labels':
       case 'move':
+      case 'reminder':
       case 'section':
         setOpen({ kind: action, taskId: task.id })
         break
@@ -161,6 +170,9 @@ export function useTaskSheets({
       ) : null}
       {open.kind === 'move' ? (
         <MoveToListSheet task={task} onClose={close} />
+      ) : null}
+      {open.kind === 'reminder' ? (
+        <ReminderSheet task={task} onClose={close} />
       ) : null}
       {open.kind === 'section' ? (
         <MoveToSectionSheet task={task} onClose={close} />

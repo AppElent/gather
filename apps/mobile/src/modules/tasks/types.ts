@@ -64,9 +64,21 @@ export interface Task {
   quantity?: number
   unit?: GroceryUnit
   category?: GroceryAisle
+  /**
+   * The reminder somebody chose (APP-305): a wall clock in the zone it was
+   * set in, and the Member it goes to. Only Gather's own lists have one.
+   */
+  reminder?: TaskReminder
   /** The section it sits in; none, or one that is gone, is "No section". */
   sectionId?: string
   order: number
+}
+
+export interface TaskReminder {
+  date: string
+  time: string
+  timeZone: string
+  userId: string
 }
 
 export const SUGGESTED_LABELS = ['house', 'admin', 'car', 'inbox', 'errand']

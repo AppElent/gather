@@ -51,6 +51,7 @@ import {
   taskListKindValidator,
   taskPriorityValidator,
   taskProviderValidator,
+  taskReminderValidator,
 } from './lib/taskFields'
 import { taskSectionValidator } from './lib/taskSections'
 import {
@@ -209,6 +210,12 @@ export default defineSchema({
      */
     quantity: v.optional(v.number()),
     unit: v.optional(groceryUnitValidator),
+    /**
+     * A reminder somebody chose (APP-305); a due date alone sets none. Absent
+     * on every task without one. Its send is a `scheduledNotifications` row
+     * under `taskReminderKey`, kept in step by `lib/taskReminders.ts`.
+     */
+    reminder: v.optional(taskReminderValidator),
     /**
      * The section of its list the task sits in (APP-357): an id from
      * `taskLists.sections`. Absent, or naming a section the list no longer
@@ -440,7 +447,10 @@ export default defineSchema({
     // Absent only inside the transaction that inserts the row.
     jobId: v.optional(v.id('_scheduled_functions')),
     generation: v.number(),
-  }).index('by_user_and_key', ['userId', 'dedupeKey']),
+  })
+    .index('by_user_and_key', ['userId', 'dedupeKey'])
+    // A deleted Group's queued sends, found without reading everybody's.
+    .index('by_group', ['payload.groupId']),
 
   babies: defineTable({
     groupId: v.id('groups'),
