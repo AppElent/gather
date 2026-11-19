@@ -84,6 +84,9 @@ async function groupUsage(ctx: QueryCtx, groupId: Id<'groups'>, day: string) {
     .unique()
 }
 
+/** Whether a question was taken, or which budget refused it. */
+export type GroceryBudgetResult = 'taken' | 'global' | 'group'
+
 /**
  * Take one question from today's global budget and the Group's, or refuse
  * when either is spent. Both counters move together, in one mutation.
@@ -91,20 +94,20 @@ async function groupUsage(ctx: QueryCtx, groupId: Id<'groups'>, day: string) {
 export async function takeGroceryAiBudget(
   ctx: MutationCtx,
   groupId: Id<'groups'> | undefined,
-): Promise<boolean> {
+): Promise<GroceryBudgetResult> {
   const day = utcDay(Date.now())
   const global = await ctx.db
     .query('groceryAiUsage')
     .withIndex('by_day', (q) => q.eq('day', day))
     .unique()
-  if (global && global.count >= GROCERY_AI_DAILY_BUDGET) return false
+  if (global && global.count >= GROCERY_AI_DAILY_BUDGET) return 'global'
   const group = groupId ? await groupUsage(ctx, groupId, day) : null
-  if (group && group.count >= GROCERY_AI_GROUP_DAILY_BUDGET) return false
+  if (group && group.count >= GROCERY_AI_GROUP_DAILY_BUDGET) return 'group'
   if (global) await ctx.db.patch(global._id, { count: global.count + 1 })
   else await ctx.db.insert('groceryAiUsage', { day, count: 1 })
   if (group) await ctx.db.patch(group._id, { count: group.count + 1 })
   else if (groupId) await ctx.db.insert('groceryAiGroupUsage', { groupId, day, count: 1 })
-  return true
+  return 'taken'
 }
 
 export async function findGroceryCache(ctx: QueryCtx, name: string) {

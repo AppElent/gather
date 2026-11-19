@@ -49,9 +49,22 @@ export const classify = internalAction({
     const taken = await ctx.runMutation(internal.groceryCategories.takeBudget, {
       groupId: args.groupId,
     })
-    if (!taken) {
-      console.warn('grocery-category: daily AI budget spent; item stays in other')
-      await ctx.runMutation(internal.groceryCategories.release, { name: args.name })
+    if (taken !== 'taken') {
+      console.warn(`grocery-category: ${taken} AI budget spent; item stays in other`)
+      // Only this Group is out of questions: another Group's waiting item
+      // may still ask.
+      await ctx.runMutation(internal.groceryCategories.release, {
+        name: args.name,
+        ...(taken === 'group' && args.groupId
+          ? {
+              handOff: {
+                cleanName: args.cleanName,
+                refusedGroupId: args.groupId,
+                askerTaskId: args.taskId,
+              },
+            }
+          : {}),
+      })
       return null
     }
     const aisle = await askGroceryAisle(args.cleanName, apiKey)
@@ -75,20 +88,55 @@ export const classify = internalAction({
  */
 export const takeBudget = internalMutation({
   args: { groupId: v.optional(v.id('groups')) },
-  returns: v.boolean(),
+  returns: v.union(v.literal('taken'), v.literal('global'), v.literal('group')),
   handler: async (ctx, args) => await takeGroceryAiBudget(ctx, args.groupId),
 })
 
 /**
  * Give up a claim that got no answer, so a later item may ask again. Items
- * that waited on it stay in `other`, as they would with no key at all.
+ * that waited on it stay in `other`, as they would with no key at all —
+ * unless only the asking Group was out of questions (`handOff`): then the
+ * first waiting item of another Group takes the question over.
  */
 export const release = internalMutation({
-  args: { name: v.string() },
+  args: {
+    name: v.string(),
+    handOff: v.optional(
+      v.object({
+        cleanName: v.string(),
+        refusedGroupId: v.id('groups'),
+        // The refused item waits too: the answer is shared, not spent.
+        askerTaskId: v.id('tasks'),
+      }),
+    ),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const row = await findGroceryCache(ctx, args.name)
-    if (row && !row.aisle) await ctx.db.delete(row._id)
+    if (!row || row.aisle) return null
+    const waiting = row.waitingTaskIds ?? []
+    if (args.handOff)
+      for (const [index, taskId] of waiting.entries()) {
+        const task = await ctx.db.get(taskId)
+        if (!task || task.category !== 'other') continue
+        const list = await ctx.db.get(task.listId)
+        if (!list || list.groupId === args.handOff.refusedGroupId) continue
+        await ctx.db.patch(row._id, {
+          askedAt: Date.now(),
+          waitingTaskIds: [
+            args.handOff.askerTaskId,
+            ...waiting.filter((_, other) => other !== index),
+          ],
+        })
+        await ctx.scheduler.runAfter(0, internal.groceryCategories.classify, {
+          name: args.name,
+          cleanName: args.handOff.cleanName,
+          taskId,
+          groupId: list.groupId,
+        })
+        return null
+      }
+    await ctx.db.delete(row._id)
     return null
   },
 })
@@ -176,7 +224,7 @@ export const askNames = internalAction({
         continue
       }
       const taken = await ctx.runMutation(internal.groceryCategories.takeBudget, {})
-      if (!taken) throw new Error('daily grocery AI budget spent')
+      if (taken !== 'taken') throw new Error('daily grocery AI budget spent')
       answers.push({ name, aisle: await askGroceryAisle(name, apiKey) })
     }
     return answers

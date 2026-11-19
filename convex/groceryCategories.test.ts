@@ -265,6 +265,31 @@ describe('aisle on add', () => {
     expect(await t.run((ctx) => ctx.db.query('groceryCategoryCache').collect())).toEqual([])
   })
 
+  test('when only the asking Group is out of questions, a waiting Group asks instead', async () => {
+    const { t, groups } = await seed()
+    const fetchMock = modelAnswers('pasta_world')
+    const day = new Date().toISOString().slice(0, 10)
+    const asker = await addItem(t, 0, groups[0].groceries, 'doenjang')
+    const waiter = await addItem(t, 1, groups[1].groceries, 'doenjang')
+    // The asking Group's share runs out before its question goes.
+    await t.run(async (ctx) => {
+      await ctx.db.insert('groceryAiGroupUsage', {
+        groupId: groups[0].groupId,
+        day,
+        count: GROCERY_AI_GROUP_DAILY_BUDGET,
+      })
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(await categoryOf(t, waiter)).toBe('pasta_world')
+    expect(await categoryOf(t, asker)).toBe('pasta_world')
+    const usage = await t.run((ctx) => ctx.db.query('groceryAiGroupUsage').collect())
+    expect(usage.find((row) => row.groupId === groups[1].groupId)?.count).toBe(1)
+    expect(usage.find((row) => row.groupId === groups[0].groupId)?.count).toBe(
+      GROCERY_AI_GROUP_DAILY_BUDGET,
+    )
+  })
+
   test('items waiting on a question move when the answer comes in, however late', async () => {
     const { t, groups } = await seed()
     let answer: (value: unknown) => void = () => {}

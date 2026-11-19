@@ -39,6 +39,16 @@ describe('grocery recognition eval', () => {
     expect(runGroceryEval(holdout, groceryDictionary()).accuracy).toBeGreaterThanOrEqual(0.91)
   })
 
+  // APP-368: the rules of that change were drawn partly from misses in the
+  // holdout fifth, so it is no longer unseen. `freshLines.txt` is: written by
+  // a separate agent that saw only the aisle guide and the unit list, scored
+  // once (96.0% before APP-368, 98.5% after) and never tuned on.
+  it('places at least 95% of the unseen fresh lines in the exact aisle', () => {
+    const fresh = parseEvalSet(fs.readFileSync(path.join(here, 'freshLines.txt'), 'utf8'))
+    expect(fresh.length).toBeGreaterThanOrEqual(200)
+    expect(runGroceryEval(fresh, groceryDictionary()).accuracy).toBeGreaterThanOrEqual(0.95)
+  })
+
   // Errands typed on the list ("kapper bellen") belong in Overig: a
   // dictionary that matches every stray piece of a word fails here.
   it('leaves at least 70% of the non-grocery lines in Overig', () => {
