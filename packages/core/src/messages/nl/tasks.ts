@@ -274,6 +274,7 @@ export const tasks = {
       upcoming: 'Niets gepland voor de komende 7 dagen.',
       unassigned: 'Elke taak heeft iemand.',
     },
+    fromAll: 'Uit alle lijsten',
     overdueCount: '{count} te laat',
     overdue: 'Te laat',
     yesterday: 'gisteren',

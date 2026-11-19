@@ -102,11 +102,10 @@ export const listByList = query({
  * The rules are `@gather/core/smart-lists`; the phone sorts these rows into
  * Today, Mine, Upcoming and Unassigned and adds its linked lists' rows.
  *
- * Bounded by indexes: per local list of the Group, only rows with no
- * `doneAt`, which are the open ones and the few checked before APP-310
- * stamped it. Never every task of the Group, so a grocery list's years of
- * checked items are not read. `today` is the caller's own day, so a phone
- * west of UTC sees its own Today.
+ * Bounded by indexes: per local list of the Group, only its open rows
+ * (`by_list_and_done`, APP-314). Never every task of the Group, so a grocery
+ * list's years of checked items are not read. `today` is the caller's own
+ * day, so a phone west of UTC sees its own Today.
  */
 export const smartLists = query({
   args: { groupSlug: v.string(), today: v.string() },
@@ -128,8 +127,8 @@ export const smartLists = query({
           }
           const open = await ctx.db
             .query('tasks')
-            .withIndex('by_list_and_done_at', (q) =>
-              q.eq('listId', list._id).eq('doneAt', undefined),
+            .withIndex('by_list_and_done', (q) =>
+              q.eq('listId', list._id).eq('done', false),
             )
             .collect()
           return open.filter((task) => inAnySmartList(task, of, scope))

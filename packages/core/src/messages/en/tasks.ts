@@ -328,6 +328,8 @@ export const tasks = {
       upcoming: 'Nothing due in the next 7 days.',
       unassigned: 'Every task has someone.',
     },
+    /** Under a smart list's count: its rows come from every list. */
+    fromAll: 'From all lists',
     /** The Today section's aside when any task is late. */
     overdueCount: '{count} overdue',
     overdue: 'Overdue',

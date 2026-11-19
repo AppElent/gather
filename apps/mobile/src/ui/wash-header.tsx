@@ -1,7 +1,7 @@
 /**
  * The top of a Module screen with no photo (`components/WashHeader`): the
  * group's wash behind the native large title, then the Module's `tile-l` and
- * a one-line summary.
+ * a one-line summary, with an optional muted line under it.
  *
  * It is the first thing *inside* the screen's scroll view, never above it: the
  * scroll view has to stay the screen's first subview for the large title to
@@ -31,6 +31,11 @@ export interface WashSummary {
   count: string
   /** What the count is of, in `muted`: the Group, a list, a child. */
   scope?: string
+  /**
+   * A muted line under the summary, one step smaller: where the count comes
+   * from when that is not the screen itself ("From all lists" on a smart list).
+   */
+  sub?: string
 }
 
 export function WashHeader({
@@ -53,15 +58,25 @@ export function WashHeader({
       />
       <View style={styles.row}>
         <ModuleTile group={group} glyph={glyph} size="l" />
-        <Text
-          testID="wash-summary"
-          style={[styles.summary, { color: tokens.ink }]}
-        >
-          <Text style={styles.count}>{summary.count}</Text>
-          {summary.scope ? (
-            <Text style={{ color: tokens.muted }}>{` · ${summary.scope}`}</Text>
+        <View style={styles.lines}>
+          <Text
+            testID="wash-summary"
+            style={[styles.summary, { color: tokens.ink }]}
+          >
+            <Text style={styles.count}>{summary.count}</Text>
+            {summary.scope ? (
+              <Text style={{ color: tokens.muted }}>{` · ${summary.scope}`}</Text>
+            ) : null}
+          </Text>
+          {summary.sub ? (
+            <Text
+              testID="wash-sub"
+              style={[styles.sub, { color: tokens.muted }]}
+            >
+              {summary.sub}
+            </Text>
           ) : null}
-        </Text>
+        </View>
       </View>
     </View>
   )
@@ -83,6 +98,8 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE[3] },
-  summary: { ...TYPE.subhead, flex: 1 },
+  lines: { flex: 1 },
+  summary: { ...TYPE.subhead },
+  sub: { ...TYPE.footnote },
   count: { ...TABULAR, fontWeight: '700' },
 })

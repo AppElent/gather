@@ -3,7 +3,7 @@
  * across every list of the Current Group.
  *
  * A Wash screen in the Tasks Module's `home` colours with the smart list's
- * glyph on the tile. Upcoming is in days — Overdue, then each day of the next
+ * glyph on the tile and "From all lists" under its count. Upcoming is in days — Overdue, then each day of the next
  * seven that has tasks — and the others are one list, nearest date first.
  * Rows behave exactly as inside a list (`SmartTaskRow`). Linked lists add
  * what they last answered and are never fetched from here (ADR-0021).
@@ -71,6 +71,7 @@ export function SmartList({ id }: { id: SmartListId }) {
           summary={{
             count: plural(locale, tasks.length, t.tasks.smart.count),
             scope: lowerFirst(words.subtitle),
+            sub: t.tasks.smart.fromAll,
           }}
         />
         <View style={styles.content}>
