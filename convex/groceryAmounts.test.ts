@@ -129,7 +129,7 @@ describe('adding with an amount', () => {
       unit: 'stuks',
     })
     expect(await row(t, id)).toMatchObject({
-      title: '3 lampjes',
+      title: '3 stuks lampjes',
       quantity: undefined,
       unit: undefined,
       category: undefined,

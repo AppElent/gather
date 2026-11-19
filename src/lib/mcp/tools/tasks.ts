@@ -141,7 +141,7 @@ export const taskTools = [
     name: 'update_task',
     title: 'Update task',
     description:
-      'Change a task, or mark it done or open again. Only the fields you pass change; dueDate, priority, labels, notes, quantity or unit set to null are cleared. quantity, unit and category apply to grocery lists only.',
+      'Change a task, or mark it done or open again. Only the fields you pass change; dueDate, priority, labels, notes, quantity or unit set to null are cleared. quantity, unit and category apply to grocery lists only and are ignored on other lists.',
     access: 'write',
     annotations: { idempotentHint: true },
     input: {

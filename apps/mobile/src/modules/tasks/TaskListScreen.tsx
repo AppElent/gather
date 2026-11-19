@@ -42,7 +42,7 @@ import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { WashHeader } from '../../ui/wash-header'
 import { Chip, priorityColor } from './components'
-import { GroceryAmount } from './GroceryFields'
+import { GroceryAmount, useGroceryAmountText } from './GroceryFields'
 import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
 import { AppearanceSheet } from './listFace'
 import { PackingProgress, UncheckAll } from './packing'
@@ -87,6 +87,7 @@ export function TaskList({
   const router = useRouter()
   const { list, tasks, today, refresh } = useTaskList(listId)
   const actions = useTaskActions()
+  const amountText = useGroceryAmountText()
 
   const [renamingList, setRenamingList] = useState(false)
   const [restyling, setRestyling] = useState(false)
@@ -191,6 +192,13 @@ export function TaskList({
         />
       }
       trailing={grocery ? <GroceryAmount task={task} /> : undefined}
+      label={
+        grocery
+          ? [task.title, amountText(task.quantity, task.unit)]
+              .filter(Boolean)
+              .join(', ')
+          : undefined
+      }
       onOpen={() => openTask(task)}
       menu={{
         reorder: true,

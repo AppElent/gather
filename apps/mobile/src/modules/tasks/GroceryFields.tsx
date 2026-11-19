@@ -124,6 +124,18 @@ function amountDraft(quantity: number | undefined, locale: string): string {
   }).format(quantity)
 }
 
+/**
+ * A typed amount as a number: digits with one optional decimal comma or
+ * point, above zero and within bounds, rounded as stored. Anything else
+ * ("1e3", "0x10", "") is not an amount.
+ */
+function parseAmount(text: string): number | undefined {
+  const typed = text.trim()
+  if (!/^\d+([.,]\d+)?$/.test(typed)) return undefined
+  const value = Number(typed.replace(',', '.'))
+  return isGroceryQuantity(value) ? roundGroceryQuantity(value) : undefined
+}
+
 /** The item screen's Amount and Aisle cards. */
 export function GroceryFields({
   task,
@@ -151,9 +163,15 @@ export function GroceryFields({
       .catch(() => haptics.actionFailed())
   }
 
+  // What the field holds now, typed but maybe not yet committed: a step or a
+  // unit tapped while typing starts from what was typed, not from before it.
+  const current = () => parseAmount(draft) ?? task.quantity
+
   const step = (direction: 1 | -1) => {
-    const next = stepGroceryQuantity(task.quantity, task.unit, direction)
-    if (next !== null) write(next, task.unit ?? null)
+    const next = stepGroceryQuantity(current(), task.unit, direction)
+    if (next === null) return
+    setDraft(amountDraft(next, locale))
+    write(next, task.unit ?? null)
   }
 
   const commitDraft = () => {
@@ -162,20 +180,20 @@ export function GroceryFields({
       if (task.quantity !== undefined) write(null, task.unit ?? null)
       return
     }
-    const value = Number(typed.replace(',', '.'))
-    if (!isGroceryQuantity(value)) {
+    const value = parseAmount(typed)
+    if (value === undefined) {
       // Not an amount: put back the one that was there.
       setDraft(amountDraft(task.quantity, locale))
       haptics.actionFailed()
       return
     }
-    const rounded = roundGroceryQuantity(value)
+    const rounded = value
     setDraft(amountDraft(rounded, locale))
     if (rounded !== task.quantity) write(rounded, task.unit ?? null)
   }
 
   const canDecrease =
-    writable && stepGroceryQuantity(task.quantity, task.unit, -1) !== null
+    writable && stepGroceryQuantity(current(), task.unit, -1) !== null
   const units =
     task.unit && !OFFERED_UNITS.includes(task.unit)
       ? [...OFFERED_UNITS, task.unit]
@@ -257,9 +275,8 @@ export function GroceryFields({
                 accessibilityState={{ selected: on, disabled: !writable }}
                 accessibilityLabel={words.units[unit].other}
                 disabled={!writable}
-                onPress={() =>
-                  on ? undefined : write(task.quantity ?? 1, unit)
-                }
+                hitSlop={{ top: 5, bottom: 5 }}
+                onPress={() => (on ? undefined : write(current() ?? 1, unit))}
                 style={({ pressed }) => [
                   styles.pill,
                   {

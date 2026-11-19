@@ -52,6 +52,7 @@ export function TaskRow({
   bar,
   meta,
   trailing,
+  label,
   chevron = false,
   onToggled,
 }: {
@@ -66,6 +67,8 @@ export function TaskRow({
   meta?: ReactNode
   /** What sits at the row's end, before any chevron: a grocery amount. */
   trailing?: ReactNode
+  /** What a screen reader says for the row, when more than the title. */
+  label?: string
   chevron?: boolean
   /** Whether the server took the tick. */
   onToggled?: (ok: boolean) => void
@@ -115,7 +118,7 @@ export function TaskRow({
             testID={`toggle-${task.id}`}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: task.done, disabled: !writable }}
-            accessibilityLabel={task.title}
+            accessibilityLabel={label ?? task.title}
             disabled={!writable}
             hitSlop={12}
             onPress={toggle}
@@ -126,7 +129,7 @@ export function TaskRow({
           <Pressable
             testID={`task-${task.id}`}
             accessibilityRole="button"
-            accessibilityLabel={task.title}
+            accessibilityLabel={label ?? task.title}
             android_ripple={{ color: tokens.surface2 }}
             onPress={onOpen}
             style={({ pressed }) => [
@@ -159,7 +162,7 @@ export function TaskRow({
           testID={`toggle-${task.id}`}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: task.done, disabled: !writable }}
-          accessibilityLabel={task.title}
+          accessibilityLabel={label ?? task.title}
           disabled={!writable}
           onPress={toggle}
           style={({ pressed }) => [styles.whole, pressed && styles.pressed]}

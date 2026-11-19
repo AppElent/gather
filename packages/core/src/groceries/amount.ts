@@ -41,9 +41,13 @@ export function groceryAddFields(line: string): GroceryAddFields {
   const parsed = parseGroceryLine(title)
   if (parsed.quantity === null && parsed.unit === null) return { title }
   if (!parsed.name) return { title }
+  // An amount no household buys keeps the whole line, rather than a unit
+  // without its number.
+  if (parsed.quantity !== null && !isGroceryQuantity(parsed.quantity))
+    return { title }
   return {
     title: parsed.name,
-    ...(parsed.quantity !== null && isGroceryQuantity(parsed.quantity)
+    ...(parsed.quantity !== null
       ? { quantity: roundGroceryQuantity(parsed.quantity) }
       : {}),
     ...(parsed.unit !== null ? { unit: parsed.unit } : {}),
@@ -63,7 +67,7 @@ export function groceryLineText(
 ): string {
   if (quantity === undefined && unit === undefined) return title
   const amount = String(quantity ?? 1)
-  if (unit === undefined || unit === 'stuks') return `${amount} ${title}`
+  if (unit === undefined) return `${amount} ${title}`
   return `${amount} ${unit} ${title}`
 }
 

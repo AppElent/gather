@@ -31,9 +31,12 @@ describe('groceryAddFields', () => {
     expect(groceryAddFields(line)).toEqual(fields)
   })
 
-  test('an amount past the largest one keeps the name and drops the amount', () => {
+  test('an amount past the largest one keeps the whole line', () => {
     expect(groceryAddFields(`${GROCERY_QUANTITY_MAX + 1} rijst`)).toEqual({
-      title: 'rijst',
+      title: `${GROCERY_QUANTITY_MAX + 1} rijst`,
+    })
+    expect(groceryAddFields('20000 g suiker')).toEqual({
+      title: '20000 g suiker',
     })
   })
 
@@ -96,7 +99,7 @@ describe('groceryLineText', () => {
       const parsed = parseGroceryLine(groceryLineText('appels', 3, unit))
       expect(parsed.name).toBe('appels')
       expect(parsed.quantity).toBe(3)
-      expect(parsed.unit ?? 'stuks').toBe(unit)
+      expect(parsed.unit).toBe(unit)
     }
   })
 })
