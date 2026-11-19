@@ -329,6 +329,7 @@ export const en = {
       invite: {
         title: coreEn.settings.group.inviteCode,
         note: coreEn.settings.group.inviteCodeNote,
+        failed: coreEn.settings.group.inviteCodeFailed,
         share: 'Share code',
         shareMessage:
           'Join {group} on Gather: under Groups, choose “{join}” and enter {code}.',
@@ -336,7 +337,8 @@ export const en = {
       /**
        * Leaving the Current Group, in the web's words. The server refuses the
        * only admin while anyone else is still in it (`groups.leaveGroup`); the
-       * phone cannot hand the role on, so the note sends them to the web.
+       * phone cannot hand the role on, so the note sends them to the web. The
+       * last Member deletes the Group instead (`lastMember`).
        */
       leave: {
         button: coreEn.settings.group.leaveButton,
@@ -344,12 +346,13 @@ export const en = {
         body: coreEn.settings.group.leaveBody,
         confirm: coreEn.settings.group.leaveConfirm,
         failed: coreEn.settings.group.leaveFailed,
+        lastMember: coreEn.settings.group.lastMember,
         onlyAdmin:
           'You are the only admin. Make somebody else an admin in this group’s settings on the web, then leave.',
       },
       /**
        * Deleting the Current Group, in the web's words (`settings.group`). The
-       * server allows it only to an admin who is its last Member.
+       * server allows it only to its last Member.
        */
       delete: {
         button: coreEn.settings.group.deleteButton,

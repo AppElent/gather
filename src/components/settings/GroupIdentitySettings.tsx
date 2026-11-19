@@ -36,6 +36,11 @@ export interface GroupIdentitySettingsProps {
  * Leave's refusal names a fix on this page (make somebody else an admin), but
  * nothing on the web removes another Member, so a refusal to delete would only
  * explain a dead end after asking about it.
+ *
+ * The last Member is not offered Leave at all: walking out would leave a Group
+ * with no Members, so they are offered Delete in its place, whatever their
+ * role. Which of these applies is the server's answer (`groups.leaveStatus`),
+ * the same rule `leaveGroup` and `deleteGroup` hold to.
  */
 export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
   const navigate = useNavigate()
@@ -57,12 +62,9 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
   )
 
   const isAdmin = group.role === 'admin'
-  // The same subscription as the Members card below, so no second read.
-  const members = useQuery(
-    api.groups.members,
-    isAdmin ? { slug: group.slug } : 'skip',
-  )
-  const othersRemain = members !== undefined && members.length > 1
+  const exits = useQuery(api.groups.leaveStatus, { slug: group.slug })
+  const lastMember = exits?.leave === 'last-member'
+  const othersRemain = exits !== undefined && !exits.canDelete
 
   async function submitRename(e: React.FormEvent) {
     e.preventDefault()
@@ -172,43 +174,45 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
 
         <InviteCode slug={group.slug} />
 
-        <div className="grid gap-2">
-          <span className="text-sm font-semibold">{group_.leave}</span>
-          <div>
-            <button
-              type="button"
-              className={buttonClass}
-              onClick={() =>
-                confirm({
-                  title: fmt(group_.leaveTitle, { group: group.name }),
-                  body: group_.leaveBody,
-                  confirmLabel: group_.leaveConfirm,
-                  // The one refusal a reader can act on is the last admin's,
-                  // and the server's message names the fix; Members below is
-                  // where it happens.
-                  errorFallback: group_.leaveFailed,
-                  run: async () => {
-                    await leave({ groupId: group._id })
-                    await navigate(linkTo('groups'))
-                  },
-                })
-              }
-            >
-              {group_.leaveButton}
-            </button>
+        {lastMember ? null : (
+          <div className="grid gap-2">
+            <span className="text-sm font-semibold">{group_.leave}</span>
+            <div>
+              <button
+                type="button"
+                className={buttonClass}
+                onClick={() =>
+                  confirm({
+                    title: fmt(group_.leaveTitle, { group: group.name }),
+                    body: group_.leaveBody,
+                    confirmLabel: group_.leaveConfirm,
+                    // The one refusal a reader can act on is the last admin's,
+                    // and the server's message names the fix; Members below is
+                    // where it happens.
+                    errorFallback: group_.leaveFailed,
+                    run: async () => {
+                      await leave({ groupId: group._id })
+                      await navigate(linkTo('groups'))
+                    },
+                  })
+                }
+              >
+                {group_.leaveButton}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
-        {isAdmin ? (
+        {isAdmin || lastMember ? (
           <div className="grid gap-2">
             <span className="text-sm font-semibold">{group_.delete}</span>
             <div>
               <button
                 type="button"
                 className={dangerButtonClass}
-                disabled={members === undefined || othersRemain}
+                disabled={exits === undefined || othersRemain}
                 aria-describedby={
-                  othersRemain ? 'group-delete-note' : undefined
+                  othersRemain || lastMember ? 'group-delete-note' : undefined
                 }
                 onClick={() =>
                   confirm({
@@ -227,12 +231,12 @@ export function GroupIdentitySettings({ group }: GroupIdentitySettingsProps) {
                 {group_.deleteButton}
               </button>
             </div>
-            {othersRemain ? (
+            {othersRemain || lastMember ? (
               <p
                 id="group-delete-note"
                 className="m-0 text-xs text-[var(--app-muted)]"
               >
-                {group_.deleteOthersFirst}
+                {lastMember ? group_.lastMember : group_.deleteOthersFirst}
               </p>
             ) : null}
           </div>
