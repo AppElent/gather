@@ -1,3 +1,10 @@
+import {
+  type GroceryUnit,
+  groceryAddFields,
+  groceryLineText,
+  isGroceryQuantity,
+  roundGroceryQuantity,
+} from '@gather/core/groceries'
 import { normalizeTaskUrl } from '@gather/core/task-lists'
 import { ConvexError, v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
@@ -9,7 +16,10 @@ import {
   recogniseGroceryTitle,
   recordGroceryCorrection,
 } from './lib/groceryCategories'
-import { groceryAisleValidator } from './lib/groceryFields'
+import {
+  groceryAisleValidator,
+  groceryUnitValidator,
+} from './lib/groceryFields'
 import {
   findInGroup,
   requireGroupBySlug,
@@ -122,24 +132,45 @@ export const add = mutation({
     dueDate: v.optional(v.string()),
     priority: v.optional(taskPriorityValidator),
     labels: v.optional(v.array(v.string())),
+    // A grocery item's amount (APP-309), already taken off the title by the
+    // client ("2 pakken melk" arrives as "melk", 2, `pak`). A client that
+    // sends none — an installed app from before amounts — keeps its line as
+    // the title, exactly as before.
+    quantity: v.optional(v.number()),
+    unit: v.optional(groceryUnitValidator),
     idempotencyKey: idempotencyKeyValidator,
   },
   handler: async (ctx, args) => {
-    const { user, group } = await requireLocalList(
+    const { user, group, doc: list } = await requireLocalList(
       ctx,
       args.groupSlug,
       args.listId,
     )
+    const quantity =
+      args.quantity === undefined ? undefined : checkedQuantity(args.quantity)
+    const onGroceryList = isGroceryList(group, list)
+    // A list without amounts keeps an amount it was sent in the title, so
+    // nothing a connected app wrote is dropped.
+    const title = onGroceryList
+      ? args.title
+      : groceryLineText(args.title, quantity, args.unit)
     return await createOnce(ctx, user._id, 'tasks', args.idempotencyKey, async () => {
       const existing = await tasksOfList(ctx, args.listId)
-      // An item on the Group's grocery list gets its aisle here, so every
-      // client — installed apps that know nothing of aisles too — has it.
-      const grocery = isGroceryList(group, args.listId)
-        ? await recogniseGroceryTitle(ctx, group._id, args.title, existing)
+      // An item on a grocery list gets its aisle here, so every client —
+      // installed apps that know nothing of aisles too — has it. It is
+      // recognised as the whole line: "2 blik tomaten" is in tins, not with
+      // the fresh tomatoes.
+      const grocery = onGroceryList
+        ? await recogniseGroceryTitle(
+            ctx,
+            group._id,
+            groceryLineText(title, quantity, args.unit),
+            existing,
+          )
         : null
       const taskId = await ctx.db.insert('tasks', {
         listId: args.listId,
-        title: args.title,
+        title,
         done: false,
         dueDate: args.dueDate,
         priority: args.priority,
@@ -147,6 +178,8 @@ export const add = mutation({
         createdBy: user._id,
         order: nextOrder(existing),
         ...(grocery ? { category: grocery.aisle } : {}),
+        ...(onGroceryList && quantity !== undefined ? { quantity } : {}),
+        ...(onGroceryList && args.unit !== undefined ? { unit: args.unit } : {}),
       })
       if (grocery) await askAiOnce(ctx, grocery, taskId)
       return taskId
@@ -180,20 +213,31 @@ export const update = mutation({
     // The aisle a Member moved a grocery item to; it becomes the Group's own
     // choice for the item's name (APP-353).
     category: v.optional(groceryAisleValidator),
+    // A grocery item's amount and unit (APP-309); null clears either.
+    quantity: v.optional(v.union(v.number(), v.null())),
+    unit: v.optional(v.union(groceryUnitValidator, v.null())),
   },
   handler: async (ctx, args) => {
-    const { task, group, user } = await requireEditableTaskInGroup(
-      ctx,
-      args.groupSlug,
-      args.taskId,
-    )
+    const {
+      task,
+      group,
+      user,
+      doc: list,
+    } = await requireEditableTaskInGroup(ctx, args.groupSlug, args.taskId)
     const { taskId, title, dueDate, priority, labels, notes, done } = args
     const url = args.url === undefined ? undefined : checkedUrl(args.url)
     const priceCents =
       args.priceCents === undefined ? undefined : checkedPrice(args.priceCents)
-    const onGroceryList = isGroceryList(group, task.listId)
-    // An aisle means something only on the grocery list.
+    const onGroceryList = isGroceryList(group, list)
+    // An aisle and an amount mean something only on a grocery list.
     let category = onGroceryList ? args.category : undefined
+    const quantity =
+      !onGroceryList || args.quantity === undefined
+        ? undefined
+        : args.quantity === null
+          ? null
+          : checkedQuantity(args.quantity)
+    const unit = onGroceryList ? args.unit : undefined
     let askAi: Awaited<ReturnType<typeof recogniseGroceryTitle>> | null = null
     if (onGroceryList && category !== undefined) {
       await recordGroceryCorrection(
@@ -208,7 +252,11 @@ export const update = mutation({
       askAi = await recogniseGroceryTitle(
         ctx,
         group._id,
-        title,
+        groceryLineText(
+          title,
+          (quantity === undefined ? task.quantity : quantity) ?? undefined,
+          (unit === undefined ? task.unit : unit) ?? undefined,
+        ),
         await tasksOfList(ctx, task.listId),
         task._id,
       )
@@ -216,6 +264,8 @@ export const update = mutation({
     }
     await ctx.db.patch(taskId, {
       ...(category !== undefined ? { category } : {}),
+      ...(quantity !== undefined ? { quantity: quantity ?? undefined } : {}),
+      ...(unit !== undefined ? { unit: unit ?? undefined } : {}),
       ...(url !== undefined ? { url: url ?? undefined } : {}),
       ...(priceCents !== undefined
         ? { priceCents: priceCents ?? undefined }
@@ -251,6 +301,14 @@ function checkedPrice(cents: number | null): number | null {
     throw new ConvexError('That is not a price')
   }
   return cents
+}
+
+/** A grocery item's amount as stored: above zero, bounded, three decimals. */
+function checkedQuantity(quantity: number): number {
+  if (!isGroceryQuantity(quantity)) {
+    throw new ConvexError('That is not an amount')
+  }
+  return roundGroceryQuantity(quantity)
 }
 
 /**
@@ -426,16 +484,32 @@ export const moveToList = mutation({
   handler: async (ctx, args) => {
     const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
     if (task.listId === args.listId) return null
-    const { group } = await requireLocalList(ctx, args.groupSlug, args.listId)
+    const { group, doc: list } = await requireLocalList(
+      ctx,
+      args.groupSlug,
+      args.listId,
+    )
     const existing = await tasksOfList(ctx, args.listId)
-    // Onto the grocery list it needs an aisle; off it the aisle means nothing.
-    const grocery = isGroceryList(group, args.listId)
-      ? await recogniseGroceryTitle(ctx, group._id, task.title, existing)
+    const onGroceryList = isGroceryList(group, list)
+    // Off a grocery list the amount goes back into the title ("2 pak melk"),
+    // so it stays readable; onto one, an amount in the title is read out of
+    // it again, and the item needs an aisle. The aisle means nothing off it.
+    const line = groceryLineText(task.title, task.quantity, task.unit)
+    const fields = onGroceryList
+      ? task.quantity !== undefined || task.unit !== undefined
+        ? { title: task.title, quantity: task.quantity, unit: task.unit }
+        : groceryAddFields(task.title)
+      : { title: line, quantity: undefined, unit: undefined }
+    const grocery = onGroceryList
+      ? await recogniseGroceryTitle(ctx, group._id, line, existing)
       : null
     await ctx.db.patch(task._id, {
       listId: args.listId,
       order: nextOrder(existing),
       category: grocery?.aisle,
+      title: fields.title,
+      quantity: fields.quantity,
+      unit: fields.unit satisfies GroceryUnit | undefined,
     })
     if (grocery) await askAiOnce(ctx, grocery, task._id)
     return null

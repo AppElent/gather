@@ -25,6 +25,7 @@ import {
 import {
   groceryAisleValidator,
   groceryCacheSourceValidator,
+  groceryUnitValidator,
 } from './lib/groceryFields'
 import { groupRoleValidator } from './lib/groupAccess'
 import { mealSlotValidator, quickLimitValidator } from './lib/kitchen'
@@ -196,6 +197,14 @@ export default defineSchema({
      * other lists and on items added before recognition existed.
      */
     category: v.optional(groceryAisleValidator),
+    /**
+     * A grocery item's amount and unit (APP-309): "2 pakken melk" is the
+     * title "melk" with 2 `pak`. Only on grocery lists, and absent on items
+     * added without an amount and on every item from before amounts: those
+     * read as one, with no unit shown.
+     */
+    quantity: v.optional(v.number()),
+    unit: v.optional(groceryUnitValidator),
   }).index('by_list', ['listId']),
 
   /**

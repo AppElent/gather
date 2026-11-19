@@ -61,7 +61,7 @@ export function QuickAddTask({
     setSaving(true)
     setFailed(false)
     try {
-      await addTask(target._id, trimmed)
+      await addTask(target._id, trimmed, target.grocery ?? false)
       haptics.itemSaved()
       setTitle('')
       onSaved(trimmed, target.name)

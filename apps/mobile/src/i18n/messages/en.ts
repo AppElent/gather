@@ -962,6 +962,7 @@ export const en = {
     starters: coreEn.tasks.starters,
     packing: coreEn.tasks.packing,
     wishlist: coreEn.tasks.wishlist,
+    grocery: coreEn.tasks.grocery,
     title: 'Tasks',
 
     /** The Add tab's "Add a task": a title, a list, and a save. */

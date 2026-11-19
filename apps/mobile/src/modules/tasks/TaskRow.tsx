@@ -26,6 +26,7 @@ import { UI_ICONS } from '../../theme/icons'
 import { SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { useInsetSeparator } from '../../ui/inset-list'
 import { Checkbox } from './components'
+import { GroceryPreview } from './GroceryFields'
 import { TASK_ICONS } from './icons'
 import { useTaskActions } from './store'
 import { taskMenuActions } from './taskMenu'
@@ -50,6 +51,7 @@ export function TaskRow({
   menu,
   bar,
   meta,
+  trailing,
   chevron = false,
   onToggled,
 }: {
@@ -62,6 +64,8 @@ export function TaskRow({
   bar?: string
   /** What sits under the title. */
   meta?: ReactNode
+  /** What sits at the row's end, before any chevron: a grocery amount. */
+  trailing?: ReactNode
   chevron?: boolean
   /** Whether the server took the tick. */
   onToggled?: (ok: boolean) => void
@@ -138,6 +142,7 @@ export function TaskRow({
               {title}
               {meta}
             </View>
+            {trailing}
             {chevron ? (
               <UI_ICONS.ChevronRight
                 size={17}
@@ -165,6 +170,7 @@ export function TaskRow({
               {title}
               {meta}
             </View>
+            {trailing}
           </View>
         </Pressable>
       )}
@@ -261,9 +267,12 @@ export function TaskRow({
 export function TaskComposer({
   listId,
   placeholder,
+  grocery = false,
 }: {
   listId: string
   placeholder: string
+  /** A grocery list: the amount is read off the line, and shown while typed. */
+  grocery?: boolean
 }) {
   const tokens = useTokens('home')
   const actions = useTaskActions()
@@ -276,13 +285,13 @@ export function TaskComposer({
     // Cleared first: the row appears the moment it is accepted, and a second
     // tap cannot submit the same line twice while the write is in flight.
     setDraft('')
-    actions.addTask(listId, title).then(
+    actions.addTask(listId, title, grocery).then(
       () => haptics.itemSaved(),
       () => haptics.actionFailed(),
     )
   }
 
-  return (
+  const field = (
     <View style={styles.row}>
       <View style={styles.box}>
         <UI_ICONS.Plus
@@ -304,6 +313,13 @@ export function TaskComposer({
         accessibilityLabel={placeholder}
         style={[styles.composerInput, separator, { color: tokens.ink }]}
       />
+    </View>
+  )
+  if (!grocery) return field
+  return (
+    <View>
+      {field}
+      <GroceryPreview line={draft} />
     </View>
   )
 }

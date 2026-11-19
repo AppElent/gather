@@ -1,3 +1,4 @@
+import type { GroceryAisle, GroceryUnit } from '../../groceries'
 import type {
   TaskListColor,
   TaskListIcon,
@@ -135,6 +136,69 @@ export const tasks = {
     pricePlaceholder: '0.00',
     openLink: 'Open link',
     invalidLink: 'That is not a web address.',
+  },
+
+  /**
+   * A grocery item's amount and aisle (APP-309; `designs/groceries/README.md`,
+   * "Recognition" and "Item sheet"). Unit ids are Dutch and fixed; these are
+   * the words they are shown in.
+   */
+  grocery: {
+    amount: 'Amount',
+    decrease: 'Less',
+    increase: 'More',
+    clearAmount: 'No amount',
+    unit: 'Unit',
+    aisle: 'Aisle',
+    /** Under the composer while a line is typed. */
+    recognised: 'Recognised without AI, also offline',
+    aisles: {
+      produce: 'Fruit and vegetables',
+      bakery: 'Bread and bakery',
+      dairy: 'Dairy and eggs',
+      cheese_deli: 'Cheese and deli',
+      meat_fish: 'Meat and fish',
+      pasta_world: 'Pasta, rice and world food',
+      tins_sauces: 'Tins and sauces',
+      breakfast: 'Breakfast and spreads',
+      snacks: 'Biscuits, sweets and crisps',
+      frozen: 'Frozen',
+      drinks: 'Drinks',
+      care_baby: 'Toiletries and baby',
+      household: 'Household',
+      other: 'Other',
+    } satisfies Record<GroceryAisle, string>,
+    units: {
+      stuks: { one: 'piece', other: 'pieces' },
+      pak: { one: 'pack', other: 'packs' },
+      fles: { one: 'bottle', other: 'bottles' },
+      pot: { one: 'jar', other: 'jars' },
+      zak: { one: 'bag', other: 'bags' },
+      tros: { one: 'bunch', other: 'bunches' },
+      bos: { one: 'bunch', other: 'bunches' },
+      blik: { one: 'tin', other: 'tins' },
+      doos: { one: 'box', other: 'boxes' },
+      bak: { one: 'tub', other: 'tubs' },
+      krat: { one: 'crate', other: 'crates' },
+      rol: { one: 'roll', other: 'rolls' },
+      net: { one: 'net', other: 'nets' },
+      krop: { one: 'head', other: 'heads' },
+      stronk: { one: 'head', other: 'heads' },
+      tube: { one: 'tube', other: 'tubes' },
+      reep: { one: 'bar', other: 'bars' },
+      plak: { one: 'slice', other: 'slices' },
+      bol: { one: 'bulb', other: 'bulbs' },
+      teentje: { one: 'clove', other: 'cloves' },
+      el: { one: 'tbsp', other: 'tbsp' },
+      tl: { one: 'tsp', other: 'tsp' },
+      snuf: { one: 'pinch', other: 'pinches' },
+      g: { one: 'g', other: 'g' },
+      kg: { one: 'kg', other: 'kg' },
+      ml: { one: 'ml', other: 'ml' },
+      cl: { one: 'cl', other: 'cl' },
+      dl: { one: 'dl', other: 'dl' },
+      l: { one: 'l', other: 'l' },
+    } satisfies Record<GroceryUnit, { one: string; other: string }>,
   },
 
   /** The ⋯ menu's appearance entry and its sheet. */

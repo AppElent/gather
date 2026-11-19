@@ -38,11 +38,16 @@ export function groceryTitleKey(title: string): string {
   return groceryKey(parseGroceryLine(title).name)
 }
 
+/**
+ * Whether items on a list are groceries, with an aisle and an amount: the
+ * Group's grocery list (what the Groceries Module opens), and any other list
+ * made as a grocery list (APP-306 kind `groceries`, APP-309).
+ */
 export function isGroceryList(
   group: Doc<'groups'>,
-  listId: Id<'taskLists'>,
+  list: Pick<Doc<'taskLists'>, '_id' | 'kind'>,
 ): boolean {
-  return group.groceryListId === listId
+  return group.groceryListId === list._id || list.kind === 'groceries'
 }
 
 export async function findGroceryCache(ctx: QueryCtx, name: string) {

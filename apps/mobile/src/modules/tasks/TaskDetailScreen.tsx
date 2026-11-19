@@ -35,6 +35,7 @@ import { RADIUS, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { Card } from '../../ui/card'
 import { useDebouncedText } from '../../ui/use-debounced-text'
 import { Checkbox, Chip, priorityColor } from './components'
+import { GroceryFields } from './GroceryFields'
 import { TASK_ICONS } from './icons'
 import { useTaskActions, useTaskState } from './store'
 import { dueLabel, isOverdue } from './taskDates'
@@ -135,6 +136,9 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
         {list && hasLinkAndPrice(list.kind) ? (
           <WishlistFields task={task} writable={list.writable} />
+        ) : null}
+        {list?.grocery ? (
+          <GroceryFields task={task} writable={list.writable} />
         ) : null}
 
         <Card>

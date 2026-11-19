@@ -3,7 +3,7 @@ import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { action, internalQuery, mutation, query } from './_generated/server'
 import { getGatedIdentity } from './lib/connectedApps'
-import { recogniseGroceryTitle } from './lib/groceryCategories'
+import { isGroceryList, recogniseGroceryTitle } from './lib/groceryCategories'
 import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
 import { deleteTaskList } from './lib/groupCascade'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
@@ -41,6 +41,9 @@ export const list = query({
         kind: l.kind ?? 'plain',
         icon: l.icon ?? null,
         color: l.color ?? null,
+        // APP-309: whether its items are groceries, with an amount and an
+        // aisle — the Group's grocery list, or any list made as one.
+        grocery: isGroceryList(group, l),
         // Whether this list can be added to from Gather: only a local list
         // has `tasks` rows, and no provider write path exists (ADR-0021).
         // Callers that offer a list as somewhere to write — the baby log's
