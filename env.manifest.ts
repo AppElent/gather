@@ -75,6 +75,24 @@ export const ENTRIES = [
   },
 
   {
+    key: 'clerkWebhookSecret',
+    infisicalKey: 'clerk-webhook-secret',
+    description:
+      'Signing secret (whsec_…) of the Clerk webhook endpoint that sends user.deleted to POST /clerk/webhook on this Convex deployment (APP-397); each Clerk instance has its own. Without it the route refuses every request and a deleted login leaves its Gather data behind.',
+    // Optional so a deploy never fails on it: production gets it only after
+    // the Clerk production webhook is set up (APP-392).
+    optional: true,
+    secret: true,
+    lands: {
+      'convex-functions': {
+        name: 'CLERK_WEBHOOK_SECRET',
+        // Not `preview`: a per-PR backend has no Clerk endpoint pointed at it.
+        environments: ['local', 'production'],
+      },
+    },
+  },
+
+  {
     key: 'mcpResourceUrls',
     infisicalKey: 'mcp-resource-urls',
     description:

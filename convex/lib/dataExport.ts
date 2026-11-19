@@ -111,6 +111,10 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
     omit: ['clerkId', 'deletedAt'],
   },
   aiUsage: { scope: 'account', index: 'by_user_and_day' },
+  // A mirror of the login's Apple links, kept by Clerk's webhook so the web
+  // can revoke Sign in with Apple (APP-388): Clerk's data, not Gather's, and
+  // an identifier like the Clerk id the export never writes.
+  appleSignInLinks: { exclude: 'bookkeeping' },
   // Retry receipts for connected apps' creates; the rows they point at go out.
   idempotencyKeys: { exclude: 'bookkeeping' },
   // A phone's push token and the sends queued for it: delivery plumbing, and

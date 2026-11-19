@@ -14,6 +14,7 @@
 import { useAuth } from '@clerk/expo'
 import { Redirect, Stack, useNavigationContainerRef } from 'expo-router'
 import { useCallback } from 'react'
+import { Alert } from 'react-native'
 
 import { ConvexSessionGate } from '../../src/auth/ConvexSessionGate'
 import { useSignOut } from '../../src/auth/useSignOut'
@@ -26,6 +27,7 @@ import { PushPermissionProvider } from '../../src/features/notifications/push/pu
 import { PushTaskDone } from '../../src/features/notifications/push/push-task-done'
 import { GroupProvider } from '../../src/group/GroupProvider'
 import { groupUnwindActions, type NavState } from '../../src/group/groupUnwind'
+import { useI18n } from '../../src/i18n'
 import { useTokens } from '../../src/theme/tokens'
 
 export const unstable_settings = { anchor: '(tabs)' }
@@ -34,6 +36,7 @@ export default function AppLayout() {
   const { isSignedIn } = useAuth()
   const tokens = useTokens()
   const signOut = useSignOut()
+  const { t } = useI18n()
   const navigation = useNavigationContainerRef()
   // ADR-0015: a switch unwinds every Group-scoped tab stack. By resetting
   // their state, not by re-keying them — that crashes Android (#235).
@@ -42,10 +45,18 @@ export default function AppLayout() {
     for (const action of groupUnwindActions(state)) navigation.dispatch(action)
   }, [navigation])
 
+  // Signing out unmounts all of this, so the confirmation is an alert, which
+  // outlives it and lands on the welcome screen (APP-397).
+  const sayGatherDataDeleted = useCallback(() => {
+    const words = t.account.deleteAccount.dataOnly
+    Alert.alert(words.doneTitle, words.doneBody)
+  }, [t])
+
   if (!isSignedIn) return <Redirect href="/" />
 
   return (
     <AccountDeleteProvider
+      onGatherDataDeleted={sayGatherDataDeleted}
       underway={({ state, retryLogin }) => (
         <AccountDeleteUnderwayScreen
           state={state}

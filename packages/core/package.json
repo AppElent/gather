@@ -7,6 +7,7 @@
     "./account-deletion": "./src/accountDeletion.ts",
     "./ai-limit": "./src/aiLimit.ts",
     "./appearance": "./src/appearance.ts",
+    "./apple-sign-in": "./src/appleSignIn.ts",
     "./baby-age": "./src/babyAge.ts",
     "./baby-events": "./src/babyEvents.ts",
     "./barcodes": "./src/barcodes.ts",

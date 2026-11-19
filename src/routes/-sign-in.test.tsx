@@ -9,6 +9,7 @@ const authState = vi.hoisted(() => ({
 }))
 
 const navigateMock = vi.hoisted(() => vi.fn())
+const search = vi.hoisted(() => ({ value: {} as { deleted?: 'gather' } }))
 
 vi.mock('@clerk/react', () => ({
   useAuth: () => authState,
@@ -41,6 +42,7 @@ vi.mock('@tanstack/react-router', () => ({
     </a>
   ),
   useNavigate: () => navigateMock,
+  useSearch: () => search.value,
 }))
 
 test('redirects signed-in users away from the sign-in page', () => {
@@ -62,4 +64,27 @@ test('keeps form success navigation to the post-auth route', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
   expect(navigateMock).toHaveBeenCalledWith({ to: '/' })
+})
+
+test('says Gather data is deleted and the login still works, after APP-397', () => {
+  authState.isLoaded = true
+  authState.isSignedIn = false
+  search.value = { deleted: 'gather' }
+
+  renderWithI18n(<SignInPage />)
+
+  expect(screen.getByTestId('gather-data-deleted').textContent).toContain(
+    'Foundry, Fairway and Arcade Club',
+  )
+  search.value = {}
+})
+
+test('says nothing about deletion on a plain sign-in', () => {
+  authState.isLoaded = true
+  authState.isSignedIn = false
+  search.value = {}
+
+  renderWithI18n(<SignInPage />)
+
+  expect(screen.queryByTestId('gather-data-deleted')).toBeNull()
 })

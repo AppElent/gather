@@ -2,7 +2,10 @@ import { fireEvent, screen, within } from '@testing-library/react'
 import { ConvexError } from 'convex/values'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
-import type { AccountDeleteState } from './AccountDeleteProvider'
+import {
+  type AccountDeleteState,
+  AppleNotRevoked,
+} from './AccountDeleteProvider'
 import { AccountDeleteSettings } from './AccountDeleteSettings'
 
 /**
@@ -27,9 +30,13 @@ const state = vi.hoisted(() => ({
   preview: undefined as Preview | undefined,
   deletion: { step: 'idle' } as AccountDeleteState,
   start: vi.fn(),
+  continueWithApple: vi.fn(),
+  cancelApple: vi.fn(),
 }))
 
 vi.mock('@clerk/react', () => ({ useUser: () => ({ user: state.user }) }))
+const preloadAppleJs = vi.hoisted(() => vi.fn())
+vi.mock('../../lib/auth/appleRevocation', () => ({ preloadAppleJs }))
 vi.mock('convex/react', () => ({ useQuery: () => state.preview }))
 vi.mock('../../../convex/_generated/api', () => ({
   api: { accounts: { deletionPreview: 'accounts:deletionPreview' } },
@@ -41,13 +48,16 @@ vi.mock('./AccountDeleteProvider', async (importOriginal) => {
     useAccountDelete: () => ({
       state: state.deletion,
       start: state.start,
+      continueWithApple: state.continueWithApple,
+      cancelApple: state.cancelApple,
       retryLogin: vi.fn(),
       signOut: vi.fn(),
     }),
   }
 })
 
-const submit = () => screen.getByTestId('account-delete-submit')
+const dataOnly = () => screen.getByTestId('account-delete-gatherData-submit')
+const whole = () => screen.getByTestId('account-delete-wholeAccount-submit')
 
 beforeEach(() => {
   state.user = {
@@ -61,13 +71,16 @@ beforeEach(() => {
   }
   state.deletion = { step: 'idle' }
   state.start.mockReset()
+  state.continueWithApple.mockReset()
+  state.cancelApple.mockReset()
+  preloadAppleJs.mockReset()
 })
 
 describe('before asking', () => {
   test('names the Groups that go and the Groups that stay', () => {
     renderWithI18n(<AccountDeleteSettings />)
 
-    const goes = screen.getByRole('heading', { name: 'Deleted with your account' })
+    const goes = screen.getByRole('heading', { name: 'Deleted' })
       .parentElement as HTMLElement
     const kept = screen.getByRole('heading', { name: 'Left, not deleted' })
       .parentElement as HTMLElement
@@ -76,53 +89,85 @@ describe('before asking', () => {
     expect(screen.getByRole('heading', { name: 'Danger zone' })).toBeInTheDocument()
   })
 
+  test('offers Gather data first, then the whole account, naming the other apps', () => {
+    renderWithI18n(<AccountDeleteSettings />)
+
+    const choices = screen.getAllByRole('group')
+    expect(choices.map((c) => c.getAttribute('aria-labelledby'))).toEqual([
+      'account-delete-gatherData-title',
+      'account-delete-wholeAccount-title',
+    ])
+    expect(
+      within(choices[0]!).getByRole('heading', {
+        name: 'Delete Gather data only',
+      }),
+    ).toBeInTheDocument()
+    expect(choices[0]!.textContent).toContain('Your AppElent login stays')
+    expect(
+      within(choices[1]!).getByRole('heading', {
+        name: 'Delete my whole AppElent account',
+      }),
+    ).toBeInTheDocument()
+    expect(choices[1]!.textContent).toContain(
+      'Also deletes your AppElent login, and with it your data in Gather, Foundry, Fairway and Arcade Club.',
+    )
+  })
+
   test('says so when there are no Groups', () => {
     state.preview = { email: 'sam@example.com', deleted: [], kept: [] }
     renderWithI18n(<AccountDeleteSettings />)
 
     expect(screen.getByText('You are not in any Groups.')).toBeInTheDocument()
-    expect(submit()).toBeEnabled()
+    expect(dataOnly()).toBeEnabled()
+    expect(whole()).toBeEnabled()
   })
 
-  test('waits for the preview before offering the button', () => {
+  test('waits for the preview before offering either button', () => {
     state.preview = undefined
     renderWithI18n(<AccountDeleteSettings />)
 
-    expect(submit()).toBeDisabled()
+    expect(dataOnly()).toBeDisabled()
+    expect(whole()).toBeDisabled()
   })
 
-  test('withholds the button when Clerk does not allow self-deletion, and says why', () => {
+  test('withholds only the whole account when Clerk does not allow self-deletion, and says why', () => {
     state.user = { deleteSelfEnabled: false }
     renderWithI18n(<AccountDeleteSettings />)
 
-    expect(submit()).toBeDisabled()
+    expect(whole()).toBeDisabled()
+    expect(dataOnly()).toBeEnabled()
     expect(screen.getByRole('alert').textContent).toBe(
       'This account cannot be deleted here. Please contact support.',
     )
   })
 
-  test('keeps the button off without claiming anything while Clerk loads', () => {
+  test('keeps both buttons off without claiming anything while Clerk loads', () => {
     state.user = null
     renderWithI18n(<AccountDeleteSettings />)
 
-    expect(submit()).toBeDisabled()
+    expect(dataOnly()).toBeDisabled()
+    expect(whole()).toBeDisabled()
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
   test('reads in Dutch', () => {
     renderWithI18n(<AccountDeleteSettings />, { locale: 'nl' })
 
-    expect(screen.getByText('Verdwijnt met je account')).toBeInTheDocument()
-    expect(submit().textContent).toBe('Verwijder mijn account')
+    expect(screen.getByText('Verwijderd')).toBeInTheDocument()
+    expect(dataOnly().textContent).toBe('Gather-gegevens verwijderen')
+    expect(whole().textContent).toBe('Mijn AppElent-account verwijderen')
   })
 })
 
 describe('asking', () => {
-  test('names the account and starts only once the word is typed', () => {
+  test('Gather data: names the account and starts only once the word is typed', () => {
     renderWithI18n(<AccountDeleteSettings />)
-    fireEvent.click(submit())
+    fireEvent.click(dataOnly())
 
-    const dialog = screen.getByRole('dialog', { name: 'Delete sam@example.com?' })
+    const dialog = screen.getByRole('dialog', {
+      name: 'Delete Gather data for sam@example.com?',
+    })
+    expect(dialog.textContent).toContain('Your AppElent login stays.')
     const confirm = within(dialog).getByRole('button', { name: 'Delete' })
     expect(confirm).toBeDisabled()
 
@@ -131,46 +176,75 @@ describe('asking', () => {
     })
     fireEvent.click(confirm)
 
-    expect(state.start).toHaveBeenCalledTimes(1)
+    expect(state.start).toHaveBeenCalledExactlyOnceWith('gatherData')
+  })
+
+  test('the whole account: says it takes the other apps, and starts once typed', () => {
+    renderWithI18n(<AccountDeleteSettings />)
+    fireEvent.click(whole())
+
+    const dialog = screen.getByRole('dialog', {
+      name: 'Delete the AppElent account sam@example.com?',
+    })
+    expect(dialog.textContent).toContain(
+      'Your login and your data in Gather, Foundry, Fairway and Arcade Club are deleted for good.',
+    )
+    fireEvent.change(within(dialog).getByLabelText('Type DELETE to confirm'), {
+      target: { value: 'DELETE' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
+
+    expect(state.start).toHaveBeenCalledExactlyOnceWith('wholeAccount')
   })
 
   test('cancelling starts nothing', () => {
     renderWithI18n(<AccountDeleteSettings />)
-    fireEvent.click(submit())
+    fireEvent.click(whole())
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(state.start).not.toHaveBeenCalled()
   })
 
-  test('is busy while the sign-in is checked and the purge is asked for', () => {
-    state.deletion = { step: 'purging' }
+  test('is busy on the chosen button, with both off, while it runs', () => {
+    state.deletion = { step: 'purging', choice: 'gatherData' }
     renderWithI18n(<AccountDeleteSettings />)
 
-    expect(submit()).toBeDisabled()
-    expect(submit().textContent).toBe('Working…')
+    expect(dataOnly()).toBeDisabled()
+    expect(dataOnly().textContent).toBe('Working…')
+    expect(whole()).toBeDisabled()
+    expect(whole().textContent).toBe('Delete my AppElent account')
   })
 })
 
 describe('after a refusal, when nothing was deleted', () => {
-  test('a server refusal says its own reason', () => {
+  test('a server refusal says its own reason, under the choice that was refused', () => {
     state.deletion = {
       step: 'refused',
+      choice: 'wholeAccount',
       cause: new ConvexError(
         'You are signed in to a different account now. Nothing was deleted.',
       ),
     }
     renderWithI18n(<AccountDeleteSettings />)
 
-    expect(screen.getByRole('alert').textContent).toBe(
+    const alert = screen.getByRole('alert')
+    expect(alert.textContent).toBe(
       'You are signed in to a different account now. Nothing was deleted.',
     )
-    expect(submit()).toBeEnabled()
+    expect(alert.closest('[role="group"]')?.getAttribute('aria-labelledby')).toBe(
+      'account-delete-wholeAccount-title',
+    )
+    expect(whole()).toBeEnabled()
   })
 
   test('a sign-in that could not be confirmed says nothing was deleted', async () => {
     const { SignInNotConfirmed } = await import('./AccountDeleteProvider')
-    state.deletion = { step: 'refused', cause: new SignInNotConfirmed() }
+    state.deletion = {
+      step: 'refused',
+      choice: 'gatherData',
+      cause: new SignInNotConfirmed(),
+    }
     renderWithI18n(<AccountDeleteSettings />)
 
     expect(screen.getByRole('alert').textContent).toBe(
@@ -179,11 +253,83 @@ describe('after a refusal, when nothing was deleted', () => {
   })
 
   test('a refusal with nothing readable still says nothing was deleted', () => {
-    state.deletion = { step: 'refused', cause: {} }
+    state.deletion = { step: 'refused', choice: 'wholeAccount', cause: {} }
     renderWithI18n(<AccountDeleteSettings />)
 
     expect(screen.getByRole('alert').textContent).toBe(
       'Your account could not be deleted. Nothing was deleted.',
     )
+  })
+
+  test('…in the words of Gather data, when that was the choice', () => {
+    state.deletion = { step: 'refused', choice: 'gatherData', cause: {} }
+    renderWithI18n(<AccountDeleteSettings />)
+
+    expect(screen.getByRole('alert').textContent).toBe(
+      'Your Gather data could not be deleted. Nothing was deleted.',
+    )
+  })
+})
+
+describe('Sign in with Apple, before the whole account goes (APP-388)', () => {
+  test('readies Apple JS on the Account page, only when the account can go', () => {
+    const view = renderWithI18n(<AccountDeleteSettings />)
+    expect(preloadAppleJs).toHaveBeenCalledWith(state.user, 'en')
+    view.unmount()
+    preloadAppleJs.mockReset()
+    state.user = { deleteSelfEnabled: false }
+    renderWithI18n(<AccountDeleteSettings />)
+    expect(preloadAppleJs).not.toHaveBeenCalled()
+  })
+
+  const wholeOption = () =>
+    screen
+      .getAllByRole('group')
+      .find(
+        (group) =>
+          group.getAttribute('aria-labelledby') ===
+          'account-delete-wholeAccount-title',
+      ) as HTMLElement
+
+  test('asks for the click that opens Apple, with a Cancel that deletes nothing', () => {
+    state.deletion = { step: 'confirmingApple', choice: 'wholeAccount' }
+    renderWithI18n(<AccountDeleteSettings />)
+
+    const option = within(wholeOption())
+    expect(
+      option.getByText(/Continue with Apple once more/),
+    ).toBeInTheDocument()
+    const go = option.getByRole('button', { name: 'Continue with Apple' })
+    expect(go).toHaveFocus()
+    fireEvent.click(go)
+    expect(state.continueWithApple).toHaveBeenCalledOnce()
+    fireEvent.click(option.getByRole('button', { name: 'Cancel' }))
+    expect(state.cancelApple).toHaveBeenCalledOnce()
+    // Both deletions stay off while it waits.
+    expect(dataOnly()).toBeDisabled()
+    expect(whole()).toBeDisabled()
+  })
+
+  test('waits for Apple without a Cancel while the popup is open', () => {
+    state.deletion = { step: 'revokingApple', choice: 'wholeAccount' }
+    renderWithI18n(<AccountDeleteSettings />)
+
+    const option = within(wholeOption())
+    expect(option.getByRole('button', { name: 'Waiting for Apple…' })).toBeDisabled()
+    expect(option.queryByRole('button', { name: 'Cancel' })).toBeNull()
+  })
+
+  test.each([
+    ['popupBlocked', /blocked the Apple window, so nothing was deleted/],
+    ['appleMismatch', /not the one linked to this account, so nothing was deleted/],
+    ['failed', /did not finish, so nothing was deleted/],
+  ] as const)('a popup that ended %s says nothing was deleted', (reason, text) => {
+    state.deletion = {
+      step: 'refused',
+      choice: 'wholeAccount',
+      cause: new AppleNotRevoked(reason),
+    }
+    renderWithI18n(<AccountDeleteSettings />)
+    expect(within(wholeOption()).getByRole('alert')).toHaveTextContent(text)
   })
 })

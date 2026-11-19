@@ -21,6 +21,13 @@
  * the button simply is not offered unless Clerk has said yes
  * (`@gather/core/account-deletion`).
  *
+ * ## Two choices (APP-397)
+ *
+ * Gather shares its login with the other AppElent apps, so after the Groups
+ * the screen offers Gather's data first, keeping the login, and then the whole
+ * AppElent account, which names the apps it takes with it. Only the second
+ * needs `deleteSelfEnabled`; both confirm the same way.
+ *
  * The run itself is not this screen's. The purge unmounts it (`GroupProvider`
  * has no Group left to draw), so the deletion lives in
  * `AccountDeleteProvider`, above the gates, and this screen only starts it
@@ -42,7 +49,8 @@ import { confirmDestructive } from '../../../feedback/confirmDestructive'
 import { fmt, useI18n } from '../../../i18n'
 import { RADIUS, TYPE, useTokens } from '../../../theme/tokens'
 import { Button } from '../../../ui/button'
-import { useAccountDelete } from './account-delete-provider'
+import { Card } from '../../../ui/card'
+import { type DeleteChoice, useAccountDelete } from './account-delete-provider'
 
 export function AccountDeleteScreen() {
   const tokens = useTokens()
@@ -53,26 +61,69 @@ export function AccountDeleteScreen() {
   const { state, start } = useAccountDelete()
 
   const preview = useQuery(api.accounts.deletionPreview, {})
-  const busy = state.step === 'purging' || state.step === 'revokingApple'
-  const error = state.step === 'refused' ? readThrown(state.cause, t) : null
+  const words = t.account.deleteAccount
+  const busyWith =
+    state.step === 'purging'
+      ? state.choice
+      : state.step === 'revokingApple'
+        ? 'wholeAccount'
+        : null
+  const refused = state.step === 'refused' ? state : null
 
   // Clerk refuses self-deletion unless the instance allows it, and a button
   // that purges the household and then fails is the worst outcome available.
+  // Only the whole account asks Clerk to delete anything.
   const deletion = accountDeletion(user)
-  const allowed = deletion === 'allowed'
 
-  function confirm() {
+  function confirm(choice: DeleteChoice) {
+    const text = choice === 'gatherData' ? words.dataOnly : words.wholeAccount
     confirmDestructive({
-      title: fmt(t.account.deleteAccount.confirmTitle, {
+      title: fmt(text.confirmTitle, {
         // Clerk first: the Convex mirror of the address is refreshed from the
         // JWT on mount, so it can be a token older than a change made here.
         email: user?.primaryEmailAddress?.emailAddress ?? preview?.email ?? '',
       }),
-      message: t.account.deleteAccount.confirmBody,
+      message: text.confirmBody,
       confirm: t.common.actions.delete,
       cancel: t.common.actions.cancel,
-      onConfirm: start,
+      onConfirm: () => start(choice),
     })
+  }
+
+  function option(choice: DeleteChoice) {
+    const text = choice === 'gatherData' ? words.dataOnly : words.wholeAccount
+    const error =
+      refused?.choice === choice
+        ? readThrown(refused.cause, t)
+        : choice === 'wholeAccount' && deletion === 'withheld'
+          ? words.unavailable
+          : null
+    const disabled =
+      busyWith !== null ||
+      !serviceActionsEnabled ||
+      preview === undefined ||
+      deletion === 'unknown' ||
+      (choice === 'wholeAccount' && deletion !== 'allowed')
+    return (
+      <Card style={styles.option}>
+        <Text
+          accessibilityRole="header"
+          style={[styles.heading, { color: tokens.ink }]}
+        >
+          {text.title}
+        </Text>
+        <Text style={[styles.body, { color: tokens.muted }]}>{text.body}</Text>
+        <AuthError message={error} />
+        <Button
+          testID={`account-delete-${choice}-submit`}
+          variant="danger"
+          label={text.submit}
+          busy={busyWith === choice}
+          disabled={disabled}
+          onPress={() => confirm(choice)}
+        />
+      </Card>
+    )
   }
 
   return (
@@ -84,48 +135,36 @@ export function AccountDeleteScreen() {
         { paddingBottom: insets.bottom + 24 },
       ]}
     >
-      <Text style={[styles.lead, { color: tokens.ink }]}>
-        {t.account.deleteAccount.lead}
-      </Text>
+      <Text style={[styles.lead, { color: tokens.ink }]}>{words.lead}</Text>
 
       {preview === undefined ? (
         <LoadingSkeleton rows={3} label={t.actions.loading} />
       ) : preview === null ? null : preview.deleted.length === 0 &&
         preview.kept.length === 0 ? (
         <Text style={[styles.body, { color: tokens.muted }]}>
-          {t.account.deleteAccount.noGroups}
+          {words.noGroups}
         </Text>
       ) : (
         <>
           <Consequence
-            heading={t.account.deleteAccount.goesHeading}
-            body={t.account.deleteAccount.goesBody}
+            heading={words.goesHeading}
+            body={words.goesBody}
             groups={preview.deleted}
             tone="danger"
           />
           <Consequence
-            heading={t.account.deleteAccount.keptHeading}
-            body={t.account.deleteAccount.keptBody}
+            heading={words.keptHeading}
+            body={words.keptBody}
             groups={preview.kept}
           />
         </>
       )}
 
-      <AuthError
-        message={
-          error ??
-          (deletion === 'withheld' ? t.account.deleteAccount.unavailable : null)
-        }
-      />
-
-      <Button
-        testID="account-delete-submit"
-        variant="danger"
-        label={t.account.deleteAccount.submit}
-        busy={busy}
-        disabled={!allowed || !serviceActionsEnabled || preview === undefined}
-        onPress={confirm}
-      />
+      <Text style={[styles.body, { color: tokens.ink }]}>
+        {words.choiceIntro}
+      </Text>
+      {option('gatherData')}
+      {option('wholeAccount')}
     </ScrollView>
   )
 }
@@ -196,4 +235,5 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   group: { ...TYPE.body, paddingVertical: 12 },
+  option: { paddingVertical: 14, gap: 10 },
 })
