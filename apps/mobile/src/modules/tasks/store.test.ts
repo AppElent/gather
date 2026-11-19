@@ -5,6 +5,8 @@ import { describe, expect, test, vi } from 'vitest'
 import type { Doc, Id } from '../../convex/api'
 
 const sent: { name: string; args: unknown }[] = []
+/** What a mutation answers, by name; nothing by default. */
+const answers: Record<string, unknown> = {}
 
 vi.mock('../../group/GroupProvider', () => ({
   useGroup: () => ({ group: { slug: 'our-household' } }),
@@ -13,19 +15,25 @@ vi.mock('convex/react', () => ({
   useAction: vi.fn(),
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) => {
     const run = (args: unknown) => {
-      sent.push({ name: getFunctionName(reference), args })
-      return Promise.resolve()
+      const name = getFunctionName(reference)
+      sent.push({ name, args })
+      return Promise.resolve(answers[name])
     }
     return Object.assign(run, { withOptimisticUpdate: () => run })
   },
 }))
 
+import { localIsoDate } from '@gather/core/civil-date'
+import type { TaskRepeat } from '@gather/core/task-repeat'
 import {
+  type CompletedOccurrence,
   ensureExternalLists,
+  externalEntry,
   externalSnapshot,
   listFace,
   localTaskQueries,
   mergeTasks,
+  onOccurrenceCompleted,
   syncExternalList,
   taskSections,
   toggleInPlace,
@@ -252,6 +260,167 @@ describe('optimistic task completion', () => {
       },
     ])
     expect(chores[0].done).toBe(false)
+  })
+})
+
+describe('repeating tasks (APP-303)', () => {
+  const weekly: TaskRepeat = {
+    mode: 'fixed',
+    unit: 'week',
+    every: 1,
+    weekdays: [6],
+  }
+
+  const storeOf = (rows: Doc<'tasks'>[]) => {
+    const written: unknown[] = []
+    const store = {
+      getAllQueries: () => [{ args: { listId: 'chores' }, value: rows }],
+      setQuery: (_query: unknown, _args: unknown, value: unknown) =>
+        written.push(value),
+    } as unknown as OptimisticLocalStore
+    return { store, written }
+  }
+
+  test('ticking an open repeating task moves it to its next date, still open', () => {
+    const { store, written } = storeOf([
+      { ...taskRow('bins', 'chores'), dueDate: '2026-11-21', repeat: weekly },
+    ])
+    toggleInPlace(store, {
+      taskId: 'bins' as Id<'tasks'>,
+      today: '2026-11-19',
+    })
+    expect(written).toEqual([
+      [expect.objectContaining({ done: false, dueDate: '2026-11-28' })],
+    ])
+  })
+
+  test('without a day to count from, it ticks the way it always did', () => {
+    const { store, written } = storeOf([
+      { ...taskRow('bins', 'chores'), dueDate: '2026-11-21', repeat: weekly },
+    ])
+    toggleInPlace(store, { taskId: 'bins' as Id<'tasks'> })
+    expect(written).toEqual([
+      [expect.objectContaining({ done: true, dueDate: '2026-11-21' })],
+    ])
+  })
+
+  test('a done repeating task reopens rather than moving on', () => {
+    const { store, written } = storeOf([
+      {
+        ...taskRow('bins', 'chores', true),
+        dueDate: '2026-11-21',
+        repeat: weekly,
+      },
+    ])
+    toggleInPlace(store, {
+      taskId: 'bins' as Id<'tasks'>,
+      today: '2026-11-19',
+    })
+    expect(written).toEqual([
+      [expect.objectContaining({ done: false, dueDate: '2026-11-21' })],
+    ])
+  })
+
+  test('the rule reaches the model from Convex, and the words from Todoist', () => {
+    const { tasks } = mergeTasks(
+      [listRow('chores', 'local')],
+      { chores: [{ ...taskRow('bins', 'chores'), repeat: weekly }] },
+      new Map(),
+    )
+    expect(tasks[0].repeat).toEqual(weekly)
+
+    const entry = externalEntry(
+      'todoist',
+      {
+        status: 'ok',
+        tasks: [
+          {
+            externalId: 'x',
+            title: 'Water plants',
+            done: false,
+            repeatText: 'every week',
+          },
+        ],
+      },
+      [],
+    )
+    expect(entry.tasks[0].repeatText).toBe('every week')
+  })
+
+  test('completing sends the phone’s day and tells the screen what came of it', async () => {
+    sent.length = 0
+    const heard: CompletedOccurrence[] = []
+    const stop = onOccurrenceCompleted((done) => heard.push(done))
+    answers['tasks:toggleDone'] = { completionId: 'c1', dueDate: '2026-11-28' }
+    const actions = useTaskActions()
+    try {
+      const result = await actions.toggleTask({
+        id: 'bins',
+        title: 'Bins',
+      })
+      expect(result).toEqual({ completionId: 'c1', dueDate: '2026-11-28' })
+    } finally {
+      delete answers['tasks:toggleDone']
+      stop()
+    }
+    expect(sent).toEqual([
+      {
+        name: 'tasks:toggleDone',
+        args: {
+          taskId: 'bins',
+          groupSlug: 'our-household',
+          today: localIsoDate(),
+        },
+      },
+    ])
+    expect(heard).toEqual([
+      {
+        taskId: 'bins',
+        title: 'Bins',
+        completionId: 'c1',
+        dueDate: '2026-11-28',
+      },
+    ])
+  })
+
+  test('a plain tick tells no one', async () => {
+    const heard: unknown[] = []
+    const stop = onOccurrenceCompleted((done) => heard.push(done))
+    await useTaskActions().toggleTask({ id: 'milk', title: 'Milk' })
+    stop()
+    expect(heard).toEqual([])
+  })
+
+  test('setting and clearing a repeat, and undoing a completion', async () => {
+    sent.length = 0
+    const actions = useTaskActions()
+    await actions.setRepeat('bins', weekly)
+    await actions.setRepeat('bins', null)
+    await actions.undoCompletion('c1' as Id<'taskCompletions'>)
+    expect(sent).toEqual([
+      {
+        name: 'tasks:update',
+        args: {
+          taskId: 'bins',
+          groupSlug: 'our-household',
+          repeat: weekly,
+          today: localIsoDate(),
+        },
+      },
+      {
+        name: 'tasks:update',
+        args: {
+          taskId: 'bins',
+          groupSlug: 'our-household',
+          repeat: null,
+          today: localIsoDate(),
+        },
+      },
+      {
+        name: 'tasks:undoCompletion',
+        args: { completionId: 'c1', groupSlug: 'our-household' },
+      },
+    ])
   })
 })
 

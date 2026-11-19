@@ -1,7 +1,7 @@
 # gather
 
 A household-management app — recipes and groups today, with a growing set of
-modules for meal planning, groceries, pantry, recurring costs, shared costs,
+modules for meal planning, groceries (with what is in stock), recurring costs, shared costs,
 savings goals, tasks, calendar, notes, cheeses, and wines.
 
 Built on TanStack React Start + Router, Convex, Clerk, and Cloudflare Workers.

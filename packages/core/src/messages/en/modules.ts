@@ -24,10 +24,6 @@ export const byId = {
     label: 'Groceries',
     description: 'A shared shopping list you both check off.',
   },
-  pantry: {
-    label: 'Pantry',
-    description: 'Track what’s in stock at home.',
-  },
   'recurring-costs': {
     label: 'Recurring costs',
     description: 'Track repeating costs and each Member’s share.',

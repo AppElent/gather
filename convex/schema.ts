@@ -52,6 +52,7 @@ import {
   taskPriorityValidator,
   taskProviderValidator,
   taskReminderValidator,
+  taskRepeatValidator,
 } from './lib/taskFields'
 import { taskSectionValidator } from './lib/taskSections'
 import {
@@ -266,6 +267,13 @@ export default defineSchema({
       v.object({ by: v.id('users'), at: v.number() }),
     ),
     /**
+     * How the task comes back once completed (APP-303). Absent on a task that
+     * does not repeat, which is every task from before repeats. A repeating
+     * task stays open: completing it moves `dueDate` on and writes a
+     * `taskCompletions` row.
+     */
+    repeat: v.optional(taskRepeatValidator),
+    /**
      * A reminder somebody chose (APP-305); a due date alone sets none. Absent
      * on every task without one. Its send is a `scheduledNotifications` row
      * under `taskReminderKey`, kept in step by `lib/taskReminders.ts`.
@@ -282,11 +290,32 @@ export default defineSchema({
     .index('by_list', ['listId'])
     // The end of a list without reading all of it (APP-368).
     .index('by_list_and_order', ['listId', 'order'])
+    // A list's open items without reading what was checked off (APP-314).
+    .index('by_list_and_done', ['listId', 'done'])
     // A list's newest checked items without reading the rest (APP-310).
     .index('by_list_and_done_at', ['listId', 'doneAt'])
     // A person's tasks across lists: the leave-Group clean-up, the in-app
     // notice, and later the "Mine" smart list (APP-301).
     .index('by_assignee', ['assigneeId']),
+
+  /**
+   * One completion of a repeating task (APP-303): who, when, and the due
+   * date it moved from and to, so the completion can be undone right after.
+   * Carries the task's Group so the Group's deletion and export reach it
+   * without walking its lists; deleted with its task.
+   */
+  taskCompletions: defineTable({
+    groupId: v.id('groups'),
+    taskId: v.id('tasks'),
+    completedBy: v.id('users'),
+    completedAt: v.number(),
+    /** The completer's calendar day, `YYYY-MM-DD`. */
+    completedOn: v.string(),
+    previousDueDate: v.optional(v.string()),
+    nextDueDate: v.string(),
+  })
+    .index('by_task', ['taskId'])
+    .index('by_group', ['groupId']),
 
   /**
    * A Group's own aisle for a grocery name: written when a Member moves an
@@ -387,12 +416,36 @@ export default defineSchema({
     .index('by_group', ['groupId'])
     .index('by_group_date', ['groupId', 'date']),
 
+  // The Pantry before it folded into Groceries as In stock (APP-314). Kept,
+  // unread by current phones, while installed apps still call `kitchen.*`
+  // pantry functions; `maintenance:migratePantryToStaples` copies it into
+  // `groceryStaples`. Dropped in the contract step after the next OTA.
   pantryEntries: defineTable({
     groupId: v.id('groups'),
     title: v.string(),
     quantity: v.optional(v.string()),
     createdBy: v.id('users'),
   }).index('by_group', ['groupId']),
+
+  /**
+   * What a household always wants in the house (APP-314, Groceries "In
+   * stock"): each staple is in stock or running low. Running low puts it on
+   * the Group's grocery list; checking it off there puts it back in stock.
+   * `key` is the `groceryTitleKey` of `name`, so "Melk" and "2 pak melk" are
+   * one staple; at most one row per Group and key.
+   */
+  groceryStaples: defineTable({
+    groupId: v.id('groups'),
+    name: v.string(),
+    key: v.string(),
+    aisle: groceryAisleValidator,
+    low: v.boolean(),
+    /** A pantry entry's free quantity ("2 pakken"), kept from the migration. */
+    note: v.optional(v.string()),
+    createdBy: v.id('users'),
+  })
+    .index('by_group', ['groupId'])
+    .index('by_group_and_key', ['groupId', 'key']),
 
   calendars: defineTable({
     groupId: v.id('groups'),

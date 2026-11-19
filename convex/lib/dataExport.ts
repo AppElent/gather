@@ -140,7 +140,10 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   recipeShares: { exclude: 'bookkeeping' },
   mealEntries: { scope: 'group', index: 'by_group' },
   plannedDinners: { scope: 'group', index: 'by_group' },
+  // The Pantry's rows until the contract step (APP-314), and the staples
+  // they became: both go out, so nothing a Group typed is missing.
   pantryEntries: { scope: 'group', index: 'by_group' },
+  groceryStaples: { scope: 'group', index: 'by_group' },
   taskLists: { scope: 'group', index: 'by_group' },
   tasks: {
     scope: 'group',
@@ -148,6 +151,8 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
     index: 'by_list',
     field: 'listId',
   },
+  // Who completed a repeating task and when (APP-303); names, never ids.
+  taskCompletions: { scope: 'group', index: 'by_group' },
   groceryCategoryOverrides: { scope: 'group', index: 'by_group_and_name' },
   notes: { scope: 'group', index: 'by_group' },
   calendars: { scope: 'group', index: 'by_group' },

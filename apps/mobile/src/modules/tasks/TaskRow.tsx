@@ -97,7 +97,7 @@ export function TaskRow({
 
   const toggle = () => {
     if (!task.done) haptics.itemCompleted()
-    actions.toggleTask(task.id).then(
+    actions.toggleTask(task).then(
       () => onToggled?.(true),
       () => {
         haptics.actionFailed()

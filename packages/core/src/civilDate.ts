@@ -42,6 +42,15 @@ export function isIsoDate(value: string): boolean {
   return parseIsoDate(value) !== null
 }
 
+/**
+ * A real date from a year, a month (1-12) and a day that may not exist in it:
+ * the 31st of a 30-day month, or 29 February outside a leap year, lands on the
+ * month's last day.
+ */
+export function clampedIsoDate(year: number, month: number, day: number): string {
+  return isoDate(year, month, Math.min(Math.max(1, day), daysInMonth(year, month)))
+}
+
 function isoDate(year: number, month: number, day: number): string {
   return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
@@ -94,6 +103,46 @@ export function addMonths(value: string, amount: number): string {
   const year = Math.floor(target / 12)
   const month = (((target % 12) + 12) % 12) + 1
   return isoDate(year, month, Math.min(parsed.day, daysInMonth(year, month)))
+}
+
+/** Whole years, landing on 28 February when the day was 29 February. */
+export function addYears(value: string, amount: number): string {
+  return addMonths(value, Math.trunc(amount) * 12)
+}
+
+/** Monday 1 to Sunday 7, ISO 8601's numbering, for a real date; NaN otherwise. */
+export function isoWeekday(value: string): number {
+  const parsed = parseIsoDate(value)
+  if (!parsed) return Number.NaN
+  const weekday = new Date(
+    Date.UTC(parsed.year, parsed.month - 1, parsed.day),
+  ).getUTCDay()
+  return weekday === 0 ? 7 : weekday
+}
+
+/**
+ * The day it is in the Netherlands at `at`, for a server that has no device
+ * calendar to ask. Central European Time, with summer time from 01:00 UTC on
+ * March's last Sunday to 01:00 UTC on October's last Sunday (the EU rule), so
+ * it needs no time-zone database.
+ */
+export function amsterdamIsoDate(at: Date | number = Date.now()): string {
+  const ms = new Date(at).getTime()
+  const year = new Date(ms).getUTCFullYear()
+  const summer =
+    ms >= lastSundayAtOneUtc(year, 3) && ms < lastSundayAtOneUtc(year, 10)
+  const local = new Date(ms + (summer ? 2 : 1) * 3_600_000)
+  return isoDate(
+    local.getUTCFullYear(),
+    local.getUTCMonth() + 1,
+    local.getUTCDate(),
+  )
+}
+
+function lastSundayAtOneUtc(year: number, month: number): number {
+  const last = daysInMonth(year, month)
+  const weekday = new Date(Date.UTC(year, month - 1, last)).getUTCDay()
+  return Date.UTC(year, month - 1, last - weekday, 1)
 }
 
 /**

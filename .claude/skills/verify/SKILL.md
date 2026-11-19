@@ -40,7 +40,7 @@ core message trees.
 | `/recipes/$recipeId/edit` | `src/routes/_app/recipes/$recipeId.edit.tsx` | live |
 | `/meal-planner` | `src/routes/_app/meal-planner.tsx` | placeholder |
 | `/groceries` | `src/routes/_app/groceries.tsx` | placeholder |
-| `/pantry` | `src/routes/_app/pantry.tsx` | placeholder |
+| `/pantry` | `src/routes/_app/pantry.tsx` | redirects to `/groceries` (APP-314) |
 | `/finances` | `src/routes/_app/finances.tsx` | placeholder |
 | `/tasks` | `src/routes/_app/tasks.tsx` | placeholder |
 | `/baby` | `src/routes/_app/baby/index.tsx` | live |

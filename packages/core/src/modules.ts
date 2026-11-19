@@ -17,7 +17,6 @@ export type ModuleIconName =
   | 'Grape'
   | 'ListChecks'
   | 'NotebookPen'
-  | 'Refrigerator'
   | 'Repeat'
   | 'ShoppingCart'
   | 'Target'
@@ -57,13 +56,6 @@ export const MODULES = [
   {
     id: 'groceries',
     icon: 'ShoppingCart',
-    group: 'kitchen',
-    status: 'placeholder',
-    mobileStatus: 'live',
-  },
-  {
-    id: 'pantry',
-    icon: 'Refrigerator',
     group: 'kitchen',
     status: 'placeholder',
     mobileStatus: 'live',

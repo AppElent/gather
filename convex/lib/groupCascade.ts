@@ -38,6 +38,7 @@ import { dropRecipeShares, setSharedGroups } from './recipeShares'
 import { storedFileIdsOf } from './storedFiles'
 import { unassignFromGroup } from './taskAssignee'
 import { cancelSend, dropMemberReminders } from './taskReminders'
+import { purgeCompletionsOfTask } from './taskRepeat'
 
 /** Delete these rows, handing back the stored files they were holding. */
 async function purge<T extends TableNames>(
@@ -55,7 +56,8 @@ async function purge<T extends TableNames>(
 
 /**
  * Delete a list's tasks: the only way to find them is through the list. A
- * task's queued reminder is withdrawn with it (APP-305).
+ * task's queued reminder is withdrawn with it (APP-305), and its completion
+ * history goes too (APP-303).
  */
 export async function purgeTasksOfList(
   ctx: MutationCtx,
@@ -65,7 +67,10 @@ export async function purgeTasksOfList(
     .query('tasks')
     .withIndex('by_list', (q) => q.eq('listId', listId))
     .collect()
-  for (const task of tasks) await cancelSend(ctx, task)
+  for (const task of tasks) {
+    await cancelSend(ctx, task)
+    await purgeCompletionsOfTask(ctx, task._id)
+  }
   await purge(ctx, 'tasks', tasks)
 }
 
@@ -182,6 +187,17 @@ const GROUP_CONTENT: {
         .collect(),
     ),
 
+  // Also deleted with each task; this catches any whose task went first.
+  taskCompletions: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'taskCompletions',
+      await ctx.db
+        .query('taskCompletions')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
   taskLists: async (ctx, groupId) => {
     const lists = await ctx.db
       .query('taskLists')
@@ -272,6 +288,16 @@ const GROUP_CONTENT: {
       'pantryEntries',
       await ctx.db
         .query('pantryEntries')
+        .withIndex('by_group', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
+  groceryStaples: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'groceryStaples',
+      await ctx.db
+        .query('groceryStaples')
         .withIndex('by_group', (q) => q.eq('groupId', groupId))
         .collect(),
     ),

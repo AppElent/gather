@@ -1,0 +1,119 @@
+/**
+ * Groceries "In stock" (APP-314, `designs/groceries/README.md` section 7): the
+ * staples a household keeps, each in stock or running low. It replaces the
+ * Pantry Module; the rules every writer shares are in `lib/groceryStaples.ts`.
+ */
+
+import { GROCERY_AISLES } from '@gather/core/groceries'
+import { ConvexError, v } from 'convex/values'
+import { mutation, query } from './_generated/server'
+import { recentListItems, recogniseGroceryTitle } from './lib/groceryCategories'
+import {
+  findStaple,
+  openKeysOn,
+  putStapleOnList,
+  STAPLE_NAME_MAX,
+  stapleKey,
+  writableGroceryList,
+} from './lib/groceryStaples'
+import { requireGroupBySlug, requireInGroup } from './lib/groupAccess'
+
+const NOT_FOUND = 'Staple not found'
+
+/**
+ * The Group's staples in walking order (aisle, then name), the grocery list
+ * running low puts them on, and for each whether it is open on that list now.
+ */
+export const list = query({
+  args: { groupSlug: v.string() },
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const [staples, list] = await Promise.all([
+      ctx.db
+        .query('groceryStaples')
+        .withIndex('by_group', (q) => q.eq('groupId', group._id))
+        .collect(),
+      writableGroceryList(ctx, group),
+    ])
+    const open = list ? await openKeysOn(ctx, list._id) : new Set<string>()
+    const rank = (aisle: string) =>
+      (GROCERY_AISLES as readonly string[]).indexOf(aisle)
+    return {
+      list: list ? { _id: list._id, name: list.name } : null,
+      staples: staples
+        .sort(
+          (a, b) =>
+            rank(a.aisle) - rank(b.aisle) || a.name.localeCompare(b.name),
+        )
+        .map((staple) => ({
+          _id: staple._id,
+          name: staple.name,
+          aisle: staple.aisle,
+          low: staple.low,
+          note: staple.note,
+          onList: open.has(staple.key),
+        })),
+    }
+  },
+})
+
+/**
+ * A new staple, in stock. A name the Group already keeps answers the staple
+ * it has, so a double tap or a second Member adds nothing twice.
+ */
+export const add = mutation({
+  args: { groupSlug: v.string(), name: v.string() },
+  handler: async (ctx, args) => {
+    const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
+    const name = args.name.trim()
+    if (!name || name.length > STAPLE_NAME_MAX)
+      throw new ConvexError('That is not a name')
+    const key = stapleKey(name)
+    if (!key) throw new ConvexError('That is not a name')
+    const existing = await findStaple(ctx, group._id, key)
+    if (existing) return existing._id
+    const list = await writableGroceryList(ctx, group)
+    const { aisle } = await recogniseGroceryTitle(
+      ctx,
+      group._id,
+      name,
+      list ? await recentListItems(ctx, list._id) : [],
+    )
+    return await ctx.db.insert('groceryStaples', {
+      groupId: group._id,
+      name,
+      key,
+      aisle,
+      low: false,
+      createdBy: user._id,
+    })
+  },
+})
+
+/**
+ * Running low, or back in stock. Running low puts the staple on the Group's
+ * grocery list (once); back in stock leaves the list alone, since someone may
+ * be buying it right now. Answers whether it is on the list.
+ */
+export const setLow = mutation({
+  args: { groupSlug: v.string(), id: v.id('groceryStaples'), low: v.boolean() },
+  handler: async (ctx, args) => {
+    const {
+      group,
+      user,
+      doc: staple,
+    } = await requireInGroup(ctx, args.groupSlug, args.id, NOT_FOUND)
+    if (staple.low !== args.low) await ctx.db.patch(staple._id, { low: args.low })
+    if (!args.low) return { onList: false }
+    return { onList: await putStapleOnList(ctx, group, staple, user._id) }
+  },
+})
+
+/** No longer a staple. Whatever is on the grocery list stays there. */
+export const remove = mutation({
+  args: { groupSlug: v.string(), id: v.id('groceryStaples') },
+  handler: async (ctx, args) => {
+    await requireInGroup(ctx, args.groupSlug, args.id, NOT_FOUND)
+    await ctx.db.delete(args.id)
+  },
+})

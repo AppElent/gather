@@ -22,6 +22,11 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   it.
 - `tasks`, `calendarEvents` and `babyEvents` hang off a parent rather than a
   Group, so each is deleted inside its parent's entry.
+- A repeating task's completion history (`taskCompletions`, APP-303) carries
+  its `groupId`, so it goes with the Group, and with its task or list when
+  either is deleted. A Member who leaves a shared Group stays named on the
+  completions they made until their account is gone; after that the history
+  reads "Someone".
 - A table of a person's own rows (`userId`, no `groupId`: `aiUsage`,
   `idempotencyKeys`, `pushDevices`, `scheduledNotifications`) is not in the
   cascade; `cascade.finishAccount` deletes it by index, so a new one is added
@@ -53,7 +58,8 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   Names that look like more than a product (an email address, a URL, a run of
   four or more digits, more than six words) are never sent or cached. A
   Group's aisle corrections (`groceryCategoryOverrides`) are in the cascade
-  with its other content.
+  with its other content, and so are its Staples (`groceryStaples`, APP-314)
+  and the Pantry rows they were copied from (`pantryEntries`).
 - Storage ids are collected by the cascade and deleted by scheduled work, so a
   large Group survives the one-transaction limit ([stored files](stored-files.md)).
 - **Account deletion is Convex first, Clerk second**, in scheduled steps, one

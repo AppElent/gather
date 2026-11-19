@@ -7,10 +7,18 @@ import { v } from 'convex/values'
 import type { Doc, Id, TableNames } from './_generated/dataModel'
 import type { MutationCtx } from './_generated/server'
 import { internalMutation, internalQuery } from './_generated/server'
+import { recentListItems, recogniseGroceryTitle } from './lib/groceryCategories'
+import {
+  findStaple,
+  STAPLE_NAME_MAX,
+  stapleKey,
+  writableGroceryList,
+} from './lib/groceryStaples'
 import { recipeShareDiff, syncRecipeShares } from './lib/recipeShares'
 import { pickCanonicalUser } from './lib/sharing'
 import { stableDigest } from './lib/stableDigest'
 import { deleteStoredFile } from './lib/storedFiles'
+import { completionsOf } from './lib/taskRepeat'
 import schema from './schema'
 
 /**
@@ -161,6 +169,90 @@ export const backfillMealSlots = internalMutation({
       apply,
       scanned: page.page.length,
       missing: missing.length,
+      more: !page.isDone,
+      cursor: page.continueCursor,
+    }
+  },
+})
+
+/**
+ * Copies the Pantry into Groceries' staples (APP-314, In stock). Each
+ * `pantryEntries` row becomes a staple in stock with the same name, its free
+ * quantity kept as the staple's note, in the aisle the Group's grocery list
+ * would give it. A Group's staple with the same key wins: re-running skips
+ * what it already copied, and an entry written by an installed phone after the
+ * first run is picked up by the next. The pantry rows stay (expand/contract):
+ * installed apps still read them until the next OTA.
+ *
+ * One page per call. Run dry, then `{ apply: true }` passing `cursor` until
+ * `more` is false, in every deployment; a verification dry run reports
+ * `missing` zero. Run once more after the OTA without the Pantry screen has
+ * reached every installed build, then retire this, the `kitchen` pantry
+ * functions and the `pantryEntries` table.
+ */
+const PANTRY_BATCH = 200
+
+export const migratePantryToStaples = internalMutation({
+  args: {
+    apply: v.optional(v.boolean()),
+    cursor: v.optional(v.union(v.string(), v.null())),
+    // Rows per call, at most the default; tests use a small one to page.
+    batch: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const apply = args.apply ?? false
+    const numItems = Math.max(
+      1,
+      Math.min(PANTRY_BATCH, Math.floor(args.batch ?? PANTRY_BATCH)),
+    )
+    const page = await ctx.db
+      .query('pantryEntries')
+      .paginate({ numItems, cursor: args.cursor ?? null })
+    let missing = 0
+    let created = 0
+    let unnamed = 0
+    // Two entries with one key in a page become one staple.
+    const seen = new Set<string>()
+    for (const entry of page.page) {
+      const name = entry.title.trim().slice(0, STAPLE_NAME_MAX)
+      const key = stapleKey(name)
+      if (!key) {
+        unnamed++
+        continue
+      }
+      const seenKey = `${entry.groupId}:${key}`
+      if (seen.has(seenKey) || (await findStaple(ctx, entry.groupId, key)))
+        continue
+      seen.add(seenKey)
+      // An orphan of a deleted Group has nowhere to go, so it is not missing.
+      const group = await ctx.db.get(entry.groupId)
+      if (!group) continue
+      missing++
+      if (!apply) continue
+      const list = await writableGroceryList(ctx, group)
+      const { aisle } = await recogniseGroceryTitle(
+        ctx,
+        group._id,
+        name,
+        list ? await recentListItems(ctx, list._id) : [],
+      )
+      await ctx.db.insert('groceryStaples', {
+        groupId: entry.groupId,
+        name,
+        key,
+        aisle,
+        low: false,
+        ...(entry.quantity?.trim() ? { note: entry.quantity.trim() } : {}),
+        createdBy: entry.createdBy,
+      })
+      created++
+    }
+    return {
+      apply,
+      scanned: page.page.length,
+      missing,
+      created,
+      unnamed,
       more: !page.isDone,
       cursor: page.continueCursor,
     }
@@ -479,6 +571,7 @@ export const moveBabyToGroup = internalMutation({
 
     let taskListsMoved = 0
     let taskListsMissing = 0
+    let completionsMoved = 0
     for (const field of ['taskListId', 'questionsListId'] as const) {
       const listId = baby[field]
       if (!listId) continue
@@ -490,6 +583,18 @@ export const moveBabyToGroup = internalMutation({
       if (list.groupId === target._id) continue
       taskListsMoved++
       if (apply) await ctx.db.patch(listId, { groupId: target._id })
+      // A repeating task's history is Group content too (APP-303): it moves
+      // with its list, so the new Group exports and deletes it.
+      const tasks = await ctx.db
+        .query('tasks')
+        .withIndex('by_list', (q) => q.eq('listId', listId))
+        .collect()
+      for (const task of tasks) {
+        for (const row of await completionsOf(ctx, task._id)) {
+          completionsMoved++
+          if (apply) await ctx.db.patch(row._id, { groupId: target._id })
+        }
+      }
     }
 
     const events = await ctx.db
@@ -506,6 +611,7 @@ export const moveBabyToGroup = internalMutation({
       babiesMoved: alreadyInTargetGroup ? 0 : 1,
       taskListsMoved,
       taskListsMissing,
+      completionsMoved,
       // The log follows the child. Reported so the operator can see how much
       // is riding on the patch, and check it against the verification output.
       eventsCarried: events.length,
@@ -567,11 +673,13 @@ const USER_REFERENCES: {
     assignmentNotice: 'repoint',
     reminder: 'repoint',
   },
+  taskCompletions: { completedBy: 'repoint' },
   groceryCategoryOverrides: { updatedBy: 'repoint' },
   notes: { createdBy: 'repoint', updatedBy: 'repoint' },
   mealEntries: { createdBy: 'repoint' },
   plannedDinners: { eaterIds: 'repoint' },
   pantryEntries: { createdBy: 'repoint' },
+  groceryStaples: { createdBy: 'repoint' },
   calendars: { createdBy: 'repoint' },
   calendarEvents: { createdBy: 'repoint', assigneeIds: 'repoint' },
   integrationConnections: { connectedBy: 'repoint' },

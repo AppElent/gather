@@ -216,14 +216,16 @@ const subjectsOf =
 const SAMPLE_CONTENT: Record<ModuleId, SampleContent> = {
   recipes: inGroup('recipes'),
   'meal-planner': inGroup('plannedDinners'),
-  groceries: async (ctx, { group }) => {
-    const listId = group.groceryListId
+  groceries: async (ctx, sample) => {
+    const listId = sample.group.groceryListId
     if (!listId) return []
-    return (await ctx.db.query('tasks').collect()).filter(
+    const items = (await ctx.db.query('tasks').collect()).filter(
       (task) => task.listId === listId,
     )
+    // In stock (APP-314) is part of Groceries: both must have rows.
+    const staples = await inGroup('groceryStaples')(ctx, sample)
+    return items.length > 0 && staples.length > 0 ? [...items, ...staples] : []
   },
-  pantry: inGroup('pantryEntries'),
   'recurring-costs': inGroup('recurringCosts'),
   'shared-costs': inGroup('splitScenarios'),
   'savings-goals': inGroup('savingsGoals'),

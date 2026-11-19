@@ -368,3 +368,65 @@ describe('leaving a Group', () => {
     expect((await taskOf(t, w.taskId))?.assigneeId).toBeUndefined()
   })
 })
+
+describe('a repeating task (APP-303)', () => {
+  test('completing keeps the assignee and pushes nothing', async () => {
+    const t = testConvex()
+    const w = await world(t)
+    await phone(t, asBob, 'en')
+    const sent = stubExpo()
+    await t.withIdentity(asAlice).mutation(api.tasks.update, {
+      taskId: w.taskId,
+      groupSlug: HOUSE,
+      assigneeId: w.bob,
+      dueDate: '2026-12-01',
+      repeat: { mode: 'fixed', unit: 'week', every: 1 },
+    })
+    await drain(t)
+    expect(sent).toHaveLength(1)
+    const before = await taskOf(t, w.taskId)
+
+    // Bob ticks it on his phone, then Alice completes the next one through
+    // update, as the MCP does.
+    await t
+      .withIdentity(asBob)
+      .mutation(api.tasks.toggleDone, { taskId: w.taskId, groupSlug: HOUSE })
+    await t.withIdentity(asAlice).mutation(api.tasks.update, {
+      taskId: w.taskId,
+      groupSlug: HOUSE,
+      done: true,
+    })
+    await drain(t)
+
+    const after = await taskOf(t, w.taskId)
+    expect(after?.done).toBe(false)
+    expect(after?.dueDate).not.toBe(before?.dueDate)
+    expect(after?.assigneeId).toBe(w.bob)
+    expect(after?.assignmentNotice).toEqual(before?.assignmentNotice)
+    expect(sent).toHaveLength(1)
+  })
+
+  test('leaving the Group unassigns them and keeps their completions named', async () => {
+    const t = testConvex()
+    const w = await world(t)
+    stubExpo()
+    await t.withIdentity(asAlice).mutation(api.tasks.update, {
+      taskId: w.taskId,
+      groupSlug: HOUSE,
+      assigneeId: w.bob,
+      repeat: { mode: 'afterDone', unit: 'day', every: 3 },
+    })
+    await t
+      .withIdentity(asBob)
+      .mutation(api.tasks.toggleDone, { taskId: w.taskId, groupSlug: HOUSE })
+    await t
+      .withIdentity(asBob)
+      .mutation(api.groups.leaveGroup, { groupId: w.house })
+
+    expect((await taskOf(t, w.taskId))?.assigneeId).toBeUndefined()
+    const history = await t
+      .withIdentity(asAlice)
+      .query(api.tasks.completions, { taskId: w.taskId, groupSlug: HOUSE })
+    expect(history.map((row) => row.byName)).toEqual(['Bob'])
+  })
+})

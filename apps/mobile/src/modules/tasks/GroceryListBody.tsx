@@ -7,9 +7,9 @@
  * tapped back, and then leaves its aisle for Checked. Checked holds what was
  * checked since the last "Clear checked"; everything checked stays in Recent.
  *
- * Under the action row, the "Maybe needed" strip (APP-311). Shopping mode and
- * In stock (APP-315, 314) have no slot here yet: they arrive with their own
- * issues.
+ * The action row opens Recent and In stock (APP-314); under it, the "Maybe
+ * needed" strip (APP-311). Shopping mode (APP-315) has no slot here yet: it
+ * arrives with its own issue.
  */
 import { useRouter } from 'expo-router'
 import { type ReactNode, useState } from 'react'
@@ -17,10 +17,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
 import { fmt, plural, useI18n } from '../../i18n'
+import type { Glyph } from '../../theme/glyph'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
 import { CompletedSection } from '../../ui/completed-section'
 import { InsetList } from '../../ui/inset-list'
+import { moduleHref } from '../moduleDestination'
 import { SuggestionStrip } from './GrocerySuggestions'
 import { aisleSections, inCheckedSection } from './groceryList'
 import { useTaskActions } from './store'
@@ -84,35 +86,22 @@ export function GroceryListBody({
   return (
     <>
       <View style={styles.actions}>
-        <Pressable
+        <ActionPill
           testID="grocery-recent"
-          accessibilityRole="button"
-          accessibilityLabel={g.recent.title}
+          glyph={UI_ICONS.Clock}
+          label={g.recent.title}
           onPress={() =>
-            router.push({
-              pathname: '/all/groceries/recent',
-              params: { listId: list.id },
-            })
+            router.push(
+              moduleHref('/all/groceries/recent', { listId: list.id }),
+            )
           }
-          style={({ pressed }) => [
-            styles.pill,
-            {
-              backgroundColor: pressed ? tokens.surface2 : tokens.surface,
-              borderColor: tokens.hair,
-            },
-          ]}
-        >
-          <UI_ICONS.Clock
-            size={18}
-            color={tokens.ink}
-            strokeWidth={2.2}
-            accessibilityElementsHidden
-            importantForAccessibility="no"
-          />
-          <Text style={[styles.pillLabel, { color: tokens.ink }]}>
-            {g.recent.title}
-          </Text>
-        </Pressable>
+        />
+        <ActionPill
+          testID="grocery-in-stock"
+          glyph={UI_ICONS.House}
+          label={t.kitchen.inStock.title}
+          onPress={() => router.push(moduleHref('/all/groceries/in-stock'))}
+        />
       </View>
 
       <SuggestionStrip list={list} onUndoable={onUndoable} />
@@ -168,6 +157,45 @@ export function GroceryListBody({
         <InsetList>{checked.map(row)}</InsetList>
       </CompletedSection>
     </>
+  )
+}
+
+/** A pill in the action row: a glyph and a word, on the surface. */
+function ActionPill({
+  testID,
+  glyph: Icon,
+  label,
+  onPress,
+}: {
+  testID: string
+  glyph: Glyph
+  label: string
+  onPress: () => void
+}) {
+  const tokens = useTokens('kitchen')
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.pill,
+        {
+          backgroundColor: pressed ? tokens.surface2 : tokens.surface,
+          borderColor: tokens.hair,
+        },
+      ]}
+    >
+      <Icon
+        size={18}
+        color={tokens.ink}
+        strokeWidth={2.2}
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+      />
+      <Text style={[styles.pillLabel, { color: tokens.ink }]}>{label}</Text>
+    </Pressable>
   )
 }
 
