@@ -62,62 +62,66 @@ export function AccountDeleteSettings() {
   }
 
   return (
-    <section
-      aria-labelledby="account-delete-title"
-      className="rm-panel border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] p-4"
-    >
-      <h2 id="account-delete-title" className="rm-label">
-        {words.dangerZone}
-      </h2>
-      <p className="m-0 mb-3 text-sm font-semibold">{words.lead}</p>
-
-      {preview === undefined ? (
-        <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
-          {messages.common.errors.loading}
-        </p>
-      ) : preview === null ? null : preview.deleted.length === 0 &&
-        preview.kept.length === 0 ? (
-        <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
-          {words.noGroups}
-        </p>
-      ) : (
-        <div className="mb-3 grid gap-3">
-          <Consequence
-            heading={words.goesHeading}
-            body={words.goesBody}
-            groups={preview.deleted}
-            tone="danger"
-          />
-          <Consequence
-            heading={words.keptHeading}
-            body={words.keptBody}
-            groups={preview.kept}
-          />
-        </div>
-      )}
-
-      {error ? (
-        <p
-          role="alert"
-          className="m-0 mb-3 rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 py-2 text-sm text-[var(--app-danger)]"
-        >
-          {error}
-        </p>
-      ) : null}
-
-      <button
-        type="button"
-        data-testid="account-delete-submit"
-        disabled={deletion !== 'allowed' || preview === undefined || busy}
-        onClick={ask}
-        className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 text-sm font-semibold text-[var(--app-danger)] disabled:cursor-not-allowed disabled:opacity-60"
+    <>
+      <section
+        aria-labelledby="account-delete-title"
+        className="rm-panel border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] p-4"
       >
-        <span aria-live="polite">
-          {busy ? messages.common.actions.working : words.submit}
-        </span>
-      </button>
+        <h2 id="account-delete-title" className="rm-label">
+          {words.dangerZone}
+        </h2>
+        <p className="m-0 mb-3 text-sm font-semibold">{words.lead}</p>
+
+        {preview === undefined ? (
+          <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
+            {messages.common.errors.loading}
+          </p>
+        ) : preview === null ? null : preview.deleted.length === 0 &&
+          preview.kept.length === 0 ? (
+          <p className="m-0 mb-3 text-sm text-[var(--app-muted)]">
+            {words.noGroups}
+          </p>
+        ) : (
+          <div className="mb-3 grid gap-3">
+            <Consequence
+              heading={words.goesHeading}
+              body={words.goesBody}
+              groups={preview.deleted}
+              tone="danger"
+            />
+            <Consequence
+              heading={words.keptHeading}
+              body={words.keptBody}
+              groups={preview.kept}
+            />
+          </div>
+        )}
+
+        {error ? (
+          <p
+            role="alert"
+            className="m-0 mb-3 rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 py-2 text-sm text-[var(--app-danger)]"
+          >
+            {error}
+          </p>
+        ) : null}
+
+        <button
+          type="button"
+          data-testid="account-delete-submit"
+          disabled={deletion !== 'allowed' || preview === undefined || busy}
+          onClick={ask}
+          className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 text-sm font-semibold text-[var(--app-danger)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <span aria-live="polite">
+            {busy ? messages.common.actions.working : words.submit}
+          </span>
+        </button>
+      </section>
+      {/* Outside the panel: its backdrop-filter would make it the containing
+          block of the dialog's fixed overlay, trapping it inside the card. */}
       {dialog}
-    </section>
+    </>
   )
 }
 
