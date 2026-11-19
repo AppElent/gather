@@ -11,7 +11,7 @@
  * slot here yet: they arrive with their own issues.
  */
 import { useRouter } from 'expo-router'
-import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { haptics } from '../../feedback/haptics'
@@ -23,52 +23,7 @@ import { InsetList } from '../../ui/inset-list'
 import { aisleSections, inCheckedSection } from './groceryList'
 import { useTaskActions } from './store'
 import type { Task, TaskList } from './types'
-
-/** How long a checked item stays in its aisle before it moves to Checked. */
-export const LINGER_MS = 1500
-
-/**
- * The ids of items checked while this screen was open, for `LINGER_MS` after
- * each check. Items that were checked before it opened never linger.
- */
-export function useLingering(tasks: readonly Task[]): ReadonlySet<string> {
-  const seen = useRef<Set<string> | null>(null)
-  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
-  const [lingering, setLingering] = useState<ReadonlySet<string>>(new Set())
-
-  useEffect(() => {
-    const done = new Set(tasks.filter((task) => task.done).map((t) => t.id))
-    const before = seen.current
-    seen.current = done
-    if (before === null) return
-    const fresh = [...done].filter((id) => !before.has(id))
-    if (fresh.length === 0) return
-    setLingering((current) => new Set([...current, ...fresh]))
-    for (const id of fresh) {
-      clearTimeout(timers.current.get(id))
-      timers.current.set(
-        id,
-        setTimeout(() => {
-          timers.current.delete(id)
-          setLingering((current) => {
-            const next = new Set(current)
-            next.delete(id)
-            return next
-          })
-        }, LINGER_MS),
-      )
-    }
-  }, [tasks])
-
-  useEffect(() => {
-    const pending = timers.current
-    return () => {
-      for (const timer of pending.values()) clearTimeout(timer)
-    }
-  }, [])
-
-  return lingering
-}
+import { useLingering } from './useLingering'
 
 export function GroceryListBody({
   list,
@@ -93,7 +48,10 @@ export function GroceryListBody({
   const { t, locale } = useI18n()
   const router = useRouter()
   const actions = useTaskActions()
-  const lingering = useLingering(tasks)
+  const lingering = useLingering(
+    tasks,
+    list.sync === 'live' || list.sync === 'synced',
+  )
   const [busy, setBusy] = useState(false)
   const g = t.tasks.grocery
 
@@ -178,7 +136,7 @@ export function GroceryListBody({
       ))}
 
       <InsetList>
-        {tasks.length === 0 ? empty : null}
+        {open.length === 0 && checked.length === 0 ? empty : null}
         {composer}
       </InsetList>
 
