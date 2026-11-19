@@ -37,6 +37,7 @@ behaviour work as in Tasks unless this study says otherwise. Group: **Kitchen**
 | `Stock.dc.html` | In huis | APP-314 |
 | `Shop.dc.html`, `Shop-Dark.dc.html` | Shopping mode | APP-315 |
 | `canvas.json` | Positions, titles, sticky notes (the brief and rationale) | |
+| `Web*.dc.html`, [`web.md`](web.md) | The web version and its companion, approved 19 Nov 2026 (also the APP-300 Module layout) | APP-316, 300 |
 
 The artboards are a visual reference. Build from this companion and the phone's
 own tokens and components (`apps/mobile/DESIGN_SYSTEM.md`), not from the
