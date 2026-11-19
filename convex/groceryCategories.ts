@@ -170,8 +170,11 @@ export const askNames = internalAction({
   },
 })
 
-/** Rows `prune` reads per run; it schedules itself for the rest. */
-const PRUNE_PAGE_SIZE = 100
+/**
+ * Rows `prune` reads per run; it schedules itself for the rest. Small, because
+ * a consensus row reads up to 500 corrections to check it still stands.
+ */
+const PRUNE_PAGE_SIZE = 25
 
 /**
  * Drop shared cache rows nothing backs any more (ADR-0049): run daily by
