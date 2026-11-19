@@ -200,6 +200,9 @@ export function GroceryFields({
       : OFFERED_UNITS
   const selectedUnit = task.unit ?? (task.quantity === undefined ? null : 'stuks')
   const aisle: GroceryAisle = task.category ?? 'other'
+  // A pill names the unit, as the design does: "stuks", "pak", "fles".
+  const pillWord = (unit: GroceryUnit) =>
+    unit === 'stuks' ? words.units[unit].other : words.units[unit].one
   const hasAmount = task.quantity !== undefined || task.unit !== undefined
 
   return (
@@ -273,7 +276,7 @@ export function GroceryFields({
                 testID={`grocery-unit-${unit}`}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: on, disabled: !writable }}
-                accessibilityLabel={words.units[unit].other}
+                accessibilityLabel={pillWord(unit)}
                 disabled={!writable}
                 hitSlop={{ top: 5, bottom: 5 }}
                 onPress={() => (on ? undefined : write(current() ?? 1, unit))}
@@ -291,7 +294,7 @@ export function GroceryFields({
                     { color: on ? tokens.onInk : tokens.ink },
                   ]}
                 >
-                  {words.units[unit].other}
+                  {pillWord(unit)}
                 </Text>
               </Pressable>
             )

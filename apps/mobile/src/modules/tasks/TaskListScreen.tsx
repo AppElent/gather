@@ -303,6 +303,9 @@ export function TaskList({
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
+        // The composer is the last row: on a small iPhone the keyboard would
+        // cover it and a grocery line's recognised chips (APP-309).
+        automaticallyAdjustKeyboardInsets
         scrollEnabled={!dragging}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         refreshControl={
@@ -394,7 +397,10 @@ export function TaskList({
                 {list.writable ? (
                   <TaskComposer
                     listId={list.id}
-                    placeholder={addPlaceholder ?? t.tasks.list.addTask}
+                    placeholder={
+                      addPlaceholder ??
+                      (grocery ? t.kitchen.addGroceryItem : t.tasks.list.addTask)
+                    }
                     grocery={grocery}
                   />
                 ) : null}
