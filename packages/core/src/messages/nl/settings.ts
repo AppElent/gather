@@ -24,6 +24,19 @@ export const settings = {
     },
   },
 
+  signedInDevices: {
+    title: 'Ingelogde apparaten',
+    description: 'Waar je bent ingelogd.',
+    thisDevice: 'Dit apparaat',
+    lastActive: 'Laatst actief {when}',
+    unknownDevice: 'Onbekend apparaat',
+    signOutOf: 'Uitloggen',
+    revokeTitle: 'Uitloggen op {device}?',
+    revokeBody: 'Dat apparaat moet opnieuw inloggen.',
+    failed:
+      'Je ingelogde apparaten konden niet worden geladen of gewijzigd. Probeer het opnieuw.',
+  },
+
   dataExport: {
     title: 'Je gegevens exporteren',
     description:

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { AccountDeleteSettings } from '../../components/account/AccountDeleteSettings'
+import { SignedInDevices } from '../../components/account/SignedInDevices'
 import { DataExportSettings } from '../../components/settings/DataExportSettings'
 import { ProfilePanel } from '../../lib/auth'
 import { useMessages } from '../../lib/i18n'
@@ -17,6 +18,7 @@ function AccountPage() {
         {messages.shell.routes.account.title}
       </h1>
       <ProfilePanel />
+      <SignedInDevices />
       <DataExportSettings />
       <AccountDeleteSettings />
       <p className="m-0 text-sm text-[var(--app-muted)]">
