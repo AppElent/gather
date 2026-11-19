@@ -29,6 +29,14 @@ export const CONSENSUS_GROUPS = 3
 /** A question still out after this long is taken as lost and asked again. */
 export const PENDING_STALE_MS = 60 * 60 * 1000
 
+/**
+ * How long the model's answer for a name stays in the shared cache. The name
+ * is text a Member typed, kept with no record of who typed it, so it must not
+ * outlive the Group that typed it for long: the daily `prune` drops it after
+ * this, and the next Group to type it asks again (ADR-0049).
+ */
+export const AI_ANSWER_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
+
 /** How long a later item waits between looks at a question already out. */
 export const WAIT_FOR_ANSWER_MS = 30 * 1000
 export const WAIT_FOR_ANSWER_TRIES = 6
@@ -217,11 +225,12 @@ export async function recordGroceryCorrection(
       askedAt: now,
       answeredAt: now,
     })
-  console.log(`grocery-category consensus name="${name}" aisle=${aisle}`)
+  // The name stays out of the logs: they outlive the Group that typed it.
+  console.log(`grocery-category consensus aisle=${aisle}`)
 }
 
 /** How many Groups, and how many people, chose this aisle for a name. */
-async function groupsChoosing(
+export async function groupsChoosing(
   ctx: QueryCtx,
   name: string,
   aisle: GroceryAisle,
@@ -259,4 +268,22 @@ export async function applyGroceryAnswer(
   if (chosen === 'other') return false
   await ctx.db.patch(taskId, { category: chosen })
   return true
+}
+
+/**
+ * Whether the daily `prune` drops a shared cache row (ADR-0049): a question
+ * that never got its answer, a model answer past its retention, or a
+ * consensus that no longer stands because the Groups behind it deleted or
+ * changed their choice. What is left is what Groups still back.
+ */
+export async function isPrunableGroceryCache(
+  ctx: QueryCtx,
+  row: Doc<'groceryCategoryCache'>,
+  now: number,
+): Promise<boolean> {
+  if (!row.aisle) return now - row.askedAt >= PENDING_STALE_MS
+  if (row.source === 'ai')
+    return now - (row.answeredAt ?? row.askedAt) >= AI_ANSWER_RETENTION_MS
+  const agreeing = await groupsChoosing(ctx, row.name, row.aisle)
+  return agreeing.groups < CONSENSUS_GROUPS || agreeing.people < CONSENSUS_GROUPS
 }

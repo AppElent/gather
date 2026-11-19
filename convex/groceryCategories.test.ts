@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { alice, bob, carol, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
-import { GROCERY_AI_DAILY_BUDGET } from './lib/groceryCategories'
+import {
+  AI_ANSWER_RETENTION_MS,
+  GROCERY_AI_DAILY_BUDGET,
+  PENDING_STALE_MS,
+} from './lib/groceryCategories'
 
 /**
  * Grocery aisles (APP-353), through the real mutations: an item added to a
@@ -465,5 +469,127 @@ describe('access', () => {
   test('the budget counter is not a public function', () => {
     expect(Object.keys(api)).not.toContain('groceryCategories')
     expect(internal.groceryCategories.takeBudget).toBeDefined()
+  })
+})
+
+describe('pruning the shared cache (ADR-0049)', () => {
+  const DAY = 24 * 60 * 60 * 1000
+
+  async function prune(t: Awaited<ReturnType<typeof seed>>['t']) {
+    await t.mutation(internal.groceryCategories.prune, {})
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    return (
+      await t.run((ctx) => ctx.db.query('groceryCategoryCache').collect())
+    ).map((row) => row.name)
+  }
+
+  test('a model answer goes after its retention; a fresh one and a live question stay', async () => {
+    const { t } = await seed()
+    const now = Date.now()
+    await t.run(async (ctx) => {
+      const old = now - AI_ANSWER_RETENTION_MS - 1
+      await ctx.db.insert('groceryCategoryCache', {
+        name: 'oud',
+        aisle: 'snacks',
+        source: 'ai',
+        askedAt: old,
+        answeredAt: old,
+      })
+      await ctx.db.insert('groceryCategoryCache', {
+        name: 'vers',
+        aisle: 'snacks',
+        source: 'ai',
+        askedAt: now - DAY,
+        answeredAt: now - DAY,
+      })
+      await ctx.db.insert('groceryCategoryCache', { name: 'onderweg', source: 'ai', askedAt: now })
+      await ctx.db.insert('groceryCategoryCache', {
+        name: 'verloren',
+        source: 'ai',
+        askedAt: now - PENDING_STALE_MS,
+      })
+    })
+    expect((await prune(t)).sort()).toEqual(['onderweg', 'vers'])
+  })
+
+  test('a consensus stays while three Groups back it and goes once they do not', async () => {
+    const { t, groups } = await seed()
+    const now = Date.now()
+    const overrides = await t.run(async (ctx) => {
+      const users = await ctx.db.query('users').collect()
+      await ctx.db.insert('groceryCategoryCache', {
+        name: 'doenjang',
+        aisle: 'pasta_world',
+        source: 'consensus',
+        askedAt: now - 2 * AI_ANSWER_RETENTION_MS,
+        answeredAt: now - 2 * AI_ANSWER_RETENTION_MS,
+      })
+      const ids = []
+      for (const [index, group] of groups.entries())
+        ids.push(
+          await ctx.db.insert('groceryCategoryOverrides', {
+            groupId: group.groupId,
+            name: 'doenjang',
+            aisle: 'pasta_world',
+            updatedBy: users[index]._id,
+            updatedAt: now,
+          }),
+        )
+      return ids
+    })
+    expect(await prune(t)).toEqual(['doenjang'])
+
+    // One Group deleted, taking its correction with it.
+    await t.run((ctx) => ctx.db.delete(overrides[0]))
+    expect(await prune(t)).toEqual([])
+  })
+
+  test('pruning walks the whole table a page at a time', async () => {
+    const { t } = await seed()
+    const old = Date.now() - AI_ANSWER_RETENTION_MS - 1
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 250; i++)
+        await ctx.db.insert('groceryCategoryCache', {
+          name: `naam ${i}`,
+          aisle: 'snacks',
+          source: 'ai',
+          askedAt: old,
+          answeredAt: old,
+        })
+    })
+    expect(await prune(t)).toEqual([])
+  })
+
+  test('an item keeps its aisle after its name leaves the cache', async () => {
+    const { t, groups } = await seed()
+    modelAnswers('pasta_world')
+    const task = await addItem(t, 0, groups[0].groceries, 'doenjang')
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    vi.advanceTimersByTime(AI_ANSWER_RETENTION_MS + 1)
+    expect(await prune(t)).toEqual([])
+    expect(await categoryOf(t, task)).toBe('pasta_world')
+  })
+
+  test('the logs never carry the name', async () => {
+    const { t, groups } = await seed()
+    modelAnswers('pasta_world')
+    const log = vi.spyOn(console, 'log')
+    const warn = vi.spyOn(console, 'warn')
+    const tasks: Id<'tasks'>[] = []
+    for (const index of [0, 1, 2]) {
+      tasks.push(await addItem(t, index, groups[index].groceries, 'doenjang'))
+      await t.finishAllScheduledFunctions(vi.runAllTimers)
+    }
+    for (const index of [0, 1, 2])
+      await t.withIdentity(PEOPLE[index]).mutation(api.tasks.update, {
+        taskId: tasks[index],
+        groupSlug: SLUGS[index],
+        category: 'snacks',
+      })
+    const lines = [...log.mock.calls, ...warn.mock.calls].flat().map(String)
+    expect(lines.some((line) => line.startsWith('grocery-category'))).toBe(true)
+    expect(lines.join('\n')).not.toContain('doenjang')
+    log.mockRestore()
+    warn.mockRestore()
   })
 })

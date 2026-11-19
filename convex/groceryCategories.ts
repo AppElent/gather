@@ -23,6 +23,7 @@ import {
   applyGroceryAnswer,
   findGroceryCache,
   GROCERY_AI_DAILY_BUDGET,
+  isPrunableGroceryCache,
   WAIT_FOR_ANSWER_MS,
   WAIT_FOR_ANSWER_TRIES,
 } from './lib/groceryCategories'
@@ -46,7 +47,7 @@ export const classify = internalAction({
     }
     const aisle = await askGroceryAisle(args.cleanName, apiKey)
     if (!aisle) {
-      console.warn(`grocery-category: no answer for name="${args.name}"`)
+      console.warn('grocery-category: no answer; item stays in other')
       await ctx.runMutation(internal.groceryCategories.release, { name: args.name })
       return null
     }
@@ -113,9 +114,8 @@ export const record = internalMutation({
         answeredAt: now,
       })
     const moved = await applyGroceryAnswer(ctx, args.taskId, args.name, args.aisle)
-    console.log(
-      `grocery-category ai name="${args.name}" aisle=${args.aisle} moved=${moved}`,
-    )
+    // The name stays out of the logs: they outlive the Group that typed it.
+    console.log(`grocery-category ai aisle=${args.aisle} moved=${moved}`)
     return null
   },
 })
@@ -167,6 +167,37 @@ export const askNames = internalAction({
       answers.push({ name, aisle: await askGroceryAisle(name, apiKey) })
     }
     return answers
+  },
+})
+
+/** Rows `prune` reads per run; it schedules itself for the rest. */
+const PRUNE_PAGE_SIZE = 100
+
+/**
+ * Drop shared cache rows nothing backs any more (ADR-0049): run daily by
+ * `crons.ts`, a page at a time. Items already sorted keep their aisle, which
+ * is stored on the item.
+ */
+export const prune = internalMutation({
+  args: { cursor: v.optional(v.union(v.string(), v.null())) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const now = Date.now()
+    const page = await ctx.db
+      .query('groceryCategoryCache')
+      .paginate({ cursor: args.cursor ?? null, numItems: PRUNE_PAGE_SIZE })
+    let removed = 0
+    for (const row of page.page) {
+      if (!(await isPrunableGroceryCache(ctx, row, now))) continue
+      await ctx.db.delete(row._id)
+      removed++
+    }
+    if (removed) console.log(`grocery-category prune removed=${removed}`)
+    if (!page.isDone)
+      await ctx.scheduler.runAfter(0, internal.groceryCategories.prune, {
+        cursor: page.continueCursor,
+      })
+    return null
   },
 })
 

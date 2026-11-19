@@ -15,6 +15,7 @@ import type * as babies from "../babies.js";
 import type * as babyEvents from "../babyEvents.js";
 import type * as calendar from "../calendar.js";
 import type * as cascade from "../cascade.js";
+import type * as crons from "../crons.js";
 import type * as dataExport from "../dataExport.js";
 import type * as groceryCategories from "../groceryCategories.js";
 import type * as groups from "../groups.js";
@@ -101,6 +102,7 @@ declare const fullApi: ApiFromModules<{
   babyEvents: typeof babyEvents;
   calendar: typeof calendar;
   cascade: typeof cascade;
+  crons: typeof crons;
   dataExport: typeof dataExport;
   groceryCategories: typeof groceryCategories;
   groups: typeof groups;
