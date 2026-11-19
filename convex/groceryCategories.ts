@@ -24,6 +24,8 @@ import {
   applyGroceryAnswer,
   findGroceryCache,
   GROCERY_AI_DAILY_BUDGET,
+  GROCERY_AI_GROUP_DAILY_BUDGET,
+  groupUsage,
   takeGroceryAiBudget,
   WAIT_FOR_ANSWER_MS,
   WAIT_FOR_ANSWER_TRIES,
@@ -121,6 +123,10 @@ export const release = internalMutation({
         if (!task || task.category !== 'other') continue
         const list = await ctx.db.get(task.listId)
         if (!list || list.groupId === args.handOff.refusedGroupId) continue
+        // Only a Group with questions left: two spent Groups must not hand
+        // the question back and forth until midnight.
+        const usage = await groupUsage(ctx, list.groupId, utcDay(Date.now()))
+        if (usage && usage.count >= GROCERY_AI_GROUP_DAILY_BUDGET) continue
         await ctx.db.patch(row._id, {
           askedAt: Date.now(),
           waitingTaskIds: [

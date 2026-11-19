@@ -77,7 +77,7 @@ export async function recentListItems(
 }
 
 /** Today's question count for one Group. */
-async function groupUsage(ctx: QueryCtx, groupId: Id<'groups'>, day: string) {
+export async function groupUsage(ctx: QueryCtx, groupId: Id<'groups'>, day: string) {
   return await ctx.db
     .query('groceryAiGroupUsage')
     .withIndex('by_group_and_day', (q) => q.eq('groupId', groupId).eq('day', day))

@@ -290,6 +290,27 @@ describe('aisle on add', () => {
     )
   })
 
+  test('when every waiting Group is out of questions, the question is given up', async () => {
+    const { t, groups } = await seed()
+    const fetchMock = modelAnswers('pasta_world')
+    const day = new Date().toISOString().slice(0, 10)
+    const asker = await addItem(t, 0, groups[0].groceries, 'doenjang')
+    const waiter = await addItem(t, 1, groups[1].groceries, 'doenjang')
+    await t.run(async (ctx) => {
+      for (const index of [0, 1])
+        await ctx.db.insert('groceryAiGroupUsage', {
+          groupId: groups[index].groupId,
+          day,
+          count: GROCERY_AI_GROUP_DAILY_BUDGET,
+        })
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(await categoryOf(t, asker)).toBe('other')
+    expect(await categoryOf(t, waiter)).toBe('other')
+    expect(await t.run((ctx) => ctx.db.query('groceryCategoryCache').collect())).toEqual([])
+  })
+
   test('items waiting on a question move when the answer comes in, however late', async () => {
     const { t, groups } = await seed()
     let answer: (value: unknown) => void = () => {}
