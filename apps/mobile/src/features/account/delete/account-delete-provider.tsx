@@ -25,6 +25,15 @@
  *
  * The stranded state is held in memory, so it lasts while the app is open and
  * signed in. Quitting the app, or Clerk ending the session, loses it.
+ *
+ * **Two choices (APP-397).** Gather shares its Clerk login with the other
+ * AppElent apps, so `start` takes what to delete. `gatherData` runs the same
+ * purge with `keepLogin` and nothing else: no Apple revocation and no
+ * `user.delete()`, because the login (and its Apple grant) is the other apps'
+ * too, and no `deleteSelfEnabled`, because nothing asks Clerk to delete
+ * anything. It then signs out of this phone and says so
+ * (`onGatherDataDeleted`). Signing in again starts a fresh, empty account.
+ * `wholeAccount` is the run above.
  */
 import { useUser } from '@clerk/expo'
 import { accountDeletion } from '@gather/core/account-deletion'
@@ -44,6 +53,9 @@ import { useSignOut } from '../../../auth/useSignOut'
 import { api } from '../../../convex/api'
 import { revokeAppleSignIn } from './apple-revocation'
 
+/** What the person chose to delete. */
+export type DeleteChoice = 'gatherData' | 'wholeAccount'
+
 /**
  * Where a deletion is.
  *
@@ -56,25 +68,33 @@ import { revokeAppleSignIn } from './apple-revocation'
  * - **deletingLogin** — the purge is scheduled; waiting for Clerk.
  * - **stranded** — Clerk refused after the purge: the data is going and the
  *   login is not.
+ * - **signingOut** — Gather's data only: the purge is scheduled and the login
+ *   stays; signing out of this phone.
  */
 export type AccountDeleteState =
   | { step: 'idle' }
   | { step: 'revokingApple' }
-  | { step: 'purging' }
-  | { step: 'refused'; cause: unknown }
+  | { step: 'purging'; choice: DeleteChoice }
+  | { step: 'refused'; choice: DeleteChoice; cause: unknown }
   | { step: 'deletingLogin' }
   | { step: 'stranded' }
+  | { step: 'signingOut' }
 
 /** Whether the purge has started, after which the signed-in tree is gone. */
 export function purgeStarted(state: AccountDeleteState): boolean {
-  return state.step === 'deletingLogin' || state.step === 'stranded'
+  return (
+    state.step === 'deletingLogin' ||
+    state.step === 'stranded' ||
+    state.step === 'signingOut'
+  )
 }
 
 export interface AccountDeleteValue {
   state: AccountDeleteState
-  /** Delete the account. Does nothing unless Clerk allows self-deletion, or
-   * while a deletion is already running. */
-  start: () => void
+  /** Delete Gather's data, or the whole account. Does nothing while a
+   * deletion is already running, or for the whole account unless Clerk
+   * allows self-deletion. */
+  start: (choice: DeleteChoice) => void
   /** Ask Clerk again after it refused. The purge is not repeated: it is
    * already running, and its `users` row may already be gone. */
   retryLogin: () => void
@@ -94,11 +114,16 @@ export interface AccountDeleteProviderProps {
   children: ReactNode
   /** Drawn in place of `children` once the purge has started. */
   underway: (value: AccountDeleteValue) => ReactNode
+  /** Says Gather's data is gone and the login still works elsewhere, once
+   * this phone has signed out. Something that outlives this provider (an
+   * alert), since signing out unmounts it. */
+  onGatherDataDeleted: () => void
 }
 
 export function AccountDeleteProvider({
   children,
   underway,
+  onGatherDataDeleted,
 }: AccountDeleteProviderProps) {
   const { user } = useUser()
   const deleteAccount = useMutation(api.accounts.deleteAccount)
@@ -138,31 +163,50 @@ export function AccountDeleteProvider({
     signOut()
   }, [user, signOut])
 
-  const start = useCallback(() => {
-    if (!user || running.current || accountDeletion(user) !== 'allowed') return
-    running.current = true
-    setState({ step: 'revokingApple' })
-    void (async () => {
-      const apple = await revokeAppleSignIn(user, revokeApple)
-      if (!mounted.current) return
-      if (apple === 'cancelled') {
-        running.current = false
-        setState({ step: 'idle' })
+  const start = useCallback(
+    (choice: DeleteChoice) => {
+      if (!user || running.current) return
+      // Only the whole account asks Clerk to delete anything, so only it
+      // needs Clerk's permission to.
+      if (choice === 'wholeAccount' && accountDeletion(user) !== 'allowed')
         return
-      }
-      setState({ step: 'purging' })
-      try {
-        // Bound to the account the person confirmed: if the session changed
-        // while the Apple sheet was up, Convex refuses and nothing is deleted.
-        await deleteAccount({ expectedSubject: user.id })
-      } catch (cause) {
-        running.current = false
-        setState({ step: 'refused', cause })
-        return
-      }
-      await deleteLogin()
-    })()
-  }, [user, deleteAccount, revokeApple, deleteLogin])
+      running.current = true
+      void (async () => {
+        if (choice === 'wholeAccount') {
+          setState({ step: 'revokingApple' })
+          const apple = await revokeAppleSignIn(user, revokeApple)
+          if (!mounted.current) return
+          if (apple === 'cancelled') {
+            running.current = false
+            setState({ step: 'idle' })
+            return
+          }
+        }
+        setState({ step: 'purging', choice })
+        try {
+          // Bound to the account the person confirmed: if the session changed
+          // while the Apple sheet was up, Convex refuses and nothing is
+          // deleted.
+          await deleteAccount({
+            expectedSubject: user.id,
+            ...(choice === 'gatherData' ? { keepLogin: true } : {}),
+          })
+        } catch (cause) {
+          running.current = false
+          setState({ step: 'refused', choice, cause })
+          return
+        }
+        if (choice === 'wholeAccount') {
+          await deleteLogin()
+          return
+        }
+        setState({ step: 'signingOut' })
+        signOut()
+        onGatherDataDeleted()
+      })()
+    },
+    [user, deleteAccount, revokeApple, deleteLogin, signOut, onGatherDataDeleted],
+  )
 
   const retryLogin = useCallback(() => {
     if (state.step === 'stranded') void deleteLogin()

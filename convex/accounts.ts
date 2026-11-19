@@ -28,13 +28,37 @@
  * The client checks `deleteSelfEnabled` before calling any of this. Purging
  * somebody's household for an account Clerk then refuses to delete would be
  * the worst outcome available.
+ *
+ * ## Gather's data only, or the whole AppElent login (APP-397)
+ *
+ * Gather, Foundry, Fairway and Arcade Club share one Clerk login, so deleting
+ * it is not Gather's alone to decide. The person chooses (ADR-0050):
+ *
+ * - **Gather's data only** (`keepLogin`): the same purge, and the login stays.
+ *   The `users` row lets go of the Clerk subject in the same transaction
+ *   (`releasedSubject`), so nothing that looks the subject up finds it again —
+ *   `ensureUser` included. Signing in again, a minute or a year later, starts
+ *   a fresh, empty account rather than meeting the tombstone.
+ * - **The whole AppElent account**: the purge as it always was, keeping the
+ *   subject and the tombstone, because the same session is about to ask Clerk
+ *   to delete the login and must not be handed an account in between.
+ *
+ * Clerk's `user.deleted` webhook (`convex/http.ts`) runs the first kind for
+ * the deleted subject, which is how deleting the login from another app, or
+ * from the Clerk dashboard, wipes Gather too. All three go through
+ * `purgeSubject`; there is no second copy of the purge.
  */
 
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
-import type { Id } from './_generated/dataModel'
-import type { QueryCtx } from './_generated/server'
-import { action, mutation, query } from './_generated/server'
+import type { Doc, Id } from './_generated/dataModel'
+import type { MutationCtx, QueryCtx } from './_generated/server'
+import {
+  action,
+  internalMutation,
+  mutation,
+  query,
+} from './_generated/server'
 import {
   appleCredentials,
   isAppleClientId,
@@ -46,6 +70,7 @@ import {
   getMyGroupIds,
   NOT_SIGNED_IN,
   requireCurrentUser,
+  requireIdentity,
 } from './lib/sharing'
 
 /** The Groups they are in, split by whether anybody else is in them. */
@@ -94,34 +119,111 @@ export const ACCOUNT_CHANGED =
   'You are signed in to a different account now. Nothing was deleted.'
 
 /**
+ * What a released `users` row holds in place of its Clerk subject.
+ *
+ * Clerk subjects start `user_`, so this can never be one, and it is unique per
+ * row, so `maintenance.mergeDuplicateUsers` never mistakes two released rows
+ * for one person.
+ */
+export function releasedSubject(userId: Id<'users'>): string {
+  return `released:${userId}`
+}
+
+/**
+ * Start purging one person's rows: one Group per scheduled step, then the
+ * person (`cascade.purgeAccount`). The single purge behind every way in —
+ * `deleteAccount` with either choice, and the Clerk webhook.
+ *
+ * Every row the subject resolves to is purged, not just the canonical one:
+ * a duplicate left behind would otherwise become the account a later sign-in
+ * resolves to, with the old data in it.
+ *
+ * `releaseLogin` lets go of the subject as well (see the header). Without it
+ * the row keeps the subject and `deletedAt` stops `ensureUser` until the purge
+ * deletes the row. A row already being purged is not purged twice; asked to
+ * release it, it lets go of the subject too, so a later sign-in is never
+ * stuck behind an earlier deletion. Returns how many rows it touched.
+ */
+export async function purgeSubject(
+  ctx: MutationCtx,
+  subject: string,
+  { releaseLogin }: { releaseLogin: boolean },
+): Promise<number> {
+  const rows = await ctx.db
+    .query('users')
+    .withIndex('by_clerkId', (q) => q.eq('clerkId', subject))
+    .collect()
+  for (const user of rows) await purgeUser(ctx, user, releaseLogin)
+  return rows.length
+}
+
+async function purgeUser(
+  ctx: MutationCtx,
+  user: Doc<'users'>,
+  releaseLogin: boolean,
+) {
+  const release = releaseLogin ? { clerkId: releasedSubject(user._id) } : {}
+  if (user.deletedAt) {
+    if (releaseLogin) await ctx.db.patch(user._id, release)
+    return
+  }
+  const { solo } = await partitionGroups(ctx, user._id)
+  await ctx.db.patch(user._id, { deletedAt: Date.now(), ...release })
+  await ctx.scheduler.runAfter(0, internal.cascade.purgeAccount, {
+    userId: user._id,
+    groupIds: solo,
+  })
+}
+
+/**
  * Start the purge. Nothing here takes a user id — the caller is whoever the
  * token says they are, as everywhere else.
  *
  * It returns once the account is marked and the work is scheduled, so the
- * client can go on to delete the Clerk user immediately. The rest runs in
- * bounded steps behind it (`cascade.purgeAccount`).
+ * client can go on to delete the Clerk user immediately (or, with
+ * `keepLogin`, sign out). The rest runs in bounded steps behind it
+ * (`cascade.purgeAccount`).
  */
 export const deleteAccount = mutation({
-  // The Clerk user id the phone means to delete. Optional so builds from
-  // before APP-213 keep working; when given, a session that has changed
-  // account since the person confirmed (the Apple sheet can stay up a while)
-  // is refused instead of purging the account it changed to.
-  args: { expectedSubject: v.optional(v.string()) },
-  handler: async (ctx, { expectedSubject }) => {
+  args: {
+    // The Clerk user id the phone means to delete. Optional so builds from
+    // before APP-213 keep working; when given, a session that has changed
+    // account since the person confirmed (the Apple sheet can stay up a while)
+    // is refused instead of purging the account it changed to.
+    expectedSubject: v.optional(v.string()),
+    // Delete Gather's data and keep the AppElent login (APP-397). Absent is
+    // the whole account, which is what every build from before it means.
+    keepLogin: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { expectedSubject, keepLogin }) => {
     // Deleting the account stays in the app (ADR-0046).
     await rejectConnectedApps(ctx)
-    const user = await requireCurrentUser(ctx)
-    if (expectedSubject !== undefined && user.clerkId !== expectedSubject)
+    const identity = await requireIdentity(ctx)
+    if (expectedSubject !== undefined && identity.subject !== expectedSubject)
       throw new ConvexError(ACCOUNT_CHANGED)
-    if (user.deletedAt) return
-
-    const { solo } = await partitionGroups(ctx, user._id)
-    await ctx.db.patch(user._id, { deletedAt: Date.now() })
-    await ctx.scheduler.runAfter(0, internal.cascade.purgeAccount, {
-      userId: user._id,
-      groupIds: solo,
-    })
+    if (keepLogin) {
+      // Nothing left under this subject is the same answer as having just
+      // deleted it: a second tap after the release is a no-op, not a refusal.
+      await purgeSubject(ctx, identity.subject, { releaseLogin: true })
+      return
+    }
+    // The whole account needs a Gather account to be deleting.
+    await requireCurrentUser(ctx)
+    await purgeSubject(ctx, identity.subject, { releaseLogin: false })
   },
+})
+
+/**
+ * The Clerk user is gone (the `user.deleted` webhook, `convex/http.ts`), so
+ * purge everything Gather holds for it. The same purge as deleting Gather's
+ * data in the app. Idempotent: a subject with nothing left here, or a second
+ * delivery, does nothing.
+ */
+export const purgeDeletedClerkUser = internalMutation({
+  args: { subject: v.string() },
+  returns: v.number(),
+  handler: async (ctx, { subject }) =>
+    await purgeSubject(ctx, subject, { releaseLogin: true }),
 })
 
 /** Apple authorization codes are opaque strings of a few hundred characters. */

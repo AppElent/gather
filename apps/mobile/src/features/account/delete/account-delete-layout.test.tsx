@@ -17,6 +17,7 @@ import {
 } from './account-delete-provider'
 
 const state = vi.hoisted(() => ({
+  alerts: [] as [string, string][],
   clerk: null as null | { reject: (cause: unknown) => void },
   purged: null as null | (() => void),
   emptyGroups: null as null | (() => void),
@@ -92,6 +93,15 @@ vi.mock('../../../drop/DropGate', () => ({ DropGate: () => null }))
 vi.mock('../../notifications/push/push-permission-provider', () => ({
   PushPermissionProvider: ({ children }: { children: ReactNode }) => children,
 }))
+vi.mock('react-native', () => ({
+  Alert: {
+    alert: (title: string, body: string) => state.alerts.push([title, body]),
+  },
+}))
+vi.mock('../../../i18n', async () => {
+  const { en } = await import('../../../i18n/messages/en')
+  return { useI18n: () => ({ t: en }) }
+})
 vi.mock('../../../theme/tokens', () => ({ useTokens: () => ({ bg: '#fff' }) }))
 vi.mock('./account-delete-underway-screen', () => ({
   AccountDeleteUnderwayScreen: ({
@@ -112,7 +122,7 @@ test('a Clerk refusal after the purge empties the Group list is still on screen 
   view = render()
   expect(view.container.textContent).toBe('delete screen')
 
-  act(() => deletion.start())
+  act(() => deletion.start('wholeAccount'))
   // Past the Apple step (APP-213), so the purge has been asked for.
   await settle()
   // The scheduled purge empties `groups.myGroups` before the mutation's
@@ -127,6 +137,24 @@ test('a Clerk refusal after the purge empties the Group list is still on screen 
   act(() => state.clerk?.reject(new Error('Clerk refused')))
   await settle()
   expect(view.container.textContent).toBe('underway: stranded')
+})
+
+test('Gather data only: signs out and says so in an alert that outlives the layout (APP-397)', async () => {
+  state.alerts = []
+  view = render()
+
+  act(() => deletion.start('gatherData'))
+  await settle()
+  act(() => state.purged?.())
+  await settle()
+
+  expect(view.container.textContent).toBe('underway: signingOut')
+  expect(state.alerts).toEqual([
+    [
+      'Your Gather data is deleted',
+      'You are signed out of Gather on this device. Your AppElent login still works in Foundry, Fairway and Arcade Club.',
+    ],
+  ])
 })
 
 function render() {

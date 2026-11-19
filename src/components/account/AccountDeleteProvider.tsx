@@ -31,6 +31,13 @@
  * sign-in to another account in another tab is never what gets deleted.
  *
  * The stranded state is held in memory, like the phone's: a reload loses it.
+ *
+ * **Two choices (APP-397).** Gather shares its Clerk login with the other
+ * AppElent apps, so `start` takes what to delete. `gatherData` runs the same
+ * recent-sign-in check and the same purge with `keepLogin`, never asks Clerk
+ * to delete anything, then signs out to the sign-in page, which says the data
+ * is gone and the login still works elsewhere. It needs no `deleteSelfEnabled`:
+ * there is no Clerk deletion to be refused. `wholeAccount` is the run above.
  */
 import { useClerk, useReverification, useUser } from '@clerk/react'
 import { isReverificationCancelledError } from '@clerk/react/errors'
@@ -47,6 +54,9 @@ import {
 } from 'react'
 import { api } from '../../../convex/_generated/api'
 
+/** What the person chose to delete. */
+export type DeleteChoice = 'gatherData' | 'wholeAccount'
+
 /**
  * Where a deletion is.
  *
@@ -60,25 +70,33 @@ import { api } from '../../../convex/_generated/api'
  * - **deletingLogin** — the purge is scheduled; waiting for Clerk.
  * - **stranded** — Clerk refused after the purge: the data is going and the
  *   login is not.
+ * - **signingOut** — Gather's data only: the purge is scheduled and the login
+ *   stays; signing out of this browser.
  */
 export type AccountDeleteState =
   | { step: 'idle' }
-  | { step: 'confirmingSignIn' }
-  | { step: 'purging' }
-  | { step: 'refused'; cause: unknown }
+  | { step: 'confirmingSignIn'; choice: DeleteChoice }
+  | { step: 'purging'; choice: DeleteChoice }
+  | { step: 'refused'; choice: DeleteChoice; cause: unknown }
   | { step: 'deletingLogin' }
   | { step: 'stranded' }
+  | { step: 'signingOut' }
 
 /** Whether the purge has started, after which the signed-in tree is gone. */
 export function purgeStarted(state: AccountDeleteState): boolean {
-  return state.step === 'deletingLogin' || state.step === 'stranded'
+  return (
+    state.step === 'deletingLogin' ||
+    state.step === 'stranded' ||
+    state.step === 'signingOut'
+  )
 }
 
 export interface AccountDeleteValue {
   state: AccountDeleteState
-  /** Delete the account. Does nothing unless Clerk allows self-deletion, or
-   * while a deletion is already running. */
-  start: () => void
+  /** Delete Gather's data, or the whole account. Does nothing while a
+   * deletion is already running, or for the whole account unless Clerk
+   * allows self-deletion. */
+  start: (choice: DeleteChoice) => void
   /** Ask Clerk again after it refused. The purge is not repeated: it is
    * already running, and its `users` row may already be gone. */
   retryLogin: () => void
@@ -117,6 +135,10 @@ type Confirmed = { userId: string; sessionId: string }
 
 /** Where the browser goes once the account is gone. */
 const SIGNED_OUT_HOME = '/'
+
+/** Where it goes once Gather's data is gone and the login stays: the
+ * sign-in page, saying so (`routes/sign-in.tsx`). */
+export const GATHER_DATA_DELETED_HOME = '/sign-in?deleted=gather'
 
 const AccountDeleteContext = createContext<AccountDeleteValue | null>(null)
 
@@ -205,45 +227,62 @@ export function AccountDeleteProvider({
     leave(SIGNED_OUT_HOME)
   }, [deleteUser, leave])
 
-  const start = useCallback(() => {
-    if (
-      !user ||
-      !clerk.session ||
-      running.current ||
-      accountDeletion(user) !== 'allowed'
-    )
-      return
-    running.current = true
-    const account = { userId: user.id, sessionId: clerk.session.id }
-    confirmed.current = account
-    setState({ step: 'confirmingSignIn' })
-    void (async () => {
-      try {
-        if ((await confirmRecentSignIn(account)) !== true)
-          throw new SignInNotConfirmed()
-      } catch (cause) {
-        running.current = false
-        // Closing Clerk's dialog is a cancel, like closing the confirmation.
-        setState(
-          isReverificationCancelledError(cause)
-            ? { step: 'idle' }
-            : { step: 'refused', cause },
-        )
+  // Gather's data is gone and the login stays: sign out of this browser only.
+  // A full load after it either way, so nothing of the old account stays in
+  // memory; if Clerk failed to end the session, the next load starts a fresh,
+  // empty account in it, which is what signing in again would do anyway.
+  const leaveSignedOut = useCallback(() => {
+    setState({ step: 'signingOut' })
+    void clerk
+      .signOut({ redirectUrl: GATHER_DATA_DELETED_HOME })
+      .catch(() => {})
+      .finally(() => leave(GATHER_DATA_DELETED_HOME))
+  }, [clerk, leave])
+
+  const start = useCallback(
+    (choice: DeleteChoice) => {
+      if (!user || !clerk.session || running.current) return
+      // Only the whole account asks Clerk to delete anything, so only it
+      // needs Clerk's permission to.
+      if (choice === 'wholeAccount' && accountDeletion(user) !== 'allowed')
         return
-      }
-      setState({ step: 'purging' })
-      try {
-        // Bound to the account the person confirmed: if the session changed
-        // while Clerk's dialog was up, Convex refuses and nothing is deleted.
-        await deleteAccount({ expectedSubject: account.userId })
-      } catch (cause) {
-        running.current = false
-        setState({ step: 'refused', cause })
-        return
-      }
-      await deleteLogin()
-    })()
-  }, [user, clerk, confirmRecentSignIn, deleteAccount, deleteLogin])
+      running.current = true
+      const account = { userId: user.id, sessionId: clerk.session.id }
+      confirmed.current = account
+      setState({ step: 'confirmingSignIn', choice })
+      void (async () => {
+        try {
+          if ((await confirmRecentSignIn(account)) !== true)
+            throw new SignInNotConfirmed()
+        } catch (cause) {
+          running.current = false
+          // Closing Clerk's dialog is a cancel, like closing the confirmation.
+          setState(
+            isReverificationCancelledError(cause)
+              ? { step: 'idle' }
+              : { step: 'refused', choice, cause },
+          )
+          return
+        }
+        setState({ step: 'purging', choice })
+        try {
+          // Bound to the account the person confirmed: if the session changed
+          // while Clerk's dialog was up, Convex refuses and nothing is deleted.
+          await deleteAccount({
+            expectedSubject: account.userId,
+            ...(choice === 'gatherData' ? { keepLogin: true } : {}),
+          })
+        } catch (cause) {
+          running.current = false
+          setState({ step: 'refused', choice, cause })
+          return
+        }
+        if (choice === 'gatherData') leaveSignedOut()
+        else await deleteLogin()
+      })()
+    },
+    [user, clerk, confirmRecentSignIn, deleteAccount, deleteLogin, leaveSignedOut],
+  )
 
   const retryLogin = useCallback(() => {
     if (state.step === 'stranded') void deleteLogin()

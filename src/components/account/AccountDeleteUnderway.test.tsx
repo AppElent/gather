@@ -35,3 +35,19 @@ test('a stranded login says the data is gone and offers Try again and Sign out',
   expect(retryLogin).toHaveBeenCalledTimes(1)
   expect(signOut).toHaveBeenCalledTimes(1)
 })
+
+test('Gather data only: says the data is gone and the login still works elsewhere', () => {
+  renderWithI18n(
+    <AccountDeleteUnderway
+      state={{ step: 'signingOut' }}
+      retryLogin={vi.fn()}
+      signOut={vi.fn()}
+    />,
+  )
+
+  expect(screen.getByText('Your Gather data is deleted')).toBeInTheDocument()
+  expect(
+    screen.getByText(/Your AppElent login still works in Foundry, Fairway and Arcade Club/),
+  ).toBeInTheDocument()
+  expect(screen.queryByRole('button')).toBeNull()
+})

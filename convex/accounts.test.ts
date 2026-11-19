@@ -443,6 +443,119 @@ describe('while the purge is running', () => {
   })
 })
 
+describe('deleting Gather data only, keeping the login (APP-397)', () => {
+  async function deleteData(t: Harness, identity: typeof asAlice) {
+    await t
+      .withIdentity(identity)
+      .mutation(api.accounts.deleteAccount, { keepLogin: true })
+    await settle(t)
+  }
+
+  test('runs the same purge: their own Group goes, a shared one is left', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+    await signUp(t, asBob)
+    const alice = await userId(t, asAlice)
+    const bob = await userId(t, asBob)
+    const solo = await soloGroup(t, alice)
+    const shared = await sharedGroup(t, alice, bob)
+    await fillGroup(t, solo, alice)
+
+    await deleteData(t, asAlice)
+
+    expect(await contentOf(t, solo)).toEqual(EMPTY)
+    expect(await t.run(async (ctx) => ctx.db.get(shared))).not.toBeNull()
+    expect(await t.withIdentity(asAlice).query(api.users.me, {})).toBeNull()
+    expect(await t.withIdentity(asBob).query(api.users.me, {})).not.toBeNull()
+  })
+
+  test('signing in again at once gets a fresh, empty account', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+    const before = await userId(t, asAlice)
+    await soloGroup(t, before)
+
+    // No `settle`: the purge has only just been scheduled, which is exactly
+    // the window the whole-account choice keeps the tombstone up for.
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.accounts.deleteAccount, { keepLogin: true })
+    await signUp(t, asAlice)
+    const after = await userId(t, asAlice)
+    expect(after).not.toBe(before)
+
+    await settle(t)
+    const fresh = await t.withIdentity(asAlice).query(api.users.me, {})
+    expect(fresh?._id).toBe(after)
+    expect(fresh?.deletedAt).toBeUndefined()
+    expect(
+      await t.withIdentity(asAlice).query(api.groups.myGroups, {}),
+    ).toEqual([])
+    expect(await t.run(async (ctx) => ctx.db.get(before))).toBeNull()
+  })
+
+  test('asking twice is a no-op, not a refusal', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.accounts.deleteAccount, { keepLogin: true })
+    await deleteData(t, asAlice)
+
+    expect(await t.run(async (ctx) => ctx.db.query('users').collect())).toEqual(
+      [],
+    )
+  })
+
+  test('releases an account the whole-account choice left mid-purge', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+    await t.withIdentity(asAlice).mutation(api.accounts.deleteAccount, {})
+    await t
+      .withIdentity(asAlice)
+      .mutation(api.accounts.deleteAccount, { keepLogin: true })
+
+    // The tombstone no longer stands between the login and a new account.
+    await signUp(t, asAlice)
+    await settle(t)
+    expect(await t.withIdentity(asAlice).query(api.users.me, {})).not.toBeNull()
+  })
+
+  test('purges a duplicate row too, so a later sign-in cannot land in it', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+    await t.run(async (ctx) => {
+      await ctx.db.insert('users', {
+        clerkId: asAlice.subject,
+        name: 'Alice again',
+        email: asAlice.email,
+      })
+    })
+
+    await deleteData(t, asAlice)
+
+    expect(await t.run(async (ctx) => ctx.db.query('users').collect())).toEqual(
+      [],
+    )
+  })
+
+  test('a different signed-in account is refused, with nothing deleted', async () => {
+    const t = testConvex()
+    await signUp(t, asAlice)
+    await signUp(t, asBob)
+
+    await expect(
+      t.withIdentity(asBob).mutation(api.accounts.deleteAccount, {
+        expectedSubject: asAlice.subject,
+        keepLogin: true,
+      }),
+    ).rejects.toThrow(ACCOUNT_CHANGED)
+    await settle(t)
+    expect(await t.withIdentity(asBob).query(api.users.me, {})).not.toBeNull()
+    expect(await t.withIdentity(asAlice).query(api.users.me, {})).not.toBeNull()
+  })
+})
+
 describe('the account the phone means to delete (APP-213)', () => {
   test('a different signed-in account is refused, with nothing deleted', async () => {
     const t = testConvex()
