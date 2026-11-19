@@ -6,6 +6,7 @@ import { internalQuery, mutation, query } from './_generated/server'
 import {
   askAiOnce,
   isGroceryList,
+  recentListItems,
   recogniseGroceryTitle,
   recordGroceryCorrection,
 } from './lib/groceryCategories'
@@ -16,7 +17,6 @@ import {
   requireInGroup,
 } from './lib/groupAccess'
 import { createOnce, idempotencyKeyValidator } from './lib/idempotency'
-import { nextOrder } from './lib/order'
 import { taskPriorityValidator } from './lib/taskFields'
 
 const byOpenThenOrder = (a: Doc<'tasks'>, b: Doc<'tasks'>) =>
@@ -106,11 +106,14 @@ async function requireLocalList(
   return found
 }
 
-async function tasksOfList(ctx: MutationCtx, listId: Id<'taskLists'>) {
-  return await ctx.db
+/** The order that puts a new row last on a list, read from its last row. */
+async function endOfList(ctx: MutationCtx, listId: Id<'taskLists'>) {
+  const last = await ctx.db
     .query('tasks')
-    .withIndex('by_list', (q) => q.eq('listId', listId))
-    .collect()
+    .withIndex('by_list_and_order', (q) => q.eq('listId', listId))
+    .order('desc')
+    .first()
+  return last ? last.order + 1 : 0
 }
 
 
@@ -131,11 +134,15 @@ export const add = mutation({
       args.listId,
     )
     return await createOnce(ctx, user._id, 'tasks', args.idempotencyKey, async () => {
-      const existing = await tasksOfList(ctx, args.listId)
       // An item on the Group's grocery list gets its aisle here, so every
       // client — installed apps that know nothing of aisles too — has it.
       const grocery = isGroceryList(group, args.listId)
-        ? await recogniseGroceryTitle(ctx, group._id, args.title, existing)
+        ? await recogniseGroceryTitle(
+            ctx,
+            group._id,
+            args.title,
+            await recentListItems(ctx, args.listId),
+          )
         : null
       const taskId = await ctx.db.insert('tasks', {
         listId: args.listId,
@@ -145,10 +152,10 @@ export const add = mutation({
         priority: args.priority,
         labels: args.labels,
         createdBy: user._id,
-        order: nextOrder(existing),
+        order: await endOfList(ctx, args.listId),
         ...(grocery ? { category: grocery.aisle } : {}),
       })
-      if (grocery) await askAiOnce(ctx, grocery, taskId)
+      if (grocery) await askAiOnce(ctx, group._id, grocery, taskId)
       return taskId
     })
   },
@@ -209,7 +216,7 @@ export const update = mutation({
         ctx,
         group._id,
         title,
-        await tasksOfList(ctx, task.listId),
+        await recentListItems(ctx, task.listId),
         task._id,
       )
       category = askAi.aisle
@@ -227,7 +234,7 @@ export const update = mutation({
       ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
       ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
     })
-    if (askAi) await askAiOnce(ctx, askAi, taskId)
+    if (askAi) await askAiOnce(ctx, group._id, askAi, taskId)
   },
 })
 
@@ -427,17 +434,21 @@ export const moveToList = mutation({
     const task = await requireEditableTask(ctx, args.groupSlug, args.taskId)
     if (task.listId === args.listId) return null
     const { group } = await requireLocalList(ctx, args.groupSlug, args.listId)
-    const existing = await tasksOfList(ctx, args.listId)
     // Onto the grocery list it needs an aisle; off it the aisle means nothing.
     const grocery = isGroceryList(group, args.listId)
-      ? await recogniseGroceryTitle(ctx, group._id, task.title, existing)
+      ? await recogniseGroceryTitle(
+          ctx,
+          group._id,
+          task.title,
+          await recentListItems(ctx, args.listId),
+        )
       : null
     await ctx.db.patch(task._id, {
       listId: args.listId,
-      order: nextOrder(existing),
+      order: await endOfList(ctx, args.listId),
       category: grocery?.aisle,
     })
-    if (grocery) await askAiOnce(ctx, grocery, task._id)
+    if (grocery) await askAiOnce(ctx, group._id, grocery, task._id)
     return null
   },
 })

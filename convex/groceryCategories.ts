@@ -3,7 +3,8 @@
  *
  * `tasks.add` puts such an item in `other` at once and schedules `classify`
  * for its name (`lib/groceryCategories.ts`, `askAiOnce`). `classify` takes a
- * question from the global daily budget, asks a small model for the name
+ * question from the global daily budget and the Group's share of it
+ * (APP-368), asks a small model for the name
  * alone, stores the answer in the shared cache and moves the item. Every
  * function here is internal: none is reachable from a client.
  */
@@ -23,13 +24,20 @@ import {
   applyGroceryAnswer,
   findGroceryCache,
   GROCERY_AI_DAILY_BUDGET,
+  takeGroceryAiBudget,
   WAIT_FOR_ANSWER_MS,
   WAIT_FOR_ANSWER_TRIES,
 } from './lib/groceryCategories'
 import { groceryAisleValidator } from './lib/groceryFields'
 
 export const classify = internalAction({
-  args: { name: v.string(), cleanName: v.string(), taskId: v.id('tasks') },
+  args: {
+    name: v.string(),
+    cleanName: v.string(),
+    taskId: v.id('tasks'),
+    // Optional only for runs scheduled before APP-368 added the Group's cap.
+    groupId: v.optional(v.id('groups')),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const apiKey = anthropicApiKey()
@@ -38,7 +46,9 @@ export const classify = internalAction({
       await ctx.runMutation(internal.groceryCategories.release, { name: args.name })
       return null
     }
-    const taken = await ctx.runMutation(internal.groceryCategories.takeBudget, {})
+    const taken = await ctx.runMutation(internal.groceryCategories.takeBudget, {
+      groupId: args.groupId,
+    })
     if (!taken) {
       console.warn('grocery-category: daily AI budget spent; item stays in other')
       await ctx.runMutation(internal.groceryCategories.release, { name: args.name })
@@ -59,24 +69,20 @@ export const classify = internalAction({
   },
 })
 
-/** Take one question from today's global budget, or refuse. */
+/**
+ * Take one question from today's global budget and, for an item's question,
+ * from its Group's; or refuse.
+ */
 export const takeBudget = internalMutation({
-  args: {},
+  args: { groupId: v.optional(v.id('groups')) },
   returns: v.boolean(),
-  handler: async (ctx) => {
-    const day = utcDay(Date.now())
-    const row = await ctx.db
-      .query('groceryAiUsage')
-      .withIndex('by_day', (q) => q.eq('day', day))
-      .unique()
-    if (row && row.count >= GROCERY_AI_DAILY_BUDGET) return false
-    if (row) await ctx.db.patch(row._id, { count: row.count + 1 })
-    else await ctx.db.insert('groceryAiUsage', { day, count: 1 })
-    return true
-  },
+  handler: async (ctx, args) => await takeGroceryAiBudget(ctx, args.groupId),
 })
 
-/** Give up a claim that got no answer, so a later item may ask again. */
+/**
+ * Give up a claim that got no answer, so a later item may ask again. Items
+ * that waited on it stay in `other`, as they would with no key at all.
+ */
 export const release = internalMutation({
   args: { name: v.string() },
   returns: v.null(),
@@ -87,7 +93,10 @@ export const release = internalMutation({
   },
 })
 
-/** Store the model's answer and move the item that asked. */
+/**
+ * Store the model's answer and move the item that asked, with every item
+ * that waited on the same question.
+ */
 export const record = internalMutation({
   args: {
     name: v.string(),
@@ -98,24 +107,26 @@ export const record = internalMutation({
   handler: async (ctx, args) => {
     const now = Date.now()
     const row = await findGroceryCache(ctx, args.name)
+    const items = [args.taskId, ...(row?.waitingTaskIds ?? [])]
     // Groups agreeing outrank the model; never overwrite their answer.
-    if (row?.source === 'consensus' && row.aisle) {
-      await applyGroceryAnswer(ctx, args.taskId, args.name, row.aisle)
-      return null
-    }
-    if (row) await ctx.db.patch(row._id, { aisle: args.aisle, answeredAt: now })
+    const aisle = row?.source === 'consensus' && row.aisle ? row.aisle : args.aisle
+    if (row)
+      await ctx.db.patch(row._id, {
+        ...(aisle === args.aisle ? { aisle, answeredAt: now } : {}),
+        waitingTaskIds: undefined,
+      })
     else
       await ctx.db.insert('groceryCategoryCache', {
         name: args.name,
-        aisle: args.aisle,
+        aisle,
         source: 'ai',
         askedAt: now,
         answeredAt: now,
       })
-    const moved = await applyGroceryAnswer(ctx, args.taskId, args.name, args.aisle)
-    console.log(
-      `grocery-category ai name="${args.name}" aisle=${args.aisle} moved=${moved}`,
-    )
+    let moved = 0
+    for (const taskId of items)
+      if (await applyGroceryAnswer(ctx, taskId, args.name, aisle)) moved++
+    console.log(`grocery-category ai name="${args.name}" aisle=${aisle} moved=${moved}`)
     return null
   },
 })
@@ -123,6 +134,8 @@ export const record = internalMutation({
 /**
  * For an item added while its name's question was out: move it once the
  * answer is in, looking again a few times before leaving it in `other`.
+ * Only runs scheduled before APP-368 reach this; items now wait on the
+ * question's `waitingTaskIds`. Remove once none can be pending.
  */
 export const applyAnswer = internalMutation({
   args: { taskId: v.id('tasks'), name: v.string(), tries: v.number() },

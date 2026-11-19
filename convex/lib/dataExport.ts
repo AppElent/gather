@@ -121,6 +121,8 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   groceryCategoryCache: { exclude: 'reference-data' },
   // One global counter per day of AI questions about grocery names.
   groceryAiUsage: { exclude: 'bookkeeping' },
+  // The same counter per Group (APP-368): how many questions, never which.
+  groceryAiGroupUsage: { exclude: 'bookkeeping' },
 
   // -- Each Group ----------------------------------------------------------
   groups: { scope: 'group', self: true, omit: ['inviteCode', 'isPersonal'] },

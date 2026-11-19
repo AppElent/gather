@@ -73,6 +73,36 @@ describe('dictionary lookup', () => {
     expect(dictionary.lookup('doenjang')).toBeNull()
   })
 
+  // APP-368: the stray matches the eval found.
+  describe('does not over-match', () => {
+    const strict = createGroceryDictionary({
+      dairy: `${groceryKey('dairy')}:1|${groceryKey('melk')}:4`,
+      meat_fish: `${groceryKey('saté')}:4|${groceryKey('kokkel')}:1`,
+      drinks: `${groceryKey('wit')}:1|${groceryKey('cola')}:4`,
+      snacks: `${groceryKey('chocolade')}:4`,
+      produce: `${groceryKey('druiven')}:4|${groceryKey('paprika')}:4|${groceryKey('laurier')}:1`,
+      frozen: `${groceryKey('iglo')}:4`,
+    })
+
+    test.each([
+      // A slip rarely hits the first letter.
+      ['Fairy', null],
+      ['Wokkels', null],
+      // A piece under four letters does not end a compound or stand for a name.
+      ['tandpasat', null],
+      ['druiven wit', 'produce'],
+      // One slip from a whole word beats a piece of it.
+      ['chocola', 'snacks'],
+      // Ground, powdered or flaked produce is a spice.
+      ['paprika powder', 'tins_sauces'],
+      ['laurierblaadjes', 'tins_sauces'],
+      // A frozen brand first makes the name frozen.
+      ['Iglo spinazie', 'frozen'],
+    ])('%s → %s', (name, aisle) => {
+      expect(strict.lookup(name)?.aisle ?? null).toBe(aisle)
+    })
+  })
+
   test('the more trusted source wins a disagreement', () => {
     const both = createGroceryDictionary({
       drinks: `${groceryKey('kokosmelk')}:1`,

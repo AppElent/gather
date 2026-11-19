@@ -44,8 +44,12 @@ everything user-owned belongs to a Group or to a person
   a Group or person id, so neither can be scoped to an export and both are
   excluded. The cache's names are text Members typed, but with no record of
   who typed them; the Group's own copies of those names are its tasks, which
-  are exported. A Group's own aisle corrections
-  (`groceryCategoryOverrides`) are Group content and go out with the Group.
+  are exported. While a question is out its cache row lists the items
+  waiting on it (`waitingTaskIds`), cleared when the answer or the give-up
+  comes in; those items go out with their Group. A Group's own aisle
+  corrections (`groceryCategoryOverrides`) are Group content and go out with
+  the Group. Its per-day question count (`groceryAiGroupUsage`) is spend
+  bookkeeping, excluded like the global one, and deleted with the Group.
 - **No secrets.** `integrationConnections.accessToken` and `groups.inviteCode`
   are omitted columns, listed in the file's `omittedFields`.
 - **Photos as links, not bytes.** A column registered in `FILE_HOLDERS`

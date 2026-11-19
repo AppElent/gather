@@ -495,6 +495,7 @@ describe('what the file contains', () => {
       { table: 'scheduledNotifications', reason: 'bookkeeping' },
       { table: 'groceryCategoryCache', reason: 'reference-data' },
       { table: 'groceryAiUsage', reason: 'bookkeeping' },
+      { table: 'groceryAiGroupUsage', reason: 'bookkeeping' },
       { table: 'recipeShares', reason: 'bookkeeping' },
       { table: 'tastingCatalog', reason: 'reference-data' },
       { table: 'retailerCatalog', reason: 'reference-data' },

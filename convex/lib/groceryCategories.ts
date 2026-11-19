@@ -23,13 +23,32 @@ import { isAskableGroceryName } from './groceryAi'
 /** Questions the AI fallback may ask per UTC day, across every Group. */
 export const GROCERY_AI_DAILY_BUDGET = 300
 
+/**
+ * Questions one Group's items may cause per UTC day (APP-368): a tenth of the
+ * global budget, so one busy Group leaves the rest for everyone else.
+ */
+export const GROCERY_AI_GROUP_DAILY_BUDGET = 30
+
+/**
+ * How many of a list's newest items are its history for a name (APP-368). An
+ * add reads these instead of the whole list; a name not seen among them falls
+ * through to the Group's corrections and the dictionary.
+ */
+export const GROCERY_HISTORY_WINDOW = 200
+
+/** Items that may wait on one question; later ones stay in `other`. */
+export const MAX_WAITING_ITEMS = 100
+
 /** Groups that must make the same correction before the shared cache follows. */
 export const CONSENSUS_GROUPS = 3
 
 /** A question still out after this long is taken as lost and asked again. */
 export const PENDING_STALE_MS = 60 * 60 * 1000
 
-/** How long a later item waits between looks at a question already out. */
+/**
+ * Polling for an answer, which only `applyAnswer` jobs scheduled before
+ * APP-368 still use: items now wait on the question itself.
+ */
 export const WAIT_FOR_ANSWER_MS = 30 * 1000
 export const WAIT_FOR_ANSWER_TRIES = 6
 
@@ -43,6 +62,49 @@ export function isGroceryList(
   listId: Id<'taskLists'>,
 ): boolean {
   return group.groceryListId === listId
+}
+
+/** A list's newest items, newest first: its history for recognition. */
+export async function recentListItems(
+  ctx: QueryCtx,
+  listId: Id<'taskLists'>,
+): Promise<Doc<'tasks'>[]> {
+  return await ctx.db
+    .query('tasks')
+    .withIndex('by_list', (q) => q.eq('listId', listId))
+    .order('desc')
+    .take(GROCERY_HISTORY_WINDOW)
+}
+
+/** Today's question count for one Group. */
+async function groupUsage(ctx: QueryCtx, groupId: Id<'groups'>, day: string) {
+  return await ctx.db
+    .query('groceryAiGroupUsage')
+    .withIndex('by_group_and_day', (q) => q.eq('groupId', groupId).eq('day', day))
+    .unique()
+}
+
+/**
+ * Take one question from today's global budget and the Group's, or refuse
+ * when either is spent. Both counters move together, in one mutation.
+ */
+export async function takeGroceryAiBudget(
+  ctx: MutationCtx,
+  groupId: Id<'groups'> | undefined,
+): Promise<boolean> {
+  const day = utcDay(Date.now())
+  const global = await ctx.db
+    .query('groceryAiUsage')
+    .withIndex('by_day', (q) => q.eq('day', day))
+    .unique()
+  if (global && global.count >= GROCERY_AI_DAILY_BUDGET) return false
+  const group = groupId ? await groupUsage(ctx, groupId, day) : null
+  if (group && group.count >= GROCERY_AI_GROUP_DAILY_BUDGET) return false
+  if (global) await ctx.db.patch(global._id, { count: global.count + 1 })
+  else await ctx.db.insert('groceryAiUsage', { day, count: 1 })
+  if (group) await ctx.db.patch(group._id, { count: group.count + 1 })
+  else if (groupId) await ctx.db.insert('groceryAiGroupUsage', { groupId, day, count: 1 })
+  return true
 }
 
 export async function findGroceryCache(ctx: QueryCtx, name: string) {
@@ -75,28 +137,27 @@ export interface GroceryRecognition {
 }
 
 /**
- * The aisle for a title on a Group's grocery list. `listTasks` are the list's
- * rows, already read by the caller; the newest one with the same name and an
- * aisle is the Group's history for it.
+ * The aisle for a title on a Group's grocery list. `recentItems` are the
+ * list's newest rows, newest first (`recentListItems`); the first one with
+ * the same name and an aisle is the Group's history for it.
  */
 export async function recogniseGroceryTitle(
   ctx: QueryCtx,
   groupId: Id<'groups'>,
   title: string,
-  listTasks: readonly Doc<'tasks'>[],
+  recentItems: readonly Doc<'tasks'>[],
   exceptTaskId?: Id<'tasks'>,
 ): Promise<GroceryRecognition> {
   const key = groceryTitleKey(title)
   const override = key ? await findOverride(ctx, groupId, key) : null
   const cached = key ? await findGroceryCache(ctx, key) : null
   let history: GroceryAisle | undefined
-  let newest = -1
-  for (const task of listTasks) {
+  for (const task of recentItems) {
     if (task._id === exceptTaskId || !task.category || task.category === 'other')
       continue
-    if (task._creationTime > newest && groceryTitleKey(task.title) === key) {
+    if (groceryTitleKey(task.title) === key) {
       history = task.category
-      newest = task._creationTime
+      break
     }
   }
 
@@ -119,36 +180,40 @@ export async function recogniseGroceryTitle(
 
 /**
  * Ask the model about a name once: the first item claims the question and
- * schedules it; an item added while it is out waits for the same answer. The
- * claim is a row in the shared cache without an aisle, written in this
- * mutation, so two items racing cannot both ask.
+ * schedules it; an item added while it is out joins the question's waiting
+ * items and moves when the answer comes in, however late. The claim is a row
+ * in the shared cache without an aisle, written in this mutation, so two
+ * items racing cannot both ask.
  */
 export async function askAiOnce(
   ctx: MutationCtx,
+  groupId: Id<'groups'>,
   recognition: GroceryRecognition,
   taskId: Id<'tasks'>,
 ) {
   if (!recognition.askAi) return
-  // Nothing to ask with: no key, or today's questions are spent. `classify`
-  // checks both again; this only spares a scheduled run per unknown item.
   if (!process.env.ANTHROPIC_API_KEY) return
   const { key: name, cleanName } = recognition
   const now = Date.now()
-  const usage = await ctx.db
-    .query('groceryAiUsage')
-    .withIndex('by_day', (q) => q.eq('day', utcDay(now)))
-    .unique()
-  if (usage && usage.count >= GROCERY_AI_DAILY_BUDGET) return
   const row = await findGroceryCache(ctx, name)
   if (row?.aisle) return
   if (row && now - row.askedAt < PENDING_STALE_MS) {
-    await ctx.scheduler.runAfter(
-      WAIT_FOR_ANSWER_MS,
-      internal.groceryCategories.applyAnswer,
-      { taskId, name, tries: 1 },
-    )
+    // Waiting costs no question, so it needs no budget.
+    const waiting = row.waitingTaskIds ?? []
+    if (waiting.length < MAX_WAITING_ITEMS && !waiting.includes(taskId))
+      await ctx.db.patch(row._id, { waitingTaskIds: [...waiting, taskId] })
     return
   }
+  // Today's questions are spent, globally or for this Group. `classify`
+  // takes from both again; this only spares a scheduled run per item.
+  const day = utcDay(now)
+  const usage = await ctx.db
+    .query('groceryAiUsage')
+    .withIndex('by_day', (q) => q.eq('day', day))
+    .unique()
+  if (usage && usage.count >= GROCERY_AI_DAILY_BUDGET) return
+  const mine = await groupUsage(ctx, groupId, day)
+  if (mine && mine.count >= GROCERY_AI_GROUP_DAILY_BUDGET) return
   if (row) await ctx.db.patch(row._id, { askedAt: now })
   else
     await ctx.db.insert('groceryCategoryCache', {
@@ -160,6 +225,7 @@ export async function askAiOnce(
     name,
     cleanName,
     taskId,
+    groupId,
   })
 }
 
