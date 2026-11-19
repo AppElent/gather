@@ -4,6 +4,7 @@ import type {
   TaskListColor,
   TaskListIcon,
   TaskListKind,
+  TaskSection,
 } from '@gather/core/task-lists'
 
 export type Priority = 1 | 2 | 3 | 4
@@ -40,6 +41,11 @@ export interface TaskList {
    * older than amounts.
    */
   grocery: boolean
+  /**
+   * Its sections in order (APP-357). Empty for a list without any, for a
+   * linked list, and from a server older than sections.
+   */
+  sections: TaskSection[]
 }
 
 export interface Task {
@@ -63,6 +69,8 @@ export interface Task {
    * set in, and the Member it goes to. Only Gather's own lists have one.
    */
   reminder?: TaskReminder
+  /** The section it sits in; none, or one that is gone, is "No section". */
+  sectionId?: string
   order: number
 }
 

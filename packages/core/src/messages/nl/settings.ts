@@ -106,6 +106,7 @@ export const settings = {
     inviteCode: 'Uitnodigingscode',
     inviteCodeNote:
       'Iedereen met deze code kan zich aanmelden via Groepen — deel hem alleen met mensen die je erbij wilt hebben.',
+    inviteCodeFailed: 'Kon de uitnodigingscode niet laden.',
     leave: 'Vertrekken',
     leaveButton: 'Deze Groep verlaten',
     leaveTitle: '{group} verlaten?',
@@ -113,6 +114,8 @@ export const settings = {
       'Je ziet dan niets meer van wat erin zit. Wat je hebt toegevoegd blijft bij de Groep.',
     leaveConfirm: 'Groep verlaten',
     leaveFailed: 'Kon deze Groep niet verlaten.',
+    lastMember:
+      'Je bent het laatste lid, dus je kunt de Groep niet verlaten. Verwijder hem in plaats daarvan.',
     delete: 'Verwijderen',
     deleteButton: 'Deze Groep verwijderen',
     deleteTitle: '{group} verwijderen?',

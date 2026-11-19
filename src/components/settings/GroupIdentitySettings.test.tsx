@@ -9,15 +9,16 @@ import { GroupIdentitySettings } from './GroupIdentitySettings'
 /**
  * Deleting a Group, from its own settings.
  *
- * Only an admin is offered it, and only the last Member can do it: the server
- * refuses otherwise, and nothing on the web removes another Member, so the
- * button says why it is off rather than asking a question it cannot honour.
+ * Only the last Member can do it: the server refuses otherwise, and nothing on
+ * the web removes another Member, so an admin's button says why it is off
+ * rather than asking a question it cannot honour. The last Member is offered
+ * it in place of Leave (`groups.leaveStatus`, APP-362).
  */
 
-const ME = { userId: 'u_me', name: 'Alice', role: 'admin' }
-const OTHER = { userId: 'u_bob', name: 'Bob', role: 'member' }
+const LAST_MEMBER = { leave: 'last-member', canDelete: true }
+const OTHERS_REMAIN = { leave: 'allowed', canDelete: false }
 
-const members = vi.hoisted(() => ({ value: [] as unknown }))
+const exits = vi.hoisted(() => ({ value: undefined as unknown }))
 const queried = vi.hoisted(() => ({ value: [] as Array<[string, unknown]> }))
 const deleteError = vi.hoisted(() => ({ value: null as unknown }))
 const calls = vi.hoisted(() => ({ value: [] as Array<[string, unknown]> }))
@@ -27,7 +28,7 @@ vi.mock('convex/react', () => ({
   useQuery: (name: string, args: unknown) => {
     queried.value.push([name, args])
     if (args === 'skip') return undefined
-    if (name === 'groups:members') return members.value
+    if (name === 'groups:leaveStatus') return exits.value
     if (name === 'groups:inviteCode') return 'ABC123'
     return undefined
   },
@@ -42,7 +43,7 @@ vi.mock('convex/react', () => ({
 vi.mock('../../../convex/_generated/api', () => ({
   api: {
     groups: {
-      members: 'groups:members',
+      leaveStatus: 'groups:leaveStatus',
       inviteCode: 'groups:inviteCode',
       renameGroup: 'groups:renameGroup',
       leaveGroup: 'groups:leaveGroup',
@@ -62,7 +63,7 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 beforeEach(() => {
-  members.value = [ME]
+  exits.value = LAST_MEMBER
   queried.value = []
   deleteError.value = null
   calls.value = []
@@ -75,32 +76,60 @@ function renderCard(group: ShellGroup = TEST_GROUP) {
 
 const deleteButton = () =>
   screen.queryByRole('button', { name: 'Delete this group' })
+const leaveButton = () =>
+  screen.queryByRole('button', { name: 'Leave this group' })
+const noteFor = (button: HTMLElement | null) =>
+  document.getElementById(button?.getAttribute('aria-describedby') ?? '')
+    ?.textContent
 
 describe('who is offered it', () => {
-  test('not a Member who is not an admin, and their members are not read', () => {
+  test('not a Member who is not an admin while others remain; they may leave', () => {
+    exits.value = OTHERS_REMAIN
     renderCard({ ...TEST_GROUP, role: 'member' })
 
     expect(deleteButton()).toBeNull()
-    expect(queried.value).toContainEqual(['groups:members', 'skip'])
+    expect(leaveButton()).not.toBeNull()
+    expect(queried.value).toContainEqual([
+      'groups:leaveStatus',
+      { slug: TEST_GROUP.slug },
+    ])
   })
 
-  test('an admin who is the last one in it', () => {
+  test('the last Member, in place of Leave, and why', () => {
     renderCard()
 
+    const button = deleteButton()
+    expect(button?.hasAttribute('disabled')).toBe(false)
+    expect(leaveButton()).toBeNull()
+    expect(noteFor(button)).toBe(
+      'You are the last member, so the group cannot be left. Delete it instead.',
+    )
+  })
+
+  test('the last Member even when they are not an admin', () => {
+    renderCard({ ...TEST_GROUP, role: 'member' })
+
     expect(deleteButton()?.hasAttribute('disabled')).toBe(false)
-    expect(screen.queryByText(/everyone else has left/i)).toBeNull()
+    expect(leaveButton()).toBeNull()
   })
 
   test('an admin with others still in it sees it off, and why', () => {
-    members.value = [ME, OTHER]
+    exits.value = OTHERS_REMAIN
     renderCard()
 
     const button = deleteButton()
     expect(button?.hasAttribute('disabled')).toBe(true)
-    expect(
-      document.getElementById(button?.getAttribute('aria-describedby') ?? '')
-        ?.textContent,
-    ).toBe('Only possible once everyone else has left the group.')
+    expect(noteFor(button)).toBe(
+      'Only possible once everyone else has left the group.',
+    )
+    expect(leaveButton()).not.toBeNull()
+  })
+
+  test('nobody, before the server has said', () => {
+    exits.value = undefined
+    renderCard()
+
+    expect(deleteButton()?.hasAttribute('disabled')).toBe(true)
   })
 })
 

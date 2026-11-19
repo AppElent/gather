@@ -27,6 +27,21 @@ async function groupsOf(t: Harness, identity: typeof asAlice) {
   return await t.withIdentity(identity).query(api.groups.myGroups, {})
 }
 
+async function slugOf(t: Harness, groupId: Id<'groups'>) {
+  const group = await t.run(async (ctx) => await ctx.db.get(groupId))
+  return group?.slug ?? ''
+}
+
+async function leaveStatusOf(
+  t: Harness,
+  identity: typeof asAlice,
+  groupId: Id<'groups'>,
+) {
+  return await t
+    .withIdentity(identity)
+    .query(api.groups.leaveStatus, { slug: await slugOf(t, groupId) })
+}
+
 describe('a new user', () => {
   test('has no Group until they create or join one', async () => {
     const t = testConvex()
@@ -231,6 +246,10 @@ describe('an ordinary Group', () => {
   test('can be left, and then its content is no longer yours to see', async () => {
     const t = testConvex()
     const groupId = await household(t)
+    expect(await leaveStatusOf(t, asBob, groupId)).toEqual({
+      leave: 'allowed',
+      canDelete: false,
+    })
 
     await t.withIdentity(asBob).mutation(api.groups.leaveGroup, { groupId })
 
@@ -308,18 +327,125 @@ describe('an ordinary Group', () => {
     ).rejects.toThrow(/only admin/i)
 
     expect((await groupsOf(t, asAlice)).map((g) => g._id)).toContain(groupId)
+    expect(await leaveStatusOf(t, asAlice, groupId)).toEqual({
+      leave: 'only-admin',
+      canDelete: false,
+    })
   })
 
-  test('can be left by its last admin once nobody else is in it', async () => {
+  /**
+   * Walking out as the last Member leaves a Group with no Members that nobody
+   * can reach again, so the server holds that door too and the apps offer
+   * Delete in its place (APP-362).
+   */
+  test('cannot be left by its last Member, who deletes it instead', async () => {
     const t = testConvex()
     const groupId = await household(t)
-
     await t.withIdentity(asBob).mutation(api.groups.leaveGroup, { groupId })
-    await t.withIdentity(asAlice).mutation(api.groups.leaveGroup, { groupId })
 
-    expect((await groupsOf(t, asAlice)).map((g) => g._id)).not.toContain(
-      groupId,
+    const refusal = await t
+      .withIdentity(asAlice)
+      .mutation(api.groups.leaveGroup, { groupId })
+      .catch((error: unknown) => error)
+
+    expect(refusal).toBeInstanceOf(ConvexError)
+    expect((refusal as ConvexError<string>).data).toBe(
+      'You are the last member. Delete the group instead.',
     )
+    expect((await groupsOf(t, asAlice)).map((g) => g._id)).toContain(groupId)
+    expect(await leaveStatusOf(t, asAlice, groupId)).toEqual({
+      leave: 'last-member',
+      canDelete: true,
+    })
+  })
+
+  test('cannot be left by a Member who is not an admin when nobody else is in it', async () => {
+    const t = testConvex()
+    const groupId = await household(t)
+    // Alice is gone without leaving (her account was deleted, say): Bob is
+    // the last Member and no admin, and still is not stranded.
+    await t.run(async (ctx) => {
+      const alice = (await ctx.db.query('memberships').collect()).find(
+        (m) => m.role === 'admin',
+      )
+      if (alice) await ctx.db.delete(alice._id)
+    })
+
+    await expect(
+      t.withIdentity(asBob).mutation(api.groups.leaveGroup, { groupId }),
+    ).rejects.toThrow(/last member/i)
+    expect(await leaveStatusOf(t, asBob, groupId)).toEqual({
+      leave: 'last-member',
+      canDelete: true,
+    })
+
+    await t.withIdentity(asBob).mutation(api.groups.deleteGroup, { groupId })
+    expect(await allGroups(t)).toEqual([])
+  })
+
+  /**
+   * A membership whose user record is gone is nobody: it has no name on the
+   * Members list, so the apps cannot count it, and it cannot be made an admin.
+   * The server does not count it either, so they agree.
+   */
+  describe('with a membership whose user record is gone', () => {
+    async function withOrphan(
+      t: Harness,
+      groupId: Id<'groups'>,
+      role: 'admin' | 'member',
+    ) {
+      await t.run(async (ctx) => {
+        const ghost = await ctx.db.insert('users', {
+          clerkId: 'user_ghost',
+          name: 'Ghost',
+          email: 'ghost@example.com',
+        })
+        await ctx.db.insert('memberships', { groupId, userId: ghost, role })
+        await ctx.db.delete(ghost)
+      })
+    }
+
+    test('its only real Member is the last Member', async () => {
+      const t = testConvex()
+      const groupId = await household(t)
+      await t.withIdentity(asBob).mutation(api.groups.leaveGroup, { groupId })
+      await withOrphan(t, groupId, 'member')
+
+      expect(
+        await t
+          .withIdentity(asAlice)
+          .query(api.groups.members, { slug: await slugOf(t, groupId) }),
+      ).toHaveLength(1)
+      expect(await leaveStatusOf(t, asAlice, groupId)).toEqual({
+        leave: 'last-member',
+        canDelete: true,
+      })
+      await expect(
+        t.withIdentity(asAlice).mutation(api.groups.leaveGroup, { groupId }),
+      ).rejects.toThrow(/last member/i)
+
+      await t
+        .withIdentity(asAlice)
+        .mutation(api.groups.deleteGroup, { groupId })
+      expect(await allGroups(t)).toEqual([])
+      expect(
+        await t.run(async (ctx) => await ctx.db.query('memberships').collect()),
+      ).toEqual([])
+    })
+
+    test('an orphaned admin does not let the only real admin walk out', async () => {
+      const t = testConvex()
+      const groupId = await household(t)
+      await withOrphan(t, groupId, 'admin')
+
+      expect(await leaveStatusOf(t, asAlice, groupId)).toEqual({
+        leave: 'only-admin',
+        canDelete: false,
+      })
+      await expect(
+        t.withIdentity(asAlice).mutation(api.groups.leaveGroup, { groupId }),
+      ).rejects.toThrow(/only admin/i)
+    })
   })
 
   test('can be left by its only admin once somebody else is one too', async () => {
