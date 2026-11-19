@@ -146,11 +146,16 @@ export const create = mutation({
             ...(grocery ? { category: grocery.aisle } : {}),
           })
         }
-        // A list made as the groceries becomes the Group's grocery list, which
-        // is what the Groceries Module opens (ADR-0034). The list it replaces
-        // stays in Tasks, exactly as when someone picks another one there.
+        // A Group with no grocery list yet gets this one as the list installed
+        // phones' Groceries Module opens (ADR-0034, `kitchen.groceries`). A
+        // second one, for another store (APP-313), leaves that pointer alone:
+        // re-pointing would move every installed phone onto a new, empty list.
         if (args.kind === 'groceries') {
-          await ctx.db.patch(groupId, { groceryListId: listId })
+          const named = (await ctx.db.get(groupId))?.groceryListId
+          const current = named ? await ctx.db.get(named) : null
+          if (!current || current.groupId !== groupId) {
+            await ctx.db.patch(groupId, { groceryListId: listId })
+          }
         }
         return listId
       },

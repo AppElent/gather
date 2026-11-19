@@ -104,9 +104,10 @@ export default defineSchema({
     // The list the Groceries Module opened before a Group could have several
     // grocery lists (APP-313). Installed phones still read it through
     // `kitchen.groceries` and write it through `kitchen.setGroceryList`; a
-    // newer phone opens the grocery list last used on it and falls back to
-    // this. Contract: drop once the OTA that reads `taskLists.list` alone has
-    // reached every installed build and `backfillGroceryListKind` ran
+    // newer phone never reads it: it opens the grocery list last used on it,
+    // else the first. A new grocery list is named here only when nothing
+    // else is. Contract: drop once the OTA that reads `taskLists.list` alone
+    // has reached every installed build and `backfillGroceryListKind` ran
     // everywhere (docs/migrations/README.md).
     groceryListId: v.optional(v.id('taskLists')),
   })

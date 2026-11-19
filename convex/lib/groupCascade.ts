@@ -67,10 +67,10 @@ export async function purgeTasksOfList(
 
 /**
  * Delete one list, its tasks, and every pointer at it: the Group's grocery
- * list (moved to its next grocery list, if any) and a child's to-do and questions cards. Both are set through
- * `requireInGroup`, so they live in the list's own Group. A card that lost its
- * list also loses `…Chosen`, so the list `babies.ensureAuxLists` gives it next
- * dies with the child.
+ * list (moved to its next grocery list, if any) and a child's to-do and
+ * questions cards. Both are set through `requireInGroup`, so they live in the
+ * list's own Group. A card that lost its list also loses `…Chosen`, so the
+ * list `babies.ensureAuxLists` gives it next dies with the child.
  */
 export async function deleteTaskList(
   ctx: MutationCtx,

@@ -157,6 +157,29 @@ describe('installed phones', () => {
     expect((await t.run((ctx) => ctx.db.get(chores)))?.kind).toBe('groceries')
   })
 
+  test('a new store list leaves the named list alone; with none, it is named', async () => {
+    const { as, ah } = await seed()
+    const make = (name: string) =>
+      as.mutation(api.taskLists.create, {
+        groupSlug: SLUG,
+        name,
+        provider: 'local',
+        kind: 'groceries',
+      })
+    await make('Jumbo')
+    expect(
+      await as.query(api.kitchen.groceries, { groupSlug: SLUG }),
+    ).toEqual({ groceryListId: ah })
+    await as.mutation(api.kitchen.setGroceryList, {
+      groupSlug: SLUG,
+      listId: null,
+    })
+    const lidl = await make('Lidl')
+    expect(
+      await as.query(api.kitchen.groceries, { groupSlug: SLUG }),
+    ).toEqual({ groceryListId: lidl })
+  })
+
   test('deleting the named list points the Group at its next grocery list', async () => {
     const { as, ah, market } = await seed()
     await as.mutation(api.taskLists.remove, { groupSlug: SLUG, listId: ah })
