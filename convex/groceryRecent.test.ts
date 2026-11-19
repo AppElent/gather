@@ -129,7 +129,7 @@ describe('Recent', () => {
     await checked(s, s.market, 'Melk', 50)
     await checked(s, s.market, 'appels', 300)
     await checked(s, s.chores, 'stofzuigen', 400)
-    // Checked before doneAt existed: not in Recent.
+    // Checked before doneAt existed: after every stamped item.
     await checked(s, s.groceries, 'kaas', undefined)
     // Open with a stale stamp (a write that forgot to clear it): not checked.
     await s.t.run(async (ctx) => {
@@ -145,16 +145,35 @@ describe('Recent', () => {
     const recent = await s.as.query(api.tasks.recentGroceries, {
       groupSlug: SLUG,
     })
-    expect(recent.map((row) => [row.title, row.doneAt])).toEqual([
-      ['appels', 300],
-      ['melk', 100],
-    ])
+    expect(recent.map((row) => row.title)).toEqual(['appels', 'melk', 'kaas'])
+    expect(recent.slice(0, 2).map((row) => row.doneAt)).toEqual([300, 100])
     expect(recent[1]).toMatchObject({
       listId: s.groceries,
       quantity: 2,
       unit: 'pak',
       category: 'dairy',
     })
+  })
+
+  test('items checked before doneAt: newest added first, after stamped ones, open ones left out', async () => {
+    const s = await seed()
+    await checked(s, s.groceries, 'oud brood', undefined)
+    await checked(s, s.groceries, 'oude kaas', undefined)
+    // A stamped check of the same name wins over the old one.
+    await checked(s, s.groceries, 'oud brood', 10)
+    await s.as.mutation(api.tasks.add, {
+      groupSlug: SLUG,
+      listId: s.groceries,
+      title: 'appels',
+    })
+    const recent = await s.as.query(api.tasks.recentGroceries, {
+      groupSlug: SLUG,
+    })
+    expect(recent.map((row) => [row.title, row.doneAt === 10])).toEqual([
+      ['oud brood', true],
+      ['oude kaas', false],
+    ])
+    expect(recent[1]?.doneAt).toEqual(expect.any(Number))
   })
 
   test('holds at most the limit', async () => {
