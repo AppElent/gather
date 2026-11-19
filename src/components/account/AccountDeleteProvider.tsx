@@ -21,10 +21,17 @@
  *   deleted, with Clerk's own verify dialog when the sign-in is older than half
  *   that window (Foundry learnt this in APP-34). `user.delete()` is wrapped
  *   too, in case a slow purge outlasts the window.
- * - **No Apple revocation.** The phone revokes the Sign in with Apple grant
- *   from the native sheet (APP-213). The web would need Apple JS with the web
- *   Services ID and server support for it, which `accounts.revokeAppleSignIn`
- *   does not have; the web deletes the account unrevoked, as Android does.
+ * - **Apple revocation asks for one more click.** The phone revokes the Sign
+ *   in with Apple grant from the native sheet (APP-213); the web does it from
+ *   an Apple JS popup (`lib/auth/appleRevocation.ts`, APP-388), after the
+ *   sign-in check and before anything is deleted, for the whole account only.
+ *   The sign-in check (and any Clerk dialog) ends outside the person's click,
+ *   so the browser would block Apple's popup; the run waits in
+ *   `confirmingApple` for a fresh click (`continueWithApple`). Backing out of
+ *   the popup, or a popup that fails, deletes nothing. Apple's step can
+ *   outlast the sign-in window, so the check runs once more after it. Only
+ *   the production origin is registered with Apple; elsewhere the account is
+ *   deleted unrevoked, as on Android.
  *
  * Every Clerk step re-checks that the signed-in user and session are still the
  * ones that confirmed, and the purge names that user (`expectedSubject`), so a
@@ -42,7 +49,7 @@
 import { useClerk, useReverification, useUser } from '@clerk/react'
 import { isReverificationCancelledError } from '@clerk/react/errors'
 import { accountDeletion } from '@gather/core/account-deletion'
-import { useMutation } from 'convex/react'
+import { useAction, useMutation } from 'convex/react'
 import {
   createContext,
   type ReactNode,
@@ -53,6 +60,12 @@ import {
   useState,
 } from 'react'
 import { api } from '../../../convex/_generated/api'
+import {
+  type AppleRevocation,
+  appleRevocationReturnUrl,
+  revokeAppleSignIn,
+} from '../../lib/auth/appleRevocation'
+import { useI18n } from '../../lib/i18n'
 
 /** What the person chose to delete. */
 export type DeleteChoice = 'gatherData' | 'wholeAccount'
@@ -64,6 +77,10 @@ export type DeleteChoice = 'gatherData' | 'wholeAccount'
  *   dismissed.
  * - **confirmingSignIn** — asking Clerk for a recent sign-in; nothing is
  *   deleted yet.
+ * - **confirmingApple** — the whole account, linked to Sign in with Apple:
+ *   waiting for the click that opens Apple's popup. Nothing is deleted yet.
+ * - **revokingApple** — Apple's popup and the revocation; nothing is deleted
+ *   yet.
  * - **purging** — waiting for `accounts.deleteAccount`.
  * - **refused** — the sign-in check or the purge refused. Nothing has been
  *   deleted, and the Account page is still there to say so.
@@ -76,6 +93,8 @@ export type DeleteChoice = 'gatherData' | 'wholeAccount'
 export type AccountDeleteState =
   | { step: 'idle' }
   | { step: 'confirmingSignIn'; choice: DeleteChoice }
+  | { step: 'confirmingApple'; choice: 'wholeAccount' }
+  | { step: 'revokingApple'; choice: 'wholeAccount' }
   | { step: 'purging'; choice: DeleteChoice }
   | { step: 'refused'; choice: DeleteChoice; cause: unknown }
   | { step: 'deletingLogin' }
@@ -97,6 +116,10 @@ export interface AccountDeleteValue {
    * deletion is already running, or for the whole account unless Clerk
    * allows self-deletion. */
   start: (choice: DeleteChoice) => void
+  /** Open Apple's popup, from the click it needs (`confirmingApple`). */
+  continueWithApple: () => void
+  /** Back out before Apple's popup; nothing is deleted. */
+  cancelApple: () => void
   /** Ask Clerk again after it refused. The purge is not repeated: it is
    * already running, and its `users` row may already be gone. */
   retryLogin: () => void
@@ -108,6 +131,14 @@ export interface AccountDeleteValue {
 export class SignInNotConfirmed extends Error {}
 /** Another account or session is signed in than the one that confirmed. */
 export class AccountChanged extends Error {}
+/** Apple's popup stopped the deletion before anything was deleted. */
+export class AppleNotRevoked extends Error {
+  constructor(
+    readonly reason: Exclude<AppleRevocation, 'continue' | 'cancelled'>,
+  ) {
+    super(`Apple revocation stopped: ${reason}`)
+  }
+}
 
 /**
  * Clerk's reverification hint (`reverificationError('strict')` in
@@ -171,12 +202,16 @@ export function AccountDeleteProvider({
   const { user } = useUser()
   const clerk = useClerk()
   const deleteAccount = useMutation(api.accounts.deleteAccount)
+  const revokeApple = useAction(api.accounts.revokeAppleSignIn)
+  const { locale } = useI18n()
   const [state, setState] = useState<AccountDeleteState>({ step: 'idle' })
   // Refs as well as the state, so a second click in the same frame cannot
   // start a second run, or a second Clerk call, before the first has rendered.
   const running = useRef(false)
   const askingClerk = useRef(false)
   const confirmed = useRef<Confirmed | null>(null)
+  // The answer to `confirmingApple`, from the person's click.
+  const appleAnswer = useRef<((go: boolean) => void) | null>(null)
 
   // Reads Clerk live rather than from a render: verifying replaces the
   // session object, and another tab can sign in someone else meanwhile.
@@ -250,19 +285,48 @@ export function AccountDeleteProvider({
       const account = { userId: user.id, sessionId: clerk.session.id }
       confirmed.current = account
       setState({ step: 'confirmingSignIn', choice })
-      void (async () => {
+      // Every way out before the purge: nothing has been deleted.
+      const stop = (cause?: unknown) => {
+        running.current = false
+        setState(
+          cause === undefined
+            ? { step: 'idle' }
+            : { step: 'refused', choice, cause },
+        )
+      }
+      const signInConfirmed = async () => {
         try {
           if ((await confirmRecentSignIn(account)) !== true)
             throw new SignInNotConfirmed()
+          return true
         } catch (cause) {
-          running.current = false
           // Closing Clerk's dialog is a cancel, like closing the confirmation.
-          setState(
-            isReverificationCancelledError(cause)
-              ? { step: 'idle' }
-              : { step: 'refused', choice, cause },
-          )
-          return
+          stop(isReverificationCancelledError(cause) ? undefined : cause)
+          return false
+        }
+      }
+      void (async () => {
+        if (!(await signInConfirmed())) return
+        // Only the whole account takes the login, and its Apple grant, with it.
+        if (choice === 'wholeAccount' && appleRevocationReturnUrl(user)) {
+          setState({ step: 'confirmingApple', choice })
+          const go = await new Promise<boolean>((resolve) => {
+            appleAnswer.current = resolve
+          })
+          appleAnswer.current = null
+          if (!go) return stop()
+          // A grant cannot be restored: never for an account that changed.
+          if (!sameAccount(account)) return stop(new AccountChanged())
+          setState({ step: 'revokingApple', choice })
+          const apple = await revokeAppleSignIn(user, revokeApple, {
+            expectedSubject: account.userId,
+            locale,
+          })
+          if (apple === 'cancelled') return stop()
+          if (apple !== 'continue') return stop(new AppleNotRevoked(apple))
+          // Apple's step can outlast the sign-in window; check again so the
+          // data is never purged while Clerk would refuse the login.
+          if (!(await signInConfirmed())) return
         }
         setState({ step: 'purging', choice })
         try {
@@ -281,8 +345,21 @@ export function AccountDeleteProvider({
         else await deleteLogin()
       })()
     },
-    [user, clerk, confirmRecentSignIn, deleteAccount, deleteLogin, leaveSignedOut],
+    [
+      user,
+      clerk,
+      confirmRecentSignIn,
+      deleteAccount,
+      deleteLogin,
+      leaveSignedOut,
+      revokeApple,
+      locale,
+      sameAccount,
+    ],
   )
+
+  const continueWithApple = useCallback(() => appleAnswer.current?.(true), [])
+  const cancelApple = useCallback(() => appleAnswer.current?.(false), [])
 
   const retryLogin = useCallback(() => {
     if (state.step === 'stranded') void deleteLogin()
@@ -298,8 +375,8 @@ export function AccountDeleteProvider({
   }, [clerk, leave])
 
   const value = useMemo(
-    () => ({ state, start, retryLogin, signOut }),
-    [state, start, retryLogin, signOut],
+    () => ({ state, start, continueWithApple, cancelApple, retryLogin, signOut }),
+    [state, start, continueWithApple, cancelApple, retryLogin, signOut],
   )
 
   return (

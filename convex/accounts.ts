@@ -49,6 +49,11 @@
  * `purgeSubject`; there is no second copy of the purge.
  */
 
+import {
+  APPLE_ACCOUNT_MISMATCH,
+  APPLE_WEB_RETURN_URLS,
+  APPLE_WEB_SERVICES_ID,
+} from '@gather/core/apple-sign-in'
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
@@ -56,10 +61,12 @@ import type { MutationCtx, QueryCtx } from './_generated/server'
 import {
   action,
   internalMutation,
+  internalQuery,
   mutation,
   query,
 } from './_generated/server'
 import {
+  AppleAccountMismatch,
   appleCredentials,
   isAppleClientId,
   revokeAppleAuthorization,
@@ -68,6 +75,7 @@ import { getGatedIdentity, rejectConnectedApps } from './lib/connectedApps'
 import {
   getCurrentUser,
   getMyGroupIds,
+  getUserByClerkId,
   NOT_SIGNED_IN,
   requireCurrentUser,
   requireIdentity,
@@ -222,8 +230,103 @@ export const deleteAccount = mutation({
 export const purgeDeletedClerkUser = internalMutation({
   args: { subject: v.string() },
   returns: v.number(),
-  handler: async (ctx, { subject }) =>
-    await purgeSubject(ctx, subject, { releaseLogin: true }),
+  handler: async (ctx, { subject }) => {
+    // The login is gone, so its Apple link is too.
+    const link = await appleLinkOf(ctx, subject)
+    if (link) await ctx.db.delete(link._id)
+    return await purgeSubject(ctx, subject, { releaseLogin: true })
+  },
+})
+
+// -- Apple links (APP-388) ---------------------------------------------------
+
+async function appleLinkOf(ctx: QueryCtx, clerkId: string) {
+  return await ctx.db
+    .query('appleSignInLinks')
+    .withIndex('by_clerkId', (q) => q.eq('clerkId', clerkId))
+    .unique()
+}
+
+const appleLink = v.object({
+  clerkId: v.string(),
+  appleUserIds: v.array(v.string()),
+  clerkUpdatedAt: v.number(),
+})
+
+/**
+ * Mirrors one login's verified Apple users (`appleSignInLinks`). A delivery
+ * older than the stored one is ignored, so retries and out-of-order events
+ * are harmless; no Apple user removes the row.
+ */
+async function storeAppleLink(
+  ctx: MutationCtx,
+  {
+    clerkId,
+    appleUserIds,
+    clerkUpdatedAt,
+  }: { clerkId: string; appleUserIds: string[]; clerkUpdatedAt: number },
+) {
+  const existing = await appleLinkOf(ctx, clerkId)
+  if (existing && existing.clerkUpdatedAt > clerkUpdatedAt) return
+  if (appleUserIds.length === 0) {
+    if (existing) await ctx.db.delete(existing._id)
+    return
+  }
+  if (existing)
+    await ctx.db.patch(existing._id, { appleUserIds, clerkUpdatedAt })
+  else
+    await ctx.db.insert('appleSignInLinks', {
+      clerkId,
+      appleUserIds,
+      clerkUpdatedAt,
+    })
+}
+
+/** Clerk's `user.created` / `user.updated` (`POST /clerk/webhook`). */
+export const syncAppleLink = internalMutation({
+  args: appleLink.fields,
+  returns: v.null(),
+  handler: async (ctx, link) => {
+    await storeAppleLink(ctx, link)
+    return null
+  },
+})
+
+/** Links per backfill call: one `convex run` stays a small transaction. */
+const MAX_BACKFILL_LINKS = 100
+
+/**
+ * One-off backfill for logins whose Apple link predates the webhook
+ * subscription (`scripts/backfill-apple-links.mjs`, run locally; see
+ * docs/migrations/README.md). The same rules as the webhook, so a newer
+ * delivery always wins and a repeat changes nothing.
+ */
+export const backfillAppleLinks = internalMutation({
+  args: { links: v.array(appleLink) },
+  returns: v.null(),
+  handler: async (ctx, { links }) => {
+    if (links.length > MAX_BACKFILL_LINKS)
+      throw new ConvexError(`At most ${MAX_BACKFILL_LINKS} links per call`)
+    for (const link of links) await storeAppleLink(ctx, link)
+    return null
+  },
+})
+
+/**
+ * What web Apple revocation needs to know before it exchanges a code, for the
+ * action, which cannot read: whether this login has a Gather account the
+ * whole-account deletion would accept, and its mirrored Apple users.
+ */
+export const appleRevocationCheck = internalQuery({
+  args: { clerkId: v.string() },
+  returns: v.object({
+    hasAccount: v.boolean(),
+    appleUserIds: v.array(v.string()),
+  }),
+  handler: async (ctx, { clerkId }) => ({
+    hasAccount: (await getUserByClerkId(ctx, clerkId)) !== null,
+    appleUserIds: (await appleLinkOf(ctx, clerkId))?.appleUserIds ?? [],
+  }),
 })
 
 /** Apple authorization codes are opaque strings of a few hundred characters. */
@@ -233,33 +336,87 @@ const MAX_AUTHORIZATION_CODE = 2000
 export const APPLE_REVOCATION = {
   invalidCode: 'Invalid Apple authorization code',
   invalidBundleId: 'Not a Gather build',
+  invalidRedirectUri: 'Not a registered Apple return URL',
+  mismatch: APPLE_ACCOUNT_MISMATCH,
   unavailable: 'Apple revocation is not configured',
   failed: 'Apple revocation failed',
 } as const
 
 /**
  * Revoke the signed-in account's Sign in with Apple grant, just before the
- * account is deleted (`lib/appleSignIn.ts`). The code comes from a fresh
- * native Apple sheet on iOS, with the bundle ID of the build that showed it.
- * Every failure is one stable message; the phone still deletes the account,
- * so Apple can never block a deletion.
+ * whole AppElent account is deleted (`lib/appleSignIn.ts`); never for
+ * Gather's data only. The code comes from a fresh native Apple sheet on iOS,
+ * with the bundle ID of the build that showed it, or from an Apple JS popup
+ * on the web (APP-388), with the web Services ID as `bundleId` and the
+ * registered return URL it was requested with.
+ *
+ * A grant cannot be restored, so a web code is exchanged only once the
+ * whole-account deletion would go ahead for this caller: the account the
+ * person confirmed (`expectedSubject`) is still the one signed in, and it has
+ * a Gather account. It is revoked only when its Apple user is one Clerk links
+ * to this login, as mirrored by the Clerk webhook (`appleSignInLinks`);
+ * otherwise, including when nothing is mirrored, it fails with
+ * `APPLE_REVOCATION.mismatch` and the web stops the deletion. Native codes are
+ * not bound yet: installed phones would be refused for every login whose link
+ * is not mirrored.
+ *
+ * Every other failure is one stable message, and the caller still deletes the
+ * account, so Apple can never block a deletion.
  */
 export const revokeAppleSignIn = action({
-  args: { authorizationCode: v.string(), bundleId: v.string() },
+  args: {
+    authorizationCode: v.string(),
+    bundleId: v.string(),
+    redirectUri: v.optional(v.string()),
+    // The Clerk user the person confirmed the deletion as. The web always
+    // sends it; installed phones from APP-213 send none.
+    expectedSubject: v.optional(v.string()),
+  },
   returns: v.null(),
-  handler: async (ctx, { authorizationCode, bundleId }) => {
+  handler: async (
+    ctx,
+    { authorizationCode, bundleId, redirectUri, expectedSubject },
+  ) => {
     // Deleting the account stays in the app (ADR-0046).
     await rejectConnectedApps(ctx)
-    if (!(await getGatedIdentity(ctx))) throw new ConvexError(NOT_SIGNED_IN)
+    const identity = await getGatedIdentity(ctx)
+    if (!identity) throw new ConvexError(NOT_SIGNED_IN)
+    if (expectedSubject !== undefined && identity.subject !== expectedSubject)
+      throw new ConvexError(ACCOUNT_CHANGED)
     if (!authorizationCode || authorizationCode.length > MAX_AUTHORIZATION_CODE)
       throw new ConvexError(APPLE_REVOCATION.invalidCode)
     if (!isAppleClientId(bundleId))
       throw new ConvexError(APPLE_REVOCATION.invalidBundleId)
+    const web = bundleId === APPLE_WEB_SERVICES_ID
+    // Web codes need their registered return URL; native codes have none.
+    if (
+      web
+        ? !redirectUri || !APPLE_WEB_RETURN_URLS.includes(redirectUri)
+        : redirectUri !== undefined
+    )
+      throw new ConvexError(APPLE_REVOCATION.invalidRedirectUri)
     const credentials = appleCredentials()
     if (!credentials) throw new ConvexError(APPLE_REVOCATION.unavailable)
+    let appleUserIds: string[] | undefined
+    if (web) {
+      if (expectedSubject === undefined) throw new ConvexError(ACCOUNT_CHANGED)
+      const check = await ctx.runQuery(internal.accounts.appleRevocationCheck, {
+        clerkId: identity.subject,
+      })
+      // The same refusal the whole-account `deleteAccount` would give.
+      if (!check.hasAccount) throw new ConvexError(NOT_SIGNED_IN)
+      if (check.appleUserIds.length === 0)
+        throw new ConvexError(APPLE_REVOCATION.mismatch)
+      appleUserIds = check.appleUserIds
+    }
     try {
-      await revokeAppleAuthorization(credentials, authorizationCode, bundleId)
+      await revokeAppleAuthorization(credentials, authorizationCode, bundleId, {
+        redirectUri,
+        appleUserIds,
+      })
     } catch (error) {
+      if (error instanceof AppleAccountMismatch)
+        throw new ConvexError(APPLE_REVOCATION.mismatch)
       console.error('accounts.revokeAppleSignIn failed', error)
       throw new ConvexError(APPLE_REVOCATION.failed)
     }

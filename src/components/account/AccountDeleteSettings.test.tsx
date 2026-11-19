@@ -2,7 +2,10 @@ import { fireEvent, screen, within } from '@testing-library/react'
 import { ConvexError } from 'convex/values'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { renderWithI18n } from '../../lib/i18n/testing'
-import type { AccountDeleteState } from './AccountDeleteProvider'
+import {
+  type AccountDeleteState,
+  AppleNotRevoked,
+} from './AccountDeleteProvider'
 import { AccountDeleteSettings } from './AccountDeleteSettings'
 
 /**
@@ -27,9 +30,13 @@ const state = vi.hoisted(() => ({
   preview: undefined as Preview | undefined,
   deletion: { step: 'idle' } as AccountDeleteState,
   start: vi.fn(),
+  continueWithApple: vi.fn(),
+  cancelApple: vi.fn(),
 }))
 
 vi.mock('@clerk/react', () => ({ useUser: () => ({ user: state.user }) }))
+const preloadAppleJs = vi.hoisted(() => vi.fn())
+vi.mock('../../lib/auth/appleRevocation', () => ({ preloadAppleJs }))
 vi.mock('convex/react', () => ({ useQuery: () => state.preview }))
 vi.mock('../../../convex/_generated/api', () => ({
   api: { accounts: { deletionPreview: 'accounts:deletionPreview' } },
@@ -41,6 +48,8 @@ vi.mock('./AccountDeleteProvider', async (importOriginal) => {
     useAccountDelete: () => ({
       state: state.deletion,
       start: state.start,
+      continueWithApple: state.continueWithApple,
+      cancelApple: state.cancelApple,
       retryLogin: vi.fn(),
       signOut: vi.fn(),
     }),
@@ -62,6 +71,9 @@ beforeEach(() => {
   }
   state.deletion = { step: 'idle' }
   state.start.mockReset()
+  state.continueWithApple.mockReset()
+  state.cancelApple.mockReset()
+  preloadAppleJs.mockReset()
 })
 
 describe('before asking', () => {
@@ -256,5 +268,68 @@ describe('after a refusal, when nothing was deleted', () => {
     expect(screen.getByRole('alert').textContent).toBe(
       'Your Gather data could not be deleted. Nothing was deleted.',
     )
+  })
+})
+
+describe('Sign in with Apple, before the whole account goes (APP-388)', () => {
+  test('readies Apple JS on the Account page, only when the account can go', () => {
+    const view = renderWithI18n(<AccountDeleteSettings />)
+    expect(preloadAppleJs).toHaveBeenCalledWith(state.user, 'en')
+    view.unmount()
+    preloadAppleJs.mockReset()
+    state.user = { deleteSelfEnabled: false }
+    renderWithI18n(<AccountDeleteSettings />)
+    expect(preloadAppleJs).not.toHaveBeenCalled()
+  })
+
+  const wholeOption = () =>
+    screen
+      .getAllByRole('group')
+      .find(
+        (group) =>
+          group.getAttribute('aria-labelledby') ===
+          'account-delete-wholeAccount-title',
+      ) as HTMLElement
+
+  test('asks for the click that opens Apple, with a Cancel that deletes nothing', () => {
+    state.deletion = { step: 'confirmingApple', choice: 'wholeAccount' }
+    renderWithI18n(<AccountDeleteSettings />)
+
+    const option = within(wholeOption())
+    expect(
+      option.getByText(/Continue with Apple once more/),
+    ).toBeInTheDocument()
+    const go = option.getByRole('button', { name: 'Continue with Apple' })
+    expect(go).toHaveFocus()
+    fireEvent.click(go)
+    expect(state.continueWithApple).toHaveBeenCalledOnce()
+    fireEvent.click(option.getByRole('button', { name: 'Cancel' }))
+    expect(state.cancelApple).toHaveBeenCalledOnce()
+    // Both deletions stay off while it waits.
+    expect(dataOnly()).toBeDisabled()
+    expect(whole()).toBeDisabled()
+  })
+
+  test('waits for Apple without a Cancel while the popup is open', () => {
+    state.deletion = { step: 'revokingApple', choice: 'wholeAccount' }
+    renderWithI18n(<AccountDeleteSettings />)
+
+    const option = within(wholeOption())
+    expect(option.getByRole('button', { name: 'Waiting for Apple…' })).toBeDisabled()
+    expect(option.queryByRole('button', { name: 'Cancel' })).toBeNull()
+  })
+
+  test.each([
+    ['popupBlocked', /blocked the Apple window, so nothing was deleted/],
+    ['appleMismatch', /not the one linked to this account, so nothing was deleted/],
+    ['failed', /did not finish, so nothing was deleted/],
+  ] as const)('a popup that ended %s says nothing was deleted', (reason, text) => {
+    state.deletion = {
+      step: 'refused',
+      choice: 'wholeAccount',
+      cause: new AppleNotRevoked(reason),
+    }
+    renderWithI18n(<AccountDeleteSettings />)
+    expect(within(wholeOption()).getByRole('alert')).toHaveTextContent(text)
   })
 })

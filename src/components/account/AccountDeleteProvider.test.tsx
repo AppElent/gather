@@ -1,10 +1,12 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
+import type { AppleRevocation } from '../../lib/auth/appleRevocation'
 import {
   AccountChanged,
   AccountDeleteProvider,
   type AccountDeleteValue,
+  AppleNotRevoked,
   GATHER_DATA_DELETED_HOME,
   SignInNotConfirmed,
   useAccountDelete,
@@ -38,6 +40,11 @@ const state = vi.hoisted(() => ({
   purgeArgs: [] as unknown[],
   signedOut: 0,
   signOutArgs: [] as unknown[],
+  /** The Apple return URL for this account and origin; none skips Apple. */
+  appleReturnUrl: null as string | null,
+  /** How Apple's popup and the revocation end (APP-388). */
+  apple: (): Promise<AppleRevocation> => Promise.resolve('continue'),
+  appleArgs: [] as unknown[],
 }))
 
 const signOutStandIn = vi.hoisted(() => (options?: unknown) => {
@@ -119,7 +126,18 @@ vi.mock('@clerk/react/errors', () => ({
   isReverificationCancelledError: (error: unknown) =>
     (error as { code?: string } | null)?.code === 'reverification_cancelled',
 }))
+vi.mock('../../lib/auth/appleRevocation', () => ({
+  appleRevocationReturnUrl: () => state.appleReturnUrl,
+  preloadAppleJs: () => {},
+  revokeAppleSignIn: (_user: unknown, revoke: unknown, options: unknown) => {
+    state.order.push('apple')
+    state.appleArgs.push({ revoke, options })
+    return state.apple()
+  },
+}))
+vi.mock('../../lib/i18n', () => ({ useI18n: () => ({ locale: 'nl' }) }))
 vi.mock('convex/react', () => ({
+  useAction: () => 'accounts:revokeAppleSignIn',
   useMutation: () => (args: unknown) => {
     state.order.push('purge')
     state.purgeArgs.push(args)
@@ -200,6 +218,9 @@ beforeEach(() => {
   state.purgeArgs = []
   state.signedOut = 0
   state.signOutArgs = []
+  state.appleReturnUrl = null
+  state.apple = () => Promise.resolve('continue')
+  state.appleArgs = []
   leave.mockReset()
 })
 
@@ -505,4 +526,126 @@ test('useAccountDelete outside the provider says so', () => {
   expect(() => render(<AccountPage />)).toThrow(/AccountDeleteProvider/)
   spy.mockRestore()
   expect(screen.queryByText(/account page/)).toBeNull()
+})
+
+describe('Sign in with Apple before the whole account goes (APP-388)', () => {
+  beforeEach(() => {
+    state.appleReturnUrl = 'https://gather.appelent.nl/account'
+  })
+
+  async function askedForApple() {
+    mount()
+    act(() => deletion.start('wholeAccount'))
+    await waitFor(() => expect(shown()).toBe('account page: confirmingApple'))
+    // Nothing happens until the person clicks: the popup needs that click.
+    expect(state.order).toEqual(['reload', 'check'])
+  }
+
+  test('revokes after the sign-in check and before anything is deleted', async () => {
+    await askedForApple()
+    act(() => deletion.continueWithApple())
+    await waitFor(() => expect(leave).toHaveBeenCalledWith('/'))
+    // Apple's step can outlast the sign-in window, so it is checked again.
+    expect(state.order).toEqual([
+      'reload',
+      'check',
+      'apple',
+      'reload',
+      'check',
+      'purge',
+      'clerk',
+    ])
+    expect(state.appleArgs).toEqual([
+      {
+        revoke: 'accounts:revokeAppleSignIn',
+        options: { expectedSubject: 'user_1', locale: 'nl' },
+      },
+    ])
+  })
+
+  test('backing out before the popup deletes nothing and can be tried again', async () => {
+    await askedForApple()
+    act(() => deletion.cancelApple())
+    await waitFor(() => expect(shown()).toBe('account page: idle'))
+    expect(state.order).toEqual(['reload', 'check'])
+
+    act(() => deletion.start('wholeAccount'))
+    await waitFor(() => expect(shown()).toBe('account page: confirmingApple'))
+  })
+
+  test('closing the Apple popup deletes nothing', async () => {
+    state.apple = () => Promise.resolve('cancelled')
+    await askedForApple()
+    act(() => deletion.continueWithApple())
+    await waitFor(() => expect(shown()).toBe('account page: idle'))
+    expect(state.order).toEqual(['reload', 'check', 'apple'])
+    expect(state.purgeArgs).toEqual([])
+    expect(leave).not.toHaveBeenCalled()
+  })
+
+  test.each([
+    'popupBlocked',
+    'appleMismatch',
+    'failed',
+  ] as const)('a popup that ends %s deletes nothing and says why', async (reason) => {
+    state.apple = () => Promise.resolve(reason)
+    await askedForApple()
+    act(() => deletion.continueWithApple())
+    await waitFor(() => expect(shown()).toBe('account page: refused'))
+    expect(deletion.state).toEqual({
+      step: 'refused',
+      choice: 'wholeAccount',
+      cause: new AppleNotRevoked(reason),
+    })
+    expect((deletion.state as { cause: AppleNotRevoked }).cause.reason).toBe(
+      reason,
+    )
+    expect(state.order).toEqual(['reload', 'check', 'apple'])
+    expect(leave).not.toHaveBeenCalled()
+  })
+
+  test('shows the popup step while Apple is open', async () => {
+    const apple = deferred()
+    state.apple = () => apple.promise.then(() => 'continue' as const)
+    await askedForApple()
+    act(() => deletion.continueWithApple())
+    await waitFor(() => expect(shown()).toBe('account page: revokingApple'))
+    apple.resolve()
+    await waitFor(() => expect(leave).toHaveBeenCalledWith('/'))
+  })
+
+  test('never opens Apple for an account that changed while it waited', async () => {
+    await askedForApple()
+    state.user = clerkUser({ id: 'user_2' })
+    act(() => deletion.continueWithApple())
+    await waitFor(() => expect(shown()).toBe('account page: refused'))
+    expect((deletion.state as { cause: unknown }).cause).toBeInstanceOf(
+      AccountChanged,
+    )
+    expect(state.order).toEqual(['reload', 'check'])
+  })
+
+  test('a sign-in gone old during Apple deletes nothing', async () => {
+    state.recent = [true, false]
+    state.dialog = ['cancel']
+    await askedForApple()
+    act(() => deletion.continueWithApple())
+    await waitFor(() => expect(shown()).toBe('account page: idle'))
+    expect(state.order).not.toContain('purge')
+  })
+
+  test("Gather's data only never asks Apple", async () => {
+    mount()
+    act(() => deletion.start('gatherData'))
+    await waitFor(() => expect(leave).toHaveBeenCalled())
+    expect(state.order).not.toContain('apple')
+  })
+
+  test('an origin Apple does not know deletes without asking, as before', async () => {
+    state.appleReturnUrl = null
+    mount()
+    act(() => deletion.start('wholeAccount'))
+    await waitFor(() => expect(leave).toHaveBeenCalledWith('/'))
+    expect(state.order).toEqual(['reload', 'check', 'purge', 'clerk'])
+  })
 })

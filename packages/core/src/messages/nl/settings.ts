@@ -97,6 +97,18 @@ export const settings = {
     accountChanged:
       'Je bent nu bij een ander account ingelogd. Er is niets verwijderd.',
     failed: 'Je account kon niet worden verwijderd. Er is niets verwijderd.',
+    apple: {
+      prompt:
+        'Je hebt je aangemeld met Apple. Ga nog één keer verder met Apple, zodat Apple je gegevens niet meer deelt; daarna wordt je account verwijderd. Tot dan wordt er niets verwijderd.',
+      continue: 'Doorgaan met Apple',
+      waiting: 'Wachten op Apple…',
+      popupBlocked:
+        'Je browser blokkeerde het Apple-venster, dus er is niets verwijderd. Sta pop-ups toe voor deze site en probeer het opnieuw.',
+      appleMismatch:
+        'Dat Apple-account is niet het account dat aan dit account is gekoppeld, dus er is niets verwijderd. Probeer het opnieuw en meld je aan met het Apple-account dat je voor AppElent gebruikt.',
+      failed:
+        'Het Apple-venster werd niet afgerond, dus er is niets verwijderd. Probeer het opnieuw.',
+    },
   },
 
   groupSettings: {

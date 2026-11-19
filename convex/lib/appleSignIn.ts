@@ -4,22 +4,28 @@
  * Clerk does not do this when it deletes a user, so the app does it itself,
  * before the purge and before the Clerk user goes.
  *
- * The iOS app hands over a fresh `authorizationCode` from the native sheet.
- * It is exchanged for a refresh token, which is then revoked. Native codes are
- * issued to the bundle ID, so that is the `client_id`.
+ * The iOS app hands over a fresh `authorizationCode` from the native sheet,
+ * the web one from an Apple JS popup (APP-388). It is exchanged for a refresh
+ * token, which is then revoked. Native codes are issued to the bundle ID and
+ * web codes to the Services ID, so that is the `client_id`; a web code also
+ * needs the return URL it was requested with.
  *
- * Ported from Foundry (AppElent/workouts `convex/lib/appleSignIn.ts`): the
- * same Apple team and key, Gather's own bundle IDs.
+ * Ported from Foundry (AppElent/workouts `convex/lib/appleSignIn.ts`, APP-242):
+ * the same Apple team and key, Gather's own bundle IDs.
  */
+
+import { APPLE_WEB_SERVICES_ID } from '@gather/core/apple-sign-in'
 
 const APPLE = 'https://appleid.apple.com'
 /** One per install variant: keep in step with `APP_VARIANTS` in
  * `apps/mobile/app.config.ts`, or a new variant's deletions are refused as
- * "Not a Gather build" (and still go ahead, unrevoked). */
+ * "Not a Gather build" (and still go ahead, unrevoked). The web's Services ID
+ * is shared by every AppElent web app. */
 const APPLE_CLIENT_IDS = [
   'com.appelent.gather',
   'com.appelent.gather.preview',
   'com.appelent.gather.dev',
+  APPLE_WEB_SERVICES_ID,
 ] as const
 type AppleClientId = (typeof APPLE_CLIENT_IDS)[number]
 
@@ -116,10 +122,50 @@ async function post(path: string, form: Record<string, string>) {
   return response
 }
 
+/** The Apple user (`sub`) of an ID token straight from Apple's token endpoint. */
+function idTokenSubject(
+  idToken: unknown,
+  clientId: AppleClientId,
+): string | null {
+  if (typeof idToken !== 'string') return null
+  const payload = idToken.split('.')[1]
+  if (!payload) return null
+  try {
+    const claims = JSON.parse(
+      atob(payload.replace(/-/g, '+').replace(/_/g, '/')),
+    ) as { iss?: unknown; aud?: unknown; sub?: unknown }
+    // Fetched over TLS with Gather's own client secret, so the token is
+    // Apple's (OIDC Core 3.1.3.7); issuer and audience still have to fit.
+    const audience = Array.isArray(claims.aud) ? claims.aud : [claims.aud]
+    return claims.iss === APPLE &&
+      audience.includes(clientId) &&
+      typeof claims.sub === 'string' &&
+      claims.sub !== ''
+      ? claims.sub
+      : null
+  } catch {
+    return null
+  }
+}
+
+/** The code's Apple user is not one linked to the signed-in login. */
+export class AppleAccountMismatch extends Error {}
+
+/**
+ * Exchanges the code for tokens and revokes them. A web code needs the
+ * `redirectUri` it was requested with. With `appleUserIds`, the code's Apple
+ * user (the ID token's `sub`) must be one of them; otherwise nothing is
+ * revoked and `AppleAccountMismatch` is thrown. The unrevoked tokens are
+ * dropped, never stored or returned.
+ */
 export async function revokeAppleAuthorization(
   credentials: AppleCredentials,
   authorizationCode: string,
   clientId: AppleClientId,
+  { redirectUri, appleUserIds }: {
+    redirectUri?: string
+    appleUserIds?: readonly string[]
+  } = {},
 ) {
   const secret = await clientSecret(credentials, clientId)
   const tokens = (await (
@@ -128,8 +174,20 @@ export async function revokeAppleAuthorization(
       client_secret: secret,
       code: authorizationCode,
       grant_type: 'authorization_code',
+      ...(redirectUri ? { redirect_uri: redirectUri } : {}),
     })
-  ).json()) as { refresh_token?: string; access_token?: string }
+  ).json()) as {
+    refresh_token?: string
+    access_token?: string
+    id_token?: unknown
+  }
+  if (appleUserIds) {
+    const subject = idTokenSubject(tokens.id_token, clientId)
+    if (!subject || !appleUserIds.includes(subject))
+      throw new AppleAccountMismatch(
+        "Apple's code is for another Apple account than the linked one",
+      )
+  }
   const [token, hint] = tokens.refresh_token
     ? [tokens.refresh_token, 'refresh_token']
     : [tokens.access_token, 'access_token']

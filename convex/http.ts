@@ -6,6 +6,10 @@
  * holds for that person, exactly as deleting Gather's data in the app does
  * (`accounts.purgeDeletedClerkUser`, ADR-0050).
  *
+ * The same route's `user.created` and `user.updated` (APP-388) mirror the
+ * login's verified Sign in with Apple users into `appleSignInLinks`, which web
+ * Apple revocation binds its code to (`accounts.revokeAppleSignIn`).
+ *
  * Nothing is read from the body until its Svix signature checks out against
  * `CLERK_WEBHOOK_SECRET`. Without the secret the route refuses everything, so
  * a deployment that has not been given one cannot be told to delete anybody.
@@ -14,6 +18,7 @@
 import { httpRouter } from 'convex/server'
 import { internal } from './_generated/api'
 import { httpAction } from './_generated/server'
+import { verifiedAppleUserIds } from './lib/clerkUsers'
 import { svixHeaders, verifySvix } from './lib/svix'
 
 /** Far above any Clerk event; a bigger body is not one, and is not hashed. */
@@ -36,7 +41,14 @@ const clerkWebhook = httpAction(async (ctx, request) => {
   if (!(await verifySvix(secret, headers, body)))
     return new Response('Invalid signature', { status: 401 })
 
-  let event: { type?: unknown; data?: { id?: unknown } | null } | null
+  let event: {
+    type?: unknown
+    data?: {
+      id?: unknown
+      updated_at?: unknown
+      external_accounts?: unknown
+    } | null
+  } | null
   try {
     event = JSON.parse(body)
   } catch {
@@ -57,6 +69,20 @@ const clerkWebhook = httpAction(async (ctx, request) => {
     console.log(
       `clerk webhook: user.deleted ${headers.id} purged ${rows} row(s)`,
     )
+  }
+  if (event.type === 'user.created' || event.type === 'user.updated') {
+    const clerkId = event.data?.id
+    const updatedAt = event.data?.updated_at
+    if (typeof clerkId !== 'string' || clerkId.length === 0)
+      return new Response('Missing user id', { status: 400 })
+    // Without it an older delivery could overwrite a newer one.
+    if (typeof updatedAt !== 'number' || !Number.isFinite(updatedAt))
+      return new Response('Missing updated_at', { status: 400 })
+    await ctx.runMutation(internal.accounts.syncAppleLink, {
+      clerkId,
+      appleUserIds: verifiedAppleUserIds(event.data ?? {}),
+      clerkUpdatedAt: updatedAt,
+    })
   }
   return new Response(null, { status: 200 })
 })
