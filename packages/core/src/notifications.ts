@@ -14,6 +14,8 @@
  *
  * Dependency-free on purpose (ADR-0016).
  */
+import { parseIsoDate } from './civilDate'
+import { fmt } from './i18n'
 
 export const NOTIFICATION_KINDS = [
   'taskReminder',
@@ -148,4 +150,40 @@ const EXPO_PUSH_TOKEN = /^Expo(nent)?PushToken\[[A-Za-z0-9_-]{1,200}\]$/
 
 export function isExpoPushToken(value: string): boolean {
   return EXPO_PUSH_TOKEN.test(value)
+}
+
+/** The words `assignmentBody` needs, from `notifications` in either tree. */
+export interface AssignmentWords {
+  taskAssigned: { undated: string; dated: string; someone: string }
+  short: { weekdays: readonly string[]; months: readonly string[] }
+}
+
+/** A due day as a push says it: "Sat 21 Nov", "za 21 nov". */
+export function shortDay(
+  iso: string,
+  words: AssignmentWords['short'],
+): string | null {
+  const parts = parseIsoDate(iso)
+  if (!parts) return null
+  const weekday = new Date(
+    Date.UTC(parts.year, parts.month - 1, parts.day),
+  ).getUTCDay()
+  return `${words.weekdays[weekday]} ${parts.day} ${words.months[parts.month - 1]}`
+}
+
+/**
+ * The body of a task-assignment push (APP-302): "{name} gave you a task:
+ * {title}, {date}", without the date part when the task has none. A giver
+ * whose account is gone reads as "Someone".
+ */
+export function assignmentBody(
+  words: AssignmentWords,
+  task: { title: string; dueDate?: string },
+  giverName: string | null,
+): string {
+  const name = giverName?.trim() || words.taskAssigned.someone
+  const date = task.dueDate ? shortDay(task.dueDate, words.short) : null
+  return date
+    ? fmt(words.taskAssigned.dated, { name, title: task.title, date })
+    : fmt(words.taskAssigned.undated, { name, title: task.title })
 }

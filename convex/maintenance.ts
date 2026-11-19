@@ -560,7 +560,11 @@ const USER_REFERENCES: {
   // (`lib/notifications.ts`), so the merge only repoints them.
   scheduledNotifications: { userId: 'repoint' },
   recipes: { createdByUserId: 'repoint' },
-  tasks: { createdBy: 'repoint' },
+  tasks: {
+    createdBy: 'repoint',
+    assigneeId: 'repoint',
+    assignmentNotice: 'repoint',
+  },
   groceryCategoryOverrides: { updatedBy: 'repoint' },
   notes: { createdBy: 'repoint', updatedBy: 'repoint' },
   mealEntries: { createdBy: 'repoint' },

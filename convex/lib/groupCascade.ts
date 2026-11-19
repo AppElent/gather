@@ -35,6 +35,7 @@ import type { MutationCtx } from '../_generated/server'
 import type { GroupScopedTable } from './groupAccess'
 import { dropRecipeShares, setSharedGroups } from './recipeShares'
 import { storedFileIdsOf } from './storedFiles'
+import { unassignFromGroup } from './taskAssignee'
 
 /** Delete these rows, handing back the stored files they were holding. */
 async function purge<T extends TableNames>(
@@ -500,6 +501,9 @@ export async function destroyGroup(
  * reading after somebody leaves. So only the id goes.
  *
  * A **Planned meal's eaters** drop the person; the meal stays.
+ *
+ * A **task** they were responsible for goes back to nobody (APP-302), with
+ * any notice they had not opened.
  */
 export async function detachFromGroup(
   ctx: MutationCtx,
@@ -556,4 +560,6 @@ export async function detachFromGroup(
       eaterIds: meal.eaterIds.filter((id) => id !== userId),
     })
   }
+
+  await unassignFromGroup(ctx, userId, groupId)
 }

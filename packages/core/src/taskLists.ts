@@ -14,6 +14,7 @@
  * starter items are keys, resolved in the message trees under `tasks.kinds`,
  * `tasks.icons`, `tasks.colors` and `tasks.starters`.
  */
+import type { TaskProviderId } from './domain'
 import type { ModuleGroup } from './modules'
 
 export const TASK_LIST_KINDS = [
@@ -195,4 +196,47 @@ export function taskUrlHost(url: string): string {
   } catch {
     return url
   }
+}
+
+/**
+ * How each backend can hold a task's responsible Member (APP-302, ADR-0021
+ * capabilities). A local list stores a current Member of its Group. Todoist
+ * has one responsible person per task (`responsible_uid`), but only on a
+ * shared project and only through a write path. Notion has no such field
+ * Gather maps.
+ */
+export const ASSIGNEE_SUPPORT = {
+  local: 'members',
+  todoist: 'sharedProjects',
+  notion: 'none',
+} as const satisfies Record<
+  TaskProviderId,
+  'members' | 'sharedProjects' | 'none'
+>
+
+/**
+ * Why the Who row is off for a list, or `null` when a task on it can be
+ * given to someone. Each reason has its own explanation under
+ * `tasks.assignee.unavailable`.
+ *
+ * - `readOnly`: the provider could hold an assignee but Gather cannot write
+ *   to this list (every linked list today: ADR-0021 has no provider write
+ *   path yet).
+ * - `notShared`: a Todoist project nobody else is in has no one to give a
+ *   task to.
+ * - `unsupported`: the provider has no responsible person at all.
+ */
+export type AssigneeUnavailable = 'readOnly' | 'notShared' | 'unsupported'
+
+export function assigneeUnavailable(list: {
+  provider: TaskProviderId
+  writable: boolean
+  /** Whether the provider source is shared; only Todoist reads it. */
+  shared?: boolean
+}): AssigneeUnavailable | null {
+  const support = ASSIGNEE_SUPPORT[list.provider]
+  if (support === 'none') return 'unsupported'
+  if (!list.writable) return 'readOnly'
+  if (support === 'sharedProjects' && !list.shared) return 'notShared'
+  return null
 }

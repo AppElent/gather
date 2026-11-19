@@ -201,6 +201,35 @@ export const tasks = {
     } satisfies Record<GroceryUnit, { one: string; other: string }>,
   },
 
+  /**
+   * The one Member responsible for a task (APP-302): the Who row, the coin a
+   * row shows, and the in-app notice for a task someone else gave you.
+   */
+  assignee: {
+    who: 'Who',
+    nobody: 'Nobody',
+    /** The coin's label for VoiceOver. */
+    assignedTo: 'Assigned to {name}',
+    /** A Member who has since left, or an account that is gone. */
+    someone: 'Someone',
+    /** Why the Who row is off on a list (`assigneeUnavailable`). */
+    unavailable: {
+      readOnly:
+        'Assign this task in {provider}. Gather cannot change linked lists yet.',
+      notShared:
+        'Only a shared {provider} project has people to give a task to.',
+      unsupported: '{provider} lists have no field for who does a task.',
+    },
+    /** Tasks someone else gave you that you have not opened yet. */
+    notice: {
+      title: 'New for you',
+      gaveYou: '{name} gave you a task',
+    },
+    refusals: {
+      'assignee-not-member': 'That person is not in this group any more.',
+    },
+  },
+
   /** The ⋯ menu's appearance entry and its sheet. */
   appearance: {
     title: 'Colour and icon',

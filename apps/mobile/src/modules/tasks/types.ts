@@ -58,6 +58,10 @@ export interface Task {
   quantity?: number
   unit?: GroceryUnit
   category?: GroceryAisle
+  /** The Member responsible (APP-302); absent is nobody. */
+  assigneeId?: string
+  /** Set while the assignee has not opened a task someone else gave them. */
+  assignmentNotice?: { by: string; at: number }
   order: number
 }
 

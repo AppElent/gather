@@ -182,6 +182,8 @@ export function mergeTasks(
             quantity: row.quantity,
             unit: row.unit,
             category: row.category,
+            assigneeId: row.assigneeId,
+            assignmentNotice: row.assignmentNotice,
             order: row.order,
           })
         }
@@ -343,6 +345,7 @@ export function useTaskActions() {
   const createList = useMutation(api.taskLists.create)
   const setAppearance = useMutation(api.taskLists.setAppearance)
   const setDoneInList = useMutation(api.tasks.setDoneInList)
+  const markSeen = useMutation(api.tasks.markAssignmentSeen)
 
   const patch = (
     id: string,
@@ -431,5 +434,11 @@ export function useTaskActions() {
     ) => patch(id, { quantity, unit }),
     /** The aisle a Member chose; the Group keeps it for the name. */
     setAisle: (id: string, category: GroceryAisle) => patch(id, { category }),
+    /** The Member responsible, or nobody (APP-302). */
+    setAssignee: (id: string, userId: string | null) =>
+      patch(id, { assigneeId: userId as Id<'users'> | null }),
+    /** The assignee opened a task someone gave them: its notice is seen. */
+    markAssignmentSeen: (id: string) =>
+      markSeen({ taskId: id as Id<'tasks'>, groupSlug }),
   }
 }

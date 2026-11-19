@@ -30,6 +30,7 @@
 import { fmt } from '@gather/core/i18n'
 import { en, nl } from '@gather/core/messages'
 import {
+  assignmentBody,
   mayNotify,
   type NotificationKind,
   notificationPath,
@@ -66,15 +67,21 @@ const MESSAGES = { en, nl } as const
 async function recordOf(
   ctx: QueryCtx,
   payload: NotificationPayload,
-): Promise<{ title: string; group: Doc<'groups'> } | null> {
+): Promise<{
+  title: string
+  group: Doc<'groups'>
+  task?: Doc<'tasks'>
+} | null> {
   let title: string
   let groupId: Id<'groups'>
+  let task: Doc<'tasks'> | undefined
   if (payload.target.type === 'task') {
-    const task = await ctx.db.get(payload.target.id)
-    if (!task) return null
-    const list = await ctx.db.get(task.listId)
+    const found = await ctx.db.get(payload.target.id)
+    if (!found) return null
+    const list = await ctx.db.get(found.listId)
     if (!list) return null
-    title = task.title
+    task = found
+    title = found.title
     groupId = list.groupId
   } else {
     const event = await ctx.db.get(payload.target.id)
@@ -86,7 +93,7 @@ async function recordOf(
   }
   if (groupId !== payload.groupId) return null
   const group = await ctx.db.get(groupId)
-  return group ? { title, group } : null
+  return group ? { title, group, task } : null
 }
 
 /**
@@ -123,6 +130,43 @@ function bodyOf(
 }
 
 /**
+ * Title and body of one message. A task someone gave you says who and what
+ * (APP-302): the Group's name over "{name} gave you a task: {title}, {date}".
+ * Everything else is the record's title over its kind and Group.
+ */
+function messageOf(
+  payload: NotificationPayload,
+  locale: keyof typeof MESSAGES,
+  record: { title: string; group: Doc<'groups'>; task?: Doc<'tasks'> },
+  giverName: string | null,
+): { title: string; body: string } {
+  if (payload.kind === 'taskAssignment' && record.task) {
+    return {
+      title: record.group.name,
+      body: assignmentBody(
+        MESSAGES[locale].notifications,
+        record.task,
+        giverName,
+      ),
+    }
+  }
+  return {
+    title: record.title,
+    body: bodyOf(payload.kind, locale, record.group.name),
+  }
+}
+
+/** The name of whoever gave this task, while their account is live. */
+async function giverOf(
+  ctx: QueryCtx,
+  task: Doc<'tasks'> | undefined,
+): Promise<string | null> {
+  if (!task?.assignmentNotice) return null
+  const giver = await ctx.db.get(task.assignmentNotice.by)
+  return giver && !giver.deletedAt ? giver.name : null
+}
+
+/**
  * Check everything and, if it all says yes, hand this person's messages to
  * `sendPush`. One message per registered phone, each in that phone's Language.
  */
@@ -140,10 +184,10 @@ export async function queueDelivery(
     .collect()
   if (devices.length === 0) return 0
   const url = notificationPath(record.group.slug, payload.target)
+  const giverName = await giverOf(ctx, record.task)
   const messages: PushMessage[] = devices.map((device) => ({
     to: device.token,
-    title: record.title,
-    body: bodyOf(payload.kind, device.locale, record.group.name),
+    ...messageOf(payload, device.locale, record, giverName),
     data: { url },
     sound: 'default',
   }))
