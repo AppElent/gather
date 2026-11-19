@@ -178,6 +178,12 @@ export default defineSchema({
     kind: v.optional(taskListKindValidator),
     icon: v.optional(taskListIconValidator),
     color: v.optional(taskListColorValidator),
+    /**
+     * When a Member last chose "Clear checked" on a grocery list (APP-310):
+     * items checked before it leave the list's Checked section but stay in
+     * Recent. Absent until the first clear.
+     */
+    checkedClearedAt: v.optional(v.number()),
     // APP-357. The list's sections in the order they are drawn; absent on
     // every list made before them, which reads as no sections.
     sections: v.optional(v.array(taskSectionValidator)),
@@ -212,6 +218,27 @@ export default defineSchema({
     quantity: v.optional(v.number()),
     unit: v.optional(groceryUnitValidator),
     /**
+     * When the task was last checked (APP-310); cleared when it is unchecked.
+     * Absent on open tasks and on tasks checked before it existed. A grocery
+     * list's Recent is its checked items, newest first, read through
+     * `by_list_and_done_at`.
+     */
+    doneAt: v.optional(v.number()),
+    /**
+     * The one Member responsible for the task (APP-302): a current Member of
+     * the list's Group, checked on every write. Leaving the Group clears it
+     * (`detachFromGroup`). Absent is nobody, and on every task from before.
+     */
+    assigneeId: v.optional(v.id('users')),
+    /**
+     * Present while the assignee has not yet opened a task someone else gave
+     * them: who gave it and when. It is the in-app notice beside the push
+     * (APP-302); opening the task, a new assignee, or none clears it.
+     */
+    assignmentNotice: v.optional(
+      v.object({ by: v.id('users'), at: v.number() }),
+    ),
+    /**
      * How the task comes back once completed (APP-303). Absent on a task that
      * does not repeat, which is every task from before repeats. A repeating
      * task stays open: completing it moves `dueDate` on and writes a
@@ -234,7 +261,12 @@ export default defineSchema({
   })
     .index('by_list', ['listId'])
     // The end of a list without reading all of it (APP-368).
-    .index('by_list_and_order', ['listId', 'order']),
+    .index('by_list_and_order', ['listId', 'order'])
+    // A list's newest checked items without reading the rest (APP-310).
+    .index('by_list_and_done_at', ['listId', 'doneAt'])
+    // A person's tasks across lists: the leave-Group clean-up, the in-app
+    // notice, and later the "Mine" smart list (APP-301).
+    .index('by_assignee', ['assigneeId']),
 
   /**
    * One completion of a repeating task (APP-303): who, when, and the due

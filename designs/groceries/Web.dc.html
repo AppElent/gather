@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Boodschappen op het web</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit}a:hover{opacity:.85}
+button{font:inherit;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left}
+input,select,textarea{font:inherit;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #0B7C75;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 100%; min-height: {{h}}px; position: relative; display: flex; background: {{c.bg}}; font-family: Manrope, ui-sans-serif, system-ui, sans-serif; color: {{c.fg}}; font-size: 14px; line-height: 20px">
+
+  <sc-if value="{{desk}}" hint-placeholder-val="{{ true }}">
+    <aside aria-label="Gather-navigatie" style="width: 264px; flex: 0 0 264px; border-right: 1px solid {{c.border}}; background: {{c.surface}}; padding: 16px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px">
+      <button style="min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 8px; border: 1px solid {{c.border}}; border-radius: 8px">
+        <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 7px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px">T</span>
+        <span style="flex-grow: 1; font-weight: 700">Thuis</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"></path></svg>
+      </button>
+      <nav aria-label="Navigatie" style="display: flex; flex-direction: column; gap: 4px">
+        <sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+          <a href="#" aria-current="{{n.current}}" style="min-height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-radius: 8px; text-decoration: none; font-weight: 600; background: {{n.bg}}; border: 1px solid {{n.line}}">
+            <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 7px; border: 1px solid {{c.border}}; background: {{c.surface}}; display: flex; align-items: center; justify-content: center; color: {{n.iconColor}}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{n.glyph}}"></path></svg>
+            </span>
+            <span>{{n.label}}</span>
+          </a>
+        </sc-for>
+      </nav>
+    </aside>
+  </sc-if>
+
+  <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column">
+    <header style="min-height: {{topH}}px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 {{topPad}}px; border-bottom: 1px solid {{c.border}}; background: {{c.bg}}">
+      <div style="display: flex; align-items: center; gap: 12px; min-width: 0">
+        <sc-if value="{{phone}}" hint-placeholder-val="{{ false }}">
+          <button aria-label="Navigatie openen" style="width: 40px; height: 40px; border: 1px solid {{c.border}}; border-radius: 8px; display: flex; align-items: center; justify-content: center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+          </button>
+        </sc-if>
+        <div style="min-width: 0">
+          <h1 style="margin: 0; font-size: {{titleSize}}px; line-height: 1.2; font-weight: 700">Boodschappen</h1>
+          <p style="margin: 2px 0 0 0; color: {{c.muted}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{topSub}}</p>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px">
+        <button aria-label="Zoeken" style="width: 40px; height: 40px; border: 1px solid {{c.border}}; border-radius: 8px; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14a7 7 0 1 0 0 14M20 20l-3.5-3.5"></path></svg></button>
+        <sc-if value="{{desk}}" hint-placeholder-val="{{ true }}">
+          <button aria-label="Vraag het Gather" style="width: 40px; height: 40px; border: 1px solid {{c.border}}; border-radius: 8px; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></button>
+        </sc-if>
+      </div>
+    </header>
+
+    <main style="flex-grow: 1; padding: {{mainPad}}; display: grid; grid-template-columns: {{cols}}; gap: 20px; align-items: start">
+
+      <sc-if value="{{showLeft}}" hint-placeholder-val="{{ true }}">
+        <div style="min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+          <sc-if value="{{showRecipePage}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 16px">
+              <nav aria-label="Kruimelpad" style="display: flex; gap: 6px; color: {{c.muted}}"><a href="#">Recepten</a><span aria-hidden="true">/</span><span aria-current="page" style="color: {{c.fg}}; font-weight: 600">Shakshuka</span></nav>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap">
+                <div>
+                  <h2 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 700">Shakshuka</h2>
+                  <p style="margin: 4px 0 0 0; color: {{c.muted}}">Voor 2 personen · 30 minuten</p>
+                </div>
+                <button style="min-height: 40px; padding: 0 14px; border-radius: 8px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; font-weight: 700; display: flex; align-items: center; gap: 8px">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.cart}}"></path></svg>
+                  Op de boodschappenlijst
+                </button>
+              </div>
+              <div style="border: 1px solid {{c.border}}; border-radius: 8px; background: {{c.surface}}; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+                <h3 style="margin: 0; font-size: 15px; font-weight: 700">Ingrediënten</h3>
+                <p style="margin: 0; color: {{c.muted}}">3 eieren · 1 blik tomatenblokjes · 1 rode paprika · 1 ui · 2 teentjes knoflook · 1 tl komijn · 50 g feta · ½ bos koriander</p>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{showListView}}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; flex-direction: column; gap: 16px">
+              <div style="position: relative; display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+                <button onClick="{{toggleMenu}}" aria-haspopup="menu" aria-expanded="{{menuExp}}" aria-label="Lijst: Albert Heijn, wisselen" style="min-height: 40px; padding: 0 10px 0 8px; border-radius: 8px; border: 1px solid {{c.border}}; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; font-weight: 700">
+                  <span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 6px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.store}}"></path></svg></span>
+                  Albert Heijn
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+                </button>
+                <span style="flex-grow: 1"></span>
+                <sc-for list="{{tools}}" as="t" hint-placeholder-count="3">
+                  <button aria-label="{{t.label}}" onClick="{{t.go}}" style="min-height: 40px; min-width: 40px; padding: 0 {{t.pad}}px; border-radius: 8px; border: 1px solid {{c.border}}; background: {{c.surface}}; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.glyph}}"></path></svg>
+                    <sc-if value="{{desk}}" hint-placeholder-val="{{ true }}"><span>{{t.label}}</span></sc-if>
+                  </button>
+                </sc-for>
+                <button onClick="{{toggleMore}}" aria-haspopup="menu" aria-expanded="{{moreExp}}" aria-label="Meer acties" style="width: 40px; height: 40px; border-radius: 8px; border: 1px solid {{c.border}}; background: {{c.surface}}; display: flex; align-items: center; justify-content: center">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>
+                </button>
+
+                <sc-if value="{{menuOpen}}" hint-placeholder-val="{{ false }}">
+                  <div role="menu" aria-label="Boodschappenlijsten" style="position: absolute; top: 46px; left: 0; z-index: 5; width: {{popW}}; border: 1px solid {{c.border}}; border-radius: 10px; background: {{c.surface}}; box-shadow: {{c.shadow}}; padding: 6px; display: flex; flex-direction: column">
+                    <p style="margin: 6px 10px 6px 10px; font-size: 12px; font-weight: 700; color: {{c.muted}}; text-transform: uppercase; letter-spacing: .04em">Boodschappenlijsten</p>
+                    <sc-for list="{{lists}}" as="l" hint-placeholder-count="3">
+                      <button role="menuitemradio" aria-checked="{{l.on}}" style="min-height: 48px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px; background: {{l.bg}}">
+                        <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 7px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.store}}"></path></svg></span>
+                        <span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-weight: 700">{{l.name}}</span><span style="font-size: 12px; line-height: 16px; color: {{c.muted}}">{{l.sub}}</span></span>
+                        <span style="font-variant-numeric: tabular-nums; color: {{c.muted}}">{{l.n}}</span>
+                        <span aria-hidden="true" style="width: 18px; color: {{c.kitchenText}}">{{l.mark}}</span>
+                      </button>
+                    </sc-for>
+                    <div style="height: 1px; background: {{c.border}}; margin: 6px 4px"></div>
+                    <a href="Web-Aisles.dc.html" role="menuitem" style="min-height: 40px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.sort}}"></path></svg>Schapvolgorde van Albert Heijn</a>
+                    <button role="menuitem" style="min-height: 40px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Nieuwe boodschappenlijst</button>
+                    <p style="margin: 6px 10px 6px 10px; font-size: 12px; line-height: 16px; color: {{c.muted}}">Elke lijst heeft zijn eigen schapvolgorde. Een item verplaatsen houdt hoeveelheid en afdeling.</p>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{moreOpen}}" hint-placeholder-val="{{ false }}">
+                  <div role="menu" aria-label="Meer acties" style="position: absolute; top: 46px; right: 0; z-index: 5; width: 260px; border: 1px solid {{c.border}}; border-radius: 10px; background: {{c.surface}}; box-shadow: {{c.shadow}}; padding: 6px; display: flex; flex-direction: column">
+                    <a href="Web-Aisles.dc.html" role="menuitem" style="min-height: 40px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.sort}}"></path></svg>Schapvolgorde</a>
+                    <button role="menuitem" style="min-height: 40px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.check}}"></path></svg>Afgevinkte wissen</button>
+                    <button role="menuitem" style="min-height: 40px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM3 3l18 18"></path></svg>Suggesties uit</button>
+                  </div>
+                </sc-if>
+              </div>
+
+              <form onSubmit="{{addTyped}}" style="border: 1px solid {{c.border}}; border-radius: 10px; background: {{c.surface}}; padding: 10px; display: flex; flex-direction: column; gap: 8px">
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <label for="add" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Item toevoegen</label>
+                  <input id="add" type="text" value="{{typed}}" onChange="{{onType}}" placeholder="Item toevoegen, bijv. 2 pak melk" autocomplete="off" style="flex-grow: 1; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid {{c.border}}; border-radius: 8px; background: {{c.bg}}; font-size: 16px">
+                  <button type="submit" aria-label="Toevoegen" style="height: 40px; min-width: 40px; padding: 0 {{addPad}}px; border-radius: 8px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                    <sc-if value="{{desk}}" hint-placeholder-val="{{ true }}"><span>Toevoegen</span></sc-if>
+                  </button>
+                </div>
+                <sc-if value="{{hasParse}}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center">
+                    <span style="font-size: 12px; color: {{c.muted}}">Herkend:</span>
+                    <sc-if value="{{parse.hasQty}}" hint-placeholder-val="{{ true }}"><span style="min-height: 26px; padding: 0 10px; border-radius: 999px; background: {{c.kitchenWash}}; display: flex; align-items: center; font-weight: 700; font-variant-numeric: tabular-nums">{{parse.qty}}</span></sc-if>
+                    <span style="min-height: 26px; padding: 0 10px; border-radius: 999px; background: {{c.kitchenWash}}; display: flex; align-items: center; font-weight: 600">{{parse.name}}</span>
+                    <span style="min-height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid {{c.border}}; display: flex; align-items: center; gap: 4px">{{parse.aisle}}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
+                    <span style="font-size: 12px; color: {{c.muted}}">Enter voegt toe</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{noParse}}" hint-placeholder-val="{{ true }}">
+                  <p style="margin: 0 2px; font-size: 12px; line-height: 16px; color: {{c.muted}}">Hoeveelheid en afdeling worden herkend, zonder AI. Enter voegt toe.</p>
+                </sc-if>
+              </form>
+
+              <sc-if value="{{showSugg}}" hint-placeholder-val="{{ true }}">
+                <section aria-labelledby="sugg-h" style="display: flex; flex-direction: column; gap: 8px">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+                    <h2 id="sugg-h" style="margin: 0; font-size: 13px; font-weight: 700; color: {{c.muted}}; text-transform: uppercase; letter-spacing: .04em">Misschien nodig</h2>
+                    <span style="font-size: 12px; color: {{c.muted}}">Kruisje verbergt een suggestie voorgoed</span>
+                  </div>
+                  <div style="display: flex; gap: 8px; flex-wrap: {{stripWrap}}; overflow-x: auto; padding-bottom: 2px">
+                    <sc-for list="{{sugg}}" as="s" hint-placeholder-count="4">
+                      <div style="flex: 0 0 {{cardW}}; border: 1px solid {{c.border}}; border-radius: 10px; background: {{c.surface}}; display: flex; align-items: stretch">
+                        <button onClick="{{s.add}}" aria-label="{{s.name}} toevoegen, {{s.why}}" style="flex-grow: 1; min-width: 0; padding: 8px 4px 8px 10px; display: flex; gap: 8px; align-items: flex-start">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenText}}" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" style="margin-top: 2px; flex: 0 0 16px"><path d="M12 5v14M5 12h14"></path></svg>
+                          <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-weight: 700">{{s.name}}</span><span style="font-size: 12px; line-height: 16px; color: {{c.muted}}">{{s.why}}</span></span>
+                        </button>
+                        <button onClick="{{s.hide}}" aria-label="{{s.name}} niet meer voorstellen" style="width: 32px; flex: 0 0 32px; display: flex; align-items: flex-start; justify-content: center; padding-top: 10px; color: {{c.muted}}">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                        </button>
+                      </div>
+                    </sc-for>
+                  </div>
+                </section>
+              </sc-if>
+
+              <sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+                <div style="border: 1px dashed {{c.border}}; border-radius: 10px; background: {{c.surface}}; padding: 32px 20px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center">
+                  <span aria-hidden="true" style="width: 48px; height: 48px; border-radius: 12px; background: {{c.kitchenWash}}; color: {{c.kitchenText}}; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.cart}}"></path></svg></span>
+                  <h2 style="margin: 0; font-size: 16px; font-weight: 700">Albert Heijn is leeg</h2>
+                  <p style="margin: 0; max-width: 360px; color: {{c.muted}}">Typ hierboven wat je nodig hebt, of haal de ingrediënten uit een recept of het weekmenu.</p>
+                  <a href="Web-Recipe.dc.html" style="margin-top: 4px; min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid {{c.border}}; display: flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.book}}"></path></svg>Uit recept of weekmenu</a>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{isLoading}}" hint-placeholder-val="{{ false }}">
+                <div aria-busy="true" aria-label="Boodschappen laden" style="display: flex; flex-direction: column; gap: 10px">
+                  <sc-for list="{{skeleton}}" as="k" hint-placeholder-count="3">
+                    <div style="height: {{k.h}}px; border-radius: 10px; border: 1px solid {{c.border}}; background: {{c.surfaceMuted}}"></div>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{isError}}" hint-placeholder-val="{{ false }}">
+                <div role="alert" style="border: 1px solid {{c.border}}; border-radius: 10px; background: {{c.surface}}; padding: 24px 20px; display: flex; flex-direction: column; gap: 8px">
+                  <h2 style="margin: 0; font-size: 16px; font-weight: 700">Boodschappen laden lukt niet</h2>
+                  <p style="margin: 0; color: {{c.muted}}">Controleer je verbinding. Wat je net hebt toegevoegd is niet verloren.</p>
+                  <button style="align-self: flex-start; margin-top: 4px; min-height: 40px; padding: 0 14px; border-radius: 8px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; font-weight: 700">Opnieuw proberen</button>
+                </div>
+              </sc-if>
+
+              <sc-for list="{{sections}}" as="sec" hint-placeholder-count="4">
+                <section aria-label="{{sec.name}}" style="border: 1px solid {{c.border}}; border-radius: 10px; background: {{c.surface}}; overflow: hidden">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 10px 14px 6px 14px">
+                    <h2 style="margin: 0; font-size: 13px; font-weight: 800">{{sec.name}}</h2>
+                    <span style="font-size: 12px; color: {{c.muted}}; font-variant-numeric: tabular-nums">{{sec.count}}</span>
+                  </div>
+                  <sc-for list="{{sec.items}}" as="it" hint-placeholder-count="3">
+                    <div style="display: flex; align-items: center; gap: 4px; padding: 0 6px 0 14px; min-height: 52px; border-top: 1px solid {{c.border}}; background: {{it.rowBg}}">
+                      <input type="checkbox" checked="{{it.checked}}" onChange="{{it.toggle}}" aria-label="{{it.name}} afvinken" style="width: 20px; height: 20px; margin: 0 8px 0 0; accent-color: #0B7C75; flex: 0 0 20px">
+                      <button onClick="{{it.open}}" aria-label="{{it.name}}, {{it.qty}}, openen" style="flex-grow: 1; min-width: 0; min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 6px 4px">
+                        <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+                          <span style="font-weight: 600; text-decoration: {{it.strike}}; color: {{it.nameColor}}">{{it.name}}</span>
+                          <sc-if value="{{it.hasMeta}}" hint-placeholder-val="{{ true }}"><span style="font-size: 12px; line-height: 16px; color: {{c.muted}}; display: flex; align-items: center; gap: 4px"><sc-if value="{{it.rec}}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.book}}"></path></svg></sc-if>{{it.meta}}</span></sc-if>
+                        </span>
+                        <span style="font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap">{{it.qty}}</span>
+                      </button>
+                      <sc-if value="{{desk}}" hint-placeholder-val="{{ true }}">
+                        <button aria-label="Acties voor {{it.name}}" title="Bewerken, verplaatsen naar lijst, verwijderen" style="width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: {{c.muted}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg></button>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </section>
+              </sc-for>
+
+              <sc-if value="{{hasChecked}}" hint-placeholder-val="{{ true }}">
+                <section aria-label="Afgevinkt" style="border: 1px solid {{c.border}}; border-radius: 10px; background: {{c.surface}}; padding: 4px 6px 4px 14px">
+                  <div style="display: flex; align-items: center; justify-content: space-between; min-height: 40px">
+                    <h2 style="margin: 0; font-size: 13px; font-weight: 800">Afgevinkt ({{checkedCount}})</h2>
+                    <button style="min-height: 32px; padding: 0 10px; border-radius: 8px; font-weight: 600; color: {{c.kitchenText}}">Afgevinkte wissen</button>
+                  </div>
+                  <sc-for list="{{checkedItems}}" as="ci" hint-placeholder-count="2">
+                    <div style="display: flex; align-items: center; gap: 8px; min-height: 40px; border-top: 1px solid {{c.border}}">
+                      <span style="flex-grow: 1; color: {{c.muted}}; text-decoration: line-through">{{ci.name}}</span>
+                      <button onClick="{{ci.toggle}}" style="min-height: 32px; padding: 0 10px; border-radius: 8px; font-weight: 600; color: {{c.kitchenText}}">Zet terug</button>
+                    </div>
+                  </sc-for>
+                </section>
+              </sc-if>
+
+              <sc-if value="{{showFromRecipe}}" hint-placeholder-val="{{ true }}">
+                <a href="Web-Recipe.dc.html" style="border: 1px solid {{c.border}}; border-radius: 10px; background: {{c.surface}}; padding: 12px 14px; display: flex; align-items: center; gap: 12px; text-decoration: none">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.kitchenText}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{g.book}}"></path></svg>
+                  <span style="display: flex; flex-direction: column"><span style="font-weight: 700">Uit recept of weekmenu</span><span style="font-size: 12px; line-height: 16px; color: {{c.muted}}">Ingrediënten samengevoegd met wat er al staat</span></span>
+                </a>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showAside}}" hint-placeholder-val="{{ true }}">
+        <aside aria-label="{{asideLabel}}" style="min-width: 0; border: {{asideBorder}}; border-radius: 10px; background: {{asideBg}}; display: flex; flex-direction: column">
+
+          <sc-if value="{{showCrumbs}}" hint-placeholder-val="{{ false }}">
+            <nav aria-label="Kruimelpad" style="display: flex; gap: 6px; color: {{c.muted}}; padding: 0 0 12px 0"><a href="Web-Phone.dc.html">Boodschappen</a><span aria-hidden="true">/</span><span aria-current="page" style="color: {{c.fg}}; font-weight: 600">{{crumb}}</span></nav>
+          </sc-if>
+
+          <sc-if value="{{showTabs}}" hint-placeholder-val="{{ true }}">
+            <div role="tablist" aria-label="Paneel" style="display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid {{c.border}}">
+              <sc-for list="{{tabs}}" as="tb" hint-placeholder-count="2">
+                <button role="tab" aria-selected="{{tb.on}}" onClick="{{tb.go}}" style="flex: 1 1 0; min-height: 36px; border-radius: 7px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px; background: {{tb.bg}}; color: {{tb.fg}}">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{tb.glyph}}"></path></svg>{{tb.label}}<span style="font-weight: 600; color: {{c.muted}}; font-variant-numeric: tabular-nums">{{tb.badge}}</span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{showRecent}}" hint-placeholder-val="{{ true }}">
+            <div style="padding: 4px 14px 14px 14px; display: flex; flex-direction: column">
+              <p style="margin: 8px 0 4px 0; color: {{c.muted}}; font-size: 12px; line-height: 16px">Plus zet het terug op de lijst, met de laatste hoeveelheid.</p>
+              <sc-for list="{{recent}}" as="rd" hint-placeholder-count="3">
+                <div style="display: flex; flex-direction: column">
+                  <h3 style="margin: 10px 0 2px 0; font-size: 12px; font-weight: 800; color: {{c.muted}}">{{rd.day}}</h3>
+                  <sc-for list="{{rd.items}}" as="r" hint-placeholder-count="2">
+                    <div style="display: flex; align-items: center; gap: 8px; min-height: 48px; border-top: 1px solid {{c.border}}">
+                      <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600">{{r.name}}</span><span style="font-size: 12px; line-height: 16px; color: {{c.muted}}">{{r.meta}}</span></span>
+                      <sc-if value="{{r.onList}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: {{c.muted}}; white-space: nowrap">✓ Op de lijst</span></sc-if>
+                      <sc-if value="{{r.canAdd}}" hint-placeholder-val="{{ true }}">
+                        <button onClick="{{r.add}}" aria-label="{{r.name}} terug op de lijst" style="width: 36px; height: 36px; border-radius: 999px; background: {{c.surfaceMuted}}; color: {{c.kitchenText}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+              <p style="margin: 12px 0 0 0; color: {{c.muted}}; font-size: 12px; line-height: 16px">Recent bewaart de laatste 100 afgevinkte items van dit huishouden.</p>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{showStock}}" hint-placeholder-val="{{ false }}">
+            <div style="padding: {{stockPad}}; display: flex; flex-direction: column">
+              <sc-if value="{{phone}}" hint-placeholder-val="{{ false }}">
+                <h2 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 700">In huis</h2>
+              </sc-if>
+              <p style="margin: 8px 0 4px 0; color: {{c.muted}}; font-size: 12px; line-height: 16px">{{stockSummary}} · wat jullie altijd in huis willen hebben</p>
+              <sc-for list="{{stock}}" as="sg" hint-placeholder-count="3">
+                <div style="display: flex; flex-direction: column">
+                  <h3 style="margin: 10px 0 2px 0; font-size: 12px; font-weight: 800; color: {{c.muted}}">{{sg.name}}</h3>
+                  <sc-for list="{{sg.items}}" as="sk" hint-placeholder-count="2">
+                    <div style="display: flex; align-items: center; gap: 8px; min-height: 48px; border-top: 1px solid {{c.border}}">
+                      <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600">{{sk.name}}</span><sc-if value="{{sk.low}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; line-height: 16px; color: {{c.muted}}">Staat op Albert Heijn</span></sc-if></span>
+                      <button onClick="{{sk.toggle}}" aria-pressed="{{sk.low}}" aria-label="{{sk.name}}: {{sk.label}}. Wisselen" style="min-height: 32px; padding: 0 10px; border-radius: 999px; font-weight: 700; font-size: 13px; white-space: nowrap; display: flex; align-items: center; gap: 4px; background: {{sk.bg}}; color: {{sk.fg}}">{{sk.icon}} {{sk.label}}</button>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+              <button style="margin-top: 6px; min-height: 44px; border-top: 1px solid {{c.border}}; display: flex; align-items: center; gap: 8px; font-weight: 700; color: {{c.kitchenText}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Voorraaditem toevoegen</button>
+              <p style="margin: 8px 0 0 0; color: {{c.muted}}; font-size: 12px; line-height: 16px">Vink je een vast voorraaditem af op de lijst, dan staat het hier weer op voorraad. Recept en weekmenu laten wat op voorraad is uitgevinkt beginnen.</p>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{showItem}}" hint-placeholder-val="{{ false }}">
+            <form style="padding: {{itemPad}}; display: flex; flex-direction: column; gap: 14px">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+                <h2 style="margin: 0; font-size: {{itemTitle}}px; line-height: 1.25; font-weight: 700">{{form.name}}</h2>
+                <sc-if value="{{desk}}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{closeItem}}" aria-label="Paneel sluiten" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid {{c.border}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+                </sc-if>
+              </div>
+              <p style="margin: -8px 0 0 0; font-size: 12px; line-height: 16px; color: {{c.muted}}">Toegevoegd door Eric · di 17 nov</p>
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <label for="f-name" style="font-weight: 700; font-size: 13px">Naam</label>
+                <input id="f-name" type="text" value="{{form.name}}" onChange="{{form.onName}}" style="height: 40px; padding: 0 12px; border: 1px solid {{c.border}}; border-radius: 8px; background: {{c.bg}}; font-size: 16px">
+              </div>
+              <div style="display: flex; gap: 12px; flex-wrap: wrap">
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <span id="f-qty" style="font-weight: 700; font-size: 13px">Hoeveelheid</span>
+                  <div role="group" aria-labelledby="f-qty" style="display: flex; align-items: center; height: 40px; border: 1px solid {{c.border}}; border-radius: 8px; overflow: hidden">
+                    <button type="button" onClick="{{form.dec}}" aria-label="Minder" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+                    <span aria-live="polite" style="min-width: 36px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums">{{form.qty}}</span>
+                    <button type="button" onClick="{{form.inc}}" aria-label="Meer" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+                  </div>
+                </div>
+                <div style="flex: 1 1 120px; display: flex; flex-direction: column; gap: 6px">
+                  <label for="f-unit" style="font-weight: 700; font-size: 13px">Eenheid</label>
+                  <select id="f-unit" style="height: 40px; padding: 0 10px; border: 1px solid {{c.border}}; border-radius: 8px; background: {{c.bg}}; font-size: 15px">
+                    <option>pak</option><option>stuks</option><option>fles</option><option>l</option><option>ml</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <label for="f-aisle" style="font-weight: 700; font-size: 13px">Afdeling</label>
+                <select id="f-aisle" style="height: 40px; padding: 0 10px; border: 1px solid {{c.border}}; border-radius: 8px; background: {{c.bg}}; font-size: 15px">
+                  <sc-for list="{{aisleOptions}}" as="ao" hint-placeholder-count="5"><option value="{{ao.id}}" selected="{{ao.sel}}">{{ao.name}}</option></sc-for>
+                </select>
+                <span style="font-size: 12px; line-height: 16px; color: {{c.muted}}">De groep onthoudt je keuze voor Melk.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <label for="f-list" style="font-weight: 700; font-size: 13px">Lijst</label>
+                <select id="f-list" style="height: 40px; padding: 0 10px; border: 1px solid {{c.border}}; border-radius: 8px; background: {{c.bg}}; font-size: 15px"><option>Albert Heijn</option><option>Jumbo</option><option>Markt</option></select>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <label for="f-note" style="font-weight: 700; font-size: 13px">Notitie</label>
+                <input id="f-note" type="text" value="{{form.note}}" onChange="{{form.onNote}}" style="height: 40px; padding: 0 12px; border: 1px solid {{c.border}}; border-radius: 8px; background: {{c.bg}}; font-size: 16px">
+              </div>
+              <label style="display: flex; align-items: center; gap: 12px; min-height: 44px; border-top: 1px solid {{c.border}}; padding-top: 8px; cursor: pointer">
+                <span style="flex-grow: 1; display: flex; flex-direction: column"><span style="font-weight: 700">Vaste voorraad</span><span style="font-size: 12px; line-height: 16px; color: {{c.muted}}">Bijhouden bij In huis</span></span>
+                <input type="checkbox" role="switch" checked="{{form.staple}}" onChange="{{form.onStaple}}" style="width: 20px; height: 20px; accent-color: #0B7C75">
+              </label>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-top: 1px solid {{c.border}}; padding-top: 12px">
+                <button type="button" style="min-height: 40px; padding: 0 16px; border-radius: 8px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; font-weight: 700">Bewaar</button>
+                <button type="button" style="min-height: 40px; padding: 0 12px; border-radius: 8px; border: 1px solid {{c.border}}; font-weight: 600">Annuleren</button>
+                <span style="flex-grow: 1"></span>
+                <button type="button" style="min-height: 40px; padding: 0 12px; border-radius: 8px; font-weight: 700; color: {{c.danger}}">Verwijderen</button>
+              </div>
+            </form>
+          </sc-if>
+        </aside>
+      </sc-if>
+    </main>
+
+    <sc-if value="{{phone}}" hint-placeholder-val="{{ false }}">
+      <nav aria-label="Mobiele navigatie" style="position: sticky; bottom: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid {{c.border}}; background: {{c.surface}}">
+        <sc-for list="{{dock}}" as="d" hint-placeholder-count="4">
+          <a href="#" aria-current="{{d.current}}" style="min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-decoration: none; font-size: 11px; font-weight: 700; color: {{d.color}}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{d.glyph}}"></path></svg>{{d.label}}
+          </a>
+        </sc-for>
+      </nav>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{showAisles}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; z-index: 10; background: {{c.scrim}}; display: flex; align-items: flex-start; justify-content: center; padding: 72px 16px">
+      <div role="dialog" aria-modal="true" aria-labelledby="aisles-h" style="width: 100%; max-width: 480px; border-radius: 12px; background: {{c.surface}}; box-shadow: {{c.shadow}}; display: flex; flex-direction: column">
+        <div style="padding: 18px 20px 8px 20px">
+          <h2 id="aisles-h" style="margin: 0; font-size: 18px; font-weight: 800">Schapvolgorde</h2>
+          <p style="margin: 4px 0 0 0; color: {{c.muted}}">Albert Heijn · zo loop je door de winkel</p>
+        </div>
+        <ol style="list-style: none; margin: 0; padding: 0 12px; display: flex; flex-direction: column">
+          <sc-for list="{{aisleRows}}" as="ar" hint-placeholder-count="8">
+            <li style="display: flex; align-items: center; gap: 8px; min-height: 44px; border-top: 1px solid {{c.border}}; padding-left: 4px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{c.muted}}" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" style="cursor: grab"><path d="{{g.grip}}"></path></svg>
+              <span style="flex-grow: 1; font-weight: 600">{{ar.name}}</span>
+              <span style="color: {{c.muted}}; font-variant-numeric: tabular-nums; min-width: 20px; text-align: right">{{ar.n}}</span>
+              <button onClick="{{ar.up}}" disabled="{{ar.first}}" aria-label="{{ar.name}} omhoog" style="width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; opacity: {{ar.upOp}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"></path></svg></button>
+              <button onClick="{{ar.down}}" disabled="{{ar.last}}" aria-label="{{ar.name}} omlaag" style="width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; opacity: {{ar.downOp}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+            </li>
+          </sc-for>
+        </ol>
+        <p style="margin: 8px 20px 0 20px; font-size: 12px; line-height: 16px; color: {{c.muted}}">Sleep een afdeling, of gebruik de pijlen. Afdelingen zonder items zijn in de lijst verborgen.</p>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 14px 20px 18px 20px">
+          <button onClick="{{resetAisles}}" style="min-height: 40px; padding: 0 4px; font-weight: 700; color: {{c.kitchenText}}">Standaardvolgorde herstellen</button>
+          <span style="flex-grow: 1"></span>
+          <a href="Web.dc.html" style="min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid {{c.border}}; display: flex; align-items: center; text-decoration: none; font-weight: 600">Annuleren</a>
+          <a href="Web.dc.html" style="min-height: 40px; padding: 0 16px; border-radius: 8px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; text-decoration: none; font-weight: 700">Bewaar</a>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{showRecipeDialog}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; z-index: 10; background: {{c.scrim}}; display: flex; align-items: flex-start; justify-content: center; padding: 56px 16px">
+      <div role="dialog" aria-modal="true" aria-labelledby="rec-h" style="width: 100%; max-width: 520px; border-radius: 12px; background: {{c.surface}}; box-shadow: {{c.shadow}}; display: flex; flex-direction: column">
+        <div style="padding: 18px 20px 12px 20px; display: flex; gap: 12px; align-items: center; border-bottom: 1px solid {{c.border}}">
+          <span aria-hidden="true" style="width: 40px; height: 40px; border-radius: 10px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{g.book}}"></path></svg></span>
+          <div style="flex-grow: 1"><h2 id="rec-h" style="margin: 0; font-size: 18px; font-weight: 800">Op de boodschappenlijst</h2><p style="margin: 2px 0 0 0; color: {{c.muted}}">Shakshuka · recept voor 2 personen</p></div>
+          <a href="Web.dc.html" aria-label="Sluiten" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid {{c.border}}; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a>
+        </div>
+        <div style="padding: 12px 20px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; border-bottom: 1px solid {{c.border}}">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span id="r-pp" style="font-weight: 700; font-size: 13px">Personen</span>
+            <div role="group" aria-labelledby="r-pp" style="display: flex; align-items: center; height: 40px; border: 1px solid {{c.border}}; border-radius: 8px; overflow: hidden">
+              <button onClick="{{ppDec}}" aria-label="Minder personen" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+              <span aria-live="polite" style="min-width: 32px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums">{{pp}}</span>
+              <button onClick="{{ppInc}}" aria-label="Meer personen" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+            </div>
+          </div>
+          <div style="flex: 1 1 160px; display: flex; flex-direction: column; gap: 6px">
+            <label for="r-list" style="font-weight: 700; font-size: 13px">Naar lijst</label>
+            <select id="r-list" style="height: 40px; padding: 0 10px; border: 1px solid {{c.border}}; border-radius: 8px; background: {{c.bg}}; font-size: 15px"><option>Albert Heijn</option><option>Jumbo</option><option>Markt</option></select>
+          </div>
+        </div>
+        <fieldset style="border: 0; margin: 0; padding: 6px 20px 0 20px; display: flex; flex-direction: column">
+          <legend style="padding: 8px 0 4px 0; font-size: 12px; font-weight: 800; color: {{c.muted}}; text-transform: uppercase; letter-spacing: .04em">Ingrediënten</legend>
+          <sc-for list="{{lines}}" as="ln" hint-placeholder-count="8">
+            <label style="display: flex; align-items: center; gap: 12px; min-height: 48px; border-top: 1px solid {{c.border}}; cursor: pointer">
+              <input type="checkbox" checked="{{ln.on}}" onChange="{{ln.toggle}}" style="width: 20px; height: 20px; margin: 0; accent-color: #0B7C75; flex: 0 0 20px">
+              <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600; color: {{ln.color}}">{{ln.name}}</span><sc-if value="{{ln.hasMeta}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; line-height: 16px; color: {{c.muted}}; font-weight: {{ln.metaW}}">{{ln.meta}}</span></sc-if></span>
+              <span style="font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: {{ln.color}}">{{ln.qty}}</span>
+            </label>
+          </sc-for>
+        </fieldset>
+        <div style="padding: 14px 20px 18px 20px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid {{c.border}}">
+          <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap">
+            <a href="Web.dc.html" style="min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid {{c.border}}; display: flex; align-items: center; text-decoration: none; font-weight: 600">Annuleren</a>
+            <a href="Web.dc.html" style="min-height: 40px; padding: 0 16px; border-radius: 8px; background: {{c.kitchenFill}}; color: {{c.kitchenOn}}; display: flex; align-items: center; text-decoration: none; font-weight: 700">{{cta}}</a>
+          </div>
+          <p style="margin: 0; font-size: 12px; line-height: 16px; color: {{c.muted}}; text-align: right">Samengevoegd met wat er al op staat. De lijst ziet erbij voor welk recept het is.</p>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["list","item","stock","lists","aisles","recipe","empty","loading","error"],"default":"list"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"size":{"editor":"enum","options":["desktop","phone"],"default":"desktop"},"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const st = this.state || {};
+    const set = (o) => this.setState(Object.assign({}, this.state || {}, o));
+    const screen = p.screen || 'list';
+    const dark = (p.theme || 'light') === 'dark';
+    const phone = (p.size || 'desktop') === 'phone';
+    const desk = !phone;
+
+    const c = dark ? {
+      bg: '#14171B', surface: '#1C2025', surfaceMuted: '#262A30', fg: '#ECEEF1', muted: '#A3A8AF', border: '#353A41', danger: '#F0917F',
+      kitchenFill: '#0B7C75', kitchenOn: '#FFFFFF', kitchenText: '#6FD6CD', kitchenWash: '#133230',
+      shadow: '0 12px 32px rgba(0,0,0,0.5)', scrim: 'rgba(5,7,9,0.62)'
+    } : {
+      bg: '#FBFBFC', surface: '#FFFFFF', surfaceMuted: '#F2F3F5', fg: '#1B1F24', muted: '#646A72', border: '#E3E5E8', danger: '#A4372C',
+      kitchenFill: '#0B7C75', kitchenOn: '#FFFFFF', kitchenText: '#0B7C75', kitchenWash: '#DDEFEC',
+      shadow: '0 12px 32px rgba(16,24,32,0.16)', scrim: 'rgba(20,24,28,0.42)'
+    };
+
+    const g = {
+      cart: 'M8 21a1 1 0 1 0 0-2a1 1 0 1 0 0 2M19 21a1 1 0 1 0 0-2a1 1 0 1 0 0 2M2 2h3l2.7 12.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 7H6',
+      home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+      clock: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2',
+      store: 'M3 9l1.5-5h15L21 9M4 9v11h16V9M3 9h18M9 20v-6h6v6',
+      book: 'M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20',
+      week: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+      grip: 'M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01',
+      sort: 'M3 6h13M3 12h9M3 18h5M18 9V3M15 6l3-3 3 3M18 15v6M15 18l3 3 3-3',
+      check: 'M20 6 9 17l-5-5',
+      tasks: 'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
+      start: 'M3 10.5 12 3l9 7.5M5 9.5V21h14V9.5',
+      grid: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
+      chef: 'M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 9.18 0A4 4 0 0 1 18 13.87V21H6zM6 17h12'
+    };
+
+    const navDefs = [
+      { label: 'Start', glyph: g.start }, { label: 'Taken', glyph: g.tasks }, { label: 'Boodschappen', glyph: g.cart, on: true },
+      { label: 'Weekmenu', glyph: g.week }, { label: 'Recepten', glyph: g.chef }, { label: 'Agenda', glyph: g.week }, { label: 'Alle modules', glyph: g.grid }
+    ];
+    const nav = navDefs.map((n) => ({ label: n.label, glyph: n.glyph, current: n.on ? 'page' : 'false', bg: n.on ? c.kitchenWash : 'transparent', line: n.on ? 'transparent' : 'transparent', iconColor: n.on ? c.kitchenText : c.muted }));
+    const dock = [{ label: 'Start', glyph: g.start }, { label: 'Taken', glyph: g.tasks }, { label: 'Boodschappen', glyph: g.cart, on: true }, { label: 'Meer', glyph: g.grid }]
+      .map((d) => ({ label: d.label, glyph: d.glyph, current: d.on ? 'page' : 'false', color: d.on ? c.kitchenText : c.muted }));
+
+    const aisleDefs = [
+      ['produce', 'Groente en fruit'], ['bakery', 'Brood en bakkerij'], ['dairy', 'Zuivel en eieren'], ['cheese_deli', 'Kaas en vleeswaren'],
+      ['meat_fish', 'Vlees en vis'], ['pasta_world', 'Pasta, rijst en wereldkeuken'], ['tins_sauces', 'Conserven en sauzen'], ['breakfast', 'Ontbijt en beleg'],
+      ['snacks', 'Koek, snoep en chips'], ['frozen', 'Diepvries'], ['drinks', 'Dranken'], ['care_baby', 'Drogisterij en baby'], ['household', 'Huishouden'], ['other', 'Overig']
+    ];
+    const aisleName = {}; aisleDefs.forEach((a) => { aisleName[a[0]] = a[1]; });
+
+    const base = [
+      { id: 'i1', name: 'Bananen', qty: '1 tros', a: 'produce' },
+      { id: 'i2', name: 'Cherrytomaten', qty: '250 g', a: 'produce', meta: 'Pasta pesto · di', rec: true },
+      { id: 'i3', name: 'Basilicum', qty: '1 bos', a: 'produce', meta: 'Pasta pesto · di', rec: true },
+      { id: 'i4', name: 'Rode uien', qty: '3', a: 'produce' },
+      { id: 'i5', name: 'Volkoren brood', qty: '1', a: 'bakery', meta: 'Gesneden · toegevoegd door Sanne' },
+      { id: 'i6', name: 'Melk', qty: '2 pak', a: 'dairy', meta: 'Halfvol' },
+      { id: 'i7', name: 'Eieren', qty: '10', a: 'dairy' },
+      { id: 'i8', name: 'Griekse yoghurt', qty: '1 pot', a: 'dairy' },
+      { id: 'i9', name: 'Parmezaan', qty: '80 g', a: 'cheese_deli', meta: 'Pasta pesto · di', rec: true },
+      { id: 'i10', name: 'Penne', qty: '500 g', a: 'pasta_world', meta: 'Pasta pesto · di', rec: true },
+      { id: 'i11', name: 'Tandpasta', qty: '1', a: 'care_baby' },
+      { id: 'i12', name: 'Luiers maat 4', qty: '1 pak', a: 'care_baby', meta: 'Toegevoegd door Sanne' },
+      { id: 'i13', name: 'Vaatwastabletten', qty: '1', a: 'household', meta: 'Bijna op · vaste voorraad' }
+    ];
+    const extra = st.extra || [];
+    const empty = screen === 'empty';
+    const loading = screen === 'loading';
+    const error = screen === 'error';
+    const all = (empty || loading || error) ? extra : base.concat(extra);
+
+    const checked = st.checked || { i1: true };
+    const defaultSel = screen === 'item' ? 'i6' : null;
+    const sel = st.sel === undefined ? defaultSel : st.sel;
+    const openItem = (id) => phone ? null : set({ sel: id });
+
+    const order = st.order || aisleDefs.map((a) => a[0]);
+    const sections = [];
+    order.forEach((aid) => {
+      const items = all.filter((it) => it.a === aid && !checked[it.id]);
+      if (!items.length) return;
+      sections.push({
+        name: aisleName[aid], count: String(items.length),
+        items: items.map((it) => ({
+          name: it.name, qty: it.qty, meta: it.meta || '', hasMeta: !!it.meta, rec: !!it.rec, checked: false,
+          strike: 'none', nameColor: c.fg, rowBg: sel === it.id ? c.kitchenWash : 'transparent',
+          toggle: () => set({ checked: Object.assign({}, checked, { [it.id]: true }) }),
+          open: () => openItem(it.id)
+        }))
+      });
+    });
+    const checkedList = all.filter((it) => checked[it.id]);
+    const checkedItems = checkedList.map((it) => ({ name: it.name, toggle: () => { const n = Object.assign({}, checked); delete n[it.id]; set({ checked: n }); } }));
+    const openCount = all.length - checkedList.length;
+
+    const hidden = st.hidden || {};
+    const addedS = st.addedS || {};
+    const suggDefs = [
+      { id: 's1', name: 'Kaas', why: 'Elke week · 8 dagen geleden', qty: '1 stuk', a: 'cheese_deli' },
+      { id: 's2', name: 'Appels', why: 'Elke 5 dagen · 6 dagen geleden', qty: '6', a: 'produce' },
+      { id: 's3', name: 'Pindakaas', why: 'Elke 2 weken · 15 dagen geleden', qty: '1 pot', a: 'breakfast' },
+      { id: 's4', name: 'Toiletpapier', why: 'Elke 3 weken · 22 dagen geleden', qty: '1 pak', a: 'household' }
+    ];
+    const sugg = suggDefs.filter((s) => !hidden[s.id] && !addedS[s.id]).map((s) => ({
+      name: s.name, why: s.why,
+      add: () => set({ addedS: Object.assign({}, addedS, { [s.id]: true }), extra: extra.concat([{ id: 'x' + s.id, name: s.name, qty: s.qty, a: s.a, meta: 'Uit Misschien nodig' }]) }),
+      hide: () => set({ hidden: Object.assign({}, hidden, { [s.id]: true }) })
+    }));
+
+    const typed = st.typed || '';
+    const dict = { melk: 'dairy', kaas: 'cheese_deli', yoghurt: 'dairy', eieren: 'dairy', boter: 'dairy', brood: 'bakery', appels: 'produce', bananen: 'produce', tomaten: 'produce', gehakt: 'meat_fish', kip: 'meat_fish', pasta: 'pasta_world', rijst: 'pasta_world', koffie: 'breakfast', bier: 'drinks', chips: 'snacks', wc: 'household', zeep: 'care_baby' };
+    const units = { pak: 'pak', pakken: 'pak', fles: 'fles', flessen: 'fles', pot: 'pot', potten: 'pot', zak: 'zak', zakken: 'zak', blik: 'blik', blikken: 'blik', g: 'g', gram: 'g', kg: 'kg', l: 'l', ml: 'ml', stuks: 'stuks', bos: 'bos', tros: 'tros' };
+    let parse = null;
+    if (typed.trim()) {
+      let rest = typed.trim(); let qty = '';
+      const m = rest.match(/^(\d+(?:[.,]\d+)?)\s*([a-zA-Z]+)?\s+(.*)$/) || rest.match(/^(\d+(?:[.,]\d+)?)(g|kg|ml|l)\s*(.*)$/);
+      if (m) {
+        const u = m[2] && units[m[2].toLowerCase()];
+        if (u) { qty = m[1] + ' ' + u; rest = m[3]; } else { qty = m[1]; rest = ((m[2] ? m[2] + ' ' : '') + m[3]).trim(); }
+      }
+      const name = rest ? rest.charAt(0).toUpperCase() + rest.slice(1) : '';
+      const low = rest.toLowerCase();
+      let aid = 'other';
+      Object.keys(dict).forEach((k) => { if (low.indexOf(k) >= 0) aid = dict[k]; });
+      parse = { qty: qty, hasQty: !!qty, name: name || '…', aisle: aisleName[aid], a: aid };
+    }
+    const onType = (e) => set({ typed: e.target.value });
+    const addTyped = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      if (!parse || !parse.name || parse.name === '…') return;
+      set({ typed: '', extra: extra.concat([{ id: 'x' + Date.now(), name: parse.name, qty: parse.qty || '1', a: parse.a, meta: 'Net toegevoegd door jou' }]) });
+    };
+
+    const tab = st.tab || (screen === 'stock' ? 'stock' : 'recent');
+    const goTab = (t) => phone ? null : set({ tab: t, sel: null });
+
+    const recentAdded = st.recentAdded || {};
+    const recentDefs = [
+      { day: 'Vandaag · donderdag 19 november', items: [{ id: 'r1', name: 'Appels', meta: 'Laatst 6 · Groente en fruit', qty: '6', a: 'produce' }, { id: 'r2', name: 'Koffiebonen', meta: 'Laatst 1 zak · Ontbijt en beleg', qty: '1 zak', a: 'breakfast' }] },
+      { day: 'Dinsdag 17 november', items: [{ id: 'r3', name: 'Melk', meta: 'Laatst 2 pak · Zuivel en eieren', onList: true }, { id: 'r4', name: 'Kipdijfilet', meta: 'Laatst 500 g · Vlees en vis', qty: '500 g', a: 'meat_fish' }, { id: 'r5', name: "Tortilla's", meta: 'Laatst 1 pak · Pasta, rijst en wereldkeuken', qty: '1 pak', a: 'pasta_world' }] },
+      { day: 'Zondag 15 november', items: [{ id: 'r6', name: 'Wasmiddel', meta: 'Laatst 1 fles · Huishouden', qty: '1 fles', a: 'household' }] }
+    ];
+    const recent = recentDefs.map((d) => ({ day: d.day, items: d.items.map((r) => {
+      const on = !!r.onList || !!recentAdded[r.id];
+      return { name: r.name, meta: r.meta, onList: on, canAdd: !on, add: () => set({ recentAdded: Object.assign({}, recentAdded, { [r.id]: true }), extra: extra.concat([{ id: 'x' + r.id, name: r.name, qty: r.qty, a: r.a, meta: 'Uit Recent' }]) }) };
+    }) }));
+
+    const lowMap = st.low || { k6: true };
+    const stockDefs = [
+      { name: 'Zuivel en eieren', items: [{ id: 'k1', name: 'Eieren' }, { id: 'k2', name: 'Roomboter' }] },
+      { name: 'Pasta, rijst en wereldkeuken', items: [{ id: 'k3', name: 'Rijst' }, { id: 'k4', name: 'Olijfolie' }] },
+      { name: 'Ontbijt en beleg', items: [{ id: 'k5', name: 'Koffiebonen' }] },
+      { name: 'Huishouden', items: [{ id: 'k6', name: 'Vaatwastabletten' }, { id: 'k7', name: 'Toiletpapier' }] }
+    ];
+    let lowCount = 0; let staples = 0;
+    const stock = stockDefs.map((sg) => ({ name: sg.name, items: sg.items.map((k) => {
+      const low = !!lowMap[k.id]; staples += 1; if (low) lowCount += 1;
+      return { name: k.name, low: low, label: low ? 'Bijna op' : 'Op voorraad', icon: low ? '⚠' : '✓', bg: low ? c.kitchenFill : c.surfaceMuted, fg: low ? c.kitchenOn : c.fg, toggle: () => set({ low: Object.assign({}, lowMap, { [k.id]: !low }) }) };
+    }) }));
+
+    const tabs = [
+      { id: 'recent', label: 'Recent', glyph: g.clock, badge: '' },
+      { id: 'stock', label: 'In huis', glyph: g.home, badge: lowCount ? lowCount + ' bijna op' : '' }
+    ].map((t) => ({ label: t.label, glyph: t.glyph, badge: t.badge, on: tab === t.id ? 'true' : 'false', bg: tab === t.id ? c.kitchenWash : 'transparent', fg: tab === t.id ? c.fg : c.muted, go: () => goTab(t.id) }));
+
+    const formQty = st.qty === undefined ? 2 : st.qty;
+    const form = {
+      name: st.fname === undefined ? 'Melk' : st.fname, note: st.fnote === undefined ? 'Halfvol' : st.fnote, qty: String(formQty), staple: !!st.staple,
+      onName: (e) => set({ fname: e.target.value }), onNote: (e) => set({ fnote: e.target.value }),
+      inc: () => set({ qty: formQty + 1 }), dec: () => set({ qty: Math.max(1, formQty - 1) }), onStaple: () => set({ staple: !st.staple })
+    };
+    const aisleOptions = aisleDefs.map((a) => ({ id: a[0], name: a[1], sel: a[0] === 'dairy' }));
+
+    const tools = [
+      { label: 'Uit recept of weekmenu', glyph: g.book, href: 'Web-Recipe.dc.html' }
+    ].concat(phone ? [{ label: 'Recent', glyph: g.clock }, { label: 'In huis', glyph: g.home }] : [])
+      .map((t) => ({ label: t.label, glyph: t.glyph, pad: desk ? 12 : 0, go: () => null }));
+
+    const lists = [
+      { name: 'Albert Heijn', sub: 'Schapvolgorde aangepast', n: String(openCount), on: true },
+      { name: 'Jumbo', sub: 'Standaardvolgorde', n: '4' },
+      { name: 'Markt', sub: 'Standaardvolgorde', n: '6' }
+    ].map((l) => ({ name: l.name, sub: l.sub, n: l.n, on: l.on ? 'true' : 'false', mark: l.on ? '✓' : '', bg: l.on ? c.kitchenWash : 'transparent' }));
+
+    const menuOpen = st.menu === undefined ? screen === 'lists' : st.menu;
+    const moreOpen = !!st.more;
+
+    const counts = {}; base.forEach((it) => { counts[it.a] = (counts[it.a] || 0) + 1; });
+    const aOrder = st.aOrder || aisleDefs.map((a) => a[0]);
+    const move = (i, d) => { const n = aOrder.slice(); const j = i + d; if (j < 0 || j >= n.length) return; const t = n[i]; n[i] = n[j]; n[j] = t; set({ aOrder: n }); };
+    const aisleRows = aOrder.map((id, i) => ({ name: aisleName[id], n: counts[id] ? String(counts[id]) : '', first: i === 0, last: i === aOrder.length - 1, upOp: i === 0 ? 0.35 : 1, downOp: i === aOrder.length - 1 ? 0.35 : 1, up: () => move(i, -1), down: () => move(i, 1) }));
+
+    const pp = st.pp || 4;
+    const lineOn = st.lineOn || {};
+    const lineDefs = [
+      { id: 'l1', name: 'Eieren', base: 3, unit: '', meta: (n) => 'Staat er al: 10, wordt ' + (10 + n), merge: true },
+      { id: 'l2', name: 'Tomatenblokjes', base: 1, unit: 'blik' },
+      { id: 'l3', name: 'Rode paprika', base: 1, unit: '' },
+      { id: 'l4', name: 'Ui', base: 1, unit: '', stock: true },
+      { id: 'l5', name: 'Knoflook', base: 2, unit: 'teentjes', stock: true },
+      { id: 'l6', name: 'Komijn', base: 1, unit: 'tl', stock: true, half: true },
+      { id: 'l7', name: 'Feta', base: 50, unit: 'g', grams: true },
+      { id: 'l8', name: 'Koriander', base: 0.5, unit: 'bos', ai: true }
+    ];
+    let onCount = 0;
+    const lines = lineDefs.map((l) => {
+      const def = !l.stock;
+      const on = lineOn[l.id] === undefined ? def : lineOn[l.id];
+      if (on) onCount += 1;
+      let n = l.base * pp / 2;
+      if (l.grams) n = Math.round(n / 5) * 5; else if (l.half) n = Math.round(n * 2) / 2; else n = Math.ceil(n);
+      const qty = (n + (l.unit ? ' ' + l.unit : '')).replace('.5', '½').replace('0½', '½');
+      let meta = ''; let metaW = 400;
+      if (l.merge) { meta = l.meta(n); metaW = 700; }
+      else if (l.stock) meta = on ? 'Op voorraad in huis, toch erbij' : 'Op voorraad in huis';
+      else if (l.ai) meta = 'Gelezen met AI · 1 van je 20 vandaag';
+      return { name: l.name, qty: qty, on: on, meta: meta, hasMeta: !!meta, metaW: metaW, color: on ? c.fg : c.muted, toggle: () => set({ lineOn: Object.assign({}, lineOn, { [l.id]: !on }) }) };
+    });
+
+    const listScreens = ['list', 'item', 'stock', 'lists', 'aisles', 'empty', 'loading', 'error'];
+    const showRecipePage = screen === 'recipe';
+    const showListView = listScreens.indexOf(screen) >= 0;
+    const phoneDetail = phone && (screen === 'item' || screen === 'stock');
+    const showLeft = !phoneDetail;
+    const showAside = desk || phoneDetail;
+    const itemMode = desk ? !!sel : screen === 'item';
+    const stateScreen = empty || loading || error;
+
+    let h = desk ? 1180 : 1500;
+    if (phone && screen === 'item') h = 980;
+    if (phone && screen === 'stock') h = 1000;
+    if (phone && stateScreen) h = 760;
+
+    return {
+      c, g, nav, dock, desk, phone, h,
+      topH: desk ? 72 : 64, topPad: desk ? 20 : 12, titleSize: desk ? 24 : 20,
+      topSub: openCount + ' items op Albert Heijn · hele huishouden',
+      mainPad: desk ? '20px' : '12px 12px 16px 12px',
+      cols: desk ? 'minmax(0, 1fr) 340px' : 'minmax(0, 1fr)',
+      showLeft, showAside, showRecipePage, showListView,
+      tools, lists, menuOpen: menuOpen, moreOpen: moreOpen, menuExp: menuOpen ? 'true' : 'false', moreExp: moreOpen ? 'true' : 'false',
+      toggleMenu: () => set({ menu: !menuOpen, more: false }), toggleMore: () => set({ more: !moreOpen, menu: false }),
+      popW: desk ? '320px' : 'calc(100vw - 24px)',
+      typed, onType, addTyped, hasParse: !!parse, noParse: !parse, parse: parse || { qty: '', hasQty: false, name: '', aisle: '' }, addPad: desk ? 14 : 0,
+      showSugg: !stateScreen && sugg.length > 0, sugg, stripWrap: desk ? 'wrap' : 'nowrap', cardW: desk ? '200px' : '168px',
+      isEmpty: empty && sections.length === 0, isLoading: loading, isError: error, skeleton: [{ h: 140 }, { h: 200 }, { h: 120 }],
+      sections, hasChecked: !stateScreen && checkedItems.length > 0, checkedItems, checkedCount: String(checkedItems.length),
+      showFromRecipe: !stateScreen,
+      asideLabel: itemMode ? 'Item' : (desk ? 'Recent en In huis' : 'In huis'),
+      asideBorder: desk ? '1px solid ' + c.border : '0', asideBg: desk ? c.surface : 'transparent',
+      showCrumbs: phoneDetail, crumb: screen === 'item' ? 'Melk' : 'In huis',
+      showTabs: desk && !itemMode, tabs,
+      showRecent: desk && !itemMode && tab === 'recent', recent,
+      showStock: (desk && !itemMode && tab === 'stock') || (phone && screen === 'stock'), stock, stockSummary: lowCount + ' bijna op · ' + staples + ' vaste voorraad', stockPad: desk ? '4px 14px 14px 14px' : '0',
+      showItem: itemMode, form, aisleOptions, closeItem: () => set({ sel: null }), itemPad: desk ? '14px' : '0', itemTitle: desk ? 18 : 22,
+      showAisles: screen === 'aisles', aisleRows, resetAisles: () => set({ aOrder: aisleDefs.map((a) => a[0]) }),
+      showRecipeDialog: screen === 'recipe', pp: String(pp), ppInc: () => set({ pp: pp + 1 }), ppDec: () => set({ pp: Math.max(1, pp - 1) }), lines, cta: 'Zet ' + onCount + ' op de lijst'
+    };
+  }
+}
+</script>
+</body>
+</html>

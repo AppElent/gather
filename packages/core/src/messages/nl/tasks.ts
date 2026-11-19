@@ -124,6 +124,35 @@ export const tasks = {
     unit: 'Eenheid',
     aisle: 'Afdeling',
     recognised: 'Herkend zonder AI, ook offline',
+    aisleSection: { one: '{aisle}, {count} item', other: '{aisle}, {count} items' },
+    checked: 'Afgevinkt',
+    putBackAll: 'Zet terug',
+    putBackAllLabel: {
+      one: '{count} afgevinkt item terug op de lijst zetten',
+      other: 'Alle {count} afgevinkte items terug op de lijst zetten',
+    },
+    putBackDone: {
+      one: '{count} item staat weer op de lijst.',
+      other: '{count} items staan weer op de lijst.',
+    },
+    clearChecked: 'Afgevinkte wissen',
+    cleared: {
+      one: '{count} afgevinkt item gewist. Het blijft in Recent.',
+      other: '{count} afgevinkte items gewist. Ze blijven in Recent.',
+    },
+    undo: 'Ongedaan maken',
+    recent: {
+      title: 'Recent',
+      count: { one: '{count} item', other: '{count} items' },
+      weeks: { one: 'laatste week', other: 'laatste {count} weken' },
+      hint: 'Tik op plus en het staat weer op de lijst',
+      today: 'Vandaag',
+      last: 'Laatst {amount}',
+      onList: 'Op de lijst',
+      putBack: '{name} terug op de lijst zetten',
+      footnote: 'Recent bewaart de laatste 100 afgevinkte items van dit huishouden.',
+      empty: 'Nog niets afgevinkt. Wat je op de boodschappenlijst afvinkt, staat hier.',
+    },
     addLines: {
       title: 'Op de boodschappenlijst',
       fromRecipe: 'Uit recept of weekmenu',
@@ -140,8 +169,11 @@ export const tasks = {
       ingredients: 'Ingrediënten',
       merge: 'Staat er al: {from}, wordt {to}',
       alreadyOn: 'Staat er al op',
+      covered: 'Staat er al: {amount}',
       inStock: 'Op voorraad in huis',
       inStockAdding: 'Op voorraad in huis, toch erbij',
+      inStockShort: 'in huis',
+      inStockShortAdding: 'in huis, toch erbij',
       readWithAi: 'Gelezen met AI · {used} van je {limit} vandaag',
       readWithAiEarlier: 'Eerder gelezen met AI',
       reading: 'Lezen met AI…',
@@ -199,6 +231,27 @@ export const tasks = {
       cl: { one: 'cl', other: 'cl' },
       dl: { one: 'dl', other: 'dl' },
       l: { one: 'l', other: 'l' },
+    },
+  },
+
+  assignee: {
+    who: 'Wie',
+    nobody: 'Niemand',
+    assignedTo: 'Toegewezen aan {name}',
+    someone: 'Iemand',
+    unavailable: {
+      readOnly:
+        'Wijs deze taak toe in {provider}. Gather kan gekoppelde lijsten nog niet wijzigen.',
+      notShared:
+        'Alleen een gedeeld {provider}-project heeft mensen om een taak aan te geven.',
+      unsupported: 'Lijsten uit {provider} hebben geen veld voor wie een taak doet.',
+    },
+    notice: {
+      title: 'Nieuw voor jou',
+      gaveYou: '{name} gaf je een taak',
+    },
+    refusals: {
+      'assignee-not-member': 'Die persoon zit niet meer in deze groep.',
     },
   },
 

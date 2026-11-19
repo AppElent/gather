@@ -96,6 +96,8 @@ export const SIZE = {
   tileS: 28,
   tileM: 36,
   tileL: 56,
+  /** A Member's initials on a task row and the Who row (APP-302). */
+  coin: 26,
   /**
    * A photo thumbnail beside a row (`radius-thumb`'s "46 pt photo
    * thumbnail"). A photo-less row centres its `tile-s` in the same column.

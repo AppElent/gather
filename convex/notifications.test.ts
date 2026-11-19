@@ -482,7 +482,7 @@ describe('schedule and dedupe', () => {
     expect(after?.generation).toBe(row.generation + 1)
 
     await drain(t)
-    expect(sent.map((m) => m.body)).toEqual(['Assigned to you · Household'])
+    expect(sent.map((m) => m.body)).toEqual(['Someone gave you a task: Take out the bins'])
   })
 
   test('two rows for one key, as a merge of accounts leaves them, send once', async () => {
@@ -581,7 +581,7 @@ describe('switches and mutes', () => {
       enabled: false,
     })
     await drain(t)
-    expect(sent.map((m) => m.body)).toEqual(['Assigned to you · Household'])
+    expect(sent.map((m) => m.body)).toEqual(['Someone gave you a task: Take out the bins'])
   })
 
   test('a Group muted after a send was queued sends nothing, for that person only', async () => {

@@ -51,6 +51,9 @@ export const list = query({
         // APP-309: whether its items are groceries, with an amount and an
         // aisle — the Group's grocery list, or any list made as one.
         grocery: isGroceryList(group, l),
+        // APP-310: items checked before this left the Checked section of a
+        // grocery list ("Clear checked") and are only in Recent now.
+        checkedClearedAt: l.checkedClearedAt ?? null,
         // Whether this list can be added to from Gather: only a local list
         // has `tasks` rows, and no provider write path exists (ADR-0021).
         // Callers that offer a list as somewhere to write — the baby log's
@@ -243,6 +246,47 @@ export const rename = mutation({
   handler: async (ctx, args) => {
     await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
     await ctx.db.patch(args.listId, { name: args.name })
+  },
+})
+
+/**
+ * "Clear checked" on a grocery list (APP-310): what is checked now leaves the
+ * list's Checked section and stays in Recent. Nothing is deleted; the list
+ * only remembers when. Answers the previous moment, which is what the undo
+ * puts back through `restoreCheckedCleared`.
+ */
+export const clearChecked = mutation({
+  args: { listId: v.id('taskLists'), groupSlug: v.string() },
+  returns: v.union(v.number(), v.null()),
+  handler: async (ctx, args) => {
+    const { group, doc: list } = await requireInGroup(
+      ctx,
+      args.groupSlug,
+      args.listId,
+      'List not found',
+    )
+    if (list.provider !== 'local' || !isGroceryList(group, list)) {
+      throw new ConvexError('That is not a grocery list')
+    }
+    await ctx.db.patch(args.listId, { checkedClearedAt: Date.now() })
+    return list.checkedClearedAt ?? null
+  },
+})
+
+/** The undo of `clearChecked`: the moment it answered, or none. */
+export const restoreCheckedCleared = mutation({
+  args: {
+    listId: v.id('taskLists'),
+    groupSlug: v.string(),
+    checkedClearedAt: v.union(v.number(), v.null()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireInGroup(ctx, args.groupSlug, args.listId, 'List not found')
+    await ctx.db.patch(args.listId, {
+      checkedClearedAt: args.checkedClearedAt ?? undefined,
+    })
+    return null
   },
 })
 

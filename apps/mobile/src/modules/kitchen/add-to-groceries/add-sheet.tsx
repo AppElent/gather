@@ -6,15 +6,23 @@
  * list, merged with what is already there.
  *
  * Source-agnostic: the recipe sheet hands in its ingredients; the week menu
- * (APP-321) can hand in a week's lines, without a stepper, the same way.
+ * (APP-321, `designs/meal-planner/README.md` section 5) hands in a week's
+ * lines without a stepper, with its day grid above them, the lines grouped
+ * by aisle, its meals to check below them and the list row at the end.
+ *
+ * Rows for what the Pantry has in stock start unticked.
  */
 import { MenuView } from '@expo/ui/community/menu'
 import {
   formatGroceryAmount,
+  GROCERY_AISLES,
+  type GroceryAisle,
   type GroceryAmount,
+  groceryKey,
+  recogniseGroceryLine,
 } from '@gather/core/groceries'
 import { useMutation } from 'convex/react'
-import { useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import {
   Alert,
   Pressable,
@@ -73,6 +81,10 @@ export function AddToGroceriesSheet({
   servings,
   aiCount,
   preferredListId,
+  days,
+  byAisle = false,
+  after,
+  footnote,
   onClose,
 }: {
   source: AddSheetSource
@@ -82,6 +94,17 @@ export function AddToGroceriesSheet({
   aiCount: AiCount | null
   /** The list the sheet was opened from, if any. */
   preferredListId?: string
+  /**
+   * The week menu's day grid, under the source card. With it, the list row
+   * moves from the card to the end, above the button.
+   */
+  days?: ReactNode
+  /** One section per aisle, in walking order, instead of one list. */
+  byAisle?: boolean
+  /** Below the lines: the week menu's meals to check, given the chosen list. */
+  after?: (listId: string | undefined) => ReactNode
+  /** Under the button, instead of the recipe's. */
+  footnote?: string
   onClose: () => void
 }) {
   const tokens = useTokens('kitchen')
@@ -113,6 +136,11 @@ export function AddToGroceriesSheet({
     .find((id) => id && lists.some((list) => list._id === id))
   const list = lists.find((candidate) => candidate._id === listId)
   const { tasks } = useTaskList(listId ?? '')
+  const pantry = useQuery(api.kitchen.pantry, { groupSlug: group.slug })
+  const stocked = useMemo(
+    () => new Set((pantry ?? []).map((entry) => groceryKey(entry.title))),
+    [pantry],
+  )
 
   const [ticks, setTicks] = useState<Record<string, boolean>>({})
   const [edits, setEdits] = useState<Record<string, LineRead>>({})
@@ -128,6 +156,7 @@ export function AddToGroceriesSheet({
     servings: servings?.value,
     items: tasks,
     ticks,
+    inStock: (name) => stocked.has(groceryKey(name)),
   })
   const count = pick.lines.length
 
@@ -141,6 +170,7 @@ export function AddToGroceriesSheet({
   // "10", not nothing: the merge line names both amounts.
   const amountOrOne = (amount: GroceryAmount) => amountText(amount) ?? '1'
 
+  const detailed = lines.some((line) => line.detail)
   const metaText = (meta: RowMeta | null): string | null => {
     if (!meta) return null
     switch (meta.kind) {
@@ -151,7 +181,14 @@ export function AddToGroceriesSheet({
         })
       case 'already':
         return words.alreadyOn
+      case 'covered':
+        return meta.have.quantity === undefined && meta.have.unit === undefined
+          ? words.alreadyOn
+          : fmt(words.covered, { amount: amountOrOne(meta.have) })
       case 'inStock':
+        // Under a meal ("Shakshuka · di · in huis"), the short form.
+        if (detailed)
+          return meta.adding ? words.inStockShortAdding : words.inStockShort
         return meta.adding ? words.inStockAdding : words.inStock
       case 'ai':
         return meta.earlier || !aiCount
@@ -166,6 +203,32 @@ export function AddToGroceriesSheet({
         return words.asText
     }
   }
+
+  /** The row's meta: where it comes from, and why it reads as it does. */
+  const rowMeta = (row: PickRow): string | null => {
+    const why = metaText(row.meta)
+    // "Staat er al: 3, wordt 5" says it all; the rest follow the meals.
+    if (row.meta?.kind === 'merge' && row.on) return why
+    return [row.detail, why].filter(Boolean).join(' · ') || null
+  }
+
+  // One section per aisle, in walking order; a line still being read waits
+  // under Other.
+  const sections = useMemo(() => {
+    if (!byAisle) return [{ id: null, rows: pick.rows }]
+    const byId = new Map<GroceryAisle, PickRow[]>()
+    for (const row of pick.rows) {
+      const aisle =
+        row.meta?.kind === 'reading' || row.meta?.kind === 'text'
+          ? 'other'
+          : recogniseGroceryLine(row.title).aisle
+      byId.set(aisle, [...(byId.get(aisle) ?? []), row])
+    }
+    return GROCERY_AISLES.filter((aisle) => byId.has(aisle)).map((aisle) => ({
+      id: aisle,
+      rows: byId.get(aisle) ?? [],
+    }))
+  }, [byAisle, pick.rows])
 
   const toggle = (row: PickRow) => {
     haptics.selectionChanged()
@@ -242,6 +305,33 @@ export function AddToGroceriesSheet({
     </View>
   )
 
+  const listMenu = (
+    <View onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)}>
+      {rowWidth == null ? (
+        listRow
+      ) : (
+        // The menu sizes itself to its children: give the row its width.
+        <MenuView
+          testID="groceries-to-list"
+          shouldOpenOnLongPress={false}
+          onOpenMenu={() => haptics.menuOpened()}
+          actions={lists.map((candidate) => ({
+            id: candidate._id,
+            title: candidate.name,
+            state:
+              candidate._id === listId ? ('on' as const) : ('off' as const),
+          }))}
+          onPressAction={(event) => {
+            haptics.selectionChanged()
+            setChosenListId(event.nativeEvent.event)
+          }}
+        >
+          <View style={{ width: rowWidth }}>{listRow}</View>
+        </MenuView>
+      )}
+    </View>
+  )
+
   return (
     <NativeSheet
       title={words.title}
@@ -269,7 +359,7 @@ export function AddToGroceriesSheet({
             onPress={submit}
           />
           <Text style={[styles.footnote, { color: tokens.muted }]}>
-            {words.footnote}
+            {footnote ?? words.footnote}
           </Text>
         </View>
       }
@@ -339,129 +429,115 @@ export function AddToGroceriesSheet({
               </View>
             </View>
           ) : null}
-          <View
-            style={[styles.separated, separator]}
-            onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)}
-          >
-            {rowWidth == null ? (
-              listRow
-            ) : (
-              // The menu sizes itself to its children: give the row its width.
-              <MenuView
-                testID="groceries-to-list"
-                shouldOpenOnLongPress={false}
-                onOpenMenu={() => haptics.menuOpened()}
-                actions={lists.map((candidate) => ({
-                  id: candidate._id,
-                  title: candidate.name,
-                  state:
-                    candidate._id === listId
-                      ? ('on' as const)
-                      : ('off' as const),
-                }))}
-                onPressAction={(event) => {
-                  haptics.selectionChanged()
-                  setChosenListId(event.nativeEvent.event)
-                }}
-              >
-                <View style={{ width: rowWidth }}>{listRow}</View>
-              </MenuView>
-            )}
-          </View>
+          {days ? null : (
+            <View style={[styles.separated, separator]}>{listMenu}</View>
+          )}
         </View>
+        {days}
 
-        <View style={styles.section}>
-          <SectionLabel>{words.ingredients}</SectionLabel>
-          <View style={[styles.card, { backgroundColor: tokens.surface }]}>
-            {pick.rows.map((row, index) => {
-              // "1" for one onion: the sheet says how many it adds.
-              const amount =
-                row.amount.quantity === undefined
-                  ? amountText(row.amount)
-                  : amountOrOne(row.amount)
-              const meta = metaText(row.meta)
-              const strong = row.meta?.kind === 'merge' && row.on
-              return (
-                <NativeContextMenu
-                  key={row.key}
-                  actions={[{ id: 'edit', title: words.edit, image: 'pencil' }]}
-                  onAction={() => edit(row)}
-                >
-                  <Pressable
-                    testID={`groceries-line-${row.key}`}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: row.on }}
-                    accessibilityLabel={[row.title, amount, meta]
-                      .filter(Boolean)
-                      .join(', ')}
-                    accessibilityActions={[{ name: 'longpress', label: words.edit }]}
-                    onAccessibilityAction={() => edit(row)}
-                    onPress={() => toggle(row)}
-                    style={({ pressed }) => [
-                      styles.line,
-                      pressed && { backgroundColor: tokens.surface2 },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.box,
-                        {
-                          borderColor: row.on ? kitchen.text : tokens.muted,
-                          backgroundColor: row.on ? kitchen.text : 'transparent',
-                        },
-                      ]}
+        {sections.map((section) => (
+          <View key={section.id ?? 'all'} style={styles.section}>
+            <SectionLabel>
+              {section.id ? t.tasks.grocery.aisles[section.id] : words.ingredients}
+            </SectionLabel>
+            <View style={[styles.card, { backgroundColor: tokens.surface }]}>
+                {section.rows.map((row, index) => {
+                  // "1" for one onion: the sheet says how many it adds.
+                  const amount = row.adds
+                    ? `+${amountOrOne(row.adds)}`
+                    : row.amount.quantity === undefined
+                      ? amountText(row.amount)
+                      : amountOrOne(row.amount)
+                  const meta = rowMeta(row)
+                  const strong = row.meta?.kind === 'merge' && row.on
+                  return (
+                    <NativeContextMenu
+                      key={row.key}
+                      actions={[{ id: 'edit', title: words.edit, image: 'pencil' }]}
+                      onAction={() => edit(row)}
                     >
-                      {row.on ? (
-                        <UI_ICONS.Check
-                          size={14}
-                          color={tokens.ground}
-                          strokeWidth={3.2}
-                        />
-                      ) : null}
-                    </View>
-                    <View
-                      style={[
-                        styles.lineContent,
-                        index > 0 && [styles.separated, separator],
-                      ]}
-                    >
-                      <View style={styles.grow}>
-                        <Text
+                      <Pressable
+                        testID={`groceries-line-${row.key}`}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: row.on }}
+                        accessibilityLabel={[row.title, amount, meta]
+                          .filter(Boolean)
+                          .join(', ')}
+                        accessibilityActions={[{ name: 'longpress', label: words.edit }]}
+                        onAccessibilityAction={() => edit(row)}
+                        onPress={() => toggle(row)}
+                        style={({ pressed }) => [
+                          styles.line,
+                          pressed && { backgroundColor: tokens.surface2 },
+                        ]}
+                      >
+                        <View
                           style={[
-                            styles.body,
-                            { color: row.on ? tokens.ink : tokens.muted },
+                            styles.box,
+                            {
+                              borderColor: row.on ? kitchen.text : tokens.muted,
+                              backgroundColor: row.on ? kitchen.text : 'transparent',
+                            },
                           ]}
                         >
-                          {row.title}
-                        </Text>
-                        {meta ? (
-                          <Text
-                            style={[
-                              strong ? styles.footnoteStrong : styles.footnote,
-                              { color: tokens.muted },
-                            ]}
-                          >
-                            {meta}
-                          </Text>
-                        ) : null}
-                      </View>
-                      {amount ? (
-                        <Text
+                          {row.on ? (
+                            <UI_ICONS.Check
+                              size={14}
+                              color={tokens.ground}
+                              strokeWidth={3.2}
+                            />
+                          ) : null}
+                        </View>
+                        <View
                           style={[
-                            styles.amount,
-                            { color: row.on ? tokens.ink : tokens.muted },
+                            styles.lineContent,
+                            index > 0 && [styles.separated, separator],
                           ]}
                         >
-                          {amount}
-                        </Text>
-                      ) : null}
-                    </View>
-                  </Pressable>
-                </NativeContextMenu>
-              )
-            })}
+                          <View style={styles.grow}>
+                            <Text
+                              style={[
+                                styles.body,
+                                { color: row.on ? tokens.ink : tokens.muted },
+                              ]}
+                            >
+                              {row.title}
+                            </Text>
+                            {meta ? (
+                              <Text
+                                style={[
+                                  strong ? styles.footnoteStrong : styles.footnote,
+                                  { color: tokens.muted },
+                                ]}
+                              >
+                                {meta}
+                              </Text>
+                            ) : null}
+                          </View>
+                          {amount ? (
+                            <Text
+                              style={[
+                                styles.amount,
+                                { color: row.on ? tokens.ink : tokens.muted },
+                              ]}
+                            >
+                              {amount}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </Pressable>
+                    </NativeContextMenu>
+                  )
+                })}
+            </View>
           </View>
-        </View>
+        ))}
+        {after?.(listId)}
+        {days ? (
+          <View style={[styles.card, { backgroundColor: tokens.surface }]}>
+            {listMenu}
+          </View>
+        ) : null}
       </ScrollView>
     </NativeSheet>
   )

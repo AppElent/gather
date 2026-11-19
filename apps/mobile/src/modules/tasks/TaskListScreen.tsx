@@ -43,9 +43,12 @@ import { CompletedSection } from '../../ui/completed-section'
 import { InsetList } from '../../ui/inset-list'
 import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
+import { useUndoToast } from '../../ui/undo-toast'
 import { WashHeader } from '../../ui/wash-header'
 import { Chip, priorityColor } from './components'
 import { GroceryAmount, useGroceryAmountText } from './GroceryFields'
+import { GroceryListBody } from './GroceryListBody'
+import { inCheckedSection } from './groceryList'
 import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
 import { AppearanceSheet } from './listFace'
 import { PackingProgress, UncheckAll } from './packing'
@@ -92,6 +95,7 @@ export function TaskList({
   const { list, tasks, today, refresh } = useTaskList(listId)
   const actions = useTaskActions()
   const amountText = useGroceryAmountText()
+  const undoToast = useUndoToast()
 
   const [renamingList, setRenamingList] = useState(false)
   const [restyling, setRestyling] = useState(false)
@@ -120,12 +124,17 @@ export function TaskList({
   const finished = inPlace ? [] : completed
   const doneCount = tasks.filter((task) => task.done).length
   const wishlist = hasLinkAndPrice(list.kind)
-  // A grocery row carries its amount at the end and its aisle under the name
-  // (APP-309); grouping by aisle is APP-310's.
+  // A grocery row carries its amount at the end (APP-309), and the list is in
+  // aisle sections with Checked and Recent (APP-310).
   const grocery = list.grocery
+  const clearable = grocery
+    ? tasks.filter((task) => inCheckedSection(task, list.checkedClearedAt))
+        .length
+    : 0
   // Each section is its own labelled inset list (APP-357), "No section"
-  // first; a list without sections is one unlabelled list, as before.
-  const sectioned = list.sections.length > 0
+  // first; a list without sections is one unlabelled list, as before. A
+  // grocery list is in aisle sections instead (APP-310), so it has none.
+  const sectioned = !grocery && list.sections.length > 0
   const groups = groupBySection(list.sections, listed)
 
   // Whether a provider rather than Convex holds the rows. Not `!writable`:
@@ -158,7 +167,30 @@ export function TaskList({
     if (action === 'appearance') setRestyling(true)
     if (action === 'sections') setEditingSections(true)
     if (action === 'delete') confirmDeleteList()
+    if (action === 'clear-checked') clearChecked()
     menuExtras.find((extra) => extra.id === action)?.onPress()
+  }
+
+  /** Checked items leave the Checked row, stay in Recent, and can come back. */
+  const clearChecked = () => {
+    const count = clearable
+    actions
+      .clearChecked(list.id)
+      .then((previous) => {
+        haptics.itemSaved()
+        undoToast.show({
+          message: plural(locale, count, t.tasks.grocery.cleared),
+          undo: {
+            label: t.tasks.grocery.undo,
+            onPress: () => {
+              void actions
+                .restoreCheckedCleared(list.id, previous)
+                .catch(() => haptics.actionFailed())
+            },
+          },
+        })
+      })
+      .catch(() => haptics.actionFailed())
   }
 
   const onRefresh = async () => {
@@ -282,13 +314,28 @@ export function TaskList({
                           title: t.tasks.appearance.title,
                           image: 'paintpalette' as const,
                         },
-                        {
-                          id: 'sections',
-                          title: t.tasks.sections.title,
-                          image: 'rectangle.split.1x2' as const,
-                          attributes: { disabled: !list.writable },
-                        },
+                        // A grocery list's sections are its aisles.
+                        ...(grocery
+                          ? []
+                          : [
+                              {
+                                id: 'sections',
+                                title: t.tasks.sections.title,
+                                image: 'rectangle.split.1x2' as const,
+                                attributes: { disabled: !list.writable },
+                              },
+                            ]),
                       ]),
+                  ...(grocery && list.writable
+                    ? [
+                        {
+                          id: 'clear-checked',
+                          title: t.tasks.grocery.clearChecked,
+                          image: 'checkmark.circle.badge.xmark' as const,
+                          attributes: { disabled: clearable === 0 },
+                        },
+                      ]
+                    : []),
                   ...menuExtras.map(({ id, title, image }) => ({
                     id,
                     title,
@@ -401,6 +448,36 @@ export function TaskList({
                 <PackingProgress done={doneCount} total={tasks.length} />
               ) : null}
 
+              {grocery && !inPlace ? (
+                <GroceryListBody
+                  list={list}
+                  tasks={tasks}
+                  row={row}
+                  empty={
+                    <View style={styles.emptyRow}>
+                      <Text style={[styles.empty, { color: tokens.muted }]}>
+                        {t.tasks.list.empty}
+                      </Text>
+                    </View>
+                  }
+                  composer={
+                    list.writable ? (
+                      <TaskComposer
+                        listId={list.id}
+                        placeholder={addPlaceholder ?? t.kitchen.addGroceryItem}
+                        grocery
+                      />
+                    ) : null
+                  }
+                  onUndoable={(message, undo) =>
+                    undoToast.show({
+                      message,
+                      undo: { label: t.tasks.grocery.undo, onPress: undo },
+                    })
+                  }
+                />
+              ) : (
+                <>
               {groups.map((section, index) => {
                 // The last section holds the composer, which adds to it.
                 const composer = list.writable && index === groups.length - 1
@@ -457,6 +534,9 @@ export function TaskList({
                 <InsetList>{finished.map(row)}</InsetList>
               </CompletedSection>
 
+                </>
+              )}
+
               {inPlace && list.writable && tasks.length > 0 ? (
                 <UncheckAll listId={list.id} doneCount={doneCount} />
               ) : null}
@@ -465,6 +545,7 @@ export function TaskList({
         </View>
       </ScrollView>
 
+      {undoToast.toast}
       {taskSheets.sheets}
       {renamingList ? (
         <RenameSheet
@@ -515,7 +596,10 @@ function TaskMeta({
   today: string
   /** A wishlist row leads with where to buy it and what it costs. */
   wishlist: boolean
-  /** A grocery row leads with its aisle, then the recipe it is for. */
+  /**
+   * A grocery row shows the recipe it is for (APP-312). Its aisle is the
+   * heading it sits under (APP-310).
+   */
   grocery: boolean
 }) {
   const tokens = useTokens('home')
@@ -528,11 +612,8 @@ function TaskMeta({
           : formatPrice(task.priceCents, locale),
       ].filter(Boolean)
     : grocery
-      ? [
-          task.category ? t.tasks.grocery.aisles[task.category] : null,
-          // The recipe it is for (APP-312), or the first line of a note.
-          task.notes?.trim().split('\n')[0] || null,
-        ].filter(Boolean)
+      ? // The recipe it is for (APP-312), or the first line of a note.
+        [task.notes?.trim().split('\n')[0] || null].filter(Boolean)
       : []
   // A repeat is shown whatever the list's settings: it changes what ticking
   // the row does, so it is not an optional detail (APP-303).

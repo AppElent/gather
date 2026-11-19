@@ -1,11 +1,14 @@
 import { describe, expect, test } from 'vitest'
 
+import { en, nl } from './messages'
 import {
+  assignmentBody,
   isExpoPushToken,
   mayNotify,
   notificationLink,
   notificationPath,
   recordOfSegments,
+  shortDay,
 } from './notifications'
 
 describe('mayNotify', () => {
@@ -72,5 +75,32 @@ describe('isExpoPushToken', () => {
     expect(isExpoPushToken('ExponentPushToken[]')).toBe(false)
     expect(isExpoPushToken('ExponentPushToken[a b]')).toBe(false)
     expect(isExpoPushToken('a1b2c3d4e5')).toBe(false)
+  })
+})
+
+describe('assignmentBody (APP-302)', () => {
+  test('says who, what and when, in each language', () => {
+    const task = { title: 'Badkamer schoonmaken', dueDate: '2026-11-21' }
+    expect(assignmentBody(en.notifications, task, 'Daan')).toBe(
+      'Daan gave you a task: Badkamer schoonmaken, Sat 21 Nov',
+    )
+    expect(assignmentBody(nl.notifications, task, 'Daan')).toBe(
+      'Daan gaf je een taak: Badkamer schoonmaken, za 21 nov',
+    )
+  })
+
+  test('leaves the date out when there is none, and names a gone giver Someone', () => {
+    expect(assignmentBody(en.notifications, { title: 'Bins' }, null)).toBe(
+      'Someone gave you a task: Bins',
+    )
+    expect(assignmentBody(nl.notifications, { title: 'Bins' }, '  ')).toBe(
+      'Iemand gaf je een taak: Bins',
+    )
+  })
+
+  test('reads the weekday as a civil date, not in any time zone', () => {
+    expect(shortDay('2026-01-01', en.notifications.short)).toBe('Thu 1 Jan')
+    expect(shortDay('2026-12-31', nl.notifications.short)).toBe('do 31 dec')
+    expect(shortDay('not a date', en.notifications.short)).toBeNull()
   })
 })

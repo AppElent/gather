@@ -33,7 +33,7 @@ everything user-owned belongs to a Group or to a person
   ([ADR-0005](../adr/0005-pins-belong-to-a-person-in-a-group.md)).
 - **People by display name, never by identifier.** Every user id anywhere in a
   row is written as that person's name, or `null` for somebody no longer in the
-  Group. No email, Clerk id or user id of anyone leaves; the person's own email
+  Group (a task's `assigneeId` and its `assignmentNotice.by` included). No email, Clerk id or user id of anyone leaves; the person's own email
   is in their `users` row.
 - **Groups by slug.** A Group id becomes the Group's slug when it is one of the
   person's Groups and is dropped otherwise, so the file names no Group they
