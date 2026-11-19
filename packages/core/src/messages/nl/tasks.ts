@@ -218,14 +218,14 @@ export const tasks = {
       description: 'Taken in en om het huis',
       defaultName: 'Huishouden',
       startsWith:
-        'Begint met 8 voorbeeldklusjes voor de keuken, de badkamer en de rest van het huis. Weghalen kan altijd.',
+        'Begint met 8 voorbeeldklusjes in Keuken, Badkamer en Overal. Weghalen kan altijd.',
     },
     packing: {
       title: 'Paklijst',
       description: 'Afvinken en later alles weer uitvinken',
       defaultName: 'Vakantie',
       startsWith:
-        'Begint met 18 voorbeelditems: kleding, toilettas en spullen voor de kinderen. Weghalen kan altijd.',
+        'Begint met 18 voorbeelditems in Kleding, Toilettas en Kinderen. Weghalen kan altijd.',
     },
     groceries: {
       title: 'Boodschappen',
@@ -285,5 +285,14 @@ export const tasks = {
     travelCot: 'Reisbedje',
     travelToys: 'Speelgoed voor onderweg',
     snacks: 'Tussendoortjes',
+  },
+
+  starterSections: {
+    kitchen: 'Keuken',
+    bathroom: 'Badkamer',
+    everywhere: 'Overal',
+    clothes: 'Kleding',
+    toiletries: 'Toilettas',
+    kids: 'Kinderen',
   },
 } satisfies typeof enTasks

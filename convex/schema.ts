@@ -52,6 +52,7 @@ import {
   taskPriorityValidator,
   taskProviderValidator,
 } from './lib/taskFields'
+import { taskSectionValidator } from './lib/taskSections'
 import {
   tastingAttributesValidator,
   tastingKindValidator,
@@ -175,6 +176,9 @@ export default defineSchema({
     kind: v.optional(taskListKindValidator),
     icon: v.optional(taskListIconValidator),
     color: v.optional(taskListColorValidator),
+    // APP-357. The list's sections in the order they are drawn; absent on
+    // every list made before them, which reads as no sections.
+    sections: v.optional(v.array(taskSectionValidator)),
   }).index('by_group', ['groupId']),
 
   // Rows exist only for provider === 'local' lists.
@@ -205,6 +209,13 @@ export default defineSchema({
      */
     quantity: v.optional(v.number()),
     unit: v.optional(groceryUnitValidator),
+    /**
+     * The section of its list the task sits in (APP-357): an id from
+     * `taskLists.sections`. Absent, or naming a section the list no longer
+     * has, it sits under "No section". Installed apps from before sections
+     * never read it and draw the task as before.
+     */
+    sectionId: v.optional(v.string()),
   })
     .index('by_list', ['listId'])
     // The end of a list without reading all of it (APP-368).

@@ -14,6 +14,7 @@ import { useState } from 'react'
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, type Messages, useI18n } from '../../i18n'
+import { MoveToSectionSheet } from './sections'
 import {
   DueDateSheet,
   LabelsSheet,
@@ -33,7 +34,16 @@ import type { Task } from './types'
 export function taskMenuActions(
   task: Task,
   t: Messages,
-  { writable, reorder }: { writable: boolean; reorder: boolean },
+  {
+    writable,
+    reorder,
+    sections = false,
+  }: {
+    writable: boolean
+    reorder: boolean
+    /** Whether the task's list has sections to move it between (APP-357). */
+    sections?: boolean
+  },
 ): MenuAction[] {
   return [
     {
@@ -53,6 +63,12 @@ export function taskMenuActions(
     { id: 'labels', title: t.tasks.list.labels, image: 'tag' },
     { id: 'move', title: t.tasks.list.moveToList, image: 'tray' },
     {
+      id: 'section',
+      title: t.tasks.sections.moveToSection,
+      image: 'rectangle.split.1x2',
+      attributes: { disabled: !writable, hidden: !sections },
+    },
+    {
       id: 'reorder',
       title: t.actions.reorder,
       image: 'arrow.up.arrow.down',
@@ -69,7 +85,7 @@ export function taskMenuActions(
   ]
 }
 
-type TaskSheet = 'due' | 'priority' | 'labels' | 'move' | 'rename'
+type TaskSheet = 'due' | 'priority' | 'labels' | 'move' | 'rename' | 'section'
 
 /**
  * Runs every action on the menu except Reorder, which the screen owns.
@@ -122,6 +138,7 @@ export function useTaskSheets({
       case 'priority':
       case 'labels':
       case 'move':
+      case 'section':
         setOpen({ kind: action, taskId: task.id })
         break
       case 'reorder':
@@ -144,6 +161,9 @@ export function useTaskSheets({
       ) : null}
       {open.kind === 'move' ? (
         <MoveToListSheet task={task} onClose={close} />
+      ) : null}
+      {open.kind === 'section' ? (
+        <MoveToSectionSheet task={task} onClose={close} />
       ) : null}
       {open.kind === 'rename' ? (
         <RenameSheet
