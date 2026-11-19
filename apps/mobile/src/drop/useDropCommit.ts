@@ -39,6 +39,7 @@
  * say what is missing **with the Drop still pending**. Nothing shared is lost
  * by finding out late.
  */
+import { groceryAddFields } from '@gather/core/groceries'
 import { useConvex, useMutation } from 'convex/react'
 import type { Href } from 'expo-router'
 import { useCallback } from 'react'
@@ -217,10 +218,11 @@ export function useDropCommit() {
             groupSlug,
           })
           if (!groceryListId) return { ok: false, problem: 'no-grocery-list' }
+          // The amount off the line, as the list's own composer does (APP-309).
           await addTask({
             groupSlug,
             listId: groceryListId,
-            title: lineOf(drop),
+            ...groceryAddFields(lineOf(drop)),
           })
           return { ok: true, href: target.route({ id: groceryListId }) }
         }

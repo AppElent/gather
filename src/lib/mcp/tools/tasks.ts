@@ -1,3 +1,8 @@
+import {
+  GROCERY_AISLES,
+  GROCERY_QUANTITY_MAX,
+  GROCERY_UNITS,
+} from '@gather/core/groceries'
 import { z } from 'zod'
 import { api } from '../../../../convex/_generated/api'
 import { asId, defineTool, groupSlug, publicDoc } from './define'
@@ -8,12 +13,32 @@ const priority = z
   .describe('1 is the highest priority, 4 the lowest')
 const labels = z.array(z.string().min(1).max(40)).max(20)
 
+// A grocery item's amount (APP-309). Only lists with grocery true keep them;
+// any other list writes the amount into the title instead.
+const quantity = z
+  .number()
+  .positive()
+  .max(GROCERY_QUANTITY_MAX)
+  .describe(
+    'How much of a grocery item, for example 2 for "2 pakken melk". Kept to three decimals.',
+  )
+const unit = z
+  .enum(GROCERY_UNITS)
+  .describe(
+    'The unit of quantity, in Dutch: stuks (pieces), pak, fles, pot, zak, blik, g, kg, ml, l and so on. Leave it out for a plain count.',
+  )
+const category = z
+  .enum(GROCERY_AISLES)
+  .describe(
+    'The supermarket aisle of a grocery item. Gather sets it from the name; setting it moves the item and is remembered for the Group.',
+  )
+
 export const taskTools = [
   defineTool({
     name: 'list_task_lists',
     title: 'List task lists',
     description:
-      "List a Group's task lists. Only lists with writable true are kept in Gather; the others mirror Notion or Todoist and their tasks are not available here.",
+      "List a Group's task lists. Only lists with writable true are kept in Gather; the others mirror Notion or Todoist and their tasks are not available here. Lists with grocery true are grocery lists: their tasks carry quantity, unit and an aisle category.",
     access: 'read',
     input: { groupId },
     async run({ groupId }, context) {
@@ -27,6 +52,8 @@ export const taskTools = [
             name: l.name,
             provider: l.provider,
             writable: l.writable,
+            kind: l.kind,
+            grocery: l.grocery,
           }),
         ),
       }
@@ -60,6 +87,9 @@ export const taskTools = [
               priority: t.priority,
               labels: t.labels,
               notes: t.notes,
+              quantity: t.quantity,
+              unit: t.unit,
+              category: t.category,
             }),
           ),
       }
@@ -85,7 +115,7 @@ export const taskTools = [
     name: 'create_task',
     title: 'Create task',
     description:
-      'Add a task to the end of a task list. The list must be writable (see list_task_lists).',
+      'Add a task to the end of a task list. The list must be writable (see list_task_lists). On a grocery list, put the amount in quantity and unit and only the product in title: "2 pakken melk" is title "melk", quantity 2, unit "pak". The aisle is set from the name.',
     access: 'write',
     input: {
       groupId,
@@ -95,6 +125,8 @@ export const taskTools = [
       dueDate: day.optional(),
       priority: priority.optional(),
       labels: labels.optional(),
+      quantity: quantity.optional(),
+      unit: unit.optional(),
     },
     async run({ groupId, listId, ...input }, context) {
       const id = await context.backend.mutation(api.tasks.add, {
@@ -109,7 +141,7 @@ export const taskTools = [
     name: 'update_task',
     title: 'Update task',
     description:
-      'Change a task, or mark it done or open again. Only the fields you pass change; dueDate, priority, labels or notes set to null are cleared.',
+      'Change a task, or mark it done or open again. Only the fields you pass change; dueDate, priority, labels, notes, quantity or unit set to null are cleared. quantity, unit and category apply to grocery lists only and are ignored on other lists.',
     access: 'write',
     annotations: { idempotentHint: true },
     input: {
@@ -121,6 +153,9 @@ export const taskTools = [
       priority: priority.nullable().optional(),
       labels: labels.nullable().optional(),
       notes: z.string().max(5000).nullable().optional(),
+      quantity: quantity.nullable().optional(),
+      unit: unit.nullable().optional(),
+      category: category.optional(),
     },
     async run({ groupId, taskId, ...changes }, context) {
       await context.backend.mutation(api.tasks.update, {

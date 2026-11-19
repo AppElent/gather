@@ -45,6 +45,7 @@ function listRow(id: string, provider: 'local' | 'notion' | 'todoist') {
     kind: 'plain' as const,
     icon: null,
     color: null,
+    grocery: false,
     writable: provider === 'local',
   }
 }
@@ -257,6 +258,7 @@ describe('what the writes send', () => {
     name: 'Chores',
     provider: 'local',
     writable: true,
+    grocery: false,
     display: { due: true, priority: false, labels: true },
     order: 0,
     sync: 'live',
@@ -290,6 +292,24 @@ describe('what the writes send', () => {
         name: 'tasks:moveToList',
         args: { taskId: 'bins', groupSlug: 'our-household', listId: 'errands' },
       },
+    ])
+  })
+  test('a line onto a grocery list goes with its amount read off', async () => {
+    sent.length = 0
+    await useTaskActions().addTask('groceries', '2 pakken melk', true)
+    await useTaskActions().addTask('groceries', 'bananen', true)
+    await useTaskActions().addTask('chores', '2 pakken melk')
+
+    expect(sent.map((call) => call.args)).toEqual([
+      {
+        listId: 'groceries',
+        groupSlug: 'our-household',
+        title: 'melk',
+        quantity: 2,
+        unit: 'pak',
+      },
+      { listId: 'groceries', groupSlug: 'our-household', title: 'bananen' },
+      { listId: 'chores', groupSlug: 'our-household', title: '2 pakken melk' },
     ])
   })
 })

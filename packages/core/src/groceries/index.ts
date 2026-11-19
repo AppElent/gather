@@ -18,6 +18,7 @@ import {
 } from './resolve'
 
 export * from './aisles'
+export * from './amount'
 export type { DictionaryHit, DictionaryMatch, GroceryDictionary } from './dictionary'
 export {
   cleanGroceryName,

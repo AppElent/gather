@@ -322,6 +322,63 @@ describe('Gather MCP endpoint', () => {
     })
   })
 
+  it('passes a grocery amount to Convex and lists it back', async () => {
+    const backend = fakeBackend({
+      'tasks:add': () => 'task_1',
+      'tasks:listByList': () => [
+        {
+          _id: 'task_1',
+          title: 'melk',
+          done: false,
+          quantity: 2,
+          unit: 'pak',
+          category: 'dairy',
+        },
+      ],
+    })
+    await callTool(backend, 'create_task', {
+      groupId: 'group_home',
+      listId: 'list_1',
+      idempotencyKey: KEY,
+      title: 'melk',
+      quantity: 2,
+      unit: 'pak',
+    })
+    expect(backend.calls.at(-1)).toMatchObject({
+      name: 'tasks:add',
+      args: { title: 'melk', quantity: 2, unit: 'pak' },
+    })
+    const out = await callTool(backend, 'list_tasks', {
+      groupId: 'group_home',
+      listId: 'list_1',
+    })
+    expect(out.structuredContent).toEqual({
+      tasks: [
+        {
+          id: 'task_1',
+          title: 'melk',
+          done: false,
+          quantity: 2,
+          unit: 'pak',
+          category: 'dairy',
+        },
+      ],
+    })
+  })
+
+  it('refuses a unit it does not know', async () => {
+    const backend = fakeBackend({ 'tasks:add': () => 'task_1' })
+    const out = await callTool(backend, 'create_task', {
+      groupId: 'group_home',
+      listId: 'list_1',
+      idempotencyKey: KEY,
+      title: 'melk',
+      unit: 'gallon',
+    })
+    expect(out.isError).toBe(true)
+    expect(backend.calls.some((call) => call.name === 'tasks:add')).toBe(false)
+  })
+
   it('refuses a write tool on a read-only token as an unknown tool', async () => {
     const backend = fakeBackend()
     const out = await callTool(

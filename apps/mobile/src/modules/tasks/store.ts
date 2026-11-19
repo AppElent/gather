@@ -10,6 +10,11 @@
  */
 import { localIsoDate } from '@gather/core/civil-date'
 import {
+  type GroceryAisle,
+  type GroceryUnit,
+  groceryAddFields,
+} from '@gather/core/groceries'
+import {
   asTaskListKind,
   type TaskListColor,
   type TaskListIcon,
@@ -174,6 +179,9 @@ export function mergeTasks(
             notes: row.notes,
             url: row.url,
             priceCents: row.priceCents,
+            quantity: row.quantity,
+            unit: row.unit,
+            category: row.category,
             order: row.order,
           })
         }
@@ -191,6 +199,7 @@ export function mergeTasks(
       display: list.display,
       order: list.order,
       sync,
+      grocery: list.grocery ?? false,
       ...listFace(list),
     }
   })
@@ -341,8 +350,17 @@ export function useTaskActions() {
   ) => update({ taskId: id as Id<'tasks'>, groupSlug, ...fields })
 
   return {
-    addTask: (listId: string, title: string) =>
-      add({ listId: listId as Id<'taskLists'>, groupSlug, title }),
+    /**
+     * A line onto a list. On a grocery list the amount is read off it first
+     * ("2 pakken melk" is "melk", 2 pak), here rather than on the server, so
+     * an installed app that sends only the line keeps it as typed (APP-309).
+     */
+    addTask: (listId: string, title: string, grocery = false) =>
+      add({
+        listId: listId as Id<'taskLists'>,
+        groupSlug,
+        ...(grocery ? groceryAddFields(title) : { title }),
+      }),
     toggleTask: (id: string) =>
       toggle({ taskId: id as Id<'tasks'>, groupSlug }),
     renameTask: (id: string, title: string) => patch(id, { title }),
@@ -405,5 +423,13 @@ export function useTaskActions() {
     setUrl: (id: string, url: string | null) => patch(id, { url }),
     setPrice: (id: string, priceCents: number | null) =>
       patch(id, { priceCents }),
+    /** A grocery item's amount and unit; null clears either (APP-309). */
+    setAmount: (
+      id: string,
+      quantity: number | null,
+      unit: GroceryUnit | null,
+    ) => patch(id, { quantity, unit }),
+    /** The aisle a Member chose; the Group keeps it for the name. */
+    setAisle: (id: string, category: GroceryAisle) => patch(id, { category }),
   }
 }

@@ -1,4 +1,5 @@
 import type { TaskProviderId } from '@gather/core/domain'
+import type { GroceryAisle, GroceryUnit } from '@gather/core/groceries'
 import type {
   TaskListColor,
   TaskListIcon,
@@ -33,6 +34,12 @@ export interface TaskList {
   /** The tile it wears: its own choice, or its kind's (`taskListFace`). */
   icon: TaskListIcon
   color: TaskListColor
+  /**
+   * Whether its items are groceries, with an amount and an aisle (APP-309):
+   * the Group's grocery list, or any list made as one. False from a server
+   * older than amounts.
+   */
+  grocery: boolean
 }
 
 export interface Task {
@@ -47,6 +54,10 @@ export interface Task {
   /** A wishlist item's link and price, in cents. */
   url?: string
   priceCents?: number
+  /** A grocery item's amount, unit and aisle (APP-309, APP-353). */
+  quantity?: number
+  unit?: GroceryUnit
+  category?: GroceryAisle
   order: number
 }
 

@@ -42,6 +42,7 @@ import { moduleTile } from '../../ui/module-tile'
 import { washScreenOptions } from '../../ui/screen-header'
 import { WashHeader } from '../../ui/wash-header'
 import { Chip, priorityColor } from './components'
+import { GroceryAmount, useGroceryAmountText } from './GroceryFields'
 import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
 import { AppearanceSheet } from './listFace'
 import { PackingProgress, UncheckAll } from './packing'
@@ -86,6 +87,7 @@ export function TaskList({
   const router = useRouter()
   const { list, tasks, today, refresh } = useTaskList(listId)
   const actions = useTaskActions()
+  const amountText = useGroceryAmountText()
 
   const [renamingList, setRenamingList] = useState(false)
   const [restyling, setRestyling] = useState(false)
@@ -113,6 +115,9 @@ export function TaskList({
   const finished = inPlace ? [] : completed
   const doneCount = tasks.filter((task) => task.done).length
   const wishlist = hasLinkAndPrice(list.kind)
+  // A grocery row carries its amount at the end and its aisle under the name
+  // (APP-309); grouping by aisle is APP-310's.
+  const grocery = list.grocery
 
   // Whether a provider rather than Convex holds the rows. Not `!writable`:
   // being linked and being read-only are separate facts that only coincide
@@ -183,7 +188,16 @@ export function TaskList({
           display={list.display}
           today={today}
           wishlist={wishlist}
+          grocery={grocery}
         />
+      }
+      trailing={grocery ? <GroceryAmount task={task} /> : undefined}
+      label={
+        grocery
+          ? [task.title, amountText(task.quantity, task.unit)]
+              .filter(Boolean)
+              .join(', ')
+          : undefined
       }
       onOpen={() => openTask(task)}
       menu={{
@@ -289,6 +303,9 @@ export function TaskList({
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: tokens.ground }}
         keyboardShouldPersistTaps="handled"
+        // The composer is the last row: on a small iPhone the keyboard would
+        // cover it and a grocery line's recognised chips (APP-309).
+        automaticallyAdjustKeyboardInsets
         scrollEnabled={!dragging}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         refreshControl={
@@ -380,7 +397,11 @@ export function TaskList({
                 {list.writable ? (
                   <TaskComposer
                     listId={list.id}
-                    placeholder={addPlaceholder ?? t.tasks.list.addTask}
+                    placeholder={
+                      addPlaceholder ??
+                      (grocery ? t.kitchen.addGroceryItem : t.tasks.list.addTask)
+                    }
+                    grocery={grocery}
                   />
                 ) : null}
               </InsetList>
@@ -441,12 +462,15 @@ function TaskMeta({
   display,
   today,
   wishlist,
+  grocery,
 }: {
   task: Task
   display: ListDisplay
   today: string
   /** A wishlist row leads with where to buy it and what it costs. */
   wishlist: boolean
+  /** A grocery row leads with its aisle. */
+  grocery: boolean
 }) {
   const tokens = useTokens('home')
   const { t, locale } = useI18n()
@@ -457,7 +481,9 @@ function TaskMeta({
           ? null
           : formatPrice(task.priceCents, locale),
       ].filter(Boolean)
-    : []
+    : grocery && task.category
+      ? [t.tasks.grocery.aisles[task.category]]
+      : []
   const shown =
     buy.length > 0 ||
     (display.due && task.dueDate) ||
