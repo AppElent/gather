@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { en, nl } from './messages'
 import {
+  assigneeUnavailable,
   asTaskListKind,
   groupBySection,
   iconChoices,
@@ -138,5 +139,43 @@ describe('wishlist links', () => {
 
   it('shows the host without www', () => {
     expect(taskUrlHost('https://www.bol.com/p/123')).toBe('bol.com')
+  })
+})
+
+describe('who a task can be given to (APP-302, ADR-0021 capabilities)', () => {
+  it('lets a local list take any current Member', () => {
+    expect(assigneeUnavailable({ provider: 'local', writable: true })).toBeNull()
+  })
+
+  it('turns Todoist off until Gather can write to it, then only for shared projects', () => {
+    // Every linked list today: no provider write path yet.
+    expect(
+      assigneeUnavailable({ provider: 'todoist', writable: false, shared: true }),
+    ).toBe('readOnly')
+    expect(
+      assigneeUnavailable({ provider: 'todoist', writable: true, shared: false }),
+    ).toBe('notShared')
+    expect(
+      assigneeUnavailable({ provider: 'todoist', writable: true }),
+    ).toBe('notShared')
+    expect(
+      assigneeUnavailable({ provider: 'todoist', writable: true, shared: true }),
+    ).toBeNull()
+  })
+
+  it('never offers it on Notion, writable or not', () => {
+    expect(assigneeUnavailable({ provider: 'notion', writable: false })).toBe(
+      'unsupported',
+    )
+    expect(assigneeUnavailable({ provider: 'notion', writable: true })).toBe(
+      'unsupported',
+    )
+  })
+
+  it('has an explanation in both languages for every reason', () => {
+    for (const reason of ['readOnly', 'notShared', 'unsupported'] as const) {
+      expect(en.tasks.assignee.unavailable[reason]).toContain('{provider}')
+      expect(nl.tasks.assignee.unavailable[reason]).toContain('{provider}')
+    }
   })
 })

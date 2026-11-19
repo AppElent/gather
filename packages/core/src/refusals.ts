@@ -115,6 +115,23 @@ export function readLoyaltyCardRefusal(
   )
 }
 
+/**
+ * Why a task write was refused (APP-302): `assignee-not-member` is a person
+ * who is not a current Member of the task's Group.
+ */
+export const TASK_REFUSAL_CODES = ['assignee-not-member'] as const
+export type TaskRefusalCode = (typeof TASK_REFUSAL_CODES)[number]
+
+/** Namespaced on the wire, like the calendar's, so kinds cannot collide. */
+export function taskRefusal(code: TaskRefusalCode): { kind: string } {
+  return { kind: `tasks:${code}` }
+}
+
+export function readTaskRefusal(error: unknown): TaskRefusalCode | null {
+  const kind = refusalKind(error)
+  return TASK_REFUSAL_CODES.find((code) => `tasks:${code}` === kind) ?? null
+}
+
 /** The `kind` a thrown value carries, whichever vocabulary it comes from. */
 export function refusalKind(error: unknown): string | null {
   const data = errorData(error)

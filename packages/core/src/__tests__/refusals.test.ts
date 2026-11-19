@@ -5,10 +5,12 @@ import {
   calendarRefusal,
   readCalendarRefusal,
   readRefusal,
+  readTaskRefusal,
   refusal,
   refusalKind,
   refusalSentence,
   TASTING_REFUSALS,
+  taskRefusal,
 } from '../refusals'
 
 const thrown = (data: unknown) => Object.assign(new Error('wire'), { data })
@@ -66,5 +68,16 @@ describe('refusalSentence', () => {
     expect(refusalSentence(thrown(ACCOUNT_DELETED))).toBe(ACCOUNT_DELETED)
     expect(refusalSentence(thrown({ kind: 'needsName' }))).toBeNull()
     expect(refusalSentence(new Error('Account deleted'))).toBeNull()
+  })
+})
+
+describe('task refusals (APP-302)', () => {
+  test('cross the wire namespaced and read back', () => {
+    const error = thrown(taskRefusal('assignee-not-member'))
+    expect(refusalKind(error)).toBe('tasks:assignee-not-member')
+    expect(readTaskRefusal(error)).toBe('assignee-not-member')
+    expect(readTaskRefusal(thrown(calendarRefusal('assignee-not-member')))).toBe(
+      null,
+    )
   })
 })
