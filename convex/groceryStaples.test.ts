@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { alice, bob, seedGroup, seedMember, testConvex } from '../test/convexHarness'
 import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
@@ -225,6 +225,28 @@ describe('staples', () => {
         .collect(),
     )
     expect(left).toEqual([])
+  })
+
+  test('deleting only Gather data purges staples like other Group content (APP-397)', async () => {
+    vi.useFakeTimers()
+    try {
+      const { t, asBob, groupId, otherGroup, bobId } = await seed()
+      await t.run((ctx) => seedMember(ctx, groupId, bobId, 'member'))
+      const shared = await asBob.mutation(api.groceryStaples.add, {
+        groupSlug: SLUG,
+        name: 'Koffie',
+      })
+      await asBob.mutation(api.groceryStaples.add, { groupSlug: 'other', name: 'Thee' })
+      await asBob.mutation(api.accounts.deleteAccount, { keepLogin: true })
+      await t.finishAllScheduledFunctions(vi.runAllTimers)
+      const rows = await t.run((ctx) => ctx.db.query('groceryStaples').collect())
+      // Bob's own Group goes with its staples; the shared Group keeps what he
+      // added there, as it keeps his notes and tasks.
+      expect(rows.map((row) => row._id)).toEqual([shared])
+      expect(rows.some((row) => row.groupId === otherGroup)).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
