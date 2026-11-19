@@ -11,7 +11,7 @@
 import type { MenuAction } from '@expo/ui/community/menu'
 import { localIsoDate } from '@gather/core/civil-date'
 import { useIsFocused } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
@@ -186,7 +186,11 @@ function useCompletionUndo() {
   const focused = useIsFocused()
   const { show, toast } = useUndoToast()
   const words = t.tasks.repeat
-  const { undoCompletion } = actions
+  // The actions are new on every render; read the latest from a ref so the
+  // listener is not dropped and re-added each time, missing a completion in
+  // between.
+  const undoCompletion = useRef(actions.undoCompletion)
+  undoCompletion.current = actions.undoCompletion
 
   useEffect(() => {
     if (!focused) return
@@ -201,7 +205,7 @@ function useCompletionUndo() {
         undo: {
           label: words.undo,
           onPress: () => {
-            undoCompletion(done.completionId).catch(() => {
+            undoCompletion.current(done.completionId).catch(() => {
               haptics.actionFailed()
               show({ message: words.undoFailed })
             })
@@ -209,7 +213,7 @@ function useCompletionUndo() {
         },
       })
     })
-  }, [focused, show, undoCompletion, words, locale, t])
+  }, [focused, show, words, locale, t])
 
   return toast
 }

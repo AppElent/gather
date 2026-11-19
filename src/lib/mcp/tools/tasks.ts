@@ -197,7 +197,9 @@ export const taskTools = [
     description:
       'Change a task, or mark it done or open again. Only the fields you pass change; dueDate, priority, labels, notes, quantity, unit or repeat set to null are cleared. quantity, unit and category apply to grocery lists only and are ignored on other lists. On a repeating task, done true completes the open occurrence: dueDate moves to the next one and the task stays open. Pass occurrence, the dueDate you read, so a retry does not complete it twice.',
     access: 'write',
-    annotations: { idempotentHint: true },
+    // Not idempotent: done true on a repeating task without occurrence
+    // completes it again on every retry.
+    annotations: { idempotentHint: false },
     input: {
       groupId,
       taskId: z.string().min(1),

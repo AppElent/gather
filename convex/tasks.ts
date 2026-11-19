@@ -465,7 +465,10 @@ function repeatChange(
     const first = firstDueDate(rule, due, today)
     return { repeat: rule, ...(first !== due ? { dueDate: first } : {}) }
   }
-  if (task.repeat && typeof dueDate === 'string') {
+  // Only a due date that moved re-anchors: the same date sent again (a sheet
+  // confirmed unchanged, an agent echoing what it read) keeps a rule on the
+  // 31st that is waiting on the 30th.
+  if (task.repeat && typeof dueDate === 'string' && dueDate !== task.dueDate) {
     return { repeat: reanchorRepeat(task.repeat, dueDate) }
   }
   return undefined

@@ -375,6 +375,37 @@ describe('setting and changing a repeat', () => {
     expect((await taskRow(t, taskId))?.repeat).toBeUndefined()
   })
 
+  test('the same due date sent again keeps a rule on the 31st', async () => {
+    const { t, listId } = await seed()
+    const taskId = await t.withIdentity(alice).mutation(api.tasks.add, {
+      listId,
+      groupSlug: JANSEN,
+      title: 'Huur',
+      dueDate: '2026-11-30',
+    })
+    await t.withIdentity(alice).mutation(api.tasks.update, {
+      taskId,
+      groupSlug: JANSEN,
+      repeat: { mode: 'fixed', unit: 'month', every: 1, monthDay: 31 },
+    })
+    // A date sheet confirmed unchanged, or an agent echoing what it read.
+    await t.withIdentity(alice).mutation(api.tasks.update, {
+      taskId,
+      groupSlug: JANSEN,
+      dueDate: '2026-11-30',
+    })
+    expect(await taskRow(t, taskId)).toMatchObject({
+      dueDate: '2026-11-30',
+      repeat: { monthDay: 31 },
+    })
+    await t.withIdentity(alice).mutation(api.tasks.update, {
+      taskId,
+      groupSlug: JANSEN,
+      dueDate: '2026-12-15',
+    })
+    expect((await taskRow(t, taskId))?.repeat?.monthDay).toBe(15)
+  })
+
   test('a rule that cannot repeat is refused', async () => {
     const { t, listId } = await seed()
     await expect(

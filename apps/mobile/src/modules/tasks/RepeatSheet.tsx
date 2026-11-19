@@ -7,22 +7,22 @@
  * would move the task's date through rules nobody meant. Cancel leaves the
  * task as it was.
  *
- * A monthly or yearly rule takes its day from the due date, so the sheet shows
- * that day rather than asking for it: one date, not two that can disagree.
+ * A new monthly or yearly rule takes its day from the due date, so the sheet
+ * shows that day rather than asking for it: one date, not two that can
+ * disagree. An existing one keeps its own day, which a clamped due date (the
+ * 30th of a rule on the 31st) no longer shows.
  */
 import { MenuView } from '@expo/ui/community/menu'
-import { isoWeekday, localIsoDate, localMidnight } from '@gather/core/civil-date'
+import { localIsoDate, localMidnight } from '@gather/core/civil-date'
 import {
   AFTER_DONE_UNITS,
   firstScheduledDate,
   ISO_WEEKDAYS,
   nextDueDate,
-  normalizeRepeat,
   REPEAT_EVERY_MAX,
   REPEAT_UNITS,
   type RepeatUnit,
   sameRepeat,
-  type TaskRepeat,
   upcomingDates,
   weekdayName,
 } from '@gather/core/task-repeat'
@@ -35,54 +35,9 @@ import { haptics } from '../../feedback/haptics'
 import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { RADIUS, SIZE, SPACE, TABULAR, TYPE, useTokens } from '../../theme/tokens'
+import { type Draft, draftRule, repeatDraft } from './repeatDraft'
 import { useTaskActions } from './store'
 import type { Task } from './types'
-
-type Mode = 'none' | TaskRepeat['mode']
-
-interface Draft {
-  mode: Mode
-  fixed: { unit: RepeatUnit; every: number; weekdays: number[] }
-  afterDone: { unit: (typeof AFTER_DONE_UNITS)[number]; every: number }
-}
-
-/** What the sheet opens on: the task's rule, and sensible values for the rest. */
-export function repeatDraft(task: Pick<Task, 'repeat' | 'dueDate'>, today: string): Draft {
-  const rule = task.repeat
-  const anchor = task.dueDate ?? today
-  return {
-    mode: rule?.mode ?? 'none',
-    fixed:
-      rule?.mode === 'fixed'
-        ? {
-            unit: rule.unit,
-            every: rule.every,
-            weekdays: rule.weekdays ?? [isoWeekday(anchor)],
-          }
-        : { unit: 'week', every: 1, weekdays: [isoWeekday(anchor)] },
-    afterDone:
-      rule?.mode === 'afterDone' && rule.unit !== 'year'
-        ? { unit: rule.unit, every: rule.every }
-        : { unit: 'day', every: 3 },
-  }
-}
-
-/** The rule a draft stands for, anchored on `anchor`; null for Never or an invalid one. */
-export function draftRule(draft: Draft, anchor: string): TaskRepeat | null {
-  if (draft.mode === 'none') return null
-  const rule: TaskRepeat =
-    draft.mode === 'fixed'
-      ? {
-          mode: 'fixed',
-          unit: draft.fixed.unit,
-          every: draft.fixed.every,
-          ...(draft.fixed.unit === 'week'
-            ? { weekdays: draft.fixed.weekdays }
-            : {}),
-        }
-      : { mode: 'afterDone', ...draft.afterDone }
-  return normalizeRepeat(rule, anchor)
-}
 
 export function RepeatSheet({
   task,
