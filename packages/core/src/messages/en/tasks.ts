@@ -153,6 +153,40 @@ export const tasks = {
     aisle: 'Aisle',
     /** Under the composer while a line is typed. */
     recognised: 'Recognised without AI, also offline',
+    // The list in aisle sections, the Checked row and Recent (APP-310;
+    // `designs/groceries/README.md` sections 1 and 4).
+    /** Read out for an aisle section's heading: the aisle and its count. */
+    aisleSection: { one: '{aisle}, {count} item', other: '{aisle}, {count} items' },
+    checked: 'Checked',
+    /** On the Checked row: every checked item back onto the list. */
+    putBackAll: 'Put back',
+    putBackAllLabel: {
+      one: 'Put {count} checked item back on the list',
+      other: 'Put all {count} checked items back on the list',
+    },
+    putBackDone: {
+      one: '{count} item is back on the list.',
+      other: '{count} items are back on the list.',
+    },
+    clearChecked: 'Clear checked',
+    cleared: {
+      one: '{count} checked item cleared. It stays in Recent.',
+      other: '{count} checked items cleared. They stay in Recent.',
+    },
+    undo: 'Undo',
+    recent: {
+      title: 'Recent',
+      count: { one: '{count} item', other: '{count} items' },
+      weeks: { one: 'last week', other: 'last {count} weeks' },
+      hint: 'Tap plus to put it back on the list',
+      today: 'Today',
+      /** A Recent row's meta: the amount it had last time. */
+      last: 'Last {amount}',
+      onList: 'On the list',
+      putBack: 'Put {name} back on the list',
+      footnote: 'Recent keeps the last 100 checked items of this household.',
+      empty: 'Nothing checked yet. What you check off on the grocery list shows up here.',
+    },
     /**
      * A recipe's ingredients (and later the week menu's) onto the list:
      * the add-to-groceries sheet (APP-312, designs/groceries section 5).

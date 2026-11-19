@@ -13,6 +13,7 @@ import type { MutationCtx } from './_generated/server'
 import { internalQuery, mutation, query } from './_generated/server'
 import {
   askAiOnce,
+  groceryTitleKey,
   isGroceryList,
   recentListItems,
   recogniseGroceryTitle,
@@ -41,6 +42,15 @@ import {
   type TaskReminder,
 } from './lib/taskReminders'
 import { knownSectionId } from './lib/taskSections'
+
+/**
+ * A task checked or unchecked: checking stamps when, so a grocery list's
+ * Recent can read its newest checked items; unchecking takes the stamp off
+ * (APP-310).
+ */
+function doneFields(done: boolean) {
+  return { done, doneAt: done ? Date.now() : undefined }
+}
 
 const byOpenThenOrder = (a: Doc<'tasks'>, b: Doc<'tasks'>) =>
   Number(a.done) - Number(b.done) || a.order - b.order
@@ -228,7 +238,7 @@ export const toggleDone = mutation({
       group,
       doc: list,
     } = await requireEditableTaskInGroup(ctx, args.groupSlug, args.taskId)
-    await ctx.db.patch(args.taskId, { done: !task.done })
+    await ctx.db.patch(args.taskId, doneFields(!task.done))
     if (task.reminder)
       await syncSend(ctx, { ...task, done: !task.done }, group._id, task.reminder)
     // A staple bought is back in stock (APP-314).
@@ -366,7 +376,7 @@ export const update = mutation({
         ? { priceCents: priceCents ?? undefined }
         : {}),
       ...(title !== undefined ? { title } : {}),
-      ...(done !== undefined ? { done } : {}),
+      ...(done !== undefined && done !== task.done ? doneFields(done) : {}),
       ...(dueDate !== undefined ? { dueDate: dueDate ?? undefined } : {}),
       ...(priority !== undefined ? { priority: priority ?? undefined } : {}),
       ...(labels !== undefined ? { labels: labels ?? undefined } : {}),
@@ -474,7 +484,7 @@ export const setDoneInList = mutation({
     }
     const changed = targets.filter((task) => task.done !== args.done)
     await Promise.all(
-      changed.map((task) => ctx.db.patch(task._id, { done: args.done })),
+      changed.map((task) => ctx.db.patch(task._id, doneFields(args.done))),
     )
     for (const task of changed)
       if (task.reminder)
@@ -678,6 +688,150 @@ export const moveToList = mutation({
     })
     if (grocery) await askAiOnce(ctx, group._id, grocery, task._id)
     return null
+  },
+})
+
+/** How many checked items a Group's Recent holds (`designs/groceries` §4). */
+export const RECENT_GROCERIES_LIMIT = 100
+
+/**
+ * How many of each grocery list's newest checked items Recent reads: twice
+ * the limit, so a name checked as two separate items still leaves room for
+ * a hundred different ones.
+ */
+const RECENT_GROCERIES_WINDOW = 2 * RECENT_GROCERIES_LIMIT
+
+/**
+ * A Group's Recent (APP-310): the checked items of its grocery lists, newest
+ * first, one per name (the newest), at most `RECENT_GROCERIES_LIMIT`. There is
+ * no table of its own: an item stays a checked task, and each grocery list is
+ * read through `by_list_and_done_at` from its newest check down, so the read
+ * is bounded by twice the limit per grocery list of the Group.
+ *
+ * Items checked before `doneAt` existed have no stamp. They come after every
+ * stamped item, newest added first, with the moment they were added standing
+ * in for when they were checked: read from the same index's no-stamp range
+ * (`doneAt` undefined), which also holds the open items, so it is bounded by
+ * the same window per list. No data is rewritten for them.
+ */
+export const recentGroceries = query({
+  args: { groupSlug: v.string() },
+  returns: v.array(
+    v.object({
+      _id: v.id('tasks'),
+      listId: v.id('taskLists'),
+      title: v.string(),
+      quantity: v.optional(v.number()),
+      unit: v.optional(groceryUnitValidator),
+      category: v.optional(groceryAisleValidator),
+      doneAt: v.number(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const lists = await ctx.db
+      .query('taskLists')
+      .withIndex('by_group', (q) => q.eq('groupId', group._id))
+      .collect()
+    const grocery = lists.filter(
+      (list) => list.provider === 'local' && isGroceryList(group, list),
+    )
+    const window = (list: Doc<'taskLists'>, stamped: boolean) =>
+      ctx.db
+        .query('tasks')
+        .withIndex('by_list_and_done_at', (q) =>
+          stamped
+            ? q.eq('listId', list._id).gt('doneAt', 0)
+            : q.eq('listId', list._id).eq('doneAt', undefined),
+        )
+        .order('desc')
+        .take(RECENT_GROCERIES_WINDOW)
+    const [stamped, legacy] = await Promise.all([
+      Promise.all(grocery.map((list) => window(list, true))),
+      Promise.all(grocery.map((list) => window(list, false))),
+    ])
+    const checked = [
+      ...stamped
+        .flat()
+        .filter((task) => task.done && task.doneAt !== undefined)
+        .map((task) => ({ task, at: task.doneAt ?? 0 }))
+        .sort((a, b) => b.at - a.at),
+      ...legacy
+        .flat()
+        .filter((task) => task.done)
+        .map((task) => ({ task, at: task._creationTime }))
+        .sort((a, b) => b.at - a.at),
+    ]
+    const seen = new Set<string>()
+    const recent = []
+    for (const { task, at } of checked) {
+      const key = groceryTitleKey(task.title)
+      if (seen.has(key)) continue
+      seen.add(key)
+      recent.push({
+        _id: task._id,
+        listId: task.listId,
+        title: task.title,
+        quantity: task.quantity,
+        unit: task.unit,
+        category: task.category,
+        doneAt: at,
+      })
+      if (recent.length === RECENT_GROCERIES_LIMIT) break
+    }
+    return recent
+  },
+})
+
+/**
+ * A checked grocery item back onto a grocery list from Recent (APP-310), with
+ * its amount, unit and aisle. On its own list the item itself is unchecked
+ * and goes to the end; from another grocery list a copy is added, so that
+ * list keeps its history. When an open item of the same name is already on
+ * the list, nothing is added and that item is the answer: a second tap, or a
+ * second Member, never makes a duplicate.
+ */
+export const putBack = mutation({
+  args: {
+    taskId: v.id('tasks'),
+    groupSlug: v.string(),
+    listId: v.id('taskLists'),
+  },
+  returns: v.id('tasks'),
+  handler: async (ctx, args) => {
+    const { task, group, user } = await requireEditableTaskInGroup(
+      ctx,
+      args.groupSlug,
+      args.taskId,
+    )
+    const { doc: list } = await requireLocalList(
+      ctx,
+      args.groupSlug,
+      args.listId,
+    )
+    if (!isGroceryList(group, list)) {
+      throw new ConvexError('That is not a grocery list')
+    }
+    const key = groceryTitleKey(task.title)
+    const open = (await recentListItems(ctx, args.listId)).find(
+      (row) => !row.done && groceryTitleKey(row.title) === key,
+    )
+    if (open) return open._id
+    const order = await endOfList(ctx, args.listId)
+    if (task.listId === args.listId) {
+      await ctx.db.patch(task._id, { ...doneFields(false), order })
+      return task._id
+    }
+    return await ctx.db.insert('tasks', {
+      listId: args.listId,
+      title: task.title,
+      done: false,
+      createdBy: user._id,
+      order,
+      ...(task.category ? { category: task.category } : {}),
+      ...(task.quantity !== undefined ? { quantity: task.quantity } : {}),
+      ...(task.unit !== undefined ? { unit: task.unit } : {}),
+    })
   },
 })
 

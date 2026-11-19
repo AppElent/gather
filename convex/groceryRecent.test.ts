@@ -1,0 +1,354 @@
+import { describe, expect, test } from 'vitest'
+import {
+  alice,
+  bob,
+  seedGroup,
+  seedMember,
+  testConvex,
+} from '../test/convexHarness'
+import { api } from './_generated/api'
+import type { Id } from './_generated/dataModel'
+import { RECENT_GROCERIES_LIMIT } from './tasks'
+
+/**
+ * A grocery list's Recent and Clear checked (APP-310), through the real
+ * functions: checking stamps `doneAt`, Recent reads the Group's grocery lists
+ * newest first, one per name, and putting an item back never duplicates it.
+ */
+
+const SLUG = 'jansen'
+
+async function seed() {
+  const t = testConvex()
+  const ids = await t.run(async (ctx) => {
+    const userId = await ctx.db.insert('users', {
+      clerkId: alice.subject,
+      name: alice.name,
+      email: alice.email,
+    })
+    const groupId = await seedGroup(ctx, { name: SLUG, slug: SLUG })
+    await seedMember(ctx, groupId, userId, 'admin')
+    const groceries = await ctx.db.insert('taskLists', {
+      groupId,
+      name: 'Boodschappen',
+      provider: 'local',
+      order: 0,
+    })
+    const market = await ctx.db.insert('taskLists', {
+      groupId,
+      name: 'Markt',
+      provider: 'local',
+      order: 1,
+      kind: 'groceries',
+    })
+    const chores = await ctx.db.insert('taskLists', {
+      groupId,
+      name: 'Klusjes',
+      provider: 'local',
+      order: 2,
+    })
+    await ctx.db.patch(groupId, { groceryListId: groceries })
+    return { userId, groupId, groceries, market, chores }
+  })
+  return { t, as: t.withIdentity(alice), ...ids }
+}
+
+/** A distinct grocery name per number: digits would read as an amount. */
+const name = (i: number) =>
+  `zz${String.fromCharCode(97 + Math.floor(i / 26))}${String.fromCharCode(97 + (i % 26))}k`
+
+type Seeded = Awaited<ReturnType<typeof seed>>
+
+/** A checked task written directly, checked at `doneAt`. */
+async function checked(
+  { t, userId }: Seeded,
+  listId: Id<'taskLists'>,
+  title: string,
+  doneAt: number | undefined,
+  extra: { quantity?: number; unit?: 'pak'; category?: 'dairy' } = {},
+) {
+  return await t.run((ctx) =>
+    ctx.db.insert('tasks', {
+      listId,
+      title,
+      done: true,
+      doneAt,
+      createdBy: userId,
+      order: doneAt ?? 0,
+      ...extra,
+    }),
+  )
+}
+
+describe('checking stamps when', () => {
+  test('toggle, update and check-many stamp doneAt and unchecking clears it', async () => {
+    const s = await seed()
+    const { t, as, groceries } = s
+    const id = await as.mutation(api.tasks.add, {
+      groupSlug: SLUG,
+      listId: groceries,
+      title: 'melk',
+    })
+    const doneAt = async () =>
+      (await t.run((ctx) => ctx.db.get(id)))?.doneAt
+    await as.mutation(api.tasks.toggleDone, { groupSlug: SLUG, taskId: id })
+    expect(await doneAt()).toEqual(expect.any(Number))
+    await as.mutation(api.tasks.toggleDone, { groupSlug: SLUG, taskId: id })
+    expect(await doneAt()).toBeUndefined()
+    await as.mutation(api.tasks.update, {
+      groupSlug: SLUG,
+      taskId: id,
+      done: true,
+    })
+    const first = await doneAt()
+    expect(first).toEqual(expect.any(Number))
+    // Setting the same state again keeps the original moment.
+    await as.mutation(api.tasks.update, {
+      groupSlug: SLUG,
+      taskId: id,
+      done: true,
+    })
+    expect(await doneAt()).toBe(first)
+    await as.mutation(api.tasks.setDoneInList, {
+      groupSlug: SLUG,
+      listId: groceries,
+      done: false,
+    })
+    expect(await doneAt()).toBeUndefined()
+  })
+})
+
+describe('Recent', () => {
+  test('newest first, across the Group grocery lists, one per name, not other lists', async () => {
+    const s = await seed()
+    await checked(s, s.groceries, 'melk', 100, {
+      quantity: 2,
+      unit: 'pak',
+      category: 'dairy',
+    })
+    await checked(s, s.market, 'Melk', 50)
+    await checked(s, s.market, 'appels', 300)
+    await checked(s, s.chores, 'stofzuigen', 400)
+    // Checked before doneAt existed: after every stamped item.
+    await checked(s, s.groceries, 'kaas', undefined)
+    // Open with a stale stamp (a write that forgot to clear it): not checked.
+    await s.t.run(async (ctx) => {
+      await ctx.db.insert('tasks', {
+        listId: s.groceries,
+        title: 'brood',
+        done: false,
+        doneAt: 500,
+        createdBy: s.userId,
+        order: 9,
+      })
+    })
+    const recent = await s.as.query(api.tasks.recentGroceries, {
+      groupSlug: SLUG,
+    })
+    expect(recent.map((row) => row.title)).toEqual(['appels', 'melk', 'kaas'])
+    expect(recent.slice(0, 2).map((row) => row.doneAt)).toEqual([300, 100])
+    expect(recent[1]).toMatchObject({
+      listId: s.groceries,
+      quantity: 2,
+      unit: 'pak',
+      category: 'dairy',
+    })
+  })
+
+  test('items checked before doneAt: newest added first, after stamped ones, open ones left out', async () => {
+    const s = await seed()
+    await checked(s, s.groceries, 'oud brood', undefined)
+    await checked(s, s.groceries, 'oude kaas', undefined)
+    // A stamped check of the same name wins over the old one.
+    await checked(s, s.groceries, 'oud brood', 10)
+    await s.as.mutation(api.tasks.add, {
+      groupSlug: SLUG,
+      listId: s.groceries,
+      title: 'appels',
+    })
+    const recent = await s.as.query(api.tasks.recentGroceries, {
+      groupSlug: SLUG,
+    })
+    expect(recent.map((row) => [row.title, row.doneAt === 10])).toEqual([
+      ['oud brood', true],
+      ['oude kaas', false],
+    ])
+    expect(recent[1]?.doneAt).toEqual(expect.any(Number))
+  })
+
+  test('holds at most the limit', async () => {
+    const s = await seed()
+    await s.t.run(async (ctx) => {
+      for (let i = 0; i < RECENT_GROCERIES_LIMIT + 20; i++) {
+        await ctx.db.insert('tasks', {
+          listId: s.groceries,
+          title: name(i),
+          done: true,
+          doneAt: i + 1,
+          createdBy: s.userId,
+          order: i,
+        })
+      }
+    })
+    const recent = await s.as.query(api.tasks.recentGroceries, {
+      groupSlug: SLUG,
+    })
+    expect(recent).toHaveLength(RECENT_GROCERIES_LIMIT)
+    expect(recent[0]?.title).toBe(name(RECENT_GROCERIES_LIMIT + 19))
+  })
+
+  test('another Group cannot read it', async () => {
+    const s = await seed()
+    await s.t.run(async (ctx) => {
+      await ctx.db.insert('users', {
+        clerkId: bob.subject,
+        name: bob.name,
+        email: bob.email,
+      })
+    })
+    await expect(
+      s.t.withIdentity(bob).query(api.tasks.recentGroceries, {
+        groupSlug: SLUG,
+      }),
+    ).rejects.toThrow()
+  })
+})
+
+describe('putting back from Recent', () => {
+  test('on its own list the item itself is unchecked, at the end', async () => {
+    const s = await seed()
+    const id = await checked(s, s.groceries, 'melk', 100, {
+      quantity: 2,
+      unit: 'pak',
+      category: 'dairy',
+    })
+    const back = await s.as.mutation(api.tasks.putBack, {
+      groupSlug: SLUG,
+      taskId: id,
+      listId: s.groceries,
+    })
+    expect(back).toBe(id)
+    const task = await s.t.run((ctx) => ctx.db.get(id))
+    expect(task).toMatchObject({
+      done: false,
+      quantity: 2,
+      unit: 'pak',
+      category: 'dairy',
+    })
+    expect(task?.doneAt).toBeUndefined()
+  })
+
+  test('from another grocery list a copy is added with amount and aisle', async () => {
+    const s = await seed()
+    const id = await checked(s, s.market, 'melk', 100, {
+      quantity: 2,
+      unit: 'pak',
+      category: 'dairy',
+    })
+    const copy = await s.as.mutation(api.tasks.putBack, {
+      groupSlug: SLUG,
+      taskId: id,
+      listId: s.groceries,
+    })
+    expect(copy).not.toBe(id)
+    expect(await s.t.run((ctx) => ctx.db.get(copy))).toMatchObject({
+      listId: s.groceries,
+      title: 'melk',
+      done: false,
+      quantity: 2,
+      unit: 'pak',
+      category: 'dairy',
+    })
+    expect((await s.t.run((ctx) => ctx.db.get(id)))?.done).toBe(true)
+  })
+
+  test('a name already open on the list is not added twice', async () => {
+    const s = await seed()
+    const id = await checked(s, s.market, 'melk', 100)
+    const first = await s.as.mutation(api.tasks.putBack, {
+      groupSlug: SLUG,
+      taskId: id,
+      listId: s.groceries,
+    })
+    const second = await s.as.mutation(api.tasks.putBack, {
+      groupSlug: SLUG,
+      taskId: id,
+      listId: s.groceries,
+    })
+    expect(second).toBe(first)
+    const open = await s.t.run((ctx) =>
+      ctx.db
+        .query('tasks')
+        .withIndex('by_list', (q) => q.eq('listId', s.groceries))
+        .collect(),
+    )
+    expect(open).toHaveLength(1)
+  })
+
+  test('only onto a grocery list', async () => {
+    const s = await seed()
+    const id = await checked(s, s.groceries, 'melk', 100)
+    await expect(
+      s.as.mutation(api.tasks.putBack, {
+        groupSlug: SLUG,
+        taskId: id,
+        listId: s.chores,
+      }),
+    ).rejects.toThrow('That is not a grocery list')
+  })
+})
+
+describe('Clear checked', () => {
+  test('stamps the list, answers the previous moment, and undoes', async () => {
+    const s = await seed()
+    const first = await s.as.mutation(api.taskLists.clearChecked, {
+      groupSlug: SLUG,
+      listId: s.groceries,
+    })
+    expect(first).toBeNull()
+    const lists = await s.as.query(api.taskLists.list, { groupSlug: SLUG })
+    const cleared = lists.find((l) => l._id === s.groceries)?.checkedClearedAt
+    expect(cleared).toEqual(expect.any(Number))
+    expect(
+      lists.find((l) => l._id === s.chores)?.checkedClearedAt,
+    ).toBeNull()
+
+    const second = await s.as.mutation(api.taskLists.clearChecked, {
+      groupSlug: SLUG,
+      listId: s.groceries,
+    })
+    expect(second).toBe(cleared)
+    await s.as.mutation(api.taskLists.restoreCheckedCleared, {
+      groupSlug: SLUG,
+      listId: s.groceries,
+      checkedClearedAt: null,
+    })
+    const after = await s.as.query(api.taskLists.list, { groupSlug: SLUG })
+    expect(
+      after.find((l) => l._id === s.groceries)?.checkedClearedAt,
+    ).toBeNull()
+  })
+
+  test('keeps the items in Recent', async () => {
+    const s = await seed()
+    await checked(s, s.groceries, 'melk', Date.now() - 1000)
+    await s.as.mutation(api.taskLists.clearChecked, {
+      groupSlug: SLUG,
+      listId: s.groceries,
+    })
+    const recent = await s.as.query(api.tasks.recentGroceries, {
+      groupSlug: SLUG,
+    })
+    expect(recent.map((row) => row.title)).toEqual(['melk'])
+  })
+
+  test('only on a grocery list', async () => {
+    const s = await seed()
+    await expect(
+      s.as.mutation(api.taskLists.clearChecked, {
+        groupSlug: SLUG,
+        listId: s.chores,
+      }),
+    ).rejects.toThrow('That is not a grocery list')
+  })
+})
