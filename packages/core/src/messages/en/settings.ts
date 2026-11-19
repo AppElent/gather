@@ -131,6 +131,23 @@ export const settings = {
       'You are signed in to a different account now. Nothing was deleted.',
     /** A refusal before anything was deleted, with no reason of its own. */
     failed: 'Your account could not be deleted. Nothing was deleted.',
+    /**
+     * The web's Sign in with Apple step (APP-388): before the whole account
+     * goes, Apple's popup lets Gather revoke its access, as Apple requires.
+     * The browser opens the popup only from a click, so it asks for one.
+     */
+    apple: {
+      prompt:
+        'You signed in with Apple. Continue with Apple once more so Apple can stop sharing your details, then your account is deleted. Nothing is deleted until then.',
+      continue: 'Continue with Apple',
+      waiting: 'Waiting for Apple…',
+      popupBlocked:
+        'Your browser blocked the Apple window, so nothing was deleted. Allow pop-ups for this site and try again.',
+      appleMismatch:
+        'That Apple account is not the one linked to this account, so nothing was deleted. Try again and sign in with the Apple account you use for AppElent.',
+      failed:
+        'The Apple window did not finish, so nothing was deleted. Try again.',
+    },
   },
 
   groupSettings: {
