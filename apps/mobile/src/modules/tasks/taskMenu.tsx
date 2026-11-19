@@ -9,12 +9,16 @@
  * cannot.
  */
 import type { MenuAction } from '@expo/ui/community/menu'
-import { useState } from 'react'
+import { localIsoDate } from '@gather/core/civil-date'
+import { useIsFocused } from 'expo-router'
+import { useEffect, useRef, useState } from 'react'
 
 import { confirmDestructive } from '../../feedback/confirmDestructive'
 import { haptics } from '../../feedback/haptics'
 import { fmt, type Messages, useI18n } from '../../i18n'
+import { useUndoToast } from '../../ui/undo-toast'
 import { ReminderSheet } from './ReminderSheet'
+import { RepeatSheet } from './RepeatSheet'
 import { MoveToSectionSheet } from './sections'
 import {
   DueDateSheet,
@@ -23,7 +27,8 @@ import {
   PrioritySheet,
   RenameSheet,
 } from './sheets'
-import { useTaskActions } from './store'
+import { onOccurrenceCompleted, useTaskActions } from './store'
+import { dueLabel } from './taskDates'
 import type { Task } from './types'
 
 /**
@@ -88,6 +93,7 @@ export function taskMenuActions(
 
 type TaskSheet =
   | 'due'
+  | 'repeat'
   | 'priority'
   | 'labels'
   | 'move'
@@ -99,7 +105,9 @@ type TaskSheet =
  * Runs every action on the menu except Reorder, which the screen owns.
  *
  * Returns the sheets as an element the caller renders last, after its own
- * scroll view — a sheet inside one is a sheet that scrolls away.
+ * scroll view — a sheet inside one is a sheet that scrolls away. The same
+ * element carries the undo toast for a repeating task completed on this
+ * screen, from a row or from the menu (APP-303).
  */
 export function useTaskSheets({
   tasks,
@@ -139,10 +147,11 @@ export function useTaskSheets({
     switch (action) {
       case 'complete':
         if (!task.done) haptics.itemCompleted()
-        actions.toggleTask(task.id).catch(() => haptics.actionFailed())
+        actions.toggleTask(task).catch(() => haptics.actionFailed())
         break
       case 'rename':
       case 'due':
+      case 'repeat':
       case 'priority':
       case 'labels':
       case 'move':
@@ -159,9 +168,16 @@ export function useTaskSheets({
     }
   }
 
-  const sheets = !open || !task ? null : (
+  const undoToast = useCompletionUndo()
+
+  const sheets = !open || !task ? (
+    undoToast
+  ) : (
     <>
       {open.kind === 'due' ? <DueDateSheet task={task} onClose={close} /> : null}
+      {open.kind === 'repeat' ? (
+        <RepeatSheet task={task} onClose={close} />
+      ) : null}
       {open.kind === 'priority' ? (
         <PrioritySheet task={task} onClose={close} />
       ) : null}
@@ -185,8 +201,52 @@ export function useTaskSheets({
           onClose={close}
         />
       ) : null}
+      {undoToast}
     </>
   )
 
   return { onAction, sheets }
+}
+
+/**
+ * "Done. Next: Sat 28 Nov · Undo" after a repeating task is completed. Only
+ * the screen in front shows it: a tab behind it also holds task sheets, and
+ * one completion is one toast.
+ */
+function useCompletionUndo() {
+  const { t, locale } = useI18n()
+  const actions = useTaskActions()
+  const focused = useIsFocused()
+  const { show, toast } = useUndoToast()
+  const words = t.tasks.repeat
+  // The actions are new on every render; read the latest from a ref so the
+  // listener is not dropped and re-added each time, missing a completion in
+  // between.
+  const undoCompletion = useRef(actions.undoCompletion)
+  undoCompletion.current = actions.undoCompletion
+
+  useEffect(() => {
+    if (!focused) return
+    return onOccurrenceCompleted((done) => {
+      show({
+        message: fmt(words.completed, {
+          date: dueLabel(done.dueDate, localIsoDate(), locale, {
+            today: t.tasks.task.today,
+            tomorrow: t.tasks.task.tomorrow,
+          }),
+        }),
+        undo: {
+          label: words.undo,
+          onPress: () => {
+            undoCompletion.current(done.completionId).catch(() => {
+              haptics.actionFailed()
+              show({ message: words.undoFailed })
+            })
+          },
+        },
+      })
+    })
+  }, [focused, show, words, locale, t])
+
+  return toast
 }

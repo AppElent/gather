@@ -962,6 +962,7 @@ export const en = {
     starters: coreEn.tasks.starters,
     starterSections: coreEn.tasks.starterSections,
     packing: coreEn.tasks.packing,
+    repeat: coreEn.tasks.repeat,
     wishlist: coreEn.tasks.wishlist,
     grocery: coreEn.tasks.grocery,
     assignee: coreEn.tasks.assignee,

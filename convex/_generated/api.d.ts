@@ -72,6 +72,7 @@ import type * as lib_taskProviders_notion from "../lib/taskProviders/notion.js";
 import type * as lib_taskProviders_todoist from "../lib/taskProviders/todoist.js";
 import type * as lib_taskProviders_types from "../lib/taskProviders/types.js";
 import type * as lib_taskReminders from "../lib/taskReminders.js";
+import type * as lib_taskRepeat from "../lib/taskRepeat.js";
 import type * as lib_taskSections from "../lib/taskSections.js";
 import type * as lib_tastings from "../lib/tastings.js";
 import type * as lib_validators from "../lib/validators.js";
@@ -168,6 +169,7 @@ declare const fullApi: ApiFromModules<{
   "lib/taskProviders/todoist": typeof lib_taskProviders_todoist;
   "lib/taskProviders/types": typeof lib_taskProviders_types;
   "lib/taskReminders": typeof lib_taskReminders;
+  "lib/taskRepeat": typeof lib_taskRepeat;
   "lib/taskSections": typeof lib_taskSections;
   "lib/tastings": typeof lib_tastings;
   "lib/validators": typeof lib_validators;
