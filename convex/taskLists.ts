@@ -306,6 +306,17 @@ export const restoreCheckedCleared = mutation({
 /** How many names one list's suggestions can hide; the oldest go first. */
 export const HIDDEN_SUGGESTIONS_LIMIT = 500
 
+/** The longest title a suggestion is hidden by, as for a grocery line. */
+const SUGGESTION_TITLE_MAX = 500
+
+/** A hidden suggestion's key: a grocery title, not longer than a line. */
+function suggestionKey(title: string): string {
+  if (title.length > SUGGESTION_TITLE_MAX) {
+    throw new ConvexError('That is not an item')
+  }
+  return groceryTitleKey(title)
+}
+
 /** A local grocery list of the named Group, for a suggestions write. */
 async function requireSuggestionsList(
   ctx: MutationCtx,
@@ -350,7 +361,7 @@ export const hideSuggestion = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const list = await requireSuggestionsList(ctx, args.groupSlug, args.listId)
-    const key = groceryTitleKey(args.title)
+    const key = suggestionKey(args.title)
     const hidden = list.hiddenSuggestions ?? []
     if (!key || hidden.includes(key)) return null
     await ctx.db.patch(args.listId, {
@@ -366,7 +377,7 @@ export const unhideSuggestion = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const list = await requireSuggestionsList(ctx, args.groupSlug, args.listId)
-    const key = groceryTitleKey(args.title)
+    const key = suggestionKey(args.title)
     const hidden = list.hiddenSuggestions ?? []
     if (!hidden.includes(key)) return null
     const rest = hidden.filter((name) => name !== key)

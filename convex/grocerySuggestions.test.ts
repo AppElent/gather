@@ -217,6 +217,17 @@ describe('hiding a suggestion', () => {
     ).toBeUndefined()
   })
 
+  test('refuses a title longer than a grocery line', async () => {
+    const s = await seed()
+    await expect(
+      s.as.mutation(api.taskLists.hideSuggestion, {
+        groupSlug: SLUG,
+        listId: s.groceries,
+        title: 'm'.repeat(501),
+      }),
+    ).rejects.toThrow('That is not an item')
+  })
+
   test('refuses a list that is not a grocery list', async () => {
     const s = await seed()
     await expect(
