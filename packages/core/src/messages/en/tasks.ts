@@ -186,6 +186,40 @@ export const tasks = {
       footnote: 'Recent keeps the last 100 checked items of this household.',
       empty: 'Nothing checked yet. What you check off on the grocery list shows up here.',
     },
+    /**
+     * A recipe's ingredients (and later the week menu's) onto the list:
+     * the add-to-groceries sheet (APP-312, designs/groceries section 5).
+     */
+    addLines: {
+      title: 'Add to groceries',
+      /** The grocery list's menu entry. */
+      fromRecipe: 'From recipe or week menu',
+      recipe: 'Recipe',
+      recipeServes: {
+        one: 'Recipe · serves {count}',
+        other: 'Recipe · serves {count}',
+      },
+      servings: 'Servings',
+      fewer: 'Fewer servings',
+      more: 'More servings',
+      toList: 'To list',
+      noList: 'No grocery list yet',
+      ingredients: 'Ingredients',
+      merge: 'Already on the list: {from}, becomes {to}',
+      alreadyOn: 'Already on the list',
+      inStock: 'In stock at home',
+      inStockAdding: 'In stock, adding anyway',
+      readWithAi: 'Read with AI · {used} of your {limit} today',
+      readWithAiEarlier: 'Read with AI earlier',
+      reading: 'Reading with AI…',
+      asText: 'Added as text',
+      add: { one: 'Add {count} to the list', other: 'Add {count} to the list' },
+      footnote:
+        'Merged with what is already there. The list shows which recipe each item is for.',
+      edit: 'Edit',
+      editTitle: 'Edit item',
+      failed: 'These could not be added. Try again.',
+    },
     aisles: {
       produce: 'Fruit and vegetables',
       bakery: 'Bread and bakery',

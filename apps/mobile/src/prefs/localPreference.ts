@@ -70,10 +70,29 @@ export function allArrangementKey(groupSlug: string) {
   return `gather:all:arrangement:${groupSlug}` as const
 }
 
+/**
+ * The grocery list a recipe last went to, in one Group: the add-to-groceries
+ * sheet opens on it (APP-312, "the last used grocery list").
+ */
+export function lastGroceryListKey(groupSlug: string) {
+  return `gather:groceries:last-list:${groupSlug}` as const
+}
+
+/**
+ * What the AI read in a recipe's ingredients, so opening the sheet again
+ * costs no AI call (APP-312). Keyed by the recipe; the value names the
+ * ingredients it was read from, so an edited recipe reads afresh.
+ */
+export function recipeGroceryLinesKey(recipeId: string) {
+  return `gather:groceries:recipe-lines:${recipeId}` as const
+}
+
 export type PreferenceKey =
   | (typeof PREFERENCE_KEYS)[keyof typeof PREFERENCE_KEYS]
   | ReturnType<typeof babyChildKey>
   | ReturnType<typeof allArrangementKey>
+  | ReturnType<typeof lastGroceryListKey>
+  | ReturnType<typeof recipeGroceryLinesKey>
 
 /** What was stored under this key, or null if nothing readable was. */
 export function readPreference(key: PreferenceKey): string | null {

@@ -219,6 +219,7 @@ export function TaskList({
           display={list.display}
           today={today}
           wishlist={wishlist}
+          grocery={grocery}
         />
       }
       trailing={grocery ? <GroceryAmount task={task} /> : undefined}
@@ -536,12 +537,15 @@ function TaskMeta({
   display,
   today,
   wishlist,
+  grocery,
 }: {
   task: Task
   display: ListDisplay
   today: string
   /** A wishlist row leads with where to buy it and what it costs. */
   wishlist: boolean
+  /** A grocery row shows the recipe it is for; its aisle is the heading. */
+  grocery: boolean
 }) {
   const tokens = useTokens('home')
   const { t, locale } = useI18n()
@@ -552,9 +556,11 @@ function TaskMeta({
           ? null
           : formatPrice(task.priceCents, locale),
       ].filter(Boolean)
-    : // A grocery row says nothing of its aisle: it sits under the
-      // aisle's heading (APP-310).
-      []
+    : grocery
+      ? // No aisle: the row sits under the aisle's heading (APP-310).
+        // The recipe it is for (APP-312), or the first line of a note.
+        [task.notes?.trim().split('\n')[0] || null].filter(Boolean)
+      : []
   const shown =
     buy.length > 0 ||
     (display.due && task.dueDate) ||
