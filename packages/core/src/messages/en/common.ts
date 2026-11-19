@@ -22,6 +22,7 @@ export const common = {
     copied: 'Copied!',
     retry: 'Try again',
     back: 'Back',
+    signOut: 'Sign out',
   },
   /** Where a list puts what is done: "Completed (3)". */
   completed: 'Completed',

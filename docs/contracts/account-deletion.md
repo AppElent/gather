@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.0.0
+version: 2.1.0
 status: current
 ---
 
@@ -69,11 +69,28 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   again (Clerk only) and Sign out (`apps/mobile/src/features/account/delete/`).
   The refusal is held in memory, so it lasts while the app is open and signed
   in.
+- **On the web, the same run and the same order**, from the Account page's
+  Danger zone (`src/components/account/`). `AccountDeleteProvider` sits in
+  `routes/_app.tsx` above the signed-in gate, so `ensureUser` is unmounted
+  once the purge starts. The `deleteSelfEnabled` gate is the phone's
+  (`@gather/core/account-deletion`). The confirmation names the account and
+  asks for a typed word.
+- **The web confirms a recent sign-in before anything is deleted.** Clerk
+  deletes a login only within ten minutes of the strongest sign-in factor; a
+  browser tab is often older, and finding out after the purge would strand
+  the account. The web asks with Clerk's verify dialog when the sign-in is
+  older than five minutes, and closing it deletes nothing.
+- **Another signed-in tab or device can bring the account back.** It still
+  runs `ensureUser`; once the purge has deleted the `users` row, a reload
+  there while the login is stranded provisions a new, empty account.
+- **Only the iOS app revokes Sign in with Apple** (APP-213). Android and the
+  web delete an Apple-linked account without revoking the grant.
 
 ## Acceptance
 
 - Deleting a Group leaves no row with its `groupId` and no blob only it held.
 - Deleting an account removes its solo Groups, leaves shared Groups intact
   without the person, and finally removes the Clerk user.
-- On the phone, a Clerk refusal after the purge has started stays on screen,
-  with Try again and Sign out, until one of them succeeds.
+- On the phone and the web, a Clerk refusal after the purge has started stays
+  on screen, with Try again and Sign out, until one of them succeeds.
+- On the web, nothing is deleted until Clerk has confirmed a recent sign-in.

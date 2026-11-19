@@ -349,26 +349,7 @@ export const nl = {
       failed: 'Die foto kon niet worden opgeslagen.',
     },
 
-    deleteAccount: {
-      title: 'Account verwijderen',
-      lead: 'Dit kan niet ongedaan worden gemaakt.',
-      goesHeading: 'Verdwijnt met je account',
-      goesBody:
-        'Je bent het enige lid van deze Groepen, dus die verdwijnen, en alles erin verdwijnt mee.',
-      keptHeading: 'Verlaten, niet verwijderd',
-      keptBody:
-        'Deze Groepen hebben andere leden. Jij ziet ze niet meer, en wat jij hebt toegevoegd blijft bij het huishouden.',
-      noGroups: 'Je zit in geen enkele Groep.',
-      submit: 'Verwijder mijn account',
-      confirmTitle: '{email} verwijderen?',
-      confirmBody:
-        'Je account en alles wat alleen jij kon zien wordt definitief verwijderd.',
-      partlyFailed:
-        'Je gegevens zijn verwijderd, maar het account zelf niet. Probeer het opnieuw, of neem contact op met support als het blijft mislukken.',
-      underway: 'Je account wordt verwijderd…',
-      unavailable:
-        'Dit account kan niet vanuit de app worden verwijderd. Neem contact op met support.',
-    },
+    deleteAccount: coreNl.settings.deleteAccount,
 
     testAccount:
       'Dit is het gedeelde testaccount, dus het kan niet worden gewijzigd.',

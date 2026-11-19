@@ -1,10 +1,11 @@
 /**
- * Whether this person may delete their account from the phone.
+ * Whether this person may delete their account, on the phone or the web.
  *
  * Deletion is Convex first, Clerk second (ADR-0032), so a Clerk refusal
  * arrives *after* the household is already being purged — leaving a login
  * with nothing behind it. The only safe moment to ask is before either call,
- * which is why the answer here is "yes" only when Clerk has said yes.
+ * which is why the answer here is "yes" only when Clerk has said yes, and
+ * why both apps ask it before either call.
  *
  * `deleteSelfEnabled` absent is not a yes. It is what an older SDK, a user
  * object still loading, or a shape we did not expect all look like, and

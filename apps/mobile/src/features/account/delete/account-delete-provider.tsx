@@ -27,6 +27,7 @@
  * signed in. Quitting the app, or Clerk ending the session, loses it.
  */
 import { useUser } from '@clerk/expo'
+import { accountDeletion } from '@gather/core/account-deletion'
 import { useAction, useMutation } from 'convex/react'
 import {
   createContext,
@@ -41,7 +42,6 @@ import {
 
 import { useSignOut } from '../../../auth/useSignOut'
 import { api } from '../../../convex/api'
-import { accountDeletion } from '../../../settings/accountDeletion'
 import { revokeAppleSignIn } from './apple-revocation'
 
 /**

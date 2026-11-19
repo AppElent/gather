@@ -16,6 +16,7 @@ export const common = {
     copied: 'Gekopieerd!',
     retry: 'Opnieuw proberen',
     back: 'Terug',
+    signOut: 'Uitloggen',
   },
   completed: 'Voltooid',
   errors: {

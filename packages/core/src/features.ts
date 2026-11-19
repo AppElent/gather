@@ -102,11 +102,11 @@ export const FEATURES = defineFeatures([
   {
     id: 'account-deletion',
     kind: 'floor',
-    status: 'pending-port',
-    platforms: ['mobile'],
-    reason:
-      'ADR-0032 put deletion in the app for App Store 5.1.1(v); the web has no way to start it. The web gets the same cascade in APP-85.',
-    routes: { mobile: [`${ACCOUNT}/delete`] },
+    status: 'parity',
+    platforms: ['web', 'mobile'],
+    // One server path (accounts.deleteAccount, ADR-0032) for both: the phone's
+    // Delete account screen and the web Account page's Danger zone (APP-85).
+    routes: { web: ['_app/account'], mobile: [`${ACCOUNT}/delete`] },
   },
   {
     id: 'language',

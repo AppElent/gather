@@ -14,12 +14,21 @@ const convexAuth = vi.hoisted(() => ({
 const stalled = vi.hoisted(() => ({ value: false }))
 const reloadMock = vi.hoisted(() => vi.fn())
 const navigateMock = vi.hoisted(() => vi.fn())
+const ensureUserMock = vi.hoisted(() => vi.fn())
+const deletion = vi.hoisted(() => ({ underway: false }))
 
 vi.mock('@clerk/react', () => ({ useAuth: () => clerk }))
 
 vi.mock('convex/react', () => ({
   useConvexAuth: () => convexAuth,
-  useMutation: () => vi.fn(),
+  useMutation: () => ensureUserMock,
+}))
+
+// Stands in for the real provider (its own tests drive it): draws the gate
+// until the purge starts, then only the deletion.
+vi.mock('../components/account/AccountDeleteProvider', () => ({
+  AccountDeleteProvider: ({ children }: { children: React.ReactNode }) =>
+    deletion.underway ? <div data-testid="account-delete-underway" /> : children,
 }))
 
 vi.mock('../../convex/_generated/api', () => ({
@@ -50,6 +59,24 @@ beforeEach(() => {
   stalled.value = false
   reloadMock.mockClear()
   navigateMock.mockClear()
+  ensureUserMock.mockClear()
+  deletion.underway = false
+})
+
+test('provisions the account once Convex has authenticated the session', () => {
+  renderWithI18n(<AppLayout />)
+
+  expect(ensureUserMock).toHaveBeenCalledWith({})
+})
+
+test('an account deletion in progress replaces the gate, so nothing re-provisions the account', () => {
+  deletion.underway = true
+
+  renderWithI18n(<AppLayout />)
+
+  expect(screen.getByTestId('account-delete-underway')).toBeInTheDocument()
+  expect(screen.queryByTestId('app-shell')).toBeNull()
+  expect(ensureUserMock).not.toHaveBeenCalled()
 })
 
 test('renders the app once Convex has authenticated the session', () => {

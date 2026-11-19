@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { AccountDeleteSettings } from '../../components/account/AccountDeleteSettings'
 import { DataExportSettings } from '../../components/settings/DataExportSettings'
 import { ProfilePanel } from '../../lib/auth'
 import { useMessages } from '../../lib/i18n'
@@ -17,6 +18,7 @@ function AccountPage() {
       </h1>
       <ProfilePanel />
       <DataExportSettings />
+      <AccountDeleteSettings />
       <p className="m-0 text-sm text-[var(--app-muted)]">
         <Link to="/privacy" className="underline-offset-2 hover:underline">
           {messages.privacy.title}

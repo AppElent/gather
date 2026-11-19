@@ -42,6 +42,56 @@ export const settings = {
     unavailable: 'This device has nowhere to share the file to.',
   },
 
+  /**
+   * "Delete account": the phone's Delete account screen and the web Account
+   * page's Danger zone. What it destroys is said *before* the confirmation
+   * rather than inside it: a dialog is the wrong place to read a list of
+   * households.
+   */
+  deleteAccount: {
+    title: 'Delete account',
+    /** The web's section heading on Account. */
+    dangerZone: 'Danger zone',
+    lead: 'This cannot be undone.',
+    goesHeading: 'Deleted with your account',
+    goesBody:
+      'You are the only member of these Groups, so they go, and everything in them goes with them.',
+    keptHeading: 'Left, not deleted',
+    keptBody:
+      'These Groups have other members. You stop seeing them, and anything you added stays with the household.',
+    noGroups: 'You are not in any Groups.',
+    submit: 'Delete my account',
+    confirmTitle: 'Delete {email}?',
+    confirmBody:
+      'Your account and everything only you could see is deleted for good.',
+    /** The web asks for this word to be typed before the confirm button works. */
+    confirmPhrase: 'DELETE',
+    confirmPhraseLabel: 'Type {phrase} to confirm',
+    /**
+     * The half-way failure, which is real: Convex is purged before Clerk,
+     * because the purge needs a signed-in caller and there is none once the
+     * Clerk user is gone (ADR-0032). Saying "nothing has been removed" here
+     * would be a lie.
+     */
+    partlyFailed:
+      'Your data was deleted, but the account itself could not be. Try again, or contact support if it keeps failing.',
+    /** On screen in place of the app while Clerk deletes the login. */
+    underway: 'Deleting your account…',
+    /** Clerk refuses self-deletion unless the instance allows it. */
+    unavailable:
+      'This account cannot be deleted here. Please contact support.',
+    /**
+     * The web asks Clerk for a recent sign-in before anything is deleted; Clerk
+     * deletes a login only within a few minutes of one.
+     */
+    signInCheckFailed:
+      'Your sign-in could not be confirmed, so nothing was deleted. Try again.',
+    accountChanged:
+      'You are signed in to a different account now. Nothing was deleted.',
+    /** A refusal before anything was deleted, with no reason of its own. */
+    failed: 'Your account could not be deleted. Nothing was deleted.',
+  },
+
   groupSettings: {
     title: 'Group settings',
     description:

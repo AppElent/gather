@@ -1,6 +1,7 @@
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useId, useRef, useState } from 'react'
 import { errorMessage } from '../../lib/errorMessage'
-import { useMessages } from '../../lib/i18n'
+import { fmt, useMessages } from '../../lib/i18n'
+import { inputClass } from '../recipes/fields'
 import { SurfaceCard } from './ShellPrimitives'
 import { useModalFocus } from './useModalFocus'
 
@@ -29,6 +30,13 @@ export interface ConfirmRequest {
   confirmLabel?: string
   /** Shown if `run` rejects with something that carries no message of its own. */
   errorFallback?: string
+  /**
+   * A word to type before the confirming button works, for the one action
+   * that cannot be undone even by a household (deleting the account). The
+   * label carries a `{phrase}` placeholder. Case and surrounding space do not
+   * count.
+   */
+  confirmPhrase?: { phrase: string; label: string }
   /** The work itself. Awaited; if it rejects, the dialog says why. */
   run: () => Promise<unknown> | unknown
 }
@@ -49,10 +57,18 @@ function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const confirmRef = useRef<HTMLButtonElement>(null)
+  const phraseRef = useRef<HTMLInputElement>(null)
+  const phraseId = useId()
+  const [typed, setTyped] = useState('')
   const actions = useMessages().common.actions
+  const { confirmPhrase } = request
+  const phraseMatches =
+    !confirmPhrase ||
+    typed.trim().toLocaleUpperCase() ===
+      confirmPhrase.phrase.toLocaleUpperCase()
   const dialog = useModalFocus<HTMLDivElement>({
     onClose: onCancel,
-    initialFocus: confirmRef,
+    initialFocus: confirmPhrase ? phraseRef : confirmRef,
   })
 
   return (
@@ -77,6 +93,32 @@ function ConfirmDialog({
                 {request.body}
               </div>
             ) : null}
+            {confirmPhrase ? (
+              <label htmlFor={phraseId} className="grid gap-1 text-sm">
+                <span>
+                  {fmt(confirmPhrase.label, { phrase: confirmPhrase.phrase })}
+                </span>
+                <input
+                  id={phraseId}
+                  ref={phraseRef}
+                  value={typed}
+                  onChange={(event) => setTyped(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === 'Enter' &&
+                      !event.nativeEvent.isComposing &&
+                      phraseMatches &&
+                      !busy
+                    )
+                      onConfirm()
+                  }}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  className={inputClass}
+                />
+              </label>
+            ) : null}
             {error ? (
               <p
                 role="alert"
@@ -96,7 +138,7 @@ function ConfirmDialog({
               <button
                 ref={confirmRef}
                 type="button"
-                disabled={busy}
+                disabled={busy || !phraseMatches}
                 onClick={onConfirm}
                 className="inline-flex min-h-9 items-center rounded-[var(--app-radius)] border border-[color-mix(in_oklch,var(--app-danger)_45%,var(--app-border))] px-3 text-sm font-semibold text-[var(--app-danger)] disabled:opacity-60"
               >

@@ -38,6 +38,35 @@ export const settings = {
     unavailable: 'Dit apparaat kan het bestand nergens heen delen.',
   },
 
+  deleteAccount: {
+    title: 'Account verwijderen',
+    dangerZone: 'Gevarenzone',
+    lead: 'Dit kan niet ongedaan worden gemaakt.',
+    goesHeading: 'Verdwijnt met je account',
+    goesBody:
+      'Je bent het enige lid van deze Groepen, dus die verdwijnen, en alles erin verdwijnt mee.',
+    keptHeading: 'Verlaten, niet verwijderd',
+    keptBody:
+      'Deze Groepen hebben andere leden. Jij ziet ze niet meer, en wat jij hebt toegevoegd blijft bij het huishouden.',
+    noGroups: 'Je zit in geen enkele Groep.',
+    submit: 'Verwijder mijn account',
+    confirmTitle: '{email} verwijderen?',
+    confirmBody:
+      'Je account en alles wat alleen jij kon zien wordt definitief verwijderd.',
+    confirmPhrase: 'VERWIJDER',
+    confirmPhraseLabel: 'Typ {phrase} om te bevestigen',
+    partlyFailed:
+      'Je gegevens zijn verwijderd, maar het account zelf niet. Probeer het opnieuw, of neem contact op met support als het blijft mislukken.',
+    underway: 'Je account wordt verwijderd…',
+    unavailable:
+      'Dit account kan hier niet worden verwijderd. Neem contact op met support.',
+    signInCheckFailed:
+      'Je aanmelding kon niet worden bevestigd, dus er is niets verwijderd. Probeer het opnieuw.',
+    accountChanged:
+      'Je bent nu bij een ander account ingelogd. Er is niets verwijderd.',
+    failed: 'Je account kon niet worden verwijderd. Er is niets verwijderd.',
+  },
+
   groupSettings: {
     title: 'Groepsinstellingen',
     description:

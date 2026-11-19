@@ -113,3 +113,62 @@ describe('answering', () => {
     )
   })
 })
+
+describe('a phrase to type first', () => {
+  function PhraseHarness({ run }: { run: () => unknown }) {
+    const { confirm, dialog } = useConfirmAction()
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() =>
+            confirm({
+              title: 'Delete you@example.com?',
+              confirmLabel: 'Delete',
+              confirmPhrase: { phrase: 'DELETE', label: 'Type {phrase} to confirm' },
+              run,
+            })
+          }
+        >
+          Ask
+        </button>
+        {dialog}
+      </div>
+    )
+  }
+
+  test('the confirming button stays off until the phrase is typed, in any case', async () => {
+    const run = vi.fn()
+    renderWithI18n(<PhraseHarness run={run} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Ask' }))
+
+    const field = screen.getByLabelText('Type DELETE to confirm')
+    const confirmButton = screen.getByRole('button', { name: 'Delete' })
+    expect(document.activeElement).toBe(field)
+    expect(confirmButton).toBeDisabled()
+
+    fireEvent.change(field, { target: { value: 'delet' } })
+    fireEvent.keyDown(field, { key: 'Enter' })
+    expect(confirmButton).toBeDisabled()
+    expect(run).not.toHaveBeenCalled()
+
+    fireEvent.change(field, { target: { value: ' delete ' } })
+    expect(confirmButton).toBeEnabled()
+    fireEvent.click(confirmButton)
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  test('Enter in the field confirms once the phrase matches', async () => {
+    const run = vi.fn()
+    renderWithI18n(<PhraseHarness run={run} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Ask' }))
+
+    const field = screen.getByLabelText('Type DELETE to confirm')
+    fireEvent.change(field, { target: { value: 'DELETE' } })
+    fireEvent.keyDown(field, { key: 'Enter' })
+
+    await waitFor(() => expect(run).toHaveBeenCalledTimes(1))
+  })
+})
