@@ -140,6 +140,42 @@ describe('staples', () => {
     expect((await staple(t, id))?.low).toBe(false)
   })
 
+  test('a repeating grocery item checked off restocks and moves on (APP-303)', async () => {
+    const { t, as, groceries } = await seed()
+    const id = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Koffie' })
+    await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true })
+    const [item] = await itemsOn(t, groceries)
+    await t.run((ctx) =>
+      ctx.db.patch(item._id, {
+        dueDate: '2026-11-20',
+        repeat: { mode: 'fixed', unit: 'week', every: 1 },
+      }),
+    )
+    const done = await as.mutation(api.tasks.toggleDone, {
+      groupSlug: SLUG,
+      taskId: item._id,
+      today: '2026-11-20',
+    })
+    expect(done?.dueDate).toBe('2026-11-27')
+    expect((await staple(t, id))?.low).toBe(false)
+    // Still the one item, open for next week: the restock adds nothing.
+    const after = await itemsOn(t, groceries)
+    expect(after.map(({ _id, done }) => ({ _id, done }))).toEqual([
+      { _id: item._id, done: false },
+    ])
+    // Low again and bought through the item sheet: the same.
+    await as.mutation(api.groceryStaples.setLow, { groupSlug: SLUG, id, low: true })
+    expect(await itemsOn(t, groceries)).toHaveLength(1)
+    await as.mutation(api.tasks.update, {
+      groupSlug: SLUG,
+      taskId: item._id,
+      done: true,
+      today: '2026-11-27',
+    })
+    expect((await staple(t, id))?.low).toBe(false)
+    expect((await itemsOn(t, groceries)).map((row) => row.done)).toEqual([false])
+  })
+
   test('every way of checking off restocks: update and check-all', async () => {
     const { t, as, groceries } = await seed()
     const oil = await as.mutation(api.groceryStaples.add, { groupSlug: SLUG, name: 'Olijfolie' })
