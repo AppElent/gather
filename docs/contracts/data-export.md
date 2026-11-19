@@ -50,8 +50,9 @@ everything user-owned belongs to a Group or to a person
   corrections (`groceryCategoryOverrides`) are Group content and go out with
   the Group. Its Staples (`groceryStaples`, APP-314) go out with the Group,
   and so do the Pantry rows they were copied from (`pantryEntries`) until the
-  contract step drops that table. Its per-day question count (`groceryAiGroupUsage`) is spend
-  bookkeeping, excluded like the global one, and deleted with the Group.
+  contract step drops that table. Its per-day question count
+  (`groceryAiGroupUsage`) is spend bookkeeping, excluded like the global one,
+  and deleted with the Group.
 - **No secrets.** `integrationConnections.accessToken` and `groups.inviteCode`
   are omitted columns, listed in the file's `omittedFields`.
 - **Photos as links, not bytes.** A column registered in `FILE_HOLDERS`

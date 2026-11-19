@@ -43,11 +43,11 @@ export async function openKeysOn(
 ): Promise<Set<string>> {
   const items = await ctx.db
     .query('tasks')
-    .withIndex('by_list', (q) => q.eq('listId', listId))
+    .withIndex('by_list_and_done', (q) =>
+      q.eq('listId', listId).eq('done', false),
+    )
     .collect()
-  return new Set(
-    items.filter((item) => !item.done).map((item) => groceryTitleKey(item.title)),
-  )
+  return new Set(items.map((item) => groceryTitleKey(item.title)))
 }
 
 /**

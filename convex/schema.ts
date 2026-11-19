@@ -208,7 +208,9 @@ export default defineSchema({
   })
     .index('by_list', ['listId'])
     // The end of a list without reading all of it (APP-368).
-    .index('by_list_and_order', ['listId', 'order']),
+    .index('by_list_and_order', ['listId', 'order'])
+    // A list's open items without reading what was checked off (APP-314).
+    .index('by_list_and_done', ['listId', 'done']),
 
   /**
    * A Group's own aisle for a grocery name: written when a Member moves an
