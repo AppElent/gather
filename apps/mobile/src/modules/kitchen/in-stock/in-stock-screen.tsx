@@ -93,10 +93,15 @@ export function InStockScreen() {
         <WashHeader
           group="kitchen"
           glyph={UI_ICONS.House}
-          summary={{
-            count: plural(locale, lowCount, words.running),
-            scope: plural(locale, staples.length, words.staples),
-          }}
+          // Blank while loading, rather than a false "0 staples".
+          summary={
+            data
+              ? {
+                  count: plural(locale, lowCount, words.running),
+                  scope: plural(locale, staples.length, words.staples),
+                }
+              : { count: '' }
+          }
         />
         <View style={styles.content}>
           <Text style={[TYPE.subhead, styles.sub, { color: tokens.muted }]}>

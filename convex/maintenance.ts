@@ -223,10 +223,11 @@ export const migratePantryToStaples = internalMutation({
       if (seen.has(seenKey) || (await findStaple(ctx, entry.groupId, key)))
         continue
       seen.add(seenKey)
-      missing++
-      if (!apply) continue
+      // An orphan of a deleted Group has nowhere to go, so it is not missing.
       const group = await ctx.db.get(entry.groupId)
       if (!group) continue
+      missing++
+      if (!apply) continue
       const list = await writableGroceryList(ctx, group)
       const { aisle } = await recogniseGroceryTitle(
         ctx,

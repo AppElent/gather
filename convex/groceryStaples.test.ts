@@ -357,4 +357,15 @@ describe('migratePantryToStaples', () => {
       await t.mutation(internal.maintenance.migratePantryToStaples, { apply: true }),
     ).toMatchObject({ created: 1 })
   })
+
+  test('an orphan of a deleted Group is not counted, so verification reaches zero', async () => {
+    const { t, otherGroup } = await withPantry()
+    await t.run((ctx) => ctx.db.delete(otherGroup))
+    expect(
+      await t.mutation(internal.maintenance.migratePantryToStaples, { apply: true }),
+    ).toMatchObject({ missing: 2, created: 2 })
+    expect(
+      await t.mutation(internal.maintenance.migratePantryToStaples, {}),
+    ).toMatchObject({ missing: 0 })
+  })
 })
