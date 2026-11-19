@@ -325,6 +325,43 @@ describe('moveBabyToGroup', () => {
     expect(groupsOfLists).toEqual([household, household])
   })
 
+  test('carries the history of repeating tasks on those lists (APP-303)', async () => {
+    const { t, noor, todos, household } = await seedBabyLog()
+    const completion = await t.run(async (ctx) => {
+      const list = await ctx.db.get(todos)
+      const alice = (await ctx.db.query('users').first())?._id
+      if (!list || !alice) throw new Error('seed')
+      const taskId = await ctx.db.insert('tasks', {
+        listId: todos,
+        title: 'Vitamin D',
+        done: false,
+        createdBy: alice,
+        order: 0,
+        dueDate: '2026-11-20',
+        repeat: { mode: 'fixed', unit: 'day', every: 1 },
+      })
+      return await ctx.db.insert('taskCompletions', {
+        groupId: list.groupId,
+        taskId,
+        completedBy: alice,
+        completedAt: 0,
+        completedOn: '2026-11-19',
+        previousDueDate: '2026-11-19',
+        nextDueDate: '2026-11-20',
+      })
+    })
+
+    const summary = await t.mutation(moveBaby, {
+      babyId: noor,
+      toGroupSlug: 'jansen-household',
+      apply: true,
+    })
+
+    expect(summary.completionsMoved).toBe(1)
+    const moved = await t.run(async (ctx) => await ctx.db.get(completion))
+    expect(moved?.groupId).toBe(household)
+  })
+
   test('leaves everything alone the second time it is applied', async () => {
     const { t, noor } = await seedBabyLog()
     await t.mutation(moveBaby, {
