@@ -38,6 +38,24 @@ async function sampleGroup(t: ReturnType<typeof testConvex>) {
 }
 
 describe('the Sample household', () => {
+  test('stamps when each checked task was checked, in the past (APP-403)', async () => {
+    const t = testConvex()
+    const before = Date.now()
+    await buildSample(t)
+    const tasks = await t.run((ctx) => ctx.db.query('tasks').collect())
+    const checked = tasks.filter((task) => task.done)
+    expect(checked.length).toBeGreaterThan(0)
+    for (const task of checked) {
+      expect(task.doneAt).toEqual(expect.any(Number))
+      expect(task.doneAt).toBeLessThanOrEqual(Date.now())
+    }
+    expect(tasks.filter((task) => !task.done && task.doneAt)).toEqual([])
+    // Recent shows them on more than one day.
+    expect(
+      checked.some((task) => (task.doneAt ?? before) < before - 86_400_000),
+    ).toBe(true)
+  })
+
   test('is an ordinary Group with an allocated slug', async () => {
     const t = testConvex()
     await buildSample(t)

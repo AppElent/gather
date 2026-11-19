@@ -7,7 +7,8 @@
  * tapped back, and then leaves its aisle for Checked. Checked holds what was
  * checked since the last "Clear checked"; everything checked stays in Recent.
  *
- * The action row opens Recent and In stock (APP-314). Shopping mode and the
+ * The action row opens Recent (on a list Gather can write to) and In stock
+ * (APP-314). Shopping mode and the
  * suggestion strip (APP-315, 311) have no slot here yet: they arrive with
  * their own issues.
  */
@@ -26,7 +27,6 @@ import { moduleHref } from '../moduleDestination'
 import { aisleSections, inCheckedSection } from './groceryList'
 import { useTaskActions } from './store'
 import type { Task, TaskList } from './types'
-import { useLingering } from './useLingering'
 
 export function GroceryListBody({
   list,
@@ -34,10 +34,16 @@ export function GroceryListBody({
   row,
   composer,
   empty,
+  lingering,
   onUndoable,
 }: {
   list: TaskList
   tasks: readonly Task[]
+  /**
+   * Items just checked that still stand in their aisle (`useLingering`); the
+   * screen owns them, so its summary and Clear checked count agree.
+   */
+  lingering: ReadonlySet<string>
   /** One item as a row, the same row every list draws. */
   row: (task: Task) => ReactNode
   /** The add row, or nothing on a list Gather cannot write to. */
@@ -51,10 +57,6 @@ export function GroceryListBody({
   const { t, locale } = useI18n()
   const router = useRouter()
   const actions = useTaskActions()
-  const lingering = useLingering(
-    tasks,
-    list.sync === 'live' || list.sync === 'synced',
-  )
   const [busy, setBusy] = useState(false)
   const g = t.tasks.grocery
 
@@ -85,16 +87,20 @@ export function GroceryListBody({
   return (
     <>
       <View style={styles.actions}>
-        <ActionPill
-          testID="grocery-recent"
-          glyph={UI_ICONS.Clock}
-          label={g.recent.title}
-          onPress={() =>
-            router.push(
-              moduleHref('/all/groceries/recent', { listId: list.id }),
-            )
-          }
-        />
+        {/* Recent puts items back onto this list, so a list Gather cannot
+            write to (a linked one) has no Recent, as it has no composer. */}
+        {list.writable ? (
+          <ActionPill
+            testID="grocery-recent"
+            glyph={UI_ICONS.Clock}
+            label={g.recent.title}
+            onPress={() =>
+              router.push(
+                moduleHref('/all/groceries/recent', { listId: list.id }),
+              )
+            }
+          />
+        ) : null}
         <ActionPill
           testID="grocery-in-stock"
           glyph={UI_ICONS.House}
