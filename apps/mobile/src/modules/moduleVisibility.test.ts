@@ -19,7 +19,7 @@ import {
  * against a catalogue where three Modules are not built on the phone yet; the
  * real catalogue's answer is checked in `storeModules.test.ts`.
  */
-const NOT_ON_THE_PHONE = vi.hoisted(() => ['notes', 'calendar', 'pantry'])
+const NOT_ON_THE_PHONE = vi.hoisted(() => ['notes', 'calendar', 'savings-goals'])
 
 vi.mock('@gather/core/modules', async (importOriginal) => {
   const real = await importOriginal<typeof import('@gather/core/modules')>()
@@ -105,7 +105,7 @@ describe('the store build', () => {
     const arrangement = shownArrangement(
       arrangeModules({
         pinned: ['notes', 'recipes', 'calendar'],
-        hidden: ['pantry', 'beers'],
+        hidden: ['savings-goals', 'beers'],
         order: ['groceries', 'tasks'],
       }),
       true,

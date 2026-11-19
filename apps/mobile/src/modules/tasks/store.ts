@@ -22,6 +22,7 @@ import {
   taskListFace,
 } from '@gather/core/task-lists'
 import type { ReminderClock } from '@gather/core/task-reminders'
+import { nextDueDate, type TaskRepeat } from '@gather/core/task-repeat'
 import type { OptimisticLocalStore } from 'convex/browser'
 import { useAction, useMutation } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
@@ -83,6 +84,7 @@ export function externalEntry(
       dueDate: task.dueDate,
       priority: task.priority,
       labels: task.labels ?? [],
+      repeatText: task.repeatText,
       order,
     })),
   }
@@ -183,6 +185,7 @@ export function mergeTasks(
             quantity: row.quantity,
             unit: row.unit,
             category: row.category,
+            repeat: row.repeat,
             doneAt: row.doneAt,
             assigneeId: row.assigneeId,
             assignmentNotice: row.assignmentNotice,
@@ -235,29 +238,65 @@ export function taskSections<T extends { done: boolean }>(tasks: readonly T[]) {
   }
 }
 
-/** Ticks a task in every cached list that holds it, before the server agrees. */
+/**
+ * Ticks a task in every cached list that holds it, before the server agrees.
+ * An open repeating task is not ticked: it stays open on its next date, the
+ * date the server will work out from the same rule (APP-303).
+ */
 export function toggleInPlace(
   store: OptimisticLocalStore,
-  { taskId }: { taskId: Id<'tasks'> },
+  { taskId, today }: { taskId: Id<'tasks'>; today?: string },
 ) {
   for (const { args, value } of store.getAllQueries(api.tasks.listByList)) {
     if (!value?.some((task) => task._id === taskId)) continue
     store.setQuery(
       api.tasks.listByList,
       args,
-      value.map((task) =>
-        task._id === taskId
-          ? {
-              ...task,
-              done: !task.done,
-              // As the server stamps it, so a fresh check is not taken for
-              // one from before the last "Clear checked" (APP-310).
-              doneAt: task.done ? undefined : Date.now(),
-            }
-          : task,
-      ),
+      value.map((task) => {
+        if (task._id !== taskId) return task
+        if (task.repeat && !task.done && today) {
+          return {
+            ...task,
+            dueDate: nextDueDate(task.repeat, { dueDate: task.dueDate, today }),
+          }
+        }
+        return {
+          ...task,
+          done: !task.done,
+          // As the server stamps it, so a fresh check is not taken for
+          // one from before the last "Clear checked" (APP-310).
+          doneAt: task.done ? undefined : Date.now(),
+        }
+      }),
     )
   }
+}
+
+/**
+ * A repeating task that was just completed, for the screen that shows the
+ * undo toast. Any row or menu can complete one, so the news goes through
+ * here rather than up through every caller.
+ */
+export interface CompletedOccurrence {
+  taskId: string
+  title: string
+  completionId: Id<'taskCompletions'>
+  dueDate: string
+}
+
+const completionListeners = new Set<(done: CompletedOccurrence) => void>()
+
+export function onOccurrenceCompleted(
+  listener: (done: CompletedOccurrence) => void,
+) {
+  completionListeners.add(listener)
+  return () => {
+    completionListeners.delete(listener)
+  }
+}
+
+export function announceCompletion(done: CompletedOccurrence) {
+  for (const listener of completionListeners) listener(done)
 }
 
 const NO_LISTS: readonly ListRow[] = []
@@ -368,6 +407,7 @@ export function useTaskActions() {
   const createList = useMutation(api.taskLists.create)
   const setAppearance = useMutation(api.taskLists.setAppearance)
   const setDoneInList = useMutation(api.tasks.setDoneInList)
+  const undoCompletion = useMutation(api.tasks.undoCompletion)
   const clearChecked = useMutation(api.taskLists.clearChecked)
   const restoreCheckedCleared = useMutation(api.taskLists.restoreCheckedCleared)
   const setAisleOrder = useMutation(api.taskLists.setAisleOrder)
@@ -404,8 +444,27 @@ export function useTaskActions() {
         ...(grocery ? groceryAddFields(title) : { title }),
         ...(sectionId ? { sectionId } : {}),
       }),
-    toggleTask: (id: string) =>
-      toggle({ taskId: id as Id<'tasks'>, groupSlug }),
+    /**
+     * Ticks a task, or completes a repeating one's open occurrence. The
+     * phone's own day goes along, so "after done" counts from it.
+     */
+    toggleTask: async (task: Pick<Task, 'id' | 'title'>) => {
+      const completion = await toggle({
+        taskId: task.id as Id<'tasks'>,
+        groupSlug,
+        today: localIsoDate(),
+      })
+      if (completion) {
+        announceCompletion({ taskId: task.id, title: task.title, ...completion })
+      }
+      return completion
+    },
+    /** Puts the previous date back and forgets the completion. */
+    undoCompletion: (completionId: Id<'taskCompletions'>) =>
+      undoCompletion({ completionId, groupSlug }),
+    /** A rule, or null for no repeat; the server anchors it on the date. */
+    setRepeat: (id: string, repeat: TaskRepeat | null) =>
+      patch(id, { repeat, today: localIsoDate() }),
     renameTask: (id: string, title: string) => patch(id, { title }),
     setDue: (id: string, value: string | undefined) =>
       patch(id, { dueDate: value ?? null }),

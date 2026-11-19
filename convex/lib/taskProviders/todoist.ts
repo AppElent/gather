@@ -24,7 +24,7 @@ async function todoistRequest(
 export interface TodoistApiTask {
   id: string
   content: string
-  due?: { date: string } | null
+  due?: { date: string; is_recurring?: boolean; string?: string } | null
   priority: 1 | 2 | 3 | 4 // API: 4 = most urgent (UI "p1")
   labels?: string[]
   url?: string
@@ -40,6 +40,7 @@ export function mapTodoistTask(t: TodoistApiTask): UnifiedTask {
     priority: (5 - t.priority) as 1 | 2 | 3 | 4,
     labels: t.labels?.length ? t.labels : undefined,
     url: t.url,
+    repeatText: t.due?.is_recurring && t.due.string ? t.due.string : undefined,
   }
 }
 

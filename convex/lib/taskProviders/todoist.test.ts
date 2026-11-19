@@ -28,6 +28,22 @@ describe('mapTodoistTask', () => {
     })
   })
 
+  test("keeps a recurring task's own words for its repeat (APP-303)", () => {
+    const base = { id: '7', content: 'Bins', priority: 1 as const }
+    expect(
+      mapTodoistTask({
+        ...base,
+        due: { date: '2026-11-24', is_recurring: true, string: 'every tue' },
+      }).repeatText,
+    ).toBe('every tue')
+    expect(
+      mapTodoistTask({
+        ...base,
+        due: { date: '2026-11-24', is_recurring: false, string: 'nov 24' },
+      }).repeatText,
+    ).toBeUndefined()
+  })
+
   test('normal priority maps to 4 and empty labels become undefined', () => {
     const task = mapTodoistTask({
       id: '1',

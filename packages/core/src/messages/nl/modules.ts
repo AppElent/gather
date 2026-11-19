@@ -17,10 +17,6 @@ export const byId = {
     label: 'Boodschappen',
     description: 'Een gedeelde boodschappenlijst die jullie samen afvinken.',
   },
-  pantry: {
-    label: 'Voorraadkast',
-    description: 'Houd bij wat er thuis in voorraad is.',
-  },
   'recurring-costs': {
     label: 'Vaste lasten',
     description: 'Houd terugkerende kosten en ieders aandeel bij.',

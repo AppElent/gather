@@ -168,6 +168,14 @@ async function household(t: Harness): Promise<Household> {
       title: 'Rice',
       createdBy: bob,
     })
+    await ctx.db.insert('groceryStaples', {
+      groupId: household,
+      name: 'Rice',
+      key: 'rice',
+      aisle: 'pasta_world',
+      low: false,
+      createdBy: bob,
+    })
 
     // Tasks, notes and the calendar.
     const connectionId = await ctx.db.insert('integrationConnections', {
@@ -218,6 +226,24 @@ async function household(t: Harness): Promise<Household> {
           : {}),
       })
     }
+    const bins = await ctx.db.insert('tasks', {
+      listId: chores,
+      title: 'Bins',
+      done: false,
+      createdBy: alice,
+      order: PAGE_SIZE + 10,
+      dueDate: '2026-11-28',
+      repeat: { mode: 'fixed', unit: 'week', every: 1, weekdays: [6] },
+    })
+    await ctx.db.insert('taskCompletions', {
+      groupId: household,
+      taskId: bins,
+      completedBy: bob,
+      completedAt: 0,
+      completedOn: '2026-11-19',
+      previousDueDate: '2026-11-21',
+      nextDueDate: '2026-11-28',
+    })
     await ctx.db.insert('notes', {
       groupId: household,
       title: 'Wifi',
@@ -494,6 +520,7 @@ describe('what the file contains', () => {
     expect(data.version).toBe(1)
     expect(data.exportedAt).toBe('2026-10-18T12:00:00.000Z')
     expect(data.excludedTables).toEqual([
+      { table: 'appleSignInLinks', reason: 'bookkeeping' },
       { table: 'idempotencyKeys', reason: 'bookkeeping' },
       { table: 'pushDevices', reason: 'bookkeeping' },
       { table: 'scheduledNotifications', reason: 'bookkeeping' },
@@ -524,8 +551,17 @@ describe('what the file contains', () => {
     for (const [table, rows] of Object.entries(household)) {
       expect(rows.length, table).toBeGreaterThan(0)
     }
-    expect(household.tasks).toHaveLength(PAGE_SIZE + 5)
+    // The page of tasks, five more, and the repeating one (APP-303).
+    expect(household.tasks).toHaveLength(PAGE_SIZE + 6)
+    // Who completed it, by name.
+    expect(household.taskCompletions).toEqual([
+      expect.objectContaining({ completedBy: 'Bob', completedOn: '2026-11-19' }),
+    ])
     expect(household.recipes.map((r) => r.title)).toEqual(['Stamppot'])
+    // The Pantry folded into In stock (APP-314): both its rows and the
+    // staples they became go out.
+    expect(household.pantryEntries.map((r) => r.title)).toEqual(['Rice'])
+    expect(household.groceryStaples.map((r) => r.name)).toEqual(['Rice'])
     expect(groupOf(data, 'allotment').notes.map((n) => n.title)).toEqual([
       'Seeds',
     ])

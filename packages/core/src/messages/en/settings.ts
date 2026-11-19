@@ -70,17 +70,41 @@ export const settings = {
     /** The web's section heading on Account. */
     dangerZone: 'Danger zone',
     lead: 'This cannot be undone.',
-    goesHeading: 'Deleted with your account',
+    goesHeading: 'Deleted',
     goesBody:
       'You are the only member of these Groups, so they go, and everything in them goes with them.',
     keptHeading: 'Left, not deleted',
     keptBody:
       'These Groups have other members. You stop seeing them, and anything you added stays with the household.',
     noGroups: 'You are not in any Groups.',
-    submit: 'Delete my account',
-    confirmTitle: 'Delete {email}?',
-    confirmBody:
-      'Your account and everything only you could see is deleted for good.',
+    /**
+     * The choice (APP-392): Gather shares its login with the other AppElent
+     * apps, so deleting it is not Gather's alone. Gather's data comes first;
+     * the whole account names every app it takes with it.
+     */
+    choiceIntro:
+      'You sign in to Gather with your AppElent login, which Foundry, Fairway and Arcade Club use too. Choose what to delete.',
+    dataOnly: {
+      title: 'Delete Gather data only',
+      body: 'Your Groups are deleted or left as shown above. Your AppElent login stays, so Foundry, Fairway and Arcade Club keep working. Signing in to Gather again later starts a new, empty account.',
+      submit: 'Delete Gather data',
+      confirmTitle: 'Delete Gather data for {email}?',
+      confirmBody:
+        'Everything only you could see in Gather is deleted for good. Your AppElent login stays.',
+      /** Said once the purge has started and Gather has signed out. */
+      doneTitle: 'Your Gather data is deleted',
+      doneBody:
+        'You are signed out of Gather on this device. Your AppElent login still works in Foundry, Fairway and Arcade Club.',
+      failed: 'Your Gather data could not be deleted. Nothing was deleted.',
+    },
+    wholeAccount: {
+      title: 'Delete my whole AppElent account',
+      body: 'Also deletes your AppElent login, and with it your data in Gather, Foundry, Fairway and Arcade Club. You can no longer sign in to any of them.',
+      submit: 'Delete my AppElent account',
+      confirmTitle: 'Delete the AppElent account {email}?',
+      confirmBody:
+        'Your login and your data in Gather, Foundry, Fairway and Arcade Club are deleted for good.',
+    },
     /** The web asks for this word to be typed before the confirm button works. */
     confirmPhrase: 'DELETE',
     confirmPhraseLabel: 'Type {phrase} to confirm',
@@ -107,6 +131,23 @@ export const settings = {
       'You are signed in to a different account now. Nothing was deleted.',
     /** A refusal before anything was deleted, with no reason of its own. */
     failed: 'Your account could not be deleted. Nothing was deleted.',
+    /**
+     * The web's Sign in with Apple step (APP-388): before the whole account
+     * goes, Apple's popup lets Gather revoke its access, as Apple requires.
+     * The browser opens the popup only from a click, so it asks for one.
+     */
+    apple: {
+      prompt:
+        'You signed in with Apple. Continue with Apple once more so Apple can stop sharing your details, then your account is deleted. Nothing is deleted until then.',
+      continue: 'Continue with Apple',
+      waiting: 'Waiting for Apple…',
+      popupBlocked:
+        'Your browser blocked the Apple window, so nothing was deleted. Allow pop-ups for this site and try again.',
+      appleMismatch:
+        'That Apple account is not the one linked to this account, so nothing was deleted. Try again and sign in with the Apple account you use for AppElent.',
+      failed:
+        'The Apple window did not finish, so nothing was deleted. Try again.',
+    },
   },
 
   groupSettings: {

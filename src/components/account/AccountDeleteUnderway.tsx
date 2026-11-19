@@ -49,6 +49,17 @@ export function AccountDeleteUnderway({
             {messages.common.actions.signOut}
           </button>
         </div>
+      ) : state.step === 'signingOut' ? (
+        // Gather's data only: on screen while Clerk signs out, before the
+        // sign-in page says the same thing.
+        <div aria-live="polite" className="grid max-w-sm gap-2 text-center">
+          <p className="m-0 text-base font-semibold">
+            {words.dataOnly.doneTitle}
+          </p>
+          <p className="m-0 text-[var(--app-muted)]">
+            {words.dataOnly.doneBody}
+          </p>
+        </div>
       ) : (
         <p
           aria-live="polite"

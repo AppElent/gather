@@ -111,6 +111,10 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
     omit: ['clerkId', 'deletedAt'],
   },
   aiUsage: { scope: 'account', index: 'by_user_and_day' },
+  // A mirror of the login's Apple links, kept by Clerk's webhook so the web
+  // can revoke Sign in with Apple (APP-388): Clerk's data, not Gather's, and
+  // an identifier like the Clerk id the export never writes.
+  appleSignInLinks: { exclude: 'bookkeeping' },
   // Retry receipts for connected apps' creates; the rows they point at go out.
   idempotencyKeys: { exclude: 'bookkeeping' },
   // A phone's push token and the sends queued for it: delivery plumbing, and
@@ -136,7 +140,10 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
   recipeShares: { exclude: 'bookkeeping' },
   mealEntries: { scope: 'group', index: 'by_group' },
   plannedDinners: { scope: 'group', index: 'by_group' },
+  // The Pantry's rows until the contract step (APP-314), and the staples
+  // they became: both go out, so nothing a Group typed is missing.
   pantryEntries: { scope: 'group', index: 'by_group' },
+  groceryStaples: { scope: 'group', index: 'by_group' },
   taskLists: { scope: 'group', index: 'by_group' },
   tasks: {
     scope: 'group',
@@ -144,6 +151,8 @@ const EXPORT_TABLES: { [T in TableNames]: ExportTreatment<T> } = {
     index: 'by_list',
     field: 'listId',
   },
+  // Who completed a repeating task and when (APP-303); names, never ids.
+  taskCompletions: { scope: 'group', index: 'by_group' },
   groceryCategoryOverrides: { scope: 'group', index: 'by_group_and_name' },
   notes: { scope: 'group', index: 'by_group' },
   calendars: { scope: 'group', index: 'by_group' },

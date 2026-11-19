@@ -33,7 +33,9 @@ export const ensureUser = mutation({
     const existing = await getUserByClerkId(ctx, identity.subject)
 
     // Their account is mid-purge. Handing it back a Group here is the one way
-    // account deletion can quietly undo itself (`convex/accounts.ts`).
+    // account deletion can quietly undo itself (`convex/accounts.ts`). Only
+    // the whole-account choice leaves the row under the subject; deleting
+    // Gather's data releases it, so this provisions a fresh account instead.
     if (existing?.deletedAt) throw new ConvexError(ACCOUNT_DELETED)
 
     if (existing) {
