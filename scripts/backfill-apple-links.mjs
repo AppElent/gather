@@ -10,7 +10,8 @@
 //   CLERK_SECRET_KEY=sk_... node scripts/backfill-apple-links.mjs --apply -- --prod
 //
 // Arguments after `--` go to `convex run` (for example `--prod`). Safe to
-// repeat: a link the webhook stored later is newer and is kept.
+// repeat: a link the webhook stored later is newer and is kept. Needs a Node
+// that strips TypeScript by default (22.18 or later), like env-source.mjs.
 //
 // Ported from Foundry (AppElent/workouts `scripts/backfill-apple-links.mjs`).
 import { execFileSync } from 'node:child_process'
