@@ -107,10 +107,23 @@ export const add = mutation({
         title: v.string(),
         quantity: v.optional(v.number()),
         unit: v.optional(groceryUnitValidator),
+        /**
+         * The week menu (APP-321): bring the list up to this amount rather
+         * than add it, so a second run for the same week adds only what is
+         * missing (`planGroceryAdds`).
+         */
+        topUp: v.optional(v.boolean()),
+        /** This line's own source ("Shakshuka di, Tacos do"), over `source`. */
+        source: v.optional(v.string()),
       }),
     ),
   },
-  returns: v.object({ added: v.number(), merged: v.number() }),
+  returns: v.object({
+    added: v.number(),
+    merged: v.number(),
+    /** Top-up lines the list already had enough of. */
+    covered: v.number(),
+  }),
   handler: async (ctx, args) => {
     const {
       user,
@@ -123,7 +136,7 @@ export const add = mutation({
     if (args.lines.length > ADD_LINES_MAX)
       throw new ConvexError('Too many lines at once')
     const lines = args.lines.map(checkedLine)
-    const source = args.source?.trim().slice(0, SOURCE_LENGTH_MAX) || undefined
+    const source = sourceLabel(args.source)
 
     const items = await ctx.db
       .query('tasks')
@@ -150,8 +163,14 @@ export const add = mutation({
     const inserted = new Map<string, Id<'tasks'>>()
     let added = 0
     let merged = 0
+    let covered = 0
     for (const [index, plan] of plans.entries()) {
       const line = lines[index]
+      const note = line.source ?? source
+      if (plan.kind === 'covered') {
+        covered++
+        continue
+      }
       if (plan.kind === 'merge') {
         const taskId = inserted.get(plan.into) ?? (plan.into as Id<'tasks'>)
         const task = await ctx.db.get(taskId)
@@ -159,7 +178,7 @@ export const add = mutation({
         await ctx.db.patch(taskId, {
           quantity: plan.to.quantity,
           unit: plan.to.unit,
-          ...(source && !task.notes ? { notes: source } : {}),
+          ...(note && !task.notes ? { notes: note } : {}),
         })
         merged++
         continue
@@ -179,18 +198,24 @@ export const add = mutation({
         category: grocery.aisle,
         ...(line.quantity !== undefined ? { quantity: line.quantity } : {}),
         ...(line.unit !== undefined ? { unit: line.unit } : {}),
-        ...(source ? { notes: source } : {}),
+        ...(note ? { notes: note } : {}),
       })
       await askAiOnce(ctx, group._id, grocery, taskId)
       inserted.set(pendingItemId(index), taskId)
       added++
     }
-    return { added, merged }
+    return { added, merged, covered }
   },
 })
 
+function sourceLabel(source: string | undefined) {
+  return source?.trim().slice(0, SOURCE_LENGTH_MAX) || undefined
+}
+
 /** A line as stored: a title, and an amount above zero and bounded. */
-function checkedLine(line: GroceryAddLine): GroceryAddLine {
+function checkedLine(
+  line: GroceryAddLine & { source?: string },
+): GroceryAddLine & { source?: string } {
   const title = line.title.trim()
   if (!title || title.length > 500) throw new ConvexError('That is not an item')
   if (line.quantity !== undefined && !isGroceryQuantity(line.quantity))
@@ -201,5 +226,7 @@ function checkedLine(line: GroceryAddLine): GroceryAddLine {
       ? { quantity: roundGroceryQuantity(line.quantity) }
       : {}),
     ...(line.unit !== undefined ? { unit: line.unit } : {}),
+    ...(line.topUp ? { topUp: true } : {}),
+    ...(sourceLabel(line.source) ? { source: sourceLabel(line.source) } : {}),
   }
 }

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import {
   addGroceryAmounts,
+  combineGroceryLines,
   type GroceryListItem,
   planGroceryAdds,
   readIngredientLine,
@@ -181,5 +182,136 @@ describe('planGroceryAdds', () => {
       from: { quantity: 1.5, unit: 'l' },
       to: { quantity: 1.75, unit: 'l' },
     })
+  })
+})
+
+describe('planGroceryAdds with top-up lines (the week menu, APP-321)', () => {
+  const item = (id: string, title: string, extra: Partial<GroceryListItem> = {}): GroceryListItem => ({
+    id,
+    title,
+    done: false,
+    ...extra,
+  })
+
+  test('an item with less grows to what the line asks; one with enough is covered', () => {
+    const items = [item('a', 'Rode uien', { quantity: 3 }), item('b', 'Eieren', { quantity: 12 })]
+    expect(
+      planGroceryAdds(items, [
+        { title: 'Rode uien', quantity: 5, topUp: true },
+        { title: 'Eieren', quantity: 6, topUp: true },
+      ]),
+    ).toEqual([
+      { kind: 'merge', into: 'a', from: { quantity: 3 }, to: { quantity: 5 } },
+      { kind: 'covered', by: 'b', have: { quantity: 12 } },
+    ])
+  })
+
+  test('a second run for the same week adds nothing', () => {
+    const week = [
+      { title: 'Rode paprika', quantity: 4, topUp: true },
+      { title: 'Feta', quantity: 200, unit: 'g' as const, topUp: true },
+      { title: 'Olijfolie', topUp: true },
+    ]
+    // The list after the first run: everything the week asked for.
+    const after = [
+      item('a', 'Rode paprika', { quantity: 4 }),
+      item('b', 'Feta', { quantity: 200, unit: 'g' }),
+      item('c', 'Olijfolie'),
+    ]
+    expect(planGroceryAdds(after, week).map((plan) => plan.kind)).toEqual(['covered', 'covered', 'covered'])
+  })
+
+  test('a meal planned since the first run adds only the difference', () => {
+    const items = [item('a', 'Eieren', { quantity: 6 })]
+    expect(planGroceryAdds(items, [{ title: 'Eieren', quantity: 10, topUp: true }])).toEqual([
+      { kind: 'merge', into: 'a', from: { quantity: 6 }, to: { quantity: 10 } },
+    ])
+  })
+
+  test('the need is measured in the item’s unit: 1,5 kg covers 800 g, 0,5 kg grows to 0,8', () => {
+    expect(
+      planGroceryAdds(
+        [item('a', 'Aardappelen', { quantity: 1.5, unit: 'kg' })],
+        [{ title: 'Aardappelen', quantity: 800, unit: 'g', topUp: true }],
+      ),
+    ).toEqual([{ kind: 'covered', by: 'a', have: { quantity: 1.5, unit: 'kg' } }])
+    expect(
+      planGroceryAdds(
+        [item('a', 'Aardappelen', { quantity: 0.5, unit: 'kg' })],
+        [{ title: 'Aardappelen', quantity: 800, unit: 'g', topUp: true }],
+      ),
+    ).toEqual([
+      {
+        kind: 'merge',
+        into: 'a',
+        from: { quantity: 0.5, unit: 'kg' },
+        to: { quantity: 0.8, unit: 'kg' },
+      },
+    ])
+  })
+
+  test('a name already on the list never gets a second row, even when the units differ', () => {
+    const items = [item('a', 'Tomatenblokjes', { quantity: 2, unit: 'blik' })]
+    expect(planGroceryAdds(items, [{ title: 'Tomatenblokjes', quantity: 400, unit: 'g', topUp: true }])).toEqual([
+      { kind: 'covered', by: 'a', have: { quantity: 2, unit: 'blik' } },
+    ])
+  })
+
+  test('top-up lines for the same item ask together', () => {
+    const items = [item('a', 'Eieren', { quantity: 6 })]
+    expect(
+      planGroceryAdds(items, [
+        { title: 'Eieren', quantity: 4, topUp: true },
+        { title: 'Eieren', quantity: 4, topUp: true },
+      ]),
+    ).toEqual([
+      { kind: 'covered', by: 'a', have: { quantity: 6 } },
+      { kind: 'merge', into: 'a', from: { quantity: 6 }, to: { quantity: 8 } },
+    ])
+  })
+
+  test('a checked item is bought: the line is new', () => {
+    const items = [item('a', 'Eieren', { quantity: 6, done: true })]
+    expect(planGroceryAdds(items, [{ title: 'Eieren', quantity: 6, topUp: true }])).toEqual([{ kind: 'new' }])
+  })
+
+  test('a line without top-up still adds on top (the recipe sheet)', () => {
+    const items = [item('a', 'Eieren', { quantity: 6 })]
+    expect(planGroceryAdds(items, [{ title: 'Eieren', quantity: 6 }])).toEqual([
+      { kind: 'merge', into: 'a', from: { quantity: 6 }, to: { quantity: 12 } },
+    ])
+  })
+})
+
+describe('combineGroceryLines', () => {
+  test('the same item from several recipes is one line, amounts added up', () => {
+    expect(
+      combineGroceryLines([
+        { title: 'Rode uien', quantity: 1 },
+        { title: 'Feta', quantity: 200, unit: 'g' },
+        { title: 'rode ui', quantity: 2 },
+        { title: 'Olijfolie', quantity: 2, unit: 'el' },
+        { title: 'Olijfolie', quantity: 1, unit: 'el' },
+      ]),
+    ).toEqual([
+      { title: 'Rode uien', quantity: 3, from: [0, 2] },
+      { title: 'Feta', quantity: 200, unit: 'g', from: [1] },
+      { title: 'Olijfolie', quantity: 3, unit: 'el', from: [3, 4] },
+    ])
+  })
+
+  test('units that do not add up stay apart; kilos and grams add up', () => {
+    expect(
+      combineGroceryLines([
+        { title: 'Tomatenblokjes', quantity: 1, unit: 'blik' },
+        { title: 'Tomatenblokjes', quantity: 400, unit: 'g' },
+        { title: 'Gehakt', quantity: 0.5, unit: 'kg' },
+        { title: 'Gehakt', quantity: 300, unit: 'g' },
+      ]),
+    ).toEqual([
+      { title: 'Tomatenblokjes', quantity: 1, unit: 'blik', from: [0] },
+      { title: 'Tomatenblokjes', quantity: 400, unit: 'g', from: [1] },
+      { title: 'Gehakt', quantity: 0.8, unit: 'kg', from: [2, 3] },
+    ])
   })
 })
