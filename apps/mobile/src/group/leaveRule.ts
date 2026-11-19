@@ -1,25 +1,44 @@
 /**
- * Whether the phone may offer Leave, drawn from the server's own rule
- * (`groups.leaveGroup`): the only admin cannot walk out while anyone else is
- * still in the Group, because nobody left could rename, delete or hand it on.
+ * Which ways out of the Current Group the phone offers, drawn from the
+ * server's own answer (`groups.leaveStatus`) rather than from counting
+ * Members: `groups.members` skips a membership whose user record is gone, so a
+ * count of it can disagree with what `groups.leaveGroup` allows (APP-362).
  *
- * The phone cannot change roles (Members are managed on the web, ADR-0042), so
- * the server's refusal would name a fix the reader cannot make here. The
- * button says so before it is pressed instead.
+ * - The last Member is not offered Leave: walking out would leave a Group with
+ *   no Members. They are offered Delete instead, whatever their role.
+ * - The only admin, while others remain, sees Leave held back. The phone
+ *   cannot change roles (Members are managed on the web, ADR-0042), so the
+ *   server's refusal would name a fix the reader cannot make here; the button
+ *   says so before it is pressed instead.
+ * - An admin with others still in the Group sees Delete held back.
  */
-export type LeaveRule = 'allowed' | 'only-admin' | 'unknown'
+import type { FunctionReturnType } from 'convex/server'
 
-export function leaveRule(
+import type { api } from '../convex/api'
+
+export type LeaveStatus = FunctionReturnType<typeof api.groups.leaveStatus>
+
+/**
+ * `offer`: pressable. `only-admin` and `others-first`: shown disabled, with a
+ * note saying why. `wait`: disabled while the server answers. `hidden`: not shown.
+ */
+export interface GroupExits {
+  leave: 'offer' | 'only-admin' | 'hidden' | 'wait'
+  delete: 'offer' | 'others-first' | 'hidden' | 'wait'
+}
+
+export function groupExits(
   myRole: 'admin' | 'member' | undefined,
-  /** Every Member of the Group, including the reader; `undefined` while loading. */
-  members: readonly { role: 'admin' | 'member' }[] | undefined,
-): LeaveRule {
-  if (myRole === undefined) return 'unknown'
-  // A Member who is not an admin takes nothing with them the Group needs.
-  if (myRole === 'member') return 'allowed'
-  if (members === undefined) return 'unknown'
-  const othersRemain = members.length > 1
-  const admins = members.filter((member) => member.role === 'admin').length
-  // The reader is one of `admins`; a second one means the Group keeps one.
-  return othersRemain && admins <= 1 ? 'only-admin' : 'allowed'
+  /** The server's answer; `undefined` while loading. */
+  status: LeaveStatus | undefined,
+): GroupExits {
+  const isAdmin = myRole === 'admin'
+  if (status === undefined) {
+    return { leave: 'wait', delete: isAdmin ? 'wait' : 'hidden' }
+  }
+  if (status.leave === 'last-member') return { leave: 'hidden', delete: 'offer' }
+  return {
+    leave: status.leave === 'only-admin' ? 'only-admin' : 'offer',
+    delete: !isAdmin ? 'hidden' : status.canDelete ? 'offer' : 'others-first',
+  }
 }

@@ -4,6 +4,7 @@ import type {
   TaskListColor,
   TaskListIcon,
   TaskListKind,
+  TaskSection,
 } from '@gather/core/task-lists'
 import type { TaskRepeat } from '@gather/core/task-repeat'
 
@@ -41,6 +42,11 @@ export interface TaskList {
    * older than amounts.
    */
   grocery: boolean
+  /**
+   * Its sections in order (APP-357). Empty for a list without any, for a
+   * linked list, and from a server older than sections.
+   */
+  sections: TaskSection[]
 }
 
 export interface Task {
@@ -63,7 +69,21 @@ export interface Task {
   repeat?: TaskRepeat
   /** A linked list's own words for its repeat, such as Todoist's "every week". */
   repeatText?: string
+  /**
+   * The reminder somebody chose (APP-305): a wall clock in the zone it was
+   * set in, and the Member it goes to. Only Gather's own lists have one.
+   */
+  reminder?: TaskReminder
+  /** The section it sits in; none, or one that is gone, is "No section". */
+  sectionId?: string
   order: number
+}
+
+export interface TaskReminder {
+  date: string
+  time: string
+  timeZone: string
+  userId: string
 }
 
 export const SUGGESTED_LABELS = ['house', 'admin', 'car', 'inbox', 'errand']

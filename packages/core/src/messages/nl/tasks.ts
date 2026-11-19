@@ -124,6 +124,35 @@ export const tasks = {
     unit: 'Eenheid',
     aisle: 'Afdeling',
     recognised: 'Herkend zonder AI, ook offline',
+    addLines: {
+      title: 'Op de boodschappenlijst',
+      fromRecipe: 'Uit recept of weekmenu',
+      recipe: 'Recept',
+      recipeServes: {
+        one: 'Recept · voor {count} persoon',
+        other: 'Recept · voor {count} personen',
+      },
+      servings: 'Personen',
+      fewer: 'Minder personen',
+      more: 'Meer personen',
+      toList: 'Naar lijst',
+      noList: 'Nog geen boodschappenlijst',
+      ingredients: 'Ingrediënten',
+      merge: 'Staat er al: {from}, wordt {to}',
+      alreadyOn: 'Staat er al op',
+      inStock: 'Op voorraad in huis',
+      inStockAdding: 'Op voorraad in huis, toch erbij',
+      readWithAi: 'Gelezen met AI · {used} van je {limit} vandaag',
+      readWithAiEarlier: 'Eerder gelezen met AI',
+      reading: 'Lezen met AI…',
+      asText: 'Als tekst toegevoegd',
+      add: { one: 'Zet {count} op de lijst', other: 'Zet {count} op de lijst' },
+      footnote:
+        'Samengevoegd met wat er al op staat. De lijst ziet erbij voor welk recept het is.',
+      edit: 'Wijzigen',
+      editTitle: 'Item wijzigen',
+      failed: 'Dit kon niet worden toegevoegd. Probeer het opnieuw.',
+    },
     aisles: {
       produce: 'Groente en fruit',
       bakery: 'Brood en bakkerij',
@@ -189,14 +218,14 @@ export const tasks = {
       description: 'Taken in en om het huis',
       defaultName: 'Huishouden',
       startsWith:
-        'Begint met 8 voorbeeldklusjes voor de keuken, de badkamer en de rest van het huis. Weghalen kan altijd.',
+        'Begint met 8 voorbeeldklusjes in Keuken, Badkamer en Overal. Weghalen kan altijd.',
     },
     packing: {
       title: 'Paklijst',
       description: 'Afvinken en later alles weer uitvinken',
       defaultName: 'Vakantie',
       startsWith:
-        'Begint met 18 voorbeelditems: kleding, toilettas en spullen voor de kinderen. Weghalen kan altijd.',
+        'Begint met 18 voorbeelditems in Kleding, Toilettas en Kinderen. Weghalen kan altijd.',
     },
     groceries: {
       title: 'Boodschappen',
@@ -317,5 +346,14 @@ export const tasks = {
     travelCot: 'Reisbedje',
     travelToys: 'Speelgoed voor onderweg',
     snacks: 'Tussendoortjes',
+  },
+
+  starterSections: {
+    kitchen: 'Keuken',
+    bathroom: 'Badkamer',
+    everywhere: 'Overal',
+    clothes: 'Kleding',
+    toiletries: 'Toilettas',
+    kids: 'Kinderen',
   },
 } satisfies typeof enTasks

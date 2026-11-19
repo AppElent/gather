@@ -51,8 +51,10 @@ import {
   taskListKindValidator,
   taskPriorityValidator,
   taskProviderValidator,
+  taskReminderValidator,
   taskRepeatValidator,
 } from './lib/taskFields'
+import { taskSectionValidator } from './lib/taskSections'
 import {
   tastingAttributesValidator,
   tastingKindValidator,
@@ -176,6 +178,9 @@ export default defineSchema({
     kind: v.optional(taskListKindValidator),
     icon: v.optional(taskListIconValidator),
     color: v.optional(taskListColorValidator),
+    // APP-357. The list's sections in the order they are drawn; absent on
+    // every list made before them, which reads as no sections.
+    sections: v.optional(v.array(taskSectionValidator)),
   }).index('by_group', ['groupId']),
 
   // Rows exist only for provider === 'local' lists.
@@ -213,6 +218,19 @@ export default defineSchema({
      * `taskCompletions` row.
      */
     repeat: v.optional(taskRepeatValidator),
+    /**
+     * A reminder somebody chose (APP-305); a due date alone sets none. Absent
+     * on every task without one. Its send is a `scheduledNotifications` row
+     * under `taskReminderKey`, kept in step by `lib/taskReminders.ts`.
+     */
+    reminder: v.optional(taskReminderValidator),
+    /**
+     * The section of its list the task sits in (APP-357): an id from
+     * `taskLists.sections`. Absent, or naming a section the list no longer
+     * has, it sits under "No section". Installed apps from before sections
+     * never read it and draw the task as before.
+     */
+    sectionId: v.optional(v.string()),
   })
     .index('by_list', ['listId'])
     // The end of a list without reading all of it (APP-368).
@@ -456,7 +474,10 @@ export default defineSchema({
     // Absent only inside the transaction that inserts the row.
     jobId: v.optional(v.id('_scheduled_functions')),
     generation: v.number(),
-  }).index('by_user_and_key', ['userId', 'dedupeKey']),
+  })
+    .index('by_user_and_key', ['userId', 'dedupeKey'])
+    // A deleted Group's queued sends, found without reading everybody's.
+    .index('by_group', ['payload.groupId']),
 
   babies: defineTable({
     groupId: v.id('groups'),

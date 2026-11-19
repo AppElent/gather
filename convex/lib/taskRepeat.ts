@@ -22,6 +22,7 @@ import {
 import { ConvexError } from 'convex/values'
 import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
+import { shiftedReminder, syncSend } from './taskReminders'
 
 /**
  * The completer's calendar day. A phone sends its own; anything else (an
@@ -75,6 +76,10 @@ export interface Completion {
  * `occurrence` is the due date the caller saw (null for none). When the task
  * has moved on since, this completion already happened, so a retry answers
  * `null` instead of skipping a second date.
+ *
+ * A reminder (APP-305) moves with the due date, the same days on, so it is
+ * about the next occurrence: completing early withdraws the one queued for
+ * the occurrence just done.
  */
 export async function completeOccurrence(
   ctx: MutationCtx,
@@ -97,6 +102,7 @@ export async function completeOccurrence(
   }
   const dueDate = nextDueDate(task.repeat, { dueDate: task.dueDate, today })
   await ctx.db.patch(task._id, { dueDate, done: false })
+  await moveReminder(ctx, task, groupId, dueDate)
   const completionId = await ctx.db.insert('taskCompletions', {
     groupId,
     taskId: task._id,
@@ -107,6 +113,28 @@ export async function completeOccurrence(
     nextDueDate: dueDate,
   })
   return { completionId, dueDate }
+}
+
+/**
+ * Keep a task's reminder at the same distance from its due date after the
+ * date moved to `dueDate`, and queue or withdraw its send to match. Undo
+ * moves it back the same way.
+ */
+export async function moveReminder(
+  ctx: MutationCtx,
+  task: Doc<'tasks'>,
+  groupId: Id<'groups'>,
+  dueDate: string | undefined,
+): Promise<void> {
+  if (!task.reminder) return
+  const reminder = shiftedReminder(task.reminder, task.dueDate, dueDate)
+  if (reminder !== task.reminder) await ctx.db.patch(task._id, { reminder })
+  await syncSend(
+    ctx,
+    { ...task, reminder, dueDate, done: false },
+    groupId,
+    task.reminder,
+  )
 }
 
 export function isRepeating(

@@ -329,6 +329,7 @@ export const en = {
       invite: {
         title: coreEn.settings.group.inviteCode,
         note: coreEn.settings.group.inviteCodeNote,
+        failed: coreEn.settings.group.inviteCodeFailed,
         share: 'Share code',
         shareMessage:
           'Join {group} on Gather: under Groups, choose “{join}” and enter {code}.',
@@ -336,7 +337,8 @@ export const en = {
       /**
        * Leaving the Current Group, in the web's words. The server refuses the
        * only admin while anyone else is still in it (`groups.leaveGroup`); the
-       * phone cannot hand the role on, so the note sends them to the web.
+       * phone cannot hand the role on, so the note sends them to the web. The
+       * last Member deletes the Group instead (`lastMember`).
        */
       leave: {
         button: coreEn.settings.group.leaveButton,
@@ -344,12 +346,13 @@ export const en = {
         body: coreEn.settings.group.leaveBody,
         confirm: coreEn.settings.group.leaveConfirm,
         failed: coreEn.settings.group.leaveFailed,
+        lastMember: coreEn.settings.group.lastMember,
         onlyAdmin:
           'You are the only admin. Make somebody else an admin in this group’s settings on the web, then leave.',
       },
       /**
        * Deleting the Current Group, in the web's words (`settings.group`). The
-       * server allows it only to an admin who is its last Member.
+       * server allows it only to its last Member.
        */
       delete: {
         button: coreEn.settings.group.deleteButton,
@@ -931,6 +934,7 @@ export const en = {
     icons: coreEn.tasks.icons,
     colors: coreEn.tasks.colors,
     starters: coreEn.tasks.starters,
+    starterSections: coreEn.tasks.starterSections,
     packing: coreEn.tasks.packing,
     repeat: coreEn.tasks.repeat,
     wishlist: coreEn.tasks.wishlist,
@@ -998,6 +1002,27 @@ export const en = {
       deleteBody: 'This cannot be undone.',
     },
 
+    /** A list's sections (APP-357): the ⋯ menu's Sections sheet and the hold menu. */
+    sections: {
+      title: 'Sections',
+      /** The heading over tasks in no section, on a list that has sections. */
+      none: 'No section',
+      add: 'Add section',
+      newPlaceholder: 'New section',
+      empty: 'Nothing in this section yet.',
+      moveToSection: 'Move to section…',
+      rename: 'Rename',
+      moveUp: 'Move up',
+      moveDown: 'Move down',
+      delete: 'Delete section',
+      /** The ellipsis on a row of the Sections sheet. */
+      options: 'Options for {name}',
+      deleteTitle: 'Delete the section “{name}”?',
+      deleteBody: 'Its tasks stay on the list, under No section.',
+      hint: 'Move a task between sections with Reorder, or with Move to section in its hold menu.',
+      sheetEmpty: 'No sections yet. A section groups tasks, like Kitchen or Clothes.',
+    },
+
     task: {
       titlePlaceholder: 'What needs doing?',
       due: 'Due date',
@@ -1044,6 +1069,24 @@ export const en = {
       previousMonth: 'Previous month',
       nextMonth: 'Next month',
       overdue: 'Overdue',
+      /**
+       * The Reminder row and its sheet (APP-305). A due date alone sets no
+       * reminder; one is chosen, and it goes to the person who chose it.
+       */
+      reminder: 'Reminder',
+      /** The row's value: `{day}` is Today, Tomorrow, a weekday or a date. */
+      reminderAt: '{day} {time}',
+      reminderSheet: {
+        dueDay: 'On the day at 9:00',
+        eveningBefore: 'The evening before at 19:00',
+        remove: 'No reminder',
+        footnote: 'The reminder goes to you, as a notification on your phone.',
+        /** On a reminder another Member set, which setting one takes over. */
+        someoneElse:
+          'Another member set this reminder, and it goes to them. Setting one here makes it yours.',
+        passed: 'That time has passed. Pick a later one.',
+        failed: 'The reminder could not be set. Try again.',
+      },
     },
   },
 
@@ -1114,6 +1157,8 @@ export const en = {
       notNow: 'Not now',
       continue: 'Continue',
     },
+    /** The button on a task reminder's notification that completes it. */
+    actions: { done: 'Done' },
     failed: 'Could not save that. Try again.',
   },
 

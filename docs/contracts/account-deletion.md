@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Group deletion, account deletion, or any table a Group owns.
-version: 2.1.0
+version: 2.2.0
 status: current
 ---
 
@@ -33,6 +33,14 @@ the app ([ADR-0032](../adr/0032-an-account-is-deleted-in-the-app-and-takes-its-s
   there by hand. Queued push notifications have their scheduled jobs
   cancelled with them (`deletePushData` in `convex/lib/notifications.ts`). [Data export](data-export.md)
   reads the same tables, and its registry fails `pnpm typecheck` for a new one.
+- **A queued send that names a Group goes with the Group.** `destroyGroup`
+  cancels every `scheduledNotifications` row whose payload names the Group
+  (`cancelGroupSends`, by the `by_group` index) before deleting it, and
+  deleting a task or a list withdraws the task's reminder send with it.
+- **A task reminder belongs to the Member it goes to** (`tasks.reminder.userId`).
+  `detachFromGroup` clears that Member's reminders in the Group and cancels
+  their sends, so a Member who left or deleted their account is not reminded
+  and the task shows no reminder for them. An account merge repoints it.
 - The shared grocery aisle cache (`groceryCategoryCache`) and its global
   daily counter (`groceryAiUsage`) carry no Group or person id, so neither a
   Group's nor an account's deletion touches them. While a question is out the

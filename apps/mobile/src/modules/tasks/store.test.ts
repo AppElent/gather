@@ -55,6 +55,7 @@ function listRow(id: string, provider: 'local' | 'notion' | 'todoist') {
     color: null,
     grocery: false,
     writable: provider === 'local',
+    sections: [] as { id: string; name: string }[],
   }
 }
 
@@ -434,6 +435,7 @@ describe('what the writes send', () => {
     kind: 'chores',
     icon: 'sparkles',
     color: 'home',
+    sections: [],
   }
 
   test('toggling one display option keeps the other two', async () => {
@@ -520,5 +522,32 @@ describe('a list’s kind and face', () => {
       icon: 'suitcase',
       color: 'kitchen',
     })
+  })
+})
+
+describe('sections (APP-357)', () => {
+  test('a list’s sections and a task’s section reach the model', () => {
+    const { lists, tasks } = mergeTasks(
+      [
+        {
+          ...listRow('trip', 'local'),
+          sections: [{ id: 'clothes', name: 'Clothes' }],
+        },
+      ],
+      { trip: [{ ...taskRow('socks', 'trip'), sectionId: 'clothes' }] },
+      new Map(),
+    )
+    expect(lists[0].sections).toEqual([{ id: 'clothes', name: 'Clothes' }])
+    expect(tasks[0].sectionId).toBe('clothes')
+  })
+
+  test('a server older than sections reads as a list without any', () => {
+    const { sections: _, ...old } = listRow('old', 'local')
+    const { lists } = mergeTasks(
+      [old as ReturnType<typeof listRow>],
+      { old: [] },
+      new Map(),
+    )
+    expect(lists[0].sections).toEqual([])
   })
 })

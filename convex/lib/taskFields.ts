@@ -58,3 +58,14 @@ export const taskRepeatValidator = v.object({
   monthDay: v.optional(v.number()),
   month: v.optional(v.number()),
 })
+
+/**
+ * A task's reminder (APP-305): the wall clock it was set for, in the zone of
+ * the phone that set it, and the one person it goes to. One per task.
+ */
+export const taskReminderValidator = v.object({
+  date: v.string(), // YYYY-MM-DD
+  time: v.string(), // HH:MM
+  timeZone: v.string(), // IANA
+  userId: v.id('users'),
+})

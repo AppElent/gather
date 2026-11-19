@@ -180,8 +180,11 @@ to groceries`.
 
 1. Source card: `tile-m` kitchen tile, recipe title, `Recept · voor {n}
    personen` / `Recipe · serves {n}`; **Personen / Servings** stepper (scales
-   every amount live; grams round to 25, counts round up); **Naar lijst / To
-   list** row (native menu, the last used grocery list).
+   every amount live; grams and millilitres round to 1 below 50, 5 below 250,
+   then 25; kilos, litres and spoons to halves, quarters below one; counts
+   round up; fewer servings never ask for more than the recipe wrote; Eric,
+   19 Nov 2026, APP-312); **Naar lijst / To list** row (native menu, the last
+   used grocery list).
 2. **Ingrediënten / Ingredients**: checkbox rows (rounded square, `kitchen-text`
    when on), name, amount trailing. Meta per row:
    - merge: `Staat er al: 10, wordt 16` / `Already on the list: 10, becomes 16`

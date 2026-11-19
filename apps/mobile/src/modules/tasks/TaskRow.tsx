@@ -60,7 +60,12 @@ export function TaskRow({
   writable: boolean
   onOpen?: () => void
   /** The hold menu and both swipes. Reorder appears only inside a list. */
-  menu?: { reorder: boolean; onAction: (action: string) => void }
+  menu?: {
+    reorder: boolean
+    /** Whether the list has sections, which adds Move to section (APP-357). */
+    sections?: boolean
+    onAction: (action: string) => void
+  }
   /** The priority bar's colour; no bar at all when absent. */
   bar?: string
   /** What sits under the title. */
@@ -258,7 +263,11 @@ export function TaskRow({
 
   return (
     <NativeContextMenu
-      actions={taskMenuActions(task, t, { writable, reorder: menu.reorder })}
+      actions={taskMenuActions(task, t, {
+        writable,
+        reorder: menu.reorder,
+        sections: menu.sections,
+      })}
       onAction={menu.onAction}
     >
       {swipeable}
@@ -271,11 +280,14 @@ export function TaskComposer({
   listId,
   placeholder,
   grocery = false,
+  sectionId,
 }: {
   listId: string
   placeholder: string
   /** A grocery list: the amount is read off the line, and shown while typed. */
   grocery?: boolean
+  /** The section the composer sits in, which a new task joins (APP-357). */
+  sectionId?: string
 }) {
   const tokens = useTokens('home')
   const actions = useTaskActions()
@@ -288,7 +300,7 @@ export function TaskComposer({
     // Cleared first: the row appears the moment it is accepted, and a second
     // tap cannot submit the same line twice while the write is in flight.
     setDraft('')
-    actions.addTask(listId, title, grocery).then(
+    actions.addTask(listId, title, grocery, sectionId).then(
       () => haptics.itemSaved(),
       () => haptics.actionFailed(),
     )

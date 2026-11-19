@@ -457,3 +457,103 @@ describe('history goes with its task', () => {
     expect(await historyRows(t, two)).toEqual([])
   })
 })
+
+describe('with a reminder (APP-305)', () => {
+  // Friday 19:00 in Amsterdam, the evening before a Saturday task.
+  const FRIDAY_EVENING = {
+    date: '2026-11-20',
+    time: '19:00',
+    timeZone: 'Europe/Amsterdam',
+  }
+  const at = (date: string) => Date.parse(`${date}T18:00:00Z`)
+
+  async function weekly() {
+    const seeded = await seed()
+    const taskId = await seeded.t.withIdentity(alice).mutation(api.tasks.add, {
+      listId: seeded.listId,
+      groupSlug: JANSEN,
+      title: 'Kliko buiten',
+      dueDate: '2026-11-21',
+      repeat: { mode: 'fixed', unit: 'week', every: 1 },
+    })
+    await seeded.t.withIdentity(alice).mutation(api.tasks.setReminder, {
+      taskId,
+      groupSlug: JANSEN,
+      reminder: FRIDAY_EVENING,
+    })
+    const queued = () =>
+      seeded.t.run(async (ctx) =>
+        ctx.db.query('scheduledNotifications').collect(),
+      )
+    return { ...seeded, taskId, queued }
+  }
+
+  test('completing moves the reminder to the next occurrence, undo moves it back', async () => {
+    const { t, taskId, queued } = await weekly()
+    const done = await t
+      .withIdentity(alice)
+      .mutation(api.tasks.toggleDone, { taskId, groupSlug: JANSEN, today: TODAY })
+    expect(await taskRow(t, taskId)).toMatchObject({
+      dueDate: '2026-11-28',
+      reminder: { date: '2026-11-27', time: '19:00' },
+    })
+    expect((await queued()).map((row) => row.at)).toEqual([at('2026-11-27')])
+
+    await t.withIdentity(alice).mutation(api.tasks.undoCompletion, {
+      completionId: done!.completionId,
+      groupSlug: JANSEN,
+    })
+    expect(await taskRow(t, taskId)).toMatchObject({
+      dueDate: '2026-11-21',
+      reminder: { date: '2026-11-20', time: '19:00' },
+    })
+    expect((await queued()).map((row) => row.at)).toEqual([at('2026-11-20')])
+  })
+
+  test('update done:true moves it the same way', async () => {
+    const { t, taskId, queued } = await weekly()
+    await t.withIdentity(alice).mutation(api.tasks.update, {
+      taskId,
+      groupSlug: JANSEN,
+      done: true,
+      today: TODAY,
+    })
+    expect((await taskRow(t, taskId))?.reminder?.date).toBe('2026-11-27')
+    expect((await queued()).map((row) => row.at)).toEqual([at('2026-11-27')])
+  })
+})
+
+describe('a Group deleted by its last Member (APP-362)', () => {
+  test('takes the completion history with it', async () => {
+    const { t, bobId, devries } = await seed()
+    // Bob is De Vries' only Member, and not its admin.
+    await t.run(async (ctx) => {
+      const [membership] = await ctx.db
+        .query('memberships')
+        .withIndex('by_group', (q) => q.eq('groupId', devries))
+        .collect()
+      expect(membership?.userId).toBe(bobId)
+      if (membership) await ctx.db.patch(membership._id, { role: 'member' })
+    })
+    const listId = await t.withIdentity(bob).mutation(api.taskLists.create, {
+      groupSlug: DE_VRIES,
+      name: 'Klusjes',
+      provider: 'local',
+    })
+    const taskId = await t.withIdentity(bob).mutation(api.tasks.add, {
+      listId,
+      groupSlug: DE_VRIES,
+      title: 'Planten',
+      repeat: { mode: 'afterDone', unit: 'day', every: 3 },
+    })
+    await t
+      .withIdentity(bob)
+      .mutation(api.tasks.toggleDone, { taskId, groupSlug: DE_VRIES, today: TODAY })
+    expect(await historyRows(t, taskId)).toHaveLength(1)
+
+    await t
+      .withIdentity(bob)
+      .mutation(api.groups.deleteGroup, { groupId: devries })
+    expect(await historyRows(t, taskId)).toEqual([])
+  })
+})
