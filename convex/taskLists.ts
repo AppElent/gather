@@ -18,6 +18,11 @@ import {
 } from './lib/taskFields'
 import { getAdapter } from './lib/taskProviders'
 import { ProviderAuthError, type UnifiedTask } from './lib/taskProviders/types'
+import {
+  checkedSectionName,
+  checkSectionCount,
+  newSectionId,
+} from './lib/taskSections'
 
 /** The lists of the named Group, and of no other. */
 export const list = query({
@@ -41,6 +46,8 @@ export const list = query({
         kind: l.kind ?? 'plain',
         icon: l.icon ?? null,
         color: l.color ?? null,
+        // APP-357: its sections in order; none on a list made before them.
+        sections: l.sections ?? [],
         // APP-309: whether its items are groceries, with an amount and an
         // aisle — the Group's grocery list, or any list made as one.
         grocery: isGroceryList(group, l),
@@ -68,6 +75,11 @@ export const create = mutation({
     icon: v.optional(taskListIconValidator),
     color: v.optional(taskListColorValidator),
     starterTasks: v.optional(v.array(v.string())),
+    // APP-357: a template's items already in their sections, in the
+    // creator's language. Sent instead of `starterTasks`, never with it.
+    starterSections: v.optional(
+      v.array(v.object({ name: v.string(), tasks: v.array(v.string()) })),
+    ),
   },
   handler: async (ctx, args) => {
     // A list belongs to the Group in the URL, and the connection it links to
@@ -76,13 +88,28 @@ export const create = mutation({
     const { group, user } = await requireGroupBySlug(ctx, args.groupSlug)
     const groupId = group._id
 
-    const starterTasks = checkedStarterTasks(args.starterTasks)
+    if (args.starterTasks && args.starterSections) {
+      throw new ConvexError('Send starter tasks or starter sections, not both')
+    }
+    const starterSections = checkedStarterSections(args.starterSections)
+    const starterTasks = [
+      ...checkedStarterTasks(args.starterTasks).map((title) => ({
+        title,
+        sectionId: undefined as string | undefined,
+      })),
+      ...starterSections.flatMap((section) =>
+        section.tasks.map((title) => ({ title, sectionId: section.id })),
+      ),
+    ]
+    if (starterTasks.length > STARTER_TASKS_MAX) {
+      throw new ConvexError('Too many starter tasks')
+    }
     if (args.provider === 'local') {
       if (args.providerConfig) {
         throw new ConvexError('Local lists take no provider config')
       }
     } else {
-      if (starterTasks.length > 0) {
+      if (starterTasks.length > 0 || starterSections.length > 0) {
         throw new ConvexError('Only a local list starts with tasks')
       }
       if (!args.providerConfig) {
@@ -120,8 +147,13 @@ export const create = mutation({
           ...(args.kind ? { kind: args.kind } : {}),
           ...(args.icon ? { icon: args.icon } : {}),
           ...(args.color ? { color: args.color } : {}),
+          ...(starterSections.length > 0
+            ? {
+                sections: starterSections.map(({ id, name }) => ({ id, name })),
+              }
+            : {}),
         })
-        for (const [order, title] of starterTasks.entries()) {
+        for (const [order, { title, sectionId }] of starterTasks.entries()) {
           // A new grocery list's starter items get their aisles from what is
           // known (APP-353). They do not ask the model: a template holds up to
           // STARTER_TASKS_MAX items, and the daily budget is shared.
@@ -136,6 +168,7 @@ export const create = mutation({
             createdBy: user._id,
             order,
             ...(grocery ? { category: grocery.aisle } : {}),
+            ...(sectionId ? { sectionId } : {}),
           })
         }
         // A list made as the groceries becomes the Group's grocery list, which
@@ -167,6 +200,19 @@ function checkedStarterTasks(titles: readonly string[] | undefined): string[] {
     }
     return trimmed
   })
+}
+
+/** A template's sections, each with a new id, checked like starter tasks. */
+function checkedStarterSections(
+  sections: readonly { name: string; tasks: readonly string[] }[] | undefined,
+): { id: string; name: string; tasks: string[] }[] {
+  if (!sections) return []
+  checkSectionCount(sections.length)
+  return sections.map((section) => ({
+    id: newSectionId(),
+    name: checkedSectionName(section.name),
+    tasks: checkedStarterTasks(section.tasks),
+  }))
 }
 
 /** A list's tile: its colour, its icon, or both. */

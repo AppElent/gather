@@ -15,6 +15,7 @@
  */
 import { type MenuAction, MenuView } from '@expo/ui/community/menu'
 import {
+  groupBySection,
   hasLinkAndPrice,
   keepsCheckedInPlace,
   taskUrlHost,
@@ -47,6 +48,7 @@ import { TASK_ICONS, TASK_LIST_GLYPHS } from './icons'
 import { AppearanceSheet } from './listFace'
 import { PackingProgress, UncheckAll } from './packing'
 import { ReorderMode } from './ReorderMode'
+import { SectionHeading, SectionsSheet } from './sections'
 import { RenameSheet } from './sheets'
 import { taskSections, useTaskActions, useTaskList } from './store'
 import { TaskComposer, TaskRow } from './TaskRow'
@@ -91,6 +93,7 @@ export function TaskList({
 
   const [renamingList, setRenamingList] = useState(false)
   const [restyling, setRestyling] = useState(false)
+  const [editingSections, setEditingSections] = useState(false)
   const [reordering, setReordering] = useState(false)
   const taskSheets = useTaskSheets({
     tasks,
@@ -118,6 +121,10 @@ export function TaskList({
   // A grocery row carries its amount at the end and its aisle under the name
   // (APP-309); grouping by aisle is APP-310's.
   const grocery = list.grocery
+  // Each section is its own labelled inset list (APP-357), "No section"
+  // first; a list without sections is one unlabelled list, as before.
+  const sectioned = list.sections.length > 0
+  const groups = groupBySection(list.sections, listed)
 
   // Whether a provider rather than Convex holds the rows. Not `!writable`:
   // being linked and being read-only are separate facts that only coincide
@@ -147,6 +154,7 @@ export function TaskList({
     if (action === 'reorder') setReordering(true)
     if (action === 'rename') setRenamingList(true)
     if (action === 'appearance') setRestyling(true)
+    if (action === 'sections') setEditingSections(true)
     if (action === 'delete') confirmDeleteList()
     menuExtras.find((extra) => extra.id === action)?.onPress()
   }
@@ -202,6 +210,7 @@ export function TaskList({
       onOpen={() => openTask(task)}
       menu={{
         reorder: true,
+        sections: sectioned,
         onAction: (action) => taskSheets.onAction(task, action),
       }}
     />
@@ -271,6 +280,12 @@ export function TaskList({
                           title: t.tasks.appearance.title,
                           image: 'paintpalette' as const,
                         },
+                        {
+                          id: 'sections',
+                          title: t.tasks.sections.title,
+                          image: 'rectangle.split.1x2' as const,
+                          attributes: { disabled: !list.writable },
+                        },
                       ]),
                   ...menuExtras.map(({ id, title, image }) => ({
                     id,
@@ -334,13 +349,14 @@ export function TaskList({
           {reordering ? (
             <ReorderMode
               tasks={listed}
+              sections={list.sections}
               display={list.display}
               today={today}
               scrollRef={scrollRef}
               onDragging={setDragging}
-              onCommit={(ids) =>
+              onCommit={(ids, sectionIds) =>
                 actions
-                  .reorderTasks(list.id, ids)
+                  .reorderTasks(list.id, ids, sectionIds)
                   .catch(() => haptics.actionFailed())
               }
             />
@@ -383,28 +399,53 @@ export function TaskList({
                 <PackingProgress done={doneCount} total={tasks.length} />
               ) : null}
 
-              <InsetList>
-                {tasks.length === 0 ? (
-                  <View style={styles.emptyRow}>
-                    <Text style={[styles.empty, { color: tokens.muted }]}>
-                      {linked && list.sync === 'loading'
-                        ? fmt(t.tasks.list.loading, { provider: list.provider })
-                        : t.tasks.list.empty}
-                    </Text>
+              {groups.map((section, index) => {
+                // The last section holds the composer, which adds to it.
+                const composer = list.writable && index === groups.length - 1
+                return (
+                  <View key={section.id ?? 'none'} style={styles.section}>
+                    {sectioned ? (
+                      <SectionHeading
+                        name={section.name ?? t.tasks.sections.none}
+                      />
+                    ) : null}
+                    <InsetList>
+                      {!sectioned && tasks.length === 0 ? (
+                        <View style={styles.emptyRow}>
+                          <Text style={[styles.empty, { color: tokens.muted }]}>
+                            {linked && list.sync === 'loading'
+                              ? fmt(t.tasks.list.loading, {
+                                  provider: list.provider,
+                                })
+                              : t.tasks.list.empty}
+                          </Text>
+                        </View>
+                      ) : null}
+                      {sectioned && section.tasks.length === 0 && !composer ? (
+                        <View style={styles.emptyRow}>
+                          <Text style={[styles.empty, { color: tokens.muted }]}>
+                            {t.tasks.sections.empty}
+                          </Text>
+                        </View>
+                      ) : null}
+                      {section.tasks.map(row)}
+                      {composer ? (
+                        <TaskComposer
+                          listId={list.id}
+                          placeholder={
+                            addPlaceholder ??
+                            (grocery
+                              ? t.kitchen.addGroceryItem
+                              : t.tasks.list.addTask)
+                          }
+                          grocery={grocery}
+                          sectionId={section.id ?? undefined}
+                        />
+                      ) : null}
+                    </InsetList>
                   </View>
-                ) : null}
-                {listed.map(row)}
-                {list.writable ? (
-                  <TaskComposer
-                    listId={list.id}
-                    placeholder={
-                      addPlaceholder ??
-                      (grocery ? t.kitchen.addGroceryItem : t.tasks.list.addTask)
-                    }
-                    grocery={grocery}
-                  />
-                ) : null}
-              </InsetList>
+                )
+              })}
 
               <CompletedSection
                 count={finished.length}
@@ -433,6 +474,9 @@ export function TaskList({
       ) : null}
       {restyling ? (
         <AppearanceSheet list={list} onClose={() => setRestyling(false)} />
+      ) : null}
+      {editingSections ? (
+        <SectionsSheet list={list} onClose={() => setEditingSections(false)} />
       ) : null}
     </>
   )
@@ -550,6 +594,8 @@ function TaskMeta({
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: SPACE[4], gap: SPACE[4] },
+  /** A section's heading sits 8 pt above its inset list (the Tasks study). */
+  section: { gap: SPACE[2] },
   headerButton: { paddingHorizontal: 6, paddingVertical: 6 },
   /**
    * A navigation-bar action, dressed the way the platform dresses one: 17pt

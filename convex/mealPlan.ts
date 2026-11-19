@@ -231,6 +231,51 @@ export const candidates = query({
   },
 })
 
+/**
+ * The ingredients of the Recipes planned in a range, for the week menu's
+ * grocery sheet (APP-321): one entry per Recipe still visible in the Group,
+ * with the servings its amounts are written for. Quick meals and Recipes no
+ * longer visible have no entry; the phone lists those as meals to check.
+ */
+export const weekIngredients = query({
+  args: { groupSlug: v.string(), from: v.string(), to: v.string() },
+  returns: v.array(
+    v.object({
+      _id: v.id('recipes'),
+      title: v.string(),
+      servings: v.optional(v.number()),
+      ingredients: v.array(v.string()),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    requireRange(args.from, args.to)
+    const { group } = await requireGroupBySlug(ctx, args.groupSlug)
+    const rows = await ctx.db
+      .query('plannedDinners')
+      .withIndex('by_group_date', (q) =>
+        q.eq('groupId', group._id).gte('date', args.from).lte('date', args.to),
+      )
+      .collect()
+    const ids = [
+      ...new Set(
+        rows.flatMap((row) => (row.recipeId ? [row.recipeId] : [])),
+      ),
+    ]
+    const recipes = await Promise.all(ids.map((id) => ctx.db.get(id)))
+    return recipes
+      .filter(
+        (recipe): recipe is Doc<'recipes'> =>
+          recipe !== null && isVisibleToGroups(recipe, [group._id]),
+      )
+      .map((recipe) => ({
+        _id: recipe._id,
+        title: recipe.title,
+        ...(recipe.servings !== undefined ? { servings: recipe.servings } : {}),
+        ingredients: recipe.ingredients,
+      }))
+  },
+})
+
 /** The title and time a Recipe or quick meal is planned with. */
 async function candidateFields(
   ctx: QueryCtx,

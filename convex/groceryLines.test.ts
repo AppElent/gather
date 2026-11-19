@@ -89,7 +89,7 @@ describe('groceryLines.add', () => {
         { title: 'Tomatenblokjes', quantity: 2, unit: 'blik' },
       ],
     })
-    expect(result).toEqual({ added: 2, merged: 2 })
+    expect(result).toEqual({ added: 2, merged: 2, covered: 0 })
 
     const rows = await t.run((ctx) =>
       ctx.db
@@ -123,6 +123,49 @@ describe('groceryLines.add', () => {
       order: 4,
     })
     expect(rows).toHaveLength(5)
+  })
+
+  test('the week menu tops up: a second run for the same week adds nothing', async () => {
+    const { t, as, groceries, eggs, onions } = await seed()
+    const week = {
+      groupSlug: SLUG,
+      listId: groceries,
+      source: 'Weekmenu 23 tot 29 november',
+      lines: [
+        // 10 eggs are on the list: the week's 12 make it 12, not 22.
+        { title: 'Eieren', quantity: 12, topUp: true, source: 'Shakshuka di, Omelet do' },
+        // "ui" has no amount, so it is one: the week's 2 make it 2.
+        { title: 'Ui', quantity: 2, topUp: true, source: 'Shakshuka · di' },
+        { title: 'Feta', quantity: 200, unit: 'g' as const, topUp: true, source: 'Shakshuka · di' },
+      ],
+    }
+    expect(await as.mutation(api.groceryLines.add, week)).toEqual({ added: 1, merged: 2, covered: 0 })
+    const after = await t.run((ctx) =>
+      ctx.db
+        .query('tasks')
+        .withIndex('by_list', (q) => q.eq('listId', groceries))
+        .collect(),
+    )
+    expect(after.find((row) => row._id === eggs)).toMatchObject({
+      quantity: 12,
+      notes: 'Shakshuka di, Omelet do',
+    })
+    expect(after.find((row) => row._id === onions)).toMatchObject({ quantity: 2, notes: 'De rode' })
+    expect(after.find((row) => row.title === 'Feta' && !row.done)).toMatchObject({
+      quantity: 200,
+      unit: 'g',
+      notes: 'Shakshuka · di',
+    })
+
+    // The same week again: everything is there already.
+    expect(await as.mutation(api.groceryLines.add, week)).toEqual({ added: 0, merged: 0, covered: 3 })
+    const again = await t.run((ctx) =>
+      ctx.db
+        .query('tasks')
+        .withIndex('by_list', (q) => q.eq('listId', groceries))
+        .collect(),
+    )
+    expect(again).toEqual(after)
   })
 
   test('a name twice in one add is one item', async () => {

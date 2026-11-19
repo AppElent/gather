@@ -73,6 +73,7 @@ import {
   weekdayName,
   weekRange,
 } from './week'
+import { WeekGroceriesSheet } from './week-groceries-sheet'
 
 /**
  * Meal preferences is APP-318's screen. Until its route is on main there is
@@ -93,6 +94,8 @@ type Sheet =
       /** Something else: the meal Pick replaces, keeping its servings. */
       replacing?: Id<'plannedDinners'>
     }
+  /** The week's ingredients onto the grocery list (APP-321). */
+  | { kind: 'groceries' }
 
 interface Drag {
   meal: PlannedMeal
@@ -363,7 +366,8 @@ export function MealPlannerScreen() {
               <Pressable
                 accessibilityRole="button"
                 testID="meal-planner-groceries"
-                onPress={() => router.push(moduleHref('/all/groceries'))}
+                disabled={!data}
+                onPress={() => setSheet({ kind: 'groceries' })}
                 style={({ pressed }) => [
                   styles.pill,
                   { backgroundColor: tokens.surface },
@@ -487,6 +491,14 @@ export function MealPlannerScreen() {
           week={data}
           onClose={() => setSheet(null)}
           onFailed={() => showToast({ message: words.failed })}
+        />
+      ) : null}
+      {data && sheet?.kind === 'groceries' ? (
+        <WeekGroceriesSheet
+          key={weekStart}
+          data={data}
+          weekStart={weekStart}
+          onClose={() => setSheet(null)}
         />
       ) : null}
       {toast}

@@ -12,7 +12,7 @@
  *
  * No display strings live here (i18n standard): kinds, icons, colours and
  * starter items are keys, resolved in the message trees under `tasks.kinds`,
- * `tasks.icons`, `tasks.colors` and `tasks.starters`.
+ * `tasks.icons`, `tasks.colors`, `tasks.starters` and `tasks.starterSections`.
  */
 import type { ModuleGroup } from './modules'
 
@@ -45,59 +45,87 @@ export const TASK_LIST_COLORS = [
 ] as const satisfies readonly ModuleGroup[]
 export type TaskListColor = (typeof TASK_LIST_COLORS)[number]
 
-/** Starter items a template begins with: keys into `tasks.starters`. */
-export const TASK_STARTERS = {
+/**
+ * Starter items a template begins with, already in sections (APP-357): keys
+ * into `tasks.starterSections` for the section's name and `tasks.starters`
+ * for each item's title.
+ */
+export const TASK_STARTER_SECTIONS = {
   chores: [
-    'bins',
-    'fridge',
-    'dishwasher',
-    'bathroom',
-    'towels',
-    'plants',
-    'vacuum',
-    'windows',
+    { section: 'kitchen', items: ['bins', 'fridge', 'dishwasher'] },
+    { section: 'bathroom', items: ['bathroom', 'towels'] },
+    { section: 'everywhere', items: ['plants', 'vacuum', 'windows'] },
   ],
   packing: [
-    'rainJackets',
-    'walkingShoes',
-    'jumpers',
-    'swimwear',
-    'underwear',
-    'socks',
-    'pyjamas',
-    'toothbrushes',
-    'toothpaste',
-    'sunscreen',
-    'medicines',
-    'deodorant',
-    'shampoo',
-    'nappies',
-    'cuddlyToy',
-    'travelCot',
-    'travelToys',
-    'snacks',
+    {
+      section: 'clothes',
+      items: [
+        'rainJackets',
+        'walkingShoes',
+        'jumpers',
+        'swimwear',
+        'underwear',
+        'socks',
+        'pyjamas',
+      ],
+    },
+    {
+      section: 'toiletries',
+      items: [
+        'toothbrushes',
+        'toothpaste',
+        'sunscreen',
+        'medicines',
+        'deodorant',
+        'shampoo',
+      ],
+    },
+    {
+      section: 'kids',
+      items: ['nappies', 'cuddlyToy', 'travelCot', 'travelToys', 'snacks'],
+    },
   ],
 } as const
-export type TaskStarterKey =
-  (typeof TASK_STARTERS)[keyof typeof TASK_STARTERS][number]
+type StarterSections =
+  (typeof TASK_STARTER_SECTIONS)[keyof typeof TASK_STARTER_SECTIONS][number]
+export type TaskStarterSectionKey = StarterSections['section']
+export type TaskStarterKey = StarterSections['items'][number]
+
+/** One section of a template: its name's key and its items' keys. */
+export interface TaskStarterSection {
+  section: TaskStarterSectionKey
+  items: readonly TaskStarterKey[]
+}
 
 /** What a template sets up before anyone changes it. */
 export interface TaskListTemplate {
   icon: TaskListIcon
   color: TaskListColor
-  starters: readonly TaskStarterKey[]
+  /** The starter items, section by section; empty for a list that starts empty. */
+  sections: readonly TaskStarterSection[]
 }
 
 export const TASK_LIST_TEMPLATES: Record<TaskListKind, TaskListTemplate> = {
-  plain: { icon: 'list', color: 'home', starters: [] },
-  chores: { icon: 'sparkles', color: 'home', starters: TASK_STARTERS.chores },
+  plain: { icon: 'list', color: 'home', sections: [] },
+  chores: {
+    icon: 'sparkles',
+    color: 'home',
+    sections: TASK_STARTER_SECTIONS.chores,
+  },
   packing: {
     icon: 'suitcase',
     color: 'money',
-    starters: TASK_STARTERS.packing,
+    sections: TASK_STARTER_SECTIONS.packing,
   },
-  groceries: { icon: 'cart', color: 'kitchen', starters: [] },
-  wishlist: { icon: 'gift', color: 'tasting', starters: [] },
+  groceries: { icon: 'cart', color: 'kitchen', sections: [] },
+  wishlist: { icon: 'gift', color: 'tasting', sections: [] },
+}
+
+/** Every starter item of a template, in order, across its sections. */
+export function templateStarters(
+  template: TaskListTemplate,
+): readonly TaskStarterKey[] {
+  return template.sections.flatMap((section) => section.items)
 }
 
 /** The four icons offered after the kind's own, which always comes first. */
@@ -195,4 +223,44 @@ export function taskUrlHost(url: string): string {
   } catch {
     return url
   }
+}
+
+/**
+ * A list's sections (APP-357): named groups its tasks sit in, in the order
+ * they are drawn. A task without a section, or with one the list no longer
+ * has, sits under "No section".
+ */
+export interface TaskSection {
+  id: string
+  name: string
+}
+
+/** The most sections a list may have, and the longest section name. */
+export const TASK_SECTIONS_MAX = 30
+export const TASK_SECTION_NAME_MAX = 80
+
+/**
+ * Tasks grouped by section, in the list's section order, with the tasks that
+ * have no section (or a section that is gone) first, under `id: null`. Each
+ * group keeps the order the tasks arrived in. The no-section group is left out
+ * when it is empty and the list has sections; a list without sections is one
+ * group of everything.
+ */
+export function groupBySection<T extends { sectionId?: string | null }>(
+  sections: readonly TaskSection[],
+  tasks: readonly T[],
+): { id: string | null; name: string | null; tasks: T[] }[] {
+  const known = new Set(sections.map((section) => section.id))
+  const loose = tasks.filter(
+    (task) => !task.sectionId || !known.has(task.sectionId),
+  )
+  const groups = sections.map((section) => ({
+    id: section.id as string | null,
+    name: section.name as string | null,
+    tasks: tasks.filter((task) => task.sectionId === section.id),
+  }))
+  if (sections.length === 0 || loose.length > 0) {
+    groups.unshift({ id: null, name: null, tasks: loose })
+  }
+  return groups
 }
