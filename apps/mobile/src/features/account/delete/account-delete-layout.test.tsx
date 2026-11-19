@@ -123,6 +123,9 @@ vi.mock('../../../i18n', async () => {
   const { en } = await import('../../../i18n/messages/en')
   return { useI18n: () => ({ t: en }) }
 })
+vi.mock('../../notifications/push/push-task-done', () => ({
+  PushTaskDone: () => null,
+}))
 vi.mock('../../../theme/tokens', () => ({ useTokens: () => ({ bg: '#fff' }) }))
 vi.mock('./account-delete-underway-screen', () => ({
   AccountDeleteUnderwayScreen: ({

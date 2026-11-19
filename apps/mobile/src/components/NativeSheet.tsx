@@ -30,6 +30,11 @@ export interface NativeSheetProps {
    * Replaces the close button; Cancel dismisses exactly as it would.
    */
   confirm?: SheetConfirm
+  /**
+   * The form sheet's bar with Cancel and the title only, for a sheet whose
+   * confirming action is its own button at the bottom (Add to groceries).
+   */
+  cancelBar?: boolean
 }
 
 export interface SheetConfirm {
@@ -58,6 +63,7 @@ export function NativeSheet({
   fill = false,
   background = 'surface',
   confirm,
+  cancelBar = false,
 }: NativeSheetProps) {
   const ref = useRef<BottomSheetModal>(null)
   const closed = useRef(false)
@@ -94,7 +100,7 @@ export function NativeSheet({
           { paddingTop: Platform.OS === 'ios' ? 8 : 0 },
         ]}
       >
-        {confirm ? (
+        {confirm || cancelBar ? (
           <FormBar title={title} confirm={confirm} onCancel={dismiss} />
         ) : (
         <View style={styles.heading}>
@@ -140,13 +146,13 @@ function FormBar({
   onCancel,
 }: {
   title: string
-  confirm: SheetConfirm
+  confirm?: SheetConfirm
   onCancel: () => void
 }) {
   const tokens = useTokens()
-  const accent = useTokens(confirm.group)
+  const accent = useTokens(confirm?.group)
   const { t } = useI18n()
-  const inert = confirm.disabled || confirm.busy
+  const inert = confirm?.disabled || confirm?.busy
   return (
     <View style={styles.bar}>
       <Pressable
@@ -168,29 +174,39 @@ function FormBar({
       <Text
         accessibilityRole="header"
         numberOfLines={1}
-        style={[styles.barTitle, { color: tokens.ink }]}
+        style={[
+          styles.barTitle,
+          confirm ? styles.barTitleShared : styles.barTitleOpen,
+          { color: tokens.ink },
+        ]}
       >
         {title}
       </Text>
-      <Pressable
-        testID={confirm.testID}
-        accessibilityRole="button"
-        accessibilityLabel={confirm.label}
-        accessibilityState={{ disabled: inert, busy: confirm.busy }}
-        disabled={inert}
-        onPress={confirm.onPress}
-        hitSlop={8}
-        style={({ pressed }) => [
-          styles.barButton,
-          { backgroundColor: accent.accent },
-          inert && styles.disabled,
-          pressed && styles.pressed,
-        ]}
-      >
-        <Text style={[styles.barConfirm, { color: accent.onAccent }]}>
-          {confirm.label}
-        </Text>
-      </Pressable>
+      {confirm ? (
+        <Pressable
+          testID={confirm.testID}
+          accessibilityRole="button"
+          accessibilityLabel={confirm.label}
+          accessibilityState={{ disabled: inert, busy: confirm.busy }}
+          disabled={inert}
+          onPress={confirm.onPress}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.barButton,
+            { backgroundColor: accent.accent },
+            inert && styles.disabled,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={[styles.barConfirm, { color: accent.onAccent }]}>
+            {confirm.label}
+          </Text>
+        </Pressable>
+      ) : (
+        // Room opposite Cancel so a short title sits in the middle; it gives
+        // way first when the title needs the width.
+        <View style={styles.barSpacer} />
+      )}
     </View>
   )
 }
@@ -231,7 +247,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  barTitle: { ...TYPE.bodyStrong, flex: 1, textAlign: 'center' },
+  barTitle: { ...TYPE.bodyStrong, textAlign: 'center' },
+  barTitleShared: { flex: 1 },
   barLabel: { ...TYPE.body },
   barConfirm: { ...TYPE.bodyStrong },
+  // Its own width first, so the spacer shrinks before the title does.
+  barTitleOpen: { flexGrow: 1, flexShrink: 1 },
+  barSpacer: { width: 96, flexShrink: 1000 },
 })

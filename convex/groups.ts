@@ -306,6 +306,77 @@ async function adminsOf(ctx: QueryCtx, groupId: Id<'groups'>) {
   return memberships.filter(isAdmin)
 }
 
+/**
+ * Whether the caller may leave a Group, and why not.
+ *
+ * - `last-member`: nobody else is in it. Leaving would leave a Group with no
+ *   Members that nobody can reach again, so they delete it instead.
+ * - `only-admin`: others remain and none of them is an admin. Nobody left
+ *   could rename, delete or hand the Group on.
+ * - `allowed`: anything else.
+ */
+export type LeaveStatus = 'allowed' | 'only-admin' | 'last-member'
+
+const leaveStatusValidator = v.union(
+  v.literal('allowed'),
+  v.literal('only-admin'),
+  v.literal('last-member'),
+)
+
+/** The refusals `leaveGroup` and `deleteGroup` give for the rule below. */
+const LAST_MEMBER = 'You are the last member. Delete the group instead.'
+const ONLY_ADMIN =
+  'You are the only admin. Make somebody else an admin before you leave.'
+
+/**
+ * The caller's ways out of a Group, read from its memberships: one rule for
+ * `leaveGroup`, `deleteGroup` and `leaveStatus`, so what the apps offer and
+ * what the server allows cannot drift apart.
+ *
+ * A membership whose user record is gone is nobody: it has no name on the
+ * Members list, it cannot be made an admin, and it cannot leave. Counting it
+ * would hold the door for a person who is not there, with no way to satisfy
+ * the refusal (APP-362).
+ *
+ * Deleting is open to the last Member whatever their role: once everyone else
+ * is gone, it takes nobody else's content with it. That is how a Member is
+ * not stranded in a Group whose admin deleted their account.
+ */
+async function exitsFor(
+  ctx: QueryCtx,
+  membership: Doc<'memberships'>,
+): Promise<{ leave: LeaveStatus; canDelete: boolean }> {
+  const memberships = await ctx.db
+    .query('memberships')
+    .withIndex('by_group', (q) => q.eq('groupId', membership.groupId))
+    .collect()
+  const others: Doc<'memberships'>[] = []
+  for (const other of memberships) {
+    if (other._id === membership._id) continue
+    if ((await ctx.db.get(other.userId)) === null) continue
+    others.push(other)
+  }
+  if (others.length === 0) return { leave: 'last-member', canDelete: true }
+  const leave =
+    isAdmin(membership) && !others.some(isAdmin) ? 'only-admin' : 'allowed'
+  return { leave, canDelete: false }
+}
+
+/**
+ * The caller's ways out of the Group the URL names, so the apps offer Leave
+ * or Delete by the server's rule instead of counting Members themselves.
+ */
+export const leaveStatus = query({
+  args: { slug: v.string() },
+  returns: v.object({ leave: leaveStatusValidator, canDelete: v.boolean() }),
+  handler: async (ctx, args) => {
+    // Group administration stays in the app (ADR-0046).
+    await rejectConnectedApps(ctx)
+    const { membership } = await requireGroupBySlug(ctx, args.slug)
+    return await exitsFor(ctx, membership)
+  },
+})
+
 export const leaveGroup = mutation({
   args: { groupId: v.id('groups') },
   handler: async (ctx, args) => {
@@ -317,19 +388,12 @@ export const leaveGroup = mutation({
     // right — there is no self-service way back into a room nobody administers.
     // So the door is held rather than the damage repaired afterwards, which is
     // the same call `deleteGroup` below makes about its own other Members.
-    if (isAdmin(membership)) {
-      const others = await ctx.db
-        .query('memberships')
-        .withIndex('by_group', (q) => q.eq('groupId', group._id))
-        .collect()
-        .then((all) => all.filter((m) => m._id !== membership._id))
-
-      if (others.length > 0 && !others.some(isAdmin)) {
-        throw new ConvexError(
-          'You are the only admin. Make somebody else an admin before you leave.',
-        )
-      }
-    }
+    // The last Member is held too: walking out would leave a Group with no
+    // Members, so they delete it instead. Not here, silently: deleting
+    // everything in a Group is a decision the reader confirms.
+    const { leave } = await exitsFor(ctx, membership)
+    if (leave === 'last-member') throw new ConvexError(LAST_MEMBER)
+    if (leave === 'only-admin') throw new ConvexError(ONLY_ADMIN)
 
     await detachFromGroup(ctx, membership.userId, group._id)
     await ctx.db.delete(membership._id)
@@ -343,18 +407,14 @@ export const deleteGroup = mutation({
     // Group administration stays in the app (ADR-0046).
     await rejectConnectedApps(ctx)
     const { group, membership } = await requireMembership(ctx, args.groupId)
-    if (!isAdmin(membership)) {
+    const { canDelete } = await exitsFor(ctx, membership)
+    if (!canDelete && !isAdmin(membership)) {
       throw new ConvexError('Only an admin can delete a group')
     }
-
-    const memberships = await ctx.db
-      .query('memberships')
-      .withIndex('by_group', (q) => q.eq('groupId', group._id))
-      .collect()
     // Deleting a Group out from under its other Members would silently take
     // their content with it; removing them first is a decision for a person,
     // not for this mutation.
-    if (memberships.some((m) => m._id !== membership._id)) {
+    if (!canDelete) {
       throw new ConvexError('Remove the other members before deleting this group')
     }
 

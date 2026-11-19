@@ -1,0 +1,244 @@
+/**
+ * What the add-to-groceries sheet shows and adds (APP-312,
+ * `designs/groceries/README.md` section 5), as plain data: one row per source
+ * line, ticked or not, with its amount for the chosen servings and why it
+ * reads the way it does (merged, in stock, read by the AI, plain text).
+ *
+ * Source-agnostic: a recipe hands in its ingredients with the recipe's
+ * servings; the week menu (APP-321) hands in lines from several meals, each
+ * with its own servings and source. The merge itself is `@gather/core`'s
+ * `planGroceryAdds`, the same plan Convex runs when the lines are added.
+ */
+import {
+  capitalise,
+  type GroceryAddLine,
+  type GroceryAmount,
+  type GroceryListItem,
+  groceryAddFields,
+  planGroceryAdds,
+  roundGroceryQuantity,
+  scaleGroceryQuantity,
+} from '@gather/core/groceries'
+
+/** How a source line was read. */
+export type LineRead =
+  /** By the local parser, by the AI (now or earlier), or retyped in the sheet. */
+  | {
+      kind: 'read'
+      via: 'local' | 'ai' | 'ai-earlier' | 'edited'
+      name: string
+      quantity?: number
+      unit?: GroceryAmount['unit']
+    }
+  /** Waiting on the AI. */
+  | { kind: 'reading' }
+  /** Nobody could read it: it goes on the list as written. */
+  | { kind: 'text' }
+
+/** One line of the source, as the sheet receives it. */
+export interface SourceLine {
+  /** Stable within the sheet: the line's position in its source. */
+  key: string
+  /** As the source wrote it ("2 rode paprika's, in reepjes"). */
+  text: string
+  read: LineRead
+  /** The servings the amount is for; absent when it does not scale. */
+  servings?: number
+  /**
+   * Where the line comes from, under its name ("Shakshuka di, Tacos do"),
+   * and the note it carries onto the list. The week menu sets it per line;
+   * a recipe's lines share the sheet's source instead.
+   */
+  detail?: string
+  /**
+   * Bring the list up to this amount rather than add it (the week menu,
+   * APP-321): an item the list already has enough of starts unticked.
+   */
+  topUp?: boolean
+}
+
+/** Why a row reads as it does, under its name. */
+export type RowMeta =
+  | { kind: 'merge'; from: GroceryAmount; to: GroceryAmount }
+  | { kind: 'already' }
+  /** A top-up line the list already has enough of. */
+  | { kind: 'covered'; have: GroceryAmount }
+  | { kind: 'inStock'; adding: boolean }
+  | { kind: 'ai'; earlier: boolean }
+  | { kind: 'reading' }
+  | { kind: 'text' }
+
+export interface PickRow {
+  key: string
+  /** What goes on the list: the name, or the whole line as text. */
+  title: string
+  amount: GroceryAmount
+  /**
+   * What a top-up adds to the item already on the list ("+2"), when that is
+   * less than the row's amount.
+   */
+  adds?: GroceryAmount
+  on: boolean
+  meta: RowMeta | null
+  detail?: string
+}
+
+/** A line the button adds, with its own note for the list. */
+export type PickLine = GroceryAddLine & { source?: string }
+
+export interface PickInput {
+  lines: readonly SourceLine[]
+  /** The servings chosen in the sheet; absent when there is no stepper. */
+  servings?: number
+  /** What is on the chosen list now. */
+  items: readonly GroceryListItem[]
+  /** Rows ticked or unticked by hand, by key. */
+  ticks: Readonly<Record<string, boolean>>
+  /**
+   * Whether the house has this in stock (APP-314, the pantry as In huis).
+   * Such a row starts unticked. Until APP-314 lands nothing is in stock.
+   */
+  inStock?: (name: string) => boolean
+}
+
+/** A line retyped in the sheet, read the way the composer reads a line. */
+export function editedRead(typed: string): LineRead {
+  const fields = groceryAddFields(typed)
+  return {
+    kind: 'read',
+    via: 'edited',
+    name: capitalise(fields.title),
+    ...(fields.quantity !== undefined ? { quantity: fields.quantity } : {}),
+    ...(fields.unit !== undefined ? { unit: fields.unit } : {}),
+  }
+}
+
+function scaled(line: SourceLine, servings: number | undefined): GroceryAmount {
+  const { read } = line
+  if (read.kind !== 'read') return {}
+  const unit = read.unit !== undefined ? { unit: read.unit } : {}
+  if (read.quantity === undefined) return unit
+  // A retyped line says exactly how much; only what the source wrote scales.
+  const factor =
+    read.via !== 'edited' && servings && line.servings
+      ? servings / line.servings
+      : 1
+  return { quantity: scaleGroceryQuantity(read.quantity, read.unit, factor), ...unit }
+}
+
+/** The sheet's rows, and the lines the button adds, in source order. */
+export function pickRows(input: PickInput): {
+  rows: PickRow[]
+  lines: PickLine[]
+  /** Still waiting on the AI: the button waits too. */
+  reading: boolean
+} {
+  const base = input.lines.map((line) => {
+    const read = line.read
+    const title = read.kind === 'read' ? read.name : line.text.trim()
+    const amount = scaled(line, input.servings)
+    const stocked =
+      read.kind === 'read' && (input.inStock?.(read.name) ?? false)
+    return { line, title, amount, stocked }
+  })
+  const toLine = (row: (typeof base)[number], topUp: boolean): PickLine => ({
+    title: row.title,
+    ...row.amount,
+    ...(topUp ? { topUp: true } : {}),
+    ...(row.line.detail ? { source: row.line.detail } : {}),
+  })
+
+  // A top-up line the list already covers starts unticked; ticked by hand,
+  // it adds its whole amount on top, like a recipe's line.
+  const ready = base.filter((row) => row.line.read.kind !== 'reading')
+  const before = planGroceryAdds(
+    input.items,
+    ready.map((row) => toLine(row, row.line.topUp === true)),
+  )
+  const covered = new Map(
+    ready.flatMap((row, index) => {
+      const plan = before[index]
+      return plan.kind === 'covered' && row.line.topUp
+        ? [[row.line.key, plan.have] as const]
+        : []
+    }),
+  )
+
+  const withTicks = base.map((row) => {
+    const own = input.ticks[row.line.key]
+    const on = own ?? !(row.stocked || covered.has(row.line.key))
+    // Only a covered row ticked by hand stops topping up.
+    const topUp = row.line.topUp === true && !(own && covered.has(row.line.key))
+    return { ...row, on, topUp }
+  })
+  const adding = withTicks.filter(
+    (row) => row.on && row.line.read.kind !== 'reading',
+  )
+  const lines = adding.map((row) => toLine(row, row.topUp))
+  const plans = planGroceryAdds(input.items, lines)
+  const planOf = new Map(adding.map((row, index) => [row.line.key, plans[index]]))
+
+  const rows = withTicks.map(
+    ({ line, title, amount, stocked, on, topUp }): PickRow => {
+      const plan = planOf.get(line.key)
+      const have = covered.get(line.key)
+      let meta: RowMeta | null = null
+      let adds: GroceryAmount | undefined
+      if (stocked) meta = { kind: 'inStock', adding: on }
+      else if (plan?.kind === 'merge') {
+        meta =
+          amount.quantity === undefined && amount.unit === undefined
+            ? { kind: 'already' }
+            : { kind: 'merge', from: plan.from, to: plan.to }
+        if (topUp) adds = difference(plan.from, plan.to)
+      } else if (plan?.kind === 'covered' || (!on && have))
+        meta = { kind: 'covered', have: have ?? {} }
+      else if (line.read.kind === 'reading') meta = { kind: 'reading' }
+      else if (line.read.kind === 'text') meta = { kind: 'text' }
+      else if (line.read.via === 'ai' || line.read.via === 'ai-earlier')
+        meta = { kind: 'ai', earlier: line.read.via === 'ai-earlier' }
+      return {
+        key: line.key,
+        title,
+        amount,
+        ...(adds ? { adds } : {}),
+        on,
+        meta,
+        ...(line.detail ? { detail: line.detail } : {}),
+      }
+    },
+  )
+  return {
+    rows,
+    // A covered line changes nothing on the list: it is not counted.
+    lines: lines.filter((_, index) => plans[index].kind !== 'covered'),
+    reading: input.lines.some(
+      (line, index) => line.read.kind === 'reading' && withTicks[index].on,
+    ),
+  }
+}
+
+/** What a top-up merge adds: `to` less `from`, both in the item's unit. */
+function difference(
+  from: GroceryAmount,
+  to: GroceryAmount,
+): GroceryAmount | undefined {
+  if (to.quantity === undefined) return undefined
+  const added = roundGroceryQuantity(to.quantity - (from.quantity ?? 1))
+  if (!(added > 0)) return undefined
+  return { quantity: added, ...(to.unit !== undefined ? { unit: to.unit } : {}) }
+}
+
+/**
+ * A short fingerprint of a recipe's ingredients (FNV-1a): a cached AI reading
+ * is used only while the ingredients are what they were when it was read.
+ */
+export function ingredientsDigest(lines: readonly string[]): string {
+  let hash = 0x811c9dc5
+  const text = lines.join('\n')
+  for (let index = 0; index < text.length; index++) {
+    hash ^= text.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return `${lines.length}:${hash.toString(36)}`
+}

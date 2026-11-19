@@ -1,12 +1,14 @@
 /**
  * The daily cap on AI calls.
  *
- * Gather reaches Anthropic from two actions — the recipe importer's fallback
- * (`recipeImport.importFromUrl`) and the nutrition estimate
- * (`recipeNutrition.estimateNutrition`) — and both spend from this one budget,
- * per person per UTC day. Any new action that calls a model takes a call from
- * `takeAiCall` first; the limit is not per feature on purpose, so a new one
- * cannot quietly double what a person may spend.
+ * Gather reaches Anthropic for a person from three actions — the recipe
+ * importer's fallback (`recipeImport.importFromUrl`), the nutrition estimate
+ * (`recipeNutrition.estimateNutrition`) and reading recipe lines for the
+ * grocery list (`groceryLines.read`, APP-312) — and all spend from this one
+ * budget, per person per UTC day. Any new action that calls a model takes a
+ * call from `takeAiCall` (or `aiUsage.takeCounted`) first; the limit is not
+ * per feature on purpose, so a new one cannot quietly double what a person
+ * may spend.
  *
  * The call is taken *before* the request and not refunded when it fails: the
  * cap exists to bound spend, and a request that reached the provider cost

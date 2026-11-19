@@ -24,6 +24,23 @@ export const settings = {
   },
 
   /**
+   * "Signed-in devices" on the web's Account page. The phone's Devices screen
+   * says the same (`apps/mobile/src/i18n/messages/en.ts`, `account.sessions`).
+   * The session you are holding is not revocable from itself: that is Sign out.
+   */
+  signedInDevices: {
+    title: 'Signed-in devices',
+    description: 'Where you are signed in.',
+    thisDevice: 'This device',
+    lastActive: 'Last active {when}',
+    unknownDevice: 'Unknown device',
+    signOutOf: 'Sign out',
+    revokeTitle: 'Sign out of {device}?',
+    revokeBody: 'That device has to sign in again.',
+    failed: 'Could not load or change your signed-in devices. Try again.',
+  },
+
+  /**
    * "Export your data" — on the web's Account page and the phone's Account
    * screen. What it holds back is stated before the button, because it is
    * the answer to "is my partner's stuff in my file?"
@@ -153,6 +170,7 @@ export const settings = {
     inviteCode: 'Invite code',
     inviteCodeNote:
       'Anyone holding this code can join from Groups — share it only with people you want in this group.',
+    inviteCodeFailed: 'Could not load the invite code.',
     leave: 'Leave',
     leaveButton: 'Leave this group',
     leaveTitle: 'Leave {group}?',
@@ -160,6 +178,8 @@ export const settings = {
       'You stop seeing everything in it. Anything you added stays with the group.',
     leaveConfirm: 'Leave group',
     leaveFailed: 'Could not leave this group.',
+    lastMember:
+      'You are the last member, so the group cannot be left. Delete it instead.',
     delete: 'Delete',
     deleteButton: 'Delete this group',
     deleteTitle: 'Delete {group}?',
