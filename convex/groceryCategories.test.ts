@@ -5,6 +5,8 @@ import type { Id } from './_generated/dataModel'
 import {
   AI_ANSWER_RETENTION_MS,
   GROCERY_AI_DAILY_BUDGET,
+  GROCERY_AI_GROUP_DAILY_BUDGET,
+  GROCERY_HISTORY_WINDOW,
   PENDING_STALE_MS,
 } from './lib/groceryCategories'
 
@@ -146,7 +148,7 @@ describe('aisle on add', () => {
     const answers: Record<string, string> = {
       doenjang: 'pasta_world',
       kibbeling: 'meat_fish',
-      'baked beans': 'tins_sauces',
+      ponzu: 'pasta_world',
       desem: 'bakery',
       labneh: 'dairy',
     }
@@ -165,7 +167,7 @@ describe('aisle on add', () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'test-key')
     vi.stubGlobal('fetch', fetchMock)
 
-    const titles = ['doenjang', '2 bakjes kibbeling', 'baked beans', 'desem', 'labneh']
+    const titles = ['doenjang', '2 bakjes kibbeling', 'ponzu', 'desem', 'labneh']
     const added: Id<'tasks'>[] = []
     for (const title of titles) added.push(await addItem(t, 0, groups[0].groceries, title))
     const before = await Promise.all(added.map((id) => categoryOf(t, id)))
@@ -178,7 +180,7 @@ describe('aisle on add', () => {
         .join('\n'),
     )
     expect(before).toEqual(['other', 'other', 'other', 'other', 'other'])
-    expect(after).toEqual(['pasta_world', 'meat_fish', 'tins_sauces', 'bakery', 'dairy'])
+    expect(after).toEqual(['pasta_world', 'meat_fish', 'pasta_world', 'bakery', 'dairy'])
     expect(fetchMock).toHaveBeenCalledTimes(5)
   })
 
@@ -213,6 +215,137 @@ describe('aisle on add', () => {
     expect(fetchMock).not.toHaveBeenCalled()
     // The claim is given up, so tomorrow's item may ask again.
     expect(await t.run((ctx) => ctx.db.query('groceryCategoryCache').collect())).toEqual([])
+  })
+
+  test('one Group cannot spend more than its share of the day’s questions', async () => {
+    const { t, groups } = await seed()
+    const fetchMock = modelAnswers('pasta_world')
+    const day = new Date().toISOString().slice(0, 10)
+    await t.run(async (ctx) => {
+      await ctx.db.insert('groceryAiGroupUsage', {
+        groupId: groups[0].groupId,
+        day,
+        count: GROCERY_AI_GROUP_DAILY_BUDGET,
+      })
+    })
+    const spent = await addItem(t, 0, groups[0].groceries, 'doenjang')
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await categoryOf(t, spent)).toBe('other')
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    // Another Group still has its own share, and the answer is shared.
+    const other = await addItem(t, 1, groups[1].groceries, 'doenjang')
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await categoryOf(t, other)).toBe('pasta_world')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const usage = await t.run((ctx) => ctx.db.query('groceryAiGroupUsage').collect())
+    expect(usage.map((row) => [row.groupId, row.count])).toEqual([
+      [groups[0].groupId, GROCERY_AI_GROUP_DAILY_BUDGET],
+      [groups[1].groupId, 1],
+    ])
+    expect(
+      (await t.run((ctx) => ctx.db.query('groceryAiUsage').collect()))[0].count,
+    ).toBe(1)
+  })
+
+  test('the Group’s share is taken when the question is asked, not when it is scheduled', async () => {
+    const { t, groups } = await seed()
+    const fetchMock = modelAnswers('pasta_world')
+    const day = new Date().toISOString().slice(0, 10)
+    await addItem(t, 0, groups[0].groceries, 'doenjang')
+    // Spent between scheduling and asking: the run refuses and gives up.
+    await t.run(async (ctx) => {
+      await ctx.db.insert('groceryAiGroupUsage', {
+        groupId: groups[0].groupId,
+        day,
+        count: GROCERY_AI_GROUP_DAILY_BUDGET,
+      })
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(await t.run((ctx) => ctx.db.query('groceryCategoryCache').collect())).toEqual([])
+  })
+
+  test('when only the asking Group is out of questions, a waiting Group asks instead', async () => {
+    const { t, groups } = await seed()
+    const fetchMock = modelAnswers('pasta_world')
+    const day = new Date().toISOString().slice(0, 10)
+    const asker = await addItem(t, 0, groups[0].groceries, 'doenjang')
+    const waiter = await addItem(t, 1, groups[1].groceries, 'doenjang')
+    // The asking Group's share runs out before its question goes.
+    await t.run(async (ctx) => {
+      await ctx.db.insert('groceryAiGroupUsage', {
+        groupId: groups[0].groupId,
+        day,
+        count: GROCERY_AI_GROUP_DAILY_BUDGET,
+      })
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(await categoryOf(t, waiter)).toBe('pasta_world')
+    expect(await categoryOf(t, asker)).toBe('pasta_world')
+    const usage = await t.run((ctx) => ctx.db.query('groceryAiGroupUsage').collect())
+    expect(usage.find((row) => row.groupId === groups[1].groupId)?.count).toBe(1)
+    expect(usage.find((row) => row.groupId === groups[0].groupId)?.count).toBe(
+      GROCERY_AI_GROUP_DAILY_BUDGET,
+    )
+  })
+
+  test('when every waiting Group is out of questions, the question is given up', async () => {
+    const { t, groups } = await seed()
+    const fetchMock = modelAnswers('pasta_world')
+    const day = new Date().toISOString().slice(0, 10)
+    const asker = await addItem(t, 0, groups[0].groceries, 'doenjang')
+    const waiter = await addItem(t, 1, groups[1].groceries, 'doenjang')
+    await t.run(async (ctx) => {
+      for (const index of [0, 1])
+        await ctx.db.insert('groceryAiGroupUsage', {
+          groupId: groups[index].groupId,
+          day,
+          count: GROCERY_AI_GROUP_DAILY_BUDGET,
+        })
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(await categoryOf(t, asker)).toBe('other')
+    expect(await categoryOf(t, waiter)).toBe('other')
+    expect(await t.run((ctx) => ctx.db.query('groceryCategoryCache').collect())).toEqual([])
+  })
+
+  test('items waiting on a question move when the answer comes in, however late', async () => {
+    const { t, groups } = await seed()
+    let answer: (value: unknown) => void = () => {}
+    const fetchMock = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve
+        }),
+    )
+    vi.stubEnv('ANTHROPIC_API_KEY', 'test-key')
+    vi.stubGlobal('fetch', fetchMock)
+    const first = await addItem(t, 0, groups[0].groceries, 'doenjang')
+    const second = await addItem(t, 1, groups[1].groceries, 'doenjang')
+    const third = await addItem(t, 0, groups[0].groceries, '2 potjes doenjang')
+    expect(
+      (await t.run((ctx) => ctx.db.query('groceryCategoryCache').collect()))[0]
+        .waitingTaskIds,
+    ).toEqual([second, third])
+
+    // Far longer than the old 6 × 30 s wait.
+    const running = t.finishAllScheduledFunctions(vi.runAllTimers)
+    await vi.advanceTimersByTimeAsync(PENDING_STALE_MS / 2)
+    answer({
+      ok: true,
+      json: async () => ({
+        content: [{ type: 'tool_use', name: 'choose_aisle', input: { aisle: 'pasta_world' } }],
+      }),
+    })
+    await running
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    for (const task of [first, second, third])
+      expect(await categoryOf(t, task)).toBe('pasta_world')
+    const [row] = await t.run((ctx) => ctx.db.query('groceryCategoryCache').collect())
+    expect(row.waitingTaskIds).toBeUndefined()
   })
 
   test('without an API key the item stays in other', async () => {
@@ -591,5 +724,58 @@ describe('pruning the shared cache (ADR-0049)', () => {
     expect(lines.join('\n')).not.toContain('doenjang')
     log.mockRestore()
     warn.mockRestore()
+  })
+})
+
+describe('history window', () => {
+  test('an add reads only the list’s newest items for history', async () => {
+    const { t, groups } = await seed()
+    vi.stubEnv('ANTHROPIC_API_KEY', '')
+    const listId = groups[0].groceries
+    // An old item the Group put in drinks, then a full window of newer ones.
+    await t.run(async (ctx) => {
+      const userId = (await ctx.db.query('users').first())!._id
+      await ctx.db.insert('tasks', {
+        listId,
+        title: 'doenjang',
+        done: true,
+        createdBy: userId,
+        order: 0,
+        category: 'drinks',
+      })
+      for (let index = 1; index <= GROCERY_HISTORY_WINDOW; index++)
+        await ctx.db.insert('tasks', {
+          listId,
+          title: `item ${index}`,
+          done: true,
+          createdBy: userId,
+          order: index,
+          category: 'other',
+        })
+    })
+    const added = await addItem(t, 0, listId, 'doenjang')
+    const task = await t.run((ctx) => ctx.db.get(added))
+    // Out of the window: not history any more, so the name is unknown again.
+    expect(task?.category).toBe('other')
+    // And it still goes to the end of the list.
+    expect(task?.order).toBe(GROCERY_HISTORY_WINDOW + 1)
+  })
+
+  test('an item inside the window is the Group’s history', async () => {
+    const { t, groups } = await seed()
+    vi.stubEnv('ANTHROPIC_API_KEY', '')
+    const listId = groups[0].groceries
+    await t.run(async (ctx) => {
+      const userId = (await ctx.db.query('users').first())!._id
+      await ctx.db.insert('tasks', {
+        listId,
+        title: 'doenjang',
+        done: true,
+        createdBy: userId,
+        order: 5,
+        category: 'drinks',
+      })
+    })
+    expect(await categoryOf(t, await addItem(t, 0, listId, 'Doenjang'))).toBe('drinks')
   })
 })

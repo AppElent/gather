@@ -196,7 +196,10 @@ export default defineSchema({
      * other lists and on items added before recognition existed.
      */
     category: v.optional(groceryAisleValidator),
-  }).index('by_list', ['listId']),
+  })
+    .index('by_list', ['listId'])
+    // The end of a list without reading all of it (APP-368).
+    .index('by_list_and_order', ['listId', 'order']),
 
   /**
    * A Group's own aisle for a grocery name: written when a Member moves an
@@ -226,6 +229,11 @@ export default defineSchema({
     source: groceryCacheSourceValidator,
     askedAt: v.number(),
     answeredAt: v.optional(v.number()),
+    /**
+     * Items added while the question was out, moved when the answer comes
+     * in, however late (APP-368). Cleared with the answer.
+     */
+    waitingTaskIds: v.optional(v.array(v.id('tasks'))),
   }).index('by_name', ['name']),
 
   /**
@@ -238,6 +246,17 @@ export default defineSchema({
     day: v.string(),
     count: v.number(),
   }).index('by_day', ['day']),
+
+  /**
+   * The same questions counted per Group (APP-368), so one Group cannot spend
+   * the whole day's global budget. Goes with the Group.
+   */
+  groceryAiGroupUsage: defineTable({
+    groupId: v.id('groups'),
+    /** `YYYY-MM-DD`, UTC. */
+    day: v.string(),
+    count: v.number(),
+  }).index('by_group_and_day', ['groupId', 'day']),
 
   notes: defineTable({
     groupId: v.id('groups'),

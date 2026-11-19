@@ -168,6 +168,16 @@ const GROUP_CONTENT: {
         .collect(),
     ),
 
+  groceryAiGroupUsage: async (ctx, groupId) =>
+    purge(
+      ctx,
+      'groceryAiGroupUsage',
+      await ctx.db
+        .query('groceryAiGroupUsage')
+        .withIndex('by_group_and_day', (q) => q.eq('groupId', groupId))
+        .collect(),
+    ),
+
   taskLists: async (ctx, groupId) => {
     const lists = await ctx.db
       .query('taskLists')
