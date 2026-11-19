@@ -45,6 +45,23 @@ describe('the Repeat sheet opened and closed unchanged (APP-303)', () => {
     expect(reopened({ repeat: afterDone })).toEqual(afterDone)
   })
 
+  test('every 2 months instead of 1 keeps the 31st', () => {
+    const draft = repeatDraft(
+      {
+        repeat: { mode: 'fixed', unit: 'month', every: 1, monthDay: 31 },
+        dueDate: '2026-11-30',
+      },
+      TODAY,
+    )
+    const everyOther = { ...draft, fixed: { ...draft.fixed, every: 2 } }
+    expect(draftRule(everyOther, '2026-11-30')).toEqual({
+      mode: 'fixed',
+      unit: 'month',
+      every: 2,
+      monthDay: 31,
+    })
+  })
+
   test('changing the unit takes the day from the due date', () => {
     const draft = repeatDraft(
       {
