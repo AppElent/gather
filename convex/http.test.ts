@@ -221,6 +221,17 @@ describe('POST /clerk/webhook', () => {
     expect(await rowCounts(t)).toEqual(before)
   })
 
+  test('a signed body that is not an event is a 400 that does nothing', async () => {
+    const t = testConvex()
+    await household(t)
+    const before = await rowCounts(t)
+    for (const body of ['null', '42', '"user.deleted"', '{"type":"user.deleted","data":null}']) {
+      expect((await post(t, body, signed(body))).status).toBe(400)
+    }
+    await settle(t)
+    expect(await rowCounts(t)).toEqual(before)
+  })
+
   test('only POST is routed', async () => {
     const t = testConvex()
     const response = await t.fetch('/clerk/webhook', { method: 'GET' })

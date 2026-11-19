@@ -36,12 +36,14 @@ const clerkWebhook = httpAction(async (ctx, request) => {
   if (!(await verifySvix(secret, headers, body)))
     return new Response('Invalid signature', { status: 401 })
 
-  let event: { type?: unknown; data?: { id?: unknown } }
+  let event: { type?: unknown; data?: { id?: unknown } | null } | null
   try {
     event = JSON.parse(body)
   } catch {
     return new Response('Invalid JSON', { status: 400 })
   }
+  if (typeof event !== 'object' || event === null)
+    return new Response('Invalid event', { status: 400 })
 
   if (event.type === 'user.deleted') {
     const subject = event.data?.id
