@@ -212,6 +212,10 @@ async function household(t: Harness): Promise<Household> {
         done: false,
         createdBy: i % 3 ? alice : bob,
         order: i,
+        // The first task is Bob's, given to him by Alice (APP-302).
+        ...(i === 0
+          ? { assigneeId: bob, assignmentNotice: { by: alice, at: 0 } }
+          : {}),
       })
     }
     await ctx.db.insert('notes', {
@@ -560,6 +564,9 @@ describe('what the file contains', () => {
     expect(card).not.toHaveProperty('backPhotoId')
     expect(card.frontPhotoUrl).toEqual(expect.stringContaining('http'))
     expect(card.backPhotoUrl).toEqual(expect.stringContaining('http'))
+    const given = household.tasks.find((task) => task.title === 'Task 0')
+    expect(given?.assigneeId).toBe('Bob')
+    expect(given?.assignmentNotice).toEqual({ by: 'Alice', at: 0 })
     // Carol is no Member of the household, so she is nobody here.
     expect(household.calendarEvents[0].assigneeIds).toEqual(['Bob', null])
     expect(household.recurringCosts[0].split).toEqual([

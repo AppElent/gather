@@ -21,10 +21,11 @@ import ReanimatedSwipeable, {
 
 import { NativeContextMenu } from '../../components/NativeContextMenu'
 import { haptics } from '../../feedback/haptics'
-import { useI18n } from '../../i18n'
+import { fmt, useI18n } from '../../i18n'
 import { UI_ICONS } from '../../theme/icons'
 import { SIZE, SPACE, TYPE, useTokens } from '../../theme/tokens'
 import { useInsetSeparator } from '../../ui/inset-list'
+import { AssigneeCoin, useTaskPeople } from './assignee'
 import { Checkbox } from './components'
 import { GroceryPreview } from './GroceryFields'
 import { TASK_ICONS } from './icons'
@@ -84,6 +85,14 @@ export function TaskRow({
   const swipe = useRef<SwipeableMethods | null>(null)
   // Rows sit in an `InsetList`: the hairline starts at the text column.
   const separator = useInsetSeparator()
+  // The responsible Member's coin, trailing (APP-302); VoiceOver hears it in
+  // the row's label instead.
+  const { byId } = useTaskPeople()
+  const assignee = task.assigneeId ? byId.get(task.assigneeId) : undefined
+  const spoken = assignee
+    ? `${label ?? task.title}, ${fmt(t.tasks.assignee.assignedTo, { name: assignee.name })}`
+    : (label ?? task.title)
+  const coin = assignee ? <AssigneeCoin initial={assignee.initial} /> : null
 
   const toggle = () => {
     if (!task.done) haptics.itemCompleted()
@@ -134,7 +143,7 @@ export function TaskRow({
           <Pressable
             testID={`task-${task.id}`}
             accessibilityRole="button"
-            accessibilityLabel={label ?? task.title}
+            accessibilityLabel={spoken}
             android_ripple={{ color: tokens.surface2 }}
             onPress={onOpen}
             style={({ pressed }) => [
@@ -151,6 +160,7 @@ export function TaskRow({
               {meta}
             </View>
             {trailing}
+            {coin}
             {chevron ? (
               <UI_ICONS.ChevronRight
                 size={17}
@@ -179,6 +189,7 @@ export function TaskRow({
               {meta}
             </View>
             {trailing}
+            {coin}
           </View>
         </Pressable>
       )}

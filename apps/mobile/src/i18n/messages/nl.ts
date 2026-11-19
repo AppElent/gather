@@ -722,6 +722,7 @@ export const nl = {
     packing: coreNl.tasks.packing,
     wishlist: coreNl.tasks.wishlist,
     grocery: coreNl.tasks.grocery,
+    assignee: coreNl.tasks.assignee,
     title: 'Taken',
     quickAdd: {
       list: 'Op de lijst',

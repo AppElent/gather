@@ -214,6 +214,20 @@ export default defineSchema({
     quantity: v.optional(v.number()),
     unit: v.optional(groceryUnitValidator),
     /**
+     * The one Member responsible for the task (APP-302): a current Member of
+     * the list's Group, checked on every write. Leaving the Group clears it
+     * (`detachFromGroup`). Absent is nobody, and on every task from before.
+     */
+    assigneeId: v.optional(v.id('users')),
+    /**
+     * Present while the assignee has not yet opened a task someone else gave
+     * them: who gave it and when. It is the in-app notice beside the push
+     * (APP-302); opening the task, a new assignee, or none clears it.
+     */
+    assignmentNotice: v.optional(
+      v.object({ by: v.id('users'), at: v.number() }),
+    ),
+    /**
      * A reminder somebody chose (APP-305); a due date alone sets none. Absent
      * on every task without one. Its send is a `scheduledNotifications` row
      * under `taskReminderKey`, kept in step by `lib/taskReminders.ts`.
@@ -229,7 +243,10 @@ export default defineSchema({
   })
     .index('by_list', ['listId'])
     // The end of a list without reading all of it (APP-368).
-    .index('by_list_and_order', ['listId', 'order']),
+    .index('by_list_and_order', ['listId', 'order'])
+    // A person's tasks across lists: the leave-Group clean-up, the in-app
+    // notice, and later the "Mine" smart list (APP-301).
+    .index('by_assignee', ['assigneeId']),
 
   /**
    * A Group's own aisle for a grocery name: written when a Member moves an
